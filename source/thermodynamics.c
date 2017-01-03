@@ -1858,7 +1858,6 @@ if(preco->decay >0 || preco->annihilation > 0){
       L_ed = M_ed_dot*_c_*_c_; // J s^-1;
 
 
-      // //First way of computing m_dot and L_acc (from eq. 22 of Ricotti et al.)
       if(preco->PBH_accretion_recipe == Ricotti_et_al || preco->PBH_accretion_recipe == Horowitz){
 
           if(preco->PBH_accretion_recipe == Ricotti_et_al){
@@ -1868,48 +1867,47 @@ if(preco->decay >0 || preco->annihilation > 0){
           else if(preco->PBH_accretion_recipe == Horowitz){
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             v_l = 30*MIN(1,z/1000)*1e3;
-            if(v_B < v_l && v_l != 0) v_eff = sqrt(v_B*v_l);
+            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
             // *pow(16/sqrt(2*_PI_),1./6);
-            else v_eff = v_B*sqrt(1+(v_l/v_B,2));
-
+            else v_eff = v_B;
+            // v_eff = sqrt(v_B*v_l);
+            // *sqrt(1+(v_l/v_B,2));
             // v_eff = 31000;
             // if(v_eff/c_s>1)v_eff = c_s*pow(16/sqrt(2*_PI_)*pow(v_eff/c_s,3),1./6); // eq 6 from Horowitz 1612.07264
             // else v_eff = c_s*pow(1+pow(v_eff/c_s,2),1./2);
-            // fprintf(stdout, "v_eff %e z %e \n",v_eff,z);
+            // fprintf(stdout, "v_eff %e z %e T_infinity %e x_e %e \n",v_eff,z,T_infinity,x_e);
             // if(z>=1000)v_eff = 31000;
           }
 
+          // //First way of computing m_dot and L_acc (from eq. 22 of Ricotti et al.)
           // r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
           // beta = 2.06e-23*x_e*pow(1+z,4);
           // beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
           // beta_hat = beta_eff*r_B/c_s;
           // x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
           // lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-          // m_dot = (2.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3); //1.8 -> 2.8 mistake in Ricotti et al.
+          // m_dot = (1.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3); //1.8 -> 2.8 mistake in Ricotti et al.
+          // if(isnan(m_dot)==1)m_dot = 0;
           // if(preco->PBH_mass>100) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
           // else l = 0.011*m_dot*m_dot;
           // L_acc_2 = l*L_ed;
 
           //Second way of computing m_dot and L_acc (from eq. 1 of Ricotti et al.)
-              // if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
-              // if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
-              // // //Alternative v_eff by Ali-Haimoud et al. correcting the one from Ricotti et al.
-              // // if(z<1500)v_eff = pow(1+z,0.793943)*0.0541752*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644
-              // if(z>=1500)v_eff = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644
-              r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
-              beta = 2.06e-23*x_e*pow(1+z,4);
-              beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
-              beta_hat = beta_eff*r_B/c_s;
-              x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
-              lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-              M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
-              M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
-              m_dot_2 = M_b_dot/M_ed_dot;
-              // m_dot_old = M_b_dot_old/M_ed_dot;
-              if(preco->PBH_mass>100) l2 = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
-              else l2 = 0.011*m_dot_2*m_dot_2;
-              L_acc_2 = l2*L_ed;
+          r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
+          beta = 2.06e-23*x_e*pow(1+z,4);
+          beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
+          beta_hat = beta_eff*r_B/c_s;
+          x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
+          lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
+          M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
+          M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
+          m_dot_2 = M_b_dot/M_ed_dot;
+          // m_dot_old = M_b_dot_old/M_ed_dot;
+          if(preco->PBH_mass>100) l2 = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
+          else l2 = 0.011*m_dot_2*m_dot_2;
+          L_acc_2 = l2*L_ed;
 
+          fprintf(stdout, "z %e m_dot %e L_acc_2 %e   \n",z,m_dot,L_acc_2);
         }
 
       //Third way of computing m_dot and L_acc from Gaggero et al. arXiv:1612.00457
@@ -1933,7 +1931,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
         v_l = 30*MIN(1,z/1000)*1e3;
         if(v_B < v_l && v_l != 0) v_eff = sqrt(v_B*v_l);
-        else v_eff = v_B*1e3;
+        else v_eff = v_B;
         // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
         // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
 
@@ -1965,7 +1963,6 @@ if(preco->decay >0 || preco->annihilation > 0){
         L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
         M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
         fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
-
       }
 
 
@@ -2307,6 +2304,7 @@ int thermodynamics_beyond_onthespot_energy_injection(
           class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
                     preco->error_message,
                     preco->error_message);
+          preco->f_eff=MAX(preco->f_eff,0.);
         }
         else preco->f_eff=1.;
         if(preco->annihilation_z_halo>0.){
@@ -2322,15 +2320,13 @@ int thermodynamics_beyond_onthespot_energy_injection(
           class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
                     preco->error_message,
                     preco->error_message);
+          preco->f_eff=MAX(preco->f_eff,0.);
         }
         else preco->f_eff=1.;
-        if(preco->f_eff<0) preco->f_eff = 0;
         *energy_rate =  rho_ini_dcdm*pow(1+z,3)*preco->decay*(pba->Gamma_dcdm*_c_/_Mpc_over_m_)*preco->f_eff;
         //fprintf(stdout, "f %e energy_rate %e z %e %e \n", preco->f_eff,*energy_rate, z,1/(pba->Gamma_dcdm*_c_/_Mpc_over_m_));
-
       }
       if(preco->PBH_mass > 0.){
-
         class_call(background_tau_of_z(pba,
                                        z,
                                        &tau),
@@ -2350,47 +2346,14 @@ int thermodynamics_beyond_onthespot_energy_injection(
           class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,&f_eff),
                     preco->error_message,
                     preco->error_message);
+          preco->f_eff=MAX(preco->f_eff,0.);
         }
         else preco->f_eff=1.;
-
-        // // c_s = 5.7e3*pow((1+z)/1000,0.5);//conversion km en m
-        // c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
-        // if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
-        // if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
-        // M_sun = 2e30;
-        // r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
-        // // x_e = 1;
-        // x_e = preco->xe_tmp;
-        // beta = 2.06e-23*x_e*pow(1+z,4);
-        // beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
-        // beta_hat = beta_eff*r_B/c_s;
-        // x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
-        // lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-        //
-        // //First way of computing m_dot and L_acc
-        // L_ed = 1.27e38*(preco->PBH_mass)*1e-7; // 1e-7 = conversion erg -> J;
-        // m_dot = (1.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3);
-        // if(preco->PBH_mass>=100) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
-        // else l = 0.011*m_dot*m_dot;
-        // L_acc = l*L_ed;
-        // //Second way of computing m_dot and L_acc
-        // n_gas = 200*1e6*pow((1+z)/1000,3); // 1e6 = conversion cm^-3 en m^-3;
-        // m_H= 1.67e-27;
-        // M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
-        // M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
-        // m_dot_2 = M_b_dot/M_ed_dot;
-        // if(preco->PBH_mass>=100) l = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
-        // else l = 0.011*m_dot_2*m_dot_2;
-        // L_acc_2 = l*L_ed;
-        //
-        // Integrale = 1000; // Integration of nu^-0.5*exp(-nu/nu_c) between 1KeV and 511KeV
-        //
-        // Normalization = L_acc_2/Integrale;
-          class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,energy_rate,error_message),
-                     error_message,
-                     error_message);
+        class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,energy_rate,error_message),
+                  error_message,
+                  error_message);
         *energy_rate *=  preco->f_eff;
-        fprintf(stdout, "%e %e\n",*energy_rate,preco->f_eff);
+        // fprintf(stdout, "%e %e %e\n",z,*energy_rate,preco->f_eff);
         // fprintf(stdout, "%e %e %e %e %e %e %e  \n", m_dot,m_dot_2,m_dot/m_dot_2,L_acc,L_acc_2,*energy_rate,z);
         // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",lambda, m_dot,m_dot_2,*energy_rate,v_eff,z,beta_hat, x_e);
       }
@@ -2439,57 +2402,68 @@ int thermodynamics_energy_injection(
   double factor,result;
   double nH0;
   double onthespot;
-
+  double exponent_z,exponent_zp;
   if (preco->annihilation > 0 || preco->decay > 0 || preco->PBH_mass > 0 || preco->PBH_low_mass > 0 ) {
     if (preco->has_on_the_spot == _FALSE_) {
 
       /*
       // /**************Old version, corrected by Vivian Poulin. Kept for comparaison*************/
       //
-      // // /* number of hydrogen nuclei today in m**-3 */
-      nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
+      if(preco->energy_deposition_treatment == Analytical_approximation){
+        // // /* number of hydrogen nuclei today in m**-3 */
+        nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
-      /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-      // factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        /*Value from Poulin 1508.01370*/
+        /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
+        factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        exponent_z = 8;
+        exponent_zp = 7.5;
 
-      /* integral over z'(=zp) with step dz */
-      dz=1.;
+        /*Value from Ali-Haimoud & Kamionkowski 1612.05644*/
+        // factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        // exponent_z = 7;
+        // exponent_zp = 6.5;
 
-      /* first point in trapezoidal integral */
-      zp = z;
-      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
-                 error_message,
-                 error_message);
-      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
-      result = 0.5*dz*first_integrand;
 
-      /* other points in trapezoidal integral */
-      do {
+        /* integral over z'(=zp) with step dz */
+        dz=1.;
 
-        zp += dz;
+        /* first point in trapezoidal integral */
+        zp = z;
         class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
                    error_message,
                    error_message);
-        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
-        result += dz*integrand;
+        first_integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
+        result = 0.5*dz*first_integrand;
 
-      } while (integrand/first_integrand > 0.02);
+        /* other points in trapezoidal integral */
+        do {
 
+          zp += dz;
+          class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,zp,&onthespot,error_message),
+                     error_message,
+                     error_message);
+          integrand = factor*pow(1+z,exponent_z)/pow(1+exponent_zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
+          result += dz*integrand;
+
+        } while (integrand/first_integrand > 0.02);
+      }
 
       // // /***********************************************************************************************************************/
-      // class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
+      else if(preco->energy_deposition_treatment == Slatyer){
+        class_call(thermodynamics_beyond_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
+                 error_message,
+                 error_message);
+      }
+      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
+      // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
-     /* uncomment these lines if you also want to compute the on-the-spot for comparison */
-     class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
-                error_message,
-                error_message);
-      /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
-        fprintf(stdout,"%e  %e  %e  %e\n",
-        1.+z,
-        result/pow(1.+z,6),
-        onthespot/pow(1.+z,6),result/onthespot);
+      // /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
+      // fprintf(stdout,"%e  %e  %e  %e\n",
+      // 1.+z,
+      // result/pow(1.+z,6),
+      // onthespot/pow(1.+z,6),result/onthespot);
     }
     else {
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
@@ -3767,7 +3741,6 @@ if((pth->annihilation!=0 || pth->decay!=0 || pth->PBH_mass != 0 || pth->PBH_low_
       class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                  pth->error_message,
                  pth->error_message);
-
       }
       else energy_rate = 0;
       preco->z_tmp=z;
@@ -4145,6 +4118,7 @@ int thermodynamics_recombination_with_hyrec(
   preco->annihilation_z_halo = pth->annihilation_z_halo;
   preco->PBH_mass = pth->PBH_mass;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
+  preco->energy_deposition_treatment = pth->energy_deposition_treatment;
   preco->PBH_low_mass = pth->PBH_low_mass;
   if(preco->PBH_low_mass!=0){
     preco->PBH_low_mass_tmp=preco->PBH_low_mass;
@@ -4386,6 +4360,7 @@ int thermodynamics_recombination_with_recfast(
   preco->decay = pth->decay;
   preco->PBH_mass = pth->PBH_mass;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
+  preco->energy_deposition_treatment = pth->energy_deposition_treatment;
   preco->PBH_low_mass = pth->PBH_low_mass;
   preco->PBH_fraction = pth->PBH_fraction;
   preco->energy_repart_functions = pth->energy_repart_functions;
@@ -4752,6 +4727,7 @@ int thermodynamics_derivs_with_recfast(
   double chi_ionH;
   double chi_ionHe;
   double chi_lowE;
+  double dTdz_DM, dTdz_CMB, dTdz_adia;
    /*used for reionization from realistic star model*/
    double ap,bp,cp,dp,rho_sfr,stars_xe,dNion_over_dt,f_esc,Zeta_ion,f_X;
    double MPCcube_to_mcube=2.93799895*pow(10,67);
@@ -4814,10 +4790,11 @@ int thermodynamics_derivs_with_recfast(
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
   if( z > 2){//sometimes problem with interpolation
-    // fprintf(stdout, "here, Tmat %e\n",Tmat);
+    fprintf(stdout, "z %e,Tmat %e, x %e\n",z,Tmat,x);
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
+  fprintf(stdout, "energy_rate %e\n",energy_rate);
   }
   else energy_rate = 0;
      preco->z_tmp=z;
@@ -5082,14 +5059,16 @@ else energy_rate=0;
 
         chi_heat= MIN(chi_heat,1.);
         chi_heat = MAX(chi_heat,0.);
-      // fprintf(stdout, "z %e chi_heat %e chi_heat_old %e xe %e\n",z ,chi_heat,(1.+2.*x)/3., x);
+      fprintf(stdout, "z %e chi_heat %e chi_heat_old %e xe %e\n",z ,chi_heat,(1.+2.*x)/3., x);
     }
     else chi_heat = 0.;
-    dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
-      -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
-      if(pth->thermodynamics_verbose>10){
-      fprintf(stdout, "z %e dT %e Tmat %e Trad %e dTdz_CMB %e dTdz_DM %e x %e\n", z, dy[2], Tmat, Trad, preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) ,-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)),x);
-      }
+    dTdz_adia=2.*Tmat/(1.+z);
+    dTdz_CMB = preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z));
+    dTdz_DM = -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z));
+    dy[2]= dTdz_CMB + dTdz_adia + dTdz_DM; /* dTdz_DM = energy injection */
+      // if(pth->thermodynamics_verbose>10){
+      fprintf(stdout, "z %e dT %e Tmat %e Trad %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e x %e\n", z, dy[2], Tmat, Trad,dTdz_adia, dTdz_CMB ,dTdz_DM,x);
+      // }
       if(pth->reio_parametrization == reio_stars_realistic_model){
       stars_xe=dNion_over_dt/MPCcube_to_mcube/(Hz*(1.+z)*n);
       L_x= E_x * f_X * rho_sfr/(3*MPCcube_to_mcube*_k_B_*n*Hz*(1.+x+preco->fHe));

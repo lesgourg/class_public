@@ -1345,7 +1345,25 @@ if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0 || pth->PBH_low_mas
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
       pth->has_on_the_spot = _FALSE_;
     }
-
+    if(pth->has_on_the_spot == _FALSE_){
+      class_call(parser_read_string(pfc,"energy_deposition_treatment",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if (flag1 == _TRUE_){
+        flag2 = _FALSE_;
+        if (strcmp(string1,"Analytical_approximation") == 0) {
+          pth->energy_deposition_treatment=Analytical_approximation;
+          flag2=_TRUE_;
+        }
+        if (strcmp(string1,"Slatyer") == 0) {
+          pth->energy_deposition_treatment=Slatyer;
+          flag2=_TRUE_;
+        }
+      class_test(flag2==_FALSE_,
+                   errmsg,
+                   "could not identify energy_deposition_treatment, check that it is one of 'Analytical_approximation', 'Slatyer'.");
+      }
+    }
 
     class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
                errmsg,
@@ -3116,6 +3134,7 @@ int input_default_params(
   pth->decay = 0.;
   pth->PBH_mass = 0.;
   pth->PBH_accretion_recipe = Ali_Haimoud;
+  pth->energy_deposition_treatment = Analytical_approximation;
   pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;

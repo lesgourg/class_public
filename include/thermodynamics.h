@@ -43,6 +43,10 @@ enum PBH_accretion_recipe {
   Gaggero_et_al,  /**< Accretion recipe from Gaggero et al., arXiv:1612.00457 */
   Horowitz /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
 };
+enum energy_deposition_treatment {
+  Analytical_approximation, /**< Analytical energy deposition treatment, introduced in 1209.0247 and corrected in 1612.05644 */
+  Slatyer  /**< f(z) functions from Slatyer, introduced in 1211.0283 and updated in 1506.03812 */
+};
 
 /**
  * Is the input parameter the reionization redshift or optical depth?
@@ -154,6 +158,7 @@ struct thermo
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
+  enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
 
@@ -389,6 +394,7 @@ struct recombination {
   double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
+  enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
   double Tm_tmp; /**< To temporarily store the value of the matter temperature*/
