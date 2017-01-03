@@ -1780,7 +1780,7 @@ int thermodynamics_onthespot_energy_injection(
   double * pvecback;
   //Parameters related to PBH
   double c_s, v_eff,v_eff_2,v_l, r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
-  double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2;
+  double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2,M_crit;
   double rho, m_p = 938, m_e = 0.511, T_infinity = 0, rho_infinity = 0, x_e_infinity = 0, P_infinity = 0, rho_cmb = 0, t_B = 0, v_B = 0;
   double lambda_1,lambda_2,lambda_ad,lambda_iso,gamma_cooling,beta_compton_drag, T_s, T_ion, Y_s, J,tau_cooling;
   double f,f_neutrinos, em_branching,tau_pbh,i;
@@ -1915,13 +1915,16 @@ if(preco->decay >0 || preco->annihilation > 0){
       //Third way of computing m_dot and L_acc from Gaggero et al. arXiv:1612.00457
       else if(preco->PBH_accretion_recipe == Gaggero_et_al){
           //v_eff not clearly given, I use the alternative v_eff by Ali-Haimoud et al.
-          if(z<1500)v_eff = pow(1+z,0.793943)*0.0541752*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644
-          if(z>=1500)v_eff = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644
-          r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
+          v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+          v_l = 30*MIN(1,z/1000)*1e3;
+          if(v_B < v_l && v_l != 0) v_eff = sqrt(v_B*v_l);
+          else v_eff = v_B;
           lambda = 0.01;
-          rho = m_H*n_gas; // density not clearly given, I use the mean hydrogen density, from Ricotti et al.
-          M_b_dot = 4*_PI_*lambda*rho*v_eff*r_B*r_B;
-          L_acc_2 = 0.3*M_b_dot*M_b_dot*_c_*_c_/1.1e15; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
+          rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+          M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_mass*M_sun,2)*rho*pow(v_eff,-3.);
+          M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
+          L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
+          // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
 
         }
       //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
@@ -1960,6 +1963,9 @@ if(preco->decay >0 || preco->annihilation > 0){
         // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
         L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
         L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
+        M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
+        fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
+
       }
 
 
