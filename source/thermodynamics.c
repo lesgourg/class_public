@@ -1851,8 +1851,8 @@ if(preco->decay >0 || preco->annihilation > 0){
       m_H= 1.67e-27; // Hydrogen mass in kg
       // fprintf(stdout, "v_eff %e r_B %e z %e\n", v_eff,r_B,z);
 
-      x_e = 1;
-      // x_e = preco->xe_tmp;
+      // x_e = 1;
+      x_e = preco->xe_tmp;
       T_infinity = preco->Tm_tmp*_eV_over_Kelvin_*1e-6; //Temperature in MeV
       M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
       L_ed = M_ed_dot*_c_*_c_; // J s^-1;
