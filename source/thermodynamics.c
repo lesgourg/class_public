@@ -1872,12 +1872,15 @@ if(preco->decay >0 || preco->annihilation > 0){
 
             // v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             v_B = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
-            v_l = 30*MIN(1,z/1000)*1e3;
+            v_l = 31*MIN(1,z/1000)*1e3;
             if(v_B < v_l){
                v_eff = sqrt(v_B*v_l);
+               v_eff *= sqrt(1+(v_l/v_B,2));
+
              }
             else {
               v_eff = v_B;
+              v_eff *= pow(16/sqrt(2*_PI_)*pow(v_l/v_B,3),1./6);
               // fprintf(stdout, "v_B %e v_l %e z %e\n",v_B,v_l,z);
             }
             // v_eff = sqrt(v_B*v_l);
@@ -1892,33 +1895,36 @@ if(preco->decay >0 || preco->annihilation > 0){
           }
 
           // //First way of computing m_dot and L_acc (from eq. 22 of Ricotti et al.)
-          r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
-          beta = 2.06e-23*x_e*pow(1+z,4);
-          beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
-          beta_hat = beta_eff*r_B/c_s;
-          x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
-          lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-          m_dot = (2.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3); //1.8 -> 2.8 mistake in Ricotti et al.
-          // if(isnan(m_dot)==1)m_dot = 0;
-          L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-          if(preco->PBH_mass>100) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
-          else l = 0.011*m_dot*m_dot;
-          L_acc_2 = l*L_ed;
-
-          //Second way of computing m_dot and L_acc (from eq. 1 of Ricotti et al.)
           // r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
           // beta = 2.06e-23*x_e*pow(1+z,4);
           // beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
           // beta_hat = beta_eff*r_B/c_s;
           // x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
           // lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-          // M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
+          // m_dot = (2.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_mass)*pow(v_eff/5.74e3,-3); //1.8 -> 2.8 mistake in Ricotti et al.
+          // // if(isnan(m_dot)==1)m_dot = 0;
+          // // L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
           // M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
-          // m_dot_2 = M_b_dot/M_ed_dot;
-          // // m_dot_old = M_b_dot_old/M_ed_dot;
-          // if(preco->PBH_mass>100) l2 = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
-          // else l2 = 0.011*m_dot_2*m_dot_2;
-          // L_acc_2 = l2*L_ed;
+          // L_ed = M_ed_dot*_c_*_c_; // J s^-1;
+          // if(preco->PBH_mass>100) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
+          // else l = 0.011*m_dot*m_dot;
+          // L_acc_2 = l*L_ed;
+
+          //Second way of computing m_dot and L_acc (from eq. 1 of Ricotti et al.)
+          r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2);
+          beta = 2.06e-23*x_e*pow(1+z,4);
+          beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
+          // fprintf(stdout, "z %e 1/beta %e 1/H %e 1/beta_eff %e t_B %e \n",z,1/beta,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/beta_eff,r_B/v_eff);
+          beta_hat = beta_eff*r_B/c_s;
+          x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
+          lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
+          M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
+          M_ed_dot = 1.44e17*(preco->PBH_mass)*1e-3; // 1e-3 = conversion g en Kg;
+          m_dot_2 = M_b_dot/M_ed_dot;
+          // m_dot_old = M_b_dot_old/M_ed_dot;
+          if(preco->PBH_mass>100) l2 = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
+          else l2 = 0.011*m_dot_2*m_dot_2;
+          L_acc_2 = l2*L_ed;
 
           // fprintf(stdout, "z %e m_dot %e L_acc_2 %e   \n",z,m_dot,L_acc_2);
         }
@@ -1941,7 +1947,9 @@ if(preco->decay >0 || preco->annihilation > 0){
       //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
       else if(preco->PBH_accretion_recipe == Ali_Haimoud){
         rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
-        v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+        // x_e_infinity = 1; // change to 1 for the strong-feedback case
+        x_e_infinity = x_e; // change to x_e for the no-feedback case
+        v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
         v_l = 30*MIN(1,z/1000)*1e3;
         if(v_B < v_l) v_eff = sqrt(v_B*v_l);
         else v_eff = v_B;
@@ -1952,15 +1960,16 @@ if(preco->decay >0 || preco->annihilation > 0){
         // if(z>=1500)v_eff_2 = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644  // in m
         r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2); // in m
         t_B = _G_*preco->PBH_mass*M_sun/pow(v_eff,3); // in s
-        x_e_infinity = x_e; // change to 1 for the strong-feedback case
         // fprintf(stdout, "z %e T_infinity %e rho_infinity %e P_infinity %e v_B %e t_B %e x_e_infinity %e \n",z,T_infinity,rho_infinity,P_infinity,v_B,t_B,x_e_infinity );
         beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_; //Misprint in Ali-Haimoud et al., c should be in numerator otherwise not dimensionless
         gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
+        fprintf(stdout, "z %e 1/beta %e 1/H %e 1/gamma_cooling %e t_B %e \n",z,1/beta_compton_drag,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/gamma_cooling,t_B);
         lambda_iso = 0.25*exp(1.5);
         lambda_ad = 0.25*pow(3./5,1.5);
         lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
         lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*1/(pow(pow(1+beta_compton_drag,0.5)+1,2));
-        // fprintf(stdout, "z %e beta_compton_drag %e gamma_cooling %e lambda_1 %e lambda_2 \n",z,beta_compton_drag,gamma_cooling,lambda_1,lambda_2);
+        // lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag;
+        // fprintf(stdout, "z %e beta_compton_drag %e gamma_cooling %e lambda_1 %e lambda_2 %e lambda_3 %e \n",z,beta_compton_drag,gamma_cooling,lambda_1,lambda_2,exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag);
         lambda = lambda_1*lambda_2/lambda_iso;
         rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
         // fprintf(stdout, "rho %e m_H*n_gas %e \n", rho,m_H*n_gas);
@@ -1997,6 +2006,8 @@ if(preco->decay >0 || preco->annihilation > 0){
 
 
       if(preco->PBH_low_mass<1e15){
+        tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3);
+        fprintf(stdout, "T %e fem %e br_ee %e br_gg %e tau_pbh %e exp %e \n",1.06*(pow(10,10)/preco->PBH_low_mass)*pow(10,12),f-f_neutrinos,2*2*0.142/(f-f_neutrinos),2*0.06/(f-f_neutrinos),tau_pbh,exp(1e14/tau_pbh));
         class_call(background_tau_of_z(pba,
                                        z,
                                        &tau),
@@ -2017,246 +2028,6 @@ if(preco->decay >0 || preco->annihilation > 0){
           dMdt = 0;
         }
         else dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
-        // fprintf(stdout, "tau = %e s\n",407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3));
-        // fprintf(stdout,"v1: pbh_mass ini %e dMdt  %e pbh_mass %e z %e em_branching %e \n",preco->PBH_low_mass,dMdt,pbh_mass, z, em_branching);
-
-
-
-
-        // if(z<zinitial/10)zinitial/=10;
-        // dz= (zinitial-z);
-        // dz= (zinitial-z)/2000;
-        // fprintf(stdout, "z %e pbh_mass %e exponent %e \n",z,preco->PBH_low_mass_tmp,preco->exponent_pbh_integral);
-
-        // Version avec stockage intermediaire de la masse
-      /*  for(z_int = zinitial ; z_int > z ; z_int-=dz){
-          class_call(background_tau_of_z(pba,
-                                         z_int,
-                                         &tau),
-                     pba->error_message,
-                     ppr->error_message);
-
-          class_call(background_at_tau(pba,
-                                       tau,
-                                       pba->short_info,
-                                       pba->inter_normal,
-                                       &last_index_back,
-                                       pvecback),
-                     pba->error_message,
-                     ppr->error_message);
-          // fprintf(stdout, "z_int %e z %e\n",z_int,z);
-          z_int_1 = z_int;
-          z_int_2 = z_int_1 - dz/3.;
-          z_int_3 = z_int_2 - dz/3.;
-          class_call(background_tau_of_z(pba,
-                                         z_int_1,
-                                         &tau),
-                     pba->error_message,
-                     ppr->error_message);
-
-          class_call(background_at_tau(pba,
-                                       tau,
-                                       pba->long_info,
-                                       pba->inter_normal,
-                                       &last_index_back,
-                                       pvecback),
-                     pba->error_message,
-                     ppr->error_message);
-          dt_over_dz_1 = -1/((1+z_int_1)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
-          // class_call(background_tau_of_z(pba,
-          //                                z_int_2,
-          //                                &tau),
-          //            pba->error_message,
-          //            ppr->error_message);
-          //
-          // class_call(background_at_tau(pba,
-          //                              tau,
-          //                              pba->long_info,
-          //                              pba->inter_normal,
-          //                              &last_index_back,
-          //                              pvecback),
-          //            pba->error_message,
-          //            ppr->error_message);
-          // dt_over_dz_2 = -1/((1+z_int_2)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
-          // class_call(background_tau_of_z(pba,
-          //                                z_int_3,
-          //                                &tau),
-          //            pba->error_message,
-          //            ppr->error_message);
-          //
-          // class_call(background_at_tau(pba,
-          //                              tau,
-          //                              pba->long_info,
-          //                              pba->inter_normal,
-          //                              &last_index_back,
-          //                              pvecback),
-          //            pba->error_message,
-          //            ppr->error_message);
-          // dt_over_dz_3= -1/((1+z_int_3)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
-          // if(z_int==zinitial){
-          //   // pbh_mass=preco->PBH_low_mass;
-          //   pbh_mass=preco->PBH_low_mass_tmp;
-          //   // exponent = 0;
-          //   exponent = preco->exponent_pbh_integral;
-          // }
-          if(preco->PBH_low_mass_tmp<1e17) f = (2*0.06+6*0.147+2*0.007+2*2*0.142);//electrons
-          if(preco->PBH_low_mass_tmp<1e15) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142);//muons
-          if(preco->PBH_low_mass_tmp<1e14) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142);//tau
-          if(preco->PBH_low_mass_tmp<5e13) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142+3*12*0.142 + 16*0.06);//u d s and gluons
-          // if(pbh_mass<5e10) f += 3*12*0.142;//c b t
-          // if(pbh_mass<1e11) f += 3*2*0.06 + 3*0.06 + 0.267;//W,Z,higgs
-          dMdz_1 = -5.34e-5*f*pow(preco->PBH_low_mass_tmp/1e10,-2)*dt_over_dz_1*1e10;
-          // dMdz_2 = -5.34e-5*f*pow(preco->PBH_low_mass_tmp/1e10,-2)*dt_over_dz_2*1e10;
-          // dMdz_3 = -5.34e-5*f*pow(preco->PBH_low_mass_tmp/1e10,-2)*dt_over_dz_3*1e10;
-          preco->PBH_low_mass_tmp=preco->PBH_low_mass_tmp-(dMdz_1)*dz;
-          // fprintf(stdout, "preco->PBH_low_mass_tmp %e,dMdz_1 %e dz %e\n", preco->PBH_low_mass_tmp,dMdz_1,dz);
-
-          // preco->PBH_low_mass_tmp-=(dMdz_1+4*dMdz_2+dMdz_3)*dz/6;
-          // fprintf(stdout, "pbh_mass %e dMdz %e z_int %e\n",pbh_mass,dMdz_1+4*dMdz_2+dMdz_3,z_int);
-          // preco->PBH_low_mass_tmp = pbh_mass;
-
-          if(preco->PBH_low_mass_tmp <=0) {
-            preco->PBH_low_mass_tmp = 0;
-            tau_pbh = 0;
-            preco->exponent_pbh_integral = 0;
-            // fprintf(stdout, "here\n");
-            break; // pbh has evaporated
-          }
-          else tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass_tmp/(1e10),3);
-          preco->exponent_pbh_integral += dt_over_dz_1*1/tau_pbh*dz;
-          exponent += dt_over_dz_1*dz;
-          // preco->exponent_pbh_integral += (dt_over_dz_1+4*dt_over_dz_2+dt_over_dz_3)/tau_pbh*dz/6;
-          // fprintf(stdout, "preco->PBH_low_mass_tmp %e pbh_mass initial %e exponent %e dMdz_1 %e z_int %e\n",preco->PBH_low_mass_tmp, preco->PBH_low_mass,preco->exponent_pbh_integral, dMdz_1,z_int);
-
-          // preco->exponent_pbh_integral = exponent;
-
-        }*/
-
-        // fprintf(stdout,"v2:  %e  %e %e  %e\n",preco->PBH_low_masspreco->PBH_low_mass-5.34e-5*f*1e30*z,tau_pbh,z);
-
-
-
-
-      /*  //Integrale from z=10000 each time
-        f = 2*0.06+6*0.147+2*0.007;
-        zinitial = ppr->recfast_z_initial;
-        dz= (zinitial-z)/1000;
-
-        for(z_int = zinitial ; z_int > z ; z_int-=dz){
-          // fprintf(stdout, "zint %e z %e dz %e zinitial %e\n",z_int,z,dz,zinitial );
-          class_call(background_tau_of_z(pba,
-                                         z_int,
-                                         &tau),
-                     pba->error_message,
-                     ppr->error_message);
-
-          class_call(background_at_tau(pba,
-                                       tau,
-                                       pba->short_info,
-                                       pba->inter_normal,
-                                       &last_index_back,
-                                       pvecback),
-                     pba->error_message,
-                     ppr->error_message);
-          // fprintf(stdout, "z_int %e z %e\n",z_int,z);
-          z_int_1 = z_int;
-          z_int_2 = z_int_1 - dz/3.;
-          z_int_3 = z_int_2 - dz/3.;
-          class_call(background_tau_of_z(pba,
-                                         z_int_1,
-                                         &tau),
-                     pba->error_message,
-                     ppr->error_message);
-
-          class_call(background_at_tau(pba,
-                                       tau,
-                                       pba->long_info,
-                                       pba->inter_normal,
-                                       &last_index_back,
-                                       pvecback),
-                     pba->error_message,
-                     ppr->error_message);
-          // dt_over_dz_1 = -1/((1+z_int_1)*pba->H0 * _c_ / _Mpc_over_m_*sqrt(pba->Omega0_g*pow(1+z_int_1,4)+(pba->Omega0_b+pba->Omega0_cdm)*pow(1+z_int_1,3)));
-          dt_over_dz_1 = -1/((1+z_int_1)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
-          // class_call(background_tau_of_z(pba,
-          //                                z_int_2,
-          //                                &tau),
-          //            pba->error_message,
-          //            ppr->error_message);
-          //
-          // class_call(background_at_tau(pba,
-          //                              tau,
-          //                              pba->long_info,
-          //                              pba->inter_normal,
-          //                              &last_index_back,
-          //                              pvecback),
-          //            pba->error_message,
-          //            ppr->error_message);
-          // dt_over_dz_2 = -1/((1+z_int_2)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
-          // class_call(background_tau_of_z(pba,
-          //                                z_int_3,
-          //                                &tau),
-          //            pba->error_message,
-          //            ppr->error_message);
-          //
-          // class_call(background_at_tau(pba,
-          //                              tau,
-          //                              pba->long_info,
-          //                              pba->inter_normal,
-          //                              &last_index_back,
-          //                              pvecback),
-          //            pba->error_message,
-          //            ppr->error_message);
-          // dt_over_dz_3= -1/((1+z_int_3)*pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_);
-          if(z_int==zinitial){
-            pbh_mass=preco->PBH_low_mass;
-            exponent = 0;
-          }
-          if(pbh_mass<1e17) f = (2*0.06+6*0.147+2*0.007+2*2*0.142);//electrons
-          if(pbh_mass<1e15) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142);//muons
-          if(pbh_mass<1e14) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142);//tau
-          if(pbh_mass<5e13) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142+3*12*0.142 + 16*0.06);//u d s and gluons
-          // if(pbh_mass<5e10) f += 3*12*0.142;//c b t
-          // if(pbh_mass<1e11) f += 3*2*0.06 + 3*0.06 + 0.267;//W,Z,higgs
-          dMdz_1 = -5.34e-5*f*pow(pbh_mass/1e10,-2)*dt_over_dz_1*1e10;
-          // dMdz_2 = -5.34e-5*f*pow(preco->PBH_low_mass_tmp/1e10,-2)*dt_over_dz_2*1e10;
-          // dMdz_3 = -5.34e-5*f*pow(preco->PBH_low_mass_tmp/1e10,-2)*dt_over_dz_3*1e10;
-          pbh_mass-=(dMdz_1)*dz;
-          // fprintf(stdout, "preco->PBH_low_mass_tmp %e,dMdz_1 %e\n", preco->PBH_low_mass_tmp,dMdz_1);
-
-          // preco->PBH_low_mass_tmp-=(dMdz_1+4*dMdz_2+dMdz_3)*dz/6;
-          // fprintf(stdout, "pbh_mass %e dMdz %e z_int %e\n",pbh_mass,dMdz_1+4*dMdz_2+dMdz_3,z_int);
-          // preco->PBH_low_mass_tmp = pbh_mass;
-
-          if(pbh_mass <=preco->PBH_low_mass/10) {
-            pbh_mass = 0;
-            tau_pbh = 0;
-            exponent = 0;
-            // fprintf(stdout, "here\n");
-            break; // pbh has evaporated
-          }
-          else tau_pbh = 407*pow(f/15.35,-1)*pow(pbh_mass/(1e10),3);
-          exponent += dt_over_dz_1*1/tau_pbh*dz;
-          check += dt_over_dz_1*dz;
-          // preco->exponent_pbh_integral += (dt_over_dz_1+4*dt_over_dz_2+dt_over_dz_3)/tau_pbh*dz/6;
-          // fprintf(stdout, "preco->PBH_low_mass_tmp %e pbh_mass initial %e exponent %e dMdz_1 %e z_int %e\n",preco->PBH_low_mass_tmp, preco->PBH_low_mass,preco->exponent_pbh_integral, dMdz_1,z_int);
-
-          // preco->exponent_pbh_integral = exponent;
-
-        }
-        tau_pbh = 407*pow(f/15.35,-1)*pow(pbh_mass/(1e10),3);
-        fprintf(stdout,"v2 %e  %e %e  %e \n",pbh_mass,preco->PBH_low_mass,tau_pbh,z);
-        // if(tau_pbh < 1e18)result_integrale = exp(-1/tau_pbh*2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
-        // +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0* _c_ / _Mpc_over_m_));
-        // else result_integrale = 1;
-        // if(preco->exponent_pbh_integral!=0)result_integrale_2 = MAX(exp(preco->exponent_pbh_integral),1e-10);
-        // else result_integrale_2 = 0;
-        // if(preco->PBH_low_mass >1e15)result_integrale_2 = 1;
-        // fprintf(stdout, "result_integrale / check %e \n",-2*((pba->Omega0_b+pba->Omega0_cdm)*pow(pba->Omega0_g+(pba->Omega0_b+pba->Omega0_cdm)/(1+z),0.5)
-        // +2*pow(pba->Omega0_g,1.5)*(1+z)-2*pba->Omega0_g*pow((1+z)*(pba->Omega0_g*(1+z)+(pba->Omega0_b+pba->Omega0_cdm)),0.5))/(3*pow((pba->Omega0_b+pba->Omega0_cdm),2)*(1+z)*pba->H0* _c_ / _Mpc_over_m_)/check);
-        // if(preco->PBH_low_mass_tmp!=0)*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*(dMdt);
-        // else *energy_rate = 0;
-        */
         *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
         // if(tau_pbh!=0)*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*result_integrale_2;
         if(isnan(*energy_rate)==1)*energy_rate=0.;
@@ -2428,14 +2199,14 @@ int thermodynamics_energy_injection(
 
         /*Value from Poulin 1508.01370*/
         /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-        factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        exponent_z = 8;
-        exponent_zp = 7.5;
+        // factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        // exponent_z = 8;
+        // exponent_zp = 7.5;
 
         /*Value from Ali-Haimoud & Kamionkowski 1612.05644*/
-        // factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        // exponent_z = 7;
-        // exponent_zp = 6.5;
+        factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        exponent_z = 8;
+        exponent_zp = 7.5;
 
 
         /* integral over z'(=zp) with step dz */
