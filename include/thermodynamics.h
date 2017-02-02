@@ -41,7 +41,8 @@ enum PBH_accretion_recipe {
   Ali_Haimoud, /**< Accretion recipe from Ali_Haimoud & Kamionkowski, arXiv:1612.05644 */
   Ricotti_et_al,  /**< Accretion recipe from Ricotti et al., arXiv:0709.0524 */
   Gaggero_et_al,  /**< Accretion recipe from Gaggero et al., arXiv:1612.00457 */
-  Horowitz /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
+  Horowitz, /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
+  Hybrid /**<A more realistic accretion recipe, with a transition from spherical to disk accretion at a redshift "PBH_disk_formation_redshift" */
 };
 enum energy_deposition_treatment {
   Analytical_approximation, /**< Analytical energy deposition treatment, introduced in 1209.0247 and corrected in 1612.05644 */
@@ -156,8 +157,9 @@ struct thermo
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
+  double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
@@ -394,6 +396,7 @@ struct recombination {
   double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
+  double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */

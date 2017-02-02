@@ -526,7 +526,7 @@ extern "C" {
 
 //@{
 
-#define _H0_BIG_ 1./2997.9     /**< maximal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=1.0) \f$ */
+#define _H0_BIG_ 2./2997.9     /**< maximal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=1.0) \f$ */
 #define _H0_SMALL_ 0.3/2997.9  /**< minimal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=0.3) \f$ */
 #define _TCMB_BIG_ 3.5         /**< maximal \f$ T_{cmb} \f$ in K */
 #define _TCMB_SMALL_ 2.       /**< minimal \f$ T_{cmb}  \f$ in K */

@@ -1939,9 +1939,12 @@ if(preco->decay >0 || preco->annihilation > 0){
           lambda = 0.01;
           rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
           M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_mass*M_sun,2)*rho*pow(v_eff,-3.);
+
           M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
           L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
-          // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
+          L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+
+          // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
 
         }
       //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
@@ -1963,7 +1966,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         // fprintf(stdout, "z %e T_infinity %e rho_infinity %e P_infinity %e v_B %e t_B %e x_e_infinity %e \n",z,T_infinity,rho_infinity,P_infinity,v_B,t_B,x_e_infinity );
         beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_; //Misprint in Ali-Haimoud et al., c should be in numerator otherwise not dimensionless
         gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
-        fprintf(stdout, "z %e 1/beta %e 1/H %e 1/gamma_cooling %e t_B %e \n",z,1/beta_compton_drag,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/gamma_cooling,t_B);
+        // fprintf(stdout, "z %e 1/beta %e 1/H %e 1/gamma_cooling %e t_B %e \n",z,1/beta_compton_drag,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/gamma_cooling,t_B);
         lambda_iso = 0.25*exp(1.5);
         lambda_ad = 0.25*pow(3./5,1.5);
         lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
@@ -1983,10 +1986,50 @@ if(preco->decay >0 || preco->annihilation > 0){
         // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
         L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
         L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-        M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
         // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
       }
+      else if (preco->PBH_accretion_recipe == Hybrid){
+        //Hybrid accretion model starting from a spherical accretion followed by a transition to disk accretion. We smooth the transition thanks to a tanh function.
+        //In that case we follow spherical accretion recipe from AliHaimoud&Kamionkowski.
+        rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
+        x_e_infinity = x_e; // change to x_e for the no-feedback case
+        v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
+        v_l = 30*MIN(1,z/1000)*1e3;
+        if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+        else v_eff = v_B;
+        r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2); // in m
+        t_B = _G_*preco->PBH_mass*M_sun/pow(v_eff,3); // in s
+        beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_; //Misprint in Ali-Haimoud et al., c should be in numerator otherwise not dimensionless
+        gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
+        lambda_iso = 0.25*exp(1.5);
+        lambda_ad = 0.25*pow(3./5,1.5);
+        lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
+        lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*1/(pow(pow(1+beta_compton_drag,0.5)+1,2)); // as defined in AliHaimoud&Kamionkowski
+        // lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag; // as defined in Ricotti et al.
+        lambda = lambda_1*lambda_2/lambda_iso;
+        rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+        M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
+        T_ion = 1.5e4*_eV_over_Kelvin_;
+        tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
+        Y_s = pow((1+x_e_infinity)/2,2./3*13.6/T_ion)*tau_cooling/4*pow(1-5./2*tau_cooling,1./3)*m_p/m_e;
+        T_s = m_e * Y_s*pow(1+Y_s/0.27,-1./3); // in MeV
+        if(T_s/m_e > 1)  J = 27/(2*_PI_)*(log(2*T_s/(m_e)*exp(-0.577)+0.08)+4./3);
+        else J = 4/_PI_*sqrt(2/_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
+        L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+        L_acc = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
+        L_acc = L_acc*MAX(tanh((z-preco->PBH_disk_formation_redshift)/10),0);
+        M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
 
+        //Here we follow Gaggero et al. recipe for disk accretion, based on observation and very conservative.
+        lambda = 0.01;
+        rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+        M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_mass*M_sun,2)*rho*pow(v_eff,-3.);
+        M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
+        L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
+        L_acc_2 = L_acc_2*MIN((1-tanh((z-preco->PBH_disk_formation_redshift)/10)),1);
+        L_acc_2 = L_acc+L_acc_2;
+
+      }
 
 
       *energy_rate =  (rho_cdm_today/(preco->PBH_mass*M_sun*_c_*_c_))*pow(1+z,3)*L_acc_2*preco->PBH_fraction;
@@ -3901,6 +3944,7 @@ int thermodynamics_recombination_with_hyrec(
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
   preco->PBH_mass = pth->PBH_mass;
+  preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
   preco->energy_deposition_treatment = pth->energy_deposition_treatment;
   preco->PBH_low_mass = pth->PBH_low_mass;
@@ -4143,6 +4187,7 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay = pth->decay;
   preco->PBH_mass = pth->PBH_mass;
+  preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
   preco->energy_deposition_treatment = pth->energy_deposition_treatment;
   preco->PBH_low_mass = pth->PBH_low_mass;
