@@ -1958,7 +1958,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         else v_eff = v_B;
         // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
         // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
-
+        // fprintf(stdout, "z %e v_l %e v_B %e c_s %e \n", z,v_l,v_B,5.7e3*pow(preco->Tm_tmp/2730,0.5));
         // if(z<1500)v_eff_2 = pow(1+z,0.793943)*0.0541752*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644 // in m
         // if(z>=1500)v_eff_2 = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644  // in m
         r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2); // in m
@@ -1975,7 +1975,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         // fprintf(stdout, "z %e beta_compton_drag %e gamma_cooling %e lambda_1 %e lambda_2 %e lambda_3 %e \n",z,beta_compton_drag,gamma_cooling,lambda_1,lambda_2,exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag);
         lambda = lambda_1*lambda_2/lambda_iso;
         rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-        // fprintf(stdout, "rho %e m_H*n_gas %e \n", rho,m_H*n_gas);
+        // fprintf(stdout, "rho/m_H %e n_gas %e \n", 0.75*rho/m_H,n_gas);
         M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
         T_ion = 1.5e4*_eV_over_Kelvin_;
         tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
@@ -2017,7 +2017,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         else J = 4/_PI_*sqrt(2/_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
         L_ed = 4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
         L_acc = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-        L_acc = L_acc*MAX(tanh((z-preco->PBH_disk_formation_redshift)/10),0);
+        L_acc = L_acc*MAX(tanh((z-preco->PBH_disk_formation_redshift)/5),0);
         M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
 
         //Here we follow Gaggero et al. recipe for disk accretion, based on observation and very conservative.
@@ -2026,7 +2026,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_mass*M_sun,2)*rho*pow(v_eff,-3.);
         M_crit = 0.01*4*_PI_*_G_*preco->PBH_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
         L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
-        L_acc_2 = L_acc_2*MIN((1-tanh((z-preco->PBH_disk_formation_redshift)/10)),1);
+        L_acc_2 = L_acc_2*MIN((1-tanh((z-preco->PBH_disk_formation_redshift)/5)),1);
         L_acc_2 = L_acc+L_acc_2;
 
       }
