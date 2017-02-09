@@ -29,8 +29,8 @@
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param);
 double rec_HubbleConstant(REC_COSMOPARAMS *param, double z);
-double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate,REC_COSMOPARAMS *param);
-double rec_dTmdlna(double xe, double Tm, double Tr, double H, double fHe , double nH, double energy_rate,REC_COSMOPARAMS *param);
+double rec_Tmss(double xe,double z, double Tr, double H, double fHe, double nH, double energy_rate,REC_COSMOPARAMS *param);
+double rec_dTmdlna(double xe,double z, double Tm, double Tr, double H, double fHe , double nH, double energy_rate,REC_COSMOPARAMS *param);
 void rec_get_xe_next1(REC_COSMOPARAMS *param, double z1, double xe_in, double *xe_out,
                       HRATEEFF *rate_table, int func_select, unsigned iz, TWO_PHOTON_PARAMS *twog_params,
 		      double **logfminus_hist, double *logfminus_Ly_hist[],

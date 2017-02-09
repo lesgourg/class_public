@@ -100,10 +100,11 @@ typedef struct {
    double * annihil_z;
    double * annihil_f_eff;
    double * annihil_dd_f_eff;
-
+   short  energy_repart_functions; /**< energy repartition functions */
+   double energy_deposition_treatment;
    double f_eff;
    int annihil_f_eff_num_lines;
-  int reio_parametrization; /*Do we want the realistic stars modeling ? 0 = no, 1 = yes*/
+   int reio_parametrization; /*Do we want the realistic stars modeling ? 0 = no, 1 = yes*/
 
    double Omega0_g;
    double odcdmh2,ocdmh2;
@@ -121,8 +122,8 @@ typedef struct {
 /*********** PEEBLES + POST-SAHA + RECFAST ***************/
 
 double alphaB_PPB(double TM);
-double rec_HPeebles_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param);
-double rec_HRecFast_dxedlna(double xe, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param);
+double rec_HPeebles_dxedlna(double xe, double z, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param);
+double rec_HRecFast_dxedlna(double xe, double z, double nH, double H, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param);
 
 /************* EFFECTIVE MULTI LEVEL ATOM *******************/
 
@@ -150,7 +151,7 @@ HRATEEFF;
 
 void read_rates(HRATEEFF *rate_table);
 void interpolate_rates(double Alpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR, HRATEEFF *rate_table);
-double rec_HMLA_dxedlna(double xe, double nH, double Hubble, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param, HRATEEFF *rate_table);
+double rec_HMLA_dxedlna(double xe, double z, double nH, double Hubble, double TM, double TR, double energy_rate, REC_COSMOPARAMS *param, HRATEEFF *rate_table);
 
 /************ TWO-PHOTON PROCESSES AND DIFFUSION  ************/
 

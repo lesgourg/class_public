@@ -3405,9 +3405,9 @@ int input_default_precision ( struct precision * ppr ) {
   strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
-  strcat(ppr->annihil_coeff_file,"/DM_annihilation/DM_annihilation_coeff.dat");
+  strcat(ppr->annihil_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
   sprintf(ppr->annihil_f_eff_file,__CLASSDIR__);
-  strcat(ppr->annihil_f_eff_file,"/DM_annihilation/f_z_withhalos_ee_1GeV.dat");
+  strcat(ppr->annihil_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
 
 
   /* for recombination */

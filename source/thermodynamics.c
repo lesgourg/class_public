@@ -1958,7 +1958,7 @@ if(preco->decay >0 || preco->annihilation > 0){
         else v_eff = v_B;
         // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
         // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
-        // fprintf(stdout, "z %e v_l %e v_B %e c_s %e \n", z,v_l,v_B,5.7e3*pow(preco->Tm_tmp/2730,0.5));
+        fprintf(stdout, "z %e v_l %e sqrt(5/3)*v_B %e c_s %e \n", z,v_l,sqrt(5./3)*v_B,5.7e3*pow(preco->Tm_tmp/2730,0.5));
         // if(z<1500)v_eff_2 = pow(1+z,0.793943)*0.0541752*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644 // in m
         // if(z>=1500)v_eff_2 = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644  // in m
         r_B = _G_*preco->PBH_mass*M_sun*pow(v_eff,-2); // in m
@@ -2242,14 +2242,14 @@ int thermodynamics_energy_injection(
 
         /*Value from Poulin 1508.01370*/
         /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-        // factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        // exponent_z = 8;
-        // exponent_zp = 7.5;
-
-        /*Value from Ali-Haimoud & Kamionkowski 1612.05644*/
-        factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
         exponent_z = 8;
         exponent_zp = 7.5;
+
+        /*Value from Ali-Haimoud & Kamionkowski 1612.05644*/
+        // factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        // exponent_z = 7;
+        // exponent_zp = 6.5;
 
 
         /* integral over z'(=zp) with step dz */
@@ -3824,9 +3824,17 @@ int thermodynamics_recombination_with_hyrec(
   param.annihil_z = preco->annihil_z;
   param.annihil_f_eff = preco->annihil_f_eff;
   param.annihil_dd_f_eff = preco->annihil_dd_f_eff;
+  param.energy_deposition_treatment = pth->energy_deposition_treatment;
 
-  if(pth->reio_parametrization==reio_stars_realistic_model)param.reio_parametrization = 1;
+
+  if(pth->reio_parametrization==reio_stars_realistic_model || pth->increase_T_from_stars == _TRUE_)param.reio_parametrization = 1;
   else param.reio_parametrization = 0;
+  if(pth->energy_repart_functions == Galli_et_al_interpolation)param.energy_repart_functions = 0;
+  if(pth->energy_repart_functions == no_factorization)param.energy_repart_functions = 1;
+  if(pth->energy_repart_functions == SSCK)param.energy_repart_functions = 2;
+  if(pth->energy_repart_functions == Galli_et_al_fit)param.energy_repart_functions = 3;
+  if(pth->energy_deposition_treatment == Analytical_approximation)param.energy_deposition_treatment = 0;
+  if(pth->energy_deposition_treatment == Slatyer)param.energy_deposition_treatment = 1;
   /** - Build effective rate tables */
 
   /* allocate contiguous memory zone */
@@ -4027,7 +4035,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z),&param) / Tm / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe,z, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z),&param) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -4746,6 +4754,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
+          fprintf(stdout, "%e %e %e %e %e \n",x, z, chi_heat,chi_ionH,chi_ionHe);
 
         }
         /* old approximation from Chen and Kamionkowski */
