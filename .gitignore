@@ -19,3 +19,4 @@ output*
 class.dSYM/Contents/Info.plist
 test/
 *.p
+script*
