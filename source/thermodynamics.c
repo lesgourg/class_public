@@ -172,24 +172,26 @@ int thermodynamics_at_z(
     /* in this regime, variation rate = dkappa/dtau */
     pvecthermo[pth->index_th_rate] = pvecthermo[pth->index_th_dkappa];
 
-//ethos
-if(pth->a_dark!=0.){
-    //pvecthermo[pth->index_th_dmu_nudm] = (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_nudm*pow((1.+z),pth->nindex_dark)*pba->Omega0_cdm*pow(pba->H0,2);
-    pvecthermo[pth->index_th_dmu_dark] = pth->a_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2);
-    //printf("factor_multiplying_u_nudm=%e\n",pow(1./1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2));
-    pvecthermo[pth->index_th_ddmu_dark] = (2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pvecthermo[pth->index_th_dmu_dark];
-    pvecthermo[pth->index_th_dddmu_dark] = 0.0;//((pth->nindex_dark-1.)*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/(1.+z)-pvecback[pba->index_bg_H_prime])*pth->nindex_dark/(1.+z)*pvecthermo[pth->index_th_dmu_dark];
-    pvecthermo[pth->index_th_tau_darkm] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]+
-                                          (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]-pth->thermodynamics_table[(pth->tt_size-2)*pth->th_size+pth->index_th_tau_darkm])
-                                          *(z-pth->z_table[pth->tt_size-1])/(pth->z_table[pth->tt_size-1]-pth->z_table[pth->tt_size-2]);//TBC
-    pvecthermo[pth->index_th_tau_darkr] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkr]+
-                                          (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkr]-pth->thermodynamics_table[(pth->tt_size-2)*pth->th_size+pth->index_th_tau_darkr])
-                                          *(z-pth->z_table[pth->tt_size-1])/(pth->z_table[pth->tt_size-1]-pth->z_table[pth->tt_size-2]);//TBC
-    pvecthermo[pth->index_th_g_dark] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_g_dark];//TBC
-    //Gamma_heat_dark = 2.*pba->Omega0_dark*pow(pba->H0,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.)); //the factor 2 comes from the number of degrees of freedom of neutrinos and anti-neutrinos
-    //T_dark = pba->T_ncdm*pba->T_cmb*(1.+z);
-    //dTc_dark = -2./(1.+z)*pvecback[pba->index_bg_H]+Gamma_heat_dark*(T_dark-pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tc_dark]);
-}
+    //ethos
+    if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+      //pvecthermo[pth->index_th_dmu_nudm] = (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_nudm*pow((1.+z),pth->nindex_dark)*pba->Omega0_cdm*pow(pba->H0,2);
+      pvecthermo[pth->index_th_dmu_dark] = pth->a_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2);
+      //printf("factor_multiplying_u_nudm=%e\n",pow(1./1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2));
+      pvecthermo[pth->index_th_ddmu_dark] = 0.;//(2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pvecthermo[pth->index_th_dmu_dark];
+      pvecthermo[pth->index_th_dddmu_dark] = 0.0;//((pth->nindex_dark-1.)*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/(1.+z)-pvecback[pba->index_bg_H_prime])*pth->nindex_dark/(1.+z)*pvecthermo[pth->index_th_dmu_dark];
+      pvecthermo[pth->index_th_tau_darkm] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]+
+                                            (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]-pth->thermodynamics_table[(pth->tt_size-2)*pth->th_size+pth->index_th_tau_darkm])
+                                            *(z-pth->z_table[pth->tt_size-1])/(pth->z_table[pth->tt_size-1]-pth->z_table[pth->tt_size-2]);//TBC
+      pvecthermo[pth->index_th_tau_darkr] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkr]+
+                                            (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkr]-pth->thermodynamics_table[(pth->tt_size-2)*pth->th_size+pth->index_th_tau_darkr])
+                                            *(z-pth->z_table[pth->tt_size-1])/(pth->z_table[pth->tt_size-1]-pth->z_table[pth->tt_size-2]);//TBC
+      pvecthermo[pth->index_th_g_dark] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_g_dark];//TBC
+      pvecthermo[pth->index_th_cdm2] = 4*_k_B_*pth->xi_dark*pba->T_cmb*(1.+z)/_eV_/3./pth->m_dm;
+      pvecthermo[pth->index_th_Tdm] = pth->xi_dark*pba->T_cmb*(1.+z);
+      //Gamma_heat_dark = 2.*pba->Omega0_dark*pow(pba->H0,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.)); //the factor 2 comes from the number of degrees of freedom of neutrinos and anti-neutrinos
+      //T_dark = pba->T_ncdm*pba->T_cmb*(1.+z);
+      //dTc_dark = -2./(1.+z)*pvecback[pba->index_bg_H]+Gamma_heat_dark*(T_dark-pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tc_dark]);
+    }
 
 
   }
@@ -398,7 +400,7 @@ int thermodynamics_init(
 
   /** - assign values to all indices in the structures with thermodynamics_indices()*/
 
-  class_call(thermodynamics_indices(pth,preco,preio),
+  class_call(thermodynamics_indices(pba,pth,preco,preio),
              pth->error_message,
              pth->error_message);
 
@@ -464,8 +466,8 @@ int thermodynamics_init(
       -4./3.*pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b]
       *pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
 
-/**ethos temporarily store DM interaction rate minus one, -[S*dmu], in ddmu*/
-    if(pth->a_dark!=0.) {
+    /**ethos temporarily store DM interaction rate minus one, -[S*dmu], in ddmu*/
+    if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)) {
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark]=pth->a_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2);
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]= (2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
     }
@@ -498,8 +500,8 @@ int thermodynamics_init(
   /* the temporary quantities stored in columns ddkappa and dddkappa
      will not be used anymore, they will be overwritten */
 
-/**ethos*/
-  if(pth->a_dark!=0){
+  /**ethos*/
+  if((pth->a_dark!=0) && (pba->has_dark == _TRUE_)){
      /** -> second derivative of the rate, [S dmu]'', stored temporarily in column dddmu*/
   class_call(array_spline_table_line_to_line(tau_table,
                                              pth->tt_size,
@@ -717,8 +719,8 @@ int thermodynamics_init(
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
 
-/**ethos calculate dark visibility function and then replace dmu and derivatives with the true values*/
-    if(pth->a_dark!=0.){
+    /**ethos calculate dark visibility function and then replace dmu and derivatives with the true values*/
+    if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
 
            class_call(background_at_tau(pba,
                                  tau_table[index_tau],
@@ -770,6 +772,76 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
+  //ethos Sebastian
+  /** ETHOS: compute DM temperature and sound speed */ 
+  if((pth->a_dark != 0.) && (pba->has_dark == _TRUE_)){
+    double tau;
+    class_call(background_tau_of_z(pba,pth->z_table[pth->tt_size-1],&(tau)),
+               pba->error_message,
+               pth->error_message);
+    class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+               pba->error_message,
+               pth->error_message);
+    Gamma_heat_dark = 2.*pba->Omega0_dark*pow(pba->h,2)*pth->a_dark*pow((1.+pth->z_table[pth->tt_size-1]),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
+    if(Gamma_heat_dark<1.e-3*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
+      T_tmp = Gamma_heat_dark/(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H])/(1. + Gamma_heat_dark/(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]))*pth->xi_dark*pba->T_cmb*(1.+pth->z_table[pth->tt_size-1]);
+      pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tdm] = T_tmp;
+      z_adiabat = pth->z_table[pth->tt_size-1];
+    }else{
+      pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tdm] = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[pth->tt_size-1]);
+    }
+    
+    for (index_tau=pth->tt_size-1; index_tau>0; index_tau--) {
+      class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(tau)),
+                 pba->error_message,
+                 pth->error_message);
+      class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+                 pba->error_message,
+                 pth->error_message);
+      
+      dz = pth->z_table[index_tau] - pth->z_table[index_tau-1];
+      Gamma_heat_dark = /*pba->Omega0_dark*pow(pba->h,2)*/2.*pba->Omega0_dark*pow(pba->h,2)*pth->a_dark*pow((1.+pth->z_table[index_tau]),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark); //the factor 2 comes from the number of degrees of freedom of neutrinos and anti-neutrinos
+      T_dark = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[index_tau]);
+      dTdz_darkm = 2.*pvecback[pba->index_bg_a]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]-Gamma_heat_dark/(pvecback[pba->index_bg_H])*(T_dark-pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
+      if(Gamma_heat_dark>1.e3*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
+        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[index_tau-1]);
+      }else if(Gamma_heat_dark<1.e-3*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
+        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = T_tmp*pow((1.+pth->z_table[index_tau-1])/(1.+z_adiabat),2);
+      }else if(dz>1){
+        T_tmp = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm];
+        for (z = pth->z_table[index_tau]; z>=pth->z_table[index_tau-1]; z-=1.e-3*dz) {
+          T_tmp -= dTdz_darkm*dz*1.e-3;
+          T_dark = pth->xi_dark*pba->T_cmb*(1.+z);
+          Gamma_heat_dark = /*pba->Omega0_dark*pow(pba->h,2)*/2.*pba->Omega0_dark*pow(pba->h,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
+          class_call(background_tau_of_z(pba,z,&(tau)),
+                     pba->error_message,
+                     pth->error_message);
+          class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+                     pba->error_message,
+                     pth->error_message);
+          dTdz_darkm = 2.*pvecback[pba->index_bg_a]*T_tmp-Gamma_heat_dark/(pvecback[pba->index_bg_H])*(T_dark-T_tmp);
+        }
+        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = T_tmp;
+        z_adiabat = pth->z_table[index_tau-1];
+      }else {
+        T_tmp = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm] - dTdz_darkm*dz;
+        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = T_tmp;
+        z_adiabat = pth->z_table[index_tau-1];
+      }
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cdm2] = _k_B_*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]/_eV_/pth->m_dm *(1.+dTdz_darkm/3./pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
+      //printf("%e \t %e \t %e \t %e \t %e \t %e\n",pth->z_table[index_tau],Gamma_heat_dark,pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H],T_dark,dTdz_darkm,pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_Tdm]);
+    }
+    class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(tau)),
+               pba->error_message,
+               pth->error_message);
+    class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+               pba->error_message,
+               pth->error_message);
+    T_dark = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[index_tau]);
+    dTdz_darkm = 2.*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]-Gamma_heat_dark/pvecback[pba->index_bg_H]*(T_dark-pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cdm2] = _k_B_*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]/_eV_/pth->m_dm *(1.+dTdz_darkm/3./pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
+  }
+  
   /** - fill tables of second derivatives with respect to z (in view of spline interpolation) */
 
   class_call(array_spline_table_lines(pth->z_table,
@@ -881,30 +953,32 @@ int thermodynamics_init(
   pth->rs_d=pvecback[pba->index_bg_rs];
   pth->ds_d=pth->rs_d*pba->a_today/(1.+pth->z_d);
 
-/**ethos find dark drag time*/
-if(pth->a_dark!=0.){
-  index_tau=0;
-  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkm] < 1.) && (index_tau < pth->tt_size))
-    index_tau++;
-  z_darkm = pth->z_table[index_tau-1]+
-    (1.-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkm])
-    /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkm]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkm])
-    *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
-  class_call(background_tau_of_z(pba,z_darkm,&(tau_darkm)),
-             pba->error_message,
-             pth->error_message);
+  /**ethos find dark drag time*/
+  if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+    if((pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]>1.) && (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkr]>1.)){
+      index_tau=0;
+      while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkm] < 1.) && (index_tau < pth->tt_size-1))
+        index_tau++;
+      z_darkm = pth->z_table[index_tau-1]+
+        (1.-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkm])
+        /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkm]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkm])
+        *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
+      class_call(background_tau_of_z(pba,z_darkm,&(tau_darkm)),
+                 pba->error_message,
+                 pth->error_message);
 
-  index_tau=0;
-  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkr] < 1.) && (index_tau < pth->tt_size))
-    index_tau++;
-  z_darkr = pth->z_table[index_tau-1]+
-    (1.-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkr])
-    /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkr]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkr])
-    *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
-  class_call(background_tau_of_z(pba,z_darkr,&(tau_darkr)),
-             pba->error_message,
-             pth->error_message);
-}
+      index_tau=0;
+      while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkr] < 1.) && (index_tau < pth->tt_size-1))
+        index_tau++;
+      z_darkr = pth->z_table[index_tau-1]+
+        (1.-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkr])
+        /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_darkr]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_darkr])
+        *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
+      class_call(background_tau_of_z(pba,z_darkr,&(tau_darkr)),
+                 pba->error_message,
+                 pth->error_message);
+    }
+  }
 
 
   /** - find time above which visibility falls below a given fraction of its maximum */
@@ -919,65 +993,16 @@ if(pth->a_dark!=0.){
              pba->error_message,
              pth->error_message);
 
-  //ethos Sebastian
-  if(pth->a_dark != 0.){
-    double tau;
-    pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tdm] = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[pth->tt_size-1]);
-    for (index_tau=pth->tt_size-1; index_tau>0; index_tau--) {
-      class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(tau)),
-                 pba->error_message,
-                 pth->error_message);
-      class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
-                 pba->error_message,
-                 pth->error_message);
-
-      dz = pth->z_table[index_tau] - pth->z_table[index_tau-1];
-      Gamma_heat_dark = /*pba->Omega0_dark*pow(pba->h,2)*/2.*pba->Omega0_dark*pow(pba->h,2)*pth->a_dark*pow((1.+pth->z_table[index_tau]),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark); //the factor 2 comes from the number of degrees of freedom of neutrinos and anti-neutrinos
-      T_dark = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[index_tau]);
-      dTdz_darkm = 2.*pvecback[pba->index_bg_a]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]-Gamma_heat_dark/(pvecback[pba->index_bg_H])*(T_dark-pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
-      if(Gamma_heat_dark>1.e3*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
-        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[index_tau-1]);
-      }else if(Gamma_heat_dark<1.e-3*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
-        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = T_tmp*pow((1.+pth->z_table[index_tau-1])/(1.+z_adiabat),2);
-      }else if(dz>1){
-        T_tmp = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm];
-        for (z = pth->z_table[index_tau]; z>=pth->z_table[index_tau-1]; z-=1.e-3*dz) {
-          T_tmp -= dTdz_darkm*dz*1.e-3;
-          T_dark = pth->xi_dark*pba->T_cmb*(1.+z);
-          Gamma_heat_dark = /*pba->Omega0_dark*pow(pba->h,2)*/2.*pba->Omega0_dark*pow(pba->h,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
-          class_call(background_tau_of_z(pba,z,&(tau)),
-                     pba->error_message,
-                     pth->error_message);
-          class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
-                     pba->error_message,
-                     pth->error_message);
-          dTdz_darkm = 2.*pvecback[pba->index_bg_a]*T_tmp-Gamma_heat_dark/(pvecback[pba->index_bg_H])*(T_dark-T_tmp);
-        }
-        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = T_tmp;
-        z_adiabat = pth->z_table[index_tau-1];
-      }else {
-        T_tmp = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm] - dTdz_darkm*dz;
-        pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_Tdm] = T_tmp;
-        z_adiabat = pth->z_table[index_tau-1];
-      }
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cdm2] = _k_B_*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]/_eV_/pth->m_dm *(1.+dTdz_darkm/3./pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
-      //printf("%e \t %e \t %e \t %e \t %e \t %e\n",pth->z_table[index_tau],Gamma_heat_dark,pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H],T_dark,dTdz_darkm,pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_Tdm]);
-    }
-    class_call(background_tau_of_z(pba,pth->z_table[index_tau],&(tau)),
-               pba->error_message,
-               pth->error_message);
-    class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
-               pba->error_message,
-               pth->error_message);
-    T_dark = pth->xi_dark*pba->T_cmb*(1.+pth->z_table[index_tau]);
-    dTdz_darkm = 2.*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]-Gamma_heat_dark/pvecback[pba->index_bg_H]*(T_dark-pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cdm2] = _k_B_*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]/_eV_/pth->m_dm *(1.+dTdz_darkm/3./pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm]);
-  }
-  
   /** - if verbose flag set to next-to-minimum value, print the main results */
 
   if (pth->thermodynamics_verbose > 0) {
-    if(pth->a_dark!=0.) printf(" -> ETHOS dark decoupling at tau_darkm = %e and tau_darkr=%e\n",tau_darkm,tau_darkr); //ethos   
+    if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)) { //ethos
+      if((pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]>1.) && (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkr]>1.)){
+        printf(" -> ETHOS dark decoupling at tau_darkm = %e Mpc(T = %e eV) and tau_darkr=%e Mpc\n",tau_darkm,pba->T_cmb*_k_B_/_eV_*(1+z_darkm),tau_darkr);
+      }else{
+        printf(" -> computation of ETHOS dark decoupling skipped because z would not be in z_table\n");
+      }
+    }
     printf(" -> recombination at z = %f\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with comoving sound horizon = %f Mpc\n",pth->rs_rec);
@@ -1041,6 +1066,7 @@ int thermodynamics_free(
  * as well as in vector containing reionization parameters.
  *
  *
+ * @param pba   Input: pointer to background structure
  * @param pth   Input/Output: pointer to thermo structure
  * @param preco Input/Output: pointer to recombination structure
  * @param preio Input/Output: pointer to reionization structure
@@ -1048,6 +1074,7 @@ int thermodynamics_free(
  */
 
 int thermodynamics_indices(
+                           struct background * pba,
                            struct thermo * pth,
                            struct recombination * preco,
                            struct reionization * preio
@@ -1086,24 +1113,24 @@ int thermodynamics_indices(
   pth->index_th_cb2 = index;
   index++;
   /*ethos*/
-if(pth->a_dark!=0.){
-  pth->index_th_dmu_dark = index;
-  index++;
-  pth->index_th_ddmu_dark = index;
-  index++;
-  pth->index_th_dddmu_dark = index;
-  index++;
-  pth->index_th_tau_darkm = index;
-  index++;
-  pth->index_th_tau_darkr = index;
-  index++;
-  pth->index_th_g_dark = index;
-  index++;
-  pth->index_th_cdm2 = index;
-  index++;
-  pth->index_th_Tdm = index;
-  index++;
-}
+  if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+    pth->index_th_dmu_dark = index;
+    index++;
+    pth->index_th_ddmu_dark = index;
+    index++;
+    pth->index_th_dddmu_dark = index;
+    index++;
+    pth->index_th_tau_darkm = index;
+    index++;
+    pth->index_th_tau_darkr = index;
+    index++;
+    pth->index_th_g_dark = index;
+    index++;
+    pth->index_th_cdm2 = index;
+    index++;
+    pth->index_th_Tdm = index;
+    index++;
+  }
 
 
   /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
@@ -3670,9 +3697,10 @@ int thermodynamics_merge_reco_and_reio(
   }
 
   /** - find number of redshift in full table = number in reco + number in reio - overlap */
-/**ethos*/
-  if(pth->a_dark == 0) pth->tt_size = ppr->recfast_Nz0 + preio->rt_size - preio->index_reco_when_reio_start - 1;
-  else pth->tt_size = nz_dark + ppr->recfast_Nz0 + preio->rt_size - preio->index_reco_when_reio_start - 1 + nz_int - 1;
+
+  pth->tt_size = ppr->recfast_Nz0 + preio->rt_size - preio->index_reco_when_reio_start - 1;
+  /**ethos*/
+  if((pth->a_dark != 0.) && (pba->has_dark == _TRUE_)) pth->tt_size += nz_dark + nz_int - 1;
 
   /** - allocate arrays in thermo structure */
 
@@ -3708,28 +3736,28 @@ int thermodynamics_merge_reco_and_reio(
     pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=
       preco->recombination_table[index_re*preco->re_size+preco->index_re_cb2];
   }
-/**ethos*/
-if(pth->a_dark!=0.){
-  for (i=0; i<nz_int-1; i++){
-    index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1;
-    pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (dark_z_initial - ppr->recfast_z_initial) / (double)nz_dark / (double)nz_int;
-    x0=pth->thermodynamics_table[(preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 2)*pth->th_size+pth->index_th_xe];
-    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_xe]=x0;
-    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dkappa]=(1.+pth->z_table[index_th]) * (1.+pth->z_table[index_th]) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
-    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=pba->T_cmb*(1.+pth->z_table[index_th]);
-    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+pth->z_table[index_th]) * 4. / 3.;
-  }
-  for (i=0; i < nz_dark; i++){
-      index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1 + nz_int - 1;
-      pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (dark_z_initial - ppr->recfast_z_initial) / (double)nz_dark;
+  /**ethos*/
+  if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+    for (i=0; i<nz_int-1; i++){
+      index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1;
+      pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (dark_z_initial - ppr->recfast_z_initial) / (double)nz_dark / (double)nz_int;
       x0=pth->thermodynamics_table[(preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 2)*pth->th_size+pth->index_th_xe];
       pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_xe]=x0;
       pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dkappa]=(1.+pth->z_table[index_th]) * (1.+pth->z_table[index_th]) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
       pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=pba->T_cmb*(1.+pth->z_table[index_th]);
       pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+pth->z_table[index_th]) * 4. / 3.;
-      //pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dmu_dark] = pth->a_dark*pow(1.+pth->z_table[index_th],pth->nindex_dark)/(pow(1.e7,pth->nindex_dark))*pba->Omega0_cdm*pow(pba->h,2);      
+    }
+    for (i=0; i < nz_dark; i++){
+        index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1 + nz_int - 1;
+        pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (dark_z_initial - ppr->recfast_z_initial) / (double)nz_dark;
+        x0=pth->thermodynamics_table[(preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 2)*pth->th_size+pth->index_th_xe];
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_xe]=x0;
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dkappa]=(1.+pth->z_table[index_th]) * (1.+pth->z_table[index_th]) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=pba->T_cmb*(1.+pth->z_table[index_th]);
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+pth->z_table[index_th]) * 4. / 3.;
+        //pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dmu_dark] = pth->a_dark*pow(1.+pth->z_table[index_th],pth->nindex_dark)/(pow(1.e7,pth->nindex_dark))*pba->Omega0_cdm*pow(pba->h,2);      
+    }
   }
-}
   /** - free the temporary structures */
 
   free(preco->recombination_table);
@@ -3765,14 +3793,14 @@ int thermodynamics_output_titles(struct background * pba,
   //class_store_columntitle(titles,"max. rate",_TRUE_,colnum);
   class_store_columntitle(titles,"r_d",pth->compute_damping_scale);
   //ethos
-  if(pth->a_dark!=0.){
-  class_store_columntitle(titles,"dmu_dark",_TRUE_);
-  class_store_columntitle(titles,"ddmu_dark",_TRUE_);
-  //class_store_columntitle(titles,"dddmu_dark",_TRUE_);
-  class_store_columntitle(titles,"tau_darkm",_TRUE_);
-  class_store_columntitle(titles,"tau_darkr",_TRUE_);
-  class_store_columntitle(titles,"g_dark [Mpc^-1]",_TRUE_);
-  class_store_columntitle(titles,"c_dm^2",_TRUE_);
+  if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+    class_store_columntitle(titles,"dmu_dark",_TRUE_);
+    class_store_columntitle(titles,"ddmu_dark",_TRUE_);
+    //class_store_columntitle(titles,"dddmu_dark",_TRUE_);
+    class_store_columntitle(titles,"tau_darkm",_TRUE_);
+    class_store_columntitle(titles,"tau_darkr",_TRUE_);
+    class_store_columntitle(titles,"g_dark [Mpc^-1]",_TRUE_);
+    class_store_columntitle(titles,"c_dm^2",_TRUE_);
     class_store_columntitle(titles,"T_dm",_TRUE_);
   }
 
@@ -3823,15 +3851,15 @@ int thermodynamics_output_data(struct background * pba,
     class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_rate],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_r_d],pth->compute_damping_scale,storeidx);
-//ethos
-    if(pth->a_dark!=0.){
-    class_store_double(dataptr,pvecthermo[pth->index_th_dmu_dark],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecthermo[pth->index_th_ddmu_dark],_TRUE_,storeidx);
-    //class_store_double(dataptr,pvecthermo[pth->index_th_dddmu_dark],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecthermo[pth->index_th_tau_darkm],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecthermo[pth->index_th_tau_darkr],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecthermo[pth->index_th_g_dark],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecthermo[pth->index_th_cdm2],_TRUE_,storeidx);
+    //ethos
+    if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+      class_store_double(dataptr,pvecthermo[pth->index_th_dmu_dark],_TRUE_,storeidx);
+      class_store_double(dataptr,pvecthermo[pth->index_th_ddmu_dark],_TRUE_,storeidx);
+      //class_store_double(dataptr,pvecthermo[pth->index_th_dddmu_dark],_TRUE_,storeidx);
+      class_store_double(dataptr,pvecthermo[pth->index_th_tau_darkm],_TRUE_,storeidx);
+      class_store_double(dataptr,pvecthermo[pth->index_th_tau_darkr],_TRUE_,storeidx);
+      class_store_double(dataptr,pvecthermo[pth->index_th_g_dark],_TRUE_,storeidx);
+      class_store_double(dataptr,pvecthermo[pth->index_th_cdm2],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_Tdm],_TRUE_,storeidx);
     }
   }

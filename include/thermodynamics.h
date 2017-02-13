@@ -492,7 +492,8 @@ extern "C" {
 			  );
 
   int thermodynamics_indices(
-			     struct thermo * pthermo,
+			     struct background * pba,
+                 struct thermo * pthermo,
 			     struct recombination * preco,
 			     struct reionization * preio
 			     );

@@ -3310,10 +3310,10 @@ int perturb_vector_init(
     }
 
   if (pba->has_dark == _TRUE_) { //ethos not really needed, just to save time
-          /* we don't need ur multipoles above l=2*/
-          for (index_pt=ppv->index_pt_l3_dark; index_pt <= ppv->index_pt_delta_dark+ppv->l_max_dark; index_pt++)
-            ppv->used_in_sources[index_pt]=_FALSE_;
-    }
+    /* we don't need ur multipoles above l=2*/
+    for (index_pt=ppv->index_pt_l3_dark; index_pt <= ppv->index_pt_delta_dark+ppv->l_max_dark; index_pt++)
+      ppv->used_in_sources[index_pt]=_FALSE_;
+  }
 
   if (pba->has_ncdm == _TRUE_) {
 
@@ -7199,7 +7199,7 @@ int perturb_derivs(double tau,
 
         dy[pv->index_pt_theta_cdm] = - a_prime_over_a*y[pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
 
-        if(pth->a_dark!=0.)
+        if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_))
           dy[pv->index_pt_theta_cdm] -= Sinv*dmu_dark*(y[pv->index_pt_theta_cdm] - y[pv->index_pt_theta_dark]) - k2*pvecthermo[pth->index_th_cdm2]*y[pv->index_pt_delta_cdm]; // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos  //added to Sinv
 
       }

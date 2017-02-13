@@ -741,9 +741,10 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_ur;
 
 /*ethos*/
-  class_read_double("N_dark",N_dark);
+  //class_read_double("N_dark",N_dark);
   class_read_double("xi_dark",pth->xi_dark);
-  pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
+  //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
+  pba->Omega0_dark = pow(pth->xi_dark,4.)*pba->Omega0_g;
   Omega_tot += pba->Omega0_dark;
   //printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
   class_read_double("m_dm",pth->m_dm);
@@ -762,7 +763,7 @@ int input_read_parameters(
              errmsg,
              "In input file, l_max_alpha cannot be < 2");
   class_read_list_of_doubles_or_default("alpha_dark",ppt->alpha_dark,1.,(ppt->l_max_alpha-1));
-  class_read_list_of_doubles_or_default("beta_dark",ppt->beta_dark,1.,(ppt->l_max_alpha-1));
+  class_read_list_of_doubles_or_default("beta_dark",ppt->beta_dark,0,(ppt->l_max_alpha-1));
 
   /** - Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -2903,7 +2904,7 @@ int input_default_params(
   pth->a_dark = 0.;//ethos
   pth->nindex_dark = 0.;//ethos
   pth->m_dm = 1.e11;//ethos
-  pth->xi_dark = 0.7137659;//ethos
+  pth->xi_dark = 0;//ethos
 
   /** - perturbation structure */
 
