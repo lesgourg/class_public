@@ -1325,7 +1325,11 @@ int thermodynamics_helium_from_bbn(
 
 }
 
-/*****MODIF Vivian Poulin : Add new functions for energy repartition from DM annihilations or decays*****/
+/*****MODIF Vivian Poulin : Add new functions for energy repartition from DM annihilations or decays
+ 
+Modification: Patrick Stöcker (20.02.17): Adding call to external script to calculate the annihilation coefficients on the fly. 
+
+*****/
 int thermodynamics_annihilation_coefficients_init(
                                                   struct precision * ppr,
                                                   struct background * pba,
@@ -1335,10 +1339,15 @@ int thermodynamics_annihilation_coefficients_init(
   FILE * fA;
   char line[_LINE_LENGTH_MAX_];
   char * left;
+  
+  /* BEGIN: New variables related to the use of an external code to calculate the annihilation coefficients */
+  char arguments[_ARGUMENT_LENGTH_MAX_];
+  char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
+  int status;
+  /* END */
 
   int num_lines=0;
   int array_line=0;
-
 
   /*
 
@@ -1348,11 +1357,26 @@ int thermodynamics_annihilation_coefficients_init(
      heat, excitation of lyman-alpha level, Hydrogen ionisation, Helium ionisation, photons below 10.2 eV unseeable by the IGM.
 
   */
-  class_open(fA,ppr->annihil_coeff_file, "r",pth->error_message);
+  
+  /* BEGIN: Add switch (1) */
+  if (!(ppr->fz_is_extern)) {
+    class_open(fA,ppr->annihil_coeff_file, "r",pth->error_message);
+  } else {
+    /* Prepare the command */
+    /* Pass the list of arguments */
+    sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+	/* Write the actual command */
+	sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
+	if (pth->thermodynamics_verbose > 0)
+      printf(" -> running: %s\n", command_with_arguments);
+    /* Launch the process and retrieve the output */
+	fA = popen(command_with_arguments, "r");
+	class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
+  } 
+  /* END */
 
   /* go through each line */
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-
     /* eliminate blank spaces at beginning of line */
     left=line;
     while (left[0]==' ') {
@@ -1408,8 +1432,14 @@ int thermodynamics_annihilation_coefficients_init(
       }
     }
   }
-
-  fclose(fA);
+  /* BEGIN: Add switch (2) */
+  if (!(ppr->fz_is_extern)) {
+    fclose(fA);
+  } else {
+    status = pclose(fA);
+	class_test(status != 0., pth->error_message, "The attempt to launch the external command was not successful. Maybe the output of the external command is not in the right format.");
+  }
+  /* END */
 
   /* spline in one dimension */
   class_call(array_spline_table_lines(pth->annihil_coef_xe,
@@ -4754,7 +4784,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
-          fprintf(stdout, "%e %e %e %e %e \n",x, z, chi_heat,chi_ionH,chi_ionHe);
+          //fprintf(stdout, "%e %e %e %e %e \n",x, z, chi_heat,chi_ionH,chi_ionHe);
 
         }
         /* old approximation from Chen and Kamionkowski */

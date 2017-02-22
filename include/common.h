@@ -432,6 +432,17 @@ struct precision
   FileName annihil_f_eff_file;
 
 /* @endcond */
+
+  /* Parameters related to calling an external code to calculate f(z) */
+  short fz_is_extern; /**< flag to specify if the fz_functions are given in a file or are calculated externally */
+  char*  command_fz;  /**< string with the command for calling 'external_fz' */
+  double param_fz_1;  /**< one parameter used in 'external_fz' */
+  double param_fz_2;  /**< one parameter used in 'external_fz' */
+  double param_fz_3;  /**< one parameter used in 'external_fz' */
+  double param_fz_4;  /**< one parameter used in 'external_fz' */
+  double param_fz_5;  /**< one parameter used in 'external_fz' */
+
+
   /* - for recombination */
 
   /* initial and final redshifts in recfast */

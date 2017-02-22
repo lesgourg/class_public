@@ -4,7 +4,7 @@
 """
 
 from scipy.integrate import trapz
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, interp2d
 import dill
 import numpy as np
 import matplotlib
@@ -101,7 +101,7 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
     z_integral = np.empty_like( z_dep, dtype=float)
     dummy = np.arange(1,len(z_inj)+1)
     for i in xrange(len(z_integral)):
-        low = max(i-1,0)
+        low = max(i-2,0)
         #low = i
         integrand = ( conversion(z_inj[low:],3) )*energy_integral[i,low:]
         z_integral[i] = trapz( integrand, dummy[low:] )
@@ -131,6 +131,7 @@ def log_fit(points,func,xgrid):
             f_copy[idx] = func[idx]
     
     nan_mask = f_copy == f_copy
+
     log_f = np.log( f_copy[nan_mask] * (points[nan_mask]**2) )
     log_f_fit = interp1d(points[nan_mask], log_f, bounds_error=False, fill_value=np.nan, kind='cubic')
     out = nan_clean( np.e**(log_f_fit(xgrid)) / (xgrid**2) )
