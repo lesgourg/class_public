@@ -1,3 +1,10 @@
+#Example file type 2 for energy injection: No 'factorization' simplification.
+#In this file f(z,x_e) per channel are given. It will be the argument of "annihilation coeff file". 
+#format : first line must contain the number of lines
+#other lines must contain (z, chi_heat, chi_lya, chi_ionH, chi_ionHe, chi_lowE (E < 10.2eV))
+#Need z from 0 to 10000 for safe computation ! Here a trivial extrapolation (harmless) is used above 2000 and below 10.
+#blank lines and lines starting with # neglected
+
 102
 
 0.	0.00008298000939024192	0	0.0002309615268354069	0	0.0002931866820178415
