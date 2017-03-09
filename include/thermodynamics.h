@@ -176,6 +176,8 @@ struct thermo
   double dp;
   double z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
 
+  /** parameter used by the tanh reheating */
+  double final_IGM_temperature; /**< Controls the final temperature of the IGM if a tanh reheating is required. Other parameters (duration, starting point...) are the same as the reionisation tanh. */
 
   /** some derived parameters useful to compare reionization models */
 

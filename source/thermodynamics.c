@@ -3664,9 +3664,12 @@ int thermodynamics_reionization_sample(
           /preio->reionization_parameters[preio->index_reio_width];
         /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
           if(z< preio->reionization_parameters[preio->index_reio_start])
-          preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
-                 -preio->reionization_parameters[preio->index_reio_xe_before])
-        *(tanh(argument)+1.)/2.*170 + preio->reionization_table[i*preio->re_size+preio->index_re_Tb]; //The factor 170 is a normalization chosen to fit data.
+          preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (pth->final_IGM_temperature
+                 -preio->reionization_table[i*preio->re_size+preio->index_re_Tb])
+        *(tanh(argument)+1.)/2 + preio->reionization_table[i*preio->re_size+preio->index_re_Tb]; //The factor 170 is a normalization chosen to fit data.
+        //   preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] = (preio->reionization_parameters[preio->index_reio_xe_after]
+        //          -preio->reionization_parameters[preio->index_reio_xe_before])
+        // *(tanh(argument)+1.)/2.*170 + preio->reionization_table[i*preio->re_size+preio->index_re_Tb]; //The factor 170 is a normalization chosen to fit data.
       }
       /** Second possibility: Compute temperature evolution with each sources*/
 

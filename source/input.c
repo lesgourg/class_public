@@ -1150,6 +1150,7 @@ int input_read_parameters(
              errmsg);
 
   if (flag1 == _TRUE_) {
+
     flag2=_FALSE_;
     if (strcmp(string1,"reio_none") == 0) {
       pth->reio_parametrization=reio_none;
@@ -1202,6 +1203,7 @@ int input_read_parameters(
      }
      if (strcmp(string1,"heating_reiolike_tanh") == 0) {
        pth->star_heating_parametrization=heating_reiolike_tanh;
+       class_read_double("final_IGM_temperature",pth->final_IGM_temperature);
       flag2=_TRUE_;
      }
      if (strcmp(string1,"heating_stars_sfr_source_term") == 0) {
@@ -1241,6 +1243,7 @@ int input_read_parameters(
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
 
   }
+
   if (pth->star_heating_parametrization == heating_stars_sfr_source_term || pth->reio_parametrization == reio_stars_sfr_source_term){
 
     class_read_double("fx",pth->fx);
@@ -3267,11 +3270,12 @@ int input_default_params(
   pth->z_99_percent = 0;
   pth->duration_of_reionization = 0.;
 
+  pth->final_IGM_temperature = 1e4;
   pth->f_esc=0.2;
   pth->Zeta_ion=pow(10,53.14);
   pth->fx = 0.2;
   pth->Ex = 3.4*pow(10,40);
-  pth->model_SFR = model_SFR_bestfit;
+  pth->model_SFR = model_SFR_free;
   pth->ap = 0.01376;
   pth->bp = 3.26;
   pth->cp = 2.59;
@@ -3550,7 +3554,7 @@ int input_default_precision ( struct precision * ppr ) {
   strcat(ppr->annihil_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
   sprintf(ppr->annihil_f_eff_file,__CLASSDIR__);
   strcat(ppr->annihil_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
- 
+
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;
   ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
@@ -3560,7 +3564,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->param_fz_3 = 0.;
   ppr->param_fz_4 = 0.;
   ppr->param_fz_5 = 0.;
-  /* END  */	
+  /* END  */
 
   /* for recombination */
 
