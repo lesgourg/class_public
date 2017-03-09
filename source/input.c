@@ -3248,7 +3248,7 @@ int input_default_params(
   pth->bp = 3.26;
   pth->cp = 2.59;
   pth->dp = 5.68;
-  pth->z_start_reio_stars = 12;
+  pth->z_start_reio_stars = 15;
   pth->annihilation = 0.;
   pth->annihilation_boost_factor = 0.;
   pth->annihilation_m_DM = -1.;
