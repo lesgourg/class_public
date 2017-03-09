@@ -21,3 +21,4 @@ test/
 *.p
 script*
 sfr.dat
+*.png
