@@ -1,4 +1,5 @@
 /** @file input.c Documented input module.
+/** @file input.c Documented input module.
  *
  * Julien Lesgourgues, 27.08.2010
  */
@@ -1166,8 +1167,8 @@ int input_read_parameters(
       pth->reio_parametrization=reio_half_tanh;
       flag2=_TRUE_;
     }
-    if (strcmp(string1,"reio_stars_realistic_model") == 0) {
-      pth->reio_parametrization=reio_stars_realistic_model;
+    if (strcmp(string1,"reio_stars_sfr_source_term") == 0) {
+      pth->reio_parametrization=reio_stars_sfr_source_term;
       flag2=_TRUE_;
     }
     if (strcmp(string1,"reio_duspis_et_al") == 0) {
@@ -1187,6 +1188,30 @@ int input_read_parameters(
                errmsg,
                "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh'...");
   }
+
+  /** - heating parametrization */
+  class_call(parser_read_string(pfc,"star_heating_parametrization",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+   if (flag1 == _TRUE_) {
+     flag2=_FALSE_;
+     if (strcmp(string1,"heating_none") == 0) {
+       pth->star_heating_parametrization=heating_none;
+       flag2=_TRUE_;
+     }
+     if (strcmp(string1,"heating_reiolike_tanh") == 0) {
+       pth->star_heating_parametrization=heating_reiolike_tanh;
+      flag2=_TRUE_;
+     }
+     if (strcmp(string1,"heating_stars_sfr_source_term") == 0) {
+       pth->star_heating_parametrization=heating_stars_sfr_source_term;
+       flag2=_TRUE_;
+     }
+     class_test(flag2==_FALSE_,
+                errmsg,
+                "could not identify star_heating_parametrization value, check that it is one of 'heating_none', 'heating_reiolike_tanh', 'heating_stars_sfr_source_term'.");
+    }
 
   /* reionization parameters if reio_parametrization=reio_camb */
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh) ){
@@ -1211,9 +1236,87 @@ int input_read_parameters(
 
     class_read_double("reionization_exponent",pth->reionization_exponent);
     class_read_double("reionization_width",pth->reionization_width);
+    class_read_double("reionization_width",pth->reionization_width);
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
 
+  }
+  if (pth->star_heating_parametrization == heating_stars_sfr_source_term || pth->reio_parametrization == reio_stars_sfr_source_term){
+
+    class_read_double("fx",pth->fx);
+    class_read_double("Ex",pth->Ex);
+    pth->Ex*=_joules_over_ergs_;
+    class_read_double("z_start_reio_stars",pth->z_start_reio_stars);
+    class_read_double("f_esc",pth->f_esc);
+    class_call(parser_read_double(pfc,"Zeta_ion",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"Log10_Zeta_ion",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "In input file, you can only enter one of Zeta_ion or Log10_Zeta_ion, choose one");
+    if (flag1 == _TRUE_) {
+      pth->Zeta_ion=param1;
+    }
+    if (flag2 == _TRUE_) {
+      pth->Zeta_ion=pow(10,param2);
+    }
+    class_call(parser_read_string(pfc,"model_SFR",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+     if (flag1 == _TRUE_) {
+       flag2=_FALSE_;
+       if (strcmp(string1,"model_SFR_bestfit") == 0) {
+         pth->model_SFR=model_SFR_bestfit;
+         pth->ap = 0.01376;
+         pth->bp = 3.26;
+         pth->cp = 2.59;
+         pth->dp = 5.68;
+         flag2=_TRUE_;
+       }
+       if (strcmp(string1,"model_SFR_p1sig") == 0) {
+         pth->model_SFR=model_SFR_p1sig;
+         pth->ap = 0.01476;
+         /*
+         pth->bp = 3.47;
+         pth->cp = 2.73;
+        //  pth->dp = 5.87;
+         pth->dp = 5.49;
+         */
+         pth->bp = 3.26;
+         pth->cp = 2.59;
+         pth->dp = 5.68;
+        flag2=_TRUE_;
+       }
+       if (strcmp(string1,"model_SFR_m1sig") == 0) {
+         pth->model_SFR=model_SFR_m1sig;
+         pth->ap = 0.01276;
+         /*
+         pth->bp = 3.05;
+         pth->cp = 2.45;
+        //  pth->dp = 5.49;
+         pth->dp = 5.87;
+         */
+         pth->bp = 3.26;
+         pth->cp = 2.59;
+         pth->dp = 5.68;
+         flag2=_TRUE_;
+       }
+       if (strcmp(string1,"model_SFR_free") == 0) {
+         pth->model_SFR=model_SFR_free;
+       class_read_double("ap",pth->ap);
+       class_read_double("bp",pth->bp);
+       class_read_double("cp",pth->cp);
+       class_read_double("dp",pth->dp);
+       flag2=_TRUE_;
+     }
+       class_test(flag2==_FALSE_,
+                  errmsg,
+                  "could not identify model_SFR value, check that it is one of 'model_SFR_bestfit', 'model_SFR_p1sig', 'model_SFR_m1sig','model_SFR_free'.");
+      }
   }
   if (pth->reio_parametrization == reio_duspis_et_al){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
@@ -1322,7 +1425,7 @@ int input_read_parameters(
   // "Recfast cannot be used to compute effect of dark matter halos on reionization, because its parametrization goes outside is range of validity. Please restart in 'recombination = hyrec' mode.");
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
-
+/** - Relevant parameters in case of exotic energy injection */
 if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0 || pth->PBH_low_mass){
 
 
@@ -3111,6 +3214,7 @@ int input_default_params(
   pth->YHe=_BBN_;
   pth->recombination=recfast;
   pth->reio_parametrization=reio_camb;
+  pth->star_heating_parametrization=heating_none;
   pth->reio_z_or_tau=reio_z;
   pth->z_reio=11.357;
   pth->tau_reio=0.0925;
@@ -3135,6 +3239,16 @@ int input_default_params(
   pth->z_99_percent = 0;
   pth->duration_of_reionization = 0.;
 
+  pth->f_esc=0.2;
+  pth->Zeta_ion=pow(10,53.14);
+  pth->fx = 0.2;
+  pth->Ex = 3.4*pow(10,40);
+  pth->model_SFR = model_SFR_bestfit;
+  pth->ap = 0.01376;
+  pth->bp = 3.26;
+  pth->cp = 2.59;
+  pth->dp = 5.68;
+  pth->z_start_reio_stars = 12;
   pth->annihilation = 0.;
   pth->annihilation_boost_factor = 0.;
   pth->annihilation_m_DM = -1.;

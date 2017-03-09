@@ -20,3 +20,4 @@ class.dSYM/Contents/Info.plist
 test/
 *.p
 script*
+sfr.dat

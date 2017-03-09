@@ -27,15 +27,32 @@ enum reionization_parametrization {
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
-  reio_stars_realistic_model, /**< To be used when computing effect of stars  from a more realistic model */
+  reio_stars_sfr_source_term, /**< Reionization parameterization based on the star formation rate, see Poulin et al. arXiv:1508.01370 and references therein */
   reio_duspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by Duspis et al. 1509.02785 and improved by 1605.03928 */
   reio_asymmetric_planck_16 /**< Redshift asymetric reionisation parametrization as introduced by the Planck collaboration in 2016 data release 1605.03507  */
 };
+/**
+ * List of possible energy repartition functions.
+ */
 enum energy_repartition_functions {
   SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
   Galli_et_al_fit,  /**< Fit of Galli et al 2013 functions */
   Galli_et_al_interpolation,  /**< Interpolation of Galli et al 2013 functions  */
   no_factorization
+};
+/**
+ * List of possible modelisation of star reheating.
+ */
+enum heating_by_stars_parametrization {
+  heating_none, /**< No reheating by stars */
+  heating_reiolike_tanh, /**< reheating parameterized like reionization with normalization adjust to fit data */
+  heating_stars_sfr_source_term  /**< reheating parameterization based on the star formation rate (SFR). See Poulin et al. 1508.01370.  */
+};
+enum modelisation_of_SFR {
+  model_SFR_bestfit, /**< No reheating by stars */
+  model_SFR_p1sig, /**< reheating parameterized like reionization with normalization adjust to fit data */
+  model_SFR_m1sig,  /**< reheating parameterization based on the star formation rate (SFR). See Poulin et al. 1508.01370.  */
+  model_SFR_free
 };
 enum PBH_accretion_recipe {
   Ali_Haimoud, /**< Accretion recipe from Ali_Haimoud & Kamionkowski, arXiv:1612.05644 */
@@ -91,6 +108,10 @@ struct thermo
 
   enum reionization_z_or_tau reio_z_or_tau; /**< is the input parameter the reionization redshift or optical depth? */
 
+  enum heating_by_stars_parametrization star_heating_parametrization; /**< star heating parametrization */
+
+  enum modelisation_of_SFR model_SFR; /**< choice of SFR modelling. Currently Roberston et al 15: bestfit, m1sig, p1sig. */
+
   double tau_reio; /**< if above set to tau, input value of reionization optical depth */
 
   double z_reio;   /**< if above set to z,   input value of reionization redshift */
@@ -141,7 +162,23 @@ struct thermo
   double z_start_asymmetric_planck_16;
   double alpha_asymmetric_planck_16;
 
+  /** parameters used by reio_stars_sfr_source_term and heating_by_stars_parametrization*/
+
+
+  double f_esc; /**< fraction of photons produced by stellar populations that escape to ionize the IGM */
+  double Zeta_ion; /**< Lyman continuum photon production efficiency of the stellar population */
+  double Log10_Zeta_ion;/**< The log10 of former parameter. */
+  double fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
+  double Ex; /**< Associated normalization from Pober et al. 1503.00045. */
+  double ap;   /**<  a few parameters entering the fit of the star formation rate (SFR), introduced in Madau & Dickinson, Ann.Rev.Astron.Astrophys. 52 (2014) 415-486, updated in Robertson & al. 1502.02024.*/
+  double bp;
+  double cp;
+  double dp;
+  double z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
+
+
   /** some derived parameters useful to compare reionization models */
+
   double duration_of_reionization;   /**< it measures the duration of reionation, it is defined as z_10_percent - z_99_percent*/
   double z_10_percent;  /** <redshift at which x_e = 0.1*(1+f_He) */
   double z_50_percent;  /** <redshift at which x_e = 0.5*(1+f_He) */
@@ -443,6 +480,8 @@ struct recombination {
   double increase_T_from_stars; /**< To compute the increase of temperature due to star formation in a given model */
 
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
+
+
   ErrorMsg error_message;
 };
 

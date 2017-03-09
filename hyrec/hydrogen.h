@@ -104,7 +104,22 @@ typedef struct {
    double energy_deposition_treatment;
    double f_eff;
    int annihil_f_eff_num_lines;
-   int reio_parametrization; /*Do we want the realistic stars modeling ? 0 = no, 1 = yes*/
+   int reio_parametrization; /*Do we want the reio by stars based on SFR modeling ? 0 = no, 1 = yes*/
+   int star_heating_parametrization; /*Do we want heating by stars based on SFR modeling ? 0 = no, 1 = yes*/
+
+   /** A few parameters if the scheme reio_stars_sfr_source_term is chosen */
+
+   double f_esc; /**< fraction of photons produced by stellar populations that escape to ionize the IGM */
+   double Zeta_ion; /**< Lyman continuum photon production efficiency of the stellar population */
+   double Log10_Zeta_ion;/**< The log10 of former parameter. */
+   double fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
+   double Ex; /**< Associated normalization from Pober et al. 1503.00045. */
+   double ap;   /**<  a few parameters entering the fit of the star formation rate (SFR), introduced in Madau & Dickinson, Ann.Rev.Astron.Astrophys. 52 (2014) 415-486, updated in Robertson & al. 1502.02024.*/
+   double bp;
+   double cp;
+   double dp;
+   double z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
+
 
    double Omega0_g;
    double odcdmh2,ocdmh2;
