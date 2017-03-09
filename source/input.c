@@ -1349,7 +1349,7 @@ int input_read_parameters(
     class_read_double("many_tanh_width",pth->many_tanh_width);
   }
 
-  /** - energy injection parameters from CDM annihilation/decay */
+  /** - energy injection parameters from CDM /decay */
 
   class_read_double("annihilation",pth->annihilation);
   class_read_double("boost_factor",pth->annihilation_boost_factor);
@@ -1450,6 +1450,34 @@ if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0 || pth->PBH_low_mas
         }
       }
     }
+
+	/* BEGIN: Add function to read if "fz_is_extern"-flag is set.
+    If so read also the external command and the inputs */
+    class_call( parser_read_string(pfc,"external_fz",&(string1),&(flag1),errmsg),errmsg,errmsg);
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        ppr->fz_is_extern = _TRUE_;
+		/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
+		class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+        class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+		ppr->command_fz = (char *) malloc (strlen(string2) + 1);
+    	strcpy(ppr->command_fz, string2);
+        class_read_double("ext_fz_par1",ppr->param_fz_1);
+        class_read_double("ext_fz_par2",ppr->param_fz_2);
+		class_read_double("ext_fz_par3",ppr->param_fz_3);
+		class_read_double("ext_fz_par4",ppr->param_fz_4);
+		class_read_double("ext_fz_par5",ppr->param_fz_5);
+      }
+      else {
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          ppr->fz_is_extern = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'external_fz'",string1);
+        }
+      }
+    }
+	/* END */
 
     if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
@@ -3522,7 +3550,17 @@ int input_default_precision ( struct precision * ppr ) {
   strcat(ppr->annihil_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
   sprintf(ppr->annihil_f_eff_file,__CLASSDIR__);
   strcat(ppr->annihil_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
-
+ 
+  /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
+  ppr->fz_is_extern = _FALSE_;
+  ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
+  //ppr->command_fz = "Insert external command, like: python ./path/to_external/script.py";
+  ppr->param_fz_1 = 0.;
+  ppr->param_fz_2 = 0.;
+  ppr->param_fz_3 = 0.;
+  ppr->param_fz_4 = 0.;
+  ppr->param_fz_5 = 0.;
+  /* END  */	
 
   /* for recombination */
 

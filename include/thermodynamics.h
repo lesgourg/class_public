@@ -246,10 +246,6 @@ struct thermo
   double chi_lowE;
   int annihil_coef_num_lines;
 
-
-
-
-
   //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */
@@ -361,6 +357,7 @@ struct thermo
 
 };
 
+
 /**
  * Temporary structure where all the recombination history is defined and stored.
  *
@@ -421,8 +418,6 @@ struct recombination {
   double YHe; /**< defined as in RECFAST */
 
   /* parameters for energy injection */
-
-
 
   double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
   double annihilation_boost_factor;/**< alternative parameterization to annihilation parameter, describes the boost factor to annihilation cross section */
