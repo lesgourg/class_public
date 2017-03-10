@@ -980,6 +980,15 @@ int input_read_parameters(
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
   }
 
+  /*
+  fprintf(stderr,"%e %e %e %e %e\n",
+          pba->Omega0_lambda,
+          pba->Omega0_fld,
+          pba->Omega0_scf,
+          pba->Omega0_k,
+          Omega_tot);
+  */
+
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
@@ -990,6 +999,25 @@ int input_read_parameters(
     class_read_double("w0_fld",pba->w0_fld);
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
+
+    class_call(parser_read_string(pfc,
+                                  "use_ppf",
+                                  &string1,
+                                  &flag1,
+                                  errmsg),
+                errmsg,
+                errmsg);
+
+    if (flag1 == _TRUE_){
+      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+        pba->use_ppf = _TRUE_;
+        class_read_double("c_gamma_over_c_fld",pba->c_gamma_over_c_fld);
+      }
+      else {
+        pba->use_ppf = _FALSE_;
+      }
+    }
+
   }
 
   /* Additional SCF parameters: */
@@ -1094,10 +1122,14 @@ int input_read_parameters(
       pth->reio_parametrization=reio_many_tanh;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_inter") == 0) {
+      pth->reio_parametrization=reio_inter;
+      flag2=_TRUE_;
+    }
 
     class_test(flag2==_FALSE_,
                errmsg,
-               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh'...");
+               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh', 'reio_inter'...");
   }
 
   /** - reionization parameters if reio_parametrization=reio_camb */
@@ -1141,6 +1173,13 @@ int input_read_parameters(
     class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
     class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
     class_read_double("many_tanh_width",pth->many_tanh_width);
+  }
+
+  /** - reionization parameters if reio_parametrization=reio_many_tanh */
+  if (pth->reio_parametrization == reio_inter) {
+    class_read_int("reio_inter_num",pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
   }
 
   /** - energy injection parameters from CDM annihilation/decay */
@@ -2836,6 +2875,8 @@ int input_default_params(
   pba->w0_fld=-1.;
   pba->wa_fld=0.;
   pba->cs2_fld=1.;
+  pba->use_ppf = _TRUE_;
+  pba->c_gamma_over_c_fld = 0.4;
 
   pba->shooting_failed = _FALSE_;
 

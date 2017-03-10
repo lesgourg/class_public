@@ -30,7 +30,9 @@ cosmo_mini_toolbox, available under GPLv3 at
 https://github.com/JesusTorrado/cosmo_mini_toolbox
 
 """
-from __future__ import unicode_literals
+
+from __future__ import unicode_literals, print_function
+
 # System imports
 import os
 import sys
@@ -343,8 +345,8 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
     # Write to the python file all the issued commands. You can then reproduce
     # the plot by running "python output/something_cl.dat.py"
     with open(python_script_path, 'w') as python_script:
-        print 'Creating a python script to reproduce the figure'
-        print '--> stored in %s' % python_script_path
+        print('Creating a python script to reproduce the figure')
+        print('--> stored in %s' % python_script_path)
         python_script.write('\n'.join(text))
 
     # If the use wants to print the figure to a file
@@ -439,7 +441,7 @@ def extract_headers(header_path):
 
 
 def main():
-    print '~~~ Running CPU, a CLASS Plotting Utility ~~~'
+    print('~~~ Running CPU, a CLASS Plotting Utility ~~~')
     parser = CPU_parser()
     # Parse the command line arguments
     args = parser.parse_args()
@@ -480,7 +482,7 @@ def main():
     # performed. If asked to be divided, the ratio is shown - whether a need
     # for interpolation arises or not.
     if args.ratio and args.scale == 'loglog':
-        print "Defaulting to loglin scale"
+        print("Defaulting to loglin scale")
         args.scale = 'loglin'
 
     plot_CLASS_output(args.files, args.x_axis, args.y_axis,

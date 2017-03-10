@@ -88,7 +88,7 @@ def main():
     for header in headers:
         extract_headers(header, structs, output_file, logger)
     logger.info("Finished extracting headers")
-    for struct_name, struct in structs.iteritems():
+    for struct_name, struct in structs.items():
         create_wrapper_class(struct_name, struct, output_file, logger)
 
     return
@@ -315,7 +315,7 @@ def create_wrapper_class(struct_name, struct, of, logger):
     # Define the array variables for all needed
     array_variables = []
     variables = []
-    for key, value in struct.iteritems():
+    for key, value in struct.items():
         if key != 'init':
             if value[1]:
                 array_variables.append(key)

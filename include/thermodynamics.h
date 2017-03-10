@@ -26,7 +26,8 @@ enum reionization_parametrization {
   reio_camb,  /**< reionization parameterized like in CAMB */
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
   reio_half_tanh,  /**< half a tanh, instead of the full tanh */
-  reio_many_tanh   /**< similar to reio_camb but with more than one tanh */
+  reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
+  reio_inter       /**< linear interpolation between specified points */
 };
 
 /**
@@ -107,6 +108,14 @@ struct thermo
   double * many_tanh_xe; /**< imposed \f$ X_e(z)\f$ value at the end of each jump (ie at later times)*/
 
   double many_tanh_width; /**< sharpness of tanh() steps */
+
+    /** parameters for reio_inter */
+
+  int reio_inter_num; /**< with how many jumps do we want to describe reionization? */
+
+  double * reio_inter_z; /**< discrete z values */
+
+  double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
 
   /** parameters for energy injection */
 
@@ -403,7 +412,7 @@ struct reionization {
   int index_helium_fullreio_redshift; /**< helium full reionization redshift */
   int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
 
-  /* parameters used by reio_bins_tanh and reio_many_tanh */
+  /* parameters used by reio_bins_tanh, reio_many_tanh, reio_inter */
 
   int reio_num_z; /**< number of reionization jumps */
   int index_reio_first_z; /**< redshift at which we start to impose reionization function */

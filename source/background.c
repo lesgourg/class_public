@@ -534,23 +534,26 @@ int background_init(
   /** - control that cosmological parameter values make sense */
 
   /* H0 in Mpc^{-1} */
-  class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
+  /* Many users asked for this test to be supressed. It is commented out. */
+  /*class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
              pba->error_message,
-             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);
+             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
 
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
              pba->error_message,
              "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
 
   /* T_cmb in K */
-  class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
+  /* Many users asked for this test to be supressed. It is commented out. */
+  /*class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
              pba->error_message,
-             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);
+             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
 
-  /* H0 in Mpc^{-1} */
-  class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
+  /* Omega_k */
+  /* Many users asked for this test to be supressed. It is commented out. */
+  /*class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
              pba->error_message,
-             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);
+             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
@@ -955,7 +958,7 @@ int background_ncdm_distribution(
     /**
        Next enter your analytic expression(s) for the p.s.d.'s. If
        you need different p.s.d.'s for different species, put each
-       p.s.d inside a condition, like for instance: if (n_ncdm==2) 
+       p.s.d inside a condition, like for instance: if (n_ncdm==2)
        {*f0=...}.  Remember that n_ncdm = 0 refers to the first
        species.
     */
@@ -1271,7 +1274,7 @@ int background_ncdm_momenta(
   double q2;
   double factor2;
   /** Summary: */
-  
+
   /** - rescale normalization at given redshift */
   factor2 = factor*pow(1+z,4);
 
@@ -1634,7 +1637,7 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - compute remaining "related parameters" 
+  /** - compute remaining "related parameters"
    *     - so-called "effective neutrino number", computed at earliest
       time in interpolation table. This should be seen as a
       definition: Neff is the equivalent number of
@@ -1778,9 +1781,9 @@ int background_initial_conditions(
   if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
       /**  - f is the critical density fraction of DR. The exact solution is:
-       * 
+       *
        * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
-       * 
+       *
        * but it is not numerically stable for very small f which is always the case.
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
@@ -1796,10 +1799,10 @@ int background_initial_conditions(
 
   /** - Fix initial value of \f$ \phi, \phi' \f$
    * set directly in the radiation attractor => fixes the units in terms of rho_ur
-   * 
-   * TODO: 
-   * - There seems to be some small oscillation when it starts. 
-   * - Check equations and signs. Sign of phi_prime? 
+   *
+   * TODO:
+   * - There seems to be some small oscillation when it starts.
+   * - Check equations and signs. Sign of phi_prime?
    * - is rho_ur all there is early on?
    */
   if(pba->has_scf == _TRUE_){
@@ -1871,7 +1874,7 @@ int background_initial_conditions(
 
 /**
  * Subroutine for formatting background output
- * 
+ *
  */
 
 int background_output_titles(struct background * pba,
@@ -2072,19 +2075,19 @@ int background_derivs(
  * Scalar field potential and its derivatives with respect to the field _scf
  * For Albrecht & Skordis model: 9908085
  * - \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
- * - \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential) 
- * - \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump) 
- * 
- * TODO: 
+ * - \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential)
+ * - \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump)
+ *
+ * TODO:
  * - Add some functionality to include different models/potentials (tuning would be difficult, though)
  * - Generalize to Kessence/Horndeski/PPF and/or couplings
  * - A default module to numerically compute the derivatives when no analytic functions are given should be added.
  * - Numerical derivatives may further serve as a consistency check.
- * 
+ *
  */
 
-/** 
- * 
+/**
+ *
  * The units of phi, tau in the derivatives and the potential V are the following:
  * - phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
  * - tau in the derivative is given in units of Mpc.
@@ -2129,12 +2132,12 @@ double ddV_e_scf(struct background *pba,
 
 
 /** parameters and functions for the polynomial coefficient
- * \f$ V_p = (\phi - B)^\alpha + A \f$(polynomial bump) 
- * 
+ * \f$ V_p = (\phi - B)^\alpha + A \f$(polynomial bump)
+ *
  * double scf_alpha = 2;
- * 
+ *
  * double scf_B = 34.8;
- * 
+ *
  * double scf_A = 0.01; (values for their Figure 2)
  */
 
