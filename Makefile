@@ -24,7 +24,12 @@ CC       = gcc
 # your tool for creating static libraries:
 AR        = ar rv
 
-# (OPT) your python interpreter
+# Your python interpreter.
+# In order to use Python 3, you can manually
+# substitute python3 to python in the line below, or you can simply
+# add a compilation option on the terminal command line:
+# "PYTHON=python3 make all" (THanks to Marius Millea for pyhton3
+# compatibility)
 PYTHON ?= python
 
 # your optimization flag

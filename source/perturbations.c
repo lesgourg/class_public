@@ -335,11 +335,10 @@ int perturb_init(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      if (ppt->perturbations_verbose > 1)
+      if (ppt->perturbations_verbose > 1) {
         printf("Evolving ic %d/%d\n",index_ic+1,ppt->ic_size[index_md]);
-
-        if (ppt->perturbations_verbose > 1)
-          printf("evolving %d wavenumbers\n",ppt->k_size[index_md]);
+        printf("evolving %d wavenumbers\n",ppt->k_size[index_md]);
+      }
 
       abort = _FALSE_;
 
