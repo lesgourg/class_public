@@ -33,5 +33,5 @@ setup(
                            library_dirs=["../", GCCPATH],
                            extra_link_args=['-lgomp'],
                            )],
-    data_files=(('bbn', ['../bbn/sBBN.dat']),)
+    #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )

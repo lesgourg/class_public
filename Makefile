@@ -60,13 +60,13 @@ EXTERNAL =
 
 # Try to automatically avoid an error 'error: can't combine user with ...'
 # which sometimes happens with brewed Python on OSX:
-CFGFILE=$(shell $(PYTHON) -c "import sys; print sys.prefix+'/lib/'+'python'+'.'.join(['%i' % e for e in sys.version_info[0:2]])+'/distutils/distutils.cfg'")
-PYTHONPREFIX=$(shell grep -s "prefix" $(CFGFILE))
-ifeq ($(PYTHONPREFIX),)
-PYTHONFLAGS=--user
-else
-PYTHONFLAGS=
-endif
+#CFGFILE=$(shell $(PYTHON) -c "import sys; print sys.prefix+'/lib/'+'python'+'.'.join(['%i' % e for e in sys.version_info[0:2]])+'/distutils/distutils.cfg'")
+#PYTHONPREFIX=$(shell grep -s "prefix" $(CFGFILE))
+#ifeq ($(PYTHONPREFIX),)
+#PYTHONFLAGS=--user
+#else
+#PYTHONFLAGS=
+#endif
 
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
@@ -190,7 +190,7 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-	cd python; export CC=$(CC); $(PYTHON) setup.py install $(PYTHONFLAGS)
+	cd python; export CC=$(CC); $(PYTHON) setup.py install || $(PYTHON) setup.py install --user
 
 clean: .base
 	rm -rf $(WRKDIR);
