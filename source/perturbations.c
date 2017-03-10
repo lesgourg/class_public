@@ -5283,7 +5283,6 @@ int perturb_total_stress_energy(
   double delta_rho_scf, delta_p_scf, psi;
   double c_gamma_k_H_square;
   double Gamma_prime_plus_a_prime_over_a_Gamma;
-  double alpha_without_de;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5554,7 +5553,6 @@ int perturb_total_stress_energy(
         ppw->delta_rho_fld = -(k2*y[ppw->pv->index_pt_Gamma_fld]+ 3.*a_prime_over_a*Gamma_prime_plus_a_prime_over_a_Gamma)/1.5/a2;
         ppw->rho_plus_p_theta_fld = k2*Gamma_prime_plus_a_prime_over_a_Gamma/1.5/a2;
         if (ppt->gauge == synchronous) {
-          alpha_without_de = 0.;
           ppw->S_fld += 0.;
           ppw->delta_rho_fld += 0.;
           ppw->rho_plus_p_theta_fld += 0.;
