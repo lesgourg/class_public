@@ -80,6 +80,10 @@ cdef extern from "class.h":
         double rs_d
         double YHe
         double n_e
+		
+        # BEGIN: Add additional parameters
+        double annihilation
+        # END
 
         int tt_size
 

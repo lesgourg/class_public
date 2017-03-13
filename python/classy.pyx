@@ -739,8 +739,12 @@ cdef class Class:
         return self.pm.n_s
 
     def tau_reio(self):
-         return self.th.tau_reio
+        return self.th.tau_reio
 
+    # BEGIN NEW: Add pth->annihilation to classy
+    def annihilation(self):
+        return self.th.annihilation
+    # END
 
     # Defined twice ?
     def Omega_m(self):
@@ -1353,6 +1357,10 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
+            ## BEGIN: Add own derived parameters
+            elif name == 'annihilation':
+                value = self.th.annihilation
+            ## END
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
