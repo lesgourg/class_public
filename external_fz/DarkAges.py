@@ -78,7 +78,7 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
     #norm = ( conversion(z_dep,3) )*( trapz(int_tot, E) )
     #norm = ( conversion(z_dep,3) )*( 2*mass_dm )
                    
-    energy_integral = np.empty( shape=(len(z_inj),len(z_dep)), dtype=np.float64)
+    energy_integral = np.zeros( shape=(len(z_inj),len(z_dep)), dtype=np.float64)
     for i in xrange(len(energy_integral)):
         for k in xrange(i,len(energy_integral[i])):
             int_phot = transfer_phot[i,:,k]*spec_phot*(E**2)/np.log10(np.e)
@@ -92,10 +92,10 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
     #        int_elec = transfer_elec[i,:,k]*spec_elec*(E**1)
     #        energy_integral[i][k] = trapz( int_phot + int_elec, E )
           
-    z_integral = np.empty_like( z_dep, dtype=np.float64)
+    z_integral = np.zeros_like( z_dep, dtype=np.float64)
     dummy = np.arange(1,len(z_inj)+1)
     for i in xrange(len(z_integral)):
-        low = max(i-2,0)
+        low = max(i,0)
         #low = i
         integrand = ( conversion(z_inj[low:],3) )*energy_integral[i,low:]
         z_integral[i] = trapz( integrand, dummy[low:] )
