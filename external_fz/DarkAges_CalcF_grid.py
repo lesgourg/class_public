@@ -10,7 +10,7 @@ import DarkAges
 from DarkAges import *
 
 def getSpec(filename, sampling_log10E):
-	spec_data = np.genfromtxt(filename, unpack=True, usecols=(0,1,2,3,4), skip_header=1)
+	spec_data = np.genfromtxt(filename, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)
 
 	read_log10energy = 9*np.ones_like(spec_data[1,:])+spec_data[1,:]
 	read_el = spec_data[2,:]
@@ -34,7 +34,7 @@ def getSpec(filename, sampling_log10E):
 	spectrum_ph *= 1/rescaling_p
 	spectrum_oth *= 1/rescaling_o
 
-	return np.array([spectrum_el, spectrum_ph, spectrum_oth])
+	return np.array([spectrum_el, spectrum_ph, spectrum_oth], dtype=np.float64)
 
 #######################
 #######################
@@ -46,6 +46,8 @@ mixing = float(sys.argv[2])
 if mixing < 0 or mixing > 1:
 	print "BREAK: The mixing-parameter sholud be in the range [0,1]"
 	raise SystemExit
+#annihilation = 0. / sampling_mass # No annihilation
+#annihilation = 1.683e-5 / sampling_mass # Set sigmav according to the value favoured by thermal freeze out.
 #outfile = sys.argv[3]
 
 trans_file1 =  open(os.path.join(current_dir, 'transfer_functions/transfer_Ch1.obj'))
@@ -64,17 +66,17 @@ logEnergies = transfer_functions1.log10E[:]
 #masses = np.array([50,55,60,65,70,80,85,90,95,100]) # exclude 75 for testing quality of interpolation
 #masses = np.array([50,55,60,65,70,75,80,85,90,95,100]) # full
 masses = np.array([50,60,70,80,90,100])
-spectra_grid1 = np.zeros( shape=(len(masses),3,len(logEnergies)) )
-spectra_grid2 = np.zeros( shape=(len(masses),3,len(logEnergies)) )
+spectra_grid1 = np.zeros( shape=(len(masses),3,len(logEnergies)), dtype=np.float64 )
+spectra_grid2 = np.zeros( shape=(len(masses),3,len(logEnergies)), dtype=np.float64 )
 for idx, mass in enumerate(masses):
 	fname1 = os.path.join(current_dir,"spectra/muon_%i_spec.dat" % mass)
 	fname2 = os.path.join(current_dir,"spectra/bottom_%i_spec.dat" % mass)
 	spectra_grid1[idx,:,:] = getSpec(fname1, logEnergies) 
 	spectra_grid2[idx,:,:] = getSpec(fname2, logEnergies)
 
-sampling_spectrum_el = np.zeros_like(transfer_functions1.log10E)
-sampling_spectrum_ph = np.zeros_like(transfer_functions1.log10E)
-sampling_spectrum_oth = np.zeros_like(transfer_functions1.log10E)
+sampling_spectrum_el = np.zeros_like(transfer_functions1.log10E, dtype=np.float64)
+sampling_spectrum_ph = np.zeros_like(transfer_functions1.log10E, dtype=np.float64)
+sampling_spectrum_oth = np.zeros_like(transfer_functions1.log10E, dtype=np.float64)
 
 for idx in xrange(len(logEnergies)):
 	interp_el_m= interp1d(masses, spectra_grid1[:,0,idx], kind='quadratic')
@@ -106,6 +108,8 @@ f5 = mix_model.calc_f(transfer_functions5)[-1]
 
 first = 2
 last = len(z) - 7
+min_z = 0.
+max_z = 1e4 
 
 #file_out = open(outfile, 'w')
 #file_out.write('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n%i\n'%( (last-first) + 2))
@@ -117,7 +121,8 @@ last = len(z) - 7
 #print 'Saved f(z)-curves under "%s"'%outfile
 
 print('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n%i\n'%( (last-first) + 2))
-print('%.4g\t%.8g\t%.8g\t%.8g\t%.8g\t%.8g'%(0.,f4[first],f3[first],f1[first],f2[first],f5[first]))
+#print('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n%i\t%.8g\n'%( (last-first) + 2, annihilation))
+print('%.4g\t%.8g\t%.8g\t%.8g\t%.8g\t%.8g'%(min_z,f4[first],f3[first],f1[first],f2[first],f5[first]))
 for idx in range(first,last):
 	print('%.4g\t%.8g\t%.8g\t%.8g\t%.8g\t%.8g'%(z[idx],f4[idx],f3[idx],f1[idx],f2[idx],f5[idx]))
-print('%.4g\t%.8g\t%.8g\t%.8g\t%.8g\t%.8g'%(10000.,f4[last-1],f3[last-1],f1[last-1],f2[last-1],f5[last-1]))
+print('%.4g\t%.8g\t%.8g\t%.8g\t%.8g\t%.8g'%(max_z,f4[last-1],f3[last-1],f1[last-1],f2[last-1],f5[last-1]))

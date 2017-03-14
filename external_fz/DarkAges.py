@@ -7,12 +7,6 @@ from scipy.integrate import trapz
 from scipy.interpolate import interp1d, interp2d
 import dill
 import numpy as np
-import matplotlib
-import matplotlib.pyplot as plt
-# For TeX-Font in the plots
-plt.rc('text', usetex=True)
-plt.rc('text.latex', unicode=True)
-plt.rc('font', family = 'serif')
 
 def logConversion(LogNumber):
     return 10**LogNumber
@@ -40,7 +34,7 @@ def nan_clean( array ):
     (For example if we sample the injected spectrum 
     for an energy for which we do not have any transfer function)
     '''
-    ret = np.empty_like( array, dtype=float )
+    ret = np.empty_like( array, dtype=np.float64 )
     for idx, value in enumerate(array):
         if value == value:
             ret[idx] = value
@@ -84,7 +78,7 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
     #norm = ( conversion(z_dep,3) )*( trapz(int_tot, E) )
     #norm = ( conversion(z_dep,3) )*( 2*mass_dm )
                    
-    energy_integral = np.empty( shape=(len(z_inj),len(z_dep)), dtype=float)
+    energy_integral = np.empty( shape=(len(z_inj),len(z_dep)), dtype=np.float64)
     for i in xrange(len(energy_integral)):
         for k in xrange(i,len(energy_integral[i])):
             int_phot = transfer_phot[i,:,k]*spec_phot*(E**2)/np.log10(np.e)
@@ -98,7 +92,7 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
     #        int_elec = transfer_elec[i,:,k]*spec_elec*(E**1)
     #        energy_integral[i][k] = trapz( int_phot + int_elec, E )
           
-    z_integral = np.empty_like( z_dep, dtype=float)
+    z_integral = np.empty_like( z_dep, dtype=np.float64)
     dummy = np.arange(1,len(z_inj)+1)
     for i in xrange(len(z_integral)):
         low = max(i-2,0)
@@ -106,13 +100,20 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
         integrand = ( conversion(z_inj[low:],3) )*energy_integral[i,low:]
         z_integral[i] = trapz( integrand, dummy[low:] )
     
-    result = np.empty_like( norm, dtype=float )
+    result = np.empty_like( norm, dtype=np.float64 )
     for i in xrange(len(norm)):
         if norm[i] != 0 :
             result[i] = (z_integral[i] / norm[i])
         else:
-            #result[i] = np.nan
-            result[i] = 0
+            result[i] = np.nan
+            #result[i] = 0
+    
+    # Before returning the result-array, we clean the array from NaNs, by interpolating the invalid points
+	nanmask = np.isnan(result)
+ 	#nanmask = np.array([])
+    if len(np.flatnonzero(nanmask)) > 0: 
+	    result[nanmask] = np.interp(np.flatnonzero(nanmask), np.flatnonzero(~nanmask), result[~nanmask])	
+
     return result
 
 def log_fit(points,func,xgrid):
@@ -122,7 +123,7 @@ def log_fit(points,func,xgrid):
         print 'Array of x-values does not correspond to the array of y-values (different sizes)'
         return np.zeros_like(xgrid)
     
-    f_copy = np.zeros_like(func)
+    f_copy = np.zeros_like(func, dtype=np.float64)
     for idx in xrange(len(func)):
         if (func[idx] <= 0) or (func[idx] != func[idx]):
             f_copy[idx] = np.nan
@@ -141,15 +142,15 @@ def log_fit(points,func,xgrid):
 class transfer(object):
     def __init__(self, infile):
         print 'Initializing the transfer functions'
-        data = np.genfromtxt(infile, unpack=True, usecols=(0,1,2,3,4) )
-        self.z_injected = np.unique(data[2])
-        self.z_deposited = np.unique(data[0])
-        self.log10E = np.unique(data[1])
+        data = np.genfromtxt(infile, unpack=True, usecols=(0,1,2,3,4), dtype=np.float64 )
+        self.z_injected = np.unique(data[2]).astype(np.float64)
+        self.z_deposited = np.unique(data[0]).astype(np.float64)
+        self.log10E = np.unique(data[1]).astype(np.float64)
         l1 = len(self.z_deposited)
         l2 = len(self.log10E)
         l3 = len(self.z_injected)
-        self.transfer_phot = data[4].reshape(l1,l2,l3)
-        self.transfer_elec = data[3].reshape(l1,l2,l3)   
+        self.transfer_phot = data[4].reshape(l1,l2,l3).astype(np.float64)
+        self.transfer_elec = data[3].reshape(l1,l2,l3).astype(np.float64)   
         print 'Initializing the transfer functions: Done!'
  
 class model(object):
@@ -170,7 +171,7 @@ class model(object):
                                 transfer_instance.transfer_phot, 
                                 transfer_instance.transfer_elec, 
                                 self.photon_spec, self.electron_spec, self.total_spec)
-            return np.array([red, f_func])
+            return np.array([red, f_func], dtype=np.float64)
     
     def save_f(self,transfer_instance, filename):
         f_function = self.calc_f(transfer_instance)
