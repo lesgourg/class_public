@@ -5282,7 +5282,7 @@ int perturb_total_stress_energy(
   double rho_dr_over_f;
   double delta_rho_scf, delta_p_scf, psi;
   double c_gamma_k_H_square;
-  double Gamma_prime_plus_a_prime_over_a_Gamma;
+  double Gamma_prime_plus_a_prime_over_a_Gamma, alpha=0.;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5544,20 +5544,21 @@ int perturb_total_stress_energy(
         ppw->rho_plus_p_theta_fld = (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       }
       else {
-        ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*1.5*a2/k2/a_prime_over_a*(ppw->rho_plus_p_theta/rho_plus_p_tot);
-        // note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
+	if (ppt->gauge == synchronous)
+	  alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2*ppw->delta_rho)/a_prime_over_a+4.5*a2/k2/k2*ppw->rho_plus_p_theta-y[ppw->pv->index_pt_Gamma_fld]/a_prime_over_a;
+	else
+	  alpha = 0.;
+	ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*1.5*a2/k2/a_prime_over_a*
+	  (ppw->rho_plus_p_theta/rho_plus_p_tot+k2*alpha);
+	// note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
         c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
         ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*y[ppw->pv->index_pt_Gamma_fld]);
         Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*y[ppw->pv->index_pt_Gamma_fld];
-        // delta and theta in Newtonian gauge:
-        ppw->delta_rho_fld = -(k2*y[ppw->pv->index_pt_Gamma_fld]+ 3.*a_prime_over_a*Gamma_prime_plus_a_prime_over_a_Gamma)/1.5/a2;
-        ppw->rho_plus_p_theta_fld = k2*Gamma_prime_plus_a_prime_over_a_Gamma/1.5/a2;
-        if (ppt->gauge == synchronous) {
-          ppw->S_fld += 0.;
-          ppw->delta_rho_fld += 0.;
-          ppw->rho_plus_p_theta_fld += 0.;
-          class_stop(ppt->error_message,"synch not yet coded for PPF");
-        }
+        // delta and theta in both gauges gauge:
+        ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*ppw->rho_plus_p_theta/rho_plus_p_tot-
+	  k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2*rho_plus_p_tot)*
+	  (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
+	ppw->delta_rho_fld = -2./3.*k2/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
       }
 
       ppw->delta_rho += ppw->delta_rho_fld;
