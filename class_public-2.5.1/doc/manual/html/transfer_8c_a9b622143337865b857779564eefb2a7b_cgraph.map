@@ -1,0 +1,12 @@
+<map id="transfer_sources" name="transfer_sources">
+<area shape="rect" id="node2" href="$transfer_8c.html#a5c9363d6dd2b5845bc8d41d5c7611d7a" title="transfer_source_tau_size" alt="" coords="176,5,344,32"/>
+<area shape="rect" id="node5" href="$transfer_8c.html#a52265dbcef681f416e9a51d4477e268a" title="transfer_selection\l_sampling" alt="" coords="197,57,323,98"/>
+<area shape="rect" id="node6" href="$transfer_8c.html#a94d64b8304fc2453d448c41716e8c89f" title="transfer_source_resample" alt="" coords="174,123,346,149"/>
+<area shape="rect" id="node7" href="$transfer_8c.html#a55cd5cd7416ec0013204f839da1326ef" title="transfer_selection\l_compute" alt="" coords="197,225,323,266"/>
+<area shape="rect" id="node8" href="$background_8c.html#ac47004414b208d36153f35d8465cace2" title="background_at_tau" alt="" coords="395,291,527,317"/>
+<area shape="rect" id="node10" href="$transfer_8c.html#afe1acfe299e7d241e2db5d089db70ca0" title="transfer_dNdz_analytic" alt="" coords="577,287,733,313"/>
+<area shape="rect" id="node11" href="$transfer_8c.html#a6776393e90246342ec38f567323cbe68" title="transfer_lensing_sampling" alt="" coords="173,173,347,200"/>
+<area shape="rect" id="node3" href="$transfer_8c.html#a2cc20b516c44760847dd4455633be1b9" title="transfer_selection\l_times" alt="" coords="399,57,524,98"/>
+<area shape="rect" id="node4" href="$background_8c.html#a868e85eefe464a31b25639170ff9550c" title="background_tau_of_z" alt="" coords="581,64,728,91"/>
+<area shape="rect" id="node9" href="$transfer_8c.html#a87c33899832bba51d62fbeef87a25fe0" title="transfer_selection\l_function" alt="" coords="399,225,524,266"/>
+</map>

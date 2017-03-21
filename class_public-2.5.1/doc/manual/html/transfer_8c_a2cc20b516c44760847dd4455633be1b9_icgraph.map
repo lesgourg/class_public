@@ -1,0 +1,11 @@
+<map id="transfer_selection_times" name="transfer_selection_times">
+<area shape="rect" id="node2" href="$transfer_8c.html#a5c9363d6dd2b5845bc8d41d5c7611d7a" title="transfer_source_tau_size" alt="" coords="181,5,349,32"/>
+<area shape="rect" id="node9" href="$transfer_8c.html#a52265dbcef681f416e9a51d4477e268a" title="transfer_selection\l_sampling" alt="" coords="203,57,328,98"/>
+<area shape="rect" id="node10" href="$transfer_8c.html#a6776393e90246342ec38f567323cbe68" title="transfer_lensing_sampling" alt="" coords="179,123,352,149"/>
+<area shape="rect" id="node3" href="$transfer_8c.html#a9b622143337865b857779564eefb2a7b" title="transfer_sources" alt="" coords="401,64,519,91"/>
+<area shape="rect" id="node4" href="$transfer_8c.html#aa0790ada9b74ac2325edc23a68eb1f72" title="transfer_compute_for\l_each_q" alt="" coords="569,57,714,98"/>
+<area shape="rect" id="node5" href="$transfer_8c.html#a7ed9b28044b1e58d74494915b3ff5b10" title="transfer_init" alt="" coords="763,64,853,91"/>
+<area shape="rect" id="node6" href="$input_8c.html#a8902799b68422227ff6a3293ebd6bd94" title="input_try_unknown_parameters" alt="" coords="901,64,1104,91"/>
+<area shape="rect" id="node7" href="$input_8c.html#a31052a91cf14f73d6f2bb0e7874429fb" title="input_init" alt="" coords="1152,64,1227,91"/>
+<area shape="rect" id="node8" href="$input_8c.html#a40aecd22732b07db752cb4bc34e55ad4" title="input_init_from_arguments" alt="" coords="1275,64,1450,91"/>
+</map>
