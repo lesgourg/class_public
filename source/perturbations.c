@@ -5282,7 +5282,7 @@ int perturb_total_stress_energy(
   double rho_dr_over_f;
   double delta_rho_scf, delta_p_scf, psi;
   double c_gamma_k_H_square;
-  double Gamma_prime_plus_a_prime_over_a_Gamma, alpha=0.;
+  double Gamma_prime_plus_a_prime_over_a_Gamma, alpha=0., s2sq=1.;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5544,8 +5544,9 @@ int perturb_total_stress_energy(
         ppw->rho_plus_p_theta_fld = (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       }
       else {
+	s2sq = ppw->s_l[2]*ppw->s_l[2];
 	if (ppt->gauge == synchronous)
-	  alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2*ppw->delta_rho)/a_prime_over_a+4.5*a2/k2/k2*ppw->rho_plus_p_theta-y[ppw->pv->index_pt_Gamma_fld]/a_prime_over_a;
+	  alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+a_prime_over_a/k2*ppw->rho_plus_p_theta)-y[ppw->pv->index_pt_Gamma_fld])/a_prime_over_a;
 	else
 	  alpha = 0.;
 	ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*1.5*a2/k2/a_prime_over_a*
@@ -5556,9 +5557,9 @@ int perturb_total_stress_energy(
         Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*y[ppw->pv->index_pt_Gamma_fld];
         // delta and theta in both gauges gauge:
         ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*ppw->rho_plus_p_theta/rho_plus_p_tot-
-	  k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2*rho_plus_p_tot)*
+	  k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*rho_plus_p_tot)*
 	  (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
-	ppw->delta_rho_fld = -2./3.*k2/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
+	ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
       }
 
       ppw->delta_rho += ppw->delta_rho_fld;
