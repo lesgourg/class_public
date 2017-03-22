@@ -8,7 +8,7 @@ CC= g++
 #===============================================================================
 # compiler flags
 #===============================================================================
-CXXFLAGS = -Wall -pedantic -O2 -fpic
+CXXFLAGS = -Wall -pedantic -O2
 #CXXFLAGS = -Wall -pedantic -pg
 
 #===============================================================================
@@ -145,7 +145,6 @@ CosmoRec:  $(OBJS) CosmoRec.o main.o
 
 CosmoReclib: $(OBJS) CosmoRec.o
 	     @echo "\n Creating CosmoRec library\n"
-		 $(CC) -shared $(LXXFLAGS) $? $(LIBS) -o libCosmoRec.so
 	     ar rvs ./libCosmoRec.a $?
 
 Recfast++: 

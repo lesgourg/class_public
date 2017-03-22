@@ -78,7 +78,7 @@ endif
 # eventually update flags for including CosmoRec
 ifneq ($(COSMOREC),)
 CCFLAG += -DCOSMOREC
-LDFLAG += -Lcosmorec -lCosmoRec -lstdc++ -lgsl -lgslcblas
+LDFLAG += -Lcosmorec -l:libCosmoRec.a -lstdc++ -lgsl -lgslcblas #-Lcosmorec -lCosmoRec -lstdc++ -lgsl -lgslcblas
 INCLUDES += -I../cosmorec
 endif
 
@@ -152,7 +152,7 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(OMPFLAG) -o class $(addprefix build/,$(notdir $^)) -lm $(LDFLAG)
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm

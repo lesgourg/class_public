@@ -2711,8 +2711,6 @@ int thermodynamics_recombination_with_cosmorec(
   free(z);
   free(Hz);
 
-  printf("I'm still alive !!!\n");
-
 #endif /* COSMOREC */
 
 }                            
