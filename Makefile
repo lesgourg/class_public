@@ -51,6 +51,7 @@ LDFLAG = -g -fPIC
 HYREC = hyrec
 
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
+# go to cosmorec directory and type make before.
 COSMOREC =
 
 ########################################################
