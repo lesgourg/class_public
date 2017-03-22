@@ -2641,10 +2641,11 @@ int thermodynamics_recombination_with_cosmorec(
 
   double H0 = pba->H0 / 1e3 * _c_;
   int nz = ppr->recfast_Nz0;
-  double * z;
-  double * Hz;
+  double * z_arr;
+  double * Hz_arr;
+  double z, xe, Tm, Hz;
 
-  double z_max=ppr->recfast_z_initial;
+  double z_start=ppr->recfast_z_initial;
   double z_end=0;
   double step;
 
@@ -2657,23 +2658,23 @@ int thermodynamics_recombination_with_cosmorec(
   int label=0;
 
   /* Initialize Hubble rate for CosmoRec */
-  class_alloc(z, sizeof(double) * nz, pth->error_message)
-  class_alloc(Hz, sizeof(double) * nz, pth->error_message);
+  class_alloc(z_arr, sizeof(double) * nz, pth->error_message)
+  class_alloc(Hz_arr, sizeof(double) * nz, pth->error_message);
 
-  step = (z_max - z_end) / (nz - 1);
+  step = (z_start - z_end) / (nz - 1);
   for(i=0; i < nz; i++) {
-    z[i] = z_end + i * step;
+    z_arr[i] = z_end + i * step;
 
       class_call(
         background_tau_of_z(
           pba,
-          z[i],
+          z_arr[i],
           &tau_at_z
         ),
         pba->error_message,
         pth->error_message
       );
-      
+
       class_call(
         background_at_tau(
           pba,
@@ -2687,7 +2688,7 @@ int thermodynamics_recombination_with_cosmorec(
         pth->error_message
       );
 
-      Hz[i]=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+      Hz_arr[i]=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
   }
 
   // call CosmoRec
@@ -2695,27 +2696,134 @@ int thermodynamics_recombination_with_cosmorec(
   class_alloc(tb_out, sizeof(double) * nz, pth->error_message);
 
   cosmorec_calc_h_cpp_(
-    &runmode, runpars, 
+    &runmode, runpars,
     &(pba->Omega0_cdm), &(pba->Omega0_b), &(pba->Omega0_k),
     &(pba->Neff), &H0,
     &(pba->T_cmb), &(pth->YHe),
-    z, Hz, &nz,
-    z, xe_out, tb_out,
-    &nz, 
+    z_arr, Hz_arr, &nz,
+    z_arr, xe_out, tb_out,
+    &nz,
     &label
   );
+
+  /** - fill a few parameters in preco and pth */
+
+
+
+  preco->rt_size = nz;
+  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
+  /* preco->H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
+  preco->YHe = pth->YHe;
+  preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-preco->YHe)/(8.*_PI_*_G_*_m_H_);
+  /* energy injection parameters */
+  preco->annihilation = pth->annihilation;
+  preco->has_on_the_spot = pth->has_on_the_spot;
+  preco->annihilation_variation = pth->annihilation_variation;
+  preco->annihilation_z = pth->annihilation_z;
+  preco->annihilation_zmax = pth->annihilation_zmax;
+  preco->annihilation_zmin = pth->annihilation_zmin;
+  preco->decay = pth->decay;
+  preco->annihilation_f_halo = pth->annihilation_f_halo;
+  preco->annihilation_z_halo = pth->annihilation_z_halo;
+  pth->n_e=preco->Nnow;
+
+  /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
+
+  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
+
+  for(i=0; i <nz; i++) {
+
+    /** - --> get redshift, corresponding results from hyrec, and background quantities */
+
+    z = z_start - i * step;
+    if(z<0)z=0;
+    printf("before z %e\n", z);
+    /* get (xe,Tm) by interpolating in pre-computed tables */
+
+    class_call(array_interpolate_cubic_equal(-log(1.+z_start),
+                                             step,
+                                             xe_out,
+                                             nz,
+                                             -log(1.+z),
+                                             &xe,
+                                             pth->error_message),
+               pth->error_message,
+               pth->error_message);
+
+    class_call(array_interpolate_cubic_equal(-log(1.+z_start),
+                                             step,
+                                             tb_out,
+                                             nz,
+                                             -log(1.+z),
+                                             &Tm,
+                                             pth->error_message),
+               pth->error_message,
+               pth->error_message);
+
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau_at_z),
+               pba->error_message,
+               pth->error_message);
+
+    class_call(background_at_tau(pba,
+                                 tau_at_z,
+                                 pba->short_info,
+                                 pba->inter_normal,
+                                 &last_index,
+                                 pvecback),
+               pba->error_message,
+               pth->error_message);
+
+    /*   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
+         pth->error_message,
+         pth->error_message);
+    */
+
+    /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
+    Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+    /** - --> store the results in the table */
+
+    /* results are obtained in order of decreasing z, and stored in order of growing z */
+
+    /* redshift */
+    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_z)=z;
+
+    /* ionization fraction */
+    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_xe)=xe;
+
+    /* Tb */
+    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
+
+    /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
+       with (1+z)dlnTb/dz= - [dlnTb/dlna] */
+
+   double drho_dt = 0, Tg = pba->T_cmb * (1+z);
+   evaluate_TM(z, xe,preco->fHe, Tm/Tg, Tg, Hz, &drho_dt);
+   double dlnTb_dz = - Tg/Tm*(1+z)*Hz*drho_dt+1/(1+z);
+    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_cb2)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. + (1+z)*dlnTb_dz / Tm / 3.);
+   fprintf(stdout,"cb2 %e z %e\n",*(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_cb2),z);
+    /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
+    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
+      = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
+
+  }
+
+  /* clean up */
 
   free(xe_out);
   free(tb_out);
 
-  free(z);
-  free(Hz);
+  free(z_arr);
+  free(Hz_arr);
 
   printf("I'm still alive !!!\n");
 
 #endif /* COSMOREC */
 
-}                            
+}
 
 
 /**
@@ -2980,6 +3088,7 @@ int thermodynamics_recombination_with_hyrec(
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
       = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
+    // fprintf(stdout,"cb2 %e z %e\n",*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),z);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)

@@ -65,9 +65,9 @@ int CosmoRec(int narg, char *args[]);
 //
 //===========================================================================================================
 int CosmoRec(const int runmode, const double runpars[5],
-             const double omegac, const double omegab, 
-             const double omegak, const double Nnu,  
-             const double h0, const double tcmb, const double yhe, 
+             const double omegac, const double omegab,
+             const double omegak, const double Nnu,
+             const double h0, const double tcmb, const double yhe,
              const int nz, double *z_arr, double *Xe_arr, double *Te_arr,
              const int label);
 
@@ -83,34 +83,36 @@ int CosmoRec(const int runmode, const double runpars[5],
 //===========================================================================================================
 #ifdef __cplusplus
 extern "C" {
-#endif /* __cplusplus */    
+#endif /* __cplusplus */
 
-    void cosmorec_calc_cpp_(const int * runmode, const double * runpars, 
-                            const double * omega_c, const double * omega_b, const double * omega_k, 
-                            const double * num_nu, const double * h0, 
-                            const double * t_cmb, const double * y_he, 
-                            double * za_in, double * xe_out, double * tb_out, 
+    void cosmorec_calc_cpp_(const int * runmode, const double * runpars,
+                            const double * omega_c, const double * omega_b, const double * omega_k,
+                            const double * num_nu, const double * h0,
+                            const double * t_cmb, const double * y_he,
+                            double * za_in, double * xe_out, double * tb_out,
                             const int * len, const int* label);
-    
-    void cosmorec_calc_h_cpp_(const int * runmode, const double * runpars, 
-                              const double * omega_c, const double * omega_b, const double * omega_k, 
-                              const double * num_nu, const double * h0, 
-                              const double * t_cmb, const double * y_he, 
-                              const double * z_Hz, const double * Hz, const int * nz,
-                              double * za_in, double * xe_out, double * tb_out, 
-                              const int * len, const int* label); 
 
-    void cosmorec_calc_hptr_cpp_(const int * runmode, const double * runpars, 
-                                 const double * omega_c, const double * omega_b, const double * omega_k, 
-                                 const double * num_nu, const double * h0, 
-                                 const double * t_cmb, const double * y_he, 
-                                 double (* Hptr)(const double * z), 
-                                 double * za_in, double * xe_out, double * tb_out, 
+    void cosmorec_calc_h_cpp_(const int * runmode, const double * runpars,
+                              const double * omega_c, const double * omega_b, const double * omega_k,
+                              const double * num_nu, const double * h0,
+                              const double * t_cmb, const double * y_he,
+                              const double * z_Hz, const double * Hz, const int * nz,
+                              double * za_in, double * xe_out, double * tb_out,
+                              const int * len, const int* label);
+
+    void cosmorec_calc_hptr_cpp_(const int * runmode, const double * runpars,
+                                 const double * omega_c, const double * omega_b, const double * omega_k,
+                                 const double * num_nu, const double * h0,
+                                 const double * t_cmb, const double * y_he,
+                                 double (* Hptr)(const double * z),
+                                 double * za_in, double * xe_out, double * tb_out,
                                  const int * len, const int* label);
 
+     void evaluate_TM(double z, double Xe, double fHe, double rho, double Tg, double Hz, double * drho_dt);
+     
 #ifdef __cplusplus
 }
-#endif /* __cplusplus */    
+#endif /* __cplusplus */
 
 //===========================================================================================================
 // to cleanup after finishing with CosmoRec
