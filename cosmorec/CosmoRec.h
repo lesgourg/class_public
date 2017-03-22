@@ -107,8 +107,9 @@ extern "C" {
                                  double (* Hptr)(const double * z), 
                                  double * za_in, double * xe_out, double * tb_out, 
                                  const int * len, const int* label);
-}
 
+#ifdef __cplusplus
+}
 #endif /* __cplusplus */    
 
 //===========================================================================================================
