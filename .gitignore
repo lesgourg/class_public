@@ -9,3 +9,8 @@ libclass.a
 python/classy.c
 python/*.pyc
 python/build/
+*.o
+*.a
+*.so
+cosmorec/CosmoRec
+cosmorec/Development/Cosmology/Recfast++/Recfast++

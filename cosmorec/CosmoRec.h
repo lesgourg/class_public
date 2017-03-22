@@ -19,6 +19,8 @@
 #ifndef COSMOREC_H
 #define COSMOREC_H
 
+#ifdef __cplusplus
+
 //===========================================================================================================
 // CosmoRec for run from console
 //===========================================================================================================
@@ -69,6 +71,8 @@ int CosmoRec(const int runmode, const double runpars[5],
              const int nz, double *z_arr, double *Xe_arr, double *Te_arr,
              const int label);
 
+#endif /* __cplusplus */
+
 
 //===========================================================================================================
 // Wrap the C++ Fortran routine to be allow calling from Fortran. Arguments are as above.
@@ -77,8 +81,10 @@ int CosmoRec(const int runmode, const double runpars[5],
 // 18.06.2012: Added version to communicate Hubble using pointer
 // 08.06.2012: Added version to communicate Hubble
 //===========================================================================================================
+#ifdef __cplusplus
 extern "C" {
-    
+#endif /* __cplusplus */    
+
     void cosmorec_calc_cpp_(const int * runmode, const double * runpars, 
                             const double * omega_c, const double * omega_b, const double * omega_k, 
                             const double * num_nu, const double * h0, 
@@ -102,6 +108,8 @@ extern "C" {
                                  double * za_in, double * xe_out, double * tb_out, 
                                  const int * len, const int* label);
 }
+
+#endif /* __cplusplus */    
 
 //===========================================================================================================
 // to cleanup after finishing with CosmoRec
