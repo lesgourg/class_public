@@ -2638,6 +2638,8 @@ int thermodynamics_recombination_with_cosmorec(
     0, /* use default value for H1_A2s_1s */
   };
 
+
+  double H0 = pba->H0 / 1e3 * _c_;
   int nz = ppr->recfast_Nz0;
   double * z;
   double * Hz;
@@ -2686,6 +2688,8 @@ int thermodynamics_recombination_with_cosmorec(
       );
 
       Hz[i]=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+      printf("H0=%e ; Hz[%d]=%e ; _Mpc_over_m_ = %e\n", H0, i, Hz[i], _Mpc_over_m_);
   }
 
   // call CosmoRec
@@ -2695,7 +2699,7 @@ int thermodynamics_recombination_with_cosmorec(
   cosmorec_calc_h_cpp_(
     &runmode, runpars, 
     &(pba->Omega0_cdm), &(pba->Omega0_b), &(pba->Omega0_k),
-    &(pba->Neff), &(pba->H0),
+    &(pba->Neff), &H0,
     &(pba->T_cmb), &(pth->YHe),
     z, Hz, &nz,
     z, xe_out, tb_out,
