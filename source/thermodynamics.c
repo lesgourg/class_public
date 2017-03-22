@@ -2711,6 +2711,11 @@ int thermodynamics_recombination_with_cosmorec(
   free(z);
   free(Hz);
 
+#else
+
+  fprintf(stderr, "ERROR: Compiled without CosmoRec support !\n");
+  exit(1);
+
 #endif /* COSMOREC */
 
 }                            

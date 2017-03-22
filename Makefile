@@ -50,8 +50,8 @@ LDFLAG = -g -fPIC
 # (with no slash at the end: e.g. hyrec or ../hyrec)
 HYREC = hyrec
 
-# leave blank to compile without CosmoRec
-COSMOREC = cosmorec
+# set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
+COSMOREC =
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -78,7 +78,7 @@ endif
 # eventually update flags for including CosmoRec
 ifneq ($(COSMOREC),)
 CCFLAG += -DCOSMOREC
-LDFLAG += -Lcosmorec -l:libCosmoRec.a -lstdc++ -lgsl -lgslcblas #-Lcosmorec -lCosmoRec -lstdc++ -lgsl -lgslcblas
+LDFLAG += -Lcosmorec -lCosmoRec -lstdc++ -lgsl -lgslcblas
 INCLUDES += -I../cosmorec
 endif
 
