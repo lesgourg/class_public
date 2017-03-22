@@ -78,6 +78,10 @@
 #include "hyrec.h"
 #endif
 
+#ifdef COSMOREC
+#include "CosmoRec.h"
+#endif
+
 /**
  * Thermodynamics quantities at given redshift z.
  *
@@ -2595,9 +2599,122 @@ int thermodynamics_recombination(
 
   }
 
+  if (pth->recombination==cosmorec) {
+        class_call(thermodynamics_recombination_with_cosmorec(ppr,pba,pth,preco,pvecback),
+               pth->error_message,
+               pth->error_message);
+  }
+
   return _SUCCESS_;
 
 }
+
+/**
+ * Integrate thermodynamics with Cosmorec.
+ *
+ * @TODO document me.
+ *
+ * @param ppr      Input: pointer to precision structure
+ * @param pba      Input: pointer to background structure
+ * @param pth      Input: pointer to thermodynamics structure
+ * @param preco    Output: pointer to recombination structure
+ * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
+ */
+int thermodynamics_recombination_with_cosmorec(
+                                            struct precision * ppr,
+                                            struct background * pba,
+                                            struct thermo * pth,
+                                            struct recombination * preco,
+                                            double * pvecback
+                                            ) {
+#ifdef COSMOREC
+  int i;
+  int runmode = 0; /* CosmoRec run with diffusion */
+
+  double runpars[4] = {
+    0, /* defines the dark matter annihilation efficiency in eV/s. */
+    0, /* default setting for radiative transfert */
+    0, /* don't write out anything (default) */
+    0, /* use default value for H1_A2s_1s */
+  };
+
+  int nz = ppr->recfast_Nz0;
+  double * z;
+  double * Hz;
+
+  double z_max=ppr->recfast_z_initial;
+  double z_end=0;
+  double step;
+
+  double tau_at_z;
+  int last_index;
+
+  double * xe_out;
+  double * tb_out;
+
+  int label=0;
+
+  /* Initialize Hubble rate for CosmoRec */
+  z = malloc(sizeof(double) * nz);
+  Hz = malloc(sizeof(double) * nz);
+
+  step = (z_max - z_end) / (nz - 1);
+  for(i=0; i < nz; i++) {
+    z[i] = z_end + i * step;
+
+      class_call(
+        background_tau_of_z(
+          pba,
+          z[i],
+          &tau_at_z
+        ),
+        pba->error_message,
+        pth->error_message
+      );
+      
+      class_call(
+        background_at_tau(
+          pba,
+          tau_at_z,
+          pba->short_info,
+          pba->inter_normal,
+          &last_index,
+          pvecback
+        ),
+        pba->error_message,
+        pth->error_message
+      );
+
+      Hz[i]=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+  }
+
+  // call CosmoRec
+  xe_out = malloc(sizeof(double) * nz);
+  tb_out = malloc(sizeof(double) * nz);
+
+  cosmorec_calc_h_cpp_(
+    &runmode, runpars, 
+    &(pba->Omega0_cdm), &(pba->Omega0_b), &(pba->Omega0_k),
+    &(pba->Neff), &(pba->H0),
+    &(pba->T_cmb), &(pth->YHe),
+    z, Hz, &nz,
+    z, xe_out, tb_out,
+    &nz, 
+    &label
+  );
+
+  free(xe_out);
+  free(tb_out);
+
+  free(z);
+  free(Hz);
+
+  printf("I'm still alive !!!\n");
+
+#endif /* COSMOREC */
+
+}                            
+
 
 /**
  * Integrate thermodynamics with HyRec.

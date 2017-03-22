@@ -1091,6 +1091,10 @@ int input_read_parameters(
 
     if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)) {
       pth->recombination = hyrec;
+    } 
+    
+    if ((strstr(string1,"COSMOREC") != NULL) || (strstr(string1,"cosmorec") != NULL) || (strstr(string1,"CosmoRec") != NULL)) {
+      pth->recombination = cosmorec;
     }
 
   }
