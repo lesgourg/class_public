@@ -2657,8 +2657,8 @@ int thermodynamics_recombination_with_cosmorec(
   int label=0;
 
   /* Initialize Hubble rate for CosmoRec */
-  z = malloc(sizeof(double) * nz);
-  Hz = malloc(sizeof(double) * nz);
+  class_alloc(z, sizeof(double) * nz, pth->error_message)
+  class_alloc(Hz, sizeof(double) * nz, pth->error_message);
 
   step = (z_max - z_end) / (nz - 1);
   for(i=0; i < nz; i++) {
@@ -2688,13 +2688,11 @@ int thermodynamics_recombination_with_cosmorec(
       );
 
       Hz[i]=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
-
-      printf("H0=%e ; Hz[%d]=%e ; _Mpc_over_m_ = %e\n", H0, i, Hz[i], _Mpc_over_m_);
   }
 
   // call CosmoRec
-  xe_out = malloc(sizeof(double) * nz);
-  tb_out = malloc(sizeof(double) * nz);
+  class_alloc(xe_out, sizeof(double) * nz, pth->error_message);
+  class_alloc(tb_out, sizeof(double) * nz, pth->error_message);
 
   cosmorec_calc_h_cpp_(
     &runmode, runpars, 
