@@ -50,6 +50,9 @@ LDFLAG = -g -fPIC
 # (with no slash at the end: e.g. hyrec or ../hyrec)
 HYREC = hyrec
 
+# leave blank to compile without CosmoRec
+COSMOREC = cosmorec
+
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
 ########################################################
@@ -70,6 +73,13 @@ CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
 INCLUDES += -I../hyrec
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
+endif
+
+# eventually update flags for including CosmoRec
+ifneq ($(COSMOREC),)
+CCFLAG += -DCOSMOREC
+LDFLAG += -Lcosmorec -lCosmoRec -lstdc++ -lgsl -lgslcblas
+INCLUDES += -I../cosmorec
 endif
 
 %.o:  %.c .base

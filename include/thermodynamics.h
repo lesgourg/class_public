@@ -14,7 +14,8 @@
 
 enum recombination_algorithm {
   recfast,
-  hyrec
+  hyrec,
+  cosmorec
 };
 
 /**
@@ -556,6 +557,14 @@ extern "C" {
 				   struct recombination * prec,
 				   double * pvecback
 				   );
+
+  int thermodynamics_recombination_with_cosmorec(
+          struct precision * ppr,
+          struct background * pba,
+          struct thermo * pth,
+          struct recombination * prec,
+          double * pvecback
+          );
 
   int thermodynamics_recombination_with_hyrec(
 						struct precision * ppr,
