@@ -2819,7 +2819,10 @@ int thermodynamics_recombination_with_cosmorec(
   free(z_arr);
   free(Hz_arr);
 
-  printf("I'm still alive !!!\n");
+#else
+
+  fprintf(stderr, "ERROR: Compiled without CosmoRec support !\n");
+  exit(1);
 
 #endif /* COSMOREC */
 
