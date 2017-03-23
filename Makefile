@@ -17,7 +17,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc-6
+CC       = gcc
 #CC       = icc
 #CC       = pgcc
 
@@ -79,7 +79,7 @@ endif
 # eventually update flags for including CosmoRec
 ifneq ($(COSMOREC),)
 CCFLAG += -DCOSMOREC
-LDFLAG += -Lcosmorec -lCosmoRec -lstdc++ -lgsl -lgslcblas
+LDFLAG += ./cosmorec/libCosmoRec.a -lstdc++ -lgsl -lgslcblas
 INCLUDES += -I../cosmorec
 endif
 
