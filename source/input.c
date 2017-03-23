@@ -3295,7 +3295,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->hyper_x_min = 1.e-5;
   ppr->hyper_sampling_flat = 8.;
-  ppr->hyper_sampling_curved_low_nu = 6.0;
+  ppr->hyper_sampling_curved_low_nu = 7.0; // changed from 6.0 to 7.0 in v2.6.0, otherwise C2 can be very wrong with large curvature
   ppr->hyper_sampling_curved_high_nu = 3.0;
   ppr->hyper_nu_sampling_step = 1000.;
   ppr->hyper_phi_min_abs = 1.e-10;
