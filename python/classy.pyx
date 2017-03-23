@@ -682,7 +682,7 @@ cdef class Class:
     # Gives the pk for a given (k,z)
     def pk(self,double k,double z):
         """
-        Gives the pk for a given k and z
+        Gives the pk for a given k and z (will be non linear if requested to Class, linear otherwise)
 
         .. note::
 
@@ -710,8 +710,36 @@ cdef class Class:
                     raise CosmoSevereError(self.sp.error_message)
         return pk
 
+    # Gives the linear pk for a given (k,z)
+    def pk_lin(self,double k,double z):
+        """
+        Gives the linear pk for a given k and z (even if non linear corrections were requested to Class)
+
+        .. note::
+
+            there is an additional check to verify if output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef double pk
+        cdef double pk_velo
+        cdef double pk_cross
+        cdef int dummy
+
+        # Quantities for the isocurvature modes
+        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError(
+                "No power spectrum computed. You must add mPk to the list of outputs."
+                )
+
+        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
+            raise CosmoSevereError(self.sp.error_message)
+
+        return pk
+
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get a power spectrum on a k and z array """
+        """ Fast function to get the power spectrum on a k and z array """
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
@@ -719,6 +747,17 @@ cdef class Class:
             for index_z in xrange(z_size):
                 for index_mu in xrange(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
+        return pk
+
+    def get_pk_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+        """ Fast function to get the linear power spectrum on a k and z array """
+        cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
+        cdef int index_k, index_z, index_mu
+
+        for index_k in xrange(k_size):
+            for index_z in xrange(z_size):
+                for index_mu in xrange(mu_size):
+                    pk[index_k,index_z,index_mu] = self.pk_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
     def age(self):
