@@ -1091,11 +1091,22 @@ int input_read_parameters(
 
     if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)) {
       pth->recombination = hyrec;
-    } 
-    
-    if ((strstr(string1,"COSMOREC") != NULL) || (strstr(string1,"cosmorec") != NULL) || (strstr(string1,"CosmoRec") != NULL)) {
+    }
+
+    else if ((strstr(string1,"COSMOREC") != NULL) || (strstr(string1,"cosmorec") != NULL) || (strstr(string1,"CosmoRec") != NULL)) {
       pth->recombination = cosmorec;
     }
+
+  }
+  if(pth->recombination == cosmorec){
+    /** - read some parameter of CosmoRec */
+
+    class_read_double("cosmorec_runmode",pth->cosmorec_runmode);
+    class_test((pth->cosmorec_runmode > 4 || pth->cosmorec_runmode < 0),errmsg,"cosmorec_runmode parameters runs from 0 to 4 !! Have a look at 'explanatory.ini' for details of the options.");
+    class_read_double("cosmorec_accuracy",pth->cosmorec_accuracy);
+    class_test((pth->cosmorec_accuracy > 7 || pth->cosmorec_accuracy < -1),errmsg,"cosmorec_accuracy parameters runs from -1 to 7 !! Have a look at 'explanatory.ini' for details of the options.");
+    class_read_double("cosmorec_verbose",pth->cosmorec_verbose);
+    class_test((pth->cosmorec_verbose > 3 || pth->cosmorec_verbose < 0),errmsg,"cosmorec_verbose parameters runs from 0 to 3 !! Have a look at 'explanatory.ini' for details of the options.");
 
   }
 
@@ -2916,6 +2927,12 @@ int input_default_params(
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
+
+  //Default cosmorec parameters
+  pth->cosmorec_runmode = 0; //default runmode of cosmorec
+  pth->cosmorec_accuracy = 0; //default accuracy of cosmorec
+  pth->cosmorec_verbose = 0;  //no output produced by cosmorec
+
 
   /** - perturbation structure */
 

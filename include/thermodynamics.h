@@ -251,6 +251,41 @@ struct thermo
 
   //@}
 
+  /** @name - CosmoRec parameters */
+
+  //@{
+
+  int cosmorec_runmode; /**< cosmorec_runmode sets the runmode of cosmorec. It is identical to runmode in original cosmorec.
+
+                             cosmorec_runmode == 0: CosmoRec run with diffusion
+                             cosmorec_runmode == 1: CosmoRec run without diffusion
+                             cosmorec_runmode == 2: Recfast++ run (equivalent of the original Recfast version)
+                             cosmorec_runmode == 3: Recfast++ run with correction function of Chluba & Thomas, 2010 */
+
+
+  double cosmorec_accuracy; /**<  cosmorec_accuracy switches the accuracy of the recombination model, it is identical to runpars[1] in original cosmorec:
+                               The value of cosmorec_accuracy is only important for runmode 0 & 1.
+
+                               cosmorec_accuracy==-1: closest equivalent of 'HyRec' case (Haimoud & Hirata, 2010)
+                               cosmorec_accuracy== 0: default setting
+                               cosmorec_accuracy== 1: 2g for n<=4 & Raman for n<=3
+                               cosmorec_accuracy== 2: 2g for n<=8 & Raman for n<=7
+                               cosmorec_accuracy== 3: 2g for n<=8 & Raman for n<=7 + Helium feedback up to n=5
+                               cosmorec_accuracy== 4: default setting              + Helium radiative transfer
+                               cosmorec_accuracy== 5: 2g for n<=4 & Raman for n<=3 + Helium radiative transfer up to n=3
+                               cosmorec_accuracy== 6: 2g for n<=4 & Raman for n<=3 + Helium radiative transfer up to n=5 (full setting) */
+
+  double cosmorec_verbose; /** cosmorec_verbose switches cosmorec output. It is identical to runpars[2] in original cosmorec.
+                            cosmorec_verbose ==0: don't write out anything (default).
+                            cosmorec_verbose ==1: write out only the recombination history.
+                            cosmorec_verbose ==2: write out the recombination history, and the cosmology.
+                            cosmorec_verbose ==3: write out the recombination history, populations, and the cosmology. */
+
+
+  //@}
+
+
+
   /** @name - technical parameters */
 
   //@{
@@ -653,7 +688,8 @@ extern "C" {
 
 #define _RECFAST_INTEG_SIZE_ 3
 
-#define _Lambda_ 8.2245809
+#define _Lambda_ 8.2206 /*Updated value from (Labzowsky et al 2005)*/
+// #define _Lambda_ 8.2245809 /*Old value from original recfast*/
 #define _Lambda_He_ 51.3
 #define _L_H_ion_ 1.096787737e7
 #define _L_H_alpha_ 8.225916453e6

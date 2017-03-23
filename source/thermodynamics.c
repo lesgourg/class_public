@@ -2629,13 +2629,14 @@ int thermodynamics_recombination_with_cosmorec(
                                             ) {
 #ifdef COSMOREC
   int i;
-  int runmode = 0; /* CosmoRec run with diffusion */
-
+  double nH0 = 11.223846333047*pba->Omega0_b*pba->h*pba->h*(1.-pth->YHe);  /* number density of hydrogen today in m-3 */
+  double DM_annihilation = pth->annihilation * nH0 /1.60217653e-19; /* Translate CLASS annihilation parameter into CosmoRec format in eV/s*/
+  printf("DM annihilation %e\n", DM_annihilation);
   double runpars[4] = {
-    0, /* defines the dark matter annihilation efficiency in eV/s. */
-    0, /* default setting for radiative transfert */
-    0, /* don't write out anything (default) */
-    0, /* use default value for H1_A2s_1s */
+    DM_annihilation, /* defines the dark matter annihilation efficiency in eV/s. */
+    pth->cosmorec_accuracy, /* setting for cosmorec accuracy (default = default cosmorec setting) */
+    pth->cosmorec_verbose, /* setting for cosmorec verbose (default = no output produced) */
+    0, /* currently use default value for H1_A2s_1s, to be improved */
   };
 
 
@@ -2698,9 +2699,8 @@ int thermodynamics_recombination_with_cosmorec(
   if (pth->thermodynamics_verbose > 0)
     // printf(" -> calling CosmoRec version %s,\n",HYREC_VERSION);
 
-
   cosmorec_calc_h_cpp_(
-    &runmode, runpars,
+    &(pth->cosmorec_runmode), runpars,
     &(pba->Omega0_cdm), &(pba->Omega0_b), &(pba->Omega0_k),
     &(pba->Neff), &H0,
     &(pba->T_cmb), &(pth->YHe),
@@ -2709,6 +2709,7 @@ int thermodynamics_recombination_with_cosmorec(
     &nz,
     &label
   );
+  // printf("here\n");
 
   /** - fill a few parameters in preco and pth */
 
