@@ -694,7 +694,7 @@ int thermodynamics_init(
 
   /* approximation for maximum of g, using cubic interpolation, assuming equally spaced z's */
   pth->z_rec=pth->z_table[index_tau+1]+0.5*(pth->z_table[index_tau+1]-pth->z_table[index_tau])*(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g])/(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g]+pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g]);
-
+  fprintf(stdout, "z_rec %e %e %e %e %e %e\n",pth->z_table[index_tau+1],pth->z_table[index_tau],pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g],2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g],pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]);
   class_test(pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_,
              pth->error_message,
              "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
@@ -2661,7 +2661,7 @@ int thermodynamics_recombination_with_cosmorec(
   class_alloc(z_arr, sizeof(double) * nz, pth->error_message)
   class_alloc(Hz_arr, sizeof(double) * nz, pth->error_message);
 
-  step = (z_start - z_end) / (nz - 1);
+  step = (z_start - z_end) / (nz);
   for(i=0; i < nz; i++) {
     z_arr[i] = z_end + i * step;
 
@@ -2694,6 +2694,10 @@ int thermodynamics_recombination_with_cosmorec(
   // call CosmoRec
   class_alloc(xe_out, sizeof(double) * nz, pth->error_message);
   class_alloc(tb_out, sizeof(double) * nz, pth->error_message);
+
+  if (pth->thermodynamics_verbose > 0)
+    // printf(" -> calling CosmoRec version %s,\n",HYREC_VERSION);
+
 
   cosmorec_calc_h_cpp_(
     &runmode, runpars,
@@ -2731,83 +2735,40 @@ int thermodynamics_recombination_with_cosmorec(
 
   class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
-  for(i=0; i <nz; i++) {
+  for(i=nz-1; i >= 0; i--) {
 
     /** - --> get redshift, corresponding results from hyrec, and background quantities */
 
-    z = z_start - i * step;
-    if(z<0)z=0;
-    printf("before z %e\n", z);
-    /* get (xe,Tm) by interpolating in pre-computed tables */
-
-    class_call(array_interpolate_cubic_equal(-log(1.+z_start),
-                                             step,
-                                             xe_out,
-                                             nz,
-                                             -log(1.+z),
-                                             &xe,
-                                             pth->error_message),
-               pth->error_message,
-               pth->error_message);
-
-    class_call(array_interpolate_cubic_equal(-log(1.+z_start),
-                                             step,
-                                             tb_out,
-                                             nz,
-                                             -log(1.+z),
-                                             &Tm,
-                                             pth->error_message),
-               pth->error_message,
-               pth->error_message);
-
-    class_call(background_tau_of_z(pba,
-                                   z,
-                                   &tau_at_z),
-               pba->error_message,
-               pth->error_message);
-
-    class_call(background_at_tau(pba,
-                                 tau_at_z,
-                                 pba->short_info,
-                                 pba->inter_normal,
-                                 &last_index,
-                                 pvecback),
-               pba->error_message,
-               pth->error_message);
-
-    /*   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
-         pth->error_message,
-         pth->error_message);
-    */
-
-    /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
-    Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
-
+    z = z_arr[i];
+    xe = xe_out[i];
+    Tm = tb_out[i];
+    Hz = Hz_arr[i];
     /** - --> store the results in the table */
 
     /* results are obtained in order of decreasing z, and stored in order of growing z */
 
     /* redshift */
-    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_z)=z;
+    *(preco->recombination_table+(i)*preco->re_size+preco->index_re_z)=z;
 
     /* ionization fraction */
-    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_xe)=xe;
+    *(preco->recombination_table+(i)*preco->re_size+preco->index_re_xe)=xe;
 
     /* Tb */
-    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
+    *(preco->recombination_table+(i)*preco->re_size+preco->index_re_Tb)=Tm;
 
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
+    /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
 
    double drho_dt = 0, Tg = pba->T_cmb * (1+z);
    evaluate_TM(z, xe,preco->fHe, Tm/Tg, Tg, Hz, &drho_dt);
-   double dlnTb_dz = - Tg/Tm*(1+z)*Hz*drho_dt+1/(1+z);
-    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. + (1+z)*dlnTb_dz / Tm / 3.);
-   fprintf(stdout,"cb2 %e z %e\n",*(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_cb2),z);
+   double dlnTb_dz = - Tg/Tm*drho_dt/(1+z)/Hz+1/(1+z);
+    *(preco->recombination_table+(i)*preco->re_size+preco->index_re_cb2)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. + (1+z)*dlnTb_dz / 3.);
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
-    *(preco->recombination_table+(nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
+    *(preco->recombination_table+(i)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
+      //  fprintf(stdout,"xe %e Tm %e cb2 %e z %e dlnTb_dz %e *dkappa_dtau %e\n",xe,Tm,*(preco->recombination_table+(i)*preco->re_size+preco->index_re_cb2),z,dlnTb_dz,*(preco->recombination_table+(i)*preco->re_size+preco->index_re_dkappadtau));
 
   }
 
@@ -2821,8 +2782,9 @@ int thermodynamics_recombination_with_cosmorec(
 
 #else
 
-  fprintf(stderr, "ERROR: Compiled without CosmoRec support !\n");
-  exit(1);
+class_stop(pth->error_message,
+           "you compiled without including the CosmoRec code, and now wish to use it. Either set the input parameter 'recombination' to something else than 'CosmoRec', or recompile after setting in the Makefile the appropriate path COSMOREC=... ");
+
 
 #endif /* COSMOREC */
 
@@ -3024,7 +2986,6 @@ int thermodynamics_recombination_with_hyrec(
   class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
   for(i=0; i <Nz; i++) {
-
     /** - --> get redshift, corresponding results from hyrec, and background quantities */
 
     z = param.zstart * (1. - (double)(i+1) / (double)Nz);
@@ -3091,11 +3052,13 @@ int thermodynamics_recombination_with_hyrec(
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
       = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
-    // fprintf(stdout,"cb2 %e z %e\n",*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),z);
+    // if(z>800)fprintf(stdout,"xe %e Tm %e cb2 %e z %e\n",xe,Tm,*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),z);
+
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
+    // fprintf(stdout,"xe %e Tm %e cb2 %e z %e *dkappa_dtau %e\n",xe,Tm,*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),z,*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau));
 
   }
 
