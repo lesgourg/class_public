@@ -2610,10 +2610,16 @@ int thermodynamics_recombination(
 }
 
 /**
- * Integrate thermodynamics with Cosmorec.
  *
- * @TODO document me.
+ * Integrate thermodynamics with CosmoRec, allocate and fill the part
+ * of the thermodynamics interpolation table (the rest is filled in
+ * thermodynamics_init()). Called once by
+ * thermodynamics_recombination(), from thermodynamics_init().
  *
+ *************************************************************************************************
+ *                 CosmoRec: Cosmological Recombination Project
+ *                Written by Jens Chluba (University of Manchester)
+ *************************************************************************************************
  * @param ppr      Input: pointer to precision structure
  * @param pba      Input: pointer to background structure
  * @param pth      Input: pointer to thermodynamics structure
@@ -2630,8 +2636,8 @@ int thermodynamics_recombination_with_cosmorec(
 #ifdef COSMOREC
   int i;
   double nH0 = 11.223846333047*pba->Omega0_b*pba->h*pba->h*(1.-pth->YHe);  /* number density of hydrogen today in m-3 */
-  double DM_annihilation = pth->annihilation * nH0 /1.60217653e-19; /* Translate CLASS annihilation parameter into CosmoRec format in eV/s*/
-  printf("DM annihilation %e\n", DM_annihilation);
+  double rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+  double DM_annihilation =  pth->annihilation*1e-6/_c_/_c_*pow(rho_cdm_today,2)/nH0*1e6/_eV_; /*conversion in cosmorec unit as described in Chluba 2010 0910.3663 (without factor 2, to respect class convention of majorana particles)*/
   double runpars[4] = {
     DM_annihilation, /* defines the dark matter annihilation efficiency in eV/s. */
     pth->cosmorec_accuracy, /* setting for cosmorec accuracy (default = default cosmorec setting) */
@@ -2656,7 +2662,9 @@ int thermodynamics_recombination_with_cosmorec(
   double * xe_out;
   double * tb_out;
 
-  int label=0;
+  double drho_dt = 0, Tg;
+  double dlnTb_dz;
+  int label=0; /* iterator for cosmorec output file name, not used in class version of cosmorec */
 
   /* Initialize Hubble rate for CosmoRec */
   class_alloc(z_arr, sizeof(double) * nz, pth->error_message)
@@ -2691,13 +2699,13 @@ int thermodynamics_recombination_with_cosmorec(
 
       Hz_arr[i]=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
   }
+  /* Initialize x_e and tb output tables */
 
-  // call CosmoRec
   class_alloc(xe_out, sizeof(double) * nz, pth->error_message);
   class_alloc(tb_out, sizeof(double) * nz, pth->error_message);
 
-  if (pth->thermodynamics_verbose > 0)
-    // printf(" -> calling CosmoRec version %s,\n",HYREC_VERSION);
+  /* call cosmorec */
+  /* Currently we give parameters separetely, eventually to be changed for a structure, easier to modify.*/
 
   cosmorec_calc_h_cpp_(
     &(pth->cosmorec_runmode), runpars,
@@ -2709,7 +2717,6 @@ int thermodynamics_recombination_with_cosmorec(
     &nz,
     &label
   );
-  // printf("here\n");
 
   /** - fill a few parameters in preco and pth */
 
@@ -2738,7 +2745,7 @@ int thermodynamics_recombination_with_cosmorec(
 
   for(i=nz-1; i >= 0; i--) {
 
-    /** - --> get redshift, corresponding results from hyrec, and background quantities */
+    /** - --> get redshift, corresponding results from cosmorec, and background quantities */
 
     z = z_arr[i];
     xe = xe_out[i];
@@ -2761,9 +2768,10 @@ int thermodynamics_recombination_with_cosmorec(
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
 
-   double drho_dt = 0, Tg = pba->T_cmb * (1+z);
+    Tg = pba->T_cmb * (1+z);
+    dlnTb_dz = - Tg/Tm*drho_dt/(1+z)/Hz+1/(1+z);
+
    evaluate_TM(z, xe,preco->fHe, Tm/Tg, Tg, Hz, &drho_dt);
-   double dlnTb_dz = - Tg/Tm*drho_dt/(1+z)/Hz+1/(1+z);
     *(preco->recombination_table+(i)*preco->re_size+preco->index_re_cb2)
       = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. + (1+z)*dlnTb_dz / 3.);
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
