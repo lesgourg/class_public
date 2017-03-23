@@ -856,8 +856,9 @@ int background_indices(
   /* -> sound horizon */
   class_define_index(pba->index_bi_rs,_TRUE_,index_bi,1);
 
-  /* -> integral for growth factor */
-  class_define_index(pba->index_bi_growth,_TRUE_,index_bi,1);
+  /* -> Second order equation for growth factor */
+  class_define_index(pba->index_bi_D,_TRUE_,index_bi,1);
+  class_define_index(pba->index_bi_D_prime,_TRUE_,index_bi,1);
 
   /* -> index for conformal time in vector of variables to integrate */
   class_define_index(pba->index_bi_tau,_TRUE_,index_bi,1);
@@ -1596,12 +1597,11 @@ int background_solve(
 
     /* -> compute growth functions (valid in dust universe) */
 
-    /* D = H \int [da/(aH)^3] = H \int [dtau/(aH^2)] = H * growth */
-    pvecback[pba->index_bg_D] = pvecback[pba->index_bg_H]*pData[i*pba->bi_size+pba->index_bi_growth];
-
-    /* f = [dlnD]/[dln a] = 1/(aH) [dlnD]/[dtau] = H'/(aH^2) + 1/(a^2 H^3 growth) */
-    pvecback[pba->index_bg_f] = pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H] + 1./(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pData[i*pba->bi_size+pba->index_bi_growth]);
-
+    /* Normalise D(z=0)=1 and construct f = D_prime/(aHD) */
+    pvecback[pba->index_bg_D] = pData[i*pba->bi_size+pba->index_bi_D]/pData[(pba->bt_size-1)*pba->bi_size+pba->index_bi_D];
+    pvecback[pba->index_bg_f] = pData[i*pba->bi_size+pba->index_bi_D_prime]/
+      (pData[i*pba->bi_size+pba->index_bi_D]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);
+    
     /* -> write in the table */
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
 
@@ -1863,10 +1863,9 @@ int background_initial_conditions(
   /** - compute initial sound horizon, assuming \f$ c_s=1/\sqrt{3} \f$ initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
-  /** - compute initial value of the integral over \f$ d\tau /(aH^2) \f$,
-      assumed to be proportional to \f$ a^4 \f$ during RD, but with arbitrary
-      normalization */
-  pvecback_integration[pba->index_bi_growth] = 1./(4.*a*a*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
+  /** - set initial value of D and D' in RD. D will be renormalised later, but D' must be correct. */
+  pvecback_integration[pba->index_bi_D] = a;
+  pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
 
   return _SUCCESS_;
 
@@ -2019,7 +2018,7 @@ int background_derivs(
 
   struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
-  double * pvecback;
+  double * pvecback, a, H, rho_M;
 
   pbpaw = parameters_and_workspace;
   pba =  pbpaw->pba;
@@ -2029,6 +2028,10 @@ int background_derivs(
   class_call(background_functions(pba, y, pba->normal_info, pvecback),
              pba->error_message,
              error_message);
+
+  /** - Short hand notation */
+  a = y[pba->index_bi_a];
+  H = pvecback[pba->index_bg_H];
 
   /** - calculate \f$ a'=a^2 H \f$ */
   dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
@@ -2043,8 +2046,12 @@ int background_derivs(
   /** - calculate \f$ rs' = c_s \f$*/
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
 
-  /** - calculate growth' \f$ = 1/(aH^2) \f$ */
-  dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);
+  /** - solve second order growth equation  \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
+  rho_M = pvecback[pba->index_bg_rho_b];
+  if (pba->has_cdm)
+    rho_M += pvecback[pba->index_bg_rho_cdm];
+  dy[pba->index_bi_D] = y[pba->index_bi_D_prime];
+  dy[pba->index_bi_D_prime] = -a*H*y[pba->index_bi_D_prime] + 1.5*a*a*rho_M*y[pba->index_bi_D];
 
   if (pba->has_dcdm == _TRUE_){
     /** - compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
