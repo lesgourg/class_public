@@ -588,6 +588,11 @@ int perturb_indices_of_perturbs(
   ppt->has_source_phi_plus_psi = _FALSE_;
   ppt->has_source_psi = _FALSE_;
 
+  ppt->has_source_h = _FALSE_;
+  ppt->has_source_h_prime = _FALSE_;
+  ppt->has_source_eta = _FALSE_;
+  ppt->has_source_eta_prime = _FALSE_;
+
   /** - source flags and indices, for sources that all modes have in
       common (temperature, polarization, ...). For temperature, the
       term t2 is always non-zero, while other terms are non-zero only
@@ -711,6 +716,20 @@ int perturb_indices_of_perturbs(
         }
       }
 
+      if ( ppt->has_metricpotential_transfers == _TRUE_ ) {
+        if (ppt->gauge == newtonian) {
+          ppt->has_source_phi = _TRUE_;
+          ppt->has_source_psi = _TRUE_;
+          ppt->has_source_phi_prime = _TRUE_;
+        }
+        if (ppt->gauge == synchronous) {
+          ppt->has_source_h = _TRUE_;
+          ppt->has_source_h_prime = _TRUE_;
+          ppt->has_source_eta = _TRUE_;
+          ppt->has_source_eta_prime = _TRUE_;
+        }
+      }
+      
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
@@ -738,6 +757,11 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_type,1);
       class_define_index(ppt->index_tp_phi_plus_psi,ppt->has_source_phi_plus_psi,index_type,1);
       class_define_index(ppt->index_tp_psi,        ppt->has_source_psi,       index_type,1);
+      class_define_index(ppt->index_tp_h,          ppt->has_source_h,       index_type,1);
+      class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,       index_type,1);
+      class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_type,1);
+      class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime,       index_type,1);
+
       ppt->tp_size[index_md] = index_type;
 
       class_test(index_type == 0,
@@ -3124,6 +3148,7 @@ int perturb_vector_init(
     /* metric perturbation eta of synchronous gauge */
     class_define_index(ppv->index_pt_eta,ppt->gauge == synchronous,index_pt,1);
 
+    
     /* metric perturbation phi of newtonian gauge ( we could fix it
        using Einstein equations as a constraint equation for phi, but
        integration is numerically more stable if we actually evolve
@@ -6032,8 +6057,34 @@ int perturb_sources(
       if (ppt->gauge == synchronous)
         _set_source_(ppt->index_tp_psi) =
           a_prime_over_a * pvecmetric[ppw->index_mt_alpha] + pvecmetric[ppw->index_mt_alpha_prime];
+    
     }
 
+    /* the metric potentials h and eta in synchronous gauge */
+    if (ppt->gauge == synchronous) {
+
+      if (ppt->has_source_h == _TRUE_ ) { /* cdm is always on in synchronous gauge, see error message above that checks gauge and has_cdm */
+        _set_source_(ppt->index_tp_h) = - 2 * y[ppw->pv->index_pt_delta_cdm];
+        
+      }
+
+      if (ppt->has_source_h_prime == _TRUE_)
+        _set_source_(ppt->index_tp_h_prime) = pvecmetric[ppw->index_mt_h_prime];;
+
+      if (ppt->has_source_eta == _TRUE_) {
+        _set_source_(ppt->index_tp_eta) = y[ppw->pv->index_pt_eta];
+        
+        if (ppt->has_source_eta_prime == _TRUE_)
+        _set_source_(ppt->index_tp_eta_prime) = dy[ppw->pv->index_pt_eta];
+        
+      }
+      
+    }
+
+    
+
+    
+    
     /* total matter over density (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_delta_m == _TRUE_) {
       _set_source_(ppt->index_tp_delta_m) = ppw->delta_m;
@@ -7482,6 +7533,7 @@ int perturb_derivs(double tau,
 
     }
 
+    
     if (ppt->gauge == newtonian) {
 
       dy[pv->index_pt_phi] = pvecmetric[ppw->index_mt_phi_prime];
