@@ -1110,6 +1110,8 @@ int input_read_parameters(
 
   }
 
+  class_read_double("Lambda_over_theoritical_Lambda",pth->Lambda_over_theoritical_Lambda);
+
   /** - reionization parametrization */
   class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
              errmsg,
@@ -2927,6 +2929,8 @@ int input_default_params(
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
+
+  pth->Lambda_over_theoritical_Lambda = 1.;
 
   //Default cosmorec parameters
   pth->cosmorec_runmode = 0; //default runmode of cosmorec

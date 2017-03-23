@@ -80,6 +80,8 @@ struct thermo
 
   short compute_damping_scale; /**< do we want to compute the simplest analytic approximation to the photon damping (or diffusion) scale? */
 
+  double Lambda_over_theoritical_Lambda; /**< ratio of A2s1s transition with respect to theoritical value (Labzowsky et al 2005) */
+
   /** parameters for reio_camb */
 
   double reionization_width; /**< width of H reionization */

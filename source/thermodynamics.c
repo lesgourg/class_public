@@ -2610,6 +2610,7 @@ int thermodynamics_recombination(
 }
 
 /**
+ * Integrate thermodynamics with CosmoRec.
  *
  * Integrate thermodynamics with CosmoRec, allocate and fill the part
  * of the thermodynamics interpolation table (the rest is filled in
@@ -2642,10 +2643,10 @@ int thermodynamics_recombination_with_cosmorec(
     DM_annihilation, /* defines the dark matter annihilation efficiency in eV/s. */
     pth->cosmorec_accuracy, /* setting for cosmorec accuracy (default = default cosmorec setting) */
     pth->cosmorec_verbose, /* setting for cosmorec verbose (default = no output produced) */
-    0, /* currently use default value for H1_A2s_1s, to be improved */
+    pth->Lambda_over_theoritical_Lambda *_Lambda_ /* theoritical value by Labzowsky et al 2005 for H1_A2s_1s is rescaled, by default Lambda_over_theoritical_Lambda = 1. In agreement with standard cosmorec.*/
   };
 
-
+  printf("pth->Lambda_over_theoritical_Lambda *_Lambda_  %e\n",pth->Lambda_over_theoritical_Lambda *_Lambda_);
   double H0 = pba->H0 / 1e3 * _c_;
   int nz = ppr->recfast_Nz0;
   double * z_arr;
