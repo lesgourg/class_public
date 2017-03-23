@@ -1302,6 +1302,16 @@ int input_read_parameters(
 
   }
 
+  if (ppt->has_density_transfers == _TRUE_) {
+    class_call(parser_read_string(pfc,"extra metric transfer functions",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
+      ppt->has_metricpotential_transfers = _TRUE_;
+    }
+  }
+
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
 
     class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),
@@ -2923,6 +2933,7 @@ int input_default_params(
   ppt->has_pk_matter = _FALSE_;
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
+  ppt->has_metricpotential_transfers = _FALSE_;
 
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
 
