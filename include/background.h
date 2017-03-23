@@ -191,8 +191,8 @@ struct background
   int index_bg_time;          /**< proper (cosmological) time in Mpc */
   int index_bg_rs;            /**< comoving sound horizon in Mpc */
 
-  int index_bg_D;             /**< density growth factor in dust universe, \f$ D = H \int [da/(aH)^3] \f$ (arbitrary normalization) */
-  int index_bg_f;             /**< velocity growth factor in dust universe, [dlnD]/[dln a] */
+  int index_bg_D;             /**< scale independent growth factor D(a) for CDM perturbations */
+  int index_bg_f;             /**< corresponding velocity growth factor [dlnD]/[dln a] */
 
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
@@ -243,7 +243,7 @@ struct background
   int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
   int index_bi_rs;      /**< {C} sound horizon */
   int index_bi_tau;     /**< {C} conformal time in Mpc */
-  int index_bi_D;       /**< {C} Scale invariant growth factor D(a) for CDM perturbations. */
+  int index_bi_D;       /**< {C} scale independent growth factor D(a) for CDM perturbations. */
   int index_bi_D_prime; /**< {C} D satisfies \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
 
   int bi_B_size;        /**< Number of {B} parameters */
