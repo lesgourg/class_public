@@ -377,6 +377,12 @@ extern "C" {
 			double * pvecback
 			);
 
+  int background_tau_of_z(
+                          struct background *pba,
+                          double z,
+                          double * tau
+                          );
+
   int background_functions(
 			   struct background *pba,
 			   double * pvecback_B,
@@ -384,11 +390,10 @@ extern "C" {
 			   double * pvecback
 			   );
 
-  int background_tau_of_z(
-			  struct background *pba,
-			  double z,
-			  double * tau
-			  );
+  int background_w_fld(
+                       struct background * pba,
+                       double a,
+                       double * w_fld);
 
   int background_init(
 		      struct precision *ppr,

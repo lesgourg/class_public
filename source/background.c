@@ -266,6 +266,8 @@ int background_functions(
   double rho_ncdm,p_ncdm,pseudo_p_ncdm;
   /* index for n_ncdm species */
   int n_ncdm;
+  /* fluid's time-dependent equation of state parameter */
+  double w_fld;
   /* scale factor */
   double a;
   /* scalar field quantities */
@@ -390,23 +392,22 @@ int background_functions(
     p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
 
-  /* fluid with w=w0+wa(1-a/a0) and constant cs2 */
+  /* fluid with w(a) and constant cs2 */
   if (pba->has_fld == _TRUE_) {
 
+    /* get rho_fld from vector of integrated variables */
     pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
 
-    /******************************************************************************************/
-    /* FLUID EQUATION OF STATE (for more general functions you only need to change this line) */
-    /******************************************************************************************/
-    pvecback[pba->index_bg_w_fld] = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
-    /******************************************************************************************/
+    /* get w_fld from dedicated function */
+    class_call(background_w_fld(pba,a,&w_fld), pba->error_message, pba->error_message);
+    pvecback[pba->index_bg_w_fld] = w_fld;
 
-    // Obsolete: at the beginning we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0).
-    // Now everthing is integrated numerically for a given w_fld(a).
-    //pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
+    // Obsolete: at the beginning, we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0):
+    // pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
+    // But now everthing is integrated numerically for a given w_fld(a) defined in the function background_w_fld.
 
     rho_tot += pvecback[pba->index_bg_rho_fld];
-    p_tot += (pba->w0_fld+pba->wa_fld*(1.-a_rel)) * pvecback[pba->index_bg_rho_fld];
+    p_tot += w_fld * pvecback[pba->index_bg_rho_fld];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
@@ -452,6 +453,27 @@ int background_functions(
 }
 
 /**
+ * Single place where the fluid equation of state is
+ * defined. Parameters of the function are passed through the
+ * background structure (here declared as a pointer to a void, because
+ * this function needs to be passed to a generic integration routine).
+ *
+ * @param pba_input Input: pointer to background structure
+ * @param a         Input: current value of scale factor
+ * @param w_fld     Output: equation of state parameter w_fld(a)
+ */
+
+int background_w_fld(
+                     struct background * pba,
+                     double a,
+                     double * w_fld) {
+
+  *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+
+  return _SUCCESS_;
+}
+
+/**
  * Initialize the background structure, and in particular the
  * background interpolation table.
  *
@@ -471,6 +493,7 @@ int background_init(
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
   double Neff;
+  double w_fld;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -567,10 +590,13 @@ int background_init(
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
-    class_test(pba->w0_fld+pba->wa_fld>=1./3.,
+
+    class_call(background_w_fld(pba,0.,&w_fld), pba->error_message, pba->error_message);
+
+    class_test(w_fld >= 1./3.,
                pba->error_message,
-               "Your choice for w0_fld+wa_fld=%g is suspicious, there would not be radiation domination at early times\n",
-               pba->w0_fld+pba->wa_fld);
+               "Your choice for w(a--->0)=%g is suspicious, since it is bigger than -1/3 there cannot be radiation domination at early times\n",
+               w_fld);
   }
 
   /* in verbose mode, inform the user about the value of the ncdm
@@ -1728,6 +1754,8 @@ int background_initial_conditions(
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
   double scf_lambda;
+  double log_rho_fld_ini_over_today;
+  double rho_fld_today;
 
   /** - fix initial value of \f$ a \f$ */
   a = ppr->a_ini_over_a_today_default * pba->a_today;
@@ -1813,22 +1841,19 @@ int background_initial_conditions(
 
   if (pba->has_fld == _TRUE_){
 
-    /* integrate rho_fld(a) from a_ini to a_0 to get rho_fld(a_ini) given rho_fld(a0) */
-    // there should be hyere a function F = integrate(a_ini, a0, f(a)) = int_{a_ini}^{a_0} f(a) da
-    // with f(a) = 3 [(1+w)/a]
-    // then rho_ini = rho_today * exp[F]
-    // but we can leave the analytical result for the moment:
+    /* rho_fld today */
+    rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
 
-    double F;
-    double rho_fld_0;
+    /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
 
-    rho_fld_0 = pba->Omega0_fld * pow(pba->H0,2);
+    // there will be here a function doing the numerical integral
+    // log_rho_fld_ini_over_today = int_{a_ini}^{a_0} 3 [(1+w_fld)/a] da
 
-    F = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    // for the moment, we leave the analytical result valid only for w_fld = w0 + wa(1-a/a0):
+    log_rho_fld_ini_over_today = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
 
-    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_0 * exp(F);
-
-    fprintf(stderr,"%e %e %e %e\n",pvecback_integration[pba->index_bi_rho_fld],rho_fld_0,F,exp(F));
+    /* rho_fld at initial time */
+    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(log_rho_fld_ini_over_today);
 
   }
 
