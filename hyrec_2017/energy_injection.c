@@ -47,6 +47,7 @@ double dEdtdV_DM_ann(double z, INJ_PARAMS *params){
       pann_tot = params->pann *exp(var*(-square(log(zp1_ann/zp1_max))
 				+square(log(zp1_min/zp1_max))));
     }
+    pann_tot*=zp1*zp1*zp1;
   }
   /* Dark matter annihilation in haloes */
   if (params->pann_halo > 0.) {
@@ -236,6 +237,8 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
     *dEdtdV_dep = (*dEdtdV_dep *exp(-7.*dlna) + 2e-15* dlna*nH/H *inj)
                  /(1.+ 2e-15 *dlna*nH/H);
   }
+  //  printf("on_the_spot %d *dEdtdV_dep %e inj %e \n", params->on_the_spot,*dEdtdV_dep,inj);
+
 
 }
 

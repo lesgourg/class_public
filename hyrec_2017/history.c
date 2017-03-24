@@ -490,7 +490,7 @@ void rec_build_history(int model, double zstart, double zend,
 
   dxHIIdlna_prev[1] = (xe_output[iz-2] - xe_output[iz-4])/2./DLNA - dxHeIIdlna_prev[1];
   dxHIIdlna_prev[0] = (xe_output[iz-1] - xe_output[iz-3])/2./DLNA - dxHeIIdlna_prev[0];
-  quasi_eq          = 1; 
+  quasi_eq          = 1;
 
   // Initialize energy *deposition*
   dEdtdV_dep = 0.;
@@ -597,7 +597,7 @@ Compute a recombination history given input cosmological parameters
 void hyrec_compute(HYREC_DATA *data, int model,
 		   double h, double T0, double Omega_b, double Omega_m, double Omega_k, double YHe, double Nnueff,
 		   double alphaR, double meR, double pann, double pann_halo, double ann_z, double ann_zmax,
-		   double ann_zmin, double ann_var, double ann_z_halo, double Mpbh, double fpbh, int coll_ion){
+		   double ann_zmin, double ann_var, double ann_z_halo, double Mpbh, double fpbh, int coll_ion, int on_the_spot){
 
   data->cosmo->T0    = T0;
   data->cosmo->orh2  = 4.48162687719e-7 *T0*T0*T0*T0 *(1. + 0.227107317660239 *Nnueff);
@@ -627,6 +627,8 @@ void hyrec_compute(HYREC_DATA *data, int model,
   data->cosmo->inj_params->fpbh = fpbh;
   data->cosmo->inj_params->coll_ion = coll_ion;
 
+  /* energy deposition recipe */
+  data->cosmo->inj_params->on_the_spot = on_the_spot;
 
   rec_build_history(model, data->zmax, data->zmin, data->cosmo, data->atomic,
 		    data->rad, data->xe_output, data->Tm_output);

@@ -14,3 +14,4 @@ python/build/
 libCosmoRec.a
 cosmorec/CosmoRec
 cosmorec/Development/Cosmology/Recfast++/Recfast++
+class.dSYM/
