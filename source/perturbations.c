@@ -114,6 +114,8 @@ int perturb_init(
   int index_k;
   /* pointer to one struct perturb_workspace per thread (one if no openmp) */
   struct perturb_workspace ** pppw;
+  /* background quantities */
+  double w_fld_ini, w_fld_0,dw_over_da_fld,integral_fld;
   /* number of threads (always one if no openmp) */
   int number_of_threads=1;
   /* index of the thread (always 0 if no openmp) */
@@ -178,18 +180,25 @@ int perturb_init(
 
   if (pba->has_fld == _TRUE_) {
 
-    class_test(pba->w0_fld+pba->wa_fld >= 0.,
+    /* check values of w_fld at initial time and today */
+    class_call(background_w_fld(pba,     0.,   &w_fld_ini,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+    class_call(background_w_fld(pba,pba->a_today,&w_fld_0,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+
+    class_test(w_fld_ini >= 0.,
                ppt->error_message,
-               "So far, the fluid is meant to be negligible at early time, and not to be important for defining the initial conditions of other species. You are using parameters for which this assumption may break down, so maybe it's the case to fully implement the fluid in the initial condition routine");
+               "The fluid is meant to be negligible at early time, and unimportant for defining the initial conditions of other species. You are using parameters for which this assumption may break down, since at early times you have w_fld(a--->0) = %e >= 0",w_fld_ini);
 
     if (pba->use_ppf == _FALSE_) {
-      class_test((pba->w0_fld==-1.) && (pba->wa_fld==0.),
+
+      class_test((w_fld_ini +1.0)*(w_fld_0+1.0) <= 0.0,
+                 ppt->error_message,
+                 "w crosses -1 between the infinite past and today, and this would lead to divergent perturbation equations for the fluid perturbations. Try to switch to PPF scheme: use_ppf = yes");
+
+      /* the next check is meaningful at least for w(a) = w0 + wa*(1-a/a0); for general formulas and with use_ppf=no, you may prefer to comment it out... */
+      class_test((w_fld_0 == -1.) && (dw_over_da_fld == 0.),
                  ppt->error_message,
                  "Your choice of a fluid with (w0,wa)=(-1,0) is not valid due to instabilities in the unphysical perturbations of such a fluid. Try instead with a plain cosmological constant or with PPF scheme: use_ppf = yes");
 
-      class_test(((pba->w0_fld + pba->wa_fld +1.0)*(pba->w0_fld+1.0)) < 0.0,
-                 ppt->error_message,
-                 "w crosses -1 between the infinite past and today, and this would lead to divergent perturbation equations for the fluidperturbations. Try to switch to PPF scheme: use_ppf = yes");
     }
 
   }
@@ -4049,6 +4058,7 @@ int perturb_initial_conditions(struct precision * ppr,
   /** --> Declare local variables */
 
   double a,a_prime_over_a;
+  double w_fld,dw_over_da_fld,integral_fld;
   double delta_ur=0.,theta_ur=0.,shear_ur=0.,l3_ur=0.,eta=0.,delta_cdm=0.,alpha, alpha_prime;
   double delta_dr=0;
   double q,epsilon,k2;
@@ -4206,10 +4216,12 @@ int perturb_initial_conditions(struct precision * ppr,
          fluid will catch anyway the attractor solution) */
       if (pba->has_fld == _TRUE_) {
 
-        if (pba->use_ppf == _FALSE_) {
-          ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+pba->w0_fld+pba->wa_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*(pba->w0_fld+pba->wa_fld)+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC: curvature
+        class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
-          ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*(pba->w0_fld+pba->wa_fld)+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC:curvature
+        if (pba->use_ppf == _FALSE_) {
+          ppw->pv->y[ppw->pv->index_pt_delta_fld] = - ktau_two/4.*(1.+w_fld)*(4.-3.*pba->cs2_fld)/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC: curvature
+
+          ppw->pv->y[ppw->pv->index_pt_theta_fld] = - k*ktau_three/4.*pba->cs2_fld/(4.-6.*w_fld+3.*pba->cs2_fld) * ppr->curvature_ini * s2_squared; /* from 1004.5509 */ //TBC:curvature
         }
         /* if use_ppf == _TRUE_, y[ppw->pv->index_pt_Gamma_fld] will be automatically set to zero, and this is what we want (although one could probably work out some small nonzero initial conditions: TODO) */
       }
@@ -4444,7 +4456,10 @@ int perturb_initial_conditions(struct precision * ppr,
 
       /* fluid */
       if ((pba->has_fld == _TRUE_) && (pba->use_ppf == _FALSE_)) {
-        ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+pba->w0_fld+pba->wa_fld)*a_prime_over_a*alpha;
+
+        class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+
+        ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+w_fld)*a_prime_over_a*alpha;
         ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha;
       }
 
@@ -5298,7 +5313,7 @@ int perturb_total_stress_energy(
   int index_q,n_ncdm,idx;
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
   double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
-  double w;
+  double w_fld,dw_over_da_fld,integral_fld;
   double gwncdm;
   double rho_relativistic;
   double rho_dr_over_f;
@@ -5559,29 +5574,29 @@ int perturb_total_stress_energy(
     /* fluid contribution */
     if (pba->has_fld == _TRUE_) {
 
-      w = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+      class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
       if (pba->use_ppf == _FALSE_) {
         ppw->delta_rho_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
-        ppw->rho_plus_p_theta_fld = (1.+w)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+        ppw->rho_plus_p_theta_fld = (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
       }
       else {
-	s2sq = ppw->s_l[2]*ppw->s_l[2];
-	if (ppt->gauge == synchronous)
-	  alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+a_prime_over_a/k2*ppw->rho_plus_p_theta)-y[ppw->pv->index_pt_Gamma_fld])/a_prime_over_a;
-	else
-	  alpha = 0.;
-	ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*1.5*a2/k2/a_prime_over_a*
-	  (ppw->rho_plus_p_theta/rho_plus_p_tot+k2*alpha);
-	// note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
+        s2sq = ppw->s_l[2]*ppw->s_l[2];
+        if (ppt->gauge == synchronous)
+          alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+a_prime_over_a/k2*ppw->rho_plus_p_theta)-y[ppw->pv->index_pt_Gamma_fld])/a_prime_over_a;
+        else
+          alpha = 0.;
+        ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*1.5*a2/k2/a_prime_over_a*
+          (ppw->rho_plus_p_theta/rho_plus_p_tot+k2*alpha);
+        // note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
         c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
         ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*y[ppw->pv->index_pt_Gamma_fld]);
         Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*y[ppw->pv->index_pt_Gamma_fld];
         // delta and theta in both gauges gauge:
-        ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w)*ppw->rho_plus_p_theta/rho_plus_p_tot-
-	  k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*rho_plus_p_tot)*
-	  (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
-	ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
+        ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*ppw->rho_plus_p_theta/rho_plus_p_tot-
+          k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*rho_plus_p_tot)*
+          (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
+        ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
       }
 
       ppw->delta_rho += ppw->delta_rho_fld;
@@ -5836,9 +5851,10 @@ int perturb_sources(
   double delta_g, delta_rho_scf, rho_plus_p_theta_scf;
   double a_prime_over_a=0.;  /* (a'/a) */
   double a_prime_over_a_prime=0.;  /* (a'/a)' */
+  double w_fld,dw_over_da_fld,integral_fld;
   int switch_isw = 1;
 
-  double a_rel, a2_rel, f_dr, w;
+  double a_rel, a2_rel, f_dr;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -6173,8 +6189,10 @@ int perturb_sources(
 
     /* theta_fld */
     if (ppt->has_source_theta_fld == _TRUE_) {
-      w = pba->w0_fld + pba->wa_fld * (1. - a_rel);
-      _set_source_(ppt->index_tp_theta_fld) = ppw->rho_plus_p_theta_fld/(1.+w)/pvecback[pba->index_bg_rho_fld];
+
+      class_call(background_w_fld(pba,a_rel*pba->a_today,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+
+      _set_source_(ppt->index_tp_theta_fld) = ppw->rho_plus_p_theta_fld/(1.+w_fld)/pvecback[pba->index_bg_rho_fld];
     }
 
     /* theta_scf */
@@ -6842,7 +6860,7 @@ int perturb_derivs(double tau,
   double P0,P1,P2;
 
   /* for use with fluid (fld): */
-  double w,w_prime;
+  double w_fld,dw_over_da_fld,w_prime_fld,integral_fld;
 
   /* for use with non-cold dark matter (ncdm): */
   int index_q,n_ncdm,idx;
@@ -7255,23 +7273,24 @@ int perturb_derivs(double tau,
         /** - ----> factors w, w_prime, adiabatic sound speed ca2 (all three background-related),
             plus actual sound speed in the fluid rest frame cs2 */
 
-        w = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
-        w_prime = - pba->wa_fld * a / pba->a_today * a_prime_over_a;
-        ca2 = w - w_prime / 3. / (1.+w) / a_prime_over_a;
+        class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
+        w_prime_fld = dw_over_da_fld * a_prime_over_a * a;
+
+        ca2 = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
         cs2 = pba->cs2_fld;
 
         /** - ----> fluid density */
 
         dy[pv->index_pt_delta_fld] =
-          -(1+w)*(y[pv->index_pt_theta_fld]+metric_continuity)
-          -3.*(cs2-w)*a_prime_over_a*y[pv->index_pt_delta_fld]
-          -9.*(1+w)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[pv->index_pt_theta_fld]/k2;
+          -(1+w_fld)*(y[pv->index_pt_theta_fld]+metric_continuity)
+          -3.*(cs2-w_fld)*a_prime_over_a*y[pv->index_pt_delta_fld]
+          -9.*(1+w_fld)*(cs2-ca2)*a_prime_over_a*a_prime_over_a*y[pv->index_pt_theta_fld]/k2;
 
         /** - ----> fluid velocity */
 
         dy[pv->index_pt_theta_fld] = /* fluid velocity */
           -(1.-3.*cs2)*a_prime_over_a*y[pv->index_pt_theta_fld]
-          +cs2*k2/(1.+w)*y[pv->index_pt_delta_fld]
+          +cs2*k2/(1.+w_fld)*y[pv->index_pt_delta_fld]
           +metric_euler;
       }
       else {

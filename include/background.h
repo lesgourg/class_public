@@ -393,7 +393,9 @@ extern "C" {
   int background_w_fld(
                        struct background * pba,
                        double a,
-                       double * w_fld);
+                       double * w_fld,
+                       double * dw_over_da_fld,
+                       double * integral_fld);
 
   int background_init(
 		      struct precision *ppr,

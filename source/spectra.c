@@ -2845,7 +2845,7 @@ int spectra_matter_transfers(
   double delta_rho_tot,rho_tot;
   double rho_plus_p_theta_tot,rho_plus_p_tot;
   int n_ncdm;
-  double w_fld;
+  double w_fld,dw_over_da_fld,integral_fld;
 
   /** - check the presence of scalar modes */
 
@@ -3065,7 +3065,7 @@ int spectra_matter_transfers(
 
           rho_i = pvecback_sp_long[pba->index_bg_rho_fld];
 
-          class_call(background_w_fld(pba,0.,&w_fld), pba->error_message, psp->error_message);
+          class_call(background_w_fld(pba,0.,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, psp->error_message);
 
           if (ppt->has_source_delta_fld == _TRUE_) {
 

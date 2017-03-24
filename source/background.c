@@ -267,7 +267,7 @@ int background_functions(
   /* index for n_ncdm species */
   int n_ncdm;
   /* fluid's time-dependent equation of state parameter */
-  double w_fld;
+  double w_fld, dw_over_da, integral_fld;
   /* scale factor */
   double a;
   /* scalar field quantities */
@@ -399,7 +399,7 @@ int background_functions(
     pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
 
     /* get w_fld from dedicated function */
-    class_call(background_w_fld(pba,a,&w_fld), pba->error_message, pba->error_message);
+    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
     pvecback[pba->index_bg_w_fld] = w_fld;
 
     // Obsolete: at the beginning, we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0):
@@ -455,20 +455,44 @@ int background_functions(
 /**
  * Single place where the fluid equation of state is
  * defined. Parameters of the function are passed through the
- * background structure (here declared as a pointer to a void, because
- * this function needs to be passed to a generic integration routine).
+ * background structure. Generalisation to arbitrary functions should
+ * be simple.
  *
- * @param pba_input Input: pointer to background structure
- * @param a         Input: current value of scale factor
- * @param w_fld     Output: equation of state parameter w_fld(a)
+ * @param pba_input      Input: pointer to background structure
+ * @param a              Input: current value of scale factor
+ * @param w_fld          Output: equation of state parameter w_fld(a)
+ * @param dw_over_da_fld Output: function dw_fld/da
+ * @param integral_fld   Output: function [\int_{a}^{a0} da 3(1+w_fld)/a]
  */
 
 int background_w_fld(
                      struct background * pba,
                      double a,
-                     double * w_fld) {
+                     double * w_fld,
+                     double * dw_over_da_fld,
+                     double * integral_fld) {
 
+  /* first give the function w(a) */
   *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+
+  /* then give the corresponding analytic derivative dw/da (used by
+     perturbation equations; we could compute it numerically, but with
+     a loss of precision; there is usually a simple analytic
+     expression of the derivative of the previous function, so let's
+     use it!) */
+  *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+
+  /* then give the analytic solution of the following integral:
+     [\int_{a}^{a0} da 3(1+w_fld)/a]. This is used in only one place, in
+     the initial conditions for the background. If your w(a) does not
+     lead to a simple analytic solution of this integral, no worry:
+     instead of writing something here, the best would then be to
+     leave it equal to zero, and then in
+     background_initial_conditions() you should implement a numerical
+     calculation of this integral for a=a_ini, using for instance
+     Romberg integration. It should be fast, simple, and accurate
+     enough. */
+  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
 
   /* note: of course you can generalise this formula to anything,
      defining new parameters pba->w...fld. Just remeber that so far,
@@ -498,7 +522,7 @@ int background_init(
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
   double Neff;
-  double w_fld;
+  double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -596,7 +620,7 @@ int background_init(
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
 
-    class_call(background_w_fld(pba,0.,&w_fld), pba->error_message, pba->error_message);
+    class_call(background_w_fld(pba,0.,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
 
     class_test(w_fld >= 1./3.,
                pba->error_message,
@@ -1759,8 +1783,8 @@ int background_initial_conditions(
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
   double scf_lambda;
-  double log_rho_fld_ini_over_today;
   double rho_fld_today;
+  double w_fld,dw_over_da_fld,integral_fld;
 
   /** - fix initial value of \f$ a \f$ */
   a = ppr->a_ini_over_a_today_default * pba->a_today;
@@ -1850,15 +1874,16 @@ int background_initial_conditions(
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
 
     /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
+    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
 
-    // there will be here a function doing the numerical integral
-    // log_rho_fld_ini_over_today = int_{a_ini}^{a_0} 3 [(1+w_fld)/a] da
-
-    // for the moment, we leave the analytical result valid only for w_fld = w0 + wa(1-a/a0):
-    log_rho_fld_ini_over_today = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    /* Note: for complicated w_fld(a) functions with no simple
+    analytic integral, this is the place were you should compute
+    numerically the simple 1d integral [int_{a_ini}^{a_0} 3
+    [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
+    calling background_w_fld */
 
     /* rho_fld at initial time */
-    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(log_rho_fld_ini_over_today);
+    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
 
   }
 
