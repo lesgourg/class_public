@@ -237,6 +237,7 @@ int input_init(
   int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
 
   class_read_int("input_verbose",input_verbose);
+  if (input_verbose >0) printf("Reading input parameters\n");
 
   /** - Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
@@ -548,6 +549,7 @@ int input_read_parameters(
 
   double z_max=0.;
   int bin;
+  int input_verbose;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -572,6 +574,8 @@ int input_read_parameters(
   /** - if entries passed in file_content structure, carefully read
       and interpret each of them, and tune the relevant input
       parameters accordingly*/
+
+  class_read_int("input_verbose",input_verbose);
 
   /** Knowing the gauge from the very beginning is useful (even if
       this could be a run not requiring perturbations at all: even in
@@ -972,12 +976,20 @@ int input_read_parameters(
     Omega_tot += pba->Omega0_scf;
   }
   /* Step 2 */
-  if (flag1 == _FALSE_) //Fill with Lambda
+  if (flag1 == _FALSE_) {
+    //Fill with Lambda
     pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
-  else if (flag2 == _FALSE_)  // Fill up with fluid
+    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_Lambda = %e\n",pba->Omega0_lambda);
+  }
+  else if (flag2 == _FALSE_) {
+    // Fill up with fluid
     pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
-  else if ((flag3 == _TRUE_) && (param3 < 0.)){ // Fill up with scalar field
+    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_fld = %e\n",pba->Omega0_fld);
+  }
+  else if ((flag3 == _TRUE_) && (param3 < 0.)){
+    // Fill up with scalar field
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
+    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_scf = %e\n",pba->Omega0_scf);
   }
 
   /*

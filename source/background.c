@@ -392,9 +392,19 @@ int background_functions(
 
   /* fluid with w=w0+wa(1-a/a0) and constant cs2 */
   if (pba->has_fld == _TRUE_) {
-    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2)
-      / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld))
-      * exp(3.*pba->wa_fld*(a_rel-1.));
+
+    pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
+
+    /******************************************************************************************/
+    /* FLUID EQUATION OF STATE (for more general functions you only need to change this line) */
+    /******************************************************************************************/
+    pvecback[pba->index_bg_w_fld] = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+    /******************************************************************************************/
+
+    // Obsolete: at the beginning we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0).
+    // Now everthing is integrated numerically for a given w_fld(a).
+    //pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
+
     rho_tot += pvecback[pba->index_bg_rho_fld];
     p_tot += (pba->w0_fld+pba->wa_fld*(1.-a_rel)) * pvecback[pba->index_bg_rho_fld];
   }
@@ -778,6 +788,7 @@ int background_indices(
 
   /* - index for fluid */
   class_define_index(pba->index_bg_rho_fld,pba->has_fld,index_bg,1);
+  class_define_index(pba->index_bg_w_fld,pba->has_fld,index_bg,1);
 
   /* - index for ultra-relativistic neutrinos/species */
   class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1);
@@ -842,6 +853,9 @@ int background_indices(
 
   /* -> energy density in DR */
   class_define_index(pba->index_bi_rho_dr,pba->has_dr,index_bi,1);
+
+  /* -> energy density in fluid */
+  class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
   class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
@@ -1601,7 +1615,7 @@ int background_solve(
     pvecback[pba->index_bg_D] = pData[i*pba->bi_size+pba->index_bi_D]/pData[(pba->bt_size-1)*pba->bi_size+pba->index_bi_D];
     pvecback[pba->index_bg_f] = pData[i*pba->bi_size+pba->index_bi_D_prime]/
       (pData[i*pba->bi_size+pba->index_bi_D]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);
-    
+
     /* -> write in the table */
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
 
@@ -1797,6 +1811,27 @@ int background_initial_conditions(
     }
   }
 
+  if (pba->has_fld == _TRUE_){
+
+    /* integrate rho_fld(a) from a_ini to a_0 to get rho_fld(a_ini) given rho_fld(a0) */
+    // there should be hyere a function F = integrate(a_ini, a0, f(a)) = int_{a_ini}^{a_0} f(a) da
+    // with f(a) = 3 [(1+w)/a]
+    // then rho_ini = rho_today * exp[F]
+    // but we can leave the analytical result for the moment:
+
+    double F;
+    double rho_fld_0;
+
+    rho_fld_0 = pba->Omega0_fld * pow(pba->H0,2);
+
+    F = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+
+    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_0 * exp(F);
+
+    fprintf(stderr,"%e %e %e %e\n",pvecback_integration[pba->index_bi_rho_fld],rho_fld_0,F,exp(F));
+
+  }
+
   /** - Fix initial value of \f$ \phi, \phi' \f$
    * set directly in the radiation attractor => fixes the units in terms of rho_ur
    *
@@ -1906,6 +1941,7 @@ int background_output_titles(struct background * pba,
   }
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
+  class_store_columntitle(titles,"(.)w_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
   class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
@@ -1957,6 +1993,7 @@ int background_output_data(
     }
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_w_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
@@ -2063,6 +2100,11 @@ int background_derivs(
     /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
+  }
+
+  if (pba->has_fld == _TRUE_) {
+    /** - Compute fld density \f$ \rho' = -3aH (1+w_{fld}(a)) \rho \f$ */
+    dy[pba->index_bi_rho_fld] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*(1.+pvecback[pba->index_bg_w_fld])*y[pba->index_bi_rho_fld];
   }
 
   if (pba->has_scf == _TRUE_){

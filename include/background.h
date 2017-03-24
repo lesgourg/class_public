@@ -49,8 +49,7 @@ struct background
 
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$: cosmological constant */
 
-  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid with constant
-			\f$ w \f$ and \f$ c_s^2 \f$ */
+  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid */
   double w0_fld; /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
   double wa_fld; /**< \f$ wa_{DE} \f$: fluid equation of state parameter derivative */
 
@@ -162,7 +161,8 @@ struct background
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
   int index_bg_rho_lambda;    /**< cosmological constant density */
-  int index_bg_rho_fld;       /**< fluid with constant w density */
+  int index_bg_rho_fld;       /**< fluid density */
+  int index_bg_w_fld;         /**< fluid equation of state */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_dr;        /**< dr density */
@@ -237,6 +237,7 @@ struct background
   int index_bi_a;       /**< {B} scale factor */
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
+  int index_bi_rho_fld; /**< {B} fluid density */
   int index_bi_phi_scf;       /**< {B} scalar field value */
   int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */
 
