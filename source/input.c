@@ -1237,6 +1237,12 @@ int input_read_parameters(
 
   class_read_double("decay",pth->decay);
 
+  /*** Accreting primordial black holes. Added by Y. Ali-Haimoud ***/
+  class_read_double("fpbh",pth->fpbh);
+  class_read_double("Mpbh",pth->Mpbh);
+  class_read_int("coll_ion_pbh",pth->coll_ion_pbh);
+  /*****************************************************************/
+
   class_call(parser_read_string(pfc,
                                 "compute damping scale",
                                 &(string1),
@@ -2918,6 +2924,12 @@ int input_default_params(
   pth->annihilation = 0.;
   pth->decay = 0.;
 
+  /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
+  pth->fpbh = 0.;
+  pth->Mpbh = 1.;
+  pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //
+  /************************************************************************/
+
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;
@@ -3216,11 +3228,14 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
 
   sprintf(ppr->hyrec_Alpha_inf_file,__CLASSDIR__);
-  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat");
+//  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat");
+  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec_2017/Alpha_inf.dat");
   sprintf(ppr->hyrec_R_inf_file,__CLASSDIR__);
-  strcat(ppr->hyrec_R_inf_file,"/hyrec/R_inf.dat");
+//  strcat(ppr->hyrec_R_inf_file,"/hyrec/R_inf.dat");
+  strcat(ppr->hyrec_R_inf_file,"/hyrec_2017/R_inf.dat");
   sprintf(ppr->hyrec_two_photon_tables_file,__CLASSDIR__);
-  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat");
+//  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat");
+  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec_2017/two_photon_tables.dat");
 
   /* for reionization */
 

@@ -2821,148 +2821,270 @@ class_stop(pth->error_message,
  * @param preco    Output: pointer to recombination structure
  * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
  */
- int thermodynamics_recombination_with_hyrec(
-                                             struct precision * ppr,
-                                             struct background * pba,
-                                             struct thermo * pth,
-                                             struct recombination * preco,
-                                             double * pvecback
-                                             ) {
-   /** Summary: */
- #ifdef HYREC
 
-   HYREC_DATA hyrec_data;
-   hyrec_allocate(&hyrec_data, ppr->recfast_z_initial, 0.);
+int thermodynamics_recombination_with_hyrec(
+                                            struct precision * ppr,
+                                            struct background * pba,
+                                            struct thermo * pth,
+                                            struct recombination * preco,
+                                            double * pvecback
+                                            ) {
+  /** Summary: */
+#ifdef HYREC
 
-   double Omega_m = pba->Omega0_b + pba->Omega0_cdm + pba->Omega0_ncdm_tot;
+  REC_COSMOPARAMS param;
+  HRATEEFF rate_table;
+  TWO_PHOTON_PARAMS twog_params;
+  double *xe_output, *Tm_output;
+  int i,j,l,Nz,b;
+  double z, xe, Tm, Hz;
+  FILE *fA;
+  FILE *fR;
+  double L2s1s_current;
+  void * buffer;
+  int buf_size;
+  double tau;
+  int last_index_back;
 
-   double alpha_ratio = 1.;    /* Ratio of fine-structure constant to standard value */
-   double me_ratio    = 1.;    /* Ratio of electron mass to standard value */
+  /** - Fill hyrec parameter structure */
 
-   double pann        = 1.78266e-21 *pth->annihilation;  /* Converting from m^3/s/kg to cm^3/s/GeV */
-   double pann_halo   = 1.78266e-21 *pth->annihilation_f_halo;
+  param.T0 = pba->T_cmb;
+  param.obh2 = pba->Omega0_b*pba->h*pba->h;
+  param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
+  param.okh2 = pba->Omega0_k*pba->h*pba->h;
+  param.odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
+  param.w0 = pba->w0_fld;
+  param.wa = pba->wa_fld;
+  param.Y = pth->YHe;
+  param.Nnueff = pba->Neff;
+  param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hydrogen today in m-3 */
+  param.fHe = param.Y/(1-param.Y)/3.97153;              /* abundance of helium by number */
+  param.zstart = ppr->recfast_z_initial; /* Redshift range */
+  param.zend = 0.;
+  param.dlna = 8.49e-5;
+  param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
+  param.annihilation = pth->annihilation;
+  param.has_on_the_spot = pth->has_on_the_spot;
+  param.decay = pth->decay;
+  param.annihilation_variation = pth->annihilation_variation;
+  param.annihilation_z = pth->annihilation_z;
+  param.annihilation_zmax = pth->annihilation_zmax;
+  param.annihilation_zmin = pth->annihilation_zmin;
+  param.annihilation_f_halo = pth->annihilation_f_halo;
+  param.annihilation_z_halo = pth->annihilation_z_halo;
 
-   int i,j,Nz;
-   double z, xe, Tm, Hz;
-   void * buffer;
-   double tau;
-   int last_index_back;
-   int on_the_spot = 1;
+  /** - Build effective rate tables */
 
-   if(pth->has_on_the_spot == _FALSE_){
-     on_the_spot = 0;
-   }
-   /** - Compute the recombination history by calling hyrec_compute.
-         No CLASS-like error management here, but YAH working on it :) **/
+  /* allocate contiguous memory zone */
 
-   if (pth->thermodynamics_verbose > 0)
-     printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
+  buf_size = (2*NTR+NTM+2*NTR*NTM+2*param.nz)*sizeof(double) + 2*NTM*sizeof(double*);
 
-   hyrec_compute(&hyrec_data, FULL,
- 		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
- 		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
- 		pth->annihilation_zmin, pth->annihilation_variation, pth->annihilation_z_halo,
- 		pth->Mpbh, pth->fpbh, pth->coll_ion_pbh,on_the_spot);
+  class_alloc(buffer,
+              buf_size,
+              pth->error_message);
 
-   if (pth->thermodynamics_verbose > 0)
-     printf("    by Y. Ali-Haïmoud & C. Hirata\n");
+  /** - distribute addresses for each table */
 
-   /** - fill a few parameters in preco and pth */
+  rate_table.logTR_tab = (double*)buffer;
+  rate_table.TM_TR_tab = (double*)(rate_table.logTR_tab + NTR);
+  rate_table.logAlpha_tab[0] = (double**)(rate_table.TM_TR_tab+NTM);
+  rate_table.logAlpha_tab[1] = (double**)(rate_table.logAlpha_tab[0]+NTM);
+  rate_table.logAlpha_tab[0][0] = (double*)(rate_table.logAlpha_tab[1]+NTM);
+  for (j=1;j<NTM;j++) {
+    rate_table.logAlpha_tab[0][j] = (double*)(rate_table.logAlpha_tab[0][j-1]+NTR);
+  }
+  rate_table.logAlpha_tab[1][0] = (double*)(rate_table.logAlpha_tab[0][NTM-1]+NTR);
+  for (j=1;j<NTM;j++) {
+    rate_table.logAlpha_tab[1][j] = (double*)(rate_table.logAlpha_tab[1][j-1]+NTR);
+  }
+  rate_table.logR2p2s_tab = (double*)(rate_table.logAlpha_tab[1][NTM-1]+NTR);
 
-   Nz=ppr->recfast_Nz0;
+  xe_output = (double*)(rate_table.logR2p2s_tab+NTR);
+  Tm_output = (double*)(xe_output+param.nz);
 
-   preco->rt_size = Nz;
-   preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
-   /* preco->H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
-   preco->YHe = pth->YHe;
-   preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-preco->YHe)/(8.*_PI_*_G_*_m_H_);
-   /* energy injection parameters */
-   preco->annihilation = pth->annihilation;
-   preco->has_on_the_spot = pth->has_on_the_spot;
-   preco->annihilation_variation = pth->annihilation_variation;
-   preco->annihilation_z = pth->annihilation_z;
-   preco->annihilation_zmax = pth->annihilation_zmax;
-   preco->annihilation_zmin = pth->annihilation_zmin;
-   preco->decay = pth->decay;
-   preco->annihilation_f_halo = pth->annihilation_f_halo;
-   preco->annihilation_z_halo = pth->annihilation_z_halo;
-   pth->n_e=preco->Nnow;
+  /* store sampled values of temperatures */
 
-   /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
+  for (i = 0; i < NTR; i++)
+    rate_table.logTR_tab[i] = log(TR_MIN) + i * (log(TR_MAX)-log(TR_MIN))/(NTR-1.);
+  for (i = 0; i < NTM; i++)
+    rate_table.TM_TR_tab[i] = TM_TR_MIN + i * (TM_TR_MAX-TM_TR_MIN)/(NTM-1.);
 
-   class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
+  rate_table.DlogTR = rate_table.logTR_tab[1] - rate_table.logTR_tab[0];
+  rate_table.DTM_TR = rate_table.TM_TR_tab[1] - rate_table.TM_TR_tab[0];
 
-   for(i = 0; i < Nz; i++) {
+  /* read in file */
 
-     /** - --> get redshift, corresponding results from hyrec, and background quantities */
+  class_open(fA,ppr->hyrec_Alpha_inf_file, "r",pth->error_message);
+  class_open(fR,ppr->hyrec_R_inf_file, "r",pth->error_message);
 
-     z = ppr->recfast_z_initial * (1. - (double)(i+1) / (double)Nz);
+  for (i = 0; i < NTR; i++) {
+    for (j = 0; j < NTM; j++) {
+      for (l = 0; l <= 1; l++) {
+        if (fscanf(fA, "%le", &(rate_table.logAlpha_tab[l][j][i])) != 1)
+          class_stop(pth->error_message,"Error reading hyrec data file %s",ppr->hyrec_Alpha_inf_file);
+        rate_table.logAlpha_tab[l][j][i] = log(rate_table.logAlpha_tab[l][j][i]);
+      }
+    }
 
-     xe = hyrec_xe(z, &hyrec_data);
-     Tm = hyrec_Tm(z, &hyrec_data);
+    if (fscanf(fR, "%le", &(rate_table.logR2p2s_tab[i])) !=1)
+      class_stop(pth->error_message,"Error reading hyrec data file %s",ppr->hyrec_R_inf_file);
+    rate_table.logR2p2s_tab[i] = log(rate_table.logR2p2s_tab[i]);
 
-     class_call(background_tau_of_z(pba,
-                                    z,
-                                    &tau),
-                pba->error_message,
-                pth->error_message);
+  }
+  fclose(fA);
+  fclose(fR);
 
-     class_call(background_at_tau(pba,
-                                  tau,
-                                  pba->short_info,
-                                  pba->inter_normal,
-                                  &last_index_back,
-                                  pvecback),
-                pba->error_message,
-                pth->error_message);
+  /* Read two-photon rate tables */
 
-     /*   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
-          pth->error_message,
-          pth->error_message);
-     */
+  class_open(fA,ppr->hyrec_two_photon_tables_file, "r",pth->error_message);
 
-     /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
-     Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+  for (b = 0; b < NVIRT; b++) {
+    if ((fscanf(fA, "%le", &(twog_params.Eb_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A1s_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A2s_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A3s3d_tab[b])) != 1) ||
+        (fscanf(fA, "%le", &(twog_params.A4s4d_tab[b])) != 1))
+      class_stop(pth->error_message,"Error reading hyrec data file %s",ppr->hyrec_two_photon_tables_file);
+  }
 
-     /** - --> store the results in the table */
+  fclose(fA);
 
-     /* results are obtained in order of decreasing z, and stored in order of growing z */
+  /** - Normalize 2s--1s differential decay rate to L2s1s (can be set by user in hydrogen.h) */
+  L2s1s_current = 0.;
+  for (b = 0; b < NSUBLYA; b++) L2s1s_current += twog_params.A2s_tab[b];
+  for (b = 0; b < NSUBLYA; b++) twog_params.A2s_tab[b] *= L2s1s/L2s1s_current;
 
-     /* redshift */
-     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=z;
+  /*  In CLASS, we have neutralized the switches for the various
+      effects considered in Hirata (2008), keeping the full
+      calculation as a default; but you could restore their
+      functionality by copying a few lines from hyrec/hyrec.c to
+      here */
 
-     /* ionization fraction */
-     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe)=xe;
+  /** - Compute the recombination history by calling a function in hyrec (no CLASS-like error management here) */
 
-     /* Tb */
-     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
+  if (pth->thermodynamics_verbose > 0)
+    printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
 
-     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
-        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
-     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-       = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm *(1. - hyrec_dTmdlna(z, &hyrec_data) / Tm / 3.);
+  rec_build_history(&param, &rate_table, &twog_params, xe_output, Tm_output);
 
-     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
-     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
-       = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
+  if (pth->thermodynamics_verbose > 0)
+    printf("    by Y. Ali-Haïmoud & C. Hirata\n");
 
-   }
+  /** - fill a few parameters in preco and pth */
 
-   /* Cleanup */
+  Nz=ppr->recfast_Nz0;
 
-   free(buffer);
-   hyrec_free(&hyrec_data);
+  preco->rt_size = Nz;
+  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
+  /* preco->H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
+  preco->YHe = pth->YHe;
+  preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b*(1.-preco->YHe)/(8.*_PI_*_G_*_m_H_);
+  /* energy injection parameters */
+  preco->annihilation = pth->annihilation;
+  preco->has_on_the_spot = pth->has_on_the_spot;
+  preco->annihilation_variation = pth->annihilation_variation;
+  preco->annihilation_z = pth->annihilation_z;
+  preco->annihilation_zmax = pth->annihilation_zmax;
+  preco->annihilation_zmin = pth->annihilation_zmin;
+  preco->decay = pth->decay;
+  preco->annihilation_f_halo = pth->annihilation_f_halo;
+  preco->annihilation_z_halo = pth->annihilation_z_halo;
+  pth->n_e=preco->Nnow;
 
- #else
+  /** - allocate memory for thermodynamics interpolation tables (size known in advance) and fill it */
 
-   class_stop(pth->error_message,
-              "you compiled without including the HyRec code, and now wish to use it. Either set the input parameter 'recombination' to something else than 'HyRec', or recompile after setting in the Makefile the appropriate path HYREC=... ");
+  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
- #endif
+  for(i=0; i <Nz; i++) {
+    /** - --> get redshift, corresponding results from hyrec, and background quantities */
 
-   return _SUCCESS_;
- }
+    z = param.zstart * (1. - (double)(i+1) / (double)Nz);
 
+    /* get (xe,Tm) by interpolating in pre-computed tables */
+
+    class_call(array_interpolate_cubic_equal(-log(1.+param.zstart),
+                                             param.dlna,
+                                             xe_output,
+                                             param.nz,
+                                             -log(1.+z),
+                                             &xe,
+                                             pth->error_message),
+               pth->error_message,
+               pth->error_message);
+
+    class_call(array_interpolate_cubic_equal(-log(1.+param.zstart),
+                                             param.dlna,
+                                             Tm_output,
+                                             param.nz,
+                                             -log(1.+z),
+                                             &Tm,
+                                             pth->error_message),
+               pth->error_message,
+               pth->error_message);
+
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               pth->error_message);
+
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->short_info,
+                                 pba->inter_normal,
+                                 &last_index_back,
+                                 pvecback),
+               pba->error_message,
+               pth->error_message);
+
+    /*   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
+         pth->error_message,
+         pth->error_message);
+    */
+
+    /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
+    Hz=pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+    /** - --> store the results in the table */
+
+    /* results are obtained in order of decreasing z, and stored in order of growing z */
+
+    /* redshift */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=z;
+
+    /* ionization fraction */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe)=xe;
+
+    /* Tb */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
+
+    /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
+       with (1+z)dlnTb/dz= - [dlnTb/dlna] */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
+    // if(z>800)fprintf(stdout,"xe %e Tm %e cb2 %e z %e\n",xe,Tm,*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),z);
+
+
+    /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
+      = (1.+z) * (1.+z) * preco->Nnow * xe * _sigma_ * _Mpc_over_m_;
+    // fprintf(stdout,"xe %e Tm %e cb2 %e z %e *dkappa_dtau %e\n",xe,Tm,*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),z,*(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau));
+
+  }
+
+  /* Cleanup */
+
+  free(buffer);
+
+#else
+
+  class_stop(pth->error_message,
+             "you compiled without including the HyRec code, and now wish to use it. Either set the input parameter 'recombination' to something else than 'HyRec', or recompile after setting in the Makefile the appropriate path HYREC=... ");
+
+#endif
+
+  return _SUCCESS_;
+}
 
 /**
  * Integrate thermodynamics with RECFAST.
