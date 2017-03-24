@@ -48,11 +48,13 @@ LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
-HYREC = hyrec
+HYREC = hyrec_2017
 
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
 # go to cosmorec directory and type make before.
+# Currently working with gcc-6 & g++-6, not clang (to be improved. maybe.)
 COSMOREC =
+#COSMOREC = cosmorec
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -72,8 +74,8 @@ ifneq ($(HYREC),)
 vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
-INCLUDES += -I../hyrec
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
+INCLUDES += -I../$(HYREC)/include
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o energy_injection.o
 endif
 
 # eventually update flags for including CosmoRec
