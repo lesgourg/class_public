@@ -549,7 +549,7 @@ int input_read_parameters(
 
   double z_max=0.;
   int bin;
-  int input_verbose;
+  int input_verbose=0;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 

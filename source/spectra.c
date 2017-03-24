@@ -2845,6 +2845,7 @@ int spectra_matter_transfers(
   double delta_rho_tot,rho_tot;
   double rho_plus_p_theta_tot,rho_plus_p_tot;
   int n_ncdm;
+  double w_fld;
 
   /** - check the presence of scalar modes */
 
@@ -3064,6 +3065,8 @@ int spectra_matter_transfers(
 
           rho_i = pvecback_sp_long[pba->index_bg_rho_fld];
 
+          class_call(background_w_fld(pba,0.,&w_fld), pba->error_message, psp->error_message);
+
           if (ppt->has_source_delta_fld == _TRUE_) {
 
             delta_i = ppt->sources[index_md]
@@ -3086,11 +3089,11 @@ int spectra_matter_transfers(
 
             psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_fld] = theta_i;
 
-            rho_plus_p_theta_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i * theta_i;
+            rho_plus_p_theta_tot += (1. + w_fld) * rho_i * theta_i;
 
           }
 
-          rho_plus_p_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i;
+          rho_plus_p_tot += (1. + w_fld) * rho_i;
 
         }
 

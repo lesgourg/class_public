@@ -470,6 +470,11 @@ int background_w_fld(
 
   *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
 
+  /* note: of course you can generalise this formula to anything,
+     defining new parameters pba->w...fld. Just remeber that so far,
+     HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
+     Recfast does not assume anything */
+
   return _SUCCESS_;
 }
 
