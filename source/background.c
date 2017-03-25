@@ -458,11 +458,12 @@ int background_functions(
  * background structure. Generalisation to arbitrary functions should
  * be simple.
  *
- * @param pba_input      Input: pointer to background structure
+ * @param pba            Input: pointer to background structure
  * @param a              Input: current value of scale factor
  * @param w_fld          Output: equation of state parameter w_fld(a)
  * @param dw_over_da_fld Output: function dw_fld/da
- * @param integral_fld   Output: function [\int_{a}^{a0} da 3(1+w_fld)/a]
+ * @param integral_fld   Output: function \f$ \int_{a}^{a_0} da 3(1+w_{fld})/a \f$
+ * @return the error status
  */
 
 int background_w_fld(
@@ -472,32 +473,32 @@ int background_w_fld(
                      double * dw_over_da_fld,
                      double * integral_fld) {
 
-  /* first give the function w(a) */
+  /** - first, define the function w(a) */
   *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
 
-  /* then give the corresponding analytic derivative dw/da (used by
-     perturbation equations; we could compute it numerically, but with
-     a loss of precision; there is usually a simple analytic
-     expression of the derivative of the previous function, so let's
-     use it!) */
+  /** - then, give the corresponding analytic derivative dw/da (used
+        by perturbation equations; we could compute it numerically,
+        but with a loss of precision; as long as there is a simple
+        analytic expression of the derivative of the previous
+        function, let's use it! */
   *dw_over_da_fld = - pba->wa_fld / pba->a_today;
 
-  /* then give the analytic solution of the following integral:
-     [\int_{a}^{a0} da 3(1+w_fld)/a]. This is used in only one place, in
-     the initial conditions for the background. If your w(a) does not
-     lead to a simple analytic solution of this integral, no worry:
-     instead of writing something here, the best would then be to
-     leave it equal to zero, and then in
-     background_initial_conditions() you should implement a numerical
-     calculation of this integral for a=a_ini, using for instance
-     Romberg integration. It should be fast, simple, and accurate
-     enough. */
+  /** - finally, give the analytic solution of the following integral:
+        \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
+        one place, in the initial conditions for the background, and
+        with a=a_ini. If your w(a) does not lead to a simple analytic
+        solution of this integral, no worry: instead of writing
+        something here, the best would then be to leave it equal to
+        zero, and then in background_initial_conditions() you should
+        implement a numerical calculation of this integral only for
+        a=a_ini, using for instance Romberg integration. It should be
+        fast, simple, and accurate enough. */
   *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
 
-  /* note: of course you can generalise this formula to anything,
-     defining new parameters pba->w...fld. Just remeber that so far,
-     HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
-     Recfast does not assume anything */
+  /** note: of course you can generalise these formulas to anything,
+      defining new parameters pba->w..._fld. Just remember that so
+      far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
+      Recfast does not assume anything */
 
   return _SUCCESS_;
 }
