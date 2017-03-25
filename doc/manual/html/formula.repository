@@ -296,3 +296,7 @@
 \form#295:$ x_{\min} $
 \form#296:$ \sqrt{\pi/(2l+1)}/q $
 \form#297:$ \sqrt{\pi/(2l+1)}/(l+1/2)$
+\form#298:$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) $
+\form#299:$ \rho' = -3aH (1+w_{fld}(a)) \rho $
+\form#300:$ \int_{a}^{a_0} da 3(1+w_{fld})/a $
+\form#301:$ \int_{a}^{a0} da 3(1+w_{fld})/a $
