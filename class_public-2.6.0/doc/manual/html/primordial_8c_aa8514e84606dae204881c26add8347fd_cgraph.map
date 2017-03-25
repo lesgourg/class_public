@@ -1,0 +1,24 @@
+<map id="primordial_init" name="primordial_init">
+<area shape="rect" id="node2" href="$primordial_8c.html#a38d4688b9514a9a2aa2ef5aee3fe62cd" title="primordial_get_lnk_list" alt="" coords="167,5,318,32"/>
+<area shape="rect" id="node3" href="$primordial_8c.html#a7117826e79516d8c79ab8922355b5aa3" title="primordial_indices" alt="" coords="179,56,306,83"/>
+<area shape="rect" id="node4" href="$primordial_8c.html#a652f3a92c6d20a900491328f877d055b" title="primordial_analytic\l_spectrum_init" alt="" coords="177,107,308,149"/>
+<area shape="rect" id="node5" href="$primordial_8c.html#a0738267288f804baecaabf57d018dd4c" title="primordial_free" alt="" coords="189,173,296,200"/>
+<area shape="rect" id="node6" href="$primordial_8c.html#ac1c10cc04ed3b0932fc2d97ad8b989bb" title="primordial_analytic\l_spectrum" alt="" coords="376,210,507,251"/>
+<area shape="rect" id="node7" href="$primordial_8c.html#a9f144634e4373a40a263f190dae90a83" title="primordial_inflation\l_indices" alt="" coords="177,326,308,367"/>
+<area shape="rect" id="node8" href="$primordial_8c.html#add085c0441ad0e2ae2cafdedd6179415" title="primordial_inflation\l_solve_inflation" alt="" coords="177,395,308,437"/>
+<area shape="rect" id="node22" href="$primordial_8c.html#a218f0e59a88b1082047a3dee4d28e9ab" title="primordial_external\l_spectrum_init" alt="" coords="177,461,308,502"/>
+<area shape="rect" id="node23" href="$primordial_8c.html#a89f883182d64a767893f44af3cc76156" title="primordial_spectrum_at_k" alt="" coords="157,224,328,251"/>
+<area shape="rect" id="node9" href="$primordial_8c.html#a3d866f6ad82b89050f34eec39a0b96e5" title="primordial_inflation\l_find_phi_pivot" alt="" coords="376,410,507,451"/>
+<area shape="rect" id="node13" href="$primordial_8c.html#a173b299e7b40569977b0ccede10a1fbc" title="primordial_inflation\l_find_attractor" alt="" coords="555,545,685,586"/>
+<area shape="rect" id="node15" href="$primordial_8c.html#abd4b8ec84574311163b24823024815b8" title="primordial_inflation\l_evolve_background" alt="" coords="733,429,875,470"/>
+<area shape="rect" id="node17" href="$primordial_8c.html#a259f83136df5d84895754b5169edfdc5" title="primordial_inflation\l_check_hubble" alt="" coords="923,357,1053,398"/>
+<area shape="rect" id="node18" href="$primordial_8c.html#aec9eed8de0b113845b4682fa2293fbf0" title="primordial_inflation\l_spectra" alt="" coords="376,478,507,519"/>
+<area shape="rect" id="node21" href="$primordial_8c.html#a743507d4ef8cbea8c9c9e2fd51636e6a" title="primordial_inflation\l_analytic_spectra" alt="" coords="555,610,685,651"/>
+<area shape="rect" id="node10" href="$primordial_8c.html#ad99785737e2ec78af27ce4dd439fbb5c" title="primordial_inflation\l_get_epsilon" alt="" coords="923,422,1053,463"/>
+<area shape="rect" id="node11" href="$primordial_8c.html#aed3af8386f2563c08d5f9335da4fe4a6" title="primordial_inflation\l_potential" alt="" coords="1101,487,1232,529"/>
+<area shape="rect" id="node12" href="$primordial_8c.html#a884818587359180f98cab9742f58899f" title="primordial_inflation\l_hubble" alt="" coords="1101,422,1232,463"/>
+<area shape="rect" id="node14" href="$primordial_8c.html#a24385b8d50b9d5661039351baf531607" title="primordial_inflation\l_check_potential" alt="" coords="923,553,1053,594"/>
+<area shape="rect" id="node16" href="$primordial_8c.html#afa97aa27a9de9350d2829c879b4168ea" title="primordial_inflation\l_derivs" alt="" coords="923,487,1053,529"/>
+<area shape="rect" id="node19" href="$primordial_8c.html#a61066bb489330ba565bc2123f1ed6171" title="primordial_inflation\l_one_wavenumber" alt="" coords="555,479,685,521"/>
+<area shape="rect" id="node20" href="$primordial_8c.html#a2408dcaf0938b29fdaf753aa58389a42" title="primordial_inflation\l_one_k" alt="" coords="739,494,869,535"/>
+</map>
