@@ -165,11 +165,11 @@ The use of CLASS is free provided that if you use it in a publication, you will 
 <h2><a name="documentation">Documentation</a></h2>
 
 After downloading the code, unpack the archive (<tt>tar -zxvf
-class_v*.tar.gz</tt>), go to the class directory (<tt>cd
-class_v*/</tt>) and compile (<tt>make clean; make class</tt>). If the
+class_public-vx.y.z.tar.gz</tt>), go to the class directory (<tt>cd
+class_public-vx.y.z/</tt>) and compile (<tt>make clean; make class</tt>; maybe with option <tt>-j</tt> to speed it up). If the
 first compilation attempt fails, you may need to open the Makefile and
 adapt the name of the compiler (default: <tt>gcc</tt>), of the
-optization flag (default: <tt>-O4</tt>) and of the OpenMP flag
+optization flag (default: <tt>-O4 -ffast-math</tt>) and of the OpenMP flag
 (default: <tt>-fopenmp</tt>; this flag is facultative, you are free to
 compile without OpenMP if you don't want parallel execution; note that
 you need the version 4.2 or higher of <tt>gcc</tt> to be able to
@@ -686,6 +686,6 @@ target="_blank">montepython_public</a> page.  <hr color=#d2b48c> </td>
 <td width=30> </td> </table>
 
 <h5>Webmaster Julien Lesgourgues; thanks to Diego Blas for logo and aesthetic supervision.</hr>
-<h5>Last update on the 18.01.2017</h5>
+<h5>Last update on the 25.03.2017</h5>
 </body>
 </html>
