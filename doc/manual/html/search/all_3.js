@@ -47,5 +47,5 @@ var searchData=
   ['custom8',['custom8',['../primordial_8h.html#a698f3572e5bc05d7ccaef7e96f4b73eb',1,'primordial']]],
   ['custom9',['custom9',['../primordial_8h.html#a286e9e0de38f5f755f6b48da930aa2dc',1,'primordial']]],
   ['class_3a_20cosmic_20linear_20anisotropy_20solving_20system',['CLASS: Cosmic Linear Anisotropy Solving System',['../index.html',1,'']]],
-  ['class_3a_20cosmic_20linear_20anisotropy_20solving_20system',['CLASS: Cosmic Linear Anisotropy Solving System',['../md_chap3.html',1,'']]]
+  ['class_20overview_20_28architecture_2c_20input_2foutput_2c_20general_20principles_29',['CLASS overview (architecture, input/output, general principles)',['../md_chap3.html',1,'']]]
 ];

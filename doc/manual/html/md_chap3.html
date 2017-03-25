@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=9"/>
 <meta name="generator" content="Doxygen 1.8.13"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>CLASS MANUAL: CLASS: Cosmic Linear Anisotropy Solving System</title>
+<title>CLASS MANUAL: CLASS overview (architecture, input/output, general principles)</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -80,7 +80,7 @@ $(document).ready(function(){initNavTree('md_chap3.html','');});
 
 <div class="header">
   <div class="headertitle">
-<div class="title">CLASS: Cosmic Linear Anisotropy Solving System </div>  </div>
+<div class="title">CLASS overview (architecture, input/output, general principles) </div>  </div>
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>Author: Julien Lesgourgues</p>
@@ -111,7 +111,7 @@ $(document).ready(function(){initNavTree('md_chap3.html','');});
 </ul>
 <h2>The ten-module backbone</h2>
 <h3>Ten tasks</h3>
-<p>The purpose of <code>class</code> consists in computing some power spectra for a given set of cosmological parameters. This task can be decomposed in few steps or modules:</p>
+<p>The purpose of <code>class</code> consists in computing some background quantities, thermodynamical quantities, perturbation transfer functions, and finally 2-point statistics (power spectra) for a given set of cosmological parameters. This task can be decomposed in few steps or modules:</p>
 <ol type="1">
 <li>set input parameter values.</li>
 <li>compute the evolution of cosmological background quantities.</li>
@@ -122,7 +122,7 @@ $(document).ready(function(){initNavTree('md_chap3.html','');});
 <li>compute transfer functions in harmonic space <img class="formulaInl" alt="$\Delta_l(k)$" src="form_2.png"/> (unless one needs only Fourier spectra <img class="formulaInl" alt="$P(k)$" src="form_3.png"/>'s and no harmonic spectra <img class="formulaInl" alt="$C_l$" src="form_4.png"/>'s).</li>
 <li>compute the observable power spectra <img class="formulaInl" alt="$C_l$" src="form_4.png"/>'s (by convolving the primordial spectra and the harmonic transfer functions) and/or <img class="formulaInl" alt="$P(k)$" src="form_3.png"/>'s (by multiplying the primordial spectra and the appropriate source functions <img class="formulaInl" alt="$S(k,\tau)$" src="form_1.png"/>).</li>
 <li>eventually, compute the lensed CMB spectra (using second-order perturbation theory)</li>
-<li>write results in files (when <code>CLASS</code> is used interactively. The pyhton wrapper would not go to this step and just keep the output stored internally).</li>
+<li>write results in files (when <code>CLASS</code> is used interactively. The python wrapper does not go through this step, after 1.-9. it just keeps the output stored internally).</li>
 </ol>
 <h3>Ten structures</h3>
 <p>In <code>class</code>, each of these steps is associated with a structure:</p>
@@ -336,7 +336,7 @@ subsequent steps need to know" (for instance, <code>struct perturbs</code> conta
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
-    <li class="footer">Generated on Sat Mar 25 2017 08:44:27 for CLASS MANUAL by
+    <li class="footer">Generated on Sat Mar 25 2017 10:54:45 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
   </ul>

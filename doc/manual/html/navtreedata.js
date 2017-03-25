@@ -3,7 +3,7 @@ var NAVTREE =
   [ "CLASS MANUAL", "index.html", [
     [ "CLASS: Cosmic Linear Anisotropy Solving System", "index.html", null ],
     [ "Where to find information and documentation on CLASS?", "md_chap2.html", null ],
-    [ "CLASS: Cosmic Linear Anisotropy Solving System", "md_chap3.html", null ],
+    [ "CLASS overview (architecture, input/output, general principles)", "md_chap3.html", null ],
     [ "The `external_Pk` mode", "md__Users_lesgourg_OwnCloud_documents_codes_ClassProject_class_external_Pk_README.html", null ],
     [ "Updating the manual", "md_mod.html", null ],
     [ "Data Structures", "annotated.html", [
