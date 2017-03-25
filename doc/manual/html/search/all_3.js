@@ -9,6 +9,7 @@ var searchData=
   ['c_5fbi_5fniv',['c_bi_niv',['../primordial_8h.html#ac3b1f114df15db4a9095a9fb281aa5d5',1,'primordial']]],
   ['c_5fcdi_5fnid',['c_cdi_nid',['../primordial_8h.html#a60a344c5d21aecbe6812f87e97043f5c',1,'primordial']]],
   ['c_5fcdi_5fniv',['c_cdi_niv',['../primordial_8h.html#ab69f11f2431dec095b0c71f60a774733',1,'primordial']]],
+  ['c_5fgamma_5fover_5fc_5ffld',['c_gamma_over_c_fld',['../background_8h.html#aa821d266aa8e2bec8a8649b9ecaf5aae',1,'background']]],
   ['c_5fnid_5fniv',['c_nid_niv',['../primordial_8h.html#a421b0bdcfe05eaabfd63cc3eaa63f971',1,'primordial']]],
   ['cb1',['CB1',['../thermodynamics_8h.html#ab95b5c562931dfd60b4cbba24926ea4e',1,'recombination']]],
   ['cb1_5fhe1',['CB1_He1',['../thermodynamics_8h.html#a94ad83481ea0713773b598f47c97985a',1,'recombination']]],
@@ -46,5 +47,5 @@ var searchData=
   ['custom8',['custom8',['../primordial_8h.html#a698f3572e5bc05d7ccaef7e96f4b73eb',1,'primordial']]],
   ['custom9',['custom9',['../primordial_8h.html#a286e9e0de38f5f755f6b48da930aa2dc',1,'primordial']]],
   ['class_3a_20cosmic_20linear_20anisotropy_20solving_20system',['CLASS: Cosmic Linear Anisotropy Solving System',['../index.html',1,'']]],
-  ['class_3a_20cosmic_20linear_20anisotropy_20solving_20system',['CLASS: Cosmic Linear Anisotropy Solving System',['../md_chap3.html',1,'']]]
+  ['class_20overview_20_28architecture_2c_20input_2foutput_2c_20general_20principles_29',['CLASS overview (architecture, input/output, general principles)',['../md_chap3.html',1,'']]]
 ];

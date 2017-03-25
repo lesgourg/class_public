@@ -1138,7 +1138,7 @@ int output_tk(
                         titles,
                         data+index_ic*size_data,
                         size_data);
-      
+
       /** - free memory and close files */
       fclose(tkfile);
 
@@ -1371,7 +1371,7 @@ int output_print_data(FILE *out,
   char *pch;
 
   /** Summary*/
-   
+
   /** - First we print the titles */
   fprintf(out,"#");
 
@@ -1420,7 +1420,7 @@ int output_open_cl_file(
                         int lmax
                         ) {
   /** Summary */
-  
+
   int index_d1,index_d2;
   int colnum = 1;
   char tmp[60]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
@@ -1428,7 +1428,7 @@ int output_open_cl_file(
   class_open(*clfile,filename,"w",pop->error_message);
 
   if (pop->write_header == _TRUE_) {
-    
+
     /** - First we deal with the entries that are dependent of format type */
 
     if (pop->output_format == class_format) {
@@ -1446,6 +1446,26 @@ int output_open_cl_file(
     }
 
     fprintf(*clfile,"# -> if you don't want to see such a header, set 'headers' to 'no' in input file\n");
+
+    if (psp->has_pp == _TRUE_) {
+      if (pop->output_format == class_format) {
+        fprintf(*clfile,"# -> for CMB lensing (phi), these are C_l^phi-phi for the lensing potential.\n");
+      }
+      if (pop->output_format == camb_format) {
+        fprintf(*clfile,"# -> for CMB lensing (d), these are C_l^dd for the deflection field.\n");
+      }
+    }
+
+    if (psp->has_ll == _TRUE_) {
+      fprintf(*clfile,"# -> for galaxy lensing (lens[i]), these are C_l^phi-phi for the lensing potential.\n");
+    }
+
+    if (psp->has_pp == _TRUE_ || psp->has_ll == _TRUE_) {
+      fprintf(*clfile,"#    Remember the conversion factors:\n");
+      fprintf(*clfile,"#    C_l^dd (deflection) = l(l+1) C_l^phi-phi\n");
+      fprintf(*clfile,"#    C_l^gg (shear/convergence) = 1/4 (l(l+1))^2 C_l^phi-phi\n");
+    }
+
     fprintf(*clfile,"#\n");
 
     if (0==1){

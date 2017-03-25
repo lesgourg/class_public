@@ -204,6 +204,11 @@ struct spectra {
   int index_tr_theta_tot;      /**< index of total matter velocity transfer function */
   int index_tr_phi;            /**< index of Bardeen potential phi */
   int index_tr_psi;            /**< index of Bardeen potential psi */
+  int index_tr_phi_prime;      /**< index of derivative of Bardeen potential phi */
+  int index_tr_h;              /**< index of synchronous gauge metric perturbation h */
+  int index_tr_h_prime;        /**< index of synchronous gauge metric perturbation h' */
+  int index_tr_eta;            /**< index of synchronous gauge metric perturbation eta */
+  int index_tr_eta_prime;      /**< index of synchronous gauge metric perturbation eta' */
   int tr_size;                 /**< total number of species in transfer functions */
 
   double * matter_transfer;   /**< Matter transfer functions.

@@ -325,7 +325,7 @@ int nonlinear_halofit(
                       double *k_nl
                       ) {
 
-  double Omega_m,Omega_v,fnu,Omega0_m, w0;
+  double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
 
   /** Determine non linear ratios (from pk) **/
 
@@ -367,7 +367,10 @@ int nonlinear_halofit(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  w0 = pba->w0_fld;
+
+  /* Halofit needs w0 = w_fld today */
+  class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
   anorm    = 1./(2*pow(_PI_,2));
 

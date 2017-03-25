@@ -3,6 +3,7 @@ var background_8c =
     [ "background_at_tau", "background_8c.html#ac47004414b208d36153f35d8465cace2", null ],
     [ "background_tau_of_z", "background_8c.html#a868e85eefe464a31b25639170ff9550c", null ],
     [ "background_functions", "background_8c.html#a302eb502773905601fa9b6936840682a", null ],
+    [ "background_w_fld", "background_8c.html#a488d6a6f015cec7a4eae21556e2298ca", null ],
     [ "background_init", "background_8c.html#afeb0656453b92be39c60fb3fb1abd910", null ],
     [ "background_free", "background_8c.html#a5b0d8db279856b3c96aba08c83aa19d6", null ],
     [ "background_free_input", "background_8c.html#a61601a17447fc6a806921680d2e52c8f", null ],

@@ -237,6 +237,7 @@ int input_init(
   int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
 
   class_read_int("input_verbose",input_verbose);
+  if (input_verbose >0) printf("Reading input parameters\n");
 
   /** - Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
@@ -548,6 +549,7 @@ int input_read_parameters(
 
   double z_max=0.;
   int bin;
+  int input_verbose=0;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -572,6 +574,8 @@ int input_read_parameters(
   /** - if entries passed in file_content structure, carefully read
       and interpret each of them, and tune the relevant input
       parameters accordingly*/
+
+  class_read_int("input_verbose",input_verbose);
 
   /** Knowing the gauge from the very beginning is useful (even if
       this could be a run not requiring perturbations at all: even in
@@ -972,12 +976,20 @@ int input_read_parameters(
     Omega_tot += pba->Omega0_scf;
   }
   /* Step 2 */
-  if (flag1 == _FALSE_) //Fill with Lambda
+  if (flag1 == _FALSE_) {
+    //Fill with Lambda
     pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
-  else if (flag2 == _FALSE_)  // Fill up with fluid
+    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_Lambda = %e\n",pba->Omega0_lambda);
+  }
+  else if (flag2 == _FALSE_) {
+    // Fill up with fluid
     pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
-  else if ((flag3 == _TRUE_) && (param3 < 0.)){ // Fill up with scalar field
+    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_fld = %e\n",pba->Omega0_fld);
+  }
+  else if ((flag3 == _TRUE_) && (param3 < 0.)){
+    // Fill up with scalar field
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
+    if (input_verbose > 0) printf(" -> matched budget equations by adjusting Omega_scf = %e\n",pba->Omega0_scf);
   }
 
   /*
@@ -1300,6 +1312,16 @@ int input_read_parameters(
       ppt->has_perturbations = _TRUE_;
     }
 
+  }
+
+  if (ppt->has_density_transfers == _TRUE_) {
+    class_call(parser_read_string(pfc,"extra metric transfer functions",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
+      ppt->has_metricpotential_transfers = _TRUE_;
+    }
   }
 
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
@@ -2923,6 +2945,7 @@ int input_default_params(
   ppt->has_pk_matter = _FALSE_;
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
+  ppt->has_metricpotential_transfers = _FALSE_;
 
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
 
@@ -3295,7 +3318,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->hyper_x_min = 1.e-5;
   ppr->hyper_sampling_flat = 8.;
-  ppr->hyper_sampling_curved_low_nu = 6.0;
+  ppr->hyper_sampling_curved_low_nu = 7.0; // changed from 6.0 to 7.0 in v2.6.0, otherwise C2 can be very wrong with large curvature
   ppr->hyper_sampling_curved_high_nu = 3.0;
   ppr->hyper_nu_sampling_step = 1000.;
   ppr->hyper_phi_min_abs = 1.e-10;

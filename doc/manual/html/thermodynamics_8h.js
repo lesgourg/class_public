@@ -21,6 +21,9 @@ var thermodynamics_8h =
       [ "many_tanh_z", "thermodynamics_8h.html#a4011a979ddfb33fde348fbb9e08f0458", null ],
       [ "many_tanh_xe", "thermodynamics_8h.html#ad14b8f1cb5561b40dbf39af0a49a1557", null ],
       [ "many_tanh_width", "thermodynamics_8h.html#adb1b7437b219c65ddf3405e90acaafd5", null ],
+      [ "reio_inter_num", "thermodynamics_8h.html#ab249a7342381ebfe08dfaf1d26f332cf", null ],
+      [ "reio_inter_z", "thermodynamics_8h.html#ae0d8972ad4bbfc24974b8b08c0ce45b6", null ],
+      [ "reio_inter_xe", "thermodynamics_8h.html#af90417ae2eefad3e9c8974b6e1b105f0", null ],
       [ "annihilation", "thermodynamics_8h.html#ae415dbb7614aa005deb5517d6f0548e3", null ],
       [ "has_on_the_spot", "thermodynamics_8h.html#ab832f907a088efc0d5961151a2fde139", null ],
       [ "decay", "thermodynamics_8h.html#a2200cfa2674a5489210d32c6d0fc48cb", null ],
@@ -149,7 +152,8 @@ var thermodynamics_8h =
       [ "reio_camb", "thermodynamics_8h.html#a355aa0469515c247f71668a5be5f4cc0a38ef48278eabc04a3f5b806d5a074fce", null ],
       [ "reio_bins_tanh", "thermodynamics_8h.html#a355aa0469515c247f71668a5be5f4cc0a22baab4ed53435181db772e319c4d1a5", null ],
       [ "reio_half_tanh", "thermodynamics_8h.html#a355aa0469515c247f71668a5be5f4cc0af5db0c1f643a3a0dd43c6c80cc7aae21", null ],
-      [ "reio_many_tanh", "thermodynamics_8h.html#a355aa0469515c247f71668a5be5f4cc0af8638eafa2d275e504aaeb975e388718", null ]
+      [ "reio_many_tanh", "thermodynamics_8h.html#a355aa0469515c247f71668a5be5f4cc0af8638eafa2d275e504aaeb975e388718", null ],
+      [ "reio_inter", "thermodynamics_8h.html#a355aa0469515c247f71668a5be5f4cc0a80f6b4795200054b5db2b4e5bc553505", null ]
     ] ],
     [ "reionization_z_or_tau", "thermodynamics_8h.html#abfa56c8448beea105d10a6e89742e3a0", [
       [ "reio_z", "thermodynamics_8h.html#abfa56c8448beea105d10a6e89742e3a0a1612a14c9af1b5a5e092580c8cdb1c7a", null ],

@@ -16,26 +16,30 @@ Compiling CLASS and getting started
 (the information below can also be found on the webpage, just below
 the download button)
 
-After downloading the code, unpack the archive (tar -zxvf
-class_v*.tar.gz), go to the class directory (cd class_v*/) and compile
-(make clean; make class). If the first compilation attempt fails, you
-may need to open the Makefile and adapt the name of the compiler
-(default: gcc), of the optimization flag (default: -O4) and of the
-OpenMP flag (default: -fopenmp; this flag is facultative, you are free
-to compile without OpenMP if you don't want parallel execution; note
-that you need the version 4.2 or higher of gcc to be able to compile
-with -fopenmp). Several details on the CLASS compilation are given on
-the wiki page
+Download the code from the webpage and unpack the archive (tar -zxvf
+class_vx.y.z.tar.gz), or clone it from
+https://github.com/lesgourg/class_public. Go to the class directory
+(cd class/ or class_public/ or class_vx.y.z/) and compile (make clean;
+make class). You can usually speed up compilation with the option -j:
+make -j class. If the first compilation attempt fails, you may need to
+open the Makefile and adapt the name of the compiler (default: gcc),
+of the optimization flag (default: -O4 -ffast-math) and of the OpenMP
+flag (default: -fopenmp; this flag is facultative, you are free to
+compile without OpenMP if you don't want parallel execution; note that
+you need the version 4.2 or higher of gcc to be able to compile with
+-fopenmp). Many more details on the CLASS compilation are given on the
+wiki page
 
 https://github.com/lesgourg/class_public/wiki/Installation
 
-(in particular, for compiling on Mac 10.9 Mavericks).
+(in particular, for compiling on Mac >= 10.9 despite of the clang
+incompatibility with OpenMP).
 
 To check that the code runs, type:
 
     ./class explanatory.ini
 
-The explanatory.ini file is a reference input file, containing and
+The explanatory.ini file is THE reference input file, containing and
 explaining the use of all possible input parameters. We recommend to
 read it, to keep it unchanged (for future reference), and to create
 for your own purposes some shorter input files, containing only the
@@ -47,6 +51,11 @@ one of the provided precision files (e.g. cl_permille.pre) or modify
 one of them, and run with two input files, for instance:
 
     ./class test.ini cl_permille.pre
+
+The files *.pre are suppposed to specify the precision parameters for
+which you don't want to keep default values. If you find it more
+convenient, you can pass these precision parameter values in your *.ini
+file instead of an additional *.pre file.
 
 The automatically-generated documentation is located in
 
@@ -62,8 +71,8 @@ Python
 To use CLASS from python, or ipython notebooks, or from the Monte
 Python parameter extraction code, you need to compile not only the
 code, but also its python wrapper. This can be done by typing just
-'make' instead of 'make class'. More details on the wrapper and its
-compilation are found on the wiki page
+'make' instead of 'make class' (or for speeding up: 'make -j'). More
+details on the wrapper and its compilation are found on the wiki page
 
 https://github.com/lesgourg/class_public/wiki
 
@@ -75,7 +84,7 @@ called CPU.py (Class Plotting Utility), written by Benjamin Audren and
 Jesus Torrado. It can plot the Cl's, the P(k) or any other CLASS
 output, for one or several models, as well as their ratio or percentage
 difference. The syntax and list of available options is obtained by
-typing 'pyhton CPU.py --help'. There is a similar script for MATLAB,
+typing 'pyhton CPU.py -h'. There is a similar script for MATLAB,
 written by Thomas Tram. To use it, once in MATLAB, type 'help
 plot_CLASS_output.m'
 
@@ -97,7 +106,7 @@ Using the code
 --------------
 
 You can use CLASS freely, provided that in your publications, you cite
-at least the paper `CLASS II: Approximation schemes <http://arxiv.org/abs/1104.2933>`_. Feel free to cite more CLASS papers!
+at least the paper `CLASS II: Approximation schemes <http://arxiv.org/abs/1104.2933>`. Feel free to cite more CLASS papers!
 
 Support
 -------

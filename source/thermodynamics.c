@@ -2643,6 +2643,7 @@ int thermodynamics_recombination_with_hyrec(
   int buf_size;
   double tau;
   int last_index_back;
+  double w_fld,dw_over_da_fld,integral_fld;
 
   /** - Fill hyrec parameter structure */
 
@@ -2651,8 +2652,9 @@ int thermodynamics_recombination_with_hyrec(
   param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
   param.okh2 = pba->Omega0_k*pba->h*pba->h;
   param.odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
-  param.w0 = pba->w0_fld;
-  param.wa = pba->wa_fld;
+  class_call(background_w_fld(pba,pba->a_today,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pth->error_message);
+  param.w0 = w_fld;
+  param.wa = -dw_over_da_fld*pba->a_today;
   param.Y = pth->YHe;
   param.Nnueff = pba->Neff;
   param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hydrogen today in m-3 */
