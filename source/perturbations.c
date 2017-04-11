@@ -1949,6 +1949,7 @@ int perturb_workspace_init(
 
     class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
+    class_define_index(ppw->index_ap_rsa_dark,pba->has_dark,index_ap,1);//MArchi ethos approx
 
   }
 
@@ -1965,6 +1966,9 @@ int perturb_workspace_init(
 
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
+    if (pba->has_dark == _TRUE_){ //MArchi ethos approx
+       ppw->approx[ppw->index_ap_rsa_dark]=(int)rsa_dark_off;
+    }
     if (pba->has_ur == _TRUE_) {
       ppw->approx[ppw->index_ap_ufa]=(int)ufa_off;
     }
@@ -2867,6 +2871,12 @@ int perturb_find_approximation_switches(
           if ((interval_approx[index_switch-1][ppw->index_ap_rsa]==(int)rsa_off) &&
               (interval_approx[index_switch][ppw->index_ap_rsa]==(int)rsa_on))
             fprintf(stdout,"Mode k=%e: will switch on radiation streaming approximation at tau=%e\n",k,interval_limit[index_switch]);
+          
+          if (pba->has_dark == _TRUE_){
+            if ((interval_approx[index_switch-1][ppw->index_ap_rsa_dark]==(int)rsa_dark_off) && //MArchi ethos approx
+                (interval_approx[index_switch][ppw->index_ap_rsa_dark]==(int)rsa_dark_on))
+              fprintf(stdout,"Mode k=%e: will switch on dark radiation streaming approximation at tau=%e\n",k,interval_limit[index_switch]);
+          }
 
           if (pba->has_ur == _TRUE_) {
             if ((interval_approx[index_switch-1][ppw->index_ap_ufa]==(int)ufa_off) &&
@@ -3019,6 +3029,12 @@ int perturb_vector_init(
                  "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
     }
 
+    if (pba->has_dark == _TRUE_) {//MArchi ethos approx
+      class_test(ppr->l_max_dark < 4,
+                 ppt->error_message,
+                 "ppr->l_max_dark should be at least 4, i.e. we must integrate at least over dark radiation density, velocity, shear, third and fourth momentum");
+    }
+
     /* photons */
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) { /* if radiation streaming approximation is off */
@@ -3097,7 +3113,9 @@ int perturb_vector_init(
       }
     }
 
-    if (pba->has_dark) { //ethos
+    /* dark radiation */
+    
+    if (pba->has_dark && (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)) { //ethos
       class_define_index(ppv->index_pt_delta_dark,_TRUE_,index_pt,1); /* density of dark radiation */
       class_define_index(ppv->index_pt_theta_dark,_TRUE_,index_pt,1); /* velocity of dark radiation */
       class_define_index(ppv->index_pt_shear_dark,_TRUE_,index_pt,1); /* shear of dark radiation */
@@ -3309,11 +3327,13 @@ int perturb_vector_init(
       }
     }
 
-  if (pba->has_dark == _TRUE_) { //ethos not really needed, just to save time
-    /* we don't need ur multipoles above l=2*/
-    for (index_pt=ppv->index_pt_l3_dark; index_pt <= ppv->index_pt_delta_dark+ppv->l_max_dark; index_pt++)
-      ppv->used_in_sources[index_pt]=_FALSE_;
-  }
+   if (pba->has_dark == _TRUE_) { //ethos not really needed, just to save time
+    /* we don't need dark radiation multipoles above l=2*/
+    if (ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_off){
+      for (index_pt=ppv->index_pt_l3_dark; index_pt <= ppv->index_pt_delta_dark+ppv->l_max_dark; index_pt++)
+        ppv->used_in_sources[index_pt]=_FALSE_;
+    }
+   }
 
   if (pba->has_ncdm == _TRUE_) {
 
@@ -3375,6 +3395,14 @@ int perturb_vector_init(
       class_test(ppw->approx[ppw->index_ap_rsa] == (int)rsa_on,
                  ppt->error_message,
                  "scalar initial conditions assume radiation streaming approximation turned off");
+
+      if (pba->has_dark == _TRUE_) {//MArchi ethos approx
+
+        class_test(ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_on,
+                   ppt->error_message,
+                   "scalar initial conditions assume dark radiation approximation turned off");
+
+      }
 
 
       if (pba->has_ur == _TRUE_) {
@@ -3470,7 +3498,10 @@ int perturb_vector_init(
         }
       }
 
-     if (pba->has_dark){ //ethos assuming no approximation of the dark radiation hierarchy
+//attenzione
+//MArchi ethos approx 
+     if (pba->has_dark == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)){
+
         ppv->y[ppv->index_pt_delta_dark] =
           ppw->pv->y[ppw->pv->index_pt_delta_dark];
 
@@ -3483,10 +3514,9 @@ int perturb_vector_init(
         ppv->y[ppv->index_pt_l3_dark] =
           ppw->pv->y[ppw->pv->index_pt_l3_dark];
 
-        for (l=4; l <= ppv->l_max_dark; l++)
+         for (l=4; l <= ppv->l_max_dark; l++)
               ppv->y[ppv->index_pt_delta_dark+l] =
                 ppw->pv->y[ppw->pv->index_pt_delta_dark+l];
-
      }
 
 
@@ -3583,6 +3613,26 @@ int perturb_vector_init(
           }
         }
 
+/*MArchi ethos approx 
+        if (pba->has_dark == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)){
+
+         ppv->y[ppv->index_pt_delta_dark] =
+          ppw->pv->y[ppw->pv->index_pt_delta_dark];
+
+         ppv->y[ppv->index_pt_theta_dark] =
+          ppw->pv->y[ppw->pv->index_pt_theta_dark];
+
+         ppv->y[ppv->index_pt_shear_dark] =
+          ppw->pv->y[ppw->pv->index_pt_shear_dark];
+
+         ppv->y[ppv->index_pt_l3_dark] =
+          ppw->pv->y[ppw->pv->index_pt_l3_dark];
+
+         for (l=4; l <= ppv->l_max_dark; l++)
+              ppv->y[ppv->index_pt_delta_dark+l] =
+                ppw->pv->y[ppw->pv->index_pt_delta_dark+l];
+        }*/
+
         if (pba->has_ncdm == _TRUE_) {
           index_pt = 0;
           for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
@@ -3616,7 +3666,6 @@ int perturb_vector_init(
           ppw->pv->y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
       }
 
-
       /* -- case of switching on radiation streaming
          approximation. Provide correct initial conditions to new set
          of variables */
@@ -3625,6 +3674,27 @@ int perturb_vector_init(
 
         if (ppt->perturbations_verbose>2)
           fprintf(stdout,"Mode k=%e: switch on radiation streaming approximation at tau=%e with Omega_r=%g\n",k,tau,ppw->pvecback[pba->index_bg_Omega_r]);
+
+/*MArchi ethos approx 
+        if (pba->has_dark == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)){
+
+         ppv->y[ppv->index_pt_delta_dark] =
+          ppw->pv->y[ppw->pv->index_pt_delta_dark];
+
+         ppv->y[ppv->index_pt_theta_dark] =
+          ppw->pv->y[ppw->pv->index_pt_theta_dark];
+
+         ppv->y[ppv->index_pt_shear_dark] =
+          ppw->pv->y[ppw->pv->index_pt_shear_dark];
+
+         ppv->y[ppv->index_pt_l3_dark] =
+          ppw->pv->y[ppw->pv->index_pt_l3_dark];
+
+         for (l=4; l <= ppv->l_max_dark; l++)
+              ppv->y[ppv->index_pt_delta_dark+l] =
+                ppw->pv->y[ppw->pv->index_pt_delta_dark+l];
+        }*/
+
 
         if (pba->has_ncdm == _TRUE_) {
           index_pt = 0;
@@ -3706,6 +3776,27 @@ int perturb_vector_init(
               ppw->pv->y[ppw->pv->index_pt_shear_ur];
           }
 
+/*MArchi ethos approx 
+          if (pba->has_dark == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)){
+
+           ppv->y[ppv->index_pt_delta_dark] =
+            ppw->pv->y[ppw->pv->index_pt_delta_dark];
+
+           ppv->y[ppv->index_pt_theta_dark] =
+            ppw->pv->y[ppw->pv->index_pt_theta_dark];
+
+           ppv->y[ppv->index_pt_shear_dark] =
+            ppw->pv->y[ppw->pv->index_pt_shear_dark];
+
+           ppv->y[ppv->index_pt_l3_dark] =
+            ppw->pv->y[ppw->pv->index_pt_l3_dark];
+
+           for (l=4; l <= ppv->l_max_dark; l++)
+              ppv->y[ppv->index_pt_delta_dark+l] =
+                ppw->pv->y[ppw->pv->index_pt_delta_dark+l];
+          }*/
+
+
           if (pba->has_ncdm == _TRUE_) {
             index_pt = 0;
             for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
@@ -3722,6 +3813,102 @@ int perturb_vector_init(
           }
         }
       }
+
+/**MArchi ethos approx: case of switching on dark radiation approximation*/
+      if (pba->has_dark == _TRUE_) {
+
+        if ((pa_old[ppw->index_ap_rsa_dark] == (int)rsa_dark_off) && (ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_on)) {
+
+          if (ppt->perturbations_verbose>2)
+            fprintf(stdout,"Mode k=%e: switch on dark radiation approximation at tau=%e\n",k,tau);
+
+          if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+            ppv->y[ppv->index_pt_delta_g] =
+              ppw->pv->y[ppw->pv->index_pt_delta_g];
+
+            ppv->y[ppv->index_pt_theta_g] =
+              ppw->pv->y[ppw->pv->index_pt_theta_g];
+          }
+
+          if ((ppw->approx[ppw->index_ap_tca] == (int)tca_off) && (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off)) {
+
+            ppv->y[ppv->index_pt_shear_g] =
+              ppw->pv->y[ppw->pv->index_pt_shear_g];
+
+            ppv->y[ppv->index_pt_l3_g] =
+              ppw->pv->y[ppw->pv->index_pt_l3_g];
+
+            for (l = 4; l <= ppw->pv->l_max_g; l++) {
+
+              ppv->y[ppv->index_pt_delta_g+l] =
+                ppw->pv->y[ppw->pv->index_pt_delta_g+l];
+            }
+
+            ppv->y[ppv->index_pt_pol0_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol0_g];
+
+            ppv->y[ppv->index_pt_pol1_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol1_g];
+
+            ppv->y[ppv->index_pt_pol2_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol2_g];
+
+            ppv->y[ppv->index_pt_pol3_g] =
+              ppw->pv->y[ppw->pv->index_pt_pol3_g];
+
+            for (l = 4; l <= ppw->pv->l_max_pol_g; l++) {
+
+              ppv->y[ppv->index_pt_pol0_g+l] =
+                ppw->pv->y[ppw->pv->index_pt_pol0_g+l];
+            }
+
+          }
+
+          if (pba->has_ur == _TRUE_) {
+
+            if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
+
+
+              ppv->y[ppv->index_pt_delta_ur] =
+                ppw->pv->y[ppw->pv->index_pt_delta_ur];
+
+              ppv->y[ppv->index_pt_theta_ur] =
+                ppw->pv->y[ppw->pv->index_pt_theta_ur];
+
+              ppv->y[ppv->index_pt_shear_ur] =
+                ppw->pv->y[ppw->pv->index_pt_shear_ur];
+
+              if (ppw->approx[ppw->index_ap_ufa] == (int)ufa_off) {
+
+                ppv->y[ppv->index_pt_l3_ur] =
+                  ppw->pv->y[ppw->pv->index_pt_l3_ur];
+
+                for (l=4; l <= ppv->l_max_ur; l++)
+                  ppv->y[ppv->index_pt_delta_ur+l] =
+                    ppw->pv->y[ppw->pv->index_pt_delta_ur+l];
+
+              }
+            }
+          }
+
+          if (pba->has_ncdm == _TRUE_) {
+            index_pt = 0;
+            for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+              for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
+                for(l=0; l<=ppv->l_max_ncdm[n_ncdm]; l++){
+                  /* This is correct even when ncdmfa == off, since ppv->l_max_ncdm and
+                      ppv->q_size_ncdm is updated.*/
+                  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt] =
+                    ppw->pv->y[ppw->pv->index_pt_psi0_ncdm1+index_pt];
+                  index_pt++;
+                }
+              }
+            }
+          }
+
+        }
+      }//end of rsa_dark block
 
       /* -- case of switching on ncdm fluid
          approximation. Provide correct initial conditions to new set
@@ -3803,6 +3990,27 @@ int perturb_vector_init(
               }
             }
           }
+
+          /*if (pba->has_dark == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_off)){//MArchi ethos approx
+
+           ppv->y[ppv->index_pt_delta_dark] =
+            ppw->pv->y[ppw->pv->index_pt_delta_dark];
+
+           ppv->y[ppv->index_pt_theta_dark] =
+            ppw->pv->y[ppw->pv->index_pt_theta_dark];
+
+           ppv->y[ppv->index_pt_shear_dark] =
+            ppw->pv->y[ppw->pv->index_pt_shear_dark];
+
+           ppv->y[ppv->index_pt_l3_dark] =
+            ppw->pv->y[ppw->pv->index_pt_l3_dark];
+
+           for (l=4; l <= ppv->l_max_dark; l++)
+              ppv->y[ppv->index_pt_delta_dark+l] =
+                ppw->pv->y[ppw->pv->index_pt_delta_dark+l];
+
+          }*/
+
 
           a = ppw->pvecback[pba->index_bg_a];
           index_pt = ppw->pv->index_pt_psi0_ncdm1;
@@ -4856,6 +5064,20 @@ int perturb_approximations(
       ppw->approx[ppw->index_ap_rsa] = (int)rsa_off;
     }
 
+/**MArchi ethos approx: dark radiation free streaming approximation*/
+    if (pba->has_dark == _TRUE_){
+       if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
+           ((tau > pth->tau_dark_free_streaming) && (pth->nindex_dark>=2)) && // or ((tau < pth->tau_dark_free_streaming)&&(pth->nindex_dark<2))) && for n<2 no approximation
+           (ppr->dark_radiation_streaming_approximation != rsa_dark_none)
+           ){
+
+            ppw->approx[ppw->index_ap_rsa_dark] = (int)rsa_dark_on;
+       }
+       else {
+            ppw->approx[ppw->index_ap_rsa_dark] = (int)rsa_dark_off;
+       }
+    }
+
     if (pba->has_ur == _TRUE_) {
 
       if ((tau/tau_k > ppr->ur_fluid_trigger_tau_over_tau_k) &&
@@ -5018,7 +5240,7 @@ int perturb_timescale(
 
     *timescale = tau_h;
 
-    if ((ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) || (pba->has_ncdm == _TRUE_))
+    if ((ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) || (pba->has_ncdm == _TRUE_)) //MArchi ethos approx: maybe here rsa_dark off condition?
       *timescale = MIN(tau_k,*timescale);
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
@@ -5194,6 +5416,14 @@ int perturb_einstein(
                    ppt->error_message);
 
       }
+      if (pba->has_dark && ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_on) { //MArchi ethos approx
+
+        class_call(perturb_rsa_dark_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
+                   ppt->error_message,
+                   ppt->error_message);
+
+      }
+
     }
 
     /* synchronous gauge */
@@ -5216,6 +5446,17 @@ int perturb_einstein(
         /* update total theta given rsa approximation results */
 
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
+
+      //if (ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_on) { //MArchi ethos approx, no sync gauge and no need here
+
+        //class_call(perturb_rsa_dark_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
+                   //ppt->error_message,
+                   //ppt->error_message);
+
+        //ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_dark]*ppw->rsa_theta_dark;
+
+      //}
+
 
         if (pba->has_ur == _TRUE_) {
 
@@ -5339,6 +5580,9 @@ int perturb_total_stress_energy(
   double delta_ur=0.;
   double theta_ur=0.;
   double shear_ur=0.;
+  double delta_dark=0.; //ethos
+  double theta_dark=0.; //ethos
+  double shear_dark=0.; //ethos
   double rho_delta_ncdm=0.;
   double rho_plus_p_theta_ncdm=0.;
   double rho_plus_p_shear_ncdm=0.;
@@ -5432,6 +5676,21 @@ int perturb_total_stress_energy(
       }
 
     }
+    
+    /** - ---> (a.3.) dark radiation ethos */
+    
+    if (pba->has_dark == _TRUE_) {
+      if (ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_off) {
+        delta_dark = y[ppw->pv->index_pt_delta_dark];
+        theta_dark = y[ppw->pv->index_pt_theta_dark];
+        shear_dark = y[ppw->pv->index_pt_shear_dark];
+      }
+      else{
+        delta_dark = 0.;
+        theta_dark = 0.;
+        shear_dark = 0.;
+      }
+    }
 
     /** - --> (b) compute the total density, velocity and shear perturbations */
 
@@ -5492,10 +5751,10 @@ int perturb_total_stress_energy(
     }
 
     if (pba->has_dark == _TRUE_) {//ethos
-      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dark]*y[ppw->pv->index_pt_delta_dark];
-      ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_dark]*y[ppw->pv->index_pt_theta_dark];
-      ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_dark]*y[ppw->pv->index_pt_shear_dark];
-      ppw->delta_p += 1./3. * ppw->pvecback[pba->index_bg_rho_dark]*y[ppw->pv->index_pt_delta_dark];
+      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dark]*delta_dark;
+      ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_dark]*theta_dark;
+      ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_dark]*shear_dark;
+      ppw->delta_p += 1./3. * ppw->pvecback[pba->index_bg_rho_dark]*delta_dark;
     }
 
     /* non-cold dark matter contribution */
@@ -6134,8 +6393,12 @@ int perturb_sources(
         _set_source_(ppt->index_tp_delta_ur) = ppw->rsa_delta_ur;
     }
 
+    /* delta_dark */
     if (ppt->has_source_delta_dark == _TRUE_) { //ethos
+      if (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)
         _set_source_(ppt->index_tp_delta_dark) = y[ppw->pv->index_pt_delta_dark];
+      else
+        _set_source_(ppt->index_tp_delta_dark) = ppw->rsa_delta_dark;
     }
 
     /* delta_ncdm1 */
@@ -6200,8 +6463,12 @@ int perturb_sources(
         _set_source_(ppt->index_tp_theta_ur) = ppw->rsa_theta_ur;
     }
 
+    /* theta_dark */
     if (ppt->has_source_theta_dark == _TRUE_) {//ethos
+      if (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off)
         _set_source_(ppt->index_tp_theta_dark) = y[ppw->pv->index_pt_theta_dark];
+      else
+        _set_source_(ppt->index_tp_theta_dark) = ppw->rsa_theta_dark;
     }
 
     /* theta_ncdm1 */
@@ -6408,9 +6675,15 @@ int perturb_print_variables(double tau,
     }
 
     if (pba->has_dark == _TRUE_) {//ethos
+      if (ppw->approx[ppw->index_ap_rsa_dark]==(int)rsa_dark_off) {
         delta_dark = y[ppw->pv->index_pt_delta_dark];
         theta_dark = y[ppw->pv->index_pt_theta_dark];
         shear_dark = y[ppw->pv->index_pt_shear_dark];
+      }else{
+        delta_dark = ppw->rsa_delta_dark;
+        theta_dark = ppw->rsa_theta_dark;
+        shear_dark = 0.;
+      }
     }
 
     delta_b = y[ppw->pv->index_pt_delta_b];
@@ -6846,6 +7119,7 @@ int perturb_derivs(double tau,
   /* short-cut notations for the perturbations */
   double delta_g=0.,theta_g=0.,shear_g=0.;
   double delta_b,theta_b;
+  double theta_dark; //ethos
   double cb2,cs2,ca2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
@@ -6876,7 +7150,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, dmu_dark, dmu_drdr, alpha_l, beta_l;
+  double Sinv, dmu_dark, dmu_drdr;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -6966,7 +7240,14 @@ int perturb_derivs(double tau,
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
       delta_g = y[pv->index_pt_delta_g];
       theta_g = y[pv->index_pt_theta_g];
+      //theta_dark = y[pv->index_pt_theta_dark];
     }
+
+    if (pba->has_dark == _TRUE_ && ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_off){//MArchi ethos approx
+       //delta_dark = y[pv->index_pt_delta_dark];//not needed
+       theta_dark = y[pv->index_pt_theta_dark];
+    }
+
     delta_b = y[pv->index_pt_delta_b];
     theta_b = y[pv->index_pt_theta_b];
     cb2 = pvecthermo[pth->index_th_cb2];
@@ -7048,6 +7329,9 @@ int perturb_derivs(double tau,
       delta_g = ppw->rsa_delta_g;
       theta_g = ppw->rsa_theta_g;
     }
+
+    if (pba->has_dark == _TRUE_ && ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_on)
+       theta_dark = ppw->rsa_theta_dark;//MArchi ethos approx
 
     /** - --> (e) BEGINNING OF ACTUAL SYSTEM OF EQUATIONS OF EVOLUTION */
 
@@ -7200,7 +7484,7 @@ int perturb_derivs(double tau,
         dy[pv->index_pt_theta_cdm] = - a_prime_over_a*y[pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
 
         if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_))
-          dy[pv->index_pt_theta_cdm] -= Sinv*dmu_dark*(y[pv->index_pt_theta_cdm] - y[pv->index_pt_theta_dark]) - k2*pvecthermo[pth->index_th_cdm2]*y[pv->index_pt_delta_cdm]; // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos  //added to Sinv
+          dy[pv->index_pt_theta_cdm] -= Sinv*dmu_dark*(y[pv->index_pt_theta_cdm] - theta_dark) - k2*pvecthermo[pth->index_th_cdm2]*y[pv->index_pt_delta_cdm]; // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos  //added to Sinv
 
       }
 
@@ -7323,7 +7607,7 @@ int perturb_derivs(double tau,
     }
 
 /** -> dark radiation ethos*/
-    if (pba->has_dark == _TRUE_) {
+    if (pba->has_dark == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_off)) {
 
         /** -----> dr density */
         dy[pv->index_pt_delta_dark] = -4./3.*(y[pv->index_pt_theta_dark] + metric_continuity);
@@ -7340,9 +7624,7 @@ int perturb_derivs(double tau,
           dy[pv->index_pt_shear_dark] = 0.5*(8./15.*(y[pv->index_pt_theta_dark]+metric_shear)
                                            -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_dark+1]);
           if(pth->a_dark!=0.){
-            alpha_l = ppt->alpha_dark[l-2];
-            beta_l = ppt->beta_dark[l-2];
-            dy[pv->index_pt_shear_dark]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_shear_dark]; // and extra factro *9./5. should be here according to DAO
+            dy[pv->index_pt_shear_dark]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_shear_dark]; // and extra factro *9./5. should be here according to DAO
           }
 
           /** -----> exact dr l=3 */
@@ -7350,11 +7632,7 @@ int perturb_derivs(double tau,
           dy[pv->index_pt_l3_dark] = k/(2.*l+1.)*
             (l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_dark]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_dark+1]);
             if(pth->a_dark!=0.){
-              if (l<=ppt->l_max_alpha) {
-                alpha_l = ppt->alpha_dark[l-2];
-                beta_l = ppt->beta_dark[l-2];
-              }
-              dy[pv->index_pt_l3_dark]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_l3_dark];
+              dy[pv->index_pt_l3_dark]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_l3_dark];
             }
 
           /** -----> exact dr l>3 */
@@ -7362,11 +7640,7 @@ int perturb_derivs(double tau,
             dy[pv->index_pt_delta_dark+l] = k/(2.*l+1)*
               (l*s_l[l]*y[pv->index_pt_delta_dark+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_dark+l+1]);
             if(pth->a_dark!=0.){
-              if (l<=ppt->l_max_alpha) {
-                alpha_l = ppt->alpha_dark[l-2];
-                beta_l = ppt->beta_dark[l-2];
-              }
-              dy[pv->index_pt_delta_dark+l]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_delta_dark+l];
+              dy[pv->index_pt_delta_dark+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_dark+l];
             }
           }
 
@@ -7375,7 +7649,7 @@ int perturb_derivs(double tau,
           dy[pv->index_pt_delta_dark+l] =
             k*(s_l[l]*y[pv->index_pt_delta_dark+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_dark+l]);
             if(pth->a_dark!=0.){
-              dy[pv->index_pt_delta_dark+l]-= (alpha_l*dmu_dark + beta_l*dmu_drdr)*y[pv->index_pt_delta_dark+l];
+              dy[pv->index_pt_delta_dark+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_dark+l];
             }
         }
         else{ //TBC only l=0,1 is sigma_dark=0
@@ -8336,6 +8610,39 @@ int perturb_rsa_delta_and_theta(
     }
   }
 
+  return _SUCCESS_;
+
+}
+
+/**MArchi ethos approx*/
+int perturb_rsa_dark_delta_and_theta(
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct thermo * pth,
+                                struct perturbs * ppt,
+                                double k,
+                                double * y,
+                                double a_prime_over_a,
+                                double * pvecthermo,
+                                struct perturb_workspace * ppw
+                                ) {
+  /* - define local variables */
+
+  double k2;
+
+  k2 = k*k;
+
+  // formulas below TBC for curvaturema
+
+  /* newtonian gauge */
+  if (ppt->gauge == newtonian) {
+
+    if (pba->has_dark == _TRUE_ && ppw->approx[ppw->index_ap_rsa_dark] == (int)rsa_dark_on) {
+        ppw->rsa_delta_dark = -4.*y[ppw->pv->index_pt_phi];
+        ppw->rsa_theta_dark = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
+    }
+
+  }
   return _SUCCESS_;
 
 }

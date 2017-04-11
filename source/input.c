@@ -758,13 +758,32 @@ int input_read_parameters(
              errmsg,
              "In input file, you can only enter sigma_dark=0 for a perfect fluid or sigma_dark=1 for free streaming neutrinos, choose one");
   //printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_dark=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_dark);
-  class_read_double("l_max_alpha",ppt->l_max_alpha);
-  class_test((ppt->l_max_alpha<2),
+  class_read_int("l_max_dark",ppr->l_max_dark);//ethos
+  class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
-             "In input file, l_max_alpha cannot be < 2");
-  class_read_list_of_doubles_or_default("alpha_dark",ppt->alpha_dark,1.,(ppt->l_max_alpha-1));
-  class_read_list_of_doubles_or_default("beta_dark",ppt->beta_dark,0,(ppt->l_max_alpha-1));
-
+             errmsg);
+  if(flag1 == _TRUE_){
+    if(entries_read != (ppr->l_max_dark-1)){
+      class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_dark-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+    }
+  }else{
+    class_alloc(ppt->alpha_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_dark-1); n++) ppt->alpha_dark[n] = 1.;
+  }
+  class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    if(entries_read != (ppr->l_max_dark-1)){
+      class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_dark-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+    }
+  }else{
+    class_alloc(ppt->beta_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_dark-1); n++) ppt->beta_dark[n] = 0.;
+  }
+  
   /** - Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -2563,7 +2582,6 @@ int input_read_parameters(
   class_read_int("l_max_pol_g",ppr->l_max_pol_g);
   class_read_int("l_max_dr",ppr->l_max_dr);
   class_read_int("l_max_ur",ppr->l_max_ur);
-  class_read_int("l_max_dark",ppr->l_max_dark);//ethos
   if (pba->N_ncdm>0)
     class_read_int("l_max_ncdm",ppr->l_max_ncdm);
   class_read_int("l_max_g_ten",ppr->l_max_g_ten);
@@ -2579,6 +2597,13 @@ int input_read_parameters(
   class_read_int("radiation_streaming_approximation",ppr->radiation_streaming_approximation);
   class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
+
+  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx
+  class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_dark_on) && pth->nindex_dark<2,
+             errmsg,
+             "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
+  class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//MArchi ethos approx
+  class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//MArchi ethos approx
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
@@ -2600,6 +2625,20 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
+//MArchi ethos approx
+  if (pba->Omega0_dark != 0. && ppr->dark_radiation_streaming_approximation != rsa_dark_none){
+    class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
+               errmsg,
+               "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+
+    class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->ur_fluid_trigger_tau_over_tau_k,
+               errmsg,
+               "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+    class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->ncdm_fluid_trigger_tau_over_tau_k,
+               errmsg,
+               "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and ncdm_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+  }
+
 
   class_read_double("neglect_CMB_sources_below_visibility",ppr->neglect_CMB_sources_below_visibility);
 
@@ -2976,8 +3015,6 @@ int input_default_params(
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
   
-  ppt->l_max_alpha = 2;//ethos
-
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
@@ -3250,6 +3287,11 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.;
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
+
+  ppr->dark_radiation_streaming_approximation = rsa_dark_none;
+  ppr->dark_radiation_streaming_trigger_tau_over_tau_k = 50.;
+  ppr->dark_radiation_streaming_trigger_tau_c_over_tau = 10.;
+
 
   ppr->ur_fluid_approximation = ufa_CLASS;
   ppr->ur_fluid_trigger_tau_over_tau_k = 30.;

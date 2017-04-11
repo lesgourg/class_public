@@ -306,6 +306,8 @@ int thermodynamics_init(
   int index_tau_max;
 
   double g_dark,z_darkm,z_darkr,tau_darkm,tau_darkr,Gamma_heat_dark,dTdz_darkm,T_dark,dz,T_tmp,z_adiabat,z;//ethos
+  double tau_dark_fs;
+  int index_tau_fs;
 
   /** - initialize pointers, allocate background vector */
 
@@ -735,7 +737,7 @@ int thermodynamics_init(
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_tau_darkm]=-tau_darkm;
        tau_darkr=pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_tau_darkr];
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_tau_darkr]=-tau_darkr;
-       g_dark=pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]*exp(tau_darkm);
+       g_dark=pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]*exp(tau_darkm); //remember that ddmu= S dmu
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g_dark]=g_dark;
        //pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark] = pth->a_dark*pow(1.+pth->z_table[index_tau],pth->nindex_dark)/(pow(1.e7,pth->nindex_dark))*pba->Omega0_cdm*pow(pba->h,2);
        //here ddmu is dmu dark matter
@@ -929,6 +931,54 @@ int thermodynamics_init(
   }
 
   pth->tau_free_streaming = tau;
+  if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)){
+    index_tau_fs = index_tau;//MArchi ethos approx
+  /** - MArchi ethos approx find dark radiation streaming*/
+
+    if(pth->nindex_dark>=2){
+     index_tau=pth->tt_size-1;
+     //index_tau=pth->index_tau;//using index_tau_max instead of pth->tt_size-1 ensures that the switch is always after recombination;
+    }else{
+      index_tau=0;
+    }
+
+     class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
+               pba->error_message,
+               pth->error_message);
+
+     while ((1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dmu_dark]/tau
+           < ppr->dark_radiation_streaming_trigger_tau_c_over_tau) &&
+            ((pth->nindex_dark >= 2 && index_tau > 0) ||
+            (pth->nindex_dark < 2 && index_tau < pth->tt_size-1))) {
+
+       if(pth->nindex_dark>=2){
+         index_tau--;
+       }else{
+         index_tau++;
+       }
+
+      class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
+                 pba->error_message,
+                 pth->error_message);
+
+     }
+    
+     tau_dark_fs = tau;
+     pth->tau_dark_free_streaming = tau;
+  //to avoid problems with the approximation, set the rsa_dark switch always after the rsa switch
+     /*if (tau_dark_fs<=pth->tau_free_streaming){
+
+        index_tau = index_tau_fs-1;
+        class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
+                 pba->error_message,
+                 pth->error_message);
+        pth->tau_dark_free_streaming = tau;
+     }
+     else{
+        pth->tau_dark_free_streaming = tau;
+     }*/
+  }
+  
 
   /** - find baryon drag time (when tau_d crosses one, using linear
       interpolation) and sound horizon at that time */
@@ -1034,6 +1084,10 @@ int thermodynamics_init(
     if (pth->thermodynamics_verbose > 1) {
       printf(" -> free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
              pth->tau_free_streaming);
+    }
+    if (pth->thermodynamics_verbose > 1) {
+      printf(" -> dark free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
+             tau_dark_fs);
     }
   }
 

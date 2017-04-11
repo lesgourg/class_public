@@ -580,6 +580,8 @@ struct precision
    * method for switching off photon perturbations
    */
   int radiation_streaming_approximation;
+  
+  int dark_radiation_streaming_approximation;//ethos approx
 
   /**
    * when to switch off photon perturbations, ie when to switch
@@ -588,6 +590,8 @@ struct precision
    * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
    */
   double radiation_streaming_trigger_tau_over_tau_k;
+  
+  double dark_radiation_streaming_trigger_tau_over_tau_k;//MArchi ethos approx
 
   /**
    * when to switch off photon perturbations, ie when to switch
@@ -596,6 +600,8 @@ struct precision
    * second condition:
    */
   double radiation_streaming_trigger_tau_c_over_tau;
+
+  double dark_radiation_streaming_trigger_tau_c_over_tau;//MArchi ethos approx
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
  

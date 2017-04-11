@@ -225,6 +225,8 @@ struct thermo
 
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
+  double tau_dark_free_streaming; /** MArchi ethos approx: trigger for dark radiation free streaming approximation*/
+
   //@}
 
   /** @name - initial conformal time at which thermodynamical variables have been be integrated */
