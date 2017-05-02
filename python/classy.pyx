@@ -9,7 +9,7 @@ This module defines a class called Class. It is used with Monte Python to
 extract cosmological parameters.
 
 """
-from math import exp,log
+from math import exp,log, log10
 import numpy as np
 cimport numpy as np
 from libc.stdlib cimport *
@@ -1360,6 +1360,21 @@ cdef class Class:
             ## BEGIN: Add own derived parameters
             elif name == 'annihilation':
                 value = self.th.annihilation
+            elif name == 'sigmav':
+                # !! Only valid if param_fz_1 is the DM-mass !!
+                value = self.th.annihilation * self.pr.param_fz_1
+            elif name == 'log10_sigmav':
+                # !! Only valid if param_fz_1 is the DM-mass !!
+                value = self.th.annihilation * self.pr.param_fz_1
+            elif name == 'sigmav_log':
+                # !! Only valid if param_fz_1 is the exponent of the DM-mass (mass = 5* 10**param_fz_1)
+                value = self.th.annihilation * 5. * (10**self.pr.param_fz_1)
+            elif name == 'log10_sigmav_log':
+                # !! Only valid if param_fz_1 is the exponent of the DM-mass (mass = 5* 10**param_fz_1)
+                value = log10(self.th.annihilation * 5. * (10**self.pr.param_fz_1))
+            elif name == 'DM_mass':
+                # This is to deduce the deduce mass when choosing a linear prior in log-space
+                value = 5. * (10**self.pr.param_fz_1)  
             ## END
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)

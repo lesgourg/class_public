@@ -102,7 +102,7 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
     
     result = np.empty_like( norm, dtype=np.float64 )
     for i in xrange(len(norm)):
-        if norm[i] != 0 :
+        if norm[i] != 0:
             result[i] = (z_integral[i] / norm[i])
         else:
             result[i] = np.nan
@@ -112,32 +112,172 @@ def f_function(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
 	nanmask = np.isnan(result)
  	#nanmask = np.array([])
     if len(np.flatnonzero(nanmask)) > 0: 
-	    result[nanmask] = np.interp(np.flatnonzero(nanmask), np.flatnonzero(~nanmask), result[~nanmask])	
+	    #result[nanmask] = np.interp(np.flatnonzero(nanmask), np.flatnonzero(~nanmask), result[~nanmask])	
+        pass
 
     return result
 
 def log_fit(points,func,xgrid):
-    try:
-        assert len(points) == len(func)
-    except AssertionError:
-        print 'Array of x-values does not correspond to the array of y-values (different sizes)'
-        return np.zeros_like(xgrid)
+    #try:
+    #    assert len(points) == len(func)
+    #except AssertionError:
+    #    print 'Array of x-values does not correspond to the array of y-values (different sizes)'
+    #    return np.zeros_like(xgrid)
+    #
+    #f_copy = np.zeros_like(func, dtype=np.float64)
+    #for idx in xrange(len(func)):
+    #    if (func[idx] <= 0) or (func[idx] != func[idx]):
+    #        f_copy[idx] = np.nan
+    #        #f_copy[idx] = 0
+    #    else:
+    #        f_copy[idx] = func[idx]
+    #
+    #nan_mask = f_copy == f_copy
+    #
+    #if len(f_copy[nan_mask]) > 0:
+    #    log_f = np.log( f_copy[nan_mask] * (points[nan_mask]**2) )
+    #    log_f_fit = interp1d(points[nan_mask], log_f, bounds_error=False, fill_value=np.nan, kind='cubic')
+    #    out = nan_clean( np.e**(log_f_fit(xgrid)) / (xgrid**2) )
+    #else:
+    #    out = np.zeros_like(xgrid, dtype=np.float64)
+    #
+    #return out
     
-    f_copy = np.zeros_like(func, dtype=np.float64)
-    for idx in xrange(len(func)):
-        if (func[idx] <= 0) or (func[idx] != func[idx]):
-            f_copy[idx] = np.nan
-            #f_copy[idx] = 0
-        else:
-            f_copy[idx] = func[idx]
-    
-    nan_mask = f_copy == f_copy
-
-    log_f = np.log( f_copy[nan_mask] * (points[nan_mask]**2) )
-    log_f_fit = interp1d(points[nan_mask], log_f, bounds_error=False, fill_value=np.nan, kind='cubic')
-    out = nan_clean( np.e**(log_f_fit(xgrid)) / (xgrid**2) )
-    
+    tmp_interpolator = logInterpolator(points, func, 1)
+    #tmp_interpolator = logLinearInterpolator(points, func, 1)
+    out = tmp_interpolator(xgrid)
     return out
+
+
+class logInterpolator(object):
+    def __init__(self, x, y, exponent):
+        self.valid = True
+        self.exponent = exponent
+        try:
+            assert len(x) == len(y)
+        except AssertionError:
+            print 'Array of x-values does not correspond to the array of y-values (different sizes)'
+            self.valid = False
+            return None
+    
+        func_copy = np.zeros_like(y, dtype=np.float64)
+        for idx in xrange(len(y)):
+            if (y[idx] <= 0) or (y[idx] != y[idx]):
+                func_copy[idx] = np.nan
+                #func_copy[idx] = 0
+            else:
+                func_copy[idx] = y[idx]
+    
+        nan_mask = func_copy == func_copy
+
+        #print '%i out of %i values are masked.' % (len(func_copy[~nan_mask]),len(func_copy))
+
+        if len(func_copy[nan_mask]) >= 3:
+            log_f = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
+            self.log_f_fit = interp1d(x[nan_mask], log_f, bounds_error=False, fill_value=np.nan, kind='cubic')
+        elif len(func_copy[nan_mask]) >= 2:
+            log_f = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
+            self.log_f_fit = interp1d(x[nan_mask], log_f, bounds_error=False, fill_value=np.nan, kind='linear')
+        else:
+            self.valid = False
+        return None
+
+    def __call__(self, xgrid):
+        if xgrid.shape == ():
+			xgrid = np.asarray([xgrid])
+        if not self.valid:
+            out = np.zeros_like(xgrid, dtype=np.float64)
+        else:
+            tmp_out = np.e**(self.log_f_fit(xgrid)) / (xgrid**self.exponent)
+            out = nan_clean( tmp_out )
+        return out
+
+class logLinearInterpolator(object):
+    def __init__(self, x, y, exponent):
+        self.valid = True
+        self.exponent = exponent
+        try:
+            assert len(x) == len(y)
+        except AssertionError:
+            print 'Array of x-values does not correspond to the array of y-values (different sizes)'
+            self.valid = False
+            return None
+    
+        func_copy = np.zeros_like(y, dtype=np.float64)
+        for idx in xrange(len(y)):
+            if (y[idx] <= 0) or (y[idx] != y[idx]):
+                func_copy[idx] = np.nan
+                #func_copy[idx] = 0
+            else:
+                func_copy[idx] = y[idx]
+    
+        nan_mask = func_copy == func_copy
+
+        #print '%i out of %i values are masked.' % (len(func_copy[~nan_mask]),len(func_copy))
+
+        if len(func_copy[nan_mask]) >= 2:
+            log_f = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
+            self.log_f_fit = interp1d(x[nan_mask], log_f, bounds_error=False, fill_value=np.nan, kind='linear')
+        else:
+            self.valid = False
+        return None
+
+    def __call__(self, xgrid):
+        if xgrid.shape == ():
+			xgrid = np.asarray([xgrid])
+        if not self.valid:
+            out = np.zeros_like(xgrid, dtype=np.float64)
+        else:
+            tmp_out = np.e**(self.log_f_fit(xgrid)) / (xgrid**self.exponent)
+            out = nan_clean( tmp_out )
+        return out
+
+class logGridInterpolator(object):
+    def __init__(self, x, y, z):
+        self.valid = True
+        try:
+            assert len(x)*len(y) == z.shape[0]*z.shape[1]
+        except AssertionError:
+            print 'Arrays of x-values and y-values do not correspond to the 2D-grid of z-values (different sizes)'
+            self.valid = False
+            return None
+
+        x_list = np.repeat(x, len(y)).astype(np.float64)
+        y_list = np.tile(y, len(x)).astype(np.float64)
+        z_list = np.zeros(shape=(len(x)*len(y)), dtype=np.float64)
+        try:
+            assert len(x_list) == len(y_list) and  len(x_list) == len(y_list)
+        except AssertionError:
+            print 'Arrays of x-values and y-values do not correspond to the 2D-grid of z-values (different sizes)'
+            self.valid = False
+            return None
+        for idx1 in xrange(len(x)):
+            for idx2 in xrange(len(y)):
+                tot_idx = len(y)*idx1+idx2
+                if (z[idx1,idx2] <= 0) or (z[idx1,idx2] != z[idx1,idx2]):
+                    z_list[tot_idx] = np.nan
+                else:
+                    z_list[tot_idx] = z[idx1,idx2]
+    
+        nan_mask = z_list == z_list
+
+        log_z = np.log( z_list[nan_mask] )
+        self.log_z_fit = interp2d(x_list[nan_mask],y_list[nan_mask], log_z, bounds_error=False, fill_value=np.nan, kind='cubic')
+        return None
+
+    def __call__(self, xgrid, ygrid):
+        if xgrid.shape == ():
+            xgrid = np.asarray([xgrid])
+        if ygrid.shape == ():
+            ygrid = np.asarray([ygrid])
+        out = np.zeros(shape=(len(xgrid),len(ygrid)), dtype=np.float64)
+        if self.valid:
+            for idx1 in xrange(out.shape[0]):
+                for idx2 in xrange(out.shape[1]):
+                    tmp_out = np.e**(self.log_z_fit(xgrid[idx1],ygrid[idx2]))
+                    out[idx1,idx2] = nan_clean( tmp_out )
+        return out
+
 
 class transfer(object):
     def __init__(self, infile):
