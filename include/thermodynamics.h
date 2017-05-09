@@ -206,7 +206,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
-  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay_fraction; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
@@ -478,7 +478,7 @@ struct recombination {
 
   short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay_fraction; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
@@ -695,12 +695,7 @@ extern "C" {
                                                      struct precision * ppr,
                                                      struct background * pba,
                                                      struct thermo * pth,
-                                                     double xe,
-                                                     double * chi_heat,
-                                                     double * chi_lya,
-                                                     double * chi_ionH,
-                                                     double * chi_ionHe,
-                                                     double * chi_lowE
+                                                     double xe
                                                    );
   int thermodynamics_annihilation_coefficients_free(
                                                    struct thermo * pth
@@ -714,8 +709,7 @@ extern "C" {
                                                     struct precision * ppr,
                                                     struct background * pba,
                                                     struct recombination * preco,
-                                                    double z,
-                                                    double * f_eff
+                                                    double z
                                                   );
   int thermodynamics_annihilation_f_eff_free(
                                                   struct recombination * preco
@@ -728,14 +722,7 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
-  int thermodynamics_beyond_onthespot_energy_injection(
-                                                struct precision * ppr,
-                                                struct background * pba,
-                                                struct recombination * preco,
-                                                double z,
-                                                double *energy_rate,
-                                                ErrorMsg error_message
-                                              );
+
   int thermodynamics_energy_injection(
 				      struct precision * ppr,
 				      struct background * pba,
@@ -744,7 +731,38 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
-
+  int thermodynamics_high_mass_pbh_energy_injection(
+                                                    struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct recombination * preco,
+                                                    double z,
+                                                    double * energy_rate,
+                                                    ErrorMsg error_message
+                                                  );
+  int thermodynamics_low_mass_pbh_energy_injection(
+                                                    struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct recombination * preco,
+                                                    double z,
+                                                    double * energy_rate,
+                                                    ErrorMsg error_message
+                                                  );
+  int thermodynamics_DM_annihilation_pbh_energy_injection(
+                                                    struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct recombination * preco,
+                                                    double z,
+                                                    double * energy_rate,
+                                                    ErrorMsg error_message
+                                                  );
+  int thermodynamics_DM_decay_pbh_energy_injection(
+                                                    struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct recombination * preco,
+                                                    double z,
+                                                    double * energy_rate,
+                                                    ErrorMsg error_message
+                                                  );
   int thermodynamics_reionization_function(
 					   double z,
 					   struct thermo * pth,

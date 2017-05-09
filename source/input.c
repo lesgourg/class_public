@@ -817,6 +817,7 @@ int input_read_parameters(
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
+  pba->Omega0_dcdmdr = 0.;
   if (flag1 == _TRUE_)
     pba->Omega0_dcdmdr = param1;
   if (flag2 == _TRUE_)
@@ -833,6 +834,7 @@ int input_read_parameters(
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
+  pba->Omega_ini_dcdm = 0.;
   if (flag1 == _TRUE_)
     pba->Omega_ini_dcdm = param1;
   if (flag2 == _TRUE_)
@@ -843,6 +845,7 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
+ /* Read tau_gamma in seconds */
   class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
@@ -1423,7 +1426,7 @@ int input_read_parameters(
   class_read_double("annihilation",pth->annihilation);
   class_read_double("boost_factor",pth->annihilation_boost_factor);
   class_read_double("m_DM",pth->annihilation_m_DM);
-  class_read_double("decay",pth->decay);
+  class_read_double("decay_fraction",pth->decay_fraction);
   class_read_double("PBH_high_mass",pth->PBH_high_mass);
   if(pth->PBH_high_mass>0.){
     class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
@@ -1495,7 +1498,7 @@ int input_read_parameters(
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 /** - Relevant parameters in case of exotic energy injection */
-if(pth->annihilation>0. || pth->decay>0. || pth->PBH_high_mass > 0. || pth->PBH_low_mass > 0.){
+if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || pth->PBH_low_mass > 0.){
 
 
     class_call(parser_read_string(pfc,
@@ -2915,8 +2918,8 @@ if(pth->annihilation>0. || pth->decay>0. || pth->PBH_high_mass > 0. || pth->PBH_
   /** - (h.2.) parameters related to the thermodynamics */
 
   class_read_string("sBBN file",ppr->sBBN_file);
-  class_read_string("annihilation coefficient file",ppr->annihil_coeff_file);
-  class_read_string("annihilation f_eff file",ppr->annihil_f_eff_file);
+  class_read_string("energy injection coefficient file",ppr->energy_injec_coeff_file);
+  class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -3369,7 +3372,7 @@ int input_default_params(
   pth->annihilation = 0.;
   pth->annihilation_boost_factor = 0.;
   pth->annihilation_m_DM = -1.;
-  pth->decay = 0.;
+  pth->decay_fraction = 0.;
   pth->PBH_high_mass = 0.;
   pth->PBH_disk_formation_redshift = 300.;
   pth->PBH_accretion_recipe = Ali_Haimoud;
@@ -3650,10 +3653,10 @@ int input_default_precision ( struct precision * ppr ) {
   sprintf(ppr->sBBN_file,__CLASSDIR__);
   strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
   /*For energy injection from DM annihilation or decays */
-  sprintf(ppr->annihil_coeff_file,__CLASSDIR__);
-  strcat(ppr->annihil_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
-  sprintf(ppr->annihil_f_eff_file,__CLASSDIR__);
-  strcat(ppr->annihil_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
+  sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+  strcat(ppr->energy_injec_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
+  sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
+  strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;

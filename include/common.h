@@ -428,8 +428,8 @@ struct precision
 
   /* - For Energy injection from DM annihilations or decays */
 
-  FileName annihil_coeff_file;
-  FileName annihil_f_eff_file;
+  FileName energy_injec_coeff_file;
+  FileName energy_injec_f_eff_file;
 
 /* @endcond */
 

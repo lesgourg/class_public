@@ -1,7 +1,7 @@
 #Example file type 1 for energy injection: Working under the 'factorization' simplification f(z,xe)=chi(xe)*f(z)
-#In this file f(z) is given. It will be the argument of option "annihilation f_eff file" in .ini file.
-#The chi(xe) have to be given as "annihilation coefficient file". For an example see Energy_repartition_function_Galli_et_al.dat
-#First numer = number of line in the files. The columns are (z,f(z)). Need z from 0 to 10000 for safe computation ! 
+#In this file f(z) is given. It will be the argument of option "energy injection f_eff file" in .ini file.
+#The chi(xe) have to be given as "energy injection coefficient file". For an example see Energy_repartition_function_Galli_et_al.dat
+#First numer = number of line in the files. The columns are (z,f(z)). Need z from 0 to 10000 for safe computation !
 #Here a trivial extrapolation (harmless) is used above 2000 and below 10.
 63
 
