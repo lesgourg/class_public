@@ -1531,14 +1531,54 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         ppr->fz_is_extern = _TRUE_;
 		/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
 		class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
-        class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+    class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
 		ppr->command_fz = (char *) malloc (strlen(string2) + 1);
-    	strcpy(ppr->command_fz, string2);
-        class_read_double("ext_fz_par1",ppr->param_fz_1);
-        class_read_double("ext_fz_par2",ppr->param_fz_2);
-		class_read_double("ext_fz_par3",ppr->param_fz_3);
-		class_read_double("ext_fz_par4",ppr->param_fz_4);
-		class_read_double("ext_fz_par5",ppr->param_fz_5);
+    strcpy(ppr->command_fz, string2);
+
+    /** An arbitrary number of external parameters to be used by the external command
+    * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
+    * except if those have already been assigned in class. In that case, the value known
+    * by class is attributed to those parameters.
+    */
+
+    /* The first parameter is set by default to be the mass of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+        if(pth->annihilation_m_DM > 0){
+          ppr->param_fz_1 = pth->annihilation_m_DM; // In GeV.
+        }
+        else if(pth->PBH_high_mass > 0){
+          ppr->param_fz_1 = pth->PBH_high_mass; // In Msun.
+        }
+        else if(pth->PBH_low_mass > 0){
+          ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
+        }
+        else class_read_double("ext_fz_par1",ppr->param_fz_1);
+
+    /* The second parameter is set by default to be the fraction (normalized to Omega0_cdm) of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+        if(pth->decay_fraction > 0){
+          ppr->param_fz_2 = pth->decay_fraction;
+        }
+        else if(pth->PBH_fraction > 0){
+          ppr->param_fz_2 = pth->PBH_fraction;
+        }
+        else class_read_double("ext_fz_par2",ppr->param_fz_2);
+
+    /* The third parameter is set by default to be the cross-section or the lifetime of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+        if(pba->Gamma_dcdm > 0){
+          ppr->param_fz_2 = pba->Gamma_dcdm; //In km/s/Mpc.
+        }
+        else if(pba->tau_dcdm > 0){
+          ppr->param_fz_2 = pba->tau_dcdm; //In s.
+        }
+        else if(pth->annihilation_boost_factor > 0){
+          ppr->param_fz_2 = pth->annihilation_boost_factor*3*pow(10,-32); //<Sigma*v> in m^3/s.
+
+        }
+        else class_read_double("ext_fz_par3",ppr->param_fz_3);
+
+    /* More parameters that are not set to any default, can be used arbitrarily */
+        class_read_double("ext_fz_par4",ppr->param_fz_4);
+	      class_read_double("ext_fz_par5",ppr->param_fz_5);
+
       }
       else {
         if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
