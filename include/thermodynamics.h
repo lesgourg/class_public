@@ -14,7 +14,8 @@
 
 enum recombination_algorithm {
   recfast,
-  hyrec
+  hyrec,
+  cosmorec
 };
 
 /**
@@ -25,6 +26,7 @@ enum reionization_parametrization {
   reio_none, /**< no reionization */
   reio_camb,  /**< reionization parameterized like in CAMB */
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
+  reio_inter,       /**< linear interpolation between specified points */
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
   reio_stars_sfr_source_term, /**< Reionization parameterization based on the star formation rate, see Poulin et al. arXiv:1508.01370 and references therein */
@@ -100,7 +102,6 @@ struct thermo
   //@{
 
   double YHe;  /**< \f$ Y_{He} \f$: primordial helium fraction */
-  double Lambda_over_theoritical_Lambda; /**< ratio of A2s1s transition with respect to theoritical value 8.2206 */
 
   enum recombination_algorithm recombination; /**< recombination code */
 
@@ -119,6 +120,8 @@ struct thermo
   short compute_cb2_derivatives; /**< do we want to include in computation derivatives of baryon sound speed? */
 
   short compute_damping_scale; /**< do we want to compute the simplest analytic approximation to the photon damping (or diffusion) scale? */
+
+  double Lambda_over_theoritical_Lambda; /**< ratio of A2s1s transition with respect to theoritical value (Labzowsky et al 2005) */
 
   /** parameters for reio_camb */
 
@@ -150,6 +153,13 @@ struct thermo
 
   double many_tanh_width; /**< sharpness of tanh() steps */
 
+  /** parameters for reio_inter */
+
+int reio_inter_num; /**< with how many jumps do we want to describe reionization? */
+
+double * reio_inter_z; /**< discrete z values */
+
+double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   /** parameters used by duspis et al. parametrization */
 
   double Qp_duspis_et_al;
@@ -185,6 +195,7 @@ struct thermo
   double z_10_percent;  /** <redshift at which x_e = 0.1*(1+f_He) */
   double z_50_percent;  /** <redshift at which x_e = 0.5*(1+f_He) */
   double z_99_percent; /** <redshift at which x_e = 0.99*(1+f_He) */
+
 
   /** parameters for energy injection */
 
@@ -247,6 +258,11 @@ struct thermo
   double chi_ionHe;
   double chi_lowE;
   int annihil_coef_num_lines;
+
+  /*** Primordial Black Holes (added by Y. Ali-Haimoud) ***/
+  double fpbh;        /** Fraction of the dark matter made of PBHs **/
+  double Mpbh;        /** Mass of the PBHs in solar masses **/
+  int coll_ion_pbh;   /* if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
 
   //@}
 
@@ -346,6 +362,41 @@ struct thermo
   short inter_closeby; /**< flag for calling thermodynamics_at_z and find position in interpolation table starting from previous position in previous call */
 
   //@}
+
+  /** @name - CosmoRec parameters */
+
+  //@{
+
+  int cosmorec_runmode; /**< cosmorec_runmode sets the runmode of cosmorec. It is identical to runmode in original cosmorec.
+
+                             cosmorec_runmode == 0: CosmoRec run with diffusion
+                             cosmorec_runmode == 1: CosmoRec run without diffusion
+                             cosmorec_runmode == 2: Recfast++ run (equivalent of the original Recfast version)
+                             cosmorec_runmode == 3: Recfast++ run with correction function of Chluba & Thomas, 2010 */
+
+
+  double cosmorec_accuracy; /**<  cosmorec_accuracy switches the accuracy of the recombination model, it is identical to runpars[1] in original cosmorec:
+                               The value of cosmorec_accuracy is only important for runmode 0 & 1.
+
+                               cosmorec_accuracy==-1: closest equivalent of 'HyRec' case (Haimoud & Hirata, 2010)
+                               cosmorec_accuracy== 0: default setting
+                               cosmorec_accuracy== 1: 2g for n<=4 & Raman for n<=3
+                               cosmorec_accuracy== 2: 2g for n<=8 & Raman for n<=7
+                               cosmorec_accuracy== 3: 2g for n<=8 & Raman for n<=7 + Helium feedback up to n=5
+                               cosmorec_accuracy== 4: default setting              + Helium radiative transfer
+                               cosmorec_accuracy== 5: 2g for n<=4 & Raman for n<=3 + Helium radiative transfer up to n=3
+                               cosmorec_accuracy== 6: 2g for n<=4 & Raman for n<=3 + Helium radiative transfer up to n=5 (full setting) */
+
+  double cosmorec_verbose; /** cosmorec_verbose switches cosmorec output. It is identical to runpars[2] in original cosmorec.
+                            cosmorec_verbose ==0: don't write out anything (default).
+                            cosmorec_verbose ==1: write out only the recombination history.
+                            cosmorec_verbose ==2: write out the recombination history, and the cosmology.
+                            cosmorec_verbose ==3: write out the recombination history, populations, and the cosmology. */
+
+
+  //@}
+
+
 
   /** @name - technical parameters */
 
@@ -538,7 +589,7 @@ struct reionization {
   int index_helium_fullreio_redshift; /**< helium full reionization redshift */
   int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
 
-  /* parameters used by reio_bins_tanh and reio_many_tanh */
+  /* parameters used by reio_bins_tanh, reio_many_tanh, reio_inter */
 
   int reio_num_z; /**< number of reionization jumps */
   int index_reio_first_z; /**< redshift at which we start to impose reionization function */
@@ -737,6 +788,14 @@ extern "C" {
 				   double * pvecback
 				   );
 
+  int thermodynamics_recombination_with_cosmorec(
+          struct precision * ppr,
+          struct background * pba,
+          struct thermo * pth,
+          struct recombination * prec,
+          double * pvecback
+          );
+
   int thermodynamics_recombination_with_hyrec(
 						struct precision * ppr,
 						struct background * pba,
@@ -826,6 +885,7 @@ extern "C" {
 
 #define _Lambda_ 8.2206 /*Updated value from (Labzowsky et al 2005)*/
 // #define _Lambda_ 8.2245809 /*Old value from recfast original */
+
 #define _Lambda_He_ 51.3
 #define _L_H_ion_ 1.096787737e7
 #define _L_H_alpha_ 8.225916453e6

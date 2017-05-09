@@ -26,3 +26,11 @@ external_fz/spectra/*.obj
 external_fz/transfer_functions/*.obj
 external_fz_playground/
 external_fz_old/
+# CosmoRec
+*.o
+libCosmoRec.a
+cosmorec/CosmoRec
+cosmorec/Development/Cosmology/Recfast++/Recfast++
+class.dSYM/
+output_*
+output/*

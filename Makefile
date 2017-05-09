@@ -24,8 +24,13 @@ CC       = gcc
 # your tool for creating static libraries:
 AR        = ar rv
 
-# (OPT) your python interpreter
-PYTHON = python
+# Your python interpreter.
+# In order to use Python 3, you can manually
+# substitute python3 to python in the line below, or you can simply
+# add a compilation option on the terminal command line:
+# "PYTHON=python3 make all" (THanks to Marius Millea for pyhton3
+# compatibility)
+PYTHON ?= python
 
 # your optimization flag
 OPTFLAG = -O4 -ffast-math #-march=native
@@ -43,7 +48,13 @@ LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
-HYREC = hyrec
+HYREC = hyrec_2017
+
+# set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
+# go to cosmorec directory and type make before.
+# Currently working with gcc-6 & g++-6, not clang (to be improved. maybe.)
+COSMOREC =
+#COSMOREC = cosmorec
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -58,23 +69,20 @@ INCLUDES = -I../include
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
 
-# Try to automatically avoid an error 'error: can't combine user with ...'
-# which sometimes happens with brewed Python on OSX:
-CFGFILE=$(shell $(PYTHON) -c "import sys; print sys.prefix+'/lib/'+'python'+'.'.join(['%i' % e for e in sys.version_info[0:2]])+'/distutils/distutils.cfg'")
-PYTHONPREFIX=$(shell grep -s "prefix" $(CFGFILE))
-ifeq ($(PYTHONPREFIX),)
-PYTHONFLAGS=--user
-else
-PYTHONFLAGS=
-endif
-
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
 vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
-INCLUDES += -I../hyrec
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
+INCLUDES += -I../$(HYREC)/include
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o energy_injection.o
+endif
+
+# eventually update flags for including CosmoRec
+ifneq ($(COSMOREC),)
+CCFLAG += -DCOSMOREC
+LDFLAG += ./cosmorec/libCosmoRec.a -lstdc++ -lgsl -lgslcblas
+INCLUDES += -I../cosmorec
 endif
 
 %.o:  %.c .base
@@ -141,16 +149,13 @@ INI_ALL = explanatory.ini lcdm.ini
 MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
 PYTHON_FILES = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
 
-
-
-
 all: class libclass.a classy
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(OMPFLAG) -o class $(addprefix build/,$(notdir $^)) -lm $(LDFLAG)
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm
@@ -190,7 +195,7 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-	cd python; export CC=$(CC); $(PYTHON) setup.py install $(PYTHONFLAGS)
+	cd python; export CC=$(CC); $(PYTHON) setup.py install || $(PYTHON) setup.py install --user
 
 clean: .base
 	rm -rf $(WRKDIR);

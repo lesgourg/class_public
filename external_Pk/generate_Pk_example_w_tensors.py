@@ -1,4 +1,5 @@
 #!/usr/bin/python
+from __future__ import print_function
 import sys
 from math import exp
 
@@ -55,5 +56,5 @@ while ks[-1] <= float(k_max) :
 
 # Filling the array of Pk's
 for k in ks :
-    print "%.18g %.18g %.18g" % (k, P_s(k), P_t(k))
+    print("%.18g %.18g %.18g" % (k, P_s(k), P_t(k)))
 

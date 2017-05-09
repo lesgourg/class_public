@@ -1,0 +1,79 @@
+0.70
+2.728
+0.04
+0.26
+0.
+0.24
+3.04
+
+1.
+1.
+0.
+
+1.
+1.
+
+xe_pbh_new.dat
+0.
+8000.
+2000
+
+no
+hyrec_spectrum.dat
+900.
+1600.
+8
+
+no
+hyrec_21cm.dat
+10.
+500.
+1000
+
+
+=====================================================================
+Input parameter file for Hyrec (default values given as examples).
+The parameters have to be entered in the order shown, and 
+correspond to the following inputs.
+All parameters must be present (even if one does not require
+to print the spectrum /21cm functions, still leave associated parameters)
+=====================================================================
+
+0.70     = h                         H0/(100 km/s/Mpc)
+2.728    = T0                        CMB temperature today, in K
+0.04     = Omega_b                   baryon density parameter
+0.26     = Omega_m                   matter (baryon + CDM) density parameter
+0.       = Omega_k                   curvature density parameter   -- Omega_Lambda is deduced from these
+0.24     = Y_He                      Helium mass fraction 
+3.04     = Nnu_eff                   effective number of massless neutrinos
+
+1.       = alpha(rec)/alpha(today)   ratio of fine structure constant at recombination to today's value
+1.       = me(rec)/me(today)         ratio of electron mass at recombination to today's value
+0.       = pann = f<sigma v>/m_DM    dark matter annihilation parameter, in cm^3/s/GeV
+
+1.       = Mpbh                      primordial black hole mass in solar masses
+0.       = fpbh                      fraction of dark matter made of PBHs 
+
+hyrec_xe_Tm.out = name of the output file for xe(z) and Tmatter(z)/Tcmb(z)
+0.       = zmin, minimum redshift 
+8000.    = zmax, maximum redshift
+2000     = total number of redhifts (spaced logarithmically in 1+z)
+
+yes      = either "yes" or "no".
+           if yes, spectrum in the Lyman line is printed to the file below,
+           for Nz redshifts logarithmially spaced between 1+zmin and 1+zmax
+hyrec_spectrum.out  = file name
+900.     = zmin 
+1600.    = zmax
+8        = Nz
+
+yes      = either "yes" or "no"
+           if yes, compute 21cm spin and brightness temperatures
+           for Nz redshifts logarithmically spaced between 1+zmin and 1+zmax
+hyrec_21cm.out = file name
+10.      = zmin
+500.     = zmax 
+1000     = Nz 
+ 
+ 
+

@@ -1055,6 +1055,15 @@ int input_read_parameters(
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
   }
 
+  /*
+  fprintf(stderr,"%e %e %e %e %e\n",
+          pba->Omega0_lambda,
+          pba->Omega0_fld,
+          pba->Omega0_scf,
+          pba->Omega0_k,
+          Omega_tot);
+  */
+
   /** - Test that the user have not specified Omega_scf = -1 but left either
       Omega_lambda or Omega_fld unspecified:*/
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
@@ -1065,6 +1074,25 @@ int input_read_parameters(
     class_read_double("w0_fld",pba->w0_fld);
     class_read_double("wa_fld",pba->wa_fld);
     class_read_double("cs2_fld",pba->cs2_fld);
+
+    class_call(parser_read_string(pfc,
+                                  "use_ppf",
+                                  &string1,
+                                  &flag1,
+                                  errmsg),
+                errmsg,
+                errmsg);
+
+    if (flag1 == _TRUE_){
+      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+        pba->use_ppf = _TRUE_;
+        class_read_double("c_gamma_over_c_fld",pba->c_gamma_over_c_fld);
+      }
+      else {
+        pba->use_ppf = _FALSE_;
+      }
+    }
+
   }
 
   /* Additional SCF parameters: */
@@ -1140,9 +1168,24 @@ int input_read_parameters(
       pth->recombination = hyrec;
     }
 
+    else if ((strstr(string1,"COSMOREC") != NULL) || (strstr(string1,"cosmorec") != NULL) || (strstr(string1,"CosmoRec") != NULL)) {
+      pth->recombination = cosmorec;
+    }
 
   }
-    class_read_double("Lambda_over_theoritical_Lambda",pth->Lambda_over_theoritical_Lambda);
+  if(pth->recombination == cosmorec){
+    /** - read some parameter of CosmoRec */
+
+    class_read_double("cosmorec_runmode",pth->cosmorec_runmode);
+    class_test((pth->cosmorec_runmode > 4 || pth->cosmorec_runmode < 0),errmsg,"cosmorec_runmode parameters runs from 0 to 4 !! Have a look at 'explanatory.ini' for details of the options.");
+    class_read_double("cosmorec_accuracy",pth->cosmorec_accuracy);
+    class_test((pth->cosmorec_accuracy > 7 || pth->cosmorec_accuracy < -1),errmsg,"cosmorec_accuracy parameters runs from -1 to 7 !! Have a look at 'explanatory.ini' for details of the options.");
+    class_read_double("cosmorec_verbose",pth->cosmorec_verbose);
+    class_test((pth->cosmorec_verbose > 3 || pth->cosmorec_verbose < 0),errmsg,"cosmorec_verbose parameters runs from 0 to 3 !! Have a look at 'explanatory.ini' for details of the options.");
+
+  }
+
+  class_read_double("Lambda_over_theoritical_Lambda",pth->Lambda_over_theoritical_Lambda);
 
   /** - reionization parametrization */
   class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
@@ -1184,10 +1227,14 @@ int input_read_parameters(
       pth->reio_parametrization=reio_many_tanh;
       flag2=_TRUE_;
     }
+    if (strcmp(string1,"reio_inter") == 0) {
+      pth->reio_parametrization=reio_inter;
+      flag2=_TRUE_;
+    }
 
     class_test(flag2==_FALSE_,
                errmsg,
-               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh'...");
+               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh', 'reio_inter'...");
   }
 
   /** - heating parametrization */
@@ -1352,8 +1399,15 @@ int input_read_parameters(
     class_read_double("many_tanh_width",pth->many_tanh_width);
   }
 
-  /** - energy injection parameters from CDM /decay */
 
+  /** - reionization parameters if reio_parametrization=reio_many_tanh */
+  if (pth->reio_parametrization == reio_inter) {
+    class_read_int("reio_inter_num",pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
+  }
+
+  /** - energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
   class_read_double("boost_factor",pth->annihilation_boost_factor);
   class_read_double("m_DM",pth->annihilation_m_DM);
@@ -1559,6 +1613,13 @@ if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0 || pth->PBH_low_mas
     }
 
 }
+
+  /*** Accreting primordial black holes. Added by Y. Ali-Haimoud ***/
+  class_read_double("fpbh",pth->fpbh);
+  class_read_double("Mpbh",pth->Mpbh);
+  class_read_int("coll_ion_pbh",pth->coll_ion_pbh);
+  /*****************************************************************/
+
   class_call(parser_read_string(pfc,
                                 "increase_T_from_stars",
                                 &(string1),
@@ -3237,6 +3298,8 @@ int input_default_params(
   pba->w0_fld=-1.;
   pba->wa_fld=0.;
   pba->cs2_fld=1.;
+  pba->use_ppf = _TRUE_;
+  pba->c_gamma_over_c_fld = 0.4;
 
   pba->shooting_failed = _FALSE_;
 
@@ -3295,6 +3358,12 @@ int input_default_params(
 
   pth->Lambda_over_theoritical_Lambda = 1.;
 
+  /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
+  pth->fpbh = 0.;
+  pth->Mpbh = 1.;
+  pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //
+  /************************************************************************/
+
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;
@@ -3307,6 +3376,14 @@ int input_default_params(
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
+
+  pth->Lambda_over_theoritical_Lambda = 1.;
+
+  //Default cosmorec parameters
+  pth->cosmorec_runmode = 0; //default runmode of cosmorec
+  pth->cosmorec_accuracy = 0; //default accuracy of cosmorec
+  pth->cosmorec_verbose = 0;  //no output produced by cosmorec
+
 
   /** - perturbation structure */
 
@@ -3602,11 +3679,14 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
 
   sprintf(ppr->hyrec_Alpha_inf_file,__CLASSDIR__);
-  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat");
+//  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat");
+  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec_2017/Alpha_inf.dat");
   sprintf(ppr->hyrec_R_inf_file,__CLASSDIR__);
-  strcat(ppr->hyrec_R_inf_file,"/hyrec/R_inf.dat");
+//  strcat(ppr->hyrec_R_inf_file,"/hyrec/R_inf.dat");
+  strcat(ppr->hyrec_R_inf_file,"/hyrec_2017/R_inf.dat");
   sprintf(ppr->hyrec_two_photon_tables_file,__CLASSDIR__);
-  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat");
+//  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat");
+  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec_2017/two_photon_tables.dat");
 
   /* for reionization */
 

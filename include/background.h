@@ -59,6 +59,14 @@ struct background
 		     not [delta p/delta rho] in the synchronous or
 		     newtonian gauge!!!) */
 
+  short use_ppf; /**< flag switching on PPF perturbation equations
+                    instead of true fluid equations for
+                    perturbations. It could have been defined inside
+                    perturbation structure, but we leave it here in
+                    such way to have all fld parameters grouped. */
+
+  double c_gamma_over_c_fld; /**< ppf parameter defined in eq. (16) of 0808.3125 [astro-ph] */
+
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */

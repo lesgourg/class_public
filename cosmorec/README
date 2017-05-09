@@ -1,0 +1,374 @@
+//==================================================================================================
+//
+// 'CosmoRec' beta version 2.0.3 (Feb 19, 2015)
+//
+//==================================================================================================
+//
+// Author: J. Chluba (MPA & CITA). 
+// All rights reserved. No guarantee for the correctness of the outputs is given!
+//
+// Some modifications and additions: J. Fung (Astro. Dept. UoT), R. Thomas (CITA), G. Vasil (CITA)
+//==================================================================================================
+//
+// REQUIREMENTS: GSL-library 1.13 or later (download at http://www.gnu.org/software/gsl/)
+// OPTIONAL    : Grace-library 5.1.22 or later (download at http://plasma-gate.weizmann.ac.il/Grace/) 
+//               for outputs from PDE solver
+//
+//==================================================================================================
+
+
+//==================================================================================================
+// LICENCE:
+//
+// This code and all contained libraries and subroutines can be used free of charge provided that:
+//
+// (i) their use will be acknowledged in publications
+//
+// (ii) the following papers are cited:
+//
+//	 	Chluba & Thomas , 2010, MNRAS, 412, 748-764
+//	 	Chluba & Sunyaev, 2006, A&A, 446, 39-42
+//
+//      and 
+//
+//	 	Chluba, Vasil & Dursi, 2010, MNRAS, 407, 599-612
+// 		Switzer & Hirata, 2008, Phys.Rev.D. 77, 083006
+//	 	Grin & Hirata, 2010, Phys.Rev.D, 81, 083005
+//	 	Ali-Haimoud & Hirata, 2010, Phys.Rev.D, 82, 063521
+// 		Rubino-Martin et al., 2010, 403, 439-452
+//
+// 	are considered for citation.
+//
+// (iii) bugs are immediately reported to Jens@Chluba.de
+//
+//==================================================================================================
+
+
+//==================================================================================================
+//
+// Update (19.02.2015 | CosmoRec v2.0.3b) [main implementations: Feb & March 2011 and July 2014]
+// 
+// - added simple OPENMP support for ODE and PDE solver.
+// - added precomputed Pesc-data to distribution (avoids initial setup)
+// - memory checked with valgrind.
+// 
+// Hydrogen specific:
+// - added possibility to change A2s1s two-photon decay rate
+// - Hydrogen nD-1s line corrections can be activated (default off; changes needed in 
+//   './PDE_Problem/Solve_PDEs.cpp' and './Modules/Diffusion_correction.cpp').
+// - HI diffusion correction can be added in two parametrizations ('./Modules/Diffusion_correction.cpp').
+// - hydrogen quadrupole lines can be activated (default off; changes need in './Modules/HI_routines.cpp')
+//
+// Helium specific:
+// - radiative transfer problem for helium photons can now be explicitly solved. This module can be 
+//   called instead of the simple approximate treatment of HI absorption on the escape probabilities 
+//   of the main helium resonances. Furthermore, it allows computing the precise feedback between 
+//   partially overlapping lines. The corresponding module is located in './PDE_Problem_HeI'. The 
+//   feature can be switched on/off using the helium diffusion flag (see './runfiles/parameters.dat' 
+//   for more explanation). The solver takes the processes discussed in Fung, Chluba and Switzer, 
+//   MNRAS, 2011 into account. In particular, electron scattering can be included using the full 
+//   Compton kernel. The corresponding parameters have to be set in 
+//   './PDE_Problem_HeI/Solve_PDEs_HeI.cpp', however, note that the runtime of CosmoRec increases 
+//   significantly when this module is activated.
+// - new helium runmodes that can be changed when calling from CosmoMC.
+// - helium feedback in the analytic model of Chluba & Sunyaev, MNRAS, 402, 1221Ð1248 (2010) can
+//   now be included for up to 10 shells.
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (17.07.2014 | CosmoRec v1.5b)
+// 
+// - added (optional) 'Grace' support, which can be used for runtime visualization of the PDE 
+//   solution for hydrogen. This option can be activated in the 'Makefile.in' and outputs can 
+//   be controlled from './PDE_Problem/Solve_PDEs.cpp' and './PDE_Problem/Solve_PDEs_Grace.cpp'.
+// - thinned the effective rate tables (only for HI n=3 can one vary the number of shells that are 
+//   included for the effective rate calculation).
+// - tidied HI two-photon and Raman profile computations up (./Development/Line_profiles). 
+//   Small bug-fix for 3d1s profile, but the difference was below Planck sensitivity.
+// - 2s-1s two-photon decay previously were computed using the simple fitting formula for the 
+//   two-photon profile given by Nussbaumer & Schmutz, 1984. This has been replaced with the latest 
+//   computation of the 2s-1s two-photon profile. The normalization of the new profile can be set 
+//   in './Development/Definitions/physical_constants.h', and is currently set to 8.2206 1/sec 
+//   (Labzowsky et al. 2005). Difference was again below Planck sensitivity.
+// - optimized the control over the distribution of grid points in the radiative transfer problem. 
+//   The distributions of grid points is now determined using density parameters in the Doppler core 
+//   and Lorentzian wings (see './PDE_Problem/Solve_PDEs_grid.cpp' for setup of the grid and 
+//   './PDE_Problem/Solve_PDEs.cpp' for control parameters). The computation of two-photon and Raman 
+//   events for up to 8 shells was sped up in this way without loss of precision.
+// - tidied up and improved ODE and PDE solvers (./Development/ODE_PDE_Solver).
+// - Iterations over radiative transfer solver set to 1 (for batchmode) and 2 when calling
+//   CosmoRec directly. For higher precision, this can be changed in './CosmoRec.cpp' and
+//   './Modules/global_variables.cpp' (parameter Diff_iteration_max), respectively.
+// - PDE-setup and integration over resonances was tidied up and improved.
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (26.07.2012 | CosmoRec v1.4.2b)
+// 
+// - updated helium atom & setup routines
+// - added possibility to set Hubble function from CAMB using function pointer
+// - fixed small problem with gsl-1.15 compatibility of spline routine
+// - added HeI rates for nHe=2 to lite-version (CAMB compatibility of lite-version)
+// - additional cosmetic changes to some of the routines
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (10.06.2012 | CosmoRec v1.4.1b)
+// 
+// - added possibility to load Hubble factor from CAMB
+// - additional cosmetic changes to some of the routines
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (24.03.2012 | CosmoRec v1.4b)
+// 
+// - added interface for 'Camb' support to "CosmoRec.h".
+// - added new runmode for Recfast++ with corrections function 
+//   (see 'RUNNING CosmoRec in Recfast++ mode' below). 
+// - small changes to ODE and PDE-solver
+// - cosmetic changes to some of the routines
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (30.12.2010 | CosmoRec v1.3b)
+// 
+// Hydrogen:
+// - tables for the HI rates were extended to allow 'full' computations down to redshift z=50.
+// - implemented switch for different accuracies of the recombination model used by CosmoRec in 
+//   the batch mode.
+//
+// Helium:
+// - Extended HeI effective rate tables. Now ground state transition from levels with n<=10 can 
+//   be included. 
+// - Added HeI nD-1S Singlet (n<=10) quadrupole lines (can be switch on/off in 
+//   ./Modules/He_routines.cpp). 
+//   They lead to a small additional acceleration of helium recombination at z~2200 
+//   (Chluba & Sunyaev, 2010).
+// - HeI-feedback model now also includes nD-1S Singlet quadrupole lines. This increases 
+//   the feedback correction.
+// - fixed a small bug in DPesc-interpolation routine connected with HeI-intercombination line. 
+//   This had no important effect on the ionization history.
+// - Confirmed CosmoRec helium model for concordance model using multi-level recombination code. 
+//   Agreement was better than 0.001% when doing physically identical cases. 
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (04.12.2010 | CosmoRec v1.2.1b)
+// 
+// - compiled CosmoRec with Intel C++ compiler (icpc)
+// - CosmoRec also was extensively tested together with CosmoMC. Everything is running smoothly!
+// - parameter estimations were performed including dark matter annihilation.
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (24.11.2010 | CosmoRec v1.2b)
+// 
+// - improved the stability of the PDE-solver. The transfer corrections are only included at 
+//   500 < z < 2000.
+// - ran tests for default case over a wide range of cosmologies. For flat Universes CosmoRec  
+//   now returns the electron 
+//   fraction without encountering problems for (okh2=0):  
+//
+//	    0.01 <= ombh2 <= 0.04
+//	    0.05 <= omch2 <= 0.22
+//	    0.6  <= h100  <= 0.8
+//   	2.6  <= T0    <= 2.8
+// 	    0.1  <= Yp    <= 0.6
+// 	    1.0  <= Nnu   <= 6.0
+//
+// - implemented additional error handling for ODE-solver.
+// - switched to 4. order in ODE-solver. This increases the stability without loss of performance.
+// - for default settings CosmoRec now runs in 1.3 sec average per cosmology.
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (23.11.2010 | CosmoRec v1.2b)
+// 
+// - fixed additional memory leaks using 'valgrind'
+// - further improved module accounting for HI continuum absorption of HeI photons. In particular 
+//   the code should now run 
+//   for a wide range of input parameters, without calling DPesc integrals explicitly.
+// - changed the interface for batch mode. The curvature has to be specified now instead of 
+//   Omega_Lambda. Omega_Lambda is computed
+//   internally using O_t= 1-Ok-Om-OL-Orel (O_t: total; Ok: curvature; Om: matter; OL: Lambda; 
+//   Orel: photons & neutrinos) 
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (19.11.2010 | CosmoRec v1.2b)
+// 
+// - Added a simple module (./Modules/DM_annihilation.cpp) to account for the effect of dark 
+//   matter annihilation according to 
+//   Chluba, 2010, MNRAS, 402, 1195Ð1207. The DM annihilation efficiency can be set in the 
+//   parameter file.
+// - the HeI feedback module was improved.
+//
+//--------------------------------------------------------------------------------------------------
+//
+// Update (14.11.2010 | CosmoRec v1.1b)
+// 
+// - several small bugs and memory leaks were fixed.
+// - CosmoRec now has an interface to be called in batch mode for different cosmologies.
+// - the module accounting for HI continuum absorption of HeI photons was strongly improved.
+// - effective rates for 30 shells of helium were added
+// - the interpolation scheme for the effective rates was improved.
+// - a CosmoRec 'lite' version with decreased recombination-database is now available. 
+// - formatting of the code has been improved.
+//
+//==================================================================================================
+
+
+//==================================================================================================
+//==================================================================================================
+
+This tar-ball contains the new cosmological recombination code 'CosmoRec' which was developed to 
+solve the recombination problem including the following main processes:
+
+
+   - recombinations to highly exited states (Chluba et al. 2007; Grin et al. 2010; 
+                                             Chluba, Vasil & Dursi 2010; Ali-Haimoud & Hirata 2010)
+   - corrections to the 2s-1s two-photon channel (Chluba & Sunyaev 2006; Kholupenko et al. 2006)
+   - HI Lyn-feedback (Chluba & Sunyaev 2007; Switzer & Hirata 2008; Hirata 2008)
+   - n>2 two-photon profile corrections (Chluba & Sunyaev 2008; Hirata 2008; Chluba & Thomas 2010)
+   - n>=2 Raman-processes (Hirata 2008; Chluba & Thomas 2010)
+   - time-dependent aspects for Ly-a (Chluba & Sunyaev 2009)
+   - the thermodynamic correction factor for Ly-a (Chluba & Sunyaev 2010)
+   - the effect of Ly-a diffusion (Grachev & Dubrovich 2008; Forbes & Hirata 2009; 
+                                   Chluba & Sunyaev 2009)
+   - the effect of electron scattering (Chluba & Sunyaev 2009; Ali-Haimoud et al. 2010)
+
+   - the effect of HeI intercombination transitions (Dubrovich & Grachev 2005; Wong et al. 2008)
+   - absorption of helium photons by hydrogen (Switzer & Hirata 2008; Kholupenko et al. 2008; 
+                                               Rubino-Martin et al. 2008)
+   - feedback of helium photons (Switzer & Hirata 2008; Chluba & Sunyaev 2010)
+   - electron scattering during helium recombination and overlapping helium resonances 
+     (Fung, Chluba & Switzer, 2012)
+
+Collisional processes were not taken into account thus far. For a more detailed overview on 
+recombination physics see Sunyaev & Chluba 2009 and/or Rubino-Martin et al. 2010. CosmoRec was 
+introduced in Chluba & Thomas, 2010.
+
+The current version of 'CosmoRec' in batch mode runs within 1.3 seconds for default settings. 
+This performance was partially achieved using the effective multi-level approach, proposed by 
+Ali-Haimoud & Hirata 2010. Effective rates for both hydrogen and helium were implemented. With 
+the startup file it is currently possible to include the effective rates for up to 500 shells 
+for hydrogen, and 20 shells for helium. The precision of the output should be <~ 0.1 % for hydrogen 
+recombination and similar to ~0.1%-0.2% during helium recombination. 
+
+Several different setting for the considered physical processes were implemented. Two-photon and 
+Raman processes for nmax= 8 can be included (in 'lite' version only up to n=3). The diffusion 
+correction can be switched on/off. In the case of helium, feedback can be switched on/off, 
+as well as the effect of HI continuum absorption. Furthermore, the effective number 
+of hydrogen levels can be varied. The different flags for the startup-file are explained 
+in './runfiles/parameters.dat'. 
+
+The user is encouraged to experiment with the code, however, no guarantee can be given that it 
+will produce correct results. Also the parameter setup should be considered carefully.
+
+For a single run about 2 seconds of the total runtime goes into loading of different data-files, 
+that contain precomputed rates. When running CosmoRec several times this is avoided (batch mode), 
+so that now the performance is just determined by the integration of the ODE/PDE system. In this 
+case a runtime of 1.3 sec is achieved on average.
+
+//==================================================================================================
+
+//==================================================================================================
+
+BASIC STRUCTURE:
+
+CosmoRec is based on several routines that were developed at MPA (2005-2008) and CITA (2008-2010). 
+These routines are given as 'stand-alone' libraries in './Development'. For example, 
+'./Development/Hydrogenic' contains routines for general setup of hydrogenic atoms. Voigt-profiles, 
+two-photon and Raman-profiles can be found in './Development/Line_profiles'. Setup for neutral 
+helium can be found in './Development/Helium'. './Development/Integration' contains different 
+routines for numerical integration (e.g. Patterson quadrature and Chebyshev-integrators). 
+
+In './Development/ODE_PDE_Solver' stand-alone ODE and PDE solvers can be found. The ODE solver is 
+based on a variable time-step Gears method up to 6. order and was developed in collaboration with 
+Geoff Vasil and Jonathan Dursi (CITA). The PDE solver generalizes the theta-method for uniform 
+grids to non-uniform grids, still with second order accuracy in the spatial domain.
+
+A simple setup for the cosmological model including 'Recfast++' can be found in 
+'./Development/Cosmology'.
+
+The main code for 'CosmoRec' on the other hand is given by several Modules hosted in './Modules'. 
+These are 'plug-ins' that are loaded as 'includes' to 'main.cpp'. The setup routines for the 
+PDE problem are hosted in './PDE_Problem'. These are the two main directories that host the 
+'guts' of CosmoRec. 
+
+The tables for the effective rates of hydrogen and helium are given in './Rec_database', 
+and the corrections to escape probability in the helium resonances are given in 
+'./Rec_database/Pesc_Data' by means of interpolation (./Modules/DPesc_HI_abs_tabulation.cpp). The 
+recombination-database is a large part of the distribution of 'CosmoRec' and was computed using 
+the codes developed in collaboration with Rajat Thomas (CITA). For the lite-version of CosmoRec 
+the main recombination tables are simply minimized, so that the flexibility is not as large. 
+For full capabilities we recommend the full CosmoRec package.
+
+//==================================================================================================
+
+//==================================================================================================
+
+INSTALLATION:
+
+To compile the code follow the following steps:
+
+(i) in "Makefile.in" set "CC" to the C++ compiler that should be used. "CXXFLAGS" might have to 
+    be adjusted accordingly.
+
+(ii) "GSL_INC_PATH" and "GSL_LIB_PATH" have to be set to the directories that host the include-files 
+      and lib of the GSL-library, respectively. Also the name ("GSL=gsl") of the GSL-lib should be 
+      adjusted if necessary. In some cases it may be required to also link libgslcblas.a. 
+
+(iii) "USE_GRACE" and variables just below this should be uncommented and adjusted to use 
+      Grace-support, if runtime outputs from the PDE solvers should be generated. This is an option 
+      which by default is not activated. It should also not be used when running the code with CosmoMC.
+
+(iv) type "make" to compile the code. This creates the executable: "CosmoRec"
+
+To clean up type "make clean" or "make tidy", as well as "make cleanall", 
+"make cleanallDEV", "make cleanPDE" (see 'Makefile' for difference)
+
+//==================================================================================================
+
+
+//==================================================================================================
+
+RUNNING CosmoRec:
+
+'CosmoRec' can be run by invoking 
+
+./CosmoRec runfiles/parameters.dat
+
+For standard settings, the output of the code will be written in './output/.' The filenames depend 
+on the chosen runmode. The parameter file in './runfiles' contains the cosmological parameters and 
+setting for the different runmodes (see './runfiles/parameters.dat' for details). Using this startup 
+file the following outputs will be generated:
+
+CosmoRec.HI.nS_eff_400.nH_3.nHe_3.HeI_feedback_nf_3.w_HI_abs.HI.X_Recfast.dat
+CosmoRec.HI.nS_eff_400.nH_3.nHe_3.HeI_feedback_nf_3.w_HI_abs.Xe.dat
+CosmoRec.HI.nS_eff_400.nH_3.nHe_3.HeI_feedback_nf_3.w_HI_abs.Xe.it_#.dat
+CosmoRec.HI.nS_eff_400.nH_3.nHe_3.HeI_feedback_nf_3.w_HI_abs.Xe.trans.dat
+
+The first file contains the Recfast++ solution in the format 'z Xe Te'. The second contains the 
+solution for Xe and Te (format 'z Xe Te') without the radiative transfer effects taken into account. 
+The files called "it_#" give the result with intermediate iterations of the radiative transfer correction, 
+unless in "./Modules/global_variables.cpp" the parameter "Diff_iteration_max==1". The last file provides
+the final solution for Xe and Te including all transfer effects according to the settings.
+
+//==================================================================================================
+
+RUNNING CosmoRec in Recfast++ mode
+
+One can alternatively run the normal Recfast++ module by typing 
+
+./CosmoRec REC runfiles/parameters.dat
+
+The output will be written into './outputs/Xe_Recfast.dat' with the format 'z Xe Te'. Furthermore, 
+by invoking
+
+./CosmoRec RECcf runfiles/parameters.dat
+
+Recfast++ is run using the correction function of Chluba & Thomas, 2010. The output will be written 
+into './outputs/Xe_Recfast.corr_fac.dat' with the format 'z Xe Te', as above.
+
+//==================================================================================================
