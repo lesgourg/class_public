@@ -1771,6 +1771,11 @@ int spectra_indices(
   class_define_index(psp->index_tr_delta_tot,ppt->has_density_transfers,index_tr,1);
   class_define_index(psp->index_tr_phi,ppt->has_source_phi,index_tr,1);
   class_define_index(psp->index_tr_psi,ppt->has_source_psi,index_tr,1);
+  class_define_index(psp->index_tr_phi,ppt->has_source_phi_prime,index_tr,1);
+  class_define_index(psp->index_tr_h,ppt->has_source_h,index_tr,1);
+  class_define_index(psp->index_tr_h_prime,ppt->has_source_h_prime,index_tr,1);
+  class_define_index(psp->index_tr_eta,ppt->has_source_eta,index_tr,1);
+  class_define_index(psp->index_tr_eta_prime,ppt->has_source_eta_prime,index_tr,1);
 
   /* indices for species associated with a velocity transfer function in Fourier space */
 
@@ -2840,6 +2845,7 @@ int spectra_matter_transfers(
   double delta_rho_tot,rho_tot;
   double rho_plus_p_theta_tot,rho_plus_p_tot;
   int n_ncdm;
+  double w_fld,dw_over_da_fld,integral_fld;
 
   /** - check the presence of scalar modes */
 
@@ -3059,6 +3065,8 @@ int spectra_matter_transfers(
 
           rho_i = pvecback_sp_long[pba->index_bg_rho_fld];
 
+          class_call(background_w_fld(pba,0.,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, psp->error_message);
+
           if (ppt->has_source_delta_fld == _TRUE_) {
 
             delta_i = ppt->sources[index_md]
@@ -3081,11 +3089,11 @@ int spectra_matter_transfers(
 
             psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_fld] = theta_i;
 
-            rho_plus_p_theta_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i * theta_i;
+            rho_plus_p_theta_tot += (1. + w_fld) * rho_i * theta_i;
 
           }
 
-          rho_plus_p_tot += (1. + pba->w0_fld + pba->wa_fld * (1. - pvecback_sp_long[pba->index_bg_a] / pba->a_today)) * rho_i;
+          rho_plus_p_tot += (1. + w_fld) * rho_i;
 
         }
 
@@ -3217,6 +3225,46 @@ int spectra_matter_transfers(
 
         }
 
+        if (ppt->has_source_phi_prime == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_phi_prime] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_phi_prime]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
+        if (ppt->has_source_h == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_h] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_h]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
+        if (ppt->has_source_h_prime == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_h_prime] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_h_prime]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
+        if (ppt->has_source_eta == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_eta] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_eta]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
+        if (ppt->has_source_eta_prime == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_eta_prime] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_eta_prime]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+        }
+
         /* could include homogeneous component in rho_tot if uncommented (leave commented to match CMBFAST/CAMB definition) */
 
         /* 	if (pba->has_lambda == _TRUE_) { */
@@ -3296,6 +3344,11 @@ int spectra_output_tk_titles(struct background *pba,
       class_store_columntitle(titles,"d_tot",_TRUE_);
       class_store_columntitle(titles,"phi",ppt->has_source_phi);
       class_store_columntitle(titles,"psi",ppt->has_source_psi);
+      class_store_columntitle(titles,"phi_prime",ppt->has_source_phi_prime);
+      class_store_columntitle(titles,"h",ppt->has_source_h);
+      class_store_columntitle(titles,"h_prime",ppt->has_source_h_prime);
+      class_store_columntitle(titles,"eta",ppt->has_source_eta);
+      class_store_columntitle(titles,"eta_prime",ppt->has_source_eta_prime);
     }
     if (ppt->has_velocity_transfers == _TRUE_) {
       class_store_columntitle(titles,"t_g",_TRUE_);
@@ -3424,6 +3477,11 @@ int spectra_output_tk_data(
             class_store_double(dataptr,tk[psp->index_tr_delta_tot],_TRUE_,storeidx);
             class_store_double(dataptr,tk[psp->index_tr_phi],ppt->has_source_phi,storeidx);
             class_store_double(dataptr,tk[psp->index_tr_psi],ppt->has_source_psi,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_phi_prime],ppt->has_source_phi_prime,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_h],ppt->has_source_h,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_h_prime],ppt->has_source_h_prime,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_eta],ppt->has_source_eta,storeidx);
+            class_store_double(dataptr,tk[psp->index_tr_eta_prime],ppt->has_source_eta_prime,storeidx);
           }
           if (ppt->has_velocity_transfers == _TRUE_) {
 

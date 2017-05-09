@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['s_5ffld',['S_fld',['../perturbations_8h.html#a0f7a31f3e3545c35d86d5c8df320960b',1,'perturb_workspace']]],
   ['s_5fl',['s_l',['../perturbations_8h.html#a129ee76252bf13414449dc5400e16785',1,'perturb_workspace']]],
   ['safe_5fphi_5fscf',['safe_phi_scf',['../common_8h.html#a466692f5b5e43b0497f10fcf026c2e7f',1,'precision']]],
   ['scalar_5fperturbations_5fdata',['scalar_perturbations_data',['../perturbations_8h.html#a1a2bfc4df2d4d591556c4dcb7a605ee7',1,'perturbs']]],

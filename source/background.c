@@ -266,6 +266,8 @@ int background_functions(
   double rho_ncdm,p_ncdm,pseudo_p_ncdm;
   /* index for n_ncdm species */
   int n_ncdm;
+  /* fluid's time-dependent equation of state parameter */
+  double w_fld, dw_over_da, integral_fld;
   /* scale factor */
   double a;
   /* scalar field quantities */
@@ -390,13 +392,22 @@ int background_functions(
     p_tot -= pvecback[pba->index_bg_rho_lambda];
   }
 
-  /* fluid with w=w0+wa(1-a/a0) and constant cs2 */
+  /* fluid with w(a) and constant cs2 */
   if (pba->has_fld == _TRUE_) {
-    pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2)
-      / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld))
-      * exp(3.*pba->wa_fld*(a_rel-1.));
+
+    /* get rho_fld from vector of integrated variables */
+    pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
+
+    /* get w_fld from dedicated function */
+    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
+    pvecback[pba->index_bg_w_fld] = w_fld;
+
+    // Obsolete: at the beginning, we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0):
+    // pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
+    // But now everthing is integrated numerically for a given w_fld(a) defined in the function background_w_fld.
+
     rho_tot += pvecback[pba->index_bg_rho_fld];
-    p_tot += (pba->w0_fld+pba->wa_fld*(1.-a_rel)) * pvecback[pba->index_bg_rho_fld];
+    p_tot += w_fld * pvecback[pba->index_bg_rho_fld];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
@@ -442,6 +453,57 @@ int background_functions(
 }
 
 /**
+ * Single place where the fluid equation of state is
+ * defined. Parameters of the function are passed through the
+ * background structure. Generalisation to arbitrary functions should
+ * be simple.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param a              Input: current value of scale factor
+ * @param w_fld          Output: equation of state parameter w_fld(a)
+ * @param dw_over_da_fld Output: function dw_fld/da
+ * @param integral_fld   Output: function \f$ \int_{a}^{a_0} da 3(1+w_{fld})/a \f$
+ * @return the error status
+ */
+
+int background_w_fld(
+                     struct background * pba,
+                     double a,
+                     double * w_fld,
+                     double * dw_over_da_fld,
+                     double * integral_fld) {
+
+  /** - first, define the function w(a) */
+  *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+
+  /** - then, give the corresponding analytic derivative dw/da (used
+        by perturbation equations; we could compute it numerically,
+        but with a loss of precision; as long as there is a simple
+        analytic expression of the derivative of the previous
+        function, let's use it! */
+  *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+
+  /** - finally, give the analytic solution of the following integral:
+        \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
+        one place, in the initial conditions for the background, and
+        with a=a_ini. If your w(a) does not lead to a simple analytic
+        solution of this integral, no worry: instead of writing
+        something here, the best would then be to leave it equal to
+        zero, and then in background_initial_conditions() you should
+        implement a numerical calculation of this integral only for
+        a=a_ini, using for instance Romberg integration. It should be
+        fast, simple, and accurate enough. */
+  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+
+  /** note: of course you can generalise these formulas to anything,
+      defining new parameters pba->w..._fld. Just remember that so
+      far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
+      Recfast does not assume anything */
+
+  return _SUCCESS_;
+}
+
+/**
  * Initialize the background structure, and in particular the
  * background interpolation table.
  *
@@ -461,6 +523,7 @@ int background_init(
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
   double Neff;
+  double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -557,10 +620,13 @@ int background_init(
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
-    class_test(pba->w0_fld+pba->wa_fld>=1./3.,
+
+    class_call(background_w_fld(pba,0.,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
+
+    class_test(w_fld >= 1./3.,
                pba->error_message,
-               "Your choice for w0_fld+wa_fld=%g is suspicious, there would not be radiation domination at early times\n",
-               pba->w0_fld+pba->wa_fld);
+               "Your choice for w(a--->0)=%g is suspicious, since it is bigger than -1/3 there cannot be radiation domination at early times\n",
+               w_fld);
   }
 
   /* in verbose mode, inform the user about the value of the ncdm
@@ -779,6 +845,7 @@ int background_indices(
 
   /* - index for fluid */
   class_define_index(pba->index_bg_rho_fld,pba->has_fld,index_bg,1);
+  class_define_index(pba->index_bg_w_fld,pba->has_fld,index_bg,1);
 
   /* - index for ultra-relativistic neutrinos/species */
   class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1);
@@ -844,6 +911,9 @@ int background_indices(
   /* -> energy density in DR */
   class_define_index(pba->index_bi_rho_dr,pba->has_dr,index_bi,1);
 
+  /* -> energy density in fluid */
+  class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
+
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
   class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
   class_define_index(pba->index_bi_phi_prime_scf,pba->has_scf,index_bi,1);
@@ -857,8 +927,9 @@ int background_indices(
   /* -> sound horizon */
   class_define_index(pba->index_bi_rs,_TRUE_,index_bi,1);
 
-  /* -> integral for growth factor */
-  class_define_index(pba->index_bi_growth,_TRUE_,index_bi,1);
+  /* -> Second order equation for growth factor */
+  class_define_index(pba->index_bi_D,_TRUE_,index_bi,1);
+  class_define_index(pba->index_bi_D_prime,_TRUE_,index_bi,1);
 
   /* -> index for conformal time in vector of variables to integrate */
   class_define_index(pba->index_bi_tau,_TRUE_,index_bi,1);
@@ -1597,11 +1668,10 @@ int background_solve(
 
     /* -> compute growth functions (valid in dust universe) */
 
-    /* D = H \int [da/(aH)^3] = H \int [dtau/(aH^2)] = H * growth */
-    pvecback[pba->index_bg_D] = pvecback[pba->index_bg_H]*pData[i*pba->bi_size+pba->index_bi_growth];
-
-    /* f = [dlnD]/[dln a] = 1/(aH) [dlnD]/[dtau] = H'/(aH^2) + 1/(a^2 H^3 growth) */
-    pvecback[pba->index_bg_f] = pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H] + 1./(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pData[i*pba->bi_size+pba->index_bi_growth]);
+    /* Normalise D(z=0)=1 and construct f = D_prime/(aHD) */
+    pvecback[pba->index_bg_D] = pData[i*pba->bi_size+pba->index_bi_D]/pData[(pba->bt_size-1)*pba->bi_size+pba->index_bi_D];
+    pvecback[pba->index_bg_f] = pData[i*pba->bi_size+pba->index_bi_D_prime]/
+      (pData[i*pba->bi_size+pba->index_bi_D]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);
 
     /* -> write in the table */
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
@@ -1715,6 +1785,8 @@ int background_initial_conditions(
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
   double scf_lambda;
+  double rho_fld_today;
+  double w_fld,dw_over_da_fld,integral_fld;
 
   /** - fix initial value of \f$ a \f$ */
   a = ppr->a_ini_over_a_today_default * pba->a_today;
@@ -1798,6 +1870,25 @@ int background_initial_conditions(
     }
   }
 
+  if (pba->has_fld == _TRUE_){
+
+    /* rho_fld today */
+    rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
+
+    /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
+    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
+
+    /* Note: for complicated w_fld(a) functions with no simple
+    analytic integral, this is the place were you should compute
+    numerically the simple 1d integral [int_{a_ini}^{a_0} 3
+    [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
+    calling background_w_fld */
+
+    /* rho_fld at initial time */
+    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
+
+  }
+
   /** - Fix initial value of \f$ \phi, \phi' \f$
    * set directly in the radiation attractor => fixes the units in terms of rho_ur
    *
@@ -1864,10 +1955,9 @@ int background_initial_conditions(
   /** - compute initial sound horizon, assuming \f$ c_s=1/\sqrt{3} \f$ initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
-  /** - compute initial value of the integral over \f$ d\tau /(aH^2) \f$,
-      assumed to be proportional to \f$ a^4 \f$ during RD, but with arbitrary
-      normalization */
-  pvecback_integration[pba->index_bi_growth] = 1./(4.*a*a*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]);
+  /** - set initial value of D and D' in RD. D will be renormalised later, but D' must be correct. */
+  pvecback_integration[pba->index_bi_D] = a;
+  pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
 
   return _SUCCESS_;
 
@@ -1908,6 +1998,7 @@ int background_output_titles(struct background * pba,
   }
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
+  class_store_columntitle(titles,"(.)w_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
   class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
@@ -1959,6 +2050,7 @@ int background_output_data(
     }
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_w_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
@@ -2020,7 +2112,7 @@ int background_derivs(
 
   struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
-  double * pvecback;
+  double * pvecback, a, H, rho_M;
 
   pbpaw = parameters_and_workspace;
   pba =  pbpaw->pba;
@@ -2030,6 +2122,10 @@ int background_derivs(
   class_call(background_functions(pba, y, pba->normal_info, pvecback),
              pba->error_message,
              error_message);
+
+  /** - Short hand notation */
+  a = y[pba->index_bi_a];
+  H = pvecback[pba->index_bg_H];
 
   /** - calculate \f$ a'=a^2 H \f$ */
   dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
@@ -2044,8 +2140,12 @@ int background_derivs(
   /** - calculate \f$ rs' = c_s \f$*/
   dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
 
-  /** - calculate growth' \f$ = 1/(aH^2) \f$ */
-  dy[pba->index_bi_growth] = 1./(y[pba->index_bi_a] * pvecback[pba->index_bg_H] * pvecback[pba->index_bg_H]);
+  /** - solve second order growth equation  \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
+  rho_M = pvecback[pba->index_bg_rho_b];
+  if (pba->has_cdm)
+    rho_M += pvecback[pba->index_bg_rho_cdm];
+  dy[pba->index_bi_D] = y[pba->index_bi_D_prime];
+  dy[pba->index_bi_D_prime] = -a*H*y[pba->index_bi_D_prime] + 1.5*a*a*rho_M*y[pba->index_bi_D];
 
   if (pba->has_dcdm == _TRUE_){
     /** - compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
@@ -2057,6 +2157,11 @@ int background_derivs(
     /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
     dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
       y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
+  }
+
+  if (pba->has_fld == _TRUE_) {
+    /** - Compute fld density \f$ \rho' = -3aH (1+w_{fld}(a)) \rho \f$ */
+    dy[pba->index_bi_rho_fld] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*(1.+pvecback[pba->index_bg_w_fld])*y[pba->index_bi_rho_fld];
   }
 
   if (pba->has_scf == _TRUE_){

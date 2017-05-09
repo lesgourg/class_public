@@ -195,7 +195,13 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-	cd python; export CC=$(CC); $(PYTHON) setup.py install || $(PYTHON) setup.py install --user
+ifdef OMPFLAG
+	cp python/setup.py python/autosetup.py
+else
+	grep -v "lgomp" python/setup.py > python/autosetup.py
+endif
+	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
+	rm python/autosetup.py
 
 clean: .base
 	rm -rf $(WRKDIR);

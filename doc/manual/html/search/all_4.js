@@ -20,6 +20,7 @@ var searchData=
   ['delta_5fncdm',['delta_ncdm',['../perturbations_8h.html#a05a19b2b3597d8b717569b3d22969921',1,'perturb_workspace']]],
   ['delta_5fp',['delta_p',['../perturbations_8h.html#a17e85624d4131c4e4c99bd57f883c416',1,'perturb_workspace']]],
   ['delta_5frho',['delta_rho',['../perturbations_8h.html#a313fc9485defc5c8c69ec3080eba1647',1,'perturb_workspace']]],
+  ['delta_5frho_5ffld',['delta_rho_fld',['../perturbations_8h.html#a1ff232ab9972a00e7d7a6555a273e3ff',1,'perturb_workspace']]],
   ['delta_5ftot_5ffrom_5fpoisson_5fsquared',['delta_tot_from_poisson_squared',['../common_8h.html#aab161982846c9e414cccea37822f4b0ca8406d31036bb2d430753210d3270f7b2',1,'common.h']]],
   ['delta_5ftot_5fsquared',['delta_tot_squared',['../common_8h.html#aab161982846c9e414cccea37822f4b0caad4f0a8f52a0e789973f85d0351d359b',1,'common.h']]],
   ['dlnf0_5fdlnq_5fncdm',['dlnf0_dlnq_ncdm',['../background_8h.html#a0d55e502abf84a474a51af8d9d352ae3',1,'background']]],

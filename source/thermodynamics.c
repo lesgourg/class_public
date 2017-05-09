@@ -4043,7 +4043,6 @@ int thermodynamics_recombination_with_cosmorec(
   double * z_arr;
   double * Hz_arr;
   double z, xe, Tm, Hz;
-
   double z_start=ppr->recfast_z_initial;
   double z_end=0;
   double step;

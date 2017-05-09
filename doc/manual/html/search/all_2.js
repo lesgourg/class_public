@@ -25,6 +25,7 @@ var searchData=
   ['background_5ftable',['background_table',['../background_8h.html#aa3b9601706d7f9f46f4ff460591e7ade',1,'background']]],
   ['background_5ftau_5fof_5fz',['background_tau_of_z',['../background_8c.html#a868e85eefe464a31b25639170ff9550c',1,'background.c']]],
   ['background_5fverbose',['background_verbose',['../background_8h.html#a76e7e8bb2e0a7e4910de61772b459fdc',1,'background']]],
+  ['background_5fw_5ffld',['background_w_fld',['../background_8c.html#a488d6a6f015cec7a4eae21556e2298ca',1,'background.c']]],
   ['behavior',['behavior',['../primordial_8h.html#ab464fedeeee3046d56ab92e193e9d5fb',1,'primordial']]],
   ['beta_5fs',['beta_s',['../primordial_8h.html#ac78506262298c09f9f3caa8921dae17f',1,'primordial']]],
   ['bfact',['Bfact',['../thermodynamics_8h.html#a40ba237a0441fef9248e37868e7f71ca',1,'recombination']]],
