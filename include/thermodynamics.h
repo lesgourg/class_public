@@ -207,7 +207,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double PBH_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
+  double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
@@ -479,7 +479,7 @@ struct recombination {
   short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
   double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double PBH_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
@@ -487,8 +487,6 @@ struct recombination {
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
   double Tm_tmp; /**< To temporarily store the value of the matter temperature*/
   double xe_tmp; /**< To temporarily store the value of the free electron fraction */
-  double PBH_low_mass_tmp; /**< To temporarily store the value of the (low) mass pbh*/
-  double exponent_pbh_integral; /**< To temporarily store the value of the exponent in the integral of the density of low mass pbh*/
   double z_tmp; /**< To temporarily store the value of the redshift*/
   double annihilation_variation; /**< if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
