@@ -30,7 +30,7 @@ enum reionization_parametrization {
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
   reio_stars_sfr_source_term, /**< Reionization parameterization based on the star formation rate, see Poulin et al. arXiv:1508.01370 and references therein */
-  reio_duspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by Duspis et al. 1509.02785 and improved by 1605.03928 */
+  reio_douspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by douspis et al. 1509.02785 and improved by 1605.03928 */
   reio_asymmetric_planck_16 /**< Redshift asymetric reionisation parametrization as introduced by the Planck collaboration in 2016 data release 1605.03507  */
 };
 /**
@@ -160,11 +160,11 @@ int reio_inter_num; /**< with how many jumps do we want to describe reionization
 double * reio_inter_z; /**< discrete z values */
 
 double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
-  /** parameters used by duspis et al. parametrization */
+  /** parameters used by douspis et al. parametrization */
 
-  double Qp_duspis_et_al;
-  double zp_duspis_et_al;
-  double lambda_duspis_et_al;
+  double Qp_douspis_et_al;
+  double zp_douspis_et_al;
+  double lambda_douspis_et_al;
 
   /** parameters used by planck 16 asymmetric parametrization */
 
@@ -197,22 +197,38 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double z_99_percent; /** <redshift at which x_e = 0.99*(1+f_He) */
 
 
-  /** parameters for energy injection */
-
-  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  double annihilation_boost_factor;
-  double annihilation_m_DM;
-  double increase_T_from_stars;
+  /** parameters for energy injection common to all models */
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
-  double decay_fraction; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
-  enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
-  double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
-  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
-  double PBH_fraction; /**< fraction of Dark Matter being PBH */
+
+  double * annihil_coef_xe;
+  double * annihil_coef_heat;
+  double * annihil_coef_lya;
+  double * annihil_coef_ionH;
+  double * annihil_coef_ionHe;
+  double * annihil_coef_lowE;
+  double * annihil_coef_dd_heat;
+  double * annihil_coef_dd_lya;
+  double * annihil_coef_dd_ionH;
+  double * annihil_coef_dd_ionHe;
+  double * annihil_coef_dd_lowE;
+
+  double chi_heat;
+  double chi_lya;
+  double chi_ionH;
+  double chi_ionHe;
+  double chi_lowE;
+  int annihil_coef_num_lines;
+  
+  /**
+  * For DM annihilation & decay.
+  * Note that the DM lifetime is defined in the background module
+  */
+  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation_boost_factor;
+  double annihilation_m_DM;
 
   double annihilation_variation; /** if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
@@ -240,29 +256,18 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
 
-  double * annihil_coef_xe;
-  double * annihil_coef_heat;
-  double * annihil_coef_lya;
-  double * annihil_coef_ionH;
-  double * annihil_coef_ionHe;
-  double * annihil_coef_lowE;
-  double * annihil_coef_dd_heat;
-  double * annihil_coef_dd_lya;
-  double * annihil_coef_dd_ionH;
-  double * annihil_coef_dd_ionHe;
-  double * annihil_coef_dd_lowE;
+  double decay_fraction; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
-  double chi_heat;
-  double chi_lya;
-  double chi_ionH;
-  double chi_ionHe;
-  double chi_lowE;
-  int annihil_coef_num_lines;
+  /** for PBH accretion & evaporation */
 
-  /*** Primordial Black Holes (added by Y. Ali-Haimoud) ***/
-  double fpbh;        /** Fraction of the dark matter made of PBHs **/
-  double Mpbh;        /** Mass of the PBHs in solar masses **/
-  int coll_ion_pbh;   /* if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
+  enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
+  double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
+  double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
+  double PBH_fraction; /**< fraction of Dark Matter being PBH */
+  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
+  int coll_ion_pbh;   /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
+
+
 
   //@}
 
@@ -523,7 +528,6 @@ struct recombination {
 
   double f_eff;
   int annihil_f_eff_num_lines;
-  double increase_T_from_stars; /**< To compute the increase of temperature due to star formation in a given model */
 
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
 
@@ -594,11 +598,11 @@ struct reionization {
   int index_reio_first_xe; /**< ionization fraction at redshift first_z (inferred from recombination code) */
   int index_reio_step_sharpness; /**< sharpness of tanh jump */
 
-  /* parameters used by duspis et al. parametrization */
+  /* parameters used by douspis et al. parametrization */
 
-  int index_Qp_duspis_et_al;
-  int index_zp_duspis_et_al;
-  int index_lambda_duspis_et_al;
+  int index_Qp_douspis_et_al;
+  int index_zp_douspis_et_al;
+  int index_lambda_douspis_et_al;
 
   /* parameters used by planck 16 asymmetric parametrization */
 
@@ -874,6 +878,16 @@ extern "C" {
 //@{
 
 #define _BBN_ -1
+
+//@}
+
+/**
+ *  @the neutron lifetime as needed by PArthENoPE's fitting formula.
+ */
+
+ //@{
+
+  #define _NEUTRON_LIFETIME_ 880.3 /**< neutron lifetime in s. Taken from PDG.*/
 
 //@}
 

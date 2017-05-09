@@ -1230,8 +1230,8 @@ int input_read_parameters(
       pth->reio_parametrization=reio_stars_sfr_source_term;
       flag2=_TRUE_;
     }
-    if (strcmp(string1,"reio_duspis_et_al") == 0) {
-      pth->reio_parametrization=reio_duspis_et_al;
+    if (strcmp(string1,"reio_douspis_et_al") == 0) {
+      pth->reio_parametrization=reio_douspis_et_al;
       flag2=_TRUE_;
     }
     if (strcmp(string1,"reio_asymmetric_planck_16") == 0) {
@@ -1383,12 +1383,12 @@ int input_read_parameters(
                   "could not identify model_SFR value, check that it is one of 'model_SFR_bestfit', 'model_SFR_p1sig', 'model_SFR_m1sig','model_SFR_free'.");
       }
   }
-  if (pth->reio_parametrization == reio_duspis_et_al){
+  if (pth->reio_parametrization == reio_douspis_et_al){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
-    class_read_double("lambda_duspis_et_al",pth->lambda_duspis_et_al);
-    class_read_double("Qp_duspis_et_al",pth->Qp_duspis_et_al);
-    class_read_double("zp_duspis_et_al",pth->zp_duspis_et_al);
+    class_read_double("lambda_douspis_et_al",pth->lambda_douspis_et_al);
+    class_read_double("Qp_douspis_et_al",pth->Qp_douspis_et_al);
+    class_read_double("zp_douspis_et_al",pth->zp_douspis_et_al);
   }
   if (pth->reio_parametrization == reio_asymmetric_planck_16){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
@@ -1429,6 +1429,7 @@ int input_read_parameters(
   class_read_double("decay_fraction",pth->decay_fraction);
   class_read_double("PBH_high_mass",pth->PBH_high_mass);
   if(pth->PBH_high_mass>0.){
+
     class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -1436,6 +1437,7 @@ int input_read_parameters(
       flag2 = _FALSE_;
       if (strcmp(string1,"Ali_Haimoud") == 0) {
         pth->PBH_accretion_recipe=Ali_Haimoud;
+        class_read_int("coll_ion_pbh",pth->coll_ion_pbh);
         flag2=_TRUE_;
       }
       if (strcmp(string1,"Ricotti_et_al") == 0) {
@@ -1462,6 +1464,7 @@ int input_read_parameters(
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
+
   class_test(pth->PBH_high_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
@@ -1474,6 +1477,14 @@ int input_read_parameters(
     "You have entered a 'PBH_high_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
   class_test(pth->PBH_fraction<0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
+  class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
+               errmsg,
+               "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
+  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_high_mass!= 0.,
+               errmsg,
+               "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
+
+
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
@@ -1483,7 +1494,7 @@ int input_read_parameters(
       fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
   }
   else if(pth->annihilation>0. && pth->annihilation_boost_factor >0.){
-    fprintf(stdout,"You gave both boost factor and annihilation parameter, the first one will be ignored. \n");
+    fprintf(stdout,"You gave both boost factor and annihilation parameter, the boost factor will be ignored. \n");
   }
 
   if (pth->annihilation > 0.) {
@@ -1670,33 +1681,8 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 }
 
   /*** Accreting primordial black holes. Added by Y. Ali-Haimoud ***/
-  class_read_double("fpbh",pth->fpbh);
-  class_read_double("Mpbh",pth->Mpbh);
-  class_read_int("coll_ion_pbh",pth->coll_ion_pbh);
   /*****************************************************************/
 
-  class_call(parser_read_string(pfc,
-                                "increase_T_from_stars",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
-
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pth->increase_T_from_stars = _TRUE_;
-      // fprintf(stdout,"i'm here !\n");
-    }
-    else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        pth->increase_T_from_stars = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'Increase T from stars'",string1);
-    }
-    }
-  }
 
   class_call(parser_read_string(pfc,
                                 "compute damping scale",
@@ -3387,9 +3373,9 @@ int input_default_params(
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
 
-  pth->lambda_duspis_et_al = 0.73;
-  pth->zp_duspis_et_al = 6.1;
-  pth->Qp_duspis_et_al = 0.99986;
+  pth->lambda_douspis_et_al = 0.73;
+  pth->zp_douspis_et_al = 6.1;
+  pth->Qp_douspis_et_al = 0.99986;
   pth->z_end_asymmetric_planck_16 = 6;
   pth->z_start_asymmetric_planck_16 = 20;
   pth->alpha_asymmetric_planck_16 = 3;
@@ -3424,8 +3410,6 @@ int input_default_params(
   pth->Lambda_over_theoritical_Lambda = 1.;
 
   /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
-  pth->fpbh = 0.;
-  pth->Mpbh = 1.;
   pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //
   /************************************************************************/
 
@@ -3437,7 +3421,6 @@ int input_default_params(
   pth->annihilation_z_halo = 30.;
   pth->has_on_the_spot = _TRUE_;
   pth->reio_stars_and_dark_matter = _FALSE_;
-  pth->increase_T_from_stars = _FALSE_;
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
