@@ -753,6 +753,10 @@ int input_read_parameters(
   class_test(((pth->a_dark<0.0)),
              errmsg,
              "In input file, a_dark cannot be < 0.0");
+  class_read_double("b_dark",pth->b_dark);
+  class_test(((pth->b_dark<0.0)),
+             errmsg,
+             "In input file, b_dark cannot be < 0.0");
   class_read_int("sigma_dark",ppr->sigma_dark);
   class_test(((ppr->sigma_dark!=1) && (ppr->sigma_dark!=0)),
              errmsg,
@@ -2941,6 +2945,7 @@ int input_default_params(
   pth->compute_damping_scale = _FALSE_;
 
   pth->a_dark = 0.;//ethos
+  pth->b_dark = 0.;//ethos
   pth->nindex_dark = 0.;//ethos
   pth->m_dm = 1.e11;//ethos
   pth->xi_dark = 0;//ethos

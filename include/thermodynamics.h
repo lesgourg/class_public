@@ -142,7 +142,7 @@ struct thermo
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
 
-  double a_dark;
+  double a_dark,b_dark;
   double nindex_dark;//ethos power of the temperature dependence of tau_{DR}^{-1}
   double xi_dark;
   double m_dm;//dark matter mass
@@ -165,6 +165,7 @@ struct thermo
   int index_th_dmu_dark;      /**<ethos */
   int index_th_ddmu_dark;
   int index_th_dddmu_dark;
+  int index_th_dmu_drdr;
   int index_th_tau_darkm;
   int index_th_tau_darkr;
   int index_th_g_dark;

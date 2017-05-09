@@ -179,6 +179,7 @@ int thermodynamics_at_z(
       //printf("factor_multiplying_u_nudm=%e\n",pow(1./1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2));
       pvecthermo[pth->index_th_ddmu_dark] = 0.;//(2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pvecthermo[pth->index_th_dmu_dark];
       pvecthermo[pth->index_th_dddmu_dark] = 0.0;//((pth->nindex_dark-1.)*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/(1.+z)-pvecback[pba->index_bg_H_prime])*pth->nindex_dark/(1.+z)*pvecthermo[pth->index_th_dmu_dark];
+      pvecthermo[pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_dark*pow(pba->h,2);
       pvecthermo[pth->index_th_tau_darkm] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]+
                                             (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]-pth->thermodynamics_table[(pth->tt_size-2)*pth->th_size+pth->index_th_tau_darkm])
                                             *(z-pth->z_table[pth->tt_size-1])/(pth->z_table[pth->tt_size-1]-pth->z_table[pth->tt_size-2]);//TBC
@@ -472,6 +473,9 @@ int thermodynamics_init(
     if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)) {
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark]=pth->a_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2);
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]= (2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
+    }
+    if((pth->b_dark!=0.) && (pba->has_dark == _TRUE_)) {
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_dark*pow(pba->h,2);
     }
   }
 
@@ -1183,6 +1187,10 @@ int thermodynamics_indices(
     pth->index_th_cdm2 = index;
     index++;
     pth->index_th_Tdm = index;
+    index++;
+  }
+  if((pth->b_dark != 0.) && (pba->has_dark == _TRUE_)){
+    pth->index_th_dmu_drdr = index;
     index++;
   }
 
@@ -3857,6 +3865,9 @@ int thermodynamics_output_titles(struct background * pba,
     class_store_columntitle(titles,"c_dm^2",_TRUE_);
     class_store_columntitle(titles,"T_dm",_TRUE_);
   }
+  if((pth->b_dark!=0.) && (pba->has_dark == _TRUE_)){
+    class_store_columntitle(titles,"dmu_drdr",_TRUE_);
+  }
 
   return _SUCCESS_;
 }
@@ -3915,6 +3926,9 @@ int thermodynamics_output_data(struct background * pba,
       class_store_double(dataptr,pvecthermo[pth->index_th_g_dark],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_cdm2],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_Tdm],_TRUE_,storeidx);
+    }
+    if((pth->b_dark!=0.) && (pba->has_dark == _TRUE_)){
+      class_store_double(dataptr,pvecthermo[pth->index_th_dmu_drdr],_TRUE_,storeidx);
     }
   }
 
