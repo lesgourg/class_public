@@ -1412,8 +1412,8 @@ int input_read_parameters(
   class_read_double("boost_factor",pth->annihilation_boost_factor);
   class_read_double("m_DM",pth->annihilation_m_DM);
   class_read_double("decay",pth->decay);
-  class_read_double("PBH_mass",pth->PBH_mass);
-  if(pth->PBH_mass>0.){
+  class_read_double("PBH_high_mass",pth->PBH_high_mass);
+  if(pth->PBH_high_mass>0.){
     class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -1447,16 +1447,16 @@ int input_read_parameters(
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-  class_test(pth->PBH_mass<0.,errmsg,
-    "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Msun).");
+  class_test(pth->PBH_high_mass<0.,errmsg,
+    "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
     "You need to enter a redshift for your accretion disk formation 'PBH_disk_formation_redshift > 0.'.");
   class_test(pth->PBH_low_mass<0.,errmsg,
-    "You need to enter a mass for your PBH 'PBH_mass > 0.' (in Msun).");
-  class_test(pth->PBH_fraction>0. && (pth->PBH_mass==0. && pth->PBH_low_mass==0.),errmsg,
-    "You have asked for a fraction of PBH being DM but you have 'PBH_mass == 0 && PBH_low_mass ==0'. Please choose a value (in Msun for PBH_mass, in g for PBH_low_mass).");
-  class_test(pth->PBH_mass>0. && pth->PBH_fraction==0.,errmsg,
-    "You have entered a 'PBH_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
+    "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
+  class_test(pth->PBH_fraction>0. && (pth->PBH_high_mass==0. && pth->PBH_low_mass==0.),errmsg,
+    "You have asked for a fraction of PBH being DM but you have 'PBH_high_mass == 0 && PBH_low_mass ==0'. Please choose a value (in Msun for PBH_high_mass, in g for PBH_low_mass).");
+  class_test(pth->PBH_high_mass>0. && pth->PBH_fraction==0.,errmsg,
+    "You have entered a 'PBH_high_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
   class_test(pth->PBH_fraction<0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
@@ -1483,7 +1483,7 @@ int input_read_parameters(
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 /** - Relevant parameters in case of exotic energy injection */
-if(pth->annihilation>0. || pth->decay>0. || pth->PBH_mass >0 || pth->PBH_low_mass){
+if(pth->annihilation>0. || pth->decay>0. || pth->PBH_high_mass > 0. || pth->PBH_low_mass > 0.){
 
 
     class_call(parser_read_string(pfc,
@@ -3348,7 +3348,7 @@ int input_default_params(
   pth->annihilation_boost_factor = 0.;
   pth->annihilation_m_DM = -1.;
   pth->decay = 0.;
-  pth->PBH_mass = 0.;
+  pth->PBH_high_mass = 0.;
   pth->PBH_disk_formation_redshift = 300.;
   pth->PBH_accretion_recipe = Ali_Haimoud;
   pth->energy_deposition_treatment = Analytical_approximation;
