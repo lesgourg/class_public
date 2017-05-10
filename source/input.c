@@ -864,13 +864,12 @@ int input_read_parameters(
   pba->tau_dcdm = param2;
   // fprintf(stdout, "you have chosen Gamma = %e*H0, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_)/67,param2);
   }
-  //
-  // class_call(parser_read_double(pfc,"tau_dcdm",&param1,&flag1,errmsg),
-  //            errmsg,
-  //            errmsg);  /* Convert to Mpc */
-  // pba->Gamma_dcdm = 1/(param1/(1e9*365*24*3600))*1.02e-3*(1.e3 / _c_);
-  // fprintf(stdout, "you have chosen Gamma = %e, tau = %e\n",pba->Gamma_dcdm/(1.e3 / _c_),param1);
 
+  /** Input parameters relative to DM-baryon scattering */
+  class_read_double("u_gcdm",pth->u_gcdm);
+  class_test((pth->u_gcdm != 0) && (ppt->gauge == synchronous),
+             errmsg,
+             "DM-gamma interactions in the synchronous gauge are not yet implemented. Please work in the newtonian gauge by setting 'gauge = newtonian' in your '.ini' file.");
 
 
   /** - non-cold relics (ncdm) */
@@ -1679,9 +1678,6 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     }
 
 }
-
-/** Input parameters relative to DM-baryon scattering */
-class_read_double("u_gcdm",pth->u_gcdm);
 
 
 

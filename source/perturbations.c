@@ -3551,7 +3551,6 @@ int perturb_vector_init(
 
         if(pth->u_gcdm != 0) ppv->y[ppv->index_pt_l3_g] = 6./7.*k/(ppw->pvecthermo[pth->index_th_dkappa]+ppw->pvecthermo[pth->index_th_dmu_gcdm])*ppw->s_l[3]*ppv->y[ppv->index_pt_shear_g]; /* eventually add a contribution from DM-baryon scattering */
         else ppv->y[ppv->index_pt_l3_g] = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->s_l[3]*ppv->y[ppv->index_pt_shear_g]; /* second-order tight-coupling approximation for l=3 */
-        fprintf(stderr, "ppv->y[ppv->index_pt_l3_g] %e\n", ppv->y[ppv->index_pt_l3_g]);
         ppv->y[ppv->index_pt_pol0_g] = 2.5*ppv->y[ppv->index_pt_shear_g];                                                       /* first-order tight-coupling approximation for polarization, l=0 */
         ppv->y[ppv->index_pt_pol1_g] = k/ppw->pvecthermo[pth->index_th_dkappa]*(5.-2.*ppw->s_l[2])/6.*ppv->y[ppv->index_pt_shear_g]; /* second-order tight-coupling approximation for polarization, l=1 */
         ppv->y[ppv->index_pt_pol2_g] = 0.5*ppv->y[ppv->index_pt_shear_g];                                                       /* first-order tight-coupling approximation for polarization, l=2 */
@@ -5211,7 +5210,6 @@ int perturb_einstein(
         if(pth->u_gcdm != 0) shear_g = 16./45./(dmu_gcdm+ppw->pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_g]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
         else shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_g]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
         ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
-        fprintf(stderr, "ppw->pvecthermo[pth->index_th_dmu_gcdm] %e\n", dmu_gcdm);
       }
 
       /* fourth equation involving total shear */
@@ -5992,11 +5990,7 @@ int perturb_sources(
         _set_source_(ppt->index_tp_t1) = switch_isw * pvecthermo[pth->index_th_exp_m_kappa]* exp_m_mu_gcdm * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
 
         _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
-        fprintf(stdout, "pvecthermo[pth->index_th_g] %e _set_source_(ppt->index_tp_t0) %e\n",pvecthermo[pth->index_th_g], ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
-        + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi])
-                        + pvecthermo[pth->index_th_exp_m_kappa] * exp_m_mu_gcdm * 2. * pvecmetric[ppw->index_mt_phi_prime])
-        + ppt->switch_dop /k/k * (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b]
-                                  + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b]));
+
       }
 
 
@@ -7095,7 +7089,6 @@ int perturb_derivs(double tau,
         + metric_euler
         + k2*cb2*(delta_b+delta_temp)
         + R*pvecthermo[pth->index_th_dkappa]*(theta_g-theta_b);
-        // if(pth->u_gcdm!=0)dy[pv->index_pt_theta_b]-= R*dmu_gcdm*(theta_g-y[pv->index_pt_theta_cdm]);
     }
 
     else {
