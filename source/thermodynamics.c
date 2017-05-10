@@ -113,6 +113,10 @@ int thermodynamics_at_z(
   /** - define local variables */
 
   double x0;
+  double x,Fx,dFx,ddFx, S;
+	// double tau_at_z;
+	// double *pvecback_new;
+	// int last_index_new;
 
   /* - the fact that z is in the pre-computed range 0 <= z <= z_initial
      will be checked in the interpolation routines below. Before
@@ -159,7 +163,7 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_ddg]=0.;
 
 
-    /* if necessary, computes equivalent functions from DM-baryon scattering */
+    /* if necessary, computes equivalent functions from DM-gamma scattering */
 
     if(pth->u_gcdm != 0){
 
@@ -185,8 +189,58 @@ int thermodynamics_at_z(
       // fprintf(stdout, "z %e pvecthermo[pth->index_th_dmu_gcdm]%e   pvecthermo[pth->index_th_ddmu_gcdm] %e pvecthermo[pth->index_th_dddmu_gcdm]  %e pvecthermo[pth->index_th_exp_m_mu_gcdm] %e  pth->u_gcdm %e\n",z,pth->u_gcdm,pvecthermo[pth->index_th_dmu_gcdm],  pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm] ,pvecthermo[pth->index_th_exp_m_mu_gcdm]);
 
     }
+    /* if necessary, computes equivalent functions from photon scattering against excited DM */
+    else if(pth->beta_gcdm != 0 ){
+      // class_call(background_tau_of_z(pba,z,&tau_at_z),
+      // 	 pba->error_message,
+      // 	 pth->error_message);
+
+      // class_call(background_at_tau(pba,tau_at_z, pba->long_info, pba->inter_normal, &last_index_new, pvecback_new),
+      //    pba->error_message,
+      //    pth->error_message);
+      x = pth->beta_gcdm/(1.+z);
+      Fx = x*x/sinh(x);
+      dFx = 2.*x/sinh(x)-x*x*cosh(x)/pow(sinh(x),2);
+      ddFx = (2.+x*x)/sinh(x)-4.*x*cosh(x)/pow(sinh(x),2)+2.*x*x/pow(sinh(x),3);
+      S = 3./4. * pvecback[pba->index_bg_rho_cdm]/pvecback[pba->index_bg_rho_g];
+      if(isnan(Fx)==0 && isnan(dFx)==0 && isnan(ddFx) ==0){
+      	pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+      	pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx;
+      	/******version Yacine&Julien*****/
+      	// pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]-2.*pvecback[pba->index_bg_H]/(1.+z))
+      	// 	*pvecthermo[pth->index_th_ddmu_gcdm]
+      	// 	-pvecback[pba->index_bg_H]*pth->alpha_gcdm/pow(1.+z,3)*ddFx;
+      		// fprintf(stdout, "dddmu v1 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]  );
+      	/******Ma version*****/
+      	pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]+2.*pvecback[pba->index_bg_H]/(1+z))
+      		*pvecthermo[pth->index_th_ddmu_gcdm]
+      		+pow(pvecback[pba->index_bg_H],2)*pth->alpha_gcdm/pow(1.+z,4)*ddFx;
+      	pvecthermo[pth->index_th_dddmu_gcdm] *= S;
+      	// fprintf(stdout, "dddmu v2 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]);
+
+      }
+      else {
+      	pvecthermo[pth->index_th_dmu_gcdm] = 0;
+        pvecthermo[pth->index_th_ddmu_gcdm] =0;
+        pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+      }
+      // class_call(background_tau_of_z(pba,(pth->beta_gcdm*2.7225*8.6e-5/1e3)*1.4*1e6,&tau_at_z),
+      // 		 pba->error_message,
+      // 		 pth->error_message);
+      // fprintf(stdout, "z %e x %e Fx %e dFx %e ddFx %e pth->alpha_gcdm %e pth->beta_gcdm %e dmu %e ddmu %e dddmu %e  \n",z,x,Fx,dFx,ddFx,pth->alpha_gcdm,pth->beta_gcdm,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm]);
+      // fprintf(stdout, "%e %e %e %e %e %e %e %e %e %e %e  %e \n",z,S,x,Fx,dFx,ddFx,pth->alpha_gcdm,pth->beta_gcdm,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm]);
+      // printf("tau_at_z_max = %e  z_max = %e\n",tau_at_z,(pth->beta_gcdm*2.7225*8.6e-5/1e3)*1.4*1e6);
+      // /* excited DM: mu' goes like (1+z): */
+      pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1.; //TODO
 
 
+    }
+    else {
+    	pvecthermo[pth->index_th_dmu_gcdm] = 0;
+    	pvecthermo[pth->index_th_ddmu_gcdm] =0;
+    	pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+    	pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1;
+    }
 
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pba->T_cmb*(1.+z);
@@ -320,6 +374,8 @@ int thermodynamics_init(
   double tau;
   double g_max;
   int index_tau_max;
+  /** - local variables relative to excited DM-gamma scattering */
+  double x,Fx;
 
   /** - initialize pointers, allocate background vector */
 
@@ -656,13 +712,21 @@ int thermodynamics_init(
 
   /** if necessary, fill array with values of photon-cdm interaction rate
        dmu_gcdm = a n_cdm sigma_gcdm in units of 1/Mpc */
-  if(pth->u_gcdm != 0){
+  if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
     for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
 
+      if(pth->u_gcdm != 0){
         pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] =
         (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_gcdm
         *pow(1.+pth->z_table[index_tau],2)*pba->Omega0_cdm*pow(pba->H0,2);
+      }
+      else if(pth->beta_gcdm != 0){
+//
+        x = pth->beta_gcdm/(1.+pth->z_table[index_tau]);
+        Fx = x*x/sinh(x);
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
 
+      }
     }
 
         /** -> second derivative with respect to tau of dmu (in view of spline interpolation) */
@@ -724,7 +788,7 @@ int thermodynamics_init(
     exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm]);
 
     /** if necessary, compute part related to DM-baryon scattering */
-    if(pth->u_gcdm != 0){
+    if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
 
       /** -> compute g */
       g =
@@ -1045,7 +1109,7 @@ int thermodynamics_indices(
   index++;
 
   /** if necessary, initialize counter for DM-baryon scattering quantities */
-  if(pth->u_gcdm != 0){
+  if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
     pth->index_th_dmu_gcdm = index;
     index++;
     pth->index_th_ddmu_gcdm = index;

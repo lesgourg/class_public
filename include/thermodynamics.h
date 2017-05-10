@@ -269,10 +269,15 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
 
 
   /** for DM-baryons scattering, see 1309.7588 */
-  
+
   double u_gcdm; /**< normalisation of interaction rate between
         baryons and cdm, same definition as in
         astro-ph/0112522, eq. (3.21) */
+
+  double alpha_gcdm; /* in case of excited DM: a_0 A_21 E_21^2 / (6 m_xhi T_0) in units of inverse Mpc */
+  double beta_gcdm; /* in case of excited DM: E_21 / T_cmb^0 (dimensionless) */
+  double A_21_over_mchi; /* in case of excited DM: A_21 / m_xhi (dimensionless) */
+
   int index_th_dmu_gcdm;      /**< photon-cdm scattering rate (units 1/Mpc) */
   int index_th_ddmu_gcdm;     /**< scattering rate derivative */
   int index_th_dddmu_gcdm;    /**< scattering rate second derivative */

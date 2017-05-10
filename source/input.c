@@ -866,11 +866,32 @@ int input_read_parameters(
   }
 
   /** Input parameters relative to DM-baryon scattering */
-  class_read_double("u_gcdm",pth->u_gcdm);
-  class_test((pth->u_gcdm != 0) && (ppt->gauge == synchronous),
+  class_read_double("u_gcdm",pth->u_gcdm); /** interaction rate */
+
+  /** Input parameters relative to excited DM-gamma scattering */
+  class_read_double("beta_gcdm",pth->beta_gcdm); /** The energy splitting (in unit of T0) */
+  class_read_double("alpha_gcdm_eV",pth->alpha_gcdm); /** One can pass either alpha_gcdm_eV = a_0 A_21 E_21^2 / (6 m_xhi T_0) (in eV) */
+  class_read_double("A_21_over_mchi",pth->A_21_over_mchi); /**  or the transition rate over the DM mass A_21 / m_xhi (dimensionless)*/
+  class_test((pth->alpha_gcdm != 0) && (pth->A_21_over_mchi != 0),
+              errmsg,
+              "You have 'alpha_gcdm != 0 ' and 'A_21_over_mchi != 0'. Please, set either 'alpha_gcdm_eV != 0' (in eV) or the transition rate 'A_21_over_mchi != 0', not both.");
+  if(pth->A_21_over_mchi!= 0) pth->alpha_gcdm = pth->A_21_over_mchi*pth->beta_gcdm*pth->beta_gcdm*pba->T_cmb*8.625e-5/6;
+
+  pth->alpha_gcdm *= 0.15637*1.e30; //eV to Mpc^-1
+  fprintf(stderr, "here\n");
+
+  // class_read_double("alpha_gcdm_eV",alpha_gcdm_eV);
+  // pth->alpha_gcdm = alpha_gcdm_eV;
+
+  class_test(((pth->u_gcdm != 0) || (pth->beta_gcdm != 0) || (pth->alpha_gcdm != 0)) && (ppt->gauge == synchronous),
              errmsg,
              "DM-gamma interactions in the synchronous gauge are not yet implemented. Please work in the newtonian gauge by setting 'gauge = newtonian' in your '.ini' file.");
-
+  class_test((pth->beta_gcdm == 0) && (pth->alpha_gcdm != 0),
+             errmsg,
+             "You have 'alpha_gcdm != 0 ' but 'pth->beta_gcdm == 0'. Please, either switch off excited DM-gamma scattering (alpha_gcdm = 0) or pick a value for the energy splitting (beta_gcdm != 0).");
+  class_test((pth->beta_gcdm != 0) && (pth->alpha_gcdm == 0),
+             errmsg,
+             "You have 'beta_gcdm != 0 ' but 'pth->alpha_gcdm == 0'. Please, either switch off excited DM-gamma scattering (beta_gcdm = 0) or pick a value for the transition rate (alpha_gcdm_eV != 0 in eV or A_21_over_mchi != 0).");
 
   /** - non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -3405,6 +3426,9 @@ int input_default_params(
   pth->PBH_fraction = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;
   pth->u_gcdm=0.;
+  pth->beta_gcdm=0.;
+  pth->alpha_gcdm=0.;
+  pth->A_21_over_mchi=0.;
 
   pth->Lambda_over_theoritical_Lambda = 1.;
 
