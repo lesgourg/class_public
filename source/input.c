@@ -1680,8 +1680,10 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 
 }
 
-  /*** Accreting primordial black holes. Added by Y. Ali-Haimoud ***/
-  /*****************************************************************/
+/** Input parameters relative to DM-baryon scattering */
+class_read_double("u_gcdm",pth->u_gcdm);
+
+
 
 
   class_call(parser_read_string(pfc,
@@ -3406,6 +3408,7 @@ int input_default_params(
   pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->energy_repart_functions = Galli_et_al_fit;
+  pth->u_gcdm=0.;
 
   pth->Lambda_over_theoritical_Lambda = 1.;
 

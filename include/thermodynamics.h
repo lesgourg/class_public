@@ -221,7 +221,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double chi_ionHe;
   double chi_lowE;
   int annihil_coef_num_lines;
-  
+
   /**
   * For DM annihilation & decay.
   * Note that the DM lifetime is defined in the background module
@@ -268,7 +268,15 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   int coll_ion_pbh;   /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
 
 
-
+  /** for DM-baryons scattering, see 1309.7588 */
+  
+  double u_gcdm; /**< normalisation of interaction rate between
+        baryons and cdm, same definition as in
+        astro-ph/0112522, eq. (3.21) */
+  int index_th_dmu_gcdm;      /**< photon-cdm scattering rate (units 1/Mpc) */
+  int index_th_ddmu_gcdm;     /**< scattering rate derivative */
+  int index_th_dddmu_gcdm;    /**< scattering rate second derivative */
+  int index_th_exp_m_mu_gcdm; /**< \f$ exp^{-\mu} \f$ */
   //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */
