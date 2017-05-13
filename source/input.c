@@ -878,7 +878,6 @@ int input_read_parameters(
   if(pth->A_21_over_mchi!= 0) pth->alpha_gcdm = pth->A_21_over_mchi*pth->beta_gcdm*pth->beta_gcdm*pba->T_cmb*8.625e-5/6;
 
   pth->alpha_gcdm *= 0.15637*1.e30; //eV to Mpc^-1
-  fprintf(stderr, "here\n");
 
   // class_read_double("alpha_gcdm_eV",alpha_gcdm_eV);
   // pth->alpha_gcdm = alpha_gcdm_eV;
@@ -1500,7 +1499,7 @@ int input_read_parameters(
   class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
-  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_high_mass!= 0.,
+  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_low_mass!= 0.,
                errmsg,
                "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
 

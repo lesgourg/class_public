@@ -113,7 +113,8 @@ int thermodynamics_at_z(
   /** - define local variables */
 
   double x0;
-  double x,Fx,dFx,ddFx, S;
+  double x,Fx,dFx,ddFx, S, dddmu_tilde;
+  double a = pba->a_today/(1+z);
 	// double tau_at_z;
 	// double *pvecback_new;
 	// int last_index_new;
@@ -194,44 +195,58 @@ int thermodynamics_at_z(
       // class_call(background_tau_of_z(pba,z,&tau_at_z),
       // 	 pba->error_message,
       // 	 pth->error_message);
-
+      //
       // class_call(background_at_tau(pba,tau_at_z, pba->long_info, pba->inter_normal, &last_index_new, pvecback_new),
       //    pba->error_message,
       //    pth->error_message);
       x = pth->beta_gcdm/(1.+z);
       Fx = x*x/sinh(x);
-      dFx = 2.*x/sinh(x)-x*x*cosh(x)/pow(sinh(x),2);
-      ddFx = (2.+x*x)/sinh(x)-4.*x*cosh(x)/pow(sinh(x),2)+2.*x*x/pow(sinh(x),3);
+      if(Fx != 0){
+        dFx = 2.*x/sinh(x)-x*x*cosh(x)/pow(sinh(x),2);
+        ddFx = (2.+x*x)/sinh(x)-4.*x*cosh(x)/pow(sinh(x),2)+2.*x*x/pow(sinh(x),3);
+      }
+      else {
+        dFx = 0;
+        ddFx = 0;
+      }
       S = 3./4. * pvecback[pba->index_bg_rho_cdm]/pvecback[pba->index_bg_rho_g];
       if(isnan(Fx)==0 && isnan(dFx)==0 && isnan(ddFx) ==0){
-      	pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
-      	pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx;
+
       	/******version Yacine&Julien*****/
+        // pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+        // pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*(pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx);
       	// pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]-2.*pvecback[pba->index_bg_H]/(1.+z))
       	// 	*pvecthermo[pth->index_th_ddmu_gcdm]
       	// 	-pvecback[pba->index_bg_H]*pth->alpha_gcdm/pow(1.+z,3)*ddFx;
-      		// fprintf(stdout, "dddmu v1 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]  );
-      	/******Ma version*****/
-      	pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]+2.*pvecback[pba->index_bg_H]/(1+z))
+    		// fprintf(stdout, "dddmu v1 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]  );
+    	  /******Ma version*****/
+        pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+        pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*(pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx - a*pvecthermo[pth->index_th_dmu_gcdm]);
+        dddmu_tilde = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]+2.*pvecback[pba->index_bg_H]/(1+z))
       		*pvecthermo[pth->index_th_ddmu_gcdm]
       		+pow(pvecback[pba->index_bg_H],2)*pth->alpha_gcdm/pow(1.+z,4)*ddFx;
-      	pvecthermo[pth->index_th_dddmu_gcdm] *= S;
-      	// fprintf(stdout, "dddmu v2 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]);
+      	pvecthermo[pth->index_th_dddmu_gcdm] = -pvecback[pba->index_bg_H]*(a*pvecthermo[pth->index_th_ddmu_gcdm]*(S-1)+S*dddmu_tilde
+          +pba->a_today*pvecthermo[pth->index_th_dmu_gcdm]*(pvecback[pba->index_bg_H]+pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/a)/pow(1+z,2));
 
+
+
+      	// fprintf(stdout, "dddmu v2 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]);
+        // /* excited DM: mu' goes like (1+z): */
+        pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1.; //TODO
       }
       else {
       	pvecthermo[pth->index_th_dmu_gcdm] = 0;
         pvecthermo[pth->index_th_ddmu_gcdm] =0;
         pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+        pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1.; //TODO
       }
       // class_call(background_tau_of_z(pba,(pth->beta_gcdm*2.7225*8.6e-5/1e3)*1.4*1e6,&tau_at_z),
       // 		 pba->error_message,
       // 		 pth->error_message);
-      // fprintf(stdout, "z %e x %e Fx %e dFx %e ddFx %e pth->alpha_gcdm %e pth->beta_gcdm %e dmu %e ddmu %e dddmu %e  \n",z,x,Fx,dFx,ddFx,pth->alpha_gcdm,pth->beta_gcdm,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm]);
-      // fprintf(stdout, "%e %e %e %e %e %e %e %e %e %e %e  %e \n",z,S,x,Fx,dFx,ddFx,pth->alpha_gcdm,pth->beta_gcdm,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm]);
+      // fprintf(stdout, "z %e x %e Fx %e dFx %e ddFx %e pth->alphag,z,S,x,Fx,dFx,ddFx,pth->alpha_gcdm,pth->beta_gcdm,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm]);
+      // fprintf(stdout, " %e  %e %e %e %e %e %e \n",z,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm],pvecthermo[pth->index_th_dkappa],pvecthermo[pth->index_th_ddkappa],pvecthermo[pth->index_th_dddkappa]);
       // printf("tau_at_z_max = %e  z_max = %e\n",tau_at_z,(pth->beta_gcdm*2.7225*8.6e-5/1e3)*1.4*1e6);
-      // /* excited DM: mu' goes like (1+z): */
-      pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1.; //TODO
+
 
 
     }
@@ -239,7 +254,7 @@ int thermodynamics_at_z(
     	pvecthermo[pth->index_th_dmu_gcdm] = 0;
     	pvecthermo[pth->index_th_ddmu_gcdm] =0;
     	pvecthermo[pth->index_th_dddmu_gcdm] = 0;
-    	pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1;
+    	pvecthermo[pth->index_th_exp_m_mu_gcdm] = 0;
     }
 
     /* Calculate Tb */
@@ -375,7 +390,7 @@ int thermodynamics_init(
   double g_max;
   int index_tau_max;
   /** - local variables relative to excited DM-gamma scattering */
-  double x,Fx;
+  double x,Fx,S,exp_m_mu_gcdm;
 
   /** - initialize pointers, allocate background vector */
 
@@ -721,14 +736,21 @@ int thermodynamics_init(
         *pow(1.+pth->z_table[index_tau],2)*pba->Omega0_cdm*pow(pba->H0,2);
       }
       else if(pth->beta_gcdm != 0){
-//
+        class_call(background_at_tau(pba,
+                                     tau_table[index_tau],
+                                     pba->normal_info,
+                                     pba->inter_closeby,
+                                     &last_index_back,
+                                     pvecback),
+                   pba->error_message,
+                   pth->error_message);
+        S = 3./4. * pvecback[pba->index_bg_rho_cdm]/pvecback[pba->index_bg_rho_g];
         x = pth->beta_gcdm/(1.+pth->z_table[index_tau]);
         Fx = x*x/sinh(x);
-        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
-
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+        // fprintf(stdout, " %e %e %e \n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm]);
       }
     }
-
         /** -> second derivative with respect to tau of dmu (in view of spline interpolation) */
         class_call(array_spline_table_line_to_line(tau_table,
                                                    pth->tt_size,
@@ -765,11 +787,23 @@ int thermodynamics_init(
                    pth->error_message,
                    pth->error_message);
 
-
+        /** check loop */
+        // for (index_tau=pth->tt_size-1; index_tau>=0; index_tau-=100) {
+        //   if(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] != 0)fprintf(stdout, " %e %e %e %e %e %e %e %e %e\n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_gcdm], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm],
+        //   pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+        // }
+        // exit(1);
 
 
   }
-
+  else{
+    for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = 0;
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm] = 0;
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_gcdm] = 0;
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] = 1;
+    }
+  }
   free(tau_table);
 
   /** - --> compute visibility: \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
@@ -779,19 +813,23 @@ int thermodynamics_init(
 
 
 
+
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] =
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
-    /** -> compute exp(-mu) */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] =
-    exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm]);
+
 
     /** if necessary, compute part related to DM-baryon scattering */
     if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
 
+      /** -> compute exp(-mu) */
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] =
+        exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm]);
+
       /** -> compute g */
       g =
+      // pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] =
       (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]  +
            pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm]) *
            pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] *
@@ -820,7 +858,8 @@ int thermodynamics_init(
     }
     else {
     /** - ---> compute g */
-    g = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
+    g =
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
     /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
@@ -843,7 +882,8 @@ int thermodynamics_init(
     }
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
-    // fprintf(stdout, "g %e\n", pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+    // fprintf(stdout, " %e  %e  %e  %e\n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g],fabs(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg]),fabs(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg]));
+    // fprintf(stdout, "z %e g %e g' %e g'' %e\n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg]);
 
 
     /** - ---> compute variation rate */
@@ -906,11 +946,11 @@ int thermodynamics_init(
   /* approximation for maximum of g, using cubic interpolation, assuming equally spaced z's */
   pth->z_rec=pth->z_table[index_tau+1]+0.5*(pth->z_table[index_tau+1]-pth->z_table[index_tau])*(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g])/(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g]+pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g]);
   // fprintf(stdout, "z_rec %e %e %e %e %e %e\n",pth->z_table[index_tau+1],pth->z_table[index_tau],pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g],2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g],pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]);
-  class_test(pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_,
+  class_test((pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_) && ((pth->u_gcdm == 0) && (pth->beta_gcdm == 0)),
              pth->error_message,
              "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
 
-  class_test(pth->z_rec-ppr->smallest_allowed_variation <= _Z_REC_MIN_,
+  class_test((pth->z_rec-ppr->smallest_allowed_variation <= _Z_REC_MIN_) && ((pth->u_gcdm == 0) && (pth->beta_gcdm == 0)) ,
              pth->error_message,
              "found a recombination redshift smaller or equal to the maximum value imposed in thermodynamics.h, z_rec_min=%g",_Z_REC_MIN_);
 
@@ -2482,19 +2522,12 @@ int thermodynamics_reionization_function(
       }
 
         /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
-        /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
+
           argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
             /preio->reionization_parameters[preio->index_helium_fullreio_width];
           /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
           *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
             * (tanh(argument)+1.)/2.;
-      // if (pth->reio_parametrization == reio_camb) {
-      //   argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
-      //     /preio->reionization_parameters[preio->index_helium_fullreio_width];
-      //   /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-      //   *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
-      //     * (tanh(argument)+1.)/2.;
-      // }
 
       if(*xe > 0.1*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_10_percent == 0){
         pth->z_10_percent = z;
@@ -2528,12 +2561,6 @@ int thermodynamics_reionization_function(
       z_tmp = z;
     }
 
-
-
-
-    // fprintf(stdout, "xe %e z%e \n ", *xe, z);
-    // fprintf(stdout, "xe %e z%e argument %e A %e B %e A / B %e \n", *xe, z, argument,A,B, A / B);
-    /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     return _SUCCESS_;
 
   }
