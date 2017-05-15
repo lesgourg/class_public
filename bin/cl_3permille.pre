@@ -1,0 +1,105 @@
+# this precision file obtained as follows:
+# - computing adiabatic scalar unlensed ClT only (ndf15 integrator with AMD)
+# - for each precision parameter varied individually, Deltachi2(Planck) between high-precision limit and selected value = 1.e-3  
+
+a_ini_over_a_today_default = 1.e-14
+back_integration_stepsize = 7.e-3
+tol_background_integration = 1.e-2
+tol_ncdm_bg = 1.e-4
+
+recfast_z_initial=1.e4
+
+recfast_Nz0=100000
+tol_thermo_integration=1.e-5
+
+recfast_Heswitch=6
+recfast_fudge_He=0.86
+
+recfast_Hswitch = 1 #_TRUE_
+recfast_fudge_H = 1.14
+recfast_delta_fudge_H = -0.035
+recfast_AGauss1 = -0.14
+recfast_AGauss2 =  0.05
+recfast_zGauss1 =  7.28
+recfast_zGauss2 =  6.75
+recfast_wGauss1 =  0.18
+recfast_wGauss2 =  0.33
+
+recfast_z_He_1 = 8000.
+recfast_delta_z_He_1 = 50.
+recfast_z_He_2 = 5000.
+recfast_delta_z_He_2 = 100.
+recfast_z_He_3 = 3500.
+recfast_delta_z_He_3 = 50.
+recfast_x_He0_trigger = 0.995
+recfast_x_He0_trigger2 = 0.995
+recfast_x_He0_trigger_delta = 0.01
+recfast_x_H0_trigger = 0.995
+recfast_x_H0_trigger2 = 0.995
+recfast_x_H0_trigger_delta = 0.01
+
+recfast_H_frac=1.e-3
+
+reionization_z_start_max = 50.
+reionization_sampling=1.e-2
+reionization_optical_depth_tol=1.e-2
+reionization_start_factor=8.
+
+thermo_rate_smoothing_radius=50
+
+k_scalar_min_tau0=0.05
+k_scalar_max_tau0_over_l_max=2.6
+k_scalar_step_sub=0.12
+k_scalar_step_super=0.002 # was 0.0005
+k_scalar_step_transition=0.2 # was 0.2
+
+start_small_k_at_tau_c_over_tau_h = 0.0004
+start_large_k_at_tau_h_over_tau_k = 0.15
+tight_coupling_trigger_tau_c_over_tau_h=0.01
+tight_coupling_trigger_tau_c_over_tau_k=0.01
+start_sources_at_tau_c_over_tau_h = 0.006
+tight_coupling_approximation=5 #(int)second_order_CRS;
+
+l_max_g=16
+l_max_pol_g=16
+l_max_ur=12
+l_max_ncdm=12
+
+tol_tau_approx=1.e-5
+tol_perturb_integration=1.e-3
+perturb_sampling_stepsize=0.05
+
+radiation_streaming_approximation = 2
+radiation_streaming_trigger_tau_over_tau_k = 100.
+radiation_streaming_trigger_tau_c_over_tau = 40.
+
+ur_fluid_approximation = 2
+ur_fluid_trigger_tau_over_tau_k = 18.
+
+ncdm_fluid_approximation = 2
+ncdm_fluid_trigger_tau_over_tau_k = 1000.
+
+tol_ncdm=1.e-3
+
+l_logstep=1.045
+l_linstep=55
+
+bessel_x_step=0.6
+bessel_j_cut=1.e-5
+bessel_tol_x_min =1.e-4
+bessel_file_name=bessels.dat
+
+k_per_decade_primordial = 10.
+  
+k_step_trans_scalars=0.005
+
+transfer_cut=1 #0=none,1=osc,2=cl #segfault with zero, watch it!
+transfer_cut_threshold_osc=0.005 # with 0.005, more smooth than when smaller for l>2000 WATCH IT
+transfer_cut_threshold_cl=1.e-8 # not robust if tilted or if one Delta_l(k) oscillation tangents zero
+
+l_switch_limber = 10
+accurate_lensing=0
+num_mu_minus_lmax = 750
+delta_l_max = 750
+
+evolver = 1

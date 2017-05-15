@@ -4427,7 +4427,6 @@ int perturb_initial_conditions(struct precision * ppr,
 
       }
 
-
       /* fluid (assumes wa=0, if this is not the case the
          fluid will catch anyway the attractor solution) */
       if (pba->has_fld == _TRUE_) {
@@ -4653,13 +4652,19 @@ int perturb_initial_conditions(struct precision * ppr,
          = [(4/3) (f_g theta_g + f_nu theta_nu) + (rho_m/rho_r) (f_b delta_b + f_cdm 0)] / (1 + rho_m/rho_r)
       */
 
-      if (pba->has_cdm == _TRUE_)
+      if (pba->has_cdm == _TRUE_){
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
+//MArchi ethos-new! from JL MA
+        if(pba->has_dark == _TRUE_)
+          ppw->pv->y[ppw->pv->index_pt_theta_cdm] = theta_ur;
+        else
+          ppw->pv->y[ppw->pv->index_pt_theta_cdm] = 0.;
+      } 
       else if (pba->has_dcdm == _TRUE_)
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
       else
         delta_cdm=0.;
-       if(pba->has_dark == _TRUE_) ppw->pv->y[ppw->pv->index_pt_theta_cdm] = theta_ur;//ethos JL MA
+      //if(pba->has_dark == _TRUE_) ppw->pv->y[ppw->pv->index_pt_theta_cdm] = theta_ur;//ethos JL MA
 
       // note: if there are no neutrinos, fracnu, delta_ur and theta_ur below will consistently be zero.
 
@@ -4680,7 +4685,14 @@ int perturb_initial_conditions(struct precision * ppr,
 
       if (pba->has_cdm == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_cdm] -= 3.*a_prime_over_a*alpha;
-        ppw->pv->y[ppw->pv->index_pt_theta_cdm] = k*k*alpha;
+        //MArchi ethos-new!
+        ///////////////////ppw->pv->y[ppw->pv->index_pt_theta_cdm] = k*k*alpha;
+        if (pba->has_dark == _TRUE_){
+           ppw->pv->y[ppw->pv->index_pt_theta_cdm] += k*k*alpha;
+        }
+        else{
+           ppw->pv->y[ppw->pv->index_pt_theta_cdm] = k*k*alpha;
+        }
       }
 
       if (pba->has_dcdm == _TRUE_) {

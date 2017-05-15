@@ -1,0 +1,7 @@
+# precision file to be passed as input in order to achieve at least percent precision on scalar Cls
+hyper_flat_approximation_nu = 7000.
+transfer_neglect_delta_k_S_t0 = 0.17
+transfer_neglect_delta_k_S_t1 = 0.05
+transfer_neglect_delta_k_S_t2 = 0.17
+transfer_neglect_delta_k_S_e = 0.13
+delta_l_max=1000

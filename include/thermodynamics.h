@@ -144,7 +144,7 @@ struct thermo
 
   double a_dark,b_dark;
   double nindex_dark;//ethos power of the temperature dependence of tau_{DR}^{-1}
-  double xi_dark;
+  //double xi_dark;//MArchi ethos-new! now xi_dark pba
   double m_dm;//dark matter mass
 
   //@}

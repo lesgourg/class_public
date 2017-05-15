@@ -742,9 +742,10 @@ int input_read_parameters(
 
 /*ethos*/
   //class_read_double("N_dark",N_dark);
-  class_read_double("xi_dark",pth->xi_dark);
+  class_read_double("xi_dark",pba->xi_dark);
+  class_read_double("g_dark",pba->g_dark);
   //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
-  pba->Omega0_dark = pow(pth->xi_dark,4.)*pba->Omega0_g;
+  pba->Omega0_dark = pba->g_dark*pow(pba->xi_dark,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
   Omega_tot += pba->Omega0_dark;
   //printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
   class_read_double("m_dm",pth->m_dm);
@@ -2874,6 +2875,8 @@ int input_default_params(
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_dark = 0.0;//ethos
+  pba->xi_dark = 0;//MArchi ethos-new!
+  pba->g_dark = 7./8.;//MArchi ethos-new!
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
@@ -2948,7 +2951,7 @@ int input_default_params(
   pth->b_dark = 0.;//ethos
   pth->nindex_dark = 0.;//ethos
   pth->m_dm = 1.e11;//ethos
-  pth->xi_dark = 0;//ethos
+  //pth->xi_dark = 0;//ethos//MArchi ethos-new! xi_dark now pba
 
   /** - perturbation structure */
 

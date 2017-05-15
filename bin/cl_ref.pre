@@ -1,0 +1,79 @@
+# this file achieves maximum precision for the CMB: each ClTT and ClEE, lensed and unlensed, are stable at the 0.01% level
+
+tol_ncdm_bg = 1.e-10
+
+recfast_Nz0=100000
+tol_thermo_integration=1.e-5
+
+recfast_x_He0_trigger_delta = 0.01
+recfast_x_H0_trigger_delta = 0.01
+
+evolver=0
+
+k_min_tau0=0.002
+k_max_tau0_over_l_max=3.
+k_step_sub=0.015
+k_step_super=0.0001
+k_step_super_reduction=0.1
+
+start_small_k_at_tau_c_over_tau_h = 0.0004
+start_large_k_at_tau_h_over_tau_k = 0.05
+tight_coupling_trigger_tau_c_over_tau_h=0.005
+tight_coupling_trigger_tau_c_over_tau_k=0.008
+start_sources_at_tau_c_over_tau_h = 0.006
+
+l_max_g=50
+l_max_pol_g=25
+l_max_ur=50
+l_max_ncdm=50
+
+tol_perturb_integration=1.e-6
+perturb_sampling_stepsize=0.01
+
+radiation_streaming_approximation = 2
+radiation_streaming_trigger_tau_over_tau_k = 240.
+radiation_streaming_trigger_tau_c_over_tau = 100.
+
+ur_fluid_approximation = 2
+ur_fluid_trigger_tau_over_tau_k = 50.
+
+ncdm_fluid_approximation = 3
+ncdm_fluid_trigger_tau_over_tau_k = 51.
+
+tol_ncdm = 1.e-10
+
+l_logstep=1.026
+l_linstep=25
+
+hyper_sampling_flat = 12.
+hyper_sampling_curved_low_nu = 10.
+hyper_sampling_curved_high_nu = 10.
+hyper_nu_sampling_step = 10.
+hyper_phi_min_abs = 1.e-10
+hyper_x_tol = 1.e-4
+hyper_flat_approximation_nu = 1.e6
+
+q_linstep=0.20
+q_logstep_spline= 20. 
+q_logstep_trapzd = 0.5
+q_numstep_transition = 250
+
+transfer_neglect_delta_k_S_t0 = 100.
+transfer_neglect_delta_k_S_t1 = 100.
+transfer_neglect_delta_k_S_t2 = 100.
+transfer_neglect_delta_k_S_e = 100.
+transfer_neglect_delta_k_V_t1 = 100.
+transfer_neglect_delta_k_V_t2 = 100.
+transfer_neglect_delta_k_V_e = 100.
+transfer_neglect_delta_k_V_b = 100.
+transfer_neglect_delta_k_T_t2 = 100.
+transfer_neglect_delta_k_T_e = 100.
+transfer_neglect_delta_k_T_b = 100.
+
+neglect_CMB_sources_below_visibility = 1.e-30
+transfer_neglect_late_source = 3000.
+
+l_switch_limber = 40.
+accurate_lensing=1
+num_mu_minus_lmax = 1000.
+delta_l_max = 1000.

@@ -480,7 +480,8 @@ int background_init(
     if (pba->N_ncdm > 0) {
 
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-      //Neff += pba->Omega0_dark/7.*8./pow(pba->xi_dark,4./3.)/pba->Omega0_g;//MArchi well ok it is just to get some info
+      if(pba->has_dark)
+         Neff += pba->Omega0_dark/pba->g_dark/pow(pba->xi_dark,4.)/pba->Omega0_g;//MArchi ethos-new! well ok it is just to get some info
       /* loop over ncdm species */
       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 
@@ -1654,10 +1655,18 @@ int background_solve(
       definition: Neff is the equivalent number of
       instantaneously-decoupled neutrinos accounting for the
       radiation density, beyond photons */
-  pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
+  if(pba->has_dark){
+     pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
-    /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
+               /((7./8.*pow(4./11.,4./3.)+pba->g_dark*pow(pba->xi_dark,4.))*pba->background_table[pba->index_bg_rho_g]);//MArchi ethos-new!
+  }
+  else{
+     pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
+               *pba->background_table[pba->index_bg_rho_crit]
+               -pba->background_table[pba->index_bg_rho_g])
+               /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
+  } 
 
   /** - done */
   if (pba->background_verbose > 0) {
