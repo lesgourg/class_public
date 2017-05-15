@@ -1391,18 +1391,11 @@ int thermodynamics_helium_from_bbn(
              pba->error_message,
              pth->error_message);
 
-  if(pba->has_dark){//MArchi ethos-new!
-     Neff_bbn = (pvecback[pba->index_bg_Omega_r]
-	      *pvecback[pba->index_bg_rho_crit]
-	      -pvecback[pba->index_bg_rho_g])
-     /((7./8.*pow(4./11.,4./3.)+pba->g_dark*pow(pba->xi_dark,4.))*pvecback[pba->index_bg_rho_g]);
-  }
-  else{
+  //if(pba->has_dark){//MArchi ethos-new!no need to add anything here because dark radiation already stored in Omega_r
      Neff_bbn = (pvecback[pba->index_bg_Omega_r]
               *pvecback[pba->index_bg_rho_crit]
               -pvecback[pba->index_bg_rho_g])
      /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
-  }
 
   free(pvecback);
 

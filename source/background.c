@@ -468,7 +468,7 @@ int background_init(
   /** - define local variables */
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
-  double Neff;
+  double Neff, N_dark;
   int filenum=0;
 
   /** - in verbose mode, provide some information */
@@ -477,13 +477,17 @@ int background_init(
     printf("Computing background\n");
 
     /* below we want to inform the user about ncdm species*/
-    if (pba->N_ncdm > 0) {
+    if (pba->N_ncdm > 0 || pba->Omega0_dark != 0.) { //MArchi ethos-new! add has_dark
 
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-      if(pba->has_dark)
-         Neff += pba->Omega0_dark/pba->g_dark/pow(pba->xi_dark,4.)/pba->Omega0_g;//MArchi ethos-new! well ok it is just to get some info
+      if(pba->Omega0_dark != 0.){//MArchi ethos-new! well ok it is just to get some info
+         N_dark = pba->g_dark/(7./8.)*pow(pba->xi_dark,4.)/pow(4./11.,4./3.);
+         Neff += N_dark;
+         printf(" -> dark radiation Delta Neff %e\n",N_dark);         
+      }
+      if (pba->N_ncdm > 0){//MArchi ethos-new! add this to keep ncdm separate from dark radiation
       /* loop over ncdm species */
-      for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
+       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 
         /* inform if p-s-d read in files */
         if (pba->got_files[n_ncdm] == _TRUE_) {
@@ -522,9 +526,9 @@ int background_init(
 
         Neff += rho_ncdm_rel/rho_nu_rel;
 
+       }
       }
-
-      printf(" -> total N_eff = %g (sumed over ultra-relativistic and ncdm species)\n",Neff);
+      printf(" -> total N_eff = %g (sumed over ultra-relativistic and ncdm species and dark radiation)\n",Neff);
 
     }
   }
@@ -1655,18 +1659,11 @@ int background_solve(
       definition: Neff is the equivalent number of
       instantaneously-decoupled neutrinos accounting for the
       radiation density, beyond photons */
-  if(pba->has_dark){
-     pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
-               *pba->background_table[pba->index_bg_rho_crit]
-               -pba->background_table[pba->index_bg_rho_g])
-               /((7./8.*pow(4./11.,4./3.)+pba->g_dark*pow(pba->xi_dark,4.))*pba->background_table[pba->index_bg_rho_g]);//MArchi ethos-new!
-  }
-  else{
+  //if(pba->Omega0_dark != 0.){//MArchi ethos-new! no need to add anything here, dark radiation is already stored into Omega_r
      pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
                /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
-  } 
 
   /** - done */
   if (pba->background_verbose > 0) {
