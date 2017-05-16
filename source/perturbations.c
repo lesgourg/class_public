@@ -5118,7 +5118,7 @@ int perturb_einstein(
   s2_squared = 1.-3.*pba->K/k2;
   if(pth->u_gcdm != 0. || pth->beta_gcdm != 0.)dmu_gcdm =ppw->pvecthermo[pth->index_th_dmu_gcdm];
   else dmu_gcdm = 0;
-  // dmu_gcdm = MIN(1.,dmu_gcdm);
+  dmu_gcdm = MIN(1.,dmu_gcdm);
   /** - sum up perturbations from all species */
   class_call(perturb_total_stress_energy(ppr,pba,pth,ppt,index_md,k,y,ppw),
              ppt->error_message,
@@ -5207,7 +5207,7 @@ int perturb_einstein(
          shear, then correct the total shear */
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_on) {
 
-        if(dmu_gcdm != 0.) shear_g = 16./45./(dmu_gcdm+ppw->pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_g]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
+        if(pth->u_gcdm != 0. || pth->beta_gcdm != 0) shear_g = 16./45./(dmu_gcdm+ppw->pvecthermo[pth->index_th_dkappa])*(y[ppw->pv->index_pt_theta_g]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
         else shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_g]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
         ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
       }
@@ -5326,7 +5326,7 @@ int perturb_total_stress_energy(
 
   if(pth->u_gcdm != 0. || pth->beta_gcdm != 0.)dmu_gcdm =ppw->pvecthermo[pth->index_th_dmu_gcdm];
   else dmu_gcdm = 0;
-  // dmu_gcdm = MIN(1.,dmu_gcdm);
+  dmu_gcdm = MIN(1.,dmu_gcdm);
   /** - wavenumber and scale factor related quantities */
 
   a = ppw->pvecback[pba->index_bg_a];
@@ -5371,7 +5371,7 @@ int perturb_total_stress_energy(
 
       /* first-order tight-coupling approximation for photon shear */
       if (ppt->gauge == newtonian) {
-        if(dmu_gcdm != 0.) shear_g = 16./45./(dmu_gcdm+ppw->pvecthermo[pth->index_th_dkappa])*y[ppw->pv->index_pt_theta_g];
+        if(pth->u_gcdm != 0. || pth->beta_gcdm != 0) shear_g = 16./45./(dmu_gcdm+ppw->pvecthermo[pth->index_th_dkappa])*y[ppw->pv->index_pt_theta_g];
         else shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_g];
 
       }
@@ -7200,7 +7200,7 @@ int perturb_derivs(double tau,
         dy[pv->index_pt_theta_g] =
           -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*(delta_b+delta_temp))/R
           +k2*(0.25*delta_g-s2_squared*ppw->tca_shear_g)+(1.+R)/R*metric_euler;
-        if(dmu_gcdm != 0.) dy[pv->index_pt_theta_g] -= dmu_gcdm*(y[pv->index_pt_theta_g]-y[pv->index_pt_theta_cdm]);
+        if(pth->u_gcdm != 0. || pth->beta_gcdm != 0) dy[pv->index_pt_theta_g] -= dmu_gcdm*(y[pv->index_pt_theta_g]-y[pv->index_pt_theta_cdm]);
       }
     }
 
@@ -7214,7 +7214,7 @@ int perturb_derivs(double tau,
         dy[pv->index_pt_delta_cdm] = -(y[pv->index_pt_theta_cdm]+metric_continuity); /* cdm density */
 
         dy[pv->index_pt_theta_cdm] = - a_prime_over_a*y[pv->index_pt_theta_cdm] + metric_euler; /* cdm velocity */
-        if(dmu_gcdm != 0.) dy[pv->index_pt_theta_cdm] -= Sinv*dmu_gcdm*(y[pv->index_pt_theta_cdm]-theta_g);
+        if(pth->u_gcdm != 0. || pth->beta_gcdm != 0) dy[pv->index_pt_theta_cdm] -= Sinv*dmu_gcdm*(y[pv->index_pt_theta_cdm]-theta_g);
       }
 
       /** - ----> synchronous gauge: cdm density only (velocity set to zero by definition of the gauge) */

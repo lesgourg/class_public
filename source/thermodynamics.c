@@ -126,7 +126,6 @@ int thermodynamics_at_z(
      using simple analytic approximations */
 
   if (z >= pth->z_table[pth->tt_size-1]) {
-
     /* ionization fraction assumed to remain constant at large z */
     x0= pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_xe];
     pvecthermo[pth->index_th_xe] = x0;
@@ -217,7 +216,7 @@ int thermodynamics_at_z(
         // pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*(pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx);
       	// pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]-2.*pvecback[pba->index_bg_H]/(1.+z))
       	// 	*pvecthermo[pth->index_th_ddmu_gcdm]
-      	// 	-pvecback[pba->index_bg_H]*pth->alpha_gcdm/pow(1.+z,3)*ddFx;
+      		// -pvecback[pba->index_bg_H]*pth->alpha_gcdm/pow(1.+z,3)*ddFx;
     		// fprintf(stdout, "dddmu v1 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]  );
     	  /******Ma version*****/
         pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
@@ -228,7 +227,11 @@ int thermodynamics_at_z(
       	pvecthermo[pth->index_th_dddmu_gcdm] = -pvecback[pba->index_bg_H]*(a*pvecthermo[pth->index_th_ddmu_gcdm]*(S-1)+S*dddmu_tilde
           +pba->a_today*pvecthermo[pth->index_th_dmu_gcdm]*(pvecback[pba->index_bg_H]+pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/a)/pow(1+z,2));
 
-
+      //  if(pvecthermo[pth->index_th_dmu_gcdm]/pvecthermo[pth->index_th_dkappa] < 1e-6){
+      //    pvecthermo[pth->index_th_dmu_gcdm] = 0;
+      //    pvecthermo[pth->index_th_ddmu_gcdm] =0;
+      //    pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+      //  }
 
       	// fprintf(stdout, "dddmu v2 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]);
         // /* excited DM: mu' goes like (1+z): */
@@ -250,12 +253,12 @@ int thermodynamics_at_z(
 
 
     }
-    else {
-    	pvecthermo[pth->index_th_dmu_gcdm] = 0;
-    	pvecthermo[pth->index_th_ddmu_gcdm] =0;
-    	pvecthermo[pth->index_th_dddmu_gcdm] = 0;
-    	pvecthermo[pth->index_th_exp_m_mu_gcdm] = 0;
-    }
+    // else {
+    // 	pvecthermo[pth->index_th_dmu_gcdm] = 0;
+    // 	pvecthermo[pth->index_th_ddmu_gcdm] =0;
+    // 	pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+    // 	pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1;
+    // }
 
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pba->T_cmb*(1.+z);
@@ -796,14 +799,14 @@ int thermodynamics_init(
 
 
   }
-  else{
-    for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
-        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = 0;
-        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm] = 0;
-        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_gcdm] = 0;
-        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] = 1;
-    }
-  }
+  // else{
+  //   for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = 0;
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm] = 0;
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_gcdm] = 0;
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] = 1;
+  //   }
+  // }
   free(tau_table);
 
   /** - --> compute visibility: \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
@@ -878,6 +881,8 @@ int thermodynamics_init(
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]) *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+
+      // pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] = 1;
 
     }
     /** - ---> store g */
@@ -2094,22 +2099,23 @@ int thermodynamics_high_mass_pbh_energy_injection(
   double rho, m_p = 938, m_e = 0.511, T_infinity = 0, rho_infinity = 0, x_e_infinity = 0, P_infinity = 0, rho_cmb = 0, t_B = 0, v_B = 0;
   double lambda_1,lambda_2,lambda_ad,lambda_iso,gamma_cooling,beta_compton_drag, T_s, T_ion, Y_s, J,tau_cooling;
 
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
-        class_call(background_tau_of_z(pba,
-                                       z,
-                                       &tau),
-                   pba->error_message,
-                   preco->error_message);
 
-        class_call(background_at_tau(pba,
-                                     tau,
-                                     pba->long_info,
-                                     pba->inter_normal,
-                                     &last_index_back,
-                                     pvecback),
-                   pba->error_message,
-                   preco->error_message);
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             preco->error_message);
+
+  class_call(background_at_tau(pba,
+                               tau,
+                               pba->long_info,
+                               pba->inter_normal,
+                               &last_index_back,
+                               pvecback),
+             pba->error_message,
+             preco->error_message);
 
 
         c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
@@ -2373,14 +2379,14 @@ int thermodynamics_energy_injection(
 
         /*Value from Poulin 1508.01370*/
         /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-        factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        exponent_z = 8;
-        exponent_zp = 7.5;
+        // factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        // exponent_z = 8;
+        // exponent_zp = 7.5;
 
         /*Value from Ali-Haimoud & Kamionkowski 1612.05644*/
-        // factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        // exponent_z = 7;
-        // exponent_zp = 6.5;
+        factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        exponent_z = 7;
+        exponent_zp = 6.5;
 
 
         /* integral over z'(=zp) with step dz */
