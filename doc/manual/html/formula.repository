@@ -1,0 +1,302 @@
+\form#0:$ Y_\mathrm{He}(\omega_b, \Delta N_\mathrm{eff})$
+\form#1:$S(k,\tau)$
+\form#2:$\Delta_l(k)$
+\form#3:$P(k)$
+\form#4:$C_l$
+\form#5:$S(k, \tau)$
+\form#6:$\tau$
+\form#7:$n_s$
+\form#8:$T_{cmb}$
+\form#9:$\omega_i \equiv \Omega_i h^2$
+\form#10:$h$
+\form#11:$i$
+\form#12:$j$
+\form#13:$ H_0 $
+\form#14:$H_0/c$
+\form#15:$ Mpc^{-1} $
+\form#16:$ \Omega_{0 \gamma} $
+\form#17:$ T_{cmb} $
+\form#18:$ \Omega_{0 b} $
+\form#19:$ \Omega_{0 cdm} $
+\form#20:$ \Omega_{0_\Lambda} $
+\form#21:$ \Omega_{0 de} $
+\form#22:$ w $
+\form#23:$ c_s^2 $
+\form#24:$ w0_{DE} $
+\form#25:$ wa_{DE} $
+\form#26:$ c^2_{s~DE} $
+\form#27:$ \Omega_{0 \nu r} $
+\form#28:$ \Omega_{0 dcdm}+\Omega_{0 dr} $
+\form#29:$ \Gamma_{dcdm} $
+\form#30:$ \Omega_{ini,dcdm} $
+\form#31:$ \Omega_{0 scf} $
+\form#32:$ \phi(t_0) $
+\form#33:$ d\phi(t_0)/d\tau $
+\form#34:$ \Omega_{0_k} $
+\form#35:$ K $
+\form#36:$ K=-\Omega0_k*a_{today}^2*H_0^2$
+\form#37:$ \Omega_{0 dcdm} $
+\form#38:$ \Omega_{0 dr} $
+\form#39:$Mpc^{-1}$
+\form#40:$ \Omega_{\gamma} + \Omega_{\nu r} $
+\form#41:$ \Omega_b + \Omega_cdm + \Omega_{\nu nr} $
+\form#42:$ D = H \int [da/(aH)^3] $
+\form#43:$ \tau $
+\form#44:$ z $
+\form#45:$ d^2 \tau / dz^2 $
+\form#46:$ d^2 b_i / d\tau^2 $
+\form#47:$ [da/(aH)^3]=[d\tau/(aH^2)]$
+\form#48:$ d \tau $
+\form#49:$ \tau_c/\tau_H $
+\form#50:$ \tau_h/\tau_k $
+\form#51:$ \tau_c/\tau_k \equiv k \tau_c $
+\form#52:$ 1/k $
+\form#53:$ 1/aH $
+\form#54:$ 1/\dot{\kappa} $
+\form#55:$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} $
+\form#56:$ k \tau $
+\form#57:$ \Phi_l^{\nu}(x)$
+\form#58:$ j_l(x)$
+\form#59:$ 2\pi $
+\form#60:$ 2\pi/\nu$
+\form#61:$ \nu $
+\form#62:$ \Phi_l^{\nu}(x) $
+\form#63:$ 2\pi/r_a(\tau_rec) $
+\form#64:$ 2\pi/r_a(\tau_{rec})$
+\form#65:$ 2\pi/r_a(\tau_{rec}) $
+\form#66:$ C_l$
+\form#67:$ C_l^{TT}$
+\form#68:$ C_l^{EE}$
+\form#69:$ C_l^{TE}$
+\form#70:$ C_l^{BB}$
+\form#71:$ C_l^{\phi\phi}$
+\form#72:$ \phi $
+\form#73:$ C_l^{T\phi}$
+\form#74:$ C_l^{dd}$
+\form#75:$ C_l^{Td}$
+\form#76:$ C_l^{ll}$
+\form#77:$ C_l^{Tl}$
+\form#78:$ C_l^{TT} $
+\form#79:$ C_l^{EE} $
+\form#80:$ C_l^{TE} $
+\form#81:$ C_l^{BB} $
+\form#82:$ C_l^{\phi\phi} $
+\form#83:$ C_l^{T\phi} $
+\form#84:$ C_l^{dd} $
+\form#85:$ C_l^{Td} $
+\form#86:$ C_l $
+\form#87:$ S(k, \tau) $
+\form#88:$ \theta_{cdm} = 0 $
+\form#89:$ \int W(tau) dtau=1 $
+\form#90:$ \alpha = (h' + 6 \eta') / (2 k^2) $
+\form#91:$ \alpha'$
+\form#92:$ h_v$
+\form#93:$ s_l = \sqrt{1-K*(l^2-1)/k^2} $
+\form#94:$ r=A_T/A_S=P_h/P_R $
+\form#95:$ S_{bi}/R $
+\form#96:$ S_{cdi}/R $
+\form#97:$ S_{nid}/R $
+\form#98:$ S_{niv}/R $
+\form#99:$ k_{min}=aH $
+\form#100:$ k_{max}=aH $
+\form#101:$ C_l^{E\phi}$
+\form#102:$ C_l^{\phi d}$
+\form#103:$ C_l^{dl}$
+\form#104:$ C_l^{E\phi} $
+\form#105:$ C_l^{pd} $
+\form#106:$ C_l^{ll} $
+\form#107:$ C_l^{Tl} $
+\form#108:$ C_l^{dl} $
+\form#109:$ Y_{He} $
+\form#110:$ X_e(z)$
+\form#111:$ x_e $
+\form#112:$ d \kappa / d \tau$
+\form#113:$ d^2 \kappa / d \tau^2 $
+\form#114:$ d^3 \kappa / d \tau^3 $
+\form#115:$ exp^{-\kappa} $
+\form#116:$ g = (d \kappa / d \tau) * exp^{-\kappa} $
+\form#117:$ (d g / d \tau) $
+\form#118:$ (d^2 g / d \tau^2) $
+\form#119:$ T_b $
+\form#120:$ c_b^2 $
+\form#121:$ d [c_b^2] / d \tau $
+\form#122:$ d^2 [c_b^2] / d \tau^2 $
+\form#123:$ exp^{-\kappa}$
+\form#124:$ d^2 t_i / dz^2 $
+\form#125:$ d \kappa / d \tau $
+\form#126:$ d \kappa / d z$
+\form#127:$ \Delta_l^{X} (q) $
+\form#128:$ a $
+\form#129:$ a$
+\form#130:$ [3c^2/8\pi G] $
+\form#131:$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]$
+\form#132:$ 1/r $
+\form#133:$ 1/r^2 $
+\form#134:$ r\to 0 $
+\form#135:$ \phi, \phi' $
+\form#136:$ t=1/(2H) $
+\form#137:$ \tau=1/(aH) $
+\form#138:$ c_s=1/\sqrt{3} $
+\form#139:$ d\tau /(aH^2) $
+\form#140:$ a^4 $
+\form#141:$ a'=a^2 H $
+\form#142:$ t' = a $
+\form#143:$ rs' = c_s $
+\form#144:$ = 1/(aH^2) $
+\form#145:$ \rho' = -3aH \rho - a \Gamma \rho $
+\form#146:$ \rho' = -4aH \rho - a \Gamma \rho $
+\form#147:$ \phi'' + 2 a H \phi' + a^2 dV = 0 $
+\form#148:$ V = V_{p_{scf}}*V_{e_{scf}} $
+\form#149:$ V_e = \exp(-\lambda \phi) $
+\form#150:$ V_p = (\phi - B)^\alpha + A $
+\form#151:$ m_{pl} = (8 \pi G)^{(-1/2)}$
+\form#152:$ V(\phi) $
+\form#153:$ m_{pl}^2/Mpc^2 $
+\form#154:$ \rho^{class} = (8 \pi G)/3 \rho^{physical} = 1/(3 m_{pl}^2) \rho^{physical} = 1/3 * [ 1/(2a^2) (\phi')^2 + V(\phi) ] $
+\form#155:$ \rho^{class} $
+\form#156:$ Mpc^-2 $
+\form#157:$ V = V_p*V_e $
+\form#158:$ H_0/c$
+\form#159:$ Mpc^{-1} = h / 2997.9... = h * 10^5 / c $
+\form#160:$ Kg/m/s^2 $
+\form#161:$ T^4 $
+\form#162:$ = 3 c^2 H_0^2 / (8 \pi G) $
+\form#163:$ C_l^{X}, P(k), ... $
+\form#164:$ C_l^{X} $
+\form#165:$ \mu $
+\form#166:$ \mu=1 $
+\form#167:$ d^l_{mm'} (\mu) $
+\form#168:$ Cgl(\mu)$
+\form#169:$ Cgl2(\mu) $
+\form#170:$\mu$
+\form#171:$ cl_{tt}$
+\form#172:$ cl_{pp}$
+\form#173:$(\mu)$
+\form#174:$ d^l_{00}$
+\form#175:$ d^l_{20}$
+\form#176:$ cl_{te}$
+\form#177:$ d^l_{22}$
+\form#178:$ d^l_{2-2}$
+\form#179:$ cl_{ee}$
+\form#180:$ cl_{bb}$
+\form#181:$ \sqrt{(2l+1)/2} d^l_{mm'} $
+\form#182:$ P(k)$
+\form#183:$ T_{cmb}$
+\form#184:$ T_i(k)$
+\form#185:$ S^{X} (k, \tau) $
+\form#186:$ |g/\dot{g}| = |\dot{\kappa}-\ddot{\kappa}/\dot{\kappa}|^{-1} $
+\form#187:$ |2\ddot{a}/a-(\dot{a}/a)^2|^{-1/2} $
+\form#188:$ s_l$
+\form#189:$ h_v $
+\form#190:$ = -(a/k)^2/\phi'(\rho + p)\theta $
+\form#191:$ = a^2/\phi' $
+\form#192:$ c_s^2 = 1 $
+\form#193:\[ <R(x) R(x)> \ \ \sum_{ij} <h_{ij}(x) h^{ij}(x)> \]
+\form#194:\[ h'' + \frac{2a'}{a} h + [k2+2K] h = 12\pi Ga2 (\rho+p) \sigma = 8\pi Ga2 p \pi \]
+\form#195:\[ <R(x) R(x)> = \int \frac{dk}{k} \left[ \frac{k^3}{2\pi^2} <R(k)R(k)^*>\right] = \int \frac{dk}{k} \mathcal{P}_R(k) \]
+\form#196:\[\sum_{ij} <h_{ij}(x) h^{ij}(x)> = \frac{dk}{k} \left[ \frac{k^3}{2\pi^2} F\left(\frac{k^2}{K}\right) <h(k)h(k)^*>\right] = \int \frac{dk}{k} F\left(\frac{k^2}{K}\right) \mathcal{P}_h(k) \]
+\form#197:$ \mathcal{P}_R$
+\form#198:$ \mathcal{P}_h$
+\form#199:$ Q_{ij}$
+\form#200:\[ C_l^S = 4\pi \int \frac{dk}{k} [\Delta_l^S(q)]^2 \mathcal{P}_R(k) \]
+\form#201:\[ C_l^T = 4\pi \int \frac{dk}{k} [\Delta_l^T(q)]^2 F\left(\frac{k^2}{K}\right) \mathcal{P}_h(k) \]
+\form#202:$ r = A_t / A_s $
+\form#203:$ \mathcal{P}_R(k)$
+\form#204:$ \mathcal{P}_h(k)$
+\form#205:\[ r = 6 \frac{\mathcal{P}_h(k)}{\mathcal{P}_R(k)} \]
+\form#206:\[ \mathcal{P}_h(k) = \frac{\mathcal{P}_R(k) r}{6} = \frac{A_s r}{6} = \frac{A_t}{6} \]
+\form#207:$ (k/k_{pivot})^{n_t} $
+\form#208:$ \mathcal{P}_h(k)=\tanh(\pi*\nu/2)$
+\form#209:\[ \mathcal{P}_h(k) = \frac{A_t}{6} [ \tanh(\pi*\frac{\nu}{2})] (k/k_{pivot})^{(n_t+...)}\]
+\form#210:\[ [...] \]
+\form#211:\[ C_l^T = 4\pi \int \frac{dk}{k} [\Delta_l^T(q)]^2 F\left(\frac{k^2}{K}\right) \frac{A_t}{6} [\tanh(\pi*\frac{\nu}{2})] (k/k_{pivot})^{(n_t+...)} \]
+\form#212:$ \mathcal{P}_h(k) = \frac{A_t}{6} \tanh{(\pi*\frac{\nu}{2})} (k/k^*)^{n_T}$
+\form#213:$ h = 1$
+\form#214:$ C_l^T = \frac{4}{\pi} \int \frac{dk}{k} [\Delta_l^T(q)]^2 F\left(\frac{k^2}{K}\right) \mathcal{P}_h(k) $
+\form#215:$ \mathcal{P}_h(k) = A_t (k/k^*)^{n_T} $
+\form#216:$ h = \sqrt{[F\left(\frac{k^2}{K}\right) / 6] \tanh{(\pi*\frac{\nu}{2})}} $
+\form#217:$ C_l^T = \frac{4}{\pi} \int \frac{dk}{k} [\Delta_l^T(q)]^2 \mathcal{P}_h(k) $
+\form#218:\[ h = \sqrt{\left(\frac{F}{6}\right) \tanh{(\pi*\frac{\nu}{2})}} \]
+\form#219:\[ \sum_{ij}<h_{ij}(x) h^{ij}(x)> = \int \frac{dk}{k} \frac{k2(k2-K)}{(k2+3K)(k2+2K)} \mathcal{P}_h(k) \]
+\form#220:$ q2 = k2 - 3K $
+\form#221:\[ \sum_{ij}<h_{ij}(x) h^{ij}(x)> = \int \frac{dk}{k} \frac{(q2-3K)(q2-4K)}{q2(q2-K)} \mathcal{P}_h(k) \]
+\form#222:\[ \sum_{ij}<h_{ij}(x) h^{ij}(x)> = \int \frac{dq}{q} \frac{q2-4K}{q2-K} \mathcal{P}_h(k(q)) \]
+\form#223:$ \nu=q/\sqrt{|K|}$
+\form#224:$=\pm 1$
+\form#225:\[ \sum_{ij}<h_{ij}(x) h^{ij}(x)> = \int \frac{d\nu}{\nu} \frac{(\nu2-4sgnK)}{(\nu2-sgnK)} \mathcal{P}_h(k(\nu)) \]
+\form#226:$ (\nu2-4sgnK)/(\nu2-sgnK)$
+\form#227:\[ h = \sqrt{ [k2(k2-K)]/[(k2+3K)(k2+2K)] / 6 * \tanh{(\pi*\frac{\nu}{2})} } \]
+\form#228:$ A_T$
+\form#229:$ n_T$
+\form#230:$ \tau_c = 1/\kappa' $
+\form#231:$ \tau_h = a/a' $
+\form#232:$ \tau_k = 1/k $
+\form#233:$ \min(\tau_c, \tau_b, \tau_h, \tau_k) $
+\form#234:$ \tau_c \ll \tau_h $
+\form#235:$ \tau_c \ll \tau_k $
+\form#236:$ \tau_c $
+\form#237:$ 1/\tau_c $
+\form#238:$ \min(\tau_h, \tau_k) $
+\form#239:$ \rho_{matter} \gg \rho_{radiation} $
+\form#240:$ k \gg aH $
+\form#241:$ \tau_h $
+\form#242:$ \kappa'=0 $
+\form#243:$ \kappa' \neq 0 $
+\form#244:$ \tau_{\gamma} = 1/ \kappa' $
+\form#245:$ \sqrt{|K|}*\tau $
+\form#246:$ \Pi = G_{\gamma 0} + G_{\gamma 2} + F_{\gamma 2} $
+\form#247:$^{-2}$
+\form#248:$^{-1}$
+\form#249:$ P_{12}/\sqrt{P_{11} P_{22}}$
+\form#250:$\ln{P_{12}}$
+\form#251:$Mpc^3$
+\form#252:$ \ln{k}$
+\form#253:$V(\phi)$
+\form#254:$H(\phi)$
+\form#255:$ P_k $
+\form#256:$ \ln{P_k} $
+\form#257:$ Mp^4$
+\form#258:$ H(\phi)$
+\form#259:$ dH / d\phi $
+\form#260:$ d^2H / d\phi^2 $
+\form#261:$ d^3H / d\phi^3 $
+\form#262:$ \phi=-V'/3H$
+\form#263:$\phi'$
+\form#264:$ d^2a/dt^2 = 0$
+\form#265:$ dH/d\phi$
+\form#266:$ Mpc^3$
+\form#267:$\ln{P(k)}$
+\form#268:$ Mpc^3 $
+\form#269:$\ln{\tau}$
+\form#270:$ P(k,z=0)$
+\form#271:$ T_i(k) $
+\form#272:$ T_i(k,z=0)$
+\form#273:$ T_i(k,z)$
+\form#274:$ P(k,\tau)$
+\form#275:$ T_i(k,\tau)$
+\form#276:$P(k,z)$
+\form#277:$P(k,\tau)$
+\form#278:$T_i(k,\tau)$
+\form#279:$ P_{NL}(k,\tau)$
+\form#280:$T_i(k)$
+\form#281:$ z, x_e, d \kappa / d \tau, T_b, c_b^2 $
+\form#282:$ g= (d \kappa/d \tau) e^{- \kappa} $
+\form#283:$ \Delta N_{eff}=0$
+\form#284:$ N_{eff}=3.046$
+\form#285:$ X_e(z) $
+\form#286:$ X_e $
+\form#287:$ d \kappa / d z = (d \kappa / d \tau) * (d \tau / d z) = - (d \kappa / d \tau) / H $
+\form#288:$ d \tau / dz $
+\form#289:$ d x_H / dz, d x_{He} / dz, d T_{mat} / dz $
+\form#290:$ q2 = k2 + K(1+m)$
+\form#291:$ \Delta_l^{X} (k) $
+\form#292:$ \Delta_l(k) $
+\form#293:$ j_l(k[\tau_0-\tau]) $
+\form#294:$ j_l(x) $
+\form#295:$ x_{\min} $
+\form#296:$ \sqrt{\pi/(2l+1)}/q $
+\form#297:$ \sqrt{\pi/(2l+1)}/(l+1/2)$
+\form#298:$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) $
+\form#299:$ \rho' = -3aH (1+w_{fld}(a)) \rho $
+\form#300:$ \int_{a}^{a_0} da 3(1+w_{fld})/a $
+\form#301:$ \int_{a}^{a0} da 3(1+w_{fld})/a $

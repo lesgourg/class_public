@@ -17,8 +17,8 @@ typedef struct adaptive_integration_tree_node{
   double I;		/* Estimate of integral */
   double err;		/* Estimated error */
   double *x;		/* Pointer to the abscissas of node */
-  double *w;		/* Pointer to the coresponding weights */
-  int leaf_childs;/* Number of leafes under current node. 1 means that the node is a leaf. */
+  double *w;		/* Pointer to the corresponding weights */
+  int leaf_childs;/* Number of leafs under current node. 1 means that the node is a leaf. */
   /* Pointer to children: */
   struct  adaptive_integration_tree_node *left, *right;	/* Pointer to left child. */
 } qss_node;

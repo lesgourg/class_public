@@ -262,7 +262,18 @@ int array_integrate_all_trapzd_or_spline(
 					int * last_index,
 					double * result,
 					int result_size,
-					ErrorMsg errmsg); /** from 1 to n_columns */
+					ErrorMsg errmsg);
+
+  int array_interpolate_one_growing_closeby(
+                                            double * array,
+                                            int n_columns,
+                                            int n_lines,
+                                            int index_x,   /** from 0 to (n_columns-1) */
+                                            double x,
+                                            int * last_index,
+                                            int index_y,
+                                            double * result,
+                                            ErrorMsg errmsg);
 
   int array_interpolate_spline_growing_closeby(
 					       double * x_array,
