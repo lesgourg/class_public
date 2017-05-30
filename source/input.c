@@ -2096,10 +2096,10 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       }
 
       if (ppt->has_cdi == _TRUE_) {
-        ppm->f_cdi = f_iso;
-        ppm->n_cdi = n_iso;
-        ppm->c_ad_cdi = c_cor;
-        ppm->n_ad_cdi = n_cor;
+          ppm->f_cdi = f_iso;
+          ppm->n_cdi = n_iso;
+          ppm->c_ad_cdi = c_cor;
+          ppm->n_ad_cdi = n_cor;
       }
 
       if (ppt->has_nid == _TRUE_) {
@@ -2155,10 +2155,19 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       }
 
       if (ppt->has_cdi == _TRUE_) {
+        if(pth->PBH_high_mass > 0){
+          ppm->n_cdi = 4.;
+          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(2*_PI_*_PI_)*pow(ppm->k_pivot,ppm->n_cdi-1),1./2);
+          ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          ppm->alpha_cdi = 0.;
+          fprintf(stderr, "A_cdi/A_ad %e pba->h %e\n", ppm->f_cdi*ppm->f_cdi, pba->h);
+        }
+        else{
+          class_read_double("f_cdi",ppm->f_cdi);
+          class_read_double("n_cdi",ppm->n_cdi);
+          class_read_double("alpha_cdi",ppm->alpha_cdi);
+        }
 
-        class_read_double("f_cdi",ppm->f_cdi);
-        class_read_double("n_cdi",ppm->n_cdi);
-        class_read_double("alpha_cdi",ppm->alpha_cdi);
 
       }
 

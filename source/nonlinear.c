@@ -70,7 +70,7 @@ int nonlinear_init(
   double * pvecback;
   int last_index;
   double a,z;
-
+  int ic_ic_size = 0 , ic_size = 0;
   /** Summary
    *
    * (a) First deal with the case where non non-linear corrections requested */
@@ -92,6 +92,16 @@ int nonlinear_init(
           fprintf(stdout,"Warning: Halofit is proved to work for CDM, and also with a small HDM component thanks to Bird et al.'s update. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
     }
+    //
+
+    // if(ppm->ic_ic_size[ppt->index_md_scalars]!= 1){
+    //   ic_ic_size = ppm->ic_ic_size[ppt->index_md_scalars];
+    //   ic_size = ppm->ic_size[ppt->index_md_scalars];
+    //   ppm->ic_ic_size[ppt->index_md_scalars] = 1;
+    //   ppm->ic_size[ppt->index_md_scalars] = 1;
+    // }
+
+
 
     /** - copy list of (k,tau) from perturbation module */
 
@@ -124,13 +134,13 @@ int nonlinear_init(
                  pnl->error_message,
                  pnl->error_message);
 
-      /*
-      for (index_k=0; index_k<pnl->k_size; index_k++) {
-        fprintf(stdout,"%e  %e\n",pnl->k[index_k],pk_l[index_k]);
-      }
-      */
+      // printf("#1:k      2:P\n");
+      // for (index_k=0; index_k<pnl->k_size; index_k++) {
+      //   fprintf(stdout,"%e  %e\n",pnl->k[index_k],pk_l[index_k]);
+      // }
 
-      //class_stop(pnl->error_message,"stop here");
+      // exit(1);
+      // class_stop(pnl->error_message,"stop here");
 
       /* get P_NL(k) at this time */
       if (nonlinear_halofit(ppr,
@@ -144,6 +154,7 @@ int nonlinear_init(
                             lnpk_l,
                             ddlnpk_l,
                             &(pnl->k_nl[index_tau])) == _SUCCESS_) {
+        // class_stop(pnl->error_message,"stop here");
 
         /*
           for (index_k=0; index_k<pnl->k_size; index_k++) {
@@ -154,6 +165,7 @@ int nonlinear_init(
 
         for (index_k=0; index_k<pnl->k_size; index_k++) {
           pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
+          fprintf(stderr, "pnl->nl_corr_density[index_tau * pnl->k_size + index_k] %e %d \n", pnl->nl_corr_density[index_tau * pnl->k_size + index_k], index_tau * pnl->k_size + index_k);
         }
       }
       else {
@@ -185,7 +197,11 @@ int nonlinear_init(
       fprintf(stdout,"\n\n");
     }
     */
-
+  //     if(ic_ic_size != 0){
+  //   ppm->ic_ic_size[ppt->index_md_scalars] = ic_ic_size;
+  //   ppm->ic_size[ppt->index_md_scalars] = ic_size;
+  // }
+    // fprintf(stderr, "icic %d ic %d\n", ppm->ic_ic_size[ppt->index_md_scalars],ppm->ic_size[ppt->index_md_scalars]);
     free(pk_l);
     free(pk_nl);
 
@@ -238,7 +254,6 @@ int nonlinear_pk_l(
   double source_ic1,source_ic2;
 
   index_md = ppt->index_md_scalars;
-
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
 
   for (index_k=0; index_k<pnl->k_size; index_k++) {
@@ -263,8 +278,8 @@ int nonlinear_pk_l(
         [index_tau * ppt->k_size[index_md] + index_k];
 
       pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
-        *source_ic1*source_ic1
-        *primordial_pk[index_ic1_ic2];
+        *source_ic1*source_ic1*primordial_pk[index_ic1_ic2];
+        // fprintf(stdout, "source_ic1 %e index_ic1 %d psp->ic_size[index_md] %d \n", source_ic1,index_ic1,ppm->ic_size[index_md]);
     }
 
     /* part non-diagonal in initial conditions */
@@ -290,7 +305,7 @@ int nonlinear_pk_l(
         }
       }
     }
-
+    // fprintf(stdout, "k %e Pk %e \n", pnl->k[index_k],pk_l[index_k]);
     lnk[index_k] = log(pnl->k[index_k]);
     lnpk[index_k] = log(pk_l[index_k]);
   }
@@ -399,18 +414,15 @@ int nonlinear_halofit(
   class_define_index(index_ia_sum3,  _TRUE_,index_ia,1);
   class_define_index(index_ia_ddsum3,_TRUE_,index_ia,1);
   ia_size = index_ia;
-
   integrand_size=(int)(log(pnl->k[pnl->k_size-1]/pnl->k[0])/log(10.)*ppr->halofit_k_per_decade)+1;
-
   class_alloc(integrand_array,integrand_size*ia_size*sizeof(double),pnl->error_message);
 
   /* we fill integrand_array with values of k and P(k) using interpolation */
 
   last_index=0;
-
   for (index_k=0; index_k < integrand_size; index_k++) {
 
-    k_integrand=pnl->k[0]*pow(10.,index_k/ppr->halofit_k_per_decade);
+    k_integrand=pnl->k[0]*pow(10.,index_k/(ppr->halofit_k_per_decade));
 
     class_call(array_interpolate_spline(lnk_l,
                                         pnl->k_size,
@@ -447,6 +459,7 @@ int nonlinear_halofit(
     integrand_array[index_k*ia_size + index_ia_sum1] = integrand_array[index_k*ia_size + index_ia_pk]
       *pow(integrand_array[index_k*ia_size + index_ia_k],2)*anorm*exp(-x2);
   }
+
   /* fill in second derivatives */
   class_call(array_spline(integrand_array,
                           ia_size,
@@ -470,7 +483,6 @@ int nonlinear_halofit(
              pnl->error_message,
              pnl->error_message);
   sigma  = sqrt(sum1);
-
   class_test_except(sigma < 1.,
                     pnl->error_message,
                     free(pvecback);free(integrand_array),
@@ -479,7 +491,6 @@ int nonlinear_halofit(
                     pba->a_today/pvecback[pba->index_bg_a]-1.);
 
   xlogr1 = log(R)/log(10.);
-
   /* maximum value of R in the bisection algorithm leading to the determination of R_nl */
   R=1./ppr->halofit_min_k_nonlinear;
 
@@ -646,7 +657,7 @@ int nonlinear_halofit(
     if (rk > ppr->halofit_min_k_nonlinear) {
 
       pk_lin = pk_l[index_k]*pow(pnl->k[index_k],3)*anorm;
-
+      // printf("pk_lin %e k %e\n", pk_lin,pnl->k[index_k]);
       /* in original halofit, this is the beginning of the function halofit() */
 
       /*SPB11: Standard halofit underestimates the power on the smallest
@@ -692,12 +703,12 @@ int nonlinear_halofit(
       pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
 
       pk_nl[index_k] = (pk_halo+pk_quasi)/pow(pnl->k[index_k],3)/anorm;
-
       /* in original halofit, this is the end of the function halofit() */
     }
     else {
       pk_nl[index_k] = pk_l[index_k];
     }
+    // printf("pk_lin %e pk_nl[index_k] %e pnl->k[index_k] %e \n",pk_lin,pk_nl[index_k],pnl->k[index_k]);
   }
 
   free(pvecback);
