@@ -165,7 +165,6 @@ int nonlinear_init(
 
         for (index_k=0; index_k<pnl->k_size; index_k++) {
           pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
-          fprintf(stderr, "pnl->nl_corr_density[index_tau * pnl->k_size + index_k] %e %d \n", pnl->nl_corr_density[index_tau * pnl->k_size + index_k], index_tau * pnl->k_size + index_k);
         }
       }
       else {
