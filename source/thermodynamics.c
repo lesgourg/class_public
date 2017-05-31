@@ -2410,6 +2410,7 @@ int thermodynamics_energy_injection(
           result += dz*integrand;
 
         } while (integrand/first_integrand > 0.02);
+        if(result < 1e-100) result=0.;
       }
 
       // // /***********************************************************************************************************************/
@@ -2426,10 +2427,10 @@ int thermodynamics_energy_injection(
             class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                       error_message,
                       error_message);
-            *energy_rate =  result*preco->f_eff;
+            result =  result*preco->f_eff;
             // fprintf(stdout, "energy_rate %e\n", *energy_rate);
       }
-      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
+      // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
@@ -2445,8 +2446,9 @@ int thermodynamics_energy_injection(
                  error_message);
 
        /* effective energy density rate in J/m^3/s  */
-       *energy_rate = result;
     }
+    *energy_rate = result;
+
   }
   else {
     *energy_rate = 0.;
@@ -3948,7 +3950,7 @@ int thermodynamics_reionization_sample(
               /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
 
               if(pth->thermodynamics_verbose>10){
-                fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat%e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
+                fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat %e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
               }
 
       }
@@ -3974,7 +3976,8 @@ int thermodynamics_reionization_sample(
 
       dTdz = dTdz_adia+dTdz_CMB+dTdz_DM+dTdz_stars;
       if(pth->thermodynamics_verbose>10){
-      fprintf(stdout, "z %e dT %e Tmat %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e dTdz_stars %e \n", z,dTdz, preio->reionization_table[i*preio->re_size+preio->index_re_Tb],dTdz_adia, dTdz_CMB ,dTdz_DM,dTdz_stars);
+      // fprintf(stdout, "z %e dT %e Tmat %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e dTdz_stars %e opacity %e xe %e energy_rate %e chi_heat %e pvecback[pba->index_bg_H] %e\n", z,dTdz, preio->reionization_table[i*preio->re_size+preio->index_re_Tb],dTdz_adia, dTdz_CMB ,dTdz_DM,energy_rate,chi_heat,pvecback[pba->index_bg_H]);
+      fprintf(stdout, "z %e dT %e Tmat %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e dTdz_stars %e opacity %e xe %e energy_rate %e chi_heat %e H %e\n", z,dTdz, preio->reionization_table[i*preio->re_size+preio->index_re_Tb],dTdz_adia, dTdz_CMB ,dTdz_DM,dTdz_stars,opacity,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate,chi_heat,pvecback[pba->index_bg_H]);
       }
       /** - --> increment baryon temperature  */
 

@@ -461,12 +461,10 @@ int spectra_pk_at_z(
 
     }
   }
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
-    }
   /** - fourth step: depending on requested mode (linear or logarithmic), apply necessary transformation to the output arrays */
 
-  /** - --> (a) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
+  /** - --> (a) linear mode: if only one initial condition, convert output_tot to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
 
   if (mode == linear) {
 
@@ -895,9 +893,7 @@ int spectra_pk_nl_at_z(
       output_tot[index_k] = exp(output_tot[index_k]);
     }
   }
-  for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-    printf("output_tot[index_k] %e \n",output_tot[index_k]);
-  }
+
   return _SUCCESS_;
 
 }
@@ -1361,6 +1357,7 @@ int spectra_init(
     psp->alpha_RR_2_2500=TT_RR/(TT_II+TT_RI+TT_RR);
 
     if (ppt->has_cdi==_TRUE_) {
+
       psp->alpha_kp=ppm->f_cdi*ppm->f_cdi
         /(1.+ppm->f_cdi*ppm->f_cdi);
 
@@ -2554,14 +2551,14 @@ int spectra_pk(
   /** - define local variables */
 
   int index_md;
-  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_ic1,index_ic2,index_ic1_ic1,index_ic2_ic2,index_ic1_ic2;
   int index_k;
   int index_tau;
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   double source_ic1;
   double source_ic2;
-  double ln_pk_tot;
-  double primordial_pk_poissonian_noise, Amplitude, tilt;
+  double pk_tot=0.,ln_pk_tot=0.;
+
   /** - check the presence of scalar modes */
 
   class_test((ppt->has_scalars == _FALSE_),
@@ -2596,7 +2593,7 @@ int spectra_pk(
                  ppm->error_message,
                  psp->error_message);
 
-      ln_pk_tot =0;
+      pk_tot =0;
 
       /* curvature primordial spectrum:
          P_R(k) = 1/(2pi^2) k^3 <R R>
@@ -2616,31 +2613,23 @@ int spectra_pk(
         source_ic1 = ppt->sources[index_md]
           [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
           [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
-        Amplitude = 0;
-        // Amplitude = 30/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/(8*_PI_*_PI_*_PI_);
-        tilt = 4;
-        // Amplitude = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2)
-        primordial_pk_poissonian_noise = 0;
-        // primordial_pk_poissonian_noise = Amplitude*exp((tilt-1.)*log(exp(psp->ln_k[index_k])/ppm->k_pivot));
+
         psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
           log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
               *source_ic1*source_ic1
-              *exp(primordial_pk[index_ic1_ic2]
-            + 2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
-                *source_ic1*source_ic1*primordial_pk_poissonian_noise));
+              *exp(primordial_pk[index_ic1_ic2]));
 
-        ln_pk_tot += exp(psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]);
-
-        // ln_pk_tot += 2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
-        //     *source_ic1*source_ic1
-        //     *exp(primordial_pk[index_ic1_ic2]);
+        pk_tot += exp(psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]);
 
       }
+
       /* part non-diagonal in initial conditions */
       for (index_ic1 = 0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
         for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
 
           index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
+          index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md]);
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
@@ -2655,7 +2644,10 @@ int spectra_pk(
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
               primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 
-            ln_pk_tot += exp(psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]);
+            pk_tot += psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
+              * sqrt(psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic1]
+                     * psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic2_ic2]);
+
 
           }
           else {
@@ -2663,16 +2655,17 @@ int spectra_pk(
           }
         }
       }
+
+      ln_pk_tot = log(pk_tot);
+
       /* if non-linear corrections required, compute the total non-linear matter power spectrum */
-      ln_pk_tot = log(ln_pk_tot);
 
       if (pnl->method != nl_none) {
 
         psp->ln_pk_nl[index_tau * psp->ln_k_size + index_k] =
           ln_pk_tot
-          // + 2.*log(pnl->nl_corr_density[(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k]);
-          + 2.*log(pnl->nl_corr_density[(index_tau-psp->ln_tau_size+pnl->tau_size) * pnl->k_size + index_k]);
-        printf("Pk_nl %e Pk %e 2*log(corr) %e %d\n", exp(psp->ln_pk_nl[index_tau * psp->ln_k_size + index_k]),exp(ln_pk_tot),2.*log(pnl->nl_corr_density[(index_tau-psp->ln_tau_size+ppt->tau_size) * pnl->k_size + index_k]),(index_tau-psp->ln_tau_size+ppt->tau_size) * pnl->k_size + index_k);
+          + 2.*log(pnl->nl_corr_density[(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k]);
+
       }
     }
   }
