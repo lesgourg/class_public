@@ -2211,8 +2211,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
 
             M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
             L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-
+            // L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
 
           }
@@ -2377,7 +2376,7 @@ int thermodynamics_energy_injection(
         // // /* number of hydrogen nuclei today in m**-3 */
         nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
-        /*Value from Poulin 1508.01370*/
+        /*Value from Poulin et al. 1508.01370*/
         /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
         // factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
         // exponent_z = 8;
@@ -2444,14 +2443,10 @@ int thermodynamics_energy_injection(
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);
+
+       /* effective energy density rate in J/m^3/s  */
+       *energy_rate = result;
     }
-
-
-
-
-    /* effective energy density rate in J/m^3/s  */
-    *energy_rate = result;
-
   }
   else {
     *energy_rate = 0.;
@@ -5096,6 +5091,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
+          // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE),(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE)*(0.369202*pow(1.-pow(x,0.463929),1.70237)+0.0312604*pow(1.-pow(x,0.200634),0.82247)));
         }
         /* old approximation from Chen and Kamionkowski */
         if(pth->energy_repart_functions==SSCK){
@@ -5123,7 +5119,6 @@ else energy_rate=0;
         chi_ionHe = 0.;
         chi_lya = 0.;
       }
-      if(chi_ionH < 0 )fprintf(stdout, "chi_ionH %e \n",chi_ionH);
       if(pth->thermodynamics_verbose>10){
         fprintf(stdout, "chi_ionH %e chi_ionHe %e chi_lya %e z% e\n", chi_ionH , chi_ionHe, chi_lya, z);
       }
