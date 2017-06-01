@@ -9,7 +9,7 @@ root_path = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
 sys.path.insert(0, root_path)
 
 usage = "usage: %prog [options] [FILE] "
-parser = optparse.OptionParser(usage=usage, version="%prog 1.0")
+parser = optparse.OptionParser(usage=usage, version="%prog 0.5")
 
 #verbose_group = optparse.OptionGroup(parser,'Verbose options')
 #verbose_group.add_option("-q", "--quiet",
@@ -24,10 +24,10 @@ parser.add_option("-f", "--file", default = None, dest='script_file',
                   help="Use script file FILE")
 parser.add_option("-s", "--specfile", default= None , metavar='SPECFILE', dest = 'specfile',
                   help="Use the spectrum provided in SPECFILE")
-parser.add_option("--hist", default='annihilation', choices=['annihilation','decay','PBH'], dest='injection_history',
-                  help="Define the injection history of the model.")
 parser.add_option("-m","--model", dest='model', metavar='MODEL',
                   help="Load a preprocessed model")
+parser.add_option("--hist", default='annihilation', choices=['annihilation','decay','PBH'], dest='injection_history',
+                  help="Define the injection history of the model.")
 parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 3e-5),
                   help="Define the background parameters (H0, Omega_m, Omega_r) for the calculation of H(z) and t(z)")
                                
@@ -35,10 +35,12 @@ parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", de
 if len(args) == 0:
     args = ''
 
-from DarkAges.common import print_info, print_warning, print_error, set_cosmology
-import DarkAges.recipes as recipes
+os.environ['DARKAGES_BG_H0'] = '{}'.format(options.background[0])
+os.environ['DARKAGES_BG_OM_M'] = '{}'.format(options.background[1])
+os.environ['DARKAGES_BG_OM_R'] = '{}'.format(options.background[2])
 
-#Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology(H0 = options.background[0], Om_M = options.background[1], Om_R = options.background[2])
+from DarkAges import transfer_functions, logEnergies, redshift
+import DarkAges.recipes as recipes
 
 if options.model:
 	recipes.access_model(options.model, args)

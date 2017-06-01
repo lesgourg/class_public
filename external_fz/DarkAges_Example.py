@@ -2,8 +2,9 @@
 
 import sys
 import os
-import DarkAges
 import numpy as np
+
+import DarkAges
 from DarkAges import *
 
 #######################

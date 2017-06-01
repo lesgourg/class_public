@@ -1,5 +1,8 @@
 import numpy as np
-from common import *
+import os
+import sys
+from common import channel_dict, finalize, sample_spectrum, print_info, print_error
+from __init__ import redshift, logEnergies, transfer_functions
 from model import model 
 
 ##### Functions related to executing a script-like file

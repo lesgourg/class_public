@@ -1,6 +1,5 @@
 import numpy as np
-import dill
-from common import print_info, print_warning, print_error
+from common import print_warning 
 
 class transfer(object):
     def __init__(self, infile):
@@ -16,14 +15,16 @@ class transfer(object):
         self.transfer_elec = data[3].reshape(l1,l2,l3).astype(np.float64)   
 
 def transfer_dump(transfer_instance, outfile):
+	import dill
 	if not isinstance(transfer_instance, transfer):
 		print_warning('You did not include a proper instance of the class "transfer"')
 		return -1
 	with open(outfile, 'wb') as f_dump:
-		dill.dump(transfer, f_dump)
+		dill.dump(transfer_instance, f_dump)
 	return 0
 
 def transfer_load(infile):
+	import dill
 	loaded_transfer = dill.load(open(infile, 'rb'))
 	if not isinstance(loaded_transfer, transfer):
 		print_warning('The file {} does not provide a proper instance of the class "transfer"'.format(infile))

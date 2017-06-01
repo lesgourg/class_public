@@ -10,7 +10,7 @@ afterwards transformed backwards
 
 import numpy as np
 from scipy.interpolate import interp1d
-import common as misc
+from common import nan_clean
 
 class logInterpolator(object):
     def __init__(self, x, y, exponent=1):
@@ -52,7 +52,7 @@ class logInterpolator(object):
             out = np.zeros_like(xgrid, dtype=np.float64)
         else:
             tmp_out = np.e**(self.log_f_fit(xgrid)) / (xgrid**self.exponent)
-            out = misc.nan_clean( tmp_out )
+            out = nan_clean( tmp_out )
         return out
 
 class logLinearInterpolator(object):
@@ -92,6 +92,6 @@ class logLinearInterpolator(object):
             out = np.zeros_like(xgrid, dtype=np.float64)
         else:
             tmp_out = np.e**(self.log_f_fit(xgrid)) / (xgrid**self.exponent)
-            out = misc.nan_clean( tmp_out )
+            out = nan_clean( tmp_out )
         return out
 

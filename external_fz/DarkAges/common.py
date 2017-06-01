@@ -1,10 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from scipy.integrate import trapz
-from scipy.interpolate import interp1d, interp2d
 import os
 import sys
-import dill
 import numpy as np
 
 ###############################
@@ -31,10 +27,15 @@ def set_cosmology(H0 = 67.27, Om_M = 0.315, Om_R = 8e-5):
 	Cosmo_H0 = H0 * km_per_Mpc # in 1/s
 	Cosmo_Omega_M = Om_M
 	Cosmo_Omega_R = Om_R
-	return Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R
+	return Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R	
 
-Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology()
-		
+if ('DARKAGES_BG_H0' in os.environ) and ('DARKAGES_BG_OM_M' in os.environ) and ('DARKAGES_BG_OM_R' in os.environ):
+	Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology(H0 = float(os.environ['DARKAGES_BG_H0']), 
+                                                           Om_M = float(os.environ['DARKAGES_BG_OM_M']), 
+                                                           Om_R = float(os.environ['DARKAGES_BG_OM_R']))
+else:
+	Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology()
+
 def print_info(message):
 	print('#INFO: {}'.format(message))
 
