@@ -86,6 +86,9 @@ def nan_clean( array ):
     (For example if we sample the injected spectrum 
     for an energy for which we do not have any transfer function)
     '''
+    if np.asarray(array).shape == ():
+        array = np.asarray([array])
+	
     ret = np.empty_like( array, dtype=np.float64 )
     for idx, value in enumerate(array):
         if value == value:
@@ -326,7 +329,7 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE):
      ---->   z_dep | f(z_dep)_heat | f(z_dep)_LyA | f(z_dep)_ionH  | f(z_dep)_ionHe | f(z_dep)_LowE  <--------  
     '''
     first = 2 
-    last = len(redshift) - 7
+    last = len(redshift) - 1
     min_z = 0.
     max_z = 1e4
     print(50*'#')

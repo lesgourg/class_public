@@ -24,7 +24,7 @@ for mass, primary in itertools.product(*(masses,primaries)):
 	idx_mass = get_index(masses, mass)
 	idx_prim = get_index(primaries, primary)
 	fname = os.path.join(model_dir, 'data/{:s}_{:d}_spectrum.dat'.format(primary,mass))
-	tmp_model = load_from_spectrum(fname,  logEnergies)
+	tmp_model = load_from_spectrum(fname, logEnergies, mass, np.inf)
 	for channel in channel_dict:
 		idx_chan = channel_dict[channel]
 		f_grid[idx_mass,idx_prim,idx_chan,:] = tmp_model.calc_f(transfer_functions[idx_chan])[-1]

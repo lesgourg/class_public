@@ -10,7 +10,7 @@ afterwards transformed backwards
 
 import numpy as np
 from scipy.interpolate import interp1d
-from common import nan_clean
+from common import nan_clean, print_warning
 
 class logInterpolator(object):
     def __init__(self, x, y, exponent=1):
@@ -19,7 +19,7 @@ class logInterpolator(object):
         try:
             assert len(x) == len(y)
         except AssertionError:
-            print 'Array of x-values does not correspond to the array of y-values (different sizes)'
+            print_warning('Array of x-values does not correspond to the array of y-values (different sizes)')
             self.valid = False
             return None
     
@@ -46,8 +46,10 @@ class logInterpolator(object):
         return None
 
     def __call__(self, xgrid):
-        if xgrid.shape == ():
+        if type(xgrid) is not list and type(xgrid) is not np.ndarray:
 			xgrid = np.asarray([xgrid])
+        else:
+            xgrid = np.asarray(xgrid)	
         if not self.valid:
             out = np.zeros_like(xgrid, dtype=np.float64)
         else:
@@ -62,7 +64,7 @@ class logLinearInterpolator(object):
         try:
             assert len(x) == len(y)
         except AssertionError:
-            print 'Array of x-values does not correspond to the array of y-values (different sizes)'
+            print_warning('Array of x-values does not correspond to the array of y-values (different sizes)')
             self.valid = False
             return None
     
@@ -86,8 +88,10 @@ class logLinearInterpolator(object):
         return None
 
     def __call__(self, xgrid):
-        if xgrid.shape == ():
+        if type(xgrid) is not list and type(xgrid) is not np.ndarray:
 			xgrid = np.asarray([xgrid])
+        else:
+            xgrid = np.asarray(xgrid)
         if not self.valid:
             out = np.zeros_like(xgrid, dtype=np.float64)
         else:

@@ -17,7 +17,7 @@ from DarkAges import redshift
 
 if len(sys.argv) <3:
 	print_error("There are too few arguments passed. I expected at least 2")
-sampling_mass = np.asarray(float(sys.argv[1]))
+sampling_mass = float(sys.argv[1])
 if sampling_mass < 50 or sampling_mass > 100:
 	print_error("The mass-parameter sholud be in the range [50 GeV, 100 GeV]")
 mixing = float(sys.argv[2])

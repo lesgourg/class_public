@@ -21,12 +21,12 @@ def execute_script_file(ext_script_file, *arguments):
 
 ##### Functions related to loading a model from a file contiaining the input spectra (and mass)
 
-def loading_from_specfile(fname, transfer_functions, logEnergies, redshift, history):
-	model_from_file = load_from_spectrum(fname, logEnergies, hist=history)
+def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec, history, branchings=[1.]):
+	model_from_file = load_from_spectrum(fnames, logEnergies, mass, t_dec, hist=history, branchings=branchings)
 	try:
 		assert len(channel_dict) == len(transfer_functions)
 	except AssertionError:
-		print_error('The number of "transfer" instances ({.d}) and the number of channels ({.d}) do not match'.format(len(transfer_functions),len(channel_dict)))
+		print_error('The number of "transfer" instances ({:d}) and the number of channels ({:d}) do not match'.format(len(transfer_functions),len(channel_dict)))
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
@@ -39,22 +39,22 @@ def loading_from_specfile(fname, transfer_functions, logEnergies, redshift, hist
        		 f_function[channel_dict['He-Ion']],        
 			 f_function[channel_dict['LowE']])
 
-def load_from_spectrum(fname,  logEnergies, hist='annihilation'):
-	spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)
-	masses = np.unique( spec_data[0] )
-	if masses.shape[-1] > 1:
-		example_model = np.empty(shape = masse.shape, dtype=model)
-		for idx in xrange(mass.shape[-1]):
-			mass = masses[idx]
-			mass_mask = (masses == mass) 
-			spec_el, spec_ph, spec_oth = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies)
-			#example_model[idx] = model(spec_el, spec_ph, spec_oth, 1e9*mass)
-			example_model[idx] = model(spec_el, spec_ph, spec_oth, 1e9*mass, t_dec = 1e18, history=hist)
+def load_from_spectrum(fnames, logEnergies, mass, t_dec, hist='annihilation', branchings=np.asarray([1.])):
+	if type(fnames) is not list and type(fnames) is not np.ndarray:  
+		fnames = np.asarray([fnames])
 	else:
-		mass = masses[0]
-		spec_el, spec_ph, spec_oth = sample_spectrum(spec_data[2], spec_data[3], spec_data[4], spec_data[1], mass, logEnergies)
-		#example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass)
-		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, t_dec = 1e18, history=hist)
+		fnames = np.asarray(fnames)
+	temp_spec = np.empty(shape=(3,len(fnames),len(logEnergies)))	
+	for idx, fname in enumerate(fnames):	
+		print fname
+		spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)			 
+		mass_mask = np.absolute(spec_data[0] - mass) <= 1e5
+		temp_spec[:,idx,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies)
+	spec_el, spec_ph, spec_oth = np.tensordot(temp_spec, branchings, axes=(1,0))	
+	if hist == 'decay':
+		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, t_dec = t_dec, history='decay')
+	else:
+		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, history=hist)
 
 	return example_model
 
