@@ -1,0 +1,53 @@
+#!/usr/bin/python
+
+import os
+import sys
+import optparse
+import numpy as np
+
+root_path = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
+sys.path.insert(0, root_path)
+
+usage = "usage: %prog [options] [FILE] "
+parser = optparse.OptionParser(usage=usage, version="%prog 0.5")
+
+#verbose_group = optparse.OptionGroup(parser,'Verbose options')
+#verbose_group.add_option("-q", "--quiet",
+#                         action="store_const", const=0, default=1, dest="verbose")
+#verbose_group.add_option("-v", "--verbose",
+#                         action="store_const", const=1, dest="verbose")
+#verbose_group.add_option("--noisy",
+#                         action="store_const", const=2, dest="verbose")
+
+#parser.add_option_group(verbose_group)
+parser.add_option("-f", "--file", default = None, dest='script_file',
+                  help="Use script file FILE")
+parser.add_option("-s", "--specfile", default= None , metavar='SPECFILE', dest = 'specfile',
+                  help="Use the spectrum provided in SPECFILE")
+parser.add_option("-m","--model", dest='model', metavar='MODEL',
+                  help="Load a preprocessed model")
+parser.add_option("--hist", default='annihilation', choices=['annihilation','decay','PBH'], dest='injection_history',
+                  help="Define the injection history of the model.")
+parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 3e-5),
+                  help="Define the background parameters (H0, Omega_m, Omega_r) for the calculation of H(z) and t(z)")
+                               
+(options, args) = parser.parse_args()
+if len(args) == 0:
+    args = ''
+
+os.environ['DARKAGES_BG_H0'] = '{}'.format(options.background[0])
+os.environ['DARKAGES_BG_OM_M'] = '{}'.format(options.background[1])
+os.environ['DARKAGES_BG_OM_R'] = '{}'.format(options.background[2])
+
+from DarkAges import transfer_functions, logEnergies, redshift
+import DarkAges.recipes as recipes
+
+if options.model:
+	recipes.access_model(options.model, args)
+
+if options.script_file:
+	recipes.execute_script_file(options.script_file, args)
+
+if options.specfile:
+	recipes.loading_from_specfile(options.specfile, transfer_functions, logEnergies, redshift, options.injection_history)
+

@@ -21,9 +21,9 @@ test/
 script*
 sfr.dat
 *.png
-external_fz/*.pyc
-external_fz/spectra/*.obj
+external_fz/DarkAges/*.pyc
 external_fz/transfer_functions/*.obj
+external_fz/models/*/*.obj
 external_fz_playground/
 external_fz_old/
 # CosmoRec
