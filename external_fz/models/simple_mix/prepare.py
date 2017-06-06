@@ -35,8 +35,10 @@ for primary, idx_chan, z in itertools.product(*(primaries,channel_dict.values(),
 	idx_z = get_index(redshift, z)
 	interpolated_f[idx_prim, idx_chan, idx_z] = logInterpolator(masses, f_grid[:,idx_prim,idx_chan,idx_z], 0)	
 
+dump_dict = {'f-function': interpolated_f}
+
 with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'wb') as dump_file:
-	dill.dump(interpolated_f, dump_file)
+	dill.dump(dump_dict, dump_file)
 	
 		
 		

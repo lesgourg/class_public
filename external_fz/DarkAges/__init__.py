@@ -4,9 +4,9 @@ import os
 os.environ['DARKAGES_BASE'] = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
 sys.path.insert(0, os.environ['DARKAGES_BASE'])
 
-from common import *
-from transfer import transfer, transfer_dump, transfer_load
-from model import model
+from .common import *
+from .transfer import transfer, transfer_dump, transfer_load
+from .model import model
 
 def transfer_init_and_dump(transfer_functions):
 	transfer_functions[channel_dict['H-Ion']] = transfer(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/original/Transfer_Ch1.dat'))
@@ -23,13 +23,13 @@ def transfer_init_and_dump(transfer_functions):
 	return transfer_functions
 
 def transfer_load_from_dump(transfer_functions):
-	transfer_functions[channel_dict['H-Ion']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch1.obj') )	
-	transfer_functions[channel_dict['He-Ion']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch2.obj') )	
-	transfer_functions[channel_dict['Ly-A']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch3.obj') )	
-	transfer_functions[channel_dict['Heat']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch4.obj') )	
-	transfer_functions[channel_dict['LowE']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch5.obj') )	
-	
-	return transfer_functions	
+	transfer_functions[channel_dict['H-Ion']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch1.obj') )
+	transfer_functions[channel_dict['He-Ion']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch2.obj') )
+	transfer_functions[channel_dict['Ly-A']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch3.obj') )
+	transfer_functions[channel_dict['Heat']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch4.obj') )
+	transfer_functions[channel_dict['LowE']] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch5.obj') )
+
+	return transfer_functions
 
 #################################
 
@@ -37,7 +37,7 @@ transfer_functions = np.empty(shape=5, dtype=transfer)
 
 transfer_is_initialized = True
 for i in xrange(1,6):
-	transfer_is_initialized = transfer_is_initialized and os.path.isfile(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/transfer_Ch%i.obj' % i)) 
+	transfer_is_initialized = transfer_is_initialized and os.path.isfile(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/transfer_Ch%i.obj' % i))
 
 if not transfer_is_initialized:
 	print_info('The transfer seem not to be initialized. This will be done now. this may take a few seconds.')

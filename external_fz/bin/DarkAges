@@ -53,6 +53,8 @@ parser.add_option("-b","--branching", metavar='BRANCHING', action='callback', ca
                   help="If using more than one spectrum specify the branching ratio")
 parser.add_option("-m","--model", dest='model', metavar='MODEL',
                   help="Load a preprocessed model")
+parser.add_option("--rebuild_model", action='store_true', dest='rebuild_model', default=False,
+                  help="Force rebuilding a model")
 parser.add_option("--hist", default='annihilation', choices=['annihilation','decay','PBH'], dest='injection_history',
                   help="Define the injection history of the model.")
 parser.add_option("--mass", type="float", dest='mass',
@@ -78,10 +80,10 @@ if options.injection_history == 'decay' and (options.t_dec==None):
 	print_error('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
 
 if options.model:
-	recipes.access_model(options.model, args)
+	sys.exit( recipes.access_model(options.model, options.rebuild_model, args) )
 
 if options.script_file:
-	recipes.execute_script_file(options.script_file, args)
+	sys.exit( recipes.execute_script_file(options.script_file, args) )
 
 if options.specfile:
 	if not options.mass:
@@ -100,6 +102,6 @@ if options.specfile:
 		print_error('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
 	
 	if hasattr(options, 't_dec'):
-		recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec, options.injection_history, branchings=options.branchings)
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec, options.injection_history, branchings=options.branchings) )
 	else:
-		recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings)
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings) )

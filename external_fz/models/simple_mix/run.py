@@ -28,7 +28,8 @@ model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]
 
 with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'rb') as dump_file:
-	interpolated_f = dill.load(dump_file)
+	dump_dict = dill.load(dump_file)
+	interpolated_f = dump_dict.get('f-function')
 
 f_functions = np.zeros(shape=(5,len(redshift)))
 for idx_chan, z in itertools.product(*(channel_dict.values(),redshift)):
