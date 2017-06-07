@@ -1471,6 +1471,14 @@ int input_read_parameters(
         pth->PBH_accretion_recipe=Gaggero_et_al;
         flag2=_TRUE_;
       }
+      if (strcmp(string1,"Thin_disk") == 0) {
+        pth->PBH_accretion_recipe=Thin_disk;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"ADAF") == 0) {
+        pth->PBH_accretion_recipe=ADAF;
+        flag2=_TRUE_;
+      }
       if (strcmp(string1,"Hybrid") == 0) {
         pth->PBH_accretion_recipe=Hybrid;
         class_read_double("PBH_disk_formation_redshift",pth->PBH_disk_formation_redshift);
@@ -1478,7 +1486,7 @@ int input_read_parameters(
       }
     class_test(flag2==_FALSE_,
                  errmsg,
-                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid'.");
+                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF'.");
     }
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);

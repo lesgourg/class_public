@@ -60,6 +60,8 @@ enum PBH_accretion_recipe {
   Ali_Haimoud, /**< Accretion recipe from Ali_Haimoud & Kamionkowski, arXiv:1612.05644 */
   Ricotti_et_al,  /**< Accretion recipe from Ricotti et al., arXiv:0709.0524 */
   Gaggero_et_al,  /**< Accretion recipe from Gaggero et al., arXiv:1612.00457 */
+  Thin_disk,  /**< Thin disk accretion recipe from Ostriker and Park astro-ph/0001446*/
+  ADAF,  /**< ADAF accretion recipe from Ostriker and Park astro-ph/0001446 */
   Horowitz, /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
   Hybrid /**<A more realistic accretion recipe, with a transition from spherical to disk accretion at a redshift "PBH_disk_formation_redshift" */
 };
