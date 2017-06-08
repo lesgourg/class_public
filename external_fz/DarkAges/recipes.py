@@ -9,7 +9,7 @@ from .model import model
 
 def execute_script_file(ext_script_file, *arguments):
 	import subprocess
-	command = ['python']
+	command = ['{}'.format(sys.executable)]
 	command.append(ext_script_file)
 	if arguments:
 		for arg in arguments[0]:
@@ -71,7 +71,7 @@ def access_model(model_name, force_rebuild = False, *arguments):
 
 def prepare_model(model_dir):
 	import subprocess
-	command = ['python']
+	command = ['{}'.format(sys.executable)]
 	file_to_run = os.path.join(model_dir,'prepare.py')
 	command.append(file_to_run)
 	print_info('Preparing_the model: running script: "{}"'.format(file_to_run))
@@ -83,7 +83,7 @@ def prepare_model(model_dir):
 
 def run_model(model_dir, *arguments):
 	import subprocess
-	command = ['python']
+	command = ['{}'.format(sys.executable)]
 	file_to_run = os.path.join(model_dir,'run.py')
 	command.append(file_to_run)
 	if arguments:
