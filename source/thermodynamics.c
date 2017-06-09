@@ -2364,7 +2364,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
           L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
           L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-          if(z>20)fprintf(stdout, "%e   %e  %e  %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_));
+          // if(z>20)fprintf(stdout, "%e   %e  %e  %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_));
           // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
         }
         else if (preco->PBH_accretion_recipe == Hybrid){
