@@ -2322,7 +2322,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
             // else epsilon = 0.1;
             L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
 
           }
         //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
