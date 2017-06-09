@@ -2098,7 +2098,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
   double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2,M_crit;
   double rho, m_p = 938, m_e = 0.511, T_infinity = 0, rho_infinity = 0, x_e_infinity = 0, P_infinity = 0, rho_cmb = 0, t_B = 0, v_B = 0;
   double lambda_1,lambda_2,lambda_ad,lambda_iso,gamma_cooling,beta_compton_drag, T_s, T_ion, Y_s, J,tau_cooling;
-
+  double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1;
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
@@ -2126,12 +2126,12 @@ int thermodynamics_high_mass_pbh_energy_injection(
         // x_e = 1;
         x_e = preco->xe_tmp;
         T_infinity = preco->Tm_tmp*_eV_over_Kelvin_*1e-6; //Temperature in MeV
-        M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
-        L_ed = M_ed_dot*_c_*_c_; // J s^-1;
+
 
 
         if(preco->PBH_accretion_recipe == Ricotti_et_al || preco->PBH_accretion_recipe == Horowitz){
-
+            M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
+            L_ed = M_ed_dot*_c_*_c_; // J s^-1;
             if(preco->PBH_accretion_recipe == Ricotti_et_al){
               if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
               if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
@@ -2200,6 +2200,10 @@ int thermodynamics_high_mass_pbh_energy_injection(
 
         //Third way of computing m_dot and L_acc from Gaggero et al. arXiv:1612.00457
         else if(preco->PBH_accretion_recipe == Gaggero_et_al){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
+            M_crit = 0.01*M_ed_dot; //1% of the eddington accretion rate.
             //v_eff not clearly given, I use the alternative v_eff by Ali-Haimoud et al.
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             v_l = 30*MIN(1,z/1000)*1e3;
@@ -2208,51 +2212,117 @@ int thermodynamics_high_mass_pbh_energy_injection(
             lambda = 0.01;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
             M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-            M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
             if(M_b_dot<M_crit) epsilon = 0.1 * M_b_dot / M_crit ;
             else epsilon = 0.1;
             L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            // fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed),0.1*M_b_dot/M_crit);
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/(M_ed_dot),L_acc_2/(0.3*L_ed),epsilon);
 
           }
         //Thin Disk accretion using quantities from Ostriker and Park 2000: lambda = 1, epsilon = 0.1.
         else if(preco->PBH_accretion_recipe == Thin_disk){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             v_l = 30*MIN(1,z/1000)*1e3;
             if(v_B < v_l) v_eff = sqrt(v_B*v_l);
             else v_eff = v_B;
-            lambda = 1;
+            lambda = preco->PBH_accretion_eigenvalue;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
             M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-            // M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
-            // if(M_b_dot<M_crit) epsilon = 0.1 * M_b_dot / M_crit ;
-            // else epsilon = 0.1;
             epsilon = 0.1;
-            L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            // fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed),0.1*M_b_dot/M_crit);
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
 
           }
           //ADAF accretion using quantities from Ostriker and Park 2000: lambda = 1, epsilon = 0.1mdot.
         else if(preco->PBH_accretion_recipe == ADAF){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             v_l = 30*MIN(1,z/1000)*1e3;
             if(v_B < v_l) v_eff = sqrt(v_B*v_l);
             else v_eff = v_B;
-            lambda = 1;
+            lambda = preco->PBH_accretion_eigenvalue;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
             M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-            // M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
-            // if(M_b_dot<M_crit) epsilon = 0.1 * M_b_dot / M_crit ;
-            // else epsilon = 0.1;
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-            epsilon = 0.1*M_b_dot*_c_*_c_/L_ed; 
-            L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            if(M_b_dot <= M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
+            else epsilon = 0.1;
+            // L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            // fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed),0.1*M_b_dot/M_crit);
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
+
+          }
+        else if(preco->PBH_accretion_recipe == ADAF_Simulation){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
+            M_crit = 0.01*M_ed_dot;
+            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+            v_l = 30*MIN(1,z/1000)*1e3;
+            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            else v_eff = v_B;
+            lambda = preco->PBH_accretion_eigenvalue;
+            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
+            if(preco->PBH_ADAF_delta == 1e-3){
+              Value_min = 7.6e-5;
+              Value_med = 4.5e-3;
+              Value_max = 7.1e-3;
+              if(M_b_dot/M_ed_dot <= Value_min){
+                epsilon_0 = 0.065;
+                a = 0.71;
+              }
+              else if(Value_min < M_b_dot/M_ed_dot <= Value_med){
+                epsilon_0 = 0.020;
+                a = 0.47;
+              }
+              else if(Value_med < M_b_dot/M_ed_dot <= Value_max){
+                epsilon_0 = 0.26;
+                a = 3.67;
+              }
+              else{
+                epsilon_0 = 0.1;
+                a = 0.;
+              }
+              epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+            }
+            else if (preco->PBH_ADAF_delta == 0.5){
+
+              Value_min = 2.9e-5;
+              Value_med = 3.3e-3;
+              Value_max = 5.3e-3;
+              if(M_b_dot/M_ed_dot <= Value_min){
+                epsilon_0 = 1.58;
+                a = 0.65;
+              }
+              else if(Value_min < M_b_dot/M_ed_dot <= Value_med){
+                epsilon_0 = 0.055;
+                a = 0.076;
+              }
+              else if(Value_med < M_b_dot/M_ed_dot <= Value_max){
+                epsilon_0 = 0.17;
+                a = 1.12;
+              }
+              else{
+                epsilon_0 = 0.1;
+                a = 0.;
+              }
+              epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+            }
+
+
+
+            // if(M_b_dot<M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
+            // else epsilon = 0.1;
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
+            if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
 
           }
         //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
@@ -2294,7 +2364,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
           L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
           L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-          // fprintf(stdout, "%e   %e  %e  %e \n",z,M_b_dot*_c_*_c_/L_ed,L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_));
+          // if(z>20)fprintf(stdout, "%e   %e  %e  %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_));
           // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
         }
         else if (preco->PBH_accretion_recipe == Hybrid){
@@ -4590,6 +4660,8 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay_fraction = pth->decay_fraction;
   preco->PBH_high_mass = pth->PBH_high_mass;
+  preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
+  preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
   preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
   preco->energy_deposition_treatment = pth->energy_deposition_treatment;

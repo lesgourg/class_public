@@ -1479,6 +1479,11 @@ int input_read_parameters(
         pth->PBH_accretion_recipe=ADAF;
         flag2=_TRUE_;
       }
+      if (strcmp(string1,"ADAF_Simulation") == 0) {
+        pth->PBH_accretion_recipe=ADAF_Simulation;
+        class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
+        flag2=_TRUE_;
+      }
       if (strcmp(string1,"Hybrid") == 0) {
         pth->PBH_accretion_recipe=Hybrid;
         class_read_double("PBH_disk_formation_redshift",pth->PBH_disk_formation_redshift);
@@ -1486,12 +1491,12 @@ int input_read_parameters(
       }
     class_test(flag2==_FALSE_,
                  errmsg,
-                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF'.");
+                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF','ADAF_Simulation'.");
     }
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-
+  class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue);
   class_test(pth->PBH_high_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
@@ -1510,7 +1515,8 @@ int input_read_parameters(
   class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_low_mass!= 0.,
                errmsg,
                "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
-
+  class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5 ,errmsg,
+   "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3 or 0.5.");
 
   if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
@@ -3440,6 +3446,7 @@ int input_default_params(
   pth->energy_deposition_treatment = Analytical_approximation;
   pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
+  pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
   pth->energy_repart_functions = Galli_et_al_fit;
   pth->u_gcdm=0.;
   pth->beta_gcdm=0.;
@@ -3451,7 +3458,7 @@ int input_default_params(
   /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
   pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //
   /************************************************************************/
-
+  pth->PBH_ADAF_delta = 1e-3; //Default case is most conservative //
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;

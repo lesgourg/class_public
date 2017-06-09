@@ -61,7 +61,8 @@ enum PBH_accretion_recipe {
   Ricotti_et_al,  /**< Accretion recipe from Ricotti et al., arXiv:0709.0524 */
   Gaggero_et_al,  /**< Accretion recipe from Gaggero et al., arXiv:1612.00457 */
   Thin_disk,  /**< Thin disk accretion recipe from Ostriker and Park astro-ph/0001446*/
-  ADAF,  /**< ADAF accretion recipe from Ostriker and Park astro-ph/0001446 */
+  ADAF,  /**< ADAF accretion recipe from Narayan and Yi 1995 */
+  ADAF_Simulation,  /**< ADAF accretion recipe from Xie and Yuan 2012 */
   Horowitz, /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
   Hybrid /**<A more realistic accretion recipe, with a transition from spherical to disk accretion at a redshift "PBH_disk_formation_redshift" */
 };
@@ -268,7 +269,8 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
   double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   int coll_ion_pbh;   /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
-
+  double PBH_ADAF_delta; /**<Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in the disk, influencing the emissivity. Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
+  double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
 
   /** for DM-baryons scattering, see 1309.7588 */
 
@@ -500,6 +502,8 @@ struct recombination {
 
   double decay_fraction; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_ADAF_delta; /**<Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in the disk, influencing the emissivity. Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
+  double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
