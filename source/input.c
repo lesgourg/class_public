@@ -1008,9 +1008,6 @@ int input_read_parameters(
              "It looks like you want to fulfil the closure relation sum Omega = 1 using the scalar field, so you have to specify both Omega_lambda and Omega_fld in the .ini file");
 
   if (pba->Omega0_fld != 0.) {
-    class_read_double("w0_fld",pba->w0_fld);
-    class_read_double("wa_fld",pba->wa_fld);
-    class_read_double("cs2_fld",pba->cs2_fld);
 
     class_call(parser_read_string(pfc,
                                   "use_ppf",
@@ -1030,6 +1027,32 @@ int input_read_parameters(
       }
     }
 
+    class_call(parser_read_string(pfc,"fluid_equation_of_state",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+
+      if ((strstr(string1,"CLP") != NULL) || (strstr(string1,"clp") != NULL)) {
+        pba->fluid_equation_of_state = CLP;
+
+        class_read_double("w0_fld",pba->w0_fld);
+        class_read_double("wa_fld",pba->wa_fld);
+        class_read_double("cs2_fld",pba->cs2_fld);
+      }
+
+      else if ((strstr(string1,"EDE") != NULL) || (strstr(string1,"ede") != NULL)) {
+        pba->fluid_equation_of_state = EDE;
+
+        class_read_double("w0_fld",pba->w0_fld);
+        class_read_double("Omega_EDE",pba->Omega_EDE);
+        class_read_double("cs2_fld",pba->cs2_fld);
+      }
+
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'fluid_equation_of_state'",string1);
+      }
+    }
   }
 
   /* Additional SCF parameters: */
@@ -2894,11 +2917,13 @@ int input_default_params(
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
-  pba->w0_fld=-1.;
-  pba->wa_fld=0.;
-  pba->cs2_fld=1.;
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;
+  pba->fluid_equation_of_state = CLP;
+  pba->w0_fld = -1.;
+  pba->wa_fld = 0.;
+  pba->Omega_EDE = 0.;
+  pba->cs2_fld = 1.;
 
   pba->shooting_failed = _FALSE_;
 

@@ -473,15 +473,59 @@ int background_w_fld(
                      double * dw_over_da_fld,
                      double * integral_fld) {
 
+  double Omega_ede = 0.;
+  double dOmega_ede_over_da = 0.;
+  double d2Omega_ede_over_da2 = 0.;
+  double a_eq, Omega_r, Omega_m;
+
   /** - first, define the function w(a) */
-  *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+    break;
+  case EDE:
+    // Omega_ede(a) taken from eq. (10) in 1706.00730
+    Omega_ede = (pba->Omega0_fld - pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld)))
+      /(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld))
+      + pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld));
+
+    // d Omega_ede / d a taken analytically from the above
+    dOmega_ede_over_da = - pba->Omega_EDE* 3.*pba->w0_fld*pow(a,-3.*pba->w0_fld-1.)/(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld))
+      - (pba->Omega0_fld - pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld)))*(1.-pba->Omega0_fld)*3.*pba->w0_fld*pow(a,3.*pba->w0_fld-1.)/pow(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld),2)
+      + pba->Omega_EDE*3.*pba->w0_fld*pow(a,-3.*pba->w0_fld-1.);
+
+    // find a_equality (needed because EDE tracks first radiation, then matter)
+    Omega_r = pba->Omega0_g * (1. + 3.046 * 7./8.*pow(4./11.,4./3.)); // assumes LambdaCDM + eventually massive neutrinos so light that they are relativistic at equality; needs to be generalised later on.
+    Omega_m = pba->Omega0_b;
+    if (pba->has_cdm == _TRUE_) Omega_m += pba->Omega0_cdm;
+    if (pba->has_dcdm == _TRUE_)
+        class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
+    a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
+    class_stop(pba->error_message,"a_eq = %e, z_eq =%e\n",a_eq,1./a_eq-1.);
+
+    // w_ede(a) taken from eq. (11) in 1706.00730
+    *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
+    break;
+  }
+
 
   /** - then, give the corresponding analytic derivative dw/da (used
         by perturbation equations; we could compute it numerically,
         but with a loss of precision; as long as there is a simple
         analytic expression of the derivative of the previous
         function, let's use it! */
-  *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+    break;
+  case EDE:
+    d2Omega_ede_over_da2 = 0.;
+    *dw_over_da_fld = - d2Omega_ede_over_da2*a/3./(1.-Omega_ede)/Omega_ede
+      - dOmega_ede_over_da/3./(1.-Omega_ede)/Omega_ede
+      + dOmega_ede_over_da*dOmega_ede_over_da*a/3./(1.-Omega_ede)/(1.-Omega_ede)/Omega_ede
+      + a_eq/3./(a+a_eq)/(a+a_eq);
+    break;
+  }
 
   /** - finally, give the analytic solution of the following integral:
         \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
