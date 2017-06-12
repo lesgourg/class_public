@@ -2332,8 +2332,9 @@ int thermodynamics_high_mass_pbh_energy_injection(
           x_e_infinity = x_e; // change to x_e for the no-feedback case
           v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
           v_l = 30*MIN(1,z/1000)*1e3;
-          if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-          else v_eff = v_B;
+          // if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+          // else v_eff = v_B;
+          v_eff = v_B; //Neglect relative velocity of DM & Baryons otherwise a disk form.
           // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
           // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
           // fprintf(stdout, "z %e v_l %e sqrt(5/3)*v_B %e c_s %e \n", z,v_l,sqrt(5./3)*v_B,5.7e3*pow(preco->Tm_tmp/2730,0.5));
