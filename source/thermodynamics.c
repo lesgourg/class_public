@@ -2244,9 +2244,10 @@ int thermodynamics_high_mass_pbh_energy_injection(
             // printf("L_ed %.3e\n",L_ed);
             M_ed_dot= 10*L_ed/(_c_*_c_);
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-            v_l = 30*MIN(1,z/1000)*1e3;
-            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            else v_eff = v_B;
+            // v_l = 30*MIN(1,z/1000)*1e3;
+            // if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            // else v_eff = v_B;
+            v_eff=v_B;
             lambda = preco->PBH_accretion_eigenvalue;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
             M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
@@ -2264,9 +2265,10 @@ int thermodynamics_high_mass_pbh_energy_injection(
             M_ed_dot= 10*L_ed/(_c_*_c_);
             M_crit = 0.01*M_ed_dot;
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-            v_l = 30*MIN(1,z/1000)*1e3;
-            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            else v_eff = v_B;
+            // v_l = 30*MIN(1,z/1000)*1e3;
+            // if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            // else v_eff = v_B;
+            v_eff = v_B;
             lambda = preco->PBH_accretion_eigenvalue;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
             M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
@@ -2285,6 +2287,29 @@ int thermodynamics_high_mass_pbh_energy_injection(
               else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
                 epsilon_0 = 0.26;
                 a = 3.67;
+              }
+              else{
+                epsilon_0 = 0.1;
+                a = 0.;
+              }
+              epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+            }
+            else if (preco->PBH_ADAF_delta == 0.1){
+
+              Value_min = 9.4e-5;
+              Value_med = 5e-3;
+              Value_max = 6.6e-3;
+              if(M_b_dot/M_ed_dot <= Value_min){
+                epsilon_0 = 0.12;
+                a = 0.59;
+              }
+              else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+                epsilon_0 = 0.026;
+                a = 0.27;
+              }
+              else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+                epsilon_0 = 0.50;
+                a = 4.53;
               }
               else{
                 epsilon_0 = 0.1;
@@ -2332,8 +2357,8 @@ int thermodynamics_high_mass_pbh_energy_injection(
           x_e_infinity = x_e; // change to x_e for the no-feedback case
           v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
           v_l = 30*MIN(1,z/1000)*1e3;
-          // if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-          // else v_eff = v_B;
+          if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+          else v_eff = v_B;
           v_eff = v_B; //Neglect relative velocity of DM & Baryons otherwise a disk form.
           // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
           // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
@@ -2355,7 +2380,8 @@ int thermodynamics_high_mass_pbh_energy_injection(
           lambda = lambda_1*lambda_2/lambda_iso;
           rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
           // fprintf(stdout, "rho/m_H %e n_gas %e \n", 0.75*rho/m_H,n_gas);
-          M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
+          // M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
+          M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_B; //in kg s^-1
           T_ion = 1.5e4*_eV_over_Kelvin_;
           tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
           Y_s = pow((1+x_e_infinity)/2,2./3*13.6/T_ion)*tau_cooling/4*pow(1-5./2*tau_cooling,1./3)*m_p/m_e;
@@ -2365,7 +2391,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
           L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
           L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-          // if(z>20)fprintf(stdout, "%e   %e  %e  %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_));
+          // if(z>20)fprintf(stdout, "%e   %e  %e  %e %e %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_),v_eff,v_B);
           // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
         }
         else if (preco->PBH_accretion_recipe == Hybrid){
