@@ -1505,8 +1505,6 @@ int input_read_parameters(
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_fraction>0. && (pth->PBH_high_mass==0. && pth->PBH_low_mass==0.),errmsg,
     "You have asked for a fraction of PBH being DM but you have 'PBH_high_mass == 0 && PBH_low_mass ==0'. Please choose a value (in Msun for PBH_high_mass, in g for PBH_low_mass).");
-  class_test(pth->PBH_high_mass>0. && pth->PBH_fraction==0.,errmsg,
-    "You have entered a 'PBH_high_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
   class_test(pth->PBH_fraction<0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
   class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
