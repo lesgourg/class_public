@@ -8,6 +8,8 @@
 This module defines a class called Class. It is used with Monte Python to
 extract cosmological parameters.
 
+# JL 14.06.2017: TODO: check whether we should free somewhere the allocated fc.filename and titles, data (4 times)
+
 """
 from math import exp,log
 import numpy as np
@@ -465,6 +467,12 @@ cdef class Class:
         cl['ell'] = np.arange(lmax+1)
 
         free(rcl)
+        for index_md in range(self.sp.md_size):
+            free(cl_md[index_md])
+            free(cl_md_ic[index_md])
+        free(cl_md)
+        free(cl_md_ic)
+
         return cl
 
     def lensed_cl(self, lmax=-1,nofail=False):
@@ -636,6 +644,12 @@ cdef class Class:
         cl['ell'] = np.arange(lmax+1)
 
         free(dcl)
+        for index_md in range(self.sp.md_size):
+            free(cl_md[index_md])
+            free(cl_md_ic[index_md])
+        free(cl_md)
+        free(cl_md_ic)
+
         return cl
 
     def z_of_r (self,z_array):
@@ -712,6 +726,8 @@ cdef class Class:
         else:
              if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
                     raise CosmoSevereError(self.sp.error_message)
+
+        free(pk_ic)
         return pk
 
     # Gives the linear pk for a given (k,z)
@@ -740,6 +756,7 @@ cdef class Class:
         if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
+        free(pk_ic)
         return pk
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
