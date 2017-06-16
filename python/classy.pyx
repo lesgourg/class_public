@@ -718,7 +718,7 @@ cdef class Class:
     # Gives the variance sigma for a given (R,z)
     def sigma(self,double R,double z):
         """
-        Gives sigma for a given R and z
+        Gives sigma for a given R in Mpc and z
 
         .. note::
 
