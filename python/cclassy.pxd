@@ -317,6 +317,14 @@ cdef extern from "class.h":
         double z,
         double * output_tot)
 
+    int spectra_sigma(
+        void * pba,
+        void * ppm,
+        void * psp,
+        double R,
+        double z,
+        double * sigma)
+
     int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
 
     int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
