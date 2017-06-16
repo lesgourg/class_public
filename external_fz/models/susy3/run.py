@@ -18,11 +18,15 @@ from DarkAges import redshift, options
 if len(sys.argv) <3:
 	print_error("There are too few arguments passed. I expected at least 2")
 sampling_mass = float(sys.argv[1])
-if sampling_mass < 50 or sampling_mass > 100:
-	print_error("The mass-parameter sholud be in the range [50 GeV, 100 GeV]")
-mixing = float(sys.argv[2])
-if mixing < 0 or mixing > 1:
-	print_error("The mixing-parameter sholud be in the range [0,1]")
+if sampling_mass < 50 or sampling_mass > 500:
+	print_error("The mass-parameter sholud be in the range [50 GeV, 500 GeV]")
+mode = sys.argv[2]
+if mode != 'onlyZ' and mode != 'WandZ':
+	print_error("The mode '{}' is not recognized. Please enter a valid mode. The choices are: 'onlyZ', and 'WandZ'.".format(mode))
+if mode == 'onlyZ':
+	idx_primary = 0
+if mode == 'WandZ':
+	idx_primary = 1
 
 model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]
@@ -34,9 +38,7 @@ with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'rb') as dump_fil
 f_functions = np.zeros(shape=(5,len(redshift)))
 for idx_chan, z in itertools.product(*(channel_dict.values(),redshift)):
 	idx_z = get_index(redshift, z)
-	temp1 = interpolated_f[0,idx_chan,idx_z](sampling_mass) # Primaries are muons
-	temp2 = interpolated_f[1,idx_chan,idx_z](sampling_mass) # Primaries are bottom
-	f_functions[idx_chan, idx_z] = mixing * temp1 + (1-mixing)*temp2
+	f_functions[idx_chan, idx_z] = interpolated_f[idx_primary,idx_chan,idx_z](sampling_mass)
 
 finalize(redshift, 
          f_functions[channel_dict['Heat']], 

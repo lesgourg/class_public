@@ -4,6 +4,14 @@ import os
 os.environ['DARKAGES_BASE'] = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
 sys.path.insert(0, os.environ['DARKAGES_BASE'])
 
+if os.getppid() == int(os.environ['DARKAGES_TOPLEVEL_PID']):
+	import dill
+	with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}'.format(os.getppid()) ), 'rb') as options_dumper:
+		options = dill.load(options_dumper)
+else:
+	options = dict()
+
+
 from .common import *
 from .transfer import transfer, transfer_dump, transfer_load
 from .model import model

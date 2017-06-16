@@ -8,7 +8,7 @@ if os.environ['DARKAGES_BASE']:
 
 import DarkAges
 from DarkAges.common import channel_dict, get_index
-from DarkAges import logEnergies, redshift, transfer_functions
+from DarkAges import logEnergies, redshift, transfer_functions, options
 from DarkAges.recipes import load_from_spectrum
 from DarkAges.model import model
 from DarkAges.interpolator import logInterpolator

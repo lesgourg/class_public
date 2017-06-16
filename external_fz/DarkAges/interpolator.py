@@ -44,16 +44,16 @@ class logInterpolator(object):
 		return None
 
 	def __call__(self, xgrid):
-		if type(xgrid) is not list and type(xgrid) is not np.ndarray:
-			xgrid = np.asarray([xgrid])
-		else:
-			xgrid = np.asarray(xgrid)
+		def dummy_valid(single_point):
+			return np.e**(self.log_f_fit(single_point)) / (single_point**self.exponent)
+		def dummy_invalid(single_point):
+			return 0.
 		if not self.valid:
 			#print 'invalid'
-			out = np.zeros_like(xgrid, dtype=np.float64)
+			out = np.vectorize(dummy_invalid).__call__(xgrid)
 		else:
 			#print 'valid'
-			tmp_out = np.e**(self.log_f_fit(xgrid)) / (xgrid**self.exponent)
+			tmp_out = np.vectorize(dummy_valid).__call__(xgrid)
 			out = nan_clean( tmp_out )
 		return out
 
@@ -86,13 +86,15 @@ class logLinearInterpolator(object):
 		return None
 
 	def __call__(self, xgrid):
-		if type(xgrid) is not list and type(xgrid) is not np.ndarray:
-			xgrid = np.asarray([xgrid])
-		else:
-			xgrid = np.asarray(xgrid)
+		def dummy_valid(single_point):
+			return np.e**(self.log_f_fit(single_point)) / (single_point**self.exponent)
+		def dummy_invalid(single_point):
+			return 0.
 		if not self.valid:
-			out = np.zeros_like(xgrid, dtype=np.float64)
+			#print 'invalid'
+			out = np.vectorize(dummy_invalid).__call__(xgrid)
 		else:
-			tmp_out = np.e**(self.log_f_fit(xgrid)) / (xgrid**self.exponent)
+			#print 'valid'
+			tmp_out = np.vectorize(dummy_valid).__call__(xgrid)
 			out = nan_clean( tmp_out )
 		return out

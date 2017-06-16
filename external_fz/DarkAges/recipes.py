@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 from .common import channel_dict, finalize, sample_spectrum, print_info, print_error
-from .__init__ import redshift, logEnergies, transfer_functions
+from .__init__ import redshift, logEnergies, transfer_functions, options
 from .model import model
 
 ##### Functions related to executing a script-like file
@@ -10,6 +10,7 @@ from .model import model
 def execute_script_file(ext_script_file, *arguments):
 	import subprocess
 	command = ['{}'.format(sys.executable)]
+	#command.append('-OO')
 	command.append(ext_script_file)
 	if arguments:
 		for arg in arguments[0]:
@@ -37,7 +38,8 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
        		 f_function[channel_dict['Ly-A']],
        		 f_function[channel_dict['H-Ion']],
        		 f_function[channel_dict['He-Ion']],
-			 f_function[channel_dict['LowE']])
+			 f_function[channel_dict['LowE']],
+             **options)
 
 def load_from_spectrum(fnames, logEnergies, mass, t_dec, hist='annihilation', branchings=np.asarray([1.])):
 	if type(fnames) is not list and type(fnames) is not np.ndarray:
@@ -47,6 +49,24 @@ def load_from_spectrum(fnames, logEnergies, mass, t_dec, hist='annihilation', br
 	temp_spec = np.empty(shape=(3,len(fnames),len(logEnergies)))
 	for idx, fname in enumerate(fnames):
 		spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)
+		mass_mask = np.absolute(spec_data[0] - mass) <= 1e-5
+		temp_spec[:,idx,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies)
+	spec_el, spec_ph, spec_oth = np.tensordot(temp_spec, branchings, axes=(1,0))
+	if hist == 'decay':
+		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, t_dec = t_dec, history=hist)
+	else:
+		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, history=hist)
+
+	return example_model
+
+def load_from_spectrum2(fnames, logEnergies, mass, t_dec, hist='annihilation', branchings=np.asarray([1.])):
+	if type(fnames) is not list and type(fnames) is not np.ndarray:
+		fnames = np.asarray([fnames])
+	else:
+		fnames = np.asarray(fnames)
+	temp_spec = np.empty(shape=(3,len(fnames),len(logEnergies)))
+	for idx, fname in enumerate(fnames):
+		spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,5,6,7,8), skip_header=1, dtype=np.float64)
 		mass_mask = np.absolute(spec_data[0] - mass) <= 1e-5
 		temp_spec[:,idx,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies)
 	spec_el, spec_ph, spec_oth = np.tensordot(temp_spec, branchings, axes=(1,0))
@@ -72,6 +92,7 @@ def access_model(model_name, force_rebuild = False, *arguments):
 def prepare_model(model_dir):
 	import subprocess
 	command = ['{}'.format(sys.executable)]
+	#command.append('-OO')
 	file_to_run = os.path.join(model_dir,'prepare.py')
 	command.append(file_to_run)
 	print_info('Preparing_the model: running script: "{}"'.format(file_to_run))
@@ -84,6 +105,7 @@ def prepare_model(model_dir):
 def run_model(model_dir, *arguments):
 	import subprocess
 	command = ['{}'.format(sys.executable)]
+	#command.append('-OO')
 	file_to_run = os.path.join(model_dir,'run.py')
 	command.append(file_to_run)
 	if arguments:
