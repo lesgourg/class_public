@@ -712,7 +712,38 @@ cdef class Class:
         else:
              if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
                     raise CosmoSevereError(self.sp.error_message)
+        free(pk_ic)
         return pk
+
+    # Gives the variance sigma for a given (R,z)
+    def sigma(self,double R,double z):
+        """
+        Gives sigma for a given R in Mpc and z
+
+        .. note::
+
+            there is an additional check to verify if output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef double sigma
+        abort = True
+        if 'output' in self._pars:
+            options = self._pars['output'].split()
+            for option in options:
+                if option in ['mPk', 'mTk', 'vTk']:
+                    abort = False
+                    break
+        if abort:
+            raise CosmoSevereError(
+                "No power spectrum nor transfer function"
+                " asked: you should not ask for a power"
+                " spectrum, then")
+
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,R,z,&sigma)==_FAILURE_:
+            raise CosmoSevereError(self.sp.error_message)
+
+        return sigma
 
     # Gives the linear pk for a given (k,z)
     def pk_lin(self,double k,double z):
@@ -740,6 +771,7 @@ cdef class Class:
         if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
+        free(pk_ic)
         return pk
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
@@ -783,6 +815,19 @@ cdef class Class:
 
     def omega_b(self):
         return self.ba.Omega0_b * self.ba.h * self.ba.h
+
+    def Omega_r(self):
+        """ includes photons (g) and ultrarelativistic particles, such as massless neutrinos (ur) """
+        return self.ba.Omega0_g + self.ba.Omega0_ur
+
+    def Omega_k(self):
+        return self.ba.Omega0_k
+
+    def w0_fld(self):
+        return self.ba.w0_fld
+
+    def wa_fld(self):
+        return self.ba.wa_fld
 
     def Neff(self):
         return self.ba.Neff
@@ -1003,6 +1048,8 @@ cdef class Class:
             for index in range(timesteps):
                 background[names[i]][index] = data[index*number_of_titles+i]
 
+        free(data)
+        free(titles)
         return background
 
     def get_thermodynamics(self):
@@ -1039,6 +1086,8 @@ cdef class Class:
             for index in range(timesteps):
                 thermodynamics[names[i]][index] = data[index*number_of_titles+i]
 
+        free(data)
+        free(titles)
         return thermodynamics
 
     def get_primordial(self):
@@ -1076,6 +1125,8 @@ cdef class Class:
             for index in range(timesteps):
                 primordial[names[i]][index] = data[index*number_of_titles+i]
 
+        free(data)
+        free(titles)
         return primordial
 
 
@@ -1229,6 +1280,9 @@ cdef class Class:
                 spectra = tmpdict
             else:
                 spectra[ic_key] = tmpdict
+
+        free(data)
+        free(titles)
 
         return spectra
 
