@@ -1493,6 +1493,7 @@ int input_read_parameters(
                  errmsg,
                  "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF','ADAF_Simulation'.");
     }
+
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
@@ -2986,6 +2987,28 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
   class_read_string("sBBN file",ppr->sBBN_file);
   class_read_string("energy injection coefficient file",ppr->energy_injec_coeff_file);
   class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
+  //Temporary : to adjust the energy injection file with the PBH mass
+  if(pth->PBH_high_mass<5){
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_1Msun.dat");
+  }
+  else if(pth->PBH_high_mass<50 && pth->PBH_high_mass>=5 ){
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_10Msun.dat");
+  }
+  else if(pth->PBH_high_mass<500 && pth->PBH_high_mass>=50 ){
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_100Msun.dat");
+  }
+  else if(pth->PBH_high_mass<5000 && pth->PBH_high_mass>=500 ){
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_1000Msun.dat");
+  }
+  else{
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_10000Msun.dat");
+  }
+
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
