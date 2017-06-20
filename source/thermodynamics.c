@@ -2265,7 +2265,12 @@ int thermodynamics_high_mass_pbh_energy_injection(
             M_ed_dot= 10*L_ed/(_c_*_c_);
             M_crit = 0.01*M_ed_dot;
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-            v_l = 30*MIN(1,z/1000)*1e3;
+            if(preco->PBH_relative_velocities < 0.){
+              v_l = 30*MIN(1,z/1000)*1e3; // in m/s.
+            }
+            else{
+              v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
+            }
             if(v_B < v_l) v_eff = sqrt(v_B*v_l);
             else v_eff = v_B;
             // v_eff = v_B;
@@ -2295,7 +2300,6 @@ int thermodynamics_high_mass_pbh_energy_injection(
               epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
             }
             else if (preco->PBH_ADAF_delta == 0.1){
-
               Value_min = 9.4e-5;
               Value_med = 5e-3;
               Value_max = 6.6e-3;
@@ -2355,8 +2359,13 @@ int thermodynamics_high_mass_pbh_energy_injection(
           rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
           // x_e_infinity = 1; // change to 1 for the strong-feedback case
           x_e_infinity = x_e; // change to x_e for the no-feedback case
-          v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
-          v_l = 30*MIN(1,z/1000)*1e3;
+          v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_; //sound speed.
+          if(preco->PBH_relative_velocities < 0.){
+            v_l = 30*MIN(1,z/1000)*1e3; // in m/s.
+          }
+          else{
+            v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
+          }
           if(v_B < v_l) v_eff = sqrt(v_B*v_l);
           else v_eff = v_B;
           // v_eff = v_B; //Neglect relative velocity of DM & Baryons otherwise a disk form.
@@ -4689,6 +4698,7 @@ int thermodynamics_recombination_with_recfast(
   preco->PBH_high_mass = pth->PBH_high_mass;
   preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
   preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
+  preco->PBH_relative_velocities = pth->PBH_relative_velocities;
   preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
   preco->energy_deposition_treatment = pth->energy_deposition_treatment;

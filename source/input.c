@@ -1496,7 +1496,8 @@ int input_read_parameters(
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-  class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue);
+  class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue); // If chosen to negative value, it will be set to the linear result.
+  class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
   class_test(pth->PBH_high_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
@@ -3445,6 +3446,7 @@ int input_default_params(
   pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
+  pth->PBH_relative_velocities = -1 ; //Standard value is the linear result extrapolated to PBH.
   pth->energy_repart_functions = Galli_et_al_fit;
   pth->u_gcdm=0.;
   pth->beta_gcdm=0.;
