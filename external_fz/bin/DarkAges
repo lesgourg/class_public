@@ -4,6 +4,7 @@ import os
 import sys
 import optparse
 import numpy as np
+from numpy.random import randint
 
 def cb_string(option, opt_str, value, parser):
 	args=[]
@@ -29,7 +30,7 @@ def cb_float(option, opt_str, value, parser):
 		args.extend(getattr(parser.values, option.dest))
 	setattr(parser.values, option.dest, args)
 
-
+random_num = randint(1000)
 root_path = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
 sys.path.insert(0, root_path)
 
@@ -61,7 +62,7 @@ parser.add_option("--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV].")
 parser.add_option("--tdec", type='float', dest='t_dec',
                   help="Define the lifetime of the DM-candidate.")
-parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 3e-5),
+parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 8e-5),
                   help="Define the background parameters (H0, Omega_m, Omega_r) for the calculation of H(z) and t(z)")
 
 (options, args) = parser.parse_args()
@@ -73,21 +74,24 @@ os.environ['DARKAGES_BG_H0'] = '{}'.format(options.background[0])
 os.environ['DARKAGES_BG_OM_M'] = '{}'.format(options.background[1])
 os.environ['DARKAGES_BG_OM_R'] = '{}'.format(options.background[2])
 
-os.environ['DARKAGES_TOPLEVEL_PID'] = '{}'.format(os.getpid())
+os.environ['DARKAGES_TOPLEVEL_PID'] = '{:d}'.format(os.getpid())
+os.environ['DARKAGES_TOPLEVEL_RANDN'] = '{:d}'.format(random_num)
 
 from DarkAges import transfer_functions, logEnergies, redshift
-from DarkAges.common import print_error
+from DarkAges.common import print_error, print_info
 import DarkAges.recipes as recipes
 
 import dill
-with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}'.format(os.getpid()) ), 'wb') as options_dumper:
+with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )), 'wb') as options_dumper:
 	dill.dump(options, options_dumper)
 
 import atexit
 @atexit.register
 def goodbye():
-	os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}'.format(os.getpid()) ) )
-
+	try:
+		os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )) )
+	except OSError:
+		pass
 
 if options.injection_history == 'decay' and (options.t_dec==None):
 	print_error('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')

@@ -62,8 +62,8 @@ def H(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
 	'''
 	Redshift dependence of H (assuming only matter and radiation to be present).
 	'''
-	#return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R + (1-Omega_R-Omega_M) )
-	return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R ) * 1/np.sqrt(Omega_R + Omega_M)
+	return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R + (1-Omega_R-Omega_M) )
+	#return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R ) * 1/np.sqrt(Omega_R + Omega_M)
 
 def time_at_z(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
 	'''
@@ -72,7 +72,8 @@ def time_at_z(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Om
 	(Taken from EnergyAbsorptionCalculator.nb provided
 	as a supplement of arXiV:1211.0283)
 	'''
-	return 2/(3 * Omega_M**2 * redshift * H0) * ( Omega_M * np.sqrt(Omega_R + (Omega_M / redshift)) + 2 * Omega_R**1.5 * redshift - 2 * Omega_R * np.sqrt(Omega_M + redshift*Omega_R) )
+
+	return 2/(3 * Omega_M**2 * redshift * H0) * ( Omega_M * np.sqrt(Omega_R + (Omega_M / redshift)) + 2 * Omega_R**1.5 * redshift - 2 * Omega_R * np.sqrt(redshift*(Omega_M + redshift*Omega_R) ) )
 
 def conversion( redshift, alpha=3 ):
 	'''
@@ -92,7 +93,7 @@ def nan_clean( input_array ):
 			return single_input
 		else:
 			return 0.
-	return np.vectorize(dummy).__call__(input_array) 
+	return np.vectorize(dummy).__call__(input_array)
 
 def get_index( array, entry ):
 	return np.where(array == entry)[0][0].astype(np.int32)
@@ -146,7 +147,7 @@ def f_function(logE, z_inj, z_dep, normalization,
 		elif how_to_integrate == 'energy':
 			int_tot = spec_tot*(E**1)
 			norm = ( conversion(z_dep,alpha=alpha) )*( trapz(int_tot, E) )
-	elif how_to_normalize == 'use_norm': 
+	elif how_to_normalize == 'use_norm':
 		norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
 	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
@@ -191,12 +192,15 @@ def log_fit(points,func,xgrid,exponent=1):
 	out = tmp_interpolator(xgrid)
 	return out
 
-def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, mass, sampling_log10E, **kwargs):
+def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, m, sampling_log10E, **kwargs):
 	'''
 	This method is to sample the input spectra at the energies at which the transfer functions are defined
 	'''
 	scale = kwargs.get('scale','GeV')
-	spec_type = kwargs.get('spec_type','dN/dE')	
+	spec_type = kwargs.get('spec_type','dN/dE')
+	hist = kwargs.get('injection_history','annihilation')
+	norm_dict = {'annihilation':2., 'decay':1.}
+	norm = norm_dict.get(hist,2.)*m
 
 	failed = False
 	try:
@@ -219,9 +223,10 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
            'eV': [1e0, 1e-0, 0.],
 	}
 
-	m = mass*scale_dict[scale][0]
+	m = scale_dict[scale][0]*m
+	norm *= scale_dict[scale][0]
 	input_log10E += scale_dict[scale][2]*np.ones_like(input_log10E).astype(np.float64)
-	# Check if the spectrum is normalized to "integral(E*dN/dE dE) = 2*mass"
+	# Check if the spectrum is normalized to "integral(E*dN/dE dE) = norm , where norm is chosen depending on the injection history"
 	#    If not and the integral is non_zero, rescale the spectrum, if the spectrum is zero (e.g. being in a kinematically forbidden regioern of param space)
 	#    return a zero_spectrum
 	if spec_type == 'dN/dE':
@@ -234,7 +239,7 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 
 	non_zero_spec = ( total_dep_energy > 0.)
 	if non_zero_spec and not failed:
-		rescaling = total_dep_energy / (2*m)
+		rescaling = total_dep_energy / norm
 
 		out_el = log_fit(input_log10E, factor2*scale_dict[scale][1]*input_spec_el/rescaling, sampling_log10E)
 		out_ph = log_fit(input_log10E, factor2*scale_dict[scale][1]*input_spec_ph/rescaling, sampling_log10E)

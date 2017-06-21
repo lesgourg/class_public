@@ -1,9 +1,10 @@
 import numpy as np
 import os
 import sys
-from .common import channel_dict, finalize, sample_spectrum, print_info, print_error
+from .common import channel_dict, finalize, sample_spectrum, print_info, print_error, print_warning
 from .__init__ import redshift, logEnergies, transfer_functions, options
 from .model import model
+from .interpolator import logInterpolator, NDlogInterpolator
 
 ##### Functions related to executing a script-like file
 
@@ -22,8 +23,27 @@ def execute_script_file(ext_script_file, *arguments):
 
 ##### Functions related to loading a model from a file contiaining the input spectra (and mass)
 
-def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec, history, branchings=[1.]):
-	model_from_file = load_from_spectrum(fnames, logEnergies, mass, t_dec, hist=history, branchings=branchings)
+def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec, hist='annihilation', branchings=[1.], **options):
+	branchings = np.asarray(branchings)
+	spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
+	for idx, fname in enumerate(fnames):
+		spec_interpolator = load_from_spectrum(fname, logEnergies, **options)
+		lower = spec_interpolator.get_lower()
+		upper = spec_interpolator.get_upper()
+		if mass < lower or mass > upper:
+			print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g}) cannot be deduced. Return zeros'.format(fname, lower, upper, mass))
+			spectra[:,:,idx] = np.zeros(shape=(3,len(logEnergies)), dtype=np.float64)
+		else:
+			spectra[:,:,idx] = spec_interpolator.__call__(mass)
+	try:
+		assert spectra.shape[-1] == branchings.shape[-1]
+	except AssertionError:
+		print_error('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
+	tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
+	if hist == 'decay':
+		model_from_file = model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec = t_dec, history=hist)
+	else:
+		model_from_file = model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, history=hist)
 	try:
 		assert len(channel_dict) == len(transfer_functions)
 	except AssertionError:
@@ -41,23 +61,20 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 			 f_function[channel_dict['LowE']],
              **options)
 
-def load_from_spectrum(fnames, logEnergies, mass, t_dec, hist='annihilation', branchings=np.asarray([1.])):
-	if type(fnames) is not list and type(fnames) is not np.ndarray:
-		fnames = np.asarray([fnames])
-	else:
-		fnames = np.asarray(fnames)
-	temp_spec = np.empty(shape=(3,len(fnames),len(logEnergies)))
-	for idx, fname in enumerate(fnames):
-		spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)
+def load_from_spectrum(fname, logEnergies, **options):
+	cols_to_use = options.get('spectra_cols',(0,1,2,3,4))
+	try:
+		assert len(cols_to_use) == 5
+	except AssertionError:
+		print_error('There is something wrong with the number of columns in the spectra-file. I expected 5 columns but I got only {:d}'.format(len(cols_to_use)))
+	spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)
+	masses = np.unique(spec_data[0,:])
+	temp_spec = np.empty(shape=(len(masses),3,len(logEnergies)), dtype=np.float64)
+	for idx, mass in enumerate(masses):
 		mass_mask = np.absolute(spec_data[0] - mass) <= 1e-5
-		temp_spec[:,idx,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies)
-	spec_el, spec_ph, spec_oth = np.tensordot(temp_spec, branchings, axes=(1,0))
-	if hist == 'decay':
-		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, t_dec = t_dec, history=hist)
-	else:
-		example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass, history=hist)
+		temp_spec[idx,:,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies, **options)
 
-	return example_model
+	return NDlogInterpolator(masses, temp_spec, exponent=1)
 
 def load_from_spectrum2(fnames, logEnergies, mass, t_dec, hist='annihilation', branchings=np.asarray([1.])):
 	if type(fnames) is not list and type(fnames) is not np.ndarray:
