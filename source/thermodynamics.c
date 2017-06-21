@@ -2267,12 +2267,15 @@ int thermodynamics_high_mass_pbh_energy_injection(
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             if(preco->PBH_relative_velocities < 0.){
               v_l = 30*MIN(1,z/1000)*1e3; // in m/s.
+              if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+              else v_eff = v_B;
             }
             else{
               v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
+              // v_eff = pow(v_l*v_l,0.5);
+              v_eff = pow(v_l*v_l+v_B*v_B,0.5);
             }
-            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            else v_eff = v_B;
+
             // v_eff = v_B;
             lambda = preco->PBH_accretion_eigenvalue;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
@@ -2352,6 +2355,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
             L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
             // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/L_ed,epsilon);
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e %e\n",z,v_B,v_l,v_eff,pow(v_l*v_l+v_B*v_B,0.5));
 
           }
         //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
@@ -2362,12 +2366,14 @@ int thermodynamics_high_mass_pbh_energy_injection(
           v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_; //sound speed.
           if(preco->PBH_relative_velocities < 0.){
             v_l = 30*MIN(1,z/1000)*1e3; // in m/s.
+            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            else v_eff = v_B;
           }
           else{
             v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
+            // v_eff = pow(v_l*v_l,0.5);
+            v_eff = pow(v_l*v_l+v_B*v_B,0.5);
           }
-          if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-          else v_eff = v_B;
           // v_eff = v_B; //Neglect relative velocity of DM & Baryons otherwise a disk form.
           // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
           // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
