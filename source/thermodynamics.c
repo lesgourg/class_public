@@ -2352,7 +2352,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
 
             // if(M_b_dot<M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
             // else epsilon = 0.1;
-            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; //
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
             // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/L_ed,epsilon);
             // if(z >20)fprintf(stdout, " %e   %e %e  %e %e\n",z,v_B,v_l,v_eff,pow(v_l*v_l+v_B*v_B,0.5));
@@ -2395,8 +2395,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           lambda = lambda_1*lambda_2/lambda_iso;
           rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
           // fprintf(stdout, "rho/m_H %e n_gas %e \n", 0.75*rho/m_H,n_gas);
-          // M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
-          M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_B; //in kg s^-1
+          M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
           T_ion = 1.5e4*_eV_over_Kelvin_;
           tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
           Y_s = pow((1+x_e_infinity)/2,2./3*13.6/T_ion)*tau_cooling/4*pow(1-5./2*tau_cooling,1./3)*m_p/m_e;
