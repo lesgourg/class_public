@@ -1,0 +1,6 @@
+<map id="spectra_cls" name="spectra_cls">
+<area shape="rect" id="node2" href="$spectra_8c.html#a192c3cc36d17f276ed7b5d7e485e70f1" title="spectra_init" alt="" coords="145,5,234,32"/>
+<area shape="rect" id="node3" href="$input_8c.html#a8902799b68422227ff6a3293ebd6bd94" title="input_try_unknown_parameters" alt="" coords="283,5,485,32"/>
+<area shape="rect" id="node4" href="$input_8c.html#a31052a91cf14f73d6f2bb0e7874429fb" title="input_init" alt="" coords="533,5,608,32"/>
+<area shape="rect" id="node5" href="$input_8c.html#a40aecd22732b07db752cb4bc34e55ad4" title="input_init_from_arguments" alt="" coords="657,5,831,32"/>
+</map>
