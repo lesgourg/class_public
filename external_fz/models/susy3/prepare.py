@@ -7,42 +7,24 @@ if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 
 import DarkAges
-from DarkAges.common import channel_dict, get_index
-from DarkAges import logEnergies, redshift, transfer_functions, options
-from DarkAges.recipes import load_from_spectrum2
-from DarkAges.model import model
-from DarkAges.interpolator import logInterpolator
+from DarkAges import logEnergies, options
+from DarkAges.recipes import load_from_spectrum
 
+#####	
 model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]
 
-masses = np.arange(50,501,25, dtype=np.int32)
-#masses = np.arange(50,501,5, dtype=np.int32)
 primaries = np.array(['onlyZ','WandZ'], dtype=np.dtype('a16'))
-f_grid = np.empty(shape=(len(masses),len(primaries),5,len(redshift)), dtype = np.float64)
 
-for mass, primary in itertools.product(*(masses,primaries)):
-	idx_mass = get_index(masses, mass)
-	idx_prim = get_index(primaries, primary)
+dump_dict = dict()
+
+for idx_prim, primary in enumerate(primaries):
 	fname = os.path.join(model_dir, 'data/susy3_right_{:s}.dat'.format(primary))
-	tmp_model = load_from_spectrum2(fname, logEnergies, mass, np.inf)
-	print mass, primary
-	for channel in channel_dict:
-		idx_chan = channel_dict[channel]
-		f_grid[idx_mass,idx_prim,idx_chan,:] = tmp_model.calc_f(transfer_functions[idx_chan])[-1]
+	dump_dict_key = 'spec_interp_right_{:s}'.format(primary)
+	dump_dict_value = load_from_spectrum(fname, logEnergies, **options)
+	dump_dict.update({dump_dict_key:dump_dict_value})
 		
-interpolated_f = np.empty(shape=(len(primaries),5,len(redshift)), dtype= logInterpolator)
-for primary, idx_chan, z in itertools.product(*(primaries,channel_dict.values(),redshift)):
-	idx_prim = get_index(primaries, primary)
-	idx_z = get_index(redshift, z)
-	interpolated_f[idx_prim, idx_chan, idx_z] = logInterpolator(masses, f_grid[:,idx_prim,idx_chan,idx_z], 0)	
-
-dump_dict = {'f-function': interpolated_f}
-
 with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'wb') as dump_file:
 	dill.dump(dump_dict, dump_file)
-	
+#####	
 		
-		
-
-

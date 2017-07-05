@@ -1,7 +1,7 @@
 '''
 This model has two input parameters:
-    1) mass (between 50 and 100 GeV)
-    2) the relative contribution of muons as primaries	 
+    1) mass (between 50 and 500 GeV)
+    2) the finalstate composition. Here: The allowed third particle (0 for 'onlyZ' and 1 for 'WandZ') 
 '''
 
 import numpy as np
@@ -11,34 +11,45 @@ import os
 import sys
 if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
-import DarkAges
-from DarkAges.common import print_error, finalize, channel_dict, get_index
-from DarkAges import redshift, options
 
+import DarkAges
+from DarkAges.common import print_error, finalize, channel_dict
+from DarkAges.model import model
+from DarkAges import redshift, options, transfer_functions, options
+
+#####
 if len(sys.argv) <3:
 	print_error("There are too few arguments passed. I expected at least 2")
 sampling_mass = float(sys.argv[1])
 if sampling_mass < 50 or sampling_mass > 500:
 	print_error("The mass-parameter sholud be in the range [50 GeV, 500 GeV]")
-mode = sys.argv[2]
-if mode != 'onlyZ' and mode != 'WandZ':
-	print_error("The mode '{}' is not recognized. Please enter a valid mode. The choices are: 'onlyZ', and 'WandZ'.".format(mode))
-if mode == 'onlyZ':
-	idx_primary = 0
-if mode == 'WandZ':
-	idx_primary = 1
+idx_primary = int(sys.argv[2])
+if idx_primary != 1 and idx_primary != 0:
+	print_error("The mode '{:d}' is not recognized. Please enter a valid mode. The choices are: 0 for 'onlyZ', and 1 for 'WandZ'.".format(idx_primary))
 
 model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]
 
 with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'rb') as dump_file:
 	dump_dict = dill.load(dump_file)
-	interpolated_f = dump_dict.get('f-function')
+	if idx_primary == 0:
+		spec_interp = dump_dict.get('spec_interp_right_onlyZ')
+	elif idx_primary == 1:
+		spec_interp = dump_dict.get('spec_interp_right_WandZ')
 
-f_functions = np.zeros(shape=(5,len(redshift)))
-for idx_chan, z in itertools.product(*(channel_dict.values(),redshift)):
-	idx_z = get_index(redshift, z)
-	f_functions[idx_chan, idx_z] = interpolated_f[idx_primary,idx_chan,idx_z](sampling_mass)
+total_spec = spec_interp.__call__(sampling_mass)
+
+history = options.get('injection_history','annihilation')
+if history == 'decay':
+	tdec = options.get('t_dec')
+	full_model = model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, history=history, t_dec=tdec)
+else:
+	full_model = model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, history=history)
+
+f_functions = np.zeros((len(channel_dict),len(redshift)))
+for channel in channel_dict:
+	idx = channel_dict[channel]
+	f_functions[idx,:] = full_model.calc_f(transfer_functions[idx])[-1]
 
 finalize(redshift, 
          f_functions[channel_dict['Heat']], 
@@ -46,3 +57,4 @@ finalize(redshift,
          f_functions[channel_dict['H-Ion']],
          f_functions[channel_dict['He-Ion']],
          f_functions[channel_dict['LowE']])
+#####
