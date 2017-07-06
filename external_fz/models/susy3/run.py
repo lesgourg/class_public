@@ -20,9 +20,10 @@ from DarkAges import redshift, options, transfer_functions, options
 #####
 if len(sys.argv) <3:
 	print_error("There are too few arguments passed. I expected at least 2")
-sampling_mass = float(sys.argv[1])
+#sampling_mass = float(sys.argv[1])
+sampling_mass = 5*(10**float(sys.argv[1]))
 if sampling_mass < 50 or sampling_mass > 500:
-	print_error("The mass-parameter sholud be in the range [50 GeV, 500 GeV]")
+	print_error("The mass-parameter should be in the range [50 GeV, 500 GeV]")
 idx_primary = int(sys.argv[2])
 if idx_primary != 1 and idx_primary != 0:
 	print_error("The mode '{:d}' is not recognized. Please enter a valid mode. The choices are: 0 for 'onlyZ', and 1 for 'WandZ'.".format(idx_primary))
@@ -38,6 +39,7 @@ with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'rb') as dump_fil
 		spec_interp = dump_dict.get('spec_interp_right_WandZ')
 
 total_spec = spec_interp.__call__(sampling_mass)
+#print total_spec
 
 history = options.get('injection_history','annihilation')
 if history == 'decay':

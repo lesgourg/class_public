@@ -45,7 +45,7 @@ def print_warning(message):
 
 def print_error(message):
 	print('\n\n!!! EROOR: {} !!!\n\n'.format(message))
-	sys.exit()
+	sys.exit(255)
 
 def logConversion( log_array , base=10 ):
 	def dummy(single_log10_num):
@@ -89,7 +89,7 @@ def nan_clean( input_array ):
 	Replacing all 'NAN' of a list with zero.
 	'''
 	def dummy( single_input ):
-		if single_input == single_input:
+		if abs(single_input) < np.inf:
 			return single_input
 		else:
 			return 0.
@@ -173,11 +173,11 @@ def f_function(logE, z_inj, z_dep, normalization,
 
 	result = np.empty_like( norm, dtype=np.float64 )
 	for i in xrange(len(norm)):
-		if norm[i] != 0:
+		if norm[i] != 0 and abs(z_integral[i]) < np.inf :
 			result[i] = (z_integral[i] / norm[i])
 		else:
-			result[i] = np.nan
-			#result[i] = 0
+			#result[i] = np.nan
+			result[i] = 0
 
 	return result
 
