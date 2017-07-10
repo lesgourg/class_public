@@ -3176,7 +3176,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* for bbn */
   sprintf(ppr->sBBN_file,__CLASSDIR__);
-  strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
+  strcat(ppr->sBBN_file,"/bbn/sBBN_2017.dat");
 
   /* for recombination */
 
