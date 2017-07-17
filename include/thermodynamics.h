@@ -67,6 +67,7 @@ enum PBH_accretion_recipe {
   Hybrid /**<A more realistic accretion recipe, with a transition from spherical to disk accretion at a redshift "PBH_disk_formation_redshift" */
 };
 enum energy_deposition_treatment {
+  No_deposition, /**< No energy deposition is considered. Useful for pedagogic illustration. */
   Analytical_approximation, /**< Analytical energy deposition treatment, introduced in 1209.0247 and corrected in 1612.05644 */
   Slatyer  /**< f(z) functions from Slatyer, introduced in 1211.0283 and updated in 1506.03812 */
 };

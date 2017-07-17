@@ -1443,8 +1443,8 @@ int input_read_parameters(
 
   /** - energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
-  class_read_double("boost_factor",pth->annihilation_boost_factor);
-  class_read_double("m_DM",pth->annihilation_m_DM);
+  class_read_double("annihilation_boost_factor",pth->annihilation_boost_factor);
+  class_read_double("annihilation_m_DM",pth->annihilation_m_DM);
   class_read_double("decay_fraction",pth->decay_fraction);
   class_read_double("PBH_high_mass",pth->PBH_high_mass);
   if(pth->PBH_high_mass>0.){
@@ -1493,12 +1493,13 @@ int input_read_parameters(
                  errmsg,
                  "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF','ADAF_Simulation'.");
     }
+    class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue); // If chosen to negative value, it will be set to the linear result.
+    class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
 
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-  class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue); // If chosen to negative value, it will be set to the linear result.
-  class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
+
   class_test(pth->PBH_high_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
@@ -1518,7 +1519,7 @@ int input_read_parameters(
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
 
-  if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
+  if(pth->annihilation_m_DM > 0){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
       class_test(pth->annihilation_m_DM<=0.,errmsg,
@@ -1530,7 +1531,7 @@ int input_read_parameters(
     fprintf(stdout,"You gave both boost factor and annihilation parameter, the boost factor will be ignored. \n");
   }
 
-  if (pth->annihilation > 0.) {
+  if (pth->annihilation > 0. || pth->annihilation_m_DM > 0.) {
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
   class_read_double("annihilation_zmax",pth->annihilation_zmax);
@@ -1653,9 +1654,13 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
           pth->energy_deposition_treatment=Slatyer;
           flag2=_TRUE_;
         }
+        if (strcmp(string1,"No_deposition") == 0) {
+          pth->energy_deposition_treatment=No_deposition;
+          flag2=_TRUE_;
+        }
       class_test(flag2==_FALSE_,
                    errmsg,
-                   "could not identify energy_deposition_treatment, check that it is one of 'Analytical_approximation', 'Slatyer'.");
+                   "could not identify energy_deposition_treatment, check that it is one of 'Analytical_approximation', 'Slatyer','No_deposition'.");
       }
     }
 
@@ -2170,11 +2175,13 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 
       if (ppt->has_cdi == _TRUE_) {
         if(pth->PBH_high_mass > 0){
+
           ppm->n_cdi = 4.;
           // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(2*_PI_*_PI_)*pow(ppm->k_pivot,ppm->n_cdi-1),1./2);
-          ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          ppm->f_cdi = pth->PBH_fraction*pow(pth->PBH_high_mass*_Sun_mass_over_kg_/(pth->PBH_fraction*pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_))/pow(_Mpc_over_m_,3)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
           ppm->alpha_cdi = 0.;
-          fprintf(stderr, "A_cdi/A_ad %e pba->h %e\n", ppm->f_cdi*ppm->f_cdi, pba->h);
+          fprintf(stderr, "A_cdi/A_ad %e rho_cdm %e\n", ppm->f_cdi*ppm->f_cdi, pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_));
         }
         else{
           class_read_double("f_cdi",ppm->f_cdi);
