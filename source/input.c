@@ -1525,7 +1525,7 @@ int input_read_parameters(
       class_test(pth->annihilation_m_DM<=0.,errmsg,
         "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
       pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
-      fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
+      if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
   }
   else if(pth->annihilation>0. && pth->annihilation_boost_factor >0.){
     fprintf(stdout,"You gave both boost factor and annihilation parameter, the boost factor will be ignored. \n");
