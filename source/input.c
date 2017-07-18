@@ -1518,8 +1518,8 @@ int input_read_parameters(
                "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
-
-  if(pth->annihilation_m_DM > 0){
+  class_test(pth->annihilation>0. && pth->annihilation_boost_factor >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
+  if(pth->annihilation_m_DM > 0 && pth->annihilation_boost_factor >0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
       class_test(pth->annihilation_m_DM<=0.,errmsg,
@@ -1527,9 +1527,7 @@ int input_read_parameters(
       pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
       if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
   }
-  else if(pth->annihilation>0. && pth->annihilation_boost_factor >0.){
-    fprintf(stdout,"You gave both boost factor and annihilation parameter, the boost factor will be ignored. \n");
-  }
+  class_test((pth->annihilation_m_DM > 0 && pth->annihilation_boost_factor <=0)||(pth->annihilation_m_DM <= 0 && pth->annihilation_boost_factor >0),errmsg,"You set one of (pth->annihilation_m_DM,pth->annihilation_boost_factor) to non-zero value but not the other ! I cannot compute annihilation parameter: pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM).")
 
   if (pth->annihilation > 0. || pth->annihilation_m_DM > 0.) {
   class_read_double("annihilation_variation",pth->annihilation_variation);
