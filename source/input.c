@@ -2996,23 +2996,23 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
   if(pth->PBH_accretion_recipe == ADAF_Simulation){
     if(pth->PBH_high_mass<5){
       sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_1Msun.dat");
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_1Msun_All.dat");
     }
     else if(pth->PBH_high_mass<50 && pth->PBH_high_mass>=5 ){
       sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_10Msun.dat");
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10Msun_All.dat");
     }
     else if(pth->PBH_high_mass<500 && pth->PBH_high_mass>=50 ){
       sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_100Msun.dat");
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_100Msun_All.dat");
     }
     else if(pth->PBH_high_mass<5000 && pth->PBH_high_mass>=500 ){
       sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_1000Msun.dat");
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_1000Msun_All.dat");
     }
     else{
       sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/output_PBH_new/f_z_PBH_accretion_All_disk_10000Msun.dat");
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10000Msun_All.dat");
     }
   }
 
