@@ -3015,6 +3015,11 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10000Msun_All.dat");
     }
   }
+  else if(pth->PBH_accretion_recipe == Ali_Haimoud){
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_spherical_All.dat");
+    printf("here\n");
+  }
 
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
