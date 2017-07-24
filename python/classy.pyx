@@ -825,6 +825,9 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
+    def Omega_g(self):
+        return self.ba.Omega0_g
+
     def Omega_b(self):
         return self.ba.Omega0_b
 
@@ -1046,7 +1049,7 @@ cdef class Class:
 
     def get_background(self):
         """
-        Return the background quantities.
+        Return an array of the background quantities at all times.
 
         Parameters
         ----------
