@@ -1030,6 +1030,25 @@ int input_read_parameters(
       }
     }
 
+    class_call(parser_read_string(pfc,
+                                  "w_fld_parametrization",
+                                  &string1,
+                                  &flag1,
+                                  errmsg),
+                errmsg,
+                errmsg);
+    if (flag1 == _TRUE_){
+      if(strstr(string1,"tanh") != NULL){
+        pba->w_fld_parametrization = w_fld_parametrization_tanh;
+      }
+      else if(strstr(string1,"lin") != NULL){
+        pba->w_fld_parametrization = w_fld_parametrization_lin;
+      }
+      else {
+	class_stop(errmsg,"unknown parametrization '%s' for w(a), set w_fld_parametrization to either lin(default) or tanh",string1);
+      }
+    }
+
   }
 
   /* Additional SCF parameters: */
@@ -1103,6 +1122,9 @@ int input_read_parameters(
 
     if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)) {
       pth->recombination = hyrec;
+      class_test(pba->w_fld_parametrization != w_fld_parametrization_lin,
+               errmsg,
+               "HyRec assumes an equation of state parametrization w(a) = w0 + w1 (1-a) for the dark fluid.");
     }
 
   }
@@ -2896,6 +2918,7 @@ int input_default_params(
   pba->a_today = 1.;
   pba->w0_fld=-1.;
   pba->wa_fld=0.;
+  pba->w_fld_parametrization = w_fld_parametrization_lin;
   pba->cs2_fld=1.;
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;

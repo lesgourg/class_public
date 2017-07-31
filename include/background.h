@@ -11,6 +11,7 @@
 #include "parser.h"
 
 enum spatial_curvature {flat,open,closed};
+enum {w_fld_parametrization_lin, w_fld_parametrization_tanh};
 
 /**
  * All background parameters and evolution that other modules need to know.
@@ -52,6 +53,9 @@ struct background
   double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid */
   double w0_fld; /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
   double wa_fld; /**< \f$ wa_{DE} \f$: fluid equation of state parameter derivative */
+  
+  short w_fld_parametrization; /**< flag switching between different parametrizations
+				\f$ w(a)\f$ - 0 is the normal linear parametrization */
 
   double cs2_fld; /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid
 		     in the frame comoving with the fluid (so, this is
