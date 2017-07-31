@@ -1289,14 +1289,15 @@ int thermodynamics_annihilation_coefficients_init(
     /* Prepare the command */
     /* Pass the list of arguments */
     sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
-	/* Write the actual command */
-	sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
-	if (pth->thermodynamics_verbose > 0)
+    /* Write the actual command */
+    sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
+    free(ppr->command_fz);
+    if (pth->thermodynamics_verbose > 0)
       printf(" -> running: %s\n", command_with_arguments);
     /* Launch the process and retrieve the output */
 
-       fA = popen(command_with_arguments, "r");
-       class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
+    fA = popen(command_with_arguments, "r");
+    class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
   }
 
   /* END */
@@ -1353,7 +1354,7 @@ int thermodynamics_annihilation_coefficients_init(
                           &(pth->annihil_coef_ionHe[array_line]),
                           &(pth->annihil_coef_lowE[array_line])) != 6,
                    pth->error_message,
-                   "could not read value of parameters coeeficients in file %s\n",ppr->energy_injec_coeff_file);
+                   "could not read value of parameters coeeficients in file %s\n\nThe line I do not understand is: >> %s <<\n",ppr->energy_injec_coeff_file,line);
         array_line ++;
       }
     }
@@ -1795,7 +1796,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
 
     if(preco->PBH_low_mass<1e15){
       tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3); //not used, for comparison only
-      fprintf(stdout, "T %e fem %e br_ee %e br_gg %e tau_pbh %e exp %e \n",1.06*(pow(10,10)/preco->PBH_low_mass)*pow(10,12),f-f_neutrinos,2*2*0.142/(f-f_neutrinos),2*0.06/(f-f_neutrinos),tau_pbh,exp(1e14/tau_pbh));
+      //fprintf(stdout, "T %e fem %e br_ee %e br_gg %e tau_pbh %e exp %e \n",1.06*(pow(10,10)/preco->PBH_low_mass)*pow(10,12),f-f_neutrinos,2*2*0.142/(f-f_neutrinos),2*0.06/(f-f_neutrinos),tau_pbh,exp(1e14/tau_pbh));
       class_call(background_tau_of_z(pba,
                                      z,
                                      &tau),

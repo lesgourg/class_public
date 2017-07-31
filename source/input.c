@@ -1575,21 +1575,21 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 
     /* The third parameter is set by default to be the cross-section or the lifetime of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pba->Gamma_dcdm > 0){
-          ppr->param_fz_2 = pba->Gamma_dcdm; //In km/s/Mpc.
+          ppr->param_fz_3 = pba->Gamma_dcdm; //In km/s/Mpc.
         }
         else if(pba->tau_dcdm > 0){
-          ppr->param_fz_2 = pba->tau_dcdm; //In s.
+          ppr->param_fz_3 = pba->tau_dcdm; //In s.
         }
         else if(pth->annihilation_boost_factor > 0){
-          ppr->param_fz_2 = pth->annihilation_boost_factor*3*pow(10,-32); //<Sigma*v> in m^3/s.
+          ppr->param_fz_3 = pth->annihilation_boost_factor*3*pow(10,-32); //<Sigma*v> in m^3/s.
 
         }
         else class_read_double("ext_fz_par3",ppr->param_fz_3);
 
     /* More parameters that are not set to any default, can be used arbitrarily */
         class_read_double("ext_fz_par4",ppr->param_fz_4);
-	      class_read_double("ext_fz_par5",ppr->param_fz_5);
-
+	class_read_double("ext_fz_par5",ppr->param_fz_5);
+	
       }
       else {
         if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
@@ -3320,6 +3320,7 @@ int input_default_params(
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
   pba->Gamma_dcdm = 0.0;
+  pba->tau_dcdm = 0.0;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
