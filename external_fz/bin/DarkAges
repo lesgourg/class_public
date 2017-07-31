@@ -56,7 +56,7 @@ parser.add_option("-m","--model", dest='model', metavar='MODEL',
                   help="Load a preprocessed model")
 parser.add_option("--rebuild_model", action='store_true', dest='rebuild_model', default=False,
                   help="Force rebuilding a model")
-parser.add_option("--hist", default='annihilation', choices=['annihilation','decay','PBH'], dest='injection_history',
+parser.add_option("--hist", default='annihilation', choices=['annihilation','decay','PBH','PBH2'], dest='injection_history',
                   help="Define the injection history of the model.")
 parser.add_option("--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV].")
@@ -74,27 +74,34 @@ os.environ['DARKAGES_BG_H0'] = '{}'.format(options.background[0])
 os.environ['DARKAGES_BG_OM_M'] = '{}'.format(options.background[1])
 os.environ['DARKAGES_BG_OM_R'] = '{}'.format(options.background[2])
 
-os.environ['DARKAGES_TOPLEVEL_PID'] = '{:d}'.format(os.getpid())
-os.environ['DARKAGES_TOPLEVEL_RANDN'] = '{:d}'.format(random_num)
-
 from DarkAges import transfer_functions, logEnergies, redshift
 from DarkAges.common import print_error, print_info
 import DarkAges.recipes as recipes
 
-import dill
-with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )), 'wb') as options_dumper:
-	dill.dump(options, options_dumper)
+if options.script_file:
+	os.environ['DARKAGES_TOPLEVEL_PID'] = '{:d}'.format(os.getpid())
+	os.environ['DARKAGES_TOPLEVEL_RANDN'] = '{:d}'.format(random_num)
+	import dill
+	with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )), 'wb') as options_dumper:
+		dill.dump(options, options_dumper)
 
 import atexit
 @atexit.register
 def goodbye():
-	try:
-		os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )) )
-	except OSError:
-		pass
+	if options.script_file:
+		try:
+			os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )) )
+		except OSError:
+			pass
 
 if options.injection_history == 'decay' and (options.t_dec==None):
 	print_error('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
+
+if options.injection_history == 'PBH':
+	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift) )
+
+if options.injection_history == 'PBH2':
+	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, merge_ion=True) )
 
 if options.model:
 	sys.exit( recipes.access_model(options.model, options.rebuild_model, args) )

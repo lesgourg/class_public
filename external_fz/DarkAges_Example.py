@@ -4,8 +4,9 @@ import sys
 import os
 import numpy as np
 
-import DarkAges
-from DarkAges import *
+from DarkAges import redshift, logEnergies, transfer_functions
+from DarkAges.common import sample_spectrum, channel_dict, finalize
+from DarkAges.model import annihilating_model as model
 
 #######################
 #######################

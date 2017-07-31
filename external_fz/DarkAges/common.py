@@ -41,11 +41,17 @@ def print_info(message):
 	print('#INFO: {}'.format(message))
 
 def print_warning(message):
-	print('#WARNING: {}'.format(message))
+	from warnings import warn
+	warn('\n\n#WARNING: {}\n'.format(message), RuntimeWarning )
+
+class DarkAges_Error(Exception):
+	def __call__(self, message):
+		print(message)
 
 def print_error(message):
-	print('\n\n!!! EROOR: {} !!!\n\n'.format(message))
-	sys.exit(255)
+	#print('\n\n!!! EROOR: {} !!!\n\n'.format(message))
+	#sys.exit(255)
+	raise DarkAges_Error('\n\n!!! ERROR: {} !!!\n\n'.format(message))
 
 def logConversion( log_array , base=10 ):
 	def dummy(single_log10_num):
@@ -108,7 +114,7 @@ def decay_scaling(redshift, spec_point, lifetime):
 
 def f_function(logE, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,
-               spec_phot, spec_elec, spec_tot, alpha=3, **kwargs):
+               spec_phot, spec_elec, alpha=3, **kwargs):
 	'''
 	This is to calculate the f-function given the photon and electron spectrum
 	of the particular model, assuming redshift independent DM-annihalation
@@ -133,22 +139,11 @@ def f_function(logE, z_inj, z_dep, normalization,
 	'''
 	E = logConversion(logE)
 
-	how_to_normalize = kwargs.get('normalization_scheme','integral')
-	if how_to_normalize not in ['use_norm','integral']:
-		print_error('The normalization-scheme >> {} << is not known'.format(how_to_normalize))
 	how_to_integrate = kwargs.get('E_integration_scheme','logE')
 	if how_to_integrate not in ['logE','energy']:
 		print_error('The energy integration-scheme >> {} << is not known'.format(how_to_integrate))
 
-	if how_to_normalize == 'integral':
-		if how_to_integrate == 'logE':
-			int_tot = spec_tot*(E**2)/np.log10(np.e)
-			norm = ( conversion(z_dep,alpha=alpha) )*( trapz(int_tot, logE) )
-		elif how_to_integrate == 'energy':
-			int_tot = spec_tot*(E**1)
-			norm = ( conversion(z_dep,alpha=alpha) )*( trapz(int_tot, E) )
-	elif how_to_normalize == 'use_norm':
-		norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
+	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
 	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
 	for i in xrange(len(energy_integral)):
@@ -180,6 +175,7 @@ def f_function(logE, z_inj, z_dep, normalization,
 			result[i] = 0
 
 	return result
+
 
 def log_fit(points,func,xgrid,exponent=1):
 	'''
