@@ -301,7 +301,6 @@ int input_init(
 
   /** - case with unknown parameters */
   if (unknown_parameters_size > 0) {
-
     /* Create file content structure with additional entries */
     class_call(parser_init(&(fzw.fc),
                            pfc->size+unknown_parameters_size,
@@ -432,7 +431,6 @@ int input_init(
     if (input_verbose > 1) {
       fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
     }
-
 
     /** - --> Read all parameters from tuned pfc */
     class_call(input_read_parameters(&(fzw.fc),
@@ -1543,7 +1541,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 		/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
 		class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
     class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-		ppr->command_fz = (char *) malloc (strlen(string2) + 1);
+    class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
     strcpy(ppr->command_fz, string2);
 
     /** An arbitrary number of external parameters to be used by the external command
@@ -3684,7 +3682,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;
-  ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
+  ppr->command_fz = NULL;
+  //ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
   //ppr->command_fz = "Insert external command, like: python ./path/to_external/script.py";
   ppr->param_fz_1 = 0.;
   ppr->param_fz_2 = 0.;
@@ -4380,6 +4379,7 @@ int input_get_guess(double *xguess,
   }
 
   /** - Deallocate everything allocated by input_read_parameters */
+  if (pr.command_fz != NULL) free(pr.command_fz);
   background_free_input(&ba);
 
   return _SUCCESS_;

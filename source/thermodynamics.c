@@ -875,7 +875,6 @@ int thermodynamics_free(
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
 
-
   return _SUCCESS_;
 }
 
