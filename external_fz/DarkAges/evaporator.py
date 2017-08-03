@@ -49,7 +49,7 @@ def PBH_spectrum_at_m( mass, *particles):
 
 def PBH_spectrum( PBH_mass_ini, *particles):
 	ret = np.zeros((len(logEnergies), len(redshift)), dtype=np.float64)
-	mass_at_z = PBH_mass_at_z(PBH_mass_ini, t_start = time_at_z(1e4))[-1,:]
+	mass_at_z = PBH_mass_at_z(PBH_mass_ini, z_start =1e4)[-1,:]
 	for idx, mass in enumerate(mass_at_z):
 		ret[:,idx] = PBH_spectrum_at_m( mass, *particles )
 	return ret
@@ -125,6 +125,12 @@ def PBH_dMdt(PBH_mass, time, scale):
 		return 0
 
 def PBH_mass_at_t(initial_PBH_mass, t_start = 1e10):
+	def jac(mass, time, scale):
+		out = np.zeros(2)
+		out[1] = 0 # del_t (dMdt)
+		out[0] = -2*PBH_dMdt(mass, time, scale) / (mass*scale)
+		return out
+
 	times = np.zeros((redshift.shape[0]+2), dtype=np.float64)
 	times[0] = t_start
 	times[1:-1] = time_at_z(redshift)
@@ -136,7 +142,8 @@ def PBH_mass_at_t(initial_PBH_mass, t_start = 1e10):
 	initial_PBH_mass *= 1/scale
 
 	temp_t = 10**np.linspace(np.log10(times[0]), np.log10(times[-1]), 1e4)
-	temp_mass, full_info = solve_ode(PBH_dMdt, initial_PBH_mass, temp_t, args=(scale,), full_output=1,mxstep=5000)
+
+	temp_mass, full_info = solve_ode(PBH_dMdt, initial_PBH_mass, temp_t, Dfun=jac, args=(scale,), full_output=1,mxstep=10000)
 	PBH_mass_at_t = np.interp(times, temp_t, temp_mass[:,0])
 
 	#PBH_mass_at_t, full_info = solve_ode(PBH_dMdt, initial_PBH_mass, times, args=(scale,), full_output=1,mxstep=10000)
@@ -154,9 +161,9 @@ def PBH_mass_at_t(initial_PBH_mass, t_start = 1e10):
 
 	return out[:,:]
 
-def PBH_mass_at_z(initial_PBH_mass, redshift=redshift, t_start = 1e10):
+def PBH_mass_at_z(initial_PBH_mass, redshift=redshift, z_start = 1e4):
 	times =  time_at_z(redshift)
-	temp_grid = PBH_mass_at_t(initial_PBH_mass, t_start = t_start)[:,1:-1]
+	temp_grid = PBH_mass_at_t(initial_PBH_mass, t_start = time_at_z(z_start))[:,1:-1]
 	out = np.zeros((2,len(times)), dtype=np.float64)
 	out[1,:] = nan_clean(np.interp(times, temp_grid[0,:], temp_grid[1,:]))
 	out[0,:] = redshift

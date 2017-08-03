@@ -614,7 +614,6 @@ int input_read_parameters(
                                   pop),
              errmsg,
              errmsg);
-
   class_call(input_default_precision(ppr),
              errmsg,
              errmsg);
@@ -1540,12 +1539,12 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     if (flag1 == _TRUE_) {
       if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
         ppr->fz_is_extern = _TRUE_;
-		/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
-		class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
-    class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-		ppr->command_fz = (char *) malloc (strlen(string2) + 1);
-    strcpy(ppr->command_fz, string2);
-
+	/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
+	class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+	class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
+	strcpy(ppr->command_fz, string2);
+	
     /** An arbitrary number of external parameters to be used by the external command
     * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
     * except if those have already been assigned in class. In that case, the value known
@@ -1582,14 +1581,13 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else if(pth->annihilation_boost_factor > 0){
           ppr->param_fz_3 = pth->annihilation_boost_factor*3*pow(10,-32); //<Sigma*v> in m^3/s.
-
         }
         else class_read_double("ext_fz_par3",ppr->param_fz_3);
 
     /* More parameters that are not set to any default, can be used arbitrarily */
         class_read_double("ext_fz_par4",ppr->param_fz_4);
-	class_read_double("ext_fz_par5",ppr->param_fz_5);
-	
+	      class_read_double("ext_fz_par5",ppr->param_fz_5);
+
       }
       else {
         if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
@@ -3684,7 +3682,8 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;
-  ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
+  ppr->command_fz = NULL;
+  //ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
   //ppr->command_fz = "Insert external command, like: python ./path/to_external/script.py";
   ppr->param_fz_1 = 0.;
   ppr->param_fz_2 = 0.;
@@ -4089,7 +4088,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
             "%e",unknown_parameter[i]);
   }
-
   class_call(input_read_parameters(&(pfzw->fc),
                                    &pr,
                                    &ba,
@@ -4104,7 +4102,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
                                    errmsg),
              errmsg,
              errmsg);
-
   class_call(parser_read_int(&(pfzw->fc),
                              "input_verbose",
                              &param,
@@ -4380,6 +4377,7 @@ int input_get_guess(double *xguess,
   }
 
   /** - Deallocate everything allocated by input_read_parameters */
+  if (pr.command_fz != NULL) free(pr.command_fz);
   background_free_input(&ba);
 
   return _SUCCESS_;
