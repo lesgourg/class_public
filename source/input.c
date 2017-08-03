@@ -3674,7 +3674,8 @@ int input_default_precision ( struct precision * ppr ) {
   strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-  strcat(ppr->energy_injec_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
+  //strcat(ppr->energy_injec_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
+  strcat(ppr->energy_injec_coeff_file,"/external_fz/Fallback.dat");
   sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
   strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
 
@@ -4125,6 +4126,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
      printf("Stage 2: thermodynamics\n");
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
+    pr.fz_is_extern = _FALSE_;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
