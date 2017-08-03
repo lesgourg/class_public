@@ -126,9 +126,9 @@ def PBH_dMdt(PBH_mass, time, scale):
 
 def PBH_mass_at_t(initial_PBH_mass, t_start = 1e10):
 	def jac(mass, time, scale):
-		out = np.zeros(2)
-		out[1] = 0 # del_t (dMdt)
-		out[0] = -2*PBH_dMdt(mass, time, scale) / (mass*scale)
+		out = np.zeros((1,1))
+		out[0,0] = 0 # partial_(dMdt) / partial_t
+		#out[0] = -2*PBH_dMdt(mass, time, scale) / (mass*scale)
 		return out
 
 	times = np.zeros((redshift.shape[0]+2), dtype=np.float64)
