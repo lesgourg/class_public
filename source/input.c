@@ -301,7 +301,6 @@ int input_init(
 
   /** - case with unknown parameters */
   if (unknown_parameters_size > 0) {
-
     /* Create file content structure with additional entries */
     class_call(parser_init(&(fzw.fc),
                            pfc->size+unknown_parameters_size,
@@ -432,7 +431,6 @@ int input_init(
     if (input_verbose > 1) {
       fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
     }
-
 
     /** - --> Read all parameters from tuned pfc */
     class_call(input_read_parameters(&(fzw.fc),
@@ -1545,13 +1543,13 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 	class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
 	strcpy(ppr->command_fz, string2);
 	
-    /** An arbitrary number of external parameters to be used by the external command
-    * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
-    * except if those have already been assigned in class. In that case, the value known
-    * by class is attributed to those parameters.
-    */
+	/** An arbitrary number of external parameters to be used by the external command
+	 * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
+	 * except if those have already been assigned in class. In that case, the value known
+	 * by class is attributed to those parameters.
+	 */
 
-    /* The first parameter is set by default to be the mass of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+	/* The first parameter is set by default to be the mass of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pth->annihilation_m_DM > 0){
           ppr->param_fz_1 = pth->annihilation_m_DM; // In GeV.
         }
@@ -1563,7 +1561,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else class_read_double("ext_fz_par1",ppr->param_fz_1);
 
-    /* The second parameter is set by default to be the fraction (normalized to Omega0_cdm) of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+	/* The second parameter is set by default to be the fraction (normalized to Omega0_cdm) of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pth->decay_fraction > 0){
           ppr->param_fz_2 = pth->decay_fraction;
         }
@@ -1572,7 +1570,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else class_read_double("ext_fz_par2",ppr->param_fz_2);
 
-    /* The third parameter is set by default to be the cross-section or the lifetime of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+	/* The third parameter is set by default to be the cross-section or the lifetime of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pba->Gamma_dcdm > 0){
           ppr->param_fz_3 = pba->Gamma_dcdm; //In km/s/Mpc.
         }
@@ -1584,9 +1582,9 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else class_read_double("ext_fz_par3",ppr->param_fz_3);
 
-    /* More parameters that are not set to any default, can be used arbitrarily */
+	/* More parameters that are not set to any default, can be used arbitrarily */
         class_read_double("ext_fz_par4",ppr->param_fz_4);
-	      class_read_double("ext_fz_par5",ppr->param_fz_5);
+	class_read_double("ext_fz_par5",ppr->param_fz_5);
 
       }
       else {
@@ -1598,7 +1596,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
       }
     }
-	/* END */
+    /* END */
 
     if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
