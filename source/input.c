@@ -1776,6 +1776,10 @@ int input_read_parameters(
 
       class_read_double("r",ppm->r);
 
+      if (ppt->has_scalars == _FALSE_) {
+        class_read_double("A_s",ppm->A_s);
+      }
+
       if (ppm->r <= 0) {
         ppt->has_tensors = _FALSE_;
       }
