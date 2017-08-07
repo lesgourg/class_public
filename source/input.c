@@ -4127,6 +4127,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
     pr.fz_is_extern = _FALSE_;
+    free(pr.command_fz);
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 

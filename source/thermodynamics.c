@@ -1293,10 +1293,10 @@ int thermodynamics_annihilation_coefficients_init(
     free(ppr->command_fz);
     if (pth->thermodynamics_verbose > 0) {
       printf(" -> running: %s\n", command_with_arguments);
-      printf(" -> using backgrounnd: H0=%g Omega_M=%g Omega_R=%g\n",100*pba->h,pba->Omega0_b+pba->Omega0_cdm,pba->Omega0_g);
+      //printf(" -> using backgrounnd: H0=%g Omega_M=%g Omega_R=%g\n",100*pba->h,pba->Omega0_b+pba->Omega0_cdm,pba->Omega0_g);
     }
     /* Launch the process and retrieve the output */
-
+    fflush(fA);
     fA = popen(command_with_arguments, "r");
     class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
   }
@@ -1365,7 +1365,7 @@ int thermodynamics_annihilation_coefficients_init(
     fclose(fA);
   } else {
     status = pclose(fA);
-	class_test(status != 0., pth->error_message, "The attempt to launch the external command was not successful. Maybe the output of the external command is not in the right format.");
+    class_test(status != 0., pth->error_message, "The attempt to launch the external command was not successful. Maybe the output of the external command is not in the right format.");
   }
   /* END */
 
