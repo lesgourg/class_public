@@ -1,46 +1,44 @@
-import itertools
-import dill
-import numpy as np
-import sys
-import os 
-if os.environ['DARKAGES_BASE']:
-	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
+def prepare(): 
+	import itertools
+	import dill
+	import numpy as np
+	import sys
+	import os 
+	if os.environ['DARKAGES_BASE']:
+		sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 
-import DarkAges
-from DarkAges.common import channel_dict, get_index
-from DarkAges import logEnergies, redshift, transfer_functions
-from DarkAges.recipes import load_from_spectrum
-from DarkAges.model import model
-from DarkAges.interpolator import logInterpolator
+	import DarkAges
+	from DarkAges import logEnergies, options
+	from DarkAges.recipes import load_from_spectrum
 
-model_dir = os.path.split(os.path.realpath(__file__))[0]
-model_name =  model_dir.split('/')[-1]
+	##### In this Block, the model is introduced 
+	## e.g. Introducing the folder where the data is
+	## or introducing the names of the primaries to consider, 
+	## so that there spectra can be found and read
+	#####
+	model_dir = os.path.split(os.path.realpath(__file__))[0]
+	model_name =  model_dir.split('/')[-1]
 
-masses = np.array([50,55,60,65,70,75,80,85,90,95,100], dtype=np.int32)
-primaries = np.array(['muon_StandAlone','bottom'], dtype=np.dtype('a32'))
-f_grid = np.empty(shape=(len(masses),len(primaries),5,len(redshift)), dtype = np.float64)
+	primaries = np.array(['muon','bottom'], dtype=np.dtype('a32'))
+	#####
 
-for mass, primary in itertools.product(*(masses,primaries)):
-	idx_mass = get_index(masses, mass)
-	idx_prim = get_index(primaries, primary)
-	fname = os.path.join(model_dir, 'data/{:s}_{:d}_spectrum.dat'.format(primary,mass))
-	tmp_model = load_from_spectrum(fname, logEnergies, mass, np.inf)
-	for channel in channel_dict:
-		idx_chan = channel_dict[channel]
-		f_grid[idx_mass,idx_prim,idx_chan,:] = tmp_model.calc_f(transfer_functions[idx_chan])[-1]
+	##### The idea of the 'model'-mode is to do the interpolation of the spectra once
+	## and then save the 'interpolator', that the spectrum can then easily be sampled
+	## by loading the object and run the .__call__ method.
+	## To this end, we store the interpolators in a dictionary and save this
+	## dictionary with the dill-module
+	#####   
+	dump_dict = dict()
+
+	for idx_prim, primary in enumerate(primaries):
+		fname = os.path.join(model_dir, 'data/{:s}_50-100_spectrum.dat'.format(primary))
+		dump_dict_key = 'spec_interp_{:s}'.format(primary)
+		dump_dict_value = load_from_spectrum(fname, logEnergies, **options)
+		dump_dict.update({dump_dict_key:dump_dict_value})
 		
-interpolated_f = np.empty(shape=(len(primaries),5,len(redshift)), dtype= logInterpolator)
-for primary, idx_chan, z in itertools.product(*(primaries,channel_dict.values(),redshift)):
-	idx_prim = get_index(primaries, primary)
-	idx_z = get_index(redshift, z)
-	interpolated_f[idx_prim, idx_chan, idx_z] = logInterpolator(masses, f_grid[:,idx_prim,idx_chan,idx_z], 0)	
+	with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'wb') as dump_file:
+		dill.dump(dump_dict, dump_file)
+	#####	
 
-dump_dict = {'f-function': interpolated_f}
-
-with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'wb') as dump_file:
-	dill.dump(dump_dict, dump_file)
-	
-		
-		
-
-
+if __name__ == "__main__":
+	prepare()

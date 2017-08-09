@@ -13,7 +13,7 @@ if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 import DarkAges
 from DarkAges.common import print_error, finalize, channel_dict, get_index
-from DarkAges import redshift
+from DarkAges import redshift, options
 
 if len(sys.argv) <2:
 	print_error("There are too few arguments passed. I expected at least 1")

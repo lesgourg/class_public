@@ -7,6 +7,7 @@ import numpy as np
 ### Definition of functions ###
 ###############################
 
+
 '''
 NOTE: the order of the channel given by T. Slatyer and parsed to CLASS differ:
 # Slatyer order:  H-Ion, He-Ion, Ly-A,  Heat,   LowE   ->  0,1,2,3,4
@@ -40,18 +41,26 @@ def print_info(message):
 	print('#INFO: {}'.format(message))
 
 def print_warning(message):
-	print('#WARNING: {}'.format(message))
+	from warnings import warn
+	warn('\n\n#WARNING: {}\n'.format(message), RuntimeWarning )
+
+class DarkAges_Error(Exception):
+	def __call__(self, message):
+		print(message)
 
 def print_error(message):
-	print('\n\n!!! EROOR: {} !!!\n\n'.format(message))
-	sys.exit()
+	#print('\n\n!!! EROOR: {} !!!\n\n'.format(message))
+	#sys.exit(255)
+	raise DarkAges_Error('\n\n!!! ERROR: {} !!!\n\n'.format(message))
 
-def logConversion(LogNumber):
-	return 10**LogNumber
+def logConversion( log_array , base=10 ):
+	def dummy(single_log10_num):
+		return base**single_log10_num
+	return np.vectorize(dummy).__call__(log_array)
 
 def simple_H(redshift, H0 = Cosmo_H0, Omega_M = Cosmo_Omega_M):
 	'''
-	Redshift dependence of H (assuming only matter and radiation to be present).
+	Redshift dependence of H (assuming only matter to be present).
 	'''
 	return H(redshift, Omega_R = 0.)
 
@@ -59,8 +68,8 @@ def H(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
 	'''
 	Redshift dependence of H (assuming only matter and radiation to be present).
 	'''
-	#return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R + (1-Omega_R-Omega_M) )
-	return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R ) * 1/np.sqrt(Omega_R + Omega_M)
+	return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R + (1-Omega_R-Omega_M) )
+	#return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R ) * 1/np.sqrt(Omega_R + Omega_M)
 
 def time_at_z(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
 	'''
@@ -69,7 +78,8 @@ def time_at_z(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Om
 	(Taken from EnergyAbsorptionCalculator.nb provided
 	as a supplement of arXiV:1211.0283)
 	'''
-	return 2/(3 * Omega_M**2 * redshift * H0) * ( Omega_M * np.sqrt(Omega_R + (Omega_M / redshift)) + 2 * Omega_R**1.5 * redshift - 2 * Omega_R * np.sqrt(Omega_M + redshift*Omega_R) )
+
+	return 2/(3 * Omega_M**2 * redshift * H0) * ( Omega_M * np.sqrt(Omega_R + (Omega_M / redshift)) + 2 * Omega_R**1.5 * redshift - 2 * Omega_R * np.sqrt(redshift*(Omega_M + redshift*Omega_R) ) )
 
 def conversion( redshift, alpha=3 ):
 	'''
@@ -80,27 +90,31 @@ def conversion( redshift, alpha=3 ):
 	'''
 	return ( redshift**alpha / H(redshift) )
 
-def nan_clean( array ):
+def nan_clean( input_array ):
 	'''
-	Replacing all NAN-entries of a list with zero.
-	(For example if we sample the injected spectrum
-	for an energy for which we do not have any transfer function)
+	Replacing all 'NAN' of a list with zero.
 	'''
-	if np.asarray(array).shape == ():
-		array = np.asarray([array])
-	ret = np.empty_like( array, dtype=np.float64 )
-	for idx, value in enumerate(array):
-		if value == value:
-			ret[idx] = value
+	def dummy( single_input ):
+		if abs(single_input) < np.inf:
+			return single_input
 		else:
-			ret[idx] = 0
-	return ret
+			return 0.
+	return np.vectorize(dummy).__call__(input_array)
 
 def get_index( array, entry ):
 	return np.where(array == entry)[0][0].astype(np.int32)
 
-def f_function_annihilation(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer_elec,
-                            spec_phot, spec_elec, spec_tot):
+def unscaled(redshift, spec_point):
+	ret = spec_point*np.ones_like(redshift)
+	return ret
+
+def decay_scaling(redshift, spec_point, lifetime):
+	ret = spec_point*np.exp(-time_at_z(redshift) / lifetime)
+	return ret
+
+def f_function(logE, z_inj, z_dep, normalization,
+               transfer_phot, transfer_elec,
+               spec_phot, spec_elec, alpha=3, **kwargs):
 	'''
 	This is to calculate the f-function given the photon and electron spectrum
 	of the particular model, assuming redshift independent DM-annihalation
@@ -119,135 +133,49 @@ def f_function_annihilation(logE, z_inj, z_dep, mass_dm, transfer_phot, transfer
 		(electrons), taking redshift of deposition, Energy at injection and
 		Redshift of injection.
 	spec_phot / spec_elec:
-		Spectrum (dN/dE) of the injected photons as function of Energy
-		(z dependence already factored out).
+		Spectrum (dN/dE) of the injected photons as function of Energy and of z
 	spec_tot:
 		Total spectrum (dN/dE) of all particles produced by DM annihilation.
 	'''
-
 	E = logConversion(logE)
 
-	int_tot = spec_tot*(E**2)/np.log10(np.e)
-	norm = ( conversion(z_dep) )*( trapz(int_tot, logE) )
-	#norm = ( conversion(z_dep) )*( 2*mass_dm )
+	how_to_integrate = kwargs.get('E_integration_scheme','logE')
+	if how_to_integrate not in ['logE','energy']:
+		print_error('The energy integration-scheme >> {} << is not known'.format(how_to_integrate))
 
-	#int_tot = spec_tot*(E**1)
-	#norm = ( conversion(z_dep) )*( trapz(int_tot, E) )
-	#norm = ( conversion(z_dep) )*( 2*mass_dm )
+	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
-	energy_integral = np.zeros( shape=(len(z_inj),len(z_dep)), dtype=np.float64)
+	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
 	for i in xrange(len(energy_integral)):
-		for k in xrange(i,len(energy_integral[i])):
-			int_phot = transfer_phot[i,:,k]*spec_phot*(E**2)/np.log10(np.e)
-			int_elec = transfer_elec[i,:,k]*spec_elec*(E**2)/np.log10(np.e)
-			energy_integral[i][k] = trapz( int_phot + int_elec, logE )
-
-	#energy_integral = np.empty( shape=(len(z_inj),len(z_dep)), dtype=float)
-	#for i in xrange(len(energy_integral)):
-	#	for k in xrange(i,len(energy_integral[i])):
-	#		int_phot = transfer_phot[i,:,k]*spec_phot*(E**1)
-	#		int_elec = transfer_elec[i,:,k]*spec_elec*(E**1)
-	#		energy_integral[i][k] = trapz( int_phot + int_elec, E )
+		if how_to_integrate == 'logE':
+			for k in xrange(i,len(energy_integral[i])):
+				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
+				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
+				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+		elif how_to_integrate == 'energy':
+			for k in xrange(i,len(energy_integral[i])):
+				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
+				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
+				energy_integral[i][k] = trapz( int_phot + int_elec, E )
 
 	z_integral = np.zeros_like( z_dep, dtype=np.float64)
 	dummy = np.arange(1,len(z_inj)+1)
 	for i in xrange(len(z_integral)):
 		low = max(i,0)
 		#low = i
-		integrand = ( conversion(z_inj[low:]) )*energy_integral[i,low:]
+		integrand = ( conversion(z_inj[low:], alpha=alpha) )*energy_integral[i,low:]
 		z_integral[i] = trapz( integrand, dummy[low:] )
 
 	result = np.empty_like( norm, dtype=np.float64 )
 	for i in xrange(len(norm)):
-		if norm[i] != 0:
+		if norm[i] != 0 and abs(z_integral[i]) < np.inf :
 			result[i] = (z_integral[i] / norm[i])
 		else:
-			result[i] = np.nan
-			#result[i] = 0
-
-	# Before returning the result-array, we clean the array from NaNs, by interpolating the invalid points
-	nanmask = np.isnan(result)
-	#nanmask = np.array([])
-	if len(np.flatnonzero(nanmask)) > 0:
-		#result[nanmask] = np.interp(np.flatnonzero(nanmask), np.flatnonzero(~nanmask), result[~nanmask])
-		pass
+			#result[i] = np.nan
+			result[i] = 0
 
 	return result
 
-def f_function_decay(logE, z_inj, z_dep, mass_dm, t_dec, transfer_phot, transfer_elec,
-                     spec_phot, spec_elec, spec_tot):
-	'''
-	This is to calculate the f-function given the photon and electron spectrum
-	of the particular model, assuming redshift independent DM-annihalation
-	i.e. we assume the thermally averaged crossection to be constant. That is
-	why we choose alpha=3 as exponent in the conversion factor.
-
-	The inputs are as follows:
-	logE:
-		40x1-dim. object containing log10 of the particle kinetic energies
-		(given in units of eV).
-	z_inj / z_dep:
-		63x1-dim. object containing the log-spaced redshift (z+1) of
-		deposition (or redshift of injection)
-	transfer_phot / transfer_elec:
-		63x40x63-dim. object containing the transfer function for photons
-		(electrons), taking redshift of deposition, Energy at injection and
-		Redshift of injection.
-	spec_phot / spec_elec:
-		Spectrum (dN/dE) of the injected photons as function of Energy
-		(z dependence already factored out).
-	spec_tot:
-		Total spectrum (dN/dE) of all particles produced by DM annihilation.
-	'''
-
-	E = logConversion(logE)
-
-	int_tot = spec_tot*(E**2)/np.log10(np.e)
-	norm = ( conversion(z_dep,alpha=0) )*( trapz(int_tot, logE) )
-	#norm = ( conversion(z_dep,alpha=0) )*( 2*mass_dm )
-
-	#int_tot = spec_tot*(E**1)
-	#norm = ( conversion(z_dep,alpha=0) )*( trapz(int_tot, E) )
-	#norm = ( conversion(z_dep,alpha=0) )*( 2*mass_dm )
-
-	energy_integral = np.zeros( shape=(len(z_inj),len(z_dep)), dtype=np.float64)
-	for i in xrange(len(energy_integral)):
-		for k in xrange(i,len(energy_integral[i])):
-			int_phot = transfer_phot[i,:,k]*spec_phot*(E**2)/np.log10(np.e)
-			int_elec = transfer_elec[i,:,k]*spec_elec*(E**2)/np.log10(np.e)
-			energy_integral[i][k] = trapz( int_phot + int_elec, logE )
-
-	#energy_integral = np.empty( shape=(len(z_inj),len(z_dep)), dtype=float)
-	#for i in xrange(len(energy_integral)):
-	#	for k in xrange(i,len(energy_integral[i])):
-	#		int_phot = transfer_phot[i,:,k]*spec_phot*(E**1)
-	#		int_elec = transfer_elec[i,:,k]*spec_elec*(E**1)
-	#		energy_integral[i][k] = trapz( int_phot + int_elec, E )
-
-	z_integral = np.zeros_like( z_dep, dtype=np.float64)
-	dummy = np.arange(1,len(z_inj)+1)
-	for i in xrange(len(z_integral)):
-		low = max(i,0)
-		#low = i
-		integrand = ( conversion(z_inj[low:],alpha=0) )*np.exp(-time_at_z(z_inj[low:]) / t_dec)*energy_integral[i,low:]
-		z_integral[i] = trapz( integrand, dummy[low:] )
-
-	result = np.empty_like( norm, dtype=np.float64 )
-	for i in xrange(len(norm)):
-		if norm[i] != 0:
-			result[i] = (z_integral[i] / norm[i])
-		else:
-			result[i] = np.nan
-			#result[i] = 0
-
-	# Before returning the result-array, we clean the array from NaNs, by interpolating the invalid points
-	nanmask = np.isnan(result)
-	#nanmask = np.array([])
-	if len(np.flatnonzero(nanmask)) > 0:
-		#result[nanmask] = np.interp(np.flatnonzero(nanmask), np.flatnonzero(~nanmask), result[~nanmask])
-		pass
-
-	return result
 
 def log_fit(points,func,xgrid,exponent=1):
 	'''
@@ -260,10 +188,15 @@ def log_fit(points,func,xgrid,exponent=1):
 	out = tmp_interpolator(xgrid)
 	return out
 
-def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, mass, sampling_log10E, scale='GeV', spec_type='dN/dE'):
+def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, m, sampling_log10E, **kwargs):
 	'''
 	This method is to sample the input spectra at the energies at which the transfer functions are defined
 	'''
+	scale = kwargs.get('scale','GeV')
+	spec_type = kwargs.get('spec_type','dN/dE')
+	hist = kwargs.get('injection_history','annihilation')
+	norm_dict = {'annihilation':2., 'decay':1.}
+	norm = norm_dict.get(hist,2.)*m
 
 	failed = False
 	try:
@@ -286,9 +219,10 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
            'eV': [1e0, 1e-0, 0.],
 	}
 
-	m = mass*scale_dict[scale][0]
+	m = scale_dict[scale][0]*m
+	norm *= scale_dict[scale][0]
 	input_log10E += scale_dict[scale][2]*np.ones_like(input_log10E).astype(np.float64)
-	# Check if the spectrum is normalized to "integral(E*dN/dE dE) = 2*mass"
+	# Check if the spectrum is normalized to "integral(E*dN/dE dE) = norm , where norm is chosen depending on the injection history"
 	#    If not and the integral is non_zero, rescale the spectrum, if the spectrum is zero (e.g. being in a kinematically forbidden regioern of param space)
 	#    return a zero_spectrum
 	if spec_type == 'dN/dE':
@@ -301,7 +235,7 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 
 	non_zero_spec = ( total_dep_energy > 0.)
 	if non_zero_spec and not failed:
-		rescaling = total_dep_energy / (2*m)
+		rescaling = total_dep_energy / norm
 
 		out_el = log_fit(input_log10E, factor2*scale_dict[scale][1]*input_spec_el/rescaling, sampling_log10E)
 		out_ph = log_fit(input_log10E, factor2*scale_dict[scale][1]*input_spec_ph/rescaling, sampling_log10E)
@@ -319,7 +253,7 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 
 	return np.array([out_el, out_ph, out_oth])
 
-def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE):
+def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **kwargs):
 	'''
 	This is to produce the STD-output wich is read by CLASS.
 	The structure is as follows.
@@ -328,10 +262,10 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE):
 
 	---->   z_dep | f(z_dep)_heat | f(z_dep)_LyA | f(z_dep)_ionH  | f(z_dep)_ionHe | f(z_dep)_LowE  <--------
 	'''
-	first = 2
-	last = len(redshift) - 1
-	min_z = 0.
-	max_z = 1e4
+	first = kwargs.get('first_index',2)
+	last = len(redshift) - kwargs.get('last_index',1)
+	min_z = kwargs.get('lower_z_bound',0.)
+	max_z = kwargs.get('upper_z_bound',1e4)
 	print(50*'#')
 	print('### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n### "print(...)"-commands in your script are silenced.')
 	print(50*'#'+'\n')

@@ -145,8 +145,6 @@ int thermodynamics_at_z(
     /* Calculate d3kappa/dtau3 given that [dkappa/dtau] proportional to (1+z)^2 */
     pvecthermo[pth->index_th_dddkappa] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
-
-
     /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are
        used only for computing the source functions in the
        perturbation module; but source functions only need to be
@@ -157,36 +155,6 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_g]=0.;
     pvecthermo[pth->index_th_dg]=0.;
     pvecthermo[pth->index_th_ddg]=0.;
-
-
-    /* if necessary, computes equivalent functions from DM-baryon scattering */
-
-    if(pth->u_gcdm != 0){
-
-      /* Calculate dmu/dtau (dmu/dtau = a n_cdm sigma_gcdm = a^{-2} n_cdm(today) sigma_gcdm in units of 1/Mpc, where sigma_cdm = u_gcdm sigma_T 10^-11 GeV m_cdm. Also need to use Omega0_cdm = rho0_cdm / rho0_crit) */
-      pvecthermo[pth->index_th_dmu_gcdm] = (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_gcdm
-      *(1.+z)*(1.+z)*pba->Omega0_cdm*pow(pba->H0,2);
-
-      /* Calculate d2mu/dtau2 = dz/dtau d/dz[dmu/dtau] given that [dmu/dtau] proportional to (1+z)^2 and dz/dtau = -H */
-      pvecthermo[pth->index_th_ddmu_gcdm] = -pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo[pth->index_th_dmu_gcdm];
-
-      /* Calculate d3mu/dtau3 given that [dmu/dtau] proportional to (1+z)^2 */
-      pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dmu_gcdm];
-
-      /* extrapolate exp_m_mu_gcdm using the fact that mu' goes like (1+z)^2 */
-      pvecthermo[pth->index_th_exp_m_mu_gcdm] =
-      exp(pvecthermo[pth->index_th_dmu_gcdm]/(1+z)
-          /pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dmu_gcdm]
-          *(1+pth->z_table[pth->tt_size-1])
-          *log(pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_exp_m_mu_gcdm]));
-      /* boltzmann, line of sight integration */
-
-
-      // fprintf(stdout, "z %e pvecthermo[pth->index_th_dmu_gcdm]%e   pvecthermo[pth->index_th_ddmu_gcdm] %e pvecthermo[pth->index_th_dddmu_gcdm]  %e pvecthermo[pth->index_th_exp_m_mu_gcdm] %e  pth->u_gcdm %e\n",z,pth->u_gcdm,pvecthermo[pth->index_th_dmu_gcdm],  pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm] ,pvecthermo[pth->index_th_exp_m_mu_gcdm]);
-
-    }
-
-
 
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pba->T_cmb*(1.+z);
@@ -213,8 +181,8 @@ int thermodynamics_at_z(
   /** - interpolate in table with array_interpolate_spline() (normal
       mode) or array_interpolate_spline_growing_closeby() (closeby
       mode) */
- 
- else {
+
+  else {
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
 
@@ -654,58 +622,6 @@ int thermodynamics_init(
                pth->error_message);
   }
 
-  /** if necessary, fill array with values of photon-cdm interaction rate
-       dmu_gcdm = a n_cdm sigma_gcdm in units of 1/Mpc */
-  if(pth->u_gcdm != 0){
-    for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
-
-        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] =
-        (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_gcdm
-        *pow(1.+pth->z_table[index_tau],2)*pba->Omega0_cdm*pow(pba->H0,2);
-
-    }
-
-        /** -> second derivative with respect to tau of dmu (in view of spline interpolation) */
-        class_call(array_spline_table_line_to_line(tau_table,
-                                                   pth->tt_size,
-                                                   pth->thermodynamics_table,
-                                                   pth->th_size,
-                                                   pth->index_th_dmu_gcdm,
-                                                   pth->index_th_dddmu_gcdm,
-                                                   _SPLINE_EST_DERIV_,
-                                                   pth->error_message),
-                   pth->error_message,
-                   pth->error_message);
-
-        /** -> first derivative with respect to tau of dmu (using spline interpolation) */
-        class_call(array_derive_spline_table_line_to_line(tau_table,
-                                                          pth->tt_size,
-                                                          pth->thermodynamics_table,
-                                                          pth->th_size,
-                                                          pth->index_th_dmu_gcdm,
-                                                          pth->index_th_dddmu_gcdm,
-                                                          pth->index_th_ddmu_gcdm,
-                                                          pth->error_message),
-                   pth->error_message,
-                   pth->error_message);
-
-        /** -> compute -mu = [int_{tau_today}^{tau} dtau dkappa/dtau], store temporarily in column "exp_m_mu_gcdm" */
-        class_call(array_integrate_spline_table_line_to_line(tau_table,
-                                                             pth->tt_size,
-                                                             pth->thermodynamics_table,
-                                                             pth->th_size,
-                                                             pth->index_th_dmu_gcdm,
-                                                             pth->index_th_dddmu_gcdm,
-                                                             pth->index_th_exp_m_mu_gcdm,
-                                                             pth->error_message),
-                   pth->error_message,
-                   pth->error_message);
-
-
-
-
-  }
-
   free(tau_table);
 
   /** - --> compute visibility: \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
@@ -713,50 +629,12 @@ int thermodynamics_init(
   /* loop on z (decreasing z, increasing time) */
   for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
 
-
+    /** - ---> compute g */
+    g = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
+      exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] =
-      exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
-
-    /** -> compute exp(-mu) */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] =
-    exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm]);
-
-    /** if necessary, compute part related to DM-baryon scattering */
-    if(pth->u_gcdm != 0){
-
-      /** -> compute g */
-      g =
-      (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]  +
-           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm]) *
-           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] *
-           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm];
-
-      /** -> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
-      (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] +
-       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm] +
-       pow(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] +
-           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm],2)) *
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] *
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm];
-
-
-    /** -> compute g''  */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg] =
-      (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa] +
-       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
-       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] * 3. +
-       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
-       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
-       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]) *
-      exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
-
-    }
-    else {
-    /** - ---> compute g */
-    g = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
     /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
@@ -776,11 +654,8 @@ int thermodynamics_init(
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]) *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
-    }
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
-    // fprintf(stdout, "g %e\n", pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
-
 
     /** - ---> compute variation rate */
     class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
@@ -1042,20 +917,6 @@ int thermodynamics_indices(
   index++;
   pth->index_th_exp_m_kappa = index;
   index++;
-
-  /** if necessary, initialize counter for DM-baryon scattering quantities */
-  if(pth->u_gcdm != 0){
-    pth->index_th_dmu_gcdm = index;
-    index++;
-    pth->index_th_ddmu_gcdm = index;
-    index++;
-    pth->index_th_dddmu_gcdm = index;
-    index++;
-    pth->index_th_exp_m_mu_gcdm = index;
-    index++;
-  }
-
-
   pth->index_th_g = index;
   index++;
   pth->index_th_dg = index;
@@ -1430,12 +1291,10 @@ int thermodynamics_annihilation_coefficients_init(
     /* Write the actual command */
     sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
     free(ppr->command_fz);
-    if (pth->thermodynamics_verbose > 0) {
+    if (pth->thermodynamics_verbose > 0)
       printf(" -> running: %s\n", command_with_arguments);
-      //printf(" -> using backgrounnd: H0=%g Omega_M=%g Omega_R=%g\n",100*pba->h,pba->Omega0_b+pba->Omega0_cdm,pba->Omega0_g);
-    }
     /* Launch the process and retrieve the output */
-    fflush(fA);
+
     fA = popen(command_with_arguments, "r");
     class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
   }
@@ -1494,7 +1353,7 @@ int thermodynamics_annihilation_coefficients_init(
                           &(pth->annihil_coef_ionHe[array_line]),
                           &(pth->annihil_coef_lowE[array_line])) != 6,
                    pth->error_message,
-                   "could not read value of parameters coeeficients in file %s\n",ppr->energy_injec_coeff_file);
+                   "could not read value of parameters coeeficients in file %s\n\nThe line I do not understand is: >> %s <<\n",ppr->energy_injec_coeff_file,line);
         array_line ++;
       }
     }
@@ -1504,7 +1363,7 @@ int thermodynamics_annihilation_coefficients_init(
     fclose(fA);
   } else {
     status = pclose(fA);
-    class_test(status != 0., pth->error_message, "The attempt to launch the external command was not successful. Maybe the output of the external command is not in the right format.");
+	class_test(status != 0., pth->error_message, "The attempt to launch the external command was not successful. Maybe the output of the external command is not in the right format.");
   }
   /* END */
 
@@ -1916,151 +1775,63 @@ int thermodynamics_low_mass_pbh_energy_injection(
                                                 ){
 
   double rho_cdm_today;
-  //double tau;
+  double tau;
   int last_index_back;
-  //double * pvecback;
+  double * pvecback;
   //Parameters related to PBH
 
-  double f, f_neutrinos, em_branching, pbh_mass;
+  double f,f_neutrinos, em_branching,tau_pbh,pbh_mass;
   double dMdt;
-
-  /* Calculate the PBH-mass evolution at first call of the function */
-  if ((preco->PBH_table_is_initialized) == _FALSE_) {
-    preco->PBH_table_is_initialized = _TRUE_;
-    double loop_z, loop_tau, current_mass, time_now, time_prev, dt, dz;
-    double * pvecback_loop;
-    int  i_step, last_index_back_loop;
-    preco->PBH_table_size = 100*z+1;
-    dz = z / preco->PBH_table_size;
-    loop_z = z+dz;
-    current_mass = preco->PBH_low_mass;
-    class_alloc(pvecback_loop,pba->bg_size*sizeof(double),pba->error_message);
-    class_alloc(preco->PBH_table_z,preco->PBH_table_size*sizeof(double),error_message);
-    class_alloc(preco->PBH_table_mass,preco->PBH_table_size*sizeof(double),error_message);
-    class_alloc(preco->PBH_table_mass_dd,preco->PBH_table_size*sizeof(double),error_message);
-    class_alloc(preco->PBH_table_F,preco->PBH_table_size*sizeof(double),error_message);
-    class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);    
-    for(i_step = 0; i_step < preco->PBH_table_size; i_step++) {
-      f = 2*0.060						  \
-	+ 6*0.142						  \
-	+ 4*0.146*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
-	+ 4*0.146*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
-	+ 4*0.146*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+12*0.146*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
-	+12*0.146*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))	  \
-	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))	  \
-	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	  \
-	+ 1*0.267*exp(-(current_mass * 125.06)/(2.66 * 1.06e13));
-
-
-      class_call(background_tau_of_z(pba,
-				     loop_z,
-				     &loop_tau),
-		 pba->error_message,
-		 ppr->error_message);
-      class_call(background_at_tau(pba,
-				   loop_tau,
-				   pba->long_info,
-				   pba->inter_normal,
-				   &last_index_back_loop,
-				   pvecback_loop),
-		 pba->error_message,
-		 ppr->error_message);
-      time_now = pvecback_loop[pba->index_bg_time]/(_c_ / _Mpc_over_m_);
-      dt = time_now - time_prev;
-      time_prev = time_now;
-      if (i_step > 0) {
-	if (current_mass > 0) {
-	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
-	}
-	else {
-	  current_mass = 0.;
-	  f = 0.;
-	}
-      }
-      
-      preco->PBH_table_z[i_step] = loop_z;
-      preco->PBH_table_mass[i_step] = current_mass;
-      preco->PBH_table_F[i_step] = f;
-
-      loop_z = loop_z-dz;
-    }
-    free(pvecback_loop);
-    class_call(array_spline_table_lines(preco->PBH_table_z,
-				        preco->PBH_table_size,
-					preco->PBH_table_mass,
-					1,
-					preco->PBH_table_mass_dd,
-					_SPLINE_NATURAL_,
-					error_message),
-	       error_message,
-	       error_message);
-    class_call(array_spline_table_lines(preco->PBH_table_z,
-				        preco->PBH_table_size,
-					preco->PBH_table_F,
-					1,
-					preco->PBH_table_F_dd,
-					_SPLINE_NATURAL_,
-					error_message),
-	       error_message,
-	       error_message);
-  }
-  /* End of PBH-mass loop */
-
-  //class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
 
-  class_call(array_interpolate_spline(preco->PBH_table_z,
-				      preco->PBH_table_size,
-				      preco->PBH_table_mass,
-				      preco->PBH_table_mass_dd,
-				      1,
-				      z,
-				      &last_index_back,
-				      &(pbh_mass),
-				      1,
-				      error_message),
-	     error_message,
-	     error_message);
+    f_neutrinos = 6*0.147;
+    if(preco->PBH_low_mass<1e17) f = (2*0.06+6*0.147+2*0.007+2*2*0.142);//electrons
+    if(preco->PBH_low_mass<1e15) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142);//muons
+    if(preco->PBH_low_mass<1e14) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142);//tau
+    if(preco->PBH_low_mass<5e13) f = (2*0.06+6*0.147+2*0.007+2*2*0.142+2*0.007+2*2*0.142+2*2*0.142+3*12*0.142 + 16*0.06);//u d s and gluons      zinitial = preco->z_tmp;
+    em_branching = (f-f_neutrinos)/f;
 
-  class_call(array_interpolate_spline(preco->PBH_table_z,
-				      preco->PBH_table_size,
-				      preco->PBH_table_F,
-				      preco->PBH_table_F_dd,
-				      1,
-				      z,
-				      &last_index_back,
-				      &f,
-				      1,
-				      error_message),
-	     error_message,
-	     error_message);
 
-  f_neutrinos = 6*0.142;
-  em_branching = (f-f_neutrinos)/f;
+    if(preco->PBH_low_mass<1e15){
+      tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3); //not used, for comparison only
+      //fprintf(stdout, "T %e fem %e br_ee %e br_gg %e tau_pbh %e exp %e \n",1.06*(pow(10,10)/preco->PBH_low_mass)*pow(10,12),f-f_neutrinos,2*2*0.142/(f-f_neutrinos),2*0.06/(f-f_neutrinos),tau_pbh,exp(1e14/tau_pbh));
+      class_call(background_tau_of_z(pba,
+                                     z,
+                                     &tau),
+                 pba->error_message,
+                 ppr->error_message);
 
-  if(pbh_mass <= 0 || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1){
-    pbh_mass = 0;
-    dMdt = 0;
-    f = 0.;
-  }
-  else { 
-    dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
-  }
-  //*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
-  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
-  if(isnan(*energy_rate)==1){
-    *energy_rate=0.;
-  }
-  //fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
-  //free(pvecback);
+      class_call(background_at_tau(pba,
+                                   tau,
+                                   pba->long_info,
+                                   pba->inter_normal,
+                                   &last_index_back,
+                                   pvecback),
+                 pba->error_message,
+                 ppr->error_message);
+      pbh_mass = pow(pow(preco->PBH_low_mass,3)-3*5.34e-5*f*1e30*pvecback[pba->index_bg_time]/(_c_ / _Mpc_over_m_),1./3);
+      if(pbh_mass <= 0){
+        pbh_mass = 0;
+        dMdt = 0;
+      }
+      else dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
+      *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
+      // if(tau_pbh!=0)*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*result_integrale_2;
+      if(isnan(*energy_rate)==1)*energy_rate=0.;
+      // fprintf(stdout, "energy_rate %e A %e B %e z %e\n",*energy_rate,rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*(dMdt),z);
+    }
+    else {
+      // fprintf(stdout, "em_branching %e \n",em_branching );
+      tau_pbh = 407*pow(f/15.35,-1)*pow(preco->PBH_low_mass/(1e10),3); // if preco->PBH_low_mass>1e15, we assume that the BH (effectively) does not lose mass since its lifetime is bigger than the age of the Universe.
+      *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/tau_pbh*em_branching;
+      if(isnan(*energy_rate)==1)*energy_rate=0.;
+
+    }
+    free(pvecback);
+
 }
-/******************************EnSergy Injection high mass PBH (accretion)**********************************/
+/******************************Energy Injection high mass PBH (accretion)**********************************/
 int thermodynamics_high_mass_pbh_energy_injection(
                                                   struct precision * ppr,
                                                   struct background * pba,
@@ -2300,7 +2071,7 @@ int thermodynamics_onthespot_energy_injection(
                                               double * energy_rate,
                                               ErrorMsg error_message
                                               ) {
-  //fprintf(stdout,"Level: >>thermodynamics_on_the_spot_energy_injection<<< | z = %e | energy rate = %e\n",z,*energy_rate);
+
   if(preco->annihilation > 0){
     thermodynamics_DM_annihilation_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
@@ -2350,7 +2121,6 @@ int thermodynamics_energy_injection(
   double onthespot;
   double exponent_z,exponent_zp;
   if (preco->annihilation > 0 || preco->decay_fraction > 0 || preco->PBH_high_mass > 0 || preco->PBH_low_mass > 0 ) {
-    //fprintf(stdout,"Level >>thermodynamics_energy_injection<< | z = %e | energy rate = %e\n",z,*energy_rate);
     if (preco->has_on_the_spot == _FALSE_) {
 
 
@@ -3707,6 +3477,7 @@ int thermodynamics_reionization_sample(
 
   /* initial step */
   dz = dz_max;
+
   while (z > 0.) {
     if (j<0)j=0;
     // fprintf(stdout, "j %d \n",j);
@@ -3847,7 +3618,9 @@ int thermodynamics_reionization_sample(
 
   /** - (j) another loop on z, to integrate equation for Tb and to compute cb2 */
   for (i=preio->rt_size-1; i >0 ; i--) {
+
     z = preio->reionization_table[i*preio->re_size+preio->index_re_z];
+
     class_call(background_tau_of_z(pba,
                                    z,
                                    &tau),
@@ -3907,6 +3680,7 @@ int thermodynamics_reionization_sample(
             /** - --> derivative of baryon temperature */
               preco->xe_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_xe];
               preco->Tm_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
+
               class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
                          pth->error_message,
                          pth->error_message);
@@ -4546,14 +4320,6 @@ int thermodynamics_recombination_with_recfast(
   preco->energy_deposition_treatment = pth->energy_deposition_treatment;
   preco->PBH_low_mass = pth->PBH_low_mass;
   preco->PBH_fraction = pth->PBH_fraction;
-
-  preco->PBH_table_is_initialized = _FALSE_;
-  preco->PBH_table_z = NULL;
-  preco->PBH_table_mass = NULL;
-  preco->PBH_table_mass_dd = NULL;
-  preco->PBH_table_F = NULL;
-  preco->PBH_table_F_dd = NULL;
-
   preco->energy_repart_functions = pth->energy_repart_functions;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
@@ -4969,7 +4735,6 @@ int thermodynamics_derivs_with_recfast(
    if((pth->annihilation!=0 || pth->decay_fraction!=0 || pth->PBH_high_mass!=0 || pth->PBH_low_mass != 0)){
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
-
   // if( z > 2){//sometimes problem with interpolation
     // fprintf(stdout, "z %e,Tmat %e, x %e\n",z,Tmat,x);
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
@@ -4984,7 +4749,7 @@ else energy_rate=0;
  // fprintf(stdout,"%e      %e     %e      %e      %e    \n", x,pth->chi_heat,pth->chi_lya, pth->chi_ionH,pth->chi_ionHe,pth->chi_lowE);
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
-  //fprintf(stdout,"T_mat = %e\t_a_PPB_ = %e\t_b_PPB_ = %e\t_c_PPB_ = %e\t_d_PPB_ = %e\n",(double) Tmat,(double) _a_PPB_, (double) _b_PPB_, (double) _c_PPB_, (double) _d_PPB_);
+
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
   Rup_2 = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((preco->CR*Trad),1.5)*exp(-preco->CDB/Trad);
   Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
@@ -5350,14 +5115,6 @@ int thermodynamics_merge_reco_and_reio(
   }
   if ((pth->reio_parametrization != reio_none))
     free(preio->reionization_table);
-  if ((preco->PBH_table_is_initialized == _TRUE_)) {
-    //fprintf(stdout,"PBH tabels are free'd\n");
-    free(preco->PBH_table_z);
-    free(preco->PBH_table_mass);
-    free(preco->PBH_table_mass_dd);
-    free(preco->PBH_table_F);
-    free(preco->PBH_table_F_dd);
-  }    
 
   return _SUCCESS_;
 }

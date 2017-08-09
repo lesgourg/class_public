@@ -301,7 +301,6 @@ int input_init(
 
   /** - case with unknown parameters */
   if (unknown_parameters_size > 0) {
-
     /* Create file content structure with additional entries */
     class_call(parser_init(&(fzw.fc),
                            pfc->size+unknown_parameters_size,
@@ -432,7 +431,6 @@ int input_init(
     if (input_verbose > 1) {
       fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
     }
-
 
     /** - --> Read all parameters from tuned pfc */
     class_call(input_read_parameters(&(fzw.fc),
@@ -614,7 +612,6 @@ int input_read_parameters(
                                   pop),
              errmsg,
              errmsg);
-
   class_call(input_default_precision(ppr),
              errmsg,
              errmsg);
@@ -1539,19 +1536,19 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     if (flag1 == _TRUE_) {
       if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
         ppr->fz_is_extern = _TRUE_;
-		/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
-		class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
-    class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-		ppr->command_fz = (char *) malloc (strlen(string2) + 1);
-    strcpy(ppr->command_fz, string2);
+	/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
+	class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+	class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
+	strcpy(ppr->command_fz, string2);
+	
+	/** An arbitrary number of external parameters to be used by the external command
+	 * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
+	 * except if those have already been assigned in class. In that case, the value known
+	 * by class is attributed to those parameters.
+	 */
 
-    /** An arbitrary number of external parameters to be used by the external command
-    * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
-    * except if those have already been assigned in class. In that case, the value known
-    * by class is attributed to those parameters.
-    */
-
-    /* The first parameter is set by default to be the mass of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+	/* The first parameter is set by default to be the mass of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pth->annihilation_m_DM > 0){
           ppr->param_fz_1 = pth->annihilation_m_DM; // In GeV.
         }
@@ -1563,7 +1560,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else class_read_double("ext_fz_par1",ppr->param_fz_1);
 
-    /* The second parameter is set by default to be the fraction (normalized to Omega0_cdm) of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+	/* The second parameter is set by default to be the fraction (normalized to Omega0_cdm) of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pth->decay_fraction > 0){
           ppr->param_fz_2 = pth->decay_fraction;
         }
@@ -1572,22 +1569,21 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else class_read_double("ext_fz_par2",ppr->param_fz_2);
 
-    /* The third parameter is set by default to be the cross-section or the lifetime of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
+	/* The third parameter is set by default to be the cross-section or the lifetime of the candidate (e.g. particle or primordial black hole) that injects e.m. energy */
         if(pba->Gamma_dcdm > 0){
-          ppr->param_fz_2 = pba->Gamma_dcdm; //In km/s/Mpc.
+          ppr->param_fz_3 = pba->Gamma_dcdm; //In km/s/Mpc.
         }
         else if(pba->tau_dcdm > 0){
-          ppr->param_fz_2 = pba->tau_dcdm; //In s.
+          ppr->param_fz_3 = pba->tau_dcdm; //In s.
         }
         else if(pth->annihilation_boost_factor > 0){
-          ppr->param_fz_2 = pth->annihilation_boost_factor*3*pow(10,-32); //<Sigma*v> in m^3/s.
-
+          ppr->param_fz_3 = pth->annihilation_boost_factor*3*pow(10,-32); //<Sigma*v> in m^3/s.
         }
         else class_read_double("ext_fz_par3",ppr->param_fz_3);
 
-    /* More parameters that are not set to any default, can be used arbitrarily */
+	/* More parameters that are not set to any default, can be used arbitrarily */
         class_read_double("ext_fz_par4",ppr->param_fz_4);
-	      class_read_double("ext_fz_par5",ppr->param_fz_5);
+	class_read_double("ext_fz_par5",ppr->param_fz_5);
 
       }
       else {
@@ -1599,7 +1595,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
       }
     }
-	/* END */
+    /* END */
 
     if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
@@ -3318,6 +3314,7 @@ int input_default_params(
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
   pba->Gamma_dcdm = 0.0;
+  pba->tau_dcdm = 0.0;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
   pba->ksi_ncdm_default = 0.;
@@ -3676,13 +3673,15 @@ int input_default_precision ( struct precision * ppr ) {
   strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-  strcat(ppr->energy_injec_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
+  //strcat(ppr->energy_injec_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
+  strcat(ppr->energy_injec_coeff_file,"/external_fz/Fallback.dat");
   sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
   strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;
-  ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
+  ppr->command_fz = NULL;
+  //ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
   //ppr->command_fz = "Insert external command, like: python ./path/to_external/script.py";
   ppr->param_fz_1 = 0.;
   ppr->param_fz_2 = 0.;
@@ -4087,7 +4086,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
             "%e",unknown_parameter[i]);
   }
-
   class_call(input_read_parameters(&(pfzw->fc),
                                    &pr,
                                    &ba,
@@ -4102,7 +4100,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
                                    errmsg),
              errmsg,
              errmsg);
-
   class_call(parser_read_int(&(pfzw->fc),
                              "input_verbose",
                              &param,
@@ -4128,6 +4125,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
      printf("Stage 2: thermodynamics\n");
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
+    pr.fz_is_extern = _FALSE_;
+    free(pr.command_fz);
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
@@ -4378,6 +4377,7 @@ int input_get_guess(double *xguess,
   }
 
   /** - Deallocate everything allocated by input_read_parameters */
+  if (pr.command_fz != NULL) free(pr.command_fz);
   background_free_input(&ba);
 
   return _SUCCESS_;
