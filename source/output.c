@@ -965,7 +965,7 @@ int output_pk_nl(
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
         pk_tot[index_k] = exp(psp->ln_pk_nl[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
-
+        // printf("pk_tot[index_k]  %e psp->ln_tau_size %d psp->ln_k_size %d \n", pk_tot[index_k], psp->ln_tau_size,  psp->ln_k_size );
       }
     }
 

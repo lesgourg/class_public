@@ -863,11 +863,31 @@ int input_read_parameters(
   }
 
   /** Input parameters relative to DM-baryon scattering */
-  class_read_double("u_gcdm",pth->u_gcdm);
-  class_test((pth->u_gcdm != 0) && (ppt->gauge == synchronous),
+  class_read_double("u_gcdm",pth->u_gcdm); /** interaction rate */
+
+  /** Input parameters relative to excited DM-gamma scattering */
+  class_read_double("beta_gcdm",pth->beta_gcdm); /** The energy splitting (in unit of T0) */
+  class_read_double("alpha_gcdm_eV",pth->alpha_gcdm); /** One can pass either alpha_gcdm_eV = a_0 A_21 E_21^2 / (6 m_xhi T_0) (in eV) */
+  class_read_double("A_21_over_mchi",pth->A_21_over_mchi); /**  or the transition rate over the DM mass A_21 / m_xhi (dimensionless)*/
+  class_test((pth->alpha_gcdm != 0) && (pth->A_21_over_mchi != 0),
+              errmsg,
+              "You have 'alpha_gcdm != 0 ' and 'A_21_over_mchi != 0'. Please, set either 'alpha_gcdm_eV != 0' (in eV) or the transition rate 'A_21_over_mchi != 0', not both.");
+  if(pth->A_21_over_mchi!= 0) pth->alpha_gcdm = pth->A_21_over_mchi*pth->beta_gcdm*pth->beta_gcdm*pba->T_cmb*8.625e-5/6;
+
+  pth->alpha_gcdm *= 0.15637*1.e30; //eV to Mpc^-1
+
+  // class_read_double("alpha_gcdm_eV",alpha_gcdm_eV);
+  // pth->alpha_gcdm = alpha_gcdm_eV;
+
+  class_test(((pth->u_gcdm != 0) || (pth->beta_gcdm != 0) || (pth->alpha_gcdm != 0)) && (ppt->gauge == synchronous),
              errmsg,
              "DM-gamma interactions in the synchronous gauge are not yet implemented. Please work in the newtonian gauge by setting 'gauge = newtonian' in your '.ini' file.");
-
+  class_test((pth->beta_gcdm == 0) && (pth->alpha_gcdm != 0),
+             errmsg,
+             "You have 'alpha_gcdm != 0 ' but 'pth->beta_gcdm == 0'. Please, either switch off excited DM-gamma scattering (alpha_gcdm = 0) or pick a value for the energy splitting (beta_gcdm != 0).");
+  class_test((pth->beta_gcdm != 0) && (pth->alpha_gcdm == 0),
+             errmsg,
+             "You have 'beta_gcdm != 0 ' but 'pth->alpha_gcdm == 0'. Please, either switch off excited DM-gamma scattering (beta_gcdm = 0) or pick a value for the transition rate (alpha_gcdm_eV != 0 in eV or A_21_over_mchi != 0).");
 
   /** - non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -1420,8 +1440,8 @@ int input_read_parameters(
 
   /** - energy injection parameters from CDM annihilation/decay */
   class_read_double("annihilation",pth->annihilation);
-  class_read_double("boost_factor",pth->annihilation_boost_factor);
-  class_read_double("m_DM",pth->annihilation_m_DM);
+  class_read_double("annihilation_boost_factor",pth->annihilation_boost_factor);
+  class_read_double("annihilation_m_DM",pth->annihilation_m_DM);
   class_read_double("decay_fraction",pth->decay_fraction);
   class_read_double("PBH_high_mass",pth->PBH_high_mass);
   if(pth->PBH_high_mass>0.){
@@ -1448,6 +1468,19 @@ int input_read_parameters(
         pth->PBH_accretion_recipe=Gaggero_et_al;
         flag2=_TRUE_;
       }
+      if (strcmp(string1,"Thin_disk") == 0) {
+        pth->PBH_accretion_recipe=Thin_disk;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"ADAF") == 0) {
+        pth->PBH_accretion_recipe=ADAF;
+        flag2=_TRUE_;
+      }
+      if (strcmp(string1,"ADAF_Simulation") == 0) {
+        pth->PBH_accretion_recipe=ADAF_Simulation;
+        class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
+        flag2=_TRUE_;
+      }
       if (strcmp(string1,"Hybrid") == 0) {
         pth->PBH_accretion_recipe=Hybrid;
         class_read_double("PBH_disk_formation_redshift",pth->PBH_disk_formation_redshift);
@@ -1455,8 +1488,11 @@ int input_read_parameters(
       }
     class_test(flag2==_FALSE_,
                  errmsg,
-                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid'.");
+                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF','ADAF_Simulation'.");
     }
+    class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue); // If chosen to negative value, it will be set to the linear result.
+    class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
+
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
@@ -1469,31 +1505,28 @@ int input_read_parameters(
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_fraction>0. && (pth->PBH_high_mass==0. && pth->PBH_low_mass==0.),errmsg,
     "You have asked for a fraction of PBH being DM but you have 'PBH_high_mass == 0 && PBH_low_mass ==0'. Please choose a value (in Msun for PBH_high_mass, in g for PBH_low_mass).");
-  class_test(pth->PBH_high_mass>0. && pth->PBH_fraction==0.,errmsg,
-    "You have entered a 'PBH_high_mass > 0' but not their abundance (normalize to the CDM one). Please choose a value for PBH_fraction in ]0,1].");
   class_test(pth->PBH_fraction<0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
   class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
-  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_high_mass!= 0.,
+  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_low_mass!= 0.,
                errmsg,
                "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
-
-
-  if(pth->annihilation==0 && pth->annihilation_boost_factor > 0.){
+  class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
+   "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
+  class_test(pth->annihilation>0. && pth->annihilation_boost_factor >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
+  if(pth->annihilation_m_DM > 0 && pth->annihilation_boost_factor >0.){
       double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
       class_test(pth->annihilation_m_DM<=0.,errmsg,
         "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
       pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
-      fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
+      if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
   }
-  else if(pth->annihilation>0. && pth->annihilation_boost_factor >0.){
-    fprintf(stdout,"You gave both boost factor and annihilation parameter, the boost factor will be ignored. \n");
-  }
+  class_test((pth->annihilation_m_DM > 0 && pth->annihilation_boost_factor <=0)||(pth->annihilation_m_DM <= 0 && pth->annihilation_boost_factor >0),errmsg,"You set one of (pth->annihilation_m_DM,pth->annihilation_boost_factor) to non-zero value but not the other ! I cannot compute annihilation parameter: pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM).")
 
-  if (pth->annihilation > 0.) {
+  if (pth->annihilation > 0. || pth->annihilation_m_DM > 0.) {
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
   class_read_double("annihilation_zmax",pth->annihilation_zmax);
@@ -1615,9 +1648,13 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
           pth->energy_deposition_treatment=Slatyer;
           flag2=_TRUE_;
         }
+        if (strcmp(string1,"No_deposition") == 0) {
+          pth->energy_deposition_treatment=No_deposition;
+          flag2=_TRUE_;
+        }
       class_test(flag2==_FALSE_,
                    errmsg,
-                   "could not identify energy_deposition_treatment, check that it is one of 'Analytical_approximation', 'Slatyer'.");
+                   "could not identify energy_deposition_treatment, check that it is one of 'Analytical_approximation', 'Slatyer','No_deposition'.");
       }
     }
 
@@ -2072,10 +2109,10 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       }
 
       if (ppt->has_cdi == _TRUE_) {
-        ppm->f_cdi = f_iso;
-        ppm->n_cdi = n_iso;
-        ppm->c_ad_cdi = c_cor;
-        ppm->n_ad_cdi = n_cor;
+          ppm->f_cdi = f_iso;
+          ppm->n_cdi = n_iso;
+          ppm->c_ad_cdi = c_cor;
+          ppm->n_ad_cdi = n_cor;
       }
 
       if (ppt->has_nid == _TRUE_) {
@@ -2131,10 +2168,21 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       }
 
       if (ppt->has_cdi == _TRUE_) {
+        if(pth->PBH_high_mass > 0){
 
-        class_read_double("f_cdi",ppm->f_cdi);
-        class_read_double("n_cdi",ppm->n_cdi);
-        class_read_double("alpha_cdi",ppm->alpha_cdi);
+          ppm->n_cdi = 4.;
+          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(2*_PI_*_PI_)*pow(ppm->k_pivot,ppm->n_cdi-1),1./2);
+          ppm->f_cdi = pth->PBH_fraction*pow(pth->PBH_high_mass*_Sun_mass_over_kg_/(pth->PBH_fraction*pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_))/pow(_Mpc_over_m_,3)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          ppm->alpha_cdi = 0.;
+          fprintf(stderr, "A_cdi/A_ad %e rho_cdm %e\n", ppm->f_cdi*ppm->f_cdi, pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_));
+        }
+        else{
+          class_read_double("f_cdi",ppm->f_cdi);
+          class_read_double("n_cdi",ppm->n_cdi);
+          class_read_double("alpha_cdi",ppm->alpha_cdi);
+        }
+
 
       }
 
@@ -2940,6 +2988,35 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
   class_read_string("sBBN file",ppr->sBBN_file);
   class_read_string("energy injection coefficient file",ppr->energy_injec_coeff_file);
   class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
+  //Temporary : to adjust the energy injection file with the PBH mass
+  if(pth->PBH_accretion_recipe == ADAF_Simulation){
+    if(pth->PBH_high_mass<5){
+      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_1Msun_All.dat");
+    }
+    else if(pth->PBH_high_mass<50 && pth->PBH_high_mass>=5 ){
+      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10Msun_All.dat");
+    }
+    else if(pth->PBH_high_mass<500 && pth->PBH_high_mass>=50 ){
+      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_100Msun_All.dat");
+    }
+    else if(pth->PBH_high_mass<5000 && pth->PBH_high_mass>=500 ){
+      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_1000Msun_All.dat");
+    }
+    else{
+      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10000Msun_All.dat");
+    }
+  }
+  else if(pth->PBH_accretion_recipe == Ali_Haimoud){
+    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
+    strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_spherical_All.dat");
+  }
+
+
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
   class_read_int("recfast_Nz0",ppr->recfast_Nz0);
@@ -3400,15 +3477,20 @@ int input_default_params(
   pth->energy_deposition_treatment = Analytical_approximation;
   pth->PBH_low_mass = 0.;
   pth->PBH_fraction = 0.;
+  pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
+  pth->PBH_relative_velocities = -1 ; //Standard value is the linear result extrapolated to PBH.
   pth->energy_repart_functions = Galli_et_al_fit;
   pth->u_gcdm=0.;
+  pth->beta_gcdm=0.;
+  pth->alpha_gcdm=0.;
+  pth->A_21_over_mchi=0.;
 
   pth->Lambda_over_theoritical_Lambda = 1.;
 
   /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
   pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //
   /************************************************************************/
-
+  pth->PBH_ADAF_delta = 1e-3; //Default case is most conservative //
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;

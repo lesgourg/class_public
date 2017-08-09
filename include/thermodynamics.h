@@ -60,10 +60,14 @@ enum PBH_accretion_recipe {
   Ali_Haimoud, /**< Accretion recipe from Ali_Haimoud & Kamionkowski, arXiv:1612.05644 */
   Ricotti_et_al,  /**< Accretion recipe from Ricotti et al., arXiv:0709.0524 */
   Gaggero_et_al,  /**< Accretion recipe from Gaggero et al., arXiv:1612.00457 */
+  Thin_disk,  /**< Thin disk accretion recipe from Ostriker and Park astro-ph/0001446*/
+  ADAF,  /**< ADAF accretion recipe from Narayan and Yi 1995 */
+  ADAF_Simulation,  /**< ADAF accretion recipe from Xie and Yuan 2012 */
   Horowitz, /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
   Hybrid /**<A more realistic accretion recipe, with a transition from spherical to disk accretion at a redshift "PBH_disk_formation_redshift" */
 };
 enum energy_deposition_treatment {
+  No_deposition, /**< No energy deposition is considered. Useful for pedagogic illustration. */
   Analytical_approximation, /**< Analytical energy deposition treatment, introduced in 1209.0247 and corrected in 1612.05644 */
   Slatyer  /**< f(z) functions from Slatyer, introduced in 1211.0283 and updated in 1506.03812 */
 };
@@ -266,13 +270,20 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
   double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
   int coll_ion_pbh;   /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
-
+  double PBH_ADAF_delta; /**<Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in the disk, influencing the emissivity. Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
+  double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
+  double PBH_relative_velocities; /**< The relative velocities between PBH and baryons in km/s. If negative, the linear result is chosen by the code. */
 
   /** for DM-baryons scattering, see 1309.7588 */
-  
+
   double u_gcdm; /**< normalisation of interaction rate between
         baryons and cdm, same definition as in
         astro-ph/0112522, eq. (3.21) */
+
+  double alpha_gcdm; /* in case of excited DM: a_0 A_21 E_21^2 / (6 m_xhi T_0) in units of inverse Mpc */
+  double beta_gcdm; /* in case of excited DM: E_21 / T_cmb^0 (dimensionless) */
+  double A_21_over_mchi; /* in case of excited DM: A_21 / m_xhi (dimensionless) */
+
   int index_th_dmu_gcdm;      /**< photon-cdm scattering rate (units 1/Mpc) */
   int index_th_ddmu_gcdm;     /**< scattering rate derivative */
   int index_th_dddmu_gcdm;    /**< scattering rate second derivative */
@@ -493,6 +504,9 @@ struct recombination {
 
   double decay_fraction; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_ADAF_delta; /**<Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in the disk, influencing the emissivity. Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
+  double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
+  double PBH_relative_velocities; /**< The relative velocities between PBH and baryons in km/s. If negative, the linear result is chosen by the code. */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */

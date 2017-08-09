@@ -309,7 +309,9 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
                     #ax.semilogx(axis, splev(ref[:, x_index_ref],
                                             #interpolated)/reference-1)
                     ax.semilogx(axis, interpolated(ref[:, x_index_ref])/reference-1)
-                elif scale == 'loglog':
+                elif scale == 'linlog':
+		    ax.semilogy(axis, interpolated(ref[:, x_index_ref])/reference-1)
+		elif scale == 'loglog':
                     raise InputError(
                         "loglog plot is not available for ratios")
 
