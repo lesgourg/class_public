@@ -285,7 +285,7 @@ int thermodynamics_at_z(
   /** - interpolate in table with array_interpolate_spline() (normal
       mode) or array_interpolate_spline_growing_closeby() (closeby
       mode) */
- 
+
  else {
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
@@ -2048,19 +2048,19 @@ int thermodynamics_low_mass_pbh_energy_injection(
     class_alloc(preco->PBH_table_mass,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_mass_dd,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_F,preco->PBH_table_size*sizeof(double),error_message);
-    class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);    
+    class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);
     for(i_step = 0; i_step < preco->PBH_table_size; i_step++) {
       f = 2*0.060						  \
-	+ 6*0.142						  \
-	+ 4*0.146*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
-	+ 4*0.146*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
-	+ 4*0.146*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+12*0.146*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
-	+12*0.146*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
+	+ 6*0.147						  \
+	+ 4*0.142*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
+	+ 4*0.142*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
+	+ 4*0.142*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
+	+12*0.142*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
+	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
 	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))	  \
 	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))	  \
 	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	  \
@@ -2084,15 +2084,15 @@ int thermodynamics_low_mass_pbh_energy_injection(
       dt = time_now - time_prev;
       time_prev = time_now;
       if (i_step > 0) {
-	if (current_mass > 0) {
-	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
-	}
-	else {
-	  current_mass = 0.;
-	  f = 0.;
-	}
+      	if (current_mass > 0) {
+      	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
+      	}
+      	else {
+      	  current_mass = 0.;
+      	  f = 0.;
+      	}
       }
-      
+
       preco->PBH_table_z[i_step] = loop_z;
       preco->PBH_table_mass[i_step] = current_mass;
       preco->PBH_table_F[i_step] = f;
@@ -2150,7 +2150,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
 	     error_message,
 	     error_message);
 
-  f_neutrinos = 6*0.142;
+  f_neutrinos = 6*0.147;
   em_branching = (f-f_neutrinos)/f;
 
   if(pbh_mass <= 0 || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1){
@@ -2158,7 +2158,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
     dMdt = 0;
     f = 0.;
   }
-  else { 
+  else {
     dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
   }
   //*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
@@ -2166,10 +2166,10 @@ int thermodynamics_low_mass_pbh_energy_injection(
   if(isnan(*energy_rate)==1){
     *energy_rate=0.;
   }
-  //fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
+  fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
   //free(pvecback);
 }
-/******************************EnSergy Injection high mass PBH (accretion)**********************************/
+/******************************Energy Injection high mass PBH (accretion)**********************************/
 int thermodynamics_high_mass_pbh_energy_injection(
                                                   struct precision * ppr,
                                                   struct background * pba,
@@ -5607,7 +5607,7 @@ int thermodynamics_merge_reco_and_reio(
     free(preco->PBH_table_mass_dd);
     free(preco->PBH_table_F);
     free(preco->PBH_table_F_dd);
-  }    
+  }
 
   return _SUCCESS_;
 }
