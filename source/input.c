@@ -1569,12 +1569,26 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     if (flag1 == _TRUE_) {
       if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
         ppr->fz_is_extern = _TRUE_;
-	/* Reading the input parameter for the external command (if fz_is_extern == _TRUE_) */
-	class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+  /* Check first if injection history is standard and already implemented */
+  /* For PBH evaporation history: automatic command */
+  if(pth->PBH_low_mass > 0){
+    // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
+    ppr->param_fz_2 = pth->PBH_fraction;
+    sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
+    class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
+    strcpy(ppr->command_fz, string2);
+    sprintf(string2,"%g",pth->PBH_low_mass);
+    strcat(ppr->command_fz,string2);
+  }
+  /* If the story is not implemented */
+  /* Reading the input parameter for the external command */
+	else {
+    class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
 	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
 	class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
 	strcpy(ppr->command_fz, string2);
-	
+  }
+
 	/** An arbitrary number of external parameters to be used by the external command
 	 * They can be assigned to any parameters (e.g. mass, branching ratio, abundance...)
 	 * except if those have already been assigned in class. In that case, the value known
@@ -1587,9 +1601,6 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
         }
         else if(pth->PBH_high_mass > 0){
           ppr->param_fz_1 = pth->PBH_high_mass; // In Msun.
-        }
-        else if(pth->PBH_low_mass > 0){
-          ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
         }
         else class_read_double("ext_fz_par1",ppr->param_fz_1);
 

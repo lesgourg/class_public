@@ -2039,6 +2039,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
     double loop_z, loop_tau, current_mass, time_now, time_prev, dt, dz;
     double * pvecback_loop;
     int  i_step, last_index_back_loop;
+    preco->PBH_z_evaporation = 0;
     preco->PBH_table_size = 100*z+1;
     dz = z / preco->PBH_table_size;
     loop_z = z+dz;
@@ -2084,10 +2085,11 @@ int thermodynamics_low_mass_pbh_energy_injection(
       dt = time_now - time_prev;
       time_prev = time_now;
       if (i_step > 0) {
-      	if (current_mass > 0) {
+      	if (current_mass > 0.5*preco->PBH_low_mass) {
       	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
       	}
       	else {
+          if(preco->PBH_z_evaporation == 0)preco->PBH_z_evaporation=loop_z;
       	  current_mass = 0.;
       	  f = 0.;
       	}
@@ -2152,8 +2154,8 @@ int thermodynamics_low_mass_pbh_energy_injection(
 
   f_neutrinos = 6*0.147;
   em_branching = (f-f_neutrinos)/f;
-
-  if(pbh_mass <= 0 || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1){
+  // printf("preco->PBH_z_evaporation %e\n", preco->PBH_z_evaporation);
+  if(pbh_mass <= 0.0001*preco->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
     pbh_mass = 0;
     dMdt = 0;
     f = 0.;
@@ -2161,12 +2163,13 @@ int thermodynamics_low_mass_pbh_energy_injection(
   else {
     dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
   }
-  //*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
-  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
+  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt); 
+  // *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
   if(isnan(*energy_rate)==1){
     *energy_rate=0.;
   }
-  fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
+  // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
+  // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
   //free(pvecback);
 }
 /******************************Energy Injection high mass PBH (accretion)**********************************/
@@ -5345,7 +5348,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
-          // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE),(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE)*(0.369202*pow(1.-pow(x,0.463929),1.70237)+0.0312604*pow(1.-pow(x,0.200634),0.82247)));
+          // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,chi_lya,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE));
         }
         /* old approximation from Chen and Kamionkowski */
         if(pth->energy_repart_functions==SSCK){

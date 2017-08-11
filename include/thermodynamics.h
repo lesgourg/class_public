@@ -510,14 +510,15 @@ struct recombination {
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
-  
-  short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */ 
+
+  short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */
+  double PBH_z_evaporation; /**< Double to store the evaporation redshift. Useful to avoid bad extrapolation at low z. */
   int PBH_table_size; /**< Length of the PBH-mass evolution table */
   double * PBH_table_z; /**< Array of redshift for the evolution of the PBH-mass (used for evaporation) */
   double * PBH_table_mass; /**< Array of the PBH-mass given the redshift in 'PBH_table_z' */
   double * PBH_table_mass_dd; /**< Array of the second derivative of PBH-mass w.r.t. the redshift */
   double * PBH_table_F; /**< Array of F(z)  given the redshift in 'PBH_table_z' */
-  double * PBH_table_F_dd; /**< Array of the second derivative of F(z) w.r.t. the redshift */  
+  double * PBH_table_F_dd; /**< Array of the second derivative of F(z) w.r.t. the redshift */
 
   double PBH_low_mass; /**< initial mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
