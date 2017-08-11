@@ -5223,14 +5223,14 @@ int thermodynamics_derivs_with_recfast(
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
 
-  // if( z > 2){//sometimes problem with interpolation
+  if( z > 2){//sometimes problem with interpolation
     // fprintf(stdout, "z %e,Tmat %e, x %e\n",z,Tmat,x);
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
   // fprintf(stdout, "energy_rate %e\n",energy_rate);
-  // }
-  // else energy_rate = 0;
+  }
+  else energy_rate = 0;
      preco->z_tmp=z;
 }
 else energy_rate=0;
