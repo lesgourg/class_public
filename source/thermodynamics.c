@@ -4762,9 +4762,9 @@ int thermodynamics_recombination_with_recfast(
   preco->H_frac = ppr->recfast_H_frac;
 
   /* H fudging */
-  class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
-             pth->error_message,
-             "RECFAST error: unknown H fudging scheme");
+ class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
+            pth->error_message,
+            "RECFAST error: unknown H fudging scheme");
   preco->fu = ppr->recfast_fudge_H;
   if (ppr->recfast_Hswitch == _TRUE_)
     preco->fu += ppr->recfast_delta_fudge_H;
@@ -5203,7 +5203,7 @@ int thermodynamics_derivs_with_recfast(
   n = preco->Nnow * (1.+z) * (1.+z) * (1.+z);
   n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
-
+  if(z>1e14)z=0; //Sometimes bug at very low-z with energy injection, short patch to be improved.
   class_call(background_tau_of_z(pba,
                                  z,
                                  &tau),
