@@ -17,7 +17,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc-6
+CC       = gcc
 #CC       = icc
 #CC       = pgcc
 
@@ -52,7 +52,8 @@ HYREC = hyrec_2017
 
 
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
-COSMOREC = $(PWD)/cosmorec
+COSMOREC = 
+#COSMOREC = $(PWD)/cosmorec
 GSL_LIB = /opt/local/lib/
 CC++ = g++-mp-6
 

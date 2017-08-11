@@ -27,7 +27,7 @@ def transfer_load(infile):
 	import dill
 	loaded_transfer = dill.load(open(infile, 'rb'))
 	if not isinstance(loaded_transfer, transfer):
-		print_warning('The file {} does not provide a proper instance of the class "transfer"'.format(infile))
+		print_warning('The file {0} does not provide a proper instance of the class "transfer"'.format(infile))
 		return -1
 	else:
 		return loaded_transfer

@@ -70,9 +70,9 @@ if len(args) == 0:
     args = ''
 
 
-os.environ['DARKAGES_BG_H0'] = '{}'.format(options.background[0])
-os.environ['DARKAGES_BG_OM_M'] = '{}'.format(options.background[1])
-os.environ['DARKAGES_BG_OM_R'] = '{}'.format(options.background[2])
+os.environ['DARKAGES_BG_H0'] = '{0}'.format(options.background[0])
+os.environ['DARKAGES_BG_OM_M'] = '{0}'.format(options.background[1])
+os.environ['DARKAGES_BG_OM_R'] = '{0}'.format(options.background[2])
 
 from DarkAges import transfer_functions, logEnergies, redshift
 from DarkAges.common import print_error, print_info

@@ -38,20 +38,20 @@ else:
 	Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology()
 
 def print_info(message):
-	print('#INFO: {}'.format(message))
+	print('#INFO: {0}'.format(message))
 
 def print_warning(message):
 	from warnings import warn
-	warn('\n\n#WARNING: {}\n'.format(message), RuntimeWarning )
+	warn('\n\n#WARNING: {0}\n'.format(message), RuntimeWarning )
 
 class DarkAges_Error(Exception):
 	def __call__(self, message):
 		print(message)
 
 def print_error(message):
-	#print('\n\n!!! EROOR: {} !!!\n\n'.format(message))
+	#print('\n\n!!! EROOR: {0} !!!\n\n'.format(message))
 	#sys.exit(255)
-	raise DarkAges_Error('\n\n!!! ERROR: {} !!!\n\n'.format(message))
+	raise DarkAges_Error('\n\n!!! ERROR: {0} !!!\n\n'.format(message))
 
 def logConversion( log_array , base=10 ):
 	def dummy(single_log10_num):
@@ -141,7 +141,7 @@ def f_function(logE, z_inj, z_dep, normalization,
 
 	how_to_integrate = kwargs.get('E_integration_scheme','logE')
 	if how_to_integrate not in ['logE','energy']:
-		print_error('The energy integration-scheme >> {} << is not known'.format(how_to_integrate))
+		print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
 
 	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
@@ -202,13 +202,13 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 	try:
 		assert spec_type in ['dN/dE','E.dN/dE']
 	except AssertionError:
-		print_warning('Unknown type of input spectrum >> {} <<. Valid options are: "dN/dE" and "E.dN/dE"'.foramt(spec_type))
+		print_warning('Unknown type of input spectrum >> {0} <<. Valid options are: "dN/dE" and "E.dN/dE"'.foramt(spec_type))
 		failed = True
 
 	try:
 		assert scale in ['ev','keV','MeV','GeV']
 	except AssertionError:
-		print_warning('Unknown scale of your input >> {} <<. Valid options are: "eV", "keV", "MeV", and "GeV"'.format(scale) )
+		print_warning('Unknown scale of your input >> {0} <<. Valid options are: "eV", "keV", "MeV", and "GeV"'.format(scale) )
 		failed = True
 		scale = 'eV' # Set an abitrary, but valid scale. Since the method is labeled as failed it will return zero anywway
 
