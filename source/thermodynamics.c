@@ -1538,7 +1538,7 @@ int thermodynamics_annihilation_coefficients_init(
     sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
     /* Write the actual command */
     sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
-    free(ppr->command_fz);
+    // free(ppr->command_fz);
     if (pth->thermodynamics_verbose > 0) {
       printf(" -> running: %s\n", command_with_arguments);
       //printf(" -> using backgrounnd: H0=%g Omega_M=%g Omega_R=%g\n",100*pba->h,pba->Omega0_b+pba->Omega0_cdm,pba->Omega0_g);

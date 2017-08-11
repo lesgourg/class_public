@@ -1574,19 +1574,21 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
   if(pth->PBH_low_mass > 0){
     // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
     ppr->param_fz_2 = pth->PBH_fraction;
-    sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
-    class_alloc(ppr->command_fz,(strlen(string2) + 4 + 1)*sizeof(char), errmsg); // +4 corresponds to the mass that will be given just below
-    strcpy(ppr->command_fz, string2);
+    // sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
+    // class_alloc(ppr->command_fz,(strlen(string2) + 4 + 1)*sizeof(char), errmsg); // +4 corresponds to the mass that will be given just below
+    strcat(ppr->command_fz, "python ");
+    strcat(ppr->command_fz,__CLASSDIR__);
+    strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=PBH --mass=");
     sprintf(string2,"%g",pth->PBH_low_mass);
     strcat(ppr->command_fz,string2);
   }
   /* If the story is not implemented */
   /* Reading the input parameter for the external command */
 	else {
-    class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+  class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
 	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-	class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
-	strcpy(ppr->command_fz, string2);
+	// class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
+	strcat(ppr->command_fz, string2);
   }
 
 	/** An arbitrary number of external parameters to be used by the external command
@@ -3773,7 +3775,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;
-  ppr->command_fz = NULL;
+  // strcat(ppr->command_fz,"NULL");
   //ppr->command_fz = "python ./Calc_f/DarkAges_CalcF_grid.py";
   //ppr->command_fz = "Insert external command, like: python ./path/to_external/script.py";
   ppr->param_fz_1 = 0.;
@@ -4219,7 +4221,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
     pr.fz_is_extern = _FALSE_;
-    free(pr.command_fz);
+    // free(pr.command_fz);
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
@@ -4470,7 +4472,7 @@ int input_get_guess(double *xguess,
   }
 
   /** - Deallocate everything allocated by input_read_parameters */
-  if (pr.command_fz != NULL) free(pr.command_fz);
+  // if (pr.command_fz != NULL) free(pr.command_fz);
   background_free_input(&ba);
 
   return _SUCCESS_;
