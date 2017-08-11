@@ -2163,9 +2163,9 @@ int thermodynamics_low_mass_pbh_energy_injection(
   else {
     dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
   }
-  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt); 
+  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
   // *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
-  if(isnan(*energy_rate)==1){
+  if(isnan(*energy_rate)==1 || *energy_rate < 0){
     *energy_rate=0.;
   }
   // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
