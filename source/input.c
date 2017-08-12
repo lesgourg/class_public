@@ -1569,6 +1569,8 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     if (flag1 == _TRUE_) {
       if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
         ppr->fz_is_extern = _TRUE_;
+        sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
+        
   /* Check first if injection history is standard and already implemented */
   /* For PBH evaporation history: automatic command */
   if(pth->PBH_low_mass > 0){

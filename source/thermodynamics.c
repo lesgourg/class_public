@@ -5058,7 +5058,6 @@ int thermodynamics_recombination_with_recfast(
 
     /** - --> store the results in the table */
     /* results are obtained in order of decreasing z, and stored in order of growing z */
-    printf("preco->recombination_table %e\n",preco->recombination_table  );
 
     /* redshift */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=zend;
@@ -5082,7 +5081,7 @@ int thermodynamics_recombination_with_recfast(
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
-      // if(pth->thermodynamics_verbose>1){
+      if(pth->thermodynamics_verbose>1){
         fprintf(stdout,"%e %e %e %e %e %e\n",
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z),
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe),
@@ -5091,7 +5090,7 @@ int thermodynamics_recombination_with_recfast(
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
              );
-      // }
+      }
 
 
   }
