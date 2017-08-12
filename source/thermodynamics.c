@@ -4546,7 +4546,6 @@ class_stop(pth->error_message,
 
    if (pth->thermodynamics_verbose > 0)
      printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
-
    hyrec_compute(&hyrec_data, FULL,
  		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
  		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
@@ -4762,17 +4761,17 @@ int thermodynamics_recombination_with_recfast(
   preco->H_frac = ppr->recfast_H_frac;
 
   /* H fudging */
- // class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
-            // pth->error_message,
-            // "RECFAST error: unknown H fudging scheme");
+ class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
+            pth->error_message,
+            "RECFAST error: unknown H fudging scheme");
   preco->fu = ppr->recfast_fudge_H;
   if (ppr->recfast_Hswitch == _TRUE_)
     preco->fu += ppr->recfast_delta_fudge_H;
 
   /* He fudging */
-  // class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
-            //  pth->error_message,
-            //  "RECFAST error: unknown He fudging scheme");
+  class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
+             pth->error_message,
+             "RECFAST error: unknown He fudging scheme");
 
   /* related quantities */
   z=zinitial;
@@ -5059,6 +5058,7 @@ int thermodynamics_recombination_with_recfast(
 
     /** - --> store the results in the table */
     /* results are obtained in order of decreasing z, and stored in order of growing z */
+    printf("preco->recombination_table %e\n",preco->recombination_table  );
 
     /* redshift */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=zend;
@@ -5082,7 +5082,7 @@ int thermodynamics_recombination_with_recfast(
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
       = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
-      if(pth->thermodynamics_verbose>1){
+      // if(pth->thermodynamics_verbose>1){
         fprintf(stdout,"%e %e %e %e %e %e\n",
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z),
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe),
@@ -5091,7 +5091,7 @@ int thermodynamics_recombination_with_recfast(
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2),
              *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
              );
-      }
+      // }
 
 
   }
@@ -5203,7 +5203,6 @@ int thermodynamics_derivs_with_recfast(
   n = preco->Nnow * (1.+z) * (1.+z) * (1.+z);
   n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
-  if(z>1e14)z=0; //Sometimes bug at very low-z with energy injection, short patch to be improved.
   class_call(background_tau_of_z(pba,
                                  z,
                                  &tau),
