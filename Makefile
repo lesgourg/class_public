@@ -50,11 +50,12 @@ LDFLAG = -g -fPIC
 # (with no slash at the end: e.g. hyrec or ../hyrec)
 HYREC = hyrec_2017
 
+
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
-# go to cosmorec directory and type make before.
-# Currently working with gcc-6 & g++-6, not clang (to be improved. maybe.)
-COSMOREC =
-#COSMOREC = cosmorec
+COSMOREC = 
+#COSMOREC = $(PWD)/cosmorec
+GSL_LIB = /opt/local/lib/
+CC++ = g++-mp-6
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -78,11 +79,14 @@ INCLUDES += -I../$(HYREC)/include
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o energy_injection.o
 endif
 
+
 # eventually update flags for including CosmoRec
 ifneq ($(COSMOREC),)
 CCFLAG += -DCOSMOREC
-LDFLAG += ./cosmorec/libCosmoRec.a -lstdc++ -lgsl -lgslcblas
-INCLUDES += -I../cosmorec
+LDFLAG += $(COSMOREC)/libCosmoRec.a -lstdc++ -L$(GSL_LIB) -lgsl -lgslcblas
+INCLUDES += -I$(COSMOREC)
+MAKE_RECOMBINATION = cd $(COSMOREC); make CC=$(CC++);
+CLEAN_RECOMBINATION = cd $(COSMOREC); make tidy;
 endif
 
 %.o:  %.c .base
@@ -192,7 +196,7 @@ test_hyperspherical: $(TOOLS) $(TEST_HYPERSPHERICAL)
 
 
 tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
-	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
+	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES) $(COSMOREC)
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
 ifdef OMPFLAG

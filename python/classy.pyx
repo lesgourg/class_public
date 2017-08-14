@@ -777,11 +777,6 @@ cdef class Class:
     def tau_reio(self):
         return self.th.tau_reio
 
-    # BEGIN NEW: Add pth->annihilation to classy
-    def annihilation(self):
-        return self.th.annihilation
-    # END
-
     # Defined twice ?
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
@@ -1447,7 +1442,11 @@ cdef class Class:
                 value = log10(self.th.annihilation * 5. * (10**self.pr.param_fz_1))
             elif name == 'DM_mass':
                 # This is to deduce the deduce mass when choosing a linear prior in log-space
-                value = 5. * (10**self.pr.param_fz_1)  
+                value = 5. * (10**self.pr.param_fz_1)
+            elif name == 'PBH_low_mass':
+                value = self.th.PBH_low_mass
+            elif name == 'PBH_fraction':
+                value = self.th.PBH_fraction  
             ## END
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)

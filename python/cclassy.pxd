@@ -88,8 +88,10 @@ cdef extern from "class.h":
         double YHe
         double n_e
 		
-        # BEGIN: Add additional parameters
+        # BEGIN: Add additional parameters (related to exotic energy injection)
         double annihilation
+        double PBH_low_mass
+        double PBH_fraction 
         # END
 
         int tt_size

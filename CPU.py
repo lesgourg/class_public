@@ -71,7 +71,7 @@ def CPU_parser():
     parser.add_argument('-x', '--x-axis', dest='x_axis', type=str,
                         help='specify the field to be used on the x-axis')
     parser.add_argument('--scale', type=str,
-                        choices=['lin', 'loglog', 'loglin', 'george'],
+                        choices=['lin', 'loglog', 'loglin', 'linlog','george'],
                         help='Specify the scale to use for the plot')
     parser.add_argument('--xlim', dest='xlim', nargs='+', type=float,
                         default=[], help='Specify the x range')
@@ -211,7 +211,11 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
                     plot_line += 'semilogx(curve[:, %i], curve[:, %i])' % (
                         x_index, index_selec)
                     ax.semilogx(curve[:, x_index], curve[:, index_selec])
-                elif scale == 'george':
+                elif scale == 'linlog':
+                    plot_line += 'semilogy(curve[:, %i], curve[:, %i])' % (
+                        x_index, index_selec)
+                    ax.semilogy(curve[:, x_index], curve[:, index_selec])
+		elif scale == 'george':
                     plot_line += 'plot(curve[:, %i], curve[:, %i])' % (
                         x_index, index_selec)
                     ax.plot(curve[:, x_index], curve[:, index_selec])
@@ -305,7 +309,9 @@ def plot_CLASS_output(files, x_axis, y_axis, ratio=False, printing='',
                     #ax.semilogx(axis, splev(ref[:, x_index_ref],
                                             #interpolated)/reference-1)
                     ax.semilogx(axis, interpolated(ref[:, x_index_ref])/reference-1)
-                elif scale == 'loglog':
+                elif scale == 'linlog':
+		    ax.semilogy(axis, interpolated(ref[:, x_index_ref])/reference-1)
+		elif scale == 'loglog':
                     raise InputError(
                         "loglog plot is not available for ratios")
 
