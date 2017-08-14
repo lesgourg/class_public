@@ -74,8 +74,8 @@ os.environ['DARKAGES_BG_H0'] = '{}'.format(options.background[0])
 os.environ['DARKAGES_BG_OM_M'] = '{}'.format(options.background[1])
 os.environ['DARKAGES_BG_OM_R'] = '{}'.format(options.background[2])
 
-from DarkAges import transfer_functions, logEnergies, redshift
-from DarkAges.common import print_error, print_info
+from DarkAges import transfer_functions, logEnergies, redshift, DarkAgesError
+from DarkAges.common import print_info
 import DarkAges.recipes as recipes
 
 if options.script_file:
@@ -95,7 +95,7 @@ def goodbye():
 			pass
 
 if options.injection_history == 'decay' and (options.t_dec==None):
-	print_error('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
+	raise DarkAgesError('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
 
 if options.injection_history == 'PBH':
 	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift) )
@@ -111,7 +111,7 @@ if options.script_file:
 
 if options.specfile:
 	if not options.mass:
-		print_error('In the mode "-s (--spec)"-mode, you nedd to specify the mass via the option: "--mass"')
+		raise DarkAgesError('In the mode "-s (--spec)"-mode, you nedd to specify the mass via the option: "--mass"')
 	if not options.branchings:
 		options.branchings = np.asarray([1.])
 	else:
@@ -119,11 +119,11 @@ if options.specfile:
 	try:
 		assert abs(sum(options.branchings) - 1) <= 1e-5
 	except AssertionError:
-		print_error('The branching ratios do not add up to one')
+		raise DarkAgesError('The branching ratios do not add up to one')
 	try:
 		assert len(options.specfile) == len(options.branchings)
 	except AssertionError:
-		print_error('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
+		raise DarkAgesError('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
 
 	if hasattr(options, 't_dec'):
 		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec, options.injection_history, branchings=options.branchings) )

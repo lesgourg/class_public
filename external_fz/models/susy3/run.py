@@ -13,21 +13,21 @@ if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 
 import DarkAges
-from DarkAges.common import print_error, finalize, channel_dict
+from DarkAges.common import finalize, channel_dict
 from DarkAges.model import annihilating_model, decaying_model
-from DarkAges import redshift, options, transfer_functions, options
+from DarkAges import redshift, options, transfer_functions, options, DarkAgesError
 
 #####
 def run( *arguments ):
 	if len(arguments) <3:
-		print_error("There are too few arguments passed. I expected at least 2")
+		raise DarkAgesError("There are too few arguments passed. I expected at least 2")
 	#sampling_mass = float(arguments[1])
 	sampling_mass = 5*(10**float(arguments[1]))
 	if sampling_mass < 50 or sampling_mass > 500:
-		print_error("The mass-parameter shsould be in the range [50 GeV, 500 GeV]")
+		raise DarkAgesError("The mass-parameter shsould be in the range [50 GeV, 500 GeV]")
 	idx_primary = int(arguments[2])
 	if idx_primary != 1 and idx_primary != 0:
-		print_error("The mode '{:d}' is not recognized. Please enter a valid mode. The choices are: 0 for 'onlyZ', and 1 for 'WandZ'.".format(idx_primary))
+		raise DarkAgesError("The mode '{:d}' is not recognized. Please enter a valid mode. The choices are: 0 for 'onlyZ', and 1 for 'WandZ'.".format(idx_primary))
 
 	model_dir = os.path.split(os.path.realpath(__file__))[0]
 	model_name =  model_dir.split('/')[-1]
