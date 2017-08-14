@@ -3026,7 +3026,7 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10000Msun_All.dat");
     }
   }
-  else if(pth->PBH_accretion_recipe == Ali_Haimoud %% pth->PBH_high_mass > 0.){
+  else if(pth->PBH_accretion_recipe == Ali_Haimoud && pth->PBH_high_mass > 0.){
     // Since <<Ali_Haimoud>> is the default value of the accretion recipe read the following file only if it is really needed i.e. when PBH_high_mass has a non-zero value
     sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
     strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_spherical_All.dat");
