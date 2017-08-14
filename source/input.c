@@ -1496,8 +1496,8 @@ int input_read_parameters(
   }
   class_read_double("PBH_low_mass",pth->PBH_low_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-  class_test(pth->PBH_low_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
-    "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
+  // class_test(pth->PBH_low_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
+  //   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
   class_test(pth->PBH_high_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,

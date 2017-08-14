@@ -2033,6 +2033,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   double f, f_neutrinos, em_branching, pbh_mass;
   double dMdt;
 
+
   /* Calculate the PBH-mass evolution at first call of the function */
   if ((preco->PBH_table_is_initialized) == _FALSE_) {
     preco->PBH_table_is_initialized = _TRUE_;
