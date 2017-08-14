@@ -10,16 +10,16 @@ from .interpolator import logInterpolator, NDlogInterpolator
 
 def execute_script_file(ext_script_file, *arguments):
 	import subprocess
-	command = ['{}'.format(sys.executable)]
+	command = ['{0}'.format(sys.executable)]
 	#command.append('-OO')
 	command.append(ext_script_file)
 	if arguments:
 		for arg in arguments[0]:
 			command.append(arg)
-	print_info('running script-file: "{}"'.format(ext_script_file))
+	print_info('running script-file: "{0}"'.format(ext_script_file))
 	retcode = subprocess.call(command)
 	if retcode != 0:
-		raise DarkAgesError('Failed to execute the script-file: "{}"'.format(ext_script_file))
+		raise DarkAgesError('Failed to execute the script-file: "{0}"'.format(ext_script_file))
 
 ##### Functions related to loading a model from a file containing the input spectra (and mass)
 
@@ -125,9 +125,9 @@ def load_from_spectrum2(fnames, logEnergies, mass, t_dec, hist='annihilation', b
 ##### Functions related to running a preprocessed model (or defining it, if it does not exist)
 
 def access_model(model_name, force_rebuild = False, *arguments):
-	model_dir = os.path.join(os.environ['DARKAGES_BASE'], 'models/{}'.format(model_name))
+	model_dir = os.path.join(os.environ['DARKAGES_BASE'], 'models/{0}'.format(model_name))
 	sys.path.insert(0,model_dir)
-	if os.path.isfile( os.path.join(model_dir, '{}.obj'.format(model_name)) ) and not force_rebuild:
+	if os.path.isfile( os.path.join(model_dir, '{0}.obj'.format(model_name)) ) and not force_rebuild:
 		run_model(model_dir, *arguments)
 	else:
 		prepare_model(model_dir)
@@ -136,7 +136,7 @@ def prepare_model(model_dir):
 	file_to_run = os.path.join(model_dir,'prepare.py')
 	_temp = __import__('prepare', globals(), locals(), [], -1)
 	_prepare = _temp.prepare
-	print_info('Preparing_the model: running script: "{}"'.format(file_to_run))
+	print_info('Preparing_the model: running script: "{0}"'.format(file_to_run))
 	_prepare()
 	print_info('Finished preparing the model. It is now ready to use. Please rerun your command.')
 
@@ -149,5 +149,5 @@ def run_model(model_dir, *arguments):
 			_cmnd.append(arg)
 	_temp = __import__('run', globals(), locals(), [], -1)
 	_run = _temp.run
-	print_info('running script-file: "{}"'.format(file_to_run))
+	print_info('running script-file: "{0}"'.format(file_to_run))
 	_run(*_cmnd)

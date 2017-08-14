@@ -150,7 +150,7 @@ def PBH_mass_at_t(initial_PBH_mass, t_start = 1e10):
 
 	#print('\n\n')
 	#for key, val in full_info.iteritems():
-	#	print('{}\t>>>>\t{}'.format(key,val))
+	#	print('{0}\t>>>>\t{1}'.format(key,val))
 	#print('\n\n')
 
 	out = np.array([times, scale*PBH_mass_at_t])

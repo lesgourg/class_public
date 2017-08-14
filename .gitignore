@@ -25,6 +25,7 @@ external_fz/DarkAges/*.pyc
 external_fz/transfer_functions/*.obj
 external_fz/models/*/*.obj
 external_fz/models/*/*.pyc
+external_fz/models/*/data/*.dat
 external_fz_playground/
 external_fz_old/
 # CosmoRec
@@ -35,3 +36,4 @@ cosmorec/Development/Cosmology/Recfast++/Recfast++
 class.dSYM/
 output_*
 output/*
+root_ini_files/

@@ -30,7 +30,7 @@ class model(object):
 		for i in range(len(f_function[0])):
 			file_out.write('\n{:.2e}\t{:.4e}'.format(f_function[0,i],f_function[1,i]))
 		file_out.close()
-		print_info('Saved effective f(z)-curve under "{}"'.format(filename))
+		print_info('Saved effective f(z)-curve under "{0}"'.format(filename))
 
 class annihilating_model(model):
 	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m):
@@ -135,7 +135,8 @@ class old_model(object):
 				alpha_to_use = alpha_dict[self.injection_hist]
 				self.normalization = self.get_normalization(red)
 			else:
-				raise DarkAgesError('The code can not deal with the injection history >> {} << (yet)'.format(self.injection_hist))
+				raise DarkAgesError('The code can not deal with the injection history >> {0} << (yet)'.format(self.injection_hist))
+
 			f_func = f_function(transfer_instance.log10E, transfer_instance.z_injected,
                                 transfer_instance.z_deposited, self.normalization,
                                 transfer_instance.transfer_phot,
@@ -151,7 +152,7 @@ class old_model(object):
 		for i in range(len(f_function[0])):
 			file_out.write('\n{:.2e}\t{:.4e}'.format(f_function[0,i],f_function[1,i]))
 		file_out.close()
-		print_info('Saved effective f(z)-curve under "{}"'.format(filename))
+		print_info('Saved effective f(z)-curve under "{0}"'.format(filename))
 
 class annihilating_model2(old_model):
 	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,):

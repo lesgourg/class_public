@@ -1,4 +1,6 @@
 import numpy as np
+np.seterr(all='ignore')
+# Make numpy quiet when it comes to overflows etc.
 import sys
 import os
 
