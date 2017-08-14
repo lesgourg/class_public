@@ -13,26 +13,26 @@ if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 
 import DarkAges
-from DarkAges.common import print_error, finalize, channel_dict
+from DarkAges.common import finalize, channel_dict
 from DarkAges.model import annihilating_model, decaying_model
-from DarkAges import redshift, options, transfer_functions, options
+from DarkAges import redshift, options, DarkAgesError, transfer_functions, options
 
 def run( *arguments ):
-	##### In this block the external parameters in arguments[1:] (sys.argv[1:]) are read and translated into 
+	##### In this block the external parameters in arguments[1:] (sys.argv[1:]) are read and translated into
 	## the parameters you like. In the given example case study the parameters are the DM mass at which the
 	## spectra should be sampled and the relative contribbution of muons to the total spectrum.
 	## If the input is not useful (mass outside the considered range, mixing not in [0,1], errors are raised
 	#####
 	if len(arguments) <3:
-		print_error("There are too few arguments passed. I expected at least 2")
+		raise DarkAgesError("There are too few arguments passed. I expected at least 2")
 	sampling_mass = float(arguments[1])
 	if sampling_mass < 50 or sampling_mass > 100:
-		print_error("The mass-parameter sholud be in the range [50 GeV, 100 GeV]")
+		raise DarkAgesError("The mass-parameter sholud be in the range [50 GeV, 100 GeV]")
 	mixing = float(arguments[2])
         #from warnings import warn
         #warn( "mixing = {:g}".format(mixing))
 	if mixing < 0 or mixing > 1:
-		print_error("The mixing-parameter sholud be in the range [0,1]")
+		raise DarkAgesError("The mixing-parameter sholud be in the range [0,1]")
 	#####
 
 	##### In this block we read in the the prepared 'interpolation'-objects

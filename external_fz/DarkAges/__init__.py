@@ -3,6 +3,16 @@ np.seterr(all='ignore')
 # Make numpy quiet when it comes to overflows etc.
 import sys
 import os
+
+class DarkAgesError(Exception):
+	def __init__(self, message):
+		Exception.__init__(self)
+		self.message = '\n\n!!! ERROR !!!\n\n --> {} \n'.format(message)
+		#print('\n\n ERROR:\n !!! {} !!!\n'.format(message))
+
+	def __str__(self):
+		return self.message
+
 os.environ['DARKAGES_BASE'] = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
 sys.path.insert(0, os.environ['DARKAGES_BASE'])
 
@@ -18,7 +28,7 @@ if 'DARKAGES_TOPLEVEL_PID' in os.environ:
 
 from .common import *
 from .transfer import transfer, transfer_dump, transfer_load
-from .model import model
+#from .model import model
 
 def transfer_init_and_dump(transfer_functions):
 	transfer_functions[channel_dict['H-Ion']] = transfer(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/original/Transfer_Ch1.dat'))

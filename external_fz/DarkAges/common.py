@@ -44,14 +44,9 @@ def print_warning(message):
 	from warnings import warn
 	warn('\n\n#WARNING: {0}\n'.format(message), RuntimeWarning )
 
-class DarkAges_Error(Exception):
-	def __call__(self, message):
-		print(message)
-
-def print_error(message):
-	#print('\n\n!!! EROOR: {0} !!!\n\n'.format(message))
-	#sys.exit(255)
-	raise DarkAges_Error('\n\n!!! ERROR: {0} !!!\n\n'.format(message))
+#def print_error(message):
+#	from DarkAges import DarkAgesError as Err
+#	raise Err(message)
 
 def logConversion( log_array , base=10 ):
 	def dummy(single_log10_num):
