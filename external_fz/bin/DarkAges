@@ -60,6 +60,8 @@ parser.add_option("--hist", default='annihilation', choices=['annihilation','dec
                   help="Define the injection history of the model.")
 parser.add_option("--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV].")
+parser.add_option("--log10mass", type="float", dest='log10mass',default=None,
+                  help="Define the log10 of the mass of the DM-candidate [mass in GeV].")
 parser.add_option("--tdec", type='float', dest='t_dec',
                   help="Define the lifetime of the DM-candidate.")
 parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 8e-5),
@@ -93,6 +95,10 @@ def goodbye():
 			os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )) )
 		except OSError:
 			pass
+if options.log10mass:
+        options.mass = 10**options.log10mass
+        print_info('Setting mass to {:.2e}'.format(options.mass))
+        del options.log10mass
 
 if options.injection_history == 'decay' and (options.t_dec==None):
 	print_error('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
