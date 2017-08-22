@@ -1,7 +1,7 @@
 import numpy as np
 
-from DarkAges.common import time_at_z, print_warning, logConversion, H, nan_clean
-from DarkAges import redshift, logEnergies
+from .common import time_at_z, print_warning, logConversion, H, nan_clean
+from .__init__ import redshift, logEnergies, DarkAgesError
 from scipy.integrate import odeint as solve_ode
 from scipy.integrate import trapz
 
@@ -44,7 +44,7 @@ def PBH_spectrum_at_m( mass, *particles):
 			fraction = fraction_at_M( mass, particle )
 			ret[:] += fraction*np.asarray(np.vectorize(Primary_spectrum, excluded = ['PBH_mass','spin']).__call__( energy=E[:], PBH_mass=mass, spin=spin))
 	else:
-		print_error('There is no particles given')
+		raise DarkAgesError('There is no particles given')
 	return ret
 
 def PBH_spectrum( PBH_mass_ini, *particles):
@@ -150,7 +150,7 @@ def PBH_mass_at_t(initial_PBH_mass, t_start = 1e10):
 
 	#print('\n\n')
 	#for key, val in full_info.iteritems():
-	#	print('{}\t>>>>\t{}'.format(key,val))
+	#	print('{0}\t>>>>\t{1}'.format(key,val))
 	#print('\n\n')
 
 	out = np.array([times, scale*PBH_mass_at_t])

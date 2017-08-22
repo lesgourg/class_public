@@ -113,6 +113,11 @@ int thermodynamics_at_z(
   /** - define local variables */
 
   double x0;
+  double x,Fx,dFx,ddFx, S, dddmu_tilde;
+  double a = pba->a_today/(1+z);
+	// double tau_at_z;
+	// double *pvecback_new;
+	// int last_index_new;
 
   /* - the fact that z is in the pre-computed range 0 <= z <= z_initial
      will be checked in the interpolation routines below. Before
@@ -121,7 +126,6 @@ int thermodynamics_at_z(
      using simple analytic approximations */
 
   if (z >= pth->z_table[pth->tt_size-1]) {
-
     /* ionization fraction assumed to remain constant at large z */
     x0= pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_xe];
     pvecthermo[pth->index_th_xe] = x0;
@@ -145,6 +149,8 @@ int thermodynamics_at_z(
     /* Calculate d3kappa/dtau3 given that [dkappa/dtau] proportional to (1+z)^2 */
     pvecthermo[pth->index_th_dddkappa] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
+
+
     /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are
        used only for computing the source functions in the
        perturbation module; but source functions only need to be
@@ -155,6 +161,104 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_g]=0.;
     pvecthermo[pth->index_th_dg]=0.;
     pvecthermo[pth->index_th_ddg]=0.;
+
+
+    /* if necessary, computes equivalent functions from DM-gamma scattering */
+
+    if(pth->u_gcdm != 0){
+
+      /* Calculate dmu/dtau (dmu/dtau = a n_cdm sigma_gcdm = a^{-2} n_cdm(today) sigma_gcdm in units of 1/Mpc, where sigma_cdm = u_gcdm sigma_T 10^-11 GeV m_cdm. Also need to use Omega0_cdm = rho0_cdm / rho0_crit) */
+      pvecthermo[pth->index_th_dmu_gcdm] = (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_gcdm
+      *(1.+z)*(1.+z)*pba->Omega0_cdm*pow(pba->H0,2);
+
+      /* Calculate d2mu/dtau2 = dz/dtau d/dz[dmu/dtau] given that [dmu/dtau] proportional to (1+z)^2 and dz/dtau = -H */
+      pvecthermo[pth->index_th_ddmu_gcdm] = -pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo[pth->index_th_dmu_gcdm];
+
+      /* Calculate d3mu/dtau3 given that [dmu/dtau] proportional to (1+z)^2 */
+      pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dmu_gcdm];
+
+      /* extrapolate exp_m_mu_gcdm using the fact that mu' goes like (1+z)^2 */
+      pvecthermo[pth->index_th_exp_m_mu_gcdm] =
+      exp(pvecthermo[pth->index_th_dmu_gcdm]/(1+z)
+          /pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dmu_gcdm]
+          *(1+pth->z_table[pth->tt_size-1])
+          *log(pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_exp_m_mu_gcdm]));
+      /* boltzmann, line of sight integration */
+
+
+      // fprintf(stdout, "z %e pvecthermo[pth->index_th_dmu_gcdm]%e   pvecthermo[pth->index_th_ddmu_gcdm] %e pvecthermo[pth->index_th_dddmu_gcdm]  %e pvecthermo[pth->index_th_exp_m_mu_gcdm] %e  pth->u_gcdm %e\n",z,pth->u_gcdm,pvecthermo[pth->index_th_dmu_gcdm],  pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm] ,pvecthermo[pth->index_th_exp_m_mu_gcdm]);
+
+    }
+    /* if necessary, computes equivalent functions from photon scattering against excited DM */
+    else if(pth->beta_gcdm != 0 ){
+      // class_call(background_tau_of_z(pba,z,&tau_at_z),
+      // 	 pba->error_message,
+      // 	 pth->error_message);
+      //
+      // class_call(background_at_tau(pba,tau_at_z, pba->long_info, pba->inter_normal, &last_index_new, pvecback_new),
+      //    pba->error_message,
+      //    pth->error_message);
+      x = pth->beta_gcdm/(1.+z);
+      Fx = x*x/sinh(x);
+      if(Fx != 0){
+        dFx = 2.*x/sinh(x)-x*x*cosh(x)/pow(sinh(x),2);
+        ddFx = (2.+x*x)/sinh(x)-4.*x*cosh(x)/pow(sinh(x),2)+2.*x*x/pow(sinh(x),3);
+      }
+      else {
+        dFx = 0;
+        ddFx = 0;
+      }
+      S = 3./4. * pvecback[pba->index_bg_rho_cdm]/pvecback[pba->index_bg_rho_g];
+      if(isnan(Fx)==0 && isnan(dFx)==0 && isnan(ddFx) ==0){
+
+      	/******version Yacine&Julien*****/
+        // pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+        // pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*(pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx);
+      	// pvecthermo[pth->index_th_dddmu_gcdm] = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]-2.*pvecback[pba->index_bg_H]/(1.+z))
+      	// 	*pvecthermo[pth->index_th_ddmu_gcdm]
+      		// -pvecback[pba->index_bg_H]*pth->alpha_gcdm/pow(1.+z,3)*ddFx;
+    		// fprintf(stdout, "dddmu v1 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]  );
+    	  /******Ma version*****/
+        pvecthermo[pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+        pvecthermo[pth->index_th_ddmu_gcdm] = S*pvecback[pba->index_bg_H]*(pth->alpha_gcdm/pth->beta_gcdm/pow(1.+z,2)*dFx - a*pvecthermo[pth->index_th_dmu_gcdm]);
+        dddmu_tilde = (pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]+2.*pvecback[pba->index_bg_H]/(1+z))
+      		*pvecthermo[pth->index_th_ddmu_gcdm]
+      		+pow(pvecback[pba->index_bg_H],2)*pth->alpha_gcdm/pow(1.+z,4)*ddFx;
+      	pvecthermo[pth->index_th_dddmu_gcdm] = -pvecback[pba->index_bg_H]*(a*pvecthermo[pth->index_th_ddmu_gcdm]*(S-1)+S*dddmu_tilde
+          +pba->a_today*pvecthermo[pth->index_th_dmu_gcdm]*(pvecback[pba->index_bg_H]+pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/a)/pow(1+z,2));
+
+      //  if(pvecthermo[pth->index_th_dmu_gcdm]/pvecthermo[pth->index_th_dkappa] < 1e-6){
+      //    pvecthermo[pth->index_th_dmu_gcdm] = 0;
+      //    pvecthermo[pth->index_th_ddmu_gcdm] =0;
+      //    pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+      //  }
+
+      	// fprintf(stdout, "dddmu v2 %e \n",pvecthermo[pth->index_th_dddmu_gcdm]);
+        // /* excited DM: mu' goes like (1+z): */
+        pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1.; //TODO
+      }
+      else {
+      	pvecthermo[pth->index_th_dmu_gcdm] = 0;
+        pvecthermo[pth->index_th_ddmu_gcdm] =0;
+        pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+        pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1.; //TODO
+      }
+      // class_call(background_tau_of_z(pba,(pth->beta_gcdm*2.7225*8.6e-5/1e3)*1.4*1e6,&tau_at_z),
+      // 		 pba->error_message,
+      // 		 pth->error_message);
+      // fprintf(stdout, "z %e x %e Fx %e dFx %e ddFx %e pth->alphag,z,S,x,Fx,dFx,ddFx,pth->alpha_gcdm,pth->beta_gcdm,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm]);
+      // fprintf(stdout, " %e  %e %e %e %e %e %e \n",z,pvecthermo[pth->index_th_dmu_gcdm] ,pvecthermo[pth->index_th_ddmu_gcdm],pvecthermo[pth->index_th_dddmu_gcdm],pvecthermo[pth->index_th_dkappa],pvecthermo[pth->index_th_ddkappa],pvecthermo[pth->index_th_dddkappa]);
+      // printf("tau_at_z_max = %e  z_max = %e\n",tau_at_z,(pth->beta_gcdm*2.7225*8.6e-5/1e3)*1.4*1e6);
+
+
+
+    }
+    // else {
+    // 	pvecthermo[pth->index_th_dmu_gcdm] = 0;
+    // 	pvecthermo[pth->index_th_ddmu_gcdm] =0;
+    // 	pvecthermo[pth->index_th_dddmu_gcdm] = 0;
+    // 	pvecthermo[pth->index_th_exp_m_mu_gcdm] = 1;
+    // }
 
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pba->T_cmb*(1.+z);
@@ -181,7 +285,7 @@ int thermodynamics_at_z(
   /** - interpolate in table with array_interpolate_spline() (normal
       mode) or array_interpolate_spline_growing_closeby() (closeby
       mode) */
- 
+
  else {
 
     /* some very specific cases require linear interpolation because of a break in the derivative of the functions */
@@ -288,6 +392,8 @@ int thermodynamics_init(
   double tau;
   double g_max;
   int index_tau_max;
+  /** - local variables relative to excited DM-gamma scattering */
+  double x,Fx,S,exp_m_mu_gcdm;
 
   /** - initialize pointers, allocate background vector */
 
@@ -622,6 +728,85 @@ int thermodynamics_init(
                pth->error_message);
   }
 
+  /** if necessary, fill array with values of photon-cdm interaction rate
+       dmu_gcdm = a n_cdm sigma_gcdm in units of 1/Mpc */
+  if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
+    for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
+
+      if(pth->u_gcdm != 0){
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] =
+        (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_gcdm
+        *pow(1.+pth->z_table[index_tau],2)*pba->Omega0_cdm*pow(pba->H0,2);
+      }
+      else if(pth->beta_gcdm != 0){
+        class_call(background_at_tau(pba,
+                                     tau_table[index_tau],
+                                     pba->normal_info,
+                                     pba->inter_closeby,
+                                     &last_index_back,
+                                     pvecback),
+                   pba->error_message,
+                   pth->error_message);
+        S = 3./4. * pvecback[pba->index_bg_rho_cdm]/pvecback[pba->index_bg_rho_g];
+        x = pth->beta_gcdm/(1.+pth->z_table[index_tau]);
+        Fx = x*x/sinh(x);
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = S*pth->alpha_gcdm/pow(pth->beta_gcdm,2)*Fx;
+        // fprintf(stdout, " %e %e %e \n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm]);
+      }
+    }
+        /** -> second derivative with respect to tau of dmu (in view of spline interpolation) */
+        class_call(array_spline_table_line_to_line(tau_table,
+                                                   pth->tt_size,
+                                                   pth->thermodynamics_table,
+                                                   pth->th_size,
+                                                   pth->index_th_dmu_gcdm,
+                                                   pth->index_th_dddmu_gcdm,
+                                                   _SPLINE_EST_DERIV_,
+                                                   pth->error_message),
+                   pth->error_message,
+                   pth->error_message);
+
+        /** -> first derivative with respect to tau of dmu (using spline interpolation) */
+        class_call(array_derive_spline_table_line_to_line(tau_table,
+                                                          pth->tt_size,
+                                                          pth->thermodynamics_table,
+                                                          pth->th_size,
+                                                          pth->index_th_dmu_gcdm,
+                                                          pth->index_th_dddmu_gcdm,
+                                                          pth->index_th_ddmu_gcdm,
+                                                          pth->error_message),
+                   pth->error_message,
+                   pth->error_message);
+
+        /** -> compute -mu = [int_{tau_today}^{tau} dtau dkappa/dtau], store temporarily in column "exp_m_mu_gcdm" */
+        class_call(array_integrate_spline_table_line_to_line(tau_table,
+                                                             pth->tt_size,
+                                                             pth->thermodynamics_table,
+                                                             pth->th_size,
+                                                             pth->index_th_dmu_gcdm,
+                                                             pth->index_th_dddmu_gcdm,
+                                                             pth->index_th_exp_m_mu_gcdm,
+                                                             pth->error_message),
+                   pth->error_message,
+                   pth->error_message);
+
+        /** check loop */
+        // for (index_tau=pth->tt_size-1; index_tau>=0; index_tau-=100) {
+        //   if(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] != 0)fprintf(stdout, " %e %e %e %e %e %e %e %e %e\n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_gcdm], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm],
+        //   pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+        // }
+        // exit(1);
+
+
+  }
+  // else{
+  //   for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm] = 0;
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm] = 0;
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_gcdm] = 0;
+  //       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] = 1;
+  //   }
+  // }
   free(tau_table);
 
   /** - --> compute visibility: \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
@@ -629,12 +814,55 @@ int thermodynamics_init(
   /* loop on z (decreasing z, increasing time) */
   for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
 
-    /** - ---> compute g */
-    g = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
-      exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+
+
 
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] =
+      exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+
+
+
+    /** if necessary, compute part related to DM-baryon scattering */
+    if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
+
+      /** -> compute exp(-mu) */
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] =
+        exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm]);
+
+      /** -> compute g */
+      g =
+      // pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] =
+      (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]  +
+           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm]) *
+           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] *
+           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm];
+
+      /** -> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
+      (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] +
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_gcdm] +
+       pow(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] +
+           pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_gcdm],2)) *
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] *
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm];
+
+
+    /** -> compute g''  */
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg] =
+      (pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa] +
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] * 3. +
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
+       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]) *
+      exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+
+    }
+    else {
+    /** - ---> compute g */
+    g =
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
     /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
@@ -654,8 +882,14 @@ int thermodynamics_init(
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa]) *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
+      // pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_mu_gcdm] = 1;
+
+    }
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
+    // fprintf(stdout, " %e  %e  %e  %e\n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g],fabs(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg]),fabs(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg]));
+    // fprintf(stdout, "z %e g %e g' %e g'' %e\n",pth->z_table[index_tau], pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg],pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg]);
+
 
     /** - ---> compute variation rate */
     class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
@@ -717,11 +951,11 @@ int thermodynamics_init(
   /* approximation for maximum of g, using cubic interpolation, assuming equally spaced z's */
   pth->z_rec=pth->z_table[index_tau+1]+0.5*(pth->z_table[index_tau+1]-pth->z_table[index_tau])*(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g])/(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g]+pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g]);
   // fprintf(stdout, "z_rec %e %e %e %e %e %e\n",pth->z_table[index_tau+1],pth->z_table[index_tau],pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g],2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g],pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]);
-  class_test(pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_,
+  class_test((pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_) && ((pth->u_gcdm == 0) && (pth->beta_gcdm == 0)),
              pth->error_message,
              "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
 
-  class_test(pth->z_rec-ppr->smallest_allowed_variation <= _Z_REC_MIN_,
+  class_test((pth->z_rec-ppr->smallest_allowed_variation <= _Z_REC_MIN_) && ((pth->u_gcdm == 0) && (pth->beta_gcdm == 0)) ,
              pth->error_message,
              "found a recombination redshift smaller or equal to the maximum value imposed in thermodynamics.h, z_rec_min=%g",_Z_REC_MIN_);
 
@@ -917,6 +1151,20 @@ int thermodynamics_indices(
   index++;
   pth->index_th_exp_m_kappa = index;
   index++;
+
+  /** if necessary, initialize counter for DM-baryon scattering quantities */
+  if(pth->u_gcdm != 0 || pth->beta_gcdm != 0){
+    pth->index_th_dmu_gcdm = index;
+    index++;
+    pth->index_th_ddmu_gcdm = index;
+    index++;
+    pth->index_th_dddmu_gcdm = index;
+    index++;
+    pth->index_th_exp_m_mu_gcdm = index;
+    index++;
+  }
+
+
   pth->index_th_g = index;
   index++;
   pth->index_th_dg = index;
@@ -1290,7 +1538,7 @@ int thermodynamics_annihilation_coefficients_init(
     sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
     /* Write the actual command */
     sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
-    free(ppr->command_fz);
+    // free(ppr->command_fz);
     if (pth->thermodynamics_verbose > 0) {
       printf(" -> running: %s\n", command_with_arguments);
       //printf(" -> using backgrounnd: H0=%g Omega_M=%g Omega_R=%g\n",100*pba->h,pba->Omega0_b+pba->Omega0_cdm,pba->Omega0_g);
@@ -1785,12 +2033,14 @@ int thermodynamics_low_mass_pbh_energy_injection(
   double f, f_neutrinos, em_branching, pbh_mass;
   double dMdt;
 
+
   /* Calculate the PBH-mass evolution at first call of the function */
   if ((preco->PBH_table_is_initialized) == _FALSE_) {
     preco->PBH_table_is_initialized = _TRUE_;
     double loop_z, loop_tau, current_mass, time_now, time_prev, dt, dz;
     double * pvecback_loop;
     int  i_step, last_index_back_loop;
+    preco->PBH_z_evaporation = 0;
     preco->PBH_table_size = 100*z+1;
     dz = z / preco->PBH_table_size;
     loop_z = z+dz;
@@ -1800,19 +2050,19 @@ int thermodynamics_low_mass_pbh_energy_injection(
     class_alloc(preco->PBH_table_mass,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_mass_dd,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_F,preco->PBH_table_size*sizeof(double),error_message);
-    class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);    
+    class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);
     for(i_step = 0; i_step < preco->PBH_table_size; i_step++) {
       f = 2*0.060						  \
-	+ 6*0.142						  \
-	+ 4*0.146*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
-	+ 4*0.146*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
-	+ 4*0.146*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+12*0.146*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
-	+12*0.146*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
-	+12*0.146*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
+	+ 6*0.147						  \
+	+ 4*0.142*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
+	+ 4*0.142*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
+	+ 4*0.142*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
+	+12*0.142*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
+	+12*0.142*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
+	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
 	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))	  \
 	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))	  \
 	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	  \
@@ -1836,15 +2086,16 @@ int thermodynamics_low_mass_pbh_energy_injection(
       dt = time_now - time_prev;
       time_prev = time_now;
       if (i_step > 0) {
-	if (current_mass > 0) {
-	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
-	}
-	else {
-	  current_mass = 0.;
-	  f = 0.;
-	}
+      	if (current_mass > 0.5*preco->PBH_low_mass) {
+      	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
+      	}
+      	else {
+          if(preco->PBH_z_evaporation == 0)preco->PBH_z_evaporation=loop_z;
+      	  current_mass = 0.;
+      	  f = 0.;
+      	}
       }
-      
+
       preco->PBH_table_z[i_step] = loop_z;
       preco->PBH_table_mass[i_step] = current_mass;
       preco->PBH_table_F[i_step] = f;
@@ -1902,26 +2153,27 @@ int thermodynamics_low_mass_pbh_energy_injection(
 	     error_message,
 	     error_message);
 
-  f_neutrinos = 6*0.142;
+  f_neutrinos = 6*0.147;
   em_branching = (f-f_neutrinos)/f;
-
-  if(pbh_mass <= 0 || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1){
+  // printf("preco->PBH_z_evaporation %e\n", preco->PBH_z_evaporation);
+  if(pbh_mass <= 0.0001*preco->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
     pbh_mass = 0;
     dMdt = 0;
     f = 0.;
   }
-  else { 
+  else {
     dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
   }
-  //*energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
-  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
-  if(isnan(*energy_rate)==1){
+  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
+  // *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
+  if(isnan(*energy_rate)==1 || *energy_rate < 0){
     *energy_rate=0.;
   }
-  //fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
+  // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
+  // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
   //free(pvecback);
 }
-/******************************EnSergy Injection high mass PBH (accretion)**********************************/
+/******************************Energy Injection high mass PBH (accretion)**********************************/
 int thermodynamics_high_mass_pbh_energy_injection(
                                                   struct precision * ppr,
                                                   struct background * pba,
@@ -1940,23 +2192,24 @@ int thermodynamics_high_mass_pbh_energy_injection(
   double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2,M_crit;
   double rho, m_p = 938, m_e = 0.511, T_infinity = 0, rho_infinity = 0, x_e_infinity = 0, P_infinity = 0, rho_cmb = 0, t_B = 0, v_B = 0;
   double lambda_1,lambda_2,lambda_ad,lambda_iso,gamma_cooling,beta_compton_drag, T_s, T_ion, Y_s, J,tau_cooling;
+  double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1;
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
-        class_call(background_tau_of_z(pba,
-                                       z,
-                                       &tau),
-                   pba->error_message,
-                   preco->error_message);
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             preco->error_message);
 
-        class_call(background_at_tau(pba,
-                                     tau,
-                                     pba->long_info,
-                                     pba->inter_normal,
-                                     &last_index_back,
-                                     pvecback),
-                   pba->error_message,
-                   preco->error_message);
+  class_call(background_at_tau(pba,
+                               tau,
+                               pba->long_info,
+                               pba->inter_normal,
+                               &last_index_back,
+                               pvecback),
+             pba->error_message,
+             preco->error_message);
 
 
         c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
@@ -1967,12 +2220,12 @@ int thermodynamics_high_mass_pbh_energy_injection(
         // x_e = 1;
         x_e = preco->xe_tmp;
         T_infinity = preco->Tm_tmp*_eV_over_Kelvin_*1e-6; //Temperature in MeV
-        M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
-        L_ed = M_ed_dot*_c_*_c_; // J s^-1;
+
 
 
         if(preco->PBH_accretion_recipe == Ricotti_et_al || preco->PBH_accretion_recipe == Horowitz){
-
+            M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
+            L_ed = M_ed_dot*_c_*_c_; // J s^-1;
             if(preco->PBH_accretion_recipe == Ricotti_et_al){
               if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
               if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
@@ -2041,6 +2294,10 @@ int thermodynamics_high_mass_pbh_energy_injection(
 
         //Third way of computing m_dot and L_acc from Gaggero et al. arXiv:1612.00457
         else if(preco->PBH_accretion_recipe == Gaggero_et_al){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
+            M_crit = 0.01*M_ed_dot; //1% of the eddington accretion rate.
             //v_eff not clearly given, I use the alternative v_eff by Ali-Haimoud et al.
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
             v_l = 30*MIN(1,z/1000)*1e3;
@@ -2049,12 +2306,150 @@ int thermodynamics_high_mass_pbh_energy_injection(
             lambda = 0.01;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
             M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-
-            M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
-            L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-
+            if(M_b_dot<M_crit) epsilon = 0.1 * M_b_dot / M_crit ;
+            else epsilon = 0.1;
+            L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
             // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
+            //if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/(M_ed_dot),L_acc_2/(0.3*L_ed),epsilon);
+
+          }
+        //Thin Disk accretion using quantities from Ostriker and Park 2000: lambda = 1, epsilon = 0.1.
+        else if(preco->PBH_accretion_recipe == Thin_disk){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
+            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+            v_l = 30*MIN(1,z/1000)*1e3;
+            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            else v_eff = v_B;
+            lambda = preco->PBH_accretion_eigenvalue;
+            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
+            epsilon = 0.1;
+            // L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
+            //if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
+
+          }
+          //ADAF accretion using quantities from Ostriker and Park 2000: lambda = 1, epsilon = 0.1mdot.
+        else if(preco->PBH_accretion_recipe == ADAF){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
+            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+            // v_l = 30*MIN(1,z/1000)*1e3;
+            // if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            // else v_eff = v_B;
+            v_eff=v_B;
+            lambda = preco->PBH_accretion_eigenvalue;
+            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
+            if(M_b_dot <= M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
+            else epsilon = 0.1;
+            // L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
+            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
+            //if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
+
+          }
+        else if(preco->PBH_accretion_recipe == ADAF_Simulation){
+            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+            // printf("L_ed %.3e\n",L_ed);
+            M_ed_dot= 10*L_ed/(_c_*_c_);
+            M_crit = 0.01*M_ed_dot;
+            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+            if(preco->PBH_relative_velocities < 0.){
+              v_l = 30*MIN(1,z/1000)*1e3; // in m/s.
+              if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+              else v_eff = v_B;
+            }
+            else{
+              v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
+              // v_eff = pow(v_l*v_l,0.5);
+              v_eff = pow(v_l*v_l+v_B*v_B,0.5);
+            }
+
+            // v_eff = v_B;
+            lambda = preco->PBH_accretion_eigenvalue;
+            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
+            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
+            if(preco->PBH_ADAF_delta == 1e-3){
+              Value_min = 7.6e-5;
+              Value_med = 4.5e-3;
+              Value_max = 7.1e-3;
+              if(M_b_dot/M_ed_dot <= Value_min){
+                epsilon_0 = 0.065;
+                a = 0.71;
+              }
+              else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+                epsilon_0 = 0.020;
+                a = 0.47;
+              }
+              else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+                epsilon_0 = 0.26;
+                a = 3.67;
+              }
+              else{
+                epsilon_0 = 0.1;
+                a = 0.;
+              }
+              epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+            }
+            else if (preco->PBH_ADAF_delta == 0.1){
+              Value_min = 9.4e-5;
+              Value_med = 5e-3;
+              Value_max = 6.6e-3;
+              if(M_b_dot/M_ed_dot <= Value_min){
+                epsilon_0 = 0.12;
+                a = 0.59;
+              }
+              else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+                epsilon_0 = 0.026;
+                a = 0.27;
+              }
+              else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+                epsilon_0 = 0.50;
+                a = 4.53;
+              }
+              else{
+                epsilon_0 = 0.1;
+                a = 0.;
+              }
+              epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+            }
+            else if (preco->PBH_ADAF_delta == 0.5){
+
+              Value_min = 2.9e-5;
+              Value_med = 3.3e-3;
+              Value_max = 5.3e-3;
+              if(M_b_dot/M_ed_dot <= Value_min){
+                epsilon_0 = 1.58;
+                a = 0.65;
+              }
+              else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+                epsilon_0 = 0.055;
+                a = 0.076;
+              }
+              else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+                epsilon_0 = 0.17;
+                a = 1.12;
+              }
+              else{
+                epsilon_0 = 0.1;
+                a = 0.;
+              }
+              epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+            }
+
+
+
+            // if(M_b_dot<M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
+            // else epsilon = 0.1;
+            L_acc_2 = epsilon*M_b_dot*_c_*_c_; //
+            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/L_ed,epsilon);
+            // if(z >20)fprintf(stdout, " %e   %e %e  %e %e\n",z,v_B,v_l,v_eff,pow(v_l*v_l+v_B*v_B,0.5));
 
           }
         //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
@@ -2062,10 +2457,18 @@ int thermodynamics_high_mass_pbh_energy_injection(
           rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
           // x_e_infinity = 1; // change to 1 for the strong-feedback case
           x_e_infinity = x_e; // change to x_e for the no-feedback case
-          v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
-          v_l = 30*MIN(1,z/1000)*1e3;
-          if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-          else v_eff = v_B;
+          v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_; //sound speed.
+          if(preco->PBH_relative_velocities < 0.){
+            v_l = 30*MIN(1,z/1000)*1e3; // in m/s.
+            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            else v_eff = v_B;
+          }
+          else{
+            v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
+            // v_eff = pow(v_l*v_l,0.5);
+            v_eff = pow(v_l*v_l+v_B*v_B,0.5);
+          }
+          // v_eff = v_B; //Neglect relative velocity of DM & Baryons otherwise a disk form.
           // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
           // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
           // fprintf(stdout, "z %e v_l %e sqrt(5/3)*v_B %e c_s %e \n", z,v_l,sqrt(5./3)*v_B,5.7e3*pow(preco->Tm_tmp/2730,0.5));
@@ -2096,6 +2499,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
           L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
           L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
+          // if(z>20)fprintf(stdout, "%e   %e  %e  %e %e %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_),v_eff,v_B);
           // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
         }
         else if (preco->PBH_accretion_recipe == Hybrid){
@@ -2219,16 +2623,16 @@ int thermodynamics_energy_injection(
         // // /* number of hydrogen nuclei today in m**-3 */
         nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
-        /*Value from Poulin 1508.01370*/
+        /*Value from Poulin et al. 1508.01370*/
         /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-        factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        exponent_z = 8;
-        exponent_zp = 7.5;
+        // factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        // exponent_z = 8;
+        // exponent_zp = 7.5;
 
         /*Value from Ali-Haimoud & Kamionkowski 1612.05644*/
-        // factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        // exponent_z = 7;
-        // exponent_zp = 6.5;
+        factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+        exponent_z = 7;
+        exponent_zp = 6.5;
 
 
         /* integral over z'(=zp) with step dz */
@@ -2253,6 +2657,7 @@ int thermodynamics_energy_injection(
           result += dz*integrand;
 
         } while (integrand/first_integrand > 0.02);
+        if(result < 1e-100) result=0.;
       }
 
       // // /***********************************************************************************************************************/
@@ -2269,10 +2674,10 @@ int thermodynamics_energy_injection(
             class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                       error_message,
                       error_message);
-            *energy_rate =  result*preco->f_eff;
+            result =  result*preco->f_eff;
             // fprintf(stdout, "energy_rate %e\n", *energy_rate);
       }
-      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
+      // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
       //            error_message);
@@ -2286,12 +2691,9 @@ int thermodynamics_energy_injection(
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);
+
+       /* effective energy density rate in J/m^3/s  */
     }
-
-
-
-
-    /* effective energy density rate in J/m^3/s  */
     *energy_rate = result;
 
   }
@@ -2370,19 +2772,12 @@ int thermodynamics_reionization_function(
       }
 
         /** -> case z < z_reio_start: helium contribution (tanh of simpler argument) */
-        /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
+
           argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
             /preio->reionization_parameters[preio->index_helium_fullreio_width];
           /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
           *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
             * (tanh(argument)+1.)/2.;
-      // if (pth->reio_parametrization == reio_camb) {
-      //   argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
-      //     /preio->reionization_parameters[preio->index_helium_fullreio_width];
-      //   /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-      //   *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
-      //     * (tanh(argument)+1.)/2.;
-      // }
 
       if(*xe > 0.1*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_10_percent == 0){
         pth->z_10_percent = z;
@@ -2416,12 +2811,6 @@ int thermodynamics_reionization_function(
       z_tmp = z;
     }
 
-
-
-
-    // fprintf(stdout, "xe %e z%e \n ", *xe, z);
-    // fprintf(stdout, "xe %e z%e argument %e A %e B %e A / B %e \n", *xe, z, argument,A,B, A / B);
-    /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
     return _SUCCESS_;
 
   }
@@ -3804,7 +4193,7 @@ int thermodynamics_reionization_sample(
               /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
 
               if(pth->thermodynamics_verbose>10){
-                fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat%e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
+                fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat %e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
               }
 
       }
@@ -3830,7 +4219,8 @@ int thermodynamics_reionization_sample(
 
       dTdz = dTdz_adia+dTdz_CMB+dTdz_DM+dTdz_stars;
       if(pth->thermodynamics_verbose>10){
-      fprintf(stdout, "z %e dT %e Tmat %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e dTdz_stars %e \n", z,dTdz, preio->reionization_table[i*preio->re_size+preio->index_re_Tb],dTdz_adia, dTdz_CMB ,dTdz_DM,dTdz_stars);
+      // fprintf(stdout, "z %e dT %e Tmat %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e dTdz_stars %e opacity %e xe %e energy_rate %e chi_heat %e pvecback[pba->index_bg_H] %e\n", z,dTdz, preio->reionization_table[i*preio->re_size+preio->index_re_Tb],dTdz_adia, dTdz_CMB ,dTdz_DM,energy_rate,chi_heat,pvecback[pba->index_bg_H]);
+      fprintf(stdout, "z %e dT %e Tmat %e dTdz_adia %e dTdz_CMB %e dTdz_DM %e dTdz_stars %e opacity %e xe %e energy_rate %e chi_heat %e H %e\n", z,dTdz, preio->reionization_table[i*preio->re_size+preio->index_re_Tb],dTdz_adia, dTdz_CMB ,dTdz_DM,dTdz_stars,opacity,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate,chi_heat,pvecback[pba->index_bg_H]);
       }
       /** - --> increment baryon temperature  */
 
@@ -4157,7 +4547,6 @@ class_stop(pth->error_message,
 
    if (pth->thermodynamics_verbose > 0)
      printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
-
    hyrec_compute(&hyrec_data, FULL,
  		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
  		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
@@ -4373,9 +4762,9 @@ int thermodynamics_recombination_with_recfast(
   preco->H_frac = ppr->recfast_H_frac;
 
   /* H fudging */
-  class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
-             pth->error_message,
-             "RECFAST error: unknown H fudging scheme");
+ class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
+            pth->error_message,
+            "RECFAST error: unknown H fudging scheme");
   preco->fu = ppr->recfast_fudge_H;
   if (ppr->recfast_Hswitch == _TRUE_)
     preco->fu += ppr->recfast_delta_fudge_H;
@@ -4402,6 +4791,9 @@ int thermodynamics_recombination_with_recfast(
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay_fraction = pth->decay_fraction;
   preco->PBH_high_mass = pth->PBH_high_mass;
+  preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
+  preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
+  preco->PBH_relative_velocities = pth->PBH_relative_velocities;
   preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
   preco->energy_deposition_treatment = pth->energy_deposition_treatment;
@@ -4811,7 +5203,6 @@ int thermodynamics_derivs_with_recfast(
   n = preco->Nnow * (1.+z) * (1.+z) * (1.+z);
   n_He = preco->fHe * n;
   Trad = preco->Tnow * (1.+z);
-
   class_call(background_tau_of_z(pba,
                                  z,
                                  &tau),
@@ -4831,14 +5222,14 @@ int thermodynamics_derivs_with_recfast(
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
 
-  // if( z > 2){//sometimes problem with interpolation
+  if( z > 2){//sometimes problem with interpolation
     // fprintf(stdout, "z %e,Tmat %e, x %e\n",z,Tmat,x);
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
   // fprintf(stdout, "energy_rate %e\n",energy_rate);
-  // }
-  // else energy_rate = 0;
+  }
+  else energy_rate = 0;
      preco->z_tmp=z;
 }
 else energy_rate=0;
@@ -4956,6 +5347,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
+          // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,chi_lya,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE));
         }
         /* old approximation from Chen and Kamionkowski */
         if(pth->energy_repart_functions==SSCK){
@@ -4983,7 +5375,6 @@ else energy_rate=0;
         chi_ionHe = 0.;
         chi_lya = 0.;
       }
-      if(chi_ionH < 0 )fprintf(stdout, "chi_ionH %e \n",chi_ionH);
       if(pth->thermodynamics_verbose>10){
         fprintf(stdout, "chi_ionH %e chi_ionHe %e chi_lya %e z% e\n", chi_ionH , chi_ionHe, chi_lya, z);
       }
@@ -5218,7 +5609,7 @@ int thermodynamics_merge_reco_and_reio(
     free(preco->PBH_table_mass_dd);
     free(preco->PBH_table_F);
     free(preco->PBH_table_F_dd);
-  }    
+  }
 
   return _SUCCESS_;
 }

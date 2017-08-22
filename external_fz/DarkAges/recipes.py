@@ -1,8 +1,8 @@
 import numpy as np
 import os
 import sys
-from .common import channel_dict, finalize, sample_spectrum, print_info, print_error, print_warning
-from .__init__ import redshift, logEnergies, transfer_functions, options
+from .common import channel_dict, finalize, sample_spectrum, print_info, print_warning
+from .__init__ import redshift, logEnergies, transfer_functions, options, DarkAgesError
 from .model import model, annihilating_model, decaying_model, evaporating_model
 from .interpolator import logInterpolator, NDlogInterpolator
 
@@ -10,16 +10,16 @@ from .interpolator import logInterpolator, NDlogInterpolator
 
 def execute_script_file(ext_script_file, *arguments):
 	import subprocess
-	command = ['{}'.format(sys.executable)]
+	command = ['{0}'.format(sys.executable)]
 	#command.append('-OO')
 	command.append(ext_script_file)
 	if arguments:
 		for arg in arguments[0]:
 			command.append(arg)
-	print_info('running script-file: "{}"'.format(ext_script_file))
+	print_info('running script-file: "{0}"'.format(ext_script_file))
 	retcode = subprocess.call(command)
 	if retcode != 0:
-		print_error('Failed to execute the script-file: "{}"'.format(ext_script_file))
+		raise DarkAgesError('Failed to execute the script-file: "{0}"'.format(ext_script_file))
 
 ##### Functions related to loading a model from a file containing the input spectra (and mass)
 
@@ -62,7 +62,7 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 	try:
 		assert spectra.shape[-1] == branchings.shape[-1]
 	except AssertionError:
-		print_error('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
+		raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
 	tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
 	if hist == 'decay':
 		#model_from_file = model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec = t_dec, history=hist)
@@ -71,11 +71,11 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		#model_from_file = model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, history=hist)
 		model_from_file = annihilating_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass)
 	else:
-		print_error('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.func_name, hist))
+		raise DarkAgesError('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.func_name, hist))
 	try:
 		assert len(channel_dict) == len(transfer_functions)
 	except AssertionError:
-		print_error('The number of "transfer" instances ({:d}) and the number of channels ({:d}) do not match'.format(len(transfer_functions),len(channel_dict)))
+		raise DarkAgesError('The number of "transfer" instances ({:d}) and the number of channels ({:d}) do not match'.format(len(transfer_functions),len(channel_dict)))
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
@@ -94,7 +94,7 @@ def load_from_spectrum(fname, logEnergies, **options):
 	try:
 		assert len(cols_to_use) == 5
 	except AssertionError:
-		print_error('There is something wrong with the number of columns in the spectra-file. I expected 5 columns but I got only {:d}'.format(len(cols_to_use)))
+		raise DarkAgesError('There is something wrong with the number of columns in the spectra-file. I expected 5 columns but I got only {:d}'.format(len(cols_to_use)))
 	spec_data = np.genfromtxt(fname, unpack=True, usecols=(0,1,2,3,4), skip_header=1, dtype=np.float64)
 	masses = np.unique(spec_data[0,:])
 	temp_spec = np.empty(shape=(len(masses),3,len(logEnergies)), dtype=np.float64)
@@ -125,9 +125,9 @@ def load_from_spectrum2(fnames, logEnergies, mass, t_dec, hist='annihilation', b
 ##### Functions related to running a preprocessed model (or defining it, if it does not exist)
 
 def access_model(model_name, force_rebuild = False, *arguments):
-	model_dir = os.path.join(os.environ['DARKAGES_BASE'], 'models/{}'.format(model_name))
+	model_dir = os.path.join(os.environ['DARKAGES_BASE'], 'models/{0}'.format(model_name))
 	sys.path.insert(0,model_dir)
-	if os.path.isfile( os.path.join(model_dir, '{}.obj'.format(model_name)) ) and not force_rebuild:
+	if os.path.isfile( os.path.join(model_dir, '{0}.obj'.format(model_name)) ) and not force_rebuild:
 		run_model(model_dir, *arguments)
 	else:
 		prepare_model(model_dir)
@@ -136,7 +136,7 @@ def prepare_model(model_dir):
 	file_to_run = os.path.join(model_dir,'prepare.py')
 	_temp = __import__('prepare', globals(), locals(), [], -1)
 	_prepare = _temp.prepare
-	print_info('Preparing_the model: running script: "{}"'.format(file_to_run))
+	print_info('Preparing_the model: running script: "{0}"'.format(file_to_run))
 	_prepare()
 	print_info('Finished preparing the model. It is now ready to use. Please rerun your command.')
 
@@ -149,6 +149,5 @@ def run_model(model_dir, *arguments):
 			_cmnd.append(arg)
 	_temp = __import__('run', globals(), locals(), [], -1)
 	_run = _temp.run
-	print_info('running script-file: "{}"'.format(file_to_run))
+	print_info('running script-file: "{0}"'.format(file_to_run))
 	_run(*_cmnd)
-	
