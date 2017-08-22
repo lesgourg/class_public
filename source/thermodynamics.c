@@ -454,6 +454,9 @@ int thermodynamics_init(
              pth->error_message,
              "annihilation variation parameter must be negative (decreasing annihilation rate)");
 
+  class_test(pth->PBH_low_mass < 1e15 && pth->PBH_fraction > 1e-4,pth->error_message,
+   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
+
   // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
   //            pth->error_message,
   //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
@@ -2154,7 +2157,8 @@ int thermodynamics_low_mass_pbh_energy_injection(
 	     error_message);
 
   f_neutrinos = 6*0.147;
-  em_branching = (f-f_neutrinos)/f;
+  // em_branching = (f-f_neutrinos)/f;
+  em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
   // printf("preco->PBH_z_evaporation %e\n", preco->PBH_z_evaporation);
   if(pbh_mass <= 0.0001*preco->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
     pbh_mass = 0;
