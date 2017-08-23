@@ -821,6 +821,9 @@ cdef class Class:
     def n_s(self):
         return self.pm.n_s
 
+    def tau_reio(self):
+        return self.th.tau_reio
+
     # Defined twice ?
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
