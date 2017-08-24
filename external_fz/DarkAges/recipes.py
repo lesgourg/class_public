@@ -3,7 +3,7 @@ import os
 import sys
 from .common import channel_dict, finalize, sample_spectrum, print_info, print_warning
 from .__init__ import redshift, logEnergies, transfer_functions, options, DarkAgesError
-from .model import model, annihilating_model, decaying_model, evaporating_model
+from .model import model, annihilating_model, decaying_model, evaporating_model, annihilating_halos_model
 from .interpolator import logInterpolator, NDlogInterpolator
 
 ##### Functions related to executing a script-like file
@@ -47,29 +47,34 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 			 **options)
 
 
-def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec, hist='annihilation', branchings=[1.], **options):
+def loading_from_specfiles(fnames,transfer_functions, logEnergies, redshift, mass, t_dec, zh=1.,fh=0.,hist='annihilation', branchings=[1.], **options):
 	branchings = np.asarray(branchings)
 	spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
-	for idx, fname in enumerate(fnames):
-		spec_interpolator = load_from_spectrum(fname, logEnergies, **options)
-		lower = spec_interpolator.get_lower()
-		upper = spec_interpolator.get_upper()
-		if mass < lower or mass > upper:
-			print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g}) cannot be deduced. Return zeros'.format(fname, lower, upper, mass))
-			spectra[:,:,idx] = np.zeros(shape=(3,len(logEnergies)), dtype=np.float64)
-		else:
-			spectra[:,:,idx] = spec_interpolator.__call__(mass)
-	try:
-		assert spectra.shape[-1] == branchings.shape[-1]
-	except AssertionError:
-		raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
-	tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
+	if fnames != ['Dirac'] and fnames != ['dirac']:
+		for idx, fname in enumerate(fnames):
+			spec_interpolator = load_from_spectrum(fname, logEnergies, **options)
+			lower = spec_interpolator.get_lower()
+			upper = spec_interpolator.get_upper()
+			if mass < lower or mass > upper:
+				print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g}) cannot be deduced. Return zeros'.format(fname, lower, upper, mass))
+				spectra[:,:,idx] = np.zeros(shape=(3,len(logEnergies)), dtype=np.float64)
+			else:
+				spectra[:,:,idx] = spec_interpolator.__call__(mass)
+		try:
+			assert spectra.shape[-1] == branchings.shape[-1]
+		except AssertionError:
+           		raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
+        	tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
+	elif fnames == ['Dirac'] or fnames == ['dirac']:
+		print 'here'
 	if hist == 'decay':
 		#model_from_file = model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec = t_dec, history=hist)
 		model_from_file = decaying_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec)
 	elif hist == 'annihilation':
 		#model_from_file = model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, history=hist)
 		model_from_file = annihilating_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass)
+	elif hist == 'annihilation_halos':
+	        model_from_file = annihilating_halos_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,zh,fh)
 	else:
 		raise DarkAgesError('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.func_name, hist))
 	try:
