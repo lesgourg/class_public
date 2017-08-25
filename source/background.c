@@ -506,6 +506,9 @@ int background_w_fld(
 
     double d0 = pba->w0_fld + 1.;
     double W0 = pba->Omega0_fld;
+    class_test(W0 < 0.0,
+	       pba->error_message,
+	       "Omega0_fld needs to be larger than zero for the tanh parametrization");
 
     *w_fld = -1. + (d0*pow(sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)) - ((-1. + 1./W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))/pow(scaleda,3),2))/pow(1./sqrt(W0) - (-1. + 1./W0)*atanh(sqrt(W0)),2);
 
