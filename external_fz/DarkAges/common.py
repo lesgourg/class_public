@@ -1,4 +1,5 @@
 from scipy.integrate import trapz
+from scipy import special
 import os
 import sys
 import numpy as np
@@ -105,6 +106,14 @@ def unscaled(redshift, spec_point):
 
 def decay_scaling(redshift, spec_point, lifetime):
 	ret = spec_point*np.exp(-time_at_z(redshift) / lifetime)
+	return ret
+
+def boost_factor_halos(redshift,zh,fh):
+	ret = 1 + fh*special.erf(redshift/(1+zh))/redshift**3
+	return ret
+
+def scaling_boost_factor(redshift,spec_point,zh,fh):
+	ret = spec_point*(1 + fh*special.erf(redshift/(1+zh))/redshift**3)
 	return ret
 
 def f_function(logE, z_inj, z_dep, normalization,
