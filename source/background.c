@@ -510,17 +510,20 @@ int background_w_fld(
 	       pba->error_message,
 	       "Omega0_fld needs to be larger than zero for the tanh parametrization");
 
-    *w_fld = -1. + (d0*pow(sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)) - ((-1. + 1./W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))/pow(scaleda,3),2))/pow(1./sqrt(W0) - (-1. + 1./W0)*atanh(sqrt(W0)),2);
-
-    *dw_over_da_fld = (-6.*d0*(-1. + W0)*(-1. + sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))*
-      (pow(scaleda,3)*sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*W0 + (-1. + W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)))))/
-      (pow(scaleda,7)*sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*pow(sqrt(W0) + (-1. + W0)*atanh(sqrt(W0)),2));
-
-    *integral_fld = 0.0;
-
     if(scaleda < 1e-3) {
+      // true value: -1 + O(1e-10)
       *w_fld = -1.;
+      // 6e-7
       *dw_over_da_fld = 1e-6;
+      *integral_fld = 0.0;
+    } else {
+      *w_fld = -1. + (d0*pow(sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)) - ((-1. + 1./W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))/pow(scaleda,3),2))/pow(1./sqrt(W0) - (-1. + 1./W0)*atanh(sqrt(W0)),2);
+
+      *dw_over_da_fld = (-6.*d0*(-1. + W0)*(-1. + sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))*
+	(pow(scaleda,3)*sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*W0 + (-1. + W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)))))/
+	(pow(scaleda,7)*sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*pow(sqrt(W0) + (-1. + W0)*atanh(sqrt(W0)),2));
+
+      *integral_fld = 0.0;
     }
   }
   return _SUCCESS_;
@@ -1908,16 +1911,54 @@ int background_initial_conditions(
 
     if(pba->w_fld_parametrization == w_fld_parametrization_tanh) {
       integral_fld = 0.0;
-      int N = 10000;
-      double da = (pba->a_today - a) / (double) N;
+      int integration_successful = _FALSE_;
+      int max_steps = 20;
+      int i, j;
+      double acc = 1e-5;
+      // romberg integration adapted from https://en.wikipedia.org/wiki/Romberg%27s_method#Implementation
+      double R1[max_steps], R2[max_steps]; //buffers
+      double *Rp = &R1[0], *Rc = &R2[0]; //Rp is previous row, Rc is current row
+      double h = (pba->a_today - a); //step size
       double this_w_fld, this_dw_over_da_fld, this_integral_fld;
-      int i;
-      for (i=1; i <= N; i++) {
-	class_call(background_w_fld(pba,a + da * (i-0.5),&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
-	integral_fld += da * 3.0 * (1. + this_w_fld) / (a + da * (i-0.5));
+      Rp[0] = 0.0;
+      class_call(background_w_fld(pba,pba->a_today,&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
+      Rp[0] = 3.0 * (1. + this_w_fld) / pba->a_today * h *.5;
+      class_call(background_w_fld(pba,a,&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
+      Rp[0] += 3.0 * (1. + this_w_fld) / a * h *.5;
+
+      for(i = 1; i < max_steps; ++i){
+	  h /= 2.;
+	  double c = 0;
+	  size_t ep = 1 << (i-1); //2^(n-1)
+
+	  for(j = 1; j <= ep; ++j){
+	    class_call(background_w_fld(pba,a+(2*j-1)*h,&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
+	    c += 3.0 * (1. + this_w_fld) / (a+(2*j-1)*h);
+	  }
+	  Rc[0] = h*c + .5*Rp[0]; //R(i,0)
+
+	  for(j = 1; j <= i; ++j){
+	    double n_k = pow(4, j);
+	    Rc[j] = (n_k*Rc[j-1] - Rp[j-1])/(n_k-1); //compute R(i,j)
+	  }
+	  if(i > 1 && fabs(Rp[i-1]-Rc[i]) < acc){
+	    integral_fld = Rc[i-1];
+	    integration_successful = _TRUE_;
+	    break;
+	  }
+
+	  //swap Rn and Rc as we only need the last row
+	  double *rt = Rp;
+	  Rp = Rc;
+	  Rc = rt;
       }
+
+      class_test(integration_successful == _FALSE_,
+		 pba->error_message,
+		 "The integration of w(a) failed - you might want to lower the requested precision");
+
       if (pba->background_verbose > 0)
-	printf("Integrated w(a) using mid-point - value: %e\n", integral_fld);
+	printf("Integrated w(a) using romberg - value: %e\n", integral_fld);
     }
 
     /* rho_fld at initial time */
