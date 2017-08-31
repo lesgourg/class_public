@@ -2040,6 +2040,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   if ((preco->PBH_table_is_initialized) == _FALSE_) {
     preco->PBH_table_is_initialized = _TRUE_;
     double loop_z, loop_tau, current_mass, time_now, time_prev, dt, dz;
+    double QCD_activation, current_pbh_temperature;
     double * pvecback_loop;
     int  i_step, last_index_back_loop;
     time_prev = 0.;
@@ -2055,21 +2056,37 @@ int thermodynamics_low_mass_pbh_energy_injection(
     class_alloc(preco->PBH_table_F,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);
     for(i_step = 0; i_step < preco->PBH_table_size; i_step++) {
-      f = 2*0.060						  \
-	+ 6*0.147						  \
-	+ 4*0.142*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
-	+ 4*0.142*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
-	+ 4*0.142*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+12*0.142*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
-	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))	  \
-	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))	  \
-	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	  \
-	+ 1*0.267*exp(-(current_mass * 125.06)/(2.66 * 1.06e13));
+      /* 
+	 For the parametrization of F(M) we follow PRD44 (1991) 376 with the additional
+	 modification that we dress the "free QCD-particles" (gluons and quarks)
+	 with an sigmoid-activation function
+	 (in log10-space: Mean at 0.3 GeV and a with of 0.1*"order of magnitude")
+	 and the hadrons with 1 - activation to take the QCD-phase transition into account
+	 and to be in agreement with PRD41 (1990) 3052, where the Ansatz is taken that
+	 a black hole emmits those particles which appear elementary at the given energy.
+	 
+	 The order of the particles in the following definition of f:
+	 photon, neutrino, electron, muon, tau, up, down, charm, strange, top, bottom, W, Z, gluon, Higgs, neutral Pion and charged pion
+      */	 
+      current_pbh_temperature = 1.06e13 / current_mass;
+      QCD_activation = 1 / (1 - exp( -(log(current_pbh_temperature)-log(0.3))/(log(10)*0.1) ));
+      f = 2*0.060							\
+	+ 6*0.147							\
+	+ 4*0.142*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13))	\
+	+ 4*0.142*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))        \
+	+ 4*0.142*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))	\
+	+12*0.142*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13)) * QCD_activation \
+	+12*0.142*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13)) * QCD_activation \
+	+12*0.142*exp(-(current_mass * 1.82)/(4.53 * 1.06e13))	 * QCD_activation \
+	+12*0.142*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13)) * QCD_activation \
+	+12*0.142*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	 * QCD_activation \
+	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	 * QCD_activation \
+	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))		\
+	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))		\
+	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	 * QCD_activation \
+	+ 1*0.267*exp(-(current_mass * 125.06)/(2.66 * 1.06e13))	\
+	+ 1*0.267*exp(-(current_mass * 1.350e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation) \
+        + 2*0.267*exp(-(current_mass * 1.396e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation); 
 
       class_call(background_tau_of_z(pba,
 				     loop_z,
