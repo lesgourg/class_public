@@ -177,7 +177,7 @@ int thermodynamics_at_z(
       //pvecthermo[pth->index_th_dmu_nudm] = (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_nudm*pow((1.+z),pth->nindex_dark)*pba->Omega0_cdm*pow(pba->H0,2);
       pvecthermo[pth->index_th_dmu_dark] = pth->a_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2);
       //printf("factor_multiplying_u_nudm=%e\n",pow(1./1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2));
-      pvecthermo[pth->index_th_ddmu_dark] = 0.;//(2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pvecthermo[pth->index_th_dmu_dark];
+      pvecthermo[pth->index_th_ddmu_dark] = 0.;//4./3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pvecthermo[pth->index_th_dmu_dark];
       pvecthermo[pth->index_th_dddmu_dark] = 0.0;//((pth->nindex_dark-1.)*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/(1.+z)-pvecback[pba->index_bg_H_prime])*pth->nindex_dark/(1.+z)*pvecthermo[pth->index_th_dmu_dark];
       pvecthermo[pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_dark*pow(pba->h,2);
       pvecthermo[pth->index_th_tau_darkm] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_darkm]+
@@ -472,7 +472,7 @@ int thermodynamics_init(
     /**ethos temporarily store DM interaction rate minus one, -[S*dmu], in ddmu*/
     if((pth->a_dark!=0.) && (pba->has_dark == _TRUE_)) {
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark]=pth->a_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_cdm*pow(pba->h,2);
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]= (2.+pth->nindex_dark)/3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]= 4./3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
     }
     if((pth->b_dark!=0.) && (pba->has_dark == _TRUE_)) {
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_dark*pow(pba->h,2);
@@ -745,7 +745,7 @@ int thermodynamics_init(
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g_dark]=g_dark;
        //pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark] = pth->a_dark*pow(1.+pth->z_table[index_tau],pth->nindex_dark)/(pow(1.e7,pth->nindex_dark))*pba->Omega0_cdm*pow(pba->h,2);
        //here ddmu is dmu dark matter
-       //pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark] = (2+pth->nindex_dark)./3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
+       //pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark] = 4./3.*pvecback[pba->index_bg_rho_dark]/pvecback[pba->index_bg_rho_cdm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
        //the formula below is the real derivative
        //pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark] = -pth->nindex_dark*pvecback[pba->index_bg_H]/(1.+pth->z_table[index_tau])*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
        //pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddmu_dark] = ((pth->nindex_dark-1.)*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/(1.+pth->z_table[index_tau])-pvecback[pba->index_bg_H_prime])*pth->nindex_dark/(1.+pth->z_table[index_tau])*pth->thermodynamics_table[pth->index_th_dmu_dark];

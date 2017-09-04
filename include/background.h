@@ -65,7 +65,7 @@ struct background
 
   double xi_dark; //MArchi ethos-new!
 
-  double g_dark; //MArchi ethos-new! internal dark radiation degrees of freedom
+  double f_dark; //MArchi ethos-new! internal dark radiation degrees of freedom
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 

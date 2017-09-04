@@ -481,7 +481,7 @@ int background_init(
 
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
       if(pba->Omega0_dark != 0.){//MArchi ethos-new! well ok it is just to get some info
-         N_dark = pba->g_dark/(7./8.)*pow(pba->xi_dark,4.)/pow(4./11.,4./3.);
+         N_dark = pba->f_dark/(7./8.)*pow(pba->xi_dark,4.)/pow(4./11.,4./3.);
          Neff += N_dark;
          printf(" -> dark radiation Delta Neff %e\n",N_dark);         
       }

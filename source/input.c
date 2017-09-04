@@ -743,9 +743,9 @@ int input_read_parameters(
 /*ethos*/
   //class_read_double("N_dark",N_dark);
   class_read_double("xi_dark",pba->xi_dark);
-  class_read_double("g_dark",pba->g_dark);
+  class_read_double("f_dark",pba->f_dark);
   //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
-  pba->Omega0_dark = pba->g_dark*pow(pba->xi_dark,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
+  pba->Omega0_dark = pba->f_dark*pow(pba->xi_dark,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
   Omega_tot += pba->Omega0_dark;
   //printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
   class_read_double("m_dm",pth->m_dm);
@@ -2876,7 +2876,7 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_dark = 0.0;//ethos
   pba->xi_dark = 0;//MArchi ethos-new!
-  pba->g_dark = 7./8.;//MArchi ethos-new!
+  pba->f_dark = 7./8.;//MArchi ethos-new!
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
