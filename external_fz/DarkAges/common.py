@@ -7,6 +7,7 @@ Collection of functions needed to calculate the energy deposition.
 """
 
 from scipy.integrate import trapz
+from scipy.special import erf
 import os
 import sys
 import numpy as np
@@ -264,6 +265,15 @@ def get_index( array, entry ):
 		Index of the first occurence of :code:`entry` in :code:`array`.
 	"""
 	return np.where(array == entry)[0][0].astype(np.int32)
+
+
+def boost_factor_halos(redshift,zh,fh):
+	ret = 1 + fh*erf(redshift/(1+zh))/redshift**3
+	return ret
+
+def scaling_boost_factor(redshift,spec_point,zh,fh):
+	ret = spec_point*(1 + fh*erf(redshift/(1+zh))/redshift**3)
+	return ret
 
 def f_function(logE, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,

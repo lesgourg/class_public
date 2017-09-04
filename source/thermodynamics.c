@@ -454,6 +454,9 @@ int thermodynamics_init(
              pth->error_message,
              "annihilation variation parameter must be negative (decreasing annihilation rate)");
 
+  class_test(pth->PBH_low_mass < 1e15 && pth->PBH_fraction > 1e-4,pth->error_message,
+   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
+
   // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
   //            pth->error_message,
   //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
@@ -1507,7 +1510,7 @@ int thermodynamics_annihilation_coefficients_init(
                                                   struct thermo * pth
                                                   ) {
 
-  FILE * fA;
+  FILE * fA = NULL;
   char line[_LINE_LENGTH_MAX_];
   char * left;
 
@@ -2027,22 +2030,24 @@ int thermodynamics_low_mass_pbh_energy_injection(
   double rho_cdm_today;
   //double tau;
   int last_index_back;
-  //double * pvecback;
   //Parameters related to PBH
 
   double f, f_neutrinos, em_branching, pbh_mass;
   double dMdt;
 
+
   /* Calculate the PBH-mass evolution at first call of the function */
   if ((preco->PBH_table_is_initialized) == _FALSE_) {
     preco->PBH_table_is_initialized = _TRUE_;
     double loop_z, loop_tau, current_mass, time_now, time_prev, dt, dz;
+    double QCD_activation, current_pbh_temperature;
     double * pvecback_loop;
     int  i_step, last_index_back_loop;
+    time_prev = 0.;
     preco->PBH_z_evaporation = 0;
     preco->PBH_table_size = 100*z+1;
-    dz = z / preco->PBH_table_size;
-    loop_z = z+dz;
+    dz = z /(preco->PBH_table_size-1);
+    loop_z = z;
     current_mass = preco->PBH_low_mass;
     class_alloc(pvecback_loop,pba->bg_size*sizeof(double),pba->error_message);
     class_alloc(preco->PBH_table_z,preco->PBH_table_size*sizeof(double),error_message);
@@ -2051,22 +2056,37 @@ int thermodynamics_low_mass_pbh_energy_injection(
     class_alloc(preco->PBH_table_F,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);
     for(i_step = 0; i_step < preco->PBH_table_size; i_step++) {
-      f = 2*0.060						  \
-	+ 6*0.147						  \
-	+ 4*0.142*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13)) \
-	+ 4*0.142*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))  \
-	+ 4*0.142*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+12*0.142*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13))  \
-	+12*0.142*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	  \
-	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	  \
-	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))	  \
-	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))	  \
-	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	  \
-	+ 1*0.267*exp(-(current_mass * 125.06)/(2.66 * 1.06e13));
-
+      /* 
+	 For the parametrization of F(M) we follow PRD44 (1991) 376 with the additional
+	 modification that we dress the "free QCD-particles" (gluons and quarks)
+	 with an sigmoid-activation function
+	 (in log10-space: Mean at 0.3 GeV and a with of 0.1*"order of magnitude")
+	 and the hadrons with 1 - activation to take the QCD-phase transition into account
+	 and to be in agreement with PRD41 (1990) 3052, where the Ansatz is taken that
+	 a black hole emmits those particles which appear elementary at the given energy.
+	 
+	 The order of the particles in the following definition of f:
+	 photon, neutrino, electron, muon, tau, up, down, charm, strange, top, bottom, W, Z, gluon, Higgs, neutral Pion and charged pion
+      */	 
+      current_pbh_temperature = 1.06e13 / current_mass;
+      QCD_activation = 1 / (1 - exp( -(log(current_pbh_temperature)-log(0.3))/(log(10)*0.1) ));
+      f = 2*0.060							\
+	+ 6*0.147							\
+	+ 4*0.142*exp(-(current_mass * 5.11e-6)/(4.53 * 1.06e13))	\
+	+ 4*0.142*exp(-(current_mass * 0.1037)/(4.53 * 1.06e13))        \
+	+ 4*0.142*exp(-(current_mass *  1.777)/(4.53 * 1.06e13))	\
+	+12*0.142*exp(-(current_mass * 2.2e-3)/(4.53 * 1.06e13)) * QCD_activation \
+	+12*0.142*exp(-(current_mass * 4.7e-3)/(4.53 * 1.06e13)) * QCD_activation \
+	+12*0.142*exp(-(current_mass * 1.82)/(4.53 * 1.06e13))	 * QCD_activation \
+	+12*0.142*exp(-(current_mass * 9.6e-2)/(4.53 * 1.06e13)) * QCD_activation \
+	+12*0.142*exp(-(current_mass * 173.1)/(4.53 * 1.06e13))	 * QCD_activation \
+	+12*0.142*exp(-(current_mass * 4.18)/(4.53 * 1.06e13))	 * QCD_activation \
+	+ 6*0.060*exp(-(current_mass * 80.39)/(6.04 * 1.06e13))		\
+	+ 3*0.060*exp(-(current_mass * 91.19)/(6.04 * 1.06e13))		\
+	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	 * QCD_activation \
+	+ 1*0.267*exp(-(current_mass * 125.06)/(2.66 * 1.06e13))	\
+	+ 1*0.267*exp(-(current_mass * 1.350e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation) \
+        + 2*0.267*exp(-(current_mass * 1.396e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation); 
 
       class_call(background_tau_of_z(pba,
 				     loop_z,
@@ -2083,7 +2103,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
 		 ppr->error_message);
       time_now = pvecback_loop[pba->index_bg_time]/(_c_ / _Mpc_over_m_);
       dt = time_now - time_prev;
-      time_prev = time_now;
+      time_prev = time_now; 
       if (i_step > 0) {
       	if (current_mass > 0.5*preco->PBH_low_mass) {
       	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
@@ -2098,8 +2118,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
       preco->PBH_table_z[i_step] = loop_z;
       preco->PBH_table_mass[i_step] = current_mass;
       preco->PBH_table_F[i_step] = f;
-
-      loop_z = loop_z-dz;
+      loop_z = MAX(0,loop_z-dz);
     }
     free(pvecback_loop);
     class_call(array_spline_table_lines(preco->PBH_table_z,
@@ -2123,9 +2142,9 @@ int thermodynamics_low_mass_pbh_energy_injection(
   }
   /* End of PBH-mass loop */
 
-  //class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
-
+  
+  class_test(preco->PBH_table_is_initialized == _FALSE_, error_message, "The PBH table is not initialized");
   class_call(array_interpolate_spline(preco->PBH_table_z,
 				      preco->PBH_table_size,
 				      preco->PBH_table_mass,
@@ -2138,7 +2157,6 @@ int thermodynamics_low_mass_pbh_energy_injection(
 				      error_message),
 	     error_message,
 	     error_message);
-
   class_call(array_interpolate_spline(preco->PBH_table_z,
 				      preco->PBH_table_size,
 				      preco->PBH_table_F,
@@ -2151,9 +2169,9 @@ int thermodynamics_low_mass_pbh_energy_injection(
 				      error_message),
 	     error_message,
 	     error_message);
-
   f_neutrinos = 6*0.147;
-  em_branching = (f-f_neutrinos)/f;
+  // em_branching = (f-f_neutrinos)/f;
+  em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
   // printf("preco->PBH_z_evaporation %e\n", preco->PBH_z_evaporation);
   if(pbh_mass <= 0.0001*preco->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
     pbh_mass = 0;
@@ -2170,7 +2188,6 @@ int thermodynamics_low_mass_pbh_energy_injection(
   }
   // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg\n",z,f,pbh_mass,*energy_rate);
   // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
-  //free(pvecback);
 }
 /******************************Energy Injection high mass PBH (accretion)**********************************/
 int thermodynamics_high_mass_pbh_energy_injection(
@@ -2564,20 +2581,20 @@ int thermodynamics_onthespot_energy_injection(
                                               double * energy_rate,
                                               ErrorMsg error_message
                                               ) {
-  //fprintf(stdout,"Level: >>thermodynamics_on_the_spot_energy_injection<<< | z = %e | energy rate = %e\n",z,*energy_rate);
+  //fprintf(stdout,"Level: >>thermodynamics_on_the_spot_energy_injection<<< | z = %e | energy rate (before) = %e |",z,*energy_rate);
   if(preco->annihilation > 0){
     thermodynamics_DM_annihilation_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
   if(preco->decay_fraction > 0.){
     thermodynamics_DM_decay_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
-    // fprintf(stdout, "z = %e energy_rate = %e\n", z, *energy_rate);
   if(preco->PBH_high_mass > 0.){
     thermodynamics_high_mass_pbh_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
   if(preco->PBH_low_mass > 0.){
     thermodynamics_low_mass_pbh_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
+  //fprintf(stdout," energy rate (after) = %e \n",*energy_rate);
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
   return _SUCCESS_;
 
@@ -5608,6 +5625,7 @@ int thermodynamics_merge_reco_and_reio(
     free(preco->PBH_table_mass_dd);
     free(preco->PBH_table_F);
     free(preco->PBH_table_F_dd);
+    preco->PBH_table_is_initialized == _FALSE_;
   }
 
   return _SUCCESS_;

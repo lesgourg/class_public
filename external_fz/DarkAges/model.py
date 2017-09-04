@@ -20,7 +20,7 @@ for the most common energy injection histories.
 
 """
 from .transfer import transfer
-from .common import print_info, print_warning, f_function
+from .common import print_info, print_warning, f_function, boost_factor_halos, scaling_boost_factor
 from .__init__ import DarkAgesError
 import numpy as np
 
@@ -171,6 +171,19 @@ class annihilating_model(model):
 		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_el_spec[:,None])
 		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_ph_spec[:,None])
 		model.__init__(self, spec_electrons, spec_photons, normalization, 3)
+
+class annihilating_halos_model(model):
+        def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,zh,fh):
+                from .__init__ import redshift, logEnergies
+                from .common import trapz, unscaled, logConversion
+                E = logConversion(logEnergies)
+                tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
+                #normalization = trapz(tot_spec*E**2, logEnergies)*np.ones_like(redshift)
+                normalization = np.ones_like(redshift)*(2*m)/boost_factor_halos(redshift,zh,fh)
+                spec_electrons = np.vectorize(scaling_boost_factor).__call__(redshift[None,:],ref_el_spec[:,None],zh,fh)
+                spec_photons = np.vectorize(scaling_boost_factor).__call__(redshift[None,:],ref_ph_spec[:,None],zh,fh)
+                model.__init__(self, spec_electrons, spec_photons, normalization, 3)
+
 
 class decaying_model(model):
 	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of a decaying
