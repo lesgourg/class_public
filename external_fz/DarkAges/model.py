@@ -294,6 +294,8 @@ class evaporating_model(model):
 
 		mass_at_z = PBH_mass_at_z(PBH_mass_ini, redshift=redshift)
 		E = logConversion(logEnergies)
+		E_sec = 1e-9*E
+		E_prim = 1e-9*E
 
 		# Primary spectra
 		prim_spec_el = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'electron')
@@ -304,21 +306,32 @@ class evaporating_model(model):
 
 		# full spectra (including secondaries)
 		from .special_functions import secondaries_from_pi0, secondaries_from_piCh, secondaries_from_muon
-		sec_from_pi0 = secondaries_from_pi0(E[:,None],E[None,:])
-		sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E[None,:],E,axis=0)/E)[:,None,None]
-		sec_from_piCh = secondaries_from_piCh(E[:,None],E[None,:])
-		sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2)*E[None,:],E,axis=0)/E)[:,None,None]
-		sec_from_muon = secondaries_from_muon(E[:,None],E[None,:])
-		sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2)*E[None,:],E,axis=0)/E)[:,None,None]
+		sec_from_pi0 = secondaries_from_pi0(E_sec[:,None],E_prim[None,:])
+		#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		sec_from_piCh = secondaries_from_piCh(E_sec[:,None],E_prim[None,:])
+		#sec_from_piCh /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		sec_from_muon = secondaries_from_muon(E_sec[:,None],E_prim[None,:])
+		#sec_from_muon /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
 
-		spec_el = prim_spec_el + np.dot(sec_from_pi0[:,:,0], prim_spec_pi0) + np.dot(sec_from_piCh[:,:,0], prim_spec_piCh) + np.dot(sec_from_muon[:,:,0], prim_spec_muon)
-		spec_ph = prim_spec_ph + + np.dot(sec_from_pi0[:,:,1], prim_spec_pi0) + np.dot(sec_from_piCh[:,:,1], prim_spec_piCh) + np.dot(sec_from_muon[:,:,1], prim_spec_muon)
+		convol_norm_pi0 = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
+		convol_norm_piCh = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
+		convol_norm_muon = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
+
+		spec_el = prim_spec_el
+		spec_el += trapz((sec_from_pi0[:,None,:,0])*prim_spec_pi0[:,:,None],E_prim,axis=-1)/convol_norm_pi0[:,None]
+		spec_el += trapz((sec_from_piCh[:,None,:,0])*prim_spec_piCh[:,:,None],E_prim,axis=-1)/convol_norm_piCh[:,None]
+		spec_el += trapz((sec_from_muon[:,None,:,0])*prim_spec_muon[:,:,None],E_prim,axis=-1)/convol_norm_muon[:,None]
+
+		spec_ph = prim_spec_ph
+		spec_ph += trapz((sec_from_pi0[:,None,:,1])*prim_spec_pi0[:,:,None],E_prim,axis=-1)/convol_norm_pi0[:,None]
+		spec_ph += trapz((sec_from_piCh[:,None,:,1])*prim_spec_piCh[:,:,None],E_prim,axis=-1)/convol_norm_piCh[:,None]
+		spec_ph += trapz((sec_from_muon[:,None,:,1])*prim_spec_muon[:,:,None],E_prim,axis=-1)/convol_norm_muon[:,None]
 
 		# Total spectrum (for normalization)
 		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL')
 		del_E = np.zeros(redshift.shape, dtype=np.float64)
 		for idx in xrange(del_E.shape[0]):
-			del_E[idx] = trapz(spec_all[:,idx]*E**2,logEnergies)
+			del_E[idx] = trapz(spec_all[:,idx]*E**2,(logEnergies))
 		normalization = del_E
 
 		model.__init__(self, spec_el, spec_ph, normalization, 0)
