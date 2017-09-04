@@ -42,7 +42,7 @@ import os
 import sys
 from .common import channel_dict, finalize, sample_spectrum, print_info, print_warning
 #from .__init__ import DarkOptions as options
-from .__init__ import redshift, logEnergies, transfer_functions, options, DarkAgesError
+from .__init__ import redshift, logEnergies, transfer_functions, DarkAgesError
 from .model import model, annihilating_model, decaying_model, evaporating_model, annihilating_halos_model
 from .interpolator import logInterpolator, NDlogInterpolator
 
@@ -191,7 +191,7 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 	spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
 	if fnames != ['Dirac'] and fnames != ['dirac']:
 		for idx, fname in enumerate(fnames):
-			spec_interpolator = load_from_spectrum(fname, logEnergies, **options)
+			spec_interpolator = load_from_spectrum(fname, logEnergies, **DarkOptions)
 			lower = spec_interpolator.get_lower()
 			upper = spec_interpolator.get_upper()
 			if mass < lower or mass > upper:
