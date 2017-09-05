@@ -314,8 +314,8 @@ class evaporating_model(model):
 		#sec_from_muon /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
 
 		convol_norm_pi0 = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
-		convol_norm_piCh = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
-		convol_norm_muon = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
+		convol_norm_piCh = trapz(np.sum(sec_from_piCh, axis=2),E_prim,axis=-1)
+		convol_norm_muon = trapz(np.sum(sec_from_muon, axis=2),E_prim,axis=-1)
 
 		spec_el = prim_spec_el
 		spec_el += trapz((sec_from_pi0[:,None,:,0])*prim_spec_pi0[:,:,None],E_prim,axis=-1)/convol_norm_pi0[:,None]
