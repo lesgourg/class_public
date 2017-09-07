@@ -283,7 +283,7 @@ class evaporating_model(model):
 		"""
 
 		from .evaporator import PBH_spectrum_at_m, PBH_mass_at_z, PBH_dMdt
-		from .common import trapz, logConversion, time_at_z
+		from .common import trapz, logConversion, time_at_z, nan_clean
 
 		if logEnergies is None:
 			from .__init__ import logEnergies as cheese
@@ -308,27 +308,40 @@ class evaporating_model(model):
 		from .special_functions import secondaries_from_pi0, secondaries_from_piCh, secondaries_from_muon
 		sec_from_pi0 = secondaries_from_pi0(E_sec[:,None],E_prim[None,:])
 		#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2),E_sec,axis=0))[None,:,None]
 		sec_from_piCh = secondaries_from_piCh(E_sec[:,None],E_prim[None,:])
-		#sec_from_piCh /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2),E_sec,axis=0))[None,:,None]
 		sec_from_muon = secondaries_from_muon(E_sec[:,None],E_prim[None,:])
-		#sec_from_muon /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+		#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2),E_sec,axis=0))[None,:,None]
 
-		convol_norm_pi0 = trapz(np.sum(sec_from_pi0, axis=2),E_prim,axis=-1)
-		convol_norm_piCh = trapz(np.sum(sec_from_piCh, axis=2),E_prim,axis=-1)
-		convol_norm_muon = trapz(np.sum(sec_from_muon, axis=2),E_prim,axis=-1)
+		#convol_norm_pi0 = trapz(np.sum(sec_from_pi0, axis=2)*E_prim[None,:],E_prim,axis=1)
+		#convol_norm_piCh = trapz(np.sum(sec_from_piCh, axis=2)*E_prim[None,:],E_prim,axis=1)
+		#convol_norm_muon = trapz(np.sum(sec_from_muon, axis=2)*E_prim[None,:],E_prim,axis=1)
 
-		spec_el = prim_spec_el
-		spec_el += trapz((sec_from_pi0[:,None,:,0])*prim_spec_pi0[:,:,None],E_prim,axis=-1)/convol_norm_pi0[:,None]
-		spec_el += trapz((sec_from_piCh[:,None,:,0])*prim_spec_piCh[:,:,None],E_prim,axis=-1)/convol_norm_piCh[:,None]
-		spec_el += trapz((sec_from_muon[:,None,:,0])*prim_spec_muon[:,:,None],E_prim,axis=-1)/convol_norm_muon[:,None]
+		convol_norm_pi0 = np.ones((1,))
+		convol_norm_piCh = np.ones((1,))
+		convol_norm_muon = np.ones((1,))
 
-		spec_ph = prim_spec_ph
-		spec_ph += trapz((sec_from_pi0[:,None,:,1])*prim_spec_pi0[:,:,None],E_prim,axis=-1)/convol_norm_pi0[:,None]
-		spec_ph += trapz((sec_from_piCh[:,None,:,1])*prim_spec_piCh[:,:,None],E_prim,axis=-1)/convol_norm_piCh[:,None]
-		spec_ph += trapz((sec_from_muon[:,None,:,1])*prim_spec_muon[:,:,None],E_prim,axis=-1)/convol_norm_muon[:,None]
+		spec_el = np.zeros_like(prim_spec_el)
+		spec_el += prim_spec_el
+		spec_el += trapz((sec_from_pi0[:,:,None,0])*prim_spec_pi0[None,:,:],E_prim,axis=1)/convol_norm_pi0[:,None]
+		spec_el += trapz((sec_from_piCh[:,:,None,0])*prim_spec_piCh[None,:,:],E_prim,axis=1)/convol_norm_piCh[:,None]
+		spec_el += trapz((sec_from_muon[:,:,None,0])*prim_spec_muon[None,:,:],E_prim,axis=1)/convol_norm_muon[:,None]
+		spec_el =  nan_clean(spec_el)
+
+		spec_ph = np.zeros_like(prim_spec_ph)
+		spec_ph += prim_spec_ph
+		spec_ph += trapz((sec_from_pi0[:,:,None,1])*prim_spec_pi0[None,:,:],E_prim,axis=1)/convol_norm_pi0[:,None]
+		spec_ph += trapz((sec_from_piCh[:,:,None,1])*prim_spec_piCh[None,:,:],E_prim,axis=1)/convol_norm_piCh[:,None]
+		spec_ph += trapz((sec_from_muon[:,:,None,1])*prim_spec_muon[None,:,:],E_prim,axis=1)/convol_norm_muon[:,None]
+		spec_ph = nan_clean(spec_ph)
 
 		# Total spectrum (for normalization)
 		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL')
+		spec_all += (spec_el - prim_spec_el)
+		spec_all += (spec_ph - prim_spec_ph)
 		del_E = np.zeros(redshift.shape, dtype=np.float64)
 		for idx in xrange(del_E.shape[0]):
 			del_E[idx] = trapz(spec_all[:,idx]*E**2,(logEnergies))
