@@ -8,6 +8,8 @@
 This module defines a class called Class. It is used with Monte Python to
 extract cosmological parameters.
 
+# JL 14.06.2017: TODO: check whether we should free somewhere the allocated fc.filename and titles, data (4 times)
+
 """
 from math import exp,log, log10
 import numpy as np
@@ -465,6 +467,12 @@ cdef class Class:
         cl['ell'] = np.arange(lmax+1)
 
         free(rcl)
+        for index_md in range(self.sp.md_size):
+            free(cl_md[index_md])
+            free(cl_md_ic[index_md])
+        free(cl_md)
+        free(cl_md_ic)
+
         return cl
 
     def lensed_cl(self, lmax=-1,nofail=False):
@@ -636,6 +644,12 @@ cdef class Class:
         cl['ell'] = np.arange(lmax+1)
 
         free(dcl)
+        for index_md in range(self.sp.md_size):
+            free(cl_md[index_md])
+            free(cl_md_ic[index_md])
+        free(cl_md)
+        free(cl_md_ic)
+
         return cl
 
     def z_of_r (self,z_array):
@@ -712,6 +726,8 @@ cdef class Class:
         else:
              if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
                     raise CosmoSevereError(self.sp.error_message)
+
+        free(pk_ic)
         return pk
 
     # Gives the linear pk for a given (k,z)
@@ -740,6 +756,7 @@ cdef class Class:
         if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
+        free(pk_ic)
         return pk
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
@@ -763,6 +780,36 @@ cdef class Class:
                 for index_mu in xrange(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk
+
+    # Gives sigma(R,z) for a given (R,z)
+    def sigma(self,double R,double z):
+        """
+        Gives the pk for a given R and z
+        (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
+
+        .. note::
+
+            there is an additional check to verify whether output contains `mPk`,
+            and whether k_max > ...
+            because otherwise a segfault will occur
+
+        """
+        cdef double sigma
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError(
+                "No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs."
+                )
+
+        if (self.pt.k_max_for_pk < self.ba.h):
+            raise CosmoSevereError(
+                "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
+                )
+
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,R,z,&sigma)==_FAILURE_:
+                 raise CosmoSevereError(self.sp.error_message)
+
+        return sigma
 
     def age(self):
         self.compute(["background"])
@@ -857,6 +904,36 @@ cdef class Class:
         free(pvecback)
 
         return D
+
+    def scale_independent_growth_factor_f(self, z):
+        """
+        scale_independent_growth_factor_f(z)
+
+        Return the scale invariant growth factor f(z)=d ln D / d ln a for CDM perturbations
+        (exactly, the quantity defined by Class as index_bg_f in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        f = pvecback[self.ba.index_bg_f]
+
+        free(pvecback)
+
+        return f
 
     def Hubble(self, z):
         """

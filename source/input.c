@@ -3681,7 +3681,7 @@ int input_default_params(
   /** - transfer structure */
 
   ptr->selection_bias[0]=1.;
-  ptr->selection_magnification_bias[0]=1.;
+  ptr->selection_magnification_bias[0]=0.;
   ptr->lcmb_rescale=1.;
   ptr->lcmb_pivot=0.1;
   ptr->lcmb_tilt=0.;

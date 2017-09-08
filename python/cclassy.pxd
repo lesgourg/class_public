@@ -44,6 +44,7 @@ cdef extern from "class.h":
         int index_bg_conf_distance
         int index_bg_H
         int index_bg_D
+        int index_bg_f
         short long_info
         short inter_normal
         double T_cmb
@@ -111,6 +112,7 @@ cdef extern from "class.h":
         int store_perturbations
         int k_output_values_num
         double k_output_values[_MAX_NUMBER_OF_K_FILES_]
+        double k_max_for_pk
         int index_k_output_values[_MAX_NUMBER_OF_K_FILES_]
         char scalar_titles[_MAXTITLESTRINGLENGTH_]
         char vector_titles[_MAXTITLESTRINGLENGTH_]
@@ -336,3 +338,11 @@ cdef extern from "class.h":
     int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
 
     int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
+
+    int spectra_sigma(
+                  void * pba,
+                  void * ppm,
+                  void * psp,
+                  double R,
+                  double z,
+                  double * sigma)
