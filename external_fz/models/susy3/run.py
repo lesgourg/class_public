@@ -15,10 +15,10 @@ if os.environ['DARKAGES_BASE']:
 import DarkAges
 from DarkAges.common import finalize, channel_dict
 from DarkAges.model import annihilating_model, decaying_model
-from DarkAges import redshift, options, transfer_functions, options, DarkAgesError
+from DarkAges import redshift, transfer_functions, DarkAgesError
 
 #####
-def run( *arguments ):
+def run( *arguments, **DarkOptions ):
 	if len(arguments) <3:
 		raise DarkAgesError("There are too few arguments passed. I expected at least 2")
 	#sampling_mass = float(arguments[1])
@@ -42,9 +42,9 @@ def run( *arguments ):
 	total_spec = spec_interp.__call__(sampling_mass)
 	#print total_spec
 
-	history = options.get('injection_history','annihilation')
+	history = DarkOptions.get('injection_history','annihilation')
 	if history == 'decay':
-		tdec = options.get('t_dec')
+		tdec = DarkOptions.get('t_dec')
 		full_model = decaying_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, tdec)
 	else:
 		full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass)
@@ -62,4 +62,5 @@ def run( *arguments ):
              f_functions[channel_dict['LowE']])
 #####
 if __name__ == "__main__":
-	run( *sys.argv )
+	from DarkAges import DarkOptions as milk
+	run( *sys.argv, **milk )

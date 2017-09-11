@@ -15,9 +15,9 @@ if os.environ['DARKAGES_BASE']:
 import DarkAges
 from DarkAges.common import finalize, channel_dict
 from DarkAges.model import annihilating_model, decaying_model
-from DarkAges import redshift, options, DarkAgesError, transfer_functions, options
+from DarkAges import redshift, DarkAgesError, transfer_functions
 
-def run( *arguments ):
+def run( *arguments, **DarkOptions ):
 	##### In this block the external parameters in arguments[1:] (sys.argv[1:]) are read and translated into
 	## the parameters you like. In the given example case study the parameters are the DM mass at which the
 	## spectra should be sampled and the relative contribbution of muons to the total spectrum.
@@ -27,12 +27,12 @@ def run( *arguments ):
 		raise DarkAgesError("There are too few arguments passed. I expected at least 2")
 	sampling_mass = float(arguments[1])
 	if sampling_mass < 50 or sampling_mass > 100:
-		raise DarkAgesError("The mass-parameter sholud be in the range [50 GeV, 100 GeV]")
+		raise DarkAgesError("The mass-parameter should be in the range [50 GeV, 100 GeV]. Your input was '{0}'".format(sampling_mass))
 	mixing = float(arguments[2])
         #from warnings import warn
         #warn( "mixing = {:g}".format(mixing))
 	if mixing < 0 or mixing > 1:
-		raise DarkAgesError("The mixing-parameter sholud be in the range [0,1]")
+		raise DarkAgesError("The mixing-parameter should be in the range [0,1]. Your input was '{0}'".format(mixing))
 	#####
 
 	##### In this block we read in the the prepared 'interpolation'-objects
@@ -56,9 +56,9 @@ def run( *arguments ):
 
 	##### In this block the 'model' object is created given the spectra (and history, decay time....)
 	#####
-	history = options.get('injection_history','annihilation')
+	history = DarkOptions.get('injection_history','annihilation')
 	if history == 'decay':
-		tdec = options.get('t_dec')
+		tdec = DarkOptions.get('t_dec')
 		full_model = decaying_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, tdec)
 	else:
 		full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass)
@@ -77,8 +77,10 @@ def run( *arguments ):
              f_functions[channel_dict['Ly-A']],
              f_functions[channel_dict['H-Ion']],
              f_functions[channel_dict['He-Ion']],
-             f_functions[channel_dict['LowE']])
+             f_functions[channel_dict['LowE']],
+			 **DarkOptions)
 	#####
 
 if __name__ == "__main__":
-	run( *sys.argv )
+	from DarkAges import DarkOptions as milk
+	run( *sys.argv, **milk)

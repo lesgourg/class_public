@@ -32,10 +32,15 @@ def cb_float(option, opt_str, value, parser):
 
 random_num = randint(1000)
 root_path = os.path.split(os.path.dirname(os.path.realpath( __file__ )))[0]
+VERSION_FILE_NAME = os.path.join( root_path, 'VERSION')
+
+with open(VERSION_FILE_NAME, 'r') as version_file:
+    VERSION = version_file.readline().strip()
+
 sys.path.insert(0, root_path)
 
 usage = "usage: %prog [options] [FILE] "
-parser = optparse.OptionParser(usage=usage, version="%prog 0.5")
+parser = optparse.OptionParser(usage=usage, version="%prog {0}".format(VERSION))
 
 #verbose_group = optparse.OptionGroup(parser,'Verbose options')
 #verbose_group.add_option("-q", "--quiet",
@@ -56,25 +61,28 @@ parser.add_option("-b","--branching", metavar='BRANCHING', action='callback', ca
                   help="If using more than one spectrum specify the branching ratio")
 parser.add_option("-m","--model", dest='model', metavar='MODEL',
                   help="Load a preprocessed model")
-parser.add_option("--rebuild_model", action='store_true', dest='rebuild_model', default=False,
+parser.add_option("--rebuild-model", action='store_true', dest='rebuild_model', default=False,
                   help="Force rebuilding a model")
 parser.add_option("--hist", default='annihilation', choices=['annihilation','annihilation_halos','decay','PBH','PBH2'], dest='injection_history',
                   help="Define the injection history of the model.")
 parser.add_option("--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV].")
+parser.add_option("--log10mass", type="float", dest='log10mass',default=None,
+                  help="Define the log10 of the mass of the DM-candidate [mass in GeV].")
 parser.add_option("--tdec", type='float', dest='t_dec',
                   help="Define the lifetime of the DM-candidate.")
 parser.add_option("--zh", type='float', dest='zh',
                   help="Define the onset of halos formation.")
 parser.add_option("--fh", type='float', dest='fh',
                   help="Define the amplitude of DM halos.")
-parser.add_option("", "--cosmo_bg", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 8e-5),
+parser.add_option("", "--use-background", dest="background", nargs=3, type="float", default=(67.27, 0.3156, 8e-5),
                   help="Define the background parameters (H0, Omega_m, Omega_r) for the calculation of H(z) and t(z)")
+parser.add_option("--extra-options", dest="extra", metavar="EXTRA.yaml",
+                  help="Yaml-File with additional parameters")
 
 (options, args) = parser.parse_args()
 if len(args) == 0:
     args = ''
-
 
 os.environ['DARKAGES_BG_H0'] = '{0}'.format(options.background[0])
 os.environ['DARKAGES_BG_OM_M'] = '{0}'.format(options.background[1])
@@ -84,33 +92,50 @@ from DarkAges import transfer_functions, logEnergies, redshift, DarkAgesError
 from DarkAges.common import print_info
 import DarkAges.recipes as recipes
 
+DarkOptions = dict()
+#keys_to_search = ['mass','t_dec','background']
+#for key in keys_to_search:
+#	if hasattr(options, key):
+#		DarkOptions.update({key : getattr(options, key)})
+
+if options.extra:
+	import yaml
+	with open(options.extra, 'r') as stream:
+		additional_DarkOptions = yaml.load(stream)
+		DarkOptions.update(additional_DarkOptions)
+		del additional_DarkOptions
+
 if options.script_file:
 	os.environ['DARKAGES_TOPLEVEL_PID'] = '{:d}'.format(os.getpid())
 	os.environ['DARKAGES_TOPLEVEL_RANDN'] = '{:d}'.format(random_num)
-	import dill
-	with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )), 'wb') as options_dumper:
-		dill.dump(options, options_dumper)
+	import yaml
+	with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}.yaml'.format(os.getpid(), random_num )), 'wb') as options_dumper:
+		yaml.dump(DarkOptions, options_dumper)
 
 import atexit
 @atexit.register
 def goodbye():
 	if options.script_file:
 		try:
-			os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}'.format(os.getpid(), random_num )) )
+			os.remove( os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}.yaml'.format(os.getpid(), random_num )) )
 		except OSError:
 			pass
+if options.log10mass:
+        options.mass = 10**options.log10mass
+        print_info('Setting mass to {:.2e}'.format(options.mass))
+        del options.log10mass
 
 if options.injection_history == 'decay' and (options.t_dec==None):
 	raise DarkAgesError('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
 	
 if options.injection_history == 'PBH':
-	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift) )
+	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, **DarkOptions) )
 
-if options.injection_history == 'PBH2':
-	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, merge_ion=True) )
+#if options.injection_history == 'PBH2':
+#	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, merge_ion=True) )
 
 if options.model:
-	sys.exit( recipes.access_model(options.model, options.rebuild_model, args) )
+	sys.exit( recipes.access_model(options.model, options.rebuild_model, args, **DarkOptions) )
 
 if options.script_file:
 	sys.exit( recipes.execute_script_file(options.script_file, args) )
