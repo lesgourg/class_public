@@ -464,7 +464,7 @@ int spectra_pk_at_z(
 
   /** - fourth step: depending on requested mode (linear or logarithmic), apply necessary transformation to the output arrays */
 
-  /** - --> (a) linear mode: if only one initial condition, convert output_pk to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
+  /** - --> (a) linear mode: if only one initial condition, convert output_tot to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
 
   if (mode == linear) {
 
@@ -2551,13 +2551,13 @@ int spectra_pk(
   /** - define local variables */
 
   int index_md;
-  int index_ic1,index_ic2,index_ic1_ic2;
+  int index_ic1,index_ic2,index_ic1_ic1,index_ic2_ic2,index_ic1_ic2;
   int index_k;
   int index_tau;
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   double source_ic1;
   double source_ic2;
-  double ln_pk_tot;
+  double pk_tot=0.,ln_pk_tot=0.;
 
   /** - check the presence of scalar modes */
 
@@ -2593,7 +2593,7 @@ int spectra_pk(
                  ppm->error_message,
                  psp->error_message);
 
-      ln_pk_tot =0;
+      pk_tot =0;
 
       /* curvature primordial spectrum:
          P_R(k) = 1/(2pi^2) k^3 <R R>
@@ -2619,7 +2619,7 @@ int spectra_pk(
               *source_ic1*source_ic1
               *exp(primordial_pk[index_ic1_ic2]));
 
-        ln_pk_tot += psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2];
+        pk_tot += exp(psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]);
 
       }
 
@@ -2628,6 +2628,8 @@ int spectra_pk(
         for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
 
           index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
+          index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md]);
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
@@ -2642,7 +2644,10 @@ int spectra_pk(
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
               primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 
-            ln_pk_tot += psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2];
+            pk_tot += psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
+              * sqrt(psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic1]
+                     * psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic2_ic2]);
+
 
           }
           else {
@@ -2650,6 +2655,8 @@ int spectra_pk(
           }
         }
       }
+
+      ln_pk_tot = log(pk_tot);
 
       /* if non-linear corrections required, compute the total non-linear matter power spectrum */
 
