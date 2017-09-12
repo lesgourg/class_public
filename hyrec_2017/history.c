@@ -551,7 +551,6 @@ void rec_build_history(int model, double zstart, double zend,
 
     if (error == 1) exit(1);
   }
-
 }
 
 
@@ -635,6 +634,15 @@ void hyrec_compute(HYREC_DATA *data, int model,
 
 }
 
+void hyrec_compute_CLASS(HYREC_DATA *data, int model){
+  printf("here\n");
+  data->cosmo->inj_params->Mpbh = 0;
+  data->cosmo->inj_params->fpbh = 0;
+  data->cosmo->inj_params->coll_ion = 0;
+  rec_build_history(model, data->zmax, data->zmin, data->cosmo, data->atomic,
+		    data->rad, data->xe_output, data->Tm_output);
+
+}
 /*****
      Once HYREC_DATA outputs are computed, obtain xe(z) and Tm(z) by interpolation
 *****/

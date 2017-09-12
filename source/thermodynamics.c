@@ -2056,7 +2056,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
     class_alloc(preco->PBH_table_F,preco->PBH_table_size*sizeof(double),error_message);
     class_alloc(preco->PBH_table_F_dd,preco->PBH_table_size*sizeof(double),error_message);
     for(i_step = 0; i_step < preco->PBH_table_size; i_step++) {
-      /* 
+      /*
 	 For the parametrization of F(M) we follow PRD44 (1991) 376 with the additional
 	 modification that we dress the "free QCD-particles" (gluons and quarks)
 	 with an sigmoid-activation function
@@ -2064,10 +2064,10 @@ int thermodynamics_low_mass_pbh_energy_injection(
 	 and the hadrons with 1 - activation to take the QCD-phase transition into account
 	 and to be in agreement with PRD41 (1990) 3052, where the Ansatz is taken that
 	 a black hole emmits those particles which appear elementary at the given energy.
-	 
+
 	 The order of the particles in the following definition of f:
 	 photon, neutrino, electron, muon, tau, up, down, charm, strange, top, bottom, W, Z, gluon, Higgs, neutral Pion and charged pion
-      */	 
+      */
       current_pbh_temperature = 1.06e13 / current_mass;
       QCD_activation = 1 / (1 - exp( -(log(current_pbh_temperature)-log(0.3))/(log(10)*0.1) ));
       f = 2*0.060							\
@@ -2086,7 +2086,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
 	+16*0.060*exp(-(current_mass * 6e-1)/(6.04 * 1.06e13))	 * QCD_activation \
 	+ 1*0.267*exp(-(current_mass * 125.06)/(2.66 * 1.06e13))	\
 	+ 1*0.267*exp(-(current_mass * 1.350e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation) \
-        + 2*0.267*exp(-(current_mass * 1.396e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation); 
+        + 2*0.267*exp(-(current_mass * 1.396e-1)/(2.66 * 1.06e13)) * (1 - QCD_activation);
 
       class_call(background_tau_of_z(pba,
 				     loop_z,
@@ -2103,7 +2103,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
 		 ppr->error_message);
       time_now = pvecback_loop[pba->index_bg_time]/(_c_ / _Mpc_over_m_);
       dt = time_now - time_prev;
-      time_prev = time_now; 
+      time_prev = time_now;
       if (i_step > 0) {
       	if (current_mass > 0.5*preco->PBH_low_mass) {
       	  current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
@@ -2143,7 +2143,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   /* End of PBH-mass loop */
 
   rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
-  
+
   class_test(preco->PBH_table_is_initialized == _FALSE_, error_message, "The PBH table is not initialized");
   class_call(array_interpolate_spline(preco->PBH_table_z,
 				      preco->PBH_table_size,
@@ -4561,8 +4561,65 @@ class_stop(pth->error_message,
    /** - Compute the recombination history by calling hyrec_compute.
          No CLASS-like error management here, but YAH working on it :) **/
 
+
+          //  hyrec_data.cosmo->T0 = pba->T_cmb;
+          //  hyrec_data.cosmo->orh2  = 4.48162687719e-7 *pba->T_cmb*pba->T_cmb*pba->T_cmb*pba->T_cmb *(1. + 0.227107317660239 * pba->Neff);
+          //  hyrec_data.cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
+          //  hyrec_data.cosmo->omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
+          //  hyrec_data.cosmo->okh2 = pba->Omega0_k*pba->h*pba->h;
+          //  hyrec_data.cosmo->odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
+          // //  hyrec_data.w0 = pba->w0_fld;
+          // //  hyrec_data.wa = pba->wa_fld;
+          //  hyrec_data.cosmo->Y = pth->YHe;
+          //  hyrec_data.cosmo->Nnueff = pba->Neff;
+          //  hyrec_data.cosmo->nH0 = 11.223846333047*hyrec_data.cosmo->obh2*(1.-hyrec_data.cosmo->Y);  /* number density of hydrogen today in m-3 */
+          //  hyrec_data.cosmo->fHe = hyrec_data.cosmo->Y/(1-hyrec_data.cosmo->Y)/3.97153;              /* abundance of helium by number */
+          //  hyrec_data.cosmo->inj_params->zstart = ppr->recfast_z_initial; /* Redshift range */
+          //  hyrec_data.cosmo->inj_params->zend = 0.;
+          //  hyrec_data.cosmo->inj_params->dlna = 8.49e-5;
+          //  hyrec_data.cosmo->inj_params->nz = (long) floor(2+log((1.+hyrec_data.cosmo->inj_params->zstart)/(1.+hyrec_data.cosmo->inj_params->zend))/hyrec_data.cosmo->inj_params->dlna);
+          //  hyrec_data.cosmo->inj_params->pann = pth->annihilation;
+          //  hyrec_data.cosmo->inj_params->has_on_the_spot = pth->has_on_the_spot;
+          //  hyrec_data.cosmo->inj_params->decay_fraction = pth->decay_fraction;
+          //  hyrec_data.cosmo->inj_params->ann_var = pth->annihilation_variation;
+          //  hyrec_data.cosmo->inj_params->ann_z = pth->annihilation_z;
+          //  hyrec_data.cosmo->inj_params->ann_zmax = pth->annihilation_zmax;
+          //  hyrec_data.cosmo->inj_params->ann_zmin = pth->annihilation_zmin;
+          //  hyrec_data.cosmo->inj_params->ann_f_halo = pth->annihilation_f_halo;
+          //  hyrec_data.cosmo->inj_params->ann_z_halo = pth->annihilation_z_halo;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_num_lines = pth->annihil_coef_num_lines;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_xe = pth->annihil_coef_xe;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_heat = pth->annihil_coef_heat;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_ionH = pth->annihil_coef_ionH;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_ionHe = pth->annihil_coef_ionHe;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_lya = pth->annihil_coef_lya;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_lowE = pth->annihil_coef_lowE;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_heat = pth->annihil_coef_dd_heat;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_ionH = pth->annihil_coef_dd_ionH;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_lya = pth->annihil_coef_dd_lya;
+          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_lowE = pth->annihil_coef_lowE;
+          //  hyrec_data.cosmo->inj_params->annihil_f_eff_num_lines = preco->annihil_f_eff_num_lines;
+          //  hyrec_data.cosmo->inj_params->annihil_z = preco->annihil_z;
+          //  hyrec_data.cosmo->inj_params->annihil_f_eff = preco->annihil_f_eff;
+          //  hyrec_data.cosmo->inj_params->annihil_dd_f_eff = preco->annihil_dd_f_eff;
+          //  hyrec_data.cosmo->inj_params->energy_deposition_treatment = pth->energy_deposition_treatment;
+          //  hyrec_data.cosmo->inj_params->f_esc = pth->f_esc;
+          //  hyrec_data.cosmo->inj_params->Zeta_ion = pth->Zeta_ion ; /**< Lyman continuum photon production efficiency of the stellar population */
+          //  hyrec_data.cosmo->inj_params->fx = pth->fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
+          //  hyrec_data.cosmo->inj_params->Ex = pth->Ex*_eV_over_joules_; /**< Associated normalization from Pober et al. 1503.00045. */
+          //  hyrec_data.cosmo->inj_params->ap = pth->ap;   /**<  a few parameters entering the fit of the star formation rate (SFR), introduced in Madau & Dickinson, Ann.Rev.Astron.Astrophys. 52 (2014) 415-486, updated in Robertson & al. 1502.02024.*/
+          //  hyrec_data.cosmo->inj_params->bp = pth->bp;
+          //  hyrec_data.cosmo->inj_params->cp = pth->cp;
+          //  hyrec_data.cosmo->inj_params->dp = pth->dp;
+          //  hyrec_data.cosmo->inj_params->z_start_reio_stars = pth->z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
+          //  hyrec_data.cosmo->fsR = alpha_ratio;
+          //  hyrec_data.cosmo->meR = me_ratio;
+
+          //
    if (pth->thermodynamics_verbose > 0)
      printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
+  //  hyrec_compute_CLASS(&hyrec_data, FULL);
    hyrec_compute(&hyrec_data, FULL,
  		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
  		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
@@ -4664,7 +4721,6 @@ class_stop(pth->error_message,
               "you compiled without including the HyRec code, and now wish to use it. Either set the input parameter 'recombination' to something else than 'HyRec', or recompile after setting in the Makefile the appropriate path HYREC=... ");
 
  #endif
-
    return _SUCCESS_;
  }
 

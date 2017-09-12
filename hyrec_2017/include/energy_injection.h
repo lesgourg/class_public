@@ -1,24 +1,93 @@
 /* Structure with all energy injection parameters */
-/* If adding a new energy injection process 
+/* If adding a new energy injection process
    make sure to add relevant parameters here */
 
 typedef struct {
 
   double odmh2;                 /* Omega_dm h^2 */
-  
+
   double pann, pann_halo;       /* DM annihilation parameter in the smooth background and in haloes */
                                 /* Units of pann and pann_halo are cm^3/s/GeV */
 
   double ann_z, ann_zmax, ann_zmin, ann_var; /* Parameters for the variation of pann(z) */
   double ann_z_halo;                         /* Characteristic redshift for annihilation in haloes */
-    
+  double ann_f_halo;                         /* takes the contribution of DM annihilation in halos into account*/
+
   double Mpbh, fpbh;           /* Mass and fraction of DM made of primordial black holes */
-  int coll_ion;                /* If 1: assume gas gest collisionally ionized. 
-                                  If 0: assume gas gets photoionized by PBH radiation */     
+  int coll_ion;                /* If 1: assume gas gest collisionally ionized.
+                                  If 0: assume gas gets photoionized by PBH radiation */
 
   int on_the_spot;            /* if set to 1 assume energy deposition rate = injection rate */
                               /* Otherwise solves for deposition given injection with simple recipe */
-  
+
+
+   double zstart, zend, dlna;   /* initial and final redshift and step size in log a */
+   long nz;                     /* total number of redshift steps */
+
+   /** parameters for energy injection */
+
+   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+   double annihilation_boost_factor;
+   double annihilation_m_DM;
+   short has_on_the_spot; /** do we want to use the on-the-spot approximation? */
+
+   double decay_fraction; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+
+
+   int annihil_coef_num_lines;
+   double *annihil_coef_heat;
+   double *annihil_coef_ionH;
+   double *annihil_coef_ionHe;
+   double *annihil_coef_lya;
+   double *annihil_coef_lowE;
+   double *annihil_coef_xe;
+   double *annihil_coef_dd_heat;
+   double *annihil_coef_dd_ionH;
+   double *annihil_coef_dd_ionHe;
+   double *annihil_coef_dd_lya;
+   double *annihil_coef_dd_lowE;
+   double chi_heat;
+   double chi_lya;
+   double chi_ionH;
+   double chi_ionHe;
+   double chi_lowE;
+
+
+
+   double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
+   double * annihil_z;
+   double * annihil_f_eff;
+   double * annihil_dd_f_eff;
+   short  energy_repart_functions; /**< energy repartition functions */
+   double energy_deposition_treatment;
+   int annihil_f_eff_num_lines;
+   int reio_parametrization; /*Do we want the reio by stars based on SFR modeling ? 0 = no, 1 = yes*/
+   int star_heating_parametrization; /*Do we want heating by stars based on SFR modeling ? 0 = no, 1 = yes*/
+
+   /** A few parameters if the scheme reio_stars_sfr_source_term is chosen */
+
+   double f_esc; /**< fraction of photons produced by stellar populations that escape to ionize the IGM */
+   double Zeta_ion; /**< Lyman continuum photon production efficiency of the stellar population */
+   double Log10_Zeta_ion;/**< The log10 of former parameter. */
+   double fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
+   double Ex; /**< Associated normalization from Pober et al. 1503.00045. */
+   double ap;   /**<  a few parameters entering the fit of the star formation rate (SFR), introduced in Madau & Dickinson, Ann.Rev.Astron.Astrophys. 52 (2014) 415-486, updated in Robertson & al. 1502.02024.*/
+   double bp;
+   double cp;
+   double dp;
+   double z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
+
+
+          //  double Omega0_g;
+          //  double odcdmh2,ocdmh2;
+          //  double Omega0_b;
+          //  double Omega0_cdm;
+          //  double Omega0_dcdm;
+          //  double Omega0_lambda;
+          //  double Gamma_dcdm;
+          //  double H0;
+
+
 } INJ_PARAMS;
 
 double beta_pbh(double Mpbh, double z, double xe, double Teff);
