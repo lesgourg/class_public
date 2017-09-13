@@ -49,14 +49,15 @@ struct nonlinear {
   //@{
 
   short has_pk_eq;
-  double * eq;
-  int index_eq_z;
+
+  double * eq_tau;
+  int eq_tau_size;
+
+  double * eq_w_and_Omega;
+  double * eq_ddw_and_ddOmega;
   int index_eq_w;
   int index_eq_Omega_m;
-  int index_eq_ddw;
-  int index_eq_ddOmega_m;
   int eq_size;
-  int eq_z_size;
 
   //@}
 
