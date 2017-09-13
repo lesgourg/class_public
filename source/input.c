@@ -1035,23 +1035,27 @@ int input_read_parameters(
 
       if ((strstr(string1,"CLP") != NULL) || (strstr(string1,"clp") != NULL)) {
         pba->fluid_equation_of_state = CLP;
-
-        class_read_double("w0_fld",pba->w0_fld);
-        class_read_double("wa_fld",pba->wa_fld);
-        class_read_double("cs2_fld",pba->cs2_fld);
       }
 
       else if ((strstr(string1,"EDE") != NULL) || (strstr(string1,"ede") != NULL)) {
         pba->fluid_equation_of_state = EDE;
-
-        class_read_double("w0_fld",pba->w0_fld);
-        class_read_double("Omega_EDE",pba->Omega_EDE);
-        class_read_double("cs2_fld",pba->cs2_fld);
       }
 
       else {
         class_stop(errmsg,"incomprehensible input '%s' for the field 'fluid_equation_of_state'",string1);
       }
+    }
+
+    if (pba->fluid_equation_of_state == CLP) {
+      class_read_double("w0_fld",pba->w0_fld);
+      class_read_double("wa_fld",pba->wa_fld);
+      class_read_double("cs2_fld",pba->cs2_fld);
+    }
+
+    if (pba->fluid_equation_of_state == EDE) {
+      class_read_double("w0_fld",pba->w0_fld);
+      class_read_double("Omega_EDE",pba->Omega_EDE);
+      class_read_double("cs2_fld",pba->cs2_fld);
     }
   }
 
@@ -2831,6 +2835,128 @@ int input_read_parameters(
 
   }
 
+  /** - (i.5) special buisness if we want Halofit with w_a non-zero:
+        so-called "Pk-equal method" of 0810.0190 and 1601.07230 */
+
+   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)) {
+
+     pnl->has_pk_eq = _TRUE_;
+
+   }
+
+   if (pnl->has_pk_eq == _TRUE_) {
+
+    /** loop over redshift **/
+
+    double tau_of_z;
+    double delta_tau;
+    double error;
+    double delta_tau_eq;
+    double * pvecback;
+    int last_index=0;
+    int index_eq_z;
+    int index_eq;
+
+    pnl->eq_z_size = 10;
+    index_eq = 0;
+    class_define_index(pnl->index_eq_z,_TRUE_,index_eq,1);
+    class_define_index(pnl->index_eq_w,_TRUE_,index_eq,1);
+    class_define_index(pnl->index_eq_Omega_m,_TRUE_,index_eq,1);
+    class_define_index(pnl->index_eq_ddw,_TRUE_,index_eq,1);
+    class_define_index(pnl->index_eq_ddOmega_m,_TRUE_,index_eq,1);
+    pnl->eq_size = index_eq;
+    class_alloc(pnl->eq,pnl->eq_z_size*pnl->eq_size*sizeof(double),errmsg);
+
+    for (index_eq_z=0; index_eq_z<pnl->eq_z_size; index_eq_z++) {
+      pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_z] = exp(log(1.+5.)/(pnl->eq_z_size-1)*index_eq_z)-1.;
+      //pk_eq_z[index_eq] = pow(10.,log(1.+5.)/log(10.)/9*index_eq)-1.;
+      fprintf(stdout,"z=%e\n",pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_z]);
+    }
+
+    int true_background_verbose;
+    int true_thermodynamics_verbose;
+    double true_w0_fld;
+    double true_wa_fld;
+
+    true_background_verbose = pba->background_verbose;
+    true_thermodynamics_verbose = pth->thermodynamics_verbose;
+    true_w0_fld = pba->w0_fld;
+    true_wa_fld = pba->wa_fld;
+
+    ////
+
+    pba->background_verbose = 0;
+    pth->thermodynamics_verbose = 0;
+
+    for (index_eq_z=0; index_eq_z<10; index_eq_z++) {
+
+      if (input_verbose>2)
+        printf("PK-equal method at z=%e\n",pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_z]);
+
+      pba->w0_fld = true_w0_fld;
+      pba->wa_fld = true_wa_fld;
+
+      class_call(background_init(ppr,pba), pba->error_message, errmsg);
+      class_call(background_tau_of_z(pba,pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_z],&tau_of_z),
+                 pba->error_message, errmsg);
+      class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+
+      delta_tau = tau_of_z - pth->tau_rec;
+
+      ///////
+
+      pba->wa_fld=0.;
+
+      do {
+        class_call(background_free(pba), pba->error_message, errmsg);
+        class_call(thermodynamics_free(pth), pth->error_message, errmsg);
+
+        class_call(background_init(ppr,pba), pba->error_message, errmsg);
+        class_call(background_tau_of_z(pba,pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_z],&tau_of_z), pba->error_message, errmsg);
+        class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+
+        delta_tau_eq = tau_of_z - pth->tau_rec;
+
+        error = 1.-delta_tau_eq/delta_tau;
+        pba->w0_fld = pba->w0_fld*pow(1.+error,10.);
+
+      }
+      while(fabs(error) > 1.e-7);
+
+      pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_w] = pba->w0_fld;
+
+      class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+      class_call(background_at_tau(pba,
+                                   tau_of_z,
+                                   pba->long_info,
+                                   pba->inter_normal,
+                                   &last_index,
+                                   pvecback),
+                 pba->error_message, errmsg);
+      pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
+      free(pvecback);
+
+      class_call(background_free(pba), pba->error_message, errmsg);
+      class_call(thermodynamics_free(pth), pth->error_message, errmsg);
+
+    }
+
+    pba->background_verbose = true_background_verbose;
+    pth->thermodynamics_verbose = true_thermodynamics_verbose;
+    pba->w0_fld = true_w0_fld;
+    pba->wa_fld = true_wa_fld;
+
+    for (index_eq_z=0; index_eq_z<10; index_eq_z++) {
+
+      fprintf(stdout,"%d %e %e %e\n",
+              index_eq_z,
+              pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_z],
+              pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_w],
+              pnl->eq[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m]
+              );
+    }
+  }
+
   return _SUCCESS_;
 
 }
@@ -3153,6 +3279,7 @@ int input_default_params(
   /** - nonlinear structure */
 
   pnl->method = nl_none;
+  pnl->has_pk_eq = _FALSE_;
 
   /** - all verbose parameters */
 

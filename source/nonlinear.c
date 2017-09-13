@@ -115,6 +115,34 @@ int nonlinear_init(
     class_alloc(lnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
     class_alloc(ddlnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
 
+    /** - prepare interpolation for pk-eq method */
+
+    if (pnl->has_pk_eq == _TRUE_) {
+
+      class_call(array_spline(pnl->eq,
+                               pnl->eq_size,
+                               pnl->eq_z_size,
+                               pnl->index_eq_z,
+                               pnl->index_eq_w,
+                               pnl->index_eq_ddw,
+                               _SPLINE_NATURAL_,
+                               pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+      class_call(array_spline(pnl->eq,
+                               pnl->eq_size,
+                               pnl->eq_z_size,
+                               pnl->index_eq_z,
+                               pnl->index_eq_Omega_m,
+                               pnl->index_eq_ddOmega_m,
+                               _SPLINE_NATURAL_,
+                               pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+    }
+
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
@@ -215,6 +243,10 @@ int nonlinear_free(
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
     }
+  }
+
+  if (pnl->has_pk_eq == _TRUE_) {
+    free(pnl->eq);
   }
 
   return _SUCCESS_;

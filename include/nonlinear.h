@@ -44,6 +44,22 @@ struct nonlinear {
 
   //@}
 
+  /** @name - table of effective values of w0(z) and Omega_m(z) in the PK-eq method of 0810.0190 and 1601.07230 */
+
+  //@{
+
+  short has_pk_eq;
+  double * eq;
+  int index_eq_z;
+  int index_eq_w;
+  int index_eq_Omega_m;
+  int index_eq_ddw;
+  int index_eq_ddOmega_m;
+  int eq_size;
+  int eq_z_size;
+
+  //@}
+
   /** @name - technical parameters */
 
   //@{
