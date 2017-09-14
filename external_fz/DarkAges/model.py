@@ -340,8 +340,6 @@ class evaporating_model(model):
 
 		# Total spectrum (for normalization)
 		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL')
-		#spec_all += (spec_el - prim_spec_el)
-		#spec_all += (spec_ph - prim_spec_ph)
 		del_E = np.zeros(redshift.shape, dtype=np.float64)
 		for idx in xrange(del_E.shape[0]):
 			del_E[idx] = trapz(spec_all[:,idx]*E**2,(logEnergies))
