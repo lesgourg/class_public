@@ -2,6 +2,12 @@
 /* If adding a new energy injection process
    make sure to add relevant parameters here */
 
+/* The following four lines constitue a little patch for an easier class compatibility when dealing with exotic electromagnetic injection */
+#include "../include/arrays.h"
+#include "../include/common.h"
+#define _SUCCESS_ 0 /**< integer returned after successful call of a function */
+#define _FAILURE_ 1 /**< integer returned after non-successful call of a function */
+
 typedef struct {
 
   double odmh2;                 /* Omega_dm h^2 */
@@ -58,8 +64,9 @@ typedef struct {
    double * annihil_z;
    double * annihil_f_eff;
    double * annihil_dd_f_eff;
+   double f_eff;
    short  energy_repart_functions; /**< energy repartition functions */
-   double energy_deposition_treatment;
+   int energy_deposition_treatment;
    int annihil_f_eff_num_lines;
    int reio_parametrization; /*Do we want the reio by stars based on SFR modeling ? 0 = no, 1 = yes*/
    int star_heating_parametrization; /*Do we want heating by stars based on SFR modeling ? 0 = no, 1 = yes*/
@@ -103,3 +110,6 @@ double dEdtdV_pbh(double fpbh, double Mpbh, double z, double xe, double Tgas, in
 double dEdtdV_inj(double z, double xe, double Tgas, INJ_PARAMS *params);
 void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
 		       double nH, double H, INJ_PARAMS *params, double *dEdtdV_dep);
+int evaluate_chi_heat(INJ_PARAMS *param,double z, double xe);
+int evaluate_chi_ionisation(INJ_PARAMS *param,double z, double xe);
+int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params, double xe_or_z);

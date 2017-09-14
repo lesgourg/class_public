@@ -1525,6 +1525,7 @@ int input_read_parameters(
       pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
       if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
   }
+
   class_test((pth->annihilation_m_DM > 0 && pth->annihilation_boost_factor <=0)||(pth->annihilation_m_DM <= 0 && pth->annihilation_boost_factor >0),errmsg,"You set one of (pth->annihilation_m_DM,pth->annihilation_boost_factor) to non-zero value but not the other ! I cannot compute annihilation parameter: pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM).")
 
   if (pth->annihilation > 0. || pth->annihilation_m_DM > 0.) {
@@ -1728,6 +1729,23 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 
 }
 
+/** Tables specific to evaporating PBH */
+if(pth->PBH_low_mass > 0.){
+  pth->PBH_table_is_initialized = _TRUE_ ;
+  pth->PBH_table_z = NULL;
+  pth->PBH_table_mass = NULL;
+  pth->PBH_table_mass_dd = NULL;
+  pth->PBH_table_F = NULL;
+  pth->PBH_table_F_dd = NULL;
+}
+else {
+  pth->PBH_table_is_initialized = _FALSE_ ;
+  pth->PBH_table_z = NULL;
+  pth->PBH_table_mass = NULL;
+  pth->PBH_table_mass_dd = NULL;
+  pth->PBH_table_F = NULL;
+  pth->PBH_table_F_dd = NULL;
+}
 
 
 
@@ -3501,8 +3519,15 @@ int input_default_params(
   pth->beta_gcdm=0.;
   pth->alpha_gcdm=0.;
   pth->A_21_over_mchi=0.;
-
   pth->Lambda_over_theoritical_Lambda = 1.;
+
+  /** Tables specific to evaporating PBH */
+  pth->PBH_table_is_initialized = _FALSE_ ;
+  pth->PBH_table_z = NULL;
+  pth->PBH_table_mass = NULL;
+  pth->PBH_table_mass_dd = NULL;
+  pth->PBH_table_F = NULL;
+  pth->PBH_table_F_dd = NULL;
 
   /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
   pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //

@@ -33,7 +33,6 @@
 #include "include/hyrectools.h"
 #include "include/hydrogen.h"
 
-
 /***********************************************************************************************************
 Some constants appropriately rescaled for different values of the fine-structure constant and electron mass
 ***********************************************************************************************************/
@@ -83,14 +82,15 @@ December 2014:
   dEdtdV is the rate of energy deposition rate per unit volume (in eV/s/cm^3)
 ***************************************************************************************************/
 
-double rec_TLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR,
-			 double Fudge, double fsR, double meR, double dEdtdV) {
+double rec_TLA_dxHIIdlna(double z, double xe, double xHII, double nH, double H, double TM, double TR,
+			 double Fudge, double fsR, double meR, double dEdtdV, REC_COSMOPARAMS *params) {
 
    double RLya, alphaB_TM, alphaB_TR, four_betaB, C, s, Dxe2, DalphaB;
 
    double ion, exc;
-   ion = dEdtdV/3. /nH *(1.-xHII)/EI;  /* dxe/dt due to additional energy injection */
-   exc = ion/0.75;                     /* total rate of excitation to the n=2 state */
+   if(dEdtdV > 0.) evaluate_chi_ionisation(params->inj_params,z,xe);
+   ion = dEdtdV/nH/EI*params->inj_params->chi_ionH;  /* dxe/dt due to additional energy injection */
+   exc = dEdtdV/nH/EI*params->inj_params->chi_lya/0.75;                     /* total rate of excitation to the n=2 state */
 
    rescale_T(&TM, fsR, meR);
    rescale_T(&TR, fsR, meR);
@@ -346,16 +346,18 @@ December 2014:
 - Added dependence on extra energy deposited in the plasma, dEdtdV in eV/s/cm^3
 ************************************************************************************************/
 
-double rec_HMLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR,
-                          HYREC_ATOMIC *atomic, double fsR, double meR, double dEdtdV, int *error){
+double rec_HMLA_dxHIIdlna(double z, double xe, double xHII, double nH, double H, double TM, double TR,
+                          HYREC_ATOMIC *atomic, double fsR, double meR, double dEdtdV, int *error, REC_COSMOPARAMS *params){
 
    double Alpha[2], DAlpha[2], Beta[2], R2p2s, RLya;
    double Gamma_2s, Gamma_2p, C2s, C2p, s, Dxe2;
    double ratio;
 
    double ion, exc;
-   ion = dEdtdV/3. /nH *(1.-xHII) /EI;
-   exc = ion /0.75;
+   if(dEdtdV > 0.) evaluate_chi_ionisation(params->inj_params,z,xe);
+   ion = dEdtdV/nH/EI*params->inj_params->chi_ionH;  /* dxe/dt due to additional energy injection */
+   exc = dEdtdV/nH/EI*params->inj_params->chi_lya/0.75;                     /* total rate of excitation to the n=2 state */
+
 
    ratio = TM/TR;
    rescale_T(&TR, fsR, meR);
@@ -452,9 +454,9 @@ December 2014: Added dependence on additional energy deposition dEdtdV in eV/s/c
 **********************************************************************************************************/
 
 void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double *Tvv[3],
-                        double sr[2], double sv[NVIRT], double Dtau[NVIRT],
+                        double sr[2], double sv[NVIRT], double Dtau[NVIRT],double z,
                         double xe, double xHII, double TM, double TR, double nH, double H, HYREC_ATOMIC *atomic,
-                        double Dfplus[NVIRT], double Dfplus_Ly[],
+                        REC_COSMOPARAMS *params, double Dfplus[NVIRT], double Dfplus_Ly[],
                         double Alpha[2], double DAlpha[2], double Beta[2], double fsR, double meR, double dEdtdV,
 			int *error) {
 
@@ -463,7 +465,8 @@ void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double
    double A2p_up, A2p_dn, rescale2g, rescalediff, exc;
    double *Aup, *Adn;
 
-   exc = dEdtdV/3. /nH *(1.-xHII) /E21;
+   if(dEdtdV > 0.) evaluate_chi_ionisation(params->inj_params,z,xe);
+   exc = dEdtdV/nH/EI*params->inj_params->chi_lya/0.75;                     /* total rate of excitation to the n=2 state */
 
    /*** Added May 2012: rescalings for dependence on alpha and me ***/
    rescale2g   = square(fsR*fsR*fsR*fsR)*meR;  /* for two-photon rates */
@@ -794,7 +797,7 @@ In the next version I'll make them potentialy changeable.
 ******************************************************************************************************************/
 
 double rec_HMLA_2photon_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR,
-                                  HYREC_ATOMIC *atomic,
+                                  HYREC_ATOMIC *atomic,REC_COSMOPARAMS *params,
                                   double **Dfminus_hist, double **Dfminus_Ly_hist, double **Dfnu_hist,
                                   double zstart, unsigned iz, double z, double fsR, double meR, double dEdtdV, int *error){
 
@@ -812,7 +815,8 @@ double rec_HMLA_2photon_dxHIIdlna(double xe, double xHII, double nH, double H, d
    double Alpha[2], DAlpha[2], Beta[2];
    double ratio;
 
-   double ion = dEdtdV/3. / nH *(1.-xHII) /EI;
+   if(dEdtdV > 0.) evaluate_chi_ionisation(params->inj_params,z,xe);
+   double ion = dEdtdV/nH/EI*params->inj_params->chi_ionH;  /* dxe/dt due to additional energy injection */
 
 
    ratio = TM/TR;
@@ -828,7 +832,7 @@ double rec_HMLA_2photon_dxHIIdlna(double xe, double xHII, double nH, double H, d
    fplus_from_fminus(Dfplus, Dfplus_Ly, Dfminus_hist, Dfminus_Ly_hist, TR, zstart, iz, z, atomic->Eb_tab);
 
    /* Compute real-real, real-virtual and virtual-virtual transition rates */
-   populateTS_2photon(Trr, Trv, Tvr, Tvv, sr, sv, Dtau, xe, xHII, TM, TR, nH, H, atomic,
+   populateTS_2photon(Trr, Trv, Tvr, Tvv, sr, sv, Dtau, z, xe, xHII, TM, TR, nH, H, atomic,params,
                       Dfplus, Dfplus_Ly, Alpha, DAlpha, Beta, fsR, meR, dEdtdV, error);
 
    if (*error == 1) {
@@ -906,13 +910,13 @@ December 2014: added dependence on additional energy injection.
 
 double rec_dxHIIdlna(int model, double xe, double xHII, double nH, double H, double TM, double TR,
                      HYREC_ATOMIC *atomic, RADIATION *rad, unsigned iz, double z,
-		     double fsR, double meR, double dEdtdV, int *error){
+		     double fsR, double meR, double dEdtdV, int *error, REC_COSMOPARAMS *params){
 
   double Pion, RLya, four_betaB, result;
 
-  if      (model == PEEBLES)  result = rec_TLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, 1.00, fsR, meR, dEdtdV);
-  else if (model == RECFAST)  result = rec_TLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, 1.14, fsR, meR, dEdtdV);
-  else if (model == EMLA2s2p) result = rec_HMLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, atomic, fsR, meR, dEdtdV, error);
+  if      (model == PEEBLES)  result = rec_TLA_dxHIIdlna(z, xe, xHII, nH, H, TM, TR, 1.00, fsR, meR, dEdtdV,params);
+  else if (model == RECFAST)  result = rec_TLA_dxHIIdlna(z, xe, xHII, nH, H, TM, TR, 1.14, fsR, meR, dEdtdV,params);
+  else if (model == EMLA2s2p) result = rec_HMLA_dxHIIdlna(z, xe, xHII, nH, H, TM, TR, atomic, fsR, meR, dEdtdV, error, params);
   else if (model == FULL) {
 
     /*  When the full two-photon rate is required for z < 900, makes a simple estimate of the probability of
@@ -925,9 +929,9 @@ double rec_dxHIIdlna(int model, double xe, double xHII, double nH, double H, dou
       Pion       = four_betaB/(3.*RLya + L2s1s + four_betaB);
     }
     if (Pion < PION_MAX) {
-      result = rec_HMLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, atomic, fsR, meR, dEdtdV, error);
+      result = rec_HMLA_dxHIIdlna(z, xe, xHII, nH, H, TM, TR, atomic, fsR, meR, dEdtdV, error, params);
     }
-    else result = rec_HMLA_2photon_dxHIIdlna(xe, xHII, nH, H, TM, TR, atomic,
+    else result = rec_HMLA_2photon_dxHIIdlna(xe, xHII, nH, H, TM, TR, atomic,params,
 					   rad->Dfminus_hist, rad->Dfminus_Ly_hist, rad->Dfnu_hist, rad->z0,
 					     iz, z, fsR, meR, dEdtdV, error);
   }

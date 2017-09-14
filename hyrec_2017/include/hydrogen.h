@@ -17,7 +17,7 @@
 /*                          - Some definitions moved to header file history.h                           */
 /*            - December 2014: - Accounts for additional energy injection                               */
 /********************************************************************************************************/
-
+#include "energy_injection.h"
 /* Definition of different recombination models  */
 
 #define PEEBLES   0    /* Peebles's effective three-level atom */
@@ -46,7 +46,22 @@
 #define kBoltz    8.617343e-5          /* Boltzmann constant in eV/K */
 #define L2s1s     8.2206               /* 2s -> 1s two-photon decay rate in s^{-1} (Labzowsky et al 2005) */
 
+/* Structure for HyRec internal parameters */
 
+typedef struct {
+	double h;
+  double T0;                                /* CMB temperature today in K*/
+  double obh2, omh2, odeh2, okh2, orh2;     /* density parameters */
+  double Nnueff;                            /* effective number of neutrinos */
+  double fHe;                               /* Helium fraction by number */
+  double nH0;                               /* density of hydrogen today in cm^{-3} (changed from m^{-3}) */
+  double Y;
+  double fsR, meR;              /* fine-structure constant alpha/alpha(today)
+                                    and me/me(today) (Added April 2012)*/
+
+  INJ_PARAMS *inj_params;     /* Structure containing all Energy-injection parameters */
+
+} REC_COSMOPARAMS;
 /*********** EFFECTIVE 3-LEVEL A LA PEEBLES ***************/
 double SAHA_FACT(double fsR, double meR);
 double LYA_FACT(double fsR, double meR);
@@ -54,8 +69,8 @@ double L2s_rescaled(double fsR, double meR);
 void rescale_T(double *T, double fsR, double meR);
 
 double alphaB_PPB(double TM, double fsR, double meR);
-double rec_TLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR,
-			 double Fudge, double fsR, double meR, double dEdtdV);
+double rec_TLA_dxHIIdlna(double z, double xe, double xHII, double nH, double H, double TM, double TR,
+			 double Fudge, double fsR, double meR, double dEdtdV, REC_COSMOPARAMS *params);
 
 
 /************* EFFECTIVE MULTI LEVEL ATOM *******************/
@@ -88,6 +103,7 @@ double rec_TLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM,
 /* #define NVIRT    1493 */
 /* #define NDIFF    300 */
 /* #define DLNA    8.47e-5 */
+
 
 /**** Structure containing all atomic data for hydrogen ****/
 
@@ -128,14 +144,14 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic);
 void free_atomic(HYREC_ATOMIC *atomic);
 void interpolate_rates(double Alpha[2], double DAlpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR,
 		       HYREC_ATOMIC *atomic, double fsR, double meR, int *error);
-double rec_HMLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR,
-		          HYREC_ATOMIC *atomic, double fsR, double meR, double dE_dtdV, int *error);
+double rec_HMLA_dxHIIdlna(double z, double xe, double xHII, double nH, double H, double TM, double TR,
+		          HYREC_ATOMIC *atomic, double fsR, double meR, double dE_dtdV, int *error, REC_COSMOPARAMS *params);
 void populate_Diffusion(double *Aup, double *Adn, double *A2p_up, double *A2p_dn,
                         double TM, double Eb_tab[NVIRT], double A1s_tab[NVIRT]);
 void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double *Tvv[3],
-                        double sr[2], double sv[NVIRT], double Dtau[NVIRT],
+                        double sr[2], double sv[NVIRT], double Dtau[NVIRT],double z,
                         double xe, double xHII, double TM, double TR, double nH, double H, HYREC_ATOMIC *atomic,
-			double Dfplus[NVIRT], double Dfplus_Ly[],
+												REC_COSMOPARAMS *params, double Dfplus[NVIRT], double Dfplus_Ly[],
                         double Alpha[2], double DAlpha[2], double Beta[2],
                         double fsR, double meR, double dE_dtdV, int *error);
 void solveTXeqB(double *diag, double *updiag, double *dndiag, double *X, double *B, unsigned N);
@@ -145,12 +161,12 @@ double interp_Dfnu(double x0, double dx, double *ytab, unsigned int Nx, double x
 void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **Dfminus_hist, double **Dfminus_Ly_hist,
                        double TR, double zstart, unsigned iz, double z, double Eb_tab[NVIRT]);
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
-                                HYREC_ATOMIC *atomic,
+                                HYREC_ATOMIC *atomic,REC_COSMOPARAMS *params,
                                 double **Dfminus_hist, double **Dfminus_Ly_hist, double **Dfnu_hist,
                                 double zstart, unsigned iz, double z, double fsR, double meR, double dE_dtdV, int *error);
 double rec_dxHIIdlna(int model, double xe, double xHII, double nH, double H, double TM, double TR,
                      HYREC_ATOMIC *atomic, RADIATION *rad, unsigned iz, double z,
-		     double fsR, double meR, double dEdtdV, int *error);
+		     double fsR, double meR, double dEdtdV, int *error, REC_COSMOPARAMS *params);
 
 
 

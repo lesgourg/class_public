@@ -1539,8 +1539,10 @@ int thermodynamics_annihilation_coefficients_init(
     /* Prepare the command */
     /* Pass the list of arguments */
     sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+    // /* Write the actual command */
+    // sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments); // currently a bug is preventing to add extra arguments, to be corrected soon.
     /* Write the actual command */
-    sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments);
+    sprintf(command_with_arguments, "%s", ppr->command_fz);
     // free(ppr->command_fz);
     if (pth->thermodynamics_verbose > 0) {
       printf(" -> running: %s\n", command_with_arguments);
@@ -4561,70 +4563,86 @@ class_stop(pth->error_message,
    /** - Compute the recombination history by calling hyrec_compute.
          No CLASS-like error management here, but YAH working on it :) **/
 
-
-          //  hyrec_data.cosmo->T0 = pba->T_cmb;
-          //  hyrec_data.cosmo->orh2  = 4.48162687719e-7 *pba->T_cmb*pba->T_cmb*pba->T_cmb*pba->T_cmb *(1. + 0.227107317660239 * pba->Neff);
-          //  hyrec_data.cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
-          //  hyrec_data.cosmo->omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
-          //  hyrec_data.cosmo->okh2 = pba->Omega0_k*pba->h*pba->h;
+           hyrec_data.cosmo->h = pba->h;
+           hyrec_data.cosmo->T0 = pba->T_cmb;
+           hyrec_data.cosmo->orh2  = 4.48162687719e-7 *pba->T_cmb*pba->T_cmb*pba->T_cmb*pba->T_cmb *(1. + 0.227107317660239 * pba->Neff);
+           hyrec_data.cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
+           hyrec_data.cosmo->omh2 = Omega_m*pba->h*pba->h;
+           hyrec_data.cosmo->inj_params->odmh2 = hyrec_data.cosmo->omh2 - hyrec_data.cosmo->obh2;
+           hyrec_data.cosmo->okh2 = pba->Omega0_k*pba->h*pba->h;
           //  hyrec_data.cosmo->odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
-          // //  hyrec_data.w0 = pba->w0_fld;
-          // //  hyrec_data.wa = pba->wa_fld;
-          //  hyrec_data.cosmo->Y = pth->YHe;
-          //  hyrec_data.cosmo->Nnueff = pba->Neff;
-          //  hyrec_data.cosmo->nH0 = 11.223846333047*hyrec_data.cosmo->obh2*(1.-hyrec_data.cosmo->Y);  /* number density of hydrogen today in m-3 */
-          //  hyrec_data.cosmo->fHe = hyrec_data.cosmo->Y/(1-hyrec_data.cosmo->Y)/3.97153;              /* abundance of helium by number */
+           hyrec_data.cosmo->odeh2 = (1.-Omega_m - hyrec_data.cosmo->okh2 - hyrec_data.cosmo->orh2/pba->h/pba->h)*pba->h*pba->h;
+          //  hyrec_data.w0 = pba->w0_fld;
+          //  hyrec_data.wa = pba->wa_fld;
+           hyrec_data.cosmo->Y = pth->YHe;
+           hyrec_data.cosmo->Nnueff = pba->Neff;
+           hyrec_data.cosmo->nH0 = 11.223846333047e-6*hyrec_data.cosmo->obh2*(1.-hyrec_data.cosmo->Y);  /* number density of hydrogen today in m-3 */
+           hyrec_data.cosmo->fHe = hyrec_data.cosmo->Y/(1-hyrec_data.cosmo->Y)/3.97153;              /* abundance of helium by number */
           //  hyrec_data.cosmo->inj_params->zstart = ppr->recfast_z_initial; /* Redshift range */
           //  hyrec_data.cosmo->inj_params->zend = 0.;
           //  hyrec_data.cosmo->inj_params->dlna = 8.49e-5;
           //  hyrec_data.cosmo->inj_params->nz = (long) floor(2+log((1.+hyrec_data.cosmo->inj_params->zstart)/(1.+hyrec_data.cosmo->inj_params->zend))/hyrec_data.cosmo->inj_params->dlna);
-          //  hyrec_data.cosmo->inj_params->pann = pth->annihilation;
-          //  hyrec_data.cosmo->inj_params->has_on_the_spot = pth->has_on_the_spot;
-          //  hyrec_data.cosmo->inj_params->decay_fraction = pth->decay_fraction;
-          //  hyrec_data.cosmo->inj_params->ann_var = pth->annihilation_variation;
-          //  hyrec_data.cosmo->inj_params->ann_z = pth->annihilation_z;
-          //  hyrec_data.cosmo->inj_params->ann_zmax = pth->annihilation_zmax;
-          //  hyrec_data.cosmo->inj_params->ann_zmin = pth->annihilation_zmin;
-          //  hyrec_data.cosmo->inj_params->ann_f_halo = pth->annihilation_f_halo;
-          //  hyrec_data.cosmo->inj_params->ann_z_halo = pth->annihilation_z_halo;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_num_lines = pth->annihil_coef_num_lines;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_xe = pth->annihil_coef_xe;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_heat = pth->annihil_coef_heat;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_ionH = pth->annihil_coef_ionH;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_ionHe = pth->annihil_coef_ionHe;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_lya = pth->annihil_coef_lya;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_lowE = pth->annihil_coef_lowE;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_heat = pth->annihil_coef_dd_heat;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_ionH = pth->annihil_coef_dd_ionH;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_lya = pth->annihil_coef_dd_lya;
-          //  hyrec_data.cosmo->inj_params->annihil_coef_dd_lowE = pth->annihil_coef_lowE;
-          //  hyrec_data.cosmo->inj_params->annihil_f_eff_num_lines = preco->annihil_f_eff_num_lines;
-          //  hyrec_data.cosmo->inj_params->annihil_z = preco->annihil_z;
-          //  hyrec_data.cosmo->inj_params->annihil_f_eff = preco->annihil_f_eff;
-          //  hyrec_data.cosmo->inj_params->annihil_dd_f_eff = preco->annihil_dd_f_eff;
-          //  hyrec_data.cosmo->inj_params->energy_deposition_treatment = pth->energy_deposition_treatment;
-          //  hyrec_data.cosmo->inj_params->f_esc = pth->f_esc;
-          //  hyrec_data.cosmo->inj_params->Zeta_ion = pth->Zeta_ion ; /**< Lyman continuum photon production efficiency of the stellar population */
-          //  hyrec_data.cosmo->inj_params->fx = pth->fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
-          //  hyrec_data.cosmo->inj_params->Ex = pth->Ex*_eV_over_joules_; /**< Associated normalization from Pober et al. 1503.00045. */
-          //  hyrec_data.cosmo->inj_params->ap = pth->ap;   /**<  a few parameters entering the fit of the star formation rate (SFR), introduced in Madau & Dickinson, Ann.Rev.Astron.Astrophys. 52 (2014) 415-486, updated in Robertson & al. 1502.02024.*/
-          //  hyrec_data.cosmo->inj_params->bp = pth->bp;
-          //  hyrec_data.cosmo->inj_params->cp = pth->cp;
-          //  hyrec_data.cosmo->inj_params->dp = pth->dp;
-          //  hyrec_data.cosmo->inj_params->z_start_reio_stars = pth->z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
-          //  hyrec_data.cosmo->fsR = alpha_ratio;
-          //  hyrec_data.cosmo->meR = me_ratio;
+           hyrec_data.cosmo->inj_params->pann = 1.78266e-21*pth->annihilation;
+           hyrec_data.cosmo->inj_params->pann_halo = 1.78266e-21*pth->annihilation_f_halo;
+           hyrec_data.cosmo->inj_params->has_on_the_spot = pth->has_on_the_spot;
+          //  hyrec_data.cosmo->inj_params->on_the_spot = on_the_spot;
+           hyrec_data.cosmo->inj_params->decay_fraction = pth->decay_fraction;
+           hyrec_data.cosmo->inj_params->ann_var = pth->annihilation_variation;
+           hyrec_data.cosmo->inj_params->ann_z = pth->annihilation_z;
+           hyrec_data.cosmo->inj_params->ann_zmax = pth->annihilation_zmax;
+           hyrec_data.cosmo->inj_params->ann_zmin = pth->annihilation_zmin;
+           hyrec_data.cosmo->inj_params->ann_f_halo = pth->annihilation_f_halo;
+           hyrec_data.cosmo->inj_params->ann_z_halo = pth->annihilation_z_halo;
+           hyrec_data.cosmo->inj_params->annihil_coef_num_lines = pth->annihil_coef_num_lines;
+           hyrec_data.cosmo->inj_params->annihil_coef_xe = pth->annihil_coef_xe;
+           hyrec_data.cosmo->inj_params->annihil_coef_heat = pth->annihil_coef_heat;
+           hyrec_data.cosmo->inj_params->annihil_coef_ionH = pth->annihil_coef_ionH;
+           hyrec_data.cosmo->inj_params->annihil_coef_ionHe = pth->annihil_coef_ionHe;
+           hyrec_data.cosmo->inj_params->annihil_coef_lya = pth->annihil_coef_lya;
+           hyrec_data.cosmo->inj_params->annihil_coef_lowE = pth->annihil_coef_lowE;
+           hyrec_data.cosmo->inj_params->annihil_coef_dd_heat = pth->annihil_coef_dd_heat;
+           hyrec_data.cosmo->inj_params->annihil_coef_dd_ionH = pth->annihil_coef_dd_ionH;
+           hyrec_data.cosmo->inj_params->annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
+           hyrec_data.cosmo->inj_params->annihil_coef_dd_lya = pth->annihil_coef_dd_lya;
+           hyrec_data.cosmo->inj_params->annihil_coef_dd_lowE = pth->annihil_coef_lowE;
+           hyrec_data.cosmo->inj_params->annihil_f_eff_num_lines = preco->annihil_f_eff_num_lines;
+           hyrec_data.cosmo->inj_params->annihil_z = preco->annihil_z;
+           hyrec_data.cosmo->inj_params->annihil_f_eff = preco->annihil_f_eff;
+           hyrec_data.cosmo->inj_params->annihil_dd_f_eff = preco->annihil_dd_f_eff;
 
+           if(pth->energy_deposition_treatment==Analytical_approximation) {
+             hyrec_data.cosmo->inj_params->energy_deposition_treatment = 0;
+           }
+           else if(pth->energy_deposition_treatment==Slatyer) {
+             hyrec_data.cosmo->inj_params->energy_deposition_treatment = 1;
+           }
+           if(pth->energy_repart_functions==no_factorization) hyrec_data.cosmo->inj_params->energy_repart_functions = 0;
+           else if(pth->energy_repart_functions==Galli_et_al_interpolation) hyrec_data.cosmo->inj_params->energy_repart_functions = 1;
+           else if(pth->energy_repart_functions==SSCK) hyrec_data.cosmo->inj_params->energy_repart_functions = 2;
+           else if(pth->energy_repart_functions==Galli_et_al_fit) hyrec_data.cosmo->inj_params->energy_repart_functions = 3;
+           hyrec_data.cosmo->inj_params->f_esc = pth->f_esc;
+           hyrec_data.cosmo->inj_params->Zeta_ion = pth->Zeta_ion ; /**< Lyman continuum photon production efficiency of the stellar population */
+           hyrec_data.cosmo->inj_params->fx = pth->fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
+           hyrec_data.cosmo->inj_params->Ex = pth->Ex*_eV_over_joules_; /**< Associated normalization from Pober et al. 1503.00045. */
+           hyrec_data.cosmo->inj_params->ap = pth->ap;   /**<  a few parameters entering the fit of the star formation rate (SFR), introduced in Madau & Dickinson, Ann.Rev.Astron.Astrophys. 52 (2014) 415-486, updated in Robertson & al. 1502.02024.*/
+           hyrec_data.cosmo->inj_params->bp = pth->bp;
+           hyrec_data.cosmo->inj_params->cp = pth->cp;
+           hyrec_data.cosmo->inj_params->dp = pth->dp;
+           hyrec_data.cosmo->inj_params->z_start_reio_stars = pth->z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
+           hyrec_data.cosmo->fsR = alpha_ratio;
+           hyrec_data.cosmo->meR = me_ratio;
+           hyrec_data.cosmo->inj_params->Mpbh = pth->PBH_high_mass;
+           hyrec_data.cosmo->inj_params->fpbh = pth->PBH_fraction;
+           hyrec_data.cosmo->inj_params->coll_ion = pth->coll_ion_pbh;
           //
    if (pth->thermodynamics_verbose > 0)
      printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
-  //  hyrec_compute_CLASS(&hyrec_data, FULL);
-   hyrec_compute(&hyrec_data, FULL,
- 		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
- 		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
- 		pth->annihilation_zmin, pth->annihilation_variation, pth->annihilation_z_halo,
- 		pth->PBH_high_mass, pth->PBH_fraction, pth->coll_ion_pbh,on_the_spot);
+   hyrec_compute_CLASS(&hyrec_data, FULL);
+  //  hyrec_compute(&hyrec_data, FULL,
+ // 		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
+ // 		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
+ // 		pth->annihilation_zmin, pth->annihilation_variation, pth->annihilation_z_halo,
+ // 		pth->PBH_high_mass, pth->PBH_fraction, pth->coll_ion_pbh,on_the_spot);
 
    if (pth->thermodynamics_verbose > 0)
      printf("    by Y. Ali-Haïmoud & C. Hirata\n");
@@ -4714,7 +4732,6 @@ class_stop(pth->error_message,
 
    free(buffer);
    hyrec_free(&hyrec_data);
-
  #else
 
    class_stop(pth->error_message,
@@ -4872,12 +4889,12 @@ int thermodynamics_recombination_with_recfast(
   preco->PBH_low_mass = pth->PBH_low_mass;
   preco->PBH_fraction = pth->PBH_fraction;
 
-  preco->PBH_table_is_initialized = _FALSE_;
-  preco->PBH_table_z = NULL;
-  preco->PBH_table_mass = NULL;
-  preco->PBH_table_mass_dd = NULL;
-  preco->PBH_table_F = NULL;
-  preco->PBH_table_F_dd = NULL;
+  preco->PBH_table_is_initialized = pth->PBH_table_is_initialized;
+  preco->PBH_table_z = pth->PBH_table_z;
+  preco->PBH_table_mass = pth->PBH_table_mass;
+  preco->PBH_table_mass_dd = pth->PBH_table_mass_dd;
+  preco->PBH_table_F = pth->PBH_table_F;
+  preco->PBH_table_F_dd = pth->PBH_table_F_dd;
 
   preco->energy_repart_functions = pth->energy_repart_functions;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
@@ -5674,14 +5691,15 @@ int thermodynamics_merge_reco_and_reio(
   }
   if ((pth->reio_parametrization != reio_none))
     free(preio->reionization_table);
-  if ((preco->PBH_table_is_initialized == _TRUE_)) {
-    //fprintf(stdout,"PBH tabels are free'd\n");
+
+  if ((pth->PBH_table_is_initialized == _TRUE_)) {
+    fprintf(stdout,"PBH tabels are free'd\n");
     free(preco->PBH_table_z);
     free(preco->PBH_table_mass);
     free(preco->PBH_table_mass_dd);
     free(preco->PBH_table_F);
     free(preco->PBH_table_F_dd);
-    preco->PBH_table_is_initialized == _FALSE_;
+    pth->PBH_table_is_initialized == _FALSE_;
   }
 
   return _SUCCESS_;
