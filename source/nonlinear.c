@@ -209,7 +209,6 @@ int nonlinear_free(
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
-      /* free here */
       free(pnl->k);
       free(pnl->tau);
       free(pnl->nl_corr_density);
@@ -377,9 +376,34 @@ int nonlinear_halofit(
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
 
-  if (pnl->has_pk_eq == _TRUE_) {
+  if (pnl->has_pk_eq == _FALSE_) {
+
+    /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
+       all required by HALFIT fitting formulas */
+
+    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
+    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    Omega_m = pvecback[pba->index_bg_Omega_m];
+    Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
+
+  }
+  else {
+
+    /* alternative method called PK-equal, described in 0810.0190 and
+                      1601.0723, extending the range of validity of
+                      HALOFIT from constant w to w0-wa models. In that
+                      case, some effective values of w0(tau_i) and
+                      Omega_m(tau_i) have been pre-computed in the input
+                      module, and we just ned to interpolate within
+                      tabulated arrays, to get them at the current tau
+                      value. */
 
     class_alloc(w_and_Omega,pnl->eq_size*sizeof(double),pnl->error_message);
+
     class_call(array_interpolate_spline(
                                         pnl->eq_tau,
                                         pnl->eq_tau_size,
@@ -397,24 +421,8 @@ int nonlinear_halofit(
     w0 = w_and_Omega[pnl->index_eq_w];
     Omega_m = w_and_Omega[pnl->index_eq_Omega_m];
     Omega_v = 1.-Omega_m;
+
     free(w_and_Omega);
-
-    fprintf(stdout,"%e %e %e\n",
-            tau,w0,Omega_m);
-
-  }
-  else {
-
-    /* Halofit needs w0 = w_fld today */
-    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
-
-    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
-               pba->error_message,
-               pnl->error_message);
-
-    Omega_m = pvecback[pba->index_bg_Omega_m];
-    Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
-
   }
 
   anorm    = 1./(2*pow(_PI_,2));

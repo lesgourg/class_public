@@ -2835,141 +2835,21 @@ int input_read_parameters(
 
   }
 
-  /** - (i.5) special buisness if we want Halofit with w_a non-zero:
+  /** - (i.5) special buisness if we want Halofit with wa_fld non-zero:
         so-called "Pk-equal method" of 0810.0190 and 1601.07230 */
 
-   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)) {
+  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.))
+    pnl->has_pk_eq = _TRUE_;
 
-     pnl->has_pk_eq = _TRUE_;
+  if (pnl->has_pk_eq == _TRUE_) {
 
-   }
-
-   if (pnl->has_pk_eq == _TRUE_) {
-
-    /** loop over redshift **/
-
-    double tau_of_z;
-    double delta_tau;
-    double error;
-    double delta_tau_eq;
-    double * pvecback;
-    int last_index=0;
-    int index_eq_z;
-    int index_eq;
-    int true_background_verbose;
-    int true_thermodynamics_verbose;
-    double true_w0_fld;
-    double true_wa_fld;
-    double * z;
-
-    true_background_verbose = pba->background_verbose;
-    true_thermodynamics_verbose = pth->thermodynamics_verbose;
-    true_w0_fld = pba->w0_fld;
-    true_wa_fld = pba->wa_fld;
-    ////
-
-    pba->background_verbose = 0;
-    pth->thermodynamics_verbose = 0;
-
-    pnl->eq_tau_size = 10;
-    class_alloc(pnl->eq_tau,pnl->eq_tau_size*sizeof(double),errmsg);
-    class_alloc(z,pnl->eq_tau_size*sizeof(double),errmsg);
-
-    index_eq = 0;
-    class_define_index(pnl->index_eq_w,_TRUE_,index_eq,1);
-    class_define_index(pnl->index_eq_Omega_m,_TRUE_,index_eq,1);
-    pnl->eq_size = index_eq;
-    class_alloc(pnl->eq_w_and_Omega,pnl->eq_tau_size*pnl->eq_size*sizeof(double),errmsg);
-    class_alloc(pnl->eq_ddw_and_ddOmega,pnl->eq_tau_size*pnl->eq_size*sizeof(double),errmsg);
-
-    class_call(background_init(ppr,pba), pba->error_message, errmsg);
-    for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
-      z[index_eq_z] = exp(log(1.+5.)/(pnl->eq_tau_size-1)*index_eq_z)-1.;
-      class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z),
-                 pba->error_message, errmsg);
-      //pk_eq_z[index_eq] = pow(10.,log(1.+5.)/log(10.)/9*index_eq)-1.;
-      fprintf(stdout,"z=%e tau=%e\n",z[index_eq_z],tau_of_z);
-      pnl->eq_tau[index_eq_z] = tau_of_z;
+    if (input_verbose > 0) {
+      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
+      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk-equal method\n");
     }
-    class_call(background_free(pba), pba->error_message, errmsg);
-
-    for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
-
-      if (input_verbose>2)
-        printf("PK-equal method at z=%e\n",z[index_eq_z]);
-
-      pba->w0_fld = true_w0_fld;
-      pba->wa_fld = true_wa_fld;
-
-      class_call(background_init(ppr,pba), pba->error_message, errmsg);
-      class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
-
-      delta_tau = pnl->eq_tau[index_eq_z] - pth->tau_rec;
-
-      ///////
-
-      pba->wa_fld=0.;
-
-      do {
-        class_call(background_free(pba), pba->error_message, errmsg);
-        class_call(thermodynamics_free(pth), pth->error_message, errmsg);
-
-        class_call(background_init(ppr,pba), pba->error_message, errmsg);
-        class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z), pba->error_message, errmsg);
-        class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
-
-        delta_tau_eq = tau_of_z - pth->tau_rec;
-
-        error = 1.-delta_tau_eq/delta_tau;
-        pba->w0_fld = pba->w0_fld*pow(1.+error,10.);
-
-      }
-      while(fabs(error) > 1.e-7);
-
-      pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_w] = pba->w0_fld;
-
-      class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-      class_call(background_at_tau(pba,
-                                   tau_of_z,
-                                   pba->long_info,
-                                   pba->inter_normal,
-                                   &last_index,
-                                   pvecback),
-                 pba->error_message, errmsg);
-      pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
-      free(pvecback);
-
-      class_call(background_free(pba), pba->error_message, errmsg);
-      class_call(thermodynamics_free(pth), pth->error_message, errmsg);
-
-    }
-
-    pba->background_verbose = true_background_verbose;
-    pth->thermodynamics_verbose = true_thermodynamics_verbose;
-    pba->w0_fld = true_w0_fld;
-    pba->wa_fld = true_wa_fld;
-
-    for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
-
-      fprintf(stdout,"%d %e %e %e %e\n",
-              index_eq_z,
-              z[index_eq_z],
-              pnl->eq_tau[index_eq_z],
-              pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_w],
-              pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m]
-              );
-    }
-    free(z);
-
-    class_call(array_spline_table_lines(
-                                          pnl->eq_tau,
-                                          pnl->eq_tau_size,
-                                          pnl->eq_w_and_Omega,
-                                          pnl->eq_size,
-                                          pnl->eq_ddw_and_ddOmega,
-                                          _SPLINE_NATURAL_,
-                                          errmsg),
-               errmsg,errmsg);
+    class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
+               errmsg,
+               errmsg);
   }
 
   return _SUCCESS_;
@@ -4164,4 +4044,143 @@ int compare_doubles(const void *a,const void *b) {
   else if
     (*x > *y) return 1;
   return 0;
+}
+
+int input_prepare_pk_eq(
+                        struct precision * ppr,
+                        struct background *pba,
+                        struct thermo *pth,
+                        struct nonlinear *pnl,
+                        int input_verbose,
+                        ErrorMsg errmsg
+                        ) {
+
+  double tau_of_z;
+  double delta_tau;
+  double error;
+  double delta_tau_eq;
+  double * pvecback;
+  int last_index=0;
+  int index_eq_z;
+  int index_eq;
+  int true_background_verbose;
+  int true_thermodynamics_verbose;
+  double true_w0_fld;
+  double true_wa_fld;
+  double * z;
+
+  true_background_verbose = pba->background_verbose;
+  true_thermodynamics_verbose = pth->thermodynamics_verbose;
+  true_w0_fld = pba->w0_fld;
+  true_wa_fld = pba->wa_fld;
+  ////
+
+  pba->background_verbose = 0;
+  pth->thermodynamics_verbose = 0;
+
+  pnl->eq_tau_size = 10;
+  class_alloc(pnl->eq_tau,pnl->eq_tau_size*sizeof(double),errmsg);
+  class_alloc(z,pnl->eq_tau_size*sizeof(double),errmsg);
+
+  index_eq = 0;
+  class_define_index(pnl->index_eq_w,_TRUE_,index_eq,1);
+  class_define_index(pnl->index_eq_Omega_m,_TRUE_,index_eq,1);
+  pnl->eq_size = index_eq;
+  class_alloc(pnl->eq_w_and_Omega,pnl->eq_tau_size*pnl->eq_size*sizeof(double),errmsg);
+  class_alloc(pnl->eq_ddw_and_ddOmega,pnl->eq_tau_size*pnl->eq_size*sizeof(double),errmsg);
+
+  class_call(background_init(ppr,pba), pba->error_message, errmsg);
+  for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
+    z[index_eq_z] = exp(log(1.+5.)/(pnl->eq_tau_size-1)*index_eq_z)-1.;
+    class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z),
+               pba->error_message, errmsg);
+    pnl->eq_tau[index_eq_z] = tau_of_z;
+  }
+  class_call(background_free(pba), pba->error_message, errmsg);
+
+  for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
+
+    if (input_verbose > 2)
+      printf("    * computing PK-equal parameters at z=%e\n",z[index_eq_z]);
+
+    pba->w0_fld = true_w0_fld;
+    pba->wa_fld = true_wa_fld;
+
+    class_call(background_init(ppr,pba), pba->error_message, errmsg);
+    class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+
+    delta_tau = pnl->eq_tau[index_eq_z] - pth->tau_rec;
+
+    ///////
+
+    pba->wa_fld=0.;
+
+    do {
+      class_call(background_free(pba), pba->error_message, errmsg);
+      class_call(thermodynamics_free(pth), pth->error_message, errmsg);
+
+      class_call(background_init(ppr,pba), pba->error_message, errmsg);
+      class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z), pba->error_message, errmsg);
+      class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+
+      delta_tau_eq = tau_of_z - pth->tau_rec;
+
+      error = 1.-delta_tau_eq/delta_tau;
+      pba->w0_fld = pba->w0_fld*pow(1.+error,10.);
+
+    }
+    while(fabs(error) > 1.e-7);
+
+    pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_w] = pba->w0_fld;
+
+    class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+    class_call(background_at_tau(pba,
+                                 tau_of_z,
+                                 pba->long_info,
+                                 pba->inter_normal,
+                                 &last_index,
+                                 pvecback),
+               pba->error_message, errmsg);
+    pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
+    free(pvecback);
+
+    class_call(background_free(pba), pba->error_message, errmsg);
+    class_call(thermodynamics_free(pth), pth->error_message, errmsg);
+
+  }
+
+  pba->background_verbose = true_background_verbose;
+  pth->thermodynamics_verbose = true_thermodynamics_verbose;
+  pba->w0_fld = true_w0_fld;
+  pba->wa_fld = true_wa_fld;
+
+  if (input_verbose > 1) {
+
+    fprintf(stdout,"    Effective parameters for Pk-equal:\n");
+
+    for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
+
+      fprintf(stdout,"    * at z=%e, tau=%e w=%e Omega_m=%e\n",
+              z[index_eq_z],
+              pnl->eq_tau[index_eq_z],
+              pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_w],
+              pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m]
+              );
+    }
+  }
+
+  free(z);
+
+  class_call(array_spline_table_lines(
+                                      pnl->eq_tau,
+                                      pnl->eq_tau_size,
+                                      pnl->eq_w_and_Omega,
+                                      pnl->eq_size,
+                                      pnl->eq_ddw_and_ddOmega,
+                                      _SPLINE_NATURAL_,
+                                      errmsg),
+             errmsg,errmsg);
+
+  return _SUCCESS_;
+
 }

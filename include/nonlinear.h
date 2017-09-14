@@ -28,6 +28,21 @@ struct nonlinear {
 
   enum non_linear_method method; /**< method for computing non-linear corrections (none, Halogit, etc.) */
 
+  short has_pk_eq; /**< flag activating a method extending the range
+                      of validity of HALOFIT from constant w to w0-wa
+                      models (method called PK-equal, described in
+                      0810.0190 and 1601.07230). Next input parameters
+                      are related to this method. */
+
+  double * eq_tau;             /**< tabulated tau values for PK-equal input */
+  int eq_tau_size;             /**< size of this array */
+
+  double * eq_w_and_Omega;     /**< tabulated w and Omega_m values for PK-equal input */
+  double * eq_ddw_and_ddOmega; /**< second derivative of previous array w.r.t. tau */
+  int index_eq_w;              /** index of w in this array */
+  int index_eq_Omega_m;        /** index of Omega_m in this array */
+  int eq_size;                 /** number of indices in this array */
+
   //@}
 
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
@@ -41,23 +56,6 @@ struct nonlinear {
 
   double * nl_corr_density;   /**< nl_corr_density[index_tau * ppt->k_size + index_k] */
   double * k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
-
-  //@}
-
-  /** @name - table of effective values of w0(z) and Omega_m(z) in the PK-eq method of 0810.0190 and 1601.07230 */
-
-  //@{
-
-  short has_pk_eq;
-
-  double * eq_tau;
-  int eq_tau_size;
-
-  double * eq_w_and_Omega;
-  double * eq_ddw_and_ddOmega;
-  int index_eq_w;
-  int index_eq_Omega_m;
-  int eq_size;
 
   //@}
 
