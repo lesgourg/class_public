@@ -1731,14 +1731,6 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
 
 /** Tables specific to evaporating PBH */
 if(pth->PBH_low_mass > 0.){
-  pth->PBH_table_is_initialized = _TRUE_ ;
-  pth->PBH_table_z = NULL;
-  pth->PBH_table_mass = NULL;
-  pth->PBH_table_mass_dd = NULL;
-  pth->PBH_table_F = NULL;
-  pth->PBH_table_F_dd = NULL;
-}
-else {
   pth->PBH_table_is_initialized = _FALSE_ ;
   pth->PBH_table_z = NULL;
   pth->PBH_table_mass = NULL;
@@ -1746,6 +1738,7 @@ else {
   pth->PBH_table_F = NULL;
   pth->PBH_table_F_dd = NULL;
 }
+
 
 
 
