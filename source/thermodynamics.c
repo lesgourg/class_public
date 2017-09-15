@@ -2106,6 +2106,7 @@ int pbh_low_mass_time_evolution(
           preco->PBH_table_mass[i_step] = current_mass;
           preco->PBH_table_F[i_step] = f;
           loop_z = MAX(0,loop_z-dz);
+          // printf("f %e mass %e \n",f,current_mass);
         }
         free(pvecback_loop);
         class_call(array_spline_table_lines(preco->PBH_table_z,
@@ -2181,6 +2182,8 @@ int thermodynamics_low_mass_pbh_energy_injection(
 				      error_message),
 	     error_message,
 	     error_message);
+  //  printf("preco: z %e pbhmass %e f %e\n",z,pbh_mass,f);
+
   f_neutrinos = 6*0.147;
   // em_branching = (f-f_neutrinos)/f;
   em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
@@ -4564,12 +4567,15 @@ class_stop(pth->error_message,
    double z, xe, Tm, Hz;
    void * buffer;
    double tau;
-   int last_index_back;
+   int last_index_back,last_index_back2;
    int on_the_spot = 1;
 
    if(pth->has_on_the_spot == _FALSE_){
      on_the_spot = 0;
    }
+
+
+
    /** - Compute the recombination history by calling hyrec_compute.
          No CLASS-like error management here, but YAH working on it :) **/
 
@@ -4610,6 +4616,7 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->annihil_coef_ionHe = pth->annihil_coef_ionHe;
            hyrec_data.cosmo->inj_params->annihil_coef_lya = pth->annihil_coef_lya;
            hyrec_data.cosmo->inj_params->annihil_coef_lowE = pth->annihil_coef_lowE;
+
            hyrec_data.cosmo->inj_params->annihil_coef_dd_heat = pth->annihil_coef_dd_heat;
            hyrec_data.cosmo->inj_params->annihil_coef_dd_ionH = pth->annihil_coef_dd_ionH;
            hyrec_data.cosmo->inj_params->annihil_coef_dd_ionHe = pth->annihil_coef_dd_ionHe;
@@ -4619,6 +4626,22 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->annihil_z = preco->annihil_z;
            hyrec_data.cosmo->inj_params->annihil_f_eff = preco->annihil_f_eff;
            hyrec_data.cosmo->inj_params->annihil_dd_f_eff = preco->annihil_dd_f_eff;
+
+           preco->PBH_low_mass = pth->PBH_low_mass;
+           if ((pth->PBH_table_is_initialized) == _FALSE_ && pth->PBH_low_mass > 0.) {
+             pth->PBH_table_is_initialized = _TRUE_;
+             pbh_low_mass_time_evolution(ppr,pba,preco,pth->error_message);
+           }
+
+            hyrec_data.cosmo->inj_params->PBH_table_is_initialized= preco->PBH_table_is_initialized;
+            hyrec_data.cosmo->inj_params->PBH_table_z = preco->PBH_table_z;
+            hyrec_data.cosmo->inj_params->PBH_table_mass = preco->PBH_table_mass;
+            hyrec_data.cosmo->inj_params->PBH_table_mass_dd = preco->PBH_table_mass_dd;
+            hyrec_data.cosmo->inj_params->PBH_table_F = preco->PBH_table_F;
+            hyrec_data.cosmo->inj_params->PBH_table_F_dd = preco->PBH_table_F_dd;
+            hyrec_data.cosmo->inj_params->PBH_table_size= preco->PBH_table_size;
+            hyrec_data.cosmo->inj_params->PBH_low_mass = pth->PBH_low_mass;
+
 
            if(pth->energy_deposition_treatment==Analytical_approximation) {
              hyrec_data.cosmo->inj_params->energy_deposition_treatment = 0;

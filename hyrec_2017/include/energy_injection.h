@@ -59,7 +59,6 @@ typedef struct {
    double chi_lowE;
 
 
-
    double annihilation_z_halo; /*characteristic redshift for DM annihilation in halos*/
    double * annihil_z;
    double * annihil_f_eff;
@@ -68,9 +67,26 @@ typedef struct {
    short  energy_repart_functions; /**< energy repartition functions */
    int energy_deposition_treatment;
    int annihil_f_eff_num_lines;
+
+   /** for PBH evaporation */
+   double PBH_low_mass; /**< mass from the evaporating PBH in g */
+
+   short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */
+   double PBH_z_evaporation; /**< Double to store the evaporation redshift. Useful to avoid bad extrapolation at low z. */
+   int PBH_table_size; /**< Length of the PBH-mass evolution table */
+   double * PBH_table_z; /**< Array of redshift for the evolution of the PBH-mass (used for evaporation) */
+   double * PBH_table_mass; /**< Array of the PBH-mass given the redshift in 'PBH_table_z' */
+   double * PBH_table_mass_dd; /**< Array of the second derivative of PBH-mass w.r.t. the redshift */
+   double * PBH_table_F; /**< Array of F(z)  given the redshift in 'PBH_table_z' */
+   double * PBH_table_F_dd; /**< Array of the second derivative of F(z) w.r.t. the redshift */
+
+
+
+
+
+
    int reio_parametrization; /*Do we want the reio by stars based on SFR modeling ? 0 = no, 1 = yes*/
    int star_heating_parametrization; /*Do we want heating by stars based on SFR modeling ? 0 = no, 1 = yes*/
-
    /** A few parameters if the scheme reio_stars_sfr_source_term is chosen */
 
    double f_esc; /**< fraction of photons produced by stellar populations that escape to ionize the IGM */
@@ -113,3 +129,4 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
 int evaluate_chi_heat(INJ_PARAMS *param,double z, double xe);
 int evaluate_chi_ionisation(INJ_PARAMS *param,double z, double xe);
 int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params, double xe_or_z);
+double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params);

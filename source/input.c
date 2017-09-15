@@ -1511,9 +1511,9 @@ int input_read_parameters(
   class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
-  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_low_mass!= 0.,
+  class_test(pth->recombination==cosmorec && pth->PBH_low_mass!= 0.,
                errmsg,
-               "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
+               "Effect of evaporating PBH cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
   class_test(pth->annihilation>0. && pth->annihilation_boost_factor >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");

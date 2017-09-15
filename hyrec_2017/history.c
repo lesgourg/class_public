@@ -501,7 +501,6 @@ void rec_build_history(int model, double zstart, double zend,
   H  = rec_HubbleRate(cosmo, z);
   update_dEdtdV_dep(z, DLNA, xe_output[iz-1], Tm_output[iz-1], nH, H,
 		    cosmo->inj_params, &dEdtdV_dep);
-
   for(; z >= 0. && xHeII > XHEII_MIN; iz++) {
 
     get_rec_next2_HHe(model, cosmo, z, Tm_output[iz-1], &xH1, &xHeII, atomic,

@@ -33,30 +33,41 @@ double dEdtdV_DM_ann(double z, INJ_PARAMS *params){
   zp1_min   = params->ann_zmin + 1.;
 
   pann_tot = 0.;
-
+  double Boost_factor = 0.;
   /* Dark matter annihilation in the smooth background */
-  if (params->pann > 0.) {
+  // if (params->pann > 0.) {
+  //
+  //   /* Parametrized variation of pann */
+  //   if (zp1 > zp1_max) pann_tot = params->pann *exp(-var *square(log(zp1_ann/zp1_max)));
+  //   else if (zp1 > zp1_min) {
+  //     pann_tot = params->pann *exp(var*(-square(log(zp1_ann/zp1_max))
+	// 			+square(log(zp1/zp1_max))));
+  //   }
+  //   else {
+  //     pann_tot = params->pann *exp(var*(-square(log(zp1_ann/zp1_max))
+	// 			+square(log(zp1_min/zp1_max))));
+  //   }
+  //   pann_tot*=zp1*zp1*zp1;
+  // }
+  // /* Dark matter annihilation in haloes */
+  // if (params->pann_halo > 0.) {
+  //   u_min = zp1/zp1_halo;
+  //   erfc  = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
+  //   pann_tot += params->pann_halo *erfc;
+  // }
 
-    /* Parametrized variation of pann */
-    if (zp1 > zp1_max) pann_tot = params->pann *exp(-var *square(log(zp1_ann/zp1_max)));
-    else if (zp1 > zp1_min) {
-      pann_tot = params->pann *exp(var*(-square(log(zp1_ann/zp1_max))
-				+square(log(zp1/zp1_max))));
-    }
-    else {
-      pann_tot = params->pann *exp(var*(-square(log(zp1_ann/zp1_max))
-				+square(log(zp1_min/zp1_max))));
-    }
-    pann_tot*=zp1*zp1*zp1;
-  }
-  /* Dark matter annihilation in haloes */
-  if (params->pann_halo > 0.) {
-    u_min = zp1/zp1_halo;
-    erfc  = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
-    pann_tot += params->pann_halo *erfc;
-  }
 
-  return square(10537.4*params->odmh2) * zp1*zp1*zp1 *1e-9* pann_tot;
+
+    if(params->ann_f_halo>0.){
+      u_min = zp1/zp1_halo;
+      erfc  = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
+      Boost_factor = params->ann_f_halo*erfc/pow(zp1,3);
+    }
+    else Boost_factor = 0;
+
+    return square(10537.4*params->odmh2)*1e-9*(pow((zp1),6)*params->pann)*(1+Boost_factor);
+
+  // return square(10537.4*params->odmh2) * zp1*zp1*zp1 *1e-9* pann_tot;
   /* the prefactor is 3 H100^2/(8 Pi G) c^2 in eV/cm^3, H100 = 100km/s/Mpc */
   /* pann is given in cm^3/s/GeV, multiply by 1e-9 to get cm^3/s/eV */
 
@@ -198,10 +209,82 @@ double dEdtdV_pbh(double fpbh, double Mpbh, double z, double xe, double Tgas, in
   // xe_used = feedback + (1-feedback)*xe_used;
   // Old feedback - no feedback model, where xe = 1 throughout was assumed in the strong feedback case
 
-  if (fpbh > 0.) {
+  if (fpbh > 0. && Mpbh > 0.) {
     return 7.07e-52/Mpbh * cube(1.+z) * fpbh *L_pbh_av(Mpbh, z, xe_used, Tgas, coll_ion);
   }
   else return 0.;
+}
+
+/******************************Energy Injection low mass PBH (evaporation)**********************************/
+double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params){
+
+  double rho_cdm_today;
+  //double tau;
+  int last_index_back;
+  //Parameters related to PBH
+  ErrorMsg error_message;
+  double f, f_neutrinos, em_branching, pbh_mass;
+  double dMdt,energy_rate=0.;
+  double zp1 = 1 + z;
+
+  /* Calculate the PBH-mass evolution at first call of the function */
+  // if ((params->PBH_table_is_initialized) == _FALSE_) {
+  //   params->PBH_table_is_initialized = _TRUE_;
+  //   pbh_low_mass_time_evolution(ppr,pba,params,error_message);
+  // }
+  // class_test(params->PBH_table_is_initialized == _FALSE_, error_message, "The PBH table is not initialized");
+  // Need to add a error message in case the PBH table isn't correctly initialised
+  /* End of PBH-mass loop */
+
+
+  class_call(array_interpolate_spline(params->PBH_table_z,
+				      params->PBH_table_size,
+				      params->PBH_table_mass,
+				      params->PBH_table_mass_dd,
+				      1,
+				      z,
+				      &last_index_back,
+				      &(pbh_mass),
+				      1,
+				      error_message),
+	     error_message,
+	     error_message);
+  class_call(array_interpolate_spline(params->PBH_table_z,
+				      params->PBH_table_size,
+				      params->PBH_table_F,
+				      params->PBH_table_F_dd,
+				      1,
+				      z,
+				      &last_index_back,
+				      &f,
+				      1,
+				      error_message),
+	     error_message,
+	     error_message);
+  // printf("z %e pbhmass %e f %e\n",z,pbh_mass,f);
+  // f_neutrinos = 6*0.147;
+  // em_branching = (f-f_neutrinos)/f;
+  em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
+  // printf("params->PBH_z_evaporation %e\n", params->PBH_z_evaporation);
+  if(pbh_mass <= 0.0001*params->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < params->PBH_z_evaporation){
+    pbh_mass = 0;
+    dMdt = 0;
+    f = 0.;
+  }
+  else {
+    dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
+  }
+
+   energy_rate = 10537.4*params->odmh2*pow((zp1),3)*params->fpbh/params->PBH_low_mass*em_branching*(dMdt);
+
+  // *energy_rate = rho_cdm_today*pow((1+z),3)*params->PBH_fraction/pbh_mass*em_branching*(dMdt);
+  if(isnan(energy_rate)==1 || energy_rate < 0){
+    energy_rate=0.;
+  }
+  // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg | params->PBH_low_mass = %lg \n",z,f,pbh_mass,energy_rate,params->PBH_low_mass);
+
+  return energy_rate;
+  // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
 }
 
 /***********************************************************************************
@@ -210,8 +293,10 @@ Add in your favorite energy injection mechanism here
 ***********************************************************************************/
 
 double dEdtdV_inj(double z, double xe, double Tgas, INJ_PARAMS *params){
+
   return   dEdtdV_DM_ann(z, params)
-    + dEdtdV_pbh(params->fpbh, params->Mpbh, z, xe, Tgas, params->coll_ion);
+    + dEdtdV_pbh(params->fpbh, params->Mpbh, z, xe, Tgas, params->coll_ion)
+    +dEdVdt_evaporating_PBH(z,params);
 }
 
 
@@ -233,7 +318,7 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
   // Here I assume injected photon spectrum Compton cools at rate dE/dt = - 0.1 n_h c sigma_T E
   // This is valid for E_photon ~ MeV or so.
 
-  else { // 0.1 c sigma_T = 2e-15 (cgs).
+  else { // 0.1 c sigma_T = 2e-15 (cgs)
     if(params->energy_deposition_treatment == 0)
     *dEdtdV_dep = (*dEdtdV_dep *exp(-7.*dlna) + 2e-15* dlna*nH/H *inj)
                  /(1.+ 2e-15 *dlna*nH/H);
@@ -244,6 +329,7 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
     }
 
   }
+
   //  printf("on_the_spot %d *dEdtdV_dep %e inj %e \n", params->on_the_spot,*dEdtdV_dep,inj);
 
 
@@ -419,7 +505,7 @@ int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params,
                                 1,
                                 error_message);
       }
-    // fprintf(stdout,"%e      %e     %e      %e      %e    \n", xe,chi_heat,chi_lya, chi_ionH,chi_ionHe,chi_lowE);
+    // fprintf(stdout,"%e      %e     %e      %e      %e    \n", xe_or_z,inj_params->chi_heat,inj_params->chi_lya, inj_params->chi_ionH,inj_params->chi_ionHe,inj_params->chi_lowE);
 
         return _SUCCESS_;
 
