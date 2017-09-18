@@ -903,6 +903,10 @@ extern "C" {
 					 struct recombination * preco,
 					 struct reionization * preio
 					 );
+  int fill_recombination_structure(struct precision * ppr,
+                                  struct background * pba,
+                                  struct thermo * pth,
+                                  struct recombination * preco);
 
   int thermodynamics_output_titles(struct background * pba,
                                    struct thermo *pth,

@@ -4224,7 +4224,7 @@ int thermodynamics_reionization_sample(
               /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
 
               if(pth->thermodynamics_verbose>10){
-                fprintf(stdout, "z %e dTdz_CMB %edTdz_DM %e xe %e energy_rate %e chi_heat %e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
+                fprintf(stdout, "z %e dTdz_CMB %e dTdz_DM %e xe %e energy_rate %e chi_heat %e\n",z,dTdz_CMB,dTdz_DM,preio->reionization_table[i*preio->re_size+preio->index_re_xe],energy_rate, chi_heat);
               }
 
       }
@@ -4542,6 +4542,7 @@ class_stop(pth->error_message,
  * @param preco    Output: pointer to recombination structure
  * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
  */
+
  int thermodynamics_recombination_with_hyrec(
                                              struct precision * ppr,
                                              struct background * pba,
@@ -4575,6 +4576,8 @@ class_stop(pth->error_message,
    }
 
 
+   /** - Fill the recombination structure with all important parameters */
+   class_call(fill_recombination_structure(ppr,pba,pth,preco),pth->error_message,pth->error_message);
 
    /** - Compute the recombination history by calling hyrec_compute.
          No CLASS-like error management here, but YAH working on it :) **/
@@ -4631,7 +4634,6 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->annihil_f_eff = preco->annihil_f_eff;
            hyrec_data.cosmo->inj_params->annihil_dd_f_eff = preco->annihil_dd_f_eff;
 
-           preco->PBH_low_mass = pth->PBH_low_mass;
            if ((pth->PBH_table_is_initialized) == _FALSE_ && pth->PBH_low_mass > 0.) {
              pth->PBH_table_is_initialized = _TRUE_;
              preco->PBH_table_is_initialized = _TRUE_;
@@ -4781,6 +4783,106 @@ class_stop(pth->error_message,
  }
 
 
+int fill_recombination_structure(struct precision * ppr,
+                                 struct background * pba,
+                                 struct thermo * pth,
+                                 struct recombination * preco){
+
+   double mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He;
+
+  /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
+  preco->rt_size = ppr->recfast_Nz0;
+  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
+
+
+  /** - read a few precision/cosmological parameters */
+
+
+  /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
+  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
+
+  /* Yp */
+  preco->YHe = pth->YHe;
+
+  /* Tnow */
+  preco->Tnow = pba->T_cmb;
+
+  /* H_frac */
+  preco->H_frac = ppr->recfast_H_frac;
+
+  /* H fudging */
+ class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
+            pth->error_message,
+            "RECFAST error: unknown H fudging scheme");
+  preco->fu = ppr->recfast_fudge_H;
+  if (ppr->recfast_Hswitch == _TRUE_)
+    preco->fu += ppr->recfast_delta_fudge_H;
+
+  /* He fudging */
+  class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
+             pth->error_message,
+             "RECFAST error: unknown He fudging scheme");
+
+  mu_H = 1./(1.-preco->YHe);
+  Lalpha = 1./_L_H_alpha_;
+  Lalpha_He = 1./_L_He_2p_;
+  DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
+  DeltaB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_);
+
+  preco->fHe = preco->YHe/(_not4_ *(1.-preco->YHe)); /* recfast 1.4 */
+  preco->Nnow = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*mu_H*_m_H_);
+
+  /* energy injection parameters */
+  preco->annihilation = pth->annihilation;
+  preco->has_on_the_spot = pth->has_on_the_spot;
+  preco->annihilation_variation = pth->annihilation_variation;
+  preco->annihilation_z = pth->annihilation_z;
+  preco->annihilation_zmax = pth->annihilation_zmax;
+  preco->annihilation_zmin = pth->annihilation_zmin;
+  preco->decay_fraction = pth->decay_fraction;
+  preco->PBH_high_mass = pth->PBH_high_mass;
+  preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
+  preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
+  preco->PBH_relative_velocities = pth->PBH_relative_velocities;
+  preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
+  preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
+  preco->energy_deposition_treatment = pth->energy_deposition_treatment;
+  preco->PBH_low_mass = pth->PBH_low_mass;
+  preco->PBH_fraction = pth->PBH_fraction;
+
+  preco->PBH_table_is_initialized = pth->PBH_table_is_initialized;
+  preco->PBH_table_z = pth->PBH_table_z;
+  preco->PBH_table_mass = pth->PBH_table_mass;
+  preco->PBH_table_mass_dd = pth->PBH_table_mass_dd;
+  preco->PBH_table_F = pth->PBH_table_F;
+  preco->PBH_table_F_dd = pth->PBH_table_F_dd;
+
+  preco->energy_repart_functions = pth->energy_repart_functions;
+  preco->annihilation_f_halo = pth->annihilation_f_halo;
+  preco->annihilation_z_halo = pth->annihilation_z_halo;
+
+
+  /* quantities related to constants defined in thermodynamics.h */
+  //n = preco->Nnow * pow((1.+z),3);
+
+  preco->CDB = DeltaB/_k_B_;
+  preco->CDB_He = DeltaB_He/_k_B_;
+  preco->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;
+  preco->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;
+  preco->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;
+  preco->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
+  preco->CK = pow(Lalpha,3)/(8.*_PI_);
+  preco->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
+  preco->CL = _c_*_h_P_/(_k_B_*Lalpha);
+  preco->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
+  preco->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) *
+    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3));
+
+  preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
+
+  return _SUCCESS_;
+}
+
 /**
  * Integrate thermodynamics with RECFAST.
  *
@@ -4857,109 +4959,34 @@ int thermodynamics_recombination_with_recfast(
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
   struct thermodynamics_parameters_and_workspace tpaw;
 
-  /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
-  preco->rt_size = ppr->recfast_Nz0;
-  class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
+  /** - Fill the recombination structure with all important parameters */
+  class_call(fill_recombination_structure(ppr,pba,pth,preco),pth->error_message,pth->error_message);
 
   /** - initialize generic integrator with initialize_generic_integrator() */
   class_call(initialize_generic_integrator(_RECFAST_INTEG_SIZE_, &gi),
              gi.error_message,
              pth->error_message);
 
-  /** - read a few precision/cosmological parameters */
-
   /* Nz */
   Nz=ppr->recfast_Nz0;
-
-  /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
-  preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
 
   /* Omega_b */
   OmegaB = pba->Omega0_b;
 
-  /* Yp */
-  preco->YHe = pth->YHe;
-
-  /* Tnow */
-  preco->Tnow = pba->T_cmb;
-
   /* z_initial */
   zinitial=ppr->recfast_z_initial;
 
-  /* H_frac */
-  preco->H_frac = ppr->recfast_H_frac;
-
-  /* H fudging */
- class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
-            pth->error_message,
-            "RECFAST error: unknown H fudging scheme");
-  preco->fu = ppr->recfast_fudge_H;
-  if (ppr->recfast_Hswitch == _TRUE_)
-    preco->fu += ppr->recfast_delta_fudge_H;
-
-  /* He fudging */
-  class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
-             pth->error_message,
-             "RECFAST error: unknown He fudging scheme");
-
   /* related quantities */
   z=zinitial;
-  mu_H = 1./(1.-preco->YHe);
-  //mu_T = _not4_ /(_not4_ - (_not4_-1.)*preco->YHe); /* recfast 1.4*/
-  preco->fHe = preco->YHe/(_not4_ *(1.-preco->YHe)); /* recfast 1.4 */
-  preco->Nnow = 3.*preco->H0*preco->H0*OmegaB/(8.*_PI_*_G_*mu_H*_m_H_);
+  // mu_H = 1./(1.-preco->YHe);
   pth->n_e = preco->Nnow;
 
-  /* energy injection parameters */
-  preco->annihilation = pth->annihilation;
-  preco->has_on_the_spot = pth->has_on_the_spot;
-  preco->annihilation_variation = pth->annihilation_variation;
-  preco->annihilation_z = pth->annihilation_z;
-  preco->annihilation_zmax = pth->annihilation_zmax;
-  preco->annihilation_zmin = pth->annihilation_zmin;
-  preco->decay_fraction = pth->decay_fraction;
-  preco->PBH_high_mass = pth->PBH_high_mass;
-  preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
-  preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
-  preco->PBH_relative_velocities = pth->PBH_relative_velocities;
-  preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
-  preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
-  preco->energy_deposition_treatment = pth->energy_deposition_treatment;
-  preco->PBH_low_mass = pth->PBH_low_mass;
-  preco->PBH_fraction = pth->PBH_fraction;
-
-  preco->PBH_table_is_initialized = pth->PBH_table_is_initialized;
-  preco->PBH_table_z = pth->PBH_table_z;
-  preco->PBH_table_mass = pth->PBH_table_mass;
-  preco->PBH_table_mass_dd = pth->PBH_table_mass_dd;
-  preco->PBH_table_F = pth->PBH_table_F;
-  preco->PBH_table_F_dd = pth->PBH_table_F_dd;
-
-  preco->energy_repart_functions = pth->energy_repart_functions;
-  preco->annihilation_f_halo = pth->annihilation_f_halo;
-  preco->annihilation_z_halo = pth->annihilation_z_halo;
-
-
   /* quantities related to constants defined in thermodynamics.h */
-  //n = preco->Nnow * pow((1.+z),3);
-  Lalpha = 1./_L_H_alpha_;
-  Lalpha_He = 1./_L_He_2p_;
-  DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
-  preco->CDB = DeltaB/_k_B_;
-  DeltaB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_);
-  preco->CDB_He = DeltaB_He/_k_B_;
-  preco->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;
-  preco->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;
-  preco->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;
-  preco->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
-  preco->CK = pow(Lalpha,3)/(8.*_PI_);
-  preco->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
-  preco->CL = _c_*_h_P_/(_k_B_*Lalpha);
-  preco->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
-  preco->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) *
-    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3));
 
-  preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
+  // Lalpha = 1./_L_H_alpha_;
+  // Lalpha_He = 1./_L_He_2p_;
+  // DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
+  // DeltaB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_);
 
   /** - define the fields of the 'thermodynamics parameter and workspace' structure */
   tpaw.pba = pba;
