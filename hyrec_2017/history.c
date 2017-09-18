@@ -468,7 +468,6 @@ void rec_build_history(int model, double zstart, double zend,
 	    (this occurs at index izH0 computed in rec_get_cosmoparam).
 	    Start with quasi-equilibrium approximation.
   ********/
-
   dxHeIIdlna_prev[1] = dxHeIIdlna_prev[0] = 0.;
 
   xHeII    = rec_saha_xHeII(cosmo->nH0, cosmo->T0, cosmo->fHe, z, cosmo->fsR, cosmo->meR);
@@ -639,7 +638,7 @@ void hyrec_compute_CLASS(HYREC_DATA *data, int model){
 
   rec_build_history(model, data->zmax, data->zmin, data->cosmo, data->atomic,
 		    data->rad, data->xe_output, data->Tm_output);
-        
+
 }
 /*****
      Once HYREC_DATA outputs are computed, obtain xe(z) and Tm(z) by interpolation

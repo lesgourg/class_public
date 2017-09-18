@@ -91,8 +91,7 @@ double dEdtdV_DM_decay(double z, INJ_PARAMS *params){
     // // if(z>0)fprintf(stdout, "z = %e energy_rate = %e\n", z, energy_rate*1.e6*1.60217653e-19);
   }
   else energy_rate = 0.;
-energy_rate = 0;
-  fprintf(stdout, "z %e result_integrale %e energy_rate %e\n",z,result_integrale,energy_rate );
+  // fprintf(stdout, "z %e result_integrale %e energy_rate %e\n",z,result_integrale,energy_rate );
 
 
   return energy_rate;
@@ -261,53 +260,55 @@ double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params){
   // class_test(params->PBH_table_is_initialized == _FALSE_, error_message, "The PBH table is not initialized");
   // Need to add a error message in case the PBH table isn't correctly initialised
   /* End of PBH-mass loop */
+ if(params->PBH_low_mass > 0){
+   class_call(array_interpolate_spline(params->PBH_table_z,
+ 				      params->PBH_table_size,
+ 				      params->PBH_table_mass,
+ 				      params->PBH_table_mass_dd,
+ 				      1,
+ 				      z,
+ 				      &last_index_back,
+ 				      &(pbh_mass),
+ 				      1,
+ 				      error_message),
+ 	     error_message,
+ 	     error_message);
+   class_call(array_interpolate_spline(params->PBH_table_z,
+ 				      params->PBH_table_size,
+ 				      params->PBH_table_F,
+ 				      params->PBH_table_F_dd,
+ 				      1,
+ 				      z,
+ 				      &last_index_back,
+ 				      &f,
+ 				      1,
+ 				      error_message),
+ 	     error_message,
+ 	     error_message);
+   // printf("z %e pbhmass %e f %e\n",z,pbh_mass,f);
+   // f_neutrinos = 6*0.147;
+   // em_branching = (f-f_neutrinos)/f;
+   em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
+   // printf("params->PBH_z_evaporation %e\n", params->PBH_z_evaporation);
+   if(pbh_mass <= 0.0001*params->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < params->PBH_z_evaporation){
+     pbh_mass = 0;
+     dMdt = 0;
+     f = 0.;
+   }
+   else {
+     dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
+   }
 
+    energy_rate = 10537.4*params->odmh2*pow((zp1),3)*params->fpbh/params->PBH_low_mass*em_branching*(dMdt);
 
-  class_call(array_interpolate_spline(params->PBH_table_z,
-				      params->PBH_table_size,
-				      params->PBH_table_mass,
-				      params->PBH_table_mass_dd,
-				      1,
-				      z,
-				      &last_index_back,
-				      &(pbh_mass),
-				      1,
-				      error_message),
-	     error_message,
-	     error_message);
-  class_call(array_interpolate_spline(params->PBH_table_z,
-				      params->PBH_table_size,
-				      params->PBH_table_F,
-				      params->PBH_table_F_dd,
-				      1,
-				      z,
-				      &last_index_back,
-				      &f,
-				      1,
-				      error_message),
-	     error_message,
-	     error_message);
-  // printf("z %e pbhmass %e f %e\n",z,pbh_mass,f);
-  // f_neutrinos = 6*0.147;
-  // em_branching = (f-f_neutrinos)/f;
-  em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
-  // printf("params->PBH_z_evaporation %e\n", params->PBH_z_evaporation);
-  if(pbh_mass <= 0.0001*params->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < params->PBH_z_evaporation){
-    pbh_mass = 0;
-    dMdt = 0;
-    f = 0.;
-  }
-  else {
-    dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
-  }
+   // *energy_rate = rho_cdm_today*pow((1+z),3)*params->PBH_fraction/pbh_mass*em_branching*(dMdt);
+   if(isnan(energy_rate)==1 || energy_rate < 0){
+     energy_rate=0.;
+   }
+   // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg | params->PBH_low_mass = %lg \n",z,f,pbh_mass,energy_rate,params->PBH_low_mass);
 
-   energy_rate = 10537.4*params->odmh2*pow((zp1),3)*params->fpbh/params->PBH_low_mass*em_branching*(dMdt);
-
-  // *energy_rate = rho_cdm_today*pow((1+z),3)*params->PBH_fraction/pbh_mass*em_branching*(dMdt);
-  if(isnan(energy_rate)==1 || energy_rate < 0){
-    energy_rate=0.;
-  }
-  // if(pbh_mass>0)fprintf(stdout,"z = %lg | f = %lg | mass = %lg | energy_rate = %lg | params->PBH_low_mass = %lg \n",z,f,pbh_mass,energy_rate,params->PBH_low_mass);
+ }
+ else energy_rate = 0.;
 
   return energy_rate;
   // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
@@ -350,7 +351,7 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
 
   if (params->on_the_spot == 1){
     *dEdtdV_dep = inj;
-  } 
+  }
 
   // Else put in your favorite recipe to translate from injection to deposition
   // Here I assume injected photon spectrum Compton cools at rate dE/dt = - 0.1 n_h c sigma_T E
