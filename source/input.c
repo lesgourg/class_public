@@ -1586,6 +1586,17 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     sprintf(string2,"%g",pth->PBH_low_mass);
     strcat(ppr->command_fz,string2);
   }
+  if(pth->decay_fraction > 0){
+    // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
+    ppr->param_fz_2 = pba->tau_dcdm;
+    // sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
+    // class_alloc(ppr->command_fz,(strlen(string2) + 4 + 1)*sizeof(char), errmsg); // +4 corresponds to the mass that will be given just below
+    strcat(ppr->command_fz, "python ");
+    strcat(ppr->command_fz,__CLASSDIR__);
+    strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=decay --specfile external_fz/bottom_70-80_spectrum.dat --mass=75 --tdec=");
+    sprintf(string2,"%g",pba->tau_dcdm);
+    strcat(ppr->command_fz,string2);
+  }
   /* If the story is not implemented */
   /* Reading the input parameter for the external command */
 	else {

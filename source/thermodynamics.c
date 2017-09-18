@@ -2014,7 +2014,7 @@ int thermodynamics_DM_decay_energy_injection(
 
 
   *energy_rate = rho_dcdm*preco->decay_fraction*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
-  fprintf(stdout, "*energy_rate %e\n",*energy_rate );
+  // fprintf(stdout, "*energy_rate %e\n",*energy_rate );
   free(pvecback);
 
 
@@ -4634,16 +4634,17 @@ class_stop(pth->error_message,
            preco->PBH_low_mass = pth->PBH_low_mass;
            if ((pth->PBH_table_is_initialized) == _FALSE_ && pth->PBH_low_mass > 0.) {
              pth->PBH_table_is_initialized = _TRUE_;
+             preco->PBH_table_is_initialized = _TRUE_;
              pbh_low_mass_time_evolution(ppr,pba,preco,pth->error_message);
+             hyrec_data.cosmo->inj_params->PBH_table_is_initialized= preco->PBH_table_is_initialized;
+             hyrec_data.cosmo->inj_params->PBH_table_z = preco->PBH_table_z;
+             hyrec_data.cosmo->inj_params->PBH_table_mass = preco->PBH_table_mass;
+             hyrec_data.cosmo->inj_params->PBH_table_mass_dd = preco->PBH_table_mass_dd;
+             hyrec_data.cosmo->inj_params->PBH_table_F = preco->PBH_table_F;
+             hyrec_data.cosmo->inj_params->PBH_table_F_dd = preco->PBH_table_F_dd;
+             hyrec_data.cosmo->inj_params->PBH_table_size= preco->PBH_table_size;
            }
 
-            hyrec_data.cosmo->inj_params->PBH_table_is_initialized= preco->PBH_table_is_initialized;
-            hyrec_data.cosmo->inj_params->PBH_table_z = preco->PBH_table_z;
-            hyrec_data.cosmo->inj_params->PBH_table_mass = preco->PBH_table_mass;
-            hyrec_data.cosmo->inj_params->PBH_table_mass_dd = preco->PBH_table_mass_dd;
-            hyrec_data.cosmo->inj_params->PBH_table_F = preco->PBH_table_F;
-            hyrec_data.cosmo->inj_params->PBH_table_F_dd = preco->PBH_table_F_dd;
-            hyrec_data.cosmo->inj_params->PBH_table_size= preco->PBH_table_size;
             hyrec_data.cosmo->inj_params->PBH_low_mass = pth->PBH_low_mass;
 
 
@@ -4675,6 +4676,8 @@ class_stop(pth->error_message,
 
    if (pth->thermodynamics_verbose > 0)
      printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
+   if (pth->thermodynamics_verbose > 0)
+     printf("by Y. Ali-Haïmoud & C. Hirata\n");
 
    hyrec_compute_CLASS(&hyrec_data, FULL);
   //  hyrec_compute(&hyrec_data, FULL,
@@ -4683,8 +4686,6 @@ class_stop(pth->error_message,
  // 		pth->annihilation_zmin, pth->annihilation_variation, pth->annihilation_z_halo,
  // 		pth->PBH_high_mass, pth->PBH_fraction, pth->coll_ion_pbh,on_the_spot);
 
-   if (pth->thermodynamics_verbose > 0)
-     printf("    by Y. Ali-Haïmoud & C. Hirata\n");
 
    /** - fill a few parameters in preco and pth */
 
@@ -4768,7 +4769,6 @@ class_stop(pth->error_message,
    }
 
    /* Cleanup */
-
    free(buffer);
    hyrec_free(&hyrec_data);
  #else
@@ -5731,7 +5731,7 @@ int thermodynamics_merge_reco_and_reio(
   if ((pth->reio_parametrization != reio_none))
     free(preio->reionization_table);
 
-  if ((preco->PBH_table_is_initialized == _TRUE_)) {
+  if ((preco->PBH_table_is_initialized == _TRUE_) && pth->PBH_low_mass > 0.) {
     // fprintf(stdout,"PBH tabels are free'd\n");
     free(preco->PBH_table_z);
     free(preco->PBH_table_mass);
