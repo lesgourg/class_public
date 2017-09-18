@@ -639,7 +639,7 @@ void hyrec_compute_CLASS(HYREC_DATA *data, int model){
 
   rec_build_history(model, data->zmax, data->zmin, data->cosmo, data->atomic,
 		    data->rad, data->xe_output, data->Tm_output);
-
+        
 }
 /*****
      Once HYREC_DATA outputs are computed, obtain xe(z) and Tm(z) by interpolation

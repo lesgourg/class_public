@@ -37,7 +37,8 @@ typedef struct {
    double annihilation_m_DM;
    short has_on_the_spot; /** do we want to use the on-the-spot approximation? */
 
-   double decay_fraction; /** parameter descibing CDM decay (f/tau, see e.g. 1109.6322)*/
+   double decay_fraction; /**  fraction of decaying DM */
+   double Gamma_dcdm; /** Inverse lifetime of the decaying DM */
 
 
    int annihil_coef_num_lines;
@@ -101,14 +102,12 @@ typedef struct {
    double z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
 
 
-          //  double Omega0_g;
-          //  double odcdmh2,ocdmh2;
-          //  double Omega0_b;
-          //  double Omega0_cdm;
-          //  double Omega0_dcdm;
-          //  double Omega0_lambda;
-          //  double Gamma_dcdm;
-          //  double H0;
+   double Omega0_r;
+   double Omega0_b;
+   double Omega0_cdm;
+  //  double Omega0_dcdm;
+  //  double Omega0_lambda;
+   double H0;
 
 
 } INJ_PARAMS;
@@ -130,3 +129,4 @@ int evaluate_chi_heat(INJ_PARAMS *param,double z, double xe);
 int evaluate_chi_ionisation(INJ_PARAMS *param,double z, double xe);
 int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params, double xe_or_z);
 double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params);
+double dEdtdV_DM_decay(double z, INJ_PARAMS *params);

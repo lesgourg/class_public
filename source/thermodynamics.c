@@ -1990,7 +1990,7 @@ int thermodynamics_DM_decay_energy_injection(
     //   fprintf(stdout, "z = %e vrai = %e  approchee = %e relativ diff = %e\n",z,rho_dcdm, rho_dcdm_approchee,(rho_dcdm-rho_dcdm_approchee)/rho_dcdm_approchee);
   }
   else{
-    if(preco->has_on_the_spot == _FALSE_)decay_factor=1; //The effect of the exponential decay is already incoporated within the f_z functions.
+    if(preco->has_on_the_spot == _FALSE_)decay_factor=1; //The effect of the exponential decay is already incorporated within the f_z functions.
     else {
     class_call(background_tau_of_z(pba,
                                    z,
@@ -2014,7 +2014,7 @@ int thermodynamics_DM_decay_energy_injection(
 
 
   *energy_rate = rho_dcdm*preco->decay_fraction*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
-  // fprintf(stdout, "*energy_rate %e\n",*energy_rate );
+  fprintf(stdout, "*energy_rate %e\n",*energy_rate );
   free(pvecback);
 
 
@@ -4586,7 +4586,6 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->omh2 = Omega_m*pba->h*pba->h;
            hyrec_data.cosmo->inj_params->odmh2 = hyrec_data.cosmo->omh2 - hyrec_data.cosmo->obh2;
            hyrec_data.cosmo->okh2 = pba->Omega0_k*pba->h*pba->h;
-          //  hyrec_data.cosmo->odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
            hyrec_data.cosmo->odeh2 = (1.-Omega_m - hyrec_data.cosmo->okh2 - hyrec_data.cosmo->orh2/pba->h/pba->h)*pba->h*pba->h;
           //  hyrec_data.w0 = pba->w0_fld;
           //  hyrec_data.wa = pba->wa_fld;
@@ -4594,6 +4593,11 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->Nnueff = pba->Neff;
            hyrec_data.cosmo->nH0 = 11.223846333047e-6*hyrec_data.cosmo->obh2*(1.-hyrec_data.cosmo->Y);  /* number density of hydrogen today in m-3 */
            hyrec_data.cosmo->fHe = hyrec_data.cosmo->Y/(1-hyrec_data.cosmo->Y)/3.97153;              /* abundance of helium by number */
+
+           hyrec_data.cosmo->inj_params->Omega0_b = pba->Omega0_b;
+           hyrec_data.cosmo->inj_params->Omega0_cdm = pba->Omega0_cdm;
+           hyrec_data.cosmo->inj_params->Omega0_r = hyrec_data.cosmo->orh2/pow(pba->h,2);
+           hyrec_data.cosmo->inj_params->H0 = pba->h*100;
           //  hyrec_data.cosmo->inj_params->zstart = ppr->recfast_z_initial; /* Redshift range */
           //  hyrec_data.cosmo->inj_params->zend = 0.;
           //  hyrec_data.cosmo->inj_params->dlna = 8.49e-5;
@@ -4601,8 +4605,8 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->pann = 1.78266e-21*pth->annihilation;
            hyrec_data.cosmo->inj_params->pann_halo = 1.78266e-21*pth->annihilation_f_halo;
            hyrec_data.cosmo->inj_params->on_the_spot = on_the_spot;
-          //  hyrec_data.cosmo->inj_params->on_the_spot = on_the_spot;
            hyrec_data.cosmo->inj_params->decay_fraction = pth->decay_fraction;
+           hyrec_data.cosmo->inj_params->Gamma_dcdm = pba->Gamma_dcdm;
            hyrec_data.cosmo->inj_params->ann_var = pth->annihilation_variation;
            hyrec_data.cosmo->inj_params->ann_z = pth->annihilation_z;
            hyrec_data.cosmo->inj_params->ann_zmax = pth->annihilation_zmax;
@@ -4668,8 +4672,10 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->fpbh = pth->PBH_fraction;
            hyrec_data.cosmo->inj_params->coll_ion = pth->coll_ion_pbh;
           //
+
    if (pth->thermodynamics_verbose > 0)
      printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
+
    hyrec_compute_CLASS(&hyrec_data, FULL);
   //  hyrec_compute(&hyrec_data, FULL,
  // 		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,

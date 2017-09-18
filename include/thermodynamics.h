@@ -783,6 +783,7 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
+
   int thermodynamics_high_mass_pbh_energy_injection(
                                                     struct precision * ppr,
                                                     struct background * pba,
@@ -791,6 +792,14 @@ extern "C" {
                                                     double * energy_rate,
                                                     ErrorMsg error_message
                                                   );
+
+  int pbh_low_mass_time_evolution(
+                                    struct precision * ppr,
+                                    struct background * pba,
+                                    struct recombination * preco,
+                                    ErrorMsg error_message
+                                  );
+
   int thermodynamics_low_mass_pbh_energy_injection(
                                                     struct precision * ppr,
                                                     struct background * pba,

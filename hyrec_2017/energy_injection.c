@@ -72,7 +72,33 @@ double dEdtdV_DM_ann(double z, INJ_PARAMS *params){
   /* pann is given in cm^3/s/GeV, multiply by 1e-9 to get cm^3/s/eV */
 
 }
+/******************************Energy Injection DM decay**********************************/
+double dEdtdV_DM_decay(double z, INJ_PARAMS *params){
+  double result_integrale = 0, energy_rate = 0;
+  double rho_cdm_today;
+  double _Mpc_over_m_;
+  _Mpc_over_m_ = 3.085677581282*pow(10,22);
+  rho_cdm_today = params->Omega0_cdm*params->H0*params->H0/(10000)*1.44729366e-9; /* energy density in Kg/m^3 */
 
+  if(params->decay_fraction>0){
+
+     result_integrale = exp(-params->Gamma_dcdm*2*((params->Omega0_b+params->Omega0_cdm)*pow(params->Omega0_r+(params->Omega0_b+params->Omega0_cdm)/(1+z),0.5)
+    +2*pow(params->Omega0_r,1.5)*(1+z)-2*params->Omega0_r*pow((1+z)*(params->Omega0_r*(1+z)+(params->Omega0_b+params->Omega0_cdm)),0.5))/(3*pow((params->Omega0_b+params->Omega0_cdm),2)*(1+z)*params->H0));
+    energy_rate=rho_cdm_today*pow((1+z),3)*params->decay_fraction*result_integrale*(params->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
+    // if(rho_ini_dcdm!=0)energy_rate=rho_ini_dcdm*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
+    // // else energy_rate=rho_cdm_today*pow((1+z),3)*param->decay/1.e6/1.60217653e-19;
+    // else energy_rate=rho_cdm_today*pow((1+z),3)*param->decay*result_integrale*(param->Gamma_dcdm*2.99792458e8/_Mpc_over_m_)/1.e6/1.60217653e-19;
+    // // if(z>0)fprintf(stdout, "z = %e energy_rate = %e\n", z, energy_rate*1.e6*1.60217653e-19);
+  }
+  else energy_rate = 0.;
+energy_rate = 0;
+  fprintf(stdout, "z %e result_integrale %e energy_rate %e\n",z,result_integrale,energy_rate );
+
+
+  return energy_rate;
+
+
+}
 /***************************************************************************************
 Effect of accreting primordial black holes
 Since the accuracy is certainly not at the percent level,
@@ -286,7 +312,18 @@ double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params){
   return energy_rate;
   // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
 }
-
+// double dEdtdV_stars(double z, INJ_PARAMS *params){
+//   double ainv = 1+z;
+//   double rho_sfr =params->ap*pow(ainv,params->bp)/(1+pow((ainv)/params->cp,params->dp))*ainv*ainv*ainv*(1+tanh((params->z_start_reio_stars-z1)))/2;//Comoving to physical
+//   double dNion_over_dt;
+//   double joules_to_ev = 6.24150647996e+18;
+//   double MPCcube_to_mcube=pow(3.085677581282e22,3);
+//   double stars_xe;
+//   dNion_over_dt = params->f_esc*params->Zeta_ion*rho_sfr;
+//   double L_x = param->Ex  * param->fx* 2*rho_sfr/(3*MPCcube_to_mcube*kBoltz*nH*H*(1.+xe_in+param->fHe));
+//   return dNion_over_dt/(MPCcube_to_mcube);
+//
+// }
 /***********************************************************************************
 Total energy *injection* rate per unit volume
 Add in your favorite energy injection mechanism here
@@ -296,7 +333,8 @@ double dEdtdV_inj(double z, double xe, double Tgas, INJ_PARAMS *params){
 
   return   dEdtdV_DM_ann(z, params)
     + dEdtdV_pbh(params->fpbh, params->Mpbh, z, xe, Tgas, params->coll_ion)
-    +dEdVdt_evaporating_PBH(z,params);
+    +dEdVdt_evaporating_PBH(z,params)
+    +dEdtdV_DM_decay(z, params);
 }
 
 
@@ -312,7 +350,7 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
 
   if (params->on_the_spot == 1){
     *dEdtdV_dep = inj;
-  }
+  } 
 
   // Else put in your favorite recipe to translate from injection to deposition
   // Here I assume injected photon spectrum Compton cools at rate dE/dt = - 0.1 n_h c sigma_T E
