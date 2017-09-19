@@ -111,9 +111,10 @@ double beta_pbh(double Mpbh, double z, double xe, double Teff) {
   double a, vB, tB;
 
   a     = 1./(1.+z);
+  // vB    = vbc_av(z,xe,Teff);    /* Bondi speed in cm/s */
   vB    = 9.09e3 * sqrt((1.+xe)*Teff);    /* Bondi speed in cm/s */
   tB    = 1.33e26 *Mpbh/vB/vB/vB;         /* Bondi timescale in sec*/
-
+  // if(isnan(vB)==0)printf("%e %e %e %e %e\n",z,vB,xe,Teff,7.45e-24 *xe/a/a/a/a *tB);
   return 7.45e-24 *xe/a/a/a/a *tB;
 }
 
@@ -144,8 +145,9 @@ double lambda_pbh(double Mpbh, double z, double xe, double Teff) {
 /* This is assuming Omega_b h^2 = 0.022 (sufficient at the level of accuracy we need) */
 double Mdot_pbh(double Mpbh, double z, double xe, double Teff) {
 
+  // double vB  = vbc_av(z,xe,Teff);    /* Bondi speed in cm/s */
   double vB  = 9.09e3 * sqrt((1.+xe)*Teff);    /* Bondi speed in cm/s */
-
+  // printf("%e %e \n",z,9.15e22 * Mpbh*Mpbh*cube((1.+z)/vB) *lambda_pbh(Mpbh, z, xe, Teff));
   return 9.15e22 * Mpbh*Mpbh*cube((1.+z)/vB) *lambda_pbh(Mpbh, z, xe, Teff);
 }
 
@@ -189,7 +191,7 @@ double L_pbh(double Mpbh, double z, double xe, double Teff, int coll_ion) {
   Mdot = Mdot_pbh(Mpbh, z, xe, Teff);
   mdot = Mdot / (1.4e17 * Mpbh);        /* Mdot c^2 / L_Eddington */
   eff  = mdot *eps_over_mdot_pbh(Mpbh, z, xe, Teff, coll_ion);
-
+  // printf("%e %e %e\n",z,mdot,eff*Mdot/(1.4e17 * Mpbh));
   return eff * Mdot * 9e20;  /* L = epsilon Mdot c^2 */
 }
 
@@ -197,6 +199,15 @@ double L_pbh(double Mpbh, double z, double xe, double Teff, int coll_ion) {
 double vbc_rms_func(double z) {
   if (z < 1e3) return 3e6 * (1.+z)/1e3;
   else         return 3e6;
+}
+
+/* Average of the relative velocity over the distribution of relative velocities */
+
+double vbc_av(double z, double xe, double T) {
+  double vB  = 9.09e3 * sqrt((1.+xe)*T);    /* Bondi speed in cm/s */
+  if(vB < vbc_rms_func(z)) vB = sqrt(vB*vbc_rms_func(z));
+  // printf("%e %e %e %e %e\n",z,vB,9.09e3 * sqrt((1.+xe)*T),xe,T);
+  return vB;
 }
 
 /* Average of the pbh luminosity (erg/s) over the distribution of relative velocities */
@@ -221,25 +232,112 @@ double L_pbh_av(double Mpbh, double z, double xe, double Tgas, int coll_ion) {
 
     num += L_pbh(Mpbh, z, xe, Teff, coll_ion) * P_vbc;
   }
-
+  // printf(" %e %e %e \n", z,Mdot_pbh(Mpbh, z, xe, Tgas),num/denom/(1.4e17 * Mpbh)/9e20);
   return num/denom;
 }
 
 /* Rate of energy *injection* per unit volume (in eV/cm^3/s) due to PBHs */
 /* Taking Omega_c h^2 = 0.12                                             */
 
-double dEdtdV_pbh(double fpbh, double Mpbh, double z, double xe, double Tgas, int coll_ion) {
+double dEdtdV_accreting_PBH(double z, double xe, double Tgas, INJ_PARAMS *params) {
   double xe_used = (xe < 1.? xe : 1.); /* Since we are not accounting for Helium */
-
+  double energy_rate = 0;
   // xe_used = feedback + (1-feedback)*xe_used;
   // Old feedback - no feedback model, where xe = 1 throughout was assumed in the strong feedback case
+  if (params->fpbh > 0. && params->Mpbh > 0.) {
 
-  if (fpbh > 0. && Mpbh > 0.) {
-    return 7.07e-52/Mpbh * cube(1.+z) * fpbh *L_pbh_av(Mpbh, z, xe_used, Tgas, coll_ion);
-  }
-  else return 0.;
+    if(params->PBH_accretion_recipe == 0){
+      // energy_rate = 7.07e-52/Mpbh * cube(1.+z) * fpbh *L_pbh(Mpbh, z, xe_used, Tgas, coll_ion); /** alternative computation using veff instead of the numerical average */
+      energy_rate = 7.07e-52/params->Mpbh * cube(1.+z) * params->fpbh *L_pbh_av(params->Mpbh, z, xe_used, Tgas, params->coll_ion);
+    }
+    else if(params->PBH_accretion_recipe == 1){
+      energy_rate = 7.07e-52/params->Mpbh * cube(1.+z) * params->fpbh *L_pbh_ADAF(z, xe_used, Tgas, params);
+    }
+
+   }
+  return energy_rate;
 }
 
+double L_pbh_ADAF(double z, double xe, double Tgas, INJ_PARAMS *params) {
+  double L_ed = (1.4e17 * params->Mpbh) * 9e20, M_ed_dot = 10 * L_ed/(9e20), M_crit = 0.01*M_ed_dot, lambda = params->PBH_accretion_eigenvalue; // slightly different definition of M_ed_dot in the ADAF formalism. See e.g. Yuan&Narayan 1406.0586
+  double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1,epsilon=0.,Lacc=0.;
+  double veff = vbc_av(z,xe,Tgas);
+  double Mdot = 9.15e22 * params->Mpbh*params->Mpbh*cube((1.+z)/veff) * lambda;
+
+  if(params->PBH_ADAF_delta == 1e-3){
+    Value_min = 7.6e-5;
+    Value_med = 4.5e-3;
+    Value_max = 7.1e-3;
+    if(Mdot/M_ed_dot <= Value_min){
+      epsilon_0 = 0.065;
+      a = 0.71;
+    }
+    else if(Value_min < Mdot/M_ed_dot && Mdot/M_ed_dot  <= Value_med){
+      epsilon_0 = 0.020;
+      a = 0.47;
+    }
+    else if(Value_med < Mdot/M_ed_dot && Mdot/M_ed_dot <= Value_max){
+      epsilon_0 = 0.26;
+      a = 3.67;
+    }
+    else{
+      epsilon_0 = 0.1;
+      a = 0.;
+    }
+    epsilon = epsilon_0 * pow(Mdot / M_crit,a);
+  }
+  else if (params->PBH_ADAF_delta == 0.1){
+    Value_min = 9.4e-5;
+    Value_med = 5e-3;
+    Value_max = 6.6e-3;
+    if(Mdot/M_ed_dot <= Value_min){
+      epsilon_0 = 0.12;
+      a = 0.59;
+    }
+    else if(Value_min < Mdot/M_ed_dot && Mdot/M_ed_dot  <= Value_med){
+      epsilon_0 = 0.026;
+      a = 0.27;
+    }
+    else if(Value_med < Mdot/M_ed_dot && Mdot/M_ed_dot <= Value_max){
+      epsilon_0 = 0.50;
+      a = 4.53;
+    }
+    else{
+      epsilon_0 = 0.1;
+      a = 0.;
+    }
+    epsilon = epsilon_0 * pow(Mdot / M_crit,a);
+  }
+  else if (params->PBH_ADAF_delta == 0.5){
+
+    Value_min = 2.9e-5;
+    Value_med = 3.3e-3;
+    Value_max = 5.3e-3;
+    if(Mdot/M_ed_dot <= Value_min){
+      epsilon_0 = 1.58;
+      a = 0.65;
+    }
+    else if(Value_min < Mdot/M_ed_dot && Mdot/M_ed_dot  <= Value_med){
+      epsilon_0 = 0.055;
+      a = 0.076;
+    }
+    else if(Value_med < Mdot/M_ed_dot && Mdot/M_ed_dot <= Value_max){
+      epsilon_0 = 0.17;
+      a = 1.12;
+    }
+    else{
+      epsilon_0 = 0.1;
+      a = 0.;
+    }
+    epsilon = epsilon_0 * pow(Mdot / M_crit,a);
+  }
+
+  Lacc = epsilon*Mdot*9e20;
+  // printf("%e %e %e \n",z,Mdot/(1.4e17 * params->Mpbh),Lacc/L_ed);
+  return Lacc;
+
+
+}
 /******************************Energy Injection low mass PBH (evaporation)**********************************/
 double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params){
 
@@ -333,7 +431,7 @@ Add in your favorite energy injection mechanism here
 double dEdtdV_inj(double z, double xe, double Tgas, INJ_PARAMS *params){
 
   return   dEdtdV_DM_ann(z, params)
-    + dEdtdV_pbh(params->fpbh, params->Mpbh, z, xe, Tgas, params->coll_ion)
+    + dEdtdV_accreting_PBH(z, xe, Tgas, params)
     +dEdVdt_evaporating_PBH(z,params)
     +dEdtdV_DM_decay(z, params);
 }

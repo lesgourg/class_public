@@ -561,7 +561,8 @@ Function to allocate and initialize HyRec internal tables
 
 void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
 
-  data->zmax = (zmax > 3000.? zmax : 3000.);
+  // data->zmax = (zmax > 3000.? zmax : 3000.);
+  data->zmax = zmax;
   data->zmin = zmin;
 
   data->atomic = (HYREC_ATOMIC *) malloc(sizeof(HYREC_ATOMIC));

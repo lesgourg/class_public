@@ -2508,7 +2508,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           r_B = _G_*preco->PBH_high_mass*M_sun*pow(v_eff,-2); // in m
           t_B = _G_*preco->PBH_high_mass*M_sun/pow(v_eff,3); // in s
           // fprintf(stdout, "z %e T_infinity %e rho_infinity %e P_infinity %e v_B %e t_B %e x_e_infinity %e \n",z,T_infinity,rho_infinity,P_infinity,v_B,t_B,x_e_infinity );
-          beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_; //Misprint in Ali-Haimoud et al., c should be in numerator otherwise not dimensionless
+          beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_;
           gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
           // fprintf(stdout, "z %e 1/beta %e 1/H %e 1/gamma_cooling %e t_B %e \n",z,1/beta_compton_drag,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/gamma_cooling,t_B);
           lambda_iso = 0.25*exp(1.5);
@@ -2544,7 +2544,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
           else v_eff = v_B;
           r_B = _G_*preco->PBH_high_mass*M_sun*pow(v_eff,-2); // in m
           t_B = _G_*preco->PBH_high_mass*M_sun/pow(v_eff,3); // in s
-          beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_; //Misprint in Ali-Haimoud et al., c should be in numerator otherwise not dimensionless
+          beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_;
           gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
           lambda_iso = 0.25*exp(1.5);
           lambda_ad = 0.25*pow(3./5,1.5);
@@ -2580,7 +2580,7 @@ int thermodynamics_high_mass_pbh_energy_injection(
         *energy_rate =  (rho_cdm_today/(preco->PBH_high_mass*M_sun*_c_*_c_))*pow(1+z,3)*L_acc_2*preco->PBH_fraction;
         // fprintf(stdout, "%e %e %e %e %e %e %e %e %e %e %e %e\n",z, beta_compton_drag, gamma_cooling,lambda,M_b_dot*_c_*_c_/L_ed,T_s*1e6/_eV_over_Kelvin_,T_s*J/m_p/137,v_eff,v_B,v_l,L_acc_2/L_ed,*energy_rate);
         // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",x_e, M_b_dot,lambda,m_dot_2,l2,L_acc_2,*energy_rate,z);
-        // fprintf(stdout, "%e %e %e \n", z,m_dot,L_acc_2);
+        // fprintf(stdout, "%e %e %e \n", z,M_b_dot*_c_*_c_/L_ed,L_acc_2/L_ed);
         free(pvecback);
 
 }
@@ -4674,6 +4674,14 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->Mpbh = pth->PBH_high_mass;
            hyrec_data.cosmo->inj_params->fpbh = pth->PBH_fraction;
            hyrec_data.cosmo->inj_params->coll_ion = pth->coll_ion_pbh;
+           hyrec_data.cosmo->inj_params->PBH_ADAF_delta = pth->PBH_ADAF_delta;
+           hyrec_data.cosmo->inj_params->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
+           if(pth->PBH_accretion_recipe == Ali_Haimoud) hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 0;
+           else if(pth->PBH_accretion_recipe == ADAF_Simulation) hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 1;
+           else {
+             printf("pth->PBH_accretion_recipe == %s is not yet implemented in HyRec. Defaulting to spherical (Ali_Haimoud) scheme. \n",pth->PBH_accretion_recipe);
+             hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 0;
+           }
           //
 
    if (pth->thermodynamics_verbose > 0)

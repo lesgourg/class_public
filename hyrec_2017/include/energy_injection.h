@@ -40,6 +40,9 @@ typedef struct {
    double decay_fraction; /**  fraction of decaying DM */
    double Gamma_dcdm; /** Inverse lifetime of the decaying DM */
 
+   double PBH_ADAF_delta;
+   double PBH_accretion_eigenvalue;
+   int PBH_accretion_recipe;
 
    int annihil_coef_num_lines;
    double *annihil_coef_heat;
@@ -121,7 +124,8 @@ double eps_over_mdot_pbh(double Mpbh, double z, double xe, double Teff, int coll
 double L_pbh(double Mpbh, double z, double xe, double Teff, int coll_ion);
 double vbc_rms_func(double z);
 double L_pbh_av(double Mpbh, double z, double xe, double Tgas, int coll_ion);
-double dEdtdV_pbh(double fpbh, double Mpbh, double z, double xe, double Tgas, int coll_ion);
+double L_pbh_ADAF(double z, double xe, double Tgas, INJ_PARAMS *params);
+double dEdtdV_accreting_PBH(double z, double xe, double Tgas, INJ_PARAMS *params);
 double dEdtdV_inj(double z, double xe, double Tgas, INJ_PARAMS *params);
 void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
 		       double nH, double H, INJ_PARAMS *params, double *dEdtdV_dep);
@@ -130,3 +134,4 @@ int evaluate_chi_ionisation(INJ_PARAMS *param,double z, double xe);
 int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params, double xe_or_z);
 double dEdVdt_evaporating_PBH(double z, INJ_PARAMS *params);
 double dEdtdV_DM_decay(double z, INJ_PARAMS *params);
+double vbc_av(double z, double xe, double T);
