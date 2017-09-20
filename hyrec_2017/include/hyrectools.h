@@ -4,7 +4,7 @@ Also, function to make linear arrays and interpolation routines.
 Version: January 2015
 *****************************************************************************/
 
-double square(double x); 
+double square(double x);
 double cube(double x);
 double *create_1D_array(unsigned n1);
 double **create_2D_array(unsigned n1, unsigned n2);

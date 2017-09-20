@@ -93,12 +93,14 @@ double rec_Tmss(double z, double xe, REC_COSMOPARAMS *cosmo, double dEdtdV) {
   double Tr  = cosmo->T0 *(1.+z);
   double nH  = cosmo->nH0 *cube(1.+z);
   double H   = rec_HubbleRate(cosmo, z);
-
+  if(dEdtdV > 0) evaluate_chi_heat(cosmo->inj_params,z,xe);
   /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
   /* Here Tr, Tm are the actual (not rescaled) temperatures */
   double coeff  = fsR*fsR/meR/meR/meR*4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+cosmo->fHe)/H;
+  // double Tm = Tr/(1.+1./coeff)
+  //           + (1.+2.*xe)/3.*dEdtdV/kBoltz /(1.5 *nH*(1.+xe+cosmo->fHe))/H /(1.+coeff);
   double Tm = Tr/(1.+1./coeff)
-            + (1.+2.*xe)/3.*dEdtdV/kBoltz /(1.5 *nH*(1.+xe+cosmo->fHe))/H /(1.+coeff);
+            + cosmo->inj_params->chi_heat*dEdtdV/kBoltz /(1.5 *nH*(1.+xe+cosmo->fHe))/H /(1.+coeff);
 
   return Tm;
 }
@@ -118,10 +120,11 @@ double rec_dTmdlna(double z, double xe, double Tm, REC_COSMOPARAMS *cosmo, doubl
   double Tr  = cosmo->T0 *(1.+z);
   double nH  = cosmo->nH0 *cube(1.+z);
   double H   = rec_HubbleRate(cosmo, z);
+  if(dEdtdV > 0) evaluate_chi_heat(cosmo->inj_params,z,xe);
 
   return ( (Tr/Tm-1.<1e-10  && Tr > 3000.)  ? -Tr :
           -2.*Tm + fsR*fsR/meR/meR/meR*4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+cosmo->fHe)*(Tr-Tm)/H
-	   + (1.+2.*xe)/3. *dEdtdV /kBoltz /(1.5 *nH*(1.+xe+cosmo->fHe))/H);
+	   + cosmo->inj_params->chi_heat*dEdtdV /kBoltz /(1.5 *nH*(1.+xe+cosmo->fHe))/H);
    /* Coefficient = 8 sigma_T a_r / (3 m_e c) */
    /* Here Tr, Tm are the actual (not rescaled) temperatures */
 }
@@ -238,16 +241,16 @@ void rec_xH1_stiff(int model, REC_COSMOPARAMS *cosmo, double z, double xHeII, do
   for (i = 0; i < 2; i++) { // After 2 iterations it is well converged
 
     dx1s_dlna2 = -rec_dxHIIdlna(model, xHeII + 1.-xeq*(1.+eps), 1.-xeq*(1.+eps), nH, H, kBoltz*T, kBoltz*T,
-			       atomic, rad, iz_rad, z, cosmo->fsR, cosmo->meR, dEdtdV, error);
+			       atomic, rad, iz_rad, z, cosmo->fsR, cosmo->meR, dEdtdV, error, cosmo);
 
     dx1s_dlna  = -rec_dxHIIdlna(model, xHeII + 1.-xeq*(1.-eps), 1.-xeq*(1.-eps), nH, H, kBoltz*T, kBoltz*T,
-			       atomic, rad, iz_rad, z, cosmo->fsR, cosmo->meR, dEdtdV, error);
+			       atomic, rad, iz_rad, z, cosmo->fsR, cosmo->meR, dEdtdV, error, cosmo);
 
     /* Partial derivative of the time derivative wrt x1s, assuming dEdtdV depends weakly on x1s */
     Gamma = (dx1s_dlna2 - dx1s_dlna)/(2.*eps* xeq);
 
     dx1s_dlna = -rec_dxHIIdlna(model, xHeII + 1.-xeq, 1.-xeq, nH, H, kBoltz*T, kBoltz*T,
-			      atomic, rad, iz_rad, z, cosmo->fsR, cosmo->meR, dEdtdV, error);
+			      atomic, rad, iz_rad, z, cosmo->fsR, cosmo->meR, dEdtdV, error, cosmo);
     xeq -= dx1s_dlna/Gamma;
   }
 
@@ -302,7 +305,7 @@ void get_rec_next2_HHe(int model, REC_COSMOPARAMS *cosmo, double z_in, double Tm
   /* Compute dxHII/dlna. This also correctly updates the radiation field at z_in,
      which is required even when using the stiff approximation */
   dxHIIdlna = rec_dxHIIdlna(model, xe, 1.-(*xH1), nH, H, kBoltz*Tm, TR, atomic, rad,
-			    iz_rad, z_in, cosmo->fsR, cosmo->meR, dEdtdV, error);
+			    iz_rad, z_in, cosmo->fsR, cosmo->meR, dEdtdV, error, cosmo);
 
   /* If system is stiff use the quasi-equilibrium solution */
 
@@ -349,7 +352,7 @@ void rec_get_xe_next1_H(int model, REC_COSMOPARAMS *cosmo, double z_in, double x
   /* Compute dxHII/dlna. This also correctly updates the radiation field at z_in,
      which is required even when using the stiff approximation */
   dxedlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, kBoltz*Tm_in, TR, atomic,
-			  rad, iz_rad, z_in, cosmo->fsR, cosmo->meR, dEdtdV, error);
+			  rad, iz_rad, z_in, cosmo->fsR, cosmo->meR, dEdtdV, error, cosmo);
 
   z_out   = (1.+z_in)*exp(-DLNA)-1.;
 
@@ -409,7 +412,7 @@ void rec_get_xe_next2_HTm(int model, REC_COSMOPARAMS *cosmo,
       || kBoltz*Tm_in/TR <= TM_TR_MIN) model = PEEBLES;
 
   dxedlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, kBoltz*Tm_in, TR, atomic,
-			  rad, iz_rad, z_in, cosmo->fsR, cosmo->meR, dEdtdV, error);
+			  rad, iz_rad, z_in, cosmo->fsR, cosmo->meR, dEdtdV, error, cosmo);
 
   dTmdlna = rec_dTmdlna(z_in, xe_in, Tm_in, cosmo, dEdtdV);
 
@@ -465,7 +468,6 @@ void rec_build_history(int model, double zstart, double zend,
 	    (this occurs at index izH0 computed in rec_get_cosmoparam).
 	    Start with quasi-equilibrium approximation.
   ********/
-
   dxHeIIdlna_prev[1] = dxHeIIdlna_prev[0] = 0.;
 
   xHeII    = rec_saha_xHeII(cosmo->nH0, cosmo->T0, cosmo->fHe, z, cosmo->fsR, cosmo->meR);
@@ -498,7 +500,6 @@ void rec_build_history(int model, double zstart, double zend,
   H  = rec_HubbleRate(cosmo, z);
   update_dEdtdV_dep(z, DLNA, xe_output[iz-1], Tm_output[iz-1], nH, H,
 		    cosmo->inj_params, &dEdtdV_dep);
-
   for(; z >= 0. && xHeII > XHEII_MIN; iz++) {
 
     get_rec_next2_HHe(model, cosmo, z, Tm_output[iz-1], &xH1, &xHeII, atomic,
@@ -551,7 +552,6 @@ void rec_build_history(int model, double zstart, double zend,
 
     if (error == 1) exit(1);
   }
-
 }
 
 
@@ -561,7 +561,8 @@ Function to allocate and initialize HyRec internal tables
 
 void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
 
-  data->zmax = (zmax > 3000.? zmax : 3000.);
+  // data->zmax = (zmax > 3000.? zmax : 3000.);
+  data->zmax = zmax;
   data->zmin = zmin;
 
   data->atomic = (HYREC_ATOMIC *) malloc(sizeof(HYREC_ATOMIC));
@@ -573,7 +574,6 @@ void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
   data->xe_output = create_1D_array(data->Nz);
   data->Tm_output = create_1D_array(data->Nz);
   data->rad = (RADIATION *) malloc(sizeof(RADIATION));
-
   // For now assume that radiation field never needed over more than 1 decade in redshift
   // (typically from z ~ 1700 to 800 for recombination history)
   // Will have to adapt for outputting radiation fields at lower z
@@ -635,6 +635,12 @@ void hyrec_compute(HYREC_DATA *data, int model,
 
 }
 
+void hyrec_compute_CLASS(HYREC_DATA *data, int model){
+
+  rec_build_history(model, data->zmax, data->zmin, data->cosmo, data->atomic,
+		    data->rad, data->xe_output, data->Tm_output);
+
+}
 /*****
      Once HYREC_DATA outputs are computed, obtain xe(z) and Tm(z) by interpolation
 *****/

@@ -1511,9 +1511,9 @@ int input_read_parameters(
   class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
-  class_test((pth->recombination==cosmorec || pth->recombination==hyrec) && pth->PBH_low_mass!= 0.,
+  class_test(pth->recombination==cosmorec && pth->PBH_low_mass!= 0.,
                errmsg,
-               "Effect of evaporating PBH cannot yet be computed using cosmorec or hyrec. Please, restart in recfast mode.");
+               "Effect of evaporating PBH cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
   class_test(pth->annihilation>0. && pth->annihilation_boost_factor >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
@@ -1525,6 +1525,7 @@ int input_read_parameters(
       pth->annihilation = pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM*conversion);
       if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and boost_factor = %.2e. Your parameter annihilation = %.2e. \n",pth->annihilation_m_DM,pth->annihilation_boost_factor, pth->annihilation);
   }
+
   class_test((pth->annihilation_m_DM > 0 && pth->annihilation_boost_factor <=0)||(pth->annihilation_m_DM <= 0 && pth->annihilation_boost_factor >0),errmsg,"You set one of (pth->annihilation_m_DM,pth->annihilation_boost_factor) to non-zero value but not the other ! I cannot compute annihilation parameter: pth->annihilation_boost_factor*sigma_thermal/(pth->annihilation_m_DM).")
 
   if (pth->annihilation > 0. || pth->annihilation_m_DM > 0.) {
@@ -1583,6 +1584,17 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     strcat(ppr->command_fz,__CLASSDIR__);
     strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=PBH --mass=");
     sprintf(string2,"%g",pth->PBH_low_mass);
+    strcat(ppr->command_fz,string2);
+  }
+  if(pth->decay_fraction > 0){
+    // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
+    ppr->param_fz_2 = pba->tau_dcdm;
+    // sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
+    // class_alloc(ppr->command_fz,(strlen(string2) + 4 + 1)*sizeof(char), errmsg); // +4 corresponds to the mass that will be given just below
+    strcat(ppr->command_fz, "python ");
+    strcat(ppr->command_fz,__CLASSDIR__);
+    strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=decay --specfile external_fz/bottom_70-80_spectrum.dat --mass=75 --tdec=");
+    sprintf(string2,"%g",pba->tau_dcdm);
     strcat(ppr->command_fz,string2);
   }
   /* If the story is not implemented */
@@ -1726,6 +1738,16 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
       }
     }
 
+}
+
+/** Tables specific to evaporating PBH */
+if(pth->PBH_low_mass > 0.){
+  pth->PBH_table_is_initialized = _FALSE_ ;
+  pth->PBH_table_z = NULL;
+  pth->PBH_table_mass = NULL;
+  pth->PBH_table_mass_dd = NULL;
+  pth->PBH_table_F = NULL;
+  pth->PBH_table_F_dd = NULL;
 }
 
 
@@ -3501,8 +3523,15 @@ int input_default_params(
   pth->beta_gcdm=0.;
   pth->alpha_gcdm=0.;
   pth->A_21_over_mchi=0.;
-
   pth->Lambda_over_theoritical_Lambda = 1.;
+
+  /** Tables specific to evaporating PBH */
+  pth->PBH_table_is_initialized = _FALSE_ ;
+  pth->PBH_table_z = NULL;
+  pth->PBH_table_mass = NULL;
+  pth->PBH_table_mass_dd = NULL;
+  pth->PBH_table_F = NULL;
+  pth->PBH_table_F_dd = NULL;
 
   /*** Primordial black holes (added by Y. Ali-Haimoud) ***/
   pth->coll_ion_pbh = 1;  // Default case is most conservative, with collisional ionizations //
@@ -3681,7 +3710,7 @@ int input_default_params(
   /** - transfer structure */
 
   ptr->selection_bias[0]=1.;
-  ptr->selection_magnification_bias[0]=1.;
+  ptr->selection_magnification_bias[0]=0.;
   ptr->lcmb_rescale=1.;
   ptr->lcmb_pivot=0.1;
   ptr->lcmb_tilt=0.;

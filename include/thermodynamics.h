@@ -262,13 +262,28 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
 
   double decay_fraction; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
-  /** for PBH accretion & evaporation */
+  /** for PBH evaporation */
+
+  short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */
+  double PBH_z_evaporation; /**< Double to store the evaporation redshift. Useful to avoid bad extrapolation at low z. */
+  int PBH_table_size; /**< Length of the PBH-mass evolution table */
+  double * PBH_table_z; /**< Array of redshift for the evolution of the PBH-mass (used for evaporation) */
+  double * PBH_table_mass; /**< Array of the PBH-mass given the redshift in 'PBH_table_z' */
+  double * PBH_table_mass_dd; /**< Array of the second derivative of PBH-mass w.r.t. the redshift */
+  double * PBH_table_F; /**< Array of F(z)  given the redshift in 'PBH_table_z' */
+  double * PBH_table_F_dd; /**< Array of the second derivative of F(z) w.r.t. the redshift */
+
+  double PBH_fraction; /**< fraction of Dark Matter being PBH */
+  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
+
+  /** for PBH accretion */
 
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
-  double PBH_fraction; /**< fraction of Dark Matter being PBH */
-  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
+
+
+
   int coll_ion_pbh;   /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most conservative). if 0: photoionization by PBH radiation  */
   double PBH_ADAF_delta; /**<Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in the disk, influencing the emissivity. Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
   double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
@@ -768,6 +783,7 @@ extern "C" {
 				      double * energy_rate,
 				      ErrorMsg error_message
 				      );
+
   int thermodynamics_high_mass_pbh_energy_injection(
                                                     struct precision * ppr,
                                                     struct background * pba,
@@ -776,6 +792,14 @@ extern "C" {
                                                     double * energy_rate,
                                                     ErrorMsg error_message
                                                   );
+
+  int pbh_low_mass_time_evolution(
+                                    struct precision * ppr,
+                                    struct background * pba,
+                                    struct recombination * preco,
+                                    ErrorMsg error_message
+                                  );
+
   int thermodynamics_low_mass_pbh_energy_injection(
                                                     struct precision * ppr,
                                                     struct background * pba,
@@ -879,6 +903,10 @@ extern "C" {
 					 struct recombination * preco,
 					 struct reionization * preio
 					 );
+  int fill_recombination_structure(struct precision * ppr,
+                                  struct background * pba,
+                                  struct thermo * pth,
+                                  struct recombination * preco);
 
   int thermodynamics_output_titles(struct background * pba,
                                    struct thermo *pth,

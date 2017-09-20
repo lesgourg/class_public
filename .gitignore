@@ -7,6 +7,7 @@ libclass.a
 python/classy.c
 python/*.pyc
 python/build/
+<<<<<<< HEAD
 DM_Annihilation/
 DM_decay_files/
 DM_annihilation_old/
@@ -36,7 +37,7 @@ external_fz_old/
 libCosmoRec.a
 cosmorec/CosmoRec
 cosmorec/Development/Cosmology/Recfast++/Recfast++
-class.dSYM/
 output_*
 output/*
 root_ini_files/
+class.dSYM/*
