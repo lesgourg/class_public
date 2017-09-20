@@ -2729,6 +2729,7 @@ int input_read_parameters(
   class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
   class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
+  class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
 
   /** - (h.7.) parameter related to lensing */
 
@@ -3381,8 +3382,16 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_dz=0.1;
   ppr->halofit_min_k_nonlinear=0.0035;
   ppr->halofit_k_per_decade = 80.;
-  ppr->halofit_sigma_precision=0.05;
-  ppr->halofit_min_k_max=5.;
+  ppr->halofit_sigma_precision=0.05; /**< a smaller value will lead to a
+                                        more precise halofit result at the *highest*
+                                        redshift at which halofit can make computations,
+                                        at the expense of requiring a larger k_max; but
+                                        this parameter is not relevant for the
+                                        precision on P_nl(k,z) at other redshifts, so
+                                        there is normally no need to change it */
+
+  ppr->halofit_min_k_max=5.;   // this one is actually used in the perturbation module
+  ppr->halofit_tol_sigma = 0.001;
 
   /**
    * - parameter related to lensing

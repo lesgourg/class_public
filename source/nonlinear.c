@@ -158,9 +158,10 @@ int nonlinear_init(
         }
         else {
           /* when Halofit found k_max too small, use 1 as the
-             non-linear correction for this redshift/time, and print a
-             warning. */
+             non-linear correction for this redshift/time, store the
+             last index which worked, and print a warning. */
           print_warning = _TRUE_;
+          pnl->index_tau_min_nl = index_tau+1;
           for (index_k=0; index_k<pnl->k_size; index_k++) {
             pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
           }

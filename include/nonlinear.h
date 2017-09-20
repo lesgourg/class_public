@@ -43,6 +43,7 @@ struct nonlinear {
 
   double * nl_corr_density;   /**< nl_corr_density[index_tau * ppt->k_size + index_k] */
   double * k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
+  int index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
 
   //@}
 
