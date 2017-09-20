@@ -756,10 +756,12 @@ struct precision
 				     be computed */
 
   double halofit_sigma_precision; /**< a smaller value will lead to a
-				      more precise halofit result at
-				      the highest requested redshift,
-				      at the expense of requiring a
-				      larger k_max */
+				      more precise halofit result at the *highest*
+				      redshift at which halofit can make computations,
+				      at the expense of requiring a larger k_max; but
+				      this parameter is not relevant for the
+				      precision on P_nl(k,z) at other redshifts, so
+				      there is normally no need to change it */
 
   double halofit_min_k_max; /**< when halofit is used, k_max must be at
                                least equal to this value (otherwise
@@ -770,6 +772,11 @@ struct precision
                                   (linear power spectrum times some
                                   kernels). They are sampled using
                                   this logarithmic step size. */
+
+  double halofit_tol_sigma; /**< tolerance required on sigma(R) when
+                               matching the condition sigma(R_nl)=1,
+                               yielding the wavenumber of
+                               non-linearity, k_nl=1./R_nl */
 
   //@}
 

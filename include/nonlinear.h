@@ -8,6 +8,8 @@
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
 enum non_linear_method {nl_none,nl_halofit};
+enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
+enum halofit_statement {ok, too_small};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -101,12 +103,27 @@ extern "C" {
                         struct nonlinear *pnl,
                         double tau,
                         double *pk_l,
-                        double *lnk,
-                        double *lnpk,
-                        double *ddlnpk,
                         double *pk_nl,
-                        double *k_nl
+                        double *lnk_l,
+                        double *lnpk_l,
+                        double *ddlnpk_l,
+                        double *k_nl,
+                        enum halofit_statement * halofit_found_k_max
                         );
+
+  int nonlinear_halofit_integrate(
+                                  struct nonlinear *pnl,
+                                  double * integrand_array,
+                                  int integrand_size,
+                                  int ia_size,
+                                  int index_ia_k,
+                                  int index_ia_pk,
+                                  int index_ia_sum,
+                                  int index_ia_ddsum,
+                                  double R,
+                                  enum halofit_integral_type type,
+                                  double * sum
+                                  );
 
 #ifdef __cplusplus
 }
