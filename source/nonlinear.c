@@ -211,12 +211,17 @@ int nonlinear_free(
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
-      /* free here */
       free(pnl->k);
       free(pnl->tau);
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
     }
+  }
+
+  if (pnl->has_pk_eq == _TRUE_) {
+    free(pnl->eq_tau);
+    free(pnl->eq_w_and_Omega);
+    free(pnl->eq_ddw_and_ddOmega);
   }
 
   return _SUCCESS_;
@@ -344,7 +349,7 @@ int nonlinear_halofit(
 
   double * pvecback;
 
-  int last_index;
+  int last_index=0;
   int counter;
   double sum1,sum2,sum3;
   double anorm;
@@ -369,14 +374,62 @@ int nonlinear_halofit(
 
   double x2,R;
 
+  double * w_and_Omega;
+
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-
-  /* Halofit needs w0 = w_fld today */
-  class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
-
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+
+  if (pnl->has_pk_eq == _FALSE_) {
+
+    /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
+       all required by HALFIT fitting formulas */
+
+    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
+    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    Omega_m = pvecback[pba->index_bg_Omega_m];
+    Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
+
+  }
+  else {
+
+    /* alternative method called PK-equal, described in 0810.0190 and
+                      1601.0723, extending the range of validity of
+                      HALOFIT from constant w to w0-wa models. In that
+                      case, some effective values of w0(tau_i) and
+                      Omega_m(tau_i) have been pre-computed in the input
+                      module, and we just ned to interpolate within
+                      tabulated arrays, to get them at the current tau
+                      value. */
+
+    class_alloc(w_and_Omega,pnl->eq_size*sizeof(double),pnl->error_message);
+
+    class_call(array_interpolate_spline(
+                                        pnl->eq_tau,
+                                        pnl->eq_tau_size,
+                                        pnl->eq_w_and_Omega,
+                                        pnl->eq_ddw_and_ddOmega,
+                                        pnl->eq_size,
+                                        tau,
+                                        &last_index,
+                                        w_and_Omega,
+                                        pnl->eq_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    w0 = w_and_Omega[pnl->index_eq_w];
+    Omega_m = w_and_Omega[pnl->index_eq_Omega_m];
+    Omega_v = 1.-Omega_m;
+
+    free(w_and_Omega);
+  }
+
   anorm    = 1./(2*pow(_PI_,2));
 
   /*      Until the 17.02.2015 the values of k used for integrating sigma(R) quantities needed by Halofit where the same as in the perturbation module.

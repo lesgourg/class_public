@@ -155,7 +155,7 @@ struct fzerofun_workspace {
 
 
 /**************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -275,6 +275,15 @@ extern "C" {
   int compare_integers (const void * elem1, const void * elem2);
 
   int compare_doubles(const void *a,const void *b);
+
+  int input_prepare_pk_eq(
+                          struct precision * ppr,
+                          struct background *pba,
+                          struct thermo *pth,
+                          struct nonlinear *pnl,
+                          int input_verbose,
+                          ErrorMsg errmsg
+                          );
 
 
 #ifdef __cplusplus
