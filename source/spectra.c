@@ -2732,7 +2732,7 @@ int spectra_pk(
 
       /* if non-linear corrections required, compute the total non-linear matter power spectrum */
 
-      if ((pnl->method != nl_none) && (index_tau > delta_index_nl)) {
+      if ((pnl->method != nl_none) && (index_tau >= delta_index_nl)) {
 
         psp->ln_pk_nl[(index_tau-delta_index_nl) * psp->ln_k_size + index_k] =
           ln_pk_tot
