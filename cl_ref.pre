@@ -40,7 +40,8 @@ ur_fluid_trigger_tau_over_tau_k = 50.
 ncdm_fluid_approximation = 3
 ncdm_fluid_trigger_tau_over_tau_k = 51.
 
-tol_ncdm = 1.e-10
+tol_ncdm_synchronous = 1.e-10
+tol_ncdm_newtonian = 1.e-10
 
 l_logstep=1.026
 l_linstep=25
@@ -54,7 +55,7 @@ hyper_x_tol = 1.e-4
 hyper_flat_approximation_nu = 1.e6
 
 q_linstep=0.20
-q_logstep_spline= 20. 
+q_logstep_spline= 20.
 q_logstep_trapzd = 0.5
 q_numstep_transition = 250
 
@@ -72,6 +73,8 @@ transfer_neglect_delta_k_T_b = 100.
 
 neglect_CMB_sources_below_visibility = 1.e-30
 transfer_neglect_late_source = 3000.
+
+halofit_k_per_decade = 3000.
 
 l_switch_limber = 40.
 accurate_lensing=1
