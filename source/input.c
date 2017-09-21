@@ -2985,7 +2985,7 @@ int input_default_params(
   ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
-  ppt->k_max_for_pk=0.1;
+  ppt->k_max_for_pk=1.;
 
   ppt->gauge=synchronous;
 

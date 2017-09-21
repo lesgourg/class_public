@@ -347,6 +347,11 @@ int spectra_pk_at_z(
                     double * output_ic   /* array with argument output_tot[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
                     ) {
 
+  /* JL 21.09.2017: TODO: now, P(k) total is already calculated and
+     stored in spectra_pk(), in the array psp->pk_l. WE should use
+     that here too to compute output_tot, inmstead of redoing the sum
+     over ICs. */
+
   /** Summary: */
 
   /** - define local variables */
