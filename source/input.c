@@ -2748,10 +2748,11 @@ int input_read_parameters(
 
   /** - (h.6.) parameters related to nonlinear calculations */
 
-  class_read_double("halofit_dz",ppr->halofit_dz);
   class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
+  class_read_double("halofit_min_k_max",ppr->halofit_min_k_max);
   class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
+  class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
 
   /** - (h.7.) parameter related to lensing */
 
@@ -3009,7 +3010,7 @@ int input_default_params(
   ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
-  ppt->k_max_for_pk=0.1;
+  ppt->k_max_for_pk=1.;
 
   ppt->gauge=synchronous;
 
@@ -3403,11 +3404,11 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to nonlinear module
    */
 
-  ppr->halofit_dz=0.1;
-  ppr->halofit_min_k_nonlinear=0.0035;
+  ppr->halofit_min_k_nonlinear = 1.e-4;
+  ppr->halofit_min_k_max = 5.;
   ppr->halofit_k_per_decade = 80.;
-  ppr->halofit_sigma_precision=0.05;
-  ppr->halofit_min_k_max=5.;
+  ppr->halofit_sigma_precision = 0.05;
+  ppr->halofit_tol_sigma = 1.e-6;
 
   /**
    * - parameter related to lensing

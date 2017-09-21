@@ -3698,7 +3698,7 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
   class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"tau_d",_TRUE_);
-  //class_store_columntitle(titles,"max. rate",_TRUE_,colnum);
+  //class_store_columntitle(titles,"max. rate",_TRUE_);
   class_store_columntitle(titles,"r_d",pth->compute_damping_scale);
 
   return _SUCCESS_;
