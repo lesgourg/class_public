@@ -80,8 +80,21 @@ if not transfer_is_initialized:
 else:
 	#print_info('The transfer functions are already initialized and loaded.\n')
 	_transfer_load_from_dump(transfer_functions)
-
-logEnergies = transfer_functions[0].log10E[:]
+# def set_energy_range(Emin,Emax,nbins):
+#     Emin_table = Emin
+#     Emax_table = Emax
+#     nbins_table = nbins
+# Emin_table = 0.1
+# Emax_table = 12.7675
+Emin_table = None
+Emax_table = None
+nbins_table = 100
+# LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
+if Emin_table == None or Emax_table == None:
+    logEnergies = transfer_functions[0].log10E[:]
+else:
+    logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
+# print logEnergies
 redshift = transfer_functions[0].z_deposited[:]
 
 # Clean from functions and variables which should not be available when
