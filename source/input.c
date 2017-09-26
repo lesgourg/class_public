@@ -1585,8 +1585,9 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=PBH --mass=");
     sprintf(string2,"%g",pth->PBH_low_mass);
     strcat(ppr->command_fz,string2);
+
   }
-  if(pth->decay_fraction > 0){
+  else if(pth->decay_fraction > 0){
     // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
     ppr->param_fz_2 = pba->tau_dcdm;
     // sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
