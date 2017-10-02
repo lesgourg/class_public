@@ -481,53 +481,53 @@ int background_init(
 
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
       if(pba->Omega0_dark != 0.){//MArchi ethos-new! well ok it is just to get some info
-         N_dark = pba->f_dark/(7./8.)*pow(pba->xi_dark,4.)/pow(4./11.,4./3.);
-         Neff += N_dark;
-         printf(" -> dark radiation Delta Neff %e\n",N_dark);         
+        N_dark = pba->f_dark/(7./8.)*pow(pba->xi_dark,4.)/pow(4./11.,4./3.);
+        Neff += N_dark;
+        printf(" -> dark radiation Delta Neff %e\n",N_dark);
       }
       if (pba->N_ncdm > 0){//MArchi ethos-new! add this to keep ncdm separate from dark radiation
-      /* loop over ncdm species */
-       for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
+        /* loop over ncdm species */
+        for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 
-        /* inform if p-s-d read in files */
-        if (pba->got_files[n_ncdm] == _TRUE_) {
-          printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
-          filenum++;
+          /* inform if p-s-d read in files */
+          if (pba->got_files[n_ncdm] == _TRUE_) {
+            printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
+            filenum++;
+          }
+
+          /* call this function to get rho_ncdm */
+          background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+                                  pba->w_ncdm_bg[n_ncdm],
+                                  pba->q_size_ncdm_bg[n_ncdm],
+                                  0.,
+                                  pba->factor_ncdm[n_ncdm],
+                                  0.,
+                                  NULL,
+                                  &rho_ncdm_rel,
+                                  NULL,
+                                  NULL,
+                                  NULL);
+
+          /* inform user of the contribution of each species to
+             radiation density (in relativistic limit): should be
+             between 1.01 and 1.02 for each active neutrino species;
+             evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
+             density of one neutrino in the instantaneous decoupling
+             limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
+             from the definition of N_eff) */
+          rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
+            pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
+
+          printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives Delta N_eff = %g\n",
+                 n_ncdm+1,
+                 pba->q_size_ncdm_bg[n_ncdm],
+                 pba->q_size_ncdm[n_ncdm],
+                 rho_ncdm_rel/rho_nu_rel);
+
+          Neff += rho_ncdm_rel/rho_nu_rel;
         }
-
-        /* call this function to get rho_ncdm */
-        background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
-                                pba->w_ncdm_bg[n_ncdm],
-                                pba->q_size_ncdm_bg[n_ncdm],
-                                0.,
-                                pba->factor_ncdm[n_ncdm],
-                                0.,
-                                NULL,
-                                &rho_ncdm_rel,
-                                NULL,
-                                NULL,
-                                NULL);
-
-        /* inform user of the contribution of each species to
-           radiation density (in relativistic limit): should be
-           between 1.01 and 1.02 for each active neutrino species;
-           evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
-           density of one neutrino in the instantaneous decoupling
-           limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
-           from the definition of N_eff) */
-        rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
-          pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
-
-        printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives Delta N_eff = %g\n",
-               n_ncdm+1,
-               pba->q_size_ncdm_bg[n_ncdm],
-               pba->q_size_ncdm[n_ncdm],
-               rho_ncdm_rel/rho_nu_rel);
-
-        Neff += rho_ncdm_rel/rho_nu_rel;
-
-       }
       }
+
       printf(" -> total N_eff = %g (sumed over ultra-relativistic and ncdm species and dark radiation)\n",Neff);
 
     }
@@ -1659,8 +1659,7 @@ int background_solve(
       definition: Neff is the equivalent number of
       instantaneously-decoupled neutrinos accounting for the
       radiation density, beyond photons */
-  //if(pba->Omega0_dark != 0.){//MArchi ethos-new! no need to add anything here, dark radiation is already stored into Omega_r
-     pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
+  pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
                /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);

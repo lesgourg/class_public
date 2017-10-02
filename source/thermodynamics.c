@@ -194,7 +194,6 @@ int thermodynamics_at_z(
       //dTc_dark = -2./(1.+z)*pvecback[pba->index_bg_H]+Gamma_heat_dark*(T_dark-pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tc_dark]);
     }
 
-
   }
 
   /** - interpolate in table with array_interpolate_spline() (normal
@@ -1392,10 +1391,10 @@ int thermodynamics_helium_from_bbn(
              pth->error_message);
 
   //if(pba->has_dark){//MArchi ethos-new!no need to add anything here because dark radiation already stored in Omega_r
-     Neff_bbn = (pvecback[pba->index_bg_Omega_r]
+  Neff_bbn = (pvecback[pba->index_bg_Omega_r]
               *pvecback[pba->index_bg_rho_crit]
               -pvecback[pba->index_bg_rho_g])
-     /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
+      /(7./8.*pow(4./11.,4./3.)*pvecback[pba->index_bg_rho_g]);
 
   free(pvecback);
 

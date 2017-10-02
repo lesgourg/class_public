@@ -28,6 +28,7 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
+enum tca_dark_flags {tca_dark_on, tca_dark_off};//ethos approx
 enum rsa_dark_flags {rsa_dark_off, rsa_dark_on};//MArchi ethos approx
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
@@ -539,6 +540,7 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
+  int index_ap_tca_dark; //ethos approx
   int index_ap_rsa_dark; //MArchi ethos approx
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */

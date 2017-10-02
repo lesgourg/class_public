@@ -2563,6 +2563,9 @@ int input_read_parameters(
 
   class_read_int("tight_coupling_approximation",ppr->tight_coupling_approximation);
 
+  class_read_double("dark_tight_coupling_trigger_tau_c_over_tau_h",ppr->dark_tight_coupling_trigger_tau_c_over_tau_h);
+  class_read_double("dark_tight_coupling_trigger_tau_c_over_tau_k",ppr->dark_tight_coupling_trigger_tau_c_over_tau_k);
+  
   if (ppt->has_tensors == _TRUE_) {
     /** - ---> Include ur and ncdm shear in tensor computation? */
     class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
@@ -3295,6 +3298,9 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.;
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
+  
+  ppr->dark_tight_coupling_trigger_tau_c_over_tau_h=0.01; /* decrease to switch off earlier in time */
+  ppr->dark_tight_coupling_trigger_tau_c_over_tau_k=0.005;
 
   ppr->dark_radiation_streaming_approximation = rsa_dark_none;
   ppr->dark_radiation_streaming_trigger_tau_over_tau_k = 50.;
