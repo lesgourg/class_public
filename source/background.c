@@ -406,8 +406,9 @@ int background_functions(
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
+  //add background quantity for rho_idm!!! same as for cdm
 
-  /* ethos dark radiation */
+  /* ethos dark radiation */ //dark-->idr (all)!!!
   if (pba->has_dark == _TRUE_) {
     pvecback[pba->index_bg_rho_dark] = pba->Omega0_dark * pow(pba->H0,2) / pow(a_rel,4);
     rho_tot += pvecback[pba->index_bg_rho_dark];
@@ -477,9 +478,9 @@ int background_init(
     printf("Computing background\n");
 
     /* below we want to inform the user about ncdm species*/
-    if (pba->N_ncdm > 0 || pba->Omega0_dark != 0.) { //MArchi ethos-new! add has_dark
+    if (pba->N_ncdm > 0 || pba->Omega0_dark != 0.) { //MArchi ethos-new! add has_dark // //dark-->idr (all)!!!
 
-      Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
+      Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;   //dark-->idr (all)!!!
       if(pba->Omega0_dark != 0.){//MArchi ethos-new! well ok it is just to get some info
         N_dark = pba->f_dark/(7./8.)*pow(pba->xi_dark,4.)/pow(4./11.,4./3.);
         Neff += N_dark;
@@ -709,7 +710,7 @@ int background_indices(
   pba->has_lambda = _FALSE_;
   pba->has_fld = _FALSE_;
   pba->has_ur = _FALSE_;
-  pba->has_dark = _FALSE_;//ethos
+  pba->has_dark = _FALSE_;//ethos //dark-->idr (all)!!! //check with schmalz model if he has two flags or only one, add new flag inb
   pba->has_curvature = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
@@ -737,7 +738,7 @@ int background_indices(
     pba->has_ur = _TRUE_;
 
   if (pba->Omega0_dark != 0.)
-    pba->has_dark = _TRUE_;//ethos
+    pba->has_dark = _TRUE_;//ethos //!!! flag message same as before
 
   if (pba->sgnK != 0)
     pba->has_curvature = _TRUE_;
@@ -804,7 +805,7 @@ int background_indices(
   /*    */
   /*    */
   /* - index for dark radiation ethos */
-  class_define_index(pba->index_bg_rho_dark,pba->has_dark,index_bg,1);
+  class_define_index(pba->index_bg_rho_dark,pba->has_dark,index_bg,1); //dark-->idr (all)!!!  + idm
 
   /* - end of indices in the normal vector of background values */
   pba->bg_size_normal = index_bg;
@@ -974,7 +975,7 @@ int background_ncdm_distribution(
     /**
        Next enter your analytic expression(s) for the p.s.d.'s. If
        you need different p.s.d.'s for different species, put each
-       p.s.d inside a condition, like for instance: if (n_ncdm==2) 
+       p.s.d inside a condition, like for instance: if (n_ncdm==2)
        {*f0=...}.  Remember that n_ncdm = 0 refers to the first
        species.
     */
@@ -1290,7 +1291,7 @@ int background_ncdm_momenta(
   double q2;
   double factor2;
   /** Summary: */
-  
+
   /** - rescale normalization at given redshift */
   factor2 = factor*pow(1+z,4);
 
@@ -1653,7 +1654,7 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - compute remaining "related parameters" 
+  /** - compute remaining "related parameters"
    *     - so-called "effective neutrino number", computed at earliest
       time in interpolation table. This should be seen as a
       definition: Neff is the equivalent number of
@@ -1781,7 +1782,7 @@ int background_initial_conditions(
   Omega_rad = pba->Omega0_g;
   if (pba->has_ur == _TRUE_)
     Omega_rad += pba->Omega0_ur;
-  if (pba->has_dark == _TRUE_)
+  if (pba->has_dark == _TRUE_) //dark-->idr (all)!!!
     Omega_rad += pba->Omega0_dark;//ethos
   rho_rad = Omega_rad*pow(pba->H0,2)/pow(a/pba->a_today,4);
   if (pba->has_ncdm == _TRUE_){
@@ -1799,9 +1800,9 @@ int background_initial_conditions(
   if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
       /**  - f is the critical density fraction of DR. The exact solution is:
-       * 
+       *
        * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
-       * 
+       *
        * but it is not numerically stable for very small f which is always the case.
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
@@ -1817,10 +1818,10 @@ int background_initial_conditions(
 
   /** - Fix initial value of \f$ \phi, \phi' \f$
    * set directly in the radiation attractor => fixes the units in terms of rho_ur
-   * 
-   * TODO: 
-   * - There seems to be some small oscillation when it starts. 
-   * - Check equations and signs. Sign of phi_prime? 
+   *
+   * TODO:
+   * - There seems to be some small oscillation when it starts.
+   * - Check equations and signs. Sign of phi_prime?
    * - is rho_ur all there is early on?
    */
   if(pba->has_scf == _TRUE_){
@@ -1892,7 +1893,7 @@ int background_initial_conditions(
 
 /**
  * Subroutine for formatting background output
- * 
+ *
  */
 
 int background_output_titles(struct background * pba,
@@ -1926,11 +1927,11 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_lambda",pba->has_lambda);
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
-  class_store_columntitle(titles,"(.)rho_dark",pba->has_dark);//ethos
+  class_store_columntitle(titles,"(.)rho_dark",pba->has_dark);//ethos //dark-->idr (all)!!!  + idm
   class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
   class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
-  
+
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
   class_store_columntitle(titles,"phi_scf",pba->has_scf);
@@ -1978,7 +1979,7 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_dark],pba->has_dark,storeidx);//ethos
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_dark],pba->has_dark,storeidx);//ethos //dark-->idr (all)!!!  +idm
     class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);
@@ -2095,19 +2096,19 @@ int background_derivs(
  * Scalar field potential and its derivatives with respect to the field _scf
  * For Albrecht & Skordis model: 9908085
  * - \f$ V = V_{p_{scf}}*V_{e_{scf}} \f$
- * - \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential) 
- * - \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump) 
- * 
- * TODO: 
+ * - \f$ V_e =  \exp(-\lambda \phi) \f$ (exponential)
+ * - \f$ V_p = (\phi - B)^\alpha + A \f$ (polynomial bump)
+ *
+ * TODO:
  * - Add some functionality to include different models/potentials (tuning would be difficult, though)
  * - Generalize to Kessence/Horndeski/PPF and/or couplings
  * - A default module to numerically compute the derivatives when no analytic functions are given should be added.
  * - Numerical derivatives may further serve as a consistency check.
- * 
+ *
  */
 
-/** 
- * 
+/**
+ *
  * The units of phi, tau in the derivatives and the potential V are the following:
  * - phi is given in units of the reduced Planck mass \f$ m_{pl} = (8 \pi G)^{(-1/2)}\f$
  * - tau in the derivative is given in units of Mpc.
@@ -2152,12 +2153,12 @@ double ddV_e_scf(struct background *pba,
 
 
 /** parameters and functions for the polynomial coefficient
- * \f$ V_p = (\phi - B)^\alpha + A \f$(polynomial bump) 
- * 
+ * \f$ V_p = (\phi - B)^\alpha + A \f$(polynomial bump)
+ *
  * double scf_alpha = 2;
- * 
+ *
  * double scf_B = 34.8;
- * 
+ *
  * double scf_A = 0.01; (values for their Figure 2)
  */
 

@@ -549,7 +549,7 @@ int input_read_parameters(
   double z_max=0.;
   int bin;
 
-  double N_dark=0;//ethos
+  double N_dark=0;//ethos //maybe delete this? !!!
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -740,7 +740,7 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_ur;
 
-/*ethos*/
+  /*ethos*/ //!!!this part reads all the particle physics input Omega0_dark-->idr, !!!rearrange this to make it nicer
   //class_read_double("N_dark",N_dark);
   class_read_double("xi_dark",pba->xi_dark);
   class_read_double("f_dark",pba->f_dark);
@@ -788,7 +788,28 @@ int input_read_parameters(
     class_alloc(ppt->beta_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_dark-1); n++) ppt->beta_dark[n] = 0.;
   }
-  
+  //!!!!
+  /** -Omega_0_idm (IDM)*/
+  class_call(parser_read_double(pfc,"Omega_idm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_idm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of Omega_idm or omega_idm, choose one");
+  if (flag1 == _TRUE_)
+    pba->Omega0_idm = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_idm = param2/pba->h/pba->h;
+  class_test(((pba->Omega0_idm != 0) && ((pba->Omega0_idr == 0) || (pth->a_dark == 0))),
+             errmsg,
+             "You can only have IDM different from 0 if you also have IDR and a coupling (a_dark) different from 0");
+  Omega_tot += pba->Omega0_idm;
+
+  //!!! redo this using nadmdr as a sample, just keep the final flag
+
   /** - Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -2565,7 +2586,7 @@ int input_read_parameters(
 
   class_read_double("dark_tight_coupling_trigger_tau_c_over_tau_h",ppr->dark_tight_coupling_trigger_tau_c_over_tau_h);
   class_read_double("dark_tight_coupling_trigger_tau_c_over_tau_k",ppr->dark_tight_coupling_trigger_tau_c_over_tau_k);
-  
+
   if (ppt->has_tensors == _TRUE_) {
     /** - ---> Include ur and ncdm shear in tensor computation? */
     class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
@@ -2606,7 +2627,7 @@ int input_read_parameters(
   class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
 
-  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx
+  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx //!!!leave as is
   class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_dark_on) && pth->nindex_dark<2,
              errmsg,
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
@@ -2633,7 +2654,7 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
-//MArchi ethos approx
+//MArchi ethos approx//dark-->idr (Omega0_idr)!!!
   if (pba->Omega0_dark != 0. && ppr->dark_radiation_streaming_approximation != rsa_dark_none){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
@@ -2877,7 +2898,7 @@ int input_default_params(
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  pba->Omega0_dark = 0.0;//ethos
+  pba->Omega0_dark = 0.0;//ethos //!!!change to idr+idm=0
   pba->xi_dark = 0;//MArchi ethos-new!
   pba->f_dark = 7./8.;//MArchi ethos-new!
   pba->Omega0_b = 0.022032/pow(pba->h,2);
@@ -3025,7 +3046,7 @@ int input_default_params(
   ppt->selection=gaussian;
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
-  
+
   /** - primordial structure */
 
   ppm->primordial_spec_type = analytic_Pk;
@@ -3279,7 +3300,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_pol_g=10;
   ppr->l_max_dr=17;
   ppr->l_max_ur=17;
-  ppr->l_max_dark=17;//ethos
+  ppr->l_max_dark=17;//ethos dark-->idr !!!check for all instances of this
   ppr->l_max_ncdm=17;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
@@ -3298,7 +3319,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_approximation = rsa_MD_with_reio;
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.;
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
-  
+
   ppr->dark_tight_coupling_trigger_tau_c_over_tau_h=0.01; /* decrease to switch off earlier in time */
   ppr->dark_tight_coupling_trigger_tau_c_over_tau_k=0.005;
 
@@ -3314,8 +3335,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->ncdm_fluid_trigger_tau_over_tau_k = 31.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
-  
-  ppr->sigma_dark = 1;//ethos
+
+  ppr->sigma_dark = 1;//ethos //sigma_drak-->idr !!! check all instances
 
   /**
    * - parameter related to the primordial spectra
