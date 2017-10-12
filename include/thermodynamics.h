@@ -142,10 +142,9 @@ struct thermo
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
 
-  double a_dark,b_dark;
+  double a_dark,b_dark; //!!!leave as is.. a_dark is the stregth of teh coupling between DM and DR in ethos. a_dark is the stregth of teh coupling between DR and DR in ethos
   double nindex_dark;//ethos power of the temperature dependence of tau_{DR}^{-1}
-  //double xi_dark;//MArchi ethos-new! now xi_dark pba
-  double m_dm;//dark matter mass
+  double m_dm;// dark matter mass
 
   //@}
 
@@ -163,13 +162,13 @@ struct thermo
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_dmu_dark;      /**<ethos */
-  int index_th_ddmu_dark;
-  int index_th_dddmu_dark;
-  int index_th_dmu_drdr;
-  int index_th_tau_darkm;
-  int index_th_tau_darkr;
-  int index_th_g_dark;
-  int index_th_cdm2;         /**< dm squared sound speed */
+  int index_th_ddmu_dark;    //!!!
+  int index_th_dddmu_dark;   //!!!
+  int index_th_dmu_drdr;     //!!!
+  int index_th_tau_idm;      //!!!changed from tau_darkm
+  int index_th_tau_idr;      //!!!changed from tau_darkm
+  int index_th_g_dark;       //!!! dark visibility function
+  int index_th_cidm2;         /**< dm squared sound speed !!!*/
   int index_th_Tdm;          /**< dm temperature */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
@@ -226,7 +225,7 @@ struct thermo
 
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
-  double tau_dark_free_streaming; /** MArchi ethos approx: trigger for dark radiation free streaming approximation*/
+  double tau_dark_free_streaming; /** MArchi ethos approx: trigger for dark radiation free streaming approximation*/ //!!! do we want to change this? idr...
 
   //@}
 
@@ -591,7 +590,7 @@ extern "C" {
 
   int thermodynamics_merge_reco_and_reio(
 					 struct precision * ppr,
-                                         struct background * pba, //ethos add pba
+                     struct background * pba, //ethos add pba
 					 struct thermo * pth,
 					 struct recombination * preco,
 					 struct reionization * preio

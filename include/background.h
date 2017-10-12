@@ -61,11 +61,10 @@ struct background
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
-  double Omega0_dark; /*< ethos dark radiation*/
-
-  double xi_dark; //MArchi ethos-new!
-
-  double f_dark; //MArchi ethos-new! internal dark radiation degrees of freedom
+  double Omega0_idr; /**< ethos dark radiation*/
+  double Omega0_idm; //!!!Check this
+  double xi_idr; //MArchi ethos-new! //changed from xi_dark
+  //double f_dark; //MArchi ethos-new! internal dark radiation degrees of freedom //check this!
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
@@ -162,8 +161,9 @@ struct background
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid with constant w density */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
-  int index_bg_rho_dark;      /**< ethos dark radiation*/
+  int index_bg_rho_idr;       /**< ethos dark radiation*/
   int index_bg_rho_dcdm;      /**< dcdm density */
+  int index_bg_rho_idm;       //!!!
   int index_bg_rho_dr;        /**< dr density */
 
   int index_bg_phi_scf;       /**< scalar field value */
@@ -267,7 +267,8 @@ struct background
   short has_lambda;    /**< presence of cosmological constant? */
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
-  short has_dark;      /**< ethos presence of dark radiation?*/
+  short has_idr;      /**< ethos presence of dark radiation?*/
+  short has_idm;      //!!!
   short has_curvature; /**< presence of global spatial curvature? */
 
   //@}

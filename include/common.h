@@ -528,7 +528,7 @@ struct precision
    * tight-coupling to be switched off.
    */
   double tight_coupling_trigger_tau_c_over_tau_h;
-  
+
   double dark_tight_coupling_trigger_tau_c_over_tau_h;
 
   /**
@@ -538,7 +538,7 @@ struct precision
    * Decrease this value to switch off earlier in time.
    */
   double tight_coupling_trigger_tau_c_over_tau_k;
-  
+
   double dark_tight_coupling_trigger_tau_c_over_tau_k;
 
   double start_sources_at_tau_c_over_tau_h; /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
@@ -549,7 +549,7 @@ struct precision
   int l_max_pol_g; /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
   int l_max_dr;   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
   int l_max_ur;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
-  int l_max_dark; /**< number of momenta in Boltzmann hierarchy for dark radiation, ethos */
+  int l_max_idr; /**< number of momenta in Boltzmann hierarchy for dark radiation, ethos */
   int l_max_ncdm;   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
   int l_max_g_ten;     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
   int l_max_pol_g_ten; /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
@@ -584,7 +584,7 @@ struct precision
    * method for switching off photon perturbations
    */
   int radiation_streaming_approximation;
-  
+
   int dark_radiation_streaming_approximation;//ethos approx
 
   /**
@@ -594,7 +594,7 @@ struct precision
    * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
    */
   double radiation_streaming_trigger_tau_over_tau_k;
-  
+
   double dark_radiation_streaming_trigger_tau_over_tau_k;//MArchi ethos approx
 
   /**
@@ -608,8 +608,8 @@ struct precision
   double dark_radiation_streaming_trigger_tau_c_over_tau;//MArchi ethos approx
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
- 
-  int sigma_dark;//ethos: perfect fluid=0 or free streaming=1
+
+  int sigma_idr; //ethos: perfect fluid=0 or free streaming=1 //!!!changed from sigma_dark
   //double bself_dark;//ethos: neutrino self interaction coefficient
 
   /**

@@ -185,9 +185,9 @@ struct perturbs
   double three_cvis2_ur;/**< 3 x effective viscosity parameter for the ultrarelativistic perturbations */
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
-  
-  double * alpha_dark;//ethos
-  double * beta_dark;//ethos
+
+  double * alpha_dark;//ethos Angular contribution to collisional term at l>=2 for DM-DR
+  double * beta_dark;//ethos Angular contribution to collisional term at l>=2  for DR-DR
 
   //@}
 
@@ -250,7 +250,8 @@ struct perturbs
   short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
-  short has_source_delta_dark; /**< do we need source for dark radiation? ethos*/
+  short has_source_delta_idr; /**< do we need source for dark radiation? ethos*/
+  short has_source_delta_idm; /**< do we need source for interacting dark matter ethos*/
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
@@ -261,7 +262,8 @@ struct perturbs
   short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
   short has_source_theta_dr; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_dark; /**< do we need source for theta dark radiation? ethos*/
+  short has_source_theta_idr; /**< do we need source for theta dark radiation? ethos*/
+  short has_source_theta_idm; /**< do we need source for theta interacting dark matter ethos*/
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_phi;          /**< do we need source for metric fluctuation phi? */
   short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
@@ -285,7 +287,8 @@ struct perturbs
   int index_tp_delta_scf;  /**< index value for delta of scalar field */
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
-  int index_tp_delta_dark; /**< index value for delta of dark radiation ethos*/
+  int index_tp_delta_idr; /**< index value for delta of dark radiation ethos*/
+  int index_tp_delta_idm; /**< index value for delta of interacting dark matter ethos*/
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
@@ -298,7 +301,8 @@ struct perturbs
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
   int index_tp_theta_scf;  /**< index value for theta of scalar field */
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
-  int index_tp_theta_dark; /**< index value for theta of dark radiation ethos*/
+  int index_tp_theta_idr; /**< index value for theta of dark radiation ethos*/
+  int index_tp_theta_idm; /**< index value for theta of interacting dark matter ethos*/
   int index_tp_theta_dr; /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
@@ -402,6 +406,8 @@ struct perturb_vector
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
+  int index_pt_delta_idm; /**< idm density ethos*/
+  int index_pt_theta_idm; /**< idm velocity ethos*/
   int index_pt_delta_dcdm; /**< dcdm density */
   int index_pt_theta_dcdm; /**< dcdm velocity */
   int index_pt_delta_fld;  /**< dark energy density */
@@ -413,11 +419,11 @@ struct perturb_vector
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
-  int index_pt_delta_dark; /**< density of dark radiation ethos*/
-  int index_pt_theta_dark; /**< velocity of dark radiation ethos*/
-  int index_pt_shear_dark; /**< shear of dark radiation ethos*/
-  int index_pt_l3_dark;    /**< l=3 of dark radiation ethos*/
-  int l_max_dark;          /**< max momentum in Boltzmann hierarchy (at least 3) ethos*/
+  int index_pt_delta_idr; /**< density of dark radiation ethos*/
+  int index_pt_theta_idr; /**< velocity of dark radiation ethos*/
+  int index_pt_shear_idr; /**< shear of dark radiation ethos*/
+  int index_pt_l3_idr;    /**< l=3 of dark radiation ethos*/
+  int l_max_idr;          /**< max momentum in Boltzmann hierarchy (at least 3) ethos*/
 /* perturbed recombination */
   int index_pt_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_pt_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
@@ -508,8 +514,8 @@ struct perturb_workspace
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
   double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
-  double rsa_delta_dark; //MArchi ethos approx
-  double rsa_theta_dark; 
+  double rsa_delta_idr; //MArchi ethos approx
+  double rsa_theta_idr; //!!!add names!!!
 
   double * delta_ncdm;	/**< relative density perturbation of each ncdm species */
   double * theta_ncdm;	/**< velocity divergence theta of each ncdm species */
@@ -541,7 +547,7 @@ struct perturb_workspace
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
   int index_ap_tca_dark; //ethos approx
-  int index_ap_rsa_dark; //MArchi ethos approx
+  int index_ap_rsa_dark; //MArchi ethos approx //!!!should we change this to _idr???
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
@@ -798,7 +804,7 @@ extern "C" {
                                   double * pvecthermo,
                                   struct perturb_workspace * ppw
                                   );
-//MArchi ethos approx
+//MArchi ethos approx //!!!_idr_ instead of _dark_
   int perturb_rsa_dark_delta_and_theta(
                                   struct precision * ppr,
                                   struct background * pba,
