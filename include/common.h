@@ -585,7 +585,7 @@ struct precision
    */
   int radiation_streaming_approximation;
 
-  int dark_radiation_streaming_approximation;//ethos approx
+  int dark_radiation_streaming_approximation; //ethos approx
 
   /**
    * when to switch off photon perturbations, ie when to switch

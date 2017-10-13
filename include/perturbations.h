@@ -29,7 +29,7 @@
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
 enum tca_dark_flags {tca_dark_on, tca_dark_off};//ethos approx
-enum rsa_dark_flags {rsa_dark_off, rsa_dark_on};//MArchi ethos approx
+enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};//MArchi ethos approx
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
@@ -43,7 +43,7 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum rsa_dark_method {rsa_dark_none,rsa_dark_MD};
+enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
@@ -186,8 +186,8 @@ struct perturbs
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
 
-  double * alpha_dark;//ethos Angular contribution to collisional term at l>=2 for DM-DR
-  double * beta_dark;//ethos Angular contribution to collisional term at l>=2  for DR-DR
+  double * alpha_dark; /**<ethos Angular contribution to collisional term at l>=2 for DM-DR */
+  double * beta_dark;  /**<ethos Angular contribution to collisional term at l>=2 for DR-DR */
 
   //@}
 
@@ -514,8 +514,8 @@ struct perturb_workspace
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
   double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
-  double rsa_delta_idr; //MArchi ethos approx
-  double rsa_theta_idr; //!!!add names!!!
+  double rsa_delta_idr; /**< dark radiation (ethos) density in dark radiation streaming approximation */
+  double rsa_theta_idr; /**< dark radiation (ethos) velocity in dark radiation streaming approximation */
 
   double * delta_ncdm;	/**< relative density perturbation of each ncdm species */
   double * theta_ncdm;	/**< velocity divergence theta of each ncdm species */
@@ -546,8 +546,8 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_tca_dark; //ethos approx
-  int index_ap_rsa_dark; //MArchi ethos approx //!!!should we change this to _idr???
+  int index_ap_tca_dark; /**< index for dark tight-coupling approximation (ethos) */
+  int index_ap_rsa_idr; /**< index for dark radiation streaming approximation (ethos) */ //!!!check that all of these get changed to idr
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
@@ -805,7 +805,7 @@ extern "C" {
                                   struct perturb_workspace * ppw
                                   );
 //MArchi ethos approx //!!!_idr_ instead of _dark_
-  int perturb_rsa_dark_delta_and_theta(
+  int perturb_rsa_idr_delta_and_theta(
                                   struct precision * ppr,
                                   struct background * pba,
                                   struct thermo * pth,

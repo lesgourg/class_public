@@ -189,7 +189,7 @@ struct spectra {
   int index_tr_delta_scf;      /**< index of scalar field phi transfer function */
   int index_tr_delta_fld;      /**< index of dark energy fluid density transfer function */
   int index_tr_delta_ur;       /**< index of ultra-relativistic neutrinos/relics density transfer function */
-  int index_tr_delta_idr;      /**< index of dark radiation ethos*/
+  int index_tr_delta_idr;      /**< index of dark radiation density transfer function ethos*/
   int index_tr_delta_idm;      /**< index of interacting dark matter density transfer function ethos */
   int index_tr_delta_dr;       /**< index of decay radiation density transfer function */
   int index_tr_delta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) density transfer function */
@@ -201,7 +201,7 @@ struct spectra {
   int index_tr_theta_scf;      /**< index of derivative of scalar field phi transfer function */
   int index_tr_theta_fld;      /**< index of dark energy fluid velocity transfer function */
   int index_tr_theta_ur;       /**< index of ultra-relativistic neutrinos/relics velocity transfer function */
-  int index_tr_theta_idr;      /**< index of dark radiation velocity ethos*/
+  int index_tr_theta_idr;      /**< index of dark radiation velocity transfer function ethos*/
   int index_tr_theta_idm;      /**< index of interacting dark matter velocity transfer function ethos*/
   int index_tr_theta_dr;       /**< index of decay radiation velocity transfer function */
   int index_tr_theta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) velocity transfer function */

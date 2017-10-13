@@ -98,7 +98,7 @@ struct thermo
 
   double binned_reio_step_sharpness; /**< sharpness of tanh() step interpolating between binned values */
 
-    /** parameters for reio_many_tanh */
+  /** parameters for reio_many_tanh */
 
   int many_tanh_num; /**< with how many jumps do we want to describe reionization? */
 
@@ -110,13 +110,13 @@ struct thermo
 
   /** parameters for energy injection */
 
-  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
 
-  short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+  short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
-  double annihilation_variation; /** if this parameter is non-zero,
+  double annihilation_variation; /**< if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
 				     log-log scale between zmin and
@@ -126,25 +126,28 @@ struct thermo
 				     zmax; it will be constant outside
 				     this range */
 
-  double annihilation_z; /** if annihilation_variation is non-zero,
+  double annihilation_z; /**< if annihilation_variation is non-zero,
 			     this is the value of z at which the
 			     parameter annihilation is defined, i.e.
 			     F(annihilation_z)=annihilation */
 
-  double annihilation_zmax; /** if annihilation_variation is non-zero,
+  double annihilation_zmax; /**< if annihilation_variation is non-zero,
 				redshift above which annihilation rate
 				is maximal */
 
-  double annihilation_zmin; /** if annihilation_variation is non-zero,
+  double annihilation_zmin; /**< if annihilation_variation is non-zero,
 				redshift below which annihilation rate
 				is constant */
 
-  double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
+  double annihilation_f_halo; /**< takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
 
-  double a_dark,b_dark; //!!!leave as is.. a_dark is the stregth of teh coupling between DM and DR in ethos. a_dark is the stregth of teh coupling between DR and DR in ethos
-  double nindex_dark;//ethos power of the temperature dependence of tau_{DR}^{-1}
-  double m_dm;// dark matter mass
+  /** parameters for ethos framework */
+
+  double a_dark; /**< stregth of the coupling between DM and DR in ethos */
+  double b_dark; /**< stregth of the coupling between DR and DR in ethos */
+  double nindex_dark;/**< ethos power of the temperature dependence of tau_{DR}^{-1} */
+  double m_dm; /**< ethos dark matter mass */
 
   //@}
 
@@ -161,12 +164,12 @@ struct thermo
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
-  int index_th_dmu_dark;      /**<ethos */
+  int index_th_dmu_dark;      /**< ethos */
   int index_th_ddmu_dark;    //!!!
   int index_th_dddmu_dark;   //!!!
   int index_th_dmu_drdr;     //!!!
   int index_th_tau_idm;      //!!!changed from tau_darkm
-  int index_th_tau_idr;      //!!!changed from tau_darkm
+  int index_th_tau_idr;      //!!!changed from tau_darkr
   int index_th_g_dark;       //!!! dark visibility function
   int index_th_cidm2;         /**< dm squared sound speed !!!*/
   int index_th_Tdm;          /**< dm temperature */
@@ -225,7 +228,7 @@ struct thermo
 
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
-  double tau_dark_free_streaming; /** MArchi ethos approx: trigger for dark radiation free streaming approximation*/ //!!! do we want to change this? idr...
+  double tau_idr_free_streaming; /** MArchi ethos approx: trigger for dark radiation free streaming approximation*/
 
   //@}
 

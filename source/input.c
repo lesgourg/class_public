@@ -742,12 +742,12 @@ int input_read_parameters(
 
   /*ethos*/ //!!!this part reads all the particle physics input Omega0_dark-->idr, !!!rearrange this to make it nicer
   //class_read_double("N_dark",N_dark);
-  class_read_double("xi_dark",pba->xi_dark);
-  class_read_double("f_dark",pba->f_dark);
-  //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_dark,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
-  pba->Omega0_dark = pba->f_dark*pow(pba->xi_dark,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
+  class_read_double("xi_idr",pba->xi_idr);
+  class_read_double("f_dark",pba->f_dark); //!!!do we still need this? ask Maria
+  //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_idr,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
+  pba->Omega0_dark = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
   Omega_tot += pba->Omega0_dark;
-  //printf("ETHOS N_dark=%e, xi_dark=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_dark, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
+  //printf("ETHOS N_dark=%e, xi_idr=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_idr, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
   class_read_double("a_dark",pth->a_dark);
@@ -758,35 +758,35 @@ int input_read_parameters(
   class_test(((pth->b_dark<0.0)),
              errmsg,
              "In input file, b_dark cannot be < 0.0");
-  class_read_int("sigma_dark",ppr->sigma_dark);
-  class_test(((ppr->sigma_dark!=1) && (ppr->sigma_dark!=0)),
+  class_read_int("sigma_idr",ppr->sigma_idr);
+  class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
              errmsg,
-             "In input file, you can only enter sigma_dark=0 for a perfect fluid or sigma_dark=1 for free streaming neutrinos, choose one");
-  //printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_dark=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_dark);
-  class_read_int("l_max_dark",ppr->l_max_dark);//ethos
+             "In input file, you can only enter sigma_idr=0 for a perfect fluid or sigma_idr=1 for free streaming neutrinos, choose one");
+  //printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_idr=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_idr);
+  class_read_int("l_max_idr",ppr->l_max_idr);//ethos
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
              errmsg);
   if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_dark-1)){
-      class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_dark-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+    if(entries_read != (ppr->l_max_idr-1)){
+      class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
     }
   }else{
-    class_alloc(ppt->alpha_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_dark-1); n++) ppt->alpha_dark[n] = 1.;
+    class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
   }
   class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
              errmsg,
              errmsg);
   if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_dark-1)){
-      class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_dark-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+    if(entries_read != (ppr->l_max_idr-1)){
+      class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
     }
   }else{
-    class_alloc(ppt->beta_dark,(ppr->l_max_dark-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_dark-1); n++) ppt->beta_dark[n] = 0.;
+    class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
   }
   //!!!!
   /** -Omega_0_idm (IDM)*/
@@ -2628,7 +2628,7 @@ int input_read_parameters(
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
 
   class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx //!!!leave as is
-  class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_dark_on) && pth->nindex_dark<2,
+  class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_idr_on) && pth->nindex_dark<2,
              errmsg,
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
   class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//MArchi ethos approx
@@ -2655,7 +2655,7 @@ int input_read_parameters(
 
   }
 //MArchi ethos approx//dark-->idr (Omega0_idr)!!!
-  if (pba->Omega0_dark != 0. && ppr->dark_radiation_streaming_approximation != rsa_dark_none){
+  if (pba->Omega0_dark != 0. && ppr->dark_radiation_streaming_approximation != rsa_idr_none){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
                "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
@@ -2899,7 +2899,7 @@ int input_default_params(
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_dark = 0.0;//ethos //!!!change to idr+idm=0
-  pba->xi_dark = 0;//MArchi ethos-new!
+  pba->xi_idr = 0;//MArchi ethos-new!
   pba->f_dark = 7./8.;//MArchi ethos-new!
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
@@ -2975,7 +2975,7 @@ int input_default_params(
   pth->b_dark = 0.;//ethos
   pth->nindex_dark = 0.;//ethos
   pth->m_dm = 1.e11;//ethos
-  //pth->xi_dark = 0;//ethos//MArchi ethos-new! xi_dark now pba
+  //pth->xi_idr = 0;//ethos//MArchi ethos-new! xi_idr now pba
 
   /** - perturbation structure */
 
@@ -3300,7 +3300,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->l_max_pol_g=10;
   ppr->l_max_dr=17;
   ppr->l_max_ur=17;
-  ppr->l_max_dark=17;//ethos dark-->idr !!!check for all instances of this
+  ppr->l_max_idr=17; //ethos
   ppr->l_max_ncdm=17;
   ppr->l_max_g_ten=5;
   ppr->l_max_pol_g_ten=5;
@@ -3323,7 +3323,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->dark_tight_coupling_trigger_tau_c_over_tau_h=0.01; /* decrease to switch off earlier in time */
   ppr->dark_tight_coupling_trigger_tau_c_over_tau_k=0.005;
 
-  ppr->dark_radiation_streaming_approximation = rsa_dark_none;
+  ppr->dark_radiation_streaming_approximation = rsa_idr_none;
   ppr->dark_radiation_streaming_trigger_tau_over_tau_k = 50.;
   ppr->dark_radiation_streaming_trigger_tau_c_over_tau = 10.;
 
@@ -3336,7 +3336,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
-  ppr->sigma_dark = 1;//ethos //sigma_drak-->idr !!! check all instances
+  ppr->sigma_idr = 1;//ethos
 
   /**
    * - parameter related to the primordial spectra
