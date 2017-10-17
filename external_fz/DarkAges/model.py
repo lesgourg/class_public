@@ -342,7 +342,7 @@ class evaporating_model(model):
 		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL')
 		del_E = np.zeros(redshift.shape, dtype=np.float64)
 		for idx in xrange(del_E.shape[0]):
-			del_E[idx] = trapz(spec_all[:,idx]*E**2,(logEnergies))
+			del_E[idx] = trapz(spec_all[:,idx]*E**2*np.log(10),(logEnergies))
 			normalization = del_E
 
 		model.__init__(self, spec_el, spec_ph, normalization, 0)
@@ -398,6 +398,6 @@ class accreting_model(model):
 
 		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_el[:,None])
 		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_ph[:,None])
-		normalization = trapz((spec_ph+spec_el)*E*np.log(10),logEnergies)*np.ones_like(redshift)
+		normalization = trapz((spec_ph+spec_el)*E**2*np.log(10),logEnergies)*np.ones_like(redshift)
 		# print normalization, spec_photons
 		model.__init__(self, spec_electrons, spec_photons, normalization, 0)

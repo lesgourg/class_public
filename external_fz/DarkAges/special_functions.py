@@ -87,10 +87,10 @@ def luminosity_accreting_bh(Energy,recipe,PBH_mass):
 		a = -2.5+np.log10(Energy)/3.
 		Emin = (10/PBH_mass)**0.5
 		Ts = 200
-		if Energy.any() > Emin:
-			out = Energy**(-a)*np.exp(-Energy/Ts)
-		else:
-			out = 0.
+		out = np.zeros_like(Energy)
+		Emin_mask = Energy > Emin
+		out[Emin_mask] = Energy[Emin_mask]**(-a[Emin_mask])*np.exp(-Energy[Emin_mask]/Ts)
+		out[~Emin_mask] = 0.
 	else:
 		from .__init__ import DarkAgesError as err
 		raise err('I cannot understand the recipe "{0}"'.format(recipe))
