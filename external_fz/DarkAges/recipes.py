@@ -117,7 +117,9 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 		If not given the default of :code:`merge_ion = False` is taken.
 	"""
 
-	model_from_file = evaporating_model(PBH_mass_ini)
+	include_sec = DarkOptions.get('PBH_with_secondaries',True)
+
+	model_from_file = evaporating_model(PBH_mass_ini, include_secondaries=include_sec)
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
@@ -286,6 +288,7 @@ def load_from_spectrum(fname, logEnergies, **DarkOptions):
 	"""
 
 	cols_to_use = DarkOptions.get('spectra_cols',(0,1,2,3,4))
+
 	try:
 		assert len(cols_to_use) == 5
 	except AssertionError:
@@ -297,7 +300,12 @@ def load_from_spectrum(fname, logEnergies, **DarkOptions):
 		mass_mask = np.absolute(spec_data[0] - mass) <= 1e-5
 		temp_spec[idx,:,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies, **DarkOptions)
 
-	return NDlogInterpolator(masses, temp_spec, exponent=1)
+	if np.log10(max(masses) / min(masses)) > 2:
+		scale = 'log-log'
+	else:
+		scale = 'lin-log'
+
+	return NDlogInterpolator(masses, temp_spec, exponent=1, scale=scale)
 
 ##### Functions related to running a preprocessed model (or defining it, if it does not exist)
 

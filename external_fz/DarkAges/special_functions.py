@@ -8,7 +8,7 @@ def approx_dirac(point,array):
 	interpol_idx = np.interp(point,array,np.arange(len(array)))
 	i = int(interpol_idx)
 	spacing = float(array[i+1] - array[i])
-	print spacing 
+	print spacing
 	for j in xrange(array.shape[0]):
 		print point, abs( (point - array[j]) / spacing )
 		print max(0,1. - abs( (point - array[j]) / spacing ))
@@ -23,7 +23,7 @@ def secondaries_from_muon(E_secondary, E_primary):
 	if not os.path.isfile( os.path.join(data_dir, 'muon_secondaries.obj')):
 		data = np.genfromtxt( os.path.join(data_dir, 'muon_normed.dat'), unpack = True, usecols=(0,1,2,3))
 		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, logspace_wanted = True)
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
 		dump_dict = {'spec_interpolator':spec_interpolator}
 		with open(os.path.join(data_dir, 'muon_secondaries.obj'),'wb') as dump_file:
 			dill.dump(dump_dict, dump_file)
@@ -44,7 +44,7 @@ def secondaries_from_pi0(E_secondary, E_primary):
 	if not os.path.isfile( os.path.join(data_dir, 'pi0_secondaries.obj')):
 		data = np.genfromtxt( os.path.join(data_dir, 'pi0_normed.dat'), unpack = True, usecols=(0,1,2,3))
 		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, logspace_wanted = True)
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
 		dump_dict = {'spec_interpolator':spec_interpolator}
 		with open(os.path.join(data_dir, 'pi0_secondaries.obj'),'wb') as dump_file:
 			dill.dump(dump_dict, dump_file)
@@ -63,7 +63,7 @@ def secondaries_from_piCh(E_secondary, E_primary):
 	if not os.path.isfile( os.path.join(data_dir, 'piCh_secondaries.obj')):
 		data = np.genfromtxt( os.path.join(data_dir, 'piCh_normed.dat'), unpack = True, usecols=(0,1,2,3))
 		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, logspace_wanted = True)
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
 		dump_dict = {'spec_interpolator':spec_interpolator}
 		with open(os.path.join(data_dir, 'piCh_secondaries.obj'),'wb') as dump_file:
 			dill.dump(dump_dict, dump_file)

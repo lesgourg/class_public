@@ -166,7 +166,7 @@ class annihilating_model(model):
 
 		E = logConversion(logEnergies)
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
-		#normalization = trapz(tot_spec*E**2, logEnergies)*np.ones_like(redshift)
+		#normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
 		normalization = np.ones_like(redshift)*(2*m)
 		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_el_spec[:,None])
 		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_ph_spec[:,None])
@@ -258,7 +258,7 @@ class evaporating_model(model):
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self, PBH_mass_ini, logEnergies=None, redshift=None ):
+	def __init__(self, PBH_mass_ini, logEnergies=None, redshift=None, include_secondaries=True ):
 		u"""
 		At initialization evolution of the PBH mass is calculated with
 		:func:`PBH_mass_at_z <DarkAges.evaporator.PBH_mass_at_z>` and the
@@ -306,15 +306,21 @@ class evaporating_model(model):
 
 		# full spectra (including secondaries)
 		from .special_functions import secondaries_from_pi0, secondaries_from_piCh, secondaries_from_muon
-		sec_from_pi0 = secondaries_from_pi0(E_sec[:,None],E_prim[None,:])
-		#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
-		#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2),E_sec,axis=0))[None,:,None]
-		sec_from_piCh = secondaries_from_piCh(E_sec[:,None],E_prim[None,:])
-		#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
-		#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2),E_sec,axis=0))[None,:,None]
-		sec_from_muon = secondaries_from_muon(E_sec[:,None],E_prim[None,:])
-		#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
-		#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2),E_sec,axis=0))[None,:,None]
+
+		if include_secondaries:
+			sec_from_pi0 = secondaries_from_pi0(E_sec[:,None],E_prim[None,:])
+			#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+			#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2),E_sec,axis=0))[None,:,None]
+			sec_from_piCh = secondaries_from_piCh(E_sec[:,None],E_prim[None,:])
+			#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+			#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2),E_sec,axis=0))[None,:,None]
+			sec_from_muon = secondaries_from_muon(E_sec[:,None],E_prim[None,:])
+			#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+			#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2),E_sec,axis=0))[None,:,None]
+		else:
+			sec_from_pi0 = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
+			sec_from_piCh = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
+			sec_from_muon = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
 
 		#convol_norm_pi0 = trapz(np.sum(sec_from_pi0, axis=2)*E_prim[None,:],E_prim,axis=1)
 		#convol_norm_piCh = trapz(np.sum(sec_from_piCh, axis=2)*E_prim[None,:],E_prim,axis=1)

@@ -15,10 +15,10 @@ model_name =  model_dir.split('/')[-1]
 
 def run( *arguments, **DarkOptions ):
 	if len(arguments) <2:
-		print_error("There are too few arguments passed. I expected at least 1")
+		raise DarkAgesError("There are too few arguments passed. I expected at least 1")
 	sampling_mass = float(arguments[1])
 	if sampling_mass < 5 or sampling_mass > 5e3:
-		print_error("The mass-parameter sholud be in the range [5 GeV, 5 TeV]")
+		raise DarkAgesError("The mass-parameter sholud be in the range [5 GeV, 5 TeV]")
 
 	with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'rb') as dump_file:
 		dump_dict = dill.load(dump_file)
@@ -26,10 +26,18 @@ def run( *arguments, **DarkOptions ):
 	primaries = dump_dict.get('channels')
 	tmp_shape = dump_dict.get('spec_interp_{:s}'.format(primaries[0]))._shape
 	total_spec = np.zeros(shape=tmp_shape, dtype=np.float64)
+	tot_frac = 0.
 	for primary in primaries:
 		fraction = dump_dict.get('frac_interp_{:s}'.format(primary)).__call__(sampling_mass)
+		#fraction = dump_dict.get('frac_interp_{:s}_loglin'.format(primary)).__call__(sampling_mass)
 		spectra =  dump_dict.get('spec_interp_{:s}'.format(primary)).__call__(sampling_mass)
-		total_spec += fraction * spectra
+		if np.any(spectra > 0.0):
+			total_spec += fraction * spectra
+			tot_frac += fraction
+	if tot_frac > 0.:
+		total_spec /= tot_frac
+	else:
+		total_spec = np.zeros_like(total_spec)
 
 	history = DarkOptions.get('injection_history','annihilation')
 	if history == 'decay':

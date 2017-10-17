@@ -127,7 +127,7 @@ if options.log10mass:
 
 if options.injection_history == 'decay' and (options.t_dec==None):
 	raise DarkAgesError('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
-	
+
 if options.injection_history == 'PBH':
 	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, **DarkOptions) )
 
@@ -155,11 +155,11 @@ if options.specfile:
 		assert len(options.specfile) == len(options.branchings)
 	except AssertionError:
 		raise DarkAgesError('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
-	
+
 	if hasattr(options, 't_dec'):
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history, branchings=options.branchings) )
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history, branchings=options.branchings, **DarkOptions) )
 	else:
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings) )
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings, **DarkOptions) )
 
 if not options.specfile and not options.specfunction:
 	raise DarkAgesError('You forgot to give a specifile!! specify it via "--specfile" or "--specfunction"')

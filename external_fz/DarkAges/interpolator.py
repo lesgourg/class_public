@@ -46,7 +46,7 @@ class logInterpolator(object):
 	the point to sample equals the point at which the function is given.
 	"""
 
-	def __init__(self, x, y, exponent=1, logspace_wanted=True):
+	def __init__(self, x, y, exponent=1, scale='lin-log'):
 		u"""
 		Parameters
 		----------
@@ -63,7 +63,11 @@ class logInterpolator(object):
 			If not specified the default value of :code:`exponent = 1` is taken.
 		"""
 
-		self._log_wanted = logspace_wanted
+		if scale not in ['lin-lin','log-lin','lin-log','log-log']:
+			raise DarkAgesError('The scale "{0}" is not known. Please choose from ["lin-lin","log-lin","lin-log","log-log".]'.format(scale))
+		else:
+			self._xscale, self._yscale = scale.split('-')
+
 		self._valid = True
 		self.exponent = exponent
 		self._lower = float(x[0])
@@ -92,15 +96,20 @@ class logInterpolator(object):
 
 		nan_mask = func_copy == func_copy
 
-		if self._log_wanted:
+		if self._yscale == 'log':
 			fitfunc = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
 		else:
 			fitfunc = func_copy[nan_mask] * (x[nan_mask]**self.exponent)
 
+		if self._xscale == 'log':
+			points = np.log(x[nan_mask])
+		else:
+			points = x[nan_mask]
+
 		if len(func_copy[nan_mask]) > 4:
-			self._fit = interp1d(x[nan_mask], fitfunc, bounds_error=False, fill_value=np.nan, kind='cubic')
+			self._fit = interp1d(points, fitfunc, bounds_error=False, fill_value=np.nan, kind='cubic')
 		elif len(func_copy[nan_mask]) >= 2:
-			self._fit = interp1d(x[nan_mask], fitfunc, bounds_error=False, fill_value=np.nan, kind='linear')
+			self._fit = interp1d(points, fitfunc, bounds_error=False, fill_value=np.nan, kind='linear')
 		else:
 			self._valid = False
 		return None
@@ -129,10 +138,14 @@ class logInterpolator(object):
 					return 0.
 			else:
 				if self._valid:
-					if self._log_wanted:
-						return np.e**(self._fit(single_point)) / (single_point**self.exponent)
+					if self._xscale == 'log':
+						xval = np.log(single_point)
 					else:
-						return (self._fit(single_point)) / (single_point**self.exponent)
+						xval = single_point
+					if self._yscale == 'log':
+						return np.e**(self._fit(xval)) / (single_point**self.exponent)
+					else:
+						return (self._fit(xval)) / (single_point**self.exponent)
 				else:
 					return 0.
 
@@ -194,7 +207,7 @@ class NDlogInterpolator(object):
 	:class:`logInterpolator <DarkAges.interpolator.logInterpolator>`
 	"""
 
-	def __init__(self, x, array_of_y, exponent=1, logspace_wanted=True):
+	def __init__(self, x, array_of_y, exponent=1, scale='lin-log'):
 		u"""
 		Parameters
 		----------
@@ -213,7 +226,8 @@ class NDlogInterpolator(object):
 			transformed into logspace (:code:`array_of_y -> log10( (x**exponent)*array_of_y )`).
 			If not specified the default value of :code:`exponent = 1` is taken.
 		"""
-
+		if scale not in ['lin-lin','log-lin','lin-log','log-log']:
+			raise DarkAgesError('The scale "{0}" is not known. Please choose from ["lin-lin","log-lin","lin-log","log-log".]'.format(scale))
 		self._ndim = array_of_y.ndim
 		self._shape = array_of_y.shape[1:]
 		self._lower = float(x[0])
@@ -225,8 +239,8 @@ class NDlogInterpolator(object):
 			self.interpolator = np.empty(shape=self._shape, dtype=logInterpolator)
 			rolled_y = np.rollaxis(array_of_y,0,self._ndim)
 			for multi_idx in np.ndindex(self.interpolator.shape):
-				#self.interpolator[multi_idx] = logInterpolator(x[:], rolled_y[multi_idx], exponent=exponent, , logspace_wanted=logspace_wanted)
-				self.interpolator[multi_idx] = logLinearInterpolator(x[:], rolled_y[multi_idx], exponent=exponent, logspace_wanted=logspace_wanted)
+				#self.interpolator[multi_idx] = logInterpolator(x[:], rolled_y[multi_idx], exponent=exponent, , scale=scale)
+				self.interpolator[multi_idx] = logLinearInterpolator(x[:], rolled_y[multi_idx], exponent=exponent, scale=scale)
 
 	def __call__(self, xgrid):
 		u"""
@@ -284,8 +298,12 @@ class logLinearInterpolator(object):
 	look there for the definition of the parameters and returned data types.
 	"""
 
-	def __init__(self, x, y, exponent=1, logspace_wanted=True):
-		self._log_wanted = logspace_wanted
+	def __init__(self, x, y, exponent=1, scale='lin-log'):
+		if scale not in ['lin-lin','log-lin','lin-log','log-log']:
+			raise DarkAgesError('The scale "{0}" is not known. Please choose from ["lin-lin","log-lin","lin-log","log-log".]'.format(scale))
+		else:
+			self._xscale, self._yscale = scale.split('-')
+
 		self._valid = True
 		self.exponent = exponent
 		self._lower = float(x[0])
@@ -315,11 +333,15 @@ class logLinearInterpolator(object):
 		nan_mask = func_copy == func_copy
 
 		if len(func_copy[nan_mask]) >= 2:
-			if self._log_wanted:
+			if self._yscale == 'log':
 				fitfunc = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
 			else:
 				fitfunc = func_copy[nan_mask] * (x[nan_mask]**self.exponent)
-			self._fit = interp1d(x[nan_mask], fitfunc, bounds_error=False, fill_value=np.nan, kind='linear')
+			if self._xscale == 'log':
+				points = np.log(x[nan_mask])
+			else:
+				points = x[nan_mask]
+			self._fit = interp1d(points, fitfunc, bounds_error=False, fill_value=np.nan, kind='linear')
 		else:
 			self._valid = False
 		return None
@@ -333,10 +355,14 @@ class logLinearInterpolator(object):
 					return 0.
 			else:
 				if self._valid:
-					if self._log_wanted:
-						return np.e**(self._fit(single_point)) / (single_point**self.exponent)
+					if self._xscale == 'log':
+						xval = np.log(single_point)
 					else:
-						return (self._fit(single_point)) / (single_point**self.exponent)
+						xval = single_point
+					if self._yscale == 'log':
+						return np.e**(self._fit(xval)) / (single_point**self.exponent)
+					else:
+						return (self._fit(xval)) / (single_point**self.exponent)
 				else:
 					return 0.
 

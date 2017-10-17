@@ -364,7 +364,7 @@ def f_function(logE, z_inj, z_dep, normalization,
 
 	return result
 
-def log_fit(points,func,xgrid,exponent=1):
+def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
 	u"""Returns an array of interpolated points using the
 	:class:`logInterpolator <DarkAges.interpolator.logInterpolator>`-class.
 
@@ -398,8 +398,8 @@ def log_fit(points,func,xgrid,exponent=1):
 	"""
 
 	from .interpolator import logInterpolator
-	tmp_interpolator = logInterpolator(points, func, exponent)
-	#tmp_interpolator = logLinearInterpolator(points, func, exponent)
+	tmp_interpolator = logInterpolator(points, func, exponent=exponent, scale=scale)
+	#tmp_interpolator = logLinearInterpolator(points, func, exponent=exponent, scale=scale)
 	out = tmp_interpolator(xgrid)
 	return out
 
@@ -511,6 +511,10 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 		out_el[unphysical_region_mask] = 0.
 		out_ph[unphysical_region_mask] = 0.
 		out_oth[unphysical_region_mask] = 0.
+		second_rescaling = trapz( (out_el+out_ph+out_oth)*logConversion(sampling_log10E), logConversion(sampling_log10E) ) / norm
+		out_el /= second_rescaling
+		out_ph /= second_rescaling
+		out_oth /= second_rescaling
 	else:
 		out_el = np.zeros_like(sampling_log10E).astype(np.float64)
 		out_ph = np.zeros_like(sampling_log10E).astype(np.float64)
@@ -572,11 +576,11 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **kwargs):
 	last = len(redshift) - last_idx
 	min_z = kwargs.get('lower_z_bound',0.)
 	max_z = kwargs.get('upper_z_bound',1e4)
-	print(50*'#')
-	print('### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n### "print(...)"-commands in your script are silenced.')
-	print(50*'#'+'\n')
-	print('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n{:d}\n'.format( (last-first) + 2))
-	print('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}'.format(min_z,f_heat[first],f_lya[first],f_ionH[first],f_ionHe[first],f_lowE[first]))
+	sys.stdout.write(50*'#'+'\n')
+	sys.stdout.write('### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n### "print(...)"-commands in your script are silenced.\n')
+	sys.stdout.write(50*'#'+'\n\n')
+	sys.stdout.write('#z_dep\tf_heat\tf_lya\tf_ionH\tf_ionHe\tf_lowE\n\n{:d}\n\n'.format( (last-first) + 2))
+	sys.stdout.write('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\n'.format(min_z,f_heat[first],f_lya[first],f_ionH[first],f_ionHe[first],f_lowE[first]))
 	for idx in range(first,last):
-		print('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}'.format(redshift[idx],f_heat[idx],f_lya[idx],f_ionH[idx],f_ionHe[idx],f_lowE[idx]))
-	print('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}'.format(max_z,f_heat[last-1],f_lya[last-1],f_ionH[last-1],f_ionHe[last-1],f_lowE[last-1]))
+		sys.stdout.write('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\n'.format(redshift[idx],f_heat[idx],f_lya[idx],f_ionH[idx],f_ionHe[idx],f_lowE[idx]))
+	sys.stdout.write('{:.2e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\t{:.4e}\n'.format(max_z,f_heat[last-1],f_lya[last-1],f_ionH[last-1],f_ionHe[last-1],f_lowE[last-1]))
