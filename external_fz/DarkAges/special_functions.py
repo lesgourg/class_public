@@ -75,3 +75,21 @@ def secondaries_from_piCh(E_secondary, E_primary):
 	out = spec_interpolator.__call__(x)
 	out = out / E_secondary[:,None]
 	return out
+
+def luminosity_accreting_bh(Energy,recipe,PBH_mass):
+	if not hasattr(Energy,'__len__'):
+		Energy = np.asarray([Energy])
+	if recipe=='spherical_accretion':
+		a = 0.5
+		Ts = 200
+	 	out = Energy**(-a)*np.exp(-Energy/Ts)
+	elif recipe=='disk_accretion':
+		a = -2.5+np.log10(Energy)/3.
+		Emin = (10/PBH_mass)**0.5
+		Ts = 200
+		if Energy.any() > Emin:
+			out = Energy**(-a)*np.exp(-Energy/Ts)
+		else:
+			out = 0.
+	# print out, Energy
+	return out
