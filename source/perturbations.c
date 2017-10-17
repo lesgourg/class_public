@@ -571,7 +571,8 @@ int perturb_indices_of_perturbs(
   ppt->has_source_delta_scf = _FALSE_;
   ppt->has_source_delta_dr = _FALSE_;
   ppt->has_source_delta_ur = _FALSE_;
-  ppt->has_source_delta_dark = _FALSE_;//ethos //dark-->idr !!!  + idm
+  ppt->has_source_delta_idr = _FALSE_;//ethos
+  ppt->has_source_delta_idm = _FALSE_;//ethos
   ppt->has_source_delta_ncdm = _FALSE_;
   ppt->has_source_theta_m = _FALSE_;
   ppt->has_source_theta_g = _FALSE_;
@@ -582,7 +583,8 @@ int perturb_indices_of_perturbs(
   ppt->has_source_theta_scf = _FALSE_;
   ppt->has_source_theta_dr = _FALSE_;
   ppt->has_source_theta_ur = _FALSE_;
-  ppt->has_source_theta_dark = _FALSE_;//ethos //dark-->idr +idm !!!
+  ppt->has_source_theta_idr = _FALSE_;//ethos
+  ppt->has_source_theta_idm = _FALSE_;//ethos
   ppt->has_source_theta_ncdm = _FALSE_;
   ppt->has_source_phi = _FALSE_;
   ppt->has_source_phi_prime = _FALSE_;
@@ -661,8 +663,10 @@ int perturb_indices_of_perturbs(
           ppt->has_source_delta_scf = _TRUE_;
         if (pba->has_ur == _TRUE_)
           ppt->has_source_delta_ur = _TRUE_;
-        if (pba->has_dark == _TRUE_)
-          ppt->has_source_delta_dark = _TRUE_;//ethos //dark-->idr (all)!!! +idm
+        if (pba->has_idr == _TRUE_)
+          ppt->has_source_delta_idr = _TRUE_;//ethos
+        if (pba->has_idm == _TRUE_)
+          ppt->has_source_delta_idm = _TRUE_;//ethos
         if (pba->has_dr == _TRUE_)
           ppt->has_source_delta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
@@ -689,8 +693,10 @@ int perturb_indices_of_perturbs(
           ppt->has_source_theta_scf = _TRUE_;
         if (pba->has_ur == _TRUE_)
           ppt->has_source_theta_ur = _TRUE_;
-        if (pba->has_dark == _TRUE_)
-          ppt->has_source_theta_dark = _TRUE_;//ethos //dark-->idr (all)!!!  +idm
+        if (pba->has_idr == _TRUE_)
+          ppt->has_source_theta_idr = _TRUE_;//ethos
+        if (pba->has_idm == _TRUE_)
+          ppt->has_source_theta_idm = _TRUE_;//ethos
         if (pba->has_dr == _TRUE_)
           ppt->has_source_theta_dr = _TRUE_;
         if (pba->has_ncdm == _TRUE_)
@@ -726,9 +732,10 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_type,1);
       class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
       class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_type,1);
-      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
+      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr,  index_type,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
-      class_define_index(ppt->index_tp_delta_dark,   ppt->has_source_delta_dark,  index_type,1);//ethos //dark-->idr (all)!!!  +idm
+      class_define_index(ppt->index_tp_delta_idr,  ppt->has_source_delta_idr, index_type,1); //ethos
+      class_define_index(ppt->index_tp_delta_idm,  ppt->has_source_delta_idm, index_type,1); //ethos
       class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
       class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
       class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
@@ -739,7 +746,8 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_theta_scf,  ppt->has_source_theta_scf, index_type,1);
       class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_type,1);
       class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
-      class_define_index(ppt->index_tp_theta_dark,   ppt->has_source_theta_dark,  index_type,1);//ethos //dark-->idr (all)!!!   +idm
+      class_define_index(ppt->index_tp_theta_idr,  ppt->has_source_theta_idr, index_type,1);//ethos
+      class_define_index(ppt->index_tp_theta_idm,  ppt->has_source_theta_idm, index_type,1);//ethos
       class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
       class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_type,1);
       class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_type,1);
@@ -1859,7 +1867,7 @@ int perturb_workspace_init(
   if (_scalars_) {
     ppw->max_l_max = MAX(ppr->l_max_g, ppr->l_max_pol_g);
     if (pba->has_ur == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ur);
-    if (pba->has_dark == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_idr);//ethos //dark-->idr (all)!!!
+    if (pba->has_idr == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_idr);//ethos
     if (pba->has_ncdm == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ncdm);
     if (pba->has_dr == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_dr);
   }
@@ -1949,8 +1957,8 @@ int perturb_workspace_init(
 
     class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
-    class_define_index(ppw->index_ap_tca_dark,pba->has_dark,index_ap,1);//ethos approx //(has_idr)!!!
-    class_define_index(ppw->index_ap_rsa_idr,pba->has_dark,index_ap,1);//MArchi ethos approx // (has_idr)!!!
+    class_define_index(ppw->index_ap_tca_dark,pba->has_idm,index_ap,1);//ethos approx //(has_idr)!!! this should be idm... check with Maria!!
+    class_define_index(ppw->index_ap_rsa_idr,pba->has_idr,index_ap,1);//MArchi ethos approx // (has_idr)!!!
 
   }
 
@@ -1967,10 +1975,10 @@ int perturb_workspace_init(
 
     ppw->approx[ppw->index_ap_tca]=(int)tca_on;
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
-    if (pba->has_dark == _TRUE_){ //MArchi ethos approx ////dark-->idr !!!
+    if (pba->has_idr == _TRUE_){ //MArchi ethos approx
       ppw->approx[ppw->index_ap_rsa_idr]=(int)rsa_idr_off;
     }
-    if(pth->a_dark != 0.){// change to has_idm = true!!! check this, could give problems
+    if(pba->has_idm == _TRUE_){ //ethos
       ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
     }
     else{
@@ -2496,9 +2504,13 @@ int perturb_prepare_output(struct background * pba,
       class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
       class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
       class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
-      class_store_columntitle(ppt->scalar_titles,"delta_dark",pba->has_dark);//ethos //dark-->idr (all)!!!
-      class_store_columntitle(ppt->scalar_titles,"theta_dark",pba->has_dark);//dark-->idr (all)!!!
-      class_store_columntitle(ppt->scalar_titles,"shear_dark",pba->has_dark);//dark-->idr (all)!!!  +delta_idm, +theta_idm
+      /* ethos interacting dark radiation */
+      class_store_columntitle(ppt->scalar_titles,"delta_idr",pba->has_idr);
+      class_store_columntitle(ppt->scalar_titles,"theta_idr",pba->has_idr);
+      class_store_columntitle(ppt->scalar_titles,"shear_idr",pba->has_idr);
+      /* ethos interacting dark matter */
+      class_store_columntitle(ppt->scalar_titles,"delta_idm",pba->has_idm);
+      class_store_columntitle(ppt->scalar_titles,"theta_idm",pba->has_idm);
       /* Cold dark matter */
       class_store_columntitle(ppt->scalar_titles,"delta_cdm",pba->has_cdm);
       class_store_columntitle(ppt->scalar_titles,"theta_cdm",pba->has_cdm);
@@ -2880,13 +2892,16 @@ int perturb_find_approximation_switches(
               (interval_approx[index_switch][ppw->index_ap_rsa]==(int)rsa_on))
             fprintf(stdout,"Mode k=%e: will switch on radiation streaming approximation at tau=%e\n",k,interval_limit[index_switch]);
 
-          if (pba->has_dark == _TRUE_){ //two ifs, if has_idr do first two, if has_idm, second ones (tca)!!!
-            if ((interval_approx[index_switch-1][ppw->index_ap_rsa_idr]==(int)rsa_idr_off) && //MArchi ethos approx
+          if (pba->has_idr == _TRUE_){ //ethos rsa
+            if ((interval_approx[index_switch-1][ppw->index_ap_rsa_idr]==(int)rsa_idr_off) &&
                 (interval_approx[index_switch][ppw->index_ap_rsa_idr]==(int)rsa_idr_on))
               fprintf(stdout,"Mode k=%e: will switch on dark radiation streaming approximation at tau=%e\n",k,interval_limit[index_switch]);
+          }
+
+          if (pba->has_idm == _TRUE_){
             if ((interval_approx[index_switch-1][ppw->index_ap_tca_dark]==(int)tca_dark_on) && //ethos approx
                 (interval_approx[index_switch][ppw->index_ap_tca_dark]==(int)tca_dark_off))
-              fprintf(stdout,"Mode k=%e: will switch off dark radiation tight-coupling approximation at tau=%e\n",k,interval_limit[index_switch]);
+              fprintf(stdout,"Mode k=%e: will switch off DM-DR tight-coupling approximation at tau=%e\n",k,interval_limit[index_switch]);
           }
 
           if (pba->has_ur == _TRUE_) {
@@ -3040,7 +3055,7 @@ int perturb_vector_init(
                  "ppr->l_max_ur should be at least 4, i.e. we must integrate at least over neutrino/relic density, velocity, shear, third and fourth momentum");
     }
 
-    if (pba->has_dark == _TRUE_) {//MArchi ethos approx //dark-->idr (all)!!!
+    if (pba->has_idr == _TRUE_) {//MArchi ethos approx
       class_test(ppr->l_max_idr < 4,
                  ppt->error_message,
                  "ppr->l_max_idr should be at least 4, i.e. we must integrate at least over dark radiation density, velocity, shear, third and fourth momentum");
@@ -3128,11 +3143,11 @@ int perturb_vector_init(
 
     /* dark radiation */
 
-    if (pba->has_dark && (ppw->approx[ppw->index_ap_rsa_idr]==(int)rsa_idr_off)) { //ethos ////dark-->idr (all)!!!
-      class_define_index(ppv->index_pt_delta_dark,_TRUE_,index_pt,1); /* density of dark radiation */ //dark-->idr (all)!!!
-      class_define_index(ppv->index_pt_theta_dark,_TRUE_,index_pt,1); /* velocity of dark radiation */ //dark-->idr (all)!!!
-      if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off){ //!!!apart from l_max_idr (idr) and shear_idr, stay the same
-        class_define_index(ppv->index_pt_shear_dark,_TRUE_,index_pt,1); /* shear of dark radiation */
+    if (pba->has_idr && (ppw->approx[ppw->index_ap_rsa_idr]==(int)rsa_idr_off)) { //ethos
+      class_define_index(ppv->index_pt_delta_idr,_TRUE_,index_pt,1); /* density of dark radiation */
+      class_define_index(ppv->index_pt_theta_idr,_TRUE_,index_pt,1); /* velocity of dark radiation */
+      if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off){
+        class_define_index(ppv->index_pt_shear_idr,_TRUE_,index_pt,1); /* shear of dark radiation */
         ppv->l_max_idr = ppr->l_max_idr;
         class_define_index(ppv->index_pt_l3_idr,_TRUE_,index_pt,ppv->l_max_idr-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
       }
@@ -3342,11 +3357,11 @@ int perturb_vector_init(
       }
     }
 
-   if (pba->has_dark == _TRUE_) { //ethos not really needed, just to save time
-     /* we don't need dark radiation multipoles above l=2*/ //dark-->idr (has, lmax,delta,l3 (everywhere!!!!))!!!
+   if (pba->has_idr == _TRUE_) { //ethos not really needed, just to save time
+     /* we don't need dark radiation multipoles above l=2*/
     if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off){
       if(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off){
-        for (index_pt=ppv->index_pt_l3_idr; index_pt <= ppv->index_pt_delta_dark+ppv->l_max_idr; index_pt++)
+        for (index_pt=ppv->index_pt_l3_idr; index_pt <= ppv->index_pt_delta_idr+ppv->l_max_idr; index_pt++)
           ppv->used_in_sources[index_pt]=_FALSE_;
       }
     }
@@ -3413,14 +3428,14 @@ int perturb_vector_init(
                  ppt->error_message,
                  "scalar initial conditions assume radiation streaming approximation turned off");
 
-      if (pba->has_dark == _TRUE_) {//MArchi ethos approx ////dark-->idr (all)!!!
+      if (pba->has_idr == _TRUE_) {//MArchi ethos approx
 
         class_test(ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on,
                    ppt->error_message,
                    "scalar initial conditions assume dark radiation approximation turned off");
 
       }
-      //!!! if pba_has_idm=true, !!!check if we need to check the scalar i.c assume dark_tight_c = off
+      //!!! if pba_has_idm=true, !!!check if we need to check the scalar i.c assume dark_tight_c = off !!!HERE!!!
 
 
       if (pba->has_ur == _TRUE_) {
