@@ -549,7 +549,7 @@ int input_read_parameters(
   double z_max=0.;
   int bin;
 
-  double N_dark=0;//ethos //maybe delete this? !!!
+  //double N_dark=0;//ethos //maybe delete this? !!!
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -741,12 +741,13 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_ur;
 
   /*ethos*/ //!!!this part reads all the particle physics input Omega0_dark-->idr, !!!rearrange this to make it nicer
+
   //class_read_double("N_dark",N_dark);
   class_read_double("xi_idr",pba->xi_idr);
-  class_read_double("f_dark",pba->f_dark); //!!!do we still need this? ask Maria
+  class_read_double("f_dark",pba->f_dark);
   //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_idr,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
-  pba->Omega0_dark = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
-  Omega_tot += pba->Omega0_dark;
+  pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
+  Omega_tot += pba->Omega0_idr;
   //printf("ETHOS N_dark=%e, xi_idr=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_idr, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
@@ -2655,7 +2656,7 @@ int input_read_parameters(
 
   }
 //MArchi ethos approx//dark-->idr (Omega0_idr)!!!
-  if (pba->Omega0_dark != 0. && ppr->dark_radiation_streaming_approximation != rsa_idr_none){
+  if (pba->Omega0_idr != 0. && ppr->dark_radiation_streaming_approximation != rsa_idr_none){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
                "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
@@ -2898,9 +2899,10 @@ int input_default_params(
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  pba->Omega0_dark = 0.0;//ethos //!!!change to idr+idm=0
+  pba->Omega0_idr = 0.0;//ethos
+  pba->Omega0_idm = 0.0;
+  pba->f_dark = 7./8.; //ethos
   pba->xi_idr = 0;//MArchi ethos-new!
-  pba->f_dark = 7./8.;//MArchi ethos-new!
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
