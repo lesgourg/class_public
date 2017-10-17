@@ -91,5 +91,8 @@ def luminosity_accreting_bh(Energy,recipe,PBH_mass):
 			out = Energy**(-a)*np.exp(-Energy/Ts)
 		else:
 			out = 0.
+	else:
+		from .__init__ import DarkAgesError as err
+		raise err('I cannot understand the recipe "{0}"'.format(recipe))
 	# print out, Energy
 	return out
