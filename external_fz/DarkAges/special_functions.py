@@ -81,18 +81,29 @@ def luminosity_accreting_bh(Energy,recipe,PBH_mass):
 		Energy = np.asarray([Energy])
 	if recipe=='spherical_accretion':
 		a = 0.5
-		Ts = 200
-	 	out = Energy**(-a)*np.exp(-Energy/Ts)
-	elif recipe=='disk_accretion':
-		a = -2.5+np.log10(Energy)/3.
-		Emin = (10/PBH_mass)**0.5
-		Ts = 200
+		Ts = 0.4*511e3
+		Emin = 1
+		Emax = Ts
 		out = np.zeros_like(Energy)
 		Emin_mask = Energy > Emin
-		out[Emin_mask] = Energy[Emin_mask]**(-a[Emin_mask])*np.exp(-Energy[Emin_mask]/Ts)
+		# Emax_mask = Ts > Energy
+	 	out[Emin_mask] = Energy[Emin_mask]**(-a)*np.exp(-Energy[Emin_mask]/Ts)
 		out[~Emin_mask] = 0.
+		# out[~Emax_mask] = 0.
+
+	elif recipe=='disk_accretion':
+		a = -2.5+np.log10(PBH_mass)/3.
+		Emin = (10/PBH_mass)**0.5
+		# print a, Emin
+		Ts = 0.4*511e3
+		out = np.zeros_like(Energy)
+		Emin_mask = Energy > Emin
+		out[Emin_mask] = Energy[Emin_mask]**(-a)*np.exp(-Energy[Emin_mask]/Ts)
+		out[~Emin_mask] = 0.
+		Emax_mask = Ts > Energy
+		out[~Emax_mask] = 0.
 	else:
 		from .__init__ import DarkAgesError as err
 		raise err('I cannot understand the recipe "{0}"'.format(recipe))
-	# print out, Energy
-	return out
+	# print out, Emax_mask
+	return out/Energy #We will remultiply by Energy later in the code

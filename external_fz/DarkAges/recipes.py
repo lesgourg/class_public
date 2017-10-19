@@ -119,7 +119,7 @@ def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies, redshift ,
 		:class:`the initializer <DarkAges.__init__>` is taken.
 	"""
 
-	model_from_file = accreting_model(PBH_mass,recipe)
+	model_from_file = accreting_model(PBH_mass,recipe, logEnergies, redshift)
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]

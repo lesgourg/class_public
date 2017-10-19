@@ -406,56 +406,61 @@ class evaporating_model(model):
 		model.__init__(self, spec_el, spec_ph, normalization, logEnergies,0)
 
 class accreting_model(model):
-	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
-	primordial black holes (PBH) as a candidate of DM
+    u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
+    primordial black holes (PBH) as a candidate of DM
 
-	Inherits all methods of :class:`model <DarkAges.model.model>`
-	"""
+    Inherits all methods of :class:`model <DarkAges.model.model>`
+    """
 
-	def __init__(self, PBH_mass, recipe, logEnergies=None, redshift=None):
-		u"""
-		At initialization the reference spectra are read and the luminosity
-		spectrum :math:`L_\omega` needed for
-		the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
+    def __init__(self, PBH_mass, recipe, logEnergies, redshift):
+    	u"""
+    	At initialization the reference spectra are read and the luminosity
+    	spectrum :math:`L_\omega` needed for
+    	the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
 
-		.. math::
-			L_\omega = \Theta(\omega - \omega_{\rm min})w^{-a}\exp(-\omega/T_s)
-		where :math:`T_s\simeq 200 keV`, :math:`a=-2.5+\log(M)/3` and :math:`\omega_{\rm min} = (10/M)^{1/2}` if recipe = disk_accretion or
-		.. math::
-			L_\omega = w^{-a}\exp(-\omega/T_s)
-		where :math:`T_s\simeq 200 keV` if recipe = spherical_accretion.
+    	.. math::
+    		L_\omega = \Theta(\omega - \omega_{\rm min})w^{-a}\exp(-\omega/T_s)
+    	where :math:`T_s\simeq 200 keV`, :math:`a=-2.5+\log(M)/3` and :math:`\omega_{\rm min} = (10/M)^{1/2}` if recipe = disk_accretion or
+    	.. math::
+    		L_\omega = w^{-a}\exp(-\omega/T_s)
+    	where :math:`T_s\simeq 200 keV` if recipe = spherical_accretion.
 
-		Parameters
-		----------
-		PBH_mass : :obj:`float`
-			Mass of the primordial black hole (*in units of* :math:`M_\odot`)
-		recipe : :obj:`string`
-			Recipe setting the luminosity and the rate of the accretion (`spherical_accretion` taken from 1612.05644 and `disk_accretion` from 1707.04206)
-		logEnergies : :obj:`array-like`, optional
-			Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
-			(*in units of* :math:`\\mathrm{eV}`) to the base 10.
-			If not specified, the standard array provided by
-			:class:`the initializer <DarkAges.__init__>` is taken.
-		redshift : :obj:`array-like`, optional
-			Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
-			the calculation of the double-differential spectra.
-			If not specified, the standard array provided by
-			:class:`the initializer <DarkAges.__init__>` is taken.
-		"""
+    	Parameters
+    	----------
+    	PBH_mass : :obj:`float`
+    		Mass of the primordial black hole (*in units of* :math:`M_\odot`)
+    	recipe : :obj:`string`
+    		Recipe setting the luminosity and the rate of the accretion (`spherical_accretion` taken from 1612.05644 and `disk_accretion` from 1707.04206)
+    	logEnergies : :obj:`array-like`, optional
+    		Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
+    		(*in units of* :math:`\\mathrm{eV}`) to the base 10.
+    		If not specified, the standard array provided by
+    		:class:`the initializer <DarkAges.__init__>` is taken.
+    	redshift : :obj:`array-like`, optional
+    		Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
+    		the calculation of the double-differential spectra.
+    		If not specified, the standard array provided by
+    		:class:`the initializer <DarkAges.__init__>` is taken.
+    	"""
 
-		from .__init__ import redshift, logEnergies
-		from .common import trapz,  logConversion
-		from .special_functions import luminosity_accreting_bh
-		E = logConversion(logEnergies)
-		spec_ph = luminosity_accreting_bh(E,recipe,PBH_mass)
-		spec_el = np.zeros_like(spec_ph)
+    	# from .__init__ import redshift, logEnergies
+    	from .common import trapz,  logConversion
+    	from .special_functions import luminosity_accreting_bh
+    	E = logConversion(logEnergies)
+    	# LogE_norm = np.linspace(0,logEnergies[len(logEnergies)-1],len(logEnergies))
+        # E_norm = logConversion(LogE_norm)
+    	spec_ph = luminosity_accreting_bh(E,recipe,PBH_mass)
+    	spec_el = np.zeros_like(spec_ph)
+    	# spec_ph_norm = luminosity_accreting_bh(E_norm,recipe,PBH_mass)
+    	# spec_el_norm = np.zeros_like(spec_ph_norm)
 
-		def _unscaled(redshift, spec_point):
-			ret = spec_point*np.ones_like(redshift)
-			return ret
+    	def _unscaled(redshift, spec_point):
+    		ret = spec_point*np.ones_like(redshift)
+    		return ret
 
-		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_el[:,None])
-		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_ph[:,None])
-		normalization = trapz((spec_ph+spec_el)*E**2*np.log(10),logEnergies)*np.ones_like(redshift)
-		# print normalization, spec_photons
-		model.__init__(self, spec_electrons, spec_photons, normalization, 0)
+    	spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_el[:,None])
+    	spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_ph[:,None])
+    	normalization = trapz((spec_ph+spec_el)*E**2*np.log(10),logEnergies)*np.ones_like(redshift)
+    	# normalization = trapz((spec_ph_norm+spec_el_norm)*E_norm**2*np.log(10),LogE_norm)*np.ones_like(redshift)
+    	# print normalization, spec_photons
+    	model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,0)

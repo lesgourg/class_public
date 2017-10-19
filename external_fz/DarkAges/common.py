@@ -343,8 +343,8 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
                 # int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
                 # int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
                 # energy_integral[i][k] = trapz( int_phot + int_elec, logE )
-                for j in xrange(0,39):
-                    if Enj[j] == E[j]:
+                for j in xrange(0,len(E)):
+                    if len(Enj) == len(E) and Enj[j]==E[j]:
                         int_phot[j] = transfer_phot[i,j,k]*spec_phot[j,k]*(E[j]**2)/np.log10(np.e)
                         int_elec[j] = transfer_elec[i,j,k]*spec_elec[j,k]*(E[j]**2)/np.log10(np.e)
                     else:
@@ -356,9 +356,13 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
                 # int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
                 # int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
                 # energy_integral[i][k] = trapz( int_phot + int_elec, E )
-                for j in xrange(0,40):
-                    int_phot[j] = evaluate_transfer(transfer_functions_E,transfer_phot,i,E,k,j)*spec_phot[j,k]*(E[j]**1)
-                    int_elec[j] = evaluate_transfer(transfer_functions_E,transfer_elec,i,E,k,j)*spec_elec[j,k]*(E[j]**1)
+                for j in xrange(0,len(E)):
+                    if len(Enj) == len(E) and Enj[j]==E[j]:
+                        int_phot[j] = transfer_phot[i,j,k]*spec_phot[j,k]*(E[j]**1)/np.log10(np.e)
+                        int_elec[j] = transfer_elec[i,j,k]*spec_elec[j,k]*(E[j]**1)/np.log10(np.e)
+                    else:
+                        int_phot[j] = evaluate_transfer(transfer_functions_E,transfer_phot,i,E,k,j)*spec_phot[j,k]*(E[j]**1)/np.log10(np.e)
+                        int_elec[j] = evaluate_transfer(transfer_functions_E,transfer_elec,i,E,k,j)*spec_elec[j,k]*(E[j]**1)/np.log10(np.e)
                 energy_integral[i][k] = trapz( int_phot + int_elec, E )
     z_integral = np.zeros_like( z_dep, dtype=np.float64)
     dummy = np.arange(1,len(z_inj)+1)
@@ -379,17 +383,17 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
     return result
 
 def evaluate_transfer(transfer_functions_E,transfer,z_dep,E,z_inj,j):
-    # print E
     Enj = logConversion(transfer_functions_E)
-    # print transfer_functions_E[0],transfer_functions_E[39]
-    transfer_interpolation = interp1d(Enj,transfer[z_dep,:,z_inj])
+    transfer_interpolation = interp1d(transfer_functions_E,transfer[z_dep,:,z_inj])
     # transfer_interpolation = log_fit(Enj,transfer[z_dep,:,z_inj],E)
-    if E[j]>=transfer_functions_E[0] and E[j]<transfer_functions_E[39]:
-        result = transfer_interpolation(E[j])
-    elif E[j]<=transfer_functions_E[0]:
+    if E[j] > Enj[0] and E[j] < Enj[len(Enj)-1]:
+        result = transfer_interpolation(np.log10(E[j]))
+    elif E[j] <= Enj[0] and E[j] >= 10.2 :
         result = transfer[z_dep,0,z_inj]
-    elif E[j]>= transfer_functions_E[39]:
-        result = transfer[z_dep,39,z_inj]
+    elif E[j] < 10.2:
+        result = 0.
+    elif E[j]>= Enj[len(Enj)-1]:
+        result = transfer[z_dep,len(Enj)-1,z_inj]
     return result
 
 def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
