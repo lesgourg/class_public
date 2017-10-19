@@ -1582,10 +1582,30 @@ if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || 
     // class_alloc(ppr->command_fz,(strlen(string2) + 4 + 1)*sizeof(char), errmsg); // +4 corresponds to the mass that will be given just below
     strcat(ppr->command_fz, "python ");
     strcat(ppr->command_fz,__CLASSDIR__);
-    strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=PBH --mass=");
+    strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=evaporating_PBH --mass=");
     sprintf(string2,"%g",pth->PBH_low_mass);
     strcat(ppr->command_fz,string2);
 
+  }
+  else if (pth->PBH_high_mass > 0){
+    // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
+    ppr->param_fz_2 = pth->PBH_fraction;
+    // sprintf(string2,"python ./external_fz/bin/DarkAges --hist=PBH --mass=");
+    // class_alloc(ppr->command_fz,(strlen(string2) + 4 + 1)*sizeof(char), errmsg); // +4 corresponds to the mass that will be given just below
+    strcat(ppr->command_fz, "python ");
+    strcat(ppr->command_fz,__CLASSDIR__);
+    strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=accreting_PBH --mass=");
+    sprintf(string2,"%g",pth->PBH_high_mass);
+    strcat(ppr->command_fz,string2);
+    if(pth->PBH_accretion_recipe==Ali_Haimoud)
+      strcat(ppr->command_fz," --accretion_recipe=spherical_accretion");
+    else if(pth->PBH_accretion_recipe==ADAF_Simulation)
+      strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
+    else{
+      class_test(1==0,errmsg,
+        "You cannot use a accretion_recipe different from 'Ali_Haimoud' or 'ADAF_Simulation' if you are working with external_fz on. This will be updated in the future.\n");
+    }
+    strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
   }
   else if(pth->decay_fraction > 0){
     // ppr->param_fz_1 = pth->PBH_low_mass;  // In gramms.
