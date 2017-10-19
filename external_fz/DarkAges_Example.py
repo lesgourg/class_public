@@ -4,7 +4,7 @@ import sys
 import os
 import numpy as np
 
-from DarkAges import redshift, logEnergies, transfer_functions
+from DarkAges import redshift, logEnergies, transfer_functions, DarkAgesError
 from DarkAges.common import sample_spectrum, channel_dict, finalize
 from DarkAges.model import annihilating_model as model
 
@@ -21,7 +21,7 @@ try:
 	assert len(masses) == 1
 	mass = masses[0]
 except AssertionError:
-	print_error('It seems that the file %s contains spectra for several masses. (Found %i different masses)'%(specfile,len(masses)))
+	raise DarkAgesError('It seems that the file %s contains spectra for several masses. (Found %i different masses)'%(specfile,len(masses)))
 
 spec_el, spec_ph, spec_oth = sample_spectrum(spec_data[2], spec_data[3], spec_data[4], spec_data[1], mass, logEnergies)
 example_model = model(spec_el, spec_ph, spec_oth, 1e9*mass)

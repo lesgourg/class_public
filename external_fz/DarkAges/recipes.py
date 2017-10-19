@@ -93,46 +93,45 @@ def execute_script_file(ext_script_file, *arguments):
 
 ##### Functions related to loading a model from a file containing the input spectra (and mass)
 def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies, redshift , merge_ion = False, **DarkOptions):
-    u"""Wrapper for the calculation of :math:`f_c (z)` for a evaporating primordial
-    black hole (PBH) with a given initial mass :code:`PBH_mass_ini` and prionts
-    the table of them for all five deposition channels
+	u"""Wrapper for the calculation of :math:`f_c (z)` for a evaporating primordial
+	black hole (PBH) with a given initial mass :code:`PBH_mass_ini` and prionts
+	the table of them for all five deposition channels
 
-    Optionally the channels the channels 'Ly-A excitation', 'helium ionization',
-    and 'hydrogen ionization' are merged into the hydrogen ionization channel and
-    the other two channels are left blank.
+	Optionally the channels the channels 'Ly-A excitation', 'helium ionization',
+	and 'hydrogen ionization' are merged into the hydrogen ionization channel and
+	the other two channels are left blank.
 
-    Parameters
-    ----------
-    PBH_mass : :obj:`float`
-    	Mass of the primordial black hole (*in units of* :math:`M_\odot`)
-    recipe : :obj:`string`
-        Recipe setting the luminosity and the rate of the accretion (`spherical_accretion` taken from 1612.05644 and `disk_accretion` from 1707.04206)
-    logEnergies : :obj:`array-like`, optional
-    	Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
-    	(*in units of* :math:`\\mathrm{eV}`) to the base 10.
-    	If not specified, the standard array provided by
-    	:class:`the initializer <DarkAges.__init__>` is taken.
-    redshift : :obj:`array-like`, optional
-    	Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
-    	the calculation of the double-differential spectra.
-    	If not specified, the standard array provided by
-    	:class:`the initializer <DarkAges.__init__>` is taken.
+	Parameters
+	----------
+	PBH_mass : :obj:`float`
+		Mass of the primordial black hole (*in units of* :math:`M_\odot`)
+	recipe : :obj:`string`
+		Recipe setting the luminosity and the rate of the accretion (`spherical_accretion` taken from 1612.05644 and `disk_accretion` from 1707.04206)
+	logEnergies : :obj:`array-like`, optional
+		Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
+		(*in units of* :math:`\\mathrm{eV}`) to the base 10.
+		If not specified, the standard array provided by
+		:class:`the initializer <DarkAges.__init__>` is taken.
+	redshift : :obj:`array-like`, optional
+		Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
+		the calculation of the double-differential spectra.
+		If not specified, the standard array provided by
+		:class:`the initializer <DarkAges.__init__>` is taken.
+	"""
 
-    """
+	model_from_file = accreting_model(PBH_mass,recipe)
+	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
+	for channel in channel_dict:
+		idx = channel_dict[channel]
+		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx])[-1]
 
-    model_from_file = accreting_model(PBH_mass,recipe)
-    f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
-    for channel in channel_dict:
-        idx = channel_dict[channel]
-        f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx])[-1]
-
-    finalize(redshift,
-             f_function[channel_dict['Heat']],
-             f_function[channel_dict['Ly-A']],
-             f_function[channel_dict['H-Ion']],
-             f_function[channel_dict['He-Ion']],
-             f_function[channel_dict['LowE']],
-             **DarkOptions)
+	finalize(redshift,
+			 f_function[channel_dict['Heat']],
+			 f_function[channel_dict['Ly-A']],
+			 f_function[channel_dict['H-Ion']],
+			 f_function[channel_dict['He-Ion']],
+			 f_function[channel_dict['LowE']],
+			 **DarkOptions)
 
 
 def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , merge_ion = False, **DarkOptions):
@@ -164,7 +163,9 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 		If not given the default of :code:`merge_ion = False` is taken.
 	"""
 
-	model_from_file = evaporating_model(PBH_mass_ini)
+	include_sec = DarkOptions.get('PBH_with_secondaries',True)
+
+	model_from_file = evaporating_model(PBH_mass_ini, include_secondaries=include_sec)
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
@@ -249,8 +250,8 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		try:
 			assert spectra.shape[-1] == branchings.shape[-1]
 		except AssertionError:
-           		raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
-        	tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
+			raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
+		tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
 	elif fnames == ['Dirac'] or fnames == ['dirac']:
 		print 'here'
 
@@ -333,6 +334,7 @@ def load_from_spectrum(fname, logEnergies, **DarkOptions):
 	"""
 
 	cols_to_use = DarkOptions.get('spectra_cols',(0,1,2,3,4))
+
 	try:
 		assert len(cols_to_use) == 5
 	except AssertionError:
@@ -344,7 +346,12 @@ def load_from_spectrum(fname, logEnergies, **DarkOptions):
 		mass_mask = np.absolute(spec_data[0] - mass) <= 1e-5
 		temp_spec[idx,:,:] = sample_spectrum(spec_data[2,mass_mask], spec_data[3,mass_mask], spec_data[4,mass_mask], spec_data[1,mass_mask], mass, logEnergies, **DarkOptions)
 
-	return NDlogInterpolator(masses, temp_spec, exponent=1)
+	if np.log10(max(masses) / min(masses)) > 2:
+		scale = 'log-log'
+	else:
+		scale = 'lin-log'
+
+	return NDlogInterpolator(masses, temp_spec, exponent=1, scale=scale)
 
 ##### Functions related to running a preprocessed model (or defining it, if it does not exist)
 
