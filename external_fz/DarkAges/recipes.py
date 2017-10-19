@@ -187,7 +187,7 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 			 **DarkOptions)
 
 
-def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec, zh=1.,fh=0., hist='annihilation', branchings=[1.], **DarkOptions):
+def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec,zh=1.,fh=0., hist='annihilation', Emin=None,Emax=None, branchings=[1.], **DarkOptions):
 	u"""Wrapper to calculate :math:`f(z)` and print the table for all five deposition channels
 	from spectra tabulated in files for a given injection history.
 
@@ -255,7 +255,7 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		print 'here'
 
 	if hist == 'decay':
-		model_from_file = decaying_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec)
+		model_from_file = decaying_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec,Emin,Emax,logEnergies,redshift)
 	elif hist == 'annihilation':
 		model_from_file = annihilating_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass)
 	elif hist == 'annihilation_halos':

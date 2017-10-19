@@ -67,9 +67,9 @@ parser.add_option("--hist", default='annihilation', choices=['annihilation','ann
                   help="Define the injection history of the model.")
 parser.add_option("--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV] or the PBH mass [in g for evaporating PBH and Msun for accreting ones].")
-parser.add_option("--Emin", type='float', dest='Emin',
+parser.add_option("--Log10Emin", type='float', dest='Log10Emin',
                   help="Minimal energy for the convolution over tranfer functions. Default set to 5keV (minimal energy of the tables).")
-parser.add_option("--Emax", type='float', dest='Emax',
+parser.add_option("--Log10Emax", type='float', dest='Log10Emax',
                   help="Maximal energy for the convolution over tranfer functions. Default set to 1TeV (maximal energy of the tables).")
 parser.add_option("--accretion_recipe",type="string",dest="accretion_recipe",
 				  help = "Define the accretion recipe used to compute the energy injection associated to accreting PBH: disk_accretion or spherical_accretion.")
@@ -97,6 +97,16 @@ os.environ['DARKAGES_BG_OM_R'] = '{0}'.format(options.background[2])
 from DarkAges import transfer_functions, logEnergies, redshift, DarkAgesError
 from DarkAges.common import print_info
 import DarkAges.recipes as recipes
+# Emin_table = transfer_functions[0].log10E[0]
+# Emax_table = transfer_functions[0].log10E[39]
+Emin_table = options.Log10Emin
+Emax_table = options.Log10Emax
+nbins_table = len(transfer_functions[0].log10E[:])
+# LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
+if Emin_table == None or Emax_table == None:
+	logEnergies = transfer_functions[0].log10E[:]
+else:
+	logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
 
 DarkOptions = dict()
 #keys_to_search = ['mass','t_dec','background']
@@ -172,7 +182,7 @@ if options.specfile:
 		raise DarkAgesError('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
 
 	if hasattr(options, 't_dec'):
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history, branchings=options.branchings) )
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history, options.Log10Emin,options.Log10Emax,branchings=options.branchings) )
 	else:
 		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings) )
 

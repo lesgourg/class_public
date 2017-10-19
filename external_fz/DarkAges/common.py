@@ -7,6 +7,7 @@ Collection of functions needed to calculate the energy deposition.
 """
 
 from scipy.integrate import trapz
+from scipy.interpolate import interp1d
 from scipy.special import erf
 import os
 import sys
@@ -275,133 +276,160 @@ def scaling_boost_factor(redshift,spec_point,zh,fh):
 	ret = spec_point*(1 + fh*erf(redshift/(1+zh))/redshift**3)
 	return ret
 
-def f_function(logE, z_inj, z_dep, normalization,
+def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,
                spec_phot, spec_elec, alpha=3, **kwargs):
-	u"""Returns the effective efficiency factor :math:`f_c (z)`
-	for the deposition channel :math:`c`.
+    u"""Returns the effective efficiency factor :math:`f_c (z)`
+    for the deposition channel :math:`c`.
 
-	This method calculates the effective efficiency factor in dependence
-	of the redshift
+    This method calculates the effective efficiency factor in dependence
+    of the redshift
 
-	......WRITE HERE .....
+    ......WRITE HERE .....
 
-	Parameters
-	----------
-	logE : :obj:`array-like`
-		Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of teh particles
-		(in units of eV) to the base 10.
-	z_inj : :obj:`array-like`
-		Array (:code:`shape = (m)`) of the values :math:`z_\\mathrm{inj.}` at which the energy
-		was injected (e.g. by annihilation or decay)
-	z_dep : :obj:`array-like`
-		Array (:code:`shape = (k)`) of the values :math:`z_\\mathrm{dep.}` at which the energy
-		was deposited into the IGM
-	normalization : :obj:`array-like`
-		Array (:code:`shape = (k)`) containing the proper normalization of the injected spectra
-		of photons and electrons at each timestep / at each redshift of deposition
-	transfer_phot : :obj:`array-like`
-		Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
-		:math:`T^\\mathrm{phot.}_{klm}` for photons
-	transfer_elec : :obj:`array-like`
-		Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
-		:math:`T^\\mathrm{elec.}_{klm}` for electrons and positrons
-	spec_phot : :obj:`array-like`
-		Array (:code:`shape = (l,m)`) containing the double differential spectrum
-		:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of photons
-	spec_elec : :obj:`array-like`
-		Array (:code:`shape = (l,m)`) containing the double differential spectrum
-		:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of electrons
-		and positrons.
-	alpha : :obj:`int`, :obj:`float`, *optional*
-		Exponent to take the scaling of the number density in comoving volume
-		into account (see also: :meth:`conversion <DarkAges.common.conversion>`).
-		If not given the default value :math:`\\alpha = 3` is taken.
+    Parameters
+    ----------
+    transfer_functions_E : :obj:`array-like`
+    	Array (:code:`shape = (l)`) containing the energy at which transfer functions are known (for interpolation)
+    logE : :obj:`array-like`
+    	Array (:code:`shape = (l)`) of the logarithms (to the base 10) of the kinetic energies of the particles at which spectrum and transfer functions will be evaluated (in units of eV)
+    z_inj : :obj:`array-like`
+    	Array (:code:`shape = (m)`) of the values :math:`z_\\mathrm{inj.}` at which the energy
+    	was injected (e.g. by annihilation or decay)
+    z_dep : :obj:`array-like`
+    	Array (:code:`shape = (k)`) of the values :math:`z_\\mathrm{dep.}` at which the energy
+    	was deposited into the IGM
+    normalization : :obj:`array-like`
+    	Array (:code:`shape = (k)`) containing the proper normalization of the injected spectra
+    	of photons and electrons at each timestep / at each redshift of deposition
+    transfer_phot : :obj:`array-like`
+    	Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
+    	:math:`T^\\mathrm{phot.}_{klm}` for photons
+    transfer_elec : :obj:`array-like`
+    	Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
+    	:math:`T^\\mathrm{elec.}_{klm}` for electrons and positrons
+    spec_phot : :obj:`array-like`
+    	Array (:code:`shape = (l,m)`) containing the double differential spectrum
+    	:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of photons
+    spec_elec : :obj:`array-like`
+    	Array (:code:`shape = (l,m)`) containing the double differential spectrum
+    	:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of electrons
+    	and positrons.
+    alpha : :obj:`int`, :obj:`float`, *optional*
+    	Exponent to take the scaling of the number density in comoving volume
+    	into account (see also: :meth:`conversion <DarkAges.common.conversion>`).
+    	If not given the default value :math:`\\alpha = 3` is taken.
 
-	Returns
-	-------
-	:obj:`array-like`
-		Array (:code:`shape = (k)`) of :math:`f_c (z)` at the redshifts of
-		deposition given in :code:`z_dep`
-	"""
+    Returns
+    -------
+    :obj:`array-like`
+    	Array (:code:`shape = (k)`) of :math:`f_c (z)` at the redshifts of
+    	deposition given in :code:`z_dep`
+    """
+    E = logConversion(logE)
+    how_to_integrate = kwargs.get('E_integration_scheme','logE')
+    if how_to_integrate not in ['logE','energy']:
+    	print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
 
-	E = logConversion(logE)
+    norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
-	how_to_integrate = kwargs.get('E_integration_scheme','logE')
-	if how_to_integrate not in ['logE','energy']:
-		print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
+    energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
+    int_phot = np.zeros( shape=(len(E)), dtype=np.float64)
+    int_elec = np.zeros( shape=(len(E)), dtype=np.float64)
+    Enj = logConversion(transfer_functions_E)
+    for i in xrange(len(energy_integral)):
+        if how_to_integrate == 'logE':
+            for k in xrange(i,len(energy_integral[i])):
+                # int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
+                # int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
+                # energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+                for j in xrange(0,39):
+                    if Enj[j] == E[j]:
+                        int_phot[j] = transfer_phot[i,j,k]*spec_phot[j,k]*(E[j]**2)/np.log10(np.e)
+                        int_elec[j] = transfer_elec[i,j,k]*spec_elec[j,k]*(E[j]**2)/np.log10(np.e)
+                    else:
+                        int_phot[j] = evaluate_transfer(transfer_functions_E,transfer_phot,i,E,k,j)*spec_phot[j,k]*(E[j]**2)/np.log10(np.e)
+                        int_elec[j] = evaluate_transfer(transfer_functions_E,transfer_elec,i,E,k,j)*spec_elec[j,k]*(E[j]**2)/np.log10(np.e)
+                energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+        elif how_to_integrate == 'energy':
+            for k in xrange(i,len(energy_integral[i])):
+                # int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
+                # int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
+                # energy_integral[i][k] = trapz( int_phot + int_elec, E )
+                for j in xrange(0,40):
+                    int_phot[j] = evaluate_transfer(transfer_functions_E,transfer_phot,i,E,k,j)*spec_phot[j,k]*(E[j]**1)
+                    int_elec[j] = evaluate_transfer(transfer_functions_E,transfer_elec,i,E,k,j)*spec_elec[j,k]*(E[j]**1)
+                energy_integral[i][k] = trapz( int_phot + int_elec, E )
+    z_integral = np.zeros_like( z_dep, dtype=np.float64)
+    dummy = np.arange(1,len(z_inj)+1)
+    for i in xrange(len(z_integral)):
+    	low = max(i,0)
+    	#low = i
+    	integrand = ( conversion(z_inj[low:], alpha=alpha) )*energy_integral[i,low:]
+    	z_integral[i] = trapz( integrand, dummy[low:] )
 
-	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
+    result = np.empty_like( norm, dtype=np.float64 )
+    for i in xrange(len(norm)):
+    	if norm[i] != 0 and abs(z_integral[i]) < np.inf :
+    		result[i] = (z_integral[i] / norm[i])
+    	else:
+    		#result[i] = np.nan
+    		result[i] = 0
 
-	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
-	for i in xrange(len(energy_integral)):
-		if how_to_integrate == 'logE':
-			for k in xrange(i,len(energy_integral[i])):
-				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
-				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
-				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
-		elif how_to_integrate == 'energy':
-			for k in xrange(i,len(energy_integral[i])):
-				int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
-				int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
-				energy_integral[i][k] = trapz( int_phot + int_elec, E )
+    return result
 
-	z_integral = np.zeros_like( z_dep, dtype=np.float64)
-	dummy = np.arange(1,len(z_inj)+1)
-	for i in xrange(len(z_integral)):
-		low = max(i,0)
-		#low = i
-		integrand = ( conversion(z_inj[low:], alpha=alpha) )*energy_integral[i,low:]
-		z_integral[i] = trapz( integrand, dummy[low:] )
-
-	result = np.empty_like( norm, dtype=np.float64 )
-	for i in xrange(len(norm)):
-		if norm[i] != 0 and abs(z_integral[i]) < np.inf :
-			result[i] = (z_integral[i] / norm[i])
-		else:
-			#result[i] = np.nan
-			result[i] = 0
-
-	return result
+def evaluate_transfer(transfer_functions_E,transfer,z_dep,E,z_inj,j):
+    # print E
+    Enj = logConversion(transfer_functions_E)
+    # print transfer_functions_E[0],transfer_functions_E[39]
+    transfer_interpolation = interp1d(Enj,transfer[z_dep,:,z_inj])
+    # transfer_interpolation = log_fit(Enj,transfer[z_dep,:,z_inj],E)
+    if E[j]>=transfer_functions_E[0] and E[j]<transfer_functions_E[39]:
+        result = transfer_interpolation(E[j])
+    elif E[j]<=transfer_functions_E[0]:
+        result = transfer[z_dep,0,z_inj]
+    elif E[j]>= transfer_functions_E[39]:
+        result = transfer[z_dep,39,z_inj]
+    return result
 
 def log_fit(points,func,xgrid,exponent=1):
-	u"""Returns an array of interpolated points using the
-	:class:`logInterpolator <DarkAges.interpolator.logInterpolator>`-class.
+    u"""Returns an array of interpolated points using the
+    :class:`logInterpolator <DarkAges.interpolator.logInterpolator>`-class.
 
-	This method is used to initialize and call the
-	:class:`logInterpolator <DarkAges.interpolator.logInterpolator>`
-	at the same time. It is used if the interpolated function needs to be
-	read imediately rather than to be stored for later use.
+    This method is used to initialize and call the
+    :class:`logInterpolator <DarkAges.interpolator.logInterpolator>`
+    at the same time. It is used if the interpolated function needs to be
+    read imediately rather than to be stored for later use.
 
-	Parameters
-	----------
-	points : :obj:`array-like`
-		Array (:code:`shape = (k)`) with the points at which the fuction to
-		interpolate is given.
-	func : :obj:`array-like`
-		Array (:code:`shape = (k)`) with the values of the function to interpolate.
-	xgrid : :obj:`array-like`
-		Array (:code:`shape = (l)`) with the points at which teh function should
-		be interpolated. Needs to fulfill :code:`min(xgrid) >= min(points)` and
-		:code:`max(xgrid) <= max(points)`.
-	exponent : :obj:`int`, :obj:`float`, *optional*
-		Exponent to specify the powers of :code:`points` mulitplied to
-		:code:`func` before the function is transformed into logspace.
-		(see also: :class:`logInterpolator <DarkAges.interpolator.logInterpolator>`).
-		If not given, :code:`points` is multiplied linearly (:code:`exponent=1`).
+    Parameters
+    ----------
+    points : :obj:`array-like`
+    	Array (:code:`shape = (k)`) with the points at which the fuction to
+    	interpolate is given.
+    func : :obj:`array-like`
+    	Array (:code:`shape = (k)`) with the values of the function to interpolate.
+    xgrid : :obj:`array-like`
+    	Array (:code:`shape = (l)`) with the points at which the function should
+    	be interpolated. Needs to fulfill :code:`min(xgrid) >= min(points)` and
+    	:code:`max(xgrid) <= max(points)`.
+    exponent : :obj:`int`, :obj:`float`, *optional*
+    	Exponent to specify the powers of :code:`points` mulitplied to
+    	:code:`func` before the function is transformed into logspace.
+    	(see also: :class:`logInterpolator <DarkAges.interpolator.logInterpolator>`).
+    	If not given, :code:`points` is multiplied linearly (:code:`exponent=1`).
 
-	Returns
-	-------
-	:obj:`array-like`
-		Array (:code:`shape = (l)`) with the interpolated values of the function
-		at the points given by :code:`xgrid`.
-	"""
+    Returns
+    -------
+    :obj:`array-like`
+    	Array (:code:`shape = (l)`) with the interpolated values of the function
+    	at the points given by :code:`xgrid`.
+    """
 
-	from .interpolator import logInterpolator
-	tmp_interpolator = logInterpolator(points, func, exponent)
-	#tmp_interpolator = logLinearInterpolator(points, func, exponent)
-	out = tmp_interpolator(xgrid)
-	return out
+    from .interpolator import logInterpolator
+    tmp_interpolator = logInterpolator(points, func, exponent)
+    #tmp_interpolator = logLinearInterpolator(points, func, exponent)
+    out = tmp_interpolator(xgrid)
+    return out
 
 def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, m, sampling_log10E, **kwargs):
 	u"""Returns the interpolated and properly normalized particle spectrum

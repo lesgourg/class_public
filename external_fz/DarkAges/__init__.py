@@ -86,15 +86,15 @@ else:
 #     nbins_table = nbins
 # Emin_table = 0.1
 # Emax_table = 12.7675
-Emin_table = None
-Emax_table = None
-nbins_table = 100
-# LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
-if Emin_table == None or Emax_table == None:
-    logEnergies = transfer_functions[0].log10E[:]
-else:
-    logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
-# print logEnergies
+# Emin_table = None
+# Emax_table = options.Emax
+# nbins_table = 100
+# # LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
+# if Emin_table == None or Emax_table == None:
+logEnergies = transfer_functions[0].log10E[:]
+# else:
+# logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
+# print logEnergies, transfer_functions[0].log10E[0]
 redshift = transfer_functions[0].z_deposited[:]
 
 # Clean from functions and variables which should not be available when

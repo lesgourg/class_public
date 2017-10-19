@@ -26,71 +26,73 @@ from .__init__ import DarkAgesError
 import numpy as np
 
 class model(object):
-	u"""
-	Base class to calculate :math:`f(z)` given the injected spectrum
-	:math:`\mathrm{d}N / \mathrm{d}E` as a function of *kinetic energy* :math:`E`
-	and *redshift* :math:`z+1`
-	"""
+    u"""
+    Base class to calculate :math:`f(z)` given the injected spectrum
+    :math:`\mathrm{d}N / \mathrm{d}E` as a function of *kinetic energy* :math:`E`
+    and *redshift* :math:`z+1`
+    """
 
-	def __init__(self, spec_electrons, spec_photons, normalization, alpha=3):
-		u"""
-		Parameters
-		----------
-		spec_electrons : :obj:`array-like`
-			Array of shape (m,n) containing :math:`\mathrm{d}N / \mathrm{d}E` of
-			**electrons** at given redshift :math:`z+1` and
-			kinetic energy :math:`E`
-		spec_photons : :obj:`array-like`
-			Array of shape (m,n) containing :math:`\mathrm{d}N / \mathrm{d}E` of
-			**photons** at given redshift :math:`z+1` and
-			kinetic energy :math:`E`
-		normalization : :obj:`array-like`
-			Array of shape (m) with the normalization of the given spectra
-			at each given :math:`z_\mathrm{dep.}`.
-			(e.g constant array with entries :math:`2m_\mathrm{DM}` for DM-annihilation
-			or constant array with entries :math:`m_\mathrm{DM}` for decaying DM)
-		alpha : :obj:`int`, :obj:`float`, *optional*
-			Exponent to specify the comoving scaling of the
-			injected spectra.
-			(3 for annihilation and 0 for decaying species
-			`c.f. ArXivXXXX.YYYY <https://arxiv.org/abs/XXXX.YYYY>`_).
-			If not specified annihilation is assumed.
-		"""
+    def __init__(self, spec_electrons, spec_photons, normalization, logEnergies, alpha=3):
+    	u"""
+    	Parameters
+    	----------
+    	spec_electrons : :obj:`array-like`
+    		Array of shape (m,n) containing :math:`\mathrm{d}N / \mathrm{d}E` of
+    		**electrons** at given redshift :math:`z+1` and
+    		kinetic energy :math:`E`
+    	spec_photons : :obj:`array-like`
+    		Array of shape (m,n) containing :math:`\mathrm{d}N / \mathrm{d}E` of
+    		**photons** at given redshift :math:`z+1` and
+    		kinetic energy :math:`E`
+    	normalization : :obj:`array-like`
+    		Array of shape (m) with the normalization of the given spectra
+    		at each given :math:`z_\mathrm{dep.}`.
+    		(e.g constant array with entries :math:`2m_\mathrm{DM}` for DM-annihilation
+    		or constant array with entries :math:`m_\mathrm{DM}` for decaying DM)
+    	alpha : :obj:`int`, :obj:`float`, *optional*
+    		Exponent to specify the comoving scaling of the
+    		injected spectra.
+    		(3 for annihilation and 0 for decaying species
+    		`c.f. ArXivXXXX.YYYY <https://arxiv.org/abs/XXXX.YYYY>`_).
+    		If not specified annihilation is assumed.
+    	"""
+        self.logEnergies = logEnergies
+    	self.spec_electrons = spec_electrons
+    	self.spec_photons = spec_photons
+    	self.normalization = normalization
+    	self.alpha_to_use = alpha
 
-		self.spec_electrons = spec_electrons
-		self.spec_photons = spec_photons
-		self.normalization = normalization
-		self.alpha_to_use = alpha
+    def calc_f(self, transfer_instance):
+    	u"""Returns :math:`f(z)` for a given set of transfer functions
+    	:math:`T(z_{dep}, E, z_{inj})`
 
-	def calc_f(self, transfer_instance):
-		u"""Returns :math:`f(z)` for a given set of transfer functions
-		:math:`T(z_{dep}, E, z_{inj})`
+    	Parameters
+    	----------
+    	transfer_instance : :obj:`class`
+    		Initialized instace of :class:`transfer <DarkAges.transfer.transfer>`
 
-		Parameters
-		----------
-		transfer_instance : :obj:`class`
-			Initialized instace of :class:`transfer <DarkAges.transfer.transfer>`
+    	Returns
+    	-------
+    	:obj:`array-like`
+    		Array (:code:`shape=(2,n)`) containing :math:`z_\mathrm{dep}+1` in the first column
+    		and :math:`f(z_\mathrm{dep})` in the second column.
+    	"""
 
-		Returns
-		-------
-		:obj:`array-like`
-			Array (:code:`shape=(2,n)`) containing :math:`z_\mathrm{dep}+1` in the first column
-			and :math:`f(z_\mathrm{dep})` in the second column.
-		"""
-
-		if not isinstance(transfer_instance, transfer):
-			raise DarkAgesError('You did not include a proper instance of the class "transfer"')
-		else:
+    	if not isinstance(transfer_instance, transfer):
+    		raise DarkAgesError('You did not include a proper instance of the class "transfer"')
+    	else:
             # interpolate_transfer(transfer_instance.transfer_phot,transfer_instance.transfer_elec,transfer_instance.log10E, transfer_instance.z_injected,
             #                     transfer_instance.z_deposited)
-			red = transfer_instance.z_deposited
-			f_func = f_function(transfer_instance.log10E, transfer_instance.z_injected,
+    		red = transfer_instance.z_deposited
+
+    		f_func = f_function(transfer_instance.log10E,self.logEnergies, transfer_instance.z_injected,
+    		# f_func = f_function(transfer_instance.log10E, transfer_instance.z_injected,
                                 transfer_instance.z_deposited, self.normalization,
                                 transfer_instance.transfer_phot,
                                 transfer_instance.transfer_elec,
                                 self.spec_photons, self.spec_electrons, alpha=self.alpha_to_use)
 
-			return np.array([red, f_func], dtype=np.float64)
+    		return np.array([red, f_func], dtype=np.float64)
 
 	def save_f(self,transfer_instance, filename):
 		u"""Saves the table :math:`z_\mathrm{dep.}`, :math:`f(z_\mathrm{dep})` for
@@ -119,7 +121,7 @@ class annihilating_model(model):
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,logEnergies=None,redshift=None):
+	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,logEnergies,redshift):
 		u"""
 		At initialization the reference spectra are read and the double-differential
 		spectrum :math:`\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t}` needed for
@@ -159,12 +161,12 @@ class annihilating_model(model):
 			ret = spec_point*np.ones_like(redshift)
 			return ret
 
-		if logEnergies is None:
-			from .__init__ import logEnergies as cheese
-			logEnergies = cheese
-		if redshift is None:
-			from .__init__ import redshift as ham
-			redshift = ham
+		# if logEnergies is None:
+		# 	from .__init__ import logEnergies as cheese
+		# 	logEnergies = cheese
+		# if redshift is None:
+		# 	from .__init__ import redshift as ham
+		# 	redshift = ham
 		from .common import trapz, logConversion
 
 		E = logConversion(logEnergies)
@@ -189,70 +191,83 @@ class annihilating_halos_model(model):
 
 
 class decaying_model(model):
-	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of a decaying
-	species.
+    u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of a decaying
+    species.
 
-	Inherits all methods of :class:`model <DarkAges.model.model>`
-	"""
+    Inherits all methods of :class:`model <DarkAges.model.model>`
+    """
 
-	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,t_dec,logEnergies=None,redshift=None):
-		u"""
-		At initialization the reference spectra are read and the double-differential
-		spectrum :math:`\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t}` needed for
-		the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
+    def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,t_dec,Emin,Emax,logEnergies,redshift):
+    	u"""
+    	At initialization the reference spectra are read and the double-differential
+    	spectrum :math:`\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t}` needed for
+    	the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
 
-		.. math::
-			\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t} = C \\cdot\\exp{\\left(\\frac{-t(z)}{\\tau}\\right)} \\cdot \\frac{\\mathrm{d}N(E)}{\\mathrm{d}E}
+    	.. math::
+    		\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t} = C \\cdot\\exp{\\left(\\frac{-t(z)}{\\tau}\\right)} \\cdot \\frac{\\mathrm{d}N(E)}{\\mathrm{d}E}
 
-		where :math:`C` is a constant independent of :math:`t` (:math:`z`) and :math:`E`
+    	where :math:`C` is a constant independent of :math:`t` (:math:`z`) and :math:`E`
 
-		Parameters
-		----------
-		ref_el_spec : :obj:`array-like`
-			Reference spectrum (:code:`shape = (k,l)`) :math:`\mathrm{d}N / \mathrm{d}E` of **electrons**
-		ref_ph_spec : :obj:`array-like`
-			Reference spectrum (:code:`shape = (k,l)`) :math:`\mathrm{d}N / \mathrm{d}E` of **photons**
-		ref_oth_spec : :obj:`array-like`
-			Reference spectrum (:code:`shape = (k,l)`) :math:`\mathrm{d}N / \mathrm{d}E` of particles
-			not interacting with the early IGM (e.g. **protons** and **neutrinos**).
-			This is needed for the proper normalization of the electron- and photon-spectra.
-		m : :obj:`float`
-			Mass of the DM-candidate (*in units of* :math:`\\mathrm{GeV}`)
-		t_dec : :obj:`float`
-			Lifetime (Time after which the number of particles dropped down to
-			a factor of :math:`1/e`) of the DM-candidate
-		logEnergies : :obj:`array-like`, optional
-			Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
-			(*in units of* :math:`\\mathrm{eV}`) to the base 10.
-			If not specified, the standard array provided by
-			:class:`the initializer <DarkAges.__init__>` is taken.
-		redshift : :obj:`array-like`, optional
-			Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
-			the calculation of the double-differential spectra.
-			If not specified, the standard array provided by
-			:class:`the initializer <DarkAges.__init__>` is taken.
-		"""
+    	Parameters
+    	----------
+    	ref_el_spec : :obj:`array-like`
+    		Reference spectrum (:code:`shape = (k,l)`) :math:`\mathrm{d}N / \mathrm{d}E` of **electrons**
+    	ref_ph_spec : :obj:`array-like`
+    		Reference spectrum (:code:`shape = (k,l)`) :math:`\mathrm{d}N / \mathrm{d}E` of **photons**
+    	ref_oth_spec : :obj:`array-like`
+    		Reference spectrum (:code:`shape = (k,l)`) :math:`\mathrm{d}N / \mathrm{d}E` of particles
+    		not interacting with the early IGM (e.g. **protons** and **neutrinos**).
+    		This is needed for the proper normalization of the electron- and photon-spectra.
+    	m : :obj:`float`
+    		Mass of the DM-candidate (*in units of* :math:`\\mathrm{GeV}`)
+    	t_dec : :obj:`float`
+    		Lifetime (Time after which the number of particles dropped down to
+    		a factor of :math:`1/e`) of the DM-candidate
+    	logEnergies : :obj:`array-like`, optional
+    		Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
+    		(*in units of* :math:`\\mathrm{eV}`) to the base 10.
+    		If not specified, the standard array provided by
+    		:class:`the initializer <DarkAges.__init__>` is taken.
+    	redshift : :obj:`array-like`, optional
+    		Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
+    		the calculation of the double-differential spectra.
+    		If not specified, the standard array provided by
+    		:class:`the initializer <DarkAges.__init__>` is taken.
+    	"""
 
-		def _decay_scaling(redshift, spec_point, lifetime):
-			from .common import time_at_z
-			ret = spec_point*np.exp(-time_at_z(redshift) / lifetime)
-			return ret
+    	def _decay_scaling(redshift, spec_point, lifetime):
+    		from .common import time_at_z
+    		ret = spec_point*np.exp(-time_at_z(redshift) / lifetime)
+    		return ret
 
-		if logEnergies is None:
-			from .__init__ import logEnergies as cheese
-			logEnergies = cheese
-		if redshift is None:
-			from .__init__ import redshift as ham
-			redshift = ham
-		from .common import trapz, logConversion
+    	# if logEnergies is None:
+    	# 	from .__init__ import logEnergies as cheese
+    	# 	logEnergies = cheese
+    	# if redshift is None:
+    	# 	from .__init__ import redshift as ham
+    	# 	redshift = ham
+    	from .common import trapz, logConversion
 
-		E = logConversion(logEnergies)
-		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
-		#normalization = trapz(tot_spec*E**2, logEnergies)*np.ones_like(redshift)
-		normalization = np.ones_like(redshift)*(m)
-		spec_electrons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_el_spec[:,None], t_dec)
-		spec_photons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_ph_spec[:,None], t_dec)
-		model.__init__(self, spec_electrons, spec_photons, normalization, 0)
+        # Emin_table = Emin
+        # Emax_table = Emax
+        # # print Emin,Emax
+        # nbins_table = 40
+        # # print nbins_table
+        # # LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
+        # if Emin_table == None or Emax_table == None:
+        #     logEnergies = transfer_functions[0].log10E[:]
+        # else:
+        #     logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
+        E = logConversion(logEnergies)
+
+        tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
+        #normalization = trapz(tot_spec*E**2, logEnergies)*np.ones_like(redshift)
+        normalization = np.ones_like(redshift)*(m)
+        spec_electrons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_el_spec[:,None], t_dec)
+        spec_photons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_ph_spec[:,None], t_dec)
+        model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,0)
+
+
 
 class evaporating_model(model):
     u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of evaporating
@@ -261,7 +276,7 @@ class evaporating_model(model):
     Inherits all methods of :class:`model <DarkAges.model.model>`
     """
 
-    def __init__(self, PBH_mass_ini, logEnergies=None, redshift=None):
+    def __init__(self, PBH_mass_ini, logEnergies, redshift):
         u"""
         At initialization evolution of the PBH mass is calculated with
         :func:`PBH_mass_at_z <DarkAges.evaporator.PBH_mass_at_z>` and the
@@ -357,7 +372,7 @@ class accreting_model(model):
     Inherits all methods of :class:`model <DarkAges.model.model>`
     """
 
-    def __init__(self, PBH_mass, recipe, logEnergies=None, redshift=None):
+    def __init__(self, PBH_mass, recipe, logEnergies, redshift):
         u"""
         At initialization the reference spectra are read and the luminosity
         spectrum :math:`L_\omega` needed for
