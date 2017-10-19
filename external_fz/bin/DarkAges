@@ -63,7 +63,7 @@ parser.add_option("-m","--model", dest='model', metavar='MODEL',
                   help="Load a preprocessed model")
 parser.add_option("--rebuild-model", action='store_true', dest='rebuild_model', default=False,
                   help="Force rebuilding a model")
-parser.add_option("--hist", default='annihilation', choices=['annihilation','annihilation_halos','decay','PBH','PBH2','accreting_PBH'], dest='injection_history',
+parser.add_option("--hist", default='annihilation', choices=['annihilation','annihilation_halos','decay','evaporating_PBH','accreting_PBH'], dest='injection_history',
                   help="Define the injection history of the model.")
 parser.add_option("--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV] or the PBH mass [in g for evaporating PBH and Msun for accreting ones].")
@@ -71,6 +71,8 @@ parser.add_option("--Log10Emin", type='float', dest='Log10Emin',
                   help="Minimal energy for the convolution over tranfer functions. Default set to 5keV (minimal energy of the tables).")
 parser.add_option("--Log10Emax", type='float', dest='Log10Emax',
                   help="Maximal energy for the convolution over tranfer functions. Default set to 1TeV (maximal energy of the tables).")
+parser.add_option("--nbins_table", type='float', dest='nbins_table',
+                  help="Number of energy points for the convolution over tranfer functions. Default set to 40 (the number of points in the transfer function tables).")
 parser.add_option("--accretion_recipe",dest="accretion_recipe",choices=['spherical_accretion','disk_accretion'],
                   help = "Define the accretion recipe used to compute the energy injection associated to accreting PBH: disk_accretion or spherical_accretion.")
 parser.add_option("--log10mass", type="float", dest='log10mass',default=None,
@@ -99,14 +101,13 @@ from DarkAges.common import print_info
 import DarkAges.recipes as recipes
 # Emin_table = transfer_functions[0].log10E[0]
 # Emax_table = transfer_functions[0].log10E[39]
-Emin_table = options.Log10Emin
-Emax_table = options.Log10Emax
-nbins_table = len(transfer_functions[0].log10E[:])
-# LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
-if Emin_table == None or Emax_table == None:
+
+if options.nbins_table == None:
+	options.nbins_table = len(transfer_functions[0].log10E[:])
+if options.Log10Emin == None or options.Log10Emax == None:
 	logEnergies = transfer_functions[0].log10E[:]
 else:
-	logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
+	logEnergies = np.linspace(options.Log10Emin,options.Log10Emax,options.nbins_table)
 
 DarkOptions = dict()
 #keys_to_search = ['mass','t_dec','background']
@@ -144,16 +145,14 @@ if options.log10mass:
 if options.injection_history == 'decay' and (options.t_dec==None):
 	raise DarkAgesError('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
 
-if options.injection_history == 'PBH':
+if options.injection_history == 'evaporating_PBH':
 	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, **DarkOptions) )
 
-#if options.injection_history == 'PBH2':
-#	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, logEnergies, redshift, merge_ion=True) )
 
 if options.injection_history == 'accreting_PBH' and ((options.accretion_recipe is None)):
 	raise DarkAgesError('When choosing the injection history: "accreting_PBH" you need to specify the accretion recipe: spherical_accretion or disk_accretion.')
 if options.injection_history == 'accreting_PBH':
-	sys.exit( recipes.accreting_PBH(options.mass, options.accretion_recipe, transfer_functions, logEnergies, redshift, **DarkOptions) )
+	sys.exit( recipes.accreting_PBH(options.mass, options.accretion_recipe, transfer_functions, logEnergies, redshift,  **DarkOptions) )
 
 if options.model:
 	sys.exit( recipes.access_model(options.model, options.rebuild_model, args, **DarkOptions) )
@@ -178,9 +177,9 @@ if options.specfile:
 		raise DarkAgesError('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
 
 	if hasattr(options, 't_dec'):
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history, options.Log10Emin,options.Log10Emax, branchings=options.branchings, **DarkOptions) )
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history,branchings=options.branchings, **DarkOptions) )
 	else:
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, options.Log10Emin,options.Log10Emax, branchings=options.branchings, **DarkOptions) )
+		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings, **DarkOptions) )
 
 # if not options.specfile and not options.specfunction:
 # 	raise DarkAgesError('You forgot to give a specifile!! specify it via "--specfile" or "--specfunction"')

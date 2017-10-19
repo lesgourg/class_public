@@ -174,10 +174,10 @@ class annihilating_model(model):
 		normalization = np.ones_like(redshift)*(2*m)
 		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_el_spec[:,None])
 		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_ph_spec[:,None])
-		model.__init__(self, spec_electrons, spec_photons, normalization, 3)
+		model.__init__(self, spec_electrons, spec_photons, normalization,logEnergies, 3)
 
 class annihilating_halos_model(model):
-	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,zh,fh):
+	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,zh,fh,logEnergies,redshift):
 		from .__init__ import redshift, logEnergies
 		from .common import trapz, logConversion, boost_factor_halos, scaling_boost_factor
 		E = logConversion(logEnergies)
@@ -186,7 +186,7 @@ class annihilating_halos_model(model):
 		normalization = np.ones_like(redshift)*(2*m)/boost_factor_halos(redshift,zh,fh)
 		spec_electrons = np.vectorize(scaling_boost_factor).__call__(redshift[None,:],ref_el_spec[:,None],zh,fh)
 		spec_photons = np.vectorize(scaling_boost_factor).__call__(redshift[None,:],ref_ph_spec[:,None],zh,fh)
-		model.__init__(self, spec_electrons, spec_photons, normalization, 3)
+		model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,3)
 
 
 class decaying_model(model):
@@ -196,7 +196,7 @@ class decaying_model(model):
     Inherits all methods of :class:`model <DarkAges.model.model>`
     """
 
-    def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,t_dec,Emin,Emax,logEnergies,redshift):
+    def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,t_dec,logEnergies,redshift):
     	u"""
     	At initialization the reference spectra are read and the double-differential
     	spectrum :math:`\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t}` needed for
@@ -246,17 +246,6 @@ class decaying_model(model):
     	# 	from .__init__ import redshift as ham
     	# 	redshift = ham
     	from .common import trapz, logConversion
-
-        # Emin_table = Emin
-        # Emax_table = Emax
-        # # print Emin,Emax
-        # nbins_table = 40
-        # # print nbins_table
-        # # LogEnergies = np.logspace(Emin_table,Emax_table,nbins_table)
-        # if Emin_table == None or Emax_table == None:
-        #     logEnergies = transfer_functions[0].log10E[:]
-        # else:
-        #     logEnergies = np.linspace(Emin_table,Emax_table,nbins_table)
         E = logConversion(logEnergies)
 
         tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
@@ -321,7 +310,7 @@ class accreting_model(model):
         normalization = np.ones_like(redshift)*(m)
         spec_electrons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_el_spec[:,None], t_dec)
         spec_photons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_ph_spec[:,None], t_dec)
-        model.__init__(self, spec_electrons, spec_photons, normalization, 0)
+        model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,0)
 
 class evaporating_model(model):
 	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of evaporating
@@ -330,7 +319,7 @@ class evaporating_model(model):
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self, PBH_mass_ini, logEnergies=None, redshift=None, include_secondaries=True ):
+	def __init__(self, PBH_mass_ini,logEnergies, redshift, include_secondaries=True):
 		u"""
 		At initialization evolution of the PBH mass is calculated with
 		:func:`PBH_mass_at_z <DarkAges.evaporator.PBH_mass_at_z>` and the
@@ -357,12 +346,12 @@ class evaporating_model(model):
 		from .evaporator import PBH_spectrum_at_m, PBH_mass_at_z, PBH_dMdt
 		from .common import trapz, logConversion, time_at_z, nan_clean
 
-		if logEnergies is None:
-			from .__init__ import logEnergies as cheese
-			logEnergies = cheese
-		if redshift is None:
-			from .__init__ import redshift as ham
-			redshift = ham
+		# if logEnergies is None:
+		# 	from .__init__ import logEnergies as cheese
+		# 	logEnergies = cheese
+		# if redshift is None:
+		# 	from .__init__ import redshift as ham
+		# 	redshift = ham
 
 		mass_at_z = PBH_mass_at_z(PBH_mass_ini, redshift=redshift)
 		E = logConversion(logEnergies)
@@ -414,7 +403,7 @@ class evaporating_model(model):
 			del_E[idx] = trapz(spec_all[:,idx]*E**2*np.log(10),(logEnergies))
 			normalization = del_E
 
-		model.__init__(self, spec_el, spec_ph, normalization, 0)
+		model.__init__(self, spec_el, spec_ph, normalization, logEnergies,0)
 
 class accreting_model(model):
 	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
