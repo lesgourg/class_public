@@ -146,11 +146,20 @@ struct spectra {
   int ln_k_size;    /**< number ln(k) values */
   double * ln_k;    /**< list of ln(k) values ln_k[index_k] */
 
-  int ln_tau_size;  /**< number ln(tau) values (only one if z_max_pk = 0) */
-  double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau] */
+  int ln_tau_size;  /**< number of ln(tau) values, for the matter
+                       power spectrum and the matter transfer
+                       functions, (only one if z_max_pk = 0) */
+
+  double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau], for
+                       the matter power spectrum and the matter
+                       transfer functions, in growing order. So
+                       exp(ln_tau[0]) is the earliest time
+                       (i.e. highest redshift), while
+                       exp(ln_tau[ln_tau_size-1]) is today (i.e
+                       z=0). */
 
   double * ln_pk;   /**< Matter power spectrum.
-                       depends on indices index_md, index_ic1, index_ic2, index_k, index_tau as:
+                       depends on indices index_ic1_ic2, index_k, index_tau as:
                        ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
                        where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                        the primordial spectrum is symmetric in (index_ic1, index_ic2)).
@@ -175,6 +184,30 @@ struct spectra {
                     */
 
   double sigma8;    /**< sigma8 parameter */
+
+  double * ln_pk_l;   /**q< Total linear matter power spectrum, just
+                           depending on indices index_k, index_tau as:
+                           ln_pk[index_tau * psp->k_size + index_k]
+                           Range of k and tau value identical to
+                           ln_pk array. */
+
+  double * ddln_pk_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  int ln_tau_nl_size;  /**< number of ln(tau) values for non-linear
+                          spectrum (possibly smaller than ln_tau_size,
+                          because the non-linear spectrum is stored
+                          only in the time/redhsift range where the
+                          non-linear corrections were really computed,
+                          to avoid dealing with discontinuities in
+                          the spline interpolation) */
+
+  double * ln_tau_nl;  /**< list of ln(tau) values
+                          ln_tau_nl[index_tau], for the non-linear
+                          power spectrum, in growing order. So
+                          exp(ln_tau_nl[0]) is the earliest time
+                          (i.e. highest redshift), while
+                          exp(ln_tau_nl[ln_tau_nl_size-1]) is today
+                          (i.e z=0). */
 
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:
@@ -361,6 +394,7 @@ extern "C" {
   int spectra_k_and_tau(
                         struct background * pba,
                         struct perturbs * ppt,
+                        struct nonlinear *pnl,
                         struct spectra * psp
                         );
 
