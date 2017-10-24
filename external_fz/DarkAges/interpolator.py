@@ -24,6 +24,7 @@ Contains the definition of the classes
 import numpy as np
 from scipy.interpolate import interp1d
 from .common import nan_clean, print_warning
+from .__init__ import DarkAgesError
 
 class logInterpolator(object):
 	u"""This is a custom class for the purpose of smooth interpolations, if the

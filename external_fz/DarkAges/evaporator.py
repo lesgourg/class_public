@@ -86,22 +86,6 @@ def PBH_spectrum_at_m( mass, logEnergies, *particles):
 		raise DarkAgesError('There is no particles given')
 	return ret
 
-#def PBH_spectrum( PBH_mass_ini, *particles):
-#	ret = np.zeros((len(logEnergies), len(redshift)), dtype=np.float64)
-#	mass_at_z = PBH_mass_at_z(PBH_mass_ini, z_start =1e4)[-1,:]
-#	for idx, mass in enumerate(mass_at_z):
-#		ret[:,idx,None] = PBH_spectrum_at_m( mass, logEnergies, *particles )
-#	return ret
-
-#def full_spectrum( PBH_mass_ini ):
-#	ret = np.zeros((3, len(logEnergies), len(redshift)), dtype=np.float64)
-#	mass_at_z = PBH_mass_at_z(PBH_mass_ini, z_start =1e4)[-1,:]
-#	E = logConversion(logEnergies - 9)
-#	ret[0,:,:] = PBH_spectrum_at_m( mass_at_z, logEnergies, 'electron')
-#	ret[1,:,:] = PBH_spectrum_at_m( mass_at_z, logEnergies, 'gamma')
-#	ret[2,:,:] = PBH_spectrum_at_m( mass_at_z, logEnergies, 'ALL')
-#	return E, redshift, ret
-
 def get_temperature_from_mass(mass):
 	u"""Returns the temperature of a black hole of a given mass
 
@@ -298,12 +282,6 @@ def PBH_dMdt(PBH_mass, time, scale=1):
 		return ret
 	else:
 		return 0
-
-#def PBH_mass_at_z(initial_PBH_mass, t_start = 1e10):
-#	u"""Solves the differential equation for the black hole mass with the starting
-#	conditions of an initial mass of :code:`initial_PBH_mass` at the initial
-#	time of :code:`t_start`
-#	"""
 
 def PBH_mass_at_z(initial_PBH_mass, redshift=None, z_start = 1e4):
 	def jac(mass, time, scale):

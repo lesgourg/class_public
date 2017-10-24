@@ -279,122 +279,143 @@ def scaling_boost_factor(redshift,spec_point,zh,fh):
 def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,
                spec_phot, spec_elec, alpha=3, **kwargs):
-    u"""Returns the effective efficiency factor :math:`f_c (z)`
-    for the deposition channel :math:`c`.
+	u"""Returns the effective efficiency factor :math:`f_c (z)`
+	for the deposition channel :math:`c`.
 
-    This method calculates the effective efficiency factor in dependence
-    of the redshift
+	This method calculates the effective efficiency factor in dependence
+	of the redshift
 
-    ......WRITE HERE .....
+	......WRITE HERE .....
 
-    Parameters
-    ----------
-    transfer_functions_E : :obj:`array-like`
-    	Array (:code:`shape = (l)`) containing the energy at which transfer functions are known (for interpolation)
-    logE : :obj:`array-like`
-    	Array (:code:`shape = (l)`) of the logarithms (to the base 10) of the kinetic energies of the particles at which spectrum and transfer functions will be evaluated (in units of eV)
-    z_inj : :obj:`array-like`
-    	Array (:code:`shape = (m)`) of the values :math:`z_\\mathrm{inj.}` at which the energy
-    	was injected (e.g. by annihilation or decay)
-    z_dep : :obj:`array-like`
-    	Array (:code:`shape = (k)`) of the values :math:`z_\\mathrm{dep.}` at which the energy
-    	was deposited into the IGM
-    normalization : :obj:`array-like`
-    	Array (:code:`shape = (k)`) containing the proper normalization of the injected spectra
-    	of photons and electrons at each timestep / at each redshift of deposition
-    transfer_phot : :obj:`array-like`
-    	Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
-    	:math:`T^\\mathrm{phot.}_{klm}` for photons
-    transfer_elec : :obj:`array-like`
-    	Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
-    	:math:`T^\\mathrm{elec.}_{klm}` for electrons and positrons
-    spec_phot : :obj:`array-like`
-    	Array (:code:`shape = (l,m)`) containing the double differential spectrum
-    	:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of photons
-    spec_elec : :obj:`array-like`
-    	Array (:code:`shape = (l,m)`) containing the double differential spectrum
-    	:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of electrons
-    	and positrons.
-    alpha : :obj:`int`, :obj:`float`, *optional*
-    	Exponent to take the scaling of the number density in comoving volume
-    	into account (see also: :meth:`conversion <DarkAges.common.conversion>`).
-    	If not given the default value :math:`\\alpha = 3` is taken.
+	Parameters
+	----------
+	transfer_functions_E : :obj:`array-like`
+		Array (:code:`shape = (l)`) containing the energy at which transfer functions are known (for interpolation)
+	logE : :obj:`array-like`
+		Array (:code:`shape = (l)`) of the logarithms (to the base 10) of the kinetic energies of the particles at which spectrum and transfer functions will be evaluated (in units of eV)
+	z_inj : :obj:`array-like`
+		Array (:code:`shape = (m)`) of the values :math:`z_\\mathrm{inj.}` at which the energy
+		was injected (e.g. by annihilation or decay)
+	z_dep : :obj:`array-like`
+		Array (:code:`shape = (k)`) of the values :math:`z_\\mathrm{dep.}` at which the energy
+		was deposited into the IGM
+	normalization : :obj:`array-like`
+		Array (:code:`shape = (k)`) containing the proper normalization of the injected spectra
+		of photons and electrons at each timestep / at each redshift of deposition
+	transfer_phot : :obj:`array-like`
+		Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
+		:math:`T^\\mathrm{phot.}_{klm}` for photons
+	transfer_elec : :obj:`array-like`
+		Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
+		:math:`T^\\mathrm{elec.}_{klm}` for electrons and positrons
+	spec_phot : :obj:`array-like`
+		Array (:code:`shape = (l,m)`) containing the double differential spectrum
+		:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of photons
+	spec_elec : :obj:`array-like`
+		Array (:code:`shape = (l,m)`) containing the double differential spectrum
+		:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of electrons
+		and positrons.
+	alpha : :obj:`int`, :obj:`float`, *optional*
+		Exponent to take the scaling of the number density in comoving volume
+		into account (see also: :meth:`conversion <DarkAges.common.conversion>`).
+		If not given the default value :math:`\\alpha = 3` is taken.
 
-    Returns
-    -------
-    :obj:`array-like`
-    	Array (:code:`shape = (k)`) of :math:`f_c (z)` at the redshifts of
-    	deposition given in :code:`z_dep`
-    """
-    E = logConversion(logE)
-    how_to_integrate = kwargs.get('E_integration_scheme','logE')
-    if how_to_integrate not in ['logE','energy']:
-    	print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
+	Returns
+	-------
+	:obj:`array-like`
+		Array (:code:`shape = (k)`) of :math:`f_c (z)` at the redshifts of
+		deposition given in :code:`z_dep`
+	"""
+	E = logConversion(logE)
+	how_to_integrate = kwargs.get('E_integration_scheme','logE')
+	if how_to_integrate not in ['logE','energy']:
+		print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
 
-    norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
+	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
-    energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
-    int_phot = np.zeros( shape=(len(E)), dtype=np.float64)
-    int_elec = np.zeros( shape=(len(E)), dtype=np.float64)
-    Enj = logConversion(transfer_functions_E)
-    for i in xrange(len(energy_integral)):
-        if how_to_integrate == 'logE':
-            for k in xrange(i,len(energy_integral[i])):
-                # int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
-                # int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
-                # energy_integral[i][k] = trapz( int_phot + int_elec, logE )
-                for j in xrange(0,len(E)):
-                    if len(Enj) == len(E) and Enj[j]==E[j]:
-                        int_phot[j] = transfer_phot[i,j,k]*spec_phot[j,k]*(E[j]**2)/np.log10(np.e)
-                        int_elec[j] = transfer_elec[i,j,k]*spec_elec[j,k]*(E[j]**2)/np.log10(np.e)
-                    else:
-                        int_phot[j] = evaluate_transfer(transfer_functions_E,transfer_phot,i,E,k,j)*spec_phot[j,k]*(E[j]**2)/np.log10(np.e)
-                        int_elec[j] = evaluate_transfer(transfer_functions_E,transfer_elec,i,E,k,j)*spec_elec[j,k]*(E[j]**2)/np.log10(np.e)
-                energy_integral[i][k] = trapz( int_phot + int_elec, logE )
-        elif how_to_integrate == 'energy':
-            for k in xrange(i,len(energy_integral[i])):
-                # int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
-                # int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
-                # energy_integral[i][k] = trapz( int_phot + int_elec, E )
-                for j in xrange(0,len(E)):
-                    if len(Enj) == len(E) and Enj[j]==E[j]:
-                        int_phot[j] = transfer_phot[i,j,k]*spec_phot[j,k]*(E[j]**1)/np.log10(np.e)
-                        int_elec[j] = transfer_elec[i,j,k]*spec_elec[j,k]*(E[j]**1)/np.log10(np.e)
-                    else:
-                        int_phot[j] = evaluate_transfer(transfer_functions_E,transfer_phot,i,E,k,j)*spec_phot[j,k]*(E[j]**1)/np.log10(np.e)
-                        int_elec[j] = evaluate_transfer(transfer_functions_E,transfer_elec,i,E,k,j)*spec_elec[j,k]*(E[j]**1)/np.log10(np.e)
-                energy_integral[i][k] = trapz( int_phot + int_elec, E )
-    z_integral = np.zeros_like( z_dep, dtype=np.float64)
-    dummy = np.arange(1,len(z_inj)+1)
-    for i in xrange(len(z_integral)):
-    	low = max(i,0)
-    	#low = i
-    	integrand = ( conversion(z_inj[low:], alpha=alpha) )*energy_integral[i,low:]
-    	z_integral[i] = trapz( integrand, dummy[low:] )
+	if (len(logE) == len(transfer_functions_E)):
+		if np.any(abs(logE - transfer_functions_E) <= 1e-5*logE):
+			need_to_interpolate = False
+		else:
+			need_to_interpolate = True
+	else:
+		need_to_interpolate = True
 
-    result = np.empty_like( norm, dtype=np.float64 )
-    for i in xrange(len(norm)):
-    	if norm[i] != 0 and abs(z_integral[i]) < np.inf :
-    		result[i] = (z_integral[i] / norm[i])
-    	else:
-    		#result[i] = np.nan
-    		result[i] = 0
+	#if need_to_interpolate:
+	#	print 'I need to interpolate'
+	#	interpolated_transfer_elec = np.zeros((len(z_dep),len(logE),len(z_inj)), dtype=np.float64)
+	#	interpolated_transfer_phot = np.zeros((len(z_dep),len(logE),len(z_inj)), dtype=np.float64)
+	#else:
+	#	interpolated_transfer_elec = transfer_elec
+	#	interpolated_transfer_phot = transfer_phot
 
-    return result
+	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
+	#int_phot = np.zeros( shape=(len(E)), dtype=np.float64)
+	#int_elec = np.zeros( shape=(len(E)), dtype=np.float64)
+	Enj = logConversion(transfer_functions_E)
+	for i in xrange(len(energy_integral)):
+		#if need_to_interpolate:
+		#	print 'step {0} out of {1} steps'.format(i,len(energy_integral))
+		#	from .interpolator import NDlogInterpolator
+		#	interpolated_transfer_phot[i,:,i:] = NDlogInterpolator(transfer_functions_E,transfer_phot[i,:,i:],0,'lin-lin').__call__(logE)
+		#	interpolated_transfer_elec[i,:,i:] = NDlogInterpolator(transfer_functions_E,transfer_elec[i,:,i:],0,'lin-lin').__call__(logE)
+		if how_to_integrate == 'logE':
+			for k in xrange(i,len(energy_integral[i])):
+				#int_phot = interpolated_transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
+				#int_elec = interpolated_transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
+				#energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+				if not need_to_interpolate:
+					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
+					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
+				else:
+					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
+					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
+				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+		elif how_to_integrate == 'energy':
+			for k in xrange(i,len(energy_integral[i])):
+				#int_phot = interpolated_transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
+				#int_elec = interpolated_transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
+				#energy_integral[i][k] = trapz( int_phot + int_elec, E )
+				if not need_to_interpolate:
+					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**1)
+					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**1)
+				else:
+					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**1)
+					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**1)
+				energy_integral[i][k] = trapz( int_phot + int_elec, E )
+	z_integral = np.zeros_like( z_dep, dtype=np.float64)
+	dummy = np.arange(1,len(z_inj)+1)
+	for i in xrange(len(z_integral)):
+		low = max(i,0)
+		#low = i
+		integrand = ( conversion(z_inj[low:], alpha=alpha) )*energy_integral[i,low:]
+		z_integral[i] = trapz( integrand, dummy[low:] )
 
-def evaluate_transfer(transfer_functions_E,transfer,z_dep,E,z_inj,j):
-    Enj = logConversion(transfer_functions_E)
-    transfer_interpolation = interp1d(transfer_functions_E,transfer[z_dep,:,z_inj])
-    # transfer_interpolation = log_fit(Enj,transfer[z_dep,:,z_inj],E)
-    if E[j] > Enj[0] and E[j] < Enj[len(Enj)-1]:
-        result = transfer_interpolation(np.log10(E[j]))
-    elif E[j] <= Enj[0] and E[j] >= 10.2 :
-        result = transfer[z_dep,0,z_inj]
-    elif E[j] < 10.2:
-        result = 0.
-    elif E[j]>= Enj[len(Enj)-1]:
-        result = transfer[z_dep,len(Enj)-1,z_inj]
-    return result
+	result = np.empty_like( norm, dtype=np.float64 )
+	for i in xrange(len(norm)):
+		if norm[i] != 0 and abs(z_integral[i]) < np.inf :
+			result[i] = (z_integral[i] / norm[i])
+		else:
+			#result[i] = np.nan
+			result[i] = 0
+
+	return result
+
+def evaluate_transfer(transfer_functions_E,transfer,E,):
+	Enj = logConversion(transfer_functions_E)
+	result = np.zeros_like(E)
+	transfer_interpolation = lambda logE : np.interp(logE,transfer_functions_E,np.log1p(transfer))
+	#transfer_interpolation = interp1d(transfer_functions_E,transfer)
+	#transfer_interpolation = lambda logE : log_fit(transfer_functions_E,transfer,logE)
+	mask1 = np.logical_and( (E > Enj[0]), (E < Enj[-1]) )
+	result[mask1] = np.e**transfer_interpolation(np.log10(E[mask1])) - 1.
+	mask2 = np.logical_and( (E <= Enj[0]), (E >= 10.2) )
+	result[mask2] = transfer[0]
+	mask3  = E < 10.2
+	result[mask3] = 0.
+	mask4 =  E >= Enj[-1]
+	result[mask4] = transfer[-1]
+	return result
 
 def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
 	u"""Returns an array of interpolated points using the
