@@ -17,7 +17,7 @@ liblist = ["class"]
 MVEC_STRING = sbp.Popen(
     ['gcc', '-lmvec'],
     stderr=sbp.PIPE).communicate()[1]
-if "library not found" not in MVEC_STRING:
+if b"mvec" not in MVEC_STRING:
     liblist += ["mvec","m"]
 
 # Recover the CLASS version

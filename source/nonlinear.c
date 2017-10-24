@@ -372,7 +372,7 @@ int nonlinear_halofit(
   double k_integrand;
   double lnpk_integrand;
 
-  double x2,R;
+  double R;
 
   double * w_and_Omega;
 
