@@ -367,7 +367,7 @@ int nonlinear_halofit(
   double k_integrand;
   double lnpk_integrand;
 
-  double x2,R;
+  double R;
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 

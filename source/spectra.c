@@ -2614,7 +2614,7 @@ int spectra_pk(
   int index_ic1,index_ic2,index_ic1_ic1,index_ic2_ic2,index_ic1_ic2;
   int index_k;
   int index_tau;
-  int delta_index_nl;
+  int delta_index_nl=0;
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   double source_ic1;
   double source_ic2;
