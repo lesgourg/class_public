@@ -473,33 +473,59 @@ int background_w_fld(
                      double * dw_over_da_fld,
                      double * integral_fld) {
 
-  /** - first, define the function w(a) */
-  *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+  if(pba->w_fld_parametrization == w_fld_parametrization_lin) {
+    /** - first, define the function w(a) */
+    *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
 
-  /** - then, give the corresponding analytic derivative dw/da (used
-        by perturbation equations; we could compute it numerically,
-        but with a loss of precision; as long as there is a simple
-        analytic expression of the derivative of the previous
-        function, let's use it! */
-  *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+    /** - then, give the corresponding analytic derivative dw/da (used
+	  by perturbation equations; we could compute it numerically,
+	  but with a loss of precision; as long as there is a simple
+	  analytic expression of the derivative of the previous
+	  function, let's use it! */
+    *dw_over_da_fld = - pba->wa_fld / pba->a_today;
 
-  /** - finally, give the analytic solution of the following integral:
-        \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
-        one place, in the initial conditions for the background, and
-        with a=a_ini. If your w(a) does not lead to a simple analytic
-        solution of this integral, no worry: instead of writing
-        something here, the best would then be to leave it equal to
-        zero, and then in background_initial_conditions() you should
-        implement a numerical calculation of this integral only for
-        a=a_ini, using for instance Romberg integration. It should be
-        fast, simple, and accurate enough. */
-  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    /** - finally, give the analytic solution of the following integral:
+	  \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
+	  one place, in the initial conditions for the background, and
+	  with a=a_ini. If your w(a) does not lead to a simple analytic
+	  solution of this integral, no worry: instead of writing
+	  something here, the best would then be to leave it equal to
+	  zero, and then in background_initial_conditions() you should
+	  implement a numerical calculation of this integral only for
+	  a=a_ini, using for instance Romberg integration. It should be
+	  fast, simple, and accurate enough. */
+    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
 
-  /** note: of course you can generalise these formulas to anything,
-      defining new parameters pba->w..._fld. Just remember that so
-      far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
-      Recfast does not assume anything */
+    /** note: of course you can generalise these formulas to anything,
+	defining new parameters pba->w..._fld. Just remember that so
+	far, HyRec explicitely assumes that w(a)= w0 + wa (1-a/a0); but
+	Recfast does not assume anything */
+  } else if(pba->w_fld_parametrization == w_fld_parametrization_tanh) {
+    /* thawing quintessence from 0712.3450 */
+    double scaleda = a / pba->a_today;
 
+    double d0 = pba->w0_fld + 1.;
+    double W0 = pba->Omega0_fld;
+    class_test(W0 < 0.0,
+	       pba->error_message,
+	       "Omega0_fld needs to be larger than zero for the tanh parametrization");
+
+    if(scaleda < 1e-3) {
+      // true value: -1 + O(1e-10)
+      *w_fld = -1.;
+      // 6e-7
+      *dw_over_da_fld = 1e-6;
+      *integral_fld = 0.0;
+    } else {
+      *w_fld = -1. + (d0*pow(sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)) - ((-1. + 1./W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))/pow(scaleda,3),2))/pow(1./sqrt(W0) - (-1. + 1./W0)*atanh(sqrt(W0)),2);
+
+      *dw_over_da_fld = (-6.*d0*(-1. + W0)*(-1. + sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))))*
+	(pow(scaleda,3)*sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*W0 + (-1. + W0)*atanh(1./sqrt(1. + (-1. + 1./W0)/pow(scaleda,3)))))/
+	(pow(scaleda,7)*sqrt(1. + (-1. + 1./W0)/pow(scaleda,3))*pow(sqrt(W0) + (-1. + W0)*atanh(sqrt(W0)),2));
+
+      *integral_fld = 0.0;
+    }
+  }
   return _SUCCESS_;
 }
 
@@ -1918,6 +1944,58 @@ int background_initial_conditions(
     numerically the simple 1d integral [int_{a_ini}^{a_0} 3
     [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
     calling background_w_fld */
+
+    if(pba->w_fld_parametrization == w_fld_parametrization_tanh) {
+      integral_fld = 0.0;
+      int integration_successful = _FALSE_;
+      int max_steps = 20;
+      int i, j;
+      double acc = 1e-5;
+      // romberg integration adapted from https://en.wikipedia.org/wiki/Romberg%27s_method#Implementation
+      double R1[max_steps], R2[max_steps]; //buffers
+      double *Rp = &R1[0], *Rc = &R2[0]; //Rp is previous row, Rc is current row
+      double h = (pba->a_today - a); //step size
+      double this_w_fld, this_dw_over_da_fld, this_integral_fld;
+      Rp[0] = 0.0;
+      class_call(background_w_fld(pba,pba->a_today,&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
+      Rp[0] = 3.0 * (1. + this_w_fld) / pba->a_today * h *.5;
+      class_call(background_w_fld(pba,a,&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
+      Rp[0] += 3.0 * (1. + this_w_fld) / a * h *.5;
+
+      for(i = 1; i < max_steps; ++i){
+	  h /= 2.;
+	  double c = 0;
+	  size_t ep = 1 << (i-1); //2^(n-1)
+
+	  for(j = 1; j <= ep; ++j){
+	    class_call(background_w_fld(pba,a+(2*j-1)*h,&this_w_fld,&this_dw_over_da_fld,&this_integral_fld), pba->error_message, pba->error_message);
+	    c += 3.0 * (1. + this_w_fld) / (a+(2*j-1)*h);
+	  }
+	  Rc[0] = h*c + .5*Rp[0]; //R(i,0)
+
+	  for(j = 1; j <= i; ++j){
+	    double n_k = pow(4, j);
+	    Rc[j] = (n_k*Rc[j-1] - Rp[j-1])/(n_k-1); //compute R(i,j)
+	  }
+	  if(i > 1 && fabs(Rp[i-1]-Rc[i]) < acc){
+	    integral_fld = Rc[i-1];
+	    integration_successful = _TRUE_;
+	    break;
+	  }
+
+	  //swap Rn and Rc as we only need the last row
+	  double *rt = Rp;
+	  Rp = Rc;
+	  Rc = rt;
+      }
+
+      class_test(integration_successful == _FALSE_,
+		 pba->error_message,
+		 "The integration of w(a) failed - you might want to lower the requested precision");
+
+      if (pba->background_verbose > 0)
+	printf("Integrated w(a) using romberg - value: %e\n", integral_fld);
+    }
 
     /* rho_fld at initial time */
     pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
