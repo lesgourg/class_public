@@ -1,0 +1,5 @@
+---
+'useless' : .NaN
+'PBH_with_secondaries': False
+'spectra_cols' : !!python/tuple [0,5,6,7,8]
+...

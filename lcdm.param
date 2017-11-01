@@ -1,0 +1,221 @@
+#------Experiments to test (separated with commas)-----
+
+#data.experiments=['core_lens_extr_mnu','fake_desi_vol','euclid_lensing_maria','euclid_pk','tau_21cm']
+#data.experiments=['core_lens_extr_mnu','euclid_lensing_theoritical_errors_0p025','euclid_pk_theoritical_errors_0p025','tau_21cm']
+#data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing']
+#data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing','Planck_SZ','bao_boss','bao_boss_aniso','hst_riess_2016']
+#data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing','Planck_SZ','bao_boss','bao_boss_aniso','hst_riess_2016','sdss_lrgDR7','CFHTLens_correlation']
+data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing','Planck_SZ','bao_boss','bao_boss_aniso','hst_riess_2016','CFHTLens_correlation']
+#data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing','Planck_SZ','bao_boss','bao_boss_aniso','hst_riess_2016','WiggleZ']
+#data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing','Planck_SZ','bao_boss','WiggleZ','bao_boss_aniso']
+#data.experiments=['Planck_highl_TTTEEE','simlow','Planck_lensing']
+
+#------ Settings for the over-sampling.
+# The first element will always be set to 1, for it is the sampling of the
+# cosmological parameters. The other numbers describe the over sampling of the
+# nuisance parameter space. This array must have the same dimension as the
+# number of blocks in your run (so, 1 for cosmological parameters, and then 1
+# for each experiment with varying nuisance parameters).
+# Note that when using Planck likelihoods, you definitely want to use [1, 4],
+# to oversample as much as possible the 14 nuisance parameters.
+# Remember to order manually the experiments from slowest to fastest (putting
+# Planck as the first set of experiments should be a safe bet, except if you
+# also have LSS experiments).
+# If you have experiments without nuisance, you do not need to specify an
+# additional entry in the over_sampling list (notice for instance that, out of
+# the three Planck likelihoods used, only Planck_highl requires nuisance
+# parameters, therefore over_sampling has a length of two (cosmology, plus one
+# set of nuisance).
+#data.over_sampling=[1, 4]
+
+#------ Parameter list -------
+
+# data.parameters[class name] = [mean, min, max, 1-sigma, scale, role]
+# - if min max irrelevant, put to None
+# - if fixed, put 1-sigma to 0
+# - if scale irrelevant, put to 1, otherwise to the appropriate factor
+# - role is either 'cosmo', 'nuisance' or 'derived'. You should put the derived
+# parameters at the end, and in case you are using the `-j fast` Cholesky
+# decomposition, you should order your nuisance parameters from slowest to
+# fastest.
+
+# Cosmological parameters list
+
+data.parameters['omega_b']      = [  2.214,   None, None,  0.028, 0.01, 'cosmo']
+data.parameters['omega_cdm']    = [ 0.1207,   None, None, 0.0027,    1, 'cosmo']
+data.parameters['100*theta_s']  = [1.04075,   None, None,   3e-4,    1, 'cosmo']
+data.parameters['ln10^{10}A_s'] = [  3.053,   None, None, 0.0029,    1, 'cosmo']
+data.parameters['n_s']          = [ 0.9624,   None, None, 0.0074,    1, 'cosmo']
+data.parameters['tau_reio']     = [ 0.0581,   0.04, None,  0.013,    1, 'cosmo']
+#data.parameters['M_tot']        = [   0.06,    0.0, None,   0.03,    1, 'cosmo']
+#data.parameters['w0_fld']	= [     -1,-1.5,-0.5,0.1,1,'cosmo']
+#data.parameters['wa_fld']	= [     -1,-2.5,0,0.3,1,'cosmo']
+
+
+# Nuisance parameter list, same call, except the name does not have to be a class name
+
+data.parameters['A_cib_217']         = [     61,    0,  200,     7,     1,'nuisance']   
+data.parameters['cib_index']         = [   -1.3, -1.3, -1.3,     0,     1,'nuisance']   
+data.parameters['xi_sz_cib']         = [   0.13,    0,    1,   0.3,     1,'nuisance']	 
+data.parameters['A_sz']              = [   6.86,    0,   10,   1.9,     1,'nuisance'] 			      
+data.parameters['ps_A_100_100']      = [  222.9,    0,  400,    30,     1,'nuisance'] 			      
+data.parameters['ps_A_143_143']      = [     38,    0,  400,     8,     1,'nuisance'] 			      
+data.parameters['ps_A_143_217']      = [   35.2,    0,  400,    10,     1,'nuisance'] 			      
+data.parameters['ps_A_217_217']      = [  102.6,    0,  400,    11,     1,'nuisance'] 			      
+data.parameters['ksz_norm']          = [      0,    0,   10,   4.2,     1,'nuisance'] 			      
+data.parameters['gal545_A_100']      = [   6.75,    0,   50,   1.8,     1,'nuisance']   
+data.parameters['gal545_A_143']      = [   9.41,    0,   50,   1.8,     1,'nuisance']   
+data.parameters['gal545_A_143_217']  = [  19.28,    0,  100,   4.2,     1,'nuisance']   
+data.parameters['gal545_A_217']      = [   81.7,    0,  400,   7.9,     1,'nuisance']   
+data.parameters['galf_EE_A_100']     = [ 0.2082,    0,   10, 0.011,     1,'nuisance']   
+data.parameters['galf_EE_A_100_143'] = [0.05227,    0,   10,0.0037,     1,'nuisance']   
+data.parameters['galf_EE_A_100_217'] = [ 0.1471,    0,   10, 0.015,     1,'nuisance']   
+data.parameters['galf_EE_A_143']     = [ 0.0979,    0,   10,0.0055,     1,'nuisance']   
+data.parameters['galf_EE_A_143_217'] = [ 0.2464,    0,   10, 0.020,     1,'nuisance']   
+data.parameters['galf_EE_A_217']     = [  0.667,    0,   10, 0.059,     1,'nuisance']   
+data.parameters['galf_EE_index']     = [   -2.4, -2.4, -2.4,     0,     1,'nuisance']   
+data.parameters['galf_TE_A_100']     = [  0.184,    0,   10, 0.076,     1,'nuisance']   
+data.parameters['galf_TE_A_100_143'] = [ 0.2054,    0,   10, 0.035,     1,'nuisance']   
+data.parameters['galf_TE_A_100_217'] = [  0.346,    0,   10,  0.19,     1,'nuisance']   
+data.parameters['galf_TE_A_143']     = [ 0.1892,    0,   10, 0.037,     1,'nuisance']   
+data.parameters['galf_TE_A_143_217'] = [  0.375,    0,   10, 0.071,     1,'nuisance']   
+data.parameters['galf_TE_A_217']     = [  1.409,    0,   10,  0.19,     1,'nuisance']   
+data.parameters['galf_TE_index']     = [   -2.4, -2.4, -2.4,     0,     1,'nuisance']   
+data.parameters['bleak_epsilon_0_0T_0E'] = [  0,    0,    0,     0,     1,'nuisance']   
+data.parameters['bleak_epsilon_1_0T_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_0T_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_0T_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_0T_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_0T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_0T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_0T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_0T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_0T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_0T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_0T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_0T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_0T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_0T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_1T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_1T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_1T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_1T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_1T_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_1T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_1T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_1T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_1T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_1T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_2T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_2T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_2T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_2T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_2T_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_0E_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_0E_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_0E_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_0E_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_0E_0E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_0E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_0E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_0E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_0E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_0E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_0E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_0E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_0E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_0E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_0E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_1E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_1E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_1E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_1E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_1E_1E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_1E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_1E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_1E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_1E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_1E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_0_2E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_1_2E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_2_2E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_3_2E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['bleak_epsilon_4_2E_2E'] = [  0,    0,    0,     0,     1,'nuisance']
+data.parameters['calib_100T']        = [ 998.59,    0, 3000,  0.73, 0.001,'nuisance']  
+data.parameters['calib_217T']        = [ 995.89,    0, 3000,   1.4, 0.001,'nuisance']  
+data.parameters['calib_100P']        = [      1,    1,    1,     0,     1,'nuisance']  
+data.parameters['calib_143P']        = [      1,    1,    1,     0,     1,'nuisance']  
+data.parameters['calib_217P']        = [      1,    1,    1,     0,     1,'nuisance']  
+data.parameters['A_planck']          = [100.028,   90,  110,  0.25,  0.01,'nuisance']  
+data.parameters['A_pol']             = [      1,    1,    1,     0,     1,'nuisance']
+
+# Nuisance parameter list, same call, except the name does not have to be a class name
+
+#data.parameters['A_cib_217']         = [     61,    0,  200,     7,     1,'nuisance']   
+#data.parameters['cib_index']         = [   -1.3, -1.3, -1.3,     0,     1,'nuisance']   
+#data.parameters['xi_sz_cib']         = [   0.13,    0,    1,   0.3,     1,'nuisance']	 
+#data.parameters['A_sz']              = [   6.86,    0,   10,   1.9,     1,'nuisance'] 			      
+#data.parameters['ps_A_100_100']      = [  222.9,    0,  400,    30,     1,'nuisance'] 			      
+#data.parameters['ps_A_143_143']      = [     38,    0,  400,     8,     1,'nuisance'] 			      
+#data.parameters['ps_A_143_217']      = [   35.2,    0,  400,    10,     1,'nuisance'] 			      
+#data.parameters['ps_A_217_217']      = [  102.6,    0,  400,    11,     1,'nuisance'] 			      
+#data.parameters['ksz_norm']          = [      0,    0,   10,   4.2,     1,'nuisance'] 			      
+#data.parameters['gal545_A_100']      = [   6.75,    0,   50,   1.8,     1,'nuisance']   
+#data.parameters['gal545_A_143']      = [   9.41,    0,   50,   1.8,     1,'nuisance']   
+#data.parameters['gal545_A_143_217']  = [  19.28,    0,  100,   4.2,     1,'nuisance']   
+#data.parameters['gal545_A_217']      = [   81.7,    0,  400,   7.9,     1,'nuisance']   
+#data.parameters['calib_100T']        = [ 998.59,    0, 3000,  0.73, 0.001,'nuisance']  
+#data.parameters['calib_217T']        = [ 995.89,    0, 3000,   1.4, 0.001,'nuisance']  
+#data.parameters['A_planck']          = [100.028,   90,  110,  0.25,  0.01,'nuisance']  
+data.parameters['P_shot']            = [      0,    0,    0,     0,     1,'nuisance']
+
+# Derived parameters
+
+#data.parameters['z_reio']          = [1, None, None, 0,     1,   'derived']
+#data.parameters['Omega_fld']    = [1, None, None, 0,     1,   'derived']
+#data.parameters['YHe']             = [1, None, None, 0,     1,   'derived']
+data.parameters['H0']              = [0, None, None, 0,     1,   'derived']
+#data.parameters['A_s']             = [0, None, None, 0,  1e-9,   'derived']
+data.parameters['sigma8']          = [0, None, None, 0,     1,   'derived']
+#data.parameters['Omega_m']          = [0, None, None, 0,     1,   'derived']
+
+# Other cosmo parameters (fixed parameters, precision parameters, etc.)
+
+data.cosmo_arguments['sBBN file'] = data.path['cosmo']+'/bbn/sBBN.dat'
+data.cosmo_arguments['k_pivot'] = 0.05
+
+# The base model features two massless
+# and one massive neutrino with m=0.06eV.
+# The settings below ensures that Neff=3.046
+# and m/omega = 93.14 eV
+data.cosmo_arguments['N_ur'] = 0.00641
+data.cosmo_arguments['N_ncdm'] = 1
+data.cosmo_arguments['deg_ncdm'] = 3
+###data.cosmo_arguments['m_ncdm'] = 0.06
+data.cosmo_arguments['T_ncdm'] = 0.71611
+data.cosmo_arguments['Omega_Lambda'] = 0.
+# Increase precision of cosmological parameter extraction to match CORE+ specifications
+#data.cosmo_arguments['tol_background_integration'] = 1.e-3
+#data.cosmo_arguments['tol_thermo_integration'] = 1.e-3
+#data.cosmo_arguments['tol_perturb_integration'] = 1.e-6
+#data.cosmo_arguments['reionization_optical_depth_tol'] = 1.e-5
+#data.cosmo_arguments['l_logstep'] = 1.08
+#data.cosmo_arguments['l_linstep'] = 25
+#data.cosmo_arguments['perturb_sampling_stepsize'] = 0.04
+#data.cosmo_arguments['delta_l_max'] = 1000
+#data.cosmo_arguments['k_per_decade_for_pk'] = 100
+# Include non-linear corrections from halofit
+data.cosmo_arguments['non linear'] = 'halofit'
+
+# These two are required to get sigma8 as a derived parameter 
+# (class must compute the P(k) until sufficient k)
+data.cosmo_arguments['output'] = 'mPk'
+#data.cosmo_arguments['output'] = 'mPk tCl lCl pCl'
+data.cosmo_arguments['P_k_max_h/Mpc'] = 1
+#data.cosmo_arguments['P_k_max_1/Mpc'] = 25.
+#data.cosmo_arguments['z_max_pk'] = 3.
+
+#------ Mcmc parameters ----
+
+data.N=10
+data.write_step=5
