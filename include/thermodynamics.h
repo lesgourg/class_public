@@ -195,7 +195,7 @@ struct thermo
   //@}
 
 
-  /** @name - redshift, conformal time and sound horizon at recombination */
+  /** @name - characteristic quantities like redshift, conformal time and sound horizon at recombination */
 
   //@{
 
@@ -212,13 +212,6 @@ struct thermo
   double rs_d;    /**< comoving sound horizon at baryon drag */
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
   double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
-
-  //@}
-
-  /** @name - redshift, conformal time and sound horizon at recombination */
-
-  //@{
-
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
   //@}

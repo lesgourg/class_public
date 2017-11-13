@@ -43,10 +43,12 @@ cdef extern from "class.h":
         short inter_normal
         double T_cmb
         double h
+        double H0
         double age
         double conformal_age
         double * m_ncdm_in_eV
         double Neff
+        double Omega0_g
         double Omega0_b
         double Omega0_cdm
         double Omega0_dcdm
@@ -56,6 +58,9 @@ cdef extern from "class.h":
         double w0_fld
         double wa_fld
         double cs2_fld
+        double Omega0_ur
+        double Omega0_dcdmdr
+        double Omega0_scf
 
         int bt_size
 

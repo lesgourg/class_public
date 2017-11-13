@@ -13,6 +13,13 @@ GCCPATH_STRING = sbp.Popen(
     stdout=sbp.PIPE).communicate()[0]
 GCCPATH = osp.normpath(osp.dirname(GCCPATH_STRING)).decode()
 
+liblist = ["class"]
+MVEC_STRING = sbp.Popen(
+    ['gcc', '-lmvec'],
+    stderr=sbp.PIPE).communicate()[1]
+if b"mvec" not in MVEC_STRING:
+    liblist += ["mvec","m"]
+
 # Recover the CLASS version
 with open(os.path.join('..', 'include', 'common.h'), 'r') as v_file:
     for line in v_file:
@@ -29,7 +36,7 @@ setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=[Extension("classy", ["classy.pyx"],
                            include_dirs=[nm.get_include(), "../include"],
-                           libraries=["class"],
+                           libraries=liblist,
                            library_dirs=["../", GCCPATH],
                            extra_link_args=['-lgomp'],
                            )],

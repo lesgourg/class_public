@@ -70,6 +70,7 @@ int nonlinear_init(
   double * pvecback;
   int last_index;
   double a,z;
+  enum halofit_statement halofit_found_k_max;
 
   /** Summary
    *
@@ -124,71 +125,72 @@ int nonlinear_init(
                  pnl->error_message,
                  pnl->error_message);
 
-      /*
-      for (index_k=0; index_k<pnl->k_size; index_k++) {
-        fprintf(stdout,"%e  %e\n",pnl->k[index_k],pk_l[index_k]);
-      }
-      */
+       /* get P_NL(k) at this time */
+      if (print_warning == _FALSE_) {
+        class_call(nonlinear_halofit(ppr,
+                                     pba,
+                                     ppm,
+                                     pnl,
+                                     pnl->tau[index_tau],
+                                     pk_l,
+                                     pk_nl,
+                                     lnk_l,
+                                     lnpk_l,
+                                     ddlnpk_l,
+                                     &(pnl->k_nl[index_tau]),
+                                     &halofit_found_k_max),
+                   pnl->error_message,
+                   pnl->error_message);
 
-      //class_stop(pnl->error_message,"stop here");
+        if (halofit_found_k_max == ok) {
 
-      /* get P_NL(k) at this time */
-      if (nonlinear_halofit(ppr,
-                            pba,
-                            ppm,
-                            pnl,
-                            pnl->tau[index_tau],
-                            pk_l,
-                            pk_nl,
-                            lnk_l,
-                            lnpk_l,
-                            ddlnpk_l,
-                            &(pnl->k_nl[index_tau])) == _SUCCESS_) {
+          // for debugging:
+          /*
+            for (index_k=0; index_k<pnl->k_size; index_k++) {
+            fprintf(stdout,"%e  %e  %e\n",pnl->k[index_k],pk_l[index_k],pk_nl[index_k]);
+            }
+            fprintf(stdout,"\n\n");
+          */
 
-        /*
           for (index_k=0; index_k<pnl->k_size; index_k++) {
-          fprintf(stdout,"%e  %e  %e\n",pnl->k[index_k],pk_l[index_k],pk_nl[index_k]);
+            pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
           }
-          fprintf(stdout,"\n\n");
-        */
-
-        for (index_k=0; index_k<pnl->k_size; index_k++) {
-          pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
+        }
+        else {
+          /* when Halofit found k_max too small, use 1 as the
+             non-linear correction for this redshift/time, store the
+             last index which worked, and print a warning. */
+          print_warning = _TRUE_;
+          pnl->index_tau_min_nl = index_tau+1;
+          for (index_k=0; index_k<pnl->k_size; index_k++) {
+            pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+          }
+          if (pnl->nonlinear_verbose > 0) {
+            class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+            class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+                       pba->error_message,
+                       pnl->error_message);
+            a = pvecback[pba->index_bg_a];
+            z = pba->a_today/a-1.;
+            fprintf(stdout,
+                    " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",
+                    z);
+            free(pvecback);
+          }
         }
       }
       else {
-        /* when Halofit failed, use 1 as the non-linear correction, and print a warning */
+        /* if Halofit found k_max too small at a previous
+             time/redhsift, use 1 as the non-linear correction for all
+             higher redshifts/earlier times. */
         for (index_k=0; index_k<pnl->k_size; index_k++) {
           pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
         }
-        if ((pnl->nonlinear_verbose > 0) && (print_warning == _FALSE_)) {
-          class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-          class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
-                     pba->error_message,
-                     pnl->error_message);
-          a = pvecback[pba->index_bg_a];
-          z = pba->a_today/a-1.;
-          fprintf(stdout,
-                  " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is probably because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase P_k_max_h/Mpc or P_k_max_1/Mpc until reaching desired z.\n",
-                  z);
-          free(pvecback);
-        }
-        print_warning = _TRUE_;
       }
     }
-
-    /*
-    for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
-      for (index_k=0; index_k<pnl->k_size; index_k++) {
-        fprintf(stdout,"%e  %e\n",pnl->k[index_k],pnl->nl_corr_density[index_tau * pnl->k_size + index_k]);
-      }
-      fprintf(stdout,"\n\n");
-    }
-    */
 
     free(pk_l);
     free(pk_nl);
-
     free(lnk_l);
     free(lnpk_l);
     free(ddlnpk_l);
@@ -322,7 +324,8 @@ int nonlinear_halofit(
                       double *lnk_l,
                       double *lnpk_l,
                       double *ddlnpk_l,
-                      double *k_nl
+                      double *k_nl,
+                      enum halofit_statement * halofit_found_k_max
                       ) {
 
   double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
@@ -350,19 +353,21 @@ int nonlinear_halofit(
   int integrand_size;
   int index_ia_k;
   int index_ia_pk;
-  int index_ia_sum1;
-  int index_ia_ddsum1;
+  int index_ia_sum;
+  int index_ia_ddsum;
+  /*
   int index_ia_sum2;
   int index_ia_ddsum2;
   int index_ia_sum3;
   int index_ia_ddsum3;
+  */
   int ia_size;
   int index_ia;
 
   double k_integrand;
   double lnpk_integrand;
 
-  double x2,R;
+  double R;
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
@@ -380,28 +385,22 @@ int nonlinear_halofit(
      We create a temporary integrand_array which columns will be:
      - k in 1/Mpc
      - just linear P(k) in Mpc**3
-     - 1/(2(pi**2)) P(k) k**2 exp(-(kR)**2)
-     - second derivative of previous line with spline
-     - 1/(2(pi**2)) P(k) k**2 2 (kR) exp(-(kR)**2)
-     - second derivative of previous line with spline
-     - 1/(2(pi**2)) P(k) k**2 4 (kR)(1-kR) exp(-(kR)**2)
+     - 1/(2(pi**2)) P(k) k**2 exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 2 (kR) exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 4 (kR)(1-kR) exp(-(kR)**2)
      - second derivative of previous line with spline
   */
 
   index_ia=0;
   class_define_index(index_ia_k,     _TRUE_,index_ia,1);
   class_define_index(index_ia_pk,    _TRUE_,index_ia,1);
-  class_define_index(index_ia_sum1,  _TRUE_,index_ia,1);
-  class_define_index(index_ia_ddsum1,_TRUE_,index_ia,1);
-  class_define_index(index_ia_sum2,  _TRUE_,index_ia,1);
-  class_define_index(index_ia_ddsum2,_TRUE_,index_ia,1);
-  class_define_index(index_ia_sum3,  _TRUE_,index_ia,1);
-  class_define_index(index_ia_ddsum3,_TRUE_,index_ia,1);
+  class_define_index(index_ia_sum,   _TRUE_,index_ia,1);
+  class_define_index(index_ia_ddsum, _TRUE_,index_ia,1);
   ia_size = index_ia;
 
   integrand_size=(int)(log(pnl->k[pnl->k_size-1]/pnl->k[0])/log(10.)*ppr->halofit_k_per_decade)+1;
 
   class_alloc(integrand_array,integrand_size*ia_size*sizeof(double),pnl->error_message);
+
+  //fprintf(stderr,"Omega_m=%e,  fnu=%e\n",Omega0_m,fnu);
 
   /* we fill integrand_array with values of k and P(k) using interpolation */
 
@@ -436,88 +435,106 @@ int nonlinear_halofit(
   Omega_m = pvecback[pba->index_bg_Omega_m];
   Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
 
-  /* minimum value of R such that the integral giving sigma_R is converged */
+  // for debugging:
+  //printf("Call Halofit at z=%e\n",pba->a_today/pvecback[pba->index_bg_a]-1.);
+
+  /* minimum value of R such that the integral giving sigma_R is
+     converged.  The parameter halofit_sigma_precision should be
+     understood as follows: we trust our calculation of sigma(R) as
+     long as the integral reaches a value k_max such that the factor
+     exp(-(Rk_max)**2) is already as low as halofit_sigma_precisio,
+     shoing that the integreal is converged.  In practise this
+     condition is tested only for R_max, the highest value of R in our
+     bisection algorithm. Hence a smaller value of
+     halofit_sigma_precision will lead to a more precise halofit
+     result at the *highest* redshift at which halofit can make
+     computations, at the expense of requiring a larger k_max; but
+     this parameter is not relevant for the precision on P_nl(k,z) at
+     other redshifts, so there is normally no need to change i
+   */
+
   R=sqrt(-log(ppr->halofit_sigma_precision))/integrand_array[(integrand_size-1)*ia_size + index_ia_k];
 
-  /* corresponding value of sigma_R */
-  sum1=0.;
-  for (index_k=0; index_k < integrand_size; index_k++) {
-    x2 = pow(integrand_array[index_k*ia_size + index_ia_k]*R,2);
-    integrand_array[index_k*ia_size + index_ia_sum1] = integrand_array[index_k*ia_size + index_ia_pk]
-      *pow(integrand_array[index_k*ia_size + index_ia_k],2)*anorm*exp(-x2);
-  }
-  /* fill in second derivatives */
-  class_call(array_spline(integrand_array,
-                          ia_size,
-                          integrand_size,
-                          index_ia_k,
-                          index_ia_sum1,
-                          index_ia_ddsum1,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
+  class_call(nonlinear_halofit_integrate(
+                                         pnl,
+                                         integrand_array,
+                                         integrand_size,
+                                         ia_size,
+                                         index_ia_k,
+                                         index_ia_pk,
+                                         index_ia_sum,
+                                         index_ia_ddsum,
+                                         R,
+                                         halofit_integral_one,
+                                         &sum1
+                                         ),
              pnl->error_message,
              pnl->error_message);
-  /* integrate */
-  class_call(array_integrate_all_spline(integrand_array,
-                                        ia_size,
-                                        integrand_size,
-                                        index_ia_k,
-                                        index_ia_sum1,
-                                        index_ia_ddsum1,
-                                        &sum1,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
+
   sigma  = sqrt(sum1);
 
+  /* the following error should not stop the code: it will arrive
+     inevitably at some large redshift, and then the code should not
+     stop, but just give up computing P_NL(k,z). This is why we have a
+     special error handling here (using class_test_except and free()
+     commands to avoid memory leaks, and calling this whole function
+     not through a class_call) */
+
+  /*
   class_test_except(sigma < 1.,
                     pnl->error_message,
                     free(pvecback);free(integrand_array),
                     "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
                     pnl->k[pnl->k_size-1],
                     pba->a_today/pvecback[pba->index_bg_a]-1.);
+  */
+
+  if (sigma < 1.) {
+    * halofit_found_k_max = too_small;
+    free(pvecback);
+    free(integrand_array);
+    return _SUCCESS_;
+  }
+  else {
+    * halofit_found_k_max = ok;
+  }
 
   xlogr1 = log(R)/log(10.);
 
-  /* maximum value of R in the bisection algorithm leading to the determination of R_nl */
+  /* maximum value of R in the bisection algorithm leading to the
+     determination of R_nl.  For this value we can make a
+     conservaitive guess: 1/halofit_min_k_nonlinear, where
+     halofit_min_k_nonlinear is the minimum value of k at which we ask
+     halofit to give us an estimate of P_nl(k,z). By assumption we
+     treat all smaller k's as linear, so we know that
+     sigma(1/halofit_min_k_nonlinear) must be <<1 (and if it is not
+     the test below will alert us) */
+
   R=1./ppr->halofit_min_k_nonlinear;
 
   /* corresponding value of sigma_R */
-  sum1=0.;
-  for (index_k=0; index_k < integrand_size; index_k++) {
-    x2 = pow(integrand_array[index_k*ia_size + index_ia_k]*R,2);
-    integrand_array[index_k*ia_size + index_ia_sum1] = integrand_array[index_k*ia_size + index_ia_pk]
-      *pow(integrand_array[index_k*ia_size + index_ia_k],2)*anorm*exp(-x2);
-  }
-  /* fill in second derivatives */
-  class_call(array_spline(integrand_array,
-                          ia_size,
-                          integrand_size,
-                          index_ia_k,
-                          index_ia_sum1,
-                          index_ia_ddsum1,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
+  class_call(nonlinear_halofit_integrate(
+                                         pnl,
+                                         integrand_array,
+                                         integrand_size,
+                                         ia_size,
+                                         index_ia_k,
+                                         index_ia_pk,
+                                         index_ia_sum,
+                                         index_ia_ddsum,
+                                         R,
+                                         halofit_integral_one,
+                                         &sum1
+                                         ),
              pnl->error_message,
              pnl->error_message);
-  /* integrate */
-  class_call(array_integrate_all_spline(integrand_array,
-                                        ia_size,
-                                        integrand_size,
-                                        index_ia_k,
-                                        index_ia_sum1,
-                                        index_ia_ddsum1,
-                                        &sum1,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
+
   sigma  = sqrt(sum1);
 
-  class_test_except(sigma > 1.,
-                    pnl->error_message,
-                    free(pvecback);free(integrand_array),
-                    "Your input value for the precision parameter halofit_min_k_nonlinear=%e is too large, the non-linear wavenumber k_nl must be smaller than that",
-                    ppr->halofit_min_k_nonlinear);
+  class_test(sigma > 1.,
+             pnl->error_message,
+             "Your input value for the precision parameter halofit_min_k_nonlinear=%e is too large, such that sigma(R=1/halofit_min_k_nonlinear)=% > 1. For self-consistency, it should have been <1. Decrease halofit_min_k_nonlinear",
+             ppr->halofit_min_k_nonlinear,sigma);
 
   xlogr2 = log(R)/log(10.);
 
@@ -526,109 +543,84 @@ int nonlinear_halofit(
     rmid = pow(10,(xlogr2+xlogr1)/2.0);
     counter ++;
 
-    /* in original halofit, this is the function wint() */
-    sum1=0.;
-    sum2=0.;
-    sum3=0.;
-
-    for (index_k=0; index_k < integrand_size; index_k++) {
-      x2 = pow(integrand_array[index_k*ia_size + index_ia_k],2)*rmid*rmid;
-      integrand_array[index_k*ia_size + index_ia_sum1] = integrand_array[index_k*ia_size + index_ia_pk]
-        *pow(integrand_array[index_k*ia_size + index_ia_k],2)*anorm*exp(-x2);
-      integrand_array[index_k*ia_size + index_ia_sum2] = integrand_array[index_k*ia_size + index_ia_pk]
-        *pow(integrand_array[index_k*ia_size + index_ia_k],2)*anorm*2.*x2*exp(-x2);
-      integrand_array[index_k*ia_size + index_ia_sum3] = integrand_array[index_k*ia_size + index_ia_pk]
-        *pow(integrand_array[index_k*ia_size + index_ia_k],2)*anorm*4.*x2*(1.-x2)*exp(-x2);
-    }
-
-    /* fill in second derivatives */
-    class_call(array_spline(integrand_array,
-                            ia_size,
-                            integrand_size,
-                            index_ia_k,
-                            index_ia_sum1,
-                            index_ia_ddsum1,
-                            _SPLINE_NATURAL_,
-                            pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_call(array_spline(integrand_array,
-                            ia_size,
-                            integrand_size,
-                            index_ia_k,
-                            index_ia_sum2,
-                            index_ia_ddsum2,
-                            _SPLINE_NATURAL_,
-                            pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_call(array_spline(integrand_array,
-                            ia_size,
-                            integrand_size,
-                            index_ia_k,
-                            index_ia_sum3,
-                            index_ia_ddsum3,
-                            _SPLINE_NATURAL_,
-                            pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    /* integrate */
-    class_call(array_integrate_all_spline(integrand_array,
-                                          ia_size,
-                                          integrand_size,
-                                          index_ia_k,
-                                          index_ia_sum1,
-                                          index_ia_ddsum1,
-                                          &sum1,
-                                          pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_call(array_integrate_all_spline(integrand_array,
-                                          ia_size,
-                                          integrand_size,
-                                          index_ia_k,
-                                          index_ia_sum2,
-                                          index_ia_ddsum2,
-                                          &sum2,
-                                          pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_call(array_integrate_all_spline(integrand_array,
-                                          ia_size,
-                                          integrand_size,
-                                          index_ia_k,
-                                          index_ia_sum3,
-                                          index_ia_ddsum3,
-                                          &sum3,
-                                          pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
+    class_call(nonlinear_halofit_integrate(
+                                           pnl,
+                                           integrand_array,
+                                           integrand_size,
+                                           ia_size,
+                                           index_ia_k,
+                                           index_ia_pk,
+                                           index_ia_sum,
+                                           index_ia_ddsum,
+                                           rmid,
+                                           halofit_integral_one,
+                                           &sum1
+                                           ),
+             pnl->error_message,
+             pnl->error_message);
 
     sigma  = sqrt(sum1);
-    d1 = -sum2/sum1;
-    d2 = -sum2*sum2/sum1/sum1 - sum3/sum1;
-    /* in original halofit, this is the end of the function wint() */
 
     diff = sigma - 1.0;
 
-    if (diff>0.001){
+    if (diff > ppr->halofit_tol_sigma){
       xlogr1=log10(rmid);
     }
-    else if (diff < -0.001) {
+    else if (diff < -ppr->halofit_tol_sigma) {
       xlogr2 = log10(rmid);
     }
 
+    /* The first version of this test woukld let the code continue: */
+    /*
     class_test_except(counter > _MAX_IT_,
                       pnl->error_message,
                       free(pvecback);free(integrand_array),
                       "could not converge within maximum allowed number of iterations");
+    */
+    /* ... but in this situation it sounds better to make it stop and return an error! */
+    class_test(counter > _MAX_IT_,
+               pnl->error_message,
+               "could not converge within maximum allowed number of iterations");
 
-  } while (fabs(diff) > 0.001);
+  } while (fabs(diff) > ppr->halofit_tol_sigma);
+
+  /* evaluate all the other integrals at R=rmid */
+
+  class_call(nonlinear_halofit_integrate(
+                                         pnl,
+                                         integrand_array,
+                                         integrand_size,
+                                         ia_size,
+                                         index_ia_k,
+                                         index_ia_pk,
+                                         index_ia_sum,
+                                         index_ia_ddsum,
+                                         rmid,
+                                         halofit_integral_two,
+                                         &sum2
+                                         ),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(nonlinear_halofit_integrate(
+                                         pnl,
+                                         integrand_array,
+                                         integrand_size,
+                                         ia_size,
+                                         index_ia_k,
+                                         index_ia_pk,
+                                         index_ia_sum,
+                                         index_ia_ddsum,
+                                         rmid,
+                                         halofit_integral_three,
+                                         &sum3
+                                         ),
+             pnl->error_message,
+             pnl->error_message);
+
+  sigma  = sqrt(sum1);
+  d1 = -sum2/sum1;
+  d2 = -sum2*sum2/sum1/sum1 - sum3/sum1;
 
   rknl  = 1./rmid;
   rneff = -3.-d1;
@@ -701,5 +693,63 @@ int nonlinear_halofit(
 
   free(pvecback);
   free(integrand_array);
+  return _SUCCESS_;
+}
+
+/* in original halofit, this is equivalent to the function wint() */
+int nonlinear_halofit_integrate(
+                                struct nonlinear *pnl,
+                                double * integrand_array,
+                                int integrand_size,
+                                int ia_size,
+                                int index_ia_k,
+                                int index_ia_pk,
+                                int index_ia_sum,
+                                int index_ia_ddsum,
+                                double R,
+                                enum halofit_integral_type type,
+                                double * sum
+                                ) {
+
+  double k,pk,x2,integrand;
+  int index_k;
+  double anorm = 1./(2*pow(_PI_,2));
+
+    for (index_k=0; index_k < integrand_size; index_k++) {
+      k = integrand_array[index_k*ia_size + index_ia_k];
+      pk = integrand_array[index_k*ia_size + index_ia_pk];
+      x2 = k*k*R*R;
+
+      integrand = pk*k*k*anorm*exp(-x2);
+      if (type == halofit_integral_two) integrand *= 2.*x2;
+      if (type == halofit_integral_three) integrand *= 4.*x2*(1.-x2);
+
+      integrand_array[index_k*ia_size + index_ia_sum] = integrand;
+    }
+
+    /* fill in second derivatives */
+    class_call(array_spline(integrand_array,
+                            ia_size,
+                            integrand_size,
+                            index_ia_k,
+                            index_ia_sum,
+                            index_ia_ddsum,
+                            _SPLINE_NATURAL_,
+                            pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    /* integrate */
+    class_call(array_integrate_all_spline(integrand_array,
+                                          ia_size,
+                                          integrand_size,
+                                          index_ia_k,
+                                          index_ia_sum,
+                                          index_ia_ddsum,
+                                          sum,
+                                          pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
   return _SUCCESS_;
 }
