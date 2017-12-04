@@ -700,6 +700,11 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
+  /** - this function finds and stores a few derived parameters at radiation-matter equality */
+  class_call(background_find_equality(ppr,pba),
+             pba->error_message,
+             pba->error_message);
+
   return _SUCCESS_;
 
 }
@@ -2041,6 +2046,83 @@ int background_initial_conditions(
   return _SUCCESS_;
 
 }
+
+/**
+ * Find the time of radiation/matter equality and store characteristic
+ * quantitites at that time in the background structure..
+ *
+ * @param ppr                  Input: pointer to precision structure
+ * @param pba                  Input/Output: pointer to background structure
+  * @return the error status
+ */
+
+int background_find_equality(
+                             struct precision *ppr,
+                             struct background *pba) {
+
+  double Omega_m_over_Omega_r=0.;
+  int index_tau_minus = 0;
+  int index_tau_plus = pba->bt_size-1;
+  int index_tau_mid = 0;
+  double tau_minus,tau_plus,tau_mid=0.;
+  double * pvecback;
+
+  /* first bracket the right tau value between two consecutive indices in the table */
+
+  while ((index_tau_plus - index_tau_minus) > 1) {
+
+    index_tau_mid = (int)(0.5*(index_tau_plus+index_tau_minus));
+
+    Omega_m_over_Omega_r = pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_m]
+      /pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_r];
+
+    if (Omega_m_over_Omega_r > 1)
+      index_tau_plus = index_tau_mid;
+    else
+      index_tau_minus = index_tau_mid;
+
+  }
+
+  /* then get a better estimate within this range */
+
+  tau_minus = pba->tau_table[index_tau_minus];
+  tau_plus =  pba->tau_table[index_tau_plus];
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+
+  while ((tau_plus - tau_minus) > ppr->tol_tau_eq) {
+
+    tau_mid = 0.5*(tau_plus+tau_minus);
+
+    class_call(background_at_tau(pba,tau_mid,pba->long_info,pba->inter_closeby,&index_tau_minus,pvecback),
+               pba->error_message,
+               pba->error_message);
+
+    Omega_m_over_Omega_r = pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_Omega_r];
+
+    if (Omega_m_over_Omega_r > 1)
+      tau_plus = tau_mid;
+    else
+      tau_minus = tau_mid;
+
+  }
+
+  pba->a_eq = pvecback[pba->index_bg_a];
+  pba->H_eq = pvecback[pba->index_bg_H];
+  pba->z_eq = pba->a_today/pba->a_eq -1.;
+  pba->tau_eq = tau_mid;
+
+  if (pba->background_verbose > 0) {
+    printf(" -> radiation/matter equality at z = %f\n",pba->z_eq);
+    printf("    corresponding to conformal time = %f Mpc\n",pba->tau_eq);
+  }
+
+  free(pvecback);
+
+  return _SUCCESS_;
+
+}
+
 
 /**
  * Subroutine for formatting background output

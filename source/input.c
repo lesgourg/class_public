@@ -2529,6 +2529,8 @@ int input_read_parameters(
   class_read_double("tol_initial_Omega_r",ppr->tol_initial_Omega_r);
   class_read_double("tol_ncdm_initial_w",ppr->tol_ncdm_initial_w);
   class_read_double("safe_phi_scf",ppr->safe_phi_scf);
+  class_read_double("safe_phi_scf",ppr->safe_phi_scf);
+  class_read_double("tol_tau_eq",ppr->tol_tau_eq);
 
   /** - (h.2.) parameters related to the thermodynamics */
 
@@ -3229,6 +3231,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->tol_ncdm_newtonian = 1.e-5;
   ppr->tol_ncdm_bg = 1.e-5;
   ppr->tol_ncdm_initial_w=1.e-3;
+
+  ppr->tol_tau_eq = 1.e-6;
 
   /**
    * - parameters related to the thermodynamics
