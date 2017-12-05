@@ -1546,9 +1546,10 @@ int background_solve(
              pba->error_message);
 
   /** - impose initial conditions with background_initial_conditions() */
-  class_call(background_initial_conditions(ppr,pba,pvecback,pvecback_integration),
+  class_call_except(background_initial_conditions(ppr,pba,pvecback,pvecback_integration),
              pba->error_message,
-             pba->error_message);
+             pba->error_message,
+             cleanup_generic_integrator(&gi);free(pvecback);free(pvecback_integration));
 
   /* here tau_end is in fact the initial time (in the next loop
      tau_start = tau_end) */
@@ -1569,9 +1570,10 @@ int background_solve(
     tau_start = tau_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    class_call(background_functions(pba,pvecback_integration, pba->short_info, pvecback),
+    class_call_except(background_functions(pba,pvecback_integration, pba->short_info, pvecback),
                pba->error_message,
-               pba->error_message);
+               pba->error_message,
+               cleanup_generic_integrator(&gi);gt_free(&gTable);free(pvecback);free(pvecback_integration));
 
     if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
       tau_end = tau_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
@@ -1582,8 +1584,9 @@ int background_solve(
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
 
-    class_test((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
+    class_test_except((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
                pba->error_message,
+               cleanup_generic_integrator(&gi);gt_free(&gTable);free(pvecback);free(pvecback_integration),
                "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(tau_end-tau_start)/tau_start);
 
     /* -> save data in growTable */
@@ -1593,7 +1596,7 @@ int background_solve(
     pba->bt_size++;
 
     /* -> perform one step */
-    class_call(generic_integrator(background_derivs,
+    class_call_except(generic_integrator(background_derivs,
                                   tau_start,
                                   tau_end,
                                   pvecback_integration,
@@ -1602,7 +1605,8 @@ int background_solve(
                                   ppr->smallest_allowed_variation,
                                   &gi),
                gi.error_message,
-               pba->error_message);
+               pba->error_message,
+               cleanup_generic_integrator(&gi);gt_free(&gTable);free(pvecback);free(pvecback_integration));
 
     /* -> store value of tau */
     pvecback_integration[pba->index_bi_tau]=tau_end;
