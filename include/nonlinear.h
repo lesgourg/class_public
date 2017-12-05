@@ -7,7 +7,7 @@
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
-enum non_linear_method {nl_none,nl_halofit};
+enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
 enum halofit_statement {ok, too_small};
 
@@ -38,6 +38,8 @@ struct nonlinear {
 
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
+  int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
+  double * k_extra;/** list of k-values with extrapolated high k-values  */
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values */
 
@@ -45,6 +47,19 @@ struct nonlinear {
   double * k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
   int index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
 
+  //@}
+
+  /** HMcode parameters */
+
+  double * sigtab;
+  double * rtab;
+  double * stab;
+  double * ddstab;
+  double * growth_at_ztau;
+  double * growtable;
+  double * ztable;
+  double * tautable;
+  
   //@}
 
   /** @name - technical parameters */
@@ -125,6 +140,80 @@ extern "C" {
                                   enum halofit_integral_type type,
                                   double * sum
                                   );
+
+  int nonlinear_HMcode(
+                      struct precision *ppr,
+                      struct background *pba,
+                      struct perturbs *ppt, 
+                      struct primordial *ppm,
+                      struct nonlinear *pnl,
+                      double tau,
+                      double *pk_l,
+                      double *pk_nl,
+                      double *lnk_l,
+                      double *lnpk_l,
+                      double *ddlnpk_l,
+                      double *k_nl
+                      );
+
+  int nonlinear_sigma(
+                  struct precision * ppr,
+                  struct background * pba,
+                  struct perturbs * ppt,
+                  struct primordial * ppm,
+                  struct nonlinear * pnl,
+                  double R,
+                  double *pk_l,
+                  double *lnk_l,                
+                  double * sigma
+                  );
+                  
+  int nonlinear_sigma_disp(
+                  struct precision * ppr,            
+                  struct background * pba,
+                  struct perturbs * ppt,
+                  struct primordial * ppm,
+                  struct nonlinear * pnl,
+                  double R,
+                  double *pk_l,
+                  double *lnk_l,                
+                  double * sigma_disp
+                  );
+                  
+  int nonlinear_fill_sigtab(
+                          struct precision *ppr,
+						  struct background * pba,
+                          struct perturbs *ppt,
+						  struct primordial * ppm,
+						  struct nonlinear * pnl,
+						  double *pk_l,
+						  double *lnk_l                 
+						  );
+
+  int nonlinear_fill_growtab(
+                          struct precision *ppr,      
+						  struct background * pba,
+						  struct nonlinear * pnl            
+						  );  
+						  
+  int nonlinear_ci(
+				 double x,
+				 double *Ci
+				 );
+	
+  int nonlinear_si(
+				 double x,
+				 double *Si
+				 );
+
+  int nonlinear_window_nfw(
+						 struct nonlinear * pnl,
+	  					 double k,
+	  					 double rv,
+	  					 double c,
+						 double *window_nfw
+						 );	
+
 
 #ifdef __cplusplus
 }

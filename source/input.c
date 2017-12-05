@@ -2460,6 +2460,11 @@ int input_read_parameters(
       pnl->method=nl_halofit;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
+    if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
+      pnl->method=nl_HMcode;
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+    }
+	
 
   }
 
@@ -2738,6 +2743,15 @@ int input_read_parameters(
   class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
   class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
+
+  class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab);
+  class_read_double("rmax_for_sigtab",ppr->rmax_for_sigtab);
+  class_read_double("ainit_for_growtab",ppr->ainit_for_growtab);
+  class_read_double("amax_for_growtab",ppr->amax_for_growtab);
+  class_read_int("n_hmcode_tables",ppr->n_hmcode_tables);
+  class_read_double("mmin_for_p1h_integral",ppr->mmin_for_p1h_integral);
+  class_read_double("mmax_for_p1h_integral",ppr->mmax_for_p1h_integral);
+  class_read_int("nsteps_for_p1h_integral",ppr->nsteps_for_p1h_integral);
 
   /** - (h.7.) parameter related to lensing */
 
@@ -3392,6 +3406,16 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_k_per_decade = 80.;
   ppr->halofit_sigma_precision = 0.05;
   ppr->halofit_tol_sigma = 1.e-6;
+
+	ppr->n_hmcode_tables = 64;
+	ppr->rmin_for_sigtab = 1.e-5;
+	ppr->rmax_for_sigtab = 1.e3;
+	ppr->ainit_for_growtab = 1.e-3; 
+	ppr->amax_for_growtab = 1.;
+	ppr->nsteps_for_p1h_integral = 256;
+	ppr->mmin_for_p1h_integral = 1.e0;
+	ppr->mmax_for_p1h_integral = 1.e18;
+
 
   /**
    * - parameter related to lensing

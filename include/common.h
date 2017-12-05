@@ -775,6 +775,26 @@ struct precision
                                non-linearity, k_nl=1./R_nl */
 
   //@}
+  
+    /** Parameters relevant for HMcode computation */
+  
+  /**
+   * parameters controlling stepsize and min/max r & a values for 
+   * sigma(r) & grow table
+   */
+   int n_hmcode_tables;
+   double rmin_for_sigtab, rmax_for_sigtab;
+   double ainit_for_growtab, amax_for_growtab;
+   
+  /**
+   * parameters controlling stepsize and min/max halomass values for the
+   * 1-halo-power integral
+   */
+   int nsteps_for_p1h_integral;
+   double mmin_for_p1h_integral;
+   double mmax_for_p1h_integral;
+  
+  //@}
 
   /** @name - parameters related to lensing */
 
