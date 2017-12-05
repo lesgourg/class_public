@@ -89,7 +89,7 @@ class logInterpolator(object):
 
 		func_copy = np.zeros_like(y, dtype=np.float64)
 		for idx in xrange(len(y)):
-			if (y[idx] <= 0) or (y[idx] != y[idx]):
+			if (y[idx] < 0) or (y[idx] != y[idx]):
 				func_copy[idx] = np.nan
 				#func_copy[idx] = 0
 			else:
@@ -98,12 +98,12 @@ class logInterpolator(object):
 		nan_mask = func_copy == func_copy
 
 		if self._yscale == 'log':
-			fitfunc = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
+			fitfunc = np.log1p( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
 		else:
 			fitfunc = func_copy[nan_mask] * (x[nan_mask]**self.exponent)
 
 		if self._xscale == 'log':
-			points = np.log(x[nan_mask])
+			points = np.log1p(x[nan_mask])
 		else:
 			points = x[nan_mask]
 
@@ -140,11 +140,11 @@ class logInterpolator(object):
 			else:
 				if self._valid:
 					if self._xscale == 'log':
-						xval = np.log(single_point)
+						xval = np.log1p(single_point)
 					else:
 						xval = single_point
 					if self._yscale == 'log':
-						return np.e**(self._fit(xval)) / (single_point**self.exponent)
+						return np.expm1(self._fit(xval)) / (single_point**self.exponent)
 					else:
 						return (self._fit(xval)) / (single_point**self.exponent)
 				else:
@@ -335,11 +335,11 @@ class logLinearInterpolator(object):
 
 		if len(func_copy[nan_mask]) >= 2:
 			if self._yscale == 'log':
-				fitfunc = np.log( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
+				fitfunc = np.log1p( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
 			else:
 				fitfunc = func_copy[nan_mask] * (x[nan_mask]**self.exponent)
 			if self._xscale == 'log':
-				points = np.log(x[nan_mask])
+				points = np.log1p(x[nan_mask])
 			else:
 				points = x[nan_mask]
 			self._fit = interp1d(points, fitfunc, bounds_error=False, fill_value=np.nan, kind='linear')
@@ -357,11 +357,11 @@ class logLinearInterpolator(object):
 			else:
 				if self._valid:
 					if self._xscale == 'log':
-						xval = np.log(single_point)
+						xval = np.log1p(single_point)
 					else:
 						xval = single_point
 					if self._yscale == 'log':
-						return np.e**(self._fit(xval)) / (single_point**self.exponent)
+						return np.expm1(self._fit(xval)) / (single_point**self.exponent)
 					else:
 						return (self._fit(xval)) / (single_point**self.exponent)
 				else:

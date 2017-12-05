@@ -330,7 +330,7 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 	how_to_integrate = kwargs.get('E_integration_scheme','logE')
 	if how_to_integrate not in ['logE','energy']:
 		print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
-
+	if len(E) == 1: how_to_integrate = 'energy' # Handling of a dirac-spectrum is inside the integration part w.r.t energy
 	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
 	if (len(logE) == len(transfer_functions_E)):
@@ -382,7 +382,10 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 				else:
 					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**1)
 					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**1)
-				energy_integral[i][k] = trapz( int_phot + int_elec, E )
+				if len(E) > 1:
+					energy_integral[i][k] = trapz( int_phot + int_elec, E )
+				else:
+					energy_integral[i][k] = int_phot + int_elec
 	z_integral = np.zeros_like( z_dep, dtype=np.float64)
 	dummy = np.arange(1,len(z_inj)+1)
 	for i in xrange(len(z_integral)):
@@ -397,18 +400,18 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 			result[i] = (z_integral[i] / norm[i])
 		else:
 			#result[i] = np.nan
-			result[i] = 0
+			result[i] = 0.
 
 	return result
 
-def evaluate_transfer(transfer_functions_E,transfer,E,):
+def evaluate_transfer(transfer_functions_E,transfer,E):
 	Enj = logConversion(transfer_functions_E)
 	result = np.zeros_like(E)
 	transfer_interpolation = lambda logE : np.interp(logE,transfer_functions_E,np.log1p(transfer))
 	#transfer_interpolation = interp1d(transfer_functions_E,transfer)
 	#transfer_interpolation = lambda logE : log_fit(transfer_functions_E,transfer,logE)
 	mask1 = np.logical_and( (E > Enj[0]), (E < Enj[-1]) )
-	result[mask1] = np.e**transfer_interpolation(np.log10(E[mask1])) - 1.
+	result[mask1] = np.expm1(transfer_interpolation(np.log10(E[mask1])))
 	mask2 = np.logical_and( (E <= Enj[0]), (E >= 10.2) )
 	result[mask2] = transfer[0]
 	mask3  = E < 10.2

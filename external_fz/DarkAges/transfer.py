@@ -94,8 +94,9 @@ def transfer_combine(*transfer_instances):
 		if not isinstance(single_transfer,transfer):
 			raise DarkAgesError('You did not include a proper instance of the class "transfer"')
 		if first_time_in_loop:
+			import copy
 			first_time_in_loop = False
-			transfer_to_return = single_transfer
+			transfer_to_return = copy.deepcopy(single_transfer)
 		else:
 			transfer_to_return.transfer_phot += single_transfer.transfer_phot
 			transfer_to_return.transfer_elec += single_transfer.transfer_elec
