@@ -416,6 +416,12 @@ struct precision
    */
   double safe_phi_scf;
 
+  /**
+   * parameter controlling precision with which tau_eq (conformal time
+   * at radiation/matter equality) is found (units: Mpc)
+   */
+  double tol_tau_eq;
+
   //@}
 
   /** @name - parameters related to the thermodynamics */

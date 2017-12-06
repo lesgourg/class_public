@@ -49,6 +49,7 @@ struct nonlinear {
 
   //@}
 
+
   /** HMcode parameters */
 
   double * sigtab;
@@ -60,6 +61,24 @@ struct nonlinear {
   double * ztable;
   double * tautable;
   
+
+  /** @name - parameters for the pk_eq method */
+
+  short has_pk_eq;               /**< flag: will we use the pk_eq method? */
+
+  int index_eq_w;                /**< index of w in table eq_w_and_Omega */
+  int index_eq_Omega_m;          /**< index of Omega_m in table eq_w_and_Omega */
+  int eq_size;                   /**< number of indices in table eq_w_and_Omega */
+
+  int eq_tau_size;               /**< number of times (and raws in table eq_w_and_Omega) */
+
+  double * eq_tau;               /**< table of time values */
+  double * eq_w_and_Omega;       /**< table of background quantites */
+  double * eq_ddw_and_ddOmega;   /**< table of second derivatives */
+
+  //@{
+
+
   //@}
 
   /** @name - technical parameters */
@@ -103,7 +122,9 @@ extern "C" {
                      struct nonlinear *pnl
                      );
 
-  int nonlinear_pk_l(struct perturbs *ppt,
+  int nonlinear_pk_l(
+										 struct background *pba,
+										 struct perturbs *ppt,
                      struct primordial *ppm,
                      struct nonlinear *pnl,
                      int index_tau,

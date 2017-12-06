@@ -12,6 +12,7 @@
  */
 
 #include "nonlinear.h"
+#include "extrapolate_source.h"
 
 int nonlinear_k_nl_at_z(
                         struct background *pba,
@@ -61,6 +62,7 @@ int nonlinear_init(
   int index_ncdm;
   int index_k;
   int index_tau;
+  int size_extrapolated_source;
   double *pk_l;
   double *pk_nl;
   double *lnk_l;
@@ -120,14 +122,14 @@ int nonlinear_init(
     class_alloc(ddlnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
 
 
-/*
+
 		class_call(get_extrapolated_source_size(
 																						ppr->k_per_decade_for_pk,
 																						ppt->k_max_for_pk,
 																						1.e4,
 																						pnl->k_size,
 																						&size_extrapolated_source,
-																						pnl->error_message)
+																						pnl->error_message),
 														pnl->error_message,
 														pnl->error_message);
 		pnl->k_size_extra = size_extrapolated_source;
@@ -140,9 +142,9 @@ int nonlinear_init(
 														 pnl->k_extra,
 														 ppr->k_per_decade_for_pk,
 														 1.e4,
-														 pnl->error_message)
+														 pnl->error_message),
 										pnl->error_message,
-										pnl->error_message);*/
+										pnl->error_message);
 
 
     /** - loop over time */
@@ -150,7 +152,7 @@ int nonlinear_init(
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
       /* get P_L(k) at this time */
-      class_call(nonlinear_pk_l(ppt,ppm,pnl,index_tau,pk_l,lnk_l,lnpk_l,ddlnpk_l),
+      class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_tau,pk_l,lnk_l,lnpk_l,ddlnpk_l),
                  pnl->error_message,
                  pnl->error_message);
 
@@ -279,7 +281,6 @@ int nonlinear_free(
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
-      /* free here */
       free(pnl->k);
       free(pnl->tau);
       free(pnl->nl_corr_density);
@@ -301,11 +302,18 @@ int nonlinear_free(
 		}
   }
 
+  if (pnl->has_pk_eq == _TRUE_) {
+    free(pnl->eq_tau);
+    free(pnl->eq_w_and_Omega);
+    free(pnl->eq_ddw_and_ddOmega);
+  }
+
   return _SUCCESS_;
 
 }
 
 int nonlinear_pk_l(
+                   struct background *pba,
                    struct perturbs *ppt,
                    struct primordial *ppm,
                    struct nonlinear *pnl,
@@ -321,11 +329,15 @@ int nonlinear_pk_l(
   int index_ic1,index_ic2,index_ic1_ic2;
   double * primordial_pk;
   double source_ic1,source_ic2;
+  double * source_ic_extra;
 
   index_md = ppt->index_md_scalars;
 
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
-/* if (pnl->method == nl_HMcode){
+	class_alloc(source_ic_extra,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
+		
+ 
+	if (pnl->method == nl_HMcode){
 		for (index_ic=0; index_ic<ppm->ic_size[index_md]; index_ic++){ 
 
 			class_call(extrapolate_source(
@@ -334,8 +346,8 @@ int nonlinear_pk_l(
 																		pnl->k_size_extra,
 																		ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_m]+index_tau * ppt->k_size[index_md],
 																		4,
-																		source_ic_extra,
-																		pba->k_eq,																		
+																		source_ic_extra+index_ic*pnl->k_size_extra,
+																		pba->a_eq*pba->H_eq,																		
 																		pnl->error_message), 
 															pnl->error_message,
 															pnl->error_message)
@@ -343,8 +355,7 @@ int nonlinear_pk_l(
 		}
 
 		for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-			if (index_k < pnl->k_size)
-				class_call(primordial_spectrum_at_k(ppm,
+			class_call(primordial_spectrum_at_k(ppm,
                                         index_md,
                                         linear,
                                         pnl->k[index_k],
@@ -354,13 +365,38 @@ int nonlinear_pk_l(
 
 			pk_l[index_k] = 0;
 			
-			pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
-					*source_ic*source_ic
+				// part diagonal in initial conditions 
+			for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+
+					index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
+
+			
+			pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)\
+					*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]\
 					*primordial_pk[index_ic1_ic2];
+			}
+		
+			// part non-diagonal in initial conditions 
+				for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
+					for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
+
+						index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
+
+						if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+					
+							pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
+								*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra[index_ic2*pnl->k_size_extra+index_k]
+								*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
+					}
+        }
+      }
+		
 		}
+		
+		
 	} else  {
 			for (index_k=0; index_k<pnl->k_size; index_k++) {
-				if (index_k < pnl_k_size)
+				if (index_k < pnl->k_size)
 					class_call(primordial_spectrum_at_k(ppm,
                                         index_md,
                                         linear,
@@ -405,14 +441,9 @@ int nonlinear_pk_l(
 
 					
 							pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
-								*source_ic1_extra*source_ic2_extra
-								*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
-				
-
-        
-							pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
 								*source_ic1*source_ic2
-								*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)
+								*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
+				        						
 					}
         }
       }
@@ -420,7 +451,7 @@ int nonlinear_pk_l(
 			lnk[index_k] = log(pnl->k[index_k]);
 			lnpk[index_k] = log(pk_l[index_k]);
 		}
-	}*/
+	}
 	
 	
 	for (index_k=0; index_k<pnl->k_size; index_k++) {
@@ -488,6 +519,7 @@ int nonlinear_pk_l(
              pnl->error_message);
 
   free(primordial_pk);
+  free(source_ic_extra);
 
   return _SUCCESS_;
 
@@ -524,7 +556,7 @@ int nonlinear_halofit(
 
   double * pvecback;
 
-  int last_index;
+  int last_index=0;
   int counter;
   double sum1,sum2,sum3;
   double anorm;
@@ -549,14 +581,62 @@ int nonlinear_halofit(
 
   double R;
 
+  double * w_and_Omega;
+
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-
-  /* Halofit needs w0 = w_fld today */
-  class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
-
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+
+  if (pnl->has_pk_eq == _FALSE_) {
+
+    /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
+       all required by HALFIT fitting formulas */
+
+    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
+    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    Omega_m = pvecback[pba->index_bg_Omega_m];
+    Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
+
+  }
+  else {
+
+    /* alternative method called PK-equal, described in 0810.0190 and
+                      1601.0723, extending the range of validity of
+                      HALOFIT from constant w to w0-wa models. In that
+                      case, some effective values of w0(tau_i) and
+                      Omega_m(tau_i) have been pre-computed in the input
+                      module, and we just ned to interpolate within
+                      tabulated arrays, to get them at the current tau
+                      value. */
+
+    class_alloc(w_and_Omega,pnl->eq_size*sizeof(double),pnl->error_message);
+
+    class_call(array_interpolate_spline(
+                                        pnl->eq_tau,
+                                        pnl->eq_tau_size,
+                                        pnl->eq_w_and_Omega,
+                                        pnl->eq_ddw_and_ddOmega,
+                                        pnl->eq_size,
+                                        tau,
+                                        &last_index,
+                                        w_and_Omega,
+                                        pnl->eq_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    w0 = w_and_Omega[pnl->index_eq_w];
+    Omega_m = w_and_Omega[pnl->index_eq_Omega_m];
+    Omega_v = 1.-Omega_m;
+
+    free(w_and_Omega);
+  }
+
   anorm    = 1./(2*pow(_PI_,2));
 
   /*      Until the 17.02.2015 the values of k used for integrating sigma(R) quantities needed by Halofit where the same as in the perturbation module.
