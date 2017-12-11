@@ -235,25 +235,48 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		entries in :code:`fnames`
 	"""
 
-	branchings = np.asarray(branchings)
-	spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
-	if fnames != ['Dirac'] and fnames != ['dirac']:
+	try:
+		assert len(fnames) == len(branchings)
+	except AssertionError:
+		raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
+
+	dirac_mode = False
+	for specname in fnames:
+		if specname.find('dirac') != -1 or specname.find('Dirac') != -1:
+			dirac_mode = True
+			break
+	Cirelli_particles = ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs']
+
+	if not dirac_mode:
+		spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
 		for idx, fname in enumerate(fnames):
-			spec_interpolator = load_from_spectrum(fname, logEnergies, **DarkOptions)
-			lower = spec_interpolator.get_lower()
-			upper = spec_interpolator.get_upper()
-			if mass < lower or mass > upper:
-				print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g}) cannot be deduced. Return zeros'.format(fname, lower, upper, mass))
-				spectra[:,:,idx] = np.zeros(shape=(3,len(logEnergies)), dtype=np.float64)
+			if os.path.isfile(fname):
+				spec_interpolator = load_from_spectrum(fname, logEnergies, **DarkOptions)
+				lower = spec_interpolator.get_lower()
+				upper = spec_interpolator.get_upper()
+				if mass < lower or mass > upper:
+					print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g}) cannot be deduced. Return zeros'.format(fname, lower, upper, mass))
+					spectra[:,:,idx] = np.zeros(shape=(3,len(logEnergies)), dtype=np.float64)
+				else:
+					spectra[:,:,idx] = spec_interpolator.__call__(mass)
+			elif fname in Cirelli_particles:
+				from .special_functions import secondaries_from_cirelli
+				spectra[:,:,idx] = secondaries_from_cirelli(logEnergies,mass,fname)
 			else:
-				spectra[:,:,idx] = spec_interpolator.__call__(mass)
-		try:
-			assert spectra.shape[-1] == branchings.shape[-1]
-		except AssertionError:
-			raise DarkAgesError('The number of spectra ({:d}) and the number of provided branching ratios ({:d}) do not match'.format(spectra.shape[-1],branchings.shape[-1]))
+				raise DarkAgesError('One of your inputs ({:s}) is neither a valid filename nor a known particle from which I can take the particle spectrum out of the PPPC'.format(fname))
 		tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
-	elif fnames == ['Dirac'] or fnames == ['dirac']:
-		print 'here'
+
+	else:
+		spectra = np.empty(shape=(3,1,len(fnames)), dtype=np.float64)
+		logEnergies = np.ones((1,1))*np.log10(1e9*mass)
+		for idx, fname in enumerate(fnames):
+			if fname == 'Dirac_electron' or fname == 'dirac_electron':
+				spectra[:,:,idx] = np.array([1.,0.,0.]).reshape(3,1)
+			elif fname == 'Dirac_photon' or fname == 'dirac_photon':
+				spectra[:,:,idx] = np.array([0.,1.,0.]).reshape(3,1)
+			else:
+				raise DarkAgesError('I could not interpret the spectrum-input >>{0}<< in combination with dirac-like injection spectra.'.format(fname))
+		tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
 
 	if hist == 'decay':
 		model_from_file = decaying_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec,logEnergies,redshift)

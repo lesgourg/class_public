@@ -7,7 +7,6 @@ libclass.a
 python/classy.c
 python/*.pyc
 python/build/
-<<<<<<< HEAD
 DM_Annihilation/
 DM_decay_files/
 DM_annihilation_old/
@@ -23,7 +22,8 @@ script*
 sfr.dat
 *.png
 external_fz/DarkAges/*.pyc
-external_fz/DarkAges/data/*.obj
+external_fz/DarkAges/data/*/*.obj
+external_fz/DarkAges/data/*/*.pyc
 external_fz/transfer_functions/*.obj
 external_fz/models/*/*.obj
 external_fz/models/*/*.pyc

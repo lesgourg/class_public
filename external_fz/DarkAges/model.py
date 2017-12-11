@@ -368,13 +368,13 @@ class evaporating_model(model):
 			from .special_functions import secondaries_from_pi0, secondaries_from_piCh, secondaries_from_muon
 			sec_from_pi0 = secondaries_from_pi0(E_sec[:,None],E_prim[None,:])
 			#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
-			#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2),E_sec,axis=0))[None,:,None]
+			sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2),E_sec,axis=0))[None,:,None]
 			sec_from_piCh = secondaries_from_piCh(E_sec[:,None],E_prim[None,:])
 			#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
-			#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2),E_sec,axis=0))[None,:,None]
+			sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2),E_sec,axis=0))[None,:,None]
 			sec_from_muon = secondaries_from_muon(E_sec[:,None],E_prim[None,:])
 			#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
-			#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2),E_sec,axis=0))[None,:,None]
+			sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2),E_sec,axis=0))[None,:,None]
 		else:
 			sec_from_pi0 = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
 			sec_from_piCh = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)

@@ -1,80 +1,96 @@
 import numpy as np
 import os
+import sys
 import dill
+
+from .__init__ import DarkAgesError as err
 data_dir = os.path.join( os.path.dirname(os.path.realpath( __file__ )), 'data' )
 
-def approx_dirac(point,array):
-	ret =  np.zeros_like(array).astype(np.float64)
-	interpol_idx = np.interp(point,array,np.arange(len(array)))
-	i = int(interpol_idx)
-	spacing = float(array[i+1] - array[i])
-	print spacing
-	for j in xrange(array.shape[0]):
-		print point, abs( (point - array[j]) / spacing )
-		print max(0,1. - abs( (point - array[j]) / spacing ))
-		ret[j] = max(0,1. - abs( (point - array[j]) / spacing ))
-	return ret
+#def approx_dirac(point,array):
+#	ret =  np.zeros_like(array).astype(np.float64)
+#	interpol_idx = np.interp(point,array,np.arange(len(array)))
+#	i = int(interpol_idx)
+#	spacing = float(array[i+1] - array[i])
+#	print spacing
+#	for j in xrange(array.shape[0]):
+#		print point, abs( (point - array[j]) / spacing )
+#		print max(0,1. - abs( (point - array[j]) / spacing ))
+#		ret[j] = max(0,1. - abs( (point - array[j]) / spacing ))
+#	return ret
+
+def secondaries_from_cirelli(logEnergies,mass,primary):
+	from .common import sample_spectrum
+	cirelli_dir = os.path.join(data_dir, 'cirelli')
+	dumpername = 'cirelli_spectrum_of_{:s}.obj'.format(primary)
+	if mass < 5 or mass > 1e5:
+		raise err('The spectra of Cirelli are only given in the range [5 GeV, 1e2 TeV]. The mass you entered ({:.2g} GeV) is not in that range.'.format(mass))
+	
+	if not hasattr(logEnergies,'__len__'):
+		logEnergies = np.asarray([logEnergies])
+	else:
+		logEnergies = np.asarray(logEnergies)
+
+	if not os.path.isfile( os.path.join(cirelli_dir, dumpername)):
+		sys.path.insert(1,cirelli_dir)
+		from spectrum_from_cirelli import get_cirelli_spectra
+		masses, log10X, dNdLog10X_el, dNdLog10X_ph, dNdLog10X_oth = get_cirelli_spectra(primary)
+		total_dNdLog10X = np.asarray([dNdLog10X_el, dNdLog10X_ph, dNdLog10X_oth])
+		from .interpolator import NDlogInterpolator
+		interpolator = NDlogInterpolator(masses, np.rollaxis(total_dNdLog10X,1), exponent = 0, scale = 'log-log')
+		dump_dict = {'dNdLog10X_interpolator':interpolator, 'log10X':log10X}
+		with open(os.path.join(cirelli_dir, dumpername),'wb') as dump_file:
+			dill.dump(dump_dict, dump_file)
+	else:
+		with open(os.path.join(cirelli_dir, dumpername),'rb') as dump_file:
+			dump_dict = dill.load(dump_file)
+			interpolator = dump_dict.get('dNdLog10X_interpolator')
+			log10X = dump_dict.get('log10X')
+	del dump_dict
+	temp_log10E = log10X + np.log10(mass)*np.ones_like(log10X)	
+	temp_el, temp_ph, temp_oth = interpolator.__call__(mass) / (10**temp_log10E * np.log(10))[None,:]
+	ret_spectra = np.empty(shape=(3,len(logEnergies))) 
+	ret_spectra = sample_spectrum(temp_el, temp_ph, temp_oth, temp_log10E, mass, logEnergies)
+	return ret_spectra
+
+def secondaries_from_simple_decay(E_secondary, E_primary, primary):
+	if primary not in ['muon','pi0','piCh']:
+		raise err('The "simple" decay spectrum you asked for (species: {:s}) is not (yet) known.'.format(primary))
+
+	if not hasattr(E_secondary,'__len__'):
+		E_secondary = np.asarray([E_secondary])
+	else:
+		E_secondary = np.asarray(E_secondary)
+	
+	decay_dir  = os.path.join(data_dir, 'simple_decay_spectra')
+	dumpername = 'simple_decay_spectrum_of_{:s}.obj'.format(primary)
+	original_data = '{:s}_normed.dat'.format(primary) 
+
+	if not os.path.isfile( os.path.join(decay_dir, dumpername)):
+		data = np.genfromtxt( os.path.join(decay_dir, original_data), unpack = True, usecols=(0,1,2,3))
+		from .interpolator import NDlogInterpolator
+		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
+		dump_dict = {'spec_interpolator':spec_interpolator}
+		with open(os.path.join(decay_dir, dumpername),'wb') as dump_file:
+			dill.dump(dump_dict, dump_file)
+	else:
+		with open(os.path.join(decay_dir, dumpername),'rb') as dump_file:
+			dump_dict = dill.load(dump_file)
+			spec_interpolator = dump_dict.get('spec_interpolator')
+
+	x = E_secondary / E_primary
+	out = spec_interpolator.__call__(x)
+	#out /= (E_secondary)[:,None]
+	out /= (np.log(10)*E_secondary)[:,None]
+	return out
 
 def secondaries_from_muon(E_secondary, E_primary):
-	if not hasattr(E_secondary,'__len__'):
-		E_secondary = np.asarray([E_secondary])
-	else:
-		E_secondary = np.asarray(E_secondary)
-	if not os.path.isfile( os.path.join(data_dir, 'muon_secondaries.obj')):
-		data = np.genfromtxt( os.path.join(data_dir, 'muon_normed.dat'), unpack = True, usecols=(0,1,2,3))
-		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
-		dump_dict = {'spec_interpolator':spec_interpolator}
-		with open(os.path.join(data_dir, 'muon_secondaries.obj'),'wb') as dump_file:
-			dill.dump(dump_dict, dump_file)
-	else:
-		with open(os.path.join(data_dir, 'muon_secondaries.obj'),'rb') as dump_file:
-			dump_dict = dill.load(dump_file)
-			spec_interpolator = dump_dict.get('spec_interpolator')
-	x = E_secondary / E_primary
-	out = spec_interpolator.__call__(x)
-	out = out / E_secondary[:,None]
-	return out
+	return secondaries_from_simple_decay(E_secondary, E_primary, 'muon')
 
 def secondaries_from_pi0(E_secondary, E_primary):
-	if not hasattr(E_secondary,'__len__'):
-		E_secondary = np.asarray([E_secondary])
-	else:
-		E_secondary = np.asarray(E_secondary)
-	if not os.path.isfile( os.path.join(data_dir, 'pi0_secondaries.obj')):
-		data = np.genfromtxt( os.path.join(data_dir, 'pi0_normed.dat'), unpack = True, usecols=(0,1,2,3))
-		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
-		dump_dict = {'spec_interpolator':spec_interpolator}
-		with open(os.path.join(data_dir, 'pi0_secondaries.obj'),'wb') as dump_file:
-			dill.dump(dump_dict, dump_file)
-	else:
-		with open(os.path.join(data_dir, 'pi0_secondaries.obj'),'rb') as dump_file:
-			dump_dict = dill.load(dump_file)
-			spec_interpolator = dump_dict.get('spec_interpolator')
-	x = E_secondary / E_primary
-	out = spec_interpolator.__call__(x)
-	out = out / E_secondary[:,None]
-	return out
+	return secondaries_from_simple_decay(E_secondary, E_primary, 'pi0')
 
 def secondaries_from_piCh(E_secondary, E_primary):
-	if not hasattr(E_secondary,'__len__'):
-		E_secondary = np.asarray([E_secondary])
-	if not os.path.isfile( os.path.join(data_dir, 'piCh_secondaries.obj')):
-		data = np.genfromtxt( os.path.join(data_dir, 'piCh_normed.dat'), unpack = True, usecols=(0,1,2,3))
-		from .interpolator import NDlogInterpolator
-		spec_interpolator = NDlogInterpolator(data[0,:], data[1:,:].T, exponent = 1, scale = 'lin-log')
-		dump_dict = {'spec_interpolator':spec_interpolator}
-		with open(os.path.join(data_dir, 'piCh_secondaries.obj'),'wb') as dump_file:
-			dill.dump(dump_dict, dump_file)
-	else:
-		with open(os.path.join(data_dir, 'piCh_secondaries.obj'),'rb') as dump_file:
-			dump_dict = dill.load(dump_file)
-			spec_interpolator = dump_dict.get('spec_interpolator')
-	x = E_secondary / E_primary
-	out = spec_interpolator.__call__(x)
-	out = out / E_secondary[:,None]
-	return out
+	return secondaries_from_simple_decay(E_secondary, E_primary, 'piCh')
 
 def luminosity_accreting_bh(Energy,recipe,PBH_mass):
 	if not hasattr(Energy,'__len__'):

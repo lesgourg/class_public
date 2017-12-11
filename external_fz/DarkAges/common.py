@@ -547,12 +547,12 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 	#    If not and the integral is non_zero, rescale the spectrum, if the spectrum is zero (e.g. being in a kinematically forbidden regioern of param space)
 	#    return a zero_spectrum
 	if spec_type == 'dN/dE':
-		factor1 = logConversion(input_log10E)
+		factor1 = logConversion(input_log10E)**2*np.log(10)
 		factor2 = np.ones_like(input_log10E).astype(np.float64)
 	else:
-		factor1 = np.ones_like(input_log10E).astype(np.float64)
+		factor1 = logConversion(input_log10E)**1*np.log(10)
 		factor2 = 1. / logConversion(input_log10E)
-	total_dep_energy = trapz( factor1*(input_spec_el+input_spec_ph+input_spec_oth)*scale_dict[scale][1], logConversion(input_log10E) )
+	total_dep_energy = trapz( factor1*(input_spec_el+input_spec_ph+input_spec_oth)*scale_dict[scale][1], input_log10E )
 
 	non_zero_spec = ( total_dep_energy > 0.)
 	if non_zero_spec and not failed:
@@ -567,10 +567,13 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 		out_el[unphysical_region_mask] = 0.
 		out_ph[unphysical_region_mask] = 0.
 		out_oth[unphysical_region_mask] = 0.
-		second_rescaling = trapz( (out_el+out_ph+out_oth)*logConversion(sampling_log10E), logConversion(sampling_log10E) ) / norm
-		out_el /= second_rescaling
-		out_ph /= second_rescaling
-		out_oth /= second_rescaling
+		out_el = np.maximum(out_el, np.zeros_like(out_el))
+		out_ph = np.maximum(out_ph, np.zeros_like(out_ph))
+		out_oth = np.maximum(out_oth, np.zeros_like(out_oth))
+		#second_rescaling = trapz( (out_el+out_ph+out_oth)*logConversion(sampling_log10E)**2*np.log(10), sampling_log10E ) / norm
+		#out_el /= second_rescaling
+		#out_ph /= second_rescaling
+		#out_oth /= second_rescaling
 	else:
 		out_el = np.zeros_like(sampling_log10E).astype(np.float64)
 		out_ph = np.zeros_like(sampling_log10E).astype(np.float64)
