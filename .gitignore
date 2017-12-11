@@ -22,6 +22,7 @@ script*
 sfr.dat
 *.png
 external_fz/DarkAges/*.pyc
+external_fz/DarkAges/data/*.obj
 external_fz/DarkAges/data/*/*.obj
 external_fz/DarkAges/data/*/*.pyc
 external_fz/transfer_functions/*.obj
