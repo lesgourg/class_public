@@ -201,7 +201,7 @@ class_precision_parameter(start_large_k_at_tau_h_over_tau_k,double,0.07)  /**< l
    * returns an error, because the source computation requires
    * tight-coupling to be switched off.
    */
-class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h,double,0.0015)
+class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h,double,0.015)
 
   /**
    * when to switch off tight-coupling approximation:
@@ -314,7 +314,7 @@ class_precision_parameter(primordial_inflation_attractor_precision_initial,doubl
 class_precision_parameter(primordial_inflation_attractor_maxit,int,10) /**< maximum number of iteration when searching attractor solution */
 class_precision_parameter(primordial_inflation_tol_curvature,double,1.0e-3) /**< for each k, stop following wavenumber, at the latest, when curvature perturbation R is stable up to to this tolerance */
 class_precision_parameter(primordial_inflation_aH_ini_target,double,0.9) /**< control the step size in the search for a suitable initial field value */
-class_precision_parameter(primordial_inflation_end_dphi,double,1e-10) /**< first bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
+class_precision_parameter(primordial_inflation_end_dphi,double,1.0e-10) /**< first bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
 class_precision_parameter(primordial_inflation_end_logstep,double,10.0) /**< logarithmic step for updating the bracketing width, when trying to bracket the value phi_end at which inflation ends naturally */
 class_precision_parameter(primordial_inflation_small_epsilon,double,0.1) /**< value of slow-roll parameter epsilon used to define a field value phi_end close to the end of inflation (doesn't need to be exactly at the end): epsilon(phi_end)=small_epsilon (should be smaller than one) */
 class_precision_parameter(primordial_inflation_small_epsilon_tol,double,0.01) /**< tolerance in the search for phi_end */
