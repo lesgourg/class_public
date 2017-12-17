@@ -283,7 +283,7 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 	elif hist == 'annihilation':
 		model_from_file = annihilating_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,logEnergies,redshift)
 	elif hist == 'annihilation_halos':
-		model_from_file = annihilating_halos_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,zh,fh)
+		model_from_file = annihilating_halos_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,zh,fh,logEnergies,redshift)
 	else:
 		raise DarkAgesError('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.func_name, hist))
 	try:

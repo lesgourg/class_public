@@ -206,6 +206,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
+  short print_energy_deposition_function;
 
   double * annihil_coef_xe;
   double * annihil_coef_heat;
@@ -231,9 +232,8 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   * Note that the DM lifetime is defined in the background module
   */
   double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  double annihilation_boost_factor;
-  double annihilation_m_DM;
-
+  double annihilation_cross_section;
+  double DM_mass;
   double annihilation_variation; /** if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
@@ -525,7 +525,6 @@ struct recombination {
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
-
   short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */
   double PBH_z_evaporation; /**< Double to store the evaporation redshift. Useful to avoid bad extrapolation at low z. */
   int PBH_table_size; /**< Length of the PBH-mass evolution table */

@@ -1066,7 +1066,7 @@ int thermodynamics_init(
                  pba->error_message,
                  pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
-      printf("duration of reionization = %e, with z_beg = %e, z_mid = %e, z_end = %e\n",pth->duration_of_reionization,pth->z_10_percent,pth->z_50_percent, pth->z_99_percent);
+      // printf("duration of reionization = %e, with z_beg = %e, z_mid = %e, z_end = %e\n",pth->duration_of_reionization,pth->z_10_percent,pth->z_50_percent, pth->z_99_percent);
     }
     if((pth->reio_parametrization == reio_douspis_et_al) || (pth->reio_parametrization == reio_asymmetric_planck_16)){
       printf(" -> reionization with optical depth = %f\n",pth->tau_reio);
@@ -1074,7 +1074,7 @@ int thermodynamics_init(
                pba->error_message,
                pth->error_message);
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
-      printf("duration of reionization = %e, with z_beg = %e, z_mid = %e, z_end = %e\n",pth->duration_of_reionization,pth->z_10_percent,pth->z_50_percent, pth->z_99_percent);
+      // printf("duration of reionization = %e, with z_beg = %e, z_mid = %e, z_end = %e\n",pth->duration_of_reionization,pth->z_10_percent,pth->z_50_percent, pth->z_99_percent);
     }
     if (pth->reio_parametrization == reio_bins_tanh) {
       printf(" -> binned reionization gives optical depth = %f\n",pth->tau_reio);
@@ -1609,6 +1609,18 @@ int thermodynamics_annihilation_coefficients_init(
                           &(pth->annihil_coef_lowE[array_line])) != 6,
                    pth->error_message,
                    "could not read value of parameters coeeficients in file %s\n",ppr->energy_injec_coeff_file);
+        if(pth->print_energy_deposition_function){
+          if(array_line == 0){
+                fprintf(stdout,"##################################################\n### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n###'print'-commands in your script are silenced.\n##################################################\n#z_dep	f_heat	f_lya	f_ionH	f_ionHe	f_lowE\n");
+          }
+          printf("%e %e %e %e %e %e \n",
+          (pth->annihil_coef_xe[array_line]),
+          (pth->annihil_coef_heat[array_line]),
+          (pth->annihil_coef_lya[array_line]),
+          (pth->annihil_coef_ionH[array_line]),
+          (pth->annihil_coef_ionHe[array_line]),
+          (pth->annihil_coef_lowE[array_line]));
+        }
         array_line ++;
       }
     }
@@ -2836,8 +2848,6 @@ int thermodynamics_reionization_function(
         // fprintf(stdout, "pth->duration_of_reionization %e v2 %e \n", pth->duration_of_reionization,pth->z_10_percent  -preio->reionization_parameters[preio->index_z_end_asymmetric_planck_16]);
 
       }
-
-
       x_tmp = *xe;
       z_tmp = z;
     }
