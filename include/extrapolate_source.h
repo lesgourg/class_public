@@ -2,11 +2,13 @@
 #define __EXTRAPOLATE_SOURCE__
 
 #include "common.h"
+#include "background.h"
 #define extrapolation_zero 0
 #define extrapolation_only_max 1
-#define extrapolation_max_scaled 2
-#define extrapolation_hmcode 3
-#define extrapolation_user_defined 4
+#define extrapolation_only_max_units 2
+#define extrapolation_max_scaled 3
+#define extrapolation_hmcode 4
+#define extrapolation_user_defined 5
 #define _MAX_NUM_EXTRAPOLATION_ 10000
 int extrapolate_source(
         double* k_extrapolated,
@@ -16,6 +18,7 @@ int extrapolate_source(
         short extrapolation_method,
         double* source_extrapolated,
         double k_eq,
+        double h,
         ErrorMsg errMsg
         );
 int extrapolate_k(

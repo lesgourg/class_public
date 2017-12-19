@@ -785,6 +785,12 @@ struct precision
     /** Parameters relevant for HMcode computation */
   
   /**
+   * parameter specifying the maximum k value for the extrapolation of
+   * the linear power spectrum (needed for the sigma computation)
+   */ 
+	 double hmcode_max_k_extra;
+  
+  /**
    * parameters controlling stepsize and min/max r & a values for 
    * sigma(r) & grow table
    */

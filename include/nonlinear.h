@@ -52,10 +52,10 @@ struct nonlinear {
 
   /** HMcode parameters */
 
-  double * sigtab;
-  double * rtab;
-  double * stab;
-  double * ddstab;
+  double * sigtab; /** 2d array containing r and sigma */
+  double * rtab; /** List of R values */
+  double * stab; /** List of Sigma Values */
+  double * ddstab; /** Splined sigma */
   double * growth_at_ztau;
   double * growtable;
   double * ztable;
@@ -184,8 +184,7 @@ extern "C" {
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l,
-                  double *lnk_l,                
+                  double *pk_l,               
                   double * sigma
                   );
                   
@@ -196,19 +195,17 @@ extern "C" {
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l,
-                  double *lnk_l,                
+                  double *pk_l,               
                   double * sigma_disp
                   );
                   
   int nonlinear_fill_sigtab(
-                          struct precision *ppr,
+              struct precision *ppr,
 						  struct background * pba,
-                          struct perturbs *ppt,
+              struct perturbs *ppt,
 						  struct primordial * ppm,
 						  struct nonlinear * pnl,
-						  double *pk_l,
-						  double *lnk_l                 
+						  double *pk_l               
 						  );
 
   int nonlinear_fill_growtab(

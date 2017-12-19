@@ -12,6 +12,7 @@ int extrapolate_source(
                 short extrapolation_method,
                 double* source_extrapolated,
                 double k_eq,
+                double h,
                 ErrorMsg errMsg
                 ){
   double k_max;
@@ -49,6 +50,16 @@ int extrapolate_source(
       case extrapolation_only_max:
       {
         source_extrapolated[index_extr]=source_max*(log(k_extrapolated[index_extr])/log(k_max));
+        break;
+      }
+      /**
+       * Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
+       * Here we use k in h/Mpc instead of 1/Mpc
+       * Has a terrible bend in log slope, disconituity only in derivative
+       * */
+      case extrapolation_only_max_units:
+      {
+        source_extrapolated[index_extr]=source_max*(log(1/h*k_extrapolated[index_extr])/log(1/h*k_max));
         break;
       }
       /**

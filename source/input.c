@@ -2485,10 +2485,12 @@ int input_read_parameters(
 
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
+      ppt->has_nl_halofit_corrections_based_on_delta_m = _TRUE_;      
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
     if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pnl->method=nl_HMcode;
+      ppt->has_nl_hmcode_corrections_based_on_delta_m = _TRUE_;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
 	
@@ -2773,7 +2775,8 @@ int input_read_parameters(
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
   class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
 
-  class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab);
+  class_read_double("hmcode_max_k_extra",ppr->hmcode_max_k_extra);
+  class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab); 
   class_read_double("rmax_for_sigtab",ppr->rmax_for_sigtab);
   class_read_double("ainit_for_growtab",ppr->ainit_for_growtab);
   class_read_double("amax_for_growtab",ppr->amax_for_growtab);
@@ -3451,14 +3454,15 @@ int input_default_precision ( struct precision * ppr ) {
   /**
    * - parameters related to nonlinear module
    */
-
+	
   ppr->halofit_min_k_nonlinear = 1.e-4;
   ppr->halofit_min_k_max = 5.;
   ppr->halofit_k_per_decade = 80.;
   ppr->halofit_sigma_precision = 0.05;
   ppr->halofit_tol_sigma = 1.e-6;
 
-	ppr->n_hmcode_tables = 64;
+	ppr->hmcode_max_k_extra = 1.e8;
+	ppr->n_hmcode_tables = 128;
 	ppr->rmin_for_sigtab = 1.e-5;
 	ppr->rmax_for_sigtab = 1.e3;
 	ppr->ainit_for_growtab = 1.e-3; 
