@@ -30,7 +30,7 @@ enum reionization_parametrization {
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
   reio_stars_sfr_source_term, /**< Reionization parameterization based on the star formation rate, see Poulin et al. arXiv:1508.01370 and references therein */
-  reio_douspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by douspis et al. 1509.02785 and improved by 1605.03928 */
+  reio_duspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by duspis et al. 1509.02785 and improved by 1605.03928 */
   reio_asymmetric_planck_16 /**< Redshift asymetric reionisation parametrization as introduced by the Planck collaboration in 2016 data release 1605.03507  */
 };
 /**
@@ -38,8 +38,8 @@ enum reionization_parametrization {
  */
 enum energy_repartition_functions {
   SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
-  Galli_et_al_fit,  /**< Fit of Galli et al 2013 functions */
-  Galli_et_al_interpolation,  /**< Interpolation of Galli et al 2013 functions  */
+  GSVI,  /**< Interpolation of Galli et al 2013 functions  */
+  chi_from_file, /**< File specified by the user with the option "energy repartition coefficient file" */
   no_factorization
 };
 /**
@@ -51,25 +51,20 @@ enum heating_by_stars_parametrization {
   heating_stars_sfr_source_term  /**< reheating parameterization based on the star formation rate (SFR). See Poulin et al. 1508.01370.  */
 };
 enum modelisation_of_SFR {
-  model_SFR_bestfit, /**< No reheating by stars */
-  model_SFR_p1sig, /**< reheating parameterized like reionization with normalization adjust to fit data */
-  model_SFR_m1sig,  /**< reheating parameterization based on the star formation rate (SFR). See Poulin et al. 1508.01370.  */
-  model_SFR_free
+  model_SFR_bestfit, /**< besfit from Robertson et al. 2015. see Poulin et al. 1508.01370. */
+  model_SFR_p1sig, /**< bestfit +1sig */
+  model_SFR_m1sig,  /**< bestfit -1sig  */
+  model_SFR_free /**< the user can pass the parameters ap, bp, cp, and dp */
 };
 enum PBH_accretion_recipe {
-  Ali_Haimoud, /**< Accretion recipe from Ali_Haimoud & Kamionkowski, arXiv:1612.05644 */
-  Ricotti_et_al,  /**< Accretion recipe from Ricotti et al., arXiv:0709.0524 */
-  Gaggero_et_al,  /**< Accretion recipe from Gaggero et al., arXiv:1612.00457 */
-  Thin_disk,  /**< Thin disk accretion recipe from Ostriker and Park astro-ph/0001446*/
-  ADAF,  /**< ADAF accretion recipe from Narayan and Yi 1995 */
-  ADAF_Simulation,  /**< ADAF accretion recipe from Xie and Yuan 2012 */
-  Horowitz, /**< Accretion recipe from Horowitz, arXiv:1612.07264 */
-  Hybrid /**<A more realistic accretion recipe, with a transition from spherical to disk accretion at a redshift "PBH_disk_formation_redshift" */
+  spherical_accretion, /**< Accretion recipe from Ali_Haimoud & Kamionkowski, arXiv:1612.05644 */
+  disk_accretion  /**< ADAF accretion recipe from Xie and Yuan 2012, following Poulin et al 1707.04206 */
 };
-enum energy_deposition_treatment {
+enum energy_deposition_function {
   No_deposition, /**< No energy deposition is considered. Useful for pedagogic illustration. */
   Analytical_approximation, /**< Analytical energy deposition treatment, introduced in 1209.0247 and corrected in 1612.05644 */
-  Slatyer  /**< f(z) functions from Slatyer, introduced in 1211.0283 and updated in 1506.03812 */
+  DarkAges,  /**< f(z) functions computed in the DarkAges modules following the work by Slatyer, introduced in 1211.0283 and updated in 1506.03812 */
+  function_from_file /**<  File specified by the user with the option "energy deposition function file"*/
 };
 
 /**
@@ -164,11 +159,11 @@ int reio_inter_num; /**< with how many jumps do we want to describe reionization
 double * reio_inter_z; /**< discrete z values */
 
 double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
-  /** parameters used by douspis et al. parametrization */
+  /** parameters used by duspis et al. parametrization */
 
-  double Qp_douspis_et_al;
-  double zp_douspis_et_al;
-  double lambda_douspis_et_al;
+  double Qp_duspis_et_al;
+  double zp_duspis_et_al;
+  double lambda_duspis_et_al;
 
   /** parameters used by planck 16 asymmetric parametrization */
 
@@ -205,7 +200,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
-  enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
+  enum energy_deposition_function energy_deposition_function; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   short print_energy_deposition_function;
 
   double * annihil_coef_xe;
@@ -259,6 +254,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
 
   double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
+  double f_eff; /** effective on the spot parameter */
 
   double decay_fraction; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
@@ -274,12 +270,12 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double * PBH_table_F_dd; /**< Array of the second derivative of F(z) w.r.t. the redshift */
 
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
-  double PBH_low_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
+  double PBH_evaporating_mass; /**< mass from the PBH, in case of Dark Matter being low mass PBH */
 
   /** for PBH accretion */
 
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
-  double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
+  double PBH_accreting_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
 
 
@@ -518,13 +514,13 @@ struct recombination {
   short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
   double decay_fraction; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double PBH_high_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
+  double PBH_accreting_mass; /**< mass from the PBH, in case of Dark Matter being PBH */
   double PBH_ADAF_delta; /**<Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in the disk, influencing the emissivity. Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
   double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
   double PBH_relative_velocities; /**< The relative velocities between PBH and baryons in km/s. If negative, the linear result is chosen by the code. */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
-  enum energy_deposition_treatment energy_deposition_treatment; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
+  enum energy_deposition_function energy_deposition_function; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */
   double PBH_z_evaporation; /**< Double to store the evaporation redshift. Useful to avoid bad extrapolation at low z. */
   int PBH_table_size; /**< Length of the PBH-mass evolution table */
@@ -534,7 +530,7 @@ struct recombination {
   double * PBH_table_F; /**< Array of F(z)  given the redshift in 'PBH_table_z' */
   double * PBH_table_F_dd; /**< Array of the second derivative of F(z) w.r.t. the redshift */
 
-  double PBH_low_mass; /**< initial mass from the PBH, in case of Dark Matter being low mass PBH */
+  double PBH_evaporating_mass; /**< initial mass from the PBH, in case of Dark Matter being low mass PBH */
   double PBH_fraction; /**< fraction of Dark Matter being PBH */
 
   double Tm_tmp; /**< To temporarily store the value of the matter temperature*/
@@ -573,7 +569,7 @@ struct recombination {
   double * annihil_f_eff;
   double * annihil_dd_f_eff;
 
-  double f_eff;
+  double f_eff; /** effective on the spot parameter */
   int annihil_f_eff_num_lines;
 
   enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
@@ -645,11 +641,11 @@ struct reionization {
   int index_reio_first_xe; /**< ionization fraction at redshift first_z (inferred from recombination code) */
   int index_reio_step_sharpness; /**< sharpness of tanh jump */
 
-  /* parameters used by douspis et al. parametrization */
+  /* parameters used by duspis et al. parametrization */
 
-  int index_Qp_douspis_et_al;
-  int index_zp_douspis_et_al;
-  int index_lambda_douspis_et_al;
+  int index_Qp_duspis_et_al;
+  int index_zp_duspis_et_al;
+  int index_lambda_duspis_et_al;
 
   /* parameters used by planck 16 asymmetric parametrization */
 
@@ -783,7 +779,7 @@ extern "C" {
 				      ErrorMsg error_message
 				      );
 
-  int thermodynamics_high_mass_pbh_energy_injection(
+  int thermodynamics_accreting_pbh_energy_injection(
                                                     struct precision * ppr,
                                                     struct background * pba,
                                                     struct recombination * preco,
@@ -792,14 +788,14 @@ extern "C" {
                                                     ErrorMsg error_message
                                                   );
 
-  int pbh_low_mass_time_evolution(
+  int PBH_evaporating_mass_time_evolution(
                                     struct precision * ppr,
                                     struct background * pba,
                                     struct recombination * preco,
                                     ErrorMsg error_message
                                   );
 
-  int thermodynamics_low_mass_pbh_energy_injection(
+  int thermodynamics_evaporating_pbh_energy_injection(
                                                     struct precision * ppr,
                                                     struct background * pba,
                                                     struct recombination * preco,

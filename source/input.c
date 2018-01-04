@@ -1246,8 +1246,8 @@ int input_read_parameters(
       pth->reio_parametrization=reio_stars_sfr_source_term;
       flag2=_TRUE_;
     }
-    if (strcmp(string1,"reio_douspis_et_al") == 0) {
-      pth->reio_parametrization=reio_douspis_et_al;
+    if (strcmp(string1,"reio_duspis_et_al") == 0) {
+      pth->reio_parametrization=reio_duspis_et_al;
       flag2=_TRUE_;
     }
     if (strcmp(string1,"reio_asymmetric_planck_16") == 0) {
@@ -1399,12 +1399,12 @@ int input_read_parameters(
                   "could not identify model_SFR value, check that it is one of 'model_SFR_bestfit', 'model_SFR_p1sig', 'model_SFR_m1sig','model_SFR_free'.");
       }
   }
-  if (pth->reio_parametrization == reio_douspis_et_al){
+  if (pth->reio_parametrization == reio_duspis_et_al){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
-    class_read_double("lambda_douspis_et_al",pth->lambda_douspis_et_al);
-    class_read_double("Qp_douspis_et_al",pth->Qp_douspis_et_al);
-    class_read_double("zp_douspis_et_al",pth->zp_douspis_et_al);
+    class_read_double("lambda_duspis_et_al",pth->lambda_duspis_et_al);
+    class_read_double("Qp_duspis_et_al",pth->Qp_duspis_et_al);
+    class_read_double("zp_duspis_et_al",pth->zp_duspis_et_al);
   }
   if (pth->reio_parametrization == reio_asymmetric_planck_16){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
@@ -1444,75 +1444,53 @@ int input_read_parameters(
   class_read_double("DM_mass",pth->DM_mass);
   class_read_double("decay_fraction",pth->decay_fraction);
   if(pth->decay_fraction >0)class_test(pba->Gamma_dcdm <=0,errmsg,"you have decay_fraction > 0 but Gamma_dcdm = 0. That is weird, please check your param file and set 'tau_dcdm' [s] or 'Gamma_dcdm' [km/s/Mpc] to a non-zero value.\n");
-  class_read_double("PBH_high_mass",pth->PBH_high_mass);
-  if(pth->PBH_high_mass>0.){
+  class_read_double("PBH_accreting_mass",pth->PBH_accreting_mass);
+  if(pth->PBH_accreting_mass>0.){
 
     class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
       flag2 = _FALSE_;
-      if (strcmp(string1,"Ali_Haimoud") == 0) {
-        pth->PBH_accretion_recipe=Ali_Haimoud;
-        class_read_int("coll_ion_pbh",pth->coll_ion_pbh);
+      /** - spherical accretion following Ali Haimoud and Kamionkowski 1612.05644 */
+      if (strcmp(string1,"spherical_accretion") == 0) {
+        pth->PBH_accretion_recipe=spherical_accretion;
+        class_read_int("coll_ion_pbh",pth->coll_ion_pbh); //A parameter that can be specified to HyRec when computing the effect of spherical accreting PBH.
         flag2=_TRUE_;
       }
-      if (strcmp(string1,"Ricotti_et_al") == 0) {
-        pth->PBH_accretion_recipe=Ricotti_et_al;
-        flag2=_TRUE_;
-      }
-      if (strcmp(string1,"Horowitz") == 0) {
-        pth->PBH_accretion_recipe=Horowitz;
-        flag2=_TRUE_;
-      }
-      if (strcmp(string1,"Gaggero_et_al") == 0) {
-        pth->PBH_accretion_recipe=Gaggero_et_al;
-        flag2=_TRUE_;
-      }
-      if (strcmp(string1,"Thin_disk") == 0) {
-        pth->PBH_accretion_recipe=Thin_disk;
-        flag2=_TRUE_;
-      }
-      if (strcmp(string1,"ADAF") == 0) {
-        pth->PBH_accretion_recipe=ADAF;
-        flag2=_TRUE_;
-      }
-      if (strcmp(string1,"ADAF_Simulation") == 0) {
-        pth->PBH_accretion_recipe=ADAF_Simulation;
+      /** - spherical accretion following Poulin et al. 1707.04206 */
+      if (strcmp(string1,"disk_accretion") == 0) {
+        pth->PBH_accretion_recipe=disk_accretion;
         class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
         flag2=_TRUE_;
       }
-      if (strcmp(string1,"Hybrid") == 0) {
-        pth->PBH_accretion_recipe=Hybrid;
-        class_read_double("PBH_disk_formation_redshift",pth->PBH_disk_formation_redshift);
-        flag2=_TRUE_;
-      }
+
     class_test(flag2==_FALSE_,
                  errmsg,
-                 "could not identify PBH_accretion_recipe, check that it is one of 'Ali_Haimoud', 'Ricotti_et_al', 'Horowitz','Gaggero_et_al','Hybrid','Thin_disk','ADAF','ADAF_Simulation'.");
+                 "could not identify PBH_accretion_recipe, check that it is one of 'spherical_accretion' or 'disk_accretion'.");
     }
     class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue); // If chosen to negative value, it will be set to the linear result.
     class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
 
   }
-  class_read_double("PBH_low_mass",pth->PBH_low_mass);
+  class_read_double("PBH_evaporating_mass",pth->PBH_evaporating_mass);
   class_read_double("PBH_fraction",pth->PBH_fraction);
-  // class_test(pth->PBH_low_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
+  // class_test(pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
   //   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
-  class_test(pth->PBH_high_mass<0.,errmsg,
-    "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
+  class_test(pth->PBH_accreting_mass<0.,errmsg,
+    "You need to enter a mass for your PBH 'PBH_accreting_mass > 0.' (in Msun).");
   class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
     "You need to enter a redshift for your accretion disk formation 'PBH_disk_formation_redshift > 0.'.");
-  class_test(pth->PBH_low_mass<0.,errmsg,
-    "You need to enter a mass for your PBH 'PBH_high_mass > 0.' (in Msun).");
-  class_test(pth->PBH_fraction>0. && (pth->PBH_high_mass==0. && pth->PBH_low_mass==0.),errmsg,
-    "You have asked for a fraction of PBH being DM but you have 'PBH_high_mass == 0 && PBH_low_mass ==0'. Please choose a value (in Msun for PBH_high_mass, in g for PBH_low_mass).");
+  class_test(pth->PBH_evaporating_mass<0.,errmsg,
+    "You need to enter a mass for your PBH 'PBH_accreting_mass > 0.' (in Msun).");
+  class_test(pth->PBH_fraction>0. && (pth->PBH_accreting_mass==0. && pth->PBH_evaporating_mass==0.),errmsg,
+    "You have asked for a fraction of PBH being DM but you have 'PBH_accreting_mass == 0 && PBH_evaporating_mass ==0'. Please choose a value (in Msun for PBH_accreting_mass, in g for PBH_evaporating_mass).");
   class_test(pth->PBH_fraction<0.,errmsg,
     "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
-  class_test(pth->recombination==cosmorec && pth->PBH_high_mass!= 0.,
+  class_test(pth->recombination==cosmorec && pth->PBH_accreting_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
-  class_test(pth->recombination==cosmorec && pth->PBH_low_mass!= 0.,
+  class_test(pth->recombination==cosmorec && pth->PBH_evaporating_mass!= 0.,
                errmsg,
                "Effect of evaporating PBH cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
@@ -1527,9 +1505,9 @@ int input_read_parameters(
       if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and cross_section = %.2e. Your parameter annihilation = %.2e. \n",pth->DM_mass,pth->annihilation_cross_section, pth->annihilation);
   }
 
-  // class_test((pth->DM_mass > 0 && pth->annihilation_cross_section <=0)||(pth->DM_mass <= 0 && pth->annihilation_cross_section >0),errmsg,"You set one of (pth->DM_mass,pth->annihilation_cross_section) to non-zero value but not the other ! I cannot compute annihilation parameter: pth->annihilation_cross_section/(pth->DM_mass).")
 
   if (pth->annihilation > 0.){
+  /** obsolete parametrization not used anymore */
   class_read_double("annihilation_variation",pth->annihilation_variation);
   class_read_double("annihilation_z",pth->annihilation_z);
   class_read_double("annihilation_zmax",pth->annihilation_zmax);
@@ -1541,7 +1519,7 @@ int input_read_parameters(
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 /** - Relevant parameters in case of exotic energy injection */
-  if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_high_mass > 0. || pth->PBH_low_mass > 0.){
+  if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_accreting_mass > 0. || pth->PBH_evaporating_mass > 0.){
 
 
     class_call(parser_read_string(pfc,
@@ -1566,200 +1544,204 @@ int input_read_parameters(
       }
     }
 
-	/* BEGIN: Add function to read if "fz_is_extern"-flag is set.
-    If so read also the external command and the inputs */
-
-    class_call(parser_read_string(pfc,"external_fz",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1 == _TRUE_){
-      flag2 = _FALSE_;
-      /**
-      * If an external_fz command is passed, we automatically set parameters to their required values.
-      **/
-      pth->energy_deposition_treatment = Slatyer;
-      pth->energy_repart_functions = no_factorization;
-      pth->has_on_the_spot = _FALSE_;
-      
-      if (strcmp(string1,"built_in") == 0) {
-
-
-        ppr->fz_is_extern=_TRUE_;
-        flag2=_TRUE_;
-        sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
-        strcat(ppr->command_fz, "python ");
-        strcat(ppr->command_fz,__CLASSDIR__);
-
-          /* Check first if injection history is standard and already implemented */
-
-          if(pth->annihilation > 0 && pth->annihilation_f_halo == 0){
-            strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=annihilation --specfile ");
-            sprintf(string2,"");
-            class_call(parser_read_string(pfc,"injected_particles_spectra",&string2,&flag1,errmsg),
-                       errmsg,
-                       errmsg);
-            strcat(ppr->command_fz,string2);
-            class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particles_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n")
-            strcat(ppr->command_fz," --branching ");
-            sprintf(string2,"");
-            class_call(parser_read_string(pfc,"injected_particles_branching_ratio",&string2,&flag1,errmsg),
-                       errmsg,
-                       errmsg);
-            strcat(ppr->command_fz,string2);
-            class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particles_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n")
-            strcat(ppr->command_fz," --mass=");
-            sprintf(string2,"%g",pth->DM_mass);
-            strcat(ppr->command_fz,string2);
-
-          }
-          else if(pth->annihilation > 0 && pth->annihilation_f_halo > 0){
-            strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=annihilation_halos --specfile ");
-            sprintf(string2,"");
-            class_call(parser_read_string(pfc,"injected_particles_spectra",&string2,&flag1,errmsg),
-                       errmsg,
-                       errmsg);
-            strcat(ppr->command_fz,string2);
-            class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particles_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n")
-            strcat(ppr->command_fz," --branching ");
-            sprintf(string2,"");
-            class_call(parser_read_string(pfc,"injected_particles_branching_ratio",&string2,&flag1,errmsg),
-                       errmsg,
-                       errmsg);
-            strcat(ppr->command_fz,string2);
-            class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particles_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n")
-            strcat(ppr->command_fz," --mass=");
-            sprintf(string2,"%g",pth->DM_mass);
-            strcat(ppr->command_fz,string2);
-            strcat(ppr->command_fz," --fh=");
-            sprintf(string2,"%g",pth->annihilation_f_halo);
-            strcat(ppr->command_fz,string2);
-            strcat(ppr->command_fz," --zh=");
-            sprintf(string2,"%g",pth->annihilation_z_halo);
-            strcat(ppr->command_fz,string2);
-          }
-
-          /* For PBH evaporation history: automatic command */
-          else if(pth->PBH_low_mass > 0){
-            strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=evaporating_PBH --mass=");
-            sprintf(string2,"%g",pth->PBH_low_mass);
-            strcat(ppr->command_fz,string2);
-          }
-          else if (pth->PBH_high_mass > 0){
-            strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=accreting_PBH --mass=");
-            sprintf(string2,"%g",pth->PBH_high_mass);
-            strcat(ppr->command_fz,string2);
-            if(pth->PBH_accretion_recipe==Ali_Haimoud || pth->PBH_accretion_recipe==Ricotti_et_al)
-              strcat(ppr->command_fz," --accretion_recipe=spherical_accretion");
-            else if(pth->PBH_accretion_recipe==ADAF_Simulation || pth->PBH_accretion_recipe== Thin_disk || pth->PBH_accretion_recipe== ADAF || pth->PBH_accretion_recipe== Gaggero_et_al)
-              strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
-            // else{
-            //   class_test(1==0,errmsg,
-            //     "You cannot use a accretion_recipe different from 'Ali_Haimoud' or 'ADAF_Simulation' if you are working with external_fz on. This will be updated in the future.\n");
-            // }
-            strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
-          }
-          else if(pth->decay_fraction > 0){
-            strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=decay --specfile ");
-            sprintf(string2,"");
-            class_call(parser_read_string(pfc,"injected_particles_spectra",&string2,&flag1,errmsg),
-                       errmsg,
-                       errmsg);
-            strcat(ppr->command_fz,string2);
-            class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particles_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n")
-            strcat(ppr->command_fz," --mass=");
-            sprintf(string2,"%g",pth->DM_mass);
-            strcat(ppr->command_fz,string2);
-            strcat(ppr->command_fz," --branching ");
-            sprintf(string2,"");
-            class_call(parser_read_string(pfc,"injected_particles_branching_ratio",&string2,&flag1,errmsg),
-                       errmsg,
-                       errmsg);
-            strcat(ppr->command_fz,string2);
-            class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particles_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n")
-            strcat(ppr->command_fz," --tdec=");
-            sprintf(string2,"%g",pba->tau_dcdm);
-            strcat(ppr->command_fz,string2);
-          }
-      }
-      /* If the story is not implemented */
-      /* Reading the input parameter for the external command */
-    	else if (strcmp(string1,"user_command") == 0){
-          ppr->fz_is_extern=_TRUE_;
-          flag2=_TRUE_;
-          class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
-        	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-        	// class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
-        	strcat(ppr->command_fz, string2);
-          /** An arbitrary number of external parameters to be used by the external command
-             */
-          class_read_double("ext_fz_par1",ppr->param_fz_1);
-          class_read_double("ext_fz_par2",ppr->param_fz_2);
-          class_read_double("ext_fz_par3",ppr->param_fz_3);
-          class_read_double("ext_fz_par4",ppr->param_fz_4);
-          class_read_double("ext_fz_par5",ppr->param_fz_5);
-      }
-      else if (strcmp(string1,"from_file") == 0){
-        flag2=_TRUE_;
-        ppr->fz_is_extern=_FALSE_;
-      }
-
-      class_test(flag2==_FALSE_,
-                       errmsg,
-                       "could not identify external_fz, check that it is one of 'built_in_scenarios','from_file','user_command'.");
-    }
-
-    class_call(parser_read_string(pfc,
-                                  "print_energy_deposition_function",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        pth->print_energy_deposition_function = _TRUE_;
-      }
-      else {
-        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-          pth->print_energy_deposition_function = _FALSE_;
-        }
-        else {
-          class_stop(errmsg,"incomprehensible input '%s' for the field 'print_energy_deposition_function'",string1);
-        }
-      }
-    }
-
-    /* END */
 
     if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
       pth->has_on_the_spot = _FALSE_;
     }
     if(pth->has_on_the_spot == _FALSE_){
-      class_call(parser_read_string(pfc,"energy_deposition_treatment",&string1,&flag1,errmsg),
+      class_call(parser_read_string(pfc,"energy_deposition_function",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
       if (flag1 == _TRUE_){
         flag2 = _FALSE_;
         if (strcmp(string1,"Analytical_approximation") == 0) {
-          pth->energy_deposition_treatment=Analytical_approximation;
+          pth->energy_deposition_function=Analytical_approximation;
           flag2=_TRUE_;
         }
-        if (strcmp(string1,"Slatyer") == 0) {
-          pth->energy_deposition_treatment=Slatyer;
+        if (strcmp(string1,"DarkAges") == 0) {
+          pth->energy_deposition_function=DarkAges;
+          flag2=_TRUE_;
+        }
+        if (strcmp(string1,"from_file") == 0) {
+          pth->energy_deposition_function=function_from_file;
           flag2=_TRUE_;
         }
         if (strcmp(string1,"No_deposition") == 0) {
-          pth->energy_deposition_treatment=No_deposition;
+          pth->energy_deposition_function=No_deposition;
           flag2=_TRUE_;
         }
       class_test(flag2==_FALSE_,
                    errmsg,
-                   "could not identify energy_deposition_treatment, check that it is one of 'Analytical_approximation', 'Slatyer','No_deposition'.");
+                   "could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
       }
     }
+
+    /* BEGIN: Add function to read if "fz_is_extern"-flag is set.
+      If so read also the external command and the inputs */
+    if(pth->energy_deposition_function==DarkAges){
+      class_call(parser_read_string(pfc,"DarkAges_mode",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_){
+        flag2 = _FALSE_;
+        /**
+        * If an external_fz command is passed, we automatically set parameters to their required values.
+        **/
+        pth->energy_deposition_function = DarkAges;
+        pth->energy_repart_functions = no_factorization;
+        pth->has_on_the_spot = _FALSE_;
+
+        if (strcmp(string1,"built_in") == 0) {
+          flag2=_TRUE_;
+          sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
+          strcat(ppr->command_fz, "python ");
+          strcat(ppr->command_fz,__CLASSDIR__);
+
+            /* Check first if injection history is standard and already implemented */
+
+            if(pth->annihilation > 0 && pth->annihilation_f_halo == 0){
+              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=annihilation --specfile ");
+              sprintf(string2,"");
+              class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              strcat(ppr->command_fz,string2);
+              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n")
+              strcat(ppr->command_fz," --branching ");
+              sprintf(string2,"");
+              class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              strcat(ppr->command_fz,string2);
+              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n")
+              strcat(ppr->command_fz," --mass=");
+              sprintf(string2,"%g",pth->DM_mass);
+              strcat(ppr->command_fz,string2);
+
+            }
+            else if(pth->annihilation > 0 && pth->annihilation_f_halo > 0){
+              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=annihilation_halos --specfile ");
+              sprintf(string2,"");
+              class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              strcat(ppr->command_fz,string2);
+              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n")
+              strcat(ppr->command_fz," --branching ");
+              sprintf(string2,"");
+              class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              strcat(ppr->command_fz,string2);
+              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n")
+              strcat(ppr->command_fz," --mass=");
+              sprintf(string2,"%g",pth->DM_mass);
+              strcat(ppr->command_fz,string2);
+              strcat(ppr->command_fz," --fh=");
+              sprintf(string2,"%g",pth->annihilation_f_halo);
+              strcat(ppr->command_fz,string2);
+              strcat(ppr->command_fz," --zh=");
+              sprintf(string2,"%g",pth->annihilation_z_halo);
+              strcat(ppr->command_fz,string2);
+            }
+
+            /* For PBH evaporation history: automatic command */
+            else if(pth->PBH_evaporating_mass > 0){
+              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=evaporating_PBH --mass=");
+              sprintf(string2,"%g",pth->PBH_evaporating_mass);
+              strcat(ppr->command_fz,string2);
+            }
+            else if (pth->PBH_accreting_mass > 0){
+              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=accreting_PBH --mass=");
+              sprintf(string2,"%g",pth->PBH_accreting_mass);
+              strcat(ppr->command_fz,string2);
+              if(pth->PBH_accretion_recipe==spherical_accretion)
+                strcat(ppr->command_fz," --accretion_recipe=spherical_accretion");
+              else if(pth->PBH_accretion_recipe==disk_accretion)
+                strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
+              // else{
+              //   class_test(1==0,errmsg,
+              //     "You cannot use a accretion_recipe different from 'Ali_Haimoud' or 'ADAF_Simulation' if you are working with external_fz on. This will be updated in the future.\n");
+              // }
+              strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
+            }
+            else if(pth->decay_fraction > 0){
+              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=decay --specfile ");
+              sprintf(string2,"");
+              class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              strcat(ppr->command_fz,string2);
+              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n")
+              strcat(ppr->command_fz," --mass=");
+              sprintf(string2,"%g",pth->DM_mass);
+              strcat(ppr->command_fz,string2);
+              strcat(ppr->command_fz," --branching ");
+              sprintf(string2,"");
+              class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              strcat(ppr->command_fz,string2);
+              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n")
+              strcat(ppr->command_fz," --tdec=");
+              sprintf(string2,"%g",pba->tau_dcdm);
+              strcat(ppr->command_fz,string2);
+            }
+        }
+        /* If the story is not implemented */
+        /* Reading the input parameter for the external command */
+        else if (strcmp(string1,"user_command") == 0){
+            flag2=_TRUE_;
+            class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+            class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+            // class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
+            strcat(ppr->command_fz, string2);
+            /** An arbitrary number of external parameters to be used by the external command
+               */
+            class_read_double("ext_fz_par1",ppr->param_fz_1);
+            class_read_double("ext_fz_par2",ppr->param_fz_2);
+            class_read_double("ext_fz_par3",ppr->param_fz_3);
+            class_read_double("ext_fz_par4",ppr->param_fz_4);
+            class_read_double("ext_fz_par5",ppr->param_fz_5);
+        }
+
+
+        class_test(flag2==_FALSE_,
+                         errmsg,
+                         "could not identify external_fz, check that it is one of 'built_in_scenarios','from_file','user_command'.");
+      }
+    }
+    // else if (strcmp(string1,"from_file") == 0){
+    //   flag2=_TRUE_;
+    //   ppr->fz_is_extern=_FALSE_;
+    // }
+
+
+      class_call(parser_read_string(pfc,
+                                    "print_energy_deposition_function",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+          pth->print_energy_deposition_function = _TRUE_;
+        }
+        else {
+          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+            pth->print_energy_deposition_function = _FALSE_;
+          }
+          else {
+            class_stop(errmsg,"incomprehensible input '%s' for the field 'print_energy_deposition_function'",string1);
+          }
+        }
+      }
+
+      /* END */
 
     class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
                errmsg,
@@ -1770,15 +1752,15 @@ int input_read_parameters(
         pth->energy_repart_functions=SSCK;
         flag2=_TRUE_;
       }
-      if (strcmp(string1,"Galli_et_al_fit") == 0) {
-        pth->energy_repart_functions=Galli_et_al_fit;
+      else if (strcmp(string1,"GSVI") == 0) {
+        pth->energy_repart_functions=GSVI;
         flag2=_TRUE_;
       }
-      if (strcmp(string1,"Galli_et_al_interpolation") == 0) {
-        pth->energy_repart_functions=Galli_et_al_interpolation;
+      else if (strcmp(string1,"from_file") == 0) {
+        pth->energy_repart_functions=chi_from_file;
         flag2=_TRUE_;
       }
-      if (strcmp(string1,"no_factorization") == 0) {
+      else if (strcmp(string1,"no_factorization") == 0) {
         pth->energy_repart_functions=no_factorization;
         flag2=_TRUE_;
       }
@@ -1787,7 +1769,7 @@ int input_read_parameters(
 
     class_test(flag2==_FALSE_,
                  errmsg,
-                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'Galli_et_al_fit', 'Galli_et_al_interpolation','no_factorization'");
+                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
     }
 
     class_call(parser_read_string(pfc,
@@ -1816,7 +1798,7 @@ int input_read_parameters(
 }
 
 /** Tables specific to evaporating PBH */
-if(pth->PBH_low_mass > 0.){
+if(pth->PBH_evaporating_mass > 0.){
   pth->PBH_table_is_initialized = _FALSE_ ;
   pth->PBH_table_z = NULL;
   pth->PBH_table_mass = NULL;
@@ -2281,12 +2263,12 @@ if(pth->PBH_low_mass > 0.){
       }
 
       if (ppt->has_cdi == _TRUE_) {
-        if(pth->PBH_high_mass > 0){
+        if(pth->PBH_accreting_mass > 0){
 
           ppm->n_cdi = 4.;
-          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(2*_PI_*_PI_)*pow(ppm->k_pivot,ppm->n_cdi-1),1./2);
-          ppm->f_cdi = pth->PBH_fraction*pow(pth->PBH_high_mass*_Sun_mass_over_kg_/(pth->PBH_fraction*pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_))/pow(_Mpc_over_m_,3)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
-          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_high_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_accreting_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(2*_PI_*_PI_)*pow(ppm->k_pivot,ppm->n_cdi-1),1./2);
+          ppm->f_cdi = pth->PBH_fraction*pow(pth->PBH_accreting_mass*_Sun_mass_over_kg_/(pth->PBH_fraction*pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_))/pow(_Mpc_over_m_,3)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
+          // ppm->f_cdi = pow(pth->PBH_fraction*pth->PBH_accreting_mass/(pba->Omega0_cdm*pba->h*pba->h*3*1e10/(8*_PI_*_G_)/_Sun_mass_over_kg_*_Mpc_over_m_)/ppm->A_s/(8*_PI_*_PI_*_PI_),1./2);
           ppm->alpha_cdi = 0.;
           fprintf(stderr, "A_cdi/A_ad %e rho_cdm %e\n", ppm->f_cdi*ppm->f_cdi, pba->Omega0_cdm*pow(pba->H0*_c_/_Mpc_over_m_,2)*3/(8*_PI_*_G_));
         }
@@ -3099,37 +3081,28 @@ if(pth->PBH_low_mass > 0.){
   /** - (h.2.) parameters related to the thermodynamics */
 
   class_read_string("sBBN file",ppr->sBBN_file);
-  class_read_string("energy injection coefficient file",ppr->energy_injec_coeff_file);
-  class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
-  //Temporary : to adjust the energy injection file with the PBH mass
-  if(pth->PBH_accretion_recipe == ADAF_Simulation){
-    if(pth->PBH_high_mass<5){
-      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_1Msun_All.dat");
-    }
-    else if(pth->PBH_high_mass<50 && pth->PBH_high_mass>=5 ){
-      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10Msun_All.dat");
-    }
-    else if(pth->PBH_high_mass<500 && pth->PBH_high_mass>=50 ){
-      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_100Msun_All.dat");
-    }
-    else if(pth->PBH_high_mass<5000 && pth->PBH_high_mass>=500 ){
-      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_1000Msun_All.dat");
-    }
-    else{
-      sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-      strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_10000Msun_All.dat");
-    }
-  }
-  else if(pth->PBH_accretion_recipe == Ali_Haimoud && pth->PBH_high_mass > 0.){
-    // Since <<Ali_Haimoud>> is the default value of the accretion recipe read the following file only if it is really needed i.e. when PBH_high_mass has a non-zero value
-    sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-    strcat(ppr->energy_injec_coeff_file,"/PBH_accretion_efficiency_functions/f_z_PBH_accretion_spherical_All.dat");
+  class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
+  class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
+  class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    pth->f_eff = param1;
+    pth->has_on_the_spot = _TRUE_;
   }
 
+  class_call(parser_read_string(pfc,
+                                "energy injection f_eff file",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_)) {
+    class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
+    pth->has_on_the_spot = _FALSE_;
+  }
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
@@ -3559,9 +3532,9 @@ int input_default_params(
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
 
-  pth->lambda_douspis_et_al = 0.73;
-  pth->zp_douspis_et_al = 6.1;
-  pth->Qp_douspis_et_al = 0.99986;
+  pth->lambda_duspis_et_al = 0.73;
+  pth->zp_duspis_et_al = 6.1;
+  pth->Qp_duspis_et_al = 0.99986;
   pth->z_end_asymmetric_planck_16 = 6;
   pth->z_start_asymmetric_planck_16 = 20;
   pth->alpha_asymmetric_planck_16 = 3;
@@ -3583,17 +3556,18 @@ int input_default_params(
   pth->z_start_reio_stars = 15;
   pth->annihilation = 0.;
   pth->annihilation_cross_section = 0.;
-  pth->DM_mass = -1.;
+  pth->f_eff = 0;
+  pth->DM_mass = 0;
   pth->decay_fraction = 0.;
-  pth->PBH_high_mass = 0.;
+  pth->PBH_accreting_mass = 0.;
   pth->PBH_disk_formation_redshift = 300.;
-  pth->PBH_accretion_recipe = Ali_Haimoud;
-  pth->energy_deposition_treatment = Analytical_approximation;
-  pth->PBH_low_mass = 0.;
+  pth->PBH_accretion_recipe = spherical_accretion;
+  pth->energy_deposition_function = Analytical_approximation;
+  pth->PBH_evaporating_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
   pth->PBH_relative_velocities = -1 ; //Standard value is the linear result extrapolated to PBH.
-  pth->energy_repart_functions = Galli_et_al_fit;
+  pth->energy_repart_functions = GSVI;
   pth->u_gcdm=0.;
   pth->beta_gcdm=0.;
   pth->alpha_gcdm=0.;
@@ -3620,7 +3594,7 @@ int input_default_params(
   pth->annihilation_z_halo = 30.;
   pth->has_on_the_spot = _TRUE_;
   pth->print_energy_deposition_function = _FALSE_;
-  pth->reio_stars_and_dark_matter = _FALSE_;
+  pth->reio_stars_and_dark_matter = _TRUE_; //if set to false, the effect of DM decay on the reionization is bypassed within the reionisation module. For illustration only.
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;

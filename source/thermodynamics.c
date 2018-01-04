@@ -426,7 +426,7 @@ int thermodynamics_init(
 
 
 
-  if(pth->energy_repart_functions==Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
+  if(pth->energy_repart_functions==GSVI || pth->energy_repart_functions==no_factorization || pth->energy_repart_functions ==chi_from_file){
     class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
                pth->error_message,
                pth->error_message);
@@ -454,7 +454,7 @@ int thermodynamics_init(
              pth->error_message,
              "annihilation variation parameter must be negative (decreasing annihilation rate)");
 
-  class_test(pth->PBH_low_mass > 0 && pth->PBH_low_mass < 1e15 && pth->PBH_fraction > 1e-4,pth->error_message,
+  class_test(pth->PBH_evaporating_mass > 0 && pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,pth->error_message,
    "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
 
   // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
@@ -1068,7 +1068,7 @@ int thermodynamics_init(
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
       // printf("duration of reionization = %e, with z_beg = %e, z_mid = %e, z_end = %e\n",pth->duration_of_reionization,pth->z_10_percent,pth->z_50_percent, pth->z_99_percent);
     }
-    if((pth->reio_parametrization == reio_douspis_et_al) || (pth->reio_parametrization == reio_asymmetric_planck_16)){
+    if((pth->reio_parametrization == reio_duspis_et_al) || (pth->reio_parametrization == reio_asymmetric_planck_16)){
       printf(" -> reionization with optical depth = %f\n",pth->tau_reio);
       class_call(background_tau_of_z(pba,pth->z_reio,&tau_reio),
                pba->error_message,
@@ -1315,17 +1315,17 @@ int thermodynamics_indices(
 
   }
 
-  if (pth->reio_parametrization == reio_douspis_et_al){
+  if (pth->reio_parametrization == reio_duspis_et_al){
 
     preio->index_reio_xe_before = index;
     index++;
     preio->index_reio_xe_after = index;
     index++;
-    preio->index_lambda_douspis_et_al = index;
+    preio->index_lambda_duspis_et_al = index;
     index++;
-    preio->index_zp_douspis_et_al = index;
+    preio->index_zp_duspis_et_al = index;
     index++;
-    preio->index_Qp_douspis_et_al = index;
+    preio->index_Qp_duspis_et_al = index;
     index++;
     preio->index_helium_fullreio_fraction = index;
     index++;
@@ -1533,7 +1533,7 @@ int thermodynamics_annihilation_coefficients_init(
   */
 
   /* BEGIN: Add switch (1) */
-  if (!(ppr->fz_is_extern)) {
+  if (pth->energy_deposition_function == function_from_file) {
     class_open(fA,ppr->energy_injec_coeff_file, "r",pth->error_message);
   } else {
     /* Prepare the command */
@@ -1626,7 +1626,7 @@ int thermodynamics_annihilation_coefficients_init(
     }
   }
   /* BEGIN: Add switch (2) */
-  if (!(ppr->fz_is_extern)) {
+  if (pth->energy_deposition_function == function_from_file) {
     fclose(fA);
   } else {
     status = pclose(fA);
@@ -2031,7 +2031,7 @@ int thermodynamics_DM_decay_energy_injection(
 
 
 }
-int pbh_low_mass_time_evolution(
+int PBH_evaporating_mass_time_evolution(
                                   struct precision * ppr,
                                   struct background * pba,
                                   struct recombination * preco,
@@ -2047,7 +2047,7 @@ int pbh_low_mass_time_evolution(
         preco->PBH_table_size = ppr->recfast_Nz0;
         dz = ppr->recfast_z_initial /(preco->PBH_table_size);
         loop_z = ppr->recfast_z_initial-dz;
-        current_mass = preco->PBH_low_mass;
+        current_mass = preco->PBH_evaporating_mass;
         class_alloc(pvecback_loop,pba->bg_size*sizeof(double),pba->error_message);
         class_alloc(preco->PBH_table_z,preco->PBH_table_size*sizeof(double),error_message);
         class_alloc(preco->PBH_table_mass,preco->PBH_table_size*sizeof(double),error_message);
@@ -2104,7 +2104,7 @@ int pbh_low_mass_time_evolution(
           dt = time_now - time_prev;
           time_prev = time_now;
           if (i_step > 0) {
-            if (current_mass > 0.5*preco->PBH_low_mass) {
+            if (current_mass > 0.5*preco->PBH_evaporating_mass) {
               current_mass = current_mass - 5.34e-5*f*pow(current_mass/1e10,-2)*1e10 * dt;
             }
             else {
@@ -2142,7 +2142,7 @@ int pbh_low_mass_time_evolution(
 
 }
 /******************************Energy Injection low mass PBH (evaporation)**********************************/
-int thermodynamics_low_mass_pbh_energy_injection(
+int thermodynamics_evaporating_pbh_energy_injection(
                                                   struct precision * ppr,
                                                   struct background * pba,
                                                   struct recombination * preco,
@@ -2163,7 +2163,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   /* Calculate the PBH-mass evolution at first call of the function */
   if ((preco->PBH_table_is_initialized) == _FALSE_) {
     preco->PBH_table_is_initialized = _TRUE_;
-    pbh_low_mass_time_evolution(ppr,pba,preco,error_message);
+    PBH_evaporating_mass_time_evolution(ppr,pba,preco,error_message);
   }
   /* End of PBH-mass loop */
 
@@ -2200,7 +2200,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   // em_branching = (f-f_neutrinos)/f;
   em_branching = 1.; // Currently incoporated in the computation of the f(z) functions.
   // printf("preco->PBH_z_evaporation %e\n", preco->PBH_z_evaporation);
-  if(pbh_mass <= 0.0001*preco->PBH_low_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
+  if(pbh_mass <= 0.0001*preco->PBH_evaporating_mass || f <= 0 || isnan(pbh_mass)==1 || isnan(f)==1 || z < preco->PBH_z_evaporation){
     pbh_mass = 0;
     dMdt = 0;
     f = 0.;
@@ -2208,7 +2208,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   else {
     dMdt=5.34e-5*f*pow(pbh_mass/1e10,-2)*1e10;
   }
-  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_low_mass*em_branching*(dMdt);
+  *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/preco->PBH_evaporating_mass*em_branching*(dMdt);
   // *energy_rate = rho_cdm_today*pow((1+z),3)*preco->PBH_fraction/pbh_mass*em_branching*(dMdt);
   if(isnan(*energy_rate)==1 || *energy_rate < 0){
     *energy_rate=0.;
@@ -2217,7 +2217,7 @@ int thermodynamics_low_mass_pbh_energy_injection(
   // if(pbh_mass>0)fprintf(stdout,"%e %e %e %e \n",z,f,pbh_mass,*energy_rate);
 }
 /******************************Energy Injection high mass PBH (accretion)**********************************/
-int thermodynamics_high_mass_pbh_energy_injection(
+int thermodynamics_accreting_pbh_energy_injection(
                                                   struct precision * ppr,
                                                   struct background * pba,
                                                   struct recombination * preco,
@@ -2263,142 +2263,9 @@ int thermodynamics_high_mass_pbh_energy_injection(
         // x_e = 1;
         x_e = preco->xe_tmp;
         T_infinity = preco->Tm_tmp*_eV_over_Kelvin_*1e-6; //Temperature in MeV
-
-
-
-        if(preco->PBH_accretion_recipe == Ricotti_et_al || preco->PBH_accretion_recipe == Horowitz){
-            M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
-            L_ed = M_ed_dot*_c_*_c_; // J s^-1;
-            if(preco->PBH_accretion_recipe == Ricotti_et_al){
-              if(z<180)v_eff = pow(1+z,0.63403)*185.806;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
-              if(z>=180)v_eff = pow(1+z,0.221672)*1581.39;// Result of a fit on fig. 2 of Ricotti et al. 0709.0524
-            }
-            else if(preco->PBH_accretion_recipe == Horowitz){
-
-
-              // v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-              v_B = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
-              v_l = 31*MIN(1,z/1000)*1e3;
-              if(v_B < v_l){
-                 v_eff = sqrt(v_B*v_l);
-                 v_eff *= sqrt(1+(v_l/v_B,2));
-
-               }
-              else {
-                v_eff = v_B;
-                v_eff *= pow(16/sqrt(2*_PI_)*pow(v_l/v_B,3),1./6);
-                // fprintf(stdout, "v_B %e v_l %e z %e\n",v_B,v_l,z);
-              }
-              // v_eff = sqrt(v_B*v_l);
-              // if(z<1500)v_eff = pow(1+z,0.793943)*0.0541752*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644 // in m
-              // if(z>=1500)v_eff = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644  // in m
-              // *sqrt(1+(v_l/v_B,2));
-              // v_eff = 31000;
-              // if(v_eff/c_s>1)v_eff = c_s*pow(16/sqrt(2*_PI_)*pow(v_eff/c_s,3),1./6); // eq 6 from Horowitz 1612.07264
-              // else v_eff = c_s*pow(1+pow(v_eff/c_s,2),1./2);
-              // fprintf(stdout, "v_eff %e z %e T_infinity %e x_e %e \n",v_eff,z,T_infinity,x_e);
-              // if(z>=1000)v_eff = 31000;
-            }
-
-            // //First way of computing m_dot and L_acc (from eq. 22 of Ricotti et al.)
-            // r_B = _G_*preco->PBH_high_mass*M_sun*pow(v_eff,-2);
-            // beta = 2.06e-23*x_e*pow(1+z,4);
-            // beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
-            // beta_hat = beta_eff*r_B/c_s;
-            // x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
-            // lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-            // m_dot = (2.8e-3*lambda)*pow((1+z)/1000,3)*(preco->PBH_high_mass)*pow(v_eff/5.74e3,-3); //1.8 -> 2.8 mistake in Ricotti et al.
-            // // if(isnan(m_dot)==1)m_dot = 0;
-            // // L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-            // M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
-            // L_ed = M_ed_dot*_c_*_c_; // J s^-1;
-            // if(preco->PBH_high_mass>100) l = preco->PBH_fraction*MIN(0.1*m_dot,1);
-            // else l = 0.011*m_dot*m_dot;
-            // L_acc_2 = l*L_ed;
-
-            //Second way of computing m_dot and L_acc (from eq. 1 of Ricotti et al.)
-            r_B = _G_*preco->PBH_high_mass*M_sun*pow(v_eff,-2);
-            beta = 2.06e-23*x_e*pow(1+z,4);
-            beta_eff = beta+pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;
-            // fprintf(stdout, "z %e 1/beta %e 1/H %e 1/beta_eff %e t_B %e \n",z,1/beta,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/beta_eff,r_B/v_eff);
-            beta_hat = beta_eff*r_B/c_s;
-            x_cr = (-1+pow(1+beta_hat,0.5))/beta_hat;
-            lambda = exp(4.5/(3+pow(beta_hat,0.75)))*x_cr*x_cr;
-            M_b_dot = 4*_PI_*lambda*m_H*n_gas*v_eff*r_B*r_B;
-            M_ed_dot = 1.44e17*(preco->PBH_high_mass)*1e-3; // 1e-3 = conversion g en Kg;
-            m_dot_2 = M_b_dot/M_ed_dot;
-            // m_dot_old = M_b_dot_old/M_ed_dot;
-            if(preco->PBH_high_mass>100) l2 = preco->PBH_fraction*MIN(0.1*m_dot_2,1);
-            else l2 = 0.011*m_dot_2*m_dot_2;
-            L_acc_2 = l2*L_ed;
-
-            // fprintf(stdout, "z %e m_dot %e L_acc_2 %e   \n",z,m_dot,L_acc_2);
-          }
-
-        //Third way of computing m_dot and L_acc from Gaggero et al. arXiv:1612.00457
-        else if(preco->PBH_accretion_recipe == Gaggero_et_al){
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-            // printf("L_ed %.3e\n",L_ed);
-            M_ed_dot= 10*L_ed/(_c_*_c_);
-            M_crit = 0.01*M_ed_dot; //1% of the eddington accretion rate.
-            //v_eff not clearly given, I use the alternative v_eff by Ali-Haimoud et al.
-            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-            v_l = 30*MIN(1,z/1000)*1e3;
-            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            else v_eff = v_B;
-            lambda = 0.01;
-            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-            if(M_b_dot<M_crit) epsilon = 0.1 * M_b_dot / M_crit ;
-            else epsilon = 0.1;
-            L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            //if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/(M_ed_dot),L_acc_2/(0.3*L_ed),epsilon);
-
-          }
-        //Thin Disk accretion using quantities from Ostriker and Park 2000: lambda = 1, epsilon = 0.1.
-        else if(preco->PBH_accretion_recipe == Thin_disk){
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-            // printf("L_ed %.3e\n",L_ed);
-            M_ed_dot= 10*L_ed/(_c_*_c_);
-            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-            v_l = 30*MIN(1,z/1000)*1e3;
-            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            else v_eff = v_B;
-            lambda = preco->PBH_accretion_eigenvalue;
-            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-            epsilon = 0.1;
-            // L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            //if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
-
-          }
-          //ADAF accretion using quantities from Ostriker and Park 2000: lambda = 1, epsilon = 0.1mdot.
-        else if(preco->PBH_accretion_recipe == ADAF){
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-            // printf("L_ed %.3e\n",L_ed);
-            M_ed_dot= 10*L_ed/(_c_*_c_);
-            v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-            // v_l = 30*MIN(1,z/1000)*1e3;
-            // if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            // else v_eff = v_B;
-            v_eff=v_B;
-            lambda = preco->PBH_accretion_eigenvalue;
-            rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-            if(M_b_dot <= M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
-            else epsilon = 0.1;
-            // L_acc_2 = 0.3*epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            L_acc_2 = epsilon*M_b_dot*_c_*_c_; // 0.3 = conversion factor from bolometric to x-ray only.
-            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            //if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/(0.3*L_ed),epsilon);
-
-          }
-        else if(preco->PBH_accretion_recipe == ADAF_Simulation){
-            L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-            // printf("L_ed %.3e\n",L_ed);
+        /** Disk accretion from Poulin et al. 1707.04206 */
+        if(preco->PBH_accretion_recipe == disk_accretion){
+            L_ed = 4*_PI_*_G_*preco->PBH_accreting_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
             M_ed_dot= 10*L_ed/(_c_*_c_);
             M_crit = 0.01*M_ed_dot;
             v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
@@ -2409,14 +2276,12 @@ int thermodynamics_high_mass_pbh_energy_injection(
             }
             else{
               v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
-              // v_eff = pow(v_l*v_l,0.5);
               v_eff = pow(v_l*v_l+v_B*v_B,0.5);
             }
 
-            // v_eff = v_B;
             lambda = preco->PBH_accretion_eigenvalue;
             rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
+            M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_accreting_mass*M_sun,2)*rho*pow(v_eff,-3.);
             if(preco->PBH_ADAF_delta == 1e-3){
               Value_min = 7.6e-5;
               Value_med = 4.5e-3;
@@ -2485,18 +2350,11 @@ int thermodynamics_high_mass_pbh_energy_injection(
               epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
             }
 
-
-
-            // if(M_b_dot<M_ed_dot) epsilon = 0.1 * M_b_dot / M_ed_dot/(lambda*lambda) ;
-            // else epsilon = 0.1;
-            L_acc_2 = epsilon*M_b_dot*_c_*_c_; //
-            // fprintf(stdout, "z %e M_crit %e M_b_dot/Medd %e L_acc_2/Ledd %e   \n",z,M_crit,M_b_dot/(100*M_crit),L_acc_2/(0.3*L_ed));
-            // if(z >20)fprintf(stdout, " %e   %e %e  %e \n",z,M_b_dot/M_ed_dot,L_acc_2/L_ed,epsilon);
-            // if(z >20)fprintf(stdout, " %e   %e %e  %e %e\n",z,v_B,v_l,v_eff,pow(v_l*v_l+v_B*v_B,0.5));
+            L_acc = epsilon*M_b_dot*_c_*_c_;
 
           }
-        //Fourth way of computing m_dot and L_acc from Ali-Haimoud et al. 1612.05644
-        else if(preco->PBH_accretion_recipe == Ali_Haimoud){
+        /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
+        else if(preco->PBH_accretion_recipe == disk_accretion){
           rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
           // x_e_infinity = 1; // change to 1 for the strong-feedback case
           x_e_infinity = x_e; // change to x_e for the no-feedback case
@@ -2508,61 +2366,16 @@ int thermodynamics_high_mass_pbh_energy_injection(
           }
           else{
             v_l = preco->PBH_relative_velocities*1e3; // converted to m/s.
-            // v_eff = pow(v_l*v_l,0.5);
             v_eff = pow(v_l*v_l+v_B*v_B,0.5);
           }
-          // v_eff = v_B; //Neglect relative velocity of DM & Baryons otherwise a disk form.
-          // if(v_eff == 0) v_eff = pow(1+z,0.21987)*3.64188*1e3;
-          // fprintf(stdout, " z %e x_e %e T_infinity %e v_B %e v_l %e v_eff %e\n",z,x_e,T_infinity,v_B,v_l,v_eff);
-          // fprintf(stdout, "z %e v_l %e sqrt(5/3)*v_B %e c_s %e \n", z,v_l,sqrt(5./3)*v_B,5.7e3*pow(preco->Tm_tmp/2730,0.5));
-          // if(z<1500)v_eff_2 = pow(1+z,0.793943)*0.0541752*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644 // in m
-          // if(z>=1500)v_eff_2 = pow(1+z,0.21987)*3.64188*1e3;// Result of a fit on fig. 7 of Ali-Haimoud et al. 1612.05644  // in m
-          r_B = _G_*preco->PBH_high_mass*M_sun*pow(v_eff,-2); // in m
-          t_B = _G_*preco->PBH_high_mass*M_sun/pow(v_eff,3); // in s
-          // fprintf(stdout, "z %e T_infinity %e rho_infinity %e P_infinity %e v_B %e t_B %e x_e_infinity %e \n",z,T_infinity,rho_infinity,P_infinity,v_B,t_B,x_e_infinity );
+          r_B = _G_*preco->PBH_accreting_mass*M_sun*pow(v_eff,-2); // in m
+          t_B = _G_*preco->PBH_accreting_mass*M_sun/pow(v_eff,3); // in s
           beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_;
           gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
-          // fprintf(stdout, "z %e 1/beta %e 1/H %e 1/gamma_cooling %e t_B %e \n",z,1/beta_compton_drag,1/(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_),1/gamma_cooling,t_B);
           lambda_iso = 0.25*exp(1.5);
           lambda_ad = 0.25*pow(3./5,1.5);
           lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
           lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*1/(pow(pow(1+beta_compton_drag,0.5)+1,2));
-          // lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag;
-          // fprintf(stdout, "z %e beta_compton_drag %e gamma_cooling %e lambda_1 %e lambda_2 %e lambda_3 %e \n",z,beta_compton_drag,gamma_cooling,lambda_1,lambda_2,exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag);
-          lambda = lambda_1*lambda_2/lambda_iso;
-          rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-          // fprintf(stdout, "rho/m_H %e n_gas %e \n", 0.75*rho/m_H,n_gas);
-          M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
-          T_ion = 1.5e4*_eV_over_Kelvin_;
-          tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
-          Y_s = pow((1+x_e_infinity)/2,2./3*13.6/T_ion)*tau_cooling/4*pow(1-5./2*tau_cooling,1./3)*m_p/m_e;
-          T_s = m_e * Y_s*pow(1+Y_s/0.27,-1./3); // in MeV
-          if(T_s/m_e > 1)  J = 27/(2*_PI_)*(log(2*T_s/(m_e)*exp(-0.577)+0.08)+4./3);
-          else J = 4/_PI_*sqrt(2/_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
-          // fprintf(stdout, "z %e J %e T_s %e Y_s %e  tau_cooling %e \n", z,J,T_s,Y_s,tau_cooling);
-          L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-          L_acc_2 = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-          // if(z>20)fprintf(stdout, "%e   %e  %e  %e %e %e \n",z,M_b_dot*_c_*_c_/(10*L_ed),L_acc_2/L_ed,L_acc_2/(M_b_dot*_c_*_c_),v_eff,v_B);
-          // fprintf(stdout, "z %e M_crit %e M_b_dot %e L_acc_2 %e   \n",z,M_crit,M_b_dot,L_acc_2);
-        }
-        else if (preco->PBH_accretion_recipe == Hybrid){
-          //Hybrid accretion model starting from a spherical accretion followed by a transition to disk accretion. We smooth the transition thanks to a tanh function.
-          //In that case we follow spherical accretion recipe from AliHaimoud&Kamionkowski.
-          rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
-          x_e_infinity = x_e; // change to x_e for the no-feedback case
-          v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_;
-          v_l = 30*MIN(1,z/1000)*1e3;
-          if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-          else v_eff = v_B;
-          r_B = _G_*preco->PBH_high_mass*M_sun*pow(v_eff,-2); // in m
-          t_B = _G_*preco->PBH_high_mass*M_sun/pow(v_eff,3); // in s
-          beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_;
-          gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
-          lambda_iso = 0.25*exp(1.5);
-          lambda_ad = 0.25*pow(3./5,1.5);
-          lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
-          lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*1/(pow(pow(1+beta_compton_drag,0.5)+1,2)); // as defined in AliHaimoud&Kamionkowski
-          // lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*(pow(1+beta_compton_drag,0.5)-1)/beta_compton_drag; // as defined in Ricotti et al.
           lambda = lambda_1*lambda_2/lambda_iso;
           rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
           M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; //in kg s^-1
@@ -2572,24 +2385,13 @@ int thermodynamics_high_mass_pbh_energy_injection(
           T_s = m_e * Y_s*pow(1+Y_s/0.27,-1./3); // in MeV
           if(T_s/m_e > 1)  J = 27/(2*_PI_)*(log(2*T_s/(m_e)*exp(-0.577)+0.08)+4./3);
           else J = 4/_PI_*sqrt(2/_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
-          L_ed = 4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
+          L_ed = 4*_PI_*_G_*preco->PBH_accreting_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
           L_acc = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-          L_acc = L_acc*MAX(tanh((z-preco->PBH_disk_formation_redshift)/5),0);
-          M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
-
-          //Here we follow Gaggero et al. recipe for disk accretion, based on observation and very conservative.
-          lambda = 0.01;
-          rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; /* energy density in kg/m^3 */
-          M_b_dot = 4*_PI_*lambda*pow(_G_*preco->PBH_high_mass*M_sun,2)*rho*pow(v_eff,-3.);
-          M_crit = 0.01*4*_PI_*_G_*preco->PBH_high_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_)/(_c_*_c_); //1% of the eddington accretion rate.
-          L_acc_2 = 0.3*0.1*M_b_dot*M_b_dot*_c_*_c_/M_crit; // 1.1e15 = Eddington accretion rate for a 7 solar mass black hole in kg s^-1
-          L_acc_2 = L_acc_2*MIN((1-tanh((z-preco->PBH_disk_formation_redshift)/5)),1);
-          L_acc_2 = L_acc+L_acc_2;
-
-        }
+         }
 
 
-        *energy_rate =  (rho_cdm_today/(preco->PBH_high_mass*M_sun*_c_*_c_))*pow(1+z,3)*L_acc_2*preco->PBH_fraction;
+
+        *energy_rate =  (rho_cdm_today/(preco->PBH_accreting_mass*M_sun*_c_*_c_))*pow(1+z,3)*L_acc*preco->PBH_fraction;
         // fprintf(stdout, "%e %e %e %e %e %e %e %e %e %e %e %e\n",z, beta_compton_drag, gamma_cooling,lambda,M_b_dot*_c_*_c_/L_ed,T_s*1e6/_eV_over_Kelvin_,T_s*J/m_p/137,v_eff,v_B,v_l,L_acc_2/L_ed,*energy_rate);
         // fprintf(stdout, "%e %e %e %e %e %e %e %e \n",x_e, M_b_dot,lambda,m_dot_2,l2,L_acc_2,*energy_rate,z);
         // fprintf(stdout, "%e %e %e \n", z,M_b_dot*_c_*_c_/L_ed,L_acc_2/L_ed);
@@ -2615,11 +2417,11 @@ int thermodynamics_onthespot_energy_injection(
   if(preco->decay_fraction > 0.){
     thermodynamics_DM_decay_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
-  if(preco->PBH_high_mass > 0.){
-    thermodynamics_high_mass_pbh_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
+  if(preco->PBH_accreting_mass > 0.){
+    thermodynamics_accreting_pbh_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
-  if(preco->PBH_low_mass > 0.){
-    thermodynamics_low_mass_pbh_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
+  if(preco->PBH_evaporating_mass > 0.){
+    thermodynamics_evaporating_pbh_energy_injection(ppr,pba,preco,z,energy_rate,error_message);
   }
   //fprintf(stdout," energy rate (after) = %e \n",*energy_rate);
   /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
@@ -2657,12 +2459,12 @@ int thermodynamics_energy_injection(
   double nH0;
   double onthespot;
   double exponent_z,exponent_zp;
-  if (preco->annihilation > 0 || preco->decay_fraction > 0 || preco->PBH_high_mass > 0 || preco->PBH_low_mass > 0 ) {
+  if (preco->annihilation > 0 || preco->decay_fraction > 0 || preco->PBH_accreting_mass > 0 || preco->PBH_evaporating_mass > 0 ) {
     //fprintf(stdout,"Level >>thermodynamics_energy_injection<< | z = %e | energy rate = %e\n",z,*energy_rate);
     if (preco->has_on_the_spot == _FALSE_) {
 
 
-      if(preco->energy_deposition_treatment == Analytical_approximation){
+      if(preco->energy_deposition_function == Analytical_approximation){
         // // /* number of hydrogen nuclei today in m**-3 */
         nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
@@ -2704,7 +2506,7 @@ int thermodynamics_energy_injection(
       }
 
       // // /***********************************************************************************************************************/
-      else if(preco->energy_deposition_treatment == Slatyer){
+      else if(preco->energy_deposition_function == function_from_file){
 
             if(preco->energy_repart_functions!=no_factorization){
               class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z),
@@ -2720,6 +2522,15 @@ int thermodynamics_energy_injection(
             result =  result*preco->f_eff;
             // fprintf(stdout, "energy_rate %e\n", *energy_rate);
       }
+      // // /***********************************************************************************************************************/
+      else if(preco->energy_deposition_function == DarkAges){
+
+            class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
+                      error_message,
+                      error_message);
+            // fprintf(stdout, "energy_rate %e\n", *energy_rate);
+      }
+
       // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
       // class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&onthespot,error_message),
       //            error_message,
@@ -2734,7 +2545,7 @@ int thermodynamics_energy_injection(
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);
-
+      result *= preco->f_eff;
        /* effective energy density rate in J/m^3/s  */
     }
     *energy_rate = result;
@@ -2856,7 +2667,7 @@ int thermodynamics_reionization_function(
 
   }
 
-  if(pth->reio_parametrization == reio_douspis_et_al){
+  if(pth->reio_parametrization == reio_duspis_et_al){
     if(z > preio->reionization_parameters[preio->index_reio_start]) {
       *xe = preio->reionization_parameters[preio->index_reio_xe_before];
 
@@ -2864,10 +2675,10 @@ int thermodynamics_reionization_function(
 
     else {
 
-    if(z < preio->reionization_parameters[preio->index_zp_douspis_et_al]){
-      factor = (1-preio->reionization_parameters[preio->index_Qp_douspis_et_al])/(pow(1+preio->reionization_parameters[preio->index_zp_douspis_et_al],3)-1)
-      *(pow(1+preio->reionization_parameters[preio->index_zp_douspis_et_al],3)-pow(1+z,3))
-      +preio->reionization_parameters[preio->index_Qp_douspis_et_al];
+    if(z < preio->reionization_parameters[preio->index_zp_duspis_et_al]){
+      factor = (1-preio->reionization_parameters[preio->index_Qp_duspis_et_al])/(pow(1+preio->reionization_parameters[preio->index_zp_duspis_et_al],3)-1)
+      *(pow(1+preio->reionization_parameters[preio->index_zp_duspis_et_al],3)-pow(1+z,3))
+      +preio->reionization_parameters[preio->index_Qp_duspis_et_al];
 
     *xe =  (preio->reionization_parameters[preio->index_reio_xe_after]
              -preio->reionization_parameters[preio->index_reio_xe_before])*
@@ -2875,8 +2686,8 @@ int thermodynamics_reionization_function(
 
     }
     else{
-      factor = preio->reionization_parameters[preio->index_Qp_douspis_et_al]*exp(-preio->reionization_parameters[preio->index_lambda_douspis_et_al]
-        *pow(z-preio->reionization_parameters[preio->index_zp_douspis_et_al],3)/(pow(z-preio->reionization_parameters[preio->index_zp_douspis_et_al],2)+0.2));
+      factor = preio->reionization_parameters[preio->index_Qp_duspis_et_al]*exp(-preio->reionization_parameters[preio->index_lambda_duspis_et_al]
+        *pow(z-preio->reionization_parameters[preio->index_zp_duspis_et_al],3)/(pow(z-preio->reionization_parameters[preio->index_zp_duspis_et_al],2)+0.2));
       *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])*
                factor;
@@ -2891,7 +2702,7 @@ int thermodynamics_reionization_function(
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
       *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
         * (tanh(argument)+1.)/2.;
-    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_douspis_et_al],preio->reionization_parameters[preio->index_zp_douspis_et_al],preio->reionization_parameters[preio->index_Qp_douspis_et_al]);
+    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_duspis_et_al],preio->reionization_parameters[preio->index_zp_duspis_et_al],preio->reionization_parameters[preio->index_Qp_duspis_et_al]);
 
     }
     if(*xe > 0.1*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_10_percent == 0){
@@ -2986,7 +2797,7 @@ int thermodynamics_reionization_function(
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
       *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
         * (tanh(argument)+1.)/2.;
-    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_douspis_et_al],preio->reionization_parameters[preio->index_zp_douspis_et_al],preio->reionization_parameters[preio->index_Qp_douspis_et_al]);
+    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_duspis_et_al],preio->reionization_parameters[preio->index_zp_duspis_et_al],preio->reionization_parameters[preio->index_Qp_duspis_et_al]);
 
 
 
@@ -3650,14 +3461,14 @@ int thermodynamics_reionization(
     return _SUCCESS_;
 
   }
-  if((pth->reio_parametrization == reio_douspis_et_al)){
+  if((pth->reio_parametrization == reio_duspis_et_al)){
     preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
     preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
     preio->reionization_parameters[preio->index_helium_fullreio_redshift] = pth->helium_fullreio_redshift; /* helium_fullreio_redshift */
     preio->reionization_parameters[preio->index_helium_fullreio_width] = pth->helium_fullreio_width;    /* helium_fullreio_width */
-    preio->reionization_parameters[preio->index_lambda_douspis_et_al] = pth->lambda_douspis_et_al;
-    preio->reionization_parameters[preio->index_zp_douspis_et_al] = pth->zp_douspis_et_al;
-    preio->reionization_parameters[preio->index_Qp_douspis_et_al] = pth->Qp_douspis_et_al;
+    preio->reionization_parameters[preio->index_lambda_duspis_et_al] = pth->lambda_duspis_et_al;
+    preio->reionization_parameters[preio->index_zp_duspis_et_al] = pth->zp_duspis_et_al;
+    preio->reionization_parameters[preio->index_Qp_duspis_et_al] = pth->Qp_duspis_et_al;
 
     class_test(preio->reionization_parameters[preio->index_helium_fullreio_width]==0,
                pth->error_message,
@@ -4193,7 +4004,7 @@ int thermodynamics_reionization_sample(
       (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
 
       /** - Parameters related to exotic energy injection */
-      if((pth->annihilation != 0 || pth->decay_fraction != 0 || pth->PBH_high_mass != 0 || pth->PBH_low_mass != 0)){
+      if((pth->annihilation != 0 || pth->decay_fraction != 0 || pth->PBH_accreting_mass != 0 || pth->PBH_evaporating_mass != 0)){
 
             /** - --> derivative of baryon temperature */
               preco->xe_tmp=preio->reionization_table[i*preio->re_size+preio->index_re_xe];
@@ -4203,8 +4014,8 @@ int thermodynamics_reionization_sample(
                          pth->error_message);
 
               preco->z_tmp=z;
-               /* coefficient as revised by Slatyer et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-               if(pth->energy_repart_functions==Galli_et_al_interpolation){
+               /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
+               if(pth->energy_repart_functions==GSVI || pth->energy_repart_functions ==chi_from_file){
                  class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe]),
                           pth->error_message,
                           pth->error_message);
@@ -4216,10 +4027,6 @@ int thermodynamics_reionization_sample(
                           pth->error_message);
                  chi_heat = pth->chi_heat;
               }
-              /* coefficient as revised by Slatyer et al. 2013 (in fact it is an fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-               if(pth->energy_repart_functions==Galli_et_al_fit){
-                 chi_heat = 0.996857*(1.-pow(1.-pow(preio->reionization_table[i*preio->re_size+preio->index_re_xe],0.300134),1.51035));
-               }
                /* old approximation from Chen and Kamionkowski */
                if(pth->energy_repart_functions==SSCK){
                  chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
@@ -4644,10 +4451,10 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->annihil_f_eff = preco->annihil_f_eff;
            hyrec_data.cosmo->inj_params->annihil_dd_f_eff = preco->annihil_dd_f_eff;
 
-           if ((pth->PBH_table_is_initialized) == _FALSE_ && pth->PBH_low_mass > 0.) {
+           if ((pth->PBH_table_is_initialized) == _FALSE_ && pth->PBH_evaporating_mass > 0.) {
              pth->PBH_table_is_initialized = _TRUE_;
              preco->PBH_table_is_initialized = _TRUE_;
-             pbh_low_mass_time_evolution(ppr,pba,preco,pth->error_message);
+             PBH_evaporating_mass_time_evolution(ppr,pba,preco,pth->error_message);
              hyrec_data.cosmo->inj_params->PBH_table_is_initialized= preco->PBH_table_is_initialized;
              hyrec_data.cosmo->inj_params->PBH_table_z = preco->PBH_table_z;
              hyrec_data.cosmo->inj_params->PBH_table_mass = preco->PBH_table_mass;
@@ -4657,19 +4464,18 @@ class_stop(pth->error_message,
              hyrec_data.cosmo->inj_params->PBH_table_size= preco->PBH_table_size;
            }
 
-            hyrec_data.cosmo->inj_params->PBH_low_mass = pth->PBH_low_mass;
+            hyrec_data.cosmo->inj_params->PBH_low_mass = pth->PBH_evaporating_mass;
 
 
-           if(pth->energy_deposition_treatment==Analytical_approximation) {
+           if(pth->energy_deposition_function==Analytical_approximation) {
              hyrec_data.cosmo->inj_params->energy_deposition_treatment = 0;
            }
-           else if(pth->energy_deposition_treatment==Slatyer) {
+           else if(pth->energy_deposition_function==function_from_file || pth->energy_deposition_function==DarkAges) {
              hyrec_data.cosmo->inj_params->energy_deposition_treatment = 1;
            }
            if(pth->energy_repart_functions==no_factorization) hyrec_data.cosmo->inj_params->energy_repart_functions = 0;
-           else if(pth->energy_repart_functions==Galli_et_al_interpolation) hyrec_data.cosmo->inj_params->energy_repart_functions = 1;
+           else if(pth->energy_repart_functions==GSVI || pth->energy_repart_functions ==chi_from_file) hyrec_data.cosmo->inj_params->energy_repart_functions = 1;
            else if(pth->energy_repart_functions==SSCK) hyrec_data.cosmo->inj_params->energy_repart_functions = 2;
-           else if(pth->energy_repart_functions==Galli_et_al_fit) hyrec_data.cosmo->inj_params->energy_repart_functions = 3;
            hyrec_data.cosmo->inj_params->f_esc = pth->f_esc;
            hyrec_data.cosmo->inj_params->Zeta_ion = pth->Zeta_ion ; /**< Lyman continuum photon production efficiency of the stellar population */
            hyrec_data.cosmo->inj_params->fx = pth->fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
@@ -4681,17 +4487,13 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->z_start_reio_stars = pth->z_start_reio_stars; /**< Controls the beginning of star reionisation, the SFR experiences is put to 0 above this value. */
            hyrec_data.cosmo->fsR = alpha_ratio;
            hyrec_data.cosmo->meR = me_ratio;
-           hyrec_data.cosmo->inj_params->Mpbh = pth->PBH_high_mass;
+           hyrec_data.cosmo->inj_params->Mpbh = pth->PBH_accreting_mass;
            hyrec_data.cosmo->inj_params->fpbh = pth->PBH_fraction;
            hyrec_data.cosmo->inj_params->coll_ion = pth->coll_ion_pbh;
            hyrec_data.cosmo->inj_params->PBH_ADAF_delta = pth->PBH_ADAF_delta;
            hyrec_data.cosmo->inj_params->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
-           if(pth->PBH_accretion_recipe == Ali_Haimoud) hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 0;
-           else if(pth->PBH_accretion_recipe == ADAF_Simulation) hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 1;
-           else {
-             printf("pth->PBH_accretion_recipe == %s is not yet implemented in HyRec. Defaulting to spherical (Ali_Haimoud) scheme. \n",pth->PBH_accretion_recipe);
-             hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 0;
-           }
+           if(pth->PBH_accretion_recipe == spherical_accretion) hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 0;
+           else if(pth->PBH_accretion_recipe == disk_accretion) hyrec_data.cosmo->inj_params->PBH_accretion_recipe = 1;
           //
 
    if (pth->thermodynamics_verbose > 0)
@@ -4704,7 +4506,7 @@ class_stop(pth->error_message,
  // 		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
  // 		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
  // 		pth->annihilation_zmin, pth->annihilation_variation, pth->annihilation_z_halo,
- // 		pth->PBH_high_mass, pth->PBH_fraction, pth->coll_ion_pbh,on_the_spot);
+ // 		pth->PBH_accreting_mass, pth->PBH_fraction, pth->coll_ion_pbh,on_the_spot);
 
 
    /** - fill a few parameters in preco and pth */
@@ -4858,14 +4660,14 @@ int fill_recombination_structure(struct precision * ppr,
   preco->annihilation_zmax = pth->annihilation_zmax;
   preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay_fraction = pth->decay_fraction;
-  preco->PBH_high_mass = pth->PBH_high_mass;
+  preco->PBH_accreting_mass = pth->PBH_accreting_mass;
   preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
   preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
   preco->PBH_relative_velocities = pth->PBH_relative_velocities;
   preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
-  preco->energy_deposition_treatment = pth->energy_deposition_treatment;
-  preco->PBH_low_mass = pth->PBH_low_mass;
+  preco->energy_deposition_function = pth->energy_deposition_function;
+  preco->PBH_evaporating_mass = pth->PBH_evaporating_mass;
   preco->PBH_fraction = pth->PBH_fraction;
 
   preco->PBH_table_is_initialized = pth->PBH_table_is_initialized;
@@ -5391,7 +5193,7 @@ int thermodynamics_derivs_with_recfast(
              pba->error_message,
              error_message);
 
-   if((pth->annihilation!=0 || pth->decay_fraction!=0 || pth->PBH_high_mass!=0 || pth->PBH_low_mass != 0)){
+   if((pth->annihilation!=0 || pth->decay_fraction!=0 || pth->PBH_accreting_mass!=0 || pth->PBH_evaporating_mass != 0)){
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
 
@@ -5501,10 +5303,10 @@ else energy_rate=0;
       chi_ionHe = 0.;
       chi_lya = 0.;
 
-    if(preco->annihilation > 0 || preco->decay_fraction > 0 || preco->PBH_high_mass > 0 || preco->PBH_low_mass > 0){
+    if(preco->annihilation > 0 || preco->decay_fraction > 0 || preco->PBH_accreting_mass > 0 || preco->PBH_evaporating_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_interpolation){
+        if(pth->energy_repart_functions==GSVI|| pth->energy_repart_functions ==chi_from_file){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x),
                          error_message,
                          error_message);
@@ -5527,12 +5329,6 @@ else energy_rate=0;
           chi_ionH = (1.-x)/3.;
           chi_lya = chi_ionH;
           chi_ionHe=0;
-        }
-        /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-        if(pth->energy_repart_functions==Galli_et_al_fit){
-          chi_ionH = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-          chi_ionHe =0.0312604*pow(1.-pow(x,0.200634),0.82247);
-          chi_lya = 0.335597*pow(1.-pow(x,0.375314),1.80722);
         }
 
         chi_ionH = MIN(chi_ionH,1.);
@@ -5637,10 +5433,10 @@ else energy_rate=0;
   else {
     /* equations modified to take into account energy injection from dark matter */
 
-    if(pth->annihilation >0 || pth->decay_fraction > 0 || pth->PBH_high_mass > 0 || pth->PBH_low_mass > 0){
+    if(pth->annihilation >0 || pth->decay_fraction > 0 || pth->PBH_accreting_mass > 0 || pth->PBH_evaporating_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_interpolation){
+        if(pth->energy_repart_functions==GSVI|| pth->energy_repart_functions ==chi_from_file){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x),
                         error_message,
                         error_message);
@@ -5651,10 +5447,6 @@ else energy_rate=0;
                         error_message,
                         error_message);
             chi_heat = pth->chi_heat;
-        }
-        /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-        if(pth->energy_repart_functions==Galli_et_al_fit){
-            chi_heat = 0.996857*(1.-pow(1.-pow(x,0.300134),1.51035));
         }
         /* old approximation from Chen and Kamionkowski */
         if(pth->energy_repart_functions==SSCK){
@@ -5770,13 +5562,13 @@ int thermodynamics_merge_reco_and_reio(
   if(pth->has_on_the_spot == _FALSE_ && pth->energy_repart_functions!=no_factorization){
     thermodynamics_annihilation_f_eff_free(preco);
   }
-  if(pth->energy_repart_functions == Galli_et_al_interpolation || pth->energy_repart_functions==no_factorization){
+  if(pth->energy_repart_functions == GSVI || pth->energy_repart_functions==no_factorization || pth->energy_repart_functions ==chi_from_file){
     thermodynamics_annihilation_coefficients_free(pth);
   }
   if ((pth->reio_parametrization != reio_none))
     free(preio->reionization_table);
 
-  if ((preco->PBH_table_is_initialized == _TRUE_) && pth->PBH_low_mass > 0.) {
+  if ((preco->PBH_table_is_initialized == _TRUE_) && pth->PBH_evaporating_mass > 0.) {
     // fprintf(stdout,"PBH tabels are free'd\n");
     free(preco->PBH_table_z);
     free(preco->PBH_table_mass);
