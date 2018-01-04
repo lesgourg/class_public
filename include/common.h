@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.6.1"
+#define _VERSION_ "v2.6.3"
 /* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
@@ -761,32 +761,35 @@ struct precision
 
   /** parameters relevant for HALOFIT computation */
 
-  double halofit_dz; /**< spacing in redshift space defining values of z
-			at which HALOFIT will be used. Intermediate
-			values will be obtained by
-			interpolation. Decrease for more precise
-			interpolations, at the expense of increasing
-			time spent in nonlinear_init() */
+  double halofit_min_k_nonlinear; /**< value of k in 1/Mpc below which
+				     non-linear corrections will be neglected */
 
-  double halofit_min_k_nonlinear; /**< value of k in 1/Mpc above
-				     which non-linear corrections will
-				     be computed */
-
-  double halofit_sigma_precision; /**< a smaller value will lead to a
-				      more precise halofit result at
-				      the highest requested redshift,
-				      at the expense of requiring a
-				      larger k_max */
-
-  double halofit_min_k_max; /**< when halofit is used, k_max must be at
-                               least equal to this value (otherwise
+  double halofit_min_k_max; /**< when halofit is used, k_max must be
+                               at least equal to this value (otherwise
                                halofit could not find the scale of
-                               non-linearity) */
+                               non-linearity). Calculations are done
+                               internally until this k_max, but the
+                               output is still controlled by
+                               P_k_max_1/Mpc or P_k_max_h/Mpc even if
+                               they are smaller */
 
   double halofit_k_per_decade; /**< halofit needs to evalute integrals
                                   (linear power spectrum times some
                                   kernels). They are sampled using
                                   this logarithmic step size. */
+
+  double halofit_sigma_precision; /**< a smaller value will lead to a
+				      more precise halofit result at the *highest*
+				      redshift at which halofit can make computations,
+				      at the expense of requiring a larger k_max; but
+				      this parameter is not relevant for the
+				      precision on P_nl(k,z) at other redshifts, so
+				      there is normally no need to change it */
+
+  double halofit_tol_sigma; /**< tolerance required on sigma(R) when
+                               matching the condition sigma(R_nl)=1,
+                               whcih defines the wavenumber of
+                               non-linearity, k_nl=1./R_nl */
 
   //@}
 

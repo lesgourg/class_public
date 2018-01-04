@@ -347,6 +347,11 @@ int spectra_pk_at_z(
                     double * output_ic   /* array with argument output_tot[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
                     ) {
 
+  /* JL 21.09.2017: TODO: now, P(k) total is already calculated and
+     stored in spectra_pk(), in the array psp->pk_l. WE should use
+     that here too to compute output_tot, inmstead of redoing the sum
+     over ICs. */
+
   /** Summary: */
 
   /** - define local variables */
@@ -872,18 +877,41 @@ int spectra_pk_nl_at_z(
 
   else {
 
-    class_call(array_interpolate_spline(psp->ln_tau,
-                                        psp->ln_tau_size,
-                                        psp->ln_pk_nl,
-                                        psp->ddln_pk_nl,
-                                        psp->ln_k_size,
-                                        ln_tau,
-                                        &last_index,
-                                        output_tot,
-                                        psp->ln_k_size,
-                                        psp->error_message),
+    class_test(ln_tau < psp->ln_tau[0],
+               "This should never happen",
                psp->error_message,
                psp->error_message);
+
+    if (ln_tau < psp->ln_tau_nl[0]) {
+
+      class_call(array_interpolate_spline(psp->ln_tau,
+                                          psp->ln_tau_size,
+                                          psp->ln_pk_l,
+                                          psp->ddln_pk_l,
+                                          psp->ln_k_size,
+                                          ln_tau,
+                                          &last_index,
+                                          output_tot,
+                                          psp->ln_k_size,
+                                          psp->error_message),
+                 psp->error_message,
+                 psp->error_message);
+    }
+    else {
+
+      class_call(array_interpolate_spline(psp->ln_tau_nl,
+                                          psp->ln_tau_nl_size,
+                                          psp->ln_pk_nl,
+                                          psp->ddln_pk_nl,
+                                          psp->ln_k_size,
+                                          ln_tau,
+                                          &last_index,
+                                          output_tot,
+                                          psp->ln_k_size,
+                                          psp->error_message),
+                 psp->error_message,
+                 psp->error_message);
+    }
   }
 
   /** - fourth step: eventually convert to linear format */
@@ -1258,7 +1286,7 @@ int spectra_init(
 
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
-    class_call(spectra_k_and_tau(pba,ppt,psp),
+    class_call(spectra_k_and_tau(pba,ppt,pnl,psp),
                psp->error_message,
                psp->error_message);
 
@@ -1442,14 +1470,22 @@ int spectra_free(
           free(psp->ddln_pk);
         }
 
+        free(psp->ln_pk_l);
+
+        if (psp->ln_tau_size > 1) {
+          free(psp->ddln_pk_l);
+        }
+
         if (psp->ln_pk_nl != NULL) {
 
+          free(psp->ln_tau_nl);
           free(psp->ln_pk_nl);
 
-          if (psp->ln_tau_size > 1) {
+          if (psp->ln_tau_nl_size > 1) {
             free(psp->ddln_pk_nl);
           }
         }
+
       }
 
       if (psp->matter_transfer != NULL) {
@@ -2439,6 +2475,7 @@ int spectra_compute_cl(
 int spectra_k_and_tau(
                       struct background * pba,
                       struct perturbs * ppt,
+                      struct nonlinear *pnl,
                       struct spectra * psp
                       ) {
 
@@ -2523,6 +2560,29 @@ int spectra_k_and_tau(
     psp->ln_k[index_k]=log(ppt->k[ppt->index_md_scalars][index_k]);
   }
 
+  /** - if the non-linear power spectrum is requested, we should store
+        it only at values of tau where non-linear corrections were
+        really computed and not brutally set to one. Hence we must
+        find here ln_tau_nl_size which might be smaller than
+        ln_tau_size. But the same table ln_tau will be used for
+        both. */
+
+  if (pnl->method != nl_none) {
+
+    index_tau=ppt->tau_size-psp->ln_tau_size;
+    while (ppt->tau_sampling[index_tau] < pnl->tau[pnl->index_tau_min_nl]) {
+      index_tau++;
+    }
+    psp->ln_tau_nl_size=ppt->tau_size-index_tau;
+
+    class_alloc(psp->ln_tau_nl,sizeof(double)*psp->ln_tau_nl_size,psp->error_message);
+
+    for (index_tau=0; index_tau<psp->ln_tau_nl_size; index_tau++) {
+      psp->ln_tau_nl[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_nl_size+ppt->tau_size]);
+    }
+
+  }
+
   return _SUCCESS_;
 }
 
@@ -2554,6 +2614,7 @@ int spectra_pk(
   int index_ic1,index_ic2,index_ic1_ic1,index_ic2_ic2,index_ic1_ic2;
   int index_k;
   int index_tau;
+  int delta_index_nl=0;
   double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
   double source_ic1;
   double source_ic2;
@@ -2577,10 +2638,24 @@ int spectra_pk(
               sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_ic_size[index_md],
               psp->error_message);
 
+  class_alloc(psp->ln_pk_l,
+              sizeof(double)*psp->ln_tau_size*psp->ln_k_size,
+              psp->error_message);
+
   if (pnl->method != nl_none) {
+
     class_alloc(psp->ln_pk_nl,
-                sizeof(double)*psp->ln_tau_size*psp->ln_k_size,
+                sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,
                 psp->error_message);
+
+    /* possible index shift between the first value of time used for
+             the linear spectrum and that for the non-linear power
+             spectrum (0 if no shift) */
+    delta_index_nl = psp->ln_tau_size-psp->ln_tau_nl_size;
+    class_test(delta_index_nl<0,
+               "This should never happen",
+               psp->error_message,
+               psp->error_message);
   }
   else {
     psp->ln_pk_nl = NULL;
@@ -2658,11 +2733,13 @@ int spectra_pk(
 
       ln_pk_tot = log(pk_tot);
 
+      psp->ln_pk_l[index_tau * psp->ln_k_size + index_k] = ln_pk_tot;
+
       /* if non-linear corrections required, compute the total non-linear matter power spectrum */
 
-      if (pnl->method != nl_none) {
+      if ((pnl->method != nl_none) && (index_tau >= delta_index_nl)) {
 
-        psp->ln_pk_nl[index_tau * psp->ln_k_size + index_k] =
+        psp->ln_pk_nl[(index_tau-delta_index_nl) * psp->ln_k_size + index_k] =
           ln_pk_tot
           + 2.*log(pnl->nl_corr_density[(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k]);
 
@@ -2687,6 +2764,18 @@ int spectra_pk(
                psp->error_message,
                psp->error_message);
 
+    class_alloc(psp->ddln_pk_l,sizeof(double)*psp->ln_tau_size*psp->ln_k_size,psp->error_message);
+
+    class_call(array_spline_table_lines(psp->ln_tau,
+                                        psp->ln_tau_size,
+                                        psp->ln_pk_l,
+                                        psp->ln_k_size,
+                                        psp->ddln_pk_l,
+                                        _SPLINE_EST_DERIV_,
+                                        psp->error_message),
+               psp->error_message,
+               psp->error_message);
+
   }
 
   /* compute sigma8 (mean variance today in sphere of radius 8/h Mpc */
@@ -2704,12 +2793,12 @@ int spectra_pk(
      compute array of second derivatives in view of spline interpolation */
 
   if (pnl->method != nl_none) {
-    if (psp->ln_tau_size > 1) {
+    if (psp->ln_tau_nl_size > 1) {
 
-      class_alloc(psp->ddln_pk_nl,sizeof(double)*psp->ln_tau_size*psp->ln_k_size*psp->ic_ic_size[index_md],psp->error_message);
+      class_alloc(psp->ddln_pk_nl,sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,psp->error_message);
 
-      class_call(array_spline_table_lines(psp->ln_tau,
-                                          psp->ln_tau_size,
+      class_call(array_spline_table_lines(psp->ln_tau_nl,
+                                          psp->ln_tau_nl_size,
                                           psp->ln_pk_nl,
                                           psp->ln_k_size,
                                           psp->ddln_pk_nl,

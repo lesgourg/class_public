@@ -5,6 +5,60 @@
 /******************************************/
 #include "quadrature.h"
 
+int get_qsampling_manual(double *x,
+			 double *w,
+			 int N,
+			 double qmax,
+			 enum ncdm_quadrature_method method,
+			 double *qvec,
+			 int qsiz,
+			 int (*function)(void * params_for_function, double q, double *f0),
+			 void * params_for_function,
+			 ErrorMsg errmsg) {
+
+  double y, h, t;
+  double *b, *c;
+  int i;
+  switch (method){ 
+  case (qm_auto) :
+    return _FAILURE_;
+  case (qm_Laguerre) :
+    /* Allocate storage for Laguerre coefficients: */
+    class_alloc(b,N*sizeof(double),errmsg);
+    class_alloc(c,N*sizeof(double),errmsg);
+    compute_Laguerre(x,w,N,0.0,b,c,_TRUE_);
+    for (i=0; i<N; i++){
+      (*function)(params_for_function,x[i],&y);
+      w[i] *= y;
+    }
+    free(b);
+    free(c);
+    return _SUCCESS_;
+  case (qm_trapz) :
+    for (i=0; i<N; i++){
+      /** Note that we count q=0 as an extra point with weight 0 */
+      h = qmax/N;
+      x[i] = h + i*h;
+      (*function)(params_for_function,x[i],&y);
+      w[i] = y*h;
+      if (i==N-1)
+	w[i] *=0.5;
+    }
+    return _SUCCESS_;
+  case (qm_trapz_indefinite) :
+    /** We do the variable transformation q = 1/t-1. The trapezoidal rule is closed, but since the distribution function
+	goes to zero in both limits, we can use an effectively N+2 rule simply by not using the exterior points. */
+    for (i=0; i<N; i++){
+      h = 1.0/(N+1.0);
+      t = h + i*h;
+      x[i] = 1.0/t-1.0;
+      (*function)(params_for_function,x[i],&y);
+      w[i] = y*h/t/t;
+    }
+    return _SUCCESS_;
+  }
+  return _SUCCESS_;
+}
 int get_qsampling(double *x,
 		  double *w,
 		  int *N,
