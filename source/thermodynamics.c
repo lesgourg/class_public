@@ -1532,7 +1532,7 @@ int thermodynamics_annihilation_coefficients_init(
   char * left;
 
   /* BEGIN: New variables related to the use of an external code to calculate the annihilation coefficients */
-  char arguments[_ARGUMENT_LENGTH_MAX_];
+  //char arguments[_ARGUMENT_LENGTH_MAX_];
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   int status;
   /* END */
@@ -1555,7 +1555,7 @@ int thermodynamics_annihilation_coefficients_init(
   } else {
     /* Prepare the command */
     /* Pass the list of arguments */
-    sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+    //sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
     // /* Write the actual command */
     // sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments); // currently a bug is preventing to add extra arguments, to be corrected soon.
     /* Write the actual command */

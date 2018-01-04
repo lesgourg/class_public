@@ -1528,7 +1528,7 @@ int input_read_parameters(
   class_test(pth->annihilation>0. && pth->annihilation_cross_section >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
   if(pth->DM_mass > 0 && pth->annihilation_cross_section >0.){
       // double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
-      double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
+      double conversion = 1.78*pow(10,-21); // Conversion GeV => Kg
       class_test(pth->DM_mass<=0.,errmsg,
         "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
       pth->annihilation = pth->annihilation_cross_section/(pth->DM_mass*conversion);
@@ -1706,6 +1706,10 @@ int input_read_parameters(
           class_read_double("ext_fz_par3",ppr->param_fz_3);
           class_read_double("ext_fz_par4",ppr->param_fz_4);
           class_read_double("ext_fz_par5",ppr->param_fz_5);
+
+	  sprintf(string2, " %g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+	  strcat(ppr->command_fz,string2);	  
+
       }
       else if (strcmp(string1,"from_file") == 0){
         flag2=_TRUE_;
@@ -1714,7 +1718,7 @@ int input_read_parameters(
 
       class_test(flag2==_FALSE_,
                        errmsg,
-                       "could not identify external_fz, check that it is one of 'built_in_scenarios','from_file','user_command'.");
+                       "could not identify external_fz, check that it is one of 'built_in','from_file','user_command'.");
     }
 
     class_call(parser_read_string(pfc,

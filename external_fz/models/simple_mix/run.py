@@ -14,8 +14,8 @@ if os.environ['DARKAGES_BASE']:
 
 import DarkAges
 from DarkAges.common import finalize, channel_dict
-from DarkAges.model import annihilating_model, decaying_model
-from DarkAges import redshift, DarkAgesError, transfer_functions
+from DarkAges.model import annihilating_model
+from DarkAges import redshift, logEnergies, DarkAgesError, transfer_functions
 
 def run( *arguments, **DarkOptions ):
 	##### In this block the external parameters in arguments[1:] (sys.argv[1:]) are read and translated into
@@ -54,14 +54,9 @@ def run( *arguments, **DarkOptions ):
 	total_spec = mixing * temp_spec_muon + (1.-mixing) * temp_spec_bottom
 	#####
 
-	##### In this block the 'model' object is created given the spectra (and history, decay time....)
+	##### In this block the 'model' object is created given the spectra
 	#####
-	history = DarkOptions.get('injection_history','annihilation')
-	if history == 'decay':
-		tdec = DarkOptions.get('t_dec')
-		full_model = decaying_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, tdec)
-	else:
-		full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass)
+        full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, logEnergies, redshift)
 	#####
 
 	##### To finish the calculation, calculate f(z) for each deposition channel
