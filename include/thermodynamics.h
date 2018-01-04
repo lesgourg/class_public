@@ -276,7 +276,6 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
 
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
   double PBH_accreting_mass; /**< mass from the PBH, in case of Dark Matter being high masses PBH */
-  double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
 
 
 
@@ -343,7 +342,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   //@}
 
 
-  /** @name - redshift, conformal time and sound horizon at recombination */
+  /** @name - characteristic quantities like redshift, conformal time and sound horizon at recombination */
 
   //@{
 
@@ -360,13 +359,6 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   double rs_d;    /**< comoving sound horizon at baryon drag */
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
   double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
-
-  //@}
-
-  /** @name - redshift, conformal time and sound horizon at recombination */
-
-  //@{
-
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
   //@}
@@ -519,7 +511,6 @@ struct recombination {
   double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g. Ali-Haimoud & Kamionkowski 2016) */
   double PBH_relative_velocities; /**< The relative velocities between PBH and baryons in km/s. If negative, the linear result is chosen by the code. */
   enum PBH_accretion_recipe PBH_accretion_recipe; /**< recipe to compute accretion from PBH */
-  double PBH_disk_formation_redshift; /**< Disk formation redshift, in case of Dark Matter being high masses PBH and realistic accretion model*/
   enum energy_deposition_function energy_deposition_function; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   short PBH_table_is_initialized; /**< Flag to specify if the PBH-mass evolution was calculated */
   double PBH_z_evaporation; /**< Double to store the evaporation redshift. Useful to avoid bad extrapolation at low z. */

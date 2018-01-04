@@ -382,6 +382,8 @@ int thermodynamics_init(
   double * tau_table_growing;
   /* conformal time of reionization */
   double tau_reio;
+  /* R = (3./4.)*(rho_b/rho_g) */
+  double R;
   /* structures for storing temporarily information on recombination
      and reionization */
   struct recombination reco;
@@ -559,7 +561,7 @@ int thermodynamics_init(
 
   /** - fill missing columns (quantities not computed previously but related) */
 
-  /** - --> baryon drag interaction rate time minus one, -[R * kappa'], stored temporarily in column ddkappa */
+  /** - --> baryon drag interaction rate time minus one, -[1/R * kappa'], with R = 3 rho_b / 4 rho_gamma, stored temporarily in column ddkappa */
 
   last_index_back = pba->bg_size-1;
 
@@ -574,13 +576,14 @@ int thermodynamics_init(
                pba->error_message,
                pth->error_message);
 
+    R = 3./4.*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];
+
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
-      -4./3.*pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b]
-      *pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
+      -1./R*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
 
   }
 
-  /** - --> second derivative of this rate, -[R * kappa']'', stored temporarily in column dddkappa */
+  /** - --> second derivative of this rate, -[1/R * kappa']'', stored temporarily in column dddkappa */
   class_call(array_spline_table_line_to_line(tau_table,
                                              pth->tt_size,
                                              pth->thermodynamics_table,
@@ -607,18 +610,31 @@ int thermodynamics_init(
   /* the temporary quantities stored in columns ddkappa and dddkappa
      will not be used anymore, they will be overwritten */
 
-  /** - --> compute r_d = [int_{tau_ini}^{tau} dtau [1/kappa'] */
+  /** - --> compute r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') (R^2+4/5(1+R))/(1+R^2)/6 ]^1/2 (see e.g. Wayne Hu's thesis eq. (5.59) */
+
   if (pth->compute_damping_scale == _TRUE_) {
 
     class_alloc(tau_table_growing,pth->tt_size*sizeof(double),pth->error_message);
 
-    /* compute integrand 1/kappa' and store temporarily in column "ddkappa" */
+    /* compute integrand 1/kappa' (R^2+4/5(1+R))/(1+R^2)/6 and store temporarily in column "ddkappa" */
     for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
       tau_table_growing[index_tau]=tau_table[pth->tt_size-1-index_tau];
 
+      class_call(background_at_tau(pba,
+                                 tau_table_growing[index_tau],
+                                 pba->normal_info,
+                                 pba->inter_closeby,
+                                 &last_index_back,
+                                 pvecback),
+               pba->error_message,
+               pth->error_message);
+
+      R = 3./4.*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];
+
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
-        1./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa];
+                 1./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
+                 *(R*R+4./5.*(1.+R))/(1.+R*R)/6.;
 
     }
 
@@ -651,16 +667,17 @@ int thermodynamics_init(
      /* an analytic calculation shows that in the early
         radiation-dominated and ionized universe, when kappa' is
         proportional to (1+z)^2 and tau is proportional to the scale
-        factor, r_d^2 is equal to eta/(3 kappa'). So [r_d,ini^2] =
-        [tau_ini/3/kappa'_ini] should be added to the integral in
+        factor, the integral is equal to eta/(3 kappa')*2./15. So
+        [tau_ini/3/kappa'_ini*2./15.] should be added to the integral in
         order to account for the integration between 0 and tau_ini */
 
      /* compute r_d */
      for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_r_d] =
-         sqrt(tau_table[pth->tt_size-1]/3./pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa]
-              +pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_g]);
+         2.*_PI_*sqrt(tau_table[pth->tt_size-1]/3.
+                      /pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa]*2./15.
+                      +pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_g]);
 
      }
 
@@ -1515,7 +1532,7 @@ int thermodynamics_annihilation_coefficients_init(
   char * left;
 
   /* BEGIN: New variables related to the use of an external code to calculate the annihilation coefficients */
-  char arguments[_ARGUMENT_LENGTH_MAX_];
+  //char arguments[_ARGUMENT_LENGTH_MAX_];
   char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
   int status;
   /* END */
@@ -1533,12 +1550,12 @@ int thermodynamics_annihilation_coefficients_init(
   */
 
   /* BEGIN: Add switch (1) */
-  if (pth->energy_deposition_function == function_from_file) {
+  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_functions == GSVI || pth->energy_repart_functions == chi_from_file) {
     class_open(fA,ppr->energy_injec_coeff_file, "r",pth->error_message);
   } else {
     /* Prepare the command */
     /* Pass the list of arguments */
-    sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+    //sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
     // /* Write the actual command */
     // sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments); // currently a bug is preventing to add extra arguments, to be corrected soon.
     /* Write the actual command */
@@ -1626,7 +1643,7 @@ int thermodynamics_annihilation_coefficients_init(
     }
   }
   /* BEGIN: Add switch (2) */
-  if (pth->energy_deposition_function == function_from_file) {
+  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_functions == GSVI || pth->energy_repart_functions == chi_from_file) {
     fclose(fA);
   } else {
     status = pclose(fA);
@@ -2354,7 +2371,7 @@ int thermodynamics_accreting_pbh_energy_injection(
 
           }
         /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
-        else if(preco->PBH_accretion_recipe == disk_accretion){
+        else if(preco->PBH_accretion_recipe == spherical_accretion){
           rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_*_c_*_c_* 6.241509e12; /* energy density in MeV/m^3 */
           // x_e_infinity = 1; // change to 1 for the strong-feedback case
           x_e_infinity = x_e; // change to x_e for the no-feedback case
@@ -2520,7 +2537,7 @@ int thermodynamics_energy_injection(
                       error_message,
                       error_message);
             result =  result*preco->f_eff;
-            // fprintf(stdout, "energy_rate %e\n", *energy_rate);
+            // fprintf(stdout, "energy_rate %e\n", result);
       }
       // // /***********************************************************************************************************************/
       else if(preco->energy_deposition_function == DarkAges){
@@ -2528,7 +2545,7 @@ int thermodynamics_energy_injection(
             class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                       error_message,
                       error_message);
-            // fprintf(stdout, "energy_rate %e\n", *energy_rate);
+            // fprintf(stdout, "energy_rate %e\n", result);
       }
 
       // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
@@ -2545,7 +2562,9 @@ int thermodynamics_energy_injection(
       class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                  error_message,
                  error_message);
-      result *= preco->f_eff;
+      if(preco->f_eff>0)result *= preco->f_eff; //If preco->f_eff is defined, here we multiply by f_eff.
+      // fprintf(stdout, "energy_rate %e\n", result);
+
        /* effective energy density rate in J/m^3/s  */
     }
     *energy_rate = result;
@@ -4664,7 +4683,6 @@ int fill_recombination_structure(struct precision * ppr,
   preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
   preco->PBH_accretion_eigenvalue = pth->PBH_accretion_eigenvalue;
   preco->PBH_relative_velocities = pth->PBH_relative_velocities;
-  preco->PBH_disk_formation_redshift = pth->PBH_disk_formation_redshift;
   preco->PBH_accretion_recipe = pth->PBH_accretion_recipe;
   preco->energy_deposition_function = pth->energy_deposition_function;
   preco->PBH_evaporating_mass = pth->PBH_evaporating_mass;
@@ -5603,7 +5621,7 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
   class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"tau_d",_TRUE_);
-  //class_store_columntitle(titles,"max. rate",_TRUE_,colnum);
+  //class_store_columntitle(titles,"max. rate",_TRUE_);
   class_store_columntitle(titles,"r_d",pth->compute_damping_scale);
 
   return _SUCCESS_;

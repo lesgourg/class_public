@@ -229,11 +229,11 @@ int input_init(
    * These two arrays must contain the strings of names to be searched
    *  for and the corresponding new parameter */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
-                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm"};
+                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr"};
+                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
-                                        cs_background, cs_background, cs_background};
+                                        cs_background, cs_background, cs_background, cs_spectra};
 
   int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
 
@@ -903,6 +903,14 @@ int input_read_parameters(
     if (ppt->gauge == newtonian)
       ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
 
+    /* Quadrature modes, 0 is qm_auto. */
+    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
+    /* Number of momentum bins */
+    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,-1,N_ncdm);
+
+    /* qmax, if relevant */
+    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm);
+
     /* Read temperatures: */
     class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
 
@@ -1443,7 +1451,8 @@ int input_read_parameters(
   class_read_double("annihilation_cross_section",pth->annihilation_cross_section);
   class_read_double("DM_mass",pth->DM_mass);
   class_read_double("decay_fraction",pth->decay_fraction);
-  if(pth->decay_fraction >0)class_test(pba->Gamma_dcdm <=0,errmsg,"you have decay_fraction > 0 but Gamma_dcdm = 0. That is weird, please check your param file and set 'tau_dcdm' [s] or 'Gamma_dcdm' [km/s/Mpc] to a non-zero value.\n");
+  class_test(pba->tau_dcdm <=0 && pth->decay_fraction >0,errmsg,"you have decay_fraction > 0 but Gamma_dcdm = 0. That is weird, please check your param file and set 'tau_dcdm' [s] or 'Gamma_dcdm' [km/s/Mpc] to a non-zero value.\n");
+  class_test(pba->tau_dcdm >0 && pth->decay_fraction <=0,errmsg,"you have decay_fraction = 0 but tau_dcdm > 0. That is weird, please check your param file.\n");
   class_read_double("PBH_accreting_mass",pth->PBH_accreting_mass);
   if(pth->PBH_accreting_mass>0.){
 
@@ -1462,6 +1471,7 @@ int input_read_parameters(
       if (strcmp(string1,"disk_accretion") == 0) {
         pth->PBH_accretion_recipe=disk_accretion;
         class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
+        // if()
         flag2=_TRUE_;
       }
 
@@ -1479,14 +1489,19 @@ int input_read_parameters(
   //   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
   class_test(pth->PBH_accreting_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_accreting_mass > 0.' (in Msun).");
-  class_test(pth->PBH_disk_formation_redshift<0.,errmsg,
-    "You need to enter a redshift for your accretion disk formation 'PBH_disk_formation_redshift > 0.'.");
+
   class_test(pth->PBH_evaporating_mass<0.,errmsg,
-    "You need to enter a mass for your PBH 'PBH_accreting_mass > 0.' (in Msun).");
+    "You need to enter a mass for your PBH 'PBH_evaporating_mass > 0.' (in g).");
   class_test(pth->PBH_fraction>0. && (pth->PBH_accreting_mass==0. && pth->PBH_evaporating_mass==0.),errmsg,
     "You have asked for a fraction of PBH being DM but you have 'PBH_accreting_mass == 0 && PBH_evaporating_mass ==0'. Please choose a value (in Msun for PBH_accreting_mass, in g for PBH_evaporating_mass).");
-  class_test(pth->PBH_fraction<0.,errmsg,
-    "You need to enter a fraction of PBH being DM 'PBH_fraction > 0. Please choose a value for PBH_fraction in ]0,1].'");
+  class_test(pth->PBH_fraction <0.,errmsg,
+    "You need to enter a fraction of PBH 'PBH_fraction  > 0. Please choose a value for PBH_fraction  in ]0,1].'");
+  class_test(pth->decay_fraction<0.,errmsg,
+    "You need to enter a fraction of decaying DM 'decay_fraction > 0. Please choose a value for decay_fraction in ]0,1].'");
+  class_test(pba->tau_dcdm<0.,errmsg,
+    "You need to enter a lifetime for the decaying DM 'tau_dcdm > 0. '");
+  class_test(pth->DM_mass<0.,errmsg,
+    "You need to enter a 'DM_mass > 0. '");
   class_test(pth->recombination==cosmorec && pth->PBH_accreting_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
@@ -1498,7 +1513,7 @@ int input_read_parameters(
   class_test(pth->annihilation>0. && pth->annihilation_cross_section >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
   if(pth->DM_mass > 0 && pth->annihilation_cross_section >0.){
       // double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
-      double conversion = 1.8*pow(10,-27); // Conversion GeV => Kg
+      double conversion = 1.78*pow(10,-21); // Conversion GeV => Kg
       class_test(pth->DM_mass<=0.,errmsg,
         "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
       pth->annihilation = pth->annihilation_cross_section/(pth->DM_mass*conversion);
@@ -1544,15 +1559,40 @@ int input_read_parameters(
       }
     }
 
+    class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if(flag1 == _TRUE_){
+      pth->f_eff = param1;
+      pth->has_on_the_spot = _TRUE_;
+    }
+
+    class_call(parser_read_string(pfc,
+                                  "energy injection f_eff file",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if ((flag1 == _TRUE_)) {
+      class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
+      pth->has_on_the_spot = _FALSE_;
+    }
+
+
+
+
 
     if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
       fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
       pth->has_on_the_spot = _FALSE_;
     }
-    if(pth->has_on_the_spot == _FALSE_){
+
       class_call(parser_read_string(pfc,"energy_deposition_function",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
+     if(pth->has_on_the_spot == _FALSE_)  class_test(flag1 == _FALSE_,errmsg,"You have one of pth->PBH_fraction>0 ||pth->annihilation > 0 || pth->decay_fraction > 0 but you have not specified energy_deposition_function. Please choose one of 'Analytical_approximation', 'DarkAges', 'from_file', 'no_deposition'.");
       if (flag1 == _TRUE_){
         flag2 = _FALSE_;
         if (strcmp(string1,"Analytical_approximation") == 0) {
@@ -1565,6 +1605,15 @@ int input_read_parameters(
         }
         if (strcmp(string1,"from_file") == 0) {
           pth->energy_deposition_function=function_from_file;
+          class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+         if (flag1 == _TRUE_){
+           class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
+         }
+        else {
+          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy No_deposition function.");
+       }
           flag2=_TRUE_;
         }
         if (strcmp(string1,"No_deposition") == 0) {
@@ -1575,11 +1624,35 @@ int input_read_parameters(
                    errmsg,
                    "could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
       }
-    }
+
 
     /* BEGIN: Add function to read if "fz_is_extern"-flag is set.
       If so read also the external command and the inputs */
     if(pth->energy_deposition_function==DarkAges){
+      class_call(parser_read_string(pfc,
+                                    "print_energy_deposition_function",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+          pth->print_energy_deposition_function = _TRUE_;
+        }
+        else {
+          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+            pth->print_energy_deposition_function = _FALSE_;
+          }
+          else {
+            class_stop(errmsg,"incomprehensible input '%s' for the field 'print_energy_deposition_function'",string1);
+          }
+        }
+      }
+
+
+
       class_call(parser_read_string(pfc,"DarkAges_mode",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
@@ -1587,9 +1660,8 @@ int input_read_parameters(
       if (flag1 == _TRUE_){
         flag2 = _FALSE_;
         /**
-        * If an external_fz command is passed, we automatically set parameters to their required values.
+        * If an DarkAgesModule command is passed, we automatically set parameters to their required values.
         **/
-        pth->energy_deposition_function = DarkAges;
         pth->energy_repart_functions = no_factorization;
         pth->has_on_the_spot = _FALSE_;
 
@@ -1602,7 +1674,7 @@ int input_read_parameters(
             /* Check first if injection history is standard and already implemented */
 
             if(pth->annihilation > 0 && pth->annihilation_f_halo == 0){
-              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=annihilation --specfile ");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation --specfile ");
               sprintf(string2,"");
               class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
                          errmsg,
@@ -1622,7 +1694,7 @@ int input_read_parameters(
 
             }
             else if(pth->annihilation > 0 && pth->annihilation_f_halo > 0){
-              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=annihilation_halos --specfile ");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation_halos --specfile ");
               sprintf(string2,"");
               class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
                          errmsg,
@@ -1649,12 +1721,12 @@ int input_read_parameters(
 
             /* For PBH evaporation history: automatic command */
             else if(pth->PBH_evaporating_mass > 0){
-              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=evaporating_PBH --mass=");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=evaporating_PBH --mass=");
               sprintf(string2,"%g",pth->PBH_evaporating_mass);
               strcat(ppr->command_fz,string2);
             }
             else if (pth->PBH_accreting_mass > 0){
-              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=accreting_PBH --mass=");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=accreting_PBH --mass=");
               sprintf(string2,"%g",pth->PBH_accreting_mass);
               strcat(ppr->command_fz,string2);
               if(pth->PBH_accretion_recipe==spherical_accretion)
@@ -1663,12 +1735,12 @@ int input_read_parameters(
                 strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
               // else{
               //   class_test(1==0,errmsg,
-              //     "You cannot use a accretion_recipe different from 'Ali_Haimoud' or 'ADAF_Simulation' if you are working with external_fz on. This will be updated in the future.\n");
+              //     "You cannot use a accretion_recipe different from 'Ali_Haimoud' or 'ADAF_Simulation' if you are working with DarkAgesModule on. This will be updated in the future.\n");
               // }
               strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
             }
             else if(pth->decay_fraction > 0){
-              strcat(ppr->command_fz,"/external_fz/bin/DarkAges --hist=decay --specfile ");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=decay --specfile ");
               sprintf(string2,"");
               class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
                          errmsg,
@@ -1695,9 +1767,9 @@ int input_read_parameters(
         else if (strcmp(string1,"user_command") == 0){
             flag2=_TRUE_;
             class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
-            class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-            // class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
-            strcat(ppr->command_fz, string2);
+          	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+          	// class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
+          	strcat(ppr->command_fz, string2);
             /** An arbitrary number of external parameters to be used by the external command
                */
             class_read_double("ext_fz_par1",ppr->param_fz_1);
@@ -1705,12 +1777,16 @@ int input_read_parameters(
             class_read_double("ext_fz_par3",ppr->param_fz_3);
             class_read_double("ext_fz_par4",ppr->param_fz_4);
             class_read_double("ext_fz_par5",ppr->param_fz_5);
+
+  	  sprintf(string2, " %g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+  	  strcat(ppr->command_fz,string2);
+
         }
 
 
         class_test(flag2==_FALSE_,
                          errmsg,
-                         "could not identify external_fz, check that it is one of 'built_in_scenarios','from_file','user_command'.");
+                         "could not identify DarkAges_mode, check that it is one of 'built_in_scenarios','from_file','user_command'.");
       }
     }
     // else if (strcmp(string1,"from_file") == 0){
@@ -1719,27 +1795,7 @@ int input_read_parameters(
     // }
 
 
-      class_call(parser_read_string(pfc,
-                                    "print_energy_deposition_function",
-                                    &(string1),
-                                    &(flag1),
-                                    errmsg),
-                 errmsg,
-                 errmsg);
 
-      if (flag1 == _TRUE_) {
-        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-          pth->print_energy_deposition_function = _TRUE_;
-        }
-        else {
-          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-            pth->print_energy_deposition_function = _FALSE_;
-          }
-          else {
-            class_stop(errmsg,"incomprehensible input '%s' for the field 'print_energy_deposition_function'",string1);
-          }
-        }
-      }
 
       /* END */
 
@@ -1758,6 +1814,15 @@ int input_read_parameters(
       }
       else if (strcmp(string1,"from_file") == 0) {
         pth->energy_repart_functions=chi_from_file;
+        class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        if (flag1 == _TRUE_){
+          class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
+        }
+        else {
+          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy repartition functions.");
+        }
         flag2=_TRUE_;
       }
       else if (strcmp(string1,"no_factorization") == 0) {
@@ -2362,6 +2427,10 @@ if(pth->PBH_evaporating_mass > 0.){
     if (ppt->has_tensors == _TRUE_) {
 
       class_read_double("r",ppm->r);
+
+      if (ppt->has_scalars == _FALSE_) {
+        class_read_double("A_s",ppm->A_s);
+      }
 
       if (ppm->r <= 0) {
         ppt->has_tensors = _FALSE_;
@@ -3081,28 +3150,6 @@ if(pth->PBH_evaporating_mass > 0.){
   /** - (h.2.) parameters related to the thermodynamics */
 
   class_read_string("sBBN file",ppr->sBBN_file);
-  class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
-  class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
-  class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  if(flag1 == _TRUE_){
-    pth->f_eff = param1;
-    pth->has_on_the_spot = _TRUE_;
-  }
-
-  class_call(parser_read_string(pfc,
-                                "energy injection f_eff file",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
-
-  if ((flag1 == _TRUE_)) {
-    class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
-    pth->has_on_the_spot = _FALSE_;
-  }
 
   class_read_double("recfast_z_initial",ppr->recfast_z_initial);
 
@@ -3330,10 +3377,11 @@ if(pth->PBH_evaporating_mass > 0.){
 
   /** - (h.6.) parameters related to nonlinear calculations */
 
-  class_read_double("halofit_dz",ppr->halofit_dz);
   class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
+  class_read_double("halofit_min_k_max",ppr->halofit_min_k_max);
   class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
+  class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
 
   /** - (h.7.) parameter related to lensing */
 
@@ -3560,9 +3608,7 @@ int input_default_params(
   pth->DM_mass = 0;
   pth->decay_fraction = 0.;
   pth->PBH_accreting_mass = 0.;
-  pth->PBH_disk_formation_redshift = 300.;
   pth->PBH_accretion_recipe = spherical_accretion;
-  pth->energy_deposition_function = Analytical_approximation;
   pth->PBH_evaporating_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
@@ -3652,7 +3698,7 @@ int input_default_params(
   ppt->l_vector_max=500;
   ppt->l_tensor_max=500;
   ppt->l_lss_max=300;
-  ppt->k_max_for_pk=0.1;
+  ppt->k_max_for_pk=1.;
 
   ppt->gauge=synchronous;
 
@@ -3848,11 +3894,10 @@ int input_default_precision ( struct precision * ppr ) {
 
   /* for bbn */
   sprintf(ppr->sBBN_file,__CLASSDIR__);
-  strcat(ppr->sBBN_file,"/bbn/sBBN.dat");
+  strcat(ppr->sBBN_file,"/bbn/sBBN_2017.dat");
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
-  //strcat(ppr->energy_injec_coeff_file,"/DM_Annihilation_files/DM_Annihilation_coeff.dat");
-  strcat(ppr->energy_injec_coeff_file,"/external_fz/Fallback.dat");
+  strcat(ppr->energy_injec_coeff_file,"/DarkAgesModule/GSVI_file.dat"); //Default correspond to the GSVI case
   sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
   strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
 
@@ -3867,6 +3912,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->param_fz_4 = 0.;
   ppr->param_fz_5 = 0.;
   /* END  */
+
 
   /* for recombination */
 
@@ -4067,11 +4113,11 @@ int input_default_precision ( struct precision * ppr ) {
    * - parameters related to nonlinear module
    */
 
-  ppr->halofit_dz=0.1;
-  ppr->halofit_min_k_nonlinear=0.0035;
+  ppr->halofit_min_k_nonlinear = 1.e-4;
+  ppr->halofit_min_k_max = 5.;
   ppr->halofit_k_per_decade = 80.;
-  ppr->halofit_sigma_precision=0.05;
-  ppr->halofit_min_k_max=5.;
+  ppr->halofit_sigma_precision = 0.05;
+  ppr->halofit_tol_sigma = 1.e-6;
 
   /**
    * - parameter related to lensing
@@ -4257,6 +4303,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   int input_verbose;
   int flag;
   int param;
+  short compute_sigma8 = _FALSE_;
 
   pfzw = (struct fzerofun_workspace *) voidpfzw;
 
@@ -4285,10 +4332,32 @@ int input_try_unknown_parameters(double * unknown_parameter,
                              errmsg),
              errmsg,
              errmsg);
+
   if (flag == _TRUE_)
     input_verbose = param;
   else
     input_verbose = 0;
+
+  /** - Optimise flags for sigma8 calculation.*/
+  for (i=0; i < unknown_parameters_size; i++) {
+    if (pfzw->target_name[i] == sigma8) {
+      compute_sigma8 = _TRUE_;
+    }
+  }
+  if (compute_sigma8 == _TRUE_) {
+    pt.k_max_for_pk=1.0;
+    pt.has_pk_matter=_TRUE_;
+    pt.has_perturbations = _TRUE_;
+    pt.has_cl_cmb_temperature = _FALSE_;
+    pt.has_cls = _FALSE_;
+    pt.has_cl_cmb_polarization = _FALSE_;
+    pt.has_cl_cmb_lensing_potential = _FALSE_;
+    pt.has_cl_number_count = _FALSE_;
+    pt.has_cl_lensing_potential=_FALSE_;
+    pt.has_density_transfers=_FALSE_;
+    pt.has_velocity_transfers=_FALSE_;
+
+  }
 
   /** - Do computations */
   if (pfzw->required_computation_stage >= cs_background){
@@ -4380,6 +4449,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
       else
         rho_dr_today = 0.;
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
+      break;
+    case sigma8:
+      output[i] = sp.sigma8-pfzw->target_value[i];
       break;
     }
   }
@@ -4545,6 +4617,13 @@ int input_get_guess(double *xguess,
         dxdy[index_guess] *= gamma/100;
 
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      break;
+
+    case sigma8:
+      /* Assume linear relationship between A_s and sigma8 and fix coefficient
+         according to vanilla LambdaCDM. Should be good enough... */
+      xguess[index_guess] = 2.43e-9/0.87659*pfzw->target_value[index_guess];
+      dxdy[index_guess] = 2.43e-9/0.87659;
       break;
     }
     //printf("xguess = %g\n",xguess[index_guess]);

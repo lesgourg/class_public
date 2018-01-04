@@ -282,7 +282,9 @@ struct background
 
 
   //@{
-
+  int * ncdm_quadrature_strategy; /**< Vector of integers according to quadrature strategy. */
+  int * ncdm_input_q_size; /**< Vector of numbers of q bins */
+  double * ncdm_qmax;   /**< Vector of maximum value of q */
   double ** q_ncdm_bg;  /**< Pointers to vectors of background sampling in q */
   double ** w_ncdm_bg;  /**< Pointers to vectors of corresponding quadrature weights w */
   double ** q_ncdm;     /**< Pointers to vectors of perturbation sampling in q */
