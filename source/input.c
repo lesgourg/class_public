@@ -1626,8 +1626,68 @@ int input_read_parameters(
       }
 
 
-    /* BEGIN: Add function to read if "fz_is_extern"-flag is set.
-      If so read also the external command and the inputs */
+          class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          if (flag1 == _TRUE_){
+            flag2 = _FALSE_;
+            if (strcmp(string1,"SSCK") == 0) {
+              pth->energy_repart_functions=SSCK;
+              flag2=_TRUE_;
+            }
+            else if (strcmp(string1,"GSVI") == 0) {
+              pth->energy_repart_functions=GSVI;
+              flag2=_TRUE_;
+            }
+            else if (strcmp(string1,"from_file") == 0) {
+              pth->energy_repart_functions=chi_from_file;
+              class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
+                         errmsg,
+                         errmsg);
+              if (flag1 == _TRUE_){
+                class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
+              }
+              else {
+                class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy repartition functions.");
+              }
+              flag2=_TRUE_;
+            }
+            else if (strcmp(string1,"no_factorization") == 0) {
+              pth->energy_repart_functions=no_factorization;
+              flag2=_TRUE_;
+            }
+            class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_functions  == no_factorization,errmsg,
+              "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
+
+          class_test(flag2==_FALSE_,
+                       errmsg,
+                       "could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
+          }
+
+          class_call(parser_read_string(pfc,
+                                        "reio_stars_and_dark_matter",
+                                        &(string1),
+                                        &(flag1),
+                                        errmsg),
+                     errmsg,
+                     errmsg);
+
+          if (flag1 == _TRUE_) {
+            if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+              pth->reio_stars_and_dark_matter = _TRUE_;
+            }
+            else {
+              if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+                pth->reio_stars_and_dark_matter = _FALSE_;
+                pth->reio_parametrization=reio_none;
+              }
+              else {
+                class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
+              }
+            }
+          }
+    
+    /* BEGIN: Set all the DarkAges module options */
     if(pth->energy_deposition_function==DarkAges){
       class_call(parser_read_string(pfc,
                                     "print_energy_deposition_function",
@@ -1790,6 +1850,11 @@ int input_read_parameters(
                          errmsg,
                          "could not identify DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
       }
+      else{
+        class_test(flag1==_FALSE_,
+                         errmsg,
+                         "You did not precise DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
+      }
     }
     // else if (strcmp(string1,"from_file") == 0){
     //   flag2=_TRUE_;
@@ -1801,66 +1866,6 @@ int input_read_parameters(
 
       /* END */
 
-    class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    if (flag1 == _TRUE_){
-      flag2 = _FALSE_;
-      if (strcmp(string1,"SSCK") == 0) {
-        pth->energy_repart_functions=SSCK;
-        flag2=_TRUE_;
-      }
-      else if (strcmp(string1,"GSVI") == 0) {
-        pth->energy_repart_functions=GSVI;
-        flag2=_TRUE_;
-      }
-      else if (strcmp(string1,"from_file") == 0) {
-        pth->energy_repart_functions=chi_from_file;
-        class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
-                   errmsg,
-                   errmsg);
-        if (flag1 == _TRUE_){
-          class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
-        }
-        else {
-          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy repartition functions.");
-        }
-        flag2=_TRUE_;
-      }
-      else if (strcmp(string1,"no_factorization") == 0) {
-        pth->energy_repart_functions=no_factorization;
-        flag2=_TRUE_;
-      }
-      class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_functions  == no_factorization,errmsg,
-        "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
-
-    class_test(flag2==_FALSE_,
-                 errmsg,
-                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
-    }
-
-    class_call(parser_read_string(pfc,
-                                  "reio_stars_and_dark_matter",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        pth->reio_stars_and_dark_matter = _TRUE_;
-      }
-      else {
-        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-          pth->reio_stars_and_dark_matter = _FALSE_;
-          pth->reio_parametrization=reio_none;
-        }
-        else {
-          class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
-        }
-      }
-    }
 
 }
 

@@ -452,9 +452,6 @@ int thermodynamics_init(
              "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",
              pth->annihilation);
 
-  class_test((pth->annihilation_variation>0),
-             pth->error_message,
-             "annihilation variation parameter must be negative (decreasing annihilation rate)");
 
   class_test(pth->PBH_evaporating_mass > 0 && pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,pth->error_message,
    "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
@@ -463,17 +460,7 @@ int thermodynamics_init(
   //            pth->error_message,
   //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
 
-  class_test((pth->annihilation_z<0),
-             pth->error_message,
-             "characteristic annihilation redshift cannot be negative");
 
-  class_test((pth->annihilation_zmin<0),
-             pth->error_message,
-             "characteristic annihilation redshift cannot be negative");
-
-  class_test((pth->annihilation_zmax<0),
-             pth->error_message,
-             "characteristic annihilation redshift cannot be negative");
 
   class_test((pth->annihilation>0)&&(pba->has_cdm==_FALSE_),
              pth->error_message,
@@ -2418,7 +2405,7 @@ int thermodynamics_accreting_pbh_energy_injection(
 
 
 
-/*************************New version, corrected by Vivian Poulin******************************/
+/*************************New version, improved by Vivian Poulin******************************/
 int thermodynamics_onthespot_energy_injection(
                                               struct precision * ppr,
                                               struct background * pba,
@@ -4289,10 +4276,6 @@ int thermodynamics_recombination_with_cosmorec(
   /* energy injection parameters */
   preco->annihilation = pth->annihilation;
   preco->has_on_the_spot = pth->has_on_the_spot;
-  preco->annihilation_variation = pth->annihilation_variation;
-  preco->annihilation_z = pth->annihilation_z;
-  preco->annihilation_zmax = pth->annihilation_zmax;
-  preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay_fraction = pth->decay_fraction;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
@@ -4447,10 +4430,6 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->decay_fraction = pth->decay_fraction;
            hyrec_data.cosmo->inj_params->Gamma_dcdm = pba->Gamma_dcdm;
            hyrec_data.cosmo->inj_params->f_eff = pth->f_eff;
-           hyrec_data.cosmo->inj_params->ann_var = pth->annihilation_variation;
-           hyrec_data.cosmo->inj_params->ann_z = pth->annihilation_z;
-           hyrec_data.cosmo->inj_params->ann_zmax = pth->annihilation_zmax;
-           hyrec_data.cosmo->inj_params->ann_zmin = pth->annihilation_zmin;
            hyrec_data.cosmo->inj_params->ann_f_halo = pth->annihilation_f_halo;
            hyrec_data.cosmo->inj_params->ann_z_halo = pth->annihilation_z_halo;
            hyrec_data.cosmo->inj_params->annihil_coef_num_lines = pth->annihil_coef_num_lines;
@@ -4522,11 +4501,6 @@ class_stop(pth->error_message,
      printf("by Y. Ali-Haïmoud & C. Hirata\n");
 
    hyrec_compute_CLASS(&hyrec_data, FULL);
-  //  hyrec_compute(&hyrec_data, FULL,
- // 		pba->h, pba->T_cmb, pba->Omega0_b, Omega_m, pba->Omega0_k, pth->YHe, pba->Neff,
- // 		alpha_ratio, me_ratio, pann, pann_halo, pth->annihilation_z, pth->annihilation_zmax,
- // 		pth->annihilation_zmin, pth->annihilation_variation, pth->annihilation_z_halo,
- // 		pth->PBH_accreting_mass, pth->PBH_fraction, pth->coll_ion_pbh,on_the_spot);
 
 
    /** - fill a few parameters in preco and pth */
@@ -4541,10 +4515,6 @@ class_stop(pth->error_message,
    /* energy injection parameters */
    preco->annihilation = pth->annihilation;
    preco->has_on_the_spot = pth->has_on_the_spot;
-   preco->annihilation_variation = pth->annihilation_variation;
-   preco->annihilation_z = pth->annihilation_z;
-   preco->annihilation_zmax = pth->annihilation_zmax;
-   preco->annihilation_zmin = pth->annihilation_zmin;
    preco->decay_fraction = pth->decay_fraction;
    preco->annihilation_f_halo = pth->annihilation_f_halo;
    preco->annihilation_z_halo = pth->annihilation_z_halo;
@@ -4675,10 +4645,6 @@ int fill_recombination_structure(struct precision * ppr,
   /* energy injection parameters */
   preco->annihilation = pth->annihilation;
   preco->has_on_the_spot = pth->has_on_the_spot;
-  preco->annihilation_variation = pth->annihilation_variation;
-  preco->annihilation_z = pth->annihilation_z;
-  preco->annihilation_zmax = pth->annihilation_zmax;
-  preco->annihilation_zmin = pth->annihilation_zmin;
   preco->decay_fraction = pth->decay_fraction;
   preco->PBH_accreting_mass = pth->PBH_accreting_mass;
   preco->PBH_ADAF_delta = pth->PBH_ADAF_delta;
@@ -5341,7 +5307,7 @@ else energy_rate=0;
           chi_ionH = pth->chi_ionH;
           chi_ionHe = pth->chi_ionHe;
           chi_lya = pth->chi_lya;
-          // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,chi_lya,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat+pth->chi_lowE));
+          // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,chi_lya,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat));
         }
         /* old approximation from Chen and Kamionkowski */
         if(pth->energy_repart_functions==SSCK){
