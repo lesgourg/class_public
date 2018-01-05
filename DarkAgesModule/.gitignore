@@ -1,0 +1,9 @@
+# ignore all compiled python scripts
+*.pyc
+
+# ignore all .obj files (contains dumped data with dill, and this can lead to problems when the version of some packages used to produce it are not present)
+*.obj
+
+# ignore the html of the documentation. (The users can compile it by themselves)
+sphinx-documentation/_build/                                                                                                                                                
+sphinx-documentation/_static/
