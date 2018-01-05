@@ -448,7 +448,8 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
   double inj  = dEdtdV_inj(z_out, xe, Tgas, params);
 
   if (params->on_the_spot == 1){
-    *dEdtdV_dep = inj;
+    // *dEdtdV_dep = inj;
+    *dEdtdV_dep = inj*params->f_eff;
   }
 
   // Else put in your favorite recipe to translate from injection to deposition
@@ -467,7 +468,7 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
 
   }
 
-  //  printf("on_the_spot %d *dEdtdV_dep %e inj %e \n", params->on_the_spot,*dEdtdV_dep,inj);
+   // printf("on_the_spot %d *dEdtdV_dep %e inj %e \n", params->on_the_spot,*dEdtdV_dep,inj);
 
 
 }
@@ -630,7 +631,7 @@ int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params,
                                   1,
                                   error_message);
       }
-      if(inj_params->energy_repart_functions > 0){
+      if(inj_params->energy_repart_functions > 0 && inj_params->on_the_spot == 0){
         array_interpolate_spline(inj_params->annihil_z,
                                 inj_params->annihil_f_eff_num_lines,
                                 inj_params->annihil_f_eff,

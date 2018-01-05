@@ -2537,7 +2537,7 @@ int thermodynamics_energy_injection(
                       error_message,
                       error_message);
             result =  result*preco->f_eff;
-            // fprintf(stdout, "energy_rate %e\n", result);
+            // fprintf(stdout, "energy_rate %e preco->f_eff %e\n", result,preco->f_eff);
       }
       // // /***********************************************************************************************************************/
       else if(preco->energy_deposition_function == DarkAges){
@@ -2545,7 +2545,7 @@ int thermodynamics_energy_injection(
             class_call(thermodynamics_onthespot_energy_injection(ppr,pba,preco,z,&result,error_message),
                       error_message,
                       error_message);
-            // fprintf(stdout, "energy_rate %e\n", result);
+            // fprintf(stdout, "energy_rate %e \n", result);
       }
 
       // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
@@ -2563,7 +2563,7 @@ int thermodynamics_energy_injection(
                  error_message,
                  error_message);
       if(preco->f_eff>0)result *= preco->f_eff; //If preco->f_eff is defined, here we multiply by f_eff.
-      // fprintf(stdout, "energy_rate %e\n", result);
+      // fprintf(stdout, "energy_rate %e preco->f_eff %e\n", result,preco->f_eff);
 
        /* effective energy density rate in J/m^3/s  */
     }
@@ -4446,6 +4446,7 @@ class_stop(pth->error_message,
            hyrec_data.cosmo->inj_params->on_the_spot = on_the_spot;
            hyrec_data.cosmo->inj_params->decay_fraction = pth->decay_fraction;
            hyrec_data.cosmo->inj_params->Gamma_dcdm = pba->Gamma_dcdm;
+           hyrec_data.cosmo->inj_params->f_eff = pth->f_eff;
            hyrec_data.cosmo->inj_params->ann_var = pth->annihilation_variation;
            hyrec_data.cosmo->inj_params->ann_z = pth->annihilation_z;
            hyrec_data.cosmo->inj_params->ann_zmax = pth->annihilation_zmax;
@@ -4698,7 +4699,7 @@ int fill_recombination_structure(struct precision * ppr,
   preco->energy_repart_functions = pth->energy_repart_functions;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
-
+  preco->f_eff = pth->f_eff;
 
   /* quantities related to constants defined in thermodynamics.h */
   //n = preco->Nnow * pow((1.+z),3);
