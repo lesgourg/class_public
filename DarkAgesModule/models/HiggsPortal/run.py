@@ -8,7 +8,7 @@ if os.environ['DARKAGES_BASE']:
 import DarkAges
 from DarkAges.common import finalize, channel_dict
 from DarkAges.model import annihilating_model, decaying_model
-from DarkAges import redshift, DarkAgesError, transfer_functions
+from DarkAges import redshift, DarkAgesError, transfer_functions, LogEnergies
 
 model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]
@@ -44,7 +44,7 @@ def run( *arguments, **DarkOptions ):
 		tdec = DarkOptions.get('t_dec')
 		full_model = decaying_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, tdec)
 	else:
-		full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass)
+		full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass,logEnergies,redshift)
 	#####
 
 	##### To finish the calculation, calculate f(z) for each deposition channel
