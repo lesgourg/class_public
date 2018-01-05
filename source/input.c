@@ -1766,6 +1766,8 @@ int input_read_parameters(
         /* Reading the input parameter for the external command */
         else if (strcmp(string1,"user_command") == 0){
             flag2=_TRUE_;
+	    sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
+
             class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
           	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
           	// class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
@@ -1786,7 +1788,7 @@ int input_read_parameters(
 
         class_test(flag2==_FALSE_,
                          errmsg,
-                         "could not identify DarkAges_mode, check that it is one of 'built_in_scenarios','from_file','user_command'.");
+                         "could not identify DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
       }
     }
     // else if (strcmp(string1,"from_file") == 0){

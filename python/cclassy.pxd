@@ -30,12 +30,6 @@ cdef extern from "class.h":
     cdef struct precision:
         ErrorMsg error_message
 		
-        double param_fz_1
-        double param_fz_2
-        double param_fz_3
-        double param_fz_4
-        double param_fz_5
-
     cdef struct background:
         ErrorMsg error_message
         int bg_size
@@ -94,12 +88,6 @@ cdef extern from "class.h":
         double YHe
         double n_e
 		
-        # BEGIN: Add additional parameters (related to exotic energy injection)
-        double annihilation
-        double PBH_low_mass
-        double PBH_fraction 
-        # END
-
         int tt_size
 
     cdef struct perturbs:
