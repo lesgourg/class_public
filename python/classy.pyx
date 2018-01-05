@@ -1511,29 +1511,6 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
-            ## BEGIN: Add own derived parameters
-            elif name == 'annihilation':
-                value = self.th.annihilation
-            elif name == 'sigmav':
-                # !! Only valid if param_fz_1 is the DM-mass !!
-                value = self.th.annihilation * self.pr.param_fz_1
-            elif name == 'log10_sigmav':
-                # !! Only valid if param_fz_1 is the DM-mass !!
-                value = self.th.annihilation * self.pr.param_fz_1
-            elif name == 'sigmav_log':
-                # !! Only valid if param_fz_1 is the exponent of the DM-mass (mass = 5* 10**param_fz_1)
-                value = self.th.annihilation * 5. * (10**self.pr.param_fz_1)
-            elif name == 'log10_sigmav_log':
-                # !! Only valid if param_fz_1 is the exponent of the DM-mass (mass = 5* 10**param_fz_1)
-                value = log10(self.th.annihilation * 5. * (10**self.pr.param_fz_1))
-            elif name == 'DM_mass':
-                # This is to deduce the deduce mass when choosing a linear prior in log-space
-                value = 5. * (10**self.pr.param_fz_1)
-            elif name == 'PBH_low_mass':
-                value = self.th.PBH_low_mass
-            elif name == 'PBH_fraction':
-                value = self.th.PBH_fraction  
-            ## END
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
