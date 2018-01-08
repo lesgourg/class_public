@@ -1734,7 +1734,7 @@ int input_read_parameters(
             /* Check first if injection history is standard and already implemented */
 
             if(pth->annihilation > 0 && pth->annihilation_f_halo == 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation --specfile ");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation --spectrum ");
               sprintf(string2,"");
               class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
                          errmsg,
@@ -1754,7 +1754,7 @@ int input_read_parameters(
 
             }
             else if(pth->annihilation > 0 && pth->annihilation_f_halo > 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation_halos --specfile ");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation_halos --spectrum ");
               sprintf(string2,"");
               class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
                          errmsg,
@@ -1800,7 +1800,7 @@ int input_read_parameters(
               strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
             }
             else if(pth->decay_fraction > 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=decay --specfile ");
+              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=decay --spectrum ");
               sprintf(string2,"");
               class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
                          errmsg,
