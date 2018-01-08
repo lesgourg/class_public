@@ -53,19 +53,19 @@ parser = optparse.OptionParser(usage=usage, version="%prog {0}".format(VERSION))
 #parser.add_option_group(verbose_group)
 parser.add_option("-f", "--file", default = None, dest='script_file',
                   help="Use script file FILE")
-parser.add_option("-s", "--specfile", default= None , metavar='SPECFILE', action="callback", callback=cb_string, dest = 'specfile',
-                  help="Use the spectrum provided in SPECFILE")
-parser.add_option("--specfunction", default= None , metavar='SPECFUNCTION', action="callback", callback=cb_string, dest = 'specfunction',
-                  help="Use the spectrum provided in SPECFUNCTION")
+parser.add_option("-s", "--spectrum", default= None , metavar='SPECTRUM', action="callback", callback=cb_string, dest = 'spectrum',
+                  help="Use the spectrum provided in SPECTRUM. This is a whitespace-separated list of either the path to a table with reference spectra, or a known keyword refering to the spectra provided in PPPC4MID or dirac-like injections.")
+parser.add_option("--specfile", default= None , metavar='SPECFILE', action="callback", callback=cb_string, dest = 'spectrum',
+                  help="Use the spectrum provided in SPECFILE (This is deprecated and will be disabled)")
 parser.add_option("-b","--branching", metavar='BRANCHING', action='callback', callback=cb_float, dest = 'branchings',
                   help="If using more than one spectrum specify the branching ratio")
-parser.add_option("-m","--model", dest='model', metavar='MODEL',
+parser.add_option("--model", dest='model', metavar='MODEL',
                   help="Load a preprocessed model")
 parser.add_option("--rebuild-model", action='store_true', dest='rebuild_model', default=False,
                   help="Force rebuilding a model")
 parser.add_option("--hist", default='annihilation', choices=['annihilation','annihilation_halos','decay','evaporating_PBH','accreting_PBH'], dest='injection_history',
                   help="Define the injection history of the model.")
-parser.add_option("--mass", type="float", dest='mass',
+parser.add_option("-m","--mass", type="float", dest='mass',
                   help="Define the mass of the DM-candidate [in GeV] or the PBH mass [in g for evaporating PBH and Msun for accreting ones].")
 parser.add_option("--Log10Emin", type='float', dest='Log10Emin',
                   help="Minimal energy for the convolution over tranfer functions. Default set to 5keV (minimal energy of the tables).")
@@ -160,9 +160,9 @@ if options.model:
 if options.script_file:
 	sys.exit( recipes.execute_script_file(options.script_file, args) )
 
-if options.specfile:
+if options.spectrum:
 	if not options.mass:
-		raise DarkAgesError('In the mode "-s (--spec)"-mode, you nedd to specify the mass via the option: "--mass"')
+		raise DarkAgesError('In the mode "-s (--spectrum)"-mode, you nedd to specify the mass via the option: "-m (--mass)"')
 	if not options.branchings:
 		options.branchings = np.asarray([1.])
 	else:
@@ -172,14 +172,14 @@ if options.specfile:
 	except AssertionError:
 		raise DarkAgesError('The branching ratios do not add up to one')
 	try:
-		assert len(options.specfile) == len(options.branchings)
+		assert len(options.spectrum) == len(options.branchings)
 	except AssertionError:
-		raise DarkAgesError('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.specfile),len(options.branchings)))
+		raise DarkAgesError('The number of spectra (== {:d}) and the number of branching ratios (== {:d}) do not match'.format(len(options.spectrum),len(options.branchings)))
 
 	if hasattr(options, 't_dec'):
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history,branchings=options.branchings, **DarkOptions) )
+		sys.exit( recipes.loading_from_specfiles(options.spectrum, transfer_functions, logEnergies, redshift, options.mass, options.t_dec,options.zh,options.fh, options.injection_history,branchings=options.branchings, **DarkOptions) )
 	else:
-		sys.exit( recipes.loading_from_specfiles(options.specfile, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings, **DarkOptions) )
+		sys.exit( recipes.loading_from_specfiles(options.spectrum, transfer_functions, logEnergies, redshift, options.mass, np.inf, options.injection_history, branchings=options.branchings, **DarkOptions) )
 
-# if not options.specfile and not options.specfunction:
-# 	raise DarkAgesError('You forgot to give a specifile!! specify it via "--specfile" or "--specfunction"')
+# if not options.spectrum
+# raise DarkAgesError('You forgot to give a spectrum!! specify it via "--spectrum"')
