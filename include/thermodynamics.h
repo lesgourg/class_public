@@ -30,7 +30,7 @@ enum reionization_parametrization {
   reio_half_tanh,  /**< half a tanh, intead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
   reio_stars_sfr_source_term, /**< Reionization parameterization based on the star formation rate, see Poulin et al. arXiv:1508.01370 and references therein */
-  reio_duspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by duspis et al. 1509.02785 and improved by 1605.03928 */
+  reio_douspis_et_al,/**< Redshift asymetric reionisation parametrization as introduced by douspis et al. 1509.02785 and improved by 1605.03928 */
   reio_asymmetric_planck_16 /**< Redshift asymetric reionisation parametrization as introduced by the Planck collaboration in 2016 data release 1605.03507  */
 };
 /**
@@ -159,11 +159,11 @@ int reio_inter_num; /**< with how many jumps do we want to describe reionization
 double * reio_inter_z; /**< discrete z values */
 
 double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
-  /** parameters used by duspis et al. parametrization */
+  /** parameters used by douspis et al. parametrization */
 
-  double Qp_duspis_et_al;
-  double zp_duspis_et_al;
-  double lambda_duspis_et_al;
+  double Qp_douspis_et_al;
+  double zp_douspis_et_al;
+  double lambda_douspis_et_al;
 
   /** parameters used by planck 16 asymmetric parametrization */
 
@@ -632,11 +632,11 @@ struct reionization {
   int index_reio_first_xe; /**< ionization fraction at redshift first_z (inferred from recombination code) */
   int index_reio_step_sharpness; /**< sharpness of tanh jump */
 
-  /* parameters used by duspis et al. parametrization */
+  /* parameters used by douspis et al. parametrization */
 
-  int index_Qp_duspis_et_al;
-  int index_zp_duspis_et_al;
-  int index_lambda_duspis_et_al;
+  int index_Qp_douspis_et_al;
+  int index_zp_douspis_et_al;
+  int index_lambda_douspis_et_al;
 
   /* parameters used by planck 16 asymmetric parametrization */
 

@@ -1446,15 +1446,22 @@ int input_read_parameters(
     class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
   }
 
-  /** - energy injection parameters from CDM annihilation/decay */
+  /** - Reading energy injection parameters from CDM annihilation/decay && PBH evaporation/accretion */
+  /** - This includes many tests to make sure the user is giving meaningful commands */
+
   class_read_double("annihilation",pth->annihilation);
   class_read_double("annihilation_cross_section",pth->annihilation_cross_section);
   class_read_double("DM_mass",pth->DM_mass);
+  class_test(pth->DM_mass <=0 && pth->annihilation_cross_section >0,errmsg,"you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
+  class_test(pth->annihilation_cross_section <=0 && pth->DM_mass >0,errmsg,"you have DM_mass > 0 but annihilation_cross_section = 0. That is weird, please check your param file and set 'annihilation_cross_section' [cm^3/s] to a non-zero value.\n");
   class_read_double("decay_fraction",pth->decay_fraction);
   class_test(pba->tau_dcdm <=0 && pth->decay_fraction >0,errmsg,"you have decay_fraction > 0 but Gamma_dcdm = 0. That is weird, please check your param file and set 'tau_dcdm' [s] or 'Gamma_dcdm' [km/s/Mpc] to a non-zero value.\n");
   class_test(pba->tau_dcdm >0 && pth->decay_fraction <=0,errmsg,"you have decay_fraction = 0 but tau_dcdm > 0. That is weird, please check your param file.\n");
   class_read_double("PBH_accreting_mass",pth->PBH_accreting_mass);
-  if(pth->PBH_accreting_mass>0.){
+  class_read_double("PBH_evaporating_mass",pth->PBH_evaporating_mass);
+  class_read_double("PBH_fraction",pth->PBH_fraction);
+
+  if(pth->PBH_accreting_mass>0. && pth->PBH_fraction>0){
 
     class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
                errmsg,
@@ -1483,15 +1490,16 @@ int input_read_parameters(
     class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
 
   }
-  class_read_double("PBH_evaporating_mass",pth->PBH_evaporating_mass);
-  class_read_double("PBH_fraction",pth->PBH_fraction);
   // class_test(pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
   //   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
   class_test(pth->PBH_accreting_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_accreting_mass > 0.' (in Msun).");
-
+  class_test(pth->PBH_accreting_mass>0. && pth->PBH_fraction == 0,errmsg,
+    "You have 'PBH_accreting_mass > 0.' but 'PBH_fraction = 0'. Please adjust your param file.");
   class_test(pth->PBH_evaporating_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_evaporating_mass > 0.' (in g).");
+  class_test(pth->PBH_evaporating_mass>0. && pth->PBH_fraction == 0,errmsg,
+    "You have 'PBH_evaporating_mass > 0.' but 'PBH_fraction = 0'. Please adjust your param file.");
   class_test(pth->PBH_fraction>0. && (pth->PBH_accreting_mass==0. && pth->PBH_evaporating_mass==0.),errmsg,
     "You have asked for a fraction of PBH being DM but you have 'PBH_accreting_mass == 0 && PBH_evaporating_mass ==0'. Please choose a value (in Msun for PBH_accreting_mass, in g for PBH_evaporating_mass).");
   class_test(pth->PBH_fraction <0.,errmsg,
@@ -1502,6 +1510,11 @@ int input_read_parameters(
     "You need to enter a lifetime for the decaying DM 'tau_dcdm > 0. '");
   class_test(pth->DM_mass<0.,errmsg,
     "You need to enter a 'DM_mass > 0. '");
+
+  class_test(pth->PBH_fraction>0 && pth->DM_mass>0,errmsg,"you cannot yet work with both PBH and DM annihilation or decay. Please choose one.")
+  class_test(pth->decay_fraction>0 && (pth->annihilation>0 || pth->annihilation_cross_section > 0),errmsg,"you cannot yet work with both DM annihilation and decay. Please choose one.")
+
+
   class_test(pth->recombination==cosmorec && pth->PBH_accreting_mass!= 0.,
                errmsg,
                "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
@@ -1521,19 +1534,15 @@ int input_read_parameters(
   }
 
 
-  if (pth->annihilation > 0.){
-  /** obsolete parametrization not used anymore */
-  class_read_double("annihilation_variation",pth->annihilation_variation);
-  class_read_double("annihilation_z",pth->annihilation_z);
-  class_read_double("annihilation_zmax",pth->annihilation_zmax);
-  class_read_double("annihilation_zmin",pth->annihilation_zmin);
-  class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
 
-  // class_test(pth->recombination != hyrec && pth->annihilation_f_halo > 0.,errmsg,
-  // "Recfast cannot be used to compute effect of dark matter halos on reionization, because its parametrization goes outside is range of validity. Please restart in 'recombination = hyrec' mode.");
+  if (pth->annihilation > 0.){
+
+  class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
   class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
+
   }
-/** - Relevant parameters in case of exotic energy injection */
+
+  /** - Relevant parameters in case of exotic energy injection */
   if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_accreting_mass > 0. || pth->PBH_evaporating_mass > 0.){
 
 
@@ -1559,29 +1568,44 @@ int input_read_parameters(
       }
     }
 
-    class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
+
+    class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
-    if(flag1 == _TRUE_){
-      pth->f_eff = param1;
-      pth->has_on_the_spot = _TRUE_;
+    if (flag1 == _TRUE_){
+      flag2 = _FALSE_;
+      if (strcmp(string1,"SSCK") == 0) {
+        pth->energy_repart_functions=SSCK;
+        flag2=_TRUE_;
+      }
+      else if (strcmp(string1,"GSVI") == 0) {
+        pth->energy_repart_functions=GSVI;
+        flag2=_TRUE_;
+      }
+      else if (strcmp(string1,"from_file") == 0) {
+        pth->energy_repart_functions=chi_from_file;
+        class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+        if (flag1 == _TRUE_){
+          class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
+        }
+        else {
+          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy repartition functions.");
+        }
+        flag2=_TRUE_;
+      }
+      else if (strcmp(string1,"no_factorization") == 0) {
+        pth->energy_repart_functions=no_factorization;
+        flag2=_TRUE_;
+      }
+      class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_functions  == no_factorization,errmsg,
+        "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
+
+    class_test(flag2==_FALSE_,
+                 errmsg,
+                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
     }
-
-    class_call(parser_read_string(pfc,
-                                  "energy injection f_eff file",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
-               errmsg,
-               errmsg);
-
-    if ((flag1 == _TRUE_)) {
-      class_read_string("energy injection f_eff file",ppr->energy_injec_f_eff_file);
-      pth->has_on_the_spot = _FALSE_;
-    }
-
-
-
 
 
     if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
@@ -1589,103 +1613,86 @@ int input_read_parameters(
       pth->has_on_the_spot = _FALSE_;
     }
 
-      class_call(parser_read_string(pfc,"energy_deposition_function",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-     if(pth->has_on_the_spot == _FALSE_)  class_test(flag1 == _FALSE_,errmsg,"You have one of pth->PBH_fraction>0 ||pth->annihilation > 0 || pth->decay_fraction > 0 but you have not specified energy_deposition_function. Please choose one of 'Analytical_approximation', 'DarkAges', 'from_file', 'no_deposition'.");
-      if (flag1 == _TRUE_){
-        flag2 = _FALSE_;
+    class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    class_call(parser_read_string(pfc,"energy_deposition_function",&string1,&flag2,errmsg),
+              errmsg,
+              errmsg);
+
+    class_test(flag1 == _TRUE_ && flag2 == _TRUE_,errmsg,"you have both f_eff and energy_deposition_function defined, please specify only of them.")
+
+    if(flag1 == _TRUE_){
+      pth->f_eff = param1;
+      pth->has_on_the_spot = _TRUE_;
+    }
+
+    class_test(pth->has_on_the_spot == _TRUE_ && pth->f_eff == 0,errmsg,"you have 'on the spot = yes' but you did not give a value to f_eff. Please adjust your param file.")
+
+     class_test(pth->has_on_the_spot == _FALSE_ && flag2 == _FALSE_,errmsg,"You have one of pth->PBH_fraction>0 ||pth->annihilation > 0 || pth->decay_fraction > 0 and on the spot = no but you have not specified energy_deposition_function. Please choose one of 'Analytical_approximation', 'DarkAges', 'from_file', 'no_deposition'.");
+
+
+      if (flag2 == _TRUE_){
+        flag3 = _FALSE_;
         if (strcmp(string1,"Analytical_approximation") == 0) {
           pth->energy_deposition_function=Analytical_approximation;
-          flag2=_TRUE_;
+          flag3=_TRUE_;
         }
         if (strcmp(string1,"DarkAges") == 0) {
           pth->energy_deposition_function=DarkAges;
-          flag2=_TRUE_;
+          flag3=_TRUE_;
         }
         if (strcmp(string1,"from_file") == 0) {
           pth->energy_deposition_function=function_from_file;
           class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
                      errmsg,
                      errmsg);
-         if (flag1 == _TRUE_){
-           class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
-         }
-        else {
-          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy No_deposition function.");
-       }
-          flag2=_TRUE_;
-        }
+          if (flag1 == _TRUE_ && pth->energy_repart_functions == no_factorization){
+            class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
+          }
+          else if (flag1 == _TRUE_ && pth->energy_repart_functions != no_factorization){
+            class_read_string("energy deposition function file",ppr->energy_injec_f_eff_file);
+          }
+          else {
+           class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy deposition function. Please, do so with energy deposition function file = path_to_a_file.");
+          }
+           flag3=_TRUE_;
+          }
         if (strcmp(string1,"No_deposition") == 0) {
           pth->energy_deposition_function=No_deposition;
-          flag2=_TRUE_;
+          flag3=_TRUE_;
         }
-      class_test(flag2==_FALSE_,
+      class_test(flag3==_FALSE_,
                    errmsg,
                    "could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
       }
 
 
-          class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
-                     errmsg,
-                     errmsg);
-          if (flag1 == _TRUE_){
-            flag2 = _FALSE_;
-            if (strcmp(string1,"SSCK") == 0) {
-              pth->energy_repart_functions=SSCK;
-              flag2=_TRUE_;
-            }
-            else if (strcmp(string1,"GSVI") == 0) {
-              pth->energy_repart_functions=GSVI;
-              flag2=_TRUE_;
-            }
-            else if (strcmp(string1,"from_file") == 0) {
-              pth->energy_repart_functions=chi_from_file;
-              class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              if (flag1 == _TRUE_){
-                class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
-              }
-              else {
-                class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy repartition functions.");
-              }
-              flag2=_TRUE_;
-            }
-            else if (strcmp(string1,"no_factorization") == 0) {
-              pth->energy_repart_functions=no_factorization;
-              flag2=_TRUE_;
-            }
-            class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_functions  == no_factorization,errmsg,
-              "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
 
-          class_test(flag2==_FALSE_,
-                       errmsg,
-                       "could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
+
+      class_call(parser_read_string(pfc,
+                                    "reio_stars_and_dark_matter",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+          pth->reio_stars_and_dark_matter = _TRUE_;
+        }
+        else {
+          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+            pth->reio_stars_and_dark_matter = _FALSE_;
+            pth->reio_parametrization=reio_none;
           }
-
-          class_call(parser_read_string(pfc,
-                                        "reio_stars_and_dark_matter",
-                                        &(string1),
-                                        &(flag1),
-                                        errmsg),
-                     errmsg,
-                     errmsg);
-
-          if (flag1 == _TRUE_) {
-            if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-              pth->reio_stars_and_dark_matter = _TRUE_;
-            }
-            else {
-              if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-                pth->reio_stars_and_dark_matter = _FALSE_;
-                pth->reio_parametrization=reio_none;
-              }
-              else {
-                class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
-              }
-            }
+          else {
+            class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
           }
+        }
+      }
 
     /* BEGIN: Set all the DarkAges module options */
     if(pth->energy_deposition_function==DarkAges){
@@ -3905,8 +3912,8 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
   strcat(ppr->energy_injec_coeff_file,"/DarkAgesModule/GSVI_file.dat"); //Default correspond to the GSVI case
-  sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
-  strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
+  // sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
+  // strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;

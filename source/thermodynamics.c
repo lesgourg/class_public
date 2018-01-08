@@ -435,11 +435,9 @@ int thermodynamics_init(
   }
 
   if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_functions!=no_factorization){
-    // fprintf(stdout, "here\n" );
     class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
                preco->error_message,
                preco->error_message);
-
   }
     /** - check energy injection parameters */
 
@@ -1540,12 +1538,7 @@ int thermodynamics_annihilation_coefficients_init(
   if (pth->energy_deposition_function == function_from_file || pth->energy_repart_functions == GSVI || pth->energy_repart_functions == chi_from_file) {
     class_open(fA,ppr->energy_injec_coeff_file, "r",pth->error_message);
   } else {
-    /* Prepare the command */
-    /* Pass the list of arguments */
-    //sprintf(arguments, "%g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
-    // /* Write the actual command */
-    // sprintf(command_with_arguments, "%s %s", ppr->command_fz, arguments); // currently a bug is preventing to add extra arguments, to be corrected soon.
-    /* Write the actual command */
+    /* Write the command */
     sprintf(command_with_arguments, "%s", ppr->command_fz);
     // free(ppr->command_fz);
     if (pth->thermodynamics_verbose > 0) {
