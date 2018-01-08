@@ -1254,8 +1254,8 @@ int input_read_parameters(
       pth->reio_parametrization=reio_stars_sfr_source_term;
       flag2=_TRUE_;
     }
-    if (strcmp(string1,"reio_duspis_et_al") == 0) {
-      pth->reio_parametrization=reio_duspis_et_al;
+    if (strcmp(string1,"reio_douspis_et_al") == 0) {
+      pth->reio_parametrization=reio_douspis_et_al;
       flag2=_TRUE_;
     }
     if (strcmp(string1,"reio_asymmetric_planck_16") == 0) {
@@ -1407,12 +1407,12 @@ int input_read_parameters(
                   "could not identify model_SFR value, check that it is one of 'model_SFR_bestfit', 'model_SFR_p1sig', 'model_SFR_m1sig','model_SFR_free'.");
       }
   }
-  if (pth->reio_parametrization == reio_duspis_et_al){
+  if (pth->reio_parametrization == reio_douspis_et_al){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
     class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
-    class_read_double("lambda_duspis_et_al",pth->lambda_duspis_et_al);
-    class_read_double("Qp_duspis_et_al",pth->Qp_duspis_et_al);
-    class_read_double("zp_duspis_et_al",pth->zp_duspis_et_al);
+    class_read_double("lambda_douspis_et_al",pth->lambda_douspis_et_al);
+    class_read_double("Qp_douspis_et_al",pth->Qp_douspis_et_al);
+    class_read_double("zp_douspis_et_al",pth->zp_douspis_et_al);
   }
   if (pth->reio_parametrization == reio_asymmetric_planck_16){
     class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
@@ -1686,7 +1686,7 @@ int input_read_parameters(
               }
             }
           }
-    
+
     /* BEGIN: Set all the DarkAges module options */
     if(pth->energy_deposition_function==DarkAges){
       class_call(parser_read_string(pfc,
@@ -3587,9 +3587,9 @@ int input_default_params(
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
 
-  pth->lambda_duspis_et_al = 0.73;
-  pth->zp_duspis_et_al = 6.1;
-  pth->Qp_duspis_et_al = 0.99986;
+  pth->lambda_douspis_et_al = 0.73;
+  pth->zp_douspis_et_al = 6.1;
+  pth->Qp_douspis_et_al = 0.99986;
   pth->z_end_asymmetric_planck_16 = 6;
   pth->z_start_asymmetric_planck_16 = 20;
   pth->alpha_asymmetric_planck_16 = 3;

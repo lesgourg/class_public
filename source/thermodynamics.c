@@ -1072,7 +1072,7 @@ int thermodynamics_init(
       printf("    corresponding to conformal time = %f Mpc\n",tau_reio);
       // printf("duration of reionization = %e, with z_beg = %e, z_mid = %e, z_end = %e\n",pth->duration_of_reionization,pth->z_10_percent,pth->z_50_percent, pth->z_99_percent);
     }
-    if((pth->reio_parametrization == reio_duspis_et_al) || (pth->reio_parametrization == reio_asymmetric_planck_16)){
+    if((pth->reio_parametrization == reio_douspis_et_al) || (pth->reio_parametrization == reio_asymmetric_planck_16)){
       printf(" -> reionization with optical depth = %f\n",pth->tau_reio);
       class_call(background_tau_of_z(pba,pth->z_reio,&tau_reio),
                pba->error_message,
@@ -1319,17 +1319,17 @@ int thermodynamics_indices(
 
   }
 
-  if (pth->reio_parametrization == reio_duspis_et_al){
+  if (pth->reio_parametrization == reio_douspis_et_al){
 
     preio->index_reio_xe_before = index;
     index++;
     preio->index_reio_xe_after = index;
     index++;
-    preio->index_lambda_duspis_et_al = index;
+    preio->index_lambda_douspis_et_al = index;
     index++;
-    preio->index_zp_duspis_et_al = index;
+    preio->index_zp_douspis_et_al = index;
     index++;
-    preio->index_Qp_duspis_et_al = index;
+    preio->index_Qp_douspis_et_al = index;
     index++;
     preio->index_helium_fullreio_fraction = index;
     index++;
@@ -2673,7 +2673,7 @@ int thermodynamics_reionization_function(
 
   }
 
-  if(pth->reio_parametrization == reio_duspis_et_al){
+  if(pth->reio_parametrization == reio_douspis_et_al){
     if(z > preio->reionization_parameters[preio->index_reio_start]) {
       *xe = preio->reionization_parameters[preio->index_reio_xe_before];
 
@@ -2681,10 +2681,10 @@ int thermodynamics_reionization_function(
 
     else {
 
-    if(z < preio->reionization_parameters[preio->index_zp_duspis_et_al]){
-      factor = (1-preio->reionization_parameters[preio->index_Qp_duspis_et_al])/(pow(1+preio->reionization_parameters[preio->index_zp_duspis_et_al],3)-1)
-      *(pow(1+preio->reionization_parameters[preio->index_zp_duspis_et_al],3)-pow(1+z,3))
-      +preio->reionization_parameters[preio->index_Qp_duspis_et_al];
+    if(z < preio->reionization_parameters[preio->index_zp_douspis_et_al]){
+      factor = (1-preio->reionization_parameters[preio->index_Qp_douspis_et_al])/(pow(1+preio->reionization_parameters[preio->index_zp_douspis_et_al],3)-1)
+      *(pow(1+preio->reionization_parameters[preio->index_zp_douspis_et_al],3)-pow(1+z,3))
+      +preio->reionization_parameters[preio->index_Qp_douspis_et_al];
 
     *xe =  (preio->reionization_parameters[preio->index_reio_xe_after]
              -preio->reionization_parameters[preio->index_reio_xe_before])*
@@ -2692,8 +2692,8 @@ int thermodynamics_reionization_function(
 
     }
     else{
-      factor = preio->reionization_parameters[preio->index_Qp_duspis_et_al]*exp(-preio->reionization_parameters[preio->index_lambda_duspis_et_al]
-        *pow(z-preio->reionization_parameters[preio->index_zp_duspis_et_al],3)/(pow(z-preio->reionization_parameters[preio->index_zp_duspis_et_al],2)+0.2));
+      factor = preio->reionization_parameters[preio->index_Qp_douspis_et_al]*exp(-preio->reionization_parameters[preio->index_lambda_douspis_et_al]
+        *pow(z-preio->reionization_parameters[preio->index_zp_douspis_et_al],3)/(pow(z-preio->reionization_parameters[preio->index_zp_douspis_et_al],2)+0.2));
       *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])*
                factor;
@@ -2708,7 +2708,7 @@ int thermodynamics_reionization_function(
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
       *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
         * (tanh(argument)+1.)/2.;
-    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_duspis_et_al],preio->reionization_parameters[preio->index_zp_duspis_et_al],preio->reionization_parameters[preio->index_Qp_duspis_et_al]);
+    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_douspis_et_al],preio->reionization_parameters[preio->index_zp_douspis_et_al],preio->reionization_parameters[preio->index_Qp_douspis_et_al]);
 
     }
     if(*xe > 0.1*(preio->reionization_parameters[preio->index_reio_xe_after]-preio->reionization_parameters[preio->index_reio_xe_before]) && pth->z_10_percent == 0){
@@ -2803,7 +2803,7 @@ int thermodynamics_reionization_function(
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
       *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
         * (tanh(argument)+1.)/2.;
-    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_duspis_et_al],preio->reionization_parameters[preio->index_zp_duspis_et_al],preio->reionization_parameters[preio->index_Qp_duspis_et_al]);
+    // fprintf(stdout, "z %e x_e %e xe_before %e factor %elambda %e zp %e qp %e\n", z,*xe,preio->reionization_parameters[preio->index_reio_xe_before],factor,preio->reionization_parameters[preio->index_lambda_douspis_et_al],preio->reionization_parameters[preio->index_zp_douspis_et_al],preio->reionization_parameters[preio->index_Qp_douspis_et_al]);
 
 
 
@@ -3467,14 +3467,14 @@ int thermodynamics_reionization(
     return _SUCCESS_;
 
   }
-  if((pth->reio_parametrization == reio_duspis_et_al)){
+  if((pth->reio_parametrization == reio_douspis_et_al)){
     preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
     preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
     preio->reionization_parameters[preio->index_helium_fullreio_redshift] = pth->helium_fullreio_redshift; /* helium_fullreio_redshift */
     preio->reionization_parameters[preio->index_helium_fullreio_width] = pth->helium_fullreio_width;    /* helium_fullreio_width */
-    preio->reionization_parameters[preio->index_lambda_duspis_et_al] = pth->lambda_duspis_et_al;
-    preio->reionization_parameters[preio->index_zp_duspis_et_al] = pth->zp_duspis_et_al;
-    preio->reionization_parameters[preio->index_Qp_duspis_et_al] = pth->Qp_duspis_et_al;
+    preio->reionization_parameters[preio->index_lambda_douspis_et_al] = pth->lambda_douspis_et_al;
+    preio->reionization_parameters[preio->index_zp_douspis_et_al] = pth->zp_douspis_et_al;
+    preio->reionization_parameters[preio->index_Qp_douspis_et_al] = pth->Qp_douspis_et_al;
 
     class_test(preio->reionization_parameters[preio->index_helium_fullreio_width]==0,
                pth->error_message,
