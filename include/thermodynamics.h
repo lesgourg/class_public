@@ -36,7 +36,7 @@ enum reionization_parametrization {
 /**
  * List of possible energy repartition functions.
  */
-enum energy_repartition_functions {
+enum energy_repartition_coefficient {
   SSCK, /**< Shull Van Stanbeerg Chen Kamionkowski parameterization */
   GSVI,  /**< Interpolation of Galli et al 2013 functions  */
   chi_from_file, /**< File specified by the user with the option "energy repartition coefficient file" */
@@ -199,7 +199,7 @@ double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
   /** parameters for energy injection common to all models */
   short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
   short reio_stars_and_dark_matter;  /* switch that indicates if DM decay or halos are switched on to better combine star reionisation and DM */
-  enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
+  enum energy_repartition_coefficient energy_repart_coefficient; /**< energy repartition functions */
   enum energy_deposition_function energy_deposition_function; /**< Treatment of energy deposition in the medium following DM annihilation, decay, PBH evaporation etc. */
   short print_energy_deposition_function;
 
@@ -563,7 +563,7 @@ struct recombination {
   double f_eff; /** effective on the spot parameter */
   int annihil_f_eff_num_lines;
 
-  enum energy_repartition_functions energy_repart_functions; /**< energy repartition functions */
+  enum energy_repartition_coefficient energy_repart_coefficient; /**< energy repartition functions */
 
 
   ErrorMsg error_message;

@@ -428,13 +428,13 @@ int thermodynamics_init(
 
 
 
-  if(pth->energy_repart_functions==GSVI || pth->energy_repart_functions==no_factorization || pth->energy_repart_functions ==chi_from_file){
+  if(pth->energy_repart_coefficient==GSVI || pth->energy_repart_coefficient==no_factorization || pth->energy_repart_coefficient ==chi_from_file){
     class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
                pth->error_message,
                pth->error_message);
   }
 
-  if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_functions!=no_factorization){
+  if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_coefficient!=no_factorization){
     class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
                preco->error_message,
                preco->error_message);
@@ -1535,7 +1535,7 @@ int thermodynamics_annihilation_coefficients_init(
   */
 
   /* BEGIN: Add switch (1) */
-  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_functions == GSVI || pth->energy_repart_functions == chi_from_file) {
+  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_coefficient == GSVI || pth->energy_repart_coefficient == chi_from_file) {
     class_open(fA,ppr->energy_injec_coeff_file, "r",pth->error_message);
   } else {
     /* Write the command */
@@ -1623,7 +1623,7 @@ int thermodynamics_annihilation_coefficients_init(
     }
   }
   /* BEGIN: Add switch (2) */
-  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_functions == GSVI || pth->energy_repart_functions == chi_from_file) {
+  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_coefficient == GSVI || pth->energy_repart_coefficient == chi_from_file) {
     fclose(fA);
   } else {
     status = pclose(fA);
@@ -2505,7 +2505,7 @@ int thermodynamics_energy_injection(
       // // /***********************************************************************************************************************/
       else if(preco->energy_deposition_function == function_from_file){
 
-            if(preco->energy_repart_functions!=no_factorization){
+            if(preco->energy_repart_coefficient!=no_factorization){
               class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z),
                         preco->error_message,
                         preco->error_message);
@@ -4014,20 +4014,20 @@ int thermodynamics_reionization_sample(
 
               preco->z_tmp=z;
                /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
-               if(pth->energy_repart_functions==GSVI || pth->energy_repart_functions ==chi_from_file){
+               if(pth->energy_repart_coefficient==GSVI || pth->energy_repart_coefficient ==chi_from_file){
                  class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,preio->reionization_table[i*preio->re_size+preio->index_re_xe]),
                           pth->error_message,
                           pth->error_message);
                  chi_heat = pth->chi_heat;
               }
-               if(pth->energy_repart_functions==no_factorization){
+               if(pth->energy_repart_coefficient==no_factorization){
                  class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,z),
                           pth->error_message,
                           pth->error_message);
                  chi_heat = pth->chi_heat;
               }
                /* old approximation from Chen and Kamionkowski */
-               if(pth->energy_repart_functions==SSCK){
+               if(pth->energy_repart_coefficient==SSCK){
                  chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
                }
 
@@ -4465,9 +4465,9 @@ class_stop(pth->error_message,
            else if(pth->energy_deposition_function==function_from_file || pth->energy_deposition_function==DarkAges) {
              hyrec_data.cosmo->inj_params->energy_deposition_treatment = 1;
            }
-           if(pth->energy_repart_functions==no_factorization) hyrec_data.cosmo->inj_params->energy_repart_functions = 0;
-           else if(pth->energy_repart_functions==GSVI || pth->energy_repart_functions ==chi_from_file) hyrec_data.cosmo->inj_params->energy_repart_functions = 1;
-           else if(pth->energy_repart_functions==SSCK) hyrec_data.cosmo->inj_params->energy_repart_functions = 2;
+           if(pth->energy_repart_coefficient==no_factorization) hyrec_data.cosmo->inj_params->energy_repart_coefficient = 0;
+           else if(pth->energy_repart_coefficient==GSVI || pth->energy_repart_coefficient ==chi_from_file) hyrec_data.cosmo->inj_params->energy_repart_coefficient = 1;
+           else if(pth->energy_repart_coefficient==SSCK) hyrec_data.cosmo->inj_params->energy_repart_coefficient = 2;
            hyrec_data.cosmo->inj_params->f_esc = pth->f_esc;
            hyrec_data.cosmo->inj_params->Zeta_ion = pth->Zeta_ion ; /**< Lyman continuum photon production efficiency of the stellar population */
            hyrec_data.cosmo->inj_params->fx = pth->fx; /**< X-ray efficiency fudge factor of photons responsible for heating the medium. */
@@ -4655,7 +4655,7 @@ int fill_recombination_structure(struct precision * ppr,
   preco->PBH_table_F = pth->PBH_table_F;
   preco->PBH_table_F_dd = pth->PBH_table_F_dd;
 
-  preco->energy_repart_functions = pth->energy_repart_functions;
+  preco->energy_repart_coefficient = pth->energy_repart_coefficient;
   preco->annihilation_f_halo = pth->annihilation_f_halo;
   preco->annihilation_z_halo = pth->annihilation_z_halo;
   preco->f_eff = pth->f_eff;
@@ -5284,7 +5284,7 @@ else energy_rate=0;
     if(preco->annihilation > 0 || preco->decay_fraction > 0 || preco->PBH_accreting_mass > 0 || preco->PBH_evaporating_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==GSVI|| pth->energy_repart_functions ==chi_from_file){
+        if(pth->energy_repart_coefficient==GSVI|| pth->energy_repart_coefficient ==chi_from_file){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x),
                          error_message,
                          error_message);
@@ -5293,7 +5293,7 @@ else energy_rate=0;
           chi_lya = pth->chi_lya;
 
         }
-        if(pth->energy_repart_functions==no_factorization){
+        if(pth->energy_repart_coefficient==no_factorization){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,z),
                          error_message,
                          error_message);
@@ -5303,7 +5303,7 @@ else energy_rate=0;
           // fprintf(stdout, "%e %e %e %e %e\n",z,chi_ionH,chi_lya,pth->chi_heat,(chi_ionH+chi_ionHe+chi_lya+pth->chi_heat));
         }
         /* old approximation from Chen and Kamionkowski */
-        if(pth->energy_repart_functions==SSCK){
+        if(pth->energy_repart_coefficient==SSCK){
           chi_ionH = (1.-x)/3.;
           chi_lya = chi_ionH;
           chi_ionHe=0;
@@ -5414,20 +5414,20 @@ else energy_rate=0;
     if(pth->annihilation >0 || pth->decay_fraction > 0 || pth->PBH_accreting_mass > 0 || pth->PBH_evaporating_mass > 0){
       if (x < 1.){
         /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-        if(pth->energy_repart_functions==GSVI|| pth->energy_repart_functions ==chi_from_file){
+        if(pth->energy_repart_coefficient==GSVI|| pth->energy_repart_coefficient ==chi_from_file){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,x),
                         error_message,
                         error_message);
             chi_heat = pth->chi_heat;
         }
-        if(pth->energy_repart_functions==no_factorization){
+        if(pth->energy_repart_coefficient==no_factorization){
           class_call(thermodynamics_annihilation_coefficients_interpolate(ppr,pba,pth,z),
                         error_message,
                         error_message);
             chi_heat = pth->chi_heat;
         }
         /* old approximation from Chen and Kamionkowski */
-        if(pth->energy_repart_functions==SSCK){
+        if(pth->energy_repart_coefficient==SSCK){
             chi_heat = (1.+2.*x)/3.;
         }
 
@@ -5537,10 +5537,10 @@ int thermodynamics_merge_reco_and_reio(
   /** - free the temporary structures */
 
   free(preco->recombination_table);
-  if(pth->has_on_the_spot == _FALSE_ && pth->energy_repart_functions!=no_factorization){
+  if(pth->has_on_the_spot == _FALSE_ && pth->energy_repart_coefficient!=no_factorization){
     thermodynamics_annihilation_f_eff_free(preco);
   }
-  if(pth->energy_repart_functions == GSVI || pth->energy_repart_functions==no_factorization || pth->energy_repart_functions ==chi_from_file){
+  if(pth->energy_repart_coefficient == GSVI || pth->energy_repart_coefficient==no_factorization || pth->energy_repart_coefficient ==chi_from_file){
     thermodynamics_annihilation_coefficients_free(pth);
   }
   if ((pth->reio_parametrization != reio_none))

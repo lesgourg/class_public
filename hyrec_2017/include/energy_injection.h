@@ -68,7 +68,7 @@ typedef struct {
    double * annihil_f_eff;
    double * annihil_dd_f_eff;
    double f_eff;
-   short  energy_repart_functions; /**< energy repartition functions */
+   short  energy_repart_coefficient; /**< energy repartition functions */
    int energy_deposition_treatment;
    int annihil_f_eff_num_lines;
 

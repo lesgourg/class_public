@@ -1486,6 +1486,9 @@ int input_read_parameters(
                  errmsg,
                  "could not identify PBH_accretion_recipe, check that it is one of 'spherical_accretion' or 'disk_accretion'.");
     }
+    else{
+      class_stop(errmsg,"you have 'PBH_accreting_mass>0. && PBH_fraction>0' and you forgot to give an accretion recipe. Please choose between spherical_accretion and disk_accretion. ")
+    }
     class_read_double("PBH_accretion_eigenvalue",pth->PBH_accretion_eigenvalue); // If chosen to negative value, it will be set to the linear result.
     class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
 
@@ -1569,21 +1572,21 @@ int input_read_parameters(
     }
 
 
-    class_call(parser_read_string(pfc,"energy_repartition_functions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"energy_repartition_coefficient",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
       flag2 = _FALSE_;
       if (strcmp(string1,"SSCK") == 0) {
-        pth->energy_repart_functions=SSCK;
+        pth->energy_repart_coefficient=SSCK;
         flag2=_TRUE_;
       }
       else if (strcmp(string1,"GSVI") == 0) {
-        pth->energy_repart_functions=GSVI;
+        pth->energy_repart_coefficient=GSVI;
         flag2=_TRUE_;
       }
       else if (strcmp(string1,"from_file") == 0) {
-        pth->energy_repart_functions=chi_from_file;
+        pth->energy_repart_coefficient=chi_from_file;
         class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
                    errmsg,
                    errmsg);
@@ -1596,10 +1599,10 @@ int input_read_parameters(
         flag2=_TRUE_;
       }
       else if (strcmp(string1,"no_factorization") == 0) {
-        pth->energy_repart_functions=no_factorization;
+        pth->energy_repart_coefficient=no_factorization;
         flag2=_TRUE_;
       }
-      class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_functions  == no_factorization,errmsg,
+      class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_coefficient  == no_factorization,errmsg,
         "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
 
     class_test(flag2==_FALSE_,
@@ -1648,10 +1651,10 @@ int input_read_parameters(
           class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
                      errmsg,
                      errmsg);
-          if (flag1 == _TRUE_ && pth->energy_repart_functions == no_factorization){
+          if (flag1 == _TRUE_ && pth->energy_repart_coefficient == no_factorization){
             class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
           }
-          else if (flag1 == _TRUE_ && pth->energy_repart_functions != no_factorization){
+          else if (flag1 == _TRUE_ && pth->energy_repart_coefficient != no_factorization){
             class_read_string("energy deposition function file",ppr->energy_injec_f_eff_file);
           }
           else {
@@ -1729,7 +1732,7 @@ int input_read_parameters(
         /**
         * If an DarkAgesModule command is passed, we automatically set parameters to their required values.
         **/
-        pth->energy_repart_functions = no_factorization;
+        pth->energy_repart_coefficient = no_factorization;
         pth->has_on_the_spot = _FALSE_;
 
         if (strcmp(string1,"built_in") == 0) {
@@ -1835,17 +1838,17 @@ int input_read_parameters(
             flag2=_TRUE_;
 	    sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
 
-            class_call( parser_read_string(pfc,"ext_fz_command",&string2,&flag2,errmsg), errmsg, errmsg);
+            class_call( parser_read_string(pfc,"DarkAges_command",&string2,&flag2,errmsg), errmsg, errmsg);
           	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
           	// class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
           	strcat(ppr->command_fz, string2);
             /** An arbitrary number of external parameters to be used by the external command
                */
-            class_read_double("ext_fz_par1",ppr->param_fz_1);
-            class_read_double("ext_fz_par2",ppr->param_fz_2);
-            class_read_double("ext_fz_par3",ppr->param_fz_3);
-            class_read_double("ext_fz_par4",ppr->param_fz_4);
-            class_read_double("ext_fz_par5",ppr->param_fz_5);
+            class_read_double("DarkAges_par1",ppr->param_fz_1);
+            class_read_double("DarkAges_par2",ppr->param_fz_2);
+            class_read_double("DarkAges_par3",ppr->param_fz_3);
+            class_read_double("DarkAges_par4",ppr->param_fz_4);
+            class_read_double("DarkAges_par5",ppr->param_fz_5);
 
   	  sprintf(string2, " %g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
   	  strcat(ppr->command_fz,string2);
@@ -3622,12 +3625,11 @@ int input_default_params(
   pth->DM_mass = 0;
   pth->decay_fraction = 0.;
   pth->PBH_accreting_mass = 0.;
-  pth->PBH_accretion_recipe = spherical_accretion;
   pth->PBH_evaporating_mass = 0.;
   pth->PBH_fraction = 0.;
   pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
   pth->PBH_relative_velocities = -1 ; //Standard value is the linear result extrapolated to PBH.
-  pth->energy_repart_functions = GSVI;
+  pth->energy_repart_coefficient = GSVI;
   pth->u_gcdm=0.;
   pth->beta_gcdm=0.;
   pth->alpha_gcdm=0.;

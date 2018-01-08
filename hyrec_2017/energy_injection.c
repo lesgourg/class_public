@@ -461,7 +461,7 @@ void update_dEdtdV_dep(double z_out, double dlna, double xe, double Tgas,
     *dEdtdV_dep = (*dEdtdV_dep *exp(-7.*dlna) + 2e-15* dlna*nH/H *inj)
                  /(1.+ 2e-15 *dlna*nH/H);
     else if(params->energy_deposition_treatment == 1){
-      if(params->energy_repart_functions > 0) hyrec_annihilation_coefficients_interpolate(params,z_out);
+      if(params->energy_repart_coefficient > 0) hyrec_annihilation_coefficients_interpolate(params,z_out);
       else params->f_eff = 1.;
     *dEdtdV_dep = inj*params->f_eff;
     }
@@ -478,21 +478,21 @@ Fraction of energy deposited in the form of heat, ionization and excitations
 *******************************************************************************/
 
 int evaluate_chi_heat(INJ_PARAMS *param,double z, double xe){
-   if(param->energy_repart_functions==0){
+   if(param->energy_repart_coefficient==0){
      hyrec_annihilation_coefficients_interpolate(param,z);
    }
-   if(param->energy_repart_functions==1){
+   if(param->energy_repart_coefficient==1){
    hyrec_annihilation_coefficients_interpolate(param,xe);
    }
 
 
    /* old approximation from Chen and Kamionkowski */
    if(xe<1){
-   if(param->energy_repart_functions==2){
+   if(param->energy_repart_coefficient==2){
     param->chi_heat = (1.+2.*xe)/3.; // old approximation from Chen and Kamionkowski
    }
    /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-   if(param->energy_repart_functions==3){
+   if(param->energy_repart_coefficient==3){
     param->chi_heat = 0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035));
    }
   }
@@ -507,21 +507,21 @@ int evaluate_chi_heat(INJ_PARAMS *param,double z, double xe){
 }
 
 int evaluate_chi_ionisation(INJ_PARAMS *param,double z, double xe){
-  if(param->energy_repart_functions==1){
+  if(param->energy_repart_coefficient==1){
   hyrec_annihilation_coefficients_interpolate(param,xe);
  }
- if(param->energy_repart_functions==0){
+ if(param->energy_repart_coefficient==0){
    hyrec_annihilation_coefficients_interpolate(param,z);
  }
  /* old approximation from Chen and Kamionkowski */
  if(xe<1){
-      if(param->energy_repart_functions==2){
+      if(param->energy_repart_coefficient==2){
      param->chi_ionH = (1.-xe)/3.;
      param->chi_lya = param->chi_ionH;
      param->chi_ionHe=0;
    }
    /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-   if(param->energy_repart_functions==3){
+   if(param->energy_repart_coefficient==3){
      param->chi_ionH = 0.369202*pow(1.-pow(xe,0.463929),1.70237);
      param->chi_ionHe =0.0312604*pow(1.-pow(xe,0.200634),0.82247);
      param->chi_lya = 0.335597*pow(1.-pow(xe,0.375314),1.80722);
@@ -575,7 +575,7 @@ int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params,
                                                           ) {
       int last_index;
       ErrorMsg error_message;
-      if(inj_params->energy_repart_functions < 2){
+      if(inj_params->energy_repart_coefficient < 2){
         array_interpolate_spline(inj_params->annihil_coef_xe,
                                   inj_params->annihil_coef_num_lines,
                                   inj_params->annihil_coef_heat,
@@ -631,7 +631,7 @@ int hyrec_annihilation_coefficients_interpolate(INJ_PARAMS *inj_params,
                                   1,
                                   error_message);
       }
-      if(inj_params->energy_repart_functions > 0 && inj_params->on_the_spot == 0){
+      if(inj_params->energy_repart_coefficient > 0 && inj_params->on_the_spot == 0){
         array_interpolate_spline(inj_params->annihil_z,
                                 inj_params->annihil_f_eff_num_lines,
                                 inj_params->annihil_f_eff,
