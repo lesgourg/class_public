@@ -123,6 +123,7 @@ int nonlinear_init(
 
 
 		if (pnl->method == nl_HMcode){
+			/** initialise the source extrapolation */
 			class_call(get_extrapolated_source_size(
 																						ppr->k_per_decade_for_pk,
 																						pnl->k[pnl->k_size-1],
@@ -136,9 +137,7 @@ int nonlinear_init(
    
 			class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
 		
-			class_realloc(pk_l,pk_l,pnl->k_size_extra*sizeof(double),pnl->error_message);
-   
-		
+			class_realloc(pk_l,pk_l,pnl->k_size_extra*sizeof(double),pnl->error_message);		
 		
 			class_call(extrapolate_k(
 														 pnl->k,
@@ -149,6 +148,29 @@ int nonlinear_init(
 														 pnl->error_message),
 										pnl->error_message,
 										pnl->error_message);
+		
+			/** Set the baryonic feedback parameters according to the chosen feedback models */
+			if (pnl->feedback == emu_dmonly){
+				pnl->eta_0 = 0.603;
+				pnl->c_min = 3.13;
+			}
+			if (pnl->feedback == owls_dmonly){
+				pnl->eta_0 = 0.64;
+				pnl->c_min = 3.43;
+			}			
+			if (pnl->feedback == owls_ref){
+				pnl->eta_0 = 0.68;
+				pnl->c_min = 3.91;
+			}		
+			if (pnl->feedback == owls_agn){
+				pnl->eta_0 = 0.76;
+				pnl->c_min = 2.32;
+			}		
+			if (pnl->feedback == owls_dblim){
+				pnl->eta_0 = 0.70;
+				pnl->c_min = 3.01;
+			}		
+		
 		}
 
     /** - loop over time */
@@ -1969,7 +1991,7 @@ int nonlinear_HMcode(
   
   double delta_c, Delta_v;
   double fraction;
-  double Abary, eta, eta0;
+  double eta;
   double fdamp;
   double alpha;
   double dlnsigdlnR;
@@ -2026,7 +2048,8 @@ int nonlinear_HMcode(
   
   /* Linear theory density perturbation threshold for spherical collapse */
   // 
-  delta_c=1.59+0.0314*log(sigma8);
+  //delta_c=1.59+0.0314*log(sigma8);
+  delta_c = 1.;
   delta_c=delta_c*(1.+0.0123*log10(Omega_m));
   Delta_v=418.*pow(Omega_m, -0.352);
   fraction = pow(0.01, 1./3.);
@@ -2154,10 +2177,10 @@ int nonlinear_HMcode(
   free(ln_dsigma_dr);
   
   // Calculate eta:
-	Abary = 3.13;
+	//Abary = 3.13;
 	//eta0 = 0.98-0.12*Abary;
-  eta0 = 0.603;
-  eta = eta0 - 0.3*sigma8;
+  //eta0 = 0.603;
+  eta = pnl->eta_0 - 0.3*sigma8;
   
   //Calculate concentration (conc): 
 	class_alloc(conc,n*sizeof(double),pnl->error_message);
@@ -2181,9 +2204,9 @@ int nonlinear_HMcode(
 																pnl->error_message),
 					pnl->error_message, pnl->error_message);	
 		if (z_form < z_at_tau){
-			conc[i] = Abary;
+			conc[i] = pnl->c_min;
 		} else {
-			conc[i] = Abary*(1.+z_form)/(1.+z_at_tau);
+			conc[i] = pnl->c_min*(1.+z_form)/(1.+z_at_tau);
 	  } 	
 		//if (tau==pba->conformal_age) fprintf(stdout, "%e, %e, %e, %e, %e, %e\n",mass[i], r_real[i]*fraction*pba->h, sigmaf_r[i], z_form, g_form, conc[i]);
 	}
@@ -2313,7 +2336,7 @@ int nonlinear_HMcode(
 		fprintf(stdout, "    dc:			%e\n", delta_c);	
 		fprintf(stdout, "    eta:		%e\n", eta);	
 		fprintf(stdout, "    k*:			%e\n", ks);
-		fprintf(stdout, "    Abary:		%e\n", Abary);			
+		fprintf(stdout, "    Abary:		%e\n", pnl->c_min);			
 		fprintf(stdout, "    fdamp:		%e\n", fdamp);		
 		fprintf(stdout, "    alpha:		%e\n", alpha);		
   } 

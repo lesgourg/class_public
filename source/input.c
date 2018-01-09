@@ -2491,12 +2491,66 @@ int input_read_parameters(
     if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pnl->method=nl_HMcode;
       ppt->has_nl_hmcode_corrections_based_on_delta_m = _TRUE_;
-      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_; 
     }
-	
-
   }
 
+	class_call(parser_read_string(pfc,
+                                "feedback model",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
+	
+	if (flag1 == _TRUE_) {
+
+    class_test(ppt->has_nl_hmcode_corrections_based_on_delta_m == _FALSE_, errmsg, "You requested a certain baryonic feedback model but no hmcode computation. You must set non linear to hmcode.");
+		
+		if (strstr(string1,"emu_dmonly") != NULL) {
+			pnl->feedback = emu_dmonly; 
+		}
+		if (strstr(string1,"owls_dmonly") != NULL) {
+			pnl->feedback = owls_dmonly;
+		}
+		if (strstr(string1,"owls_ref") != NULL) {
+			pnl->feedback = owls_ref; 
+		}	
+		if (strstr(string1,"owls_agn") != NULL) {
+			pnl->feedback = owls_agn;
+		}
+		if (strstr(string1,"owls_dblim") != NULL) {
+			pnl->feedback = owls_dblim; 
+		}
+  }
+  
+	class_call(parser_read_double(pfc,"eta_0",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+             
+  class_test((((flag1 == _TRUE_) && (flag2 == _TRUE_)) || ((flag1 == _TRUE_) && (flag3 == _TRUE_))),
+             errmsg,
+             "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
+  
+  if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
+		pnl->feedback = user_defined;
+		class_read_double("eta_0", pnl->eta_0);
+		class_read_double("c_min", pnl->c_min);
+  }  
+  else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
+		pnl->feedback = user_defined;
+		class_read_double("eta_0", pnl->eta_0);
+		pnl->c_min = (1.03 - pnl->eta_0)/0.11; 
+  }
+  else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
+		pnl->feedback = user_defined;
+		class_read_double("c_min", pnl->c_min);
+		pnl->eta_0 = 1.03 - 0.11*pnl->c_min;
+  }  
+  
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
@@ -3203,6 +3257,10 @@ int input_default_params(
 
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
+  pnl->feedback = emu_dmonly;
+  
+  //pnl->c_min = 3.13;
+	//pnl->eta_0 = 0.603;
 
   /** - all verbose parameters */
 
@@ -3470,6 +3528,7 @@ int input_default_precision ( struct precision * ppr ) {
 	ppr->nsteps_for_p1h_integral = 256;
 	ppr->mmin_for_p1h_integral = 1.e0;
 	ppr->mmax_for_p1h_integral = 1.e18;
+
 
 
   /**

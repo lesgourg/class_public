@@ -10,6 +10,7 @@
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
 enum halofit_statement {ok, too_small};
+enum hmcode_baryonic_feedback_model {emu_dmonly, owls_dmonly, owls_ref, owls_agn, owls_dblim, user_defined};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -29,7 +30,7 @@ struct nonlinear {
   //@{
 
   enum non_linear_method method; /**< method for computing non-linear corrections (none, Halogit, etc.) */
-
+	enum hmcode_baryonic_feedback_model feedback; /** to choose between different baryonic feedback models in hmcode (dmonly, gas cooling, Agn or supernova feedback) */
   //@}
 
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
@@ -60,6 +61,9 @@ struct nonlinear {
   double * growtable;
   double * ztable;
   double * tautable;
+  
+  double c_min; /** minimum concentration in Bullock 2001 mass-concentration relation */
+  double eta_0; /** halo bloating parameter */
   
 
   /** @name - parameters for the pk_eq method */
