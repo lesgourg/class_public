@@ -2048,8 +2048,7 @@ int nonlinear_HMcode(
   
   /* Linear theory density perturbation threshold for spherical collapse */
   // 
-  //delta_c=1.59+0.0314*log(sigma8);
-  delta_c = 1.;
+  delta_c=1.59+0.0314*log(sigma8);
   delta_c=delta_c*(1.+0.0123*log10(Omega_m));
   Delta_v=418.*pow(Omega_m, -0.352);
   fraction = pow(0.01, 1./3.);
