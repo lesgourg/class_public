@@ -1631,45 +1631,48 @@ int input_read_parameters(
       pth->has_on_the_spot = _TRUE_;
     }
 
+    if (flag2 == _TRUE_){
+      flag3 = _FALSE_;
+      if (strcmp(string1,"Analytical_approximation") == 0) {
+	pth->energy_deposition_function=Analytical_approximation;
+	flag3=_TRUE_;
+      }
+      if (strcmp(string1,"DarkAges") == 0) {
+	pth->energy_deposition_function=DarkAges;
+        pth->energy_repart_coefficient = no_factorization;
+        pth->has_on_the_spot = _FALSE_;
+	flag3=_TRUE_;
+      }
+      if (strcmp(string1,"from_file") == 0) {
+	pth->energy_deposition_function=function_from_file;
+	class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
+		   errmsg,
+		   errmsg);
+	if (flag1 == _TRUE_ && pth->energy_repart_coefficient == no_factorization){
+	  class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
+	}
+	else if (flag1 == _TRUE_ && pth->energy_repart_coefficient != no_factorization){
+	  class_read_string("energy deposition function file",ppr->energy_injec_f_eff_file);
+	}
+	else {
+	  class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy deposition function. Please, do so with energy deposition function file = path_to_a_file.");
+	}
+	flag3=_TRUE_;
+      }
+      if (strcmp(string1,"No_deposition") == 0) {
+	pth->energy_deposition_function=No_deposition;
+	flag3=_TRUE_;
+      }
+      class_test(flag3==_FALSE_,
+		 errmsg,
+		 "could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
+    }
+
     class_test(pth->has_on_the_spot == _TRUE_ && pth->f_eff == 0,errmsg,"you have 'on the spot = yes' but you did not give a value to f_eff. Please adjust your param file.")
 
      class_test(pth->has_on_the_spot == _FALSE_ && flag2 == _FALSE_,errmsg,"You have one of pth->PBH_fraction>0 ||pth->annihilation > 0 || pth->decay_fraction > 0 and on the spot = no but you have not specified energy_deposition_function. Please choose one of 'Analytical_approximation', 'DarkAges', 'from_file', 'no_deposition'.");
 
 
-      if (flag2 == _TRUE_){
-        flag3 = _FALSE_;
-        if (strcmp(string1,"Analytical_approximation") == 0) {
-          pth->energy_deposition_function=Analytical_approximation;
-          flag3=_TRUE_;
-        }
-        if (strcmp(string1,"DarkAges") == 0) {
-          pth->energy_deposition_function=DarkAges;
-          flag3=_TRUE_;
-        }
-        if (strcmp(string1,"from_file") == 0) {
-          pth->energy_deposition_function=function_from_file;
-          class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
-                     errmsg,
-                     errmsg);
-          if (flag1 == _TRUE_ && pth->energy_repart_coefficient == no_factorization){
-            class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
-          }
-          else if (flag1 == _TRUE_ && pth->energy_repart_coefficient != no_factorization){
-            class_read_string("energy deposition function file",ppr->energy_injec_f_eff_file);
-          }
-          else {
-           class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy deposition function. Please, do so with energy deposition function file = path_to_a_file.");
-          }
-           flag3=_TRUE_;
-          }
-        if (strcmp(string1,"No_deposition") == 0) {
-          pth->energy_deposition_function=No_deposition;
-          flag3=_TRUE_;
-        }
-      class_test(flag3==_FALSE_,
-                   errmsg,
-                   "could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
-      }
 
 
 
