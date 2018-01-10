@@ -424,69 +424,70 @@ int thermodynamics_init(
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
              pth->error_message,
              "Y_He=%g out of bounds (%g<Y_He<%g)",pth->YHe,_YHE_SMALL_,_YHE_BIG_);
-  /** Initialize annihilation coefficient */
+  
+  /** Initialize annihilation coefficient (First check if exotic energy injection is demanded) */
 
-
-
-  if(pth->energy_repart_coefficient==GSVI || pth->energy_repart_coefficient==no_factorization || pth->energy_repart_coefficient ==chi_from_file){
-    class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
-               pth->error_message,
-               pth->error_message);
+  if(pth->annihilation >0 || pth->decay_fraction > 0 || pth->PBH_accreting_mass > 0 || pth->PBH_evaporating_mass > 0){
+    if(pth->energy_repart_coefficient==GSVI || pth->energy_repart_coefficient==no_factorization || pth->energy_repart_coefficient ==chi_from_file){
+      class_call(thermodynamics_annihilation_coefficients_init(ppr,pba,pth),
+                 pth->error_message,
+                 pth->error_message);
+    }
+    
+    if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_coefficient!=no_factorization){
+      class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
+                 preco->error_message,
+                 preco->error_message);
+    }
   }
-
-  if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_coefficient!=no_factorization){
-    class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
-               preco->error_message,
-               preco->error_message);
-  }
-    /** - check energy injection parameters */
-
+  
+  /** - check energy injection parameters */
+  
   class_test((pth->annihilation<0),
-             pth->error_message,
-             "annihilation parameter cannot be negative");
-
+	     pth->error_message,
+	     "annihilation parameter cannot be negative");
+  
   class_test((pth->annihilation>1.e-4),
-             pth->error_message,
-             "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",
-             pth->annihilation);
-
-
+	     pth->error_message,
+	     "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",
+	     pth->annihilation);
+  
   class_test(pth->PBH_evaporating_mass > 0 && pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,pth->error_message,
-   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
-
+	     "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose  'pth->PBH_fraction < 1e-4'. ")
+    
+    // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
+    //            pth->error_message,
+    //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two  solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
+    
+    
+    
+    class_test((pth->annihilation>0)&&(pba->has_cdm==_FALSE_),
+               pth->error_message,
+               "CDM annihilation effects require the presence of CDM!");
+  
   // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
   //            pth->error_message,
-  //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
-
-
-
-  class_test((pth->annihilation>0)&&(pba->has_cdm==_FALSE_),
-             pth->error_message,
-             "CDM annihilation effects require the presence of CDM!");
-
-  // class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
-  //            pth->error_message,
-  //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
-
+  //            "Switching on DM annihilation in halos requires using HyRec instead of RECFAST. Otherwise some values go beyond their range of validity in the RECFAST fits, and the thermodynamics module fails. Two   solutions: add 'recombination = HyRec' to your input, or set 'annihilation_f_halo = 0.' (default).");
+  
   class_test((pth->annihilation_f_halo<0),
-             pth->error_message,
-             "Parameter for DM annihilation in halos cannot be negative");
-
+	     pth->error_message,
+	     "Parameter for DM annihilation in halos cannot be negative");
+  
   class_test((pth->annihilation_z_halo<0),
-             pth->error_message,
-             "Parameter for DM annihilation in halos cannot be negative");
-
+	     pth->error_message,
+	     "Parameter for DM annihilation in halos cannot be negative");
+  
   if (pth->thermodynamics_verbose > 0)
     if ((pth->annihilation >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
-      printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
-
+      printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however   masked by reionization if you are not in reio_none mode.");
+  
   class_test((pth->decay_fraction<0),
-             pth->error_message,
-             "decay parameter cannot be negative");
-
+	     pth->error_message,
+	     "decay parameter cannot be negative");
+  
   class_test((pth->decay_fraction>0)&&(pba->has_cdm==_FALSE_),
-             pth->error_message,
-             "CDM decay effects require the presence of CDM!");
+	     pth->error_message,
+	     "CDM decay effects require the presence of CDM!");
 
   /* tests in order to prevent segmentation fault in the following */
   class_test(_not4_ == 0.,
@@ -495,8 +496,8 @@ int thermodynamics_init(
   class_test(pth->YHe == 1.,
              pth->error_message,
              "stop to avoid division by zero");
- class_test(pth->alpha_asymmetric_planck_16<1.5 || pth->alpha_asymmetric_planck_16>50 ,pth->error_message,
-   "alpha_asymmetric_planck_16 out of range [1.5,50]: rejected to avoid memory leakage.");
+  class_test(pth->alpha_asymmetric_planck_16<1.5 || pth->alpha_asymmetric_planck_16>50 ,pth->error_message,
+	     "alpha_asymmetric_planck_16 out of range [1.5,50]: rejected to avoid memory leakage.");
   /** - assign values to all indices in the structures with thermodynamics_indices()*/
 
   class_call(thermodynamics_indices(pth,preco,preio),
