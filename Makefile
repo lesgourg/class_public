@@ -48,7 +48,7 @@ LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
-HYREC = hyrec_2017
+HYREC = HyRec_2017
 
 
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
