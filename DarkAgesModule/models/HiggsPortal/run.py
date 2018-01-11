@@ -6,9 +6,9 @@ if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 
 import DarkAges
-from DarkAges.common import finalize, channel_dict
-from DarkAges.model import annihilating_model
-from DarkAges import logEnergies, redshift, DarkAgesError, transfer_functions
+from DarkAges.common import finalize
+from DarkAges.model import annihilating_model, decaying_model
+from DarkAges import redshift, DarkAgesError, transfer_functions, channel_dict
 
 model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]
@@ -17,14 +17,8 @@ def run( *arguments, **DarkOptions ):
 	if len(arguments) <2:
 		raise DarkAgesError("There are too few arguments passed. I expected at least 1")
 	sampling_mass = float(arguments[1])
-        #sampling_mass = 5*10**float(arguments[1])
 	if sampling_mass < 5 or sampling_mass > 5e3:
 		raise DarkAgesError("The mass-parameter sholud be in the range [5 GeV, 5 TeV]")
-        try:
-                higgs_weight = float(arguments[2])
-                if (abs(higgs_weight) < 1e-7): higgs_weight = 1. 
-        except IndexError:
-                higgs_weight = 1.
 
 	with open(os.path.join(model_dir, '{}.obj'.format(model_name)),'rb') as dump_file:
 		dump_dict = dill.load(dump_file)
@@ -34,11 +28,7 @@ def run( *arguments, **DarkOptions ):
 	total_spec = np.zeros(shape=tmp_shape, dtype=np.float64)
 	tot_frac = 0.
 	for primary in primaries:
-                if primary == 'higgs': 
-                        weight = higgs_weight
-                else:
-                        weight = 1.
-		fraction = weight*dump_dict.get('frac_interp_{:s}'.format(primary)).__call__(sampling_mass)
+		fraction = dump_dict.get('frac_interp_{:s}'.format(primary)).__call__(sampling_mass)
 		#fraction = dump_dict.get('frac_interp_{:s}_loglin'.format(primary)).__call__(sampling_mass)
 		spectra =  dump_dict.get('spec_interp_{:s}'.format(primary)).__call__(sampling_mass)
 		if np.any(spectra > 0.0):
@@ -49,7 +39,12 @@ def run( *arguments, **DarkOptions ):
 	else:
 		total_spec = np.zeros_like(total_spec)
 
-        full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, logEnergies, redshift)
+	history = DarkOptions.get('injection_history','annihilation')
+	if history == 'decay':
+		tdec = DarkOptions.get('t_dec')
+		full_model = decaying_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, tdec)
+	else:
+		full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass)
 	#####
 
 	##### To finish the calculation, calculate f(z) for each deposition channel
@@ -70,5 +65,5 @@ def run( *arguments, **DarkOptions ):
 	#####
 
 if __name__ == "__main__":
-	from DarkAges import DarkOptions as spam
-	run( *sys.argv, **spam)
+	from DarkAges import DarkOptions as milk
+	run( *sys.argv, **milk)

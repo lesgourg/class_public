@@ -7,27 +7,30 @@ This module contains the definition of functions which are useful for the calcul
 of the evaporation of an evaporating black holes. This are mainly the following
 functions:
 
-#. Functions related to the evolution of the mass of the primordial black holes
-   with time:
+#. Functions to translate between the mass of a black hole and its temperature
 
-	* :meth:`PBH_dMdt`
-	* :meth:`PBH_mass_at_z` and :meth:`PBH_mass_at_t`
+	* :meth:`get_mass_from_temperature <DarkAges.evaporator.get_mass_from_temperature>`
+	  and :meth:`get_temperature_from_mass <DarkAges.evaporator.get_temperature_from_mass>`
 
 #. Functions related to the spectrum of the particles produced by the evaporation:
 
-	* :meth:`PBH_spectrum_at_m`, :meth:`Primary_spectrum` and :meth:`full_spectrum`
-	* :meth:`PBH_F_of_M`, :meth:`fraction_at_M`
+	* :meth:`PBH_spectrum_at_m <DarkAges.evaporator.PBH_spectrum_at_m>`
+	  and :meth:`PBH_primary_spectrum <DarkAges.evaporator.PBH_primary_spectrum>`
+	* :meth:`PBH_F_of_M <DarkAges.evaporator.PBH_F_of_M>`
+	  and :meth:`PBH_fraction_at_M <DarkAges.evaporator.PBH_fraction_at_M>`
 
-#. Functions to translate between the mass of a black hole and its temperature
+#. Functions related to the evolution of the mass of the primordial black holes
+   with time:
 
-	* :meth:`get_mass_from_temperature` and :meth:`get_temperature_from_mass`
+	* :meth:`PBH_dMdt <DarkAges.evaporator.PBH_dMdt>`
+	* :meth:`PBH_mass_at_z <DarkAges.evaporator.PBH_mass_at_z>`
 
 """
 
 import numpy as np
 
-from .common import time_at_z, print_warning, logConversion, H, nan_clean
-from .__init__ import redshift, logEnergies, DarkAgesError
+from .common import time_at_z, logConversion, H, nan_clean
+from .__init__ import DarkAgesError, get_redshift, print_warning
 from scipy.integrate import odeint as solve_ode
 from scipy.integrate import trapz
 
@@ -72,20 +75,6 @@ def _get_spin(particle):
 				'1':1.0}
 	return tmp_dict.get(spin_label)
 
-def PBH_spectrum_at_m( mass, logEnergies, *particles):
-	ret = np.zeros((len(logEnergies),len(mass)), dtype=np.float64)
-	E = logConversion(logEnergies - 9)
-
-	if particles:
-		particles = _particle_list_resolver( *particles )
-		for particle in particles:
-			spin = _get_spin(particle)
-			fraction = fraction_at_M( mass, particle )
-			ret[:,:] += fraction*np.asarray(np.vectorize(Primary_spectrum, excluded = ['spin']).__call__( energy=E[:,None], PBH_mass=mass[None,:], spin=spin))
-	else:
-		raise DarkAgesError('There is no particles given')
-	return ret
-
 def get_temperature_from_mass(mass):
 	u"""Returns the temperature of a black hole of a given mass
 
@@ -118,7 +107,70 @@ def get_mass_from_temperature(temperature):
 
 	return 1.06e13 / temperature
 
-def Primary_spectrum( energy, PBH_mass, spin ):
+def PBH_F_of_M( PBH_mass, *particles, **DarkOptions ):
+	u"""Returns the *effective degrees of freedom* :math:`F(M)` of a given list of
+	particles of an evaporating black hole with mass :code:`PBH_mass`.
+
+	If the list in :code:`*particles` contains the string :code:`'ALL'` then
+	all particles are considered
+
+	Parameters
+	----------
+	PBH_mass : :obj:`float`
+		Current mass of the black hole (*in units of* :math:`\\mathrm{g}`)
+	*particles : :obj:`str` or list of :obj:`str`, *optional*
+		Particles to include in the calculation of :math:`\\mathcal{F}(M)`. If
+		left blank, all particles are considered.
+	Returns
+	-------
+	:obj:`float`
+		Value of :math:`\\mathcal{F}(M)`
+	"""
+
+	# factor_dict has the structure 'spin_label' : [f, beta]
+	factor_dict = {'0':[0.267, 2.66],
+			   '1/2 N':[0.142, 4.53],
+			   '1/2 C':[0.147, 4.53],
+			       '1':[0.060, 6.04]}
+
+	def _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor = 0, **DarkOptions):
+		if sigmoid_factor != 0:
+			T_BH = get_temperature_from_mass(PBH_mass)
+			Lam_QCD = DarkOptions.get('QCD_lambda',0.3)
+			if Lam_QCD <= 0:
+				raise DarkAgesError('"QCD_lambda" needs to be positive, but yout input was >> {:.3e} <<'.format(Lam_QCD))
+			sigma = DarkOptions.get('QCD_width',0.1)
+			if sigma > 0.:
+				activation = 1. / (1. + np.exp(- sigmoid_factor*(np.log10(T_BH) - np.log10(Lam_QCD))/sigma))
+			else:
+				raise DarkAgesError('Your input for "QCD_width" >> {:.3e} << is not valid. It needs to be a positive number'.format(sigma))
+		else:
+			activation = 1
+		if mass_of_particle > 0:
+			equivalent_BH_mass = get_mass_from_temperature(mass_of_particle)
+			return activation * multiplicity * np.exp(-PBH_mass / (beta*equivalent_BH_mass) )
+		else:
+			return activation * multiplicity
+
+	ret = 0.
+	if not particles:
+		particles = _particle_list_resolver( 'ALL' )
+	else:
+		particles = _particle_list_resolver( *particles )
+	for particle in particles:
+		if particle in particle_dict:
+			values = particle_dict.get(particle)
+			mass_of_particle = values[0]
+			multiplicity = factor_dict[values[1]][0] * values[2] * values[3] * values[4] * values[5]
+			beta = factor_dict[values[1]][1]
+			sigmoid_factor = values[6]
+			ret += _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor, **DarkOptions)
+		else:
+			print_warning('The particle "{:s}" is not recognized'.format(particle))
+
+	return ret
+
+def PBH_primary_spectrum( energy, PBH_mass, spin, **DarkOptions ):
 	u"""Returns the double differential spectrum
 	:math:`\\frac{\\mathrm{d}^2 N}{\\mathrm{d}E \\mathrm{d}t}` of particles with
 	a given :code:`spin` and kinetic :code:`energy` for an evaporating black hole
@@ -142,14 +194,19 @@ def Primary_spectrum( energy, PBH_mass, spin ):
 		Value of :math:`\\frac{\\mathrm{d}^2 N}{\\mathrm{d}E \\mathrm{d}t}`
 	"""
 
-	if abs(PBH_mass) < np.inf and PBH_mass > 0.:
+	threshold_factor = DarkOptions.get('PBH_spec_threshold',3.)
+
+	if abs(PBH_mass) < np.inf and PBH_mass > 0. and energy > 0.:
 		PBH_temperature = get_temperature_from_mass(PBH_mass)
 		Gamma = 27 * ( 6.70861e-39)**2 * (energy * (PBH_mass * 5.61e23))**2
-		return (1/(2*np.pi)) * Gamma / (np.exp( energy / PBH_temperature ) - (-1)**int(np.round(2*spin)))
+		if energy >= threshold_factor*PBH_temperature:
+			return (1/(2*np.pi)) * Gamma / (np.exp( energy / PBH_temperature ) - (-1)**int(np.round(2*spin)))
+		else:
+			return 0.
 	else:
 		return 0.
 
-def fraction_at_M( PBH_mass, channel, *all_channels):
+def PBH_fraction_at_M( PBH_mass, channel, *all_channels, **DarkOptions):
 	u"""Returns the relative contribution of a given particle (:code:`channel`)
 	being emmited through evaporation of a black hole with mass :code:`PBH_mass`
 
@@ -174,71 +231,61 @@ def fraction_at_M( PBH_mass, channel, *all_channels):
 	"""
 
 	if all_channels:
-		return  PBH_F_of_M( PBH_mass, channel ) / PBH_F_of_M( PBH_mass, *all_channels )
+		return  PBH_F_of_M( PBH_mass, channel, **DarkOptions ) / PBH_F_of_M( PBH_mass, *all_channels, **DarkOptions )
 	else:
-		return  PBH_F_of_M( PBH_mass, channel ) / PBH_F_of_M( PBH_mass )
+		return  PBH_F_of_M( PBH_mass, channel, **DarkOptions ) / PBH_F_of_M( PBH_mass, **DarkOptions )
 
-def PBH_F_of_M( PBH_mass, *particles ):
-	u"""Returns the *effective degrees of freedom* :math:`F(M)` of a given list of
-	particles of an evaporating black hole with mass :code:`PBH_mass`.
+def PBH_spectrum_at_m( mass, logEnergies, *particles, **DarkOptions):
+	u"""Returns the (combined) spectrum :math:`\\frac{\\mathrm{d}N}{\\mathrm{d}E}` of
+	the particles given by the list :code:`*particles` emmited by a
+	a black hole of mass :code:`mass` with a kinetic energy given by
+	:code:`10**logEnergies`.
 
-	If the list in :code:`*particles` contains the string :code:`'ALL'` then
-	all particles are considered
+	This function computes for every particle the primary spectrum by
+	:meth:`PBH_primary_spectrum <DarkAges.evaporator.PBH_primary_spectrum>` and the
+	realtive contribution to the degrees of freedom :math:`\\mathcal{F}(M)` by
+	:meth:`PBH_fraction_at_M <DarkAges.evaporator.PBH_fraction_at_M>` and computes the
+	total spectrum.
 
 	Parameters
 	----------
-	PBH_mass : :obj:`float`
-		Current mass of the black hole (*in units of* :math:`\\mathrm{g}`)
-	*particles : :obj:`str` or list of :obj:`str`, *optional*
-		Particles to include in the calculation of :math:`\\matrhm{F}(M)`. If
-		left blank, all particles are considered.
+	mass : :obj:`array-like`
+		Array (:code:`shape = (k)`) of the black hole masses (*in units of* :math:`\\mathrm{g}`)
+	logEnergies : :obj:`array-like`
+		Array (:code:`shape = (l)`) of the logarithms (to the base 10) of the
+		kinetic energy of the particles in question (the energy is given in units of GeV).
+	*particles : tuple of :obj:`str`
+		List of particles which should be considered. The contributions for each particle
+		will be summed up. **Must at least contain one entry**
+
+	Raises
+	------
+	DarkAgesError
+		If no particles are given, (:code:`*particles` is empty)
+
 	Returns
 	-------
-	:obj:`float`
-		Value of :math:`F(M)`
+	:obj:`array-like`
+		Array (:code:`shape = (k,l)`) of the summed particle spectrum (*in units of* :math:`\\mathrm{GeV}^{-1}`)
+		at the enrgies and masses given by the inputs.
 	"""
 
-	# factor_dict has the structure 'spin_label' : [f, beta]
-	factor_dict = {'0':[0.267, 2.66],
-			   '1/2 N':[0.142, 4.53],
-			   '1/2 C':[0.147, 4.53],
-			       '1':[0.060, 6.04]}
+	ret = np.zeros((len(logEnergies),len(mass)), dtype=np.float64)
+	E = logConversion(logEnergies - 9)
 
-	def _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor = 0):
-		if sigmoid_factor != 0:
-			T_BH = get_temperature_from_mass(PBH_mass)
-			Lam_QH = 0.3
-			sigma = 0.1
-			#activation = np.heaviside(sigmoid_factor,0.)
-			activation = 1. / (1. + np.exp(- sigmoid_factor*(np.log10(T_BH) - np.log10(Lam_QH))/sigma))
-			#activation = np.heaviside(sigmoid_factor*(T_BH - Lam_QH), 0.5)
-		else:
-			activation = 1
-		if mass_of_particle > 0:
-			equivalent_BH_mass = get_mass_from_temperature(mass_of_particle)
-			return activation * multiplicity * np.exp(-PBH_mass / (beta*equivalent_BH_mass) )
-		else:
-			return activation * multiplicity
-
-	ret = 0.
-	if not particles:
-		particles = _particle_list_resolver( 'ALL' )
-	else:
+	if particles is not None:
 		particles = _particle_list_resolver( *particles )
-	for particle in particles:
-		if particle in particle_dict:
-			values = particle_dict.get(particle)
-			mass_of_particle = values[0]
-			multiplicity = factor_dict[values[1]][0] * values[2] * values[3] * values[4] * values[5]
-			beta = factor_dict[values[1]][1]
-			sigmoid_factor = values[6]
-			ret += _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor)
-		else:
-			print_warning('The particle "{:s}" is not recognized'.format(particle))
-
+		for particle in particles:
+			spin = _get_spin(particle)
+			fraction = PBH_fraction_at_M( mass, particle, **DarkOptions )
+			#energy = E
+			energy = E + particle_dict.get(particle)[0]*np.ones_like(E)
+			ret[:,:] += fraction*np.asarray(np.vectorize(PBH_primary_spectrum, excluded = ['spin']).__call__( energy=energy[:,None], PBH_mass=mass[None,:], spin=spin, **DarkOptions))
+	else:
+		raise DarkAgesError('There is no particle given')
 	return ret
 
-def PBH_dMdt(PBH_mass, time, scale=1):
+def PBH_dMdt(PBH_mass, time, scale=1, **DarkOptions):
 	u"""Returns the differential mass loss rate of an primordial black hole with
 	a mass of :code:`PBH_mass*scale` gramm.
 
@@ -278,20 +325,43 @@ def PBH_dMdt(PBH_mass, time, scale=1):
 	"""
 
 	if PBH_mass > 0:
-		ret = -5.34e25*(scale**(-3))*PBH_F_of_M( scale*PBH_mass ) * (PBH_mass)**(-2)
+		ret = -5.34e25*(scale**(-3))*PBH_F_of_M( scale*PBH_mass, **DarkOptions ) * (PBH_mass)**(-2)
 		return ret
 	else:
 		return 0
 
-def PBH_mass_at_z(initial_PBH_mass, redshift=None, z_start = 1e4):
-	def jac(mass, time, scale):
-		out = np.zeros((1,1))
-		out[0,0] = 0 # partial_(dMdt) / partial_t
+def PBH_mass_at_z(initial_PBH_mass, redshift=None, **DarkOptions):
+	u"""Solves the ODE for the PBH mass (:meth:`PBH_dMdt <DarkAges.evaporator.PBH_dMdt>`)
+	and returns the masses at the redshifts given by the input :code:`redshift`
+
+	If not specified by an additional keyword-argument in :code:`**DarkOptions`
+	(by :code:`Start_evolution_at = ...`) the evolution is started at a redshift of 10.000
+
+	Parameters
+	----------
+	initial_PBH_mass : :obj:`float`
+		Initial mass of the primordial black hole (*in units of g*)
+	redshift : :obj:`array-like` *optional*
+		Array (:code:`shape = (l)`) of redshifts at which the PBH mass should
+		be returned. If not given, the global redshift-array from
+		:class:`the initializer <DarkAges.__init__>` is taken
+
+	Returns
+	-------
+	:obj:`array-like`
+		Array (:code:`shape = (l)`) of the PBH mass at the redshifts given in t
+	"""
+
+	# (Very easy) jacobian of the ODE for the PBH mass.
+	# Needed for better performance of the ODE-solver.
+	def jac(mass, time):
+		out = np.zeros((1,1)) # partial_(dMdt) / partial_t = 0, since dMdt has no explicit time dependence.
 		return out
 
 	if redshift is None:
-		from .__init__ import redshift as ham
-		redshift = ham
+		redshift = get_redshift()
+
+	z_start = DarkOptions.get('Start_evolution_at', 1e4)
 
 	if np.max(redshift) >= z_start:
 		raise DarkAgesError("The redshift array is in conflict with the redshift at which to start the evolution of the balck hole. At least one entry in 'redshift' exceeds the value of 'z_start'")
@@ -301,15 +371,15 @@ def PBH_mass_at_z(initial_PBH_mass, redshift=None, z_start = 1e4):
 	initial_PBH_mass *= 1/scale
 
 	temp_t = 10**np.linspace(np.log10(time_at_z(z_start)), np.log10(time_at_z(1.)), 1e5)
-	temp_mass, full_info = solve_ode(PBH_dMdt, initial_PBH_mass, temp_t, Dfun=jac, args=(scale,), full_output=1,mxstep=10000)
+	# Workaround for dealing with **DarkOptions inside the ODE-solver.
+	ODE_to_solve = lambda m,t: PBH_dMdt(m, t, scale=scale, **DarkOptions)
+	temp_mass, full_info = solve_ode(ODE_to_solve, initial_PBH_mass, temp_t, Dfun=jac, full_output=1,mxstep=10000)
 
 	times =  time_at_z(redshift)
 	PBH_mass_at_t = np.interp(times, temp_t, temp_mass[:,0])
 
 	out = np.array([redshift, scale*PBH_mass_at_t])
-	for idx in reversed(xrange(out.shape[-1])):
-		if out[1,idx] <= 0:
-			out[1,:idx+1] = 0.
-			break
+	mask = out[1,:] <= 0.
+	out[1,mask] = 0.
 
 	return out

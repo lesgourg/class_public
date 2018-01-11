@@ -17,7 +17,7 @@ By now there are three possible scenarios and the following wrapping methods:
   and setting up an instance of :class:`model <DarkAges.model.model>` and
   calculate :math:`f(z)`:
 
-    * :meth:`accreting_PBH`: Accretion of a primordial black hole
+	* :meth:`accreting_PBH`: Accretion of a primordial black hole
 	  The spectrum is calculated according to the mass-loss
 	  (see :class:`evaporator <DarkAges.evaporator>`), the
 	  :class:`model <DarkAges.model.model>` with the appropriate injection
@@ -45,10 +45,9 @@ By now there are three possible scenarios and the following wrapping methods:
 import numpy as np
 import os
 import sys
-from .common import channel_dict, finalize, sample_spectrum, print_info, print_warning
-#from .__init__ import DarkOptions as options
-from .__init__ import redshift, logEnergies, transfer_functions, DarkAgesError
-from .model import model, annihilating_model, decaying_model, evaporating_model, annihilating_halos_model, accreting_model
+from .common import finalize, sample_spectrum
+from .__init__ import transfer_functions, DarkAgesError, get_redshift, get_logEnergies, print_info, print_warning, channel_dict
+from .model import annihilating_model, decaying_model, evaporating_model, annihilating_halos_model, accreting_model
 from .interpolator import logInterpolator, NDlogInterpolator
 
 ##### Functions related to executing a script-like file
@@ -92,7 +91,7 @@ def execute_script_file(ext_script_file, *arguments):
 		raise DarkAgesError('Failed to execute the script-file: "{0}"'.format(ext_script_file))
 
 ##### Functions related to loading a model from a file containing the input spectra (and mass)
-def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies, redshift , merge_ion = False, **DarkOptions):
+def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies=None, redshift=None, **DarkOptions):
 	u"""Wrapper for the calculation of :math:`f_c (z)` for a evaporating primordial
 	black hole (PBH) with a given initial mass :code:`PBH_mass_ini` and prionts
 	the table of them for all five deposition channels
@@ -119,11 +118,14 @@ def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies, redshift ,
 		:class:`the initializer <DarkAges.__init__>` is taken.
 	"""
 
-	model_from_file = accreting_model(PBH_mass,recipe, logEnergies, redshift)
+	if logEnergies is None: logEnergies = get_logEnergies()
+	if redshift is None: redshift = get_redshift()
+
+	model_from_file = accreting_model(PBH_mass,recipe, logEnergies, redshift, **DarkOptions)
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
-		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx])[-1]
+		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
 	finalize(redshift,
 			 f_function[channel_dict['Heat']],
@@ -134,7 +136,7 @@ def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies, redshift ,
 			 **DarkOptions)
 
 
-def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , merge_ion = False, **DarkOptions):
+def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies=None, redshift=None, **DarkOptions):
 	u"""Wrapper for the calculation of :math:`f_c (z)` for a evaporating primordial
 	black hole (PBH) with a given initial mass :code:`PBH_mass_ini` and prionts
 	the table of them for all five deposition channels
@@ -150,7 +152,7 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 	transfer_functions : :obj:`class`
 		Array of initialized instance of :class:`transfer <DarkAges.transfer.transfer>`
 		for the five deposition channels in question in the order imposed by
-		T. Slatyer (c.f. :meth:`channel_dict <DarkAges.common.channel_dict>`)
+		T. Slatyer (c.f. :meth:`channel_dict <DarkAges.__init__.channel_dict>`)
 	logEnergies : :obj:`array-like`
 		Array (:code:`shape = (l)`) with the values of the logarithm to the base 10
 		of the kinetic energy of the particles
@@ -163,21 +165,14 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 		If not given the default of :code:`merge_ion = False` is taken.
 	"""
 
-	include_sec = DarkOptions.get('PBH_with_secondaries',True)
+	if logEnergies is None: logEnergies = get_logEnergies()
+	if redshift is None: redshift = get_redshift()
 
-	model_from_file = evaporating_model(PBH_mass_ini,logEnergies,redshift, include_secondaries=include_sec)
+	model_from_file = evaporating_model(PBH_mass_ini,logEnergies,redshift, **DarkOptions)
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
-		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx])[-1]
-
-	if merge_ion:
-		f_ion_lya = f_function[channel_dict['Ly-A'],:]
-		f_ion_H = f_function[channel_dict['H-Ion'],:]
-		f_ion_He = f_function[channel_dict['He-Ion'],:]
-		f_function[channel_dict['H-Ion'],:] = np.sum(np.asarray([f_ion_lya, f_ion_H, f_ion_He]), axis=0)
-		f_function[channel_dict['Ly-A'],:] = 0.
-		f_function[channel_dict['He-Ion'],:] = 0.
+		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
 	finalize(redshift,
 			 f_function[channel_dict['Heat']],
@@ -188,7 +183,7 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies, redshift , m
 			 **DarkOptions)
 
 
-def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, mass, t_dec,zh=1.,fh=0., hist='annihilation', branchings=[1.], **DarkOptions):
+def loading_from_specfiles(fnames, transfer_functions, mass,  logEnergies=None, redshift=None, t_dec=np.inf,zh=1.,fh=0., hist='annihilation', branchings=[1.], **DarkOptions):
 	u"""Wrapper to calculate :math:`f(z)` and print the table for all five deposition channels
 	from spectra tabulated in files for a given injection history.
 
@@ -203,23 +198,24 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 	transfer_functions : :obj:`class`
 		Array of initialized instance of :class:`transfer <DarkAges.transfer.transfer>`
 		for the five deposition channels in question in the order imposed by
-		T. Slatyer (c.f. :meth:`channel_dict <DarkAges.common.channel_dict>`)
+		T. Slatyer (c.f. :meth:`channel_dict <DarkAges.__init__.channel_dict>`)
+	mass : :obj:`float`
+		Mass of the DM candidate (*in units of* :math:`\\mathrm{GeV}`)
 	logEnergies : :obj:`array-like`
 		Array (:code:`shape = (l)`) with the values of the logarithm to the base 10
 		of the kinetic energy of the particles
 	redshift : :obj:`array-like`
 		Array (:code:`shape = (k)`) with the values of :math:`z+1` of the redshift
 		of injection
-	mass : :obj:`float`
-		Mass of the DM candidate (*in units of* :math:`\\mathrm{GeV}`)
 	t_dec : :obj:`float`
 		Lifetime of the DM candidate for a decaying species (*in units of* :math:`\\mathrm{s}`)
 		Mandatory for :code:`hist='decay'` (Will be ignored for
-		:code:`hist='annihilation'`. In taht case you can set it to infinity)
+		:code:`hist='annihilation'` and :code:`hist='annihilation_halos'`.
+		In that case you can set it to infinity)
 	hist : :obj:`str`, *optional*
 		String with the energy injection history to consider. Valid options are:
-		:code:`'annihilation'`, and  :code:`'decay'`. If not given the default
-		value :code:`hist='annihilation'` will be taken
+		:code:`'annihilation'`, :code:`hist='annihilation_halos'` and :code:`'decay'`.
+		If not given the default value :code:`hist='annihilation'` will be taken.
 	branchings : :obj:`array-like`
 		Array of the relative contributions of each of the spectra specified in
 		:code:`fnames`. Need to add upp to 1. and need to have the same number
@@ -234,6 +230,9 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		number of entries in :code:`branchings` is not consistent with the number of
 		entries in :code:`fnames`
 	"""
+
+	if logEnergies is None: logEnergies = get_logEnergies()
+	if redshift is None: redshift = get_redshift()
 
 	try:
 		assert len(fnames) == len(branchings)
@@ -251,7 +250,7 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
 		for idx, fname in enumerate(fnames):
 			if os.path.isfile(fname):
-				spec_interpolator = load_from_spectrum(fname, logEnergies, **DarkOptions)
+				spec_interpolator = load_from_spectrum(fname, logEnergies, injection_history=hist, **DarkOptions)
 				lower = spec_interpolator.get_lower()
 				upper = spec_interpolator.get_upper()
 				if mass < lower or mass > upper:
@@ -261,7 +260,7 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 					spectra[:,:,idx] = spec_interpolator.__call__(mass)
 			elif fname in Cirelli_particles:
 				from .special_functions import secondaries_from_cirelli
-				spectra[:,:,idx] = secondaries_from_cirelli(logEnergies,mass,fname)
+				spectra[:,:,idx] = secondaries_from_cirelli(logEnergies,mass,fname, injection_history=hist)
 			else:
 				raise DarkAgesError('One of your inputs ({:s}) is neither a valid filename nor a known particle from which I can take the particle spectrum out of the PPPC'.format(fname))
 		tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
@@ -279,11 +278,11 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 		tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
 
 	if hist == 'decay':
-		model_from_file = decaying_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec,logEnergies,redshift)
+		model_from_file = decaying_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass, t_dec,logEnergies,redshift, **DarkOptions)
 	elif hist == 'annihilation':
-		model_from_file = annihilating_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,logEnergies,redshift)
+		model_from_file = annihilating_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,logEnergies,redshift, **DarkOptions)
 	elif hist == 'annihilation_halos':
-		model_from_file = annihilating_halos_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,zh,fh,logEnergies,redshift)
+		model_from_file = annihilating_halos_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,zh,fh,logEnergies,redshift, **DarkOptions)
 	else:
 		raise DarkAgesError('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.func_name, hist))
 	try:
@@ -293,15 +292,15 @@ def loading_from_specfiles(fnames, transfer_functions, logEnergies, redshift, ma
 	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
 	for channel in channel_dict:
 		idx = channel_dict[channel]
-		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx])[-1]
+		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
 	finalize(redshift,
-       		 f_function[channel_dict['Heat']],
-       		 f_function[channel_dict['Ly-A']],
-       		 f_function[channel_dict['H-Ion']],
-       		 f_function[channel_dict['He-Ion']],
+			 f_function[channel_dict['Heat']],
+			 f_function[channel_dict['Ly-A']],
+			 f_function[channel_dict['H-Ion']],
+			 f_function[channel_dict['He-Ion']],
 			 f_function[channel_dict['LowE']],
-             **DarkOptions)
+			 **DarkOptions)
 
 def load_from_spectrum(fname, logEnergies, **DarkOptions):
 	u"""Wrapper to return the interpolated spectra of electrons and positrons,
@@ -403,10 +402,13 @@ def access_model(model_name, force_rebuild = False, *arguments, **DarkOptions):
 	if not os.path.isdir(model_dir):
 		raise DarkAgesError('"{0}" seems not to be a proper model. Could not find the respective directory.'.format(model_name))
 	sys.path.insert(0,model_dir)
+	print len(arguments)
 	if os.path.isfile( os.path.join(model_dir, '{0}.obj'.format(model_name)) ) and not force_rebuild:
 		_run_model(model_dir, *arguments, **DarkOptions)
 	else:
 		_prepare_model(model_dir)
+		if arguments:
+			_run_model(model_dir, *arguments, **DarkOptions)
 
 def _prepare_model(model_dir):
 	_found = False
@@ -419,7 +421,7 @@ def _prepare_model(model_dir):
 					_module = fname[:-3]
 				_temp = __import__(_module, globals(), locals(), [], -1)
 				_prepare = _temp.__getattribute__('prepare')
-				file_to_run = os.path.join(model_dir,os.path.join(model_dir,fname))
+				file_to_run = os.path.join(model_dir,_module)
 				_found = True # If module with the "prepare"-method could be loaded exit the for loop
 				break
 			except AttributeError: # Proceed if the imported module has no function "prepare"
@@ -428,7 +430,7 @@ def _prepare_model(model_dir):
 				pass
 	if not _found: # If the loop finished and nothing was found raise an Error
 		raise DarkAgesError('Could not find the method "prepare" in the directory of the model')
-	print_info('Preparing_the model: executing prepare()-method found in "{0}".'.format(file_to_run))
+	print_info('Preparing_the model: executing prepare()-method found in "{0}.py".'.format(file_to_run))
 	_prepare()
 	print_info('Finished preparing the model. It is now ready to use. Please rerun your command.')
 
@@ -444,7 +446,7 @@ def _run_model(model_dir, *arguments, **DarkOptions):
 					_module = fname[:-3]
 				_temp = __import__(_module, globals(), locals(), [], -1)
 				_run = _temp.__getattribute__('run')
-				file_to_run = os.path.join(model_dir,os.path.join(model_dir,_module,'.py'))
+				file_to_run = os.path.join(model_dir,_module)
 				_found = True
 				break
 			except AttributeError:
@@ -457,5 +459,5 @@ def _run_model(model_dir, *arguments, **DarkOptions):
 	if arguments:
 		for arg in arguments[0]:
 			_cmnd.append(arg)
-	print_info('Executing run()-method found in "{0}".'.format(file_to_run))
+	print_info('Executing run()-method found in "{0}.py".'.format(file_to_run))
 	_run(*_cmnd, **DarkOptions)

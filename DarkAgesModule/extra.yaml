@@ -1,5 +1,8 @@
 ---
-'useless' : .NaN
-'PBH_with_secondaries': False
-'spectra_cols' : !!python/tuple [0,5,6,7,8]
+#'PBH_with_secondaries': False
+'QCD_lambda': 0.3
+'QCD_width': 0.125
+#'energy_input_type': E
+#'E_integration_scheme': energy
+#'normalize_spectrum_by': energy_integral
 ...

@@ -13,6 +13,7 @@ with the basic functions
 Also contains derived classes
 
 * :class:`annihilating_model <DarkAges.model.annihilating_model>`
+* :class:`annihilating_halos_model <DarkAges.model.annihilating_halos_model>`
 * :class:`decaying_model <DarkAges.model.decaying_model>`
 * :class:`evaporating_model <DarkAges.model.evaporating_model>`
 * :class:`accreting_model <DarkAges.model.accreting_model>`
@@ -20,9 +21,10 @@ Also contains derived classes
 for the most common energy injection histories.
 
 """
+
 from .transfer import transfer
-from .common import print_info, print_warning, f_function
-from .__init__ import DarkAgesError
+from .common import f_function
+from .__init__ import DarkAgesError, get_logEnergies, get_redshift, print_info, print_warning
 import numpy as np
 
 class model(object):
@@ -56,13 +58,14 @@ class model(object):
 			`c.f. ArXivXXXX.YYYY <https://arxiv.org/abs/XXXX.YYYY>`_).
 			If not specified annihilation is assumed.
 		"""
+
 		self.logEnergies = logEnergies
 		self.spec_electrons = spec_electrons
 		self.spec_photons = spec_photons
 		self.normalization = normalization
 		self.alpha_to_use = alpha
 
-	def calc_f(self, transfer_instance):
+	def calc_f(self, transfer_instance, **DarkOptions):
 		u"""Returns :math:`f(z)` for a given set of transfer functions
 		:math:`T(z_{dep}, E, z_{inj})`
 
@@ -87,11 +90,11 @@ class model(object):
                                 transfer_instance.z_deposited, self.normalization,
                                 transfer_instance.transfer_phot,
                                 transfer_instance.transfer_elec,
-                                self.spec_photons, self.spec_electrons, alpha=self.alpha_to_use)
+                                self.spec_photons, self.spec_electrons, alpha=self.alpha_to_use, **DarkOptions)
 
 			return np.array([red, f_func], dtype=np.float64)
 
-	def save_f(self,transfer_instance, filename):
+	def save_f(self,transfer_instance, filename, **DarkOptions):
 		u"""Saves the table :math:`z_\mathrm{dep.}`, :math:`f(z_\mathrm{dep})` for
 		a given set of transfer functions :math:`T(z_{dep}, E, z_{inj})` in a file.
 
@@ -103,7 +106,7 @@ class model(object):
 			Self-explanatory
 		"""
 
-		f_function = self.calc_f(transfer_instance)
+		f_function = self.calc_f(transfer_instance,**DarkOptions)
 		file_out = open(filename, 'w')
 		file_out.write('#z_dep\tf(z)')
 		for i in range(len(f_function[0])):
@@ -118,7 +121,7 @@ class annihilating_model(model):
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,logEnergies,redshift):
+	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,logEnergies = None,redshift=None, **DarkOptions):
 		u"""
 		At initialization the reference spectra are read and the double-differential
 		spectrum :math:`\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t}` needed for
@@ -128,7 +131,6 @@ class annihilating_model(model):
 			\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t} = C \\cdot\\frac{\\mathrm{d}N(E)}{\\mathrm{d}E}
 
 		where :math:`C` is a constant independent of :math:`t` (:math:`z`) and :math:`E`
-
 
 		Parameters
 		----------
@@ -154,36 +156,60 @@ class annihilating_model(model):
 			:mod:`the initializer <DarkAges.__init__>`  is taken.
 		"""
 
-		def _unscaled(redshift, spec_point):
-			ret = spec_point*np.ones_like(redshift)
-			return ret
+		if logEnergies is None:
+			logEnergies = get_logEnergies()
+		if redshift is None:
+			redshift = get_redshift()
 
-		# if logEnergies is None:
-		# 	from .__init__ import logEnergies as cheese
-		# 	logEnergies = cheese
-		# if redshift is None:
-		# 	from .__init__ import redshift as ham
-		# 	redshift = ham
-		from .common import trapz, logConversion
-
-		E = logConversion(logEnergies)
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
-		#normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
-		normalization = np.ones_like(redshift)*(2*m)
-		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_el_spec[:,None])
-		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], ref_ph_spec[:,None])
+
+		norm_by = DarkOptions.get('normalize_spectrum_by','mass')
+		if norm_by == 'energy_integral':
+			from .common import trapz, logConversion
+			E = logConversion(logEnergies)
+			normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+		elif norm_by == 'mass':
+			normalization = np.ones_like(redshift)*(2*m)
+		else:
+			raise DarkAgesError('I did not understand your input of "normalize_spectrum_by" ( = {:s}). Please choose either "mass" or "energy_integral"'.format(norm_by))
+
+		spec_electrons = np.zeros((len(tot_spec),len(redshift)))
+		spec_photons = np.zeros((len(tot_spec),len(redshift)))
+		spec_electrons[:,:] = ref_el_spec[:,None]
+		spec_photons[:,:] = ref_ph_spec[:,None]
+
 		model.__init__(self, spec_electrons, spec_photons, normalization,logEnergies, 3)
 
 class annihilating_halos_model(model):
-	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,zh,fh,logEnergies,redshift):
-		from .__init__ import redshift, logEnergies
-		from .common import trapz, logConversion, boost_factor_halos, scaling_boost_factor
-		E = logConversion(logEnergies)
+	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,zh,fh,logEnergies=None,redshift=None, **DarkOptions):
+
+		from .special_functions import boost_factor_halos
+
+		def scaling_boost_factor(redshift,spec_point,zh,fh):
+			ret = spec_point*boost_factor_halos(redshift,zh,fh)
+			return ret
+
+		if logEnergies is None:
+			logEnergies = get_logEnergies()
+		if redshift is None:
+			redshift = get_redshift()
+
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
-		#normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
-		normalization = np.ones_like(redshift)*(2*m)/boost_factor_halos(redshift,zh,fh)
+
+		norm_by = DarkOptions.get('normalize_spectrum_by','mass')
+		if norm_by == 'energy_integral':
+			from .common import trapz, logConversion
+			E = logConversion(logEnergies)
+			normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+		elif norm_by == 'mass':
+			normalization = np.ones_like(redshift)*(2*m)
+		else:
+			raise DarkAgesError('I did not understand your input of "normalize_spectrum_by" ( = {:s}). Please choose either "mass" or "energy_integral"'.format(norm_by))
+		normalization /= boost_factor_halos(redshift,zh,fh)
+
 		spec_electrons = np.vectorize(scaling_boost_factor).__call__(redshift[None,:],ref_el_spec[:,None],zh,fh)
 		spec_photons = np.vectorize(scaling_boost_factor).__call__(redshift[None,:],ref_ph_spec[:,None],zh,fh)
+
 		model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,3)
 
 
@@ -194,9 +220,8 @@ class decaying_model(model):
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,t_dec,logEnergies,redshift):
-		u"""
-		At initialization the reference spectra are read and the double-differential
+	def __init__(self,ref_el_spec,ref_ph_spec,ref_oth_spec,m,t_dec,logEnergies=None,redshift=None, **DarkOptions):
+		u"""At initialization the reference spectra are read and the double-differential
 		spectrum :math:`\\frac{\\mathrm{d}^2 N(t,E)}{\\mathrm{d}E\\mathrm{d}t}` needed for
 		the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
 
@@ -237,77 +262,26 @@ class decaying_model(model):
 			ret = spec_point*np.exp(-time_at_z(redshift) / lifetime)
 			return ret
 
-		# if logEnergies is None:
-		# 	from .__init__ import logEnergies as cheese
-		# 	logEnergies = cheese
-		# if redshift is None:
-		# 	from .__init__ import redshift as ham
-		# 	redshift = ham
-		from .common import trapz, logConversion
-		E = logConversion(logEnergies)
+		if logEnergies is None:
+			logEnergies = get_logEnergies()
+		if redshift is None:
+			redshift = get_redshift()
 
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
-		#normalization = trapz(tot_spec*E**2, logEnergies)*np.ones_like(redshift)
-		normalization = np.ones_like(redshift)*(m)
+
+		norm_by = DarkOptions.get('normalize_spectrum_by','mass')
+		if norm_by == 'energy_integral':
+			from .common import trapz, logConversion
+			E = logConversion(logEnergies)
+			normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+		elif norm_by == 'mass':
+			normalization = np.ones_like(redshift)*(m)
+		else:
+			raise DarkAgesError('I did not understand your input of "normalize_spectrum_by" ( = {:s}). Please choose either "mass" or "energy_integral"'.format(norm_by))
+
 		spec_electrons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_el_spec[:,None], t_dec)
 		spec_photons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_ph_spec[:,None], t_dec)
-		model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,0)
 
-
-
-class accreting_model(model):
-	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
-	primordial black holes (PBH) as a candidate of DM
-
-	Inherits all methods of :class:`model <DarkAges.model.model>`
-	"""
-
-	def __init__(self, PBH_mass, recipe, logEnergies, redshift):
-		u"""
-		At initialization the reference spectra are read and the luminosity
-		spectrum :math:`L_\omega` needed for
-		the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
-
-		.. math::
-			L_\omega = \Theta(\omega - \omega_{\rm min})w^{-a}\exp(-\omega/T_s)
-		where :math:`T_s\simeq 200 keV`, :math:`a=-2.5+\log(M)/3` and :math:`\omega_{\rm min} = (10/M)^{1/2}` if recipe = disk_accretion or
-		.. math::
-			L_\omega = w^{-a}\exp(-\omega/T_s)
-		where :math:`T_s\simeq 200 keV` if recipe = spherical_accretion.
-
-		Parameters
-		----------
-		PBH_mass : :obj:`float`
-			Mass of the primordial black hole (*in units of* :math:`M_\odot`)
-		recipe : :obj:`string`
-			Recipe setting the luminosity and the rate of the accretion (`spherical_accretion` taken from 1612.05644 and `disk_accretion` from 1707.04206)
-		logEnergies : :obj:`array-like`, optional
-			Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
-			(*in units of* :math:`\\mathrm{eV}`) to the base 10.
-			If not specified, the standard array provided by
-			:class:`the initializer <DarkAges.__init__>` is taken.
-		redshift : :obj:`array-like`, optional
-			Array (:code:`shape = (k)`) with the values of :math:`z+1`. Used for
-			the calculation of the double-differential spectra.
-			If not specified, the standard array provided by
-			:class:`the initializer <DarkAges.__init__>` is taken.
-		"""
-
-		from .__init__ import redshift, logEnergies
-		from .common import trapz,  logConversion
-		from .special_functions import luminosity_accreting_bh
-		E = logConversion(logEnergies)
-		spec_ph = luminosity_accreting_bh(E,recipe,PBH_mass)
-		spec_el = np.zeros_like(spec_ph)
-		def _unscaled(redshift, spec_point):
-			ret = spec_point*np.ones_like(redshift)
-			return ret
-		E = logConversion(logEnergies)
-		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
-		#normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
-		normalization = np.ones_like(redshift)*(m)
-		spec_electrons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_el_spec[:,None], t_dec)
-		spec_photons = np.vectorize(_decay_scaling).__call__(redshift[None,:], ref_ph_spec[:,None], t_dec)
 		model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,0)
 
 class evaporating_model(model):
@@ -317,7 +291,7 @@ class evaporating_model(model):
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self, PBH_mass_ini,logEnergies, redshift, include_secondaries=True):
+	def __init__(self, PBH_mass_ini, logEnergies=None, redshift=None, **DarkOptions):
 		u"""
 		At initialization evolution of the PBH mass is calculated with
 		:func:`PBH_mass_at_z <DarkAges.evaporator.PBH_mass_at_z>` and the
@@ -344,36 +318,33 @@ class evaporating_model(model):
 		from .evaporator import PBH_spectrum_at_m, PBH_mass_at_z, PBH_dMdt
 		from .common import trapz, logConversion, time_at_z, nan_clean
 
-		# if logEnergies is None:
-		# 	from .__init__ import logEnergies as cheese
-		# 	logEnergies = cheese
-		# if redshift is None:
-		# 	from .__init__ import redshift as ham
-		# 	redshift = ham
+		include_secondaries=DarkOptions.get('PBH_with_secondaries',True)
 
-		mass_at_z = PBH_mass_at_z(PBH_mass_ini, redshift=redshift)
+		if logEnergies is None:
+			logEnergies = get_logEnergies()
+		if redshift is None:
+			redshift = get_redshift()
+
+		mass_at_z = PBH_mass_at_z(PBH_mass_ini, redshift=redshift, **DarkOptions)
 		E = logConversion(logEnergies)
 		E_sec = 1e-9*E
 		E_prim = 1e-9*E
 
 		# Primary spectra
-		prim_spec_el = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'electron')
-		prim_spec_ph = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'gamma')
-		prim_spec_muon = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'muon')
-		prim_spec_pi0 = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'pi0')
-		prim_spec_piCh = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'piCh')
+		prim_spec_el = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'electron', **DarkOptions)
+		prim_spec_ph = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'gamma', **DarkOptions)
+		prim_spec_muon = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'muon', **DarkOptions)
+		prim_spec_pi0 = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'pi0', **DarkOptions)
+		prim_spec_piCh = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'piCh', **DarkOptions)
 
 		# full spectra (including secondaries)
 		if include_secondaries:
-			from .special_functions import secondaries_from_pi0, secondaries_from_piCh, secondaries_from_muon
-			sec_from_pi0 = secondaries_from_pi0(E_sec[:,None],E_prim[None,:])
-			#sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+			from .special_functions import secondaries_from_simple_decay
+			sec_from_pi0 = secondaries_from_simple_decay(E_sec[:,None],E_prim[None,:],'pi0')
 			sec_from_pi0 /= (trapz(np.sum(sec_from_pi0, axis=2),E_sec,axis=0))[None,:,None]
-			sec_from_piCh = secondaries_from_piCh(E_sec[:,None],E_prim[None,:])
-			#sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+			sec_from_piCh = secondaries_from_simple_decay(E_sec[:,None],E_prim[None,:],'piCh')
 			sec_from_piCh /= (trapz(np.sum(sec_from_piCh, axis=2),E_sec,axis=0))[None,:,None]
-			sec_from_muon = secondaries_from_muon(E_sec[:,None],E_prim[None,:])
-			#sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2)*E_sec[:,None],E_sec,axis=0)/(E_prim))[None,:,None]
+			sec_from_muon = secondaries_from_simple_decay(E_sec[:,None],E_prim[None,:],'muon')
 			sec_from_muon /= (trapz(np.sum(sec_from_muon, axis=2),E_sec,axis=0))[None,:,None]
 		else:
 			sec_from_pi0 = np.zeros((len(E_sec),len(E_prim),3), dtype=np.float64)
@@ -395,7 +366,7 @@ class evaporating_model(model):
 		spec_ph = nan_clean(spec_ph)
 
 		# Total spectrum (for normalization)
-		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL')
+		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL', **DarkOptions)
 		del_E = np.zeros(redshift.shape, dtype=np.float64)
 		for idx in xrange(del_E.shape[0]):
 			del_E[idx] = trapz(spec_all[:,idx]*E**2*np.log(10),(logEnergies))
@@ -404,31 +375,38 @@ class evaporating_model(model):
 		model.__init__(self, spec_el, spec_ph, normalization, logEnergies,0)
 
 class accreting_model(model):
-	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for the case of accreting
-	primordial black holes (PBH) as a candidate of DM
+	u"""Derived instance of the class :class:`model <DarkAges.model.model>` for
+	the case of accreting primordial black holes (PBH) as a candidate of DM.
 
 	Inherits all methods of :class:`model <DarkAges.model.model>`
 	"""
 
-	def __init__(self, PBH_mass, recipe, logEnergies, redshift):
-		u"""
-		At initialization the reference spectra are read and the luminosity
-		spectrum :math:`L_\omega` needed for
-		the initialization inherited from :class:`model <DarkAges.model.model>` is calculated by
+	def __init__(self, PBH_mass, recipe, logEnergies=None, redshift=None, **DarkOptions):
+		u"""At initialization the reference spectra are read and the luminosity
+		spectrum :math:`L_{\\omega}` needed for the initialization inherited
+		from :class:`model <DarkAges.model.model>` is calculated by
 
 		.. math::
-			L_\omega = \Theta(\omega - \omega_{\rm min})w^{-a}\exp(-\omega/T_s)
-		where :math:`T_s\simeq 200 keV`, :math:`a=-2.5+\log(M)/3` and :math:`\omega_{\rm min} = (10/M)^{1/2}` if recipe = disk_accretion or
-		.. math::
-			L_\omega = w^{-a}\exp(-\omega/T_s)
-		where :math:`T_s\simeq 200 keV` if recipe = spherical_accretion.
+			L_{\\omega} = \\Theta(\\omega -\\omega_\\mathrm{min})w^{-a}\\exp(-\\frac{\\omega}{T_s})
+
+		where :math:`T_s\\simeq 200\\,\\mathrm{keV}`, :math:`a=-2.5+\\frac{\\log(M)}{3}` and
+		:math:`\\omega_\\mathrm{min} = \\left(\\frac{10}{M}\\right)^{\\frac{1}{2}}`
+		if :code:`recipe = disk_accretion` or
+
+		..  math::
+			L_\\omega = w^{-a}\\exp(-\\frac{\\omega}{T_s})
+
+		where :math:`T_s\\simeq 200\\,\\mathrm{keV}` if
+		:code:`recipe = spherical_accretion`.
 
 		Parameters
 		----------
 		PBH_mass : :obj:`float`
-			Mass of the primordial black hole (*in units of* :math:`M_\odot`)
+			Mass of the primordial black hole (*in units of* :math:`M_\\odot`)
 		recipe : :obj:`string`
-			Recipe setting the luminosity and the rate of the accretion (`spherical_accretion` taken from 1612.05644 and `disk_accretion` from 1707.04206)
+			Recipe setting the luminosity and the rate of the accretion
+			(`spherical_accretion` taken from 1612.05644 and `disk_accretion`
+			from 1707.04206)
 		logEnergies : :obj:`array-like`, optional
 			Array (:code:`shape = (l)`) of the logarithms of the kinetic energies of the particles
 			(*in units of* :math:`\\mathrm{eV}`) to the base 10.
@@ -441,24 +419,21 @@ class accreting_model(model):
 			:class:`the initializer <DarkAges.__init__>` is taken.
 		"""
 
-		# from .__init__ import redshift, logEnergies
+		if logEnergies is None:
+			logEnergies = get_logEnergies()
+		if redshift is None:
+			redshift = get_redshift()
+
 		from .common import trapz,  logConversion
 		from .special_functions import luminosity_accreting_bh
 		E = logConversion(logEnergies)
-		# LogE_norm = np.linspace(0,logEnergies[len(logEnergies)-1],len(logEnergies))
-		# E_norm = logConversion(LogE_norm)
 		spec_ph = luminosity_accreting_bh(E,recipe,PBH_mass)
 		spec_el = np.zeros_like(spec_ph)
-		# spec_ph_norm = luminosity_accreting_bh(E_norm,recipe,PBH_mass)
-		# spec_el_norm = np.zeros_like(spec_ph_norm)
-
-		def _unscaled(redshift, spec_point):
-			ret = spec_point*np.ones_like(redshift)
-			return ret
-
-		spec_electrons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_el[:,None])
-		spec_photons = np.vectorize(_unscaled).__call__(redshift[None,:], spec_ph[:,None])
+		spec_oth = np.zeros_like(spec_ph)
 		normalization = trapz((spec_ph+spec_el)*E**2*np.log(10),logEnergies)*np.ones_like(redshift)
-		# normalization = trapz((spec_ph_norm+spec_el_norm)*E_norm**2*np.log(10),LogE_norm)*np.ones_like(redshift)
-		# print normalization, spec_photons
-		model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies,0)
+
+		spec_photons = np.zeros((len(spec_el),len(redshift)))
+		spec_photons[:,:] = spec_ph[:,None]
+		spec_electrons = np.zeros((len(spec_el),len(redshift)))
+
+		model.__init__(self, spec_electrons, spec_photons, normalization, logEnergies, 0)

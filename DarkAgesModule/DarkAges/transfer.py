@@ -12,7 +12,7 @@ to load them from this.
 """
 
 import numpy as np
-from .common import print_warning
+import dill
 
 class transfer(object):
 	u"""
@@ -55,13 +55,12 @@ def transfer_dump(transfer_instance, outfile):
 		Filename (absolute or relative) under which the transfer instance should be stored
 	"""
 
-	import dill
 	if not isinstance(transfer_instance, transfer):
-		print_warning('You did not include a proper instance of the class "transfer"')
-		return -1
+		from .__init__ import DarkAgesError
+		raise DarkAgesError('You did not include a proper instance of the class "transfer"')
 	with open(outfile, 'wb') as f_dump:
 		dill.dump(transfer_instance, f_dump)
-	return 0
+	return
 
 def transfer_load(infile):
 	u"""Reloads an instance of the :class:`transfer <DarkAges.transfer.transfer>`
@@ -78,11 +77,10 @@ def transfer_load(infile):
 		Restored instance of the :class:`transfer <DarkAges.transfer.transfer>`-class
 	"""
 
-	import dill
 	loaded_transfer = dill.load(open(infile, 'rb'))
 	if not isinstance(loaded_transfer, transfer):
-		print_warning('The file {0} does not provide a proper instance of the class "transfer"'.format(infile))
-		return -1
+		from .__init__ import DarkAgesError
+		raise DarkAgesError('The file {0} does not provide a proper instance of the class "transfer"'.format(infile))
 	else:
 		return loaded_transfer
 

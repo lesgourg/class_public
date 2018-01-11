@@ -6,10 +6,9 @@ if os.environ['DARKAGES_BASE']:
 	sys.path.insert(0, os.environ['DARKAGES_BASE'] )
 
 import DarkAges
-from DarkAges.common import channel_dict
-from DarkAges import logEnergies
+from DarkAges import logEnergies, channel_dict
 from DarkAges.recipes import load_from_spectrum
-from DarkAges.interpolator import logInterpolator, logLinearInterpolator, NDlogInterpolator
+from DarkAges.interpolator import logInterpolator, logLinearInterpolator
 
 model_dir = os.path.split(os.path.realpath(__file__))[0]
 model_name =  model_dir.split('/')[-1]

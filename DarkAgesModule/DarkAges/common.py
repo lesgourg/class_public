@@ -8,94 +8,15 @@ Collection of functions needed to calculate the energy deposition.
 
 from scipy.integrate import trapz
 from scipy.interpolate import interp1d
-from scipy.special import erf
 import os
 import sys
 import numpy as np
 
+from .__init__  import DarkAgesError, print_warning, get_background
+
 ###############################
 ### Definition of functions ###
 ###############################
-
-channel_dict = {
-        'H-Ion': 0,
-       'He-Ion': 1,
-         'Ly-A': 2,
-         'Heat': 3,
-         'LowE': 4
-}
-"""Dictionary to translate between the order of deposition channels``
-given by T. Slatyer and the order of channels used
-in `CLASS <http://class-code.net>`_
-
-+-------------------+-------+--------+-------+--------+------+
-| index / column    | 0     |  1     | 2     | 3      | 4    |
-+===================+=======+========+=======+========+======+
-| **Slatyer order** | H-Ion | He-Ion | Ly-A  | Heat   | lowE |
-+-------------------+-------+--------+-------+--------+------+
-| **CLASS-order**   | Heat  | Ly-A   | H-Ion | He-Ion | lowE |
-+-------------------+-------+--------+-------+--------+------+
-"""
-
-def set_cosmology(H0 = 67.27, Om_M = 0.315, Om_R = 8e-5):
-	u"""Defines the background parameters :math:`H_0`, :math:`\\Omega_\\mathrm{matter}`
-	and :math:`\\Omega_\\mathrm{radiation}`
-	(Mostly for the use of :func:`H <DarkAges.common.H>`).
-
-	Parameters
-	----------
-	H0 : :obj:`float`
-		Todays Hubble parameter :math:`H_0`
-		(*in units of* :math:`\\frac{\\mathrm{km}}{\\mathrm{Mpc\\,s}}`)
-	Om_M : :obj:`float`
-		Todays matter fraction :math:`\\Omega_\\mathrm{matter}`
-	Om_R : :obj:`float`
-		Todays radiation fraction :math:`\\Omega_\\mathrm{radiation}`
-
-	Returns
-	-------
-	:obj:`tuple` of :obj:`float`
-		tuple of :math:`H_0` (*in units of* :math:`\\frac{1}{\\mathrm{s}}`),
-		:math:`\\Omega_\\mathrm{matter}` and :math:`\\Omega_\\mathrm{radiation}`
-	"""
-
-	_km_per_Mpc = 3.241e-20
-
-	Cosmo_H0 = H0 * _km_per_Mpc # in 1/s
-	Cosmo_Omega_M = Om_M
-	Cosmo_Omega_R = Om_R
-	return Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R
-
-if ('DARKAGES_BG_H0' in os.environ) and ('DARKAGES_BG_OM_M' in os.environ) and ('DARKAGES_BG_OM_R' in os.environ):
-	Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology(H0 = float(os.environ['DARKAGES_BG_H0']),
-                                                           Om_M = float(os.environ['DARKAGES_BG_OM_M']),
-                                                           Om_R = float(os.environ['DARKAGES_BG_OM_R']))
-else:
-	Cosmo_H0, Cosmo_Omega_M, Cosmo_Omega_R = set_cosmology()
-
-def print_info(message):
-	u"""Covers messages for the informational use with #, such that the output
-	is not caught by `CLASS <http://class-code.net>`_
-
-	Parameters
-	----------
-	meassge : :obj:`str`
-		Message to be printed in :obj:`stdout`
-	"""
-
-	print('#INFO: {0}'.format(message))
-
-def print_warning(message):
-	u"""Warning at critical behaviour of the code.
-
-	Parameters
-	----------
-	meassge : :obj:`str`
-		Message to be printed in :obj:`stderr` as :obj:`RuntimeWarning`
-	"""
-
-	from warnings import warn
-	warn('\n\nWARNING: {0}\n'.format(message), RuntimeWarning )
 
 def logConversion( log_array , base=10 ):
 	u"""Returns :code:`pow(base, entry)` on every entry in :code:`log_array`
@@ -119,33 +40,35 @@ def logConversion( log_array , base=10 ):
 		return base**single_log10_num
 	return np.vectorize(dummy).__call__(log_array)
 
-def simple_H(redshift, H0 = Cosmo_H0, Omega_M = Cosmo_Omega_M):
-	u"""Returns the Hubble parameter at given redshift in a purely matter
-	dominated universe.
+#def simple_H(redshift, H0 = None, Omega_M = None):
+#	u"""Returns the Hubble parameter at given redshift in a purely matter
+#	dominated universe.
+#
+#	.. note::
+#		This function is not used in the standard calculations of this package
+#
+#	Parameters
+#	----------
+#	redshift : :obj:`array-like`
+#		Array (:code:`shape = (k)`) of values :math:`z+1`
+#	H0 : :obj:`float`, *optional*
+#		Todays Hubble parameter **(in units of 1/s)**. If not given the standard
+#		PLANCK-bestfit value (:math:`H_0 = 67.27\\; \\mathrm{km} /\\mathrm{Mpc\\,s}`) is assumed.
+#	Omega_M : :obj:`float`, *optional*
+#		Todays matter fraction. If not given the standard PLANCK-bestfit value
+#		(:math:`\\Omega_\\mathrm{matter} = 0.315`) is assumed.
+#
+#	Returns
+#	-------
+#	:obj:`array-like`
+#		Array (:code:`shape = (k)`) of Hubble parameters at the redshifts given in :code:`redshift`.
+#	"""
+#
+#	if H0 is None: H0 = get_background('H0')
+#	if Omega_M is None: Omega_M = get_background('Omega_m')
+#	return H(redshift, H0=H0, Omega_M=Omega_M, Omega_R = 0.)
 
-	.. note::
-		This function is not used in the standard calculations of this package
-
-	Parameters
-	----------
-	redshift : :obj:`array-like`
-		Array (:code:`shape = (k)`) of values :math:`z+1`
-	H0 : :obj:`float`, *optional*
-		Todays Hubble parameter **(in units of 1/s)**. If not given the standard
-		PLANCK-bestfit value (:math:`H_0 = 67.27\\; \\mathrm{km} /\\mathrm{Mpc\\,s}`) is assumed.
-	Omega_M : :obj:`float`, *optional*
-		Todays matter fraction. If not given the standard PLANCK-bestfit value
-		(:math:`\\Omega_\\mathrm{matter} = 0.315`) is assumed.
-
-	Returns
-	-------
-	:obj:`array-like`
-		Array (:code:`shape = (k)`) of Hubble parameters at the redshifts given in :code:`redshift`.
-	"""
-
-	return H(redshift, Omega_R = 0.)
-
-def H(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
+def H(redshift, H0 = None, Omega_M = None, Omega_R = None):
 	u"""Returns the Hubble parameter at given redshift
 
 	Parameters
@@ -168,10 +91,12 @@ def H(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
 		Array (:code:`shape = (k)`) of Hubble parameters at the redshifts given in :code:`redshift`.
 	"""
 
+	if H0 is None: H0 = get_background('H0')
+	if Omega_M is None: Omega_M = get_background('Omega_m')
+	if Omega_R is None: Omega_R = get_background('Omega_r')
 	return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R + (1-Omega_R-Omega_M) )
-	#return H0 * np.sqrt( redshift**(3.) * Omega_M + redshift**(4.) * Omega_R ) * 1/np.sqrt(Omega_R + Omega_M)
 
-def time_at_z(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Omega_R):
+def time_at_z(redshift, H0 = None, Omega_M = None, Omega_R = None):
 	u"""Returns time (in seconds) at a given redshift.
 
 	For simplicity it is assumed that only matter and radiation are present
@@ -199,7 +124,11 @@ def time_at_z(redshift, H0=Cosmo_H0, Omega_M = Cosmo_Omega_M, Omega_R = Cosmo_Om
 		Array (:code:`shape = (k)`) of t (in seconds) at the redshifts given in :code:`redshift`.
 	"""
 
-	return 2/(3 * Omega_M**2 * redshift * H0) * ( Omega_M * np.sqrt(Omega_R + (Omega_M / redshift)) + 2 * Omega_R**1.5 * redshift - 2 * Omega_R * np.sqrt(redshift*(Omega_M + redshift*Omega_R) ) )
+	if H0 is None: H0 = get_background('H0')
+	if Omega_M is None: Omega_M = get_background('Omega_m')
+	if Omega_R is None: Omega_R = get_background('Omega_r')
+
+	return np.maximum(0., 2/(3 * Omega_M**2 * redshift * H0) * ( Omega_M * np.sqrt(Omega_R + (Omega_M / redshift)) + 2 * Omega_R**1.5 * redshift - 2 * Omega_R * np.sqrt(redshift*(Omega_M + redshift*Omega_R) ) ) )
 
 def conversion( redshift, alpha=3 ):
 	u"""Returns :math:`\\frac{\\left(z+1\\right)^\\alpha}{H(z)}`
@@ -250,35 +179,26 @@ def nan_clean( input_array ):
 			return 0.
 	return np.vectorize(dummy).__call__(input_array)
 
-def get_index( array, entry ):
-	u"""Returns the index of the first occurence of a specific entry in a given array.
-
-	Parameters
-	----------
-	array : :obj:`array-like`
-		Array to search in
-	entry : :obj:`float`, :obj:`int`
-		Entry to search for
-
-	Returns
-	-------
-	:obj:`int`
-		Index of the first occurence of :code:`entry` in :code:`array`.
-	"""
-	return np.where(array == entry)[0][0].astype(np.int32)
-
-
-def boost_factor_halos(redshift,zh,fh):
-	ret = 1 + fh*erf(redshift/(1+zh))/redshift**3
-	return ret
-
-def scaling_boost_factor(redshift,spec_point,zh,fh):
-	ret = spec_point*(1 + fh*erf(redshift/(1+zh))/redshift**3)
-	return ret
+#def get_index( array, entry ):
+#	u"""Returns the index of the first occurence of a specific entry in a given array.
+#
+#	Parameters
+#	----------
+#	array : :obj:`array-like`
+#		Array to search in
+#	entry : :obj:`float`, :obj:`int`
+#		Entry to search for
+#
+#	Returns
+#	-------
+#	:obj:`int`
+#		Index of the first occurence of :code:`entry` in :code:`array`.
+#	"""
+#	return np.where(array == entry)[0][0].astype(np.int32)
 
 def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,
-               spec_phot, spec_elec, alpha=3, **kwargs):
+               spec_phot, spec_elec, alpha=3, **DarkOptions):
 	u"""Returns the effective efficiency factor :math:`f_c (z)`
 	for the deposition channel :math:`c`.
 
@@ -327,43 +247,26 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 		deposition given in :code:`z_dep`
 	"""
 	E = logConversion(logE)
-	how_to_integrate = kwargs.get('E_integration_scheme','logE')
+	how_to_integrate = DarkOptions.get('E_integration_scheme','logE')
 	if how_to_integrate not in ['logE','energy']:
-		print_error('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
+		from .__init__ import DarkAgesError
+		raise DarkAgesError('The energy integration-scheme >> {0} << is not known'.format(how_to_integrate))
 	if len(E) == 1: how_to_integrate = 'energy' # Handling of a dirac-spectrum is inside the integration part w.r.t energy
 	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
 	if (len(logE) == len(transfer_functions_E)):
-		if np.any(abs(logE - transfer_functions_E) <= 1e-5*logE):
+		if np.any(abs(logE - transfer_functions_E) <= 1e-9*logE):
 			need_to_interpolate = False
 		else:
 			need_to_interpolate = True
 	else:
 		need_to_interpolate = True
 
-	#if need_to_interpolate:
-	#	print 'I need to interpolate'
-	#	interpolated_transfer_elec = np.zeros((len(z_dep),len(logE),len(z_inj)), dtype=np.float64)
-	#	interpolated_transfer_phot = np.zeros((len(z_dep),len(logE),len(z_inj)), dtype=np.float64)
-	#else:
-	#	interpolated_transfer_elec = transfer_elec
-	#	interpolated_transfer_phot = transfer_phot
-
 	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
-	#int_phot = np.zeros( shape=(len(E)), dtype=np.float64)
-	#int_elec = np.zeros( shape=(len(E)), dtype=np.float64)
 	Enj = logConversion(transfer_functions_E)
 	for i in xrange(len(energy_integral)):
-		#if need_to_interpolate:
-		#	print 'step {0} out of {1} steps'.format(i,len(energy_integral))
-		#	from .interpolator import NDlogInterpolator
-		#	interpolated_transfer_phot[i,:,i:] = NDlogInterpolator(transfer_functions_E,transfer_phot[i,:,i:],0,'lin-lin').__call__(logE)
-		#	interpolated_transfer_elec[i,:,i:] = NDlogInterpolator(transfer_functions_E,transfer_elec[i,:,i:],0,'lin-lin').__call__(logE)
 		if how_to_integrate == 'logE':
 			for k in xrange(i,len(energy_integral[i])):
-				#int_phot = interpolated_transfer_phot[i,:,k]*spec_phot[:,k]*(E**2)/np.log10(np.e)
-				#int_elec = interpolated_transfer_elec[i,:,k]*spec_elec[:,k]*(E**2)/np.log10(np.e)
-				#energy_integral[i][k] = trapz( int_phot + int_elec, logE )
 				if not need_to_interpolate:
 					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
 					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
@@ -373,9 +276,6 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
 		elif how_to_integrate == 'energy':
 			for k in xrange(i,len(energy_integral[i])):
-				#int_phot = interpolated_transfer_phot[i,:,k]*spec_phot[:,k]*(E**1)
-				#int_elec = interpolated_transfer_elec[i,:,k]*spec_elec[:,k]*(E**1)
-				#energy_integral[i][k] = trapz( int_phot + int_elec, E )
 				if not need_to_interpolate:
 					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**1)
 					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**1)
@@ -408,8 +308,6 @@ def evaluate_transfer(transfer_functions_E,transfer,E):
 	Enj = logConversion(transfer_functions_E)
 	result = np.zeros_like(E)
 	transfer_interpolation = lambda logE : np.interp(logE,transfer_functions_E,np.log1p(transfer))
-	#transfer_interpolation = interp1d(transfer_functions_E,transfer)
-	#transfer_interpolation = lambda logE : log_fit(transfer_functions_E,transfer,logE)
 	mask1 = np.logical_and( (E > Enj[0]), (E < Enj[-1]) )
 	result[mask1] = np.expm1(transfer_interpolation(np.log10(E[mask1])))
 	mask2 = np.logical_and( (E <= Enj[0]), (E >= 10.2) )
@@ -459,7 +357,7 @@ def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
 	out = tmp_interpolator(xgrid)
 	return out
 
-def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, m, sampling_log10E, **kwargs):
+def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, m, sampling_log10E, **DarkOptions):
 	u"""Returns the interpolated and properly normalized particle spectrum
 
 	This method interpolates the particle spectra defined at the points
@@ -513,25 +411,29 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 		with the IGM at the energies specified in :code:`sampling_log10E`.
 	"""
 
-	scale = kwargs.get('scale','GeV')
-	spec_type = kwargs.get('spec_type','dN/dE')
-	hist = kwargs.get('injection_history','annihilation')
-	norm_dict = {'annihilation':2., 'decay':1.}
+	scale = DarkOptions.get('scale','GeV')
+	energy_input_type = DarkOptions.get('energy_input_type','log10E')
+	spec_type = DarkOptions.get('spec_type','dN/dE')
+	hist = DarkOptions.get('injection_history','annihilation')
+	norm_dict = {'annihilation':2., 'annihilation_halos':2., 'decay':1.}
 	norm = norm_dict.get(hist,2.)*m
 
-	failed = False
+	try:
+		assert energy_input_type in ['log10E','E']
+	except AssertionError:
+		raise DarkAgesError('Unknown type of the input refering to the energy >> {0} <<. Valid options are: "log10E" and "E"'.foramt(energy_input_type))
+	if energy_input_type == 'E':
+		input_log10E = np.log10(input_log10E)
+
 	try:
 		assert spec_type in ['dN/dE','E.dN/dE']
 	except AssertionError:
-		print_warning('Unknown type of input spectrum >> {0} <<. Valid options are: "dN/dE" and "E.dN/dE"'.foramt(spec_type))
-		failed = True
+		raise DarkAgesError('Unknown type of the input refering to the spectrum >> {0} <<. Valid options are: "dN/dE" and "E.dN/dE"'.foramt(spec_type))
 
 	try:
 		assert scale in ['ev','keV','MeV','GeV']
 	except AssertionError:
-		print_warning('Unknown scale of your input >> {0} <<. Valid options are: "eV", "keV", "MeV", and "GeV"'.format(scale) )
-		failed = True
-		scale = 'eV' # Set an abitrary, but valid scale. Since the method is labeled as failed it will return zero anywway
+		raise DarkAgesError('Unknown scale of your input >> {0} <<. Valid options are: "eV", "keV", "MeV", and "GeV"'.format(scale) )
 
 	scale_dict = {
           'GeV': [1e9, 1e-9, 9.],
@@ -555,7 +457,7 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 	total_dep_energy = trapz( factor1*(input_spec_el+input_spec_ph+input_spec_oth)*scale_dict[scale][1], input_log10E )
 
 	non_zero_spec = ( total_dep_energy > 0.)
-	if non_zero_spec and not failed:
+	if non_zero_spec:
 		rescaling = total_dep_energy / norm
 
 		out_el = log_fit(input_log10E, factor2*scale_dict[scale][1]*input_spec_el/rescaling, sampling_log10E)
@@ -581,7 +483,7 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 
 	return np.array([out_el, out_ph, out_oth])
 
-def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **kwargs):
+def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **DarkOptions):
 	u"""Prints the table of redshift and :math:`f_c(z)` for the deposition
 	channels in question into :obj:`stdout`
 
@@ -628,13 +530,18 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **kwargs):
 
 	redshift = redshift - np.ones_like(redshift) # Go from DarkAges-redshift (z+1) to CLASS-redshift (z)
 
-	first = int(kwargs.get('first_index',1))
-	last_idx = int(kwargs.get('last_index',1))
+	if DarkOptions.get('merge_ion',False):
+		f_ionH = np.sum(np.asarray([f_lya, f_ionH, f_ionHe]), axis=0)
+		f_ionHe = np.zeros_like(f_ionH)
+		f_lya = np.zeros_like(f_ionH)
+
+	first = int(DarkOptions.get('first_index',1))
+	last_idx = int(DarkOptions.get('last_index',1))
 	if last_idx == 0:
 		print_warning('We strongly discourage you to assign the value "0" to "last_index". The last entry of the table is zero for numerical reasons.')
 	last = len(redshift) - last_idx
-	min_z = kwargs.get('lower_z_bound',0.)
-	max_z = kwargs.get('upper_z_bound',1e4)
+	min_z = DarkOptions.get('lower_z_bound',0.)
+	max_z = DarkOptions.get('upper_z_bound',1e4)
 	sys.stdout.write(50*'#'+'\n')
 	sys.stdout.write('### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n### "print(...)"-commands in your script are silenced.\n')
 	sys.stdout.write(50*'#'+'\n\n')

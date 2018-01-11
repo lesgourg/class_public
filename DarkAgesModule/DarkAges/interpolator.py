@@ -23,7 +23,7 @@ Contains the definition of the classes
 
 import numpy as np
 from scipy.interpolate import interp1d
-from .common import nan_clean, print_warning
+from .common import nan_clean
 from .__init__ import DarkAgesError
 
 class logInterpolator(object):
@@ -69,16 +69,11 @@ class logInterpolator(object):
 		else:
 			self._xscale, self._yscale = scale.split('-')
 
-		self._valid = True
 		self.exponent = exponent
 		self._lower = float(x[0])
 		self._upper = float(x[-1])
-		try:
-			assert len(x) == len(y)
-		except AssertionError:
-			print_warning('Array of x-values does not correspond to the array of y-values (different sizes)')
-			self._valid = False
-			return None
+		if len(x) != len(y):
+			raise DarkAgesError('Array of x-values does not correspond to the array of y-values (different sizes)')
 		if len(x) < 2:
 			self._only_one_point = True
 			self._single_x_value = float(x[0])
@@ -107,6 +102,7 @@ class logInterpolator(object):
 		else:
 			points = x[nan_mask]
 
+		self._valid = True
 		if len(func_copy[nan_mask]) > 4:
 			self._fit = interp1d(points, fitfunc, bounds_error=False, fill_value=np.nan, kind='cubic')
 		elif len(func_copy[nan_mask]) >= 2:
@@ -305,16 +301,11 @@ class logLinearInterpolator(object):
 		else:
 			self._xscale, self._yscale = scale.split('-')
 
-		self._valid = True
 		self.exponent = exponent
 		self._lower = float(x[0])
 		self._upper = float(x[-1])
-		try:
-			assert len(x) == len(y)
-		except AssertionError:
-			print_warning('Array of x-values does not correspond to the array of y-values (different sizes)')
-			self._valid = False
-			return None
+		if len(x) != len(y):
+			raise DarkAgesError('Array of x-values does not correspond to the array of y-values (different sizes)')
 		if len(x) < 2:
 			self._only_one_point = True
 			self._single_x_value = float(x[0])
@@ -333,6 +324,7 @@ class logLinearInterpolator(object):
 
 		nan_mask = func_copy == func_copy
 
+		self._valid = True
 		if len(func_copy[nan_mask]) >= 2:
 			if self._yscale == 'log':
 				fitfunc = np.log1p( func_copy[nan_mask] * (x[nan_mask]**self.exponent) )
