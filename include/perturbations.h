@@ -28,8 +28,8 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum tca_dark_flags {tca_dark_on, tca_dark_off};//ethos approx
-enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};//MArchi ethos approx
+enum tca_dark_flags {tca_dark_on, tca_dark_off}; //ethos approx
+enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    //MArchi ethos approx
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
@@ -248,10 +248,10 @@ struct perturbs
   short has_source_delta_dcdm; /**< do we need source for delta of DCDM? */
   short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
   short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
-  short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
-  short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
-  short has_source_delta_idr; /**< do we need source for dark radiation? ethos*/
-  short has_source_delta_idm; /**< do we need source for interacting dark matter ethos*/
+  short has_source_delta_dr;   /**< do we need source for delta of decay radiation? */
+  short has_source_delta_ur;   /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_idr;  /**< do we need source for delta dark radiation? ethos*/
+  short has_source_delta_idm;  /**< do we need source for delta interacting dark matter ethos*/
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
@@ -260,10 +260,10 @@ struct perturbs
   short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
   short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
   short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
-  short has_source_theta_dr; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_ur; /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_idr; /**< do we need source for theta dark radiation? ethos*/
-  short has_source_theta_idm; /**< do we need source for theta interacting dark matter ethos*/
+  short has_source_theta_dr;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_idr;  /**< do we need source for theta dark radiation? ethos*/
+  short has_source_theta_idm;  /**< do we need source for theta interacting dark matter ethos*/
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_phi;          /**< do we need source for metric fluctuation phi? */
   short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
@@ -547,7 +547,7 @@ struct perturb_workspace
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
   int index_ap_tca_dark; /**< index for dark tight-coupling approximation (ethos) */
-  int index_ap_rsa_idr; /**< index for dark radiation streaming approximation (ethos) */ //!!!check that all of these get changed to idr
+  int index_ap_rsa_idr; /**< index for dark radiation streaming approximation (ethos) */
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
@@ -804,7 +804,7 @@ extern "C" {
                                   double * pvecthermo,
                                   struct perturb_workspace * ppw
                                   );
-//MArchi ethos approx //!!!_idr_ instead of _dark_
+// MArchi ethos dark radiation streaming approximation
   int perturb_rsa_idr_delta_and_theta(
                                   struct precision * ppr,
                                   struct background * pba,

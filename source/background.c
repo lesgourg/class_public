@@ -407,7 +407,6 @@ int background_functions(
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
-  //check background quantity for rho_idm!!! same as for cdm
   /* ethos interacting dark matter */
   if (pba->has_idm == _TRUE_) {
     pvecback[pba->index_bg_rho_idm] = pba->Omega0_idm * pow(pba->H0,2) / pow(a_rel,3);

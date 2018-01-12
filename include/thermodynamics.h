@@ -160,19 +160,19 @@ struct thermo
   int index_th_tau_d;         /**< Baryon drag optical depth */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
   int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
-  int index_th_exp_m_kappa;  /**< \f$ exp^{-\kappa} \f$ */
+  int index_th_exp_m_kappa;   /**< \f$ exp^{-\kappa} \f$ */
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
-  int index_th_dmu_dark;      /**< ethos */
-  int index_th_ddmu_dark;    //!!!
-  int index_th_dddmu_dark;   //!!!
-  int index_th_dmu_drdr;     //!!!
-  int index_th_tau_idm;      //!!!changed from tau_darkm
-  int index_th_tau_idr;      //!!!changed from tau_darkr
-  int index_th_g_dark;       //!!! dark visibility function
-  int index_th_cidm2;         /**< dm squared sound speed !!!*/
-  int index_th_Tdm;          /**< dm temperature */
+  int index_th_dmu_dark;      /**< ethos (description missing) */
+  int index_th_ddmu_dark;     /**< ethos (description missing) */
+  int index_th_dddmu_dark;    /**< ethos (description missing) */
+  int index_th_dmu_drdr;      /**< ethos (description missing) */
+  int index_th_tau_idm;       /**< ethos (description missing) */
+  int index_th_tau_idr;       /**< ethos (description missing) */
+  int index_th_g_dark;        /**< ethos (description missing) */
+  int index_th_cidm2;         /**< ethos idm squared sound speed */
+  int index_th_Tdm;           /**< dm temperature */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
@@ -228,7 +228,7 @@ struct thermo
 
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
-  double tau_idr_free_streaming; /** MArchi ethos approx: trigger for dark radiation free streaming approximation*/
+  double tau_idr_free_streaming; /**< MArchi ethos approx: trigger for dark radiation free streaming approximation*/
 
   //@}
 

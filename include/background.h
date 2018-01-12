@@ -57,15 +57,15 @@ struct background
   double cs2_fld; /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid
 		     in the frame comoving with the fluid (so, this is
 		     not [delta p/delta rho] in the synchronous or
-		     newtonian gauge!!!) */
+		     newtonian gauge!) */
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
   double Omega0_idr; /**< ethos dark radiation*/
   double Omega0_idm; /**< ethos interacting daark matter*/
 
-  double xi_idr; ///MArchi ethos-new! //changed from xi_dark!!!
-  double f_dark; //MArchi ethos-new! internal dark radiation degrees of freedom
+  double xi_idr; /**< Ethos interaction rate */
+  double f_dark; /**< Internal dark radiation degrees of freedom */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
@@ -162,7 +162,7 @@ struct background
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid with constant w density */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
-  int index_bg_rho_idr;       /**< ethos dark radiation*/
+  int index_bg_rho_idr;       /**< ethos interacting dark radiation*/
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_idm;       /**< ethos interacting dark matter */
   int index_bg_rho_dr;        /**< dr density */

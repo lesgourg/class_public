@@ -609,8 +609,8 @@ struct precision
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
 
-  int sigma_idr; //ethos: perfect fluid=0 or free streaming=1 //!!!changed from sigma_dark
-  //double bself_dark;//ethos: neutrino self interaction coefficient
+  int sigma_idr; /**< ethos: perfect fluid=0 or free streaming=1 */
+
 
   /**
    * when to switch off ur (massless neutrinos / ultra-relativistic
