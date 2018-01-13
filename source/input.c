@@ -1454,7 +1454,7 @@ int input_read_parameters(
   class_read_double("DM_mass",pth->DM_mass);
   class_test(pth->DM_mass <=0 && pth->annihilation_cross_section >0,errmsg,"you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
   //class_test(pth->annihilation_cross_section <=0 && pth->DM_mass >0,errmsg,"you have DM_mass > 0 but annihilation_cross_section = 0. That is weird, please check your param file and set 'annihilation_cross_section' [cm^3/s] to a non-zero value.\n");
-  
+
   class_read_double("decay_fraction",pth->decay_fraction);
   class_test(pth->annihilation_cross_section <=0 && pth->DM_mass >0 && pth->annihilation <= 0 && pth->decay_fraction <=0,errmsg,"you have DM_mass > 0 but both 'annihilation_cross_section' and 'annihilation' are zero. That is weird, please check your param file and set either 'annihilation_cross_section' [cm^3/s] or 'annihilation' [m^3/(kg s)] to a non-zero value.\n");
   class_test(pba->tau_dcdm <=0 && pth->decay_fraction >0,errmsg,"you have decay_fraction > 0 but Gamma_dcdm = 0. That is weird, please check your param file and set 'tau_dcdm' [s] or 'Gamma_dcdm' [km/s/Mpc] to a non-zero value.\n");
@@ -1702,6 +1702,8 @@ int input_read_parameters(
         }
       }
 
+
+
     /* BEGIN: Set all the DarkAges module options */
     if(pth->energy_deposition_function==DarkAges){
       class_call(parser_read_string(pfc,
@@ -1725,6 +1727,8 @@ int input_read_parameters(
           }
         }
       }
+
+
 
 
 
@@ -1837,6 +1841,19 @@ int input_read_parameters(
               sprintf(string2,"%g",pba->tau_dcdm);
               strcat(ppr->command_fz,string2);
             }
+
+            class_call(parser_read_string(pfc,
+                                        "YAML file",
+                                        &(string2),
+                                        &(flag3),
+                                        errmsg),
+                                        errmsg,
+                                        errmsg);
+
+              if(flag3 == _TRUE_){
+                  strcat(ppr->command_fz," --extra-options=");
+                  strcat(ppr->command_fz,string2);
+              }
         }
         /* If the story is not implemented */
         /* Reading the input parameter for the external command */
@@ -1857,8 +1874,20 @@ int input_read_parameters(
             class_read_double("DarkAges_par5",ppr->param_fz_5);
 
   	  sprintf(string2, " %g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
-  	  strcat(ppr->command_fz,string2);
+      strcat(ppr->command_fz,string2);
 
+        class_call(parser_read_string(pfc,
+                                    "YAML file",
+                                    &(string2),
+                                    &(flag3),
+                                    errmsg),
+                                    errmsg,
+                                    errmsg);
+
+          if(flag3 == _TRUE_){
+              strcat(ppr->command_fz," --extra-options=");
+              strcat(ppr->command_fz,string2);
+          }
         }
 
 
