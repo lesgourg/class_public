@@ -3437,8 +3437,6 @@ int perturb_vector_init(
                    "scalar initial conditions assume dark radiation approximation turned off");
 
       }
-      //!!! if pba_has_idm=true, !!!check if we need to check the scalar i.c assume dark_tight_c = off
-
 
       if (pba->has_ur == _TRUE_) {
 
@@ -4577,8 +4575,6 @@ int perturb_initial_conditions(struct precision * ppr,
         /* idm velocity velocity vanishes initially in the synchronous gauge */
       }
 
-      //!!! do we need idr here? _dg is here...
-
       if (pba->has_dcdm == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_dcdm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* dcdm density */
         /* dcdm velocity velocity vanishes initially in the synchronous gauge */
@@ -4858,7 +4854,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       if (pba->has_idm == _TRUE_){ //ethos
         ppw->pv->y[ppw->pv->index_pt_delta_idm] -= 3.*a_prime_over_a*alpha;
-        ppw->pv->y[ppw->pv->index_pt_theta_idm] = k*k*alpha;
+        ppw->pv->y[ppw->pv->index_pt_theta_idm] = k*k*alpha; //theta_idm is set later, together with theta_idr, if the tight coupling is on
       }
 
       if (pba->has_dcdm == _TRUE_) {
@@ -4871,8 +4867,6 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_delta_fld] += 3*(1.+pba->w0_fld+pba->wa_fld)*a_prime_over_a*alpha;
         ppw->pv->y[ppw->pv->index_pt_theta_fld] += k*k*alpha;
       }
-
-      //!!! what about idr? dg are here
 
       /* scalar field: check */
       if (pba->has_scf == _TRUE_) {
@@ -4924,7 +4918,9 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_l3_idr] = ppr->sigma_idr*l3_ur;
       }
     }
-
+    if ((pba->has_idm == _TRUE_) && (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
+       ppw->pv->y[ppw->pv->index_pt_theta_idm] = theta_ur;
+    }
 
     if (pba->has_ncdm == _TRUE_) {
       idx = ppw->pv->index_pt_psi0_ncdm1;
@@ -6094,7 +6090,7 @@ int perturb_total_stress_energy(
         rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
       }
 
-      /* !!! ethos interacting dark matter */
+      /* ethos interacting dark matter */
 
       if (pba->has_idm == _TRUE_) {
         delta_rho_m += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_delta_idm];
@@ -6142,7 +6138,7 @@ int perturb_total_stress_energy(
         rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_dcdm];
       }
 
-      /* !!! ethos interacting dark matter */
+      /* ethos interacting dark matter */
 
       if (pba->has_idm == _TRUE_) {
         delta_rho_m += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_delta_idm];
@@ -7076,7 +7072,7 @@ int perturb_print_variables(double tau,
         theta_ur += k*k*alpha;
       }
 
-      if (pba->has_idr == _TRUE_) {//ethos (do we want this gauge?) !!!
+      if (pba->has_idr == _TRUE_) {//ethos
         delta_idr -= 4. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
         theta_idr += k*k*alpha;
       }
@@ -7730,7 +7726,7 @@ int perturb_derivs(double tau,
       }
     }
 
-    if (pba->has_idr == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off)) { //ethos (this is the missing density from later on !!!)
+    if (pba->has_idr == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off)) { //ethos (this is the missing density from later on)
       dy[pv->index_pt_delta_idr] = -4./3.*(y[pv->index_pt_theta_idr] + metric_continuity);
     }
 
@@ -7753,7 +7749,7 @@ int perturb_derivs(double tau,
       }
     }
 
-    //!!!idm loop, check this ethos
+    //idm loop
     if (pba->has_idm == _TRUE_){
       dy[pv->index_pt_delta_idm] = -(y[pv->index_pt_theta_idm]+metric_continuity); /* idm density */
       dy[pv->index_pt_theta_idm] = - a_prime_over_a*y[pv->index_pt_theta_idm] + metric_euler; /* idm velocity */
@@ -7889,7 +7885,7 @@ int perturb_derivs(double tau,
 
         /** -----> idr velocity */
         dy[pv->index_pt_theta_idr] = k2*(y[pv->index_pt_delta_idr]/4.-s2_squared*y[pv->index_pt_shear_idr]) + metric_euler;
-        dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm]-y[pv->index_pt_theta_idr]); //!!!check this
+        dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm]-y[pv->index_pt_theta_idr]);
 
         if(ppr->sigma_idr!=0){
 
