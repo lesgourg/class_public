@@ -3555,7 +3555,7 @@ int perturb_vector_init(
           ppw->pv->y[ppw->pv->index_pt_theta_dcdm];
       }
 
-      // ethos !!! Check this. Do we need shear? what about l_max_idr?
+
       if (pba->has_idr == _TRUE_) {
 
         ppv->y[ppv->index_pt_delta_idr] =
@@ -4570,7 +4570,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       /* ethos */
 
-      if (pba->has_idm == _TRUE_) {
+      if (pba->has_idm == _TRUE_) { //!!! idr?
         ppw->pv->y[ppw->pv->index_pt_delta_idm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* idm density */
         /* idm velocity velocity vanishes initially in the synchronous gauge */
       }
@@ -4780,17 +4780,16 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if (ppt->gauge == synchronous) {
 
-      class_test((pba->has_idr == _TRUE_), //ethos
+      class_test((pba->has_idr == _TRUE_), //ethos this flag is temporary until synchronous is fully operational in ethos framework
                  ppt->error_message,
                  "only Newtonian Gauge in presence of interacting dark radiation");
 
-      class_test((pba->has_idm == _TRUE_), //ethos
+      class_test((pba->has_idm == _TRUE_), //ethos this flag is temporary until synchronous is fully operational in ethos framework
                  ppt->error_message,
                  "only Newtonian Gauge in presence of interacting dark matter");
 
       ppw->pv->y[ppw->pv->index_pt_eta] = eta;
     }
-    //!!! so why did we need idm in sync gauge?
 
 
     /** - (d) If the needed gauge is the newtonian gauge, we must compute alpha and then perform a gauge transformation for each variable */
