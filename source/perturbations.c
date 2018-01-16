@@ -7399,7 +7399,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, dmu_dark=0., dmu_drdr=0., tca_slip_dark,tca_shear_dark;
+  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark,tca_shear_dark;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -7468,7 +7468,8 @@ int perturb_derivs(double tau,
       dmu_drdr = pba->Omega0_idr/pba->Omega0_idm*dmu_dark;//pvecthermo[pth->index_th_dmu_drdr];
     }
     else{ // this allows us to have interacting DR-DR without DM
-      dmu_drdr = 0; //!!! we need something here ppt->some_input;
+      a_rel=a/pba->a_today; 
+      dmu_drdr = ppt->dmu_drdr_self/pow(a_rel,4); //!!! we need something here ppt->some_input;
     }
   }
 

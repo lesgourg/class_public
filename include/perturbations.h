@@ -189,6 +189,8 @@ struct perturbs
   double * alpha_dark; /**<ethos Angular contribution to collisional term at l>=2 for DM-DR */
   double * beta_dark;  /**<ethos Angular contribution to collisional term at l>=2 for DR-DR */
 
+  double dmu_drdr_self; /**<ethos dr dr 4-point Fermi-like self-interaction constant (im Mpc^-1)*/
+
   //@}
 
   /** @name - useful flags inferred from the ones above */
