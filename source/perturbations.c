@@ -7470,7 +7470,7 @@ int perturb_derivs(double tau,
     }
     else{ // this allows us to have interacting DR-DR without DM
       a_rel=a/pba->a_today; 
-      dmu_drdr = /pow(a_rel,4); //!!! we need something here ppt->some_input;
+      dmu_drdr = ppt->dmu_drdr_self/pow(a_rel,4); //!!! we need something here ppt->some_input;
     }
   }
 
