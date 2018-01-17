@@ -291,7 +291,7 @@ int nonlinear_init(
 						// for debugging:
 						/*
 							for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-							if (index_tau == pnl->tau_size-1) fprintf(stdout,"%e  %e  %e\n",pnl->k[index_k],pk_l[index_k],pk_l_bc[index_k]);
+							if (index_tau == pnl->tau_size-1) fprintf(stdout,"%e  %e  %e\n",pnl->k_extra[index_k],pk_l[index_k],pk_l_bc[index_k]);
 							}
 							if (index_tau == pnl->tau_size-1) fprintf(stdout,"\n\n");
 						*/
@@ -432,7 +432,7 @@ int nonlinear_pk_l(
 		
 		class_alloc(source_ic_extra,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
 		
-		if (ppt->has_source_delta_ncdm == _TRUE_){
+		if (pba->has_ncdm == _TRUE_){
 			class_alloc(source_ic_extra_ncdm,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
 			class_alloc(source_ic_extra_bc,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
 			class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
@@ -460,7 +460,7 @@ int nonlinear_pk_l(
 															pnl->error_message,
 															pnl->error_message)
 			
-			if (ppt->has_source_delta_ncdm == _TRUE_){
+			if (pba->has_ncdm == _TRUE_){
 				class_call(extrapolate_source(
 																		pnl->k_extra,
 																		pnl->k_size,
@@ -504,7 +504,7 @@ int nonlinear_pk_l(
 					*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]\
 					*primordial_pk[index_ic1_ic2];
 				
-				if (ppt->has_source_delta_ncdm == _TRUE_){
+				if (pba->has_ncdm == _TRUE_){
 					pk_l_bc[index_k] += 2.*_PI_*_PI_/pow(pnl->k_extra[index_k],3)\
 					*source_ic_extra_bc[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra_bc[index_ic1*pnl->k_size_extra+index_k]\
 					*primordial_pk[index_ic1_ic2];
@@ -526,7 +526,7 @@ int nonlinear_pk_l(
 							*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra[index_ic2*pnl->k_size_extra+index_k]
 							*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
 						
-						if (ppt->has_source_delta_ncdm == _TRUE_){
+						if (pba->has_ncdm == _TRUE_){
 							pk_l_bc[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k_extra[index_k],3)
 							*source_ic_extra_bc[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra_bc[index_ic2*pnl->k_size_extra+index_k]
 							*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)			
@@ -542,11 +542,11 @@ int nonlinear_pk_l(
 				lnpk[index_k] = log(pk_l[index_k]);
 			}
 			 //for debugging:
-			//if (index_tau == pnl->tau_size-1) fprintf(stdout, "%e %e %e\n", pnl->k_extra[index_k], pk_l[index_k], pk_l_bc[index_k]);
+			if (index_tau == pnl->tau_size-1) fprintf(stdout, "%e %e %e %d\n", pnl->k_extra[index_k], pk_l[index_k], pk_l_bc[index_k], pba->has_ncdm);
     
 		}
 		free(source_ic_extra);
-		if (ppt->has_source_delta_ncdm == _TRUE_){
+		if (pba->has_ncdm == _TRUE_){
 			free(source_ic_extra_ncdm);
 			free(source_ic_extra_bc);
 		}
@@ -2140,14 +2140,14 @@ int nonlinear_HMcode(
     
   /** Get sigma(R=8), sigma_disp(R=0), sigma_disp(R=100)  */
 
-  class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,pk_l_bc,&sigma8), 
+  class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,pk_l,&sigma8), 
 			pnl->error_message, pnl->error_message);
-	class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,1.e-4/pba->h,pk_l_bc,&sigmatest), 
+	class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,1.e-4/pba->h,pk_l,&sigmatest), 
 			pnl->error_message, pnl->error_message);
 			//fprintf(stdout, "%e", sigmatest);		
-  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,0.,pk_l_bc,&sigma_disp), 
+  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,0.,pk_l,&sigma_disp), 
 			pnl->error_message, pnl->error_message);
-  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,pk_l_bc,&sigma_disp100), 
+  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,pk_l,&sigma_disp100), 
 			pnl->error_message, pnl->error_message);			
   
    /** Initialisation steps for the 1-Halo Power Integral */
