@@ -2543,12 +2543,12 @@ int input_read_parameters(
   else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
 		pnl->feedback = user_defined;
 		class_read_double("eta_0", pnl->eta_0);
-		pnl->c_min = (1.03 - pnl->eta_0)/0.11; 
+		pnl->c_min = (0.98 - pnl->eta_0)/0.12; 
   }
   else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
 		pnl->feedback = user_defined;
 		class_read_double("c_min", pnl->c_min);
-		pnl->eta_0 = 1.03 - 0.11*pnl->c_min;
+		pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
   }  
   
   /** (g) amount of information sent to standard output (none if all set to zero) */

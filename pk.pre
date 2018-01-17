@@ -10,7 +10,7 @@ recfast_x_H0_trigger_delta = 0.01
 
 evolver=0
 
-k_min_tau0=0.002
+k_min_tau0=1
 k_max_tau0_over_l_max=3.
 k_step_sub=0.015
 k_step_super=0.0001
@@ -82,9 +82,9 @@ num_mu_minus_lmax = 1000.
 delta_l_max = 1000.
 
 halofit_k_per_decade = 500.
-k_per_decade_for_pk = 500.
-k_per_decade_primordial = 500.
-k_per_decade_for_bao = 500.
+k_per_decade_for_pk = 50.
+k_per_decade_primordial = 50.
+k_per_decade_for_bao = 350.
 
 
 
