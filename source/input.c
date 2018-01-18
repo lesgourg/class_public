@@ -549,8 +549,6 @@ int input_read_parameters(
   double z_max=0.;
   int bin;
 
-  //double N_dark=0;//ethos //maybe delete this? !!!
-
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - set all parameters (input and precision) to default values */
@@ -740,31 +738,74 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_ur;
 
-  /*ethos*/ //!!!this part reads all the particle physics input Omega0_dark-->idr, !!!rearrange this to make it nicer
 
-  //class_read_double("N_dark",N_dark);
+  //New ethos (independent from CDM), added by DCH
+
+  /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
+  class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"f_idm",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
+
+  //this is the standard CDM case
+  if (flag3 == _FALSE_){
+    if (flag1 == _TRUE_)
+      pba->Omega0_cdm = param1;
+    else if (flag2 == _TRUE_)
+      pba->Omega0_cdm = param2/pba->h/pba->h;
+    pba->Omega0_idm = 0;
+  }
+
+  //in the presence of interacting dark matter, we take a fraction of CDM
+  else {
+    if (flag1 == _TRUE_)
+      pba->Omega0_cdm = (1.-param3)*param1;
+    else if (flag2 == _TRUE_)
+      pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
+    pba->Omega0_idm = param3*pba->Omega0_cdm;
+  }
+
+  Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
+
+  //Check for presence of dark radiation for the interacting dark matter
   class_read_double("xi_idr",pba->xi_idr);
   class_read_double("f_dark",pba->f_dark);
-  //pba->Omega0_dark = N_dark*7./8.*pow(pth->xi_idr,4.)*pba->Omega0_g;//pow(4./11.,4./3.)
   pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
+
   Omega_tot += pba->Omega0_idr;
-  //printf("ETHOS N_dark=%e, xi_idr=%e, Omega0_dark=%e, omega0_dark=%e\n",N_dark, pth->xi_idr, pba->Omega0_dark, pba->Omega0_dark*pba->h*pba->h);
+
+  //Read the rest of the ethos parameters
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
   class_read_double("a_dark",pth->a_dark);
   class_test(((pth->a_dark<0.0)),
              errmsg,
              "In input file, a_dark cannot be < 0.0");
+
+  //Check that the user has provided some interaction for our IDM
+  class_test(((pba->Omega0_idm != 0) && ((pba->Omega0_idr == 0) || (pth->a_dark == 0))),
+             errmsg,
+             "You can only have IDM different from 0 if you also have IDR and a coupling (a_dark) different from 0");
+
   class_read_double("b_dark",pth->b_dark);
   class_test(((pth->b_dark<0.0)),
              errmsg,
              "In input file, b_dark cannot be < 0.0");
+
   class_read_int("sigma_idr",ppr->sigma_idr);
   class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
              errmsg,
              "In input file, you can only enter sigma_idr=0 for a perfect fluid or sigma_idr=1 for free streaming neutrinos, choose one");
-  //printf("ETHOS nindex_dark=%e, a_dark=%e, sigma_idr=%d\n",pth->nindex_dark, pth->a_dark, ppr->sigma_idr);
-  class_read_int("l_max_idr",ppr->l_max_idr);//ethos
+  class_read_int("l_max_idr",ppr->l_max_idr);
+
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
              errmsg);
@@ -773,10 +814,12 @@ int input_read_parameters(
       class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
       for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
     }
-  }else{
+  }
+  else{
     class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
   }
+
   class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
              errmsg,
              errmsg);
@@ -785,48 +828,20 @@ int input_read_parameters(
       class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
       for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
     }
-  }else{
+  }
+  else{
     class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
   }
-  //!!!!
-  /** -Omega_0_idm (IDM)*/
-  class_call(parser_read_double(pfc,"Omega_idm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_idm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "In input file, you can only enter one of Omega_idm or omega_idm, choose one");
-  if (flag1 == _TRUE_)
-    pba->Omega0_idm = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega0_idm = param2/pba->h/pba->h;
-  class_test(((pba->Omega0_idm != 0) && ((pba->Omega0_idr == 0) || (pth->a_dark == 0))),
-             errmsg,
-             "You can only have IDM different from 0 if you also have IDR and a coupling (a_dark) different from 0");
-  Omega_tot += pba->Omega0_idm;
 
-  //!!! redo this using nadmdr as a sample, just keep the final flag
+  //Allow for possible IDR self interactions (if no IDM, beta_dark must be 1)
+  class_read_int("dmu_dr_dr_self",ppt->dmu_drdr_self);
+  if(pba->Omega0_idm == 0){
+    class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
+  }
 
-  /** - Omega_0_cdm (CDM) */
-  class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  if (flag1 == _TRUE_)
-    pba->Omega0_cdm = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega0_cdm = param2/pba->h/pba->h;
-
-  Omega_tot += pba->Omega0_cdm;
+  //end of ethos
 
   /** - Omega_0_dcdmdr (DCDM) */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
@@ -2628,7 +2643,7 @@ int input_read_parameters(
   class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
 
-  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx //!!!leave as is
+  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx
   class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_idr_on) && pth->nindex_dark<2,
              errmsg,
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
@@ -2655,7 +2670,7 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
-//MArchi ethos approx//dark-->idr (Omega0_idr)!!!
+//MArchi ethos approx
   if (pba->Omega0_idr != 0. && ppr->dark_radiation_streaming_approximation != rsa_idr_none){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
@@ -2931,7 +2946,7 @@ int input_default_params(
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr-pba->Omega0_idm-pba->Omega0_idr; //Check this !!!
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->w0_fld=-1.;
@@ -3827,7 +3842,7 @@ int input_get_guess(double *xguess,
       ba.H0 = ba.h *  1.e5 / _c_;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
          sqrt_one_minus_M = sqrt(1.0 - Omega_M);
@@ -3846,7 +3861,7 @@ int input_get_guess(double *xguess,
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
          sqrt_one_minus_M = sqrt(1.0 - Omega_M);
@@ -3890,7 +3905,7 @@ int input_get_guess(double *xguess,
           Omega_ini_dcdm -> Omega_dcdmdr and
           omega_ini_dcdm -> omega_dcdmdr */
       Omega0_dcdmdr *=pfzw->target_value[index_guess];
-      Omega_M = ba.Omega0_cdm+Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;

@@ -1981,9 +1981,10 @@ int perturb_workspace_init(
     if(pba->has_idm == _TRUE_){ //ethos
       ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
     }
-    else{
-     ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_off;
-    }
+    //!!!this is where the segfault happens
+    //else{
+    //  ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_off;
+    // }
 
     if (pba->has_ur == _TRUE_) {
       ppw->approx[ppw->index_ap_ufa]=(int)ufa_off;
@@ -7468,7 +7469,7 @@ int perturb_derivs(double tau,
       dmu_drdr = pba->Omega0_idr/pba->Omega0_idm*dmu_dark;//pvecthermo[pth->index_th_dmu_drdr];
     }
     else{ // this allows us to have interacting DR-DR without DM
-      a_rel=a/pba->a_today; 
+      a_rel=a/pba->a_today;
       dmu_drdr = ppt->dmu_drdr_self/pow(a_rel,4); //!!! we need something here ppt->some_input;
     }
   }
