@@ -766,11 +766,14 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
-    if (flag1 == _TRUE_)
+    if (flag1 == _TRUE_){
+      pba->Omega0_idm = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
-    else if (flag2 == _TRUE_)
+    }
+    else if (flag2 == _TRUE_){
+      pba->Omega0_idm = param3*(param2/pba->h/pba->h);
       pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
-    pba->Omega0_idm = param3*pba->Omega0_cdm;
+    }
   }
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
@@ -838,7 +841,7 @@ int input_read_parameters(
   class_read_int("dmu_dr_dr_self",ppt->dmu_drdr_self);
   if(pba->Omega0_idm == 0){
     class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
   }
 
   //end of ethos

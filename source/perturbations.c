@@ -3552,7 +3552,7 @@ int perturb_vector_init(
           ppw->pv->y[ppw->pv->index_pt_theta_dcdm];
       }
 
-
+      /*
       if (pba->has_idr == _TRUE_) {
 
         ppv->y[ppv->index_pt_delta_idr] =
@@ -3560,8 +3560,8 @@ int perturb_vector_init(
 
         ppv->y[ppv->index_pt_theta_idr] =
           ppw->pv->y[ppw->pv->index_pt_theta_idr];
-      }
-
+      }!!!
+      */
 
       if (pba->has_dr == _TRUE_){
         for (l=0; l <= ppv->l_max_dr; l++)
