@@ -1981,10 +1981,6 @@ int perturb_workspace_init(
     if(pba->has_idm == _TRUE_){ //ethos
       ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
     }
-    //!!!this is where the segfault happens
-    //else{
-    //  ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_off;
-    // }
 
     if (pba->has_ur == _TRUE_) {
       ppw->approx[ppw->index_ap_ufa]=(int)ufa_off;
