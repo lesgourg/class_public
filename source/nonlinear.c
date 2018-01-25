@@ -187,7 +187,7 @@ int nonlinear_init(
 
        /* get P_NL(k) at this time with Halofit */
        if (pnl->method == nl_halofit) {
-	 if (print_warning == _FALSE_) {
+	if (print_warning == _FALSE_) {
 	    class_call(nonlinear_halofit(ppr,
 					 pba,
 					 ppm,
@@ -237,51 +237,51 @@ int nonlinear_init(
 		    free(pvecback);
 		}
 	    }
-				}
-				else {
-					/* if Halofit found k_max too small at a previous
-							time/redhsift, use 1 as the non-linear correction for all
-							higher redshifts/earlier times. */
-					for (index_k=0; index_k<pnl->k_size; index_k++) {
-						pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
-					}
-				}
-			}
-			/* get P_NL(k) at this time with HMcode */
-			else if (pnl->method == nl_HMcode) {				
-				if (print_warning == _FALSE_) {
-					/* only fill sigma and grow table once (at redshift 0) */
-					// int i;
-					if (index_tau==pnl->tau_size-1) {
-						class_call(nonlinear_fill_growtab(ppr,pba,pnl), 
-							pnl->error_message, pnl->error_message);
-					}					      
-						class_call(nonlinear_fill_sigtab(ppr,pba,ppt,ppm,pnl,pk_l_bc), 
-							pnl->error_message, pnl->error_message);
+	}
+	else {
+	   /* if Halofit found k_max too small at a previous
+	   time/redhsift, use 1 as the non-linear correction for all
+	   higher redshifts/earlier times. */
+	         for (index_k=0; index_k<pnl->k_size; index_k++) {
+		      pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+		 }
+	}
+       }
+/* get P_NL(k) at this time with HMcode */
+       else if (pnl->method == nl_HMcode) {				
+	if (print_warning == _FALSE_) {
+	/* only fill sigma and grow table once (at redshift 0) */
+        // int i;
+	 if (index_tau==pnl->tau_size-1) {
+	     class_call(nonlinear_fill_growtab(ppr,pba,pnl), 
+			pnl->error_message, pnl->error_message);
+	 }					      
+	 class_call(nonlinear_fill_sigtab(ppr,pba,ppt,ppm,pnl,pk_l_bc), 
+		    pnl->error_message, pnl->error_message);
 							/*if	(index_tau == pnl->tau_size-1) {
 								fprintf(stdout, "i,  R         sigma\n");
 								for (i=0;i<64;i++){
 									fprintf(stdout, "%d, %e, %e\n",i, pnl->rtab[i]*pba->h, pnl->stab[i]);
 								}
 							}*/       
-					class_call(nonlinear_HMcode(ppr,
-																			pba,
-																			ppt,
-																			ppm,
-																			pnl,
-																			pnl->tau[index_tau],
-																			pk_l,
-																			pk_l_bc,
-																			pk_nl,
-																			lnk_l,
-																			lnpk_l,
-																			ddlnpk_l,
-																			&(pnl->k_nl[index_tau]),
-																			&nonlinear_found_k_max),
-										pnl->error_message,
-										pnl->error_message);
+	 class_call(nonlinear_HMcode(ppr,
+				     pba,
+				     ppt,
+				     ppm,
+				     pnl,
+				     pnl->tau[index_tau],
+				     pk_l,
+				     pk_l_bc,
+				     pk_nl,
+				     lnk_l,
+				     lnpk_l,
+				     ddlnpk_l,
+				     &(pnl->k_nl[index_tau]),
+				     &nonlinear_found_k_max),
+		pnl->error_message,
+		pnl->error_message);
 
-					if (nonlinear_found_k_max == ok) {
+	 if (nonlinear_found_k_max == ok) {
 
 						// for debugging:
 						/*
@@ -291,42 +291,41 @@ int nonlinear_init(
 							if (index_tau == pnl->tau_size-1) fprintf(stdout,"\n\n");
 						*/
 
-						for (index_k=0; index_k<pnl->k_size; index_k++) {
-							pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
-						}
-					}
-					else {
+	   for (index_k=0; index_k<pnl->k_size; index_k++) {
+	        pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
+	   }
+	 }
+	 else {
 						/* when HMcode found k_max too small, use 1 as the
 							non-linear correction for this redshift/time, store the
 							last index which worked, and print a warning. */
-						print_warning = _TRUE_;
-						pnl->index_tau_min_nl = index_tau+1;
-						for (index_k=0; index_k<pnl->k_size; index_k++) {
-							pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
-						}
-						if (pnl->nonlinear_verbose > 0) {
-							class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-							class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
-												pba->error_message,
-												pnl->error_message);
-							a = pvecback[pba->index_bg_a];
-							z = pba->a_today/a-1.;
-							fprintf(stdout,
-											" -> [WARNING:] HMcode non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for HMcode to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc (the code will take the max of these parameters) until reaching desired z.\n",
-											z);
-							free(pvecback);
-						}
-					}
-				}
-				else {
+		print_warning = _TRUE_;
+		pnl->index_tau_min_nl = index_tau+1;
+		for (index_k=0; index_k<pnl->k_size; index_k++) {
+		     pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+	        }
+	        if (pnl->nonlinear_verbose > 0) {
+			class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+			class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+							pba->error_message,
+							pnl->error_message);
+			a = pvecback[pba->index_bg_a];
+			z = pba->a_today/a-1.;
+			fprintf(stdout,
+											" -> [WARNING:] HMcode non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for HMcode to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc (the code will take the max of these parameters) until reaching desired z.\n",	z);
+			free(pvecback);
+		}
+       	}
+       }
+       else {
 					/* if HMcode found k_max too small at a previous
 							time/redhsift, use 1 as the non-linear correction for all
 							higher redshifts/earlier times. */
-					for (index_k=0; index_k<pnl->k_size; index_k++) {
-						pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
-					}
-				}
-			}
+	     for (index_k=0; index_k<pnl->k_size; index_k++) {
+		pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+	     }
+       }
+      }
 			
     }
     
@@ -437,8 +436,8 @@ int nonlinear_pk_l(
 			class_alloc(Omega_ncdm,pba->N_ncdm*sizeof(double),pnl->error_message);
 			class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 			class_call(background_at_tau(pba,pnl->tau[index_tau],pba->long_info,pba->inter_normal,&last_index,pvecback),
-             pba->error_message,
-             pnl->error_message);
+                                   pba->error_message,
+                                   pnl->error_message);
 	
 			Omega_m = pvecback[pba->index_bg_Omega_m];
 			Omega_ncdm_all = 0.;
@@ -464,38 +463,33 @@ int nonlinear_pk_l(
 		
 		for (index_ic=0; index_ic<ppm->ic_size[index_md]; index_ic++){
 
-			class_call(extrapolate_source(
-																		pnl->k_extra,
-																		pnl->k_size,
-																		pnl->k_size_extra,
-																		ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_m]+index_tau * pnl->k_size,
-																		extrapolation_only_max_units,
-																		source_ic_extra+index_ic*pnl->k_size_extra,
-																		pba->a_eq*pba->H_eq,
-																		pba->h,																		
-																		pnl->error_message), 
-															pnl->error_message,
-															pnl->error_message)
+			class_call(extrapolate_source(pnl->k_extra,
+						      pnl->k_size,
+						      pnl->k_size_extra,
+						      ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_m]+index_tau * pnl->k_size,
+						      extrapolation_only_max_units,
+						      source_ic_extra+index_ic*pnl->k_size_extra,
+						      pba->a_eq*pba->H_eq,
+						      pba->h,																		                           pnl->error_message), 
+				pnl->error_message,
+				pnl->error_message)
 			
 			if (pba->has_ncdm == _TRUE_){
 				class_call(extrapolate_source(
-																		pnl->k_extra,
-																		pnl->k_size,
-																		pnl->k_size_extra,
-																		source_ic_bc+index_ic*pnl->k_size,
-																		extrapolation_only_max_units,
-																		source_ic_extra_bc+index_ic*pnl->k_size_extra,
-																		pba->a_eq*pba->H_eq,
-																		pba->h,																		
-																		pnl->error_message), 
-															pnl->error_message,
-															pnl->error_message)
+						      pnl->k_extra,
+						      pnl->k_size,
+						      pnl->k_size_extra,
+						      source_ic_bc+index_ic*pnl->k_size,
+						      extrapolation_only_max_units,
+						      source_ic_extra_bc+index_ic*pnl->k_size_extra,
+						      pba->a_eq*pba->H_eq,
+						      pba->h,																		                           pnl->error_message), 
+					pnl->error_message,
+					pnl->error_message)
 					
 			}
 		}
 		
-
-
 		for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
 			//fprintf(stdout, "%e %e\n", pnl->k_extra[index_k], source_ic_extra[index_k]);
 			
