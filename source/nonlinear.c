@@ -124,17 +124,16 @@ int nonlinear_init(
     class_alloc(ddlnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
 
 
-		if (pnl->method == nl_HMcode){
-			/** initialise the source extrapolation */
-			class_call(get_extrapolated_source_size(
-																						ppr->k_per_decade_for_pk,
-																						pnl->k[pnl->k_size-1],
-																						ppr->hmcode_max_k_extra,
-																						pnl->k_size,
-																						&size_extrapolated_source,
-																						pnl->error_message),
-														pnl->error_message,
-														pnl->error_message);
+    if (pnl->method == nl_HMcode){
+    /** initialise the source extrapolation */
+	class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
+                                                pnl->k[pnl->k_size-1], 
+                                                ppr->hmcode_max_k_extra,
+                                                pnl->k_size,
+                                                &size_extrapolated_source,
+                                                pnl->error_message),
+		   pnl->error_message,
+		   pnl->error_message);
 			pnl->k_size_extra = size_extrapolated_source;
    
 			class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
@@ -143,68 +142,67 @@ int nonlinear_init(
 			class_realloc(pk_l_bc,pk_l_bc,pnl->k_size_extra*sizeof(double),pnl->error_message);		
 		
 			class_call(extrapolate_k(
-														 pnl->k,
-														 pnl->k_size,
-														 pnl->k_extra,
-														 ppr->k_per_decade_for_pk,
-														 ppr->hmcode_max_k_extra,
-														 pnl->error_message),
-										pnl->error_message,
-										pnl->error_message);
+						 pnl->k,
+						 pnl->k_size,
+					         pnl->k_extra,
+						 ppr->k_per_decade_for_pk,
+						 ppr->hmcode_max_k_extra,
+					         pnl->error_message),
+				   pnl->error_message,
+				   pnl->error_message);
 		
-			/** Set the baryonic feedback parameters according to the chosen feedback models */
-			if (pnl->feedback == emu_dmonly){
-				pnl->eta_0 = 0.603;
-				pnl->c_min = 3.13;
-			}
-			if (pnl->feedback == owls_dmonly){
-				pnl->eta_0 = 0.64;
-				pnl->c_min = 3.43;
-			}			
-			if (pnl->feedback == owls_ref){
-				pnl->eta_0 = 0.68;
-				pnl->c_min = 3.91;
-			}		
-			if (pnl->feedback == owls_agn){
-				pnl->eta_0 = 0.76;
-				pnl->c_min = 2.32;
-			}		
-			if (pnl->feedback == owls_dblim){
-				pnl->eta_0 = 0.70;
-				pnl->c_min = 3.01;
-			}		
+     /** Set the baryonic feedback parameters according to the chosen feedback models */
+      if (pnl->feedback == emu_dmonly){
+   	  pnl->eta_0 = 0.603;
+          pnl->c_min = 3.13;
+      }
+      if (pnl->feedback == owls_dmonly){
+	  pnl->eta_0 = 0.64;
+	  pnl->c_min = 3.43;
+      }			
+      if (pnl->feedback == owls_ref){
+          pnl->eta_0 = 0.68;
+          pnl->c_min = 3.91;
+      }		
+      if (pnl->feedback == owls_agn){
+	  pnl->eta_0 = 0.76;
+	  pnl->c_min = 2.32;
+      }		
+      if (pnl->feedback == owls_dblim){
+          pnl->eta_0 = 0.70;
+	  pnl->c_min = 3.01;
+      }		
 		
-		}
+     }
 
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
-      /* get P_L(k) at this time */
-			class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_tau,pk_l,pk_l_bc,lnk_l,lnpk_l,ddlnpk_l),
+       /* get P_L(k) at this time */
+       class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_tau,pk_l,pk_l_bc,lnk_l,lnpk_l,ddlnpk_l),
                  pnl->error_message,
                  pnl->error_message);
                  
 
        /* get P_NL(k) at this time with Halofit */
-      if (pnl->method == nl_halofit) {
-				if (print_warning == _FALSE_) {
-					class_call(nonlinear_halofit(ppr,
-																			pba,
-																			ppm,
-																			pnl,
-																			pnl->tau[index_tau],
-																			pk_l,
-																			pk_nl,
-																			lnk_l,
-																			lnpk_l,
-																			ddlnpk_l,
-																			&(pnl->k_nl[index_tau]),
-																			&nonlinear_found_k_max),
-										pnl->error_message,
-										pnl->error_message);
+       if (pnl->method == nl_halofit) {
+	 if (print_warning == _FALSE_) {
+	    class_call(nonlinear_halofit(ppr,
+					 pba,
+					 ppm,
+					 pnl,
+				         pnl->tau[index_tau],
+					 pk_l,
+					 pk_nl,
+					 lnk_l,
+					 lnpk_l,
+					 ddlnpk_l,
+					 &(pnl->k_nl[index_tau]),																		      &nonlinear_found_k_max),
+		       pnl->error_message,
+		       pnl->error_message);
 
-					if (nonlinear_found_k_max == ok) {
+	    if (nonlinear_found_k_max == ok) {
 
 						// for debugging:
 						/*
@@ -214,32 +212,31 @@ int nonlinear_init(
 								fprintf(stdout,"\n\n");
 							 */
 
-						for (index_k=0; index_k<pnl->k_size; index_k++) {
-							pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
-						}
-					}
-					else {
-						/* when Halofit found k_max too small, use 1 as the
-							non-linear correction for this redshift/time, store the
-							last index which worked, and print a warning. */
-						print_warning = _TRUE_;
-						pnl->index_tau_min_nl = index_tau+1;
-						for (index_k=0; index_k<pnl->k_size; index_k++) {
-							pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
-						}
-						if (pnl->nonlinear_verbose > 0) {
-							class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-							class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
-												pba->error_message,
-												pnl->error_message);
-							a = pvecback[pba->index_bg_a];
-							z = pba->a_today/a-1.;
-							fprintf(stdout,
-											" -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",
-											z);
-							free(pvecback);
-						}
-					}
+               	for (index_k=0; index_k<pnl->k_size; index_k++) {
+		     pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
+		}
+	    }
+	    else {
+	    /* when Halofit found k_max too small, use 1 as the
+	    non-linear correction for this redshift/time, store the
+	    last index which worked, and print a warning. */
+		print_warning = _TRUE_;
+		pnl->index_tau_min_nl = index_tau+1;
+		for (index_k=0; index_k<pnl->k_size; index_k++) {
+		     pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+		}
+		if (pnl->nonlinear_verbose > 0) {
+		    class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+		    class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+						 pba->error_message,
+						 pnl->error_message);
+		    a = pvecback[pba->index_bg_a];
+		    z = pba->a_today/a-1.;
+		    fprintf(stdout,
+											" -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
+		    free(pvecback);
+		}
+	    }
 				}
 				else {
 					/* if Halofit found k_max too small at a previous
