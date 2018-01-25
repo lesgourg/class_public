@@ -195,6 +195,17 @@ extern "C" {
                   double * sigma
                   );
                   
+  int nonlinear_sigma_prime(
+                  struct precision * ppr,
+                  struct background * pba,
+                  struct perturbs * ppt,
+                  struct primordial * ppm,
+                  struct nonlinear * pnl,
+                  double R,
+                  double *pk_l_bc,               
+                  double * sigma_prime
+                  );                
+                  
   int nonlinear_sigma_disp(
                   struct precision * ppr,            
                   struct background * pba,
