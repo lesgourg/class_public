@@ -1462,7 +1462,7 @@ int nonlinear_sigma_prime(
     if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
 	if (x<0.01) {
-		W = -(pow(x, 2.)/10.);
+		W = 1.-(x*x/10.);
 		W_prime = -0.2*x;
 		
 	}	
@@ -1504,7 +1504,7 @@ int nonlinear_sigma_prime(
 
   free(array_for_sigma_prime);
 
-  //*sigma_prime = sqrt(*sigma_prime/(2.*_PI_*_PI_));
+  *sigma_prime = *sigma_prime/(2.*_PI_*_PI_);
   //fprintf(stdout, "%e\n", *sigma_prime); 
 
   return _SUCCESS_;
@@ -2346,7 +2346,7 @@ int nonlinear_HMcode(
 	else {
 		* nonlinear_found_k_max = ok;
 	}
-  
+  /*
   class_call(array_interpolate_two_arrays_one_column(
 																			nu_arr,
 																			r_real,
@@ -2356,26 +2356,29 @@ int nonlinear_HMcode(
 																			nu_nl,
 																			&r_nl,
 																			pnl->error_message),
-					pnl->error_message, pnl->error_message);
+					pnl->error_message, pnl->error_message);*/
 
-	int counter;
-	double diff, rmid;
+	int counter, index_nl;
+	double diff, rmid, r1, r2; 
+	class_call(array_search_bisect(n,nu_arr,nu_nl,&index_nl,pnl->error_message), pnl->error_message, pnl->error_message);
 
+	r1 = r_real[index_nl];
+	r2 = r_real[index_nl+1];
 	counter = 0;
   do {
-    rmid = r_nl;
+    r_nl = (r1+r2)/2.;
     counter ++;
-		
+	  
 		class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,r_nl,pk_l,&sigma_nl), 
 			pnl->error_message, pnl->error_message);		
 
     diff = sigma_nl - delta_c;
 
     if (diff > ppr->halofit_tol_sigma){
-      r_nl=r_nl- diff*r_nl;
+      r1=r_nl;
     }
     else if (diff < -ppr->halofit_tol_sigma) {
-      r_nl = r_nl+ diff*r_nl;
+      r2 = r_nl;
     }
 
     /* The first version of this test woukld let the code continue: */
@@ -2391,12 +2394,12 @@ int nonlinear_HMcode(
                "could not converge within maximum allowed number of iterations");
 
   } while (fabs(diff) > ppr->halofit_tol_sigma);
-	fprintf(stdout, "number of iterations for r_nl: %d\n", counter);
+	//fprintf(stdout, "number of iterations for r_nl: %d\n", counter);
 	*k_nl = 1./r_nl;
 	ln_r_nl = log(r_nl);
   
   //Calculate neff and alpha:
-  i=0;
+ /* i=0;
   index_lnsig = i;
   i++;
   index_dlnsig = i;
@@ -2439,15 +2442,15 @@ int nonlinear_HMcode(
 		if (tau==pba->conformal_age) fprintf(stdout, "%e, %e, %e\n",r_real[i], sigma_r[i], ln_sigma_squared[i*index_ncol+index_dlnsig]);
 	}
   fprintf(stdout, "%e, %e\n",log(r_nl), dlnsigdlnR);*/
-	/*double sigma_prime;
+	double sigma_prime;
 	class_call(nonlinear_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,pk_l,&sigma_prime), 
 			pnl->error_message, pnl->error_message);
-	dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;*/	
+	dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;
   n_eff = -3.- dlnsigdlnR;
   alpha = 3.24*pow(1.85, n_eff);
-  free(ln_sigma_squared);
-  free(ln_dsigma_dr);
-  free(ln_r_real);
+  //free(ln_sigma_squared);
+  //free(ln_dsigma_dr);
+  //free(ln_r_real);
   
   // Calculate eta:
 	//Abary = 3.13;
@@ -2583,7 +2586,7 @@ int nonlinear_HMcode(
 		}
 		if (pk_2h<0.) pk_2h=0.;	
 		pk_nl[index_k] = pow((pow(pk_1h, alpha) + pow(pk_2h, alpha)), (1./alpha))/pow(pnl->k[index_k],3)/anorm; //converted back to P_k
-		//if (tau==pba->conformal_age) fprintf(stdout, "%e %e %e %e %e\n", pnl->k[index_k], pk_lin, pk_l, pk_2h, pk_nl[index_k]*pow(pnl->k[index_k],3)*anorm);			
+		//if (tau==pba->conformal_age) fprintf(stdout, "%e %e %e %e %e\n", pnl->k[index_k], pk_lin, pk_1h, pk_2h, pk_nl[index_k]*pow(pnl->k[index_k],3)*anorm);			
 		//if (tau==pba->conformal_age) fprintf(stdout, "%e, %e\n",pnl->k[index_k]/pba->h, pk_nl[index_k]);
 		
 		free(integrand);
@@ -2613,7 +2616,11 @@ int nonlinear_HMcode(
 		fprintf(stdout, "    k*:			%e\n", ks/pba->h);
 		fprintf(stdout, "    Abary:		%e\n", pnl->c_min);			
 		fprintf(stdout, "    fdamp:		%e\n", fdamp);		
-		fprintf(stdout, "    alpha:		%e\n", alpha);		
+		fprintf(stdout, "    alpha:		%e\n", alpha);
+		//fprintf(stdout, "    ksize, kmin, kmax:   %d, %e, %e\n", pnl->k_size, pnl->k[0], pnl->k[pnl->k_size-1]);	
+		/*for (i=0;i<ppr->n_hmcode_tables;i++){
+			fprintf(stdout, "%e %e %e\n",pnl->sigtab[i*3], pnl->sigtab[i*3+1], pnl->sigtab[i*3+2]);
+  	}*/
   } 
 	
   free(conc);	
