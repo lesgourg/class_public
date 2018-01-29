@@ -840,7 +840,7 @@ int input_read_parameters(
   }
 
   //Allow for possible IDR self interactions (if no IDM, beta_dark must be 1)
-  class_read_int("dmu_dr_dr_self",dummy);//dummy=Geff in MeV^-2
+  class_read_double("dmu_dr_dr_self",dummy);//dummy=Geff in MeV^-2
   ppt->dmu_drdr_self=pow(dummy,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
   printf("dmu_drdr_self:%g\n",ppt->dmu_drdr_self);
   if(pba->Omega0_idm == 0){
