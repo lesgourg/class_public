@@ -30,6 +30,12 @@ typedef char ErrorMsg[_ERRORMSGSIZE_]; /**< Generic error messages (there is suc
 #define _FILENAMESIZE_ 256 /**< size of the string read in each line of the file (extra characters not taken into account) */
 typedef char FileName[_FILENAMESIZE_];
 
+#define _eV_over_K_ 8.6173303e-5 /**< Boltzmann constant in eV/Kelvin */
+
+#define _Mpc_over_cm_ 3.0856e24
+
+#define _invGeV_over_cm_ 1.9733e-14
+
 #define _PI_ 3.1415926535897932384626433832795e0 /**< The number pi */
 
 #define _PIHALF_ 1.57079632679489661923132169164e0 /**< pi divided by 2 */
