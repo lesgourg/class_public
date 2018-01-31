@@ -1957,7 +1957,7 @@ int perturb_workspace_init(
 
     class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
-    class_define_index(ppw->index_ap_tca_dark,pba->has_idm,index_ap,1); //ethos approx
+    class_define_index(ppw->index_ap_tca_dark,pba->has_idr,index_ap,1); //ethos approx
     class_define_index(ppw->index_ap_rsa_idr,pba->has_idr,index_ap,1); //MArchi ethos approx
 
   }
@@ -5229,10 +5229,11 @@ int perturb_approximations(
           (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k)) {
         ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
       }
-      else {
-        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-      }
     }
+    if((pba->has_idm == _FALSE_) && (pba->has_idr == _TRUE_)){
+      ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+    }
+
 
     /** - --> (c) free-streaming approximations */
 
@@ -7746,7 +7747,7 @@ int perturb_derivs(double tau,
       }
     }
 
-    //idm loop
+    /** - ---> idm ethos */
     if (pba->has_idm == _TRUE_){
       dy[pv->index_pt_delta_idm] = -(y[pv->index_pt_theta_idm]+metric_continuity); /* idm density */
       dy[pv->index_pt_theta_idm] = - a_prime_over_a*y[pv->index_pt_theta_idm] + metric_euler; /* idm velocity */
@@ -7875,14 +7876,17 @@ int perturb_derivs(double tau,
         - (k2 + a2*pvecback[pba->index_bg_ddV_scf])*y[pv->index_pt_phi_scf]; //checked
 
     }
-    /** -> dark radiation ethos*/
+    /** - ---> dark radiation ethos*/
     if (pba->has_idr == _TRUE_ && (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off)) {
 
       if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off) {
 
         /** -----> idr velocity */
         dy[pv->index_pt_theta_idr] = k2*(y[pv->index_pt_delta_idr]/4.-s2_squared*y[pv->index_pt_shear_idr]) + metric_euler;
-        dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm]-y[pv->index_pt_theta_idr]);
+
+        if (pba->has_idm == _TRUE_){ //this if has been added to avoid potential issues when running idr only
+          dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm]-y[pv->index_pt_theta_idr]);
+        }
 
         if(ppr->sigma_idr!=0){
 
