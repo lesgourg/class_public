@@ -549,8 +549,6 @@ int input_read_parameters(
   double z_max=0.;
   int bin;
 
-  double dummy=0.;
-
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - set all parameters (input and precision) to default values */
@@ -840,9 +838,11 @@ int input_read_parameters(
   }
 
   //Allow for possible IDR self interactions (if no IDM, beta_dark must be 1)
-  class_read_double("dmu_dr_dr_self",dummy);//dummy=Geff in MeV^-2
-  ppt->dmu_drdr_self=pow(dummy,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
-  printf("dmu_drdr_self:%g\n",ppt->dmu_drdr_self);
+  class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//dummy=Geff in MeV^-2
+  printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
+  ppt->dmu_drdr_self*=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
+  printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
+  printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
   if(pba->Omega0_idm == 0){
     class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
