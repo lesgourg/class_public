@@ -769,7 +769,6 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
-    class_read_double("m_dm",pth->m_dm);
     if (flag1 == _TRUE_){
       pba->Omega0_idm = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
@@ -778,6 +777,7 @@ int input_read_parameters(
       pba->Omega0_idm = param3*(param2/pba->h/pba->h);
       pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
     }
+    class_read_double("m_dm",pth->m_dm);
   }
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
@@ -788,7 +788,7 @@ int input_read_parameters(
   pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;
 
   Omega_tot += pba->Omega0_idr;
-
+  printf("%e %e %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
   class_test(((pba->Omega0_idm != 0) && (pba->Omega0_idr == 0)),
              errmsg,
              "You can only have IDM different from 0 if you also have IDR different from 0");
@@ -2662,7 +2662,7 @@ int input_read_parameters(
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
 
   class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx
-  class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_idr_on) && pth->nindex_dark<2,
+  class_test((ppr->dark_radiation_streaming_approximation != rsa_idr_none) && pth->nindex_dark<2,
              errmsg,
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
   class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//ethos approx
