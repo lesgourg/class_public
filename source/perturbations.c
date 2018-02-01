@@ -6896,6 +6896,9 @@ int perturb_print_variables(double tau,
       }
     }
 
+    delta_b = y[ppw->pv->index_pt_delta_b];
+    theta_b = y[ppw->pv->index_pt_theta_b];
+
     if (pba->has_idr == _TRUE_) {//ethos
       if (ppw->approx[ppw->index_ap_rsa_idr]==(int)rsa_idr_off) {
         if (ppw->approx[ppw->index_ap_tca_dark]==(int)tca_dark_on) {
@@ -6915,9 +6918,6 @@ int perturb_print_variables(double tau,
         shear_idr = 0.;
       }
     }
-
-    delta_b = y[ppw->pv->index_pt_delta_b];
-    theta_b = y[ppw->pv->index_pt_theta_b];
 
     /* ethos interacting dark matter */
     if (pba->has_idm == _TRUE_) {

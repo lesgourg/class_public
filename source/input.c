@@ -794,68 +794,69 @@ int input_read_parameters(
              "You can only have IDM different from 0 if you also have IDR different from 0");
 
   if (pba->Omega0_idr!=0.0){
-     if (pba->Omega0_idm!=0.0){
-        //Read the rest of the ethos parameters
-        class_call(parser_read_double(pfc,"a_dark",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-        class_test(((flag1 == _FALSE_)),
-             errmsg,
-             "If you have idm and idr then you need to set a_dark");
-        pth->a_dark=param1;
-        class_test(((pth->a_dark<0.0)),
-             errmsg,
-             "In input file, a_dark cannot be < 0.0");
+    if (pba->Omega0_idm!=0.0){
+       //Read the rest of the ethos parameters
+      class_call(parser_read_double(pfc,"a_dark",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      class_test(((flag1 == _FALSE_)),
+                 errmsg,
+                 "If you have idm and idr then you need to set a_dark");
+      pth->a_dark=param1;
+      class_test(((pth->a_dark<0.0)),
+                 errmsg,
+                 "In input file, a_dark cannot be < 0.0");
 
-        class_read_double("nindex_dark",pth->nindex_dark);
+      class_read_double("nindex_dark",pth->nindex_dark);
 
-        class_read_double("b_dark",pth->b_dark);
-        class_test(((pth->b_dark<0.0)),
-             errmsg,
-             "In input file, b_dark cannot be < 0.0");
-     }
-     else{
-        //only idr Fermi-like 4-point self-interactions
-        class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//Geff in MeV^-2
-        printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
-        ppt->dmu_drdr_self*=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
-        printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
-        printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
-     }
-     class_read_int("sigma_idr",ppr->sigma_idr);
-     class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
-             errmsg,
-             "In input file, you can only enter sigma_idr=0 for a perfect fluid or sigma_idr=1 for free streaming neutrinos, choose one");
+      class_read_double("b_dark",pth->b_dark);
+      class_test(((pth->b_dark<0.0)),
+                 errmsg,
+                 "In input file, b_dark cannot be < 0.0");
+    }
+    else{
+      //only idr Fermi-like 4-point self-interactions
+      class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//Geff in MeV^-2
+      printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
+      ppt->dmu_drdr_self*=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
+      printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
+      printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
+    }
 
-     class_read_int("l_max_idr",ppr->l_max_idr);
+    class_read_int("sigma_idr",ppr->sigma_idr);
+    class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
+               errmsg,
+               "In input file, you can only enter sigma_idr=0 for a perfect fluid or sigma_idr=1 for free streaming neutrinos, choose one");
 
-     class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
-             errmsg,
-             errmsg);
-     if(flag1 == _TRUE_){
-         if(entries_read != (ppr->l_max_idr-1)){
-           class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-           for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
-         }
-     }
-     else{
-         class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
-     }
+    class_read_int("l_max_idr",ppr->l_max_idr);
 
-     class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
-             errmsg,
-             errmsg);
-     if(flag1 == _TRUE_){
-         if(entries_read != (ppr->l_max_idr-1)){
-           class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-           for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
-         }
-     }
-     else{
-         class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
-     }
+    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if(flag1 == _TRUE_){
+      if(entries_read != (ppr->l_max_idr-1)){
+        class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+      }
+    }
+    else{
+      class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
+    }
+
+    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if(flag1 == _TRUE_){
+      if(entries_read != (ppr->l_max_idr-1)){
+        class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+      }
+    }
+    else{
+      class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
+    }
   }
 
   //end of ethos
