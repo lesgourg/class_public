@@ -173,7 +173,7 @@ int thermodynamics_at_z(
     pvecthermo[pth->index_th_rate] = pvecthermo[pth->index_th_dkappa];
 
     //ethos
-    if((pth->a_dark!=0.) && (pba->has_idm == _TRUE_)){
+    if(pba->has_idm == _TRUE_){
 
       //pvecthermo[pth->index_th_dmu_nudm] = (3./8./_PI_/_G_*_sigma_/1.e11/_eV_*pow(_c_,4))/_Mpc_over_m_*pth->u_nudm*pow((1.+z),pth->nindex_dark)*pba->Omega0_cdm*pow(pba->H0,2);
 
@@ -510,7 +510,7 @@ int thermodynamics_init(
      will not be used anymore, they will be overwritten */
 
   /*ethos*/
-  if((pth->a_dark!=0) && (pba->has_idm == _TRUE_)){
+  if(pba->has_idm == _TRUE_){
      /** -> second derivative of the rate, [S dmu]'', stored temporarily in column dddmu*/
     class_call(array_spline_table_line_to_line(tau_table,
                                                pth->tt_size,
@@ -730,7 +730,7 @@ int thermodynamics_init(
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
 
     /* ethos calculate dark visibility function and then replace dmu and derivatives with the true values*/
-    if((pth->a_dark!=0.) && (pba->has_idm == _TRUE_)){
+    if(pba->has_idm == _TRUE_){
 
       class_call(background_at_tau(pba,
                                    tau_table[index_tau],
@@ -778,7 +778,7 @@ int thermodynamics_init(
 
   //ethos Sebastian
   /* ETHOS: compute DM temperature and sound speed */
-  if((pth->a_dark != 0.) && (pba->has_idm == _TRUE_)){
+  if(pba->has_idm == _TRUE_){
     double tau;
     class_call(background_tau_of_z(pba,pth->z_table[pth->tt_size-1],&(tau)),
                pba->error_message,

@@ -754,6 +754,9 @@ int input_read_parameters(
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
+  class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
+             errmsg,
+             "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
 
   //this is the standard CDM case
   if (flag3 == _FALSE_){
@@ -766,6 +769,7 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
+    class_read_double("m_dm",pth->m_dm);
     if (flag1 == _TRUE_){
       pba->Omega0_idm = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
@@ -781,71 +785,77 @@ int input_read_parameters(
   //Check for presence of dark radiation for the interacting dark matter
   class_read_double("xi_idr",pba->xi_idr);
   class_read_double("f_dark",pba->f_dark);
-  pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;//MArchi ethos-new! add 7/8
+  pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;
 
   Omega_tot += pba->Omega0_idr;
 
-  //Read the rest of the ethos parameters
-  class_read_double("m_dm",pth->m_dm);
-  class_read_double("nindex_dark",pth->nindex_dark);
-  class_read_double("a_dark",pth->a_dark);
-  class_test(((pth->a_dark<0.0)),
+  class_test(((pba->Omega0_idm != 0) && (pba->Omega0_idr == 0)),
+             errmsg,
+             "You can only have IDM different from 0 if you also have IDR different from 0");
+
+  if (pba->Omega0_idr!=0.0){
+     if (pba->Omega0_idm!=0.0){
+        //Read the rest of the ethos parameters
+        class_call(parser_read_double(pfc,"a_dark",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+        class_test(((flag1 == _FALSE_)),
+             errmsg,
+             "If you have idm and idr then you need to set a_dark");
+        pth->a_dark=param1;
+        class_test(((pth->a_dark<0.0)),
              errmsg,
              "In input file, a_dark cannot be < 0.0");
 
-  //Check that the user has provided some interaction for our IDM
-  class_test(((pba->Omega0_idm != 0) && ((pba->Omega0_idr == 0) || (pth->a_dark == 0))),
-             errmsg,
-             "You can only have IDM different from 0 if you also have IDR and a coupling (a_dark) different from 0");
+        class_read_double("nindex_dark",pth->nindex_dark);
 
-  class_read_double("b_dark",pth->b_dark);
-  class_test(((pth->b_dark<0.0)),
+        class_read_double("b_dark",pth->b_dark);
+        class_test(((pth->b_dark<0.0)),
              errmsg,
              "In input file, b_dark cannot be < 0.0");
-
-  class_read_int("sigma_idr",ppr->sigma_idr);
-  class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
+     }
+     else{
+        //only idr Fermi-like 4-point self-interactions
+        class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//Geff in MeV^-2
+        printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
+        ppt->dmu_drdr_self*=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
+        printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
+        printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
+     }
+     class_read_int("sigma_idr",ppr->sigma_idr);
+     class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
              errmsg,
              "In input file, you can only enter sigma_idr=0 for a perfect fluid or sigma_idr=1 for free streaming neutrinos, choose one");
-  class_read_int("l_max_idr",ppr->l_max_idr);
 
-  class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
+     class_read_int("l_max_idr",ppr->l_max_idr);
+
+     class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
              errmsg);
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
-    }
-  }
-  else{
-    class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
-  }
+     if(flag1 == _TRUE_){
+         if(entries_read != (ppr->l_max_idr-1)){
+           class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+           for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+         }
+     }
+     else{
+         class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
+     }
 
-  class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
+     class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
              errmsg,
              errmsg);
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
-    }
-  }
-  else{
-    class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
-  }
-
-  //Allow for possible IDR self interactions (if no IDM, beta_dark must be 1)
-  class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//dummy=Geff in MeV^-2
-  printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
-  ppt->dmu_drdr_self*=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
-  printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
-  printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
-  if(pba->Omega0_idm == 0){
-    class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
+     if(flag1 == _TRUE_){
+         if(entries_read != (ppr->l_max_idr-1)){
+           class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+           for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+         }
+     }
+     else{
+         class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
+     }
   }
 
   //end of ethos
@@ -2654,8 +2664,8 @@ int input_read_parameters(
   class_test((ppr->dark_radiation_streaming_approximation == (int)rsa_idr_on) && pth->nindex_dark<2,
              errmsg,
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
-  class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//MArchi ethos approx
-  class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//MArchi ethos approx
+  class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//ethos approx
+  class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//ethos approx
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
@@ -2677,7 +2687,7 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
-//MArchi ethos approx
+//ethos approx
   if (pba->Omega0_idr != 0. && ppr->dark_radiation_streaming_approximation != rsa_idr_none){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
@@ -2924,7 +2934,7 @@ int input_default_params(
   pba->Omega0_idr = 0.0;//ethos
   pba->Omega0_idm = 0.0;
   pba->f_dark = 7./8.; //ethos
-  pba->xi_idr = 0;//MArchi ethos-new!
+  pba->xi_idr = 0;//ethos
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
@@ -2995,11 +3005,11 @@ int input_default_params(
 
   pth->compute_damping_scale = _FALSE_;
 
-  pth->a_dark = 0.;//ethos
-  pth->b_dark = 0.;//ethos
-  pth->nindex_dark = 0.;//ethos
-  pth->m_dm = 1.e11;//ethos
-  //pth->xi_idr = 0;//ethos//MArchi ethos-new! xi_idr now pba
+  //ethos//!!!probably now we do not need to set these default values anymore, it should never use them if idm=0
+  pth->a_dark = 0.;
+  pth->b_dark = 0.;
+  pth->nindex_dark = 0.;
+  pth->m_dm = 1.e11;
 
   /** - perturbation structure */
 
@@ -3070,6 +3080,8 @@ int input_default_params(
   ppt->selection=gaussian;
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
+
+  ppt->dmu_drdr_self = 0.0; //ethos
 
   /** - primordial structure */
 
