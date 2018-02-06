@@ -2685,9 +2685,16 @@ int spectra_pk(
 
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
 
-        source_ic1 = ppt->sources[index_md]
+        if (ppt->pk_only_cdm_bar == _TRUE_){
+         source_ic1 = ppt->sources[index_md]
+          [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+          [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+        }
+        else{
+         source_ic1 = ppt->sources[index_md]
           [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
           [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+        }
 
         psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
           log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
@@ -2707,15 +2714,26 @@ int spectra_pk(
           index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md]);
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+            
+            if (ppt->pk_only_cdm_bar == _TRUE_){
+             source_ic1 = ppt->sources[index_md]
+              [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
-            source_ic1 = ppt->sources[index_md]
+             source_ic2 = ppt->sources[index_md]
+              [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+            }
+            else{
+             source_ic1 = ppt->sources[index_md]
               [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
-            source_ic2 = ppt->sources[index_md]
+             source_ic2 = ppt->sources[index_md]
               [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
-
+            }
+            
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
               primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 

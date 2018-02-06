@@ -129,6 +129,7 @@ int nonlinear_init(
       if (print_warning == _FALSE_) {
         class_call(nonlinear_halofit(ppr,
                                      pba,
+                                     ppt,
                                      ppm,
                                      pnl,
                                      pnl->tau[index_tau],
@@ -265,9 +266,16 @@ int nonlinear_pk_l(
 
       index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
 
-      source_ic1 = ppt->sources[index_md]
+      if (ppt->pk_only_cdm_bar == _TRUE_){
+       source_ic1 = ppt->sources[index_md]
+        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb] 
+        [index_tau * ppt->k_size[index_md] + index_k];
+      }
+      else{
+       source_ic1 = ppt->sources[index_md]
         [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
         [index_tau * ppt->k_size[index_md] + index_k];
+      }
 
       pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
         *source_ic1*source_ic1
@@ -282,13 +290,24 @@ int nonlinear_pk_l(
 
         if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-          source_ic1 = ppt->sources[index_md]
+          if (ppt->pk_only_cdm_bar == _TRUE_){
+           source_ic1 = ppt->sources[index_md]
+            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb] 
+            [index_tau * ppt->k_size[index_md] + index_k];
+
+           source_ic2 = ppt->sources[index_md]
+            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+            [index_tau * ppt->k_size[index_md] + index_k];
+          }
+          else{
+           source_ic1 = ppt->sources[index_md]
             [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
             [index_tau * ppt->k_size[index_md] + index_k];
 
-          source_ic2 = ppt->sources[index_md]
+           source_ic2 = ppt->sources[index_md]
             [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
             [index_tau * ppt->k_size[index_md] + index_k];
+          }
 
           pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
             *source_ic1*source_ic2
@@ -321,6 +340,7 @@ int nonlinear_pk_l(
 int nonlinear_halofit(
                       struct precision *ppr,
                       struct background *pba,
+                      struct perturbs *ppt,
                       struct primordial *ppm,
                       struct nonlinear *pnl,
                       double tau,
@@ -379,7 +399,12 @@ int nonlinear_halofit(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+  if (ppt->pk_only_cdm_bar == _TRUE_){ //No need to change Omega0_m because where it appears it is multiplied by fnu
+   fnu = 0.;
+  }
+  else{
+   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+  }  
 
   if (pnl->has_pk_eq == _FALSE_) {
 

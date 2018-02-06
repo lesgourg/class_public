@@ -936,12 +936,7 @@ int input_read_parameters(
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
-  if (pba->Omega0_ncdm_tot != 0.0){//MArchi
-     /*class_read_double("pk_only_cdm_bar",ppt->pk_only_cdm_bar);
-     if ((ppt->pk_only_cdm_bar!=0.) && (ppt->pk_only_cdm_bar!=1.))
-        class_stop(errmsg,
-                   "Input for pk_only_cdm_bar is %e, while it can be only 0 or 1",
-                   pba->pk_only_cdm_bar);*/
+  if (pba->Omega0_ncdm_tot != 0.0){
      class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
                 errmsg,
                 errmsg);

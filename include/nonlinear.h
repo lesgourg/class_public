@@ -118,6 +118,7 @@ extern "C" {
   int nonlinear_halofit(
                         struct precision *ppr,
                         struct background *pba,
+                        struct perturbs *ppt,
                         struct primordial *ppm,
                         struct nonlinear *pnl,
                         double tau,
