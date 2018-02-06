@@ -5631,7 +5631,7 @@ int perturb_total_stress_energy(
       }
 
       /* include any other species non-relativistic today (like ncdm species) */
-
+      if (ppt->pk_only_cdm_bar==_FALSE_){//MArchi
       if (pba->has_ncdm == _TRUE_) {
 
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
@@ -5640,7 +5640,7 @@ int perturb_total_stress_energy(
           rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
         }
       }
-
+      }
       /* infer delta_m */
 
       ppw->delta_m = delta_rho_m/rho_m;
@@ -5672,14 +5672,14 @@ int perturb_total_stress_energy(
       }
 
       /* include any other species non-relativistic today (like ncdm species) */
-
+      if (ppt->pk_only_cdm_bar==_FALSE_){//MArchi
       if (pba->has_ncdm == _TRUE_) {
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
           rho_plus_p_theta_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm])*ppw->theta_ncdm[n_ncdm];
           rho_plus_p_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
         }
       }
-
+      }
       /* infer theta_m */
 
       ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
