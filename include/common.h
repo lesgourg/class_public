@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.6.1"
+#define _VERSION_ "v2.6.3"
 /* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
@@ -415,6 +415,12 @@ struct precision
    * parameter controlling the initial scalar field in background functions
    */
   double safe_phi_scf;
+
+  /**
+   * parameter controlling precision with which tau_eq (conformal time
+   * at radiation/matter equality) is found (units: Mpc)
+   */
+  double tol_tau_eq;
 
   //@}
 

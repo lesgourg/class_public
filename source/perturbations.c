@@ -6505,11 +6505,6 @@ int perturb_print_variables(double tau,
             (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
           delta_p_over_delta_rho_ncdm[n_ncdm] = delta_p_ncdm/rho_delta_ncdm;
 
-          if (delta_p_over_delta_rho_ncdm[n_ncdm] < -0.5){
-            FILE * fid = fopen("integrand.dat","w");
-
-            fclose(fid);
-          }
         }
       }
     }

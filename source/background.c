@@ -700,6 +700,11 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
+  /** - this function finds and stores a few derived parameters at radiation-matter equality */
+  class_call(background_find_equality(ppr,pba),
+             pba->error_message,
+             pba->error_message);
+
   return _SUCCESS_;
 
 }
@@ -749,7 +754,9 @@ int background_free_input(
       free(pba->w_ncdm_bg[k]);
       free(pba->dlnf0_dlnq_ncdm[k]);
     }
-
+    free(pba->ncdm_quadrature_strategy);
+    free(pba->ncdm_input_q_size);
+    free(pba->ncdm_qmax);
     free(pba->q_ncdm);
     free(pba->w_ncdm);
     free(pba->q_ncdm_bg);
@@ -1235,59 +1242,93 @@ int background_ncdm_init(
     }
 
     /* Handle perturbation qsampling: */
-    class_alloc(pba->q_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
-    class_alloc(pba->w_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+    if (pba->ncdm_quadrature_strategy[k]==qm_auto){
+      /** Automatic q-sampling for this species */
+      class_alloc(pba->q_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
+      class_alloc(pba->w_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
 
-    class_call(get_qsampling(pba->q_ncdm[k],
-                             pba->w_ncdm[k],
-                             &(pba->q_size_ncdm[k]),
-                             _QUADRATURE_MAX_,
-                             ppr->tol_ncdm,
-                             pbadist.q,
-                             pbadist.tablesize,
-                             background_ncdm_test_function,
-                             background_ncdm_distribution,
-                             &pbadist,
-                             pba->error_message),
-               pba->error_message,
-               pba->error_message);
-    pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
-    pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
-
-
-    if (pba->background_verbose > 0)
-      printf("ncdm species i=%d sampled with %d points for purpose of perturbation integration\n",
-             k+1,
-             pba->q_size_ncdm[k]);
-
-    /* Handle background q_sampling: */
-    class_alloc(pba->q_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
-    class_alloc(pba->w_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
-
-    class_call(get_qsampling(pba->q_ncdm_bg[k],
-                             pba->w_ncdm_bg[k],
-                             &(pba->q_size_ncdm_bg[k]),
-                             _QUADRATURE_MAX_BG_,
-                             ppr->tol_ncdm_bg,
-                             pbadist.q,
-                             pbadist.tablesize,
-                             background_ncdm_test_function,
-                             background_ncdm_distribution,
-                             &pbadist,
-                             pba->error_message),
-               pba->error_message,
-               pba->error_message);
+      class_call(get_qsampling(pba->q_ncdm[k],
+			       pba->w_ncdm[k],
+			       &(pba->q_size_ncdm[k]),
+			       _QUADRATURE_MAX_,
+			       ppr->tol_ncdm,
+			       pbadist.q,
+			       pbadist.tablesize,
+			       background_ncdm_test_function,
+			       background_ncdm_distribution,
+			       &pbadist,
+			       pba->error_message),
+		 pba->error_message,
+		 pba->error_message);
+      pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+      pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
 
 
-    pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
-    pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+      if (pba->background_verbose > 0)
+	printf("ncdm species i=%d sampled with %d points for purpose of perturbation integration\n",
+	       k+1,
+	       pba->q_size_ncdm[k]);
 
+      /* Handle background q_sampling: */
+      class_alloc(pba->q_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
+      class_alloc(pba->w_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
+
+      class_call(get_qsampling(pba->q_ncdm_bg[k],
+			       pba->w_ncdm_bg[k],
+			       &(pba->q_size_ncdm_bg[k]),
+			       _QUADRATURE_MAX_BG_,
+			       ppr->tol_ncdm_bg,
+			       pbadist.q,
+			       pbadist.tablesize,
+			       background_ncdm_test_function,
+			       background_ncdm_distribution,
+			       &pbadist,
+			       pba->error_message),
+		 pba->error_message,
+		 pba->error_message);
+
+
+      pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+      pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+
+      /** - in verbose mode, inform user of number of sampled momenta
+	  for background quantities */
+      if (pba->background_verbose > 0)
+	printf("ncdm species i=%d sampled with %d points for purpose of background integration\n",
+	       k+1,
+	       pba->q_size_ncdm_bg[k]);
+    }
+    else{
+      /** Manual q-sampling for this species. Same sampling used for both perturbation and background sampling, since this will usually be a high precision setting anyway */
+      pba->q_size_ncdm_bg[k] = pba->ncdm_input_q_size[k];
+      pba->q_size_ncdm[k] = pba->ncdm_input_q_size[k];
+      class_alloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double),pba->error_message);
+      class_alloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double),pba->error_message);
+      class_alloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double),pba->error_message);
+      class_alloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double),pba->error_message);
+      class_call(get_qsampling_manual(pba->q_ncdm[k],
+				      pba->w_ncdm[k],
+				      pba->q_size_ncdm[k],
+				      pba->ncdm_qmax[k],
+				      pba->ncdm_quadrature_strategy[k],
+				      pbadist.q,
+				      pbadist.tablesize,
+				      background_ncdm_distribution,
+				      &pbadist,
+				      pba->error_message),
+		 pba->error_message,
+		 pba->error_message);
+      for (index_q=0; index_q<pba->q_size_ncdm[k]; index_q++) {
+	pba->q_ncdm_bg[k] = pba->q_ncdm[k];
+	pba->w_ncdm_bg[k] = pba->w_ncdm[k];
+      }
     /** - in verbose mode, inform user of number of sampled momenta
         for background quantities */
-    if (pba->background_verbose > 0)
-      printf("ncdm species i=%d sampled with %d points for purpose of background integration\n",
-             k+1,
-             pba->q_size_ncdm_bg[k]);
+      if (pba->background_verbose > 0)
+	printf("ncdm species i=%d sampled with %d points for purpose of background andperturbation integration using the manual method\n",
+	       k+1,
+	       pba->q_size_ncdm[k]);
+    }
 
     class_alloc(pba->dlnf0_dlnq_ncdm[k],
                 pba->q_size_ncdm[k]*sizeof(double),
@@ -2005,6 +2046,83 @@ int background_initial_conditions(
   return _SUCCESS_;
 
 }
+
+/**
+ * Find the time of radiation/matter equality and store characteristic
+ * quantitites at that time in the background structure..
+ *
+ * @param ppr                  Input: pointer to precision structure
+ * @param pba                  Input/Output: pointer to background structure
+  * @return the error status
+ */
+
+int background_find_equality(
+                             struct precision *ppr,
+                             struct background *pba) {
+
+  double Omega_m_over_Omega_r=0.;
+  int index_tau_minus = 0;
+  int index_tau_plus = pba->bt_size-1;
+  int index_tau_mid = 0;
+  double tau_minus,tau_plus,tau_mid=0.;
+  double * pvecback;
+
+  /* first bracket the right tau value between two consecutive indices in the table */
+
+  while ((index_tau_plus - index_tau_minus) > 1) {
+
+    index_tau_mid = (int)(0.5*(index_tau_plus+index_tau_minus));
+
+    Omega_m_over_Omega_r = pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_m]
+      /pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_r];
+
+    if (Omega_m_over_Omega_r > 1)
+      index_tau_plus = index_tau_mid;
+    else
+      index_tau_minus = index_tau_mid;
+
+  }
+
+  /* then get a better estimate within this range */
+
+  tau_minus = pba->tau_table[index_tau_minus];
+  tau_plus =  pba->tau_table[index_tau_plus];
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+
+  while ((tau_plus - tau_minus) > ppr->tol_tau_eq) {
+
+    tau_mid = 0.5*(tau_plus+tau_minus);
+
+    class_call(background_at_tau(pba,tau_mid,pba->long_info,pba->inter_closeby,&index_tau_minus,pvecback),
+               pba->error_message,
+               pba->error_message);
+
+    Omega_m_over_Omega_r = pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_Omega_r];
+
+    if (Omega_m_over_Omega_r > 1)
+      tau_plus = tau_mid;
+    else
+      tau_minus = tau_mid;
+
+  }
+
+  pba->a_eq = pvecback[pba->index_bg_a];
+  pba->H_eq = pvecback[pba->index_bg_H];
+  pba->z_eq = pba->a_today/pba->a_eq -1.;
+  pba->tau_eq = tau_mid;
+
+  if (pba->background_verbose > 0) {
+    printf(" -> radiation/matter equality at z = %f\n",pba->z_eq);
+    printf("    corresponding to conformal time = %f Mpc\n",pba->tau_eq);
+  }
+
+  free(pvecback);
+
+  return _SUCCESS_;
+
+}
+
 
 /**
  * Subroutine for formatting background output
