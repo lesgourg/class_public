@@ -301,6 +301,9 @@ int evolver_ndf15(
   done = _FALSE_;
   at_hmin = _FALSE_;
   while (done==_FALSE_){
+    /**class_test(stepstat[2] > 1e5, error_message,
+	       "Too many steps in evolver! Current stepsize:%g, in interval: [%g:%g]\n",
+	       absh,t0,tfinal);*/
     hmin = minimum_variation;
     maxtmp = MAX(hmin,absh);
     absh = MIN(hmax, maxtmp);
@@ -658,6 +661,13 @@ int evolver_ndf15(
 		       parameters_and_workspace_for_derivs,error_message),
 	     error_message,
 	     error_message);
+
+  if (print_variables!=NULL){
+    /** If we are printing variables, we must store the final point */
+    class_call((*print_variables)(tnew,ynew+1,f0+1,
+				  parameters_and_workspace_for_derivs,error_message),
+	       error_message,error_message);
+  }
 
   if (verbose > 0){
     printf("\n End of evolver. Next=%d, t=%e and tnew=%e.",next,t,tnew);
