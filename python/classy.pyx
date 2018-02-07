@@ -1092,6 +1092,8 @@ cdef class Class:
             for index in range(timesteps):
                 background[names[i]][index] = data[index*number_of_titles+i]
 
+        free(titles)
+        free(data)
         return background
 
     def get_thermodynamics(self):
@@ -1566,3 +1568,18 @@ cdef class Class:
         ctx.add('boundary', True)
         # Store itself into the context, to be accessed by the likelihoods
         ctx.add('cosmo', self)
+
+    def get_pk_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
+        """ Fast function to get the power spectrum on a k and z array """
+        cdef int nonlinearint
+        cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
+        nonlinearint=1 if nonlinear else 0
+        spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, nonlinearint)
+        return pk
+
+    def Omega0_k(self):
+        """ Curvature contribution """
+        return self.ba.Omega0_k
+
+    def Omega0_cdm(self):
+        return self.ba.Omega0_cdm
