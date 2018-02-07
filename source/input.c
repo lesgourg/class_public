@@ -855,7 +855,7 @@ int input_read_parameters(
     }
     else{
       class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.;
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
     }
   }
 

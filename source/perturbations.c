@@ -5235,7 +5235,11 @@ int perturb_approximations(
           (pth->nindex_dark>=2)) {
         ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
       }
+      else {
+        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+      }
     }
+
     if((pba->has_idm == _FALSE_) && (pba->has_idr == _TRUE_)){
       ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
     }
