@@ -512,6 +512,7 @@ struct perturb_workspace
 
   double tca_shear_g;  /**< photon shear in tight-coupling approximation */
   double tca_slip;     /**< photon-baryon slip in tight-coupling approximation */
+  double tca_shear_dark; /**< dark radiation shear in tight coupling appproximation */
   double rsa_delta_g;  /**< photon density in radiation streaming approximation */
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
