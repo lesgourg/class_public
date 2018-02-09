@@ -9,7 +9,7 @@
 #define extrapolation_max_scaled 3
 #define extrapolation_hmcode 4
 #define extrapolation_user_defined 5
-#define _MAX_NUM_EXTRAPOLATION_ 10000
+#define _MAX_NUM_EXTRAPOLATION_ 100000
 int extrapolate_source(
         double* k_extrapolated,
         int k_size_original,

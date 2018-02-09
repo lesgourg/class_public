@@ -195,6 +195,17 @@ extern "C" {
                   double * sigma
                   );
                   
+  int nonlinear_sigma_t_spacing(
+                  struct precision * ppr,
+                  struct background * pba,
+                  struct perturbs * ppt,
+                  struct primordial * ppm,
+                  struct nonlinear * pnl,
+                  double R,
+                  double *pk_l_bc,               
+                  double * sigma
+                  );
+  
   int nonlinear_sigma_prime(
                   struct precision * ppr,
                   struct background * pba,
@@ -226,11 +237,34 @@ extern "C" {
 						  double *pk_l               
 						  );
 
+  int nonlinear_fill_sigtab_from_hmcode(
+              struct precision *ppr,
+						  struct background * pba,
+              struct perturbs *ppt,
+						  struct primordial * ppm,
+						  struct nonlinear * pnl,
+						  double *pk_l               
+						  );
+
   int nonlinear_fill_growtab(
-                          struct precision *ppr,      
+              struct precision *ppr,      
 						  struct background * pba,
 						  struct nonlinear * pnl            
 						  );  
+  
+  int nonlinear_fill_growtab_from_hmcode(
+              struct precision *ppr,      
+						  struct background * pba,
+						  struct nonlinear * pnl            
+						  );  
+  
+  int nonlinear_growint(
+              struct precision *ppr,
+						  struct background * pba,
+						  struct nonlinear * pnl,            
+						  double a,
+						  double * growth
+						  );
 						  
   int nonlinear_ci(
 				 double x,
