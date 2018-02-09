@@ -1,5 +1,6 @@
 output/
 *~
+*.ini
 build/
 class
 *.prof
