@@ -2901,7 +2901,7 @@ int perturb_find_approximation_switches(
               fprintf(stdout,"Mode k=%e: will switch on dark radiation streaming approximation at tau=%e\n",k,interval_limit[index_switch]);
           }
 
-          if (pba->has_idm == _TRUE_){
+          if (pba->has_idr == _TRUE_){
             if ((interval_approx[index_switch-1][ppw->index_ap_tca_dark]==(int)tca_dark_on) && //ethos
                 (interval_approx[index_switch][ppw->index_ap_tca_dark]==(int)tca_dark_off))
               fprintf(stdout,"Mode k=%e: will switch off DM-DR tight-coupling approximation at tau=%e\n",k,interval_limit[index_switch]);
@@ -3518,7 +3518,7 @@ int perturb_vector_init(
                  ppt->error_message,
                  "at tau=%g: the tight-coupling approximation can be switched off, not on",tau);
       
-      if (pba->has_idm == _TRUE_){
+      if (pba->has_idr == _TRUE_){
        class_test((pa_old[ppw->index_ap_tca] == (int)tca_dark_off) && (ppw->approx[ppw->index_ap_tca] == (int)tca_dark_on),
                  ppt->error_message,
                  "at tau=%g: the Dark Radiation tight-coupling approximation can be switched off, not on",tau);
@@ -3970,7 +3970,7 @@ int perturb_vector_init(
             ppv->y[ppv->index_pt_theta_idr] =
              ppw->pv->y[ppw->pv->index_pt_theta_idr];
 
-            if (ppr->idr_is_fluid == _FALSE_)
+            if (ppr->idr_is_fluid == _FALSE_) //it should never happen that tca_dark is on (and switched off at some point), if dark radiation is a fluid
              ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
             //MArchi: do we have to initialize l3 too?
           }
@@ -5239,6 +5239,7 @@ int perturb_approximations(
 
     //ethos
     if(pba->has_idr == _TRUE_){
+    if(ppr->idr_is_fluid == _FALSE_){
      if(pba->has_idm == _TRUE_){
       if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
           (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
@@ -5252,6 +5253,9 @@ int perturb_approximations(
      else{
         ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
      }
+    else{
+        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+    }
     }
 
     /** - --> (c) free-streaming approximations */
@@ -5885,7 +5889,7 @@ int perturb_total_stress_energy(
 
     if (pba->has_idr == _TRUE_) {
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off) {
-          if((ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on) || (ppr->idr_is_fluid == _FALSE_)){
+          if((ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on) || (ppr->idr_is_fluid == _TRUE_)){
            delta_idr = y[ppw->pv->index_pt_delta_idr];
            theta_idr = y[ppw->pv->index_pt_theta_idr];
            shear_idr = 0.;
@@ -7921,34 +7925,48 @@ int perturb_derivs(double tau,
       if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off) {
 
         /** -----> idr velocity */
-        dy[pv->index_pt_theta_idr] = k2*(y[pv->index_pt_delta_idr]/4.-s2_squared*y[pv->index_pt_shear_idr]) + metric_euler;
+        if(ppr->idr_is_fluid == _FALSE_)
+         dy[pv->index_pt_theta_idr] = k2*(y[pv->index_pt_delta_idr]/4.-s2_squared*y[pv->index_pt_shear_idr]) + metric_euler;
+        else
+         dy[pv->index_pt_theta_idr] = k2/4. * y[pv->index_pt_delta_idr] + metric_euler;
 
-        if (pba->has_idm == _TRUE_){ //this if has been added to avoid potential issues when running idr only
-          dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm]-y[pv->index_pt_theta_idr]);
-        }
+        if (pba->has_idm == _TRUE_)
+         dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm]-y[pv->index_pt_theta_idr]);
 
         if(ppr->idr_is_fluid == _FALSE_){
 
           /** -----> exact idr shear */
           l = 2;
           dy[pv->index_pt_shear_idr] = 0.5*(8./15.*(y[pv->index_pt_theta_idr]+metric_shear)-3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_idr+1]);
-          dy[pv->index_pt_shear_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr]; // and extra factor *9./5. should be here according to DAO
+          if (pba->has_idm == _TRUE_)
+           dy[pv->index_pt_shear_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr]; // and extra factor *9./5. should be here according to DAO
+          else
+           dy[pv->index_pt_shear_idr]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_shear_idr];
 
           /** -----> exact idr l=3 */
           l = 3;
           dy[pv->index_pt_l3_idr] = k/(2.*l+1.)*(l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_idr]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_idr+1]);
-          dy[pv->index_pt_l3_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
+          if (pba->has_idm == _TRUE_)
+           dy[pv->index_pt_l3_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
+          else
+           dy[pv->index_pt_l3_idr]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_l3_idr];
 
           /** -----> exact dr l>3 */
           for (l = 4; l < pv->l_max_idr; l++) {
             dy[pv->index_pt_delta_idr+l] = k/(2.*l+1)*(l*s_l[l]*y[pv->index_pt_delta_idr+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_idr+l+1]);
-            dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+            if (pba->has_idm == _TRUE_)
+             dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+            else
+             dy[pv->index_pt_delta_idr+l]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_delta_idr+l];
           }
 
           /** -----> exact idr lmax_dr */
           l = pv->l_max_idr;
           dy[pv->index_pt_delta_idr+l] = k*(s_l[l]*y[pv->index_pt_delta_idr+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_idr+l]);
-          dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+          if (pba->has_idm == _TRUE_)
+           dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+          else
+           dy[pv->index_pt_delta_idr+l]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_delta_idr+l];
         }
       }
       else{

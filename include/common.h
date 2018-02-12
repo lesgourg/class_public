@@ -615,7 +615,7 @@ struct precision
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
 
-  int idr_is_fluid; /**< ethos: dark radiation is a perfect fluid?*/
+  short idr_is_fluid; /**< ethos: dark radiation is a perfect fluid?*/
 
 
   /**

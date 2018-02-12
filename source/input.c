@@ -823,7 +823,18 @@ int input_read_parameters(
       printf("dtau_idr:%e\n",ppt->dtau_idr);
     }
 
-    class_read_int("idr_is_fluid",ppr->idr_is_fluid);
+    //class_read_string("idr_is_fluid",ppr->idr_is_fluid);
+    class_call(parser_read_string(pfc,"idr_is_fluid",&string1,&flag1,errmsg),
+                                  errmsg,
+                                  errmsg);
+    if (flag1 == _TRUE_){
+       if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+         ppr->idr_is_fluid = _TRUE_;
+       }
+       else {
+         ppr->idr_is_fluid = _FALSE_;
+       }
+    }
 
     class_read_int("l_max_idr",ppr->l_max_idr);
 
@@ -2658,12 +2669,12 @@ int input_read_parameters(
   class_read_double("radiation_streaming_trigger_tau_over_tau_k",ppr->radiation_streaming_trigger_tau_over_tau_k);
   class_read_double("radiation_streaming_trigger_tau_c_over_tau",ppr->radiation_streaming_trigger_tau_c_over_tau);
 
-  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos approx
+  class_read_int("dark_radiation_streaming_approximation",ppr->dark_radiation_streaming_approximation);//ethos
   class_test((ppr->dark_radiation_streaming_approximation != rsa_idr_none) && pth->nindex_dark<2,
              errmsg,
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
-  class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//ethos approx
-  class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//ethos approx
+  class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//ethos
+  class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//ethos
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
@@ -2685,7 +2696,7 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
-//ethos approx
+//ethos
   if (pba->Omega0_idr != 0.){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
@@ -3080,7 +3091,6 @@ int input_default_params(
   ppt->selection_width[0]=0.1;
 
   ppt->dtau_idr = 0.0; //ethos
-  ppt->idr_is_fluid = _FALSE_;//ethos
 
   /** - primordial structure */
 
