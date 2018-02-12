@@ -786,9 +786,9 @@ int input_read_parameters(
   class_read_double("xi_idr",pba->xi_idr);
   class_read_double("f_dark",pba->f_dark);
   pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;
-
+  
   Omega_tot += pba->Omega0_idr;
-  printf("%e %e %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
+  printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
   class_test(((pba->Omega0_idm != 0) && (pba->Omega0_idr == 0)),
              errmsg,
              "You can only have IDM different from 0 if you also have IDR different from 0");

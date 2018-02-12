@@ -4567,7 +4567,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       /* ethos */
 
-      if (pba->has_idm == _TRUE_) { //!!! idr?
+      if (pba->has_idm == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_idm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* idm density */
         /* idm velocity vanishes initially in the synchronous gauge */
       }
@@ -4817,7 +4817,6 @@ int perturb_initial_conditions(struct precision * ppr,
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
       else if (pba->has_idm == _TRUE_){ //ethos
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_idm];
-        //  ppw->pv->y[ppw->pv->index_pt_theta_idm] = theta_ur;
       }
 
 
