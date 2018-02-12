@@ -794,8 +794,28 @@ int input_read_parameters(
              "You can only have IDM different from 0 if you also have IDR different from 0");
 
   if (pba->Omega0_idr!=0.0){
+
+    class_read_int("l_max_idr",ppr->l_max_idr);
+
     if (pba->Omega0_idm!=0.0){
-       //Read the rest of the ethos parameters
+      
+      //the dark radiation coupled to dark matter is a perfect fluid?
+      class_call(parser_read_string(pfc,"idr_is_fluid",&string1,&flag1,errmsg),
+                                  errmsg,
+                                  errmsg);
+      if (flag1 == _TRUE_){
+       if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+         ppr->idr_is_fluid = _TRUE_;
+       }
+       else {
+         ppr->idr_is_fluid = _FALSE_;
+       }
+      }
+      else{
+         ppr->idr_is_fluid = _FALSE_;
+      }
+
+      //Read the rest of the ethos parameters
       class_call(parser_read_double(pfc,"a_dark",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
@@ -803,18 +823,48 @@ int input_read_parameters(
                  errmsg,
                  "If you have idm and idr then you need to set a_dark");
       pth->a_dark=param1;
-      class_test(((pth->a_dark<0.0)),
+      class_test(((pth->a_dark<=0.0)),
                  errmsg,
-                 "In input file, a_dark cannot be < 0.0");
+                 "In input file, a_dark cannot be <= 0.0");
+
+      class_read_double("b_dark",pth->b_dark);
 
       class_read_double("nindex_dark",pth->nindex_dark);
 
-      class_read_double("b_dark",pth->b_dark);
-      class_test(((pth->b_dark<0.0)),
-                 errmsg,
-                 "In input file, b_dark cannot be < 0.0");
-    }
-    else{
+      if(ppr->idr_is_fluid == _FALSE_){
+
+         class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
+               errmsg,
+               errmsg);
+         if(flag1 == _TRUE_){
+            if(entries_read != (ppr->l_max_idr-1)){
+               class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+               for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+            }
+         }
+         else{
+            class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+            for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
+         }
+
+         class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
+               errmsg,
+               errmsg);
+         if(flag1 == _TRUE_){
+            if(entries_read != (ppr->l_max_idr-1)){
+               class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+               for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+            }
+         }
+         else{
+            class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+            for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
+         }
+
+      }
+    }//end has_Omega0_idm != 0
+
+    else{//no idm case
       //only idr Fermi-like 4-point self-interactions
       class_read_double("dtau_idr",ppt->dtau_idr);//Geff in MeV^-2
       printf("dtau_idr:%e\n",ppt->dtau_idr);
@@ -823,51 +873,7 @@ int input_read_parameters(
       printf("dtau_idr:%e\n",ppt->dtau_idr);
     }
 
-    //class_read_string("idr_is_fluid",ppr->idr_is_fluid);
-    class_call(parser_read_string(pfc,"idr_is_fluid",&string1,&flag1,errmsg),
-                                  errmsg,
-                                  errmsg);
-    if (flag1 == _TRUE_){
-       if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
-         ppr->idr_is_fluid = _TRUE_;
-       }
-       else {
-         ppr->idr_is_fluid = _FALSE_;
-       }
-    }
-
-    class_read_int("l_max_idr",ppr->l_max_idr);
-
-    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
-               errmsg,
-               errmsg);
-    if(flag1 == _TRUE_){
-      if(entries_read != (ppr->l_max_idr-1)){
-        class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
-      }
-    }
-    else{
-      class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
-    }
-
-    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
-               errmsg,
-               errmsg);
-    if(flag1 == _TRUE_){
-      if(entries_read != (ppr->l_max_idr-1)){
-        class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
-      }
-    }
-    else{
-      class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
-    }
-  }
-
-  //end of ethos
+  }//end of ethos
 
   /** - Omega_0_dcdmdr (DCDM) */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),

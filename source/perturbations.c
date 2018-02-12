@@ -278,7 +278,7 @@ int perturb_init(
              ppt->error_message);
 
   /** - if we want to store perturbations, write titles and allocate storage */
-  class_call(perturb_prepare_output(pba,ppt),
+  class_call(perturb_prepare_output(ppr,pba,ppt), //MArchi ethos add ppr
              ppt->error_message,
              ppt->error_message);
 
@@ -2471,7 +2471,8 @@ int perturb_solve(
   return _SUCCESS_;
 }
 
-int perturb_prepare_output(struct background * pba,
+int perturb_prepare_output(struct precision * ppr, //MArchi ethos
+                           struct background * pba,
 			   struct perturbs * ppt){
 
   int n_ncdm;
@@ -5239,8 +5240,7 @@ int perturb_approximations(
 
     //ethos
     if(pba->has_idr == _TRUE_){
-    if(ppr->idr_is_fluid == _FALSE_){
-     if(pba->has_idm == _TRUE_){
+     if((pba->has_idm == _TRUE_)&&(ppr->idr_is_fluid == _FALSE_)){
       if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
           (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
           (pth->nindex_dark>=2)) {
@@ -5253,9 +5253,6 @@ int perturb_approximations(
      else{
         ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
      }
-    else{
-        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-    }
     }
 
     /** - --> (c) free-streaming approximations */
@@ -6802,7 +6799,7 @@ int perturb_print_variables(double tau,
   /** - define local variables */
   double k;
   int index_md;
-  //struct precision * ppr;
+  struct precision * ppr;//MArchi ethos
   struct background * pba;
   struct thermo * pth;
   struct perturbs * ppt;
@@ -7941,7 +7938,7 @@ int perturb_derivs(double tau,
           if (pba->has_idm == _TRUE_)
            dy[pv->index_pt_shear_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr]; // and extra factor *9./5. should be here according to DAO
           else
-           dy[pv->index_pt_shear_idr]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_shear_idr];
+           dy[pv->index_pt_shear_idr]-= dmu_drdr*y[pv->index_pt_shear_idr];
 
           /** -----> exact idr l=3 */
           l = 3;
@@ -7949,7 +7946,7 @@ int perturb_derivs(double tau,
           if (pba->has_idm == _TRUE_)
            dy[pv->index_pt_l3_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
           else
-           dy[pv->index_pt_l3_idr]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_l3_idr];
+           dy[pv->index_pt_l3_idr]-= dmu_drdr*y[pv->index_pt_l3_idr];
 
           /** -----> exact dr l>3 */
           for (l = 4; l < pv->l_max_idr; l++) {
@@ -7957,7 +7954,7 @@ int perturb_derivs(double tau,
             if (pba->has_idm == _TRUE_)
              dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
             else
-             dy[pv->index_pt_delta_idr+l]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_delta_idr+l];
+             dy[pv->index_pt_delta_idr+l]-= dmu_drdr*y[pv->index_pt_delta_idr+l];
           }
 
           /** -----> exact idr lmax_dr */
@@ -7966,7 +7963,7 @@ int perturb_derivs(double tau,
           if (pba->has_idm == _TRUE_)
            dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
           else
-           dy[pv->index_pt_delta_idr+l]-= ppt->beta_dark[l-2]*dmu_drdr*y[pv->index_pt_delta_idr+l];
+           dy[pv->index_pt_delta_idr+l]-= dmu_drdr*y[pv->index_pt_delta_idr+l];
         }
       }
       else{

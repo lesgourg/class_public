@@ -826,7 +826,8 @@ extern "C" {
                                   int index_ikout,
                                   int index_md);
 
-  int perturb_prepare_output(struct background * pba,
+  int perturb_prepare_output(struct precision * ppr, //MArchi ethos
+                             struct background * pba,
                              struct perturbs * ppt);
 
 #ifdef __cplusplus
