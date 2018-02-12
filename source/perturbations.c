@@ -160,6 +160,13 @@ int perturb_init(
               ppt->error_message,
               "your radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
 
+  if (pba->has_idr == _TRUE_){ //ethos
+    class_test ((ppr->dark_radiation_streaming_approximation < rsa_idr_none) ||
+              (ppr->dark_radiation_streaming_approximation > rsa_idr_MD),
+              ppt->error_message,
+              "your dark_radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
+  }
+
   if (pba->has_ur == _TRUE_) {
 
     class_test ((ppr->ur_fluid_approximation < ufa_mb) ||
@@ -4815,11 +4822,8 @@ int perturb_initial_conditions(struct precision * ppr,
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
       else if (pba->has_dcdm == _TRUE_)
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
-      else if (pba->has_idm == _TRUE_){ //ethos
+      else if (pba->has_idm == _TRUE_)//ethos
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_idm];
-      }
-
-
       else
         delta_cdm=0.;
 
@@ -4908,13 +4912,13 @@ int perturb_initial_conditions(struct precision * ppr,
       ppw->pv->y[ppw->pv->index_pt_delta_idr] = delta_ur;
       ppw->pv->y[ppw->pv->index_pt_theta_idr] = theta_ur;
 
-      if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off){
+      if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off){ //MArchi perhaps if only idr and no idm, then here we should use the interaction rate
         ppw->pv->y[ppw->pv->index_pt_shear_idr] = ppr->sigma_idr*shear_ur;
         ppw->pv->y[ppw->pv->index_pt_l3_idr] = ppr->sigma_idr*l3_ur;
       }
     }
     if (pba->has_idm == _TRUE_){
-       ppw->pv->y[ppw->pv->index_pt_theta_idm] = theta_ur;
+        ppw->pv->y[ppw->pv->index_pt_theta_idm] = theta_ur;
     }
 
     if (pba->has_ncdm == _TRUE_) {
@@ -8924,10 +8928,24 @@ int perturb_rsa_idr_delta_and_theta(
   if (ppt->gauge == newtonian) {
 
     if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on) {
+
         ppw->rsa_delta_idr = -4.*y[ppw->pv->index_pt_phi];
         ppw->rsa_theta_idr = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
+
     }
   }
+
+  if (ppt->gauge == newtonian) {
+
+    if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on) {
+
+        ppw->rsa_delta_idr = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+                                     -k2*y[ppw->pv->index_pt_eta]);
+        ppw->rsa_theta_idr = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
+
+    }
+  }
+
   return _SUCCESS_;
 
 }

@@ -818,7 +818,7 @@ int input_read_parameters(
       //only idr Fermi-like 4-point self-interactions
       class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//Geff in MeV^-2
       printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
-      ppt->dmu_drdr_self*=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
+      ppt->dmu_drdr_self=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
       printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
       printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
     }
@@ -2689,7 +2689,7 @@ int input_read_parameters(
 
   }
 //ethos approx
-  if (pba->Omega0_idr != 0. && ppr->dark_radiation_streaming_approximation != rsa_idr_none){
+  if (pba->Omega0_idr != 0.){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
                "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
