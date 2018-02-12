@@ -1977,11 +1977,6 @@ int perturb_workspace_init(
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
     if (pba->has_idr == _TRUE_){ //ethos
       ppw->approx[ppw->index_ap_rsa_idr]=(int)rsa_idr_off;
-    }
-    if(pba->has_idm == _TRUE_){ //ethos
-      ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
-    }
-    else{
       ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_off;
     }
 
@@ -3559,17 +3554,6 @@ int perturb_vector_init(
           ppw->pv->y[ppw->pv->index_pt_theta_dcdm];
       }
 
-      /*
-      if (pba->has_idr == _TRUE_) {
-
-        ppv->y[ppv->index_pt_delta_idr] =
-          ppw->pv->y[ppw->pv->index_pt_delta_idr];
-
-        ppv->y[ppv->index_pt_theta_idr] =
-          ppw->pv->y[ppw->pv->index_pt_theta_idr];
-      }!!!
-      */
-
       if (pba->has_dr == _TRUE_){
         for (l=0; l <= ppv->l_max_dr; l++)
           ppv->y[ppv->index_pt_F0_dr+l] =
@@ -3956,9 +3940,9 @@ int perturb_vector_init(
           }
 
         }//end of rsa_idr block
-      }
+      //}Move the end of if has_idr to the next block
       /*ethos: case of switching off dark radiation tight coupling approximation*/
-      if (pba->has_idm == _TRUE_){
+      //if (pba->has_idm == _TRUE_){
          if ((pa_old[ppw->index_ap_tca_dark] == (int)tca_dark_on) && (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off)) {
 
           if (ppt->perturbations_verbose>2)
@@ -3970,8 +3954,9 @@ int perturb_vector_init(
 
             ppv->y[ppv->index_pt_theta_idr] =
              ppw->pv->y[ppw->pv->index_pt_theta_idr];
-//MArchi: do we have to initialize l3?
+
             ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
+            //MArchi: do we have to initialize l3 too?
           }
 
           if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
@@ -4060,7 +4045,7 @@ int perturb_vector_init(
           }
 
          }//end of tca_dark block
-      }
+      }//end of has_idr block(s)
 
       /* -- case of switching on ncdm fluid
          approximation. Provide correct initial conditions to new set
