@@ -784,8 +784,8 @@ int input_read_parameters(
 
   //Check for presence of dark radiation for the interacting dark matter
   class_read_double("xi_idr",pba->xi_idr);
-  class_read_double("f_dark",pba->f_dark);
-  pba->Omega0_idr = pba->f_dark*pow(pba->xi_idr,4.)*pba->Omega0_g;
+  class_read_double("stat_f_idr",pba->stat_f_idr);
+  pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
   
   Omega_tot += pba->Omega0_idr;
   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
@@ -816,11 +816,11 @@ int input_read_parameters(
     }
     else{
       //only idr Fermi-like 4-point self-interactions
-      class_read_double("dmu_drdr_self",ppt->dmu_drdr_self);//Geff in MeV^-2
-      printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
-      ppt->dmu_drdr_self=pow(ppt->dmu_drdr_self,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
+      class_read_double("dtau_idr",ppt->dtau_idr);//Geff in MeV^-2
+      printf("dtau_idr:%e\n",ppt->dtau_idr);
+      ppt->dtau_idr=pow(ppt->dtau_idr,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
       printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
-      printf("dmu_drdr_self:%e\n",ppt->dmu_drdr_self);
+      printf("dtau_idr:%e\n",ppt->dtau_idr);
     }
 
     class_read_int("sigma_idr",ppr->sigma_idr);
@@ -2934,7 +2934,7 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0;//ethos
   pba->Omega0_idm = 0.0;
-  pba->f_dark = 7./8.; //ethos
+  pba->stat_f_idr = 7./8.; //ethos
   pba->xi_idr = 0;//ethos
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
@@ -3082,7 +3082,7 @@ int input_default_params(
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
 
-  ppt->dmu_drdr_self = 0.0; //ethos
+  ppt->dtau_idr = 0.0; //ethos
 
   /** - primordial structure */
 
