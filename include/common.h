@@ -611,11 +611,11 @@ struct precision
    */
   double radiation_streaming_trigger_tau_c_over_tau;
 
-  double dark_radiation_streaming_trigger_tau_c_over_tau;//MArchi ethos approx
+  double dark_radiation_streaming_trigger_tau_c_over_tau;//ethos approx
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
 
-  int sigma_idr; /**< ethos: perfect fluid=0 or free streaming=1 */
+  int idr_is_fluid; /**< ethos: dark radiation is a perfect fluid?*/
 
 
   /**

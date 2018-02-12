@@ -823,10 +823,7 @@ int input_read_parameters(
       printf("dtau_idr:%e\n",ppt->dtau_idr);
     }
 
-    class_read_int("sigma_idr",ppr->sigma_idr);
-    class_test(((ppr->sigma_idr!=1) && (ppr->sigma_idr!=0)),
-               errmsg,
-               "In input file, you can only enter sigma_idr=0 for a perfect fluid or sigma_idr=1 for free streaming neutrinos, choose one");
+    class_read_int("idr_is_fluid",ppr->idr_is_fluid);
 
     class_read_int("l_max_idr",ppr->l_max_idr);
 
@@ -3083,6 +3080,7 @@ int input_default_params(
   ppt->selection_width[0]=0.1;
 
   ppt->dtau_idr = 0.0; //ethos
+  ppt->idr_is_fluid = _FALSE_;//ethos
 
   /** - primordial structure */
 
@@ -3373,7 +3371,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
-  ppr->sigma_idr = 1;//ethos
+  ppr->idr_is_fluid= _FALSE_;//ethos
 
   /**
    * - parameter related to the primordial spectra
