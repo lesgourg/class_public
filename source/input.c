@@ -758,10 +758,10 @@ int input_read_parameters(
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
 
-  class_read_double("a_dark",pth->a_dark);//if a_dark is zero then it is the standard CDM case
+  //class_read_double("a_dark",pth->a_dark);//if a_dark is zero then it is the standard CDM case
 
   //this is the standard CDM case
-  if ((flag3 == _FALSE_)||(pth->a_dark == 0.)){
+  if (flag3 == _FALSE_){
     if (flag1 == _TRUE_)
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
@@ -799,6 +799,8 @@ int input_read_parameters(
 
       //Read the rest of the ethos parameters
       class_read_double("m_dm",pth->m_dm);
+
+      class_read_double("a_dark",pth->a_dark);
 
       class_read_double("b_dark",pth->b_dark);
 
@@ -850,26 +852,6 @@ int input_read_parameters(
             class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
             for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
       }
-
-      //only idr Fermi-like 4-point self-interactions
-      //class_read_double("dtau_idr",ppt->dtau_idr);//Geff in MeV^-2
-      class_call(parser_read_double(pfc,"dtau_idr",&param1,&flag1,errmsg),
-                                  errmsg,
-                                  errmsg);
-      if (flag1 == _TRUE_){
-         class_test(((pba->Omega0_idm != 0)),
-                      errmsg,
-                      "You can have either DM-DR interactions, or idr Fermi-like 4-point self-interactions, not both!");
-         class_test(((ppr->idr_is_fluid == _TRUE_)),
-                      errmsg,
-                      "If you want idr Fermi-like 4-point self-interactions, then you should set idr_is_fluid = no");
-         ppt->dtau_idr = param1;
-       }
-      printf("dtau_idr:%e\n",ppt->dtau_idr);
-      ppt->dtau_idr=pow(ppt->dtau_idr,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
-      printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);
-      printf("dtau_idr:%e\n",ppt->dtau_idr);
-
   //end of ethos
 
   /** - Omega_0_dcdmdr (DCDM) */
@@ -3092,8 +3074,6 @@ int input_default_params(
   ppt->selection=gaussian;
   ppt->selection_mean[0]=1.;
   ppt->selection_width[0]=0.1;
-
-  ppt->dtau_idr = 0.0; //ethos
 
   /** - primordial structure */
 

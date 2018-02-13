@@ -1984,7 +1984,7 @@ int perturb_workspace_init(
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
     if (pba->has_idr == _TRUE_){ //ethos
       ppw->approx[ppw->index_ap_rsa_idr]=(int)rsa_idr_off;
-      ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
+      ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_off;
     }
 
     if (pba->has_ur == _TRUE_) {
@@ -3970,11 +3970,8 @@ int perturb_vector_init(
             ppv->y[ppv->index_pt_theta_idr] =
              ppw->pv->y[ppw->pv->index_pt_theta_idr];
 
-            if (ppr->idr_is_fluid == _FALSE_){
-             if (pba->has_idm == _TRUE_)
+            if (ppr->idr_is_fluid == _FALSE_){// ppr->idr_is_fluid == _FALSE_ always if tca_dark is on
               ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
-             else
-              ppv->y[ppv->index_pt_shear_idr] = 0.;//MArchi check this
             //MArchi: do we have to initialize l3 too?
             }
           }
@@ -5241,15 +5238,15 @@ int perturb_approximations(
 
     }
 
-    //ethos
+    //ethos//MArchi
     if(pba->has_idr == _TRUE_){
 
-     if(ppw->pvecthermo[pth->index_th_dmu_dark] == 0.){
-        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-     }
-     else{
-          
-          if(pba->has_idm == _TRUE_){
+     if(pba->has_idm == _TRUE_){
+
+          if(ppw->pvecthermo[pth->index_th_dmu_dark] == 0.){
+             ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+          }
+          else{
 
               class_test(1./ppw->pvecthermo[pth->index_th_dmu_dark] < 0.,
                          ppt->error_message,
@@ -5267,16 +5264,9 @@ int perturb_approximations(
                    ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
               }
           }
-          else{//MArchi allow for tca with only idr
-              //dmu_drdr = 1./(ppt->dtau_idr/pow(a_rel,4))
-              if(((ppt->dtau_idr/pow(ppw->pvecback[pba->index_bg_a]/pba->a_today,4))/tau_h < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-                 ((ppt->dtau_idr/pow(ppw->pvecback[pba->index_bg_a]/pba->a_today,4))*tau_k < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k)){
-                   ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
-              }
-              else{
+     }
+     else{
                    ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-              }
-          }
 
      }
     }
@@ -7509,17 +7499,12 @@ int perturb_derivs(double tau,
   a2 = a*a;
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
-
-  if((pba->has_idr==_TRUE_)){ //ethos
-    if((pba->has_idm==_TRUE_)){
+  
+  //ethos
+  if((pba->has_idm==_TRUE_)){
       Sinv = 4./3. * pvecback[pba->index_bg_rho_idr]/ pvecback[pba->index_bg_rho_idm];
       dmu_dark = pvecthermo[pth->index_th_dmu_dark];
       dmu_drdr = pba->Omega0_idr/pba->Omega0_idm*dmu_dark;//pvecthermo[pth->index_th_dmu_drdr];
-    }
-    else{ // this allows us to have interacting DR-DR without DM
-      a_rel=a/pba->a_today;
-      dmu_drdr = 1./(ppt->dtau_idr/pow(a_rel,4));
-    }
   }
 
   /** - Compute 'generalised cotK function of argument \f$ \sqrt{|K|}*\tau \f$, for closing hierarchy.
@@ -7962,24 +7947,18 @@ int perturb_derivs(double tau,
           dy[pv->index_pt_shear_idr] = 0.5*(8./15.*(y[pv->index_pt_theta_idr]+metric_shear)-3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_idr+1]);
           if (pba->has_idm == _TRUE_)
            dy[pv->index_pt_shear_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr]; // and extra factor *9./5. should be here according to DAO
-          else
-           dy[pv->index_pt_shear_idr]-= dmu_drdr*y[pv->index_pt_shear_idr];
 
           /** -----> exact idr l=3 */
           l = 3;
           dy[pv->index_pt_l3_idr] = k/(2.*l+1.)*(l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_idr]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_idr+1]);
           if (pba->has_idm == _TRUE_)
            dy[pv->index_pt_l3_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
-          else
-           dy[pv->index_pt_l3_idr]-= dmu_drdr*y[pv->index_pt_l3_idr];
 
           /** -----> exact dr l>3 */
           for (l = 4; l < pv->l_max_idr; l++) {
             dy[pv->index_pt_delta_idr+l] = k/(2.*l+1)*(l*s_l[l]*y[pv->index_pt_delta_idr+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_idr+l+1]);
             if (pba->has_idm == _TRUE_)
              dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
-            else
-             dy[pv->index_pt_delta_idr+l]-= dmu_drdr*y[pv->index_pt_delta_idr+l];
           }
 
           /** -----> exact idr lmax_dr */
@@ -7987,16 +7966,11 @@ int perturb_derivs(double tau,
           dy[pv->index_pt_delta_idr+l] = k*(s_l[l]*y[pv->index_pt_delta_idr+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_idr+l]);
           if (pba->has_idm == _TRUE_)
            dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
-          else
-           dy[pv->index_pt_delta_idr+l]-= dmu_drdr*y[pv->index_pt_delta_idr+l];
         }
       }
       else{//tca_dark_on
-        if(pba->has_idm == _TRUE_)
          dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]
                                    + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
-        else
-         dy[pv->index_pt_theta_idr] = k2*y[pv->index_pt_delta_idr]/4. + metric_euler;
       }
     }
     }
