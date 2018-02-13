@@ -4587,7 +4587,6 @@ int perturb_initial_conditions(struct precision * ppr,
 
       if (pba->has_idm == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_idm] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* idm density */
-        /* idm velocity vanishes initially in the synchronous gauge */
       }
 
       if (pba->has_dcdm == _TRUE_) {
@@ -4795,13 +4794,14 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if (ppt->gauge == synchronous) {
 
+/*MArchi
       class_test((pba->has_idr == _TRUE_), //ethos this flag is temporary until synchronous is fully operational in ethos framework
                  ppt->error_message,
                  "only Newtonian Gauge in presence of interacting dark radiation");
 
       class_test((pba->has_idm == _TRUE_), //ethos this flag is temporary until synchronous is fully operational in ethos framework
                  ppt->error_message,
-                 "only Newtonian Gauge in presence of interacting dark matter");
+                 "only Newtonian Gauge in presence of interacting dark matter");*/
 
       ppw->pv->y[ppw->pv->index_pt_eta] = eta;
     }
@@ -5652,16 +5652,15 @@ int perturb_einstein(
 
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
-      //if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on) { //!!! if you want sync gauge, be careful here
+      if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on) { //ethos
 
-        //class_call(perturb_rsa_idr_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
-                   //ppt->error_message,
-                   //ppt->error_message);
+        class_call(perturb_rsa_idr_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
+                   ppt->error_message,
+                   ppt->error_message);
 
-        //ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_dark]*ppw->rsa_theta_dark;
+        ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*ppw->rsa_theta_idr;
 
-      //}
-
+      }
 
         if (pba->has_ur == _TRUE_) {
 
@@ -7110,13 +7109,13 @@ int perturb_print_variables(double tau,
         theta_cdm += k*k*alpha;
       }
 
-      /* ethos idm is here, but we still need to decide if we actually want it in synch gauge or not */
+      /* ethos */
       if (pba->has_idm == _TRUE_) {
-        delta_idm += alpha*(-3.*a*H);
+        delta_idm -= 3. * pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha;
         theta_idm += k*k*alpha;
       }
 
-      if (pba->has_ncdm == _TRUE_) {
+      if (pba->has_ncdm == _TRUE_) { //MArchi this has nothing to do with ethos, only with ncdm, but why is it like this?!
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
           /** - --> Do gauge transformation of delta, deltaP/rho (?) and theta using -= 3aH(1+w_ncdm) alpha for delta. */
         }
@@ -8957,7 +8956,7 @@ int perturb_rsa_idr_delta_and_theta(
     }
   }
 
-  if (ppt->gauge == newtonian) {
+  if (ppt->gauge == synchronous) {
 
     if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on) {
 
