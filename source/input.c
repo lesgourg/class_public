@@ -819,6 +819,7 @@ int input_read_parameters(
       else{
          ppr->idr_is_fluid = _FALSE_;
       }
+      //printf("%s", ppr->idr_is_fluid ? "true" : "false");
 
       class_read_int("l_max_idr",ppr->l_max_idr);
 
@@ -851,7 +852,19 @@ int input_read_parameters(
       }
 
       //only idr Fermi-like 4-point self-interactions
-      class_read_double("dtau_idr",ppt->dtau_idr);//Geff in MeV^-2
+      //class_read_double("dtau_idr",ppt->dtau_idr);//Geff in MeV^-2
+      class_call(parser_read_double(pfc,"dtau_idr",&param1,&flag1,errmsg),
+                                  errmsg,
+                                  errmsg);
+      if (flag1 == _TRUE_){
+         class_test(((pba->Omega0_idm != 0)),
+                      errmsg,
+                      "You can have either DM-DR interactions, or idr Fermi-like 4-point self-interactions, not both!");
+         class_test(((ppr->idr_is_fluid == _TRUE_)),
+                      errmsg,
+                      "If you want idr Fermi-like 4-point self-interactions, then you should set idr_is_fluid = no");
+         ppt->dtau_idr = param1;
+       }
       printf("dtau_idr:%e\n",ppt->dtau_idr);
       ppt->dtau_idr=pow(ppt->dtau_idr,2)*pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_;
       printf("conv factor:%e\n",pow((4./11.),(5./3.))*pow(pba->T_cmb,5)*pow(_eV_over_K_,5)*1.0e-33/_invGeV_over_cm_*_Mpc_over_cm_);

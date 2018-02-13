@@ -1964,7 +1964,7 @@ int perturb_workspace_init(
 
     class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
-    class_define_index(ppw->index_ap_tca_dark,pba->has_idr,index_ap,1); //ethos//then initialized to zero if no idm
+    class_define_index(ppw->index_ap_tca_dark,pba->has_idr,index_ap,1); //ethos
     class_define_index(ppw->index_ap_rsa_idr,pba->has_idr,index_ap,1); //ethos
 
   }
@@ -1984,7 +1984,7 @@ int perturb_workspace_init(
     ppw->approx[ppw->index_ap_rsa]=(int)rsa_off;
     if (pba->has_idr == _TRUE_){ //ethos
       ppw->approx[ppw->index_ap_rsa_idr]=(int)rsa_idr_off;
-      ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_off;
+      ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
     }
 
     if (pba->has_ur == _TRUE_) {
@@ -3956,9 +3956,8 @@ int perturb_vector_init(
           }
 
         }//end of rsa_idr block
-      //}Move the end of if has_idr to the next block
+     
       /*ethos: case of switching off dark radiation tight coupling approximation*/
-      //if (pba->has_idm == _TRUE_){
          if ((pa_old[ppw->index_ap_tca_dark] == (int)tca_dark_on) && (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off)) {
 
           if (ppt->perturbations_verbose>2)
@@ -3971,9 +3970,13 @@ int perturb_vector_init(
             ppv->y[ppv->index_pt_theta_idr] =
              ppw->pv->y[ppw->pv->index_pt_theta_idr];
 
-            if (ppr->idr_is_fluid == _FALSE_) //it should never happen that tca_dark is on (and switched off at some point), if dark radiation is a fluid
-             ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
+            if (ppr->idr_is_fluid == _FALSE_){
+             if (pba->has_idm == _TRUE_)
+              ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
+             else
+              ppv->y[ppv->index_pt_shear_idr] = 0.;//MArchi check this
             //MArchi: do we have to initialize l3 too?
+            }
           }
 
           if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
@@ -5165,7 +5168,7 @@ int perturb_approximations(
   double tau_h;
   /* (c) time scale of recombination, \f$ \tau_{\gamma} = 1/\kappa' \f$ */
   double tau_c;
-
+  
   /** - compute Fourier mode time scale = \f$ \tau_k = 1/k \f$ */
 
   class_test(k == 0.,
@@ -5240,18 +5243,41 @@ int perturb_approximations(
 
     //ethos
     if(pba->has_idr == _TRUE_){
-     if((pba->has_idm == _TRUE_)&&(ppr->idr_is_fluid == _FALSE_)){
-      if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-          (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-          (pth->nindex_dark>=2)) {
-        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
-      }
-      else{
+
+     if(ppw->pvecthermo[pth->index_th_dmu_dark] == 0.){
         ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-      }
      }
      else{
-        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+          
+          if(pba->has_idm == _TRUE_){
+
+              class_test(1./ppw->pvecthermo[pth->index_th_dmu_dark] < 0.,
+                         ppt->error_message,
+                         "negative tau_dark=1/dmu_dark=%e at z=%e, conformal time=%e.(This could come from the interpolation of a too poorly sampled reionisation history?).\n",
+                         1./ppw->pvecthermo[pth->index_th_dmu_dark],
+                         1./ppw->pvecback[pba->index_bg_a]-1.,
+                         tau);     
+
+              if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
+                  (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
+                  (pth->nindex_dark>=2) && (ppr->idr_is_fluid == _FALSE_)) {
+                   ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
+              }
+              else{
+                   ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+              }
+          }
+          else{//MArchi allow for tca with only idr
+              //dmu_drdr = 1./(ppt->dtau_idr/pow(a_rel,4))
+              if(((ppt->dtau_idr/pow(ppw->pvecback[pba->index_bg_a]/pba->a_today,4))/tau_h < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
+                 ((ppt->dtau_idr/pow(ppw->pvecback[pba->index_bg_a]/pba->a_today,4))*tau_k < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k)){
+                   ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
+              }
+              else{
+                   ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+              }
+          }
+
      }
     }
 
@@ -7492,7 +7518,7 @@ int perturb_derivs(double tau,
     }
     else{ // this allows us to have interacting DR-DR without DM
       a_rel=a/pba->a_today;
-      dmu_drdr = ppt->dtau_idr/pow(a_rel,4);
+      dmu_drdr = 1./(ppt->dtau_idr/pow(a_rel,4));
     }
   }
 
@@ -7965,9 +7991,12 @@ int perturb_derivs(double tau,
            dy[pv->index_pt_delta_idr+l]-= dmu_drdr*y[pv->index_pt_delta_idr+l];
         }
       }
-      else{
-        dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]
+      else{//tca_dark_on
+        if(pba->has_idm == _TRUE_)
+         dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]
                                    + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
+        else
+         dy[pv->index_pt_theta_idr] = k2*y[pv->index_pt_delta_idr]/4. + metric_euler;
       }
     }
     }

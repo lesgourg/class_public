@@ -475,9 +475,9 @@ int thermodynamics_init(
     /*ethos temporarily store DM interaction rate minus one, -[S*dmu], in ddmu*/
     if(pba->has_idm == _TRUE_) {
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark]=pth->a_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_idm*pow(pba->h,2);
+
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]= 4./3.*pvecback[pba->index_bg_rho_idr]/pvecback[pba->index_bg_rho_idm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
-    }
-    if(pba->has_idr == _TRUE_) {
+
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_idr*pow(pba->h,2);
     }
   }
@@ -956,10 +956,10 @@ int thermodynamics_init(
 
   pth->tau_free_streaming = tau;
 
-  if(pba->has_idr == _TRUE_){
-    index_tau_fs = index_tau; //MArchi ethos approx
-  /* - MArchi ethos approx find dark radiation streaming*/
-
+  /* - ethos approx find dark radiation streaming*/
+  index_tau_fs = index_tau;
+  if(pba->has_idr == _TRUE_){ //MArchi
+   if(pba->has_idm == _TRUE_){
     if(pth->nindex_dark>=2){
       index_tau=pth->tt_size-1;
       //index_tau=pth->index_tau;//using index_tau_max instead of pth->tt_size-1 ensures that the switch is always after recombination;
@@ -992,7 +992,27 @@ int thermodynamics_init(
 
     tau_dark_fs = tau;
     pth->tau_idr_free_streaming = tau;
-    //to avoid problems with the approximation, set the rsa_idr switch always after the rsa switch
+   }
+
+   else{ //only idr and no idm//MArchi this has to be checked
+
+    index_tau = index_tau_max;
+
+    class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
+               pba->error_message,
+               pth->error_message);
+
+    while ((1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dmu_dark]/tau
+            < ppr->dark_radiation_streaming_trigger_tau_c_over_tau) &&
+           (index_tau > 0)) {
+            index_tau--;
+    }
+
+    tau_dark_fs = tau;
+    pth->tau_idr_free_streaming = tau;
+
+   }
+     //to avoid problems with the approximation, set the rsa_idr switch always after the rsa switch
      /*if (tau_dark_fs<=pth->tau_free_streaming){
 
         index_tau = index_tau_fs-1;
@@ -1219,12 +1239,9 @@ int thermodynamics_indices(
     index++;
     pth->index_th_Tdm = index;
     index++;
-  }
-  if(pba->has_idr == _TRUE_){
     pth->index_th_dmu_drdr = index;
     index++;
   }
-
 
   /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
   if (pth->compute_cb2_derivatives == _TRUE_) {
@@ -1422,7 +1439,7 @@ int thermodynamics_helium_from_bbn(
              pba->error_message,
              pth->error_message);
 
-  //MArchi ethos-new! no need to add anything here because dark radiation already stored in Omega_r
+  //ethos: no need to add anything here because dark radiation already stored in Omega_r
   Neff_bbn = (pvecback[pba->index_bg_Omega_r]
               *pvecback[pba->index_bg_rho_crit]
               -pvecback[pba->index_bg_rho_g])
@@ -3899,8 +3916,6 @@ int thermodynamics_output_titles(struct background * pba,
     class_store_columntitle(titles,"g_dark [Mpc^-1]",_TRUE_);
     class_store_columntitle(titles,"c_dm^2",_TRUE_);
     class_store_columntitle(titles,"T_dm",_TRUE_);
-  }
-  if(pba->has_idr == _TRUE_){
     class_store_columntitle(titles,"dmu_drdr",_TRUE_);
   }
 
@@ -3962,8 +3977,6 @@ int thermodynamics_output_data(struct background * pba,
       class_store_double(dataptr,pvecthermo[pth->index_th_g_dark],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_cidm2],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_Tdm],_TRUE_,storeidx);
-    }
-    if(pba->has_idr == _TRUE_){
       class_store_double(dataptr,pvecthermo[pth->index_th_dmu_drdr],_TRUE_,storeidx);
     }
   }
