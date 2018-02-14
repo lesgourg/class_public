@@ -936,6 +936,20 @@ int input_read_parameters(
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
+  /*if (pba->Omega0_ncdm_tot != 0.0){
+     class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
+                errmsg,
+                errmsg);
+     if (flag1 == _TRUE_){
+      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+        ppt->pk_only_cdm_bar = _TRUE_;
+      }
+      else {
+        ppt->pk_only_cdm_bar = _FALSE_;
+      }
+    }
+  }*/
+
   /** - Omega_0_k (effective fractional density of curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
   /** - Set curvature parameter K */
@@ -1334,6 +1348,21 @@ int input_read_parameters(
     if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
       ppt->has_pk_matter=_TRUE_;
       ppt->has_perturbations = _TRUE_;
+
+      if (pba->Omega0_ncdm_tot != 0.0){
+          class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          if (flag1 == _TRUE_){
+              if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+                  ppt->pk_only_cdm_bar = _TRUE_;
+              }
+              else {
+                  ppt->pk_only_cdm_bar = _FALSE_;
+              }
+          }
+      }
+
     }
 
     if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL) ||
@@ -2829,6 +2858,8 @@ int input_read_parameters(
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
   class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
 
+  class_read_double("hmcode_k_per_decade",ppr->hmcode_k_per_decade);
+  class_read_double("hmcode_tol_sigma",ppr->hmcode_tol_sigma);
   class_read_double("hmcode_max_k_extra",ppr->hmcode_max_k_extra);
   class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab); 
   class_read_double("rmax_for_sigtab",ppr->rmax_for_sigtab);
@@ -3085,6 +3116,8 @@ int input_default_params(
   ppt->has_nc_rsd = _FALSE_;
   ppt->has_nc_lens = _FALSE_;
   ppt->has_nc_gr = _FALSE_;
+
+  ppt->pk_only_cdm_bar=_FALSE_;
 
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;
@@ -3519,6 +3552,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_sigma_precision = 0.05;
   ppr->halofit_tol_sigma = 1.e-6;
 
+  ppr->hmcode_k_per_decade = 80.;
+  ppr->hmcode_tol_sigma = 1.e-6;
 	ppr->hmcode_max_k_extra = 1.e8;
 	ppr->n_hmcode_tables = 128;
 	ppr->rmin_for_sigtab = 1.e-5;

@@ -2685,9 +2685,16 @@ int spectra_pk(
 
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
 
-        source_ic1 = ppt->sources[index_md]
+        if (ppt->pk_only_cdm_bar == _TRUE_){
+         source_ic1 = ppt->sources[index_md]
+          [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+          [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+        }
+        else{
+         source_ic1 = ppt->sources[index_md]
           [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
           [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+        }
 
         psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
           log(2.*_PI_*_PI_/exp(3.*psp->ln_k[index_k])
@@ -2707,15 +2714,26 @@ int spectra_pk(
           index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md]);
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+            
+            if (ppt->pk_only_cdm_bar == _TRUE_){
+             source_ic1 = ppt->sources[index_md]
+              [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
-            source_ic1 = ppt->sources[index_md]
+             source_ic2 = ppt->sources[index_md]
+              [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+            }
+            else{
+             source_ic1 = ppt->sources[index_md]
               [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
-            source_ic2 = ppt->sources[index_md]
+             source_ic2 = ppt->sources[index_md]
               [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
-
+            }
+            
             psp->ln_pk[(index_tau * psp->ln_k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2] =
               primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 
@@ -3652,5 +3670,117 @@ int spectra_output_tk_data(
     strcpy(ic_suffix,"niv");
     strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
   }
+  return _SUCCESS_;
+}
+
+int spectra_fast_pk_at_kvec_and_zvec(
+                    struct background * pba,
+                    struct spectra * psp,
+		    double * kvec,
+		    int kvec_size,
+		    double * zvec,
+		    int zvec_size,
+                    double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
+		    int nonlinear
+                    ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_md;
+  int index_k, index_knode, index_z;
+  double *spline, *pk_at_k, *ln_kvec, *ln_pk_table;
+  double ln_pk_interp, ln_k_interp;
+  double h, a, b;
+
+  index_md = psp->index_md_scalars;
+  class_test(psp->ic_size[index_md] != 1,
+             psp->error_message,
+             "This function has only been coded for pure adiabatic ICs, sorry.");
+
+  /** Compute spline over ln(k) */
+  class_alloc(ln_kvec, sizeof(double)*kvec_size,psp->error_message);
+  class_alloc(ln_pk_table, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
+  class_alloc(spline, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
+  class_alloc(pk_at_k, sizeof(double)*psp->ln_tau_size,psp->error_message);
+
+  /** Construct table of log(pk) on the computed k nodes but requested redshifts: */
+  for (index_z=0; index_z<zvec_size; index_z++){
+    if (nonlinear==_TRUE_) {
+      class_call(spectra_pk_nl_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size),
+		 psp->error_message,
+		 psp->error_message);
+    }
+    else{
+      class_call(spectra_pk_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size, NULL),
+		 psp->error_message,
+		 psp->error_message);
+    }
+  }
+
+  class_call(array_spline_table_columns2(psp->ln_k,
+					 psp->ln_k_size,
+					 ln_pk_table,
+					 zvec_size,
+					 spline,
+					 _SPLINE_NATURAL_,
+					 psp->error_message),
+	     psp->error_message,
+	     psp->error_message);
+
+  /** Construct ln(kvec): */
+  for (index_k=0; index_k<kvec_size; index_k++){
+    ln_kvec[index_k] = log(kvec[index_k]);
+  }
+
+  /** I will assume that the k vector is sorted in ascending order.
+      Case k<kmin: */
+  for(index_k = 0; index_k<kvec_size; index_k++){
+    if (ln_kvec[index_k] >= psp->ln_k[0])
+      break;
+    for (index_z = 0; index_z < zvec_size; index_z++) {
+      /** If needed, add some extrapolation here */
+      pk_tot_out[index_z*kvec_size+index_k] = 0.;
+    }
+    /** Implement some extrapolation perhaps */
+  }
+
+  /** Case kmin<=k<=kmax. Do not loop through kvec, but loop through the
+      interpolation nodes. */
+  for (index_knode=0; index_knode < (psp->ln_k_size-1); index_knode++){
+    /** Loop through k's that fall in this interval */
+    //printf("index _k is %d, do we have %g < %g <%g?\n",index_k, psp->ln_k[index_knode],ln_kvec[index_k],psp->ln_k[index_knode+1]);
+    while ((index_k < kvec_size) && (ln_kvec[index_k] <= psp->ln_k[index_knode+1])){
+      /** Perform interpolation */
+      h = psp->ln_k[index_knode+1]-psp->ln_k[index_knode];
+      b = (ln_kvec[index_k] - psp->ln_k[index_knode])/h;
+      a = 1.-b;
+      for (index_z = 0; index_z < zvec_size; index_z++) {
+	pk_tot_out[index_z*kvec_size+index_k] =
+	  exp(
+	      a * ln_pk_table[index_z*psp->ln_k_size + index_knode]
+	      + b * ln_pk_table[index_z*psp->ln_k_size + index_knode+1]
+	      + ((a*a*a-a) * spline[index_z*psp->ln_k_size + index_knode]
+		 +(b*b*b-b) * spline[index_z*psp->ln_k_size + index_knode+1])*h*h/6.0
+	      );
+      }
+      index_k++;
+    }
+  }
+
+  /** case k>kmax */
+  while (index_k<kvec_size){
+    for (index_z = 0; index_z < zvec_size; index_z++) {
+      /** If needed, add some extrapolation here */
+      pk_tot_out[index_z*kvec_size+index_k] = 0.;
+    }
+    index_k++;
+  }
+
+  free(ln_kvec);
+  free(ln_pk_table);
+  free(spline);
+  free(pk_at_k);
   return _SUCCESS_;
 }

@@ -136,11 +136,14 @@ extern "C" {
                      double *pk_l_bc,
                      double *lnk,
                      double *lnpk,
-                     double *ddlnpk);
+                     double *ddlnpk,
+                     double *lnpk_bc,
+                     double *ddlnpk_bc);
 
   int nonlinear_halofit(
                         struct precision *ppr,
                         struct background *pba,
+                        struct perturbs *ppt,
                         struct primordial *ppm,
                         struct nonlinear *pnl,
                         double tau,
@@ -174,8 +177,7 @@ extern "C" {
                       struct primordial *ppm,
                       struct nonlinear *pnl,
                       double tau,
-                      double *pk_l,
-                      double *pk_l_bc,                     
+                      double *pk_l,                   
                       double *pk_nl,
                       double *lnk_l,
                       double *lnpk_l,
@@ -191,20 +193,12 @@ extern "C" {
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l_bc,               
+                  double *lnk_l,
+                  double *lnpk_l,
+                  double *ddlnpk_l,               
                   double * sigma
                   );
-                  
-  int nonlinear_sigma_t_spacing(
-                  struct precision * ppr,
-                  struct background * pba,
-                  struct perturbs * ppt,
-                  struct primordial * ppm,
-                  struct nonlinear * pnl,
-                  double R,
-                  double *pk_l_bc,               
-                  double * sigma
-                  );
+
   
   int nonlinear_sigma_prime(
                   struct precision * ppr,
@@ -213,7 +207,9 @@ extern "C" {
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l_bc,               
+                  double *lnk_l,
+                  double *lnpk_l,
+                  double *ddlnpk_l,               
                   double * sigma_prime
                   );                
                   
@@ -224,7 +220,9 @@ extern "C" {
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l,               
+                  double *lnk_l,
+                  double *lnpk_l,
+                  double *ddlnpk_l,               
                   double * sigma_disp
                   );
                   
@@ -234,16 +232,9 @@ extern "C" {
               struct perturbs *ppt,
 						  struct primordial * ppm,
 						  struct nonlinear * pnl,
-						  double *pk_l               
-						  );
-
-  int nonlinear_fill_sigtab_from_hmcode(
-              struct precision *ppr,
-						  struct background * pba,
-              struct perturbs *ppt,
-						  struct primordial * ppm,
-						  struct nonlinear * pnl,
-						  double *pk_l               
+						  double *lnk_l,
+              double *lnpk_l,
+              double *ddlnpk_l               
 						  );
 
   int nonlinear_fill_growtab(
@@ -251,20 +242,7 @@ extern "C" {
 						  struct background * pba,
 						  struct nonlinear * pnl            
 						  );  
-  
-  int nonlinear_fill_growtab_from_hmcode(
-              struct precision *ppr,      
-						  struct background * pba,
-						  struct nonlinear * pnl            
-						  );  
-  
-  int nonlinear_growint(
-              struct precision *ppr,
-						  struct background * pba,
-						  struct nonlinear * pnl,            
-						  double a,
-						  double * growth
-						  );
+
 						  
   int nonlinear_ci(
 				 double x,

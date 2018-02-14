@@ -442,6 +442,16 @@ extern "C" {
                                      char first_line[_LINE_LENGTH_MAX_],
                                      FileName ic_suffix);
 
+  int spectra_fast_pk_at_kvec_and_zvec(
+				       struct background * pba,
+				       struct spectra * psp,
+				       double * kvec,
+				       int kvec_size,
+				       double * zvec,
+				       int zvec_size,
+				       double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
+				       int nonlinear);
+
 #ifdef __cplusplus
 }
 #endif

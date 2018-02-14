@@ -69,6 +69,8 @@ int nonlinear_init(
   double *lnk_l;
   double *lnpk_l;
   double *ddlnpk_l;
+  double *lnpk_l_bc;
+  double *ddlnpk_l_bc;
   short print_warning=_FALSE_;
   double * pvecback;
   int last_index;
@@ -123,25 +125,33 @@ int nonlinear_init(
     class_alloc(lnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
     class_alloc(ddlnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
 
+    class_alloc(lnpk_l_bc,pnl->k_size*sizeof(double),pnl->error_message);
+    class_alloc(ddlnpk_l_bc,pnl->k_size*sizeof(double),pnl->error_message);
+
 
     if (pnl->method == nl_HMcode){
     /** initialise the source extrapolation */
-	class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
+      class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
                                                 pnl->k[pnl->k_size-1], 
                                                 ppr->hmcode_max_k_extra,
                                                 pnl->k_size,
                                                 &size_extrapolated_source,
                                                 pnl->error_message),
-		   pnl->error_message,
-		   pnl->error_message);
-			pnl->k_size_extra = size_extrapolated_source;
+          pnl->error_message,
+          pnl->error_message);
+      pnl->k_size_extra = size_extrapolated_source;
    
 			class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
 		
 			class_realloc(pk_l,pk_l,pnl->k_size_extra*sizeof(double),pnl->error_message);
 			class_realloc(pk_l_bc,pk_l_bc,pnl->k_size_extra*sizeof(double),pnl->error_message);		
-		
-			class_call(extrapolate_k(
+      class_realloc(lnk_l,lnk_l,pnl->k_size_extra*sizeof(double),pnl->error_message);
+      class_realloc(lnpk_l,lnpk_l,pnl->k_size_extra*sizeof(double),pnl->error_message);
+      class_realloc(ddlnpk_l,ddlnpk_l,pnl->k_size_extra*sizeof(double),pnl->error_message);
+      class_realloc(lnpk_l_bc,lnpk_l_bc,pnl->k_size_extra*sizeof(double),pnl->error_message);
+      class_realloc(ddlnpk_l_bc,ddlnpk_l_bc,pnl->k_size_extra*sizeof(double),pnl->error_message);
+
+      class_call(extrapolate_k(
 						 pnl->k,
 						 pnl->k_size,
 					         pnl->k_extra,
@@ -153,34 +163,34 @@ int nonlinear_init(
 		
      /** Set the baryonic feedback parameters according to the chosen feedback models */
       if (pnl->feedback == emu_dmonly){
-   	  pnl->eta_0 = 0.603;
-          pnl->c_min = 3.13;
+        pnl->eta_0 = 0.603;
+        pnl->c_min = 3.13;
       }
       if (pnl->feedback == owls_dmonly){
-	  pnl->eta_0 = 0.64;
-	  pnl->c_min = 3.43;
+        pnl->eta_0 = 0.64;
+        pnl->c_min = 3.43;
       }			
       if (pnl->feedback == owls_ref){
-          pnl->eta_0 = 0.68;
-          pnl->c_min = 3.91;
+        pnl->eta_0 = 0.68;
+        pnl->c_min = 3.91;
       }		
       if (pnl->feedback == owls_agn){
-	  pnl->eta_0 = 0.76;
-	  pnl->c_min = 2.32;
+        pnl->eta_0 = 0.76;
+        pnl->c_min = 2.32;
       }		
       if (pnl->feedback == owls_dblim){
-          pnl->eta_0 = 0.70;
-	  pnl->c_min = 3.01;
+        pnl->eta_0 = 0.70;
+        pnl->c_min = 3.01;
       }		
 		
-     }
+    }
 
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
        /* get P_L(k) at this time */
-       class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_tau,pk_l,pk_l_bc,lnk_l,lnpk_l,ddlnpk_l),
+       class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_tau,pk_l,pk_l_bc,lnk_l,lnpk_l,ddlnpk_l,lnpk_l_bc,ddlnpk_l_bc),
                  pnl->error_message,
                  pnl->error_message);
                  
@@ -188,17 +198,20 @@ int nonlinear_init(
        /* get P_NL(k) at this time with Halofit */
        if (pnl->method == nl_halofit) {
 	if (print_warning == _FALSE_) {
-	    class_call(nonlinear_halofit(ppr,
+	    class_call(nonlinear_halofit(
+					 ppr,
 					 pba,
+					 ppt,
 					 ppm,
 					 pnl,
-				         pnl->tau[index_tau],
+				   pnl->tau[index_tau],
 					 pk_l,
 					 pk_nl,
 					 lnk_l,
 					 lnpk_l,
 					 ddlnpk_l,
-					 &(pnl->k_nl[index_tau]),																		      &nonlinear_found_k_max),
+					 &(pnl->k_nl[index_tau]),																		      
+					 &nonlinear_found_k_max),
 		       pnl->error_message,
 		       pnl->error_message);
 
@@ -255,8 +268,8 @@ int nonlinear_init(
 	 if (index_tau==pnl->tau_size-1) {
 	    class_call(nonlinear_fill_growtab(ppr,pba,pnl), 
 				pnl->error_message, pnl->error_message);					      
-				
-			class_call(nonlinear_fill_sigtab(ppr,pba,ppt,ppm,pnl,pk_l_bc), 
+	 }			
+			class_call(nonlinear_fill_sigtab(ppr,pba,ppt,ppm,pnl,lnk_l,lnpk_l_bc,ddlnpk_l_bc), 
 		    pnl->error_message, pnl->error_message);
 							/*if	(index_tau == pnl->tau_size-1) {
 								fprintf(stdout, "i,  R         sigma\n");
@@ -264,7 +277,6 @@ int nonlinear_init(
 									fprintf(stdout, "%d, %e, %e\n",i, pnl->rtab[i]*pba->h, pnl->stab[i]);
 								}
 							}*/       
-	 }
 	 class_call(nonlinear_HMcode(ppr,
 				     pba,
 				     ppt,
@@ -272,7 +284,6 @@ int nonlinear_init(
 				     pnl,
 				     pnl->tau[index_tau],
 				     pk_l,
-				     pk_l_bc,
 				     pk_nl,
 				     lnk_l,
 				     lnpk_l,
@@ -323,12 +334,12 @@ int nonlinear_init(
 							time/redhsift, use 1 as the non-linear correction for all
 							higher redshifts/earlier times. */
 	     for (index_k=0; index_k<pnl->k_size; index_k++) {
-		pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+				 pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
 	     }
-       }
       }
 			
     }
+  }
     
 		// for debugging
     /*
@@ -346,6 +357,8 @@ int nonlinear_init(
     free(lnk_l);
     free(lnpk_l);
     free(ddlnpk_l);
+    free(lnpk_l_bc);
+    free(ddlnpk_l_bc);
   }
 
   else {
@@ -404,7 +417,10 @@ int nonlinear_pk_l(
                    double *pk_l_bc,
                    double *lnk,
                    double *lnpk,
-                   double *ddlnpk) {
+                   double *ddlnpk,
+                   double *lnpk_bc,
+                   double *ddlnpk_bc                   
+                   ) {
 
   int index_md;
   int index_ncdm;
@@ -546,10 +562,10 @@ int nonlinear_pk_l(
 				pk_l_bc[index_k] = pk_l[index_k];
 			}		
 			
-			if (index_k<pnl->k_size) {
-				lnk[index_k] = log(pnl->k[index_k]);
-				lnpk[index_k] = log(pk_l[index_k]);
-			}
+      lnk[index_k] = log(pnl->k_extra[index_k]);
+      lnpk[index_k] = log(pk_l[index_k]);
+      lnpk_bc[index_k] = log(pk_l_bc[index_k]);
+
 			 //for debugging:
 			//if (index_tau == pnl->tau_size-1) fprintf(stdout, "%e %e %e %d\n", pnl->k_extra[index_k], pk_l[index_k], pk_l_bc[index_k], pba->has_ncdm);
     
@@ -561,6 +577,33 @@ int nonlinear_pk_l(
 		}
 		free(source_ic_extra);
 		
+    class_call(array_spline_table_columns(lnk,
+                                          pnl->k_size_extra,
+                                          lnpk,
+                                          1,
+                                          ddlnpk,
+                                          _SPLINE_NATURAL_,
+                                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+    
+    if (pba->has_ncdm == _TRUE_){
+      class_call(array_spline_table_columns(lnk,
+                                            pnl->k_size_extra,
+                                            lnpk_bc,
+                                            1,
+                                            ddlnpk,
+                                            _SPLINE_NATURAL_,
+                                            pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+    }		
+    
+    
+    
+    free(primordial_pk);
+    
+    
 	} else  { 
 			for (index_k=0; index_k<pnl->k_size; index_k++) {
 
@@ -580,9 +623,21 @@ int nonlinear_pk_l(
 
 					index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
 
+
 					source_ic1 = ppt->sources[index_md]
 						[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
 						[index_tau * ppt->k_size[index_md] + index_k];
+
+      if (ppt->pk_only_cdm_bar == _TRUE_){
+       source_ic1 = ppt->sources[index_md]
+        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb] 
+        [index_tau * ppt->k_size[index_md] + index_k];
+      }
+      else{
+       source_ic1 = ppt->sources[index_md]
+        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+        [index_tau * ppt->k_size[index_md] + index_k];
+      }
 
 					pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
 						*source_ic1*source_ic1
@@ -605,6 +660,30 @@ int nonlinear_pk_l(
 								[index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
 								[index_tau * ppt->k_size[index_md] + index_k];
 
+          if (ppt->pk_only_cdm_bar == _TRUE_){
+           source_ic1 = ppt->sources[index_md]
+            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb] 
+            [index_tau * ppt->k_size[index_md] + index_k];
+
+           source_ic2 = ppt->sources[index_md]
+            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+            [index_tau * ppt->k_size[index_md] + index_k];
+          }
+          else{
+           source_ic1 = ppt->sources[index_md]
+            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+            [index_tau * ppt->k_size[index_md] + index_k];
+
+           source_ic2 = ppt->sources[index_md]
+            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+            [index_tau * ppt->k_size[index_md] + index_k];
+          }
+
+          pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
+            *source_ic1*source_ic2
+            *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)
+
+
 							pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
 								*source_ic1*source_ic2
 								*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
@@ -616,20 +695,20 @@ int nonlinear_pk_l(
 			lnk[index_k] = log(pnl->k[index_k]);
 			lnpk[index_k] = log(pk_l[index_k]);
 		}
-	}
+
 	
-  class_call(array_spline_table_columns(lnk,
-                                        pnl->k_size,
-                                        lnpk,
-                                        1,
-                                        ddlnpk,
-                                        _SPLINE_NATURAL_,
-                                        pnl->error_message),
+    class_call(array_spline_table_columns(lnk,
+                                          pnl->k_size,
+                                          lnpk,
+                                          1,
+                                          ddlnpk,
+                                          _SPLINE_NATURAL_,
+                                          pnl->error_message),
              pnl->error_message,
              pnl->error_message);
 
-  free(primordial_pk);
-
+    free(primordial_pk);
+  }
 
   return _SUCCESS_;
 
@@ -638,6 +717,7 @@ int nonlinear_pk_l(
 int nonlinear_halofit(
                       struct precision *ppr,
                       struct background *pba,
+                      struct perturbs *ppt,
                       struct primordial *ppm,
                       struct nonlinear *pnl,
                       double tau,
@@ -696,7 +776,12 @@ int nonlinear_halofit(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+  if (ppt->pk_only_cdm_bar == _TRUE_){ //No need to change Omega0_m because where it appears it is multiplied by fnu
+   fnu = 0.;
+  }
+  else{
+   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+  }  
 
   if (pnl->has_pk_eq == _FALSE_) {
 
@@ -1123,128 +1208,8 @@ int nonlinear_halofit_integrate(
 
   return _SUCCESS_;
 }
-/* #define _E_ exp(1)
 
-int nonlinear_sigma(
-                  struct precision * ppr,
-                  struct background * pba,
-                  struct perturbs * ppt,
-                  struct primordial * ppm,
-                  struct nonlinear * pnl,
-                  double R,
-                  double *pk_l,
-                  double *lnk_l,                 
-                  double * sigma
-                  ) {
- 
-  double * array_for_sigma;
-  double * k_array;
-  double * pk_l_new;
-  double lnk_min, lnk_max;
-  int k_size_new;
-  int index_num;
-  int index_k;
-  int index_y;
-  int index_ddy;
-  int i;
-
-  double t,k,W,x;
-  
-  // extrapolate k array up to k_max=1e4 h/Mpc  
-  
-  lnk_max = log(1.e8*pba->h);
-  lnk_min = log(ppt->k[ppt->index_md_scalars][pnl->k_size-1]);//log(ppt->k_max_for_pk);
-  k_size_new = pnl->k_size+(lnk_max-lnk_min)*(ppr->k_per_decade_for_pk);//2.302585e-01);
-  //fprintf(stdout, "%d, %d, %e, %e\n", pnl->k_size, k_size_new, ppt->k_max_for_pk, ppr->k_per_decade_for_pk);
-  class_alloc(k_array,
-              k_size_new*sizeof(double),
-              pnl->error_message); 
-  
-  class_alloc(pk_l_new,
-              k_size_new*sizeof(double),
-              pnl->error_message); 
-  
-  for (i=0;i<k_size_new;i++){
-		if (i<pnl->k_size-1){
-			k_array[i] = exp(lnk_l[i]);
-			pk_l_new[i] = pk_l[i];
-		}else{
-			k_array[i] = exp(lnk_min+(lnk_max-lnk_min)*(i-pnl->k_size)/(k_size_new-1.-pnl->k_size));
-			pk_l_new[i] = pk_l[pnl->k_size-2]*pow(log(k_array[i])/log(k_array[pnl->k_size-2]), 2)*pow((k_array[i])/(k_array[pnl->k_size-2]), ppm->n_s-4.); 
-		}
-		//fprintf(stdout, "%e %e\n", k_array[i], pk_l_new[i]);
-	}
-  //fprintf(stdout, "%e, %e\n", k_array[pnl->k_size-1], pk_l_new[pnl->k_size-1]);            
-  //fprintf(stdout, "%e, %e\n", k_array[pnl->k_size], pk_l_new[pnl->k_size]);            
-  //fprintf(stdout, "%e, %e\n", k_array[pnl->k_size+1], pk_l_new[pnl->k_size+1]);           
-  
-  //_E_+*1.8/(13.41*0.012)
-  i=0;
-  index_k=i;
-  i++;
-  index_y=i;
-  i++;
-  index_ddy=i;
-  i++;
-  index_num=i;
-
-  class_alloc(array_for_sigma,
-              k_size_new*index_num*sizeof(double),
-              pnl->error_message);
-            
-  for (i=0;i<k_size_new;i++) {
-    //k=exp(lnk_l[i]);
-    k=k_array[i];
-    if (i == (k_size_new-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-    if (x<0.01) {
-		W = 1.-(pow(x, 2.)/10.);
-    }
-    else {
-		W=3./x/x/x*(sin(x)-x*cos(x));
-    }
-    //if (R=1e3/pba->h) fprintf(stdout, "%e\n", W);
-    array_for_sigma[i*index_num+index_k]=k;
-    array_for_sigma[i*index_num+index_y]=k*k*pk_l_new[i]*W*W;
-  }
-
-
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          k_size_new, //pnl->k_size,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_spline(array_for_sigma,
-                                        index_num,
-                                        k_size_new, //pnl->k_size,
-                                        index_k,
-                                        index_y,
-                                        index_ddy,
-                                        sigma,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-	for (i=0;i<k_size_new;i++) {
-		//fprintf(stdout, "%e, %e, %e\n",array_for_sigma[i*index_num+index_k], array_for_sigma[i*index_num+index_y], array_for_sigma[i*index_num+index_ddy]);
-	}	
-	
-	free(k_array);
-	free(pk_l_new);
-  free(array_for_sigma);
-
-  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
-	//fprintf(stdout, "%e\n", *sigma);
-  return _SUCCESS_;  
-
-}*/
-/*
+/* //sigma Function with integration over k
 int nonlinear_sigma(
                   struct precision * ppr,
                   struct background * pba,
@@ -1341,10 +1306,12 @@ int nonlinear_sigma(
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l_bc,                                  
+                  double *lnk_l,
+                  double *lnpk_l,
+                  double *ddlnpk_l,                                  
                   double * sigma
                   ) {
-  double pk;
+  double pk, lnpk;
 
   double * array_for_sigma;
   int index_num;
@@ -1352,6 +1319,8 @@ int nonlinear_sigma(
   int index_sigma;
   int index_ddsigma;
   int i;
+  int integrand_size;
+  int last_index=0;
 
   double k,W,x,t;
   
@@ -1363,31 +1332,74 @@ int nonlinear_sigma(
   index_ddsigma=i;
   i++;
   index_num=i;
-
+  
+  integrand_size=(int)(log(pnl->k_extra[pnl->k_size_extra-1]/pnl->k_extra[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
   class_alloc(array_for_sigma,
-              pnl->k_size_extra*index_num*sizeof(double),
+              integrand_size*index_num*sizeof(double),
               pnl->error_message);
-            
-  for (i=pnl->k_size_extra-1;i>=0;i--) {
-    k=pnl->k_extra[i];
+          
+  for (i=integrand_size-1;i>=0;i--) {
+    k=pnl->k_extra[0]*pow(10.,i/ppr->hmcode_k_per_decade);
     t = 1./(1.+k);
-    //if (i>0) fprintf(stdout, "%e, %e, %e, %e\n", k, pk_l_bc[i], t, pnl->k_extra[i]-pnl->k_extra[i-1]);
-    if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    //fprintf(stdout, "%e, %d, %d, %e, %e, %e, %e\n", R, integrand_size, pnl->k_size_extra, log(pnl->k_extra[0]), log(pnl->k_extra[pnl->k_size_extra-1]), log(k), lnk_l[pnl->k_size_extra-1]);  
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
-	if (x<0.01) {
-		W = 1.-(pow(x, 2.)/10.);
-	}	
-	else {
-		 W = 3./x/x/x*(sin(x)-x*cos(x));
+    if (x<0.01) {
+      W = 1.-(pow(x, 2.)/10.);
+    }	
+    else {
+      W = 3./x/x/x*(sin(x)-x*cos(x));
     }
-    array_for_sigma[(pnl->k_size_extra-1-i)*index_num+index_k] = t;
-    array_for_sigma[(pnl->k_size_extra-1-i)*index_num+index_sigma] = k*k*k*pk_l_bc[i]*W*W/(t*(1.-t));
-    //if (i<pnl->k_size && R==ppr->rmin_for_sigtab/pba->h) fprintf(stdout, "%e %e\n", k, array_for_sigma[(pnl->k_size_extra-1-i)*index_num+index_sigma]); 
+    
+    class_call(array_interpolate_spline(lnk_l,
+                                        pnl->k_size_extra,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+    
+    pk = exp(lnpk);
+    
+    array_for_sigma[(integrand_size-1-i)*index_num+index_k] = t;
+    array_for_sigma[(integrand_size-1-i)*index_num+index_sigma] = k*k*k*pk*W*W/(t*(1.-t));
+    //if (i<pnl->k_size && R==ppr->rmin_for_sigtab/pba->h) fprintf(stdout, "%e %e\n", k, array_for_sigma[(integrand_size-1-i)*index_num+index_sigma]); 
   }
+
+/*
+  for (index_k=0; index_k < integrand_size; index_k++) {
+
+    k_integrand=pnl->k[0]*pow(10.,index_k/ppr->halofit_k_per_decade);
+
+    class_call(array_interpolate_spline(lnk_l,
+                                        pnl->k_size,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k_integrand),
+                                        &last_index,
+                                        &lnpk_integrand,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    integrand_array[index_k*ia_size + index_ia_k] = k_integrand;
+    integrand_array[index_k*ia_size + index_ia_pk] = exp(lnpk_integrand);
+
+  }
+
+*/
+
 
   class_call(array_spline(array_for_sigma,
                           index_num,
-                          pnl->k_size_extra,
+                          integrand_size,
                           index_k,
                           index_sigma,
                           index_ddsigma,
@@ -1398,8 +1410,8 @@ int nonlinear_sigma(
 
   class_call(array_integrate_all_trapzd_or_spline(array_for_sigma,
                                         index_num,
-                                        pnl->k_size_extra,
-                                        0, //pnl->k_size_extra-1,
+                                        integrand_size,
+                                        0, //integrand_size-1,
                                         index_k,
                                         index_sigma,
                                         index_ddsigma,
@@ -1424,109 +1436,6 @@ int nonlinear_sigma(
 }
 
 
-int nonlinear_sigma_t_spacing(
-                  struct precision * ppr,
-                  struct background * pba,
-                  struct perturbs * ppt,
-                  struct primordial * ppm,
-                  struct nonlinear * pnl,
-                  double R,
-                  double *pk_l_bc,                                  
-                  double * sigma
-                  ) {
-  double pk;
-
-  double * array_for_sigma;
-  int index_num;
-  int index_k;
-  int index_sigma;
-  int index_ddsigma;
-  int i;
-
-  double k,W,x,t,tmin,tmax,kmin,kmax;
-  
-  i=0;
-  index_k=i;
-  i++;
-  index_sigma=i;
-  i++;
-  index_ddsigma=i;
-  i++;
-  index_num=i;
-
-  class_alloc(array_for_sigma,
-              pnl->k_size_extra*index_num*sizeof(double),
-              pnl->error_message);
-  kmin = pnl->k_extra[0]*1.0000001;
-  kmax = pnl->k_extra[pnl->k_size_extra-1]*0.9999999;
-  tmin = 1./(1.+kmax);
-  tmax = 1./(1.+kmin);
-  
-  for (i=pnl->k_size_extra-1;i>=0;i--) {
-    t = tmin + (tmax-tmin)/(pnl->k_size_extra-1)*i;
-    k=(1./t)-1.;
-    class_call(array_interpolate_two_arrays_one_column(
-					    pnl->k_extra,
-					    pk_l_bc,
-					    1,
-					    0,
-					    pnl->k_size_extra,
-					    k,
-					    &pk,
-					    pnl->error_message),
-					    pnl->error_message, pnl->error_message);
-    //if (i>0) fprintf(stdout, "%e, %e, %e\n", k, t, pk);
-    if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-	if (x<0.01) {
-		W = 1.-(pow(x, 2.)/10.);
-	}	
-	else {
-		 W = 3./x/x/x*(sin(x)-x*cos(x));
-    }
-    array_for_sigma[(i)*index_num+index_k] = t;
-    array_for_sigma[(i)*index_num+index_sigma] = k*k*k*pk*W*W/(t*(1.-t));
-  }
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          pnl->k_size_extra,
-                          index_k,
-                          index_sigma,
-                          index_ddsigma,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma,
-                                        index_num,
-                                        pnl->k_size_extra,
-                                        0, //pnl->k_size_extra-1,
-                                        index_k,
-                                        index_sigma,
-                                        index_ddsigma,
-                                        sigma,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-	//for (i=0;i<pnl->k_size_extra;i++) {
-		//fprintf(stdout, "%e, %e, %e, %e\n", *sigma, array_for_sigma[i*index_num+index_k], array_for_sigma[i*index_num+index_sigma], array_for_sigma[i*index_num+index_ddsigma]);    		
-	//}
-
-  free(array_for_sigma);
-
-  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
-  //fprintf(stdout, "%e\n", *sigma); 
-
-  return _SUCCESS_;
-
-  
-
-}
-
-
 int nonlinear_sigma_prime(
                   struct precision * ppr,
                   struct background * pba,
@@ -1534,16 +1443,20 @@ int nonlinear_sigma_prime(
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l_bc,                                  
+                  double *lnk_l,
+                  double *lnpk_l,
+                  double *ddlnpk_l,                                  
                   double * sigma_prime
                   ) {
-  double pk;
+  double pk, lnpk;
 
   double * array_for_sigma_prime;
   int index_num;
   int index_k;
   int index_sigma_prime;
   int index_ddsigma_prime;
+  int integrand_size;
+  int last_index=0;
   int i;
 
   double k,W,W_prime,x,t;
@@ -1556,16 +1469,17 @@ int nonlinear_sigma_prime(
   index_ddsigma_prime=i;
   i++;
   index_num=i;
-
+  
+  integrand_size=(int)(log(pnl->k_extra[pnl->k_size_extra-1]/pnl->k_extra[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
   class_alloc(array_for_sigma_prime,
-              pnl->k_size_extra*index_num*sizeof(double),
+              integrand_size*index_num*sizeof(double),
               pnl->error_message);
             
-  for (i=pnl->k_size_extra-1;i>=0;i--) {
-    k=pnl->k_extra[i];
+  for (i=integrand_size-1;i>=0;i--) {
+    k=pnl->k_extra[0]*pow(10.,i/ppr->hmcode_k_per_decade);
     t = 1./(1.+k);
-    //if (i>0) fprintf(stdout, "%e, %e, %e, %e\n", k, pk_l_bc[i], t, pnl->k_extra[i]-pnl->k_extra[i-1]);
-    if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    //if (i>0) fprintf(stdout, "%e, %e, %e, %e\n", k, pk_l[i], t, pnl->k_extra[i]-pnl->k_extra[i-1]);
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
 	if (x<0.01) {
 		W = 1.-(x*x/10.);
@@ -1577,13 +1491,30 @@ int nonlinear_sigma_prime(
 		 W_prime=3./x/x*sin(x)-9./x/x/x/x*(sin(x)-x*cos(x));
 
     }
-    array_for_sigma_prime[(pnl->k_size_extra-1-i)*index_num+index_k] = t;
-    array_for_sigma_prime[(pnl->k_size_extra-1-i)*index_num+index_sigma_prime] = k*k*k*pk_l_bc[i]*2.*k*W*W_prime/(t*(1.-t));
+    
+    class_call(array_interpolate_spline(lnk_l,
+                                        pnl->k_size_extra,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+    
+    pk = exp(lnpk);
+       
+    
+    array_for_sigma_prime[(integrand_size-1-i)*index_num+index_k] = t;
+    array_for_sigma_prime[(integrand_size-1-i)*index_num+index_sigma_prime] = k*k*k*pk*2.*k*W*W_prime/(t*(1.-t));
   }
 
   class_call(array_spline(array_for_sigma_prime,
                           index_num,
-                          pnl->k_size_extra,
+                          integrand_size,
                           index_k,
                           index_sigma_prime,
                           index_ddsigma_prime,
@@ -1594,8 +1525,8 @@ int nonlinear_sigma_prime(
 
   class_call(array_integrate_all_trapzd_or_spline(array_for_sigma_prime,
                                         index_num,
-                                        pnl->k_size_extra,
-                                        0, //pnl->k_size_extra-1,
+                                        integrand_size,
+                                        0, //integrand_size-1,
                                         index_k,
                                         index_sigma_prime,
                                         index_ddsigma_prime,
@@ -1604,7 +1535,7 @@ int nonlinear_sigma_prime(
              pnl->error_message,
              pnl->error_message);
 
-//	for (i=0;i<pnl->k_size_extra;i++) {
+//	for (i=0;i<integrand_size;i++) {
 //		fprintf(stdout, "%e, %e, %e, %e\n", *sigma_prime, array_for_sigma_prime[i*index_num+index_k], array_for_sigma_prime[i*index_num+index_sigma_prime], array_for_sigma_prime[i*index_num+index_ddsigma_prime]);    		
 //	}
 
@@ -1619,282 +1550,6 @@ int nonlinear_sigma_prime(
 
 }
 
-/*
-int nonlinear_sigma(
-                  struct precision * ppr,
-                  struct background * pba,
-                  struct perturbs * ppt,
-                  struct primordial * ppm,
-                  struct nonlinear * pnl,
-                  double R,
-                  double *pk_l,                
-                  double * sigma
-                  ) {
-  double pk;
-
-  double * array_for_sigma;
-  int index_num;
-  int index_k;
-  int index_y;
-  int index_ddy;
-  int i, j, n;
-
-  double k,W,product,t;
-  
-  double a, b;
-  double x, dx;
-  double f1, f2, fx;
-  double sum_n, sum_2n, sum_new, sum_old
-  int jmin, jmax
-  
-  i=0;
-  index_k=i;
-  i++;
-  index_y=i;
-  i++;
-  index_ddy=i;
-  i++;
-  index_num=i;
-
-  class_alloc(array_for_sigma,
-              pnl->k_size_extra*index_num*sizeof(double),
-              pnl->error_message);
-            
-  for (i=0;i<pnl->k_size_extra;i++) {
-    
-    
-    k=pnl->k_extra[i];
-    t = 1./(1.+k);
-    //if (i>0) fprintf(stdout, "%e, %e, %e, %e\n", k, pk_l[i], t, pnl->k_extra[i]-pnl->k_extra[i-1]);
-    if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    product=k*R;
-	if (product<0.01) {
-		W = 1.-(pow(product, 2.)/10.);
-	}	
-	else {
-		 W = 3./product/product/product*(sin(product)-product*cos(product));
-    }
-    array_for_sigma[i*index_num+index_k]=t;
-    array_for_sigma[i*index_num+index_y]=pow(k, 3)*pk_l[i]*W*W/(t*(1.-t));
-  }
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          pnl->k_size_extra,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-	jmin=5;
-	jmax=30;
-	a=0.;
-	b=1.;
-	
-	if (a==b) {
-		sigint0=0.;
-	} 
-	else {
-		sum_2n=0.d0
-
-       for (j=1;jmax;j++) {
-          
-          //Note, you need this to be 1+2**n for some integer n
-          //j=1 n=2; j=2 n=3; j=3 n=5; j=4 n=9; ...'
-          n=1+pow(2,(j-1));
-
-          //Calculate the dx interval for this value of 'n'
-          dx=(b-a)/(n-1.);
-
-          if (j==1) {
-             
-             //The first go is just the trapezium of the end points
-             f1=array_for_sigma[0];
-             f2=array_for_sigma[pnl->k_size_extra];
-             sum_2n=0.5*(f1+f2)*dx;
-             sum_new=sum_2n;
-             
-          }
-          else {
-
-             //Loop over only new even points to add these to the integral
-             for (i=2;n;i=i+2) {
-                x=a+(b-a)*(i-1.)/(n-1.)
-                fx=sigma_integrand_transformed(x,r,f0_rapid,z,cosm)
-                sum_2n=sum_2n+fx
-             }
-             //END DO
-
-             //Now create the total using the old and new parts
-             sum_2n=sum_n/2.d0+sum_2n*dx
-
-             //Now calculate the new sum depending on the integration order
-             IF(iorder==1) THEN  
-                sum_new=sum_2n
-             ELSE IF(iorder==3) THEN         
-                sum_new=(4.d0*sum_2n-sum_n)/3.d0 !This is Simpson's rule and cancels error
-             ELSE
-                STOP 'SIGINT0: Error, iorder specified incorrectly'
-             END IF
-
-          END IF
-
-          IF((j>=jmin) .AND. (ABS(-1.d0+sum_new/sum_old)<acc)) THEN
-             //jmin avoids spurious early convergence
-             sigint0=REAL(sum_new)
-             EXIT
-          ELSE IF(j==jmax) THEN
-             STOP 'SIGINT0: Integration timed out'
-          ELSE
-             //Integral has not converged so store old sums and reset sum variables
-             sum_old=sum_new
-             sum_n=sum_2n
-             sum_2n=0.d0
-          END IF
-
-       }//END DO
-	}
-	// end if
-
-
-
-	for (i=0;i<pnl->k_size_extra;i++) {
-		fprintf(stdout, "%e, %e, %e, %e\n", *sigma, array_for_sigma[i*index_num+index_k], array_for_sigma[i*index_num+index_y], array_for_sigma[i*index_num+index_ddy]);    		
-	}
-
-  free(array_for_sigma);
-
-  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
-  fprintf(stdout, "%e\n", *sigma); 
-
-  return _SUCCESS_;
-
-  
-
-}
-*/
-/*
-int nonlinear_sigma_disp(
-                  struct precision * ppr,
-                  struct background * pba,
-                  struct perturbs * ppt,
-                  struct primordial * ppm,
-                  struct nonlinear * pnl,
-                  double R,
-                  double *pk_l,
-                  double *lnk_l,                 
-                  double * sigma_disp
-                  ) {
-  
-  double * array_for_sigma_disp;
-  double * k_array;
-  double * pk_l_new;
-  double lnk_min, lnk_max;
-  int k_size_new;
-  int index_num;
-  int index_k;
-  int index_y;
-  int index_ddy;
-  int i;
-
-  double t,k,W,x;
-  
-  // extrapolate k array up to k_max=1e4 h/Mpc  
-  
-  lnk_max = log(1.e4)*pba->h;
-  lnk_min = log(ppt->k_max_for_pk);
-  k_size_new = pnl->k_size+(lnk_max-lnk_min)*(ppr->k_per_decade_for_pk);//2.302585e-01);
-  //fprintf(stdout, "%d, %d, %e, %e\n", pnl->k_size, k_size_new, ppt->k_max_for_pk, ppr->k_per_decade_for_pk);
-  class_alloc(k_array,
-              k_size_new*sizeof(double),
-              pnl->error_message); 
-  
-  class_alloc(pk_l_new,
-              k_size_new*sizeof(double),
-              pnl->error_message); 
-  
-  for (i=0;i<k_size_new;i++){
-		if (i<pnl->k_size){
-			k_array[i] = exp(lnk_l[i]);
-			pk_l_new[i] = pk_l[i];
-		}else{
-			k_array[i] = exp(lnk_min+(lnk_max-lnk_min)*(i-pnl->k_size)/(k_size_new-1.-pnl->k_size));
-			pk_l_new[i] = pk_l[pnl->k_size-1]*pow(log(k_array[i])/log(k_array[pnl->k_size-1]), 2)*pow((k_array[i])/(k_array[pnl->k_size-1]), ppm->n_s-4.); 
-		}
-		//fprintf(stdout, "%e, %e\n", k_array[i], pk_l_new[i]);
-	}
-  //fprintf(stdout, "%e, %e\n", k_array[pnl->k_size-1], pk_l_new[pnl->k_size-1]);            
-  //fprintf(stdout, "%e, %e\n", k_array[pnl->k_size], pk_l_new[pnl->k_size]);            
-  //fprintf(stdout, "%e, %e\n", k_array[pnl->k_size+1], pk_l_new[pnl->k_size+1]);           
-      
-  
-  i=0;
-  index_k=i;
-  i++;
-  index_y=i;
-  i++;
-  index_ddy=i;
-  i++;
-  index_num=i;
-
-  class_alloc(array_for_sigma_disp,
-              k_size_new*index_num*sizeof(double),
-              pnl->error_message);
-            
-  for (i=0;i<k_size_new;i++) {
-    //k=exp(lnk_l[i]);
-    k=k_array[i];
-    if (i == (k_size_new-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-    if (x<0.01) {
-		W = 1.-(pow(x, 2.)/10.);
-    }
-    else {
-		W=3./x/x/x*(sin(x)-x*cos(x));
-    }
-    array_for_sigma_disp[i*index_num+index_k]=k;
-    array_for_sigma_disp[i*index_num+index_y]=k*k*pk_l_new[i]*W*W;
-  }
-
-
-
-  class_call(array_spline(array_for_sigma_disp,
-                          index_num,
-                          k_size_new, //pnl->k_size,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_spline(array_for_sigma_disp,
-                                        index_num,
-                                        k_size_new, //pnl->k_size,
-                                        index_k,
-                                        index_y,
-                                        index_ddy,
-                                        sigma_disp,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-	for (i=0;i<k_size_new;i++) {
-		//fprintf(stdout, "%e, %e, %e\n",array_for_sigma_disp[i*index_num+index_k], array_for_sigma_disp[i*index_num+index_y], array_for_sigma_disp[i*index_num+index_ddy]);
-	}	
-	
-	free(k_array);
-	free(pk_l_new);
-  free(array_for_sigma_disp);
-
-  *sigma_disp = sqrt(*sigma_disp/(2.*_PI_*_PI_)/3); // unit: [Mpc]
-	//fprintf(stdout, "%e\n", *sigma_disp);
-  return _SUCCESS_;  
-
-}*/
 
 int nonlinear_sigma_disp(
                   struct precision * ppr,
@@ -1903,16 +1558,20 @@ int nonlinear_sigma_disp(
                   struct primordial * ppm,
                   struct nonlinear * pnl,
                   double R,
-                  double *pk_l,               
+                  double *lnk_l,
+                  double *lnpk_l,
+                  double *ddlnpk_l,               
                   double * sigma_disp
                   ) {
-  double pk;
+  double pk, lnpk;
 
   double * array_for_sigma_disp;
   int index_num;
   int index_k;
   int index_y;
   int index_ddy;
+  int integrand_size;
+  int last_index=0;
   int i;
 
   double k,W,x,t;
@@ -1925,14 +1584,15 @@ int nonlinear_sigma_disp(
   index_ddy=i;
   i++;
   index_num=i;
-
+  
+  integrand_size=(int)(log(pnl->k_extra[pnl->k_size_extra-1]/pnl->k_extra[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
   class_alloc(array_for_sigma_disp,
-              pnl->k_size_extra*index_num*sizeof(double),
+              integrand_size*index_num*sizeof(double),
               pnl->error_message);
             
-  for (i=0;i<pnl->k_size_extra;i++) {
-    k=pnl->k[i];
-    if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+  for (i=0;i<integrand_size;i++) {
+    k=pnl->k_extra[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
 	if (x<0.01) {
 		W = 1.-(pow(x, 2.)/10.);
@@ -1940,15 +1600,32 @@ int nonlinear_sigma_disp(
 	else {
 		 W = 3./x/x/x*(sin(x)-x*cos(x));
     }
+    
+    class_call(array_interpolate_spline(lnk_l,
+                                        pnl->k_size_extra,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+    
+    pk = exp(lnpk);
+   
+    
     array_for_sigma_disp[i*index_num+index_k]=k;
-    array_for_sigma_disp[i*index_num+index_y]=pk_l[i]*W*W;
+    array_for_sigma_disp[i*index_num+index_y]=pk*W*W;
   }
 /*
-for (i=pnl->k_size_extra-1;i>=0;i--) {
+for (i=integrand_size-1;i>=0;i--) {
     k=pnl->k_extra[i];
     t = 1./(1.+k);
     //if (i>0) fprintf(stdout, "%e, %e, %e, %e\n", k, pk_l[i], t, pnl->k_extra[i]-pnl->k_extra[i-1]);
-    if (i == (pnl->k_size_extra-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
 	if (x<0.01) {
 		W = 1.-(pow(x, 2.)/10.);
@@ -1956,15 +1633,15 @@ for (i=pnl->k_size_extra-1;i>=0;i--) {
 	else {
 		 W = 3./x/x/x*(sin(x)-x*cos(x));
     }
-    array_for_sigma_disp[(pnl->k_size_extra-1-i)*index_num+index_k] = t;
-    array_for_sigma_disp[(pnl->k_size_extra-1-i)*index_num+index_y] = k*pk_l[i]*W*W/(t*(1.-t));
+    array_for_sigma_disp[(integrand_size-1-i)*index_num+index_k] = t;
+    array_for_sigma_disp[(integrand_size-1-i)*index_num+index_y] = k*pk_l[i]*W*W/(t*(1.-t));
   }*/
 
 
 
   class_call(array_spline(array_for_sigma_disp,
                           index_num,
-                          pnl->k_size,
+                          integrand_size,
                           index_k,
                           index_y,
                           index_ddy,
@@ -1975,7 +1652,7 @@ for (i=pnl->k_size_extra-1;i>=0;i--) {
 
   class_call(array_integrate_all_spline(array_for_sigma_disp,
                                         index_num,
-                                        pnl->k_size,
+                                        integrand_size,
                                         index_k,
                                         index_y,
                                         index_ddy,
@@ -2000,7 +1677,9 @@ int nonlinear_fill_sigtab(
 						  struct perturbs * ppt,
 						  struct primordial * ppm,
 						  struct nonlinear * pnl,
-						  double *pk_l             
+              double *lnk_l,
+						  double *lnpk_l,
+              double *ddlnpk_l             
 						  ) {
 	
   //double rmin;
@@ -2031,7 +1710,7 @@ int nonlinear_fill_sigtab(
   
   for (i=0;i<nsig;i++){
 	r=exp(log(rmin)+log(rmax/rmin)*i/(nsig-1));
-    class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,r,pk_l,&sig), 
+    class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,r,lnk_l,lnpk_l,ddlnpk_l,&sig), 
       pnl->error_message, pnl->error_message); 
     pnl->sigtab[i*index_n+index_r]=r;
     pnl->sigtab[i*index_n+index_sig]=sig;
@@ -2058,136 +1737,6 @@ int nonlinear_fill_sigtab(
   }      
   return _SUCCESS_; 
 }	
-
-int nonlinear_fill_sigtab_from_hmcode(
-              struct precision *ppr,
-						  struct background * pba,
-						  struct perturbs * ppt,
-						  struct primordial * ppm,
-						  struct nonlinear * pnl,
-						  double *pk_l             
-						  ) {
-	
-  //double rmin;
-  //double rmax;
-  //int nsig;
-  double r;
-  double rmin, rmax;
-  double sig;
-  int i, index_r, index_sig, index_ddsig, index_n, nsig;
-	
-	rmin = ppr->rmin_for_sigtab/pba->h;
-  rmax = ppr->rmax_for_sigtab/pba->h;
-  nsig = ppr->n_hmcode_tables;
-  
-  i=0;
-  index_r=i;
-  i++;
-  index_sig=i;
-  i++;
-  index_ddsig=i;
-  i++;
-  index_n=i;
-  
-  
-  class_alloc((pnl->sigtab),(nsig*index_n*sizeof(double)),pnl->error_message);
-  class_alloc(pnl->rtab,nsig*sizeof(double),pnl->error_message);
-  class_alloc(pnl->stab,nsig*sizeof(double),pnl->error_message);
-  class_alloc(pnl->ddstab,nsig*sizeof(double),pnl->error_message);
-  
-  FILE *fp;
-  fp = fopen("cambfile_sigma.dat", "r");
-  
-  for (i=0;i<nsig;i++){
-		r=exp(log(rmin)+log(rmax/rmin)*i/(nsig-1));
-    fscanf(fp, "%le\n", &sig);
-    pnl->sigtab[i*index_n+index_r]=r;
-    pnl->sigtab[i*index_n+index_sig]=sig;
-  }
-  class_call(array_spline(pnl->sigtab,
-						  index_n,
-						  nsig,
-						  index_r,
-						  index_sig,
-						  index_ddsig,
-						  _SPLINE_EST_DERIV_,
-						  pnl->error_message), 
-					pnl->error_message,
-					pnl->error_message); 
-  
-  for (i=0;i<nsig;i++){
-	pnl->rtab[i] = pnl->sigtab[i*index_n+index_r];
-	pnl->stab[i] = pnl->sigtab[i*index_n+index_sig];
-	pnl->ddstab[i] = pnl->sigtab[i*index_n+index_ddsig];  
-	//if (i==0) fprintf(stdout, "sigma max = %e\n", pnl->stab[i]);  
-	//if (i==nsig-1) fprintf(stdout, "sigma min = %e\n", pnl->stab[i]);  
-
-	//fprintf(stdout, "%e, %e, %e\n",pnl->sigtab[i*index_n+index_r], pnl->sigtab[i*index_n+index_sig], pnl->sigtab[i*index_n+index_ddsig]);
-  }      
-  return _SUCCESS_; 
-}	
-
-int nonlinear_fill_growtab_from_hmcode(
-              struct precision *ppr,
-						  struct background * pba,
-						  struct nonlinear * pnl            
-						  ){
-	
-	double z, ainit, amax, scalefactor, tau_growth, f_class, f_camb, gamma, growth;
-  int i, index_z, index_tau_growth, index_growth, index_gcol, last_index, ng;  
-  double * pvecback;
-  
-  ng = ppr->n_hmcode_tables;
-  ainit = ppr->ainit_for_growtab;
-  amax = ppr->amax_for_growtab;
-  
-  class_alloc(pnl->growtable,ng*sizeof(double),pnl->error_message);
-  class_alloc(pnl->ztable,ng*sizeof(double),pnl->error_message);
-  class_alloc(pnl->tautable,ng*sizeof(double),pnl->error_message);
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-  
-  FILE *fp;
-  fp = fopen("cambfile_growth.dat", "r");
-  
-  for (i=0;i<ng;i++){
-		scalefactor = ainit+(amax-ainit)*(i)/(ng-1);
-		z = 1./scalefactor-1.;
-		
-		pnl->ztable[i] = z;
-		
-		class_call(background_tau_of_z(
-                        pba,
-                        z,
-                        &tau_growth
-                        ),
-					pnl->error_message, pnl->error_message);
-					
-		pnl->tautable[i] = tau_growth;		
-			
-		class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
-             pba->error_message,
-             pnl->error_message);
-             
-    //class_call(nonlinear_growint(ppr,pba,pnl,scalefactor,&growth),
-      //       pba->error_message,
-        //     pnl->error_message);
-    fscanf(fp, "%le\n", &growth);
-    
-    
-    //pnl->growtable[i] = pvecback[pba->index_bg_D]; 
-    pnl->growtable[i] = growth;
-      
-    //f_class = pvecback[pba->index_bg_f];
-    //f_camb = pow(pvecback[pba->index_bg_Omega_m], 0.55);
-    //fprintf(stdout, "%e %e\n", scalefactor, pnl->growtable[i]);      			
-	}								
-
-	free(pvecback);
-	fclose(fp);
-	
-	return _SUCCESS_; 
-}
-
 
 int nonlinear_fill_growtab(
               struct precision *ppr,
@@ -2253,105 +1802,6 @@ int nonlinear_fill_growtab(
 	free(pvecback);
 	  
 	return _SUCCESS_; 
-}
-
-int nonlinear_growint(
-              struct precision *ppr,
-						  struct background * pba,
-						  struct nonlinear * pnl,            
-						  double a,
-						  double * growth
-						  ){
-	
-	double z, ainit, amax, scalefactor, tau_growth, f_class, f_camb, gamma, w;
-  int i, index_a, index_growth, index_ddgrowth, index_gcol, last_index, ng;  
-  double * pvecback;
-  double * integrand;
-  
-  ng = 2048;
-  ainit = a;
-  amax = 1.;
-  
-  i=0;
-  index_a = i;
-  i++;
-  index_growth = i;
-  i++;
-  index_ddgrowth = i;
-  i++;
-  index_gcol = i;
-  
-	last_index = 0;
-	
-  class_alloc(integrand,ng*index_gcol*sizeof(double),pnl->error_message);
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-  
-  if (ainit == amax) {
-			*growth = 1.;
-	}	
-	else {
-  
-		for (i=0;i<ng;i++){
-			scalefactor = ainit+(amax-ainit)*(i)/(ng-1);
-			z = 1./scalefactor-1.;
-		
-			class_call(background_tau_of_z(
-                        pba,
-                        z,
-                        &tau_growth
-                        ),
-					pnl->error_message, pnl->error_message);	
-			
-			class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
-             pba->error_message,
-             pnl->error_message);
- 
-			w = pvecback[pba->index_bg_w_fld];
-			if (w == -1.){
-				gamma = 0.55;
-			} 
-			else if (w < -1.){
-				gamma = 0.55+0.02*(1+w);
-			}
-			else {
-				gamma = 0.55+0.05*(1+w);
-			}
-    
-			integrand[i*index_gcol+index_a] = scalefactor;
-			integrand[i*index_gcol+index_growth]= -pow(pvecback[pba->index_bg_Omega_m], gamma)/scalefactor;
-			
-			class_call(array_spline(integrand,
-                          index_gcol,
-                          ng,
-                          index_a,
-                          index_growth,
-                          index_ddgrowth,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-			class_call(array_integrate_all_trapzd_or_spline(integrand,
-                                        index_gcol,
-                                        ng,
-                                        0, //ng-1,
-                                        index_a,
-                                        index_growth,
-                                        index_ddgrowth,
-                                        growth,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-    
-				*growth = exp(*growth);
-    
-			//fprintf(stdout, "%e %e \n", a, *growth);      			
-		}								
-	}
-	free(pvecback);
-	free(integrand);
-	
-  return _SUCCESS_; 	
 }
 
 /* in original HMcode, this is equivalent to the function Ci(x) */
@@ -2512,8 +1962,7 @@ int nonlinear_HMcode(
                       struct primordial *ppm,
                       struct nonlinear *pnl,
                       double tau,
-                      double *pk_l,
-											double *pk_l_bc,                      
+                      double *pk_l,                      
                       double *pk_nl,
                       double *lnk_l,
                       double *lnpk_l,
@@ -2610,11 +2059,11 @@ int nonlinear_HMcode(
     
   /** Get sigma(R=8), sigma_disp(R=0), sigma_disp(R=100)  */
 
-  class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,pk_l,&sigma8), 
+  class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,lnk_l,lnpk_l,ddlnpk_l,&sigma8), 
 			pnl->error_message, pnl->error_message);	
-  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,0.,pk_l,&sigma_disp), 
+  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,0.,lnk_l,lnpk_l,ddlnpk_l,&sigma_disp), 
 			pnl->error_message, pnl->error_message);
-  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,pk_l,&sigma_disp100), 
+  class_call(nonlinear_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,lnk_l,lnpk_l,ddlnpk_l,&sigma_disp100), 
 			pnl->error_message, pnl->error_message);			
 	//sigma_disp = 6.16205788/pba->h;
 	//sigma_disp100 = 2.56149292/pba->h;
@@ -2673,8 +2122,8 @@ int nonlinear_HMcode(
 										  1,
 										  pnl->error_message),
 					pnl->error_message, pnl->error_message);
-	  if (pba->has_ncdm == _FALSE_) sig=sig*growth;
-		if (pba->has_ncdm == _FALSE_) sigf=sigf*growth;
+	  //if (pba->has_ncdm == _FALSE_) sig=sig*growth;
+		//if (pba->has_ncdm == _FALSE_) sigf=sigf*growth;
 		nu=delta_c/sig;
 	  sigma_r[i] = sig;
 	  sigmaf_r[i] = sigf;
@@ -2718,15 +2167,15 @@ int nonlinear_HMcode(
 
 	class_call(array_search_bisect(n,nu_arr,nu_nl,&index_nl,pnl->error_message), pnl->error_message, pnl->error_message);
 	
-	r1 = r_real[index_nl];
-	r2 = r_real[index_nl+1];
-
+	r1 = r_real[index_nl-1];
+	r2 = r_real[index_nl+2];
+  //fprintf(stdout, "%e %e %e %e\n", r1, nu_arr[index_nl-1], r2, nu_arr[index_nl+2]);
 	counter = 0;
   do {
     r_nl = (r1+r2)/2.;
     counter ++;
 	  
-		class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,r_nl,pk_l,&sigma_nl), 
+		class_call(nonlinear_sigma(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l,lnpk_l,ddlnpk_l,&sigma_nl), 
 			pnl->error_message, pnl->error_message);		
 
     diff = sigma_nl - delta_c;
@@ -2799,7 +2248,7 @@ int nonlinear_HMcode(
 	}
   fprintf(stdout, "%e, %e\n",log(r_nl), dlnsigdlnR);*/
 	double sigma_prime;
-	class_call(nonlinear_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,pk_l,&sigma_prime), 
+	class_call(nonlinear_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l,lnpk_l,ddlnpk_l,&sigma_prime), 
 			pnl->error_message, pnl->error_message);
 	dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;
   n_eff = -3.- dlnsigdlnR;
@@ -2976,7 +2425,7 @@ int nonlinear_HMcode(
 		fprintf(stdout, "    alpha:		%e\n", alpha);
 		fprintf(stdout, "    ksize, kmin, kmax:   %d, %e, %e\n", pnl->k_size, pnl->k[0]/pba->h, pnl->k[pnl->k_size-1]/pba->h);	
 		for (i=0;i<ppr->n_hmcode_tables;i++){
-			fprintf(stdout, "%d %e %e %e\n",i+1, pnl->sigtab[i*3]*pba->h, pnl->sigtab[i*3+1], pnl->sigtab[i*3+2]);
+			//fprintf(stdout, "%d %e %e %e\n",i+1, pnl->sigtab[i*3]*pba->h, pnl->sigtab[i*3+1], pnl->sigtab[i*3+2]);
 			//fprintf(stdout, "%e %e\n",1./(1.+pnl->ztable[i]), pnl->growtable[i]);
   	}
   	

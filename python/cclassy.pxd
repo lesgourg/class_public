@@ -61,7 +61,7 @@ cdef extern from "class.h":
         double Omega0_ur
         double Omega0_dcdmdr
         double Omega0_scf
-
+        double Omega0_k
         int bt_size
 
     cdef struct thermo:
@@ -335,3 +335,13 @@ cdef extern from "class.h":
                   double R,
                   double z,
                   double * sigma)
+
+    int spectra_fast_pk_at_kvec_and_zvec(
+                  void * pba,
+                  void * psp,
+                  double * kvec,
+                  int kvec_size,
+                  double * zvec,
+                  int zvec_size,
+                  double * pk_tot_out,
+                  int nonlinear)
