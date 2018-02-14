@@ -28,8 +28,8 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum tca_dark_flags {tca_dark_on, tca_dark_off}; //ethos approx
-enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    //MArchi ethos approx
+enum tca_dark_flags {tca_dark_on, tca_dark_off};//ethos
+enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};//ethos
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
@@ -43,7 +43,8 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};
+enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};//ethos
+enum idr_method {idr_free_streaming,idr_fluid};//ethos
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};

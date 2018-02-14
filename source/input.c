@@ -741,6 +741,8 @@ int input_read_parameters(
 
   //New ethos (independent from CDM), added by DCH
 
+  class_read_double("a_dark",pth->a_dark);//if a_dark is zero then it is the standard CDM case
+
   /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -758,10 +760,8 @@ int input_read_parameters(
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
 
-  //class_read_double("a_dark",pth->a_dark);//if a_dark is zero then it is the standard CDM case
-
   //this is the standard CDM case
-  if (flag3 == _FALSE_){
+  if ((flag3 == _FALSE_)||(pth->a_dark==0.0)){
     if (flag1 == _TRUE_)
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
@@ -800,28 +800,9 @@ int input_read_parameters(
       //Read the rest of the ethos parameters
       class_read_double("m_dm",pth->m_dm);
 
-      class_read_double("a_dark",pth->a_dark);
-
       class_read_double("b_dark",pth->b_dark);
 
       class_read_double("nindex_dark",pth->nindex_dark);
-
-      //Is the dark radiation coupled to dark matter a perfect fluid?
-      class_call(parser_read_string(pfc,"idr_is_fluid",&string1,&flag1,errmsg),
-                                  errmsg,
-                                  errmsg);
-      if (flag1 == _TRUE_){
-       if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
-         ppr->idr_is_fluid = _TRUE_;
-       }
-       else {
-         ppr->idr_is_fluid = _FALSE_;
-       }
-      }
-      else{
-         ppr->idr_is_fluid = _FALSE_;
-      }
-      //printf("%s", ppr->idr_is_fluid ? "true" : "false");
 
       class_read_int("l_max_idr",ppr->l_max_idr);
 
@@ -2660,6 +2641,7 @@ int input_read_parameters(
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
   class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//ethos
   class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//ethos
+  class_read_int("idr_nature",ppr->idr_nature);//ethos
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
@@ -3364,7 +3346,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
-  ppr->idr_is_fluid= _FALSE_;//ethos
+  ppr->idr_nature = idr_free_streaming;//ethos
 
   /**
    * - parameter related to the primordial spectra

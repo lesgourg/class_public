@@ -601,7 +601,7 @@ struct precision
    */
   double radiation_streaming_trigger_tau_over_tau_k;
 
-  double dark_radiation_streaming_trigger_tau_over_tau_k;//MArchi ethos approx
+  double dark_radiation_streaming_trigger_tau_over_tau_k;//ethos
 
   /**
    * when to switch off photon perturbations, ie when to switch
@@ -615,7 +615,7 @@ struct precision
 
   int ur_fluid_approximation; /**< method for ultra relativistic fluid approximation */
 
-  short idr_is_fluid; /**< ethos: dark radiation is a perfect fluid?*/
+  int idr_nature; /**< ethos: methos for dark radiation, 0 hierarchy, 1 perfect fluid?*/
 
 
   /**
