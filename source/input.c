@@ -2641,7 +2641,18 @@ int input_read_parameters(
              "please choose dark_radiation_streaming_approximation = 0 for nindex_dark<2");
   class_read_double("dark_radiation_streaming_trigger_tau_over_tau_k",ppr->dark_radiation_streaming_trigger_tau_over_tau_k);//ethos
   class_read_double("dark_radiation_streaming_trigger_tau_c_over_tau",ppr->dark_radiation_streaming_trigger_tau_c_over_tau);//ethos
-  class_read_int("idr_nature",ppr->idr_nature);//ethos
+  //class_read_int("idr_nature",ppr->idr_nature);//ethos
+  class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+      ppr->idr_nature = idr_free_streaming;
+    }
+    if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+      ppr->idr_nature = idr_fluid;
+    }
+  }
 
   class_read_int("ur_fluid_approximation",ppr->ur_fluid_approximation);
   class_read_int("ncdm_fluid_approximation",ppr->ncdm_fluid_approximation);
