@@ -182,6 +182,8 @@ extern "C" {
                       double *lnk_l,
                       double *lnpk_l,
                       double *ddlnpk_l,
+                      double *lnpk_l_bc,
+                      double *ddlnpk_l_bc,
                       double *k_nl,
                       enum nonlinear_statement * nonlinear_found_k_max                      
                       );
