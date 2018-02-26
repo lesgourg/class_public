@@ -170,7 +170,7 @@ extern "C" {
                                   double * sum
                                   );
 
-  int nonlinear_HMcode(
+  int nonlinear_hmcode(
                       struct precision *ppr,
                       struct background *pba,
                       struct perturbs *ppt, 
@@ -188,7 +188,7 @@ extern "C" {
                       enum nonlinear_statement * nonlinear_found_k_max                      
                       );
 
-  int nonlinear_sigma(
+  int nonlinear_hmcode_sigma(
                   struct precision * ppr,
                   struct background * pba,
                   struct perturbs * ppt,
@@ -202,7 +202,7 @@ extern "C" {
                   );
 
   
-  int nonlinear_sigma_prime(
+  int nonlinear_hmcode_sigma_prime(
                   struct precision * ppr,
                   struct background * pba,
                   struct perturbs * ppt,
@@ -215,7 +215,7 @@ extern "C" {
                   double * sigma_prime
                   );                
                   
-  int nonlinear_sigma_disp(
+  int nonlinear_hmcode_sigma_disp(
                   struct precision * ppr,            
                   struct background * pba,
                   struct perturbs * ppt,
@@ -228,7 +228,7 @@ extern "C" {
                   double * sigma_disp
                   );
                   
-  int nonlinear_fill_sigtab(
+  int nonlinear_hmcode_fill_sigtab(
               struct precision *ppr,
 						  struct background * pba,
               struct perturbs *ppt,
@@ -239,24 +239,24 @@ extern "C" {
               double *ddlnpk_l               
 						  );
 
-  int nonlinear_fill_growtab(
+  int nonlinear_hmcode_fill_growtab(
               struct precision *ppr,      
 						  struct background * pba,
 						  struct nonlinear * pnl            
 						  );  
 
 						  
-  int nonlinear_ci(
+  int nonlinear_hmcode_ci(
 				 double x,
 				 double *Ci
 				 );
 	
-  int nonlinear_si(
+  int nonlinear_hmcode_si(
 				 double x,
 				 double *Si
 				 );
 
-  int nonlinear_window_nfw(
+  int nonlinear_hmcode_window_nfw(
 						 struct nonlinear * pnl,
 	  					 double k,
 	  					 double rv,
