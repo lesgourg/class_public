@@ -2229,7 +2229,22 @@ int nonlinear_hmcode_window_nfw(
 	return _SUCCESS_;
 }
 
+/* This is the function gst(nu) in original HMcode */
+int nonlinear_hmcode_halomassfunction(
+                                      double nu, 
+                                      double *hmf
+                                      ){
+                                        
+  double p, q, A;
+	
+  p=0.3;
+	q=0.707;
+	A=0.21616;
   
+  *hmf=A*(1.+(pow(q*nu*nu, -p)))*exp(-q*nu*nu/2.);
+  
+  return _SUCCESS_;
+}
 
 
 
@@ -2251,27 +2266,50 @@ int nonlinear_hmcode(
                       double *k_nl,
                       enum nonlinear_statement * nonlinear_found_k_max                        
                       ) {
-
-  double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, Omega_ncdm_all, integral_fld;	
-  double * Omega_ncdm;
   
-  double z_at_tau;
-  double rho_crit_today_in_msun_mpc3;
-  double mmin, mmax, m, r, nu, nu_nl, nu_min, z_form, g_form;
-  
+  /* integers */
   int n, i, ng, nsig;
   int index_k, index_lnsig, index_dlnsig, index_ncol;
   int last_index=0;  
   int index_ncdm;
+  int counter, index_nl;
   
-  double pk_lin, pk_2h, pk_1h;
-  double sigma_disp, sigma_disp100, sigma8, sig, sigma_nl, sigf, r_nl, ln_r_nl, n_eff, radius;
-  double P;
-
-  double growth;
+	int index_nu;
+  int index_y;
+  int index_ddy;
   
+  /* Background parameters */
+  double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;	
+  double z_at_tau;
+  double rho_crit_today_in_msun_mpc3, rho_crit_today_in_msun_mpc3_class;
+  double growth;  
   double anorm;
+  
+  /* temporary numbers */ 
+  double m, r, nu, sig, sigf;
+	double diff, rmid, r1, r2;
+  
+  /* HMcode parameters */
+  double mmin, mmax, nu_min;
+  
+  double sigma_disp, sigma_disp100, sigma8;
+  double delta_c, Delta_v;
+  double fraction;
+  
+  double sigma_nl, nu_nl, r_nl;
+  double sigma_prime;
+  double dlnsigdlnR;  
+  double n_eff; 
+  double alpha;
 
+  double z_form, g_form;
+  
+  double eta;
+  double gst, window_nfw;
+  double fac, k_star, fdamp;
+  double pk_lin, pk_2h, pk_1h;
+  
+  /* data fields */
   double * pvecback;  
   double * conc;
   double * mass;
@@ -2284,22 +2322,15 @@ int nonlinear_hmcode(
   double * ln_r_real;
   double * nu_arr;
   
-  double delta_c, Delta_v;
-  double fraction;
-  double eta;
-  double fdamp;
-  double alpha;
-  double dlnsigdlnR;
+  double * p1h_integrand; 
   
-  double window_nfw;
   
-  /* include precision parameters that control the number of entries in the growth and sigma tables */
-  short compare_with_original_hmcode = _TRUE_; // if true, the same number of rho_crit as in original HMcode is used.
+  /** include precision parameters that control the number of entries in the growth and sigma tables */
   ng = ppr->n_hmcode_tables;
   nsig = ppr->n_hmcode_tables;
 
   
-  /* Call all the relevant background parameters at this tau */
+  /** Call all the relevant background parameters at this tau */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
@@ -2317,32 +2348,26 @@ int nonlinear_hmcode(
   Omega_m = pvecback[pba->index_bg_Omega_m];
   Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
   
-  fnu = Omega_ncdm_all/Omega_m;
-  
   growth = pvecback[pba->index_bg_D];
-  
-  if (compare_with_original_hmcode==_TRUE_){
-    rho_crit_today_in_msun_mpc3 = 2.775e11*pow(pba->h, 2); // 2.775329721e11=rho_c/h^2 [Msun/Mpc^3] in CAMB
-  }
-  else {
-    rho_crit_today_in_msun_mpc3 = 2.497195923e18*pvecback[pba->index_bg_rho_crit]*pow((pba->H0/pvecback[pba->index_bg_H]), 2.);
-  }  /* The number of previous equation is (3*c^2)/(8*pi*G) in Msun/Mpc and converts class rho units (1/Mpc^2) to physical units */
-
   z_at_tau = 1./pvecback[pba->index_bg_a]-1.;
- 
+  
+  /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] */
+  rho_crit_today_in_msun_mpc3 = 2.77474589e11*pow(pba->h, 2); 
+  
+  /* The number below is (3*c^2)/(8*pi*G) in Msun/Mpc and converts class rho units (1/Mpc^2) to physical units
+   * it is given just for comparison to ensure that the class number coincides with above definition from original hmcode */
+  //rho_crit_today_in_msun_mpc3_class = 2.49381724e18*pvecback[pba->index_bg_rho_crit]*pow((pba->H0/pvecback[pba->index_bg_H]), 2.);
+  //fprintf(stdout, "%e, %e\n", rho_crit_today_in_msun_mpc3, rho_crit_today_in_msun_mpc3_class);
+  
   free(pvecback);
     
-  /** Get sigma(R=8), sigma_disp(R=0), sigma_disp(R=100)  */
-
+  /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h)  */
   class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,lnk_l,lnpk_l,ddlnpk_l,&sigma8), 
 			pnl->error_message, pnl->error_message);	
   class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,0.,lnk_l,lnpk_l,ddlnpk_l,&sigma_disp), 
 			pnl->error_message, pnl->error_message);
   class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,lnk_l,lnpk_l,ddlnpk_l,&sigma_disp100), 
 			pnl->error_message, pnl->error_message);			
-	//sigma_disp = 6.16205788/pba->h;
-	//sigma_disp100 = 2.56149292/pba->h;
-	//sigma8 = 0.847920001;
   
    /** Initialisation steps for the 1-Halo Power Integral */
   mmin=ppr->mmin_for_p1h_integral/pba->h; //Minimum mass for integration; (unit conversion from  m[Msun/h] to m[Msun]  )
@@ -2365,10 +2390,14 @@ int nonlinear_hmcode(
   Delta_v=418.*pow(Omega_m, -0.352); //Mead et al. (2015; arXiv 1505.07833)          
   Delta_v=Delta_v*(1.+0.916*fnu); //Mead et al. (2016; arXiv 1602.02154) neutrino addition
   
-  // mass/radius fraction
+  // mass or radius fraction respectively
   fraction = pow(0.01, 1./3.);
 	
-	/* Fill the arrays for the P1H Integral */
+	/* Fill the arrays needed for the P1H Integral: mass, r_real, r_virial, nu_arr, sigma_r, sigmaf_r
+   * The P1H Integral is an integral over nu=delta_c/sigma(M), where M is connected to R via R=(3M)/(4*pi*rho_m).
+   * The Integrand is M*Window^2{nu(M)*k, Rv(M), c(M)}*f(nu) with the window being the fouriertransformed
+   * NFW profile, Rv = R/Delta_v^(1/3) and Sheth-Thormen halo mass function f.
+   * The halo concentration-mass-relation c(M) will be found later.  */
   for (i=0;i<n;i++){
 	  m = exp(log(mmin)+log(mmax/mmin)*(i)/(n-1));
 	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega0_m)), (1./3.)); 
@@ -2397,21 +2426,18 @@ int nonlinear_hmcode(
 										  1,
 										  pnl->error_message),
 					pnl->error_message, pnl->error_message);
-	  //if (pba->has_ncdm == _FALSE_) sig=sig*growth;
-		//if (pba->has_ncdm == _FALSE_) sigf=sigf*growth;
+
 		nu=delta_c/sig;
 	  sigma_r[i] = sig;
 	  sigmaf_r[i] = sigf;
-	  nu_arr[i] = nu;	
-	  //if (tau==pba->conformal_age) fprintf(stdout, "%e, ", r_real[i]);				
-	  //if (tau==pba->conformal_age) fprintf(stdout, "%e\n", r*fraction);				
+	  nu_arr[i] = nu;				
   }
 
-  // find nonlinear scales k_nl and r_nl:
+  /** find nonlinear scales k_nl and r_nl and the effective spectral index n_eff */
   nu_nl = 1.;
   nu_min = nu_arr[0];
 	//fprintf(stdout, "z: %e, numin: %e\n", z_at_tau, nu_min);
-	  // stops calculating the nonlinear correction if the nonlinear scale is not reached in the table
+  // stop calculating the nonlinear correction if the nonlinear scale is not reached in the table:
 	if (nu_min > nu_nl) {
 		* nonlinear_found_k_max = too_small;
 		free(mass);
@@ -2437,15 +2463,16 @@ int nonlinear_hmcode(
 																			pnl->error_message),
 					pnl->error_message, pnl->error_message);
 
-	int counter, index_nl;
-	double diff, rmid, r1, r2;
-
 	class_call(array_search_bisect(n,nu_arr,nu_nl,&index_nl,pnl->error_message), pnl->error_message, pnl->error_message);
 	
 	r1 = r_real[index_nl-1];
 	r2 = r_real[index_nl+2];
+  
+  // for debugging: (if it happens that r_nl is not between r1 and r2, which should never be the case) 
   //fprintf(stdout, "%e %e %e %e\n", r1, nu_arr[index_nl-1], r2, nu_arr[index_nl+2]);
-	counter = 0;
+	
+  /* do bisectional iteration between r1 and r2 to find the precise value of r_nl */
+  counter = 0;
   do {
     r_nl = (r1+r2)/2.;
     counter ++;
@@ -2462,52 +2489,42 @@ int nonlinear_hmcode(
       r2 = r_nl;
     }
 
-    /* The first version of this test woukld let the code continue: */
-    /*
-    class_test_except(counter > _MAX_IT_,
-                      pnl->error_message,
-                      free(pvecback);free(integrand_array),
-                      "could not converge within maximum allowed number of iterations");
-    */
-    /* ... but in this situation it sounds better to make it stop and return an error! */
     class_test(counter > _MAX_IT_,
                pnl->error_message,
                "could not converge within maximum allowed number of iterations");
 
   } while (fabs(diff) > ppr->halofit_tol_sigma);
-	//fprintf(stdout, "number of iterations for r_nl: %d\n", counter);
-
+	
+  if (pnl->nonlinear_verbose>3){
+    fprintf(stdout, "number of iterations for r_nl at z = %e: %d\n", z_at_tau, counter);
+  }
 	*k_nl = 1./r_nl;
-	ln_r_nl = log(r_nl);
-
-	double sigma_prime;
+  
+  /* call sigma_prime function at r_nl to find the effective spectral index n_eff */
 	class_call(nonlinear_hmcode_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l,lnpk_l_cb,ddlnpk_l_cb,&sigma_prime), 
 			pnl->error_message, pnl->error_message);
 	dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;
   n_eff = -3.- dlnsigdlnR;
   alpha = 3.24*pow(1.85, n_eff);
-  //free(ln_sigma_squared);
-  //free(ln_dsigma_dr);
-  //free(ln_r_real);
   
-  // Calculate eta:
-	//Abary = 3.13;
-	//eta0 = 0.98-0.12*Abary;
-  //eta0 = 0.603;
-  eta = pnl->eta_0 - 0.3*sigma8;
-  
-  //Calculate concentration (conc): 
+  /** Calculate halo concentration-mass relation conc(mass) */ 
 	class_alloc(conc,n*sizeof(double),pnl->error_message);
-/*
-  if (tau==pba->conformal_age) fprintf(stdout, "tau = %f; z = %f\n", tau, z_at_tau);
-  if (tau==pba->conformal_age) fprintf(stdout, "--------------------------------------------------------------------\n");
-  if (tau==pba->conformal_age) fprintf(stdout, "M,		rf,		s(fM),		zf,		gf,		c \n");
-  if (tau==pba->conformal_age) fprintf(stdout, "--------------------------------------------------------------------\n");
-*/
+
+  if (tau==pba->conformal_age && pnl->nonlinear_verbose > 9) {
+    fprintf(stdout, "#################################################################\n");
+    fprintf(stdout, "tau = %f; z = %f\n", tau, z_at_tau);
+    fprintf(stdout, "--------------------------------------------------------------------\n");
+    fprintf(stdout, "M,		rf,		s(fM),		zf,		gf,		c \n");
+    fprintf(stdout, "--------------------------------------------------------------------\n");
+  }
+
   for (i=0;i<n;i++){
-		g_form = delta_c*growth/sigmaf_r[i];
-		if (g_form > 1.) g_form = 1.;
-		class_call(array_interpolate_two_arrays_one_column(
+		//find growth rate at formation
+    g_form = delta_c*growth/sigmaf_r[i];
+    if (g_form > 1.) g_form = 1.;
+		
+    // 
+    class_call(array_interpolate_two_arrays_one_column(
 																pnl->growtable,
 																pnl->ztable,
 																1,
@@ -2522,39 +2539,17 @@ int nonlinear_hmcode(
 		} else {
 			conc[i] = pnl->c_min*(1.+z_form)/(1.+z_at_tau);
 	  } 	
-		//if (tau==pba->conformal_age) fprintf(stdout, "%e, %e, %e, %e, %e, %e\n",mass[i], r_real[i]*fraction*pba->h, sigmaf_r[i], z_form, g_form, conc[i]);
+		if (tau==pba->conformal_age && pnl->nonlinear_verbose > 9) fprintf(stdout, "%e %e %e %e %e %e\n",mass[i], r_real[i]*fraction*pba->h, sigmaf_r[i], z_form, g_form, conc[i]);
 	}
-  //if (tau==pba->conformal_age) fprintf(stdout, "#################################################################\n");
+  if (tau==pba->conformal_age && pnl->nonlinear_verbose > 9) fprintf(stdout, "#################################################################\n");
   
-  /*//prints out k versus power spectrum
-  for (i=0;i<pnl->k_size;i++){
-		if (tau==pba->conformal_age) fprintf(stdout, "%e, %e\n",exp(lnk_l[i])/pba->h, anorm*pk_l[i]*exp(3.*lnk_l[i]));
-	}*/
   
-  /* //prints out r-sigma table
-	for (i=0;i<nsig*3;i=i+3){
-		if (tau==pba->conformal_age) fprintf(stdout, "%e %e\n",pnl->rtab[i], pnl->sigtab[i+1]);
-	}*/  
-	
 	/** Now compute the nonlinear correction */
-	
-	double  g, fac, et, ks, wk;
-	double  * integrand; 
-	double gst, p, q, A; //Parameters relevant for Sheth-Tormen Mass function
-	
-	
-	ks=0.584/sigma_disp;   //Damping wavenumber of the 1-halo term at very large scales;
+  eta = pnl->eta_0 - 0.3*sigma8; //halo bloating parameter
+  k_star=0.584/sigma_disp;   //Damping wavenumber of the 1-halo term at very large scales;
 	fdamp = 0.0095*pow(sigma_disp100*pba->h, 1.37); //Damping factor for 2-halo term 
 	if (fdamp<1.e-3) fdamp=1.e-3;
   if (fdamp>0.99)  fdamp=0.99;
-	
-	p=0.3;
-	q=0.707;
-	A=0.21616;
-	
-	int index_nu;
-  int index_y;
-  int index_ddy;
   
   i=0;
   index_nu=i;
@@ -2567,28 +2562,33 @@ int nonlinear_hmcode(
 	
 	for (index_k = 0; index_k < pnl->k_size; index_k++){
 		
-		class_alloc(integrand,n*index_ncol*sizeof(double),pnl->error_message);
+		class_alloc(p1h_integrand,n*index_ncol*sizeof(double),pnl->error_message);
 		
-		pk_lin = pk_l[index_k]*pow(pnl->k[index_k],3)*anorm; //convert P_k in Delta_k^2
+		pk_lin = pk_l[index_k]*pow(pnl->k[index_k],3)*anorm; //convert P_k to Delta_k^2
 		
 		for (i=0; i<n; i++){ //Calculates the integrand for the ph1 integral at all nu values
-			class_call(nonlinear_hmcode_window_nfw(
+			//get the nu^eta-value of the window
+      class_call(nonlinear_hmcode_window_nfw(
 																	pnl,
 																	pow(nu_arr[i], eta)*pnl->k[index_k],
 																	r_virial[i],
 																	conc[i],
 																  &window_nfw),
 					pnl->error_message, pnl->error_message);	
+			//get the value of the
+      class_call(nonlinear_hmcode_halomassfunction(
+																	nu_arr[i],
+																  &gst),
+					pnl->error_message, pnl->error_message);	
 			
-			/* This is the function gst(nu) in HMcode*/
-			gst=A*(1.+(pow(q*nu_arr[i]*nu_arr[i], -p)))*exp(-q*nu_arr[i]*nu_arr[i]/2.);
+      //gst=A*(1.+(pow(q*nu_arr[i]*nu_arr[i], -p)))*exp(-q*nu_arr[i]*nu_arr[i]/2.);
 			
-			integrand[i*index_ncol+index_nu] = nu_arr[i];
+			p1h_integrand[i*index_ncol+index_nu] = nu_arr[i];
 			
-			integrand[i*index_ncol+index_y] = mass[i]*gst*pow(window_nfw, 2.);
+			p1h_integrand[i*index_ncol+index_y] = mass[i]*gst*pow(window_nfw, 2.);
 			
 		} 
-		class_call(array_spline(integrand,
+		class_call(array_spline(p1h_integrand,
                             index_ncol,
                             n,
                             index_nu,
@@ -2600,7 +2600,7 @@ int nonlinear_hmcode(
              pnl->error_message);
 		
 		class_call(array_integrate_all_trapzd_or_spline(
-																				integrand,
+																				p1h_integrand,
                                         index_ncol,
                                         n, 
                                         n-1, //0 or n-1
@@ -2612,10 +2612,15 @@ int nonlinear_hmcode(
              pnl->error_message,
              pnl->error_message);
     
-    if (pow(pnl->k[index_k]/ks, 2)>7.) fac = 0.;
-    else fac=exp(-pow((pnl->k[index_k]/ks), 2.));
+
+    if (pow(pnl->k[index_k]/k_star, 2)>7.){
+      fac = 0.;     //prevents problems if (k/k*)^2 is large
+    }
+    else{
+      fac=exp(-pow((pnl->k[index_k]/k_star), 2.));
+    }
     
-    pk_1h = pk_1h*anorm*pow(pnl->k[index_k],3)*(1.-fac)/(2.775e11*pow(pba->h, 2)*Omega_m);  // dimensionless power
+    pk_1h = pk_1h*anorm*pow(pnl->k[index_k],3)*(1.-fac)/(rho_crit_today_in_msun_mpc3*Omega_m);  // dimensionless power
 		
 		if (fdamp==0){
 			pk_2h=pk_lin;
@@ -2624,15 +2629,16 @@ int nonlinear_hmcode(
 		}
 		if (pk_2h<0.) pk_2h=0.;	
 		pk_nl[index_k] = pow((pow(pk_1h, alpha) + pow(pk_2h, alpha)), (1./alpha))/pow(pnl->k[index_k],3)/anorm; //converted back to P_k
-		//if (tau==pba->conformal_age) fprintf(stdout, "%e %e %e %e %e\n", pnl->k[index_k], pk_lin, pk_1h, pk_2h, pk_nl[index_k]*pow(pnl->k[index_k],3)*anorm);			
+		
+    // for debugging:
+    //if (tau==pba->conformal_age) fprintf(stdout, "%e %e %e %e %e\n", pnl->k[index_k], pk_lin, pk_1h, pk_2h, pk_nl[index_k]*pow(pnl->k[index_k],3)*anorm);			
 		//if (tau==pba->conformal_age) fprintf(stdout, "%e, %e\n",pnl->k[index_k]/pba->h, pk_nl[index_k]);
 		
-		free(integrand);
+		free(p1h_integrand);
 	}
 	
-	  // print values for comparison with Fortran code 
-  
-  if (pnl->nonlinear_verbose > 1 && tau==pba->conformal_age){
+  // print parameter values  
+  if ((pnl->nonlinear_verbose > 1 && tau==pba->conformal_age) || pnl->nonlinear_verbose > 5){
 		fprintf(stdout, " -> Parameters at redshift z = %e:\n", z_at_tau); 
 		fprintf(stdout, "    fnu:		%e\n", fnu);
 		fprintf(stdout, "    sigd [Mpc/h]:	%e\n", sigma_disp*pba->h);
@@ -2651,15 +2657,17 @@ int nonlinear_hmcode(
 		fprintf(stdout, "    Dv:			%e\n", Delta_v);
 		fprintf(stdout, "    dc:			%e\n", delta_c);	
 		fprintf(stdout, "    eta:		%e\n", eta);	
-		fprintf(stdout, "    k*:			%e\n", ks/pba->h);
+		fprintf(stdout, "    k*:			%e\n", k_star/pba->h);
 		fprintf(stdout, "    Abary:		%e\n", pnl->c_min);			
 		fprintf(stdout, "    fdamp:		%e\n", fdamp);		
 		fprintf(stdout, "    alpha:		%e\n", alpha);
 		fprintf(stdout, "    ksize, kmin, kmax:   %d, %e, %e\n", pnl->k_size, pnl->k[0]/pba->h, pnl->k[pnl->k_size-1]/pba->h);	
-		for (i=0;i<ppr->n_hmcode_tables;i++){
+		
+    // for debugging:
+    //for (i=0;i<ppr->n_hmcode_tables;i++){
 			//fprintf(stdout, "%d %e %e %e\n",i+1, pnl->sigtab[i*3]*pba->h, pnl->sigtab[i*3+1], pnl->sigtab[i*3+2]);
 			//fprintf(stdout, "%e %e\n",1./(1.+pnl->ztable[i]), pnl->growtable[i]);
-  	}
+  	//}
   	
   } 
 	

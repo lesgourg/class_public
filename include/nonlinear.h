@@ -245,7 +245,11 @@ extern "C" {
 						  struct nonlinear * pnl            
 						  );  
 
-						  
+	int nonlinear_hmcode_halomassfunction(
+                                      double nu, 
+                                      double *hmf
+                                      );
+  					  
   int nonlinear_hmcode_ci(
 				 double x,
 				 double *Ci
@@ -255,7 +259,7 @@ extern "C" {
 				 double x,
 				 double *Si
 				 );
-
+  
   int nonlinear_hmcode_window_nfw(
 						 struct nonlinear * pnl,
 	  					 double k,
