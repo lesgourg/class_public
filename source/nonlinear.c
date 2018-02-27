@@ -2351,7 +2351,7 @@ int nonlinear_hmcode(
    * The halo concentration-mass-relation c(M) will be found later.  */
   for (i=0;i<n;i++){
 	  m = exp(log(mmin)+log(mmax/mmin)*(i)/(n-1));
-	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega0_m)), (1./3.)); 
+	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega_m)), (1./3.)); 
 	  mass[i] = m;
 	  r_real[i] = r;
 	  r_virial[i] = r_real[i]/pow(Delta_v, 1./3.);
