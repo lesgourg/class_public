@@ -53,7 +53,6 @@ struct nonlinear {
 
   /** HMcode parameters */
 
-  double * sigtab; /** 2d array containing r and sigma */
   double * rtab; /** List of R values */
   double * stab; /** List of Sigma Values */
   double * ddstab; /** Splined sigma */
@@ -249,16 +248,6 @@ extern "C" {
                                       double nu, 
                                       double *hmf
                                       );
-  					  
-  int nonlinear_hmcode_ci(
-				 double x,
-				 double *Ci
-				 );
-	
-  int nonlinear_hmcode_si(
-				 double x,
-				 double *Si
-				 );
   
   int nonlinear_hmcode_window_nfw(
 						 struct nonlinear * pnl,

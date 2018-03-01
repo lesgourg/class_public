@@ -2533,9 +2533,7 @@ int input_read_parameters(
              errmsg);
 	
 	if (flag1 == _TRUE_) {
-
-    class_test(ppt->has_nl_hmcode_corrections_based_on_delta_m == _FALSE_, errmsg, "You requested a certain baryonic feedback model but no hmcode computation. You must set non linear to hmcode.");
-		
+	
 		if (strstr(string1,"emu_dmonly") != NULL) {
 			pnl->feedback = emu_dmonly; 
 		}
@@ -2560,7 +2558,7 @@ int input_read_parameters(
              errmsg,
              errmsg);
              
-  class_test((((flag1 == _TRUE_) && (flag2 == _TRUE_)) || ((flag1 == _TRUE_) && (flag3 == _TRUE_))),
+  class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
              errmsg,
              "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
   

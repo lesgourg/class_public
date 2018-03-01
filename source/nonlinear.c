@@ -392,7 +392,6 @@ int nonlinear_free(
 			free(pnl->rtab);
 			free(pnl->stab);
 			free(pnl->ddstab);
-			free(pnl->sigtab);
 			free(pnl->growtable);
 			free(pnl->tautable);
 			free(pnl->ztable);
@@ -675,323 +674,6 @@ int nonlinear_pk_l(
   return _SUCCESS_;
 
 }
-
-/* This function gets the pk_l_cb by using the ncdm transferfunction explicitly
- *  whereas the new function uses the results from ppt via indx_tp_delta_cb   */ 
-
-int nonlinear_pk_l_old(
-                   struct background *pba,
-                   struct perturbs *ppt,
-                   struct primordial *ppm,
-                   struct nonlinear *pnl,
-                   int index_tau,
-                   double *pk_l,
-                   double *pk_l_cb,
-                   double *lnk,
-                   double *lnpk,
-                   double *ddlnpk,
-                   double *lnpk_cb,
-                   double *ddlnpk_cb                   
-                   ) {
-
-  int index_md;
-  int index_ncdm;
-  int index_k;
-  int index_ic;
-  int index_ic1,index_ic2,index_ic1_ic2;
-  int last_index;
-  double * primordial_pk;
-  double source_ic1,source_ic2;
-  double Omega_m, Omega_ncdm_all;
-  double * Omega_ncdm;
-  double * source_ic_extra;
-  double * source_ic_ncdm;
-  double * source_ic_cb;
-  double * source_ic_extra_cb;
-  double * pvecback;
-
-  index_md = ppt->index_md_scalars;
-
-  class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
-		
-	if (pnl->method == nl_HMcode){
-		
-		class_alloc(source_ic_extra,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
-		
-		if (pba->has_ncdm == _TRUE_){			
-			class_alloc(source_ic_extra_cb,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
-			class_alloc(source_ic_cb,ppm->ic_size[index_md]*pnl->k_size*sizeof(double),pnl->error_message);			
-			class_alloc(source_ic_ncdm,ppm->ic_size[index_md]*pnl->k_size*sizeof(double),pnl->error_message);
-			class_alloc(Omega_ncdm,pba->N_ncdm*sizeof(double),pnl->error_message);
-			class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-			class_call(background_at_tau(pba,pnl->tau[index_tau],pba->long_info,pba->inter_normal,&last_index,pvecback),
-                                   pba->error_message,
-                                   pnl->error_message);
-	
-			Omega_m = pvecback[pba->index_bg_Omega_m];
-			Omega_ncdm_all = 0.;
-			for (index_ncdm=0; index_ncdm<pba->N_ncdm; index_ncdm++){
-				Omega_ncdm[index_ncdm] = pvecback[pba->index_bg_rho_ncdm1+index_ncdm]/pvecback[pba->index_bg_rho_crit];
-				Omega_ncdm_all += Omega_ncdm[index_ncdm];
-			}
-			for (index_ic=0; index_ic<ppm->ic_size[index_md]; index_ic++){
-				for (index_k=0; index_k<pnl->k_size; index_k++){
-					source_ic_ncdm[index_ic*pnl->k_size+index_k] = 0.;
-					for (index_ncdm=0; index_ncdm<pba->N_ncdm; index_ncdm++){
-						source_ic_ncdm[index_ic*pnl->k_size+index_k] += Omega_ncdm[index_ncdm]*ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_ncdm1+index_ncdm][index_tau * ppt->k_size[index_md] + index_k];
-					}
-					source_ic_cb[index_ic*pnl->k_size+index_k] = (Omega_m*ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_m][index_tau * ppt->k_size[index_md] + index_k]\
-						- source_ic_ncdm[index_ic*pnl->k_size+index_k])/(Omega_m - Omega_ncdm_all);
-				}	
-			}	
-			
-			free(pvecback);
-			free(Omega_ncdm);
-			free(source_ic_ncdm);	
-		}
-		
-		for (index_ic=0; index_ic<ppm->ic_size[index_md]; index_ic++){
-
-			class_call(extrapolate_source(pnl->k_extra,
-						      pnl->k_size,
-						      pnl->k_size_extra,
-						      ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_m]+index_tau * pnl->k_size,
-						      extrapolation_only_max_units,
-						      source_ic_extra+index_ic*pnl->k_size_extra,
-						      pba->a_eq*pba->H_eq,
-						      pba->h,																		                           pnl->error_message), 
-				pnl->error_message,
-				pnl->error_message)
-			
-			if (pba->has_ncdm == _TRUE_){
-				class_call(extrapolate_source(
-						      pnl->k_extra,
-						      pnl->k_size,
-						      pnl->k_size_extra,
-						      source_ic_cb+index_ic*pnl->k_size,
-						      extrapolation_only_max_units,
-						      source_ic_extra_cb+index_ic*pnl->k_size_extra,
-						      pba->a_eq*pba->H_eq,
-						      pba->h,																		                           pnl->error_message), 
-					pnl->error_message,
-					pnl->error_message)
-					
-			}
-		}
-		
-		for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-			//fprintf(stdout, "%e %e\n", pnl->k_extra[index_k], source_ic_extra[index_k]);
-			
-			class_call(primordial_spectrum_at_k(ppm,
-                                        index_md,
-                                        linear,
-                                        pnl->k_extra[index_k],
-                                        primordial_pk),
-               ppm->error_message,
-               pnl->error_message);
-
-			pk_l[index_k] = 0;
-			pk_l_cb[index_k] = 0;
-			
-				// part diagonal in initial conditions 
-			for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
-
-				index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
-
-			
-				pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k_extra[index_k],3)\
-					*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]\
-					*primordial_pk[index_ic1_ic2];
-						
-				if (pba->has_ncdm == _TRUE_){
-					pk_l_cb[index_k] += 2.*_PI_*_PI_/pow(pnl->k_extra[index_k],3)\
-					*source_ic_extra_cb[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra_cb[index_ic1*pnl->k_size_extra+index_k]\
-					*primordial_pk[index_ic1_ic2];
-				}
-			}
-		
-			// part non-diagonal in initial conditions 
-			for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
-				for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
-
-					index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
-
-					if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-					
-						pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k_extra[index_k],3)
-							*source_ic_extra[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra[index_ic2*pnl->k_size_extra+index_k]
-							*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
-						
-						if (pba->has_ncdm == _TRUE_){
-							pk_l_cb[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k_extra[index_k],3)
-							*source_ic_extra_cb[index_ic1*pnl->k_size_extra+index_k]*source_ic_extra_cb[index_ic2*pnl->k_size_extra+index_k]
-							*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)			
-						}			
-					}
-        }
-      }
-      if (pba->has_ncdm == _FALSE_){
-				pk_l_cb[index_k] = pk_l[index_k];
-			}		
-			
-      lnk[index_k] = log(pnl->k_extra[index_k]);
-      lnpk[index_k] = log(pk_l[index_k]);
-      if (pba->has_ncdm == _TRUE_){
-        lnpk_cb[index_k] = log(pk_l_cb[index_k]);
-      }
-			 //for debugging:
-			//if (index_tau == pnl->tau_size-1) fprintf(stdout, "%e %e %e %d\n", pnl->k_extra[index_k], pk_l[index_k], pk_l_cb[index_k], pba->has_ncdm);
-    
-		}
-
-		if (pba->has_ncdm == _TRUE_){
-			free(source_ic_cb);
-			free(source_ic_extra_cb);
-		}
-		free(source_ic_extra);
-		
-    class_call(array_spline_table_columns(lnk,
-                                          pnl->k_size_extra,
-                                          lnpk,
-                                          1,
-                                          ddlnpk,
-                                          _SPLINE_NATURAL_,
-                                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-    
-    if (pba->has_ncdm == _TRUE_){
-      class_call(array_spline_table_columns(lnk,
-                                            pnl->k_size_extra,
-                                            lnpk_cb,
-                                            1,
-                                            ddlnpk_cb,
-                                            _SPLINE_NATURAL_,
-                                            pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-    }		
-    else {
-      class_protect_memcpy(pk_l_cb,pk_l,pnl->k_size_extra*sizeof(double));
-      class_protect_memcpy(lnpk_cb,lnpk,pnl->k_size_extra*sizeof(double));
-      class_protect_memcpy(ddlnpk_cb,ddlnpk,pnl->k_size_extra*sizeof(double));
-    }	    
-    
-    
-    free(primordial_pk);
-    
-    
-	} else  { 
-			for (index_k=0; index_k<pnl->k_size; index_k++) {
-
-					class_call(primordial_spectrum_at_k(ppm,
-                                        index_md,
-                                        linear,
-                                        pnl->k[index_k],
-                                        primordial_pk),
-               ppm->error_message,
-               pnl->error_message);
-
-				pk_l[index_k] = 0;
-				
-
-				// part diagonal in initial conditions 
-				for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
-
-					index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
-
-
-					source_ic1 = ppt->sources[index_md]
-						[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-						[index_tau * ppt->k_size[index_md] + index_k];
-
-      if (ppt->pk_only_cdm_bar == _TRUE_){
-       source_ic1 = ppt->sources[index_md]
-        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb] 
-        [index_tau * ppt->k_size[index_md] + index_k];
-      }
-      else{
-       source_ic1 = ppt->sources[index_md]
-        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-        [index_tau * ppt->k_size[index_md] + index_k];
-      }
-
-					pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
-						*source_ic1*source_ic1
-						*primordial_pk[index_ic1_ic2];
-				}
-
-			// part non-diagonal in initial conditions 
-				for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
-					for (index_ic2 = index_ic1+1; index_ic2 < ppm->ic_size[index_md]; index_ic2++) {
-
-						index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,ppm->ic_size[index_md]);
-
-						if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-
-							source_ic1 = ppt->sources[index_md]
-								[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-								[index_tau * ppt->k_size[index_md] + index_k];
-
-							source_ic2 = ppt->sources[index_md]
-								[index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-								[index_tau * ppt->k_size[index_md] + index_k];
-
-          if (ppt->pk_only_cdm_bar == _TRUE_){
-           source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb] 
-            [index_tau * ppt->k_size[index_md] + index_k];
-
-           source_ic2 = ppt->sources[index_md]
-            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
-            [index_tau * ppt->k_size[index_md] + index_k];
-          }
-          else{
-           source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [index_tau * ppt->k_size[index_md] + index_k];
-
-           source_ic2 = ppt->sources[index_md]
-            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [index_tau * ppt->k_size[index_md] + index_k];
-          }
-
-          pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
-            *source_ic1*source_ic2
-            *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)
-
-
-							pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
-								*source_ic1*source_ic2
-								*primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)					
-				        						
-					}
-        }
-      }
-
-			lnk[index_k] = log(pnl->k[index_k]);
-			lnpk[index_k] = log(pk_l[index_k]);
-		}
-
-	
-    class_call(array_spline_table_columns(lnk,
-                                          pnl->k_size,
-                                          lnpk,
-                                          1,
-                                          ddlnpk,
-                                          _SPLINE_NATURAL_,
-                                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-    free(primordial_pk);
-  }
-
-  return _SUCCESS_;
-
-}
-
-
 
 int nonlinear_halofit(
                       struct precision *ppr,
@@ -1577,6 +1259,7 @@ int nonlinear_hmcode_sigma(
 
 }*/
 
+/** Calculates the sigma integral for a given scale R*/
 
 int nonlinear_hmcode_sigma(
                   struct precision * ppr,
@@ -1687,6 +1370,7 @@ int nonlinear_hmcode_sigma(
 
 }
 
+/** Calculates the d(sigma)/dR integral for a given scale R*/
 
 int nonlinear_hmcode_sigma_prime(
                   struct precision * ppr,
@@ -1800,6 +1484,7 @@ int nonlinear_hmcode_sigma_prime(
 
 }
 
+/** Calculates the sigma_velocitydispersion integral for a given scale R*/
 
 int nonlinear_hmcode_sigma_disp(
                   struct precision * ppr,
@@ -1901,6 +1586,11 @@ int nonlinear_hmcode_sigma_disp(
 
 }
 
+/** Function that fills pnl->tautable and pnl->growtable with (tau, D(tau))
+ * linear spaced in scalefactor a.
+ * Called by nonlinear_init at for all tau to account for scale-dependant growth
+ * before nonlinear_hmcode is called */
+
 int nonlinear_hmcode_fill_sigtab(
               struct precision *ppr,
 						  struct background * pba,
@@ -1918,6 +1608,7 @@ int nonlinear_hmcode_fill_sigtab(
   double r;
   double rmin, rmax;
   double sig;
+  double * sigtab;
   int i, index_r, index_sig, index_ddsig, index_n, nsig;
 	
 	rmin = ppr->rmin_for_sigtab/pba->h;
@@ -1933,7 +1624,7 @@ int nonlinear_hmcode_fill_sigtab(
   i++;
   index_n=i;
   
-  class_alloc((pnl->sigtab),(nsig*index_n*sizeof(double)),pnl->error_message);
+  class_alloc((sigtab),(nsig*index_n*sizeof(double)),pnl->error_message);
   class_alloc(pnl->rtab,nsig*sizeof(double),pnl->error_message);
   class_alloc(pnl->stab,nsig*sizeof(double),pnl->error_message);
   class_alloc(pnl->ddstab,nsig*sizeof(double),pnl->error_message);
@@ -1942,11 +1633,11 @@ int nonlinear_hmcode_fill_sigtab(
 	r=exp(log(rmin)+log(rmax/rmin)*i/(nsig-1));
     class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,r,lnk_l,lnpk_l,ddlnpk_l,&sig), 
       pnl->error_message, pnl->error_message); 
-    pnl->sigtab[i*index_n+index_r]=r;
-    pnl->sigtab[i*index_n+index_sig]=sig;
+    sigtab[i*index_n+index_r]=r;
+    sigtab[i*index_n+index_sig]=sig;
   }
   
-  class_call(array_spline(pnl->sigtab,
+  class_call(array_spline(sigtab,
 						  index_n,
 						  nsig,
 						  index_r,
@@ -1957,16 +1648,22 @@ int nonlinear_hmcode_fill_sigtab(
 					pnl->error_message,
 					pnl->error_message); 
   for (i=0;i<nsig;i++){
-	pnl->rtab[i] = pnl->sigtab[i*index_n+index_r];
-	pnl->stab[i] = pnl->sigtab[i*index_n+index_sig];
-	pnl->ddstab[i] = pnl->sigtab[i*index_n+index_ddsig];  
+	pnl->rtab[i] = sigtab[i*index_n+index_r];
+	pnl->stab[i] = sigtab[i*index_n+index_sig];
+	pnl->ddstab[i] = sigtab[i*index_n+index_ddsig];  
 	//if (i==0) fprintf(stdout, "sigma max = %e\n", pnl->stab[i]);  
 	//if (i==nsig-1) fprintf(stdout, "sigma min = %e\n", pnl->stab[i]);  
 
-	//fprintf(stdout, "%e, %e, %e\n",pnl->sigtab[i*index_n+index_r], pnl->sigtab[i*index_n+index_sig], pnl->sigtab[i*index_n+index_ddsig]);
-  }      
+	//fprintf(stdout, "%e, %e, %e\n",sigtab[i*index_n+index_r], sigtab[i*index_n+index_sig], sigtab[i*index_n+index_ddsig]);
+  }     
+  free(sigtab); 
   return _SUCCESS_; 
 }	
+
+
+/** Function that fills pnl->tautable and pnl->growtable with (tau, D(tau))
+ * linear spaced in scalefactor a.
+ * Called by nonlinear_init at z=0 before nonlinear_hmcode is called  */
 
 int nonlinear_hmcode_fill_growtab(
               struct precision *ppr,
@@ -2017,15 +1714,7 @@ int nonlinear_hmcode_fill_growtab(
              pba->error_message,
              pnl->error_message);
              
-   // class_call(nonlinear_growint(ppr,pba,pnl,scalefactor,&growth),
-      //       pba->error_message,
-        //     pnl->error_message);
-    
     pnl->growtable[i] = pvecback[pba->index_bg_D]; 
-    //pnl->growtable[i] = growth;
-      
-    //f_class = pvecback[pba->index_bg_f];
-    //f_camb = pow(pvecback[pba->index_bg_Omega_m], 0.55);
     //fprintf(stdout, "%e %e\n", scalefactor, pnl->growtable[i]);      			
 	}								
 
@@ -2034,106 +1723,9 @@ int nonlinear_hmcode_fill_growtab(
 	return _SUCCESS_; 
 }
 
-/* in original HMcode, this is equivalent to the function Ci(x) */
-int nonlinear_hmcode_ci(
-								 double x,
-								 double *Ci
-								 ){
-	
-	double x2, y, f, g, ci8;
-	double em_const = 0.577215664901532861e0;
-	
-	if (fabs(x)<=4.){
-
-       x2=x*x;
-
-       ci8=em_const+log(x)+x2*(-0.25e0+x2*(7.51851524438898291e-3+x2*(-1.27528342240267686e-4
-            +x2*(1.05297363846239184e-6+x2*(-4.68889508144848019e-9+x2*(1.06480802891189243e-11
-            +x2*(-9.93728488857585407e-15)))))))/ (1.+x2*(1.1592605689110735e-2+
-            x2*(6.72126800814254432e-5+x2*(2.55533277086129636e-7+x2*(6.97071295760958946e-10+
-            x2*(1.38536352772778619e-12+x2*(1.89106054713059759e-15+x2*(1.39759616731376855e-18))))))));
-
-       *Ci=ci8;
-	}
-    else {
-
-       y=1./(x*x); 
-
-       f = (1.e0 + y*(7.44437068161936700618e2 + y*(1.96396372895146869801e5 + 
-            y*(2.37750310125431834034e7 +y*(1.43073403821274636888e9 + y*(4.33736238870432522765e10
-            + y*(6.40533830574022022911e11 + y*(4.20968180571076940208e12 + y*(1.00795182980368574617e13
-            + y*(4.94816688199951963482e12 +y*(-4.94701168645415959931e11)))))))))))/
-            (x*(1. +y*(7.46437068161927678031e2 +y*(1.97865247031583951450e5 +
-            y*(2.41535670165126845144e7 + y*(1.47478952192985464958e9 + 
-            y*(4.58595115847765779830e10 +y*(7.08501308149515401563e11 + y*(5.06084464593475076774e12 
-            + y*(1.43468549171581016479e13 + y*(1.11535493509914254097e13)))))))))));   
-
-       g = y*(1.e0 + y*(8.1359520115168615e2 + y*(2.35239181626478200e5 + y*(3.12557570795778731e7
-            + y*(2.06297595146763354e9 + y*(6.83052205423625007e10 +
-            y*(1.09049528450362786e12 + y*(7.57664583257834349e12 +
-            y*(1.81004487464664575e13 + y*(6.43291613143049485e12 +y*(-1.36517137670871689e12)))))))))))
-            / (1. + y*(8.19595201151451564e2 +y*(2.40036752835578777e5 +
-            y*(3.26026661647090822e7 + y*(2.23355543278099360e9 + y*(7.87465017341829930e10 
-            + y*(1.39866710696414565e12 + y*(1.17164723371736605e13 + y*(4.01839087307656620e13 +y*(3.99653257887490811e13))))))))));
-       *Ci=f*sin(x)-g*cos(x);
-	}
-																
-	return _SUCCESS_;
-}
-
-/* in original HMcode, this is equivalent to the function Si(x) */
-int nonlinear_hmcode_si(
-								 double x,
-								 double *Si
-								 ){
-	
-	double x2, y, f, g, si8;
-	double pi8=3.1415926535897932384626433;
-	
-	if (fabs(x)<=4.){
-
-       x2=x*x;
-
-       si8 = x*(1.e0+x2*(-4.54393409816329991e-2+x2*(1.15457225751016682e-3
-            +x2*(-1.41018536821330254e-5+x2*(9.43280809438713025e-8+x2*(-3.53201978997168357e-10
-            +x2*(7.08240282274875911e-13+x2*(-6.05338212010422477e-16))))))))/ 
-            (1.+x2*(1.01162145739225565e-2 +x2*(4.99175116169755106e-5+
-            x2*(1.55654986308745614e-7+x2*(3.28067571055789734e-10+x2*(4.5049097575386581e-13
-            +x2*(3.21107051193712168e-16)))))));
-
-       *Si=si8;
-	}
-    else {
-
-       y=1./(x*x);
-
-       f = (1.e0 + y*(7.44437068161936700618e2 + y*(1.96396372895146869801e5 +
-            y*(2.37750310125431834034e7 +y*(1.43073403821274636888e9 + y*(4.33736238870432522765e10 
-            + y*(6.40533830574022022911e11 + y*(4.20968180571076940208e12 + 
-            y*(1.00795182980368574617e13 + y*(4.94816688199951963482e12 +
-            y*(-4.94701168645415959931e11)))))))))))/ (x*(1. +y*(7.46437068161927678031e2 +
-            y*(1.97865247031583951450e5 +y*(2.41535670165126845144e7 + 
-            y*(1.47478952192985464958e9 + y*(4.58595115847765779830e10 +
-            y*(7.08501308149515401563e11 + y*(5.06084464593475076774e12 + 
-            y*(1.43468549171581016479e13 + y*(1.11535493509914254097e13)))))))))));
-
-
-       g = y*(1.e0 + y*(8.1359520115168615e2 + y*(2.35239181626478200e5 + 
-            y*(3.12557570795778731e7 + y*(2.06297595146763354e9 + y*(6.83052205423625007e10 +
-            y*(1.09049528450362786e12 + y*(7.57664583257834349e12 +y*(1.81004487464664575e13 +
-            y*(6.43291613143049485e12 +y*(-1.36517137670871689e12)))))))))))/
-            (1. + y*(8.19595201151451564e2 +y*(2.40036752835578777e5 + y*(3.26026661647090822e7 
-            + y*(2.23355543278099360e9 + y*(7.87465017341829930e10 + y*(1.39866710696414565e12 
-            + y*(1.17164723371736605e13 + y*(4.01839087307656620e13 +y*(3.99653257887490811e13))))))))));
-
-       *Si=pi8/2.-f*cos(x)-g*sin(x);
-
-	}
-																
-	return _SUCCESS_;
-}
-
-/* in original HMcode, this is equivalent to the function winnfw(k,rv,c) */
+/** this is the fourier transform of the NFW density profile
+ ** it depends on k, the virial radius rv and the concentration c
+ ** of a halo  */
 int nonlinear_hmcode_window_nfw(
 						  					 struct nonlinear * pnl,
 						  					 double k,
@@ -2180,7 +1772,7 @@ int nonlinear_hmcode_window_nfw(
 	return _SUCCESS_;
 }
 
-/* This is the function gst(nu) in original HMcode */
+/** This is the Sheth-Tormen halo mass function (1999, MNRAS, 308, 119) */
 int nonlinear_hmcode_halomassfunction(
                                       double nu, 
                                       double *hmf
@@ -2198,7 +1790,8 @@ int nonlinear_hmcode_halomassfunction(
 }
 
 
-
+/** Computes the nonlinear correction on the linear power spectrum via 
+ * the method presented in Mead et al. 1505.07833 */
 
 int nonlinear_hmcode(
                       struct precision *ppr,
@@ -2302,13 +1895,8 @@ int nonlinear_hmcode(
   growth = pvecback[pba->index_bg_D];
   z_at_tau = 1./pvecback[pba->index_bg_a]-1.;
   
-  /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] */
+  /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] with rho_c = 8*pi*G/3*c^2 */
   rho_crit_today_in_msun_mpc3 = 2.77474589e11*pow(pba->h, 2); 
-  
-  /* The number below is (3*c^2)/(8*pi*G) in Msun/Mpc and converts class rho units (1/Mpc^2) to physical units
-   * it is given just for comparison to ensure that the class number coincides with above definition from original hmcode */
-  //rho_crit_today_in_msun_mpc3_class = 2.49381724e18*pvecback[pba->index_bg_rho_crit]*pow((pba->H0/pvecback[pba->index_bg_H]), 2.);
-  //fprintf(stdout, "%e, %e\n", rho_crit_today_in_msun_mpc3, rho_crit_today_in_msun_mpc3_class);
   
   free(pvecback);
     
@@ -2351,7 +1939,7 @@ int nonlinear_hmcode(
    * The halo concentration-mass-relation c(M) will be found later.  */
   for (i=0;i<n;i++){
 	  m = exp(log(mmin)+log(mmax/mmin)*(i)/(n-1));
-	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega_m)), (1./3.)); 
+	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega0_m)), (1./3.)); 
 	  mass[i] = m;
 	  r_real[i] = r;
 	  r_virial[i] = r_real[i]/pow(Delta_v, 1./3.);
@@ -2446,7 +2034,7 @@ int nonlinear_hmcode(
 
   } while (fabs(diff) > ppr->halofit_tol_sigma);
 	
-  if (pnl->nonlinear_verbose>3){
+  if (pnl->nonlinear_verbose>5){
     fprintf(stdout, "number of iterations for r_nl at z = %e: %d\n", z_at_tau, counter);
   }
 	*k_nl = 1./r_nl;
@@ -2571,7 +2159,7 @@ int nonlinear_hmcode(
       fac=exp(-pow((pnl->k[index_k]/k_star), 2.));
     }
     
-    pk_1h = pk_1h*anorm*pow(pnl->k[index_k],3)*(1.-fac)/(rho_crit_today_in_msun_mpc3*Omega_m);  // dimensionless power
+    pk_1h = pk_1h*anorm*pow(pnl->k[index_k],3)*(1.-fac)/(rho_crit_today_in_msun_mpc3*Omega0_m);  // dimensionless power
 		
 		if (fdamp==0){
 			pk_2h=pk_lin;
@@ -2616,7 +2204,7 @@ int nonlinear_hmcode(
 		
     // for debugging:
     //for (i=0;i<ppr->n_hmcode_tables;i++){
-			//fprintf(stdout, "%d %e %e %e\n",i+1, pnl->sigtab[i*3]*pba->h, pnl->sigtab[i*3+1], pnl->sigtab[i*3+2]);
+			//fprintf(stdout, "%d %e %e %e\n",i+1, pnl->rtab[i]*pba->h, pnl->stab[i], pnl->ddstab[i]);
 			//fprintf(stdout, "%e %e\n",1./(1.+pnl->ztable[i]), pnl->growtable[i]);
   	//}
   	
