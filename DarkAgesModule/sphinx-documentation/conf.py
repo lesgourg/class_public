@@ -19,6 +19,7 @@
 import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
+import sphinx_rtd_theme
 
 # Mock the some modules used
 from mock import Mock as MagicMock
@@ -63,7 +64,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'DarkAges'
-copyright = u'2017, Patrick Stöcker'
+copyright = u'2018, Patrick Stöcker'
 author = u'Patrick Stöcker'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -108,10 +109,11 @@ pygments_style = 'sphinx'
 # a list of builtin themes.
 #
 #html_theme = 'classic'
-html_theme = 'pyramid'
+#html_theme = 'pyramid'
 #html_theme = 'nature'
 #html_theme = 'scrolls'
-
+html_theme = "sphinx_rtd_theme"
+html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
