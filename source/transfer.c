@@ -657,13 +657,25 @@ int transfer_perturbation_copy_sources_and_nl_corrections(
 
           for (index_tau=0; index_tau<ppt->tau_size; index_tau++) {
             for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
+             if (((ppt->has_source_delta_cb == _TRUE_) && (index_tp == ppt->index_tp_delta_cb)) ||
+                 ((ppt->has_source_theta_cb == _TRUE_) && (index_tp == ppt->index_tp_theta_cb))){
               sources[index_md]
                 [index_ic * ppt->tp_size[index_md] + index_tp]
                 [index_tau * ppt->k_size[index_md] + index_k] =
                 ppt->sources[index_md]
                 [index_ic * ppt->tp_size[index_md] + index_tp]
                 [index_tau * ppt->k_size[index_md] + index_k]
-                * pnl->nl_corr_density[index_tau * ppt->k_size[index_md] + index_k];
+                * pnl->nl_corr_density[pnl->index_pk_cb][index_tau * ppt->k_size[index_md] + index_k];
+             }
+             else{
+              sources[index_md]
+                [index_ic * ppt->tp_size[index_md] + index_tp]
+                [index_tau * ppt->k_size[index_md] + index_k] =
+                ppt->sources[index_md]
+                [index_ic * ppt->tp_size[index_md] + index_tp]
+                [index_tau * ppt->k_size[index_md] + index_k]
+                * pnl->nl_corr_density[pnl->index_pk_m][index_tau * ppt->k_size[index_md] + index_k];
+             }
             }
           }
         }
@@ -1336,13 +1348,13 @@ int transfer_get_source_correspondence(
           tp_of_tt[index_md][index_tt]=ppt->index_tp_delta_m;//use delta_cb if density number counts calculated only for codl dark matter + baryon
 
         if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;//use theta_cb if rsd for only cdm+baryon
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;
 
         if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;//use theta_cb if rsd for only cdm+baryon
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;
 
         if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;//use theta_cb if rsd for only cdm+baryon
+          tp_of_tt[index_md][index_tt]=ppt->index_tp_theta_m;
 
         if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;

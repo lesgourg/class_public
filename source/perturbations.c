@@ -659,7 +659,7 @@ int perturb_indices_of_perturbs(
       if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m)) {
         ppt->has_lss = _TRUE_;
         ppt->has_source_delta_m = _TRUE_;
-        if (ppt->pk_only_cdm_bar == _TRUE_){
+        if (pba->has_ncdm == _TRUE_){
           ppt->has_source_delta_cb = _TRUE_;
         }
       }
@@ -717,7 +717,7 @@ int perturb_indices_of_perturbs(
         }
         if (ppt->has_nc_rsd == _TRUE_) {
           ppt->has_source_theta_m = _TRUE_;
-          if (ppt->pk_only_cdm_bar)
+          if (pba->has_ncdm == _TRUE_)
               ppt->has_source_theta_cb = _TRUE_; //probably we do not need theta_cb at all, rsd always defined for the total matter
         }
         if (ppt->has_nc_lens == _TRUE_) {

@@ -215,6 +215,13 @@ struct spectra {
                     */
   double * ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
+  double * ln_pk_cb;
+  double * ddln_pk_cb;
+  double * ln_pk_cb_l;
+  double * ddln_pk_cb_l;
+  double * ln_pk_cb_nl;
+  double * ddln_pk_cb_nl;
+
   int index_tr_delta_g;        /**< index of gamma density transfer function */
   int index_tr_delta_b;        /**< index of baryon density transfer function */
   int index_tr_delta_cdm;      /**< index of cold dark matter density transfer function */
@@ -299,7 +306,9 @@ extern "C" {
                       enum linear_or_logarithmic mode,
                       double z,
                       double * output_tot,
-                      double * output_ic
+                      double * output_ic,
+                      double * output_cb_tot,
+                      double * output_cb_ic
                       );
 
   int spectra_pk_at_k_and_z(
@@ -309,7 +318,9 @@ extern "C" {
                             double k,
                             double z,
                             double * pk,
-                            double * pk_ic
+                            double * pk_ic,
+                            double * pk_cb,
+                            double * pk_cb_ic
                             );
 
   int spectra_pk_nl_at_z(
@@ -317,7 +328,8 @@ extern "C" {
                          struct spectra * psp,
                          enum linear_or_logarithmic mode,
                          double z,
-                         double * output_tot
+                         double * output_tot,
+                         double * output_cb_tot
                          );
 
   int spectra_pk_nl_at_k_and_z(
@@ -326,7 +338,8 @@ extern "C" {
                                struct spectra * psp,
                                double k,
                                double z,
-                               double * pk_tot
+                               double * pk_tot,
+                               double * pk_cb_tot
                                );
 
   int spectra_tk_at_z(
