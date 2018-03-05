@@ -61,6 +61,11 @@ struct nonlinear {
   double * ztable;
   double * tautable;
   
+  double * sigma_8;
+  double * sigma_disp;
+  double * sigma_disp_100;
+  double * sigma_prime;
+  
   double c_min; /** minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0; /** halo bloating parameter */
   
@@ -111,6 +116,34 @@ extern "C" {
                           double z,
                           double * k_nl
                           );
+
+  int nonlinear_hmcode_sigma8_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_8
+                        );
+
+  int nonlinear_hmcode_sigmadisp_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_disp
+                        );
+
+  int nonlinear_hmcode_sigmadisp100_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_disp_100
+                        );
+
+  int nonlinear_hmcode_sigmaprime_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_prime
+                        );
 
   int nonlinear_init(
                      struct precision *ppr,
@@ -175,6 +208,7 @@ extern "C" {
                       struct perturbs *ppt, 
                       struct primordial *ppm,
                       struct nonlinear *pnl,
+                      int index_tau,
                       double tau,
                       double *pk_l,                   
                       double *pk_nl,

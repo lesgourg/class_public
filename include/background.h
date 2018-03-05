@@ -206,7 +206,9 @@ struct background
 
   int index_bg_D;             /**< scale independent growth factor D(a) for CDM perturbations */
   int index_bg_f;             /**< corresponding velocity growth factor [dlnD]/[dln a] */
-
+  int index_bg_D_lcdm;             /**< scale independent growth factor D(a) for CDM perturbations in a lcdm cosmology */
+  int index_bg_f_lcdm;             /**< corresponding velocity growth factor [dlnD]/[dln a] in a lcdm cosmology */
+  
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
   int bg_size;        /**< size of background vector in the "long format" */
@@ -259,7 +261,9 @@ struct background
   int index_bi_tau;     /**< {C} conformal time in Mpc */
   int index_bi_D;       /**< {C} scale independent growth factor D(a) for CDM perturbations. */
   int index_bi_D_prime; /**< {C} D satisfies \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
-
+  int index_bi_D_lcdm;       /**< {C} scale independent growth factor D(a) for CDM perturbations in a lcdm cosmology. */
+  int index_bi_D_prime_lcdm; /**< {C} D satisfies \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ in a lcdm cosmology.*/
+  
   int bi_B_size;        /**< Number of {B} parameters */
   int bi_size;          /**< Number of {B}+{C} parameters */
 

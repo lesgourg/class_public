@@ -50,6 +50,194 @@ int nonlinear_k_nl_at_z(
   return _SUCCESS_;
 }
 
+
+/*
+int nonlinear_hmcode_sigmaR_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double R,
+                        double z,
+                        double * sigma_R
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_R = pnl->sigma_R[0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_8,
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_8,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  
+  
+  return _SUCCESS_;  
+}
+*/
+int nonlinear_hmcode_sigma8_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_8
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_8 = pnl->sigma_8[0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_8,
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_8,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  
+  
+  return _SUCCESS_;  
+}
+
+int nonlinear_hmcode_sigmadisp_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_disp
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_disp = pnl->sigma_disp[0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_disp,
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_disp,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  
+  
+  return _SUCCESS_;  
+}
+
+int nonlinear_hmcode_sigmadisp100_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_disp_100
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_disp_100 = pnl->sigma_disp_100[0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_disp_100,
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_disp_100,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  
+  
+  return _SUCCESS_;  
+}
+
+int nonlinear_hmcode_sigmaprime_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_prime
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_prime = pnl->sigma_prime[0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_prime,
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_prime,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  
+  
+  return _SUCCESS_;  
+}
+
 int nonlinear_init(
                    struct precision *ppr,
                    struct background *pba,
@@ -116,7 +304,14 @@ int nonlinear_init(
 
     class_alloc(pnl->nl_corr_density,pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
     class_alloc(pnl->k_nl,pnl->tau_size*sizeof(double),pnl->error_message);
-
+    
+    if (pnl->method == nl_HMcode){
+      class_alloc(pnl->sigma_8,pnl->tau_size*sizeof(double),pnl->error_message);
+      class_alloc(pnl->sigma_disp,pnl->tau_size*sizeof(double),pnl->error_message);    
+      class_alloc(pnl->sigma_disp_100,pnl->tau_size*sizeof(double),pnl->error_message);    
+      class_alloc(pnl->sigma_prime,pnl->tau_size*sizeof(double),pnl->error_message);
+    }
+        
     class_alloc(pk_l,pnl->k_size*sizeof(double),pnl->error_message);
     class_alloc(pk_l_cb,pnl->k_size*sizeof(double),pnl->error_message);
     class_alloc(pk_nl,pnl->k_size*sizeof(double),pnl->error_message);
@@ -282,6 +477,7 @@ int nonlinear_init(
 				     ppt,
 				     ppm,
 				     pnl,
+             index_tau,
 				     pnl->tau[index_tau],
 				     pk_l,
 				     pk_nl,
@@ -395,6 +591,10 @@ int nonlinear_free(
 			free(pnl->growtable);
 			free(pnl->tautable);
 			free(pnl->ztable);
+      free(pnl->sigma_8);
+      free(pnl->sigma_disp);
+      free(pnl->sigma_disp_100);
+      free(pnl->sigma_prime);
 		}
   }
 
@@ -1799,6 +1999,7 @@ int nonlinear_hmcode(
                       struct perturbs *ppt,
                       struct primordial *ppm,
                       struct nonlinear *pnl,
+                      int index_tau,
                       double tau,
                       double *pk_l,                      
                       double *pk_nl,
@@ -1891,22 +2092,37 @@ int nonlinear_hmcode(
 
   Omega_m = pvecback[pba->index_bg_Omega_m];
   Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
-  
+
+  double growth_lcdm;
+  double ratio;
   growth = pvecback[pba->index_bg_D];
+  growth_lcdm = pvecback[pba->index_bg_D_lcdm];
+  ratio = growth/growth_lcdm;
   z_at_tau = 1./pvecback[pba->index_bg_a]-1.;
-  
+  /*
+  if (tau==pba->conformal_age){ 
+    fprintf(stdout, "z, growth:%d, growth_lcdm:%d, f:%d\n", pba->index_bg_D, pba->index_bg_D_lcdm, pba->index_bg_f);
+  }
+  fprintf(stdout, "%e %e %e %e\n", z_at_tau, growth, growth_lcdm, ratio);
+  */
   /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] with rho_c = 8*pi*G/3*c^2 */
   rho_crit_today_in_msun_mpc3 = 2.77474589e11*pow(pba->h, 2); 
   
   free(pvecback);
     
-  /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h)  */
+  /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h) and write the into pnl structure */
   class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,lnk_l,lnpk_l,ddlnpk_l,&sigma8), 
 			pnl->error_message, pnl->error_message);	
   class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,0.,lnk_l,lnpk_l,ddlnpk_l,&sigma_disp), 
 			pnl->error_message, pnl->error_message);
   class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,lnk_l,lnpk_l,ddlnpk_l,&sigma_disp100), 
 			pnl->error_message, pnl->error_message);			
+  
+  pnl->sigma_8[index_tau] = sigma8;
+  pnl->sigma_disp[index_tau] = sigma_disp;
+  pnl->sigma_disp_100[index_tau] = sigma_disp100;
+  
+  fprintf(stdout, "%e %e %e\n", z_at_tau, sigma_disp, sigma_disp100);
   
    /** Initialisation steps for the 1-Halo Power Integral */
   mmin=ppr->mmin_for_p1h_integral/pba->h; //Minimum mass for integration; (unit conversion from  m[Msun/h] to m[Msun]  )
@@ -2045,6 +2261,8 @@ int nonlinear_hmcode(
 	dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;
   n_eff = -3.- dlnsigdlnR;
   alpha = 3.24*pow(1.85, n_eff);
+  
+  pnl->sigma_prime[index_tau] = sigma_prime;
   
   /** Calculate halo concentration-mass relation conc(mass) */ 
 	class_alloc(conc,n*sizeof(double),pnl->error_message);
