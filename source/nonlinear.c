@@ -72,7 +72,6 @@ int nonlinear_init(
   double * pvecback;
   int last_index;
   double a,z;
-  double Omega0_m,fnu;
   enum halofit_statement halofit_found_k_max;
 
   /** Summary
@@ -143,6 +142,8 @@ int nonlinear_init(
                 pnl->pk_size*sizeof(double *),
                 pnl->error_message);
 
+    class_alloc(pnl->index_tau_min_nl,pnl->pk_size*sizeof(double),pnl->error_message);
+
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
 
     class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
@@ -156,25 +157,17 @@ int nonlinear_init(
     class_alloc(ddlnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
   
     }
- 
+
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+    print_warning=_FALSE_;
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
       /* get P_L(k) at this time */
-      class_call(nonlinear_pk_l(ppt,ppm,pnl,index_tau,pk_l,lnk_l,lnpk_l,ddlnpk_l),
+      class_call(nonlinear_pk_l(ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                  pnl->error_message,
                  pnl->error_message);
-
-      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-
-      Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-      if (index_pk == pnl->index_pk_m){
-      fnu = pba->Omega0_ncdm_tot/Omega0_m;
-      }
-      else if(index_pk == pnl->index_pk_cb){
-      fnu = 0.;
-      }
 
        /* get P_NL(k) at this time */
       if (print_warning == _FALSE_) {
@@ -184,7 +177,7 @@ int nonlinear_init(
                                      ppt,
                                      ppm,
                                      pnl,
-                                     fnu,
+                                     index_pk,
                                      pnl->tau[index_tau],
                                      pk_l[index_pk],
                                      pk_nl[index_pk],
@@ -199,12 +192,12 @@ int nonlinear_init(
         if (halofit_found_k_max == ok) {
 
           // for debugging:
-          /*
+            /*if (index_pk == pnl->index_pk_cb){ 
             for (index_k=0; index_k<pnl->k_size; index_k++) {
-            fprintf(stdout,"%e  %e  %e\n",pnl->k[index_k],pk_l[index_k],pk_nl[index_k]);
+            fprintf(stdout,"%d %e  %e  %e\n",index_pk,pnl->k[index_k],pk_l[index_pk][index_k],pk_nl[index_pk][index_k]);
             }
-            fprintf(stdout,"\n\n");
-          */
+            fprintf(stdout,"\n\n\n");
+            }*/
 
           for (index_k=0; index_k<pnl->k_size; index_k++) {
             pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
@@ -215,7 +208,7 @@ int nonlinear_init(
              non-linear correction for this redshift/time, store the
              last index which worked, and print a warning. */
           print_warning = _TRUE_;
-          pnl->index_tau_min_nl = index_tau+1;
+          pnl->index_tau_min_nl[index_pk] = index_tau+1;
           for (index_k=0; index_k<pnl->k_size; index_k++) {
             pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
           }
@@ -227,8 +220,8 @@ int nonlinear_init(
             a = pvecback[pba->index_bg_a];
             z = pba->a_today/a-1.;
             fprintf(stdout,
-                    " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",
-                    z);
+                    " -> [WARNING:] index_pk=%d Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",
+                    index_pk,z);
             free(pvecback);
           }
         }
@@ -241,8 +234,9 @@ int nonlinear_init(
           pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
         }
       }
-      }//end loop over index_pk
+
     }//end loop over tau
+    }//end loop over index_pk
 
     free(pk_l);
     free(pk_nl);
@@ -287,15 +281,16 @@ int nonlinear_pk_l(
                    struct perturbs *ppt,
                    struct primordial *ppm,
                    struct nonlinear *pnl,
+                   int index_pk,
                    int index_tau,
-                   double **pk_l,
-                   double **lnk,
-                   double **lnpk,
-                   double **ddlnpk) {
+                   double *pk_l,
+                   double *lnk,
+                   double *lnpk,
+                   double *ddlnpk) {
 
   int index_md;
   int index_k;
-  int index_pk,index_delta;
+  int index_delta;
   int index_ic1,index_ic2,index_ic1_ic2;
   double * primordial_pk;
   double source_ic1,source_ic2;
@@ -314,7 +309,6 @@ int nonlinear_pk_l(
                ppm->error_message,
                pnl->error_message);
 
-    for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
 
     if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
@@ -323,7 +317,7 @@ int nonlinear_pk_l(
     index_delta = ppt->index_tp_delta_cb;
     }
 
-    pk_l[index_pk][index_k] = 0;
+    pk_l[index_k] = 0;
 
     /* part diagonal in initial conditions */
     for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
@@ -334,7 +328,7 @@ int nonlinear_pk_l(
         [index_ic1 * ppt->tp_size[index_md] + index_delta]
         [index_tau * ppt->k_size[index_md] + index_k];
 
-      pk_l[index_pk][index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
+      pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
         *source_ic1*source_ic1
         *primordial_pk[index_ic1_ic2];
 
@@ -356,7 +350,7 @@ int nonlinear_pk_l(
             [index_ic2 * ppt->tp_size[index_md] + index_delta]
             [index_tau * ppt->k_size[index_md] + index_k];
 
-          pk_l[index_pk][index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
+          pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
             *source_ic1*source_ic2
             *primordial_pk[index_ic1_ic2]; // extra 2 factor (to include the symmetric term ic2,ic1)
 
@@ -364,24 +358,20 @@ int nonlinear_pk_l(
       }
     }
 
-    lnk[index_pk][index_k] = log(pnl->k[index_k]);
-    lnpk[index_pk][index_k] = log(pk_l[index_pk][index_k]);
-
-    }//end loop over index_pk
+    lnk[index_k] = log(pnl->k[index_k]);
+    lnpk[index_k] = log(pk_l[index_k]);
 
   }
 //??? this array_spline table columns has to be replaced with another function
-  for (index_pk = 0; index_pk < pnl->pk_size; index_pk++){
-  class_call(array_spline_table_columns(lnk[index_pk],
+  class_call(array_spline_table_columns(lnk,
                                         pnl->k_size,
-                                        lnpk[index_pk],
+                                        lnpk,
                                         1,
-                                        ddlnpk[index_pk],
+                                        ddlnpk,
                                         _SPLINE_NATURAL_,
                                         pnl->error_message),
              pnl->error_message,
              pnl->error_message);
-  }
 
   free(primordial_pk);
 
@@ -395,7 +385,7 @@ int nonlinear_halofit(
                       struct perturbs *ppt,
                       struct primordial *ppm,
                       struct nonlinear *pnl,
-                      double fnu,
+                      int index_pk,
                       double tau,
                       double *pk_l,
                       double *pk_nl,
@@ -406,7 +396,7 @@ int nonlinear_halofit(
                       enum halofit_statement * halofit_found_k_max
                       ) {
 
-  double Omega_m,Omega_v,Omega0_m, w0, dw_over_da_fld, integral_fld;
+  double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
 
   /** Determine non linear ratios (from pk) **/
 
@@ -453,11 +443,16 @@ int nonlinear_halofit(
   double * w_and_Omega;
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-
+  
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
 
-  //fnu = pba->Omega0_ncdm_tot/Omega0_m;//fnu now in input
-
+  if (index_pk == pnl->index_pk_m){
+      fnu = pba->Omega0_ncdm_tot/Omega0_m;
+  }
+  else if(index_pk == pnl->index_pk_cb){
+      fnu = 0.;
+  }
+ 
   if (pnl->has_pk_eq == _FALSE_) {
 
     /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),

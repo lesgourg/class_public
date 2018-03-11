@@ -209,6 +209,9 @@ struct spectra {
                           exp(ln_tau_nl[ln_tau_nl_size-1]) is today
                           (i.e z=0). */
 
+  int ln_tau_nl_size_cb;
+  double * ln_tau_nl_cb;
+
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:
                           ln_pk_nl[index_tau * psp->k_size + index_k]
