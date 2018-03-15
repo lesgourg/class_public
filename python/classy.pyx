@@ -17,6 +17,7 @@ cimport numpy as np
 from libc.stdlib cimport *
 from libc.stdio cimport *
 from libc.string cimport *
+import cython
 cimport cython
 
 ctypedef np.float_t DTYPE_t
@@ -1092,6 +1093,8 @@ cdef class Class:
             for index in range(timesteps):
                 background[names[i]][index] = data[index*number_of_titles+i]
 
+        free(titles)
+        free(data)
         return background
 
     def get_thermodynamics(self):
@@ -1128,6 +1131,8 @@ cdef class Class:
             for index in range(timesteps):
                 thermodynamics[names[i]][index] = data[index*number_of_titles+i]
 
+        free(titles)
+        free(data)
         return thermodynamics
 
     def get_primordial(self):
@@ -1165,9 +1170,16 @@ cdef class Class:
             for index in range(timesteps):
                 primordial[names[i]][index] = data[index*number_of_titles+i]
 
+        free(titles)
+        free(data)
         return primordial
 
 
+    @cython.returns(dict)
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.cdivision(True)
+    @cython.ccall
     def get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested
@@ -1191,62 +1203,48 @@ cdef class Class:
         if self.pt.k_output_values_num<1:
             return perturbations
 
+        cdef:
+            Py_ssize_t j
+            Py_ssize_t i
+            Py_ssize_t number_of_titles
+            Py_ssize_t timesteps
+            list names
+            list tmparray
+            dict tmpdict
+            double[:,::1] data_mv
+            double ** thedata
+            int * thesizes
+
         # Doing the exact same thing 3 times, for scalar, vector and tensor. Sorry
         # for copy-and-paste here, but I don't know what else to do.
-
-        #Scalar:
-        if self.pt.has_scalars:
-            tmp = <bytes> self.pt.scalar_titles
-            tmp = str(tmp.decode())
-            names = tmp.split("\t")[:-1]
+        for mode in ['scalar','vector','tensor']:
+            if mode=='scalar' and self.pt.has_scalars:
+                thetitles = <bytes> self.pt.scalar_titles
+                thedata = self.pt.scalar_perturbations_data
+                thesizes = self.pt.size_scalar_perturbation_data
+            elif mode=='vector' and self.pt.has_vectors:
+                thetitles = <bytes> self.pt.vector_titles
+                thedata = self.pt.vector_perturbations_data
+                thesizes = self.pt.size_vector_perturbation_data
+            elif mode=='tensor' and self.pt.has_tensors:
+                thetitles = <bytes> self.pt.tensor_titles
+                thedata = self.pt.tensor_perturbations_data
+                thesizes = self.pt.size_tensor_perturbation_data
+            else:
+                continue
+            thetitles = str(thetitles.decode())
+            names = thetitles.split("\t")[:-1]
             number_of_titles = len(names)
-            tmparray = [];
+            tmparray = []
             if number_of_titles != 0:
                 for j in range(self.pt.k_output_values_num):
-                    timesteps = self.pt.size_scalar_perturbation_data[j]//number_of_titles;
+                    timesteps = thesizes[j]//number_of_titles
                     tmpdict={}
+                    data_mv = <double[:timesteps,:number_of_titles]> thedata[j]
                     for i in range(number_of_titles):
-                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                        for index in range(timesteps):
-                            tmpdict[names[i]][index] = self.pt.scalar_perturbations_data[j][index*number_of_titles+i]
+                        tmpdict[names[i]] = np.asarray(data_mv[:,i])
                     tmparray.append(tmpdict)
-            perturbations['scalar'] = tmparray;
-
-        #Vector:
-        if self.pt.has_vectors:
-            tmp = <bytes> self.pt.vector_titles
-            tmp = str(tmp.decode())
-            names = tmp.split("\t")[:-1]
-            number_of_titles = len(names)
-            tmparray = [];
-            if number_of_titles != 0:
-                for j in range(self.pt.k_output_values_num):
-                    timesteps = self.pt.size_vector_perturbation_data[j]//number_of_titles;
-                    tmpdict={}
-                    for i in range(number_of_titles):
-                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                        for index in range(timesteps):
-                            tmpdict[names[i]][index] = self.pt.vector_perturbations_data[j][index*number_of_titles+i]
-                    tmparray.append(tmpdict)
-            perturbations['vector'] = tmparray;
-
-        #Tensor:
-        if self.pt.has_tensors:
-            tmp = <bytes> self.pt.tensor_titles
-            tmp = str(tmp.decode())
-            names = tmp.split("\t")[:-1]
-            number_of_titles = len(names)
-            tmparray = [];
-            if number_of_titles != 0:
-                for j in range(self.pt.k_output_values_num):
-                    timesteps = self.pt.size_tensor_perturbation_data[j]//number_of_titles;
-                    tmpdict={}
-                    for i in range(number_of_titles):
-                        tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                        for index in range(timesteps):
-                            tmpdict[names[i]][index] = self.pt.tensor_perturbations_data[j][index*number_of_titles+i]
-                    tmparray.append(tmpdict)
-            perturbations['tensor'] = tmparray;
+            perturbations[mode] = tmparray
 
         return perturbations
 
@@ -1318,6 +1316,9 @@ cdef class Class:
                 spectra = tmpdict
             else:
                 spectra[ic_key] = tmpdict
+
+        free(titles)
+        free(data)
 
         return spectra
 
@@ -1566,3 +1567,18 @@ cdef class Class:
         ctx.add('boundary', True)
         # Store itself into the context, to be accessed by the likelihoods
         ctx.add('cosmo', self)
+
+    def get_pk_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
+        """ Fast function to get the power spectrum on a k and z array """
+        cdef int nonlinearint
+        cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
+        nonlinearint=1 if nonlinear else 0
+        spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, nonlinearint)
+        return pk
+
+    def Omega0_k(self):
+        """ Curvature contribution """
+        return self.ba.Omega0_k
+
+    def Omega0_cdm(self):
+        return self.ba.Omega0_cdm
