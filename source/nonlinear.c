@@ -194,12 +194,12 @@ int nonlinear_init(
         if (halofit_found_k_max == ok) {
 
           // for debugging:
-            /*if (index_pk == pnl->index_pk_cb){ 
+            if ((index_tau == pnl->tau_size-1)){ 
             for (index_k=0; index_k<pnl->k_size; index_k++) {
             fprintf(stdout,"%d %e  %e  %e\n",index_pk,pnl->k[index_k],pk_l[index_pk][index_k],pk_nl[index_pk][index_k]);
             }
             fprintf(stdout,"\n\n\n");
-            }*/
+            }
 
           for (index_k=0; index_k<pnl->k_size; index_k++) {
             pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);

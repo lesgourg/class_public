@@ -961,12 +961,14 @@ int spectra_pk_at_k_and_z(
 
         if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-          if (index_ic1 == index_ic2)
+          if (index_ic1 == index_ic2){
             *pk_tot += pk_ic[index_ic1_ic2];
             if(pba->has_ncdm) *pk_cb_tot += pk_cb_ic[index_ic1_ic2];
-          else
+          }
+          else{
             *pk_tot += 2.*pk_ic[index_ic1_ic2];
             if(pba->has_ncdm) *pk_cb_tot += 2.*pk_cb_ic[index_ic1_ic2];
+          }
         }
         else {
           pk_ic[index_ic1_ic2] = 0.;
@@ -1144,9 +1146,9 @@ int spectra_pk_nl_at_z(
     }
   }
 
-  if(pba->has_ncdm == _FALSE_){
+  /*if(pba->has_ncdm == _FALSE_){
   output_cb_tot = NULL;
-  }
+  }*/
 
   return _SUCCESS_;
 
