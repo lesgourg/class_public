@@ -96,13 +96,13 @@ int nonlinear_init(
       }
     }
 
-    /** - copy list of (k,tau) from perturbation module */
-
     index_pk = 0;
     class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
     class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
     pnl->pk_size = index_pk;
-    printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
+    //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
+
+    /** - copy list of (k,tau) from perturbation module */
 
     pnl->k_size = ppt->k_size[ppt->index_md_scalars];
     class_alloc(pnl->k,pnl->k_size*sizeof(double),pnl->error_message);
@@ -159,7 +159,9 @@ int nonlinear_init(
     }
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
     print_warning=_FALSE_;
+
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
@@ -297,6 +299,13 @@ int nonlinear_pk_l(
 
   index_md = ppt->index_md_scalars;
 
+  if(index_pk == pnl->index_pk_m){
+    index_delta = ppt->index_tp_delta_m;
+  }
+  else if(index_pk == pnl->index_pk_cb){
+    index_delta = ppt->index_tp_delta_cb;
+  }
+
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
 
   for (index_k=0; index_k<pnl->k_size; index_k++) {
@@ -308,14 +317,6 @@ int nonlinear_pk_l(
                                         primordial_pk),
                ppm->error_message,
                pnl->error_message);
-
-
-    if(index_pk == pnl->index_pk_m){
-    index_delta = ppt->index_tp_delta_m;
-    }
-    else if(index_pk == pnl->index_pk_cb){
-    index_delta = ppt->index_tp_delta_cb;
-    }
 
     pk_l[index_k] = 0;
 

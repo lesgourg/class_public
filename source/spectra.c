@@ -498,9 +498,10 @@ int spectra_pk_at_z(
                      exp(output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]));
               }
             }
-            else
+            else{
               output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = 0.;
-            if(pba->has_ncdm) output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = 0.;
+              if(pba->has_ncdm) output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = 0.;
+            }
           }
         }
       }
@@ -575,10 +576,10 @@ int spectra_pk_at_z(
     }
   }
 
-if(pba->has_ncdm == _FALSE_){
+/*if(pba->has_ncdm == _FALSE_){
 output_cb_ic = NULL;
 output_cb_tot = NULL;
-}
+}*/
 
   return _SUCCESS_;
 
@@ -2936,6 +2937,7 @@ int spectra_pk(
   double source_ic1_cb;
   double source_ic2_cb;
   double pk_cb_tot=0.,ln_pk_cb_tot=0.;
+  short compute_sigma8_cb=_FALSE_;
 
   /** - check the presence of scalar modes */
 
@@ -3131,15 +3133,16 @@ int spectra_pk(
           ln_pk_tot
           + 2.*log(pnl->nl_corr_density[pnl->index_pk_m][(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k]);
 
-        if((pba->has_ncdm) && (index_tau >= delta_index_nl_cb)){
+      }
+
+      if((pba->has_ncdm) && (pnl->method != nl_none) && (index_tau >= delta_index_nl_cb)){
  
          psp->ln_pk_cb_nl[(index_tau-delta_index_nl_cb) * psp->ln_k_size + index_k] =
           ln_pk_cb_tot
           + 2.*log(pnl->nl_corr_density[pnl->index_pk_cb][(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k]);
 
-        }
-
       }
+      
     }
   }
 
@@ -3203,7 +3206,7 @@ int spectra_pk(
 
   /* compute sigma8 (mean variance today in sphere of radius 8/h Mpc */
 
-  class_call(spectra_sigma(pba,ppm,psp,8./pba->h,0.,&(psp->sigma8)),
+  class_call(spectra_sigma(pba,ppm,psp,compute_sigma8_cb,8./pba->h,0.,&(psp->sigma8)),
              psp->error_message,
              psp->error_message);
 
@@ -3211,6 +3214,17 @@ int spectra_pk(
     fprintf(stdout," -> sigma8=%g (computed till k = %g h/Mpc)\n",
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+
+  if(pba->has_ncdm){
+   compute_sigma8_cb = _TRUE_;
+   class_call(spectra_sigma(pba,ppm,psp,compute_sigma8_cb,8./pba->h,0.,&(psp->sigma8_cb)),
+              psp->error_message,
+              psp->error_message);
+   compute_sigma8_cb = _FALSE_;
+   fprintf(stdout," -> sigma8 (ONLY CDM+BARYON)=%g (computed till k = %g h/Mpc)\n",
+            psp->sigma8_cb,
+            exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+  }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
@@ -3229,8 +3243,8 @@ int spectra_pk(
                                           psp->error_message),
                  psp->error_message,
                  psp->error_message);
-
-      if(pba->has_ncdm){
+    }
+    if((pba->has_ncdm)&&(psp->ln_tau_nl_size_cb > 1)){
 
       class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size_cb*psp->ln_k_size,psp->error_message);
 
@@ -3244,9 +3258,8 @@ int spectra_pk(
                  psp->error_message,
                  psp->error_message);
 
-      }
-
     }
+
   }
 
   free (primordial_pk);
@@ -3270,6 +3283,7 @@ int spectra_sigma(
                   struct background * pba,
                   struct primordial * ppm,
                   struct spectra * psp,
+                  short compute_sigma8_cb,
                   double R,
                   double z,
                   double * sigma
@@ -3317,7 +3331,12 @@ int spectra_sigma(
                psp->error_message,
                psp->error_message);
     array_for_sigma[i*index_num+index_k]=k;
-    array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
+    if(compute_sigma8_cb == _TRUE_){
+     array_for_sigma[i*index_num+index_y]=k*k*pk_cb*W*W;
+    }
+    else{
+     array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
+    }
   }
 
   class_call(array_spline(array_for_sigma,
@@ -3344,8 +3363,11 @@ int spectra_sigma(
 
   free(array_for_sigma);
 
-  if (psp->ic_ic_size[psp->index_md_scalars]>1)
+  if (psp->ic_ic_size[psp->index_md_scalars]>1){
     free(pk_ic);
+    if (pba->has_ncdm)
+    free(pk_cb_ic);
+  }  
 
   *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
 

@@ -185,6 +185,8 @@ struct spectra {
 
   double sigma8;    /**< sigma8 parameter */
 
+  double sigma8_cb;
+
   double * ln_pk_l;   /**q< Total linear matter power spectrum, just
                            depending on indices index_k, index_tau as:
                            ln_pk[index_tau * psp->k_size + index_k]
@@ -426,6 +428,7 @@ extern "C" {
                     struct background * pba,
                     struct primordial * ppm,
                     struct spectra * psp,
+                    short compute_sigma8_cb,
                     double R,
                     double z,
                     double *sigma
