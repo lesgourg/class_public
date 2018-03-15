@@ -576,11 +576,6 @@ int spectra_pk_at_z(
     }
   }
 
-/*if(pba->has_ncdm == _FALSE_){
-output_cb_ic = NULL;
-output_cb_tot = NULL;
-}*/
-
   return _SUCCESS_;
 
 }
@@ -1146,10 +1141,6 @@ int spectra_pk_nl_at_z(
     }
   }
 
-  /*if(pba->has_ncdm == _FALSE_){
-  output_cb_tot = NULL;
-  }*/
-
   return _SUCCESS_;
 
 }
@@ -1573,6 +1564,7 @@ int spectra_init(
     }
     else {
       psp->ln_pk=NULL;
+      psp->ln_pk_cb=NULL;
     }
 
     if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
@@ -2785,6 +2777,7 @@ int spectra_k_and_tau(
 
   int index_k;
   int index_tau;
+  int index_tau_min_nl, index_tau_min_nl_cb;
   double tau_min;
 
   /** - check the presence of scalar modes */
@@ -2870,7 +2863,8 @@ int spectra_k_and_tau(
   if (pnl->method != nl_none) {
   
     index_tau=ppt->tau_size-psp->ln_tau_size;
-    while (ppt->tau_sampling[index_tau] < pnl->tau[pnl->index_tau_min_nl[pnl->index_pk_m]]) {
+    index_tau_min_nl=pnl->index_tau_min_nl[pnl->index_pk_m];
+    while (ppt->tau_sampling[index_tau] < pnl->tau[index_tau_min_nl]) {
       index_tau++;
     }
     psp->ln_tau_nl_size=ppt->tau_size-index_tau;
@@ -2884,7 +2878,8 @@ int spectra_k_and_tau(
     if(pba->has_ncdm){
 
     index_tau=ppt->tau_size-psp->ln_tau_size;
-    while (ppt->tau_sampling[index_tau] < pnl->tau[pnl->index_tau_min_nl[pnl->index_pk_cb]]) {
+    index_tau_min_nl_cb=pnl->index_tau_min_nl[pnl->index_pk_cb];
+    while (ppt->tau_sampling[index_tau] < pnl->tau[index_tau_min_nl_cb]) {
       index_tau++;
     }
     psp->ln_tau_nl_size_cb=ppt->tau_size-index_tau;
@@ -3024,7 +3019,7 @@ int spectra_pk(
                  psp->error_message);
 
       pk_tot =0;
-
+      pk_cb_tot = 0.;
       /* curvature primordial spectrum:
          P_R(k) = 1/(2pi^2) k^3 <R R>
          so, primordial curvature correlator:
@@ -4120,7 +4115,7 @@ int spectra_output_tk_data(
   }
   return _SUCCESS_;
 }
-//MAcb this has to be modified
+
 int spectra_fast_pk_at_kvec_and_zvec(
                     struct background * pba,
                     struct spectra * psp,
@@ -4129,6 +4124,7 @@ int spectra_fast_pk_at_kvec_and_zvec(
 		    double * zvec,
 		    int zvec_size,
                     double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
+                    double * pk_cb_tot_out,
 		    int nonlinear
                     ) {
 
@@ -4154,16 +4150,20 @@ int spectra_fast_pk_at_kvec_and_zvec(
   class_alloc(ln_pk_table, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
   class_alloc(spline, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
   class_alloc(pk_at_k, sizeof(double)*psp->ln_tau_size,psp->error_message);
+  
+  class_alloc(ln_pk_cb_table, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
+  class_alloc(spline_cb, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
+  class_alloc(pk_cb_at_k, sizeof(double)*psp->ln_tau_size,psp->error_message);
 
   /** Construct table of log(pk) on the computed k nodes but requested redshifts: */
   for (index_z=0; index_z<zvec_size; index_z++){
     if (nonlinear==_TRUE_) {
-      class_call(spectra_pk_nl_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size,NULL),
+      class_call(spectra_pk_nl_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size,ln_pk_cb_table+index_z*psp->ln_k_size),
 		 psp->error_message,
 		 psp->error_message);
     }
     else{
-      class_call(spectra_pk_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size, NULL,NULL,NULL),
+      class_call(spectra_pk_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size, NULL,ln_pk_cb_table+index_z*psp->ln_k_size,NULL),
 		 psp->error_message,
 		 psp->error_message);
     }
@@ -4179,6 +4179,17 @@ int spectra_fast_pk_at_kvec_and_zvec(
 	     psp->error_message,
 	     psp->error_message);
 
+  if(pba->has_ncdm){
+  class_call(array_spline_table_columns2(psp->ln_k,
+                                         psp->ln_k_size,
+                                         ln_pk_cb_table,
+                                         zvec_size,
+                                         spline_cb,
+                                         _SPLINE_NATURAL_,
+                                         psp->error_message),
+             psp->error_message,
+             psp->error_message);
+  }
   /** Construct ln(kvec): */
   for (index_k=0; index_k<kvec_size; index_k++){
     ln_kvec[index_k] = log(kvec[index_k]);
@@ -4192,6 +4203,7 @@ int spectra_fast_pk_at_kvec_and_zvec(
     for (index_z = 0; index_z < zvec_size; index_z++) {
       /** If needed, add some extrapolation here */
       pk_tot_out[index_z*kvec_size+index_k] = 0.;
+      if(pba->has_ncdm) pk_cb_tot_out[index_z*kvec_size+index_k] = 0.;
     }
     /** Implement some extrapolation perhaps */
   }
@@ -4214,6 +4226,15 @@ int spectra_fast_pk_at_kvec_and_zvec(
 	      + ((a*a*a-a) * spline[index_z*psp->ln_k_size + index_knode]
 		 +(b*b*b-b) * spline[index_z*psp->ln_k_size + index_knode+1])*h*h/6.0
 	      );
+        if(pba->has_ncdm){
+        pk_cb_tot_out[index_z*kvec_size+index_k] =
+          exp(
+              a * ln_pk_cb_table[index_z*psp->ln_k_size + index_knode]
+              + b * ln_pk_cb_table[index_z*psp->ln_k_size + index_knode+1]
+              + ((a*a*a-a) * spline_cb[index_z*psp->ln_k_size + index_knode]
+                 +(b*b*b-b) * spline_cb[index_z*psp->ln_k_size + index_knode+1])*h*h/6.0
+              );
+        }
       }
       index_k++;
     }
@@ -4224,13 +4245,16 @@ int spectra_fast_pk_at_kvec_and_zvec(
     for (index_z = 0; index_z < zvec_size; index_z++) {
       /** If needed, add some extrapolation here */
       pk_tot_out[index_z*kvec_size+index_k] = 0.;
+      if(pba->has_ncdm) pk_cb_tot_out[index_z*kvec_size+index_k] = 0.;
     }
     index_k++;
   }
 
   free(ln_kvec);
   free(ln_pk_table);
+  free(ln_pk_cb_table);
   free(spline);
+  if(pba->has_ncdm) free(spline_cb);
   free(pk_at_k);
   return _SUCCESS_;
 }

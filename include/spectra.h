@@ -469,6 +469,7 @@ extern "C" {
 				       double * zvec,
 				       int zvec_size,
 				       double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
+                                       double * pk_cb_tot_out,
 				       int nonlinear);
 
 #ifdef __cplusplus
