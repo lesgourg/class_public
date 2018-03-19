@@ -41,6 +41,7 @@ cdef extern from "class.h":
         int index_bg_f
         short long_info
         short inter_normal
+        short  has_ncdm
         double T_cmb
         double h
         double H0
@@ -297,7 +298,9 @@ cdef extern from "class.h":
         int mode,
         double z,
         double * output_tot,
-        double * output_ic
+        double * output_ic,
+        double * output_cb_tot,
+        double * output_cb_ic
         )
 
     int spectra_pk_at_k_and_z(
@@ -307,7 +310,9 @@ cdef extern from "class.h":
         double k,
         double z,
         double * pk,
-        double * pk_ic)
+        double * pk_ic,
+        double * pk_cb,
+        double * pk_cb_ic)
 
     int spectra_pk_nl_at_k_and_z(
         void* pba,
@@ -315,16 +320,18 @@ cdef extern from "class.h":
         void * psp,
         double k,
         double z,
-        double * pk)
+        double * pk,
+        double * pk_cb)
 
     int spectra_pk_nl_at_z(
         void * pba,
         void * psp,
         int mode,
         double z,
-        double * output_tot)
+        double * output_tot,
+        double * output_cb_tot)
 
-    int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
+    int nonlinear_k_nl_at_z(void* pba, void* pnl, int index_pk, double z, double* k_nl)
 
     int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
 
@@ -332,6 +339,7 @@ cdef extern from "class.h":
                   void * pba,
                   void * ppm,
                   void * psp,
+                  short compute_sigma8_cb,
                   double R,
                   double z,
                   double * sigma)
@@ -344,4 +352,5 @@ cdef extern from "class.h":
                   double * zvec,
                   int zvec_size,
                   double * pk_tot_out,
+                  double * pk_cb_tot_out,
                   int nonlinear)

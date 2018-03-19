@@ -855,7 +855,7 @@ cdef class Class:
 
     def get_pk_cb(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
+        cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
         for index_k in xrange(k_size):
@@ -877,7 +877,7 @@ cdef class Class:
 
     def get_pk_cb_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the linear power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
+        cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
         cdef int index_k, index_z, index_mu
 
         for index_k in xrange(k_size):
@@ -946,7 +946,7 @@ cdef class Class:
                 "No massive neutrinos. You must use sigma, rather than sigma_cb."
                 )
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,_TRUE_,R,z,&sigma)==_FAILURE_:
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,_TRUE_,R,z,&sigma_cb)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma_cb
@@ -1663,15 +1663,46 @@ cdef class Class:
                 Size of the redshift array
         """
         cdef int index_z
+        cdef int index_pk
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
         #cdef double *k_nl
-
+        index_pk=0
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl[index_z]) == _FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
 
         return k_nl
+
+    def nonlinear_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_scale(z, z_size)
+
+        Return the nonlinear scale for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef int index_pk
+        cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
+        #cdef double *k_nl
+        index_pk=1
+        #k_nl = <double*> calloc(z_size,sizeof(double))
+        if (self.ba.has_ncdm == _FALSE_):
+            raise CosmoSevereError(
+                "No massive neutrinos. You must use nonlinear_scale, rather than nonlinear_scale_cb."
+                )
+        for index_z in range(z_size):
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return k_nl_cb
 
     def __call__(self, ctx):
         """
@@ -1711,6 +1742,7 @@ cdef class Class:
         """ Fast function to get the power spectrum on a k and z array """
         cdef int nonlinearint
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
         nonlinearint=1 if nonlinear else 0
         spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data, nonlinearint)
         return pk
@@ -1719,6 +1751,7 @@ cdef class Class:
         """ Fast function to get the power spectrum on a k and z array """
         cdef int nonlinearint
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
         nonlinearint=1 if nonlinear else 0
         spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data, nonlinearint)
         return pk_cb
