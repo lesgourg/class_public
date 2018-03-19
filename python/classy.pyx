@@ -758,7 +758,7 @@ cdef class Class:
             raise CosmoSevereError(
                 "No power spectrum computed. You must add mPk to the list of outputs."
                 )
-        if (self.ba.has_ncdm == _FALSE_):
+        if (self.ba.Omega0_ncdm_tot != 0.):
             raise CosmoSevereError(
                 "No massive neutrinos. You must use pk, rather than pk_cb."
                 )
@@ -830,7 +830,7 @@ cdef class Class:
             raise CosmoSevereError(
                 "No power spectrum computed. You must add mPk to the list of outputs."
                 )
-        if (self.ba.has_ncdm == _FALSE_):
+        if (self.ba.Omega0_ncdm_tot != 0.):
             raise CosmoSevereError(
                 "No massive neutrinos. You must use pk_lin, rather than pk_cb_lin."
                 )
@@ -941,7 +941,7 @@ cdef class Class:
                 "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
                 )
 
-        if (self.ba.has_ncdm == _FALSE_):
+        if (self.ba.Omega0_ncdm_tot != 0.):
             raise CosmoSevereError(
                 "No massive neutrinos. You must use sigma, rather than sigma_cb."
                 )
@@ -1694,7 +1694,7 @@ cdef class Class:
         #cdef double *k_nl
         index_pk=1
         #k_nl = <double*> calloc(z_size,sizeof(double))
-        if (self.ba.has_ncdm == _FALSE_):
+        if (self.ba.Omega0_ncdm_tot != 0.):
             raise CosmoSevereError(
                 "No massive neutrinos. You must use nonlinear_scale, rather than nonlinear_scale_cb."
                 )
