@@ -3217,10 +3217,12 @@ int spectra_pk(
    class_call(spectra_sigma(pba,ppm,psp,compute_sigma8_cb,8./pba->h,0.,&(psp->sigma8_cb)),
               psp->error_message,
               psp->error_message);
-   compute_sigma8_cb = _FALSE_;
-   fprintf(stdout," -> sigma8 (ONLY CDM+BARYON)=%g (computed till k = %g h/Mpc)\n",
+   if (psp->spectra_verbose>0){
+    fprintf(stdout," -> sigma8 (ONLY CDM+BARYON)=%g (computed till k = %g h/Mpc)\n",
             psp->sigma8_cb,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+   }
+   compute_sigma8_cb = _FALSE_;
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
