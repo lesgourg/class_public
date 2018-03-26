@@ -124,6 +124,16 @@ extern "C" {
                         double * sigma_8
                         );
 
+  int nonlinear_hmcode_sigmaR_at_z(
+                        struct precision *ppr,
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double R,
+                        double z,
+                        double * sigma_R
+                        );
+
+
   int nonlinear_hmcode_sigmadisp_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
@@ -267,6 +277,7 @@ extern "C" {
               struct perturbs *ppt,
 						  struct primordial * ppm,
 						  struct nonlinear * pnl,
+              int index_tau,
 						  double *lnk_l,
               double *lnpk_l,
               double *ddlnpk_l               

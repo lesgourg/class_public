@@ -97,7 +97,7 @@ bessel_j_cut=1.e-5
 bessel_tol_x_min =1.e-4
 bessel_file_name=bessel.dat
 
-k_per_decade_primordial = 10.
+#k_per_decade_primordial = 10.
   
 k_step_trans_scalars=0.004 #can be 0.004 for chi2=0.1 and 1, not higher
 k_step_trans_tensors=0.004

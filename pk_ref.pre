@@ -10,7 +10,7 @@ recfast_x_H0_trigger_delta = 0.01
 
 evolver=0
 
-k_min_tau0=0.002
+#k_min_tau0=0.04762
 k_max_tau0_over_l_max=3.
 k_step_sub=0.015
 k_step_super=0.0001

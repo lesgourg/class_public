@@ -785,7 +785,7 @@ cdef class Class:
     # Gives sigma(R,z) for a given (R,z)
     def sigma(self,double R,double z):
         """
-        Gives the pk for a given R and z
+        Gives sigma for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
 
         .. note::
@@ -811,6 +811,50 @@ cdef class Class:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma
+
+    #similar to sigma(R,z) but gives sigma as calculated in nonlinear.c (and not in spectra.c) 
+    def nonlinear_hmcode_sigma(self,double R,double z):
+        """
+        Gives hmcode_sigma for a given R and z
+        (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
+
+        .. note::
+
+            there is an additional check to verify whether output contains `mPk`,
+            and whether k_max > ...
+            because otherwise a segfault will occur
+
+        """
+        cdef double sigma_R
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError(
+                "No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs."
+                )
+
+        if (self.pt.k_max_for_pk < self.ba.h):
+            raise CosmoSevereError(
+                "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
+                )
+
+        if nonlinear_hmcode_sigmaR_at_z(&self.pr,&self.ba,&self.nl,R,z,&sigma_R)==_FAILURE_:
+                 raise CosmoSevereError(self.sp.error_message)
+
+        return sigma_R
+    #calculates the hmcode window_function of the Navarrow Frenk White Profile
+    def nonlinear_hmcode_window_nfw(self,double k,double rv,double c):
+        """
+        Gives window_nfw for a given wavevector k, virial radius rv and concentration c
+
+        """
+        cdef double window_nfw
+
+
+        if nonlinear_hmcode_window_nfw(&self.nl,k,rv,c,&window_nfw)==_FAILURE_:
+                 raise CosmoSevereError(self.sp.error_message)
+
+        return window_nfw
+
 
     def age(self):
         self.compute(["background"])
@@ -974,6 +1018,37 @@ cdef class Class:
         free(pvecback)
 
         return H
+
+    def Om_m(self, z):
+        """
+        Omega_m(z)
+
+        Return the matter density fraction (exactly, the quantity defined by Class as index_bg_Omega_m
+        in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        Om_m = pvecback[self.ba.index_bg_Omega_m]
+
+        free(pvecback)
+
+        return Om_m
+
 
     def ionization_fraction(self, z):
         """
@@ -1533,6 +1608,98 @@ cdef class Class:
                 raise CosmoSevereError(self.nl.error_message)
 
         return k_nl
+
+    def nonlinear_hmcode_sigma8(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigma8(z, z_size)
+
+        Return sigma_8 for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigma8_at_z(&self.ba,&self.nl,z[index_z],&sigma_8[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_8
+
+    def nonlinear_hmcode_sigmadisp(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmadisp(z, z_size)
+
+        Return sigma_disp for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmadisp_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_disp
+    
+    def nonlinear_hmcode_sigmadisp100(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmadisp100(z, z_size)
+
+        Return sigma_disp_100 for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmadisp100_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp_100[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_disp_100    
+
+    def nonlinear_hmcode_sigmaprime(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmaprime(z, z_size)
+
+        Return sigma_disp for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmaprime_at_z(&self.ba,&self.nl,z[index_z],&sigma_prime[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_prime        
 
     def __call__(self, ctx):
         """
