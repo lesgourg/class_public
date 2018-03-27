@@ -162,6 +162,8 @@ int nonlinear_init(
 
     print_warning=_FALSE_;
 
+    pnl->index_tau_min_nl[index_pk] = 0;
+
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
