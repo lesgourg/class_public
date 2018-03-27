@@ -268,6 +268,7 @@ int nonlinear_free(
       free(pnl->tau);
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
+      free(pnl->index_tau_min_nl);
     }
   }
 
