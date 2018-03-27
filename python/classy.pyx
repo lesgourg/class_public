@@ -710,26 +710,69 @@ cdef class Class:
 
         """
         cdef double pk
+        cdef double pk_cb
         cdef double pk_velo
         cdef double pk_cross
         cdef int dummy
 
         # Quantities for the isocurvature modes
         cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError(
                 "No power spectrum computed. You must add mPk to the list of outputs."
                 )
 
         if (self.nl.method == 0):
-             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
+             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
         else:
-             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk) ==_FAILURE_:
+             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,&pk_cb) ==_FAILURE_:
                     raise CosmoSevereError(self.sp.error_message)
 
         free(pk_ic)
+        free(pk_cb_ic)
         return pk
+
+    # Gives the pk_cb for a given (k,z)
+    def pk_cb(self,double k,double z):
+        """
+        Gives the pk_cb for a given k and z (will be non linear if requested to Class, linear otherwise)
+
+        .. note::
+
+            there is an additional check to verify if output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef double pk
+        cdef double pk_cb
+        cdef double pk_velo
+        cdef double pk_cross
+        cdef int dummy
+
+        # Quantities for the isocurvature modes
+        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError(
+                "No power spectrum computed. You must add mPk to the list of outputs."
+                )
+        if (self.ba.Omega0_ncdm_tot == 0.):
+            raise CosmoSevereError(
+                "No massive neutrinos. You must use pk, rather than pk_cb."
+                )
+
+        if (self.nl.method == 0):
+             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
+                 raise CosmoSevereError(self.sp.error_message)
+        else:
+             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,&pk_cb) ==_FAILURE_:
+                    raise CosmoSevereError(self.sp.error_message)
+
+        free(pk_ic)
+        free(pk_cb_ic)
+        return pk_cb
 
     # Gives the linear pk for a given (k,z)
     def pk_lin(self,double k,double z):
@@ -743,22 +786,61 @@ cdef class Class:
 
         """
         cdef double pk
+        cdef double pk_cb
         cdef double pk_velo
         cdef double pk_cross
         cdef int dummy
 
         # Quantities for the isocurvature modes
         cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError(
                 "No power spectrum computed. You must add mPk to the list of outputs."
                 )
 
-        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic)==_FAILURE_:
+        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
         free(pk_ic)
+        free(pk_cb_ic)
         return pk
+
+    # Gives the linear pk for a given (k,z)
+    def pk_cb_lin(self,double k,double z):
+        """
+        Gives the linear pk for a given k and z (even if non linear corrections were requested to Class)
+
+        .. note::
+
+            there is an additional check to verify if output contains `mPk`,
+            because otherwise a segfault will occur
+
+        """
+        cdef double pk
+        cdef double pk_cb
+        cdef double pk_velo
+        cdef double pk_cross
+        cdef int dummy
+
+        # Quantities for the isocurvature modes
+        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError(
+                "No power spectrum computed. You must add mPk to the list of outputs."
+                )
+        if (self.ba.Omega0_ncdm_tot == 0.):
+            raise CosmoSevereError(
+                "No massive neutrinos. You must use pk_lin, rather than pk_cb_lin."
+                )
+
+        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
+            raise CosmoSevereError(self.sp.error_message)
+
+        free(pk_ic)
+        free(pk_cb_ic)
+        return pk_cb
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
@@ -771,6 +853,17 @@ cdef class Class:
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
+    def get_pk_cb(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+        """ Fast function to get the power spectrum on a k and z array """
+        cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
+        cdef int index_k, index_z, index_mu
+
+        for index_k in xrange(k_size):
+            for index_z in xrange(z_size):
+                for index_mu in xrange(mu_size):
+                    pk_cb[index_k,index_z,index_mu] = self.pk_cb(k[index_k,index_z,index_mu],z[index_z])
+        return pk_cb
+
     def get_pk_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the linear power spectrum on a k and z array """
         cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
@@ -781,6 +874,17 @@ cdef class Class:
                 for index_mu in xrange(mu_size):
                     pk[index_k,index_z,index_mu] = self.pk_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk
+
+    def get_pk_cb_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+        """ Fast function to get the linear power spectrum on a k and z array """
+        cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
+        cdef int index_k, index_z, index_mu
+
+        for index_k in xrange(k_size):
+            for index_z in xrange(z_size):
+                for index_mu in xrange(mu_size):
+                    pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
+        return pk_cb
 
     # Gives sigma(R,z) for a given (R,z)
     def sigma(self,double R,double z):
@@ -807,15 +911,16 @@ cdef class Class:
                 "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
                 )
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,R,z,&sigma)==_FAILURE_:
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,_FALSE_,R,z,&sigma)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma
 
-    #similar to sigma(R,z) but gives sigma as calculated in nonlinear.c (and not in spectra.c) 
-    def nonlinear_hmcode_sigma(self,double R,double z):
+    # Gives sigma(R,z) for a given (R,z)
+    def sigma_cb(self,double R,double z):
         """
-        Gives hmcode_sigma for a given R and z
+        Gives the pk for a given R and z
+
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
 
         .. note::
@@ -823,6 +928,29 @@ cdef class Class:
             there is an additional check to verify whether output contains `mPk`,
             and whether k_max > ...
             because otherwise a segfault will occur
+        """
+        
+        cdef double sigma_cb
+        
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError(
+                "No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs."
+                )
+
+        if (self.pt.k_max_for_pk < self.ba.h):
+            raise CosmoSevereError(
+                "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
+                )
+
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,_TRUE_,R,z,&sigma_cb)==_FAILURE_:
+                 raise CosmoSevereError(self.sp.error_message)
+
+        return sigma_cb
+        
+    #similar to sigma(R,z) but gives sigma as calculated in nonlinear.c (and not in spectra.c) 
+    def nonlinear_hmcode_sigma(self,double R,double z):
+        """
+        Gives hmcode_sigma for a given R and z
 
         """
         cdef double sigma_R
@@ -841,6 +969,7 @@ cdef class Class:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma_R
+    
     #calculates the hmcode window_function of the Navarrow Frenk White Profile
     def nonlinear_hmcode_window_nfw(self,double k,double rv,double c):
         """
@@ -855,6 +984,15 @@ cdef class Class:
 
         return window_nfw
 
+        if (self.ba.Omega0_ncdm_tot == 0.):
+            raise CosmoSevereError(
+                "No massive neutrinos. You must use sigma, rather than sigma_cb."
+                )
+
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,_TRUE_,R,z,&sigma_cb)==_FAILURE_:
+                 raise CosmoSevereError(self.sp.error_message)
+
+        return sigma_cb
 
     def age(self):
         self.compute(["background"])
@@ -1599,21 +1737,23 @@ cdef class Class:
                 Size of the redshift array
         """
         cdef int index_z
+        cdef int index_pk
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
         #cdef double *k_nl
-
+        index_pk=0
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z]) == _FAILURE_:
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl[index_z]) == _FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
 
         return k_nl
-
-    def nonlinear_hmcode_sigma8(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    
+    def nonlinear_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
         """
-        nonlinear_hmcode_sigma8(z, z_size)
+        nonlinear_scale_cb(z, z_size)
 
-        Return sigma_8 for all the redshift specified in z, of size
+        Return the nonlinear scale for all the redshift specified in z, of size
+        
         z_size
 
         Parameters
@@ -1624,6 +1764,26 @@ cdef class Class:
                 Size of the redshift array
         """
         cdef int index_z
+        cdef int index_pk
+        cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
+        #cdef double *k_nl
+        index_pk=1
+        #k_nl = <double*> calloc(z_size,sizeof(double))
+        for index_z in range(z_size):
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return k_nl_cb
+        
+    def nonlinear_hmcode_sigma8(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigma8(z, z_size)
+
+        Return sigma_8 for all the redshift specified in z, of size
+
+        """
+        cdef int index_z
+
         cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
 
         for index_z in range(z_size):
@@ -1739,9 +1899,19 @@ cdef class Class:
         """ Fast function to get the power spectrum on a k and z array """
         cdef int nonlinearint
         cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
         nonlinearint=1 if nonlinear else 0
-        spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, nonlinearint)
+        spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data, nonlinearint)
         return pk
+
+    def get_pk_cb_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
+        """ Fast function to get the power spectrum on a k and z array """
+        cdef int nonlinearint
+        cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
+        nonlinearint=1 if nonlinear else 0
+        spectra_fast_pk_at_kvec_and_zvec(&self.ba, &self.sp, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data, nonlinearint)
+        return pk_cb
 
     def Omega0_k(self):
         """ Curvature contribution """

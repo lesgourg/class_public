@@ -37,6 +37,9 @@ struct nonlinear {
 
   //@{
 
+  int pk_size;     /**< k_size = total number of pk: 1 (P_m) if no massive neutrinos, 2 (P_m and P_cb) if massive neutrinos are present*/
+  int index_pk_m;
+  int index_pk_cb;
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
@@ -44,10 +47,10 @@ struct nonlinear {
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values */
 
-  double * nl_corr_density;   /**< nl_corr_density[index_tau * ppt->k_size + index_k] */
-  double * k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
-  int index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
-
+  double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
+  double ** k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
+  int * index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
+  //int index_tau_min_nl_cb;
   //@}
 
 
@@ -113,6 +116,7 @@ extern "C" {
   int nonlinear_k_nl_at_z(
                           struct background *pba,
                           struct nonlinear * pnl,
+                          int index_pk,
                           double z,
                           double * k_nl
                           );
@@ -173,14 +177,13 @@ extern "C" {
 										 struct perturbs *ppt,
                      struct primordial *ppm,
                      struct nonlinear *pnl,
+                     int index_pk,
                      int index_tau,
                      double *pk_l,
-                     double *pk_l_bc,
                      double *lnk,
                      double *lnpk,
-                     double *ddlnpk,
-                     double *lnpk_bc,
-                     double *ddlnpk_bc);
+                     double *ddlnpk
+                     );
 
   int nonlinear_halofit(
                         struct precision *ppr,
@@ -188,6 +191,7 @@ extern "C" {
                         struct perturbs *ppt,
                         struct primordial *ppm,
                         struct nonlinear *pnl,
+                        int index_pk,
                         double tau,
                         double *pk_l,
                         double *pk_nl,
@@ -218,15 +222,14 @@ extern "C" {
                       struct perturbs *ppt, 
                       struct primordial *ppm,
                       struct nonlinear *pnl,
+                      int index_pk,
                       int index_tau,
                       double tau,
                       double *pk_l,                   
                       double *pk_nl,
-                      double *lnk_l,
-                      double *lnpk_l,
-                      double *ddlnpk_l,
-                      double *lnpk_l_bc,
-                      double *ddlnpk_l_bc,
+                      double **lnk_l,
+                      double **lnpk_l,
+                      double **ddlnpk_l,
                       double *k_nl,
                       enum nonlinear_statement * nonlinear_found_k_max                      
                       );

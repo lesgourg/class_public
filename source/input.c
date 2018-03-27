@@ -936,20 +936,6 @@ int input_read_parameters(
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
-  /*if (pba->Omega0_ncdm_tot != 0.0){
-     class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
-                errmsg,
-                errmsg);
-     if (flag1 == _TRUE_){
-      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
-        ppt->pk_only_cdm_bar = _TRUE_;
-      }
-      else {
-        ppt->pk_only_cdm_bar = _FALSE_;
-      }
-    }
-  }*/
-
   /** - Omega_0_k (effective fractional density of curvature) */
   class_read_double("Omega_k",pba->Omega0_k);
   /** - Set curvature parameter K */
@@ -1349,7 +1335,7 @@ int input_read_parameters(
       ppt->has_pk_matter=_TRUE_;
       ppt->has_perturbations = _TRUE_;
 
-      if (pba->Omega0_ncdm_tot != 0.0){
+      /*if (pba->Omega0_ncdm_tot != 0.0){
           class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
                      errmsg,
                      errmsg);
@@ -1361,7 +1347,7 @@ int input_read_parameters(
                   ppt->pk_only_cdm_bar = _FALSE_;
               }
           }
-      }
+      }*/
 
     }
 
@@ -3115,7 +3101,7 @@ int input_default_params(
   ppt->has_nc_lens = _FALSE_;
   ppt->has_nc_gr = _FALSE_;
 
-  ppt->pk_only_cdm_bar=_FALSE_;
+  //ppt->pk_only_cdm_bar=_FALSE_;
 
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;

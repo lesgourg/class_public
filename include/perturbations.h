@@ -144,8 +144,6 @@ struct perturbs
   short has_nc_lens;     /**< in dCl, do we want lensing terms ? */
   short has_nc_gr;       /**< in dCl, do we want gravity terms ? */
 
-  short pk_only_cdm_bar; /**< do you want P(k) defined only by cold dark matter and baryons, without neutrinos?*/
-
   int l_scalar_max; /**< maximum l value for CMB scalars \f$ C_l \f$'s */
   int l_vector_max; /**< maximum l value for CMB vectors \f$ C_l \f$'s */
   int l_tensor_max; /**< maximum l value for CMB tensors \f$ C_l \f$'s */
