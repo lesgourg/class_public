@@ -528,7 +528,7 @@ int background_init(
 
   /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
-    printf("Running CLASS version %s\n",_VERSION_);
+    printf("Running ExoCLASS version %s\n",_VERSION_);
     printf("Computing background\n");
 
     /* below we want to inform the user about ncdm species*/

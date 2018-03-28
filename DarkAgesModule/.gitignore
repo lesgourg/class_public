@@ -8,4 +8,11 @@
 *.obj
 
 # ignore the html of the documentation. (The users can compile it by themselves)
-sphinx-documentation/_build/                                                                                                                                           sphinx-documentation/_static/
+sphinx-documentation/_build/
+sphinx-documentation/_static/
+
+# ignore the data tables (.dat)
+*.dat
+
+# ignore the Checkpoints of the Jupyter (IPython) notebooks in examples.
+examples/.ipynb_checkpoints
