@@ -3128,7 +3128,7 @@ int input_default_precision ( struct precision * ppr ) {
    */
   ppr->smallest_allowed_variation=DBL_EPSILON;
   
-  get_machine_precision(&(ppr->smallest_allowed_variation));
+  //get_machine_precision(&(ppr->smallest_allowed_variation));
 
   class_test(ppr->smallest_allowed_variation < 0,
              ppr->error_message,
