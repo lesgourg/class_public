@@ -2650,6 +2650,11 @@ int input_read_parameters(
 
   }
 
+  /**
+   * Here we can place all obsolete (deprecated) names for the precision parameters, 
+   *  so they will still get read.
+   * The new parameter names should be used preferrably
+   * */
   class_read_double("k_scalar_min_tau0",ppr->k_min_tau0); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_max_tau0_over_l_max_cmb); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_step_sub",ppr->k_step_sub); // obsolete precision parameter: read for compatibility with old precision files
