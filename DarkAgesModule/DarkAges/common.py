@@ -1,6 +1,6 @@
 u"""
 .. module:: common
-   :synopsis: Provide helper functions for the calculation of f(z)
+   :synopsis: Provide helper and convenience functions.
 .. moduleauthor:: Patrick Stoecker <stoecker@physik.rwth-aachen.de>
 
 Collection of functions needed to calculate the energy deposition.
@@ -17,6 +17,8 @@ from .__init__  import DarkAgesError, print_warning, get_background
 ###############################
 ### Definition of functions ###
 ###############################
+
+### Convenience functions ###
 
 def logConversion( log_array , base=10 ):
 	u"""Returns :code:`pow(base, entry)` on every entry in :code:`log_array`
@@ -40,33 +42,30 @@ def logConversion( log_array , base=10 ):
 		return base**single_log10_num
 	return np.vectorize(dummy).__call__(log_array)
 
-#def simple_H(redshift, H0 = None, Omega_M = None):
-#	u"""Returns the Hubble parameter at given redshift in a purely matter
-#	dominated universe.
-#
-#	.. note::
-#		This function is not used in the standard calculations of this package
-#
-#	Parameters
-#	----------
-#	redshift : :obj:`array-like`
-#		Array (:code:`shape = (k)`) of values :math:`z+1`
-#	H0 : :obj:`float`, *optional*
-#		Todays Hubble parameter **(in units of 1/s)**. If not given the standard
-#		PLANCK-bestfit value (:math:`H_0 = 67.27\\; \\mathrm{km} /\\mathrm{Mpc\\,s}`) is assumed.
-#	Omega_M : :obj:`float`, *optional*
-#		Todays matter fraction. If not given the standard PLANCK-bestfit value
-#		(:math:`\\Omega_\\mathrm{matter} = 0.315`) is assumed.
-#
-#	Returns
-#	-------
-#	:obj:`array-like`
-#		Array (:code:`shape = (k)`) of Hubble parameters at the redshifts given in :code:`redshift`.
-#	"""
-#
-#	if H0 is None: H0 = get_background('H0')
-#	if Omega_M is None: Omega_M = get_background('Omega_m')
-#	return H(redshift, H0=H0, Omega_M=Omega_M, Omega_R = 0.)
+def nan_clean( input_array ):
+	u"""Returns the input where all invalid entries (NaN, infinity, ..) are
+	replaced with zero.
+
+	Parameters
+	----------
+	input_array : :obj:`array-like`
+		Array with potentially invalid numerical entries
+		(:code:`NaN`, :code:`infinity`,..)
+
+	Returns
+	-------
+	:obj:`array-like`
+		Copy of :code:`input_array` with all invalid entries replaced by zero.
+	"""
+
+	def dummy( single_input ):
+		if abs(single_input) < np.inf:
+			return single_input
+		else:
+			return 0.
+	return np.vectorize(dummy).__call__(input_array)
+
+### Cosmological evolution H(z) and t(z) ###
 
 def H(redshift, H0 = None, Omega_M = None, Omega_R = None):
 	u"""Returns the Hubble parameter at given redshift
@@ -83,7 +82,7 @@ def H(redshift, H0 = None, Omega_M = None, Omega_R = None):
 		(:math:`\\Omega_\\mathrm{matter} = 0.315`) is assumed.
 	Omega_R : :obj:`float`, *optional*
 		Todays radiation fraction. If not given the standard PLANCK-bestfit value
-		(:math:`\\Omega_\\mathrm{radiation} = 8\\cdot10^{-5}`) is assumed.
+		(:math:`\\Omega_\\mathrm{radiation} = 8\\cdot 10^{-5}`) is assumed.
 
 	Returns
 	-------
@@ -116,7 +115,7 @@ def time_at_z(redshift, H0 = None, Omega_M = None, Omega_R = None):
 		(:math:`\\Omega_\\mathrm{matter} = 0.315`) is assumed.
 	Omega_R : :obj:`float`, *optional*
 		Todays radiation fraction. If not given the standard PLANCK-bestfit value
-		(:math:`\\Omega_\\mathrm{radiation} = 8\\cdot10^{-5}`) is assumed.
+		(:math:`\\Omega_\\mathrm{radiation} = 8\\cdot 10^{-5}`) is assumed.
 
 	Returns
 	-------
@@ -156,47 +155,9 @@ def conversion( redshift, alpha=3 ):
 
 	return ( redshift**alpha / H(redshift) )
 
-def nan_clean( input_array ):
-	u"""Returns the input where all invalid entries (NaN, infinity, ..) are
-	replaced with zero.
+### Main method to calculate f(z) following eq. (2.14() of 1801.01871
 
-	Parameters
-	----------
-	input_array : :obj:`array-like`
-		Array with potentially invalid numerical entries
-		(:code:`NaN`, :code:`infinity`,..)
-
-	Returns
-	-------
-	:obj:`array-like`
-		Copy of :code:`input_array` with all invalid entries replaced by zero.
-	"""
-
-	def dummy( single_input ):
-		if abs(single_input) < np.inf:
-			return single_input
-		else:
-			return 0.
-	return np.vectorize(dummy).__call__(input_array)
-
-#def get_index( array, entry ):
-#	u"""Returns the index of the first occurence of a specific entry in a given array.
-#
-#	Parameters
-#	----------
-#	array : :obj:`array-like`
-#		Array to search in
-#	entry : :obj:`float`, :obj:`int`
-#		Entry to search for
-#
-#	Returns
-#	-------
-#	:obj:`int`
-#		Index of the first occurence of :code:`entry` in :code:`array`.
-#	"""
-#	return np.where(array == entry)[0][0].astype(np.int32)
-
-def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
+def f_function(transfer_functions_log10E, log10E, z_inj, z_dep, normalization,
                transfer_phot, transfer_elec,
                spec_phot, spec_elec, alpha=3, **DarkOptions):
 	u"""Returns the effective efficiency factor :math:`f_c (z)`
@@ -205,14 +166,15 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 	This method calculates the effective efficiency factor in dependence
 	of the redshift
 
-	......WRITE HERE .....
+	In doing so the integral given in eq. (2.14) of `1801.01871 <https://arxiv.org/abs/1801.01871>`_ is performed.
 
 	Parameters
 	----------
-	transfer_functions_E : :obj:`array-like`
+	transfer_functions_log10E : :obj:`array-like`
 		Array (:code:`shape = (l)`) containing the energy at which transfer functions are known (for interpolation)
-	logE : :obj:`array-like`
-		Array (:code:`shape = (l)`) of the logarithms (to the base 10) of the kinetic energies of the particles at which spectrum and transfer functions will be evaluated (in units of eV)
+	log10E : :obj:`array-like`
+		Array (:code:`shape = (l')`) of the logarithms (to the base 10) of the kinetic
+		energies of the particles at which spectrum and transfer functions will be evaluated (in units of eV)
 	z_inj : :obj:`array-like`
 		Array (:code:`shape = (m)`) of the values :math:`z_\\mathrm{inj.}` at which the energy
 		was injected (e.g. by annihilation or decay)
@@ -229,10 +191,10 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 		Array (:code:`shape = (k,l,m)`) containing the discretized transfer functions
 		:math:`T^\\mathrm{elec.}_{klm}` for electrons and positrons
 	spec_phot : :obj:`array-like`
-		Array (:code:`shape = (l,m)`) containing the double differential spectrum
+		Array (:code:`shape = (l',m)`) containing the double differential spectrum
 		:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of photons
 	spec_elec : :obj:`array-like`
-		Array (:code:`shape = (l,m)`) containing the double differential spectrum
+		Array (:code:`shape = (l',m)`) containing the double differential spectrum
 		:math:`\\frac{\\mathrm{d}^2 N}{ \\mathrm{d}E \\mathrm{d}t }` of electrons
 		and positrons.
 	alpha : :obj:`int`, :obj:`float`, *optional*
@@ -246,7 +208,7 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 		Array (:code:`shape = (k)`) of :math:`f_c (z)` at the redshifts of
 		deposition given in :code:`z_dep`
 	"""
-	E = logConversion(logE)
+	E = logConversion(log10E)
 	how_to_integrate = DarkOptions.get('E_integration_scheme','logE')
 	if how_to_integrate not in ['logE','energy']:
 		from .__init__ import DarkAgesError
@@ -254,8 +216,8 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 	if len(E) == 1: how_to_integrate = 'energy' # Handling of a dirac-spectrum is inside the integration part w.r.t energy
 	norm = ( conversion(z_dep,alpha=alpha) )*( normalization )
 
-	if (len(logE) == len(transfer_functions_E)):
-		if np.any(abs(logE - transfer_functions_E) <= 1e-9*logE):
+	if (len(log10E) == len(transfer_functions_log10E)):
+		if np.any(abs(log10E - transfer_functions_log10E) <= 1e-9*log10E):
 			need_to_interpolate = False
 		else:
 			need_to_interpolate = True
@@ -263,7 +225,7 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 		need_to_interpolate = True
 
 	energy_integral = np.zeros( shape=(len(z_dep),len(z_inj)), dtype=np.float64)
-	Enj = logConversion(transfer_functions_E)
+	Enj = logConversion(transfer_functions_log10E)
 	for i in xrange(len(energy_integral)):
 		if how_to_integrate == 'logE':
 			for k in xrange(i,len(energy_integral[i])):
@@ -271,17 +233,17 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
 					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
 				else:
-					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
-					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
-				energy_integral[i][k] = trapz( int_phot + int_elec, logE )
+					int_phot = evaluate_transfer(Enj,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**2)/np.log10(np.e)
+					int_elec = evaluate_transfer(Enj,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**2)/np.log10(np.e)
+				energy_integral[i][k] = trapz( int_phot + int_elec, log10E )
 		elif how_to_integrate == 'energy':
 			for k in xrange(i,len(energy_integral[i])):
 				if not need_to_interpolate:
 					int_phot = transfer_phot[i,:,k]*spec_phot[:,k]*(E[:]**1)
 					int_elec = transfer_elec[i,:,k]*spec_elec[:,k]*(E[:]**1)
 				else:
-					int_phot = evaluate_transfer(transfer_functions_E,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**1)
-					int_elec = evaluate_transfer(transfer_functions_E,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**1)
+					int_phot = evaluate_transfer(Enj,transfer_phot[i,:,k],E)*spec_phot[:,k]*(E[:]**1)
+					int_elec = evaluate_transfer(Enj,transfer_elec[i,:,k],E)*spec_elec[:,k]*(E[:]**1)
 				if len(E) > 1:
 					energy_integral[i][k] = trapz( int_phot + int_elec, E )
 				else:
@@ -304,19 +266,56 @@ def f_function(transfer_functions_E, logE, z_inj, z_dep, normalization,
 
 	return result
 
-def evaluate_transfer(transfer_functions_E,transfer,E):
-	Enj = logConversion(transfer_functions_E)
-	result = np.zeros_like(E)
-	transfer_interpolation = lambda logE : np.interp(logE,transfer_functions_E,np.log1p(transfer))
-	mask1 = np.logical_and( (E > Enj[0]), (E < Enj[-1]) )
-	result[mask1] = np.expm1(transfer_interpolation(np.log10(E[mask1])))
-	mask2 = np.logical_and( (E <= Enj[0]), (E >= 10.2) )
-	result[mask2] = transfer[0]
-	mask3  = E < 10.2
+def evaluate_transfer(E_original, transfer_function ,E_interp):
+	u"""Takes the transfer functions :math:`T(z_\\mathrm{dep.}, E, z_\\mathrm{inj.})`
+	(for fixed :math:`z_\\mathrm{dep.}` and :math:`z_\\mathrm{inj.}`) defined at the
+	energies given in :code:`E_original` and interpolates them at the energies
+	given in :code:`E_interp`.
+
+	If the energy is within the bound of the original array the interpolation is performed.
+	Outside this bounds the transfer functions are assumed to have constant value, i.e.
+	for energies bigger then :code:`max(E_original)` the value of the transfer functions
+	at :code:`max(E_original)` is taken and vice versa for energies smaller than
+	:code:`min(E_original)`, but bigger than :math:`10.2\\,\\mathrm{eV}`.
+	If the erngz is below :math:`10.2\\,\\mathrm{eV}` the particles cannot deposit
+	their energy, hence the transfer function is zero.
+
+	Parameters
+	----------
+	E_original : :obj:`array-like`
+		Array (:code:`shape = (k)`) containing the energies (in units of :math:`eV`)
+		at wich the transfer functions in :code:`transfer_function` are defined.
+	transfer_function : :obj:`array-like`
+		Array (:code:`shape = (k)`) containing the values of math:`T(z_\\mathrm{dep.}, E, z_\\mathrm{inj.})`
+		with fixed :math:`z_\\mathrm{dep.}` and :math:`z_\\mathrm{inj.}` at the energies
+		given in :code:`E_original`
+	E_interp : :obj:`array-like`
+		Array (:code:`shape = (l)`) with the enrgies at which the transfer function should be sampled.
+
+	Returns
+	-------
+	:obj:`array-like`
+		Array (:code:`shape = (l)`) containing the interpolated values of the transfer
+		functions at the energies specified in :code:`E_interp`
+	"""
+
+	log10E_original = np.log10(E_original)
+	result = np.zeros_like(E_interp)
+
+	transfer_interpolation = lambda log10E_interp : np.interp(log10E_interp,log10E_original,np.log1p(transfer_function))
+
+	mask1 = np.logical_and( (E_interp > E_original[0]), (E_interp < E_original[-1]) )
+	result[mask1] = np.expm1(transfer_interpolation(np.log10(E_interp[mask1])))
+	mask2 = np.logical_and( (E_interp <= E_original[0]), (E_interp >= 10.2) )
+	result[mask2] = transfer_function[0]
+	mask3  = E_interp < 10.2
 	result[mask3] = 0.
-	mask4 =  E >= Enj[-1]
-	result[mask4] = transfer[-1]
+	mask4 =  E_interp >= E_original[-1]
+	result[mask4] = transfer_function[-1]
+
 	return result
+
+### Convenience functions for the interpolation method ####
 
 def log_fit(points,func,xgrid,exponent=1,scale='lin-log'):
 	u"""Returns an array of interpolated points using the
@@ -446,8 +445,8 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 	norm *= scale_dict[scale][0]
 	input_log10E += scale_dict[scale][2]*np.ones_like(input_log10E).astype(np.float64)
 	# Check if the spectrum is normalized to "integral(E*dN/dE dE) = norm , where norm is chosen depending on the injection history"
-	#    If not and the integral is non_zero, rescale the spectrum, if the spectrum is zero (e.g. being in a kinematically forbidden regioern of param space)
-	#    return a zero_spectrum
+	# If not and the integral is non_zero, rescale the spectrum, if the spectrum is zero (e.g. being in a kinematically forbidden regioern of param space)
+	# return a zero_spectrum
 	if spec_type == 'dN/dE':
 		factor1 = logConversion(input_log10E)**2*np.log(10)
 		factor2 = np.ones_like(input_log10E).astype(np.float64)
@@ -472,16 +471,14 @@ def sample_spectrum(input_spec_el, input_spec_ph, input_spec_oth, input_log10E, 
 		out_el = np.maximum(out_el, np.zeros_like(out_el))
 		out_ph = np.maximum(out_ph, np.zeros_like(out_ph))
 		out_oth = np.maximum(out_oth, np.zeros_like(out_oth))
-		#second_rescaling = trapz( (out_el+out_ph+out_oth)*logConversion(sampling_log10E)**2*np.log(10), sampling_log10E ) / norm
-		#out_el /= second_rescaling
-		#out_ph /= second_rescaling
-		#out_oth /= second_rescaling
 	else:
 		out_el = np.zeros_like(sampling_log10E).astype(np.float64)
 		out_ph = np.zeros_like(sampling_log10E).astype(np.float64)
 		out_oth = np.zeros_like(sampling_log10E).astype(np.float64)
 
 	return np.array([out_el, out_ph, out_oth])
+
+### Producing the output to be interpreted by CLASS
 
 def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **DarkOptions):
 	u"""Prints the table of redshift and :math:`f_c(z)` for the deposition
@@ -507,7 +504,7 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **DarkOptions):
 		+-------+------+-----+-------+--------+------+
 
 		Please make sure that all other message printed are silenced or
-		at least covered by '#' (see :meth:`print_info`)
+		at least covered by '#' (see :meth:`print_info <DarkAges.__init__.print_info>`)
 
 	Parameters
 	----------
@@ -517,7 +514,7 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **DarkOptions):
 		:math:`z+1`
 	f_heat : :obj:`array-like`
 		Array (:code:`shape = (k)`) with the values of the effective efficiency factor
-		for the deposition channel *Haeting* at the redshifts given by :code:`redshift`
+		for the deposition channel *Heating* at the redshifts given by :code:`redshift`
 	f_lya : :obj:`array-like`
 		As :code:`f_heat` but for the deposition channel *Ly-a excitation*
 	f_ionH : :obj:`array-like`

@@ -62,14 +62,30 @@ cosmological background parameters
    The mass of the DM candidate (*Here: 65*) in units of :math:`\mathrm{GeV}`, :math:`\mathrm{g}`, :math:`\mathrm{M_\mathrm{sun}}` depending 
    on the specified type injection history. This parameter is obligatory for the *"Live calculation mode"* (see below).  
 
-:code:`--tdec 1e17`
-   Lifetime of the DM candidate in units of :math:`\mathrm{s}^{-1}`.
-   This is obligatory for the :code:`decay`-history. For the other cases this parameter will not be considered.
-
 :code:`--hist annihilation`
    The injection history. This is needed to apply the correct redshift dependence on the injection spectra and
    the scaling of the number density with redshift. This parameter is optional. Per default :code:`annihilation`
-   is taken. The valid options are :code:`annihilation`, :code:`decay`, or :code:`PBH`
+   is taken. The valid options are :code:`annihilation`, :code:`decay`, :code:`evaporating_PBH`, or 
+   :code:`accreting_PBH`
+
+   Depending on the injection history in question additional input parameters must be specified.
+   If they are missing an error will be raised. Vice versa, if one of those inputs is given but
+   the respective injection history is not asked, they will be ignored.
+ 
+   :code:`--tdec=1e17`
+      Lifetime of the DM candidate in units of :math:`\mathrm{s}^{-1}`.
+      This is obligatory for the :code:`decay`-history. For the other cases this parameter will not be considered.
+
+   :code:`--accretion_recipe=spherical_accretion`
+      If heavy (accreting) primordial black holes are considered (:code:`--hist=accreting_PBH`), the 
+      accretion recipe to compute the injected enrgy rate needs to be specified. The options are
+      :code:`spherical_accretion` or :code:`disk_accretion`. For details of these recipes see section 2.2 
+      of the ExoCLASS-paper and the references there.
+
+   :code:`--fh=30` and :code:`--zh=10`
+      If boosted dark matter annihilation within halos is considered, the parameters :math:`f_h` and
+      :math:`z_h` for the parametrization of of the boost factor :math:`\mathcal{B}(z)` need to be specified.
+    
 
 :code:`--use-background 67 0.3 8e-5`
    Throughout the code, for example for the convolution with the transfer functions,
@@ -80,6 +96,15 @@ cosmological background parameters
 :code:`--extra-options options.yaml`
    File with additional parameters and options, like precision parameters, passed to the methods of :code:`DarkAges` (as part of the
    :code:`DarkOptions`-structure). This file needs to written in the structure of YAML.
+
+:code:`--nuke-and-start-again`
+   Whenever it is possible data read from tables, like the transfer functions or particle spectra will be stored with the 
+   help of the :meth:`load` and :meth:`dump` methods of the :code:`dill` module in :code:`.obj` files. With this, the runtime
+   of the code can be minimized when it is run several times, like in the context of using the ExoCLASS package in conjunction
+   with MontePython.
+   The code tries to search for these files and if nothing is found it will read the data and write the respective files.
+   With this option, the script is forced to restart from scratch, hence the search for the :code:`.obj` is skipped and
+   the data will be read again. 
 
 
 The three execution modes

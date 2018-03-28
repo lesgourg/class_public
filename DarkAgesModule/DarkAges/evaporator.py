@@ -30,7 +30,7 @@ functions:
 import numpy as np
 
 from .common import time_at_z, logConversion, H, nan_clean
-from .__init__ import DarkAgesError, get_redshift, print_warning
+from .__init__ import DarkAgesError, get_redshift
 from scipy.integrate import odeint as solve_ode
 from scipy.integrate import trapz
 
@@ -166,7 +166,7 @@ def PBH_F_of_M( PBH_mass, *particles, **DarkOptions ):
 			sigmoid_factor = values[6]
 			ret += _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor, **DarkOptions)
 		else:
-			print_warning('The particle "{:s}" is not recognized'.format(particle))
+			raise DarkAgesError('The particle "{:s}" is not recognized'.format(particle))
 
 	return ret
 

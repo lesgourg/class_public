@@ -24,7 +24,7 @@ for the most common energy injection histories.
 
 from .transfer import transfer
 from .common import f_function
-from .__init__ import DarkAgesError, get_logEnergies, get_redshift, print_info, print_warning
+from .__init__ import DarkAgesError, get_logEnergies, get_redshift, print_info
 import numpy as np
 
 class model(object):
@@ -55,7 +55,7 @@ class model(object):
 			Exponent to specify the comoving scaling of the
 			injected spectra.
 			(3 for annihilation and 0 for decaying species
-			`c.f. ArXivXXXX.YYYY <https://arxiv.org/abs/XXXX.YYYY>`_).
+			`c.f. ArXiv1801.01871 <https://arxiv.org/abs/1801.01871>`_).
 			If not specified annihilation is assumed.
 		"""
 
@@ -167,7 +167,10 @@ class annihilating_model(model):
 		if norm_by == 'energy_integral':
 			from .common import trapz, logConversion
 			E = logConversion(logEnergies)
-			normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+			if len(E) > 1:
+				normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+			else:
+				normalization = (tot_spec*E)[0]
 		elif norm_by == 'mass':
 			normalization = np.ones_like(redshift)*(2*m)
 		else:
@@ -200,7 +203,10 @@ class annihilating_halos_model(model):
 		if norm_by == 'energy_integral':
 			from .common import trapz, logConversion
 			E = logConversion(logEnergies)
-			normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+			if len(E) > 1:
+				normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+			else:
+				normalization = (tot_spec*E)[0]
 		elif norm_by == 'mass':
 			normalization = np.ones_like(redshift)*(2*m)
 		else:
@@ -273,7 +279,10 @@ class decaying_model(model):
 		if norm_by == 'energy_integral':
 			from .common import trapz, logConversion
 			E = logConversion(logEnergies)
-			normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+			if len(E) > 1:
+				normalization = trapz(tot_spec*E**2*np.log(10), logEnergies)*np.ones_like(redshift)
+			else:
+				normalization = (tot_spec*E)[0]
 		elif norm_by == 'mass':
 			normalization = np.ones_like(redshift)*(m)
 		else:

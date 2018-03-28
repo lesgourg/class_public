@@ -43,6 +43,13 @@ class transfer(object):
 		self.transfer_phot = data[4].reshape(l1,l2,l3).astype(np.float64)
 		self.transfer_elec = data[3].reshape(l1,l2,l3).astype(np.float64)
 
+	def __neg__(self):
+		import copy
+		negself = copy.deepcopy(self)
+		negself.transfer_phot = -self.transfer_phot
+		negself.transfer_elec = -self.transfer_elec
+		return negself
+
 def transfer_dump(transfer_instance, outfile):
 	u"""Stores a initialized instance of the :class:`transfer <DarkAges.transfer.transfer>`
 	-class in file using the dump method of :class:`dill`.

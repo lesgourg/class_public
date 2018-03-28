@@ -267,12 +267,17 @@ def loading_from_specfiles(fnames, transfer_functions, mass,  logEnergies=None, 
 
 	else:
 		spectra = np.empty(shape=(3,1,len(fnames)), dtype=np.float64)
-		logEnergies = np.ones((1,1))*np.log10(1e9*mass)
+		if hist == 'decay':
+			logEnergies = np.ones((1,1))*np.log10(1e9*0.5*mass)
+		elif hist == 'annihilation' or hist =='annihilation_halos':
+			logEnergies = np.ones((1,1))*np.log10(1e9*mass)
+		else:
+			raise DarkAgesError('The \'dirac-mode\' is not compatible with the history "{:s}". I am so sorry.'.format(hist))
 		for idx, fname in enumerate(fnames):
 			if fname == 'Dirac_electron' or fname == 'dirac_electron':
-				spectra[:,:,idx] = np.array([1.,0.,0.]).reshape(3,1)
+				spectra[:,:,idx] = np.array([2.,0.,0.]).reshape(3,1)
 			elif fname == 'Dirac_photon' or fname == 'dirac_photon':
-				spectra[:,:,idx] = np.array([0.,1.,0.]).reshape(3,1)
+				spectra[:,:,idx] = np.array([0.,2.,0.]).reshape(3,1)
 			else:
 				raise DarkAgesError('I could not interpret the spectrum-input >>{0}<< in combination with dirac-like injection spectra.'.format(fname))
 		tot_spec = np.tensordot(spectra, branchings, axes=(2,0))
