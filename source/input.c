@@ -270,34 +270,6 @@ int input_init(
       }
     }
   }
-  // class_call(parser_read_double(pfc,
-  //                               "f_ini_dcdm",
-  //                               &param1,
-  //                               &flag1,
-  //                               errmsg),
-  //            errmsg,
-  //            errmsg);
-  //
-  // if (flag1 == _TRUE_){
-  //   /** input_auxillary_target_conditions() takes care of the case where for
-  //       instance Omega_dcdmdr is set to 0.0.
-  //    */
-  //   index_target = 5;
-  //   class_call(input_auxillary_target_conditions(pfc,
-  //                                                index_target,
-  //                                                param1,
-  //                                                &aux_flag,
-  //                                                errmsg),
-  //              errmsg, errmsg);
-  //   if (aux_flag == _TRUE_){
-  //     printf("Found target: %s\n",target_namestrings[index_target]);
-  //     target_indices[unknown_parameters_size] = index_target;
-  //     fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
-  //     unknown_parameters_size++;
-  //   }
-  //   fprintf(stdout, "index_target = %d\n",index_target );
-  //
-  // }
 
   /** - case with unknown parameters */
   if (unknown_parameters_size > 0) {
@@ -345,25 +317,8 @@ int input_init(
       fzw.unknown_parameters_index[counter]=pfc->size+counter;
       // substitute the name of the target parameter with the name of the corresponding unknown parameter
       strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
-      //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
     }
-    // class_call(parser_read_double(pfc,
-    //                               "f_ini_dcdm",
-    //                               &param1,
-    //                               &flag1,
-    //                               errmsg),
-    //          errmsg,
-    //          errmsg);
-    // if (flag1 == _TRUE_){
-    //   // store name of target parameter
-    //   fzw.target_name[counter] = index_target;
-    //   // store target value of target parameter
-    //   fzw.target_value[counter] = param1;
-    //   fzw.unknown_parameters_index[counter]=pfc->size+counter;
-    //   // substitute the name of the target parameter with the name of the corresponding unknown parameter
-    //   strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
-    //   //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
-    // }
+
 
     if (unknown_parameters_size == 1){
       /* We can do 1 dimensional root finding */
@@ -861,33 +816,6 @@ int input_read_parameters(
   pba->tau_dcdm = param2;
   // fprintf(stdout, "you have chosen Gamma = %e*H0, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_)/67,param2);
   }
-
-  /** Input parameters relative to DM-baryon scattering */
-  class_read_double("u_gcdm",pth->u_gcdm); /** interaction rate */
-
-  /** Input parameters relative to excited DM-gamma scattering */
-  class_read_double("beta_gcdm",pth->beta_gcdm); /** The energy splitting (in unit of T0) */
-  class_read_double("alpha_gcdm_eV",pth->alpha_gcdm); /** One can pass either alpha_gcdm_eV = a_0 A_21 E_21^2 / (6 m_xhi T_0) (in eV) */
-  class_read_double("A_21_over_mchi",pth->A_21_over_mchi); /**  or the transition rate over the DM mass A_21 / m_xhi (dimensionless)*/
-  class_test((pth->alpha_gcdm != 0) && (pth->A_21_over_mchi != 0),
-              errmsg,
-              "You have 'alpha_gcdm != 0 ' and 'A_21_over_mchi != 0'. Please, set either 'alpha_gcdm_eV != 0' (in eV) or the transition rate 'A_21_over_mchi != 0', not both.");
-  if(pth->A_21_over_mchi!= 0) pth->alpha_gcdm = pth->A_21_over_mchi*pth->beta_gcdm*pth->beta_gcdm*pba->T_cmb*8.625e-5/6;
-
-  pth->alpha_gcdm *= 0.15637*1.e30; //eV to Mpc^-1
-
-  // class_read_double("alpha_gcdm_eV",alpha_gcdm_eV);
-  // pth->alpha_gcdm = alpha_gcdm_eV;
-
-  class_test(((pth->u_gcdm != 0) || (pth->beta_gcdm != 0) || (pth->alpha_gcdm != 0)) && (ppt->gauge == synchronous),
-             errmsg,
-             "DM-gamma interactions in the synchronous gauge are not yet implemented. Please work in the newtonian gauge by setting 'gauge = newtonian' in your '.ini' file.");
-  class_test((pth->beta_gcdm == 0) && (pth->alpha_gcdm != 0),
-             errmsg,
-             "You have 'alpha_gcdm != 0 ' but 'pth->beta_gcdm == 0'. Please, either switch off excited DM-gamma scattering (alpha_gcdm = 0) or pick a value for the energy splitting (beta_gcdm != 0).");
-  class_test((pth->beta_gcdm != 0) && (pth->alpha_gcdm == 0),
-             errmsg,
-             "You have 'beta_gcdm != 0 ' but 'pth->alpha_gcdm == 0'. Please, either switch off excited DM-gamma scattering (beta_gcdm = 0) or pick a value for the transition rate (alpha_gcdm_eV != 0 in eV or A_21_over_mchi != 0).");
 
   /** - non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -1526,6 +1454,9 @@ int input_read_parameters(
   class_test(pth->recombination==cosmorec && pth->PBH_evaporating_mass!= 0.,
                errmsg,
                "Effect of evaporating PBH cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
+  class_test(pth->recombination==cosmorec && pth->decay_fraction!= 0.,
+               errmsg,
+               "Effect of decaying DM cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
   class_test(pth->annihilation>0. && pth->annihilation_cross_section >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
@@ -3665,10 +3596,6 @@ int input_default_params(
   pth->PBH_accretion_eigenvalue = 0.1; //Standard value in the ADAF scenario choose as benchmark.
   pth->PBH_relative_velocities = -1 ; //Standard value is the linear result extrapolated to PBH.
   pth->energy_repart_coefficient = GSVI;
-  pth->u_gcdm=0.;
-  pth->beta_gcdm=0.;
-  pth->alpha_gcdm=0.;
-  pth->A_21_over_mchi=0.;
   pth->Lambda_over_theoritical_Lambda = 1.;
 
   /** Tables specific to evaporating PBH */
