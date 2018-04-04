@@ -1,9 +1,0 @@
-*  additional, non-dipole transitions
-*  however, their effect is very small (~<10^-5)
-*  Lach & Pachucki (2001)
-*
-*  
-*   
-* n    Lower(nslj)  Upper(nslj)   Wave(A)        Elow(eV)        Eup(eV)       Aul(s-1)        f-value 
-1      1 0 0 0       2 1 0 1      0.0            0.0000000000   19.8196144273  1.272426e-04    0.0       
-2      1 0 0 0       2 1 1 2      0.0            0.0000000000   20.9640867681  3.270326e-01    0.0

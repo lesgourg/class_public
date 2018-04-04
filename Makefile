@@ -17,7 +17,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc
+CC       = gcc-7
 #CC       = icc
 #CC       = pgcc
 
@@ -38,7 +38,7 @@ OPTFLAG = -O4 -ffast-math #-march=native
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
-OMPFLAG   = -fopenmp
+#OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 #OMPFLAG   = -openmp
 
@@ -52,10 +52,10 @@ HYREC = HyRec_2017
 
 
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
-COSMOREC = 
-#COSMOREC = $(PWD)/cosmorec
+#COSMOREC = 
+COSMOREC = $(PWD)/cosmorec_lite
 GSL_LIB = /opt/local/lib/
-CC++ = g++-mp-6
+CC++ = g++-7
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -158,8 +158,8 @@ all: class libclass.a classy
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
-class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) -o class $(addprefix build/,$(notdir $^)) -lm $(LDFLAG)
+class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS) 
+	$(CC) $(OPTFLAG) $(OMPFLAG) -o class $(addprefix build/,$(notdir $^)) -lm $(LDFLAG) 
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm

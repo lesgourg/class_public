@@ -3876,8 +3876,8 @@ int input_default_precision ( struct precision * ppr ) {
   /*For energy injection from DM annihilation or decays */
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
   strcat(ppr->energy_injec_coeff_file,"/DarkAgesModule/GSVI_file.dat"); //Default correspond to the GSVI case
-  // sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
-  // strcat(ppr->energy_injec_f_eff_file,"/DM_Annihilation_files/f_z_withouthalos_electrons_100GeV.dat");
+  sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
+  strcat(ppr->energy_injec_f_eff_file,"EnergyInjection_example_file_type1.dat");
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;

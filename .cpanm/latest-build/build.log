@@ -1,0 +1,12 @@
+cpanm (App::cpanminus) 1.7043 on perl 5.010001 built for x86_64-linux-thread-multi
+Work directory is /home-4/vpoulin1@jhu.edu/.cpanm/work/1507776521.96427
+You have make /usr/bin/make
+You have LWP 5.833
+You have /bin/tar: tar (GNU tar) 1.23
+Copyright (C) 2010 Free Software Foundation, Inc.
+License GPLv3+: GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+
+Written by John Gilmore and Jay Fenlason.
+You have /usr/bin/unzip
