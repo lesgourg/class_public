@@ -301,7 +301,6 @@ int input_init(
     /** - --> go through all cases with unknown parameters: */
     for (counter = 0; counter < unknown_parameters_size; counter++){
       index_target = target_indices[counter];
-      // fprintf(stdout, "index_target = %d\n",index_target );
       class_call(parser_read_double(pfc,
                                     target_namestrings[index_target],
                                     &param1,
@@ -808,13 +807,14 @@ int input_read_parameters(
   // class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
 
   /* Convert to Mpc */
-  // pba->Gamma_dcdm *= (1.e3 / _c_);
-  if (flag1 == _TRUE_)
+  if (flag1 == _TRUE_){
     pba->Gamma_dcdm = param1*(1.e3 / _c_);
+    pba->tau_dcdm = 1/(param1*1.02e-3)*(1e9*365*24*3600); //convert to sec.
+    // fprintf(stdout, "you have chosen Gamma = %e km/s/Mpc, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_),pba->tau_dcdm);
+  }
   if (flag2 == _TRUE_){
-  pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_);
+  pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_); //1 km s -1Mpc- 1 = 1.02* 10^- 3Gyr -1
   pba->tau_dcdm = param2;
-  // fprintf(stdout, "you have chosen Gamma = %e*H0, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_)/67,param2);
   }
 
   /** - non-cold relics (ncdm) */
@@ -1300,7 +1300,7 @@ int input_read_parameters(
          /*
          pth->bp = 3.47;
          pth->cp = 2.73;
-        //  pth->dp = 5.87;
+         pth->dp = 5.87;
          pth->dp = 5.49;
          */
          pth->bp = 3.26;
@@ -1314,7 +1314,7 @@ int input_read_parameters(
          /*
          pth->bp = 3.05;
          pth->cp = 2.45;
-        //  pth->dp = 5.49;
+         pth->dp = 5.49;
          pth->dp = 5.87;
          */
          pth->bp = 3.26;
@@ -1381,10 +1381,9 @@ int input_read_parameters(
   class_read_double("annihilation_cross_section",pth->annihilation_cross_section);
   class_read_double("DM_mass",pth->DM_mass);
   class_test(pth->DM_mass <=0 && pth->annihilation_cross_section >0,errmsg,"you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
-  //class_test(pth->annihilation_cross_section <=0 && pth->DM_mass >0,errmsg,"you have DM_mass > 0 but annihilation_cross_section = 0. That is weird, please check your param file and set 'annihilation_cross_section' [cm^3/s] to a non-zero value.\n");
 
   class_read_double("decay_fraction",pth->decay_fraction);
-  class_test(pth->annihilation_cross_section <=0 && pth->DM_mass >0 && pth->annihilation <= 0 && pth->decay_fraction <=0,errmsg,"you have DM_mass > 0 but both 'annihilation_cross_section' and 'annihilation' are zero. That is weird, please check your param file and set either 'annihilation_cross_section' [cm^3/s] or 'annihilation' [m^3/(kg s)] to a non-zero value.\n");
+  class_test(pth->annihilation_cross_section <=0 && pth->DM_mass >0 && pth->annihilation <= 0 && pth->decay_fraction <=0,errmsg,"you have DM_mass > 0 but 'annihilation_cross_section', 'annihilation', 'decay_fraction' are zero. That is weird, please check your param file and set either 'annihilation_cross_section' [cm^3/s], 'annihilation' [m^3/(kg s)] or 'decay_fraction' to a non-zero value.\n");
   class_test(pba->tau_dcdm <=0 && pth->decay_fraction >0,errmsg,"you have decay_fraction > 0 but Gamma_dcdm = 0. That is weird, please check your param file and set 'tau_dcdm' [s] or 'Gamma_dcdm' [km/s/Mpc] to a non-zero value.\n");
   class_test(pba->tau_dcdm >0 && pth->decay_fraction <=0,errmsg,"you have decay_fraction = 0 but tau_dcdm > 0. That is weird, please check your param file.\n");
   class_read_double("PBH_accreting_mass",pth->PBH_accreting_mass);
@@ -1408,7 +1407,6 @@ int input_read_parameters(
       if (strcmp(string1,"disk_accretion") == 0) {
         pth->PBH_accretion_recipe=disk_accretion;
         class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
-        // if()
         flag2=_TRUE_;
       }
 
@@ -1423,8 +1421,8 @@ int input_read_parameters(
     class_read_double("PBH_relative_velocities",pth->PBH_relative_velocities);
 
   }
-  // class_test(pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
-  //   "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
+  class_test(pth->PBH_evaporating_mass < 1e15 && pth->PBH_fraction > 1e-4,errmsg,
+    "The value of 'pth->PBH_fraction' that you enter is suspicious given the mass you chose. You are several orders of magnitude above the limit. The code doesn't handle well too high energy injection. Please choose 'pth->PBH_fraction < 1e-4'. ")
   class_test(pth->PBH_accreting_mass<0.,errmsg,
     "You need to enter a mass for your PBH 'PBH_accreting_mass > 0.' (in Msun).");
   class_test(pth->PBH_accreting_mass>0. && pth->PBH_fraction == 0,errmsg,
@@ -1461,7 +1459,6 @@ int input_read_parameters(
    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
   class_test(pth->annihilation>0. && pth->annihilation_cross_section >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
   if(pth->DM_mass > 0 && pth->annihilation_cross_section >0.){
-      // double sigma_thermal = 3*pow(10,-32); // Sigma_v in m^3/s
       double conversion = 1.78*pow(10,-21); // Conversion GeV => Kg
       class_test(pth->DM_mass<=0.,errmsg,
         "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
@@ -1743,10 +1740,6 @@ int input_read_parameters(
                 strcat(ppr->command_fz," --accretion_recipe=spherical_accretion");
               else if(pth->PBH_accretion_recipe==disk_accretion)
                 strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
-              // else{
-              //   class_test(1==0,errmsg,
-              //     "You cannot use a accretion_recipe different from 'Ali_Haimoud' or 'ADAF_Simulation' if you are working with DarkAgesModule on. This will be updated in the future.\n");
-              // }
               strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
             }
             else if(pth->decay_fraction > 0){
@@ -1794,7 +1787,6 @@ int input_read_parameters(
 
             class_call( parser_read_string(pfc,"DarkAges_command",&string2,&flag2,errmsg), errmsg, errmsg);
           	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-          	// class_alloc(ppr->command_fz,(strlen(string2) + 1)*sizeof(char), errmsg);
           	strcat(ppr->command_fz, string2);
             /** An arbitrary number of external parameters to be used by the external command
                */

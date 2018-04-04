@@ -1563,7 +1563,7 @@ int thermodynamics_annihilation_coefficients_free(
   return _SUCCESS_;
 
 }
-// /****************MODIF Vivian Poulin 2 : Add f(z) functions in halos****************/
+// /****************MODIF Vivian Poulin 2 : Add f_eff function****************/
 int thermodynamics_annihilation_f_eff_init(
                                                   struct precision * ppr,
                                                   struct background * pba,
@@ -2843,7 +2843,6 @@ int thermodynamics_reionization(
       preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
     }
     if (pth->reio_parametrization == reio_half_tanh ) {
-      /********Modified by Vivian Poulin to take into account helium reionization in both cases***********/
       preio->reionization_parameters[preio->index_reio_xe_after] = 1.;
       // ; /* xe_after_reio: neglect He ionization */
       // + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized H */
