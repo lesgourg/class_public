@@ -1315,7 +1315,6 @@ int thermodynamics_annihilation_coefficients_init(
     // free(ppr->command_fz);
     if (pth->thermodynamics_verbose > 0) {
       printf(" -> running: %s\n", command_with_arguments);
-      //printf(" -> using backgrounnd: H0=%g Omega_M=%g Omega_R=%g\n",100*pba->h,pba->Omega0_b+pba->Omega0_cdm,pba->Omega0_g);
     }
     /* Launch the process and retrieve the output */
     fflush(fA);
@@ -4734,7 +4733,7 @@ int thermodynamics_recombination_with_recfast(
                  gi.error_message,
                  pth->error_message);
 
-      y[0] = MIN(x_H0,1);   //Vivian
+      y[0] = MIN(x_H0,1);   //security added by VP: y[0] is only the hydrogen contribution and cannot be greater than 1
 
       if (pth->thermodynamics_verbose > 1) {
         fprintf(stdout, "in function thermodynamics_recombination_with_recfast, fifth approximation : zend %e y[0] %e\n",zend, y[0]);
@@ -4780,7 +4779,7 @@ int thermodynamics_recombination_with_recfast(
                                     &gi),
                  gi.error_message,
                  pth->error_message);
-       y[0] = MIN(y[0],1);//Vivian
+       y[0] = MIN(y[0],1); //security added by VP: y[0] is only the hydrogen contribution and cannot be greater than 1
 
 
       /* smoothed transition */
@@ -4974,17 +4973,17 @@ int thermodynamics_derivs_with_recfast(
      preco->xe_tmp=x;
      preco->Tm_tmp=Tmat;
 
-  if( z > 2){//sometimes problem with interpolation
-    // fprintf(stdout, "z %e,Tmat %e, x %e\n",z,Tmat,x);
-  class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
-             error_message,
-             error_message);
-  // fprintf(stdout, "energy_rate %e\n",energy_rate);
-  }
-  else energy_rate = 0;
-     preco->z_tmp=z;
-}
-else energy_rate=0;
+        if( z > 2){//sometimes problem with interpolation
+          // fprintf(stdout, "z %e,Tmat %e, x %e\n",z,Tmat,x);
+        class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
+                   error_message,
+                   error_message);
+        // fprintf(stdout, "energy_rate %e\n",energy_rate);
+        }
+        else energy_rate = 0;
+           preco->z_tmp=z;
+    }
+    else energy_rate=0;
  // fprintf(stdout,"%e      %e     %e      %e      %e    \n", x,pth->chi_heat,pth->chi_lya, pth->chi_ionH,pth->chi_ionHe,pth->chi_lowE);
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
