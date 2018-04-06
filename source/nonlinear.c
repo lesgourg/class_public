@@ -240,6 +240,11 @@ int nonlinear_init(
       }
 
     }//end loop over tau
+    free(pk_l[index_pk]);
+    free(pk_nl[index_pk]);
+    free(lnk_l[index_pk]);
+    free(lnpk_l[index_pk]);
+    free(ddlnpk_l[index_pk]);
     }//end loop over index_pk
 
     free(pk_l);
@@ -260,12 +265,17 @@ int nonlinear_init(
 int nonlinear_free(
                    struct nonlinear *pnl
                    ) {
-
+  int index_pk;
+  
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
       free(pnl->k);
       free(pnl->tau);
+      for(index_pk=0;index_pk<pnl->pk_size;++index_pk){
+        free(pnl->nl_corr_density[index_pk]);
+        free(pnl->k_nl[index_pk]);
+      }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
       free(pnl->index_tau_min_nl);
@@ -301,7 +311,9 @@ int nonlinear_pk_l(
   double source_ic1,source_ic2;
 
   index_md = ppt->index_md_scalars;
-
+  
+  // Initialize first, then assign correct value
+  index_delta = ppt->index_tp_delta_m;
   if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
   }
@@ -436,9 +448,6 @@ int nonlinear_halofit(
   int ia_size;
   int index_ia;
 
-  int num_Pk;
-  int index_Pk;
-
   double k_integrand;
   double lnpk_integrand;
 
@@ -450,11 +459,13 @@ int nonlinear_halofit(
   
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
 
+  //Initialize first, then assign correct value
+  fnu = pba->Omega0_ncdm_tot/Omega0_m;
   if (index_pk == pnl->index_pk_m){
-      fnu = pba->Omega0_ncdm_tot/Omega0_m;
+    fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
   else if(index_pk == pnl->index_pk_cb){
-      fnu = 0.;
+    fnu = 0.;
   }
  
   if (pnl->has_pk_eq == _FALSE_) {
