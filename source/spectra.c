@@ -377,7 +377,23 @@ int spectra_pk_at_z(
              "negative or null value of conformal time: cannot interpolate");
 
   ln_tau = log(tau);
-
+  
+  double small_deviation = 1e-10;
+  class_test(ln_tau<psp->ln_tau[0]-small_deviation,
+             psp->error_message,
+             "requested z was not inside of tau tabulation range (Requested %.10e, Min %.10e) ",ln_tau,psp->ln_tau[0]-small_deviation);
+  if(ln_tau<psp->ln_tau[0]){
+    //Case of small deviation caused by rounding
+    ln_tau = psp->ln_tau[0];
+  }
+  class_test(ln_tau>psp->ln_tau[psp->ln_tau_size-1]+small_deviation,
+             psp->error_message,
+             "requested z was not inside of tau tabulation range (Requested %.10e, Max %.10e) ",ln_tau,psp->ln_tau[psp->ln_tau_size-1]+small_deviation);
+             
+  if(ln_tau>psp->ln_tau[psp->ln_tau_size-1]){
+    //Case of small deviation caused by rounding
+    ln_tau = psp->ln_tau[psp->ln_tau_size-1];
+  }
   /** - second step: for both modes (linear or logarithmic), store the spectrum in logarithmic format in the output array(s) */
 
   /** - --> (a) if only values at tau=tau_today are stored and we want \f$ P(k,z=0)\f$, no need to interpolate */

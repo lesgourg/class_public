@@ -4159,7 +4159,7 @@ int input_prepare_pk_eq(
                pba->error_message, errmsg);
     pnl->eq_tau[index_eq_z] = tau_of_z;
   }
-  class_call(background_free(pba), pba->error_message, errmsg);
+  class_call(background_free_noinput(pba), pba->error_message, errmsg);
 
   for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
 
@@ -4179,7 +4179,7 @@ int input_prepare_pk_eq(
     pba->wa_fld=0.;
 
     do {
-      class_call(background_free(pba), pba->error_message, errmsg);
+      class_call(background_free_noinput(pba), pba->error_message, errmsg);
       class_call(thermodynamics_free(pth), pth->error_message, errmsg);
 
       class_call(background_init(ppr,pba), pba->error_message, errmsg);
@@ -4207,7 +4207,7 @@ int input_prepare_pk_eq(
     pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
     free(pvecback);
 
-    class_call(background_free(pba), pba->error_message, errmsg);
+    class_call(background_free_noinput(pba), pba->error_message, errmsg);
     class_call(thermodynamics_free(pth), pth->error_message, errmsg);
 
   }
