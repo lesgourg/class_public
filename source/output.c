@@ -1063,9 +1063,9 @@ int output_pk_nl(
 
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
-        pk_tot[index_k] = exp(psp->ln_pk_nl[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
+        pk_tot[index_k] = exp(psp->ln_pk_nl[(psp->ln_tau_nl_size-1) * psp->ln_k_size + index_k]);
       
-        if (pba->has_ncdm) pk_cb_tot[index_k] = exp(psp->ln_pk_cb_nl[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
+        if (pba->has_ncdm) pk_cb_tot[index_k] = exp(psp->ln_pk_cb_nl[(psp->ln_tau_nl_size_cb-1) * psp->ln_k_size + index_k]);
 
       }
     }
