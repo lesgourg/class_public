@@ -949,7 +949,7 @@ int spectra_pk_at_k_and_z(
         }
       }
       free(spectrum_at_z_ic);
-      free(spectrum_cb_at_z);
+      free(spectrum_cb_at_z_ic);
     }
 
     free(spectrum_at_z);
