@@ -734,6 +734,24 @@ int background_free(
 }
 
 /**
+ * Free only the memory space NOT allocated through input_read_parameters()
+ *
+ * @param pba Input: pointer to background structure (to be freed)
+ * @return the error status
+ */
+
+int background_free_noinput(
+                    struct background *pba
+                    ) {
+  free(pba->tau_table);
+  free(pba->z_table);
+  free(pba->d2tau_dz2_table);
+  free(pba->background_table);
+  free(pba->d2background_dtau2_table);
+
+  return _SUCCESS_;
+}
+/**
  * Free pointers inside background structure which were
  * allocated in input_read_parameters()
  *

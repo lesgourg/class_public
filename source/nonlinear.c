@@ -592,6 +592,7 @@ int nonlinear_init(
 											" -> [WARNING:] index_pk=%d HMcode non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because mmin_for_p1h_integral is not small enough for HMcode to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to decrease the parameters mmin_for_p1h_integral and eventually also rmin_for_sigtab.\n",index_pk,z);
       free(pvecback);
       }
+
     }
        }
        else {
@@ -604,8 +605,7 @@ int nonlinear_init(
       }
 			
     }
-  }//end tau loop
-  } // end pk loop 
+
 		
     // for debugging
     /*
@@ -617,11 +617,15 @@ int nonlinear_init(
     }
     */
 
-    free(pk_l);
-    free(pk_nl);
-    free(lnk_l);
-    free(lnpk_l);
-    free(ddlnpk_l);
+
+    }//end loop over tau
+    free(pk_l[index_pk]);
+    free(pk_nl[index_pk]);
+    free(lnk_l[index_pk]);
+    free(lnpk_l[index_pk]);
+    free(ddlnpk_l[index_pk]);
+    }//end loop over index_pk
+    
   }
 
   else {
@@ -637,14 +641,20 @@ int nonlinear_init(
 int nonlinear_free(
                    struct nonlinear *pnl
                    ) {
-
+  int index_pk;
+  
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
       free(pnl->k);
       free(pnl->tau);
+      for(index_pk=0;index_pk<pnl->pk_size;++index_pk){
+        free(pnl->nl_corr_density[index_pk]);
+        free(pnl->k_nl[index_pk]);
+      }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
+      free(pnl->index_tau_min_nl);
     }
 		else if (pnl->method == nl_HMcode){
 			free(pnl->k);
@@ -699,7 +709,9 @@ int nonlinear_pk_l(
 //  double * source_ic_extra_cb;
 
   index_md = ppt->index_md_scalars;
-
+  
+  // Initialize first, then assign correct value
+  index_delta = ppt->index_tp_delta_m;
   if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
   }
@@ -915,9 +927,6 @@ int nonlinear_halofit(
   int ia_size;
   int index_ia;
 
-  int num_Pk;
-  int index_Pk;
-
   double k_integrand;
   double lnpk_integrand;
 
@@ -929,11 +938,13 @@ int nonlinear_halofit(
   
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
 
+  //Initialize first, then assign correct value
+  fnu = pba->Omega0_ncdm_tot/Omega0_m;
   if (index_pk == pnl->index_pk_m){
-      fnu = pba->Omega0_ncdm_tot/Omega0_m;
+    fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
   else if(index_pk == pnl->index_pk_cb){
-      fnu = 0.;
+    fnu = 0.;
   }
  
   if (pnl->has_pk_eq == _FALSE_) {
