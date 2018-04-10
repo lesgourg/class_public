@@ -1092,6 +1092,9 @@ cdef class Class:
             for index in range(timesteps):
                 background[names[i]][index] = data[index*number_of_titles+i]
 
+        free(titles)
+        free(data)
+
         return background
 
     def get_thermodynamics(self):
@@ -1127,6 +1130,9 @@ cdef class Class:
             thermodynamics[names[i]] = np.zeros(timesteps, dtype=np.double)
             for index in range(timesteps):
                 thermodynamics[names[i]][index] = data[index*number_of_titles+i]
+
+        free(titles)
+        free(data)
 
         return thermodynamics
 
@@ -1164,6 +1170,9 @@ cdef class Class:
             primordial[names[i]] = np.zeros(timesteps, dtype=np.double)
             for index in range(timesteps):
                 primordial[names[i]][index] = data[index*number_of_titles+i]
+
+        free(titles)
+        free(data)
 
         return primordial
 
@@ -1318,6 +1327,9 @@ cdef class Class:
                 spectra = tmpdict
             else:
                 spectra[ic_key] = tmpdict
+
+        free(titles)
+        free(data)
 
         return spectra
 
