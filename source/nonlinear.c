@@ -96,9 +96,12 @@ int nonlinear_init(
       }
     }
 
+    pnl->has_pk_cb = _FALSE_;
+    if(pba->has_ncdm)
+       pnl->has_pk_cb = _TRUE_;
     index_pk = 0;
     class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
-    class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
+    class_define_index(pnl->index_pk_cb,  pnl->has_pk_cb, index_pk,1);
     pnl->pk_size = index_pk;
     //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
 
@@ -317,8 +320,14 @@ int nonlinear_pk_l(
   if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
   }
-  else if(index_pk == pnl->index_pk_cb){
+  else if((pnl->has_pk_cb)&&(index_pk == pnl->index_pk_cb)){
     index_delta = ppt->index_tp_delta_cb;
+  }
+  else {
+    class_test(((index_pk != pnl->index_pk_m)&&((pnl->has_pk_cb)&&(index_pk != pnl->index_pk_cb))),
+             pnl->error_message,
+             "WARNING: P(k) is set neither to total matter nor to colda dark matter + baryons, index_pk=%d \n",
+             index_pk);
   }
 
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
@@ -464,10 +473,16 @@ int nonlinear_halofit(
   if (index_pk == pnl->index_pk_m){
     fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
-  else if(index_pk == pnl->index_pk_cb){
+  else if((pnl->has_pk_cb)&&(index_pk == pnl->index_pk_cb)){
     fnu = 0.;
   }
- 
+  else {
+    class_test(((index_pk != pnl->index_pk_m)&&((pnl->has_pk_cb)&&(index_pk != pnl->index_pk_cb))),
+             pnl->error_message,
+             "WARNING: P(k) is set neither to total matter nor to colda dark matter + baryons, index_pk=%d \n",
+             index_pk);
+  } 
+
   if (pnl->has_pk_eq == _FALSE_) {
 
     /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),

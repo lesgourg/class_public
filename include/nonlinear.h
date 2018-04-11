@@ -39,6 +39,7 @@ struct nonlinear {
   int pk_size;     /**< k_size = total number of pk: 1 (P_m) if no massive neutrinos, 2 (P_m and P_cb) if massive neutrinos are present*/
   int index_pk_m;
   int index_pk_cb;
+  short has_pk_cb; /** calculate P(k) with only cold dark matter and baryons*/
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
   int tau_size;    /**< tau_size = number of values */
