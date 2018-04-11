@@ -72,6 +72,11 @@ struct nonlinear {
   double c_min; /** minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0; /** halo bloating parameter */
   
+  double z_infinity; /** z value at which Dark Energy correction is evaluated 
+                       * needs to be at early times (default */ 
+  double dark_energy_correction; /** this is the ratio [g_wcdm(z_infinity)/g_lcdm(z_infinity)]^1.5
+                                  * (power comes from Dolag et al. (2004) correction)
+                                  * it is 1, if has_fld == _FALSE_ */
 
   /** @name - parameters for the pk_eq method */
 
@@ -304,6 +309,16 @@ extern "C" {
 	  					 double c,
 						 double *window_nfw
 						 );	
+
+  int nonlinear_hmcode_growint(
+              struct precision *ppr,
+						  struct background * pba,
+						  struct nonlinear * pnl,            
+						  double a,
+              double w,
+              double wa,
+						  double * growth
+						  );
 
 
 #ifdef __cplusplus

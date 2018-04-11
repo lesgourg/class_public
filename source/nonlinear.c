@@ -446,7 +446,14 @@ int nonlinear_init(
       }		
 		
     }
-
+    
+    //double g_lcdm;
+    //double z_infinity=10.;
+    //class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+z_infinity),-1.,0.,&g_lcdm ),
+		//			pnl->error_message, pnl->error_message);
+    //fprintf(stdout, "%e %e\n", 1./(1.+z_infinity), g_lcdm);      
+    
+    
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
@@ -1939,6 +1946,104 @@ int nonlinear_hmcode_fill_growtab(
 	return _SUCCESS_; 
 }
 
+
+int nonlinear_hmcode_growint(
+              struct precision * ppr,
+						  struct background * pba,
+						  struct nonlinear * pnl,            
+						  double a,
+              double w0,
+              double wa,
+						  double * growth
+						  ){
+	
+	double w1, z, ainit, amax, scalefactor, tau_growth, f_class, f_camb, gamma, Omega_m, Omega0_m, Omega0_v, Omega0_k, Hubble2, X_de;
+  int i, index_a, index_growth, index_ddgrowth, index_gcol, last_index, ng;  
+  double * pvecback;
+  double * integrand;
+  
+  ng = 2048;
+  ainit = a;
+  amax = 1.;
+  
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  Omega0_v = 1. - (Omega0_m + pba->Omega0_g + pba->Omega0_ur);
+  Omega0_k = 1. - (Omega0_m + Omega0_v + pba->Omega0_g + pba->Omega0_ur);
+  
+  w1 = w0; 
+  
+  i=0;
+  index_a = i;
+  i++;
+  index_growth = i;
+  i++;
+  index_ddgrowth = i;
+  i++;
+  index_gcol = i;
+  
+	last_index = 0;
+	
+  class_alloc(integrand,ng*index_gcol*sizeof(double),pnl->error_message);
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+  
+  if (ainit == amax) {
+			*growth = 1.;
+	}	
+	else {
+  
+		for (i=0;i<ng;i++){
+			scalefactor = ainit+(amax-ainit)*(i)/(ng-1);
+			z = 1./scalefactor-1.;
+      X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
+      Hubble2 = (Omega0_m*pow((1.+z), 3.) + Omega0_k*pow((1.+z), 2.) + Omega0_v*X_de);
+      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;
+ 
+			if (w1 == -1.){
+				gamma = 0.55;
+			} 
+			else if (w1 < -1.){
+				gamma = 0.55+0.02*(1+w1);
+			}
+			else {
+				gamma = 0.55+0.05*(1+w1);
+			}
+    
+			integrand[i*index_gcol+index_a] = scalefactor;
+			integrand[i*index_gcol+index_growth]= -pow(Omega_m, gamma)/scalefactor;
+			
+			class_call(array_spline(integrand,
+                          index_gcol,
+                          ng,
+                          index_a,
+                          index_growth,
+                          index_ddgrowth,
+                          _SPLINE_EST_DERIV_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+			class_call(array_integrate_all_trapzd_or_spline(integrand,
+                                        index_gcol,
+                                        ng,
+                                        0, //ng-1,
+                                        index_a,
+                                        index_growth,
+                                        index_ddgrowth,
+                                        growth,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+    
+				*growth = exp(*growth);
+		}								
+	}
+  fprintf(stdout, "%e %e \n", a, *growth);
+	free(pvecback);
+	free(integrand);
+	
+  return _SUCCESS_; 	
+}
+
 /** this is the fourier transform of the NFW density profile
  ** it depends on k, the virial radius rv and the concentration c
  ** of a halo  */
@@ -2063,6 +2168,9 @@ int nonlinear_hmcode(
   double alpha;
 
   double z_form, g_form;
+  double z_infinity, tau_infinity;
+  double g_lcdm, g_wcdm;
+  double de_correction;
   
   double eta;
   double gst, window_nfw;
@@ -2112,23 +2220,32 @@ int nonlinear_hmcode(
   Omega_m = pvecback[pba->index_bg_Omega_m];
   Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
 
-  double growth_lcdm;
-  double ratio;
+
   growth = pvecback[pba->index_bg_D];
-  growth_lcdm = pvecback[pba->index_bg_D_lcdm];
-  ratio = growth/growth_lcdm;
+
   z_at_tau = 1./pvecback[pba->index_bg_a]-1.;
-  /*
-  if (tau==pba->conformal_age){ 
-    fprintf(stdout, "z, growth:%d, growth_lcdm:%d, f:%d\n", pba->index_bg_D, pba->index_bg_D_lcdm, pba->index_bg_f);
-  }
-  fprintf(stdout, "%e %e %e %e\n", z_at_tau, growth, growth_lcdm, ratio);
-  */
+  
   /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] with rho_c = 8*pi*G/3*c^2 */
   rho_crit_today_in_msun_mpc3 = 2.77474589e11*pow(pba->h, 2); 
   
   free(pvecback);
-    
+  
+  /** Calculate the Dark Energy correction: */  
+  if (pba->has_fld==_TRUE_){
+    if (index_tau == pnl->tau_size-1){         
+      class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm ),
+        pnl->error_message, pnl->error_message);
+      class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1),&g_wcdm ),
+        pnl->error_message, pnl->error_message);
+      pnl->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
+      fprintf(stdout, "%e %e %e %e\n", dw_over_da_fld, g_wcdm, g_lcdm, pnl->dark_energy_correction); 
+    }
+  }
+  else {
+    pnl->dark_energy_correction = 1.;
+  }
+  
+  //double sigma_test;  
   /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h) and write the into pnl structure */
   class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],&sigma8), 
 			pnl->error_message, pnl->error_message);	
@@ -2136,7 +2253,9 @@ int nonlinear_hmcode(
 			pnl->error_message, pnl->error_message);
   class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],&sigma_disp100), 
 			pnl->error_message, pnl->error_message);			
-  
+  /*class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,4.,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],&sigma_test), 
+			pnl->error_message, pnl->error_message);
+  fprintf(stdout, "z: %e, sigma: %e\n", z_at_tau, sigma_test); */   
   pnl->sigma_8[index_tau] = sigma8;
   pnl->sigma_disp[index_tau] = sigma_disp;
   pnl->sigma_disp_100[index_tau] = sigma_disp100;
@@ -2304,7 +2423,7 @@ int nonlinear_hmcode(
     fprintf(stdout, "M,		rf,		s(fM),		zf,		gf,		c \n");
     fprintf(stdout, "--------------------------------------------------------------------\n");
   }
-
+    
   for (i=0;i<n;i++){
 		//find growth rate at formation
     g_form = delta_c*growth/sigmaf_r[i];
@@ -2324,11 +2443,13 @@ int nonlinear_hmcode(
 		if (z_form < z_at_tau){
 			conc[i] = pnl->c_min;
 		} else {
-			conc[i] = pnl->c_min*(1.+z_form)/(1.+z_at_tau);
+			conc[i] = pnl->c_min*(1.+z_form)/(1.+z_at_tau)*pnl->dark_energy_correction;
 	  } 	
 		if (tau==pba->conformal_age && pnl->nonlinear_verbose > 9) fprintf(stdout, "%e %e %e %e %e %e\n",mass[i], r_real[i]*fraction*pba->h, sigmaf_r[i], z_form, g_form, conc[i]);
 	}
   if (tau==pba->conformal_age && pnl->nonlinear_verbose > 9) fprintf(stdout, "#################################################################\n");
+  
+  
   
   
 	/** Now compute the nonlinear correction */

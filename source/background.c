@@ -957,12 +957,6 @@ int background_indices(
 
   /* -> velocity growth factor in dust universe */
   class_define_index(pba->index_bg_f,_TRUE_,index_bg,1);
-  
-  /* -> density growth factor in dust universe in lcdm cosmology */
-  class_define_index(pba->index_bg_D_lcdm,pba->has_fld,index_bg,1);
-
-  /* -> velocity growth factor in dust universe in lcdm cosmology */
-  class_define_index(pba->index_bg_f_lcdm,pba->has_fld,index_bg,1);
 
   /* -> put here additional quantities describing background */
   /*    */
@@ -1004,10 +998,6 @@ int background_indices(
   /* -> Second order equation for growth factor */
   class_define_index(pba->index_bi_D,_TRUE_,index_bi,1);
   class_define_index(pba->index_bi_D_prime,_TRUE_,index_bi,1);
-
-  class_define_index(pba->index_bi_D_lcdm,pba->has_fld,index_bi,1);
-  class_define_index(pba->index_bi_D_prime_lcdm,pba->has_fld,index_bi,1);
-
 
   /* -> index for conformal time in vector of variables to integrate */
   class_define_index(pba->index_bi_tau,_TRUE_,index_bi,1);
@@ -1783,13 +1773,7 @@ int background_solve(
     /* Normalise D(z=0)=1 and construct f = D_prime/(aHD) */
     pvecback[pba->index_bg_D] = pData[i*pba->bi_size+pba->index_bi_D]/pData[(pba->bt_size-1)*pba->bi_size+pba->index_bi_D];
     pvecback[pba->index_bg_f] = pData[i*pba->bi_size+pba->index_bi_D_prime]/
-      (pData[i*pba->bi_size+pba->index_bi_D]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);
-
-    if (pba->has_fld == _TRUE_){
-      pvecback[pba->index_bg_D_lcdm] = pData[i*pba->bi_size+pba->index_bi_D_lcdm]/pData[(pba->bt_size-1)*pba->bi_size+pba->index_bi_D_lcdm];
-      pvecback[pba->index_bg_f_lcdm] = pData[i*pba->bi_size+pba->index_bi_D_prime_lcdm]/
-        (pData[i*pba->bi_size+pba->index_bi_D_lcdm]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);      
-    }  
+      (pData[i*pba->bi_size+pba->index_bi_D]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);  
     
     /* -> write in the table */
     memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
@@ -1899,7 +1883,7 @@ int background_initial_conditions(
   /* scale factor */
   double a;
   
-  double H, H_lcdm, from_wcdm_to_lcdm;
+  double H;
   double rho_ncdm, p_ncdm, rho_ncdm_rel_tot=0.;
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
@@ -2078,14 +2062,6 @@ int background_initial_conditions(
   pvecback_integration[pba->index_bi_D] = a;
   pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
 
-  if (pba->has_fld == _TRUE_){
-    H = pvecback[pba->index_bg_H];
-    from_wcdm_to_lcdm = pow(pba->H0, 2.)*pba->Omega0_fld*(exp(-integral_fld)-1.);
-    H_lcdm = pow((H*H-from_wcdm_to_lcdm), 0.5);
-    
-    pvecback_integration[pba->index_bi_D_lcdm] = a;
-    pvecback_integration[pba->index_bi_D_prime_lcdm] = 2*pvecback_integration[pba->index_bi_D_lcdm]*H_lcdm;  
-  }
   return _SUCCESS_;
 
 }
@@ -2270,9 +2246,6 @@ int background_output_data(
 
     class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_D_lcdm],pba->has_fld,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_f_lcdm],pba->has_fld,storeidx);  
-
   }
 
   return _SUCCESS_;
@@ -2379,18 +2352,6 @@ int background_derivs(
       (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
   }
- 
-  if (pba->has_fld == _TRUE_){
-    
-    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
-    
-    from_wcdm_to_lcdm = pow(pba->H0, 2.)*pba->Omega0_fld*(exp(-integral_fld)-1.);
-    //from_wcdm_to_lcdm = pow(pba->H0, 2.)*(pvecback[index_bg_rho_fld]/pvecback[index_bg_rho_crit]-pba->Omega0_fld) 
-    H_lcdm = pow((H*H-from_wcdm_to_lcdm), 0.5);
-    dy[pba->index_bi_D_lcdm] = y[pba->index_bi_D_prime_lcdm];
-    dy[pba->index_bi_D_prime_lcdm] = -a*H_lcdm*y[pba->index_bi_D_prime_lcdm] + 1.5*a*a*rho_M*y[pba->index_bi_D_lcdm];
-  }  
-
 
   return _SUCCESS_;
 

@@ -2564,6 +2564,15 @@ int input_read_parameters(
 		pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
   }  
   
+	class_call(parser_read_double(pfc,"z_infinity",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  
+  if (flag1 == _TRUE_) {
+    class_read_double("z_infinity", pnl->z_infinity);
+  }
+  
+  
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
@@ -3276,6 +3285,8 @@ int input_default_params(
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
   pnl->feedback = emu_dmonly;
+  
+  pnl->z_infinity = 10.;
   
   //pnl->c_min = 3.13;
 	//pnl->eta_0 = 0.603;
