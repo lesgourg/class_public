@@ -1919,8 +1919,8 @@ int nonlinear_hmcode_fill_growtab(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
   
   for (i=0;i<ng;i++){
-		scalefactor = ainit+(amax-ainit)*(i)/(ng-1);
-		z = 1./scalefactor-1.;
+		scalefactor = log(ainit)+(log(amax)-log(ainit))*(i)/(ng-1);
+		z = 1./exp(scalefactor)-1.;
 		
 		pnl->ztable[i] = z;
 		
@@ -1938,7 +1938,7 @@ int nonlinear_hmcode_fill_growtab(
              pnl->error_message);
              
     pnl->growtable[i] = pvecback[pba->index_bg_D]; 
-    //fprintf(stdout, "%e %e\n", scalefactor, pnl->growtable[i]);      			
+    fprintf(stdout, "%e %e\n", exp(scalefactor), pnl->growtable[i]/exp(scalefactor));      			
 	}								
 
 	free(pvecback);

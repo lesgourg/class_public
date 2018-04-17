@@ -2061,7 +2061,8 @@ int background_initial_conditions(
   /** - set initial value of D and D' in RD. D will be renormalised later, but D' must be correct. */
   pvecback_integration[pba->index_bi_D] = a;
   pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
-
+  //pvecback_integration[pba->index_bi_D_prime] = pow(pvecback_integration[pba->index_bi_D], 2)*pvecback[pba->index_bg_H];
+  
   return _SUCCESS_;
 
 }
