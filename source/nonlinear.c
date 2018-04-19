@@ -318,7 +318,7 @@ int nonlinear_init(
 
     index_pk = 0;
     class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
-    class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
+    class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);        
     pnl->pk_size = index_pk;
     //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
 
@@ -405,13 +405,10 @@ int nonlinear_init(
    
 			class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
 		
-			class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-			//class_realloc(pk_l_bc,pk_l_bc,pnl->k_size_extra*sizeof(double),pnl->error_message);      
+			class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);   
       class_realloc(lnk_l[index_pk],lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
       class_realloc(lnpk_l[index_pk],lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
       class_realloc(ddlnpk_l[index_pk],ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-      //class_realloc(lnpk_l_cb,lnpk_l_cb,pnl->k_size_extra*sizeof(double),pnl->error_message);
-      //class_realloc(ddlnpk_l_cb,ddlnpk_l_cb,pnl->k_size_extra*sizeof(double),pnl->error_message);
 
       class_call(extrapolate_k(
 						 pnl->k,
@@ -635,6 +632,11 @@ int nonlinear_init(
       free(lnpk_l[index_pk]);
       free(ddlnpk_l[index_pk]);    
     }
+      free(pk_l);
+      free(pk_nl);
+      free(lnk_l);
+      free(lnpk_l);
+      free(ddlnpk_l);  
   }
 
   else {
@@ -724,10 +726,16 @@ int nonlinear_pk_l(
   if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
   }
-  else if(index_pk == pnl->index_pk_cb){
+  else if((pba->has_ncdm) && (index_pk == pnl->index_pk_cb)){
     index_delta = ppt->index_tp_delta_cb;
   }
-  
+  else {
+    class_stop(
+             pnl->error_message,
+             "WARNING: P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",
+             index_pk);
+  }
+    
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
 		
 	if (pnl->method == nl_HMcode){
@@ -952,10 +960,15 @@ int nonlinear_halofit(
   if (index_pk == pnl->index_pk_m){
     fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
-  else if(index_pk == pnl->index_pk_cb){
+  else if((pba->has_ncdm) && (index_pk == pnl->index_pk_cb)){
     fnu = 0.;
   }
- 
+  else {
+    class_stop(
+             pnl->error_message,
+             "WARNING: P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",
+             index_pk);
+  }
   if (pnl->has_pk_eq == _FALSE_) {
 
     /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
@@ -1940,7 +1953,7 @@ int nonlinear_hmcode_fill_growtab(
              pnl->error_message);
              
     pnl->growtable[i] = pvecback[pba->index_bg_D]; 
-    fprintf(stdout, "%e %e\n", exp(scalefactor), pnl->growtable[i]/exp(scalefactor));      			
+    //fprintf(stdout, "%e %e\n", exp(scalefactor), pnl->growtable[i]/exp(scalefactor));      			
 	}								
 
 	free(pvecback);
@@ -2240,7 +2253,7 @@ int nonlinear_hmcode(
       class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1),&g_wcdm ),
         pnl->error_message, pnl->error_message);
       pnl->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
-      fprintf(stdout, "%e %e %e %e\n", dw_over_da_fld, g_wcdm, g_lcdm, pnl->dark_energy_correction); 
+      //fprintf(stdout, "%e %e %e %e\n", dw_over_da_fld, g_wcdm, g_lcdm, pnl->dark_energy_correction); 
     }
   }
   else {
