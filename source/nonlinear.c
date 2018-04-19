@@ -289,7 +289,7 @@ int nonlinear_init(
   enum nonlinear_statement nonlinear_found_k_max;
   
   
-  //clock_t begin = clock();
+  clock_t begin = clock();
   
   /** Summary
    *
@@ -652,9 +652,9 @@ int nonlinear_init(
     class_stop(pnl->error_message,
                "Your non-linear method variable is set to %d, out of the range defined in nonlinear.h",pnl->method);
   }   
-  //clock_t end = clock();
-  //double time_spent = (double)(end - begin);
-  //fprintf(stdout, "%e", time_spent);
+  clock_t end = clock();
+  double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+  fprintf(stdout, "time spent %e\n", time_spent);
   return _SUCCESS_;
 }
 

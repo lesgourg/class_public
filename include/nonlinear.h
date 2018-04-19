@@ -1,6 +1,7 @@
 /** @file nonlinear.h Documented includes for trg module */
 
 #include "primordial.h"
+#include <time.h>
 
 #ifndef __NONLINEAR__
 #define __NONLINEAR__
