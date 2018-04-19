@@ -539,7 +539,7 @@ int nonlinear_init(
 	    class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl), 
 				pnl->error_message, pnl->error_message);					      
 	 }			
-			class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[index_pk],lnpk_l[0],ddlnpk_l[0]), 
+			class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[0],lnpk_l[0],ddlnpk_l[0]), 
 		    pnl->error_message, pnl->error_message);
 							/*if	(index_tau == pnl->tau_size-1) {
 								fprintf(stdout, "i,  R         sigma\n");
@@ -584,7 +584,7 @@ int nonlinear_init(
 							non-linear correction for this redshift/time, store the
 							last index which worked, and print a warning. */
 		print_warning = _TRUE_;
-		pnl->index_tau_min_nl = index_tau+1;
+		pnl->index_tau_min_nl[index_pk] = index_tau+1;
 		for (index_k=0; index_k<pnl->k_size; index_k++) {
       pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
     }
@@ -626,13 +626,15 @@ int nonlinear_init(
 
 
     }//end loop over tau
-    free(pk_l[index_pk]);
-    free(pk_nl[index_pk]);
-    free(lnk_l[index_pk]);
-    free(lnpk_l[index_pk]);
-    free(ddlnpk_l[index_pk]);
+
     }//end loop over index_pk
-    
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+      free(pk_l[index_pk]);
+      free(pk_nl[index_pk]);
+      free(lnk_l[index_pk]);
+      free(lnpk_l[index_pk]);
+      free(ddlnpk_l[index_pk]);    
+    }
   }
 
   else {
