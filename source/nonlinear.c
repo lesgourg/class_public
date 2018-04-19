@@ -387,7 +387,6 @@ int nonlinear_init(
   
     }
 
-    print_warning=_FALSE_;
 
     if (pnl->method == nl_HMcode){
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
@@ -460,7 +459,10 @@ int nonlinear_init(
                  pnl->error_message,
                  pnl->error_message);
       }           
-      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+    }
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+      print_warning=_FALSE_;
+      for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
        // get P_NL(k) at this time with Halofit 
        if (pnl->method == nl_halofit) {
 	if (print_warning == _FALSE_) {
@@ -629,10 +631,9 @@ int nonlinear_init(
       fprintf(stdout,"\n\n");
     }
     */
-      
-    }//end loop over index_pk
     
     }//end loop over tau
+    }//end loop over index_pk
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
       free(pk_l[index_pk]);
