@@ -317,8 +317,8 @@ int nonlinear_init(
     }
 
     index_pk = 0;
+    class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
     class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
-    class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);        
     pnl->pk_size = index_pk;
     //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
 
@@ -387,13 +387,12 @@ int nonlinear_init(
   
     }
 
-    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-
     print_warning=_FALSE_;
 
     if (pnl->method == nl_HMcode){
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
     /** initialise the source extrapolation */
-      class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
+        class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
                                                 pnl->k[pnl->k_size-1], 
                                                 ppr->hmcode_max_k_extra,
                                                 pnl->k_size,
@@ -401,16 +400,16 @@ int nonlinear_init(
                                                 pnl->error_message),
           pnl->error_message,
           pnl->error_message);
-      pnl->k_size_extra = size_extrapolated_source;
+        pnl->k_size_extra = size_extrapolated_source;
    
-			class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
+        class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
 		
-			class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);   
-      class_realloc(lnk_l[index_pk],lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-      class_realloc(lnpk_l[index_pk],lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-      class_realloc(ddlnpk_l[index_pk],ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+        class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);   
+        class_realloc(lnk_l[index_pk],lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+        class_realloc(lnpk_l[index_pk],lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+        class_realloc(ddlnpk_l[index_pk],ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
 
-      class_call(extrapolate_k(
+        class_call(extrapolate_k(
 						 pnl->k,
 						 pnl->k_size,
 					         pnl->k_extra,
@@ -419,7 +418,8 @@ int nonlinear_init(
 					         pnl->error_message),
 				   pnl->error_message,
 				   pnl->error_message);
-		
+      }
+       
      /** Set the baryonic feedback parameters according to the chosen feedback models */
       if (pnl->feedback == emu_dmonly){
         pnl->eta_0 = 0.603;
@@ -454,16 +454,17 @@ int nonlinear_init(
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
-
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {  
        // get P_L(k) at this time
-       class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
+        class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                  pnl->error_message,
                  pnl->error_message);
-                 
-
+      }           
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
        // get P_NL(k) at this time with Halofit 
        if (pnl->method == nl_halofit) {
 	if (print_warning == _FALSE_) {
+    
 	    class_call(nonlinear_halofit(
 					 ppr,
 					 pba,
@@ -532,18 +533,26 @@ int nonlinear_init(
 	if (print_warning == _FALSE_) {
 	// only fill sigma and grow table once (at redshift 0)
         // int i;
-	 if (index_tau==pnl->tau_size-1) {
+	 if ((index_tau==pnl->tau_size-1) && (index_pk==0)) {
 	    class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl), 
 				pnl->error_message, pnl->error_message);					      
-	 }			
-			class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[0],lnpk_l[0],ddlnpk_l[0]), 
-		    pnl->error_message, pnl->error_message);
+	 }
+   if (index_pk==0) {			
+			if (pba->has_ncdm){
+        class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[pnl->index_pk_cb],lnpk_l[pnl->index_pk_cb],ddlnpk_l[pnl->index_pk_cb]), 
+          pnl->error_message, pnl->error_message);
+ 			}
+      else {
+        class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[pnl->index_pk_m],lnpk_l[pnl->index_pk_m],ddlnpk_l[pnl->index_pk_m]), 
+          pnl->error_message, pnl->error_message);         
 							/*if	(index_tau == pnl->tau_size-1) {
 								fprintf(stdout, "i,  R         sigma\n");
 								for (i=0;i<64;i++){
 									fprintf(stdout, "%d, %e, %e\n",i, pnl->rtab[i*pnl->tau_size+index_tau]*pba->h, pnl->stab[i*pnl->tau_size+index_tau]);
 								}
-							} */      
+							} */    
+      }
+   }             
 	 class_call(nonlinear_hmcode(ppr,
 				     pba,
 				     ppt,
@@ -620,11 +629,11 @@ int nonlinear_init(
       fprintf(stdout,"\n\n");
     }
     */
-
-
+      
+    }//end loop over index_pk
+    
     }//end loop over tau
 
-    }//end loop over index_pk
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
       free(pk_l[index_pk]);
       free(pk_nl[index_pk]);
@@ -632,11 +641,11 @@ int nonlinear_init(
       free(lnpk_l[index_pk]);
       free(ddlnpk_l[index_pk]);    
     }
-      free(pk_l);
-      free(pk_nl);
-      free(lnk_l);
-      free(lnpk_l);
-      free(ddlnpk_l);  
+    free(pk_l);
+    free(pk_nl);
+    free(lnk_l);
+    free(lnpk_l);
+    free(ddlnpk_l);  
   }
 
   else {
@@ -2152,6 +2161,7 @@ int nonlinear_hmcode(
   int index_k, index_lnsig, index_dlnsig, index_ncol;
   int last_index=0;  
   int index_ncdm;
+  int index_pk_cb;
   int counter, index_nl;
   
 	int index_nu;
@@ -2258,6 +2268,13 @@ int nonlinear_hmcode(
   }
   else {
     pnl->dark_energy_correction = 1.;
+  }
+  /** Test whether pk_cb has to be taken into account (only if we have massive neutrinos)*/
+  if (pba->has_ncdm==_TRUE_){
+    index_pk_cb = pnl->index_pk_cb;
+  }
+  else {
+    index_pk_cb = index_pk;
   }
   
   //double sigma_test;  
@@ -2396,7 +2413,7 @@ int nonlinear_hmcode(
     r_nl = (r1+r2)/2.;
     counter ++;
 	  
-		class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l[0],lnpk_l[0],ddlnpk_l[0],&sigma_nl), //index 0 to get sigma_cb
+		class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l[index_pk_cb],lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],&sigma_nl),
 			pnl->error_message, pnl->error_message);		
 
     diff = sigma_nl - delta_c;
@@ -2420,7 +2437,7 @@ int nonlinear_hmcode(
 	*k_nl = 1./r_nl;
   
   /* call sigma_prime function at r_nl to find the effective spectral index n_eff */
-	class_call(nonlinear_hmcode_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l[0],lnpk_l[0],ddlnpk_l[0],&sigma_prime), //index 0 to get sigma_cb 
+	class_call(nonlinear_hmcode_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,lnk_l[index_pk_cb],lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],&sigma_prime),
 			pnl->error_message, pnl->error_message);
 	dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;
   n_eff = -3.- dlnsigdlnR;
