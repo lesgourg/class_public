@@ -324,10 +324,7 @@ int nonlinear_pk_l(
     index_delta = ppt->index_tp_delta_cb;
   }
   else {
-    class_test(((index_pk != pnl->index_pk_m)&&((pnl->has_pk_cb)&&(index_pk != pnl->index_pk_cb))),
-             pnl->error_message,
-             "WARNING: P(k) is set neither to total matter nor to colda dark matter + baryons, index_pk=%d \n",
-             index_pk);
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
   }
 
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
@@ -477,10 +474,7 @@ int nonlinear_halofit(
     fnu = 0.;
   }
   else {
-    class_test(((index_pk != pnl->index_pk_m)&&((pnl->has_pk_cb)&&(index_pk != pnl->index_pk_cb))),
-             pnl->error_message,
-             "WARNING: P(k) is set neither to total matter nor to colda dark matter + baryons, index_pk=%d \n",
-             index_pk);
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
   } 
 
   if (pnl->has_pk_eq == _FALSE_) {
