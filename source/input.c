@@ -2782,6 +2782,7 @@ int input_read_parameters(
   class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
   class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
   class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
+  class_read_double("pk_eq_z_max",ppr->pk_eq_z_max);
 
   /** - (h.7.) parameter related to lensing */
 
@@ -3163,6 +3164,9 @@ int input_default_params(
   ppm->custom9=0.;
   ppm->custom10=0.;
 
+  /** non linear structure*/
+  pnl->has_pk_cb = _FALSE_;
+
   /** - transfer structure */
 
   ptr->selection_bias[0]=1.;
@@ -3460,7 +3464,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_k_per_decade = 80.;
   ppr->halofit_sigma_precision = 0.05;
   ppr->halofit_tol_sigma = 1.e-6;
-
+  ppr->pk_eq_z_max = 5.;
+  
   /**
    * - parameter related to lensing
    */
@@ -4154,7 +4159,7 @@ int input_prepare_pk_eq(
 
   class_call(background_init(ppr,pba), pba->error_message, errmsg);
   for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
-    z[index_eq_z] = exp(log(1.+5.)/(pnl->eq_tau_size-1)*index_eq_z)-1.;
+    z[index_eq_z] = exp(log(1.+ppr->pk_eq_z_max)/(pnl->eq_tau_size-1)*index_eq_z)-1.;
     class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z),
                pba->error_message, errmsg);
     pnl->eq_tau[index_eq_z] = tau_of_z;
