@@ -634,7 +634,7 @@ int nonlinear_init(
     */
     clock_t end = clock();
     double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
-    fprintf(stdout, "tau = %e, time spent: %e s\n", pnl->tau[index_tau], time_spent);
+    //fprintf(stdout, "tau = %e, time spent: %e s\n", pnl->tau[index_tau], time_spent);
     }//end loop over tau
     }//end loop over index_pk
 
@@ -2376,7 +2376,7 @@ int nonlinear_hmcode(
   /** find nonlinear scales k_nl and r_nl and the effective spectral index n_eff */
   nu_nl = 1.;
   nu_min = nu_arr[0];
-	fprintf(stdout, "z: %e, numin: %e\n", z_at_tau, nu_min);
+	//fprintf(stdout, "z: %e, numin: %e\n", z_at_tau, nu_min);
   // stop calculating the nonlinear correction if the nonlinear scale is not reached in the table:
 	if (nu_min > nu_nl) {
 		* nonlinear_found_k_max = too_small;
