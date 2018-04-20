@@ -3551,7 +3551,7 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->hmcode_k_per_decade = 80.;
   ppr->hmcode_tol_sigma = 1.e-6;
-	ppr->hmcode_max_k_extra = 1.e6;
+	ppr->hmcode_max_k_extra = 1.e5;
 	ppr->n_hmcode_tables = 64;
 	ppr->rmin_for_sigtab = 1.e-5;
 	ppr->rmax_for_sigtab = 1.e3;

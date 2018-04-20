@@ -289,7 +289,7 @@ int nonlinear_init(
   enum nonlinear_statement nonlinear_found_k_max;
   
   
-  clock_t begin = clock();
+  //clock_t begin = clock();
   
   /** Summary
    *
@@ -418,6 +418,10 @@ int nonlinear_init(
 				   pnl->error_message,
 				   pnl->error_message);
       }
+      
+      /** fill table with scale independent growth factor */
+	    class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl), 
+				pnl->error_message, pnl->error_message);	
        
      /** Set the baryonic feedback parameters according to the chosen feedback models */
       if (pnl->feedback == emu_dmonly){
@@ -450,7 +454,7 @@ int nonlinear_init(
     //fprintf(stdout, "%e %e\n", 1./(1.+z_infinity), g_lcdm);      
     
     
-    /** - loop over time */
+    /** - loop over time and index_pk to get the power spectra */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {  
@@ -460,9 +464,12 @@ int nonlinear_init(
                  pnl->error_message);
       }           
     }
+    
+    /** - loop over time and index_pk to get the nonlinear power spectra */
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-      print_warning=_FALSE_;
+      //print_warning=_FALSE_;
       for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
+       clock_t begin = clock();
        // get P_NL(k) at this time with Halofit 
        if (pnl->method == nl_halofit) {
 	if (print_warning == _FALSE_) {
@@ -533,12 +540,6 @@ int nonlinear_init(
   // get P_NL(k) at this time with HMcode
        else if (pnl->method == nl_HMcode) {				
 	if (print_warning == _FALSE_) {
-	// only fill sigma and grow table once (at redshift 0)
-        // int i;
-	 if ((index_tau==pnl->tau_size-1) && (index_pk==0)) {
-	    class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl), 
-				pnl->error_message, pnl->error_message);					      
-	 }
    if (index_pk==0) {			
 			if (pba->has_ncdm){
         class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[pnl->index_pk_cb],lnpk_l[pnl->index_pk_cb],ddlnpk_l[pnl->index_pk_cb]), 
@@ -631,7 +632,9 @@ int nonlinear_init(
       fprintf(stdout,"\n\n");
     }
     */
-    
+    clock_t end = clock();
+    double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+    fprintf(stdout, "tau = %e, time spent: %e s\n", pnl->tau[index_tau], time_spent);
     }//end loop over tau
     }//end loop over index_pk
 
@@ -653,9 +656,9 @@ int nonlinear_init(
     class_stop(pnl->error_message,
                "Your non-linear method variable is set to %d, out of the range defined in nonlinear.h",pnl->method);
   }   
-  clock_t end = clock();
-  double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
-  fprintf(stdout, "time spent %e\n", time_spent);
+  //clock_t end = clock();
+  //double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+  //fprintf(stdout, "time spent %e\n", time_spent);
   return _SUCCESS_;
 }
 
@@ -2373,7 +2376,7 @@ int nonlinear_hmcode(
   /** find nonlinear scales k_nl and r_nl and the effective spectral index n_eff */
   nu_nl = 1.;
   nu_min = nu_arr[0];
-	//fprintf(stdout, "z: %e, numin: %e\n", z_at_tau, nu_min);
+	fprintf(stdout, "z: %e, numin: %e\n", z_at_tau, nu_min);
   // stop calculating the nonlinear correction if the nonlinear scale is not reached in the table:
 	if (nu_min > nu_nl) {
 		* nonlinear_found_k_max = too_small;
@@ -2492,6 +2495,10 @@ int nonlinear_hmcode(
 	if (fdamp<1.e-3) fdamp=1.e-3;
   if (fdamp>0.99)  fdamp=0.99;
   
+  double nu_cut = 10.;
+  int index_cut;
+  class_call(array_search_bisect(n,nu_arr,nu_cut,&index_cut,pnl->error_message), pnl->error_message, pnl->error_message);
+  
   i=0;
   index_nu=i;
   i++;
@@ -2503,11 +2510,11 @@ int nonlinear_hmcode(
 	
 	for (index_k = 0; index_k < pnl->k_size; index_k++){
 		
-		class_alloc(p1h_integrand,n*index_ncol*sizeof(double),pnl->error_message);
+		class_alloc(p1h_integrand,index_cut*index_ncol*sizeof(double),pnl->error_message);
 		
 		pk_lin = pk_l[index_k]*pow(pnl->k[index_k],3)*anorm; //convert P_k to Delta_k^2
 		
-		for (i=0; i<n; i++){ //Calculates the integrand for the ph1 integral at all nu values
+		for (i=0; i<index_cut; i++){ //Calculates the integrand for the ph1 integral at all nu values
 			//get the nu^eta-value of the window
       class_call(nonlinear_hmcode_window_nfw(
 																	pnl,
@@ -2516,22 +2523,22 @@ int nonlinear_hmcode(
 																	conc[i],
 																  &window_nfw),
 					pnl->error_message, pnl->error_message);	
-			//get the value of the
+			//get the value of the halo mass function
       class_call(nonlinear_hmcode_halomassfunction(
 																	nu_arr[i],
 																  &gst),
 					pnl->error_message, pnl->error_message);	
-			
-      //gst=A*(1.+(pow(q*nu_arr[i]*nu_arr[i], -p)))*exp(-q*nu_arr[i]*nu_arr[i]/2.);
-			
+
 			p1h_integrand[i*index_ncol+index_nu] = nu_arr[i];
 			
 			p1h_integrand[i*index_ncol+index_y] = mass[i]*gst*pow(window_nfw, 2.);
-			
+      //if ((tau==pba->conformal_age) && (index_k == 0)) {
+        //fprintf(stdout, "%d %e %e\n", index_cut, p1h_integrand[i*index_ncol+index_nu], p1h_integrand[i*index_ncol+index_y]);
+			//}
 		} 
 		class_call(array_spline(p1h_integrand,
                             index_ncol,
-                            n,
+                            index_cut,
                             index_nu,
                             index_y,
                             index_ddy,
@@ -2543,8 +2550,8 @@ int nonlinear_hmcode(
 		class_call(array_integrate_all_trapzd_or_spline(
 																				p1h_integrand,
                                         index_ncol,
-                                        n, 
-                                        n-1, //0 or n-1
+                                        index_cut, 
+                                        index_cut-1, //0 or n-1
                                         index_nu,
                                         index_y,
                                         index_ddy,
