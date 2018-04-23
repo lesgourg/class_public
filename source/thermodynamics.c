@@ -5335,11 +5335,13 @@ int thermodynamics_merge_reco_and_reio(
   /** - free the temporary structures */
 
   free(preco->recombination_table);
-  if(pth->has_on_the_spot == _FALSE_ && pth->energy_repart_coefficient!=no_factorization){
-    thermodynamics_annihilation_f_eff_free(preco);
-  }
-  if(pth->energy_repart_coefficient == GSVI || pth->energy_repart_coefficient==no_factorization || pth->energy_repart_coefficient ==chi_from_file){
-    thermodynamics_annihilation_coefficients_free(pth);
+  if(pth->annihilation >0 || pth->decay_fraction > 0 || pth->PBH_accreting_mass > 0 || pth->PBH_evaporating_mass > 0){
+    if(pth->has_on_the_spot == _FALSE_ && pth->energy_repart_coefficient!=no_factorization){
+      thermodynamics_annihilation_f_eff_free(preco);
+    }
+    if(pth->energy_repart_coefficient == GSVI || pth->energy_repart_coefficient==no_factorization || pth->energy_repart_coefficient ==chi_from_file){
+      thermodynamics_annihilation_coefficients_free(pth);
+    }
   }
   if ((pth->reio_parametrization != reio_none))
     free(preio->reionization_table);
