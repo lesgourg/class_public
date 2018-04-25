@@ -2879,7 +2879,7 @@ int spectra_k_and_tau(
   if (pnl->method != nl_none) {
   
     index_tau=ppt->tau_size-psp->ln_tau_size;
-    index_tau_min_nl=pnl->index_tau_min_nl[pnl->index_pk_m];
+    index_tau_min_nl=pnl->index_tau_min_nl;
     while (ppt->tau_sampling[index_tau] < pnl->tau[index_tau_min_nl]) {
       index_tau++;
     }
@@ -2894,7 +2894,7 @@ int spectra_k_and_tau(
     if(pba->has_ncdm){
 
     index_tau=ppt->tau_size-psp->ln_tau_size;
-    index_tau_min_nl_cb=pnl->index_tau_min_nl[pnl->index_pk_cb];
+    index_tau_min_nl_cb=pnl->index_tau_min_nl;
     while (ppt->tau_sampling[index_tau] < pnl->tau[index_tau_min_nl_cb]) {
       index_tau++;
     }

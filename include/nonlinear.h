@@ -41,6 +41,7 @@ struct nonlinear {
   int pk_size;     /**< k_size = total number of pk: 1 (P_m) if no massive neutrinos, 2 (P_m and P_cb) if massive neutrinos are present*/
   int index_pk_m;
   int index_pk_cb;
+  short has_pk_cb; /** calculate P(k) with only cold dark matter and baryons*/
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
@@ -50,7 +51,7 @@ struct nonlinear {
 
   double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
   double ** k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
-  int * index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
+  int index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
   //int index_tau_min_nl_cb;
   //@}
 
@@ -178,9 +179,8 @@ extern "C" {
                      struct nonlinear *pnl
                      );
 
-  int nonlinear_pk_l(
-										 struct background *pba,
-										 struct perturbs *ppt,
+  int nonlinear_pk_l(struct background *pba,
+                     struct perturbs *ppt,
                      struct primordial *ppm,
                      struct nonlinear *pnl,
                      int index_pk,
