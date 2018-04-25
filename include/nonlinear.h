@@ -9,7 +9,6 @@
 
 enum non_linear_method {nl_none,nl_halofit};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
-enum halofit_statement {ok, too_small};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -136,7 +135,7 @@ extern "C" {
                         double *lnpk_l,
                         double *ddlnpk_l,
                         double *k_nl,
-                        enum halofit_statement * halofit_found_k_max
+                        short * halofit_found_k_max
                         );
 
   int nonlinear_halofit_integrate(

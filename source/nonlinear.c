@@ -72,7 +72,7 @@ int nonlinear_init(
   double * pvecback;
   int last_index;
   double a,z;
-  enum halofit_statement halofit_found_k_max;
+  short halofit_found_k_max;
   int pk_type;
 
   /** Summary
@@ -204,7 +204,7 @@ int nonlinear_init(
                    pnl->error_message,
                    pnl->error_message);
 
-        if (halofit_found_k_max == ok) {
+        if (halofit_found_k_max == _TRUE_) {
 
           // for debugging:
             /*if ((index_tau == pnl->tau_size-1)){ 
@@ -424,7 +424,7 @@ int nonlinear_halofit(
                       double *lnpk_l,
                       double *ddlnpk_l,
                       double *k_nl,
-                      enum halofit_statement * halofit_found_k_max
+                      short * halofit_found_k_max
                       ) {
 
   double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
@@ -648,13 +648,13 @@ int nonlinear_halofit(
   */
 
   if (sigma < 1.) {
-    * halofit_found_k_max = too_small;
+    * halofit_found_k_max = _FALSE_;
     free(pvecback);
     free(integrand_array);
     return _SUCCESS_;
   }
   else {
-    * halofit_found_k_max = ok;
+    * halofit_found_k_max = _TRUE_;
   }
 
   xlogr1 = log(R)/log(10.);
