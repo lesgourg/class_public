@@ -3164,9 +3164,6 @@ int input_default_params(
   ppm->custom9=0.;
   ppm->custom10=0.;
 
-  /** non linear structure*/
-  pnl->has_pk_cb = _FALSE_;
-
   /** - transfer structure */
 
   ptr->selection_bias[0]=1.;

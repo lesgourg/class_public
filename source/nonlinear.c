@@ -73,6 +73,7 @@ int nonlinear_init(
   int last_index;
   double a,z;
   enum halofit_statement halofit_found_k_max;
+  int pk_type;
 
   /** Summary
    *
@@ -96,12 +97,9 @@ int nonlinear_init(
       }
     }
 
-    pnl->has_pk_cb = _FALSE_;
-    if(pba->has_ncdm)
-       pnl->has_pk_cb = _TRUE_;
     index_pk = 0;
     class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
-    class_define_index(pnl->index_pk_cb,  pnl->has_pk_cb, index_pk,1);
+    class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
     pnl->pk_size = index_pk;
     //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
 
@@ -161,7 +159,17 @@ int nonlinear_init(
   
     }
 
-    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+    for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
+
+    if(pk_type == pnl->index_pk_m){
+     index_pk = pnl->index_pk_m;
+    }
+    else if((pba->has_ncdm)&&(pk_type == pnl->index_pk_cb)){
+     index_pk = pnl->index_pk_cb;
+    }
+    else {
+     class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
+    }
 
     print_warning=_FALSE_;
 
@@ -172,7 +180,7 @@ int nonlinear_init(
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
       /* get P_L(k) at this time */
-      class_call(nonlinear_pk_l(ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
+      class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                  pnl->error_message,
                  pnl->error_message);
 
@@ -296,6 +304,7 @@ int nonlinear_free(
 }
 
 int nonlinear_pk_l(
+                   struct background *pba,
                    struct perturbs *ppt,
                    struct primordial *ppm,
                    struct nonlinear *pnl,
@@ -320,7 +329,7 @@ int nonlinear_pk_l(
   if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
   }
-  else if((pnl->has_pk_cb)&&(index_pk == pnl->index_pk_cb)){
+  else if((pba->has_ncdm)&&(index_pk == pnl->index_pk_cb)){
     index_delta = ppt->index_tp_delta_cb;
   }
   else {
@@ -470,7 +479,7 @@ int nonlinear_halofit(
   if (index_pk == pnl->index_pk_m){
     fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
-  else if((pnl->has_pk_cb)&&(index_pk == pnl->index_pk_cb)){
+  else if((pba->has_ncdm)&&(index_pk == pnl->index_pk_cb)){
     fnu = 0.;
   }
   else {

@@ -111,7 +111,8 @@ extern "C" {
                      struct nonlinear *pnl
                      );
 
-  int nonlinear_pk_l(struct perturbs *ppt,
+  int nonlinear_pk_l(struct background *pba,
+                     struct perturbs *ppt,
                      struct primordial *ppm,
                      struct nonlinear *pnl,
                      int index_pk,
