@@ -79,8 +79,7 @@ int parser_free(
 
   return _SUCCESS_;
 }
-//For printing error message only once in entire lifetime of program
-int NUM_OF_PRINTS = 1;
+
 int parser_read_line(
 		     char * line,
 		     int * is_data,
@@ -94,15 +93,10 @@ int parser_read_line(
   char * left;
   char * right;
 
-  /* check that there is an '=' or a ':'*/
+  /* check that there is an '=' */
 
   pequal=strchr(line,'=');
-  if (pequal == NULL) {
-    pequal = strchr(line,':');
-    if( pequal == NULL){
-      *is_data = _FALSE_; return _SUCCESS_;
-    }
-  }
+  if (pequal == NULL) {*is_data = _FALSE_; return _SUCCESS_;}
 
   /* if yes, check that there is not an '#' before the '=' */
 
@@ -130,11 +124,7 @@ int parser_read_line(
   
   /* deal with missing variable names */
   if (right-left < 0) {
-    //Only print this error message once
-    if(NUM_OF_PRINTS>0){
-      printf("In parser.c : Found variable assign operator '=' or ':' in input file, but could not find variable name \n");
-      NUM_OF_PRINTS--;
-    }
+    //printf("In parser.c : Found variable assign operator '=' or ':' in input file, but could not find variable name \n");
     *is_data = _FALSE_; return _SUCCESS_;
   }
 
