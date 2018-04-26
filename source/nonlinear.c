@@ -459,7 +459,7 @@ int nonlinear_init(
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
       
-      clock_t begin = clock();
+      //clock_t begin = clock();
       
       for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
         
@@ -650,9 +650,9 @@ int nonlinear_init(
     } //end loop over pk_type
     
     //show the time spent for each tau:
-    clock_t end = clock();
-    double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
-    fprintf(stdout, "tau = %e, time spent: %e s\n", pnl->tau[index_tau], time_spent);    
+    //clock_t end = clock();
+    //double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+    //fprintf(stdout, "tau = %e, time spent: %e s\n", pnl->tau[index_tau], time_spent);    
     
     
     } //end loop over index_tau
@@ -675,9 +675,11 @@ int nonlinear_init(
     class_stop(pnl->error_message,
                "Your non-linear method variable is set to %d, out of the range defined in nonlinear.h",pnl->method);
   }   
-  //clock_t end = clock();
-  //double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
-  //fprintf(stdout, "time spent %e\n", time_spent);
+  /* //time spent per tau:
+  clock_t end = clock();
+  double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+  fprintf(stdout, "time spent %e\n", time_spent);
+  */
   return _SUCCESS_;
 }
 
