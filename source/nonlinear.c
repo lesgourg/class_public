@@ -161,11 +161,17 @@ int nonlinear_init(
 
     for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
 
-    if(pk_type == pnl->index_pk_m){
-     index_pk = pnl->index_pk_m;
+    if(pk_type == 0){
+     if(pba->has_ncdm)
+        index_pk=pnl->index_pk_cb;
+     else
+        index_pk = pnl->index_pk_m;
     }
-    else if((pba->has_ncdm)&&(pk_type == pnl->index_pk_cb)){
-     index_pk = pnl->index_pk_cb;
+    else if(pk_type == 1){
+     if(pba->has_ncdm)
+        index_pk = pnl->index_pk_m;
+     else
+       class_stop(pnl->error_message,"looks like pk_size=2 even if you do not have any massive neutrinos");
     }
     else {
      class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
