@@ -10,7 +10,6 @@
 
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
-enum nonlinear_statement {ok, too_small};
 enum hmcode_baryonic_feedback_model {emu_dmonly, owls_dmonly, owls_ref, owls_agn, owls_dblim, user_defined};
 
 /**
@@ -205,7 +204,7 @@ extern "C" {
                         double *lnpk_l,
                         double *ddlnpk_l,
                         double *k_nl,
-                        enum nonlinear_statement * nonlinear_found_k_max
+                        short * halofit_found_k_max
                         );
 
   int nonlinear_halofit_integrate(
@@ -237,7 +236,7 @@ extern "C" {
                       double **lnpk_l,
                       double **ddlnpk_l,
                       double *k_nl,
-                      enum nonlinear_statement * nonlinear_found_k_max                      
+                      short * halofit_found_k_max                      
                       );
 
   int nonlinear_hmcode_sigma(

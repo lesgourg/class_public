@@ -3549,7 +3549,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_tol_sigma = 1.e-6;
   ppr->pk_eq_z_max = 5.;
 
-  ppr->hmcode_k_per_decade = 50.;
+  ppr->hmcode_min_k_max = 5.;
+  ppr->hmcode_k_per_decade = 80.;
   ppr->hmcode_tol_sigma = 1.e-3;
 	ppr->hmcode_max_k_extra = 1.e5;
 	ppr->n_hmcode_tables = 64;

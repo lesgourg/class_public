@@ -1740,7 +1740,7 @@ cdef class Class:
         cdef int index_pk
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
         #cdef double *k_nl
-        index_pk=0
+        index_pk=self.nl.index_pk_m
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
             if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl[index_z]) == _FAILURE_:
@@ -1767,7 +1767,7 @@ cdef class Class:
         cdef int index_pk
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
         #cdef double *k_nl
-        index_pk=1
+        index_pk=self.nl.index_pk_cb
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
             if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl_cb[index_z]) == _FAILURE_:

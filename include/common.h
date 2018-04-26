@@ -791,6 +791,15 @@ struct precision
    */ 
   double hmcode_max_k_extra; 
   
+  double hmcode_min_k_max;   /**< when HMcode is used, k_max must be
+                               at least equal to this value such that
+                               HMcode finds the nonlinear scale.
+                               Calculations are done
+                               internally until this k_max, but the
+                               output is still controlled by
+                               P_k_max_1/Mpc or P_k_max_h/Mpc even if
+                               they are smaller */
+  
   
   /** hmcode needs to evalute integrals
    * (linear power spectrum times spherical

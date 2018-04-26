@@ -1377,7 +1377,7 @@ int perturb_get_k_list(
       k_max = MAX(k_max,ppr->halofit_min_k_max);
       
     if (ppt->has_nl_hmcode_corrections_based_on_delta_m == _TRUE_)
-      k_max = MAX(k_max,50*pba->a_eq*pba->H_eq);
+      k_max = MAX(k_max,ppr->hmcode_min_k_max);
 
     /** - --> test that result for k_min, k_max make sense */
 
