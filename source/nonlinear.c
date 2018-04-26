@@ -467,15 +467,14 @@ int nonlinear_init(
       
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {      
         
-        /* get P_L(k) at this time */
-        class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
+      /* get P_L(k) at this time */
+      class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                  pnl->error_message,
                  pnl->error_message);
-      }
+
       // get P_NL(k) at this time with Halofit 
       if (pnl->method == nl_halofit) {
         if (print_warning == _FALSE_) {
-          for (index_pk=0; index_pk<pnl->pk_size; index_pk++) { 
     
             class_call(nonlinear_halofit(
                  ppr,
@@ -494,7 +493,7 @@ int nonlinear_init(
                  &nonlinear_found_k_max),
                  pnl->error_message,
                  pnl->error_message);
-          }
+          
           if (nonlinear_found_k_max == ok) {
 
 						// for debugging:
@@ -504,11 +503,9 @@ int nonlinear_init(
 							 }
 								fprintf(stdout,"\n\n");
             */
-            for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
               } 
-            }
           }
           else {
           /* when Halofit found k_max too small, use 1 as the
@@ -516,11 +513,9 @@ int nonlinear_init(
             last index which worked, and print a warning. */
             print_warning = _TRUE_;
             pnl->index_tau_min_nl = index_tau+1;
-            for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
               }
-            }
             if (pnl->nonlinear_verbose > 0) {
               class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
               class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
@@ -538,11 +533,10 @@ int nonlinear_init(
            /* if Halofit found k_max too small at a previous
               time/redhsift, use 1 as the non-linear correction for all
               higher redshifts/earlier times. */
-          for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {  
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
             }
-          }
+        
         }
       }
       // get P_NL(k) at this time with HMcode
@@ -562,7 +556,6 @@ int nonlinear_init(
 								}
 							} */    
           }
-          for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
             class_call(nonlinear_hmcode(ppr,
                        pba,
                        ppt,
@@ -580,7 +573,7 @@ int nonlinear_init(
                        &nonlinear_found_k_max),
               pnl->error_message,
               pnl->error_message);
-          }
+          
           if (nonlinear_found_k_max == ok) {
 
 						// for debugging:
@@ -590,11 +583,11 @@ int nonlinear_init(
 							}
 							if (index_tau == pnl->tau_size-1) fprintf(stdout,"\n\n");
 						*/
-            for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+            
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
               }
-            }
+            
           }
           else {
 						/* when HMcode found k_max too small, use 1 as the
@@ -602,11 +595,11 @@ int nonlinear_init(
 							last index which worked, and print a warning. */
             print_warning = _TRUE_;
             pnl->index_tau_min_nl = index_tau+1;
-            for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+            
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
               }
-            }
+            
             if (pnl->nonlinear_verbose > 0) {
               class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
               class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
@@ -624,11 +617,11 @@ int nonlinear_init(
 					/* if HMcode found k_max too small at a previous
 							time/redhsift, use 1 as the non-linear correction for all
 							higher redshifts/earlier times. */
-          for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+     
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
             }
-          }
+          
         }			
       }
 
@@ -644,6 +637,7 @@ int nonlinear_init(
     clock_t end = clock();
     double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
     fprintf(stdout, "tau = %e, time spent: %e s\n", pnl->tau[index_tau], time_spent);
+    }//end loop over index_pk
     }//end loop over index_tau
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
