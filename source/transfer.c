@@ -3030,7 +3030,8 @@ int transfer_dNdz_analytic(
 
   double z0,alpha,beta;
 
-  z0 = 0.55;
+  //Euclid IST dNdz, DO NOT CHANGE THIS!
+  z0 = 0.9/pow(2.,1./2.);
   alpha = 2.0;
   beta = 1.5;
 
