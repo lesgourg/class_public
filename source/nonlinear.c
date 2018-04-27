@@ -17,12 +17,13 @@
 int nonlinear_k_nl_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
-                        int index_pk,
                         double z,
-                        double * k_nl
+                        double * k_nl,
+                        double * k_nl_cb
                         ) {
 
   double tau;
+  int index_pk;
 
   class_call(background_tau_of_z(pba,
                                  z,
@@ -31,13 +32,13 @@ int nonlinear_k_nl_at_z(
              pnl->error_message);
 
   if (pnl->tau_size == 1) {
-    *k_nl = pnl->k_nl[index_pk][0];
+    *k_nl = pnl->k_nl[pnl->index_pk_m][0];
   }
   else {
     class_call(array_interpolate_two(pnl->tau,
                                      1,
                                      0,
-                                     pnl->k_nl[index_pk],
+                                     pnl->k_nl[pnl->index_pk_m],
                                      1,
                                      pnl->tau_size,
                                      tau,
@@ -46,6 +47,33 @@ int nonlinear_k_nl_at_z(
                                      pnl->error_message),
                pnl->error_message,
                pnl->error_message);
+  }
+
+
+
+ if (pba->has_ncdm){
+ 
+ if (pnl->tau_size == 1) {
+    *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
+  }
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->k_nl[pnl->index_pk_cb],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     k_nl_cb,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  }
+  else{
+    *k_nl_cb = 1.e30;
   }
 
   return _SUCCESS_;
@@ -366,8 +394,6 @@ int nonlinear_init(
     class_alloc(ddlnpk_l,
                 pnl->pk_size*sizeof(double *),
                 pnl->error_message);
-
-    class_alloc(pnl->index_tau_min_nl,pnl->pk_size*sizeof(double),pnl->error_message);
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
     
@@ -2085,7 +2111,7 @@ int nonlinear_hmcode_growint(
 				*growth = exp(*growth);
 		}								
 	}
-  fprintf(stdout, "%e %e \n", a, *growth);
+  //fprintf(stdout, "%e %e \n", a, *growth);
 	free(pvecback);
 	free(integrand);
 	
