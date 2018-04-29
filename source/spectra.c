@@ -1114,7 +1114,7 @@ int spectra_pk_nl_at_z(
                  psp->error_message);
     }
     if(pba->has_ncdm){
-    if(ln_tau < psp->ln_tau_nl_cb[0]){
+    if(ln_tau < psp->ln_tau_nl[0]){
       class_call(array_interpolate_spline(psp->ln_tau,
                                           psp->ln_tau_size,
                                           psp->ln_pk_cb_l,
@@ -1130,8 +1130,8 @@ int spectra_pk_nl_at_z(
 
     }
     else{
-      class_call(array_interpolate_spline(psp->ln_tau_nl_cb,
-                                          psp->ln_tau_nl_size_cb,
+      class_call(array_interpolate_spline(psp->ln_tau_nl,
+                                          psp->ln_tau_nl_size,
                                           psp->ln_pk_cb_nl,
                                           psp->ddln_pk_cb_nl,
                                           psp->ln_k_size,
@@ -1785,11 +1785,10 @@ int spectra_free(
         }
 
         if (psp->ln_pk_cb_nl != NULL) {
-
-          free(psp->ln_tau_nl_cb);
+ 
           free(psp->ln_pk_cb_nl);
 
-          if (psp->ln_tau_nl_size_cb > 1) {
+          if (psp->ln_tau_nl_size > 1) {
             free(psp->ddln_pk_cb_nl);
           }
         }
@@ -2793,7 +2792,7 @@ int spectra_k_and_tau(
 
   int index_k;
   int index_tau;
-  int index_tau_min_nl, index_tau_min_nl_cb;
+  int index_tau_min_nl;//index_tau_min_nl_cb
   double tau_min;
 
   /** - check the presence of scalar modes */
@@ -2879,7 +2878,7 @@ int spectra_k_and_tau(
   if (pnl->method != nl_none) {
   
     index_tau=ppt->tau_size-psp->ln_tau_size;
-    index_tau_min_nl=pnl->index_tau_min_nl[pnl->index_pk_m];
+    index_tau_min_nl=pnl->index_tau_min_nl;
     while (ppt->tau_sampling[index_tau] < pnl->tau[index_tau_min_nl]) {
       index_tau++;
     }
@@ -2891,7 +2890,7 @@ int spectra_k_and_tau(
       psp->ln_tau_nl[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_nl_size+ppt->tau_size]);
     }
 
-    if(pba->has_ncdm){
+    /*if(pba->has_ncdm){
 
     index_tau=ppt->tau_size-psp->ln_tau_size;
     index_tau_min_nl_cb=pnl->index_tau_min_nl[pnl->index_pk_cb];
@@ -2906,7 +2905,7 @@ int spectra_k_and_tau(
       psp->ln_tau_nl_cb[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_nl_size_cb+ppt->tau_size]);
     }
 
-    }
+    }*/
    
   }
 
@@ -3005,12 +3004,13 @@ int spectra_pk(
 
     if (pnl->method != nl_none) {
      class_alloc(psp->ln_pk_cb_nl,
-                sizeof(double)*psp->ln_tau_nl_size_cb*psp->ln_k_size,
+                sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,
                 psp->error_message);
     /* possible index shift between the first value of time used for
              the linear spectrum and that for the non-linear power
              spectrum (0 if no shift) */
-    delta_index_nl_cb = psp->ln_tau_size-psp->ln_tau_nl_size_cb;
+    //this is not really necessary, since m and cb share the same ln_tau_nl_size and ln_tau_nl
+    delta_index_nl_cb = psp->ln_tau_size-psp->ln_tau_nl_size;
     class_test(delta_index_nl_cb<0,
                "This should never happen",
                psp->error_message,
@@ -3259,12 +3259,12 @@ int spectra_pk(
                  psp->error_message,
                  psp->error_message);
     }
-    if((pba->has_ncdm)&&(psp->ln_tau_nl_size_cb > 1)){
+    if(pba->has_ncdm){
 
-      class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size_cb*psp->ln_k_size,psp->error_message);
+      class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,psp->error_message);
 
-      class_call(array_spline_table_lines(psp->ln_tau_nl_cb,
-                                          psp->ln_tau_nl_size_cb,
+      class_call(array_spline_table_lines(psp->ln_tau_nl,
+                                          psp->ln_tau_nl_size,
                                           psp->ln_pk_cb_nl,
                                           psp->ln_k_size,
                                           psp->ddln_pk_cb_nl,
