@@ -17,12 +17,13 @@
 int nonlinear_k_nl_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
-                        int index_pk,
                         double z,
-                        double * k_nl
+                        double * k_nl,
+                        double * k_nl_cb
                         ) {
 
   double tau;
+  int index_pk;
 
   class_call(background_tau_of_z(pba,
                                  z,
@@ -31,13 +32,13 @@ int nonlinear_k_nl_at_z(
              pnl->error_message);
 
   if (pnl->tau_size == 1) {
-    *k_nl = pnl->k_nl[index_pk][0];
+    *k_nl = pnl->k_nl[pnl->index_pk_m][0];
   }
   else {
     class_call(array_interpolate_two(pnl->tau,
                                      1,
                                      0,
-                                     pnl->k_nl[index_pk],
+                                     pnl->k_nl[pnl->index_pk_m],
                                      1,
                                      pnl->tau_size,
                                      tau,
@@ -46,6 +47,31 @@ int nonlinear_k_nl_at_z(
                                      pnl->error_message),
                pnl->error_message,
                pnl->error_message);
+  }
+
+ if (pba->has_ncdm){
+
+ if (pnl->tau_size == 1) {
+    *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
+  }
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->k_nl[pnl->index_pk_cb],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     k_nl_cb,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  }
+  else{
+    *k_nl_cb = 1.e30;
   }
 
   return _SUCCESS_;
@@ -367,8 +393,6 @@ int nonlinear_init(
                 pnl->pk_size*sizeof(double *),
                 pnl->error_message);
 
-    class_alloc(pnl->index_tau_min_nl,pnl->pk_size*sizeof(double),pnl->error_message);
-
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
     
     class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
@@ -384,7 +408,7 @@ int nonlinear_init(
     }
 
     if (pnl->method == nl_HMcode){
-    /** initialise the source extrapolation */
+    /** initialise the extrapolation for the sources by getting the length of the exptrapolated vector, extending k and reallocating arrays */
       class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
                                                 pnl->k[pnl->k_size-1], 
                                                 ppr->hmcode_max_k_extra,
@@ -451,7 +475,9 @@ int nonlinear_init(
       else {
         class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
       } 
-*/
+*/  
+
+    print_warning=_FALSE_;
     
     pnl->index_tau_min_nl = 0;  
     
@@ -462,7 +488,7 @@ int nonlinear_init(
       //clock_t begin = clock();
       
       for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
-        
+
         if(pk_type == 0) {
           if(pba->has_ncdm) {
             index_pk=pnl->index_pk_cb;
@@ -482,7 +508,7 @@ int nonlinear_init(
         else {
          class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
         }
-        
+
       /* get P_L(k) at this time */
       class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                  pnl->error_message,
@@ -546,6 +572,7 @@ int nonlinear_init(
           }
         }
         else {
+
            /* if Halofit found k_max too small at a previous
               time/redhsift, use 1 as the non-linear correction for all
               higher redshifts/earlier times. */
@@ -599,7 +626,6 @@ int nonlinear_init(
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
               }
-            
           }
           else {
 						/* when HMcode found k_max is false, use 1 as the

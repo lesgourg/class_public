@@ -122,9 +122,9 @@ extern "C" {
   int nonlinear_k_nl_at_z(
                           struct background *pba,
                           struct nonlinear * pnl,
-                          int index_pk,
                           double z,
-                          double * k_nl
+                          double * k_nl,
+                          double * k_nl_cb
                           );
 
   int nonlinear_hmcode_sigma8_at_z(
