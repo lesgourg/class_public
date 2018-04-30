@@ -1767,6 +1767,10 @@ cdef class Class:
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
         #cdef double *k_nl
         #k_nl = <double*> calloc(z_size,sizeof(double))
+        if (self.ba.Omega0_ncdm_tot == 0.):
+            raise CosmoSevereError(
+                "No massive neutrinos. You must use pk, rather than pk_cb."
+                )
         for index_z in range(z_size):
             if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z],&k_nl_cb[index_z]) == _FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)

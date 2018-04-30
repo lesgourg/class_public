@@ -2111,7 +2111,7 @@ int nonlinear_hmcode_growint(
 				*growth = exp(*growth);
 		}								
 	}
-  fprintf(stdout, "%e %e \n", a, *growth);
+  //fprintf(stdout, "%e %e \n", a, *growth);
 	free(pvecback);
 	free(integrand);
 	
@@ -2425,7 +2425,7 @@ int nonlinear_hmcode(
 	//fprintf(stdout, "z: %e, numin: %e\n", z_at_tau, nu_min);
   // stop calculating the nonlinear correction if the nonlinear scale is not reached in the table:
 	if (nu_min > nu_nl) {
-    class_stop(pnl->error_message,"Your input of the mass range is such that the nonlinear scale cannot be found at this redshift %5.2. Try to decrease the parameter mmin_for_p1h_integral\n",z_at_tau);
+    class_stop(pnl->error_message,"Your input of the mass range is such that the nonlinear scale cannot be found at this redshift %e. Try to decrease the parameter mmin_for_p1h_integral\n",z_at_tau);
   }
 
   
