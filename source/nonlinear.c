@@ -70,7 +70,7 @@ int nonlinear_k_nl_at_z(
 
   }
   else{
-    *k_nl_cb = 1.e30;
+    *k_nl_cb = *k_nl;
   }
 
   return _SUCCESS_;
