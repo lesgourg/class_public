@@ -108,7 +108,7 @@ int extrapolate_k(
   double k_max;
   int index_extr;
   int index_running_k;
-  double running_k;
+  double running_k=0;
   /**
    * Kopy existing wavenumbers k
    * */
@@ -141,7 +141,7 @@ int get_extrapolated_source_size(
           int* size_extrapolated_source,
           ErrorMsg errMsg
           ){
-  double running_k;
+  double running_k=0;
   int index_running_k;
   /**
    * The k sampling should be the same lines of code as in the extrapolate_source function

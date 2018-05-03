@@ -7,12 +7,14 @@
 
   int nonlinear_hmcode_ci(
 				 double x,
-				 double *Ci
+				 double *Ci,
+         ErrorMsg error_message
 				 );
 	
   int nonlinear_hmcode_si(
 				 double x,
-				 double *Si
+				 double *Si,
+         ErrorMsg error_message
 				 );
          
 #endif

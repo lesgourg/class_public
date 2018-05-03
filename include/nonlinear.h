@@ -10,7 +10,7 @@
 
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
-enum hmcode_baryonic_feedback_model {emu_dmonly, owls_dmonly, owls_ref, owls_agn, owls_dblim, user_defined};
+enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -64,12 +64,12 @@ struct nonlinear {
   double * growtable;
   double * ztable;
   double * tautable;
-  
+  /*
   double * sigma_8;
   double * sigma_disp;
   double * sigma_disp_100;
   double * sigma_prime;
-  
+  */
   double c_min; /** minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0; /** halo bloating parameter */
   

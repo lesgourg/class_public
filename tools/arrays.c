@@ -1761,7 +1761,7 @@ int array_search_bisect(
 											 int * __restrict__ last_index,
 											 ErrorMsg errmsg) {
 
-  int inf,sup,mid,i;
+  int inf,sup,mid;
 	
   inf=0;
   sup=n_lines-1;

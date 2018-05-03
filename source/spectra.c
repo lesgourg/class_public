@@ -2820,7 +2820,7 @@ int spectra_k_and_tau(
   /* if z_max_pk>0, store several values (with a comfortable margin above z_max_pk) in view of interpolation */
   else{
 
-    /* find the first relevant value of tau (last value in the table tau_ampling before tau(z_max)) and infer the number of values of tau at which P(k) must be stored */
+    /* find the first relevant value of tau (last value in the table tau_sampling before tau(z_max)) and infer the number of values of tau at which P(k) must be stored */
 
     class_call(background_tau_of_z(pba,psp->z_max_pk,&tau_min),
                pba->error_message,
@@ -2889,7 +2889,7 @@ int spectra_k_and_tau(
     for (index_tau=0; index_tau<psp->ln_tau_nl_size; index_tau++) {
       psp->ln_tau_nl[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_nl_size+ppt->tau_size]);
     }
-
+    
     /*if(pba->has_ncdm){
 
     index_tau=ppt->tau_size-psp->ln_tau_size;

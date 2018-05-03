@@ -5,7 +5,8 @@
 /** this is the Cosine Integral function Ci(x) */
 int nonlinear_hmcode_ci(
 								 double x,
-								 double *Ci
+								 double *Ci,
+                 ErrorMsg error_message
 								 ){
 	
 	double x2, y, f, g, ci8;
@@ -52,7 +53,8 @@ int nonlinear_hmcode_ci(
 /** this is the Sine Integral function Si(x) */
 int nonlinear_hmcode_si(
 								 double x,
-								 double *Si
+								 double *Si,
+                 ErrorMsg error_message
 								 ){
 	
 	double x2, y, f, g, si8;
