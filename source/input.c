@@ -2521,19 +2521,19 @@ int input_read_parameters(
 	if (flag1 == _TRUE_) {
 	
 		if (strstr(string1,"emu_dmonly") != NULL) {
-			pnl->feedback = emu_dmonly; 
+			pnl->feedback = nl_emu_dmonly; 
 		}
 		if (strstr(string1,"owls_dmonly") != NULL) {
-			pnl->feedback = owls_dmonly;
+			pnl->feedback = nl_owls_dmonly;
 		}
 		if (strstr(string1,"owls_ref") != NULL) {
-			pnl->feedback = owls_ref; 
+			pnl->feedback = nl_owls_ref; 
 		}	
 		if (strstr(string1,"owls_agn") != NULL) {
-			pnl->feedback = owls_agn;
+			pnl->feedback = nl_owls_agn;
 		}
 		if (strstr(string1,"owls_dblim") != NULL) {
-			pnl->feedback = owls_dblim; 
+			pnl->feedback = nl_owls_dblim; 
 		}
   }
   
@@ -2549,17 +2549,17 @@ int input_read_parameters(
              "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
   
   if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
-		pnl->feedback = user_defined;
+		pnl->feedback = nl_user_defined;
 		class_read_double("eta_0", pnl->eta_0);
 		class_read_double("c_min", pnl->c_min);
   }  
   else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
-		pnl->feedback = user_defined;
+		pnl->feedback = nl_user_defined;
 		class_read_double("eta_0", pnl->eta_0);
 		pnl->c_min = (0.98 - pnl->eta_0)/0.12; 
   }
   else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
-		pnl->feedback = user_defined;
+		pnl->feedback = nl_user_defined;
 		class_read_double("c_min", pnl->c_min);
 		pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
   }  
@@ -3105,6 +3105,8 @@ int input_default_params(
   ppt->has_metricpotential_transfers = _FALSE_;
 
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
+  ppt->has_nl_halofit_corrections_based_on_delta_m = _FALSE_;
+  ppt->has_nl_hmcode_corrections_based_on_delta_m = _FALSE_;
 
   ppt->has_nc_density = _FALSE_;
   ppt->has_nc_rsd = _FALSE_;
@@ -3284,12 +3286,9 @@ int input_default_params(
 
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
-  pnl->feedback = emu_dmonly;
+  pnl->feedback = nl_emu_dmonly;
   
   pnl->z_infinity = 10.;
-  
-  //pnl->c_min = 3.13;
-	//pnl->eta_0 = 0.603;
 
   /** - all verbose parameters */
 
