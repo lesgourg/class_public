@@ -3258,8 +3258,8 @@ int spectra_pk(
                                           psp->error_message),
                  psp->error_message,
                  psp->error_message);
-    }
-    if(pba->has_ncdm){
+  
+     if(pba->has_ncdm){
 
       class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,psp->error_message);
 
@@ -3273,8 +3273,8 @@ int spectra_pk(
                  psp->error_message,
                  psp->error_message);
 
+     }
     }
-
   }
 
   free (primordial_pk);
