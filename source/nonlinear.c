@@ -363,9 +363,9 @@ int nonlinear_init(
             non-linear correction for this redshift/time, store the
             last index which worked, and print a warning. */
             print_warning = _TRUE_;
-            pnl->index_tau_min_nl = MIN(pnl->tau_size-3,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds and at least 3 ln_tau_nl points exist (for interpolation)
-            if (pnl->index_tau_min_nl<0) pnl->index_tau_min_nl = 0;
-            fprintf(stdout, "tau_size: %d, index_tau+1: %d, index_tau_min_nl: %d\n", pnl->tau_size, index_tau+1, pnl->index_tau_min_nl);
+            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds and at least 3 ln_tau_nl points exist (for interpolation)
+            //if (pnl->index_tau_min_nl<0) pnl->index_tau_min_nl = 0;
+            //fprintf(stdout, "tau_size: %d, index_tau+1: %d, index_tau_min_nl: %d\n", pnl->tau_size, index_tau+1, pnl->index_tau_min_nl);
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
               }
@@ -438,9 +438,9 @@ int nonlinear_init(
 							non-linear correction for this redshift/time, store the
 							last index which worked, and print a warning. */
             print_warning = _TRUE_;
-            pnl->index_tau_min_nl = MIN(pnl->tau_size-3,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds and at least 3 ln_tau_nl points exist (for interpolation)
-            if (pnl->index_tau_min_nl<0) pnl->index_tau_min_nl = 0;
-            fprintf(stdout, "tau_size: %d, index_tau+1: %d, index_tau_min_nl: %d\n", pnl->tau_size, index_tau+1, pnl->index_tau_min_nl);
+            pnl->index_tau_min_nl = MIN(pnl->tau_size-2,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds and at least 3 ln_tau_nl points exist (for interpolation)
+            //if (pnl->index_tau_min_nl<0) pnl->index_tau_min_nl = 0;
+            //fprintf(stdout, "tau_size: %d, index_tau+1: %d, index_tau_min_nl: %d\n", pnl->tau_size, index_tau+1, pnl->index_tau_min_nl);
             
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;

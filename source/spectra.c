@@ -3259,7 +3259,7 @@ int spectra_pk(
                  psp->error_message,
                  psp->error_message);
     }
-    if(pba->has_ncdm){
+    if((pba->has_ncdm)&&(psp->ln_tau_nl_size > 1)){
 
       class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,psp->error_message);
 
@@ -3364,7 +3364,7 @@ int spectra_sigma(
                           psp->error_message),
              psp->error_message,
              psp->error_message);
-
+             
   class_call(array_integrate_all_spline(array_for_sigma,
                                         index_num,
                                         psp->ln_k_size,
@@ -3383,7 +3383,8 @@ int spectra_sigma(
     if (pba->has_ncdm)
     free(pk_cb_ic);
   }  
-
+  
+  class_test((*sigma<0), psp->error_message, "You obtained a negative value for sigma^2. This means that your k-grid is not fine enough");
   *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
 
   return _SUCCESS_;

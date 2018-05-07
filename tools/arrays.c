@@ -588,7 +588,8 @@ int array_spline_table_lines(
     sprintf(errmsg,"%s(L:%d) Cannot allocate un",__func__,__LINE__);
     return _FAILURE_;
   }
-
+  
+  class_test((x_size<3), errmsg, "%s(L:%d) Array too small for spline, it should have at least size 3",__func__,__LINE__ );
 
   index_x=0;
 
