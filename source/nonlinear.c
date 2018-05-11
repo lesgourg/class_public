@@ -149,12 +149,54 @@ int nonlinear_init(
     class_alloc(pnl->k,pnl->k_size*sizeof(double),pnl->error_message);
     for (index_k=0; index_k<pnl->k_size; index_k++)
       pnl->k[index_k] = ppt->k[ppt->index_md_scalars][index_k];
+/*
+    if (((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) && (pnl->method == nl_HMcode)) {
+      
+      // If Cls are requested AND HMcode is used, we do not want the same fine tau_sampling as in ppt (since HMcode is computationally more expensive than Halofit) 
+      
+      // Call the function perturb_timesampling_for_sources from the perturbs module again, but for the case that no Cls are requested 
+      ppt->has_cmb == _FALSE_;
+      ppt->has_perturbed_recombination == _FALSE_;
+      
+      class_call(perturb_timesampling_for_sources(ppr,
+                                              pba,
+                                              pth,
+                                              ppt),
+             ppt->error_message,
+             pnl->error_message);
+      
+      // Set the pnl tau_sampling and tau_size to the NEW ppt values 
+      pnl->tau_size = ppt->tau_size;
+      class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+      for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
+        pnl->tau[index_tau] = ppt->tau_sampling[index_tau];    
+      
+      // Reset ppt tau_sampling and tau_size to their original values 
+      ppt->has_cmb == _TRUE_;
+      ppt->has_perturbed_recombination == _TRUE_;
+      
+      class_call(perturb_timesampling_for_sources(ppr,
+                                              pba,
+                                              pth,
+                                              ppt),
+             ppt->error_message,
+             pnl->error_message);
+      
+    }
+    else {
+      // In this case just copy from perturbation module
+      pnl->tau_size = ppt->tau_size;
+      class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+      for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
+        pnl->tau[index_tau] = ppt->tau_sampling[index_tau];      
+    }*/
 
-    pnl->tau_size = ppt->tau_size;
-    class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
-    for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
-      pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
+      pnl->tau_size = ppt->tau_size;
+      class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+      for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
+        pnl->tau[index_tau] = ppt->tau_sampling[index_tau]; 
 
+      
     class_alloc(pnl->nl_corr_density,
                 pnl->pk_size*sizeof(double *),
                 pnl->error_message);
