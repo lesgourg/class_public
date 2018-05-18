@@ -332,6 +332,10 @@ cdef extern from "class.h":
         double * output_tot,
         double * output_cb_tot)
 
+    int nonlinear_hmcode_sigma8_at_z(void* pba, void* pnl, double z, double* sigma_8, double* sigma_8_cb)
+    int nonlinear_hmcode_sigmadisp_at_z(void* pba, void* pnl, double z, double* sigma_disp, double* sigma_disp_cb)
+    int nonlinear_hmcode_sigmadisp100_at_z(void* pba, void* pnl, double z, double* sigma_disp_100, double* sigma_disp_100_cb)
+    int nonlinear_hmcode_sigmaprime_at_z(void* pba, void* pnl, double z, double* sigma_prime, double* sigma_prime_cb)
     int nonlinear_hmcode_window_nfw(void* pnl, double k, double rv, double c, double* window_nfw)
 
     int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl, double* k_nl_cb)

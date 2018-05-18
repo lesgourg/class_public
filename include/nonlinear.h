@@ -64,12 +64,12 @@ struct nonlinear {
   double * growtable;
   double * ztable;
   double * tautable;
-  /*
-  double * sigma_8;
-  double * sigma_disp;
-  double * sigma_disp_100;
-  double * sigma_prime;
-  */
+  
+  double ** sigma_8;
+  double ** sigma_disp;
+  double ** sigma_disp_100;
+  double ** sigma_prime;
+  
   double c_min; /** minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0; /** halo bloating parameter */
   
@@ -131,38 +131,32 @@ extern "C" {
                         struct background *pba,
                         struct nonlinear * pnl,
                         double z,
-                        double * sigma_8
+                        double * sigma_8,
+                        double * sigma_8_cb
                         );
-
-  int nonlinear_hmcode_sigmaR_at_z(
-                        struct precision *ppr,
-                        struct background *pba,
-                        struct nonlinear * pnl,
-                        double R,
-                        double z,
-                        double * sigma_R
-                        );
-
 
   int nonlinear_hmcode_sigmadisp_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
                         double z,
-                        double * sigma_disp
+                        double * sigma_disp,
+                        double * sigma_disp_cb
                         );
 
   int nonlinear_hmcode_sigmadisp100_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
                         double z,
-                        double * sigma_disp_100
+                        double * sigma_disp_100,
+                        double * sigma_disp_100_cb
                         );
 
   int nonlinear_hmcode_sigmaprime_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
                         double z,
-                        double * sigma_prime
+                        double * sigma_prime,
+                        double * sigma_prime_cb
                         );
 
   int nonlinear_init(

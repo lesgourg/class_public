@@ -49,13 +49,13 @@ int nonlinear_k_nl_at_z(
                pnl->error_message);
   }
 
- if (pba->has_ncdm){
+  if (pba->has_ncdm){
 
- if (pnl->tau_size == 1) {
-    *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
-  }
-  else {
-    class_call(array_interpolate_two(pnl->tau,
+    if (pnl->tau_size == 1) {
+      *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
+    }
+    else {
+      class_call(array_interpolate_two(pnl->tau,
                                      1,
                                      0,
                                      pnl->k_nl[pnl->index_pk_cb],
@@ -67,15 +67,272 @@ int nonlinear_k_nl_at_z(
                                      pnl->error_message),
                pnl->error_message,
                pnl->error_message);
-  }
+    }
 
   }
   else{
-    *k_nl_cb = 1.e30;
+    *k_nl_cb = *k_nl;
   }
 
   return _SUCCESS_;
 }
+
+
+int nonlinear_hmcode_sigma8_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_8,
+                        double * sigma_8_cb
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_8 = pnl->sigma_8[pnl->index_pk_m][0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_8[pnl->index_pk_m],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_8,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  
+
+  if (pba->has_ncdm){
+
+    if (pnl->tau_size == 1) {
+      *sigma_8_cb = pnl->sigma_8[pnl->index_pk_cb][0];
+    } 
+    else {
+      class_call(array_interpolate_two(pnl->tau,
+                                       1,
+                                       0,
+                                       pnl->sigma_8[pnl->index_pk_cb],
+                                       1,
+                                       pnl->tau_size,
+                                       tau,
+                                       sigma_8_cb,
+                                       1,
+                                       pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+
+  }
+  else{
+    *sigma_8_cb = *sigma_8;
+  }
+  
+  
+  
+  return _SUCCESS_;  
+}
+
+int nonlinear_hmcode_sigmadisp_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_disp,
+                        double * sigma_disp_cb
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_disp = pnl->sigma_disp[pnl->index_pk_m][0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_disp[pnl->index_pk_m],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_disp,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  if (pba->has_ncdm){
+
+    if (pnl->tau_size == 1) {
+      *sigma_disp_cb = pnl->sigma_disp[pnl->index_pk_cb][0];
+    } 
+    else {
+      class_call(array_interpolate_two(pnl->tau,
+                                       1,
+                                       0,
+                                       pnl->sigma_disp[pnl->index_pk_cb],
+                                       1,
+                                       pnl->tau_size,
+                                       tau,
+                                       sigma_disp_cb,
+                                       1,
+                                       pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+
+  }
+  else{
+    *sigma_disp_cb = *sigma_disp;
+  }
+  
+  
+  
+  return _SUCCESS_;  
+}
+
+int nonlinear_hmcode_sigmadisp100_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_disp_100,
+                        double * sigma_disp_100_cb
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_disp_100 = pnl->sigma_disp_100[pnl->index_pk_m][0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_disp_100[pnl->index_pk_m],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_disp_100,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  if (pba->has_ncdm){
+
+    if (pnl->tau_size == 1) {
+      *sigma_disp_100_cb = pnl->sigma_disp_100[pnl->index_pk_cb][0];
+    } 
+    else {
+      class_call(array_interpolate_two(pnl->tau,
+                                       1,
+                                       0,
+                                       pnl->sigma_disp_100[pnl->index_pk_cb],
+                                       1,
+                                       pnl->tau_size,
+                                       tau,
+                                       sigma_disp_100_cb,
+                                       1,
+                                       pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+
+  }
+  else{
+    *sigma_disp_100_cb = *sigma_disp_100;
+  }
+  
+  
+  return _SUCCESS_;  
+}
+
+int nonlinear_hmcode_sigmaprime_at_z(
+                        struct background *pba,
+                        struct nonlinear * pnl,
+                        double z,
+                        double * sigma_prime,
+                        double * sigma_prime_cb
+                        ) {
+
+  double tau;
+
+  class_call(background_tau_of_z(pba,
+                                 z,
+                                 &tau),
+             pba->error_message,
+             pnl->error_message);
+             
+  if (pnl->tau_size == 1) {
+    *sigma_prime = pnl->sigma_prime[pnl->index_pk_m][0];
+  } 
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->sigma_prime[pnl->index_pk_m],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     sigma_prime,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  if (pba->has_ncdm){
+
+    if (pnl->tau_size == 1) {
+      *sigma_prime_cb = pnl->sigma_prime[pnl->index_pk_cb][0];
+    } 
+    else {
+      class_call(array_interpolate_two(pnl->tau,
+                                       1,
+                                       0,
+                                       pnl->sigma_prime[pnl->index_pk_cb],
+                                       1,
+                                       pnl->tau_size,
+                                       tau,
+                                       sigma_prime_cb,
+                                       1,
+                                       pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+
+  }
+  else{
+    *sigma_prime_cb = *sigma_prime;
+  }
+  
+  
+  return _SUCCESS_;  
+}
+
 
 
 int nonlinear_init(
@@ -195,7 +452,22 @@ int nonlinear_init(
       class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
       for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
         pnl->tau[index_tau] = ppt->tau_sampling[index_tau]; 
-
+    
+    if (pnl->method == nl_HMcode){
+      
+      class_alloc(pnl->sigma_8,pnl->pk_size*sizeof(double *),pnl->error_message);
+      class_alloc(pnl->sigma_disp,pnl->pk_size*sizeof(double *),pnl->error_message);    
+      class_alloc(pnl->sigma_disp_100,pnl->pk_size*sizeof(double *),pnl->error_message);    
+      class_alloc(pnl->sigma_prime,pnl->tau_size*sizeof(double *),pnl->error_message);
+      
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+        class_alloc(pnl->sigma_8,pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnl->sigma_disp,pnl->tau_size*sizeof(double),pnl->error_message);    
+        class_alloc(pnl->sigma_disp_100,pnl->tau_size*sizeof(double),pnl->error_message);    
+        class_alloc(pnl->sigma_prime,pnl->tau_size*sizeof(double),pnl->error_message);
+      }
+    
+    }
       
     class_alloc(pnl->nl_corr_density,
                 pnl->pk_size*sizeof(double *),
@@ -575,9 +847,17 @@ int nonlinear_free(
 		else if (pnl->method == nl_HMcode){
 			free(pnl->k);
       free(pnl->tau);
+      free(pnl->sigma_8);
+      free(pnl->sigma_disp);
+      free(pnl->sigma_disp_100);
+      free(pnl->sigma_prime);         
       for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
         free(pnl->nl_corr_density[index_pk]);
         free(pnl->k_nl[index_pk]);
+        free(pnl->sigma_8[index_pk]);
+        free(pnl->sigma_disp[index_pk]);
+        free(pnl->sigma_disp_100[index_pk]);
+        free(pnl->sigma_prime[index_pk]);           
       }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
@@ -587,7 +867,7 @@ int nonlinear_free(
 			free(pnl->ddstab);
 			free(pnl->growtable);
 			free(pnl->tautable);
-			free(pnl->ztable);
+			free(pnl->ztable);   
 		}
   }
 
@@ -2040,6 +2320,10 @@ int nonlinear_hmcode(
   class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,100./pba->h,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],&sigma_disp100), 
 			pnl->error_message, pnl->error_message);			
   
+  pnl->sigma_8[index_pk][index_tau] = sigma8;
+  pnl->sigma_disp[index_pk][index_tau] = sigma_disp;
+  pnl->sigma_disp_100[index_pk][index_tau] = sigma_disp100;
+  
    /** Initialisation steps for the 1-Halo Power Integral */
   mmin=ppr->mmin_for_p1h_integral/pba->h; //Minimum mass for integration; (unit conversion from  m[Msun/h] to m[Msun]  )
   mmax=ppr->mmax_for_p1h_integral/pba->h; //Maximum mass for integration;
@@ -2194,6 +2478,8 @@ int nonlinear_hmcode(
   n_eff = -3.- dlnsigdlnR;
   alpha = 3.24*pow(1.85, n_eff);
   
+  pnl->sigma_prime[index_pk][index_tau] = sigma_prime;
+  
   /** Calculate halo concentration-mass relation conc(mass) (Bullock et al. 2001) */ 
 	class_alloc(conc,ppr->nsteps_for_p1h_integral*sizeof(double),pnl->error_message);
 
@@ -2232,8 +2518,9 @@ int nonlinear_hmcode(
 
   
 	/** Now compute the nonlinear correction */
+  double factor = 1;
   eta = pnl->eta_0 - 0.3*sigma8; // halo bloating parameter
-  k_star=0.584/sigma_disp;   // Damping wavenumber of the 1-halo term at very large scales;
+  k_star=factor*0.584/sigma_disp;   // Damping wavenumber of the 1-halo term at very large scales;
 	fdamp = 0.0095*pow(sigma_disp100*pba->h, 1.37); // Damping factor for 2-halo term 
 	if (fdamp<1.e-3) fdamp=1.e-3;
   if (fdamp>0.99)  fdamp=0.99;

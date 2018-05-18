@@ -1749,6 +1749,186 @@ cdef class Class:
 
         return k_nl_cb
 
+    def nonlinear_hmcode_sigma8(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigma8(z, z_size)
+
+        Return sigma_8 for all the redshift specified in z, of size
+
+        """
+        cdef int index_z
+
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigma8_at_z(&self.ba,&self.nl,z[index_z],&sigma_8[index_z],&sigma_8_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_8
+
+    def nonlinear_hmcode_sigma8_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigma8(z, z_size)
+
+        Return sigma_8 for all the redshift specified in z, of size
+
+        """
+        cdef int index_z
+
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigma8_at_z(&self.ba,&self.nl,z[index_z],&sigma_8[index_z],&sigma_8_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_8_cb
+
+    def nonlinear_hmcode_sigmadisp(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmadisp(z, z_size)
+
+        Return sigma_disp for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmadisp_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp[index_z],&sigma_disp_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_disp
+
+    def nonlinear_hmcode_sigmadisp_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmadisp(z, z_size)
+
+        Return sigma_disp for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmadisp_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp[index_z],&sigma_disp_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_disp_cb 
+    
+    def nonlinear_hmcode_sigmadisp100(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmadisp100(z, z_size)
+
+        Return sigma_disp_100 for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmadisp100_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp_100[index_z],&sigma_disp_100_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_disp_100    
+
+    def nonlinear_hmcode_sigmadisp100_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmadisp100(z, z_size)
+
+        Return sigma_disp_100 for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmadisp100_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp_100[index_z],&sigma_disp_100_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_disp_100_cb    
+
+    def nonlinear_hmcode_sigmaprime(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmaprime(z, z_size)
+
+        Return sigma_disp for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmaprime_at_z(&self.ba,&self.nl,z[index_z],&sigma_prime[index_z],&sigma_prime_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_prime
+
+    def nonlinear_hmcode_sigmaprime_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+        """
+        nonlinear_hmcode_sigmaprime(z, z_size)
+
+        Return sigma_disp for all the redshift specified in z, of size
+        z_size
+
+        Parameters
+        ----------
+        z : numpy array
+                Array of requested redshifts
+        z_size : int
+                Size of the redshift array
+        """
+        cdef int index_z
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
+
+        for index_z in range(z_size):
+            if nonlinear_hmcode_sigmaprime_at_z(&self.ba,&self.nl,z[index_z],&sigma_prime[index_z],&sigma_prime_cb[index_z]) == _FAILURE_:
+                raise CosmoSevereError(self.nl.error_message)
+
+        return sigma_prime_cb
+
     def __call__(self, ctx):
         """
         Function to interface with CosmoHammer
