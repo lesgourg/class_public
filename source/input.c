@@ -3293,9 +3293,10 @@ int input_default_precision ( struct precision * ppr ) {
 
   ppr->ur_fluid_approximation = ufa_CLASS;
   ppr->ur_fluid_trigger_tau_over_tau_k = 30.;
-
+  
+  /*** TODO: Eventually set ncdmfa_ah as default */
   ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_over_tau_k = 31.;
+  ppr->ncdm_fluid_trigger_tau_over_tau_k = 17.;
 
   ppr->neglect_CMB_sources_below_visibility = 1.e-3;
 
