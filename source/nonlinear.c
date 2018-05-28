@@ -458,13 +458,13 @@ int nonlinear_init(
       class_alloc(pnl->sigma_8,pnl->pk_size*sizeof(double *),pnl->error_message);
       class_alloc(pnl->sigma_disp,pnl->pk_size*sizeof(double *),pnl->error_message);    
       class_alloc(pnl->sigma_disp_100,pnl->pk_size*sizeof(double *),pnl->error_message);    
-      class_alloc(pnl->sigma_prime,pnl->tau_size*sizeof(double *),pnl->error_message);
+      class_alloc(pnl->sigma_prime,pnl->pk_size*sizeof(double *),pnl->error_message);
       
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-        class_alloc(pnl->sigma_8,pnl->tau_size*sizeof(double),pnl->error_message);
-        class_alloc(pnl->sigma_disp,pnl->tau_size*sizeof(double),pnl->error_message);    
-        class_alloc(pnl->sigma_disp_100,pnl->tau_size*sizeof(double),pnl->error_message);    
-        class_alloc(pnl->sigma_prime,pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnl->sigma_8[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnl->sigma_disp[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);    
+        class_alloc(pnl->sigma_disp_100[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);    
+        class_alloc(pnl->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
       }
     
     }
@@ -844,13 +844,7 @@ int nonlinear_free(
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
     }
-		else if (pnl->method == nl_HMcode){
-			free(pnl->k);
-      free(pnl->tau);
-      free(pnl->sigma_8);
-      free(pnl->sigma_disp);
-      free(pnl->sigma_disp_100);
-      free(pnl->sigma_prime);         
+		else if (pnl->method == nl_HMcode){        
       for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
         free(pnl->nl_corr_density[index_pk]);
         free(pnl->k_nl[index_pk]);
@@ -861,6 +855,12 @@ int nonlinear_free(
       }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
+			free(pnl->k);
+      free(pnl->tau);
+      free(pnl->sigma_8);
+      free(pnl->sigma_disp);
+      free(pnl->sigma_disp_100);
+      free(pnl->sigma_prime);       
       free(pnl->k_extra);
 			free(pnl->rtab);
 			free(pnl->stab);
