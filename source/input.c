@@ -2580,6 +2580,10 @@ int input_read_parameters(
   class_read_double("k_step_transition",ppr->k_step_transition);
   class_read_double("k_step_super_reduction",ppr->k_step_super_reduction);
   class_read_double("k_per_decade_for_pk",ppr->k_per_decade_for_pk);
+  class_read_double("k_per_decade_for_pk_idmdr",ppr->k_per_decade_for_pk_idmdr);//ethos
+  class_test((ppr->k_per_decade_for_pk_idmdr<ppr->k_per_decade_for_pk)||(ppr->k_per_decade_for_pk_idmdr<10.),
+             errmsg,
+             "k_per_decade_for_pk_idmdr has to be larger or equal to k_per_decade_for_pk, or to its default value 10.");
   class_read_double("k_per_decade_for_bao",ppr->k_per_decade_for_bao);
   class_read_double("k_bao_center",ppr->k_bao_center);
   class_read_double("k_bao_width",ppr->k_bao_width);
@@ -3306,6 +3310,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_step_transition=0.2;
   ppr->k_step_super_reduction=0.1;
   ppr->k_per_decade_for_pk=10.;
+  ppr->k_per_decade_for_pk_idmdr=ppr->k_per_decade_for_pk;//ethos
   ppr->k_per_decade_for_bao=70.;
   ppr->k_bao_center=3.;
   ppr->k_bao_width=4.;

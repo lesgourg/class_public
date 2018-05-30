@@ -1381,9 +1381,10 @@ int perturb_get_k_list(
        K=0, K<0, K>0 */
 
     /* allocate array with, for the moment, the largest possible size */
+    //ethos MArchi
     class_alloc(ppt->k[ppt->index_md_scalars],
                 ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
+                 (int)(MAX(ppr->k_per_decade_for_pk_idmdr,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                 *sizeof(double),ppt->error_message);
 
     /* first value */
@@ -1457,8 +1458,8 @@ int perturb_get_k_list(
 
     while (k < k_max) {
 
-      k *= pow(10.,1./(ppr->k_per_decade_for_pk
-                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk_idmdr //ethos MArchi
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk_idmdr)
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
@@ -4833,7 +4834,7 @@ int perturb_initial_conditions(struct precision * ppr,
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
       else if (pba->has_dcdm == _TRUE_)
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
-      else if (pba->has_idm == _TRUE_) // ethos !!!DCH why isn't this an if?
+      else if (pba->has_idm == _TRUE_) // ethos
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_idm];
       else
         delta_cdm=0.;
@@ -4929,7 +4930,7 @@ int perturb_initial_conditions(struct precision * ppr,
         }
       }
     }
-    if (pba->has_idm == _TRUE_){ // where does this come from? why do we treat our DM as ultrarelativistic? !!!DCH
+    if (pba->has_idm == _TRUE_){
       ppw->pv->y[ppw->pv->index_pt_theta_idm] = theta_ur;
     }
 
