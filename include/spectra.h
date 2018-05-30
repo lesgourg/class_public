@@ -176,6 +176,9 @@ struct spectra {
 
   double sigma8;    /**< sigma8 parameter */
 
+  double neff;//ethos
+  double neff_sigma;
+
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:
                           ln_pk_nl[index_tau * psp->k_size + index_k]
@@ -378,6 +381,16 @@ extern "C" {
                     double z,
                     double *sigma
                     );
+
+  int spectra_neff(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct spectra * psp,
+                    double R,
+                    double z,
+                    double *neff,
+                    double *neff_sigma
+                    );//ethos
 
   int spectra_matter_transfers(
                                struct background * pba,

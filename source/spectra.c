@@ -2557,6 +2557,7 @@ int spectra_pk(
   double source_ic1;
   double source_ic2;
   double ln_pk_tot;
+  double z,k_s_over_km,k_1_over_Mpc,Omega0_m;//ethos
 
   /** - check the presence of scalar modes */
 
@@ -2692,6 +2693,35 @@ int spectra_pk(
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
+  if (psp->spectra_verbose>0)
+    fprintf(stdout," -> sigma8=%g (computed till k = %g h/Mpc)\n",
+            psp->sigma8,
+            exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
+
+//ethos MArchi
+  /*class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+             pba->error_message,
+             pnl->error_message);
+  class_call(background_tau_of_z(pba,z,&tau),
+             pba->error_message,
+             psp->error_message);*/
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
+  k_s_over_km=0.005;//from Riccardo's simulations 
+  z=0.;
+  k_1_over_Mpc = pba->h*pow((100.*(Omega0_m*pow((1.+z),3.)+(1.-Omega0_m))),(1./2.))/(1.+z)*k_s_over_km;
+  //class_call(spectra_neff(pba,ppm,psp,1./k_1_over_Mpc,0.,&(psp->neff),&(psp->neff_sigma)),
+  class_call(spectra_neff(pba,ppm,psp,8./pba->h,0.,&(psp->neff),&(psp->neff_sigma)),
+             psp->error_message,
+             psp->error_message);
+  if (psp->spectra_verbose>0){
+    fprintf(stdout," -> neff=%g (computed at k = %g h/Mpc)\n",
+            psp->neff,
+            k_1_over_Mpc/pba->h);
+    fprintf(stdout," -> neff_sigma=%g (computed at k = %g h/Mpc)\n",
+            psp->neff_sigma,
+            k_1_over_Mpc/pba->h);
+  }
+
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
 
@@ -2809,6 +2839,125 @@ int spectra_sigma(
     free(pk_ic);
 
   *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
+
+  return _SUCCESS_;
+
+}
+/**
+ethos MArchi
+*/
+int spectra_neff(
+                  struct background * pba,
+                  struct primordial * ppm,
+                  struct spectra * psp,
+                  double R,
+                  double z,
+                  double * neff,
+                  double * neff_sigma
+                  ) {
+
+  double pk;
+  double * pk_ic = NULL;
+
+  double * array_for_neff;
+  int index_num;
+  int index_k;
+  int index_y;
+  int index_ddy;
+  int index_y2;
+  int index_ddy2;
+  int i;
+
+  double k,W,x,anorm,sum1,sum2;
+
+  anorm    = 1./(2*pow(_PI_,2));
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1)
+    class_alloc(pk_ic,
+                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+                psp->error_message);
+
+  i=0;
+  index_k=i;
+  i++;
+  index_y=i;
+  i++;
+  index_ddy=i;
+  i++;
+  index_y2=i;
+  i++;
+  index_ddy2=i;
+  i++;
+  index_num=i;
+
+  class_alloc(array_for_neff,
+              psp->ln_k_size*index_num*sizeof(double),
+              psp->error_message);
+
+  for (i=0;i<psp->ln_k_size;i++) {
+    k=exp(psp->ln_k[i]);
+    if (i == (psp->ln_k_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    x=k*R;
+    W=3./x/x/x*(sin(x)-x*cos(x));
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic),
+               psp->error_message,
+               psp->error_message);
+    array_for_neff[i*index_num+index_k]=k;
+    array_for_neff[i*index_num+index_y]=anorm*k*k*pk*exp(-k*k*R*R);
+    array_for_neff[i*index_num+index_y2]=anorm*k*k*pk*exp(-k*k*R*R)*2.*k*k*R*R;
+  }
+
+  class_call(array_spline(array_for_neff,
+                          index_num,
+                          psp->ln_k_size,
+                          index_k,
+                          index_y,
+                          index_ddy,
+                          _SPLINE_EST_DERIV_,
+                          psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  class_call(array_spline(array_for_neff,
+                          index_num,
+                          psp->ln_k_size,
+                          index_k,
+                          index_y2,
+                          index_ddy2,
+                          _SPLINE_EST_DERIV_,
+                          psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  class_call(array_integrate_all_spline(array_for_neff,
+                                        index_num,
+                                        psp->ln_k_size,
+                                        index_k,
+                                        index_y,
+                                        index_ddy,
+                                        &sum1,
+                                        psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  class_call(array_integrate_all_spline(array_for_neff,
+                                        index_num,
+                                        psp->ln_k_size,
+                                        index_k,
+                                        index_y2,
+                                        index_ddy2,
+                                        &sum2,
+                                        psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  free(array_for_neff);
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1)
+    free(pk_ic);
+
+  *neff = -3.+sum2/sum1;
+  *neff_sigma = sqrt(sum1);
 
   return _SUCCESS_;
 
