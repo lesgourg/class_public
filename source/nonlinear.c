@@ -406,52 +406,12 @@ int nonlinear_init(
     class_alloc(pnl->k,pnl->k_size*sizeof(double),pnl->error_message);
     for (index_k=0; index_k<pnl->k_size; index_k++)
       pnl->k[index_k] = ppt->k[ppt->index_md_scalars][index_k];
-/*
-    if (((ppt->has_cmb == _TRUE_)||(ppt->has_perturbed_recombination == _TRUE_)) && (pnl->method == nl_HMcode)) {
-      
-      // If Cls are requested AND HMcode is used, we do not want the same fine tau_sampling as in ppt (since HMcode is computationally more expensive than Halofit) 
-      
-      // Call the function perturb_timesampling_for_sources from the perturbs module again, but for the case that no Cls are requested 
-      ppt->has_cmb == _FALSE_;
-      ppt->has_perturbed_recombination == _FALSE_;
-      
-      class_call(perturb_timesampling_for_sources(ppr,
-                                              pba,
-                                              pth,
-                                              ppt),
-             ppt->error_message,
-             pnl->error_message);
-      
-      // Set the pnl tau_sampling and tau_size to the NEW ppt values 
-      pnl->tau_size = ppt->tau_size;
-      class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
-      for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
-        pnl->tau[index_tau] = ppt->tau_sampling[index_tau];    
-      
-      // Reset ppt tau_sampling and tau_size to their original values 
-      ppt->has_cmb == _TRUE_;
-      ppt->has_perturbed_recombination == _TRUE_;
-      
-      class_call(perturb_timesampling_for_sources(ppr,
-                                              pba,
-                                              pth,
-                                              ppt),
-             ppt->error_message,
-             pnl->error_message);
-      
-    }
-    else {
-      // In this case just copy from perturbation module
-      pnl->tau_size = ppt->tau_size;
-      class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
-      for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
-        pnl->tau[index_tau] = ppt->tau_sampling[index_tau];      
-    }*/
 
-      pnl->tau_size = ppt->tau_size;
-      class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
-      for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
-        pnl->tau[index_tau] = ppt->tau_sampling[index_tau]; 
+
+    pnl->tau_size = ppt->tau_size;
+    class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+    for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
+      pnl->tau[index_tau] = ppt->tau_sampling[index_tau]; 
     
     if (pnl->method == nl_HMcode){
       
@@ -512,7 +472,7 @@ int nonlinear_init(
     }
 
     if (pnl->method == nl_HMcode){
-    /** initialise the extrapolation for the sources by setting the length of the exptrapolated vector,
+    /** if HMcode, initialise the extrapolation for the sources by setting the length of the exptrapolated vector,
      * such that you can fill the extended k-array with same sampling up to pnl->k_size_extra, and reallocating arrays */
       /* This function finds out the size of the extrapolation arrays*/
       class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
@@ -547,11 +507,11 @@ int nonlinear_init(
 				   pnl->error_message,
 				   pnl->error_message);
       
-      /** fill table with scale independent growth factor */
+      /** if HMcode, fill table with scale independent growth factor */
 	    class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl), 
 				pnl->error_message, pnl->error_message);	
         
-      /** Calculate the Dark Energy correction: */  
+      /** if HMcode, Calculate the Dark Energy correction: */  
       if (pba->has_fld==_TRUE_){      
         class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
         class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
@@ -565,12 +525,12 @@ int nonlinear_init(
         pnl->dark_energy_correction = 1.;
       }
       
-      /** Allocate the R, sigma and sigma_splined arrays */
+      /** if HMcode, Allocate the R, sigma and sigma_splined arrays */
       class_alloc(pnl->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
       class_alloc(pnl->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
       class_alloc(pnl->ddstab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
       
-     /** Set the baryonic feedback parameters according to the chosen feedback models */
+     /** if HMcode, Set the baryonic feedback parameters according to the chosen feedback models */
       if (pnl->feedback == nl_emu_dmonly){
         pnl->eta_0 = 0.603;
         pnl->c_min = 3.13;
@@ -605,7 +565,9 @@ int nonlinear_init(
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
       
-      //clock_t begin = clock();
+      /* // uncomment this to see the time spent at each tau
+      clock_t begin = clock();
+      */
       
       /** loop over the dummie index pk_type, such that it is ensured that index_pk starts at index_pk_cb when neutrinos are included
        * This is necessary for hmcode, since the sigmatable needs to be filled for sigma_cb only */
@@ -677,9 +639,7 @@ int nonlinear_init(
             non-linear correction for this redshift/time, store the
             last index which worked, and print a warning. */
             print_warning = _TRUE_;
-            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds and at least 3 ln_tau_nl points exist (for interpolation)
-            //if (pnl->index_tau_min_nl<0) pnl->index_tau_min_nl = 0;
-            //fprintf(stdout, "tau_size: %d, index_tau+1: %d, index_tau_min_nl: %d\n", pnl->tau_size, index_tau+1, pnl->index_tau_min_nl);
+            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
               }
@@ -752,10 +712,7 @@ int nonlinear_init(
 							non-linear correction for this redshift/time, store the
 							last index which worked, and print a warning. */
             print_warning = _TRUE_;
-            pnl->index_tau_min_nl = MIN(pnl->tau_size-2,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds and at least 3 ln_tau_nl points exist (for interpolation)
-            //if (pnl->index_tau_min_nl<0) pnl->index_tau_min_nl = 0;
-            //fprintf(stdout, "tau_size: %d, index_tau+1: %d, index_tau_min_nl: %d\n", pnl->tau_size, index_tau+1, pnl->index_tau_min_nl);
-            
+            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
               }
@@ -797,11 +754,12 @@ int nonlinear_init(
 
     } //end loop over pk_type
     
-    //show the time spent for each tau:
-    //clock_t end = clock();
-    //double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
-    //fprintf(stdout, "index_tau = %d, tau = %e, time spent: %e s\n", index_tau, pnl->tau[index_tau], time_spent);    
-    
+    /* // uncomment this to see the time spent at each tau
+    show the time spent for each tau:
+    clock_t end = clock();
+    double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+    fprintf(stdout, "index_tau = %d, tau = %e, time spent: %e s\n", index_tau, pnl->tau[index_tau], time_spent);    
+    */
     
     } //end loop over index_tau
 
@@ -901,7 +859,6 @@ int nonlinear_pk_l(
   double * primordial_pk;
   double source_ic1,source_ic2;
   double * source_ic_extra;
-//  double * source_ic_extra_cb;
 
   index_md = ppt->index_md_scalars;
   
@@ -924,7 +881,6 @@ int nonlinear_pk_l(
 		
 		class_alloc(source_ic_extra,ppm->ic_size[index_md]*pnl->k_size_extra*sizeof(double),pnl->error_message);
     
-		//fprintf(stdout, "%d\n", ppt->pk_only_cdm_bar);
 		for (index_ic=0; index_ic<ppm->ic_size[index_md]; index_ic++){
 
 			class_call(extrapolate_source(pnl->k_extra,
@@ -941,7 +897,9 @@ int nonlinear_pk_l(
     }
 		
 		for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-			//fprintf(stdout, "%e %e\n", pnl->k_extra[index_k], source_ic_extra[index_k]);
+			
+      // for debugging:
+      //fprintf(stdout, "%e %e\n", pnl->k_extra[index_k], source_ic_extra[index_k]);
 			
 			class_call(primordial_spectrum_at_k(ppm,
                                         index_md,
@@ -2026,6 +1984,8 @@ int nonlinear_hmcode_fill_growtab(
              pnl->error_message);
              
     pnl->growtable[index_scalefactor] = pvecback[pba->index_bg_D]; 
+    
+    // for debugging:
     //fprintf(stdout, "%e %e\n", exp(scalefactor), pnl->growtable[index_scalefactor]/exp(scalefactor));      			
 	}								
 
@@ -2035,7 +1995,7 @@ int nonlinear_hmcode_fill_growtab(
 }
 
 /** This function finds the scale independent growth factor by integrating the approximate relation 
- * d(lnD)/d(lna) = Omega_m(z)^gamma by Linder & Cahn 2007*/
+ * d(lnD)/d(lna) = Omega_m(z)^gamma by Linder & Cahn 2007 */
 int nonlinear_hmcode_growint(
               struct precision * ppr,
 						  struct background * pba,
@@ -2337,7 +2297,7 @@ int nonlinear_hmcode(
   
   // Linear theory density perturbation threshold for spherical collapse
   delta_c = 1.59+0.0314*log(sigma8); //Mead et al. (2015; arXiv 1505.07833)
-  delta_c = delta_c*(1.+0.0123*log10(Omega_m)); //Nakamura & Suto (1997) fitting formula for LCDM models
+  delta_c = delta_c*(1.+0.0123*log10(Omega_m)); //Nakamura & Suto (1997) fitting formula for LCDM models (as in Mead 2016)
   delta_c = delta_c*(1.+0.262*fnu); //Mead et al. (2016; arXiv 1602.02154) neutrino addition
   
   // virialized overdensity
@@ -2352,6 +2312,7 @@ int nonlinear_hmcode(
    * The Integrand is M*Window^2{nu(M)*k, Rv(M), c(M)}*f(nu) with the window being the fouriertransformed
    * NFW profile, Rv = R/Delta_v^(1/3) and Sheth-Thormen halo mass function f.
    * The halo concentration-mass-relation c(M) will be found later.  */
+   
   for (index_mass=0;index_mass<ppr->nsteps_for_p1h_integral;index_mass++){
 	  m = exp(log(mmin)+log(mmax/mmin)*(index_mass)/(ppr->nsteps_for_p1h_integral-1));
 	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega0_m)), (1./3.)); 
