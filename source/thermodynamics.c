@@ -4130,6 +4130,8 @@ class_stop(pth->error_message,
 
 #endif /* COSMOREC */
 
+  return _SUCCESS_;
+
 }
 
 /**
