@@ -17,7 +17,7 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc-7
+CC       = gcc
 #CC       = icc
 #CC       = pgcc
 
@@ -38,7 +38,7 @@ OPTFLAG = -O4 -ffast-math #-march=native
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
-#OMPFLAG   = -fopenmp
+OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 #OMPFLAG   = -openmp
 
@@ -52,10 +52,10 @@ HYREC = HyRec_2017
 
 
 # set to cosmorec, CosmoRec or COSMOREC to compile with CosmoRec
-#COSMOREC = 
+#COSMOREC =
 COSMOREC = $(PWD)/cosmorec_lite
 GSL_LIB = /opt/local/lib/
-CC++ = g++-7
+CC++ = g++
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -158,8 +158,8 @@ all: class libclass.a classy
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
-class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS) 
-	$(CC) $(OPTFLAG) $(OMPFLAG) -o class $(addprefix build/,$(notdir $^)) -lm $(LDFLAG) 
+class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
+	$(CC) $(OPTFLAG) $(OMPFLAG) -o class $(addprefix build/,$(notdir $^)) -lm $(LDFLAG)
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm
@@ -199,13 +199,19 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES) $(COSMOREC)
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-ifdef OMPFLAG
-	cp python/setup.py python/autosetup.py
+ifneq ($(COSMOREC),)
+	cp python/setup_with_cosmorec.py python/setup_to_use.py
 else
-	grep -v "lgomp" python/setup.py > python/autosetup.py
+	cp python/setup.py python/setup_to_use.py
+endif
+ifdef OMPFLAG
+	cp python/setup_to_use.py python/autosetup.py
+else
+	grep -v "lgomp" python/setup_to_use.py > python/autosetup.py
 endif
 	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
 	rm python/autosetup.py
+	rm python/setup_to_use.py
 
 clean: .base
 	rm -rf $(WRKDIR);
