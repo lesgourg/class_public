@@ -25,8 +25,8 @@ sfr.dat
 # CosmoRec
 *.o
 libCosmoRec.a
-cosmorec/CosmoRec
-cosmorec/Development/Cosmology/Recfast++/Recfast++
+cosmorec_lite/CosmoRec
+cosmorec_lite/Development/Cosmology/Recfast++/Recfast++
 output_*
 output/*
 root_ini_files/
