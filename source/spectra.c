@@ -2693,18 +2693,18 @@ int spectra_pk(
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
-  if (psp->spectra_verbose>0)
+  /*if (psp->spectra_verbose>0)
     fprintf(stdout," -> sigma8=%g (computed till k = %g h/Mpc)\n",
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
 //ethos MArchi
-  /*class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
              pba->error_message,
              pnl->error_message);
   class_call(background_tau_of_z(pba,z,&tau),
              pba->error_message,
-             psp->error_message);*/
+             psp->error_message);
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
   k_s_over_km=0.005;//from Riccardo's simulations 
   z=0.;
@@ -2720,7 +2720,7 @@ int spectra_pk(
     fprintf(stdout," -> neff_sigma=%g (computed at k = %g h/Mpc)\n",
             psp->neff_sigma,
             k_1_over_Mpc/pba->h);
-  }
+  }*/
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
@@ -2843,9 +2843,9 @@ int spectra_sigma(
   return _SUCCESS_;
 
 }
-/**
-ethos MArchi
-*/
+
+/*
+//ethos MArchi
 int spectra_neff(
                   struct background * pba,
                   struct primordial * ppm,
@@ -2961,7 +2961,7 @@ int spectra_neff(
 
   return _SUCCESS_;
 
-}
+}*/
 
 /**
  * This routine computes a table of values for all matter power spectra P(k),
