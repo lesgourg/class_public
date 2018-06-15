@@ -190,6 +190,7 @@ cdef extern from "class.h":
         int index_md_scalars
         double* ln_k
         double sigma8
+        double neff
         double alpha_II_2_20
         double alpha_RI_2_20
         double alpha_RR_2_20
@@ -321,6 +322,13 @@ cdef extern from "class.h":
         int mode,
         double z,
         double * output_tot)
+
+    int spectra_neff(
+        void * pba,
+        void * ppm,
+        void * psp,
+        double z,
+        double * neff)
 
     int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl)
 
