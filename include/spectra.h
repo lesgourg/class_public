@@ -177,7 +177,7 @@ struct spectra {
   double sigma8;    /**< sigma8 parameter */
 
   double neff;//MArchi Lya
-  double k_s_over_km;//MArchi Lya
+  double Lya_k_s_over_km;//MArchi Lya
 
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:
@@ -386,7 +386,6 @@ extern "C" {
                     struct background * pba,
                     struct primordial * ppm,
                     struct spectra * psp,
-                    double k_pivot_sim,
                     double z,
                     double *neff
                     );//MArchi Lya

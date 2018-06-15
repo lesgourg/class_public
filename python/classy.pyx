@@ -755,6 +755,10 @@ cdef class Class:
         self.compute(["spectra"])
         return self.sp.sigma8
 
+    def neff(self):
+        self.compute(["spectra"])
+        return self.sp.neff
+
     def rs_drag(self):
         self.compute(["thermodynamics"])
         return self.th.rs_d
@@ -1341,6 +1345,8 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
+            elif name == 'neff':
+                value = self.sp.neff
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value

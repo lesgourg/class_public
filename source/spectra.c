@@ -2557,7 +2557,6 @@ int spectra_pk(
   double source_ic1;
   double source_ic2;
   double ln_pk_tot;
-  double z,k_1_over_Mpc,Omega0_m;//ethos
 
   /** - check the presence of scalar modes */
 
@@ -2694,23 +2693,13 @@ int spectra_pk(
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
 //MArchi Lya
-//  class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
-//             pba->error_message,
-//             pnl->error_message);
-//  class_call(background_tau_of_z(pba,z,&tau),
-//             pba->error_message,
-//             psp->error_message);
-
-  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
-  z=0.; 
-  k_1_over_Mpc = pba->h*pow((100.*(Omega0_m*pow((1.+z),3.)+(1.-Omega0_m))),(1./2.))/(1.+z)*psp->k_s_over_km;
-  class_call(spectra_neff(pba,ppm,psp,k_1_over_Mpc,0.,&(psp->neff)),
+  class_call(spectra_neff(pba,ppm,psp,0.,&(psp->neff)),
              psp->error_message,
              psp->error_message);
   if (psp->spectra_verbose>0){
-    fprintf(stdout," -> neff=%g (computed at k = %g 1/Mpc)\n",
+    fprintf(stdout," -> neff=%g (computed at k = %g s/km and at z=0)\n",
             psp->neff,
-            k_1_over_Mpc);
+            psp->Lya_k_s_over_km);
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
@@ -2842,7 +2831,6 @@ int spectra_neff(
                   struct background * pba,
                   struct primordial * ppm,
                   struct spectra * psp,
-                  double k_pivot_sim,
                   double z,
                   double * neff
                   ) {
@@ -2862,10 +2850,37 @@ int spectra_neff(
   int index_ddy;
   int index_d2dy;
   int i;
-  
   int last_index;
 
+  double Lya_k_1_over_Mpc;
   double k;
+  double tau;
+  double Omega0_m;
+
+  int last_index_back;
+  double * pvecback_short; /* array with argument pvecback_sp_long[pba->index_bg] */
+
+  class_call(background_tau_of_z(pba,z,&tau),
+             pba->error_message,
+             psp->error_message);
+
+  class_alloc(pvecback_short,pba->bg_size*sizeof(double),psp->error_message);
+
+  class_call(background_at_tau(pba,tau,pba->short_info,pba->inter_normal,&last_index_back,pvecback_short),
+             pba->error_message,
+             psp->error_message);
+
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
+
+  //k(h/Mpc)=a*H*k(s/km) 
+  //Lya_k_1_over_Mpc = pba->h*pow((100.*(Omega0_m*pow((1.+z),3.)+(1.-Omega0_m))),(1./2.))/(1.+z)*psp->Lya_k_s_over_km;
+  //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
+  Lya_k_1_over_Mpc = pvecback_short[pba->index_bg_H]*_c_/1.e3*pvecback_short[pba->index_bg_a]*psp->Lya_k_s_over_km;
+  //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
+  if (psp->spectra_verbose>0){
+    fprintf(stdout," -> neff is computed at k = %g 1/Mpc\n",
+            Lya_k_1_over_Mpc);
+  }
 
   if (psp->ic_ic_size[psp->index_md_scalars]>1)
     class_alloc(pk_ic,
@@ -2938,7 +2953,7 @@ int spectra_neff(
   for (i=0;i<psp->ln_k_size;i++) {
       dy[i]=array_for_neff[i*index_num+index_dy];
       d2dy[i]=array_for_neff[i*index_num+index_d2dy];
-      fprintf(stdout,"%g %g\n",exp(psp->ln_k[i]),dy[i]);
+      //fprintf(stdout,"%g %g\n",exp(psp->ln_k[i]),dy[i]);
   }
 //interpolate to get dy at k_pivot_sim
   class_call(array_interpolate_spline(psp->ln_k,
@@ -2946,7 +2961,7 @@ int spectra_neff(
                                       dy,
                                       d2dy,
                                       1,
-                                      log(k_pivot_sim),
+                                      log(Lya_k_1_over_Mpc),
                                       &last_index,
                                       &(psp->neff),
                                       1,
@@ -2960,6 +2975,8 @@ int spectra_neff(
 
   if (psp->ic_ic_size[psp->index_md_scalars]>1)
     free(pk_ic);
+
+  free(pvecback_short);
 
   return _SUCCESS_;
 
