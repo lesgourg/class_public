@@ -911,12 +911,12 @@ cdef class Class:
                 "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
                 )
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,_FALSE_,R,z,&sigma)==_FAILURE_:
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,R,z,&sigma)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma
 
-    # Gives sigma(R,z) for a given (R,z)
+    # Gives sigma_cb(R,z) for a given (R,z)
     def sigma_cb(self,double R,double z):
         """
         Gives the pk for a given R and z
@@ -946,7 +946,7 @@ cdef class Class:
                 "No massive neutrinos. You must use sigma, rather than sigma_cb."
                 )
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,_TRUE_,R,z,&sigma_cb)==_FAILURE_:
+        if spectra_sigma_cb(&self.ba,&self.pm,&self.sp,R,z,&sigma_cb)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma_cb
@@ -989,6 +989,10 @@ cdef class Class:
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
+
+    def sigma8_cb(self):
+        self.compute(["spectra"])
+        return self.sp.sigma8_cb
 
     def rs_drag(self):
         self.compute(["thermodynamics"])
@@ -1642,6 +1646,8 @@ cdef class Class:
             elif name == 'alpha_RR_2_2500':
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
+                value = self.sp.sigma8
+            elif name == 'sigma8_cb':
                 value = self.sp.sigma8
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)

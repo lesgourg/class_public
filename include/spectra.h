@@ -425,10 +425,18 @@ extern "C" {
                     struct background * pba,
                     struct primordial * ppm,
                     struct spectra * psp,
-                    short compute_sigma8_cb,
                     double R,
                     double z,
                     double *sigma
+                    );
+
+  int spectra_sigma_cb(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct spectra * psp,
+                    double R,
+                    double z,
+                    double *sigma_cb
                     );
 
   int spectra_matter_transfers(

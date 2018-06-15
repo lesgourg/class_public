@@ -2949,7 +2949,6 @@ int spectra_pk(
   double source_ic1_cb;
   double source_ic2_cb;
   double pk_cb_tot=0.,ln_pk_cb_tot=0.;
-  short compute_sigma8_cb=_FALSE_;
 
   /** - check the presence of scalar modes */
 
@@ -3219,7 +3218,7 @@ int spectra_pk(
 
   /* compute sigma8 (mean variance today in sphere of radius 8/h Mpc */
 
-  class_call(spectra_sigma(pba,ppm,psp,compute_sigma8_cb,8./pba->h,0.,&(psp->sigma8)),
+  class_call(spectra_sigma(pba,ppm,psp,8./pba->h,0.,&(psp->sigma8)),
              psp->error_message,
              psp->error_message);
 
@@ -3229,8 +3228,7 @@ int spectra_pk(
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
   if(pba->has_ncdm){
-   compute_sigma8_cb = _TRUE_;
-   class_call(spectra_sigma(pba,ppm,psp,compute_sigma8_cb,8./pba->h,0.,&(psp->sigma8_cb)),
+   class_call(spectra_sigma_cb(pba,ppm,psp,8./pba->h,0.,&(psp->sigma8_cb)),
               psp->error_message,
               psp->error_message);
    if (psp->spectra_verbose>0){
@@ -3238,7 +3236,6 @@ int spectra_pk(
             psp->sigma8_cb,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
    }
-   compute_sigma8_cb = _FALSE_;
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
@@ -3298,7 +3295,6 @@ int spectra_sigma(
                   struct background * pba,
                   struct primordial * ppm,
                   struct spectra * psp,
-                  short compute_sigma8_cb,
                   double R,
                   double z,
                   double * sigma
@@ -3319,10 +3315,15 @@ int spectra_sigma(
 
   double k,W,x;
 
-  if (psp->ic_ic_size[psp->index_md_scalars]>1)
+  if (psp->ic_ic_size[psp->index_md_scalars]>1){
     class_alloc(pk_ic,
                 psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
                 psp->error_message);
+    if (pba->has_ncdm)
+    class_alloc(pk_cb_ic,
+                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+                psp->error_message);
+  }
 
   i=0;
   index_k=i;
@@ -3346,12 +3347,7 @@ int spectra_sigma(
                psp->error_message,
                psp->error_message);
     array_for_sigma[i*index_num+index_k]=k;
-    if(compute_sigma8_cb == _TRUE_){
-     array_for_sigma[i*index_num+index_y]=k*k*pk_cb*W*W;
-    }
-    else{
-     array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
-    }
+    array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
   }
 
   class_call(array_spline(array_for_sigma,
@@ -3385,6 +3381,102 @@ int spectra_sigma(
   }  
 
   *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
+
+  return _SUCCESS_;
+
+}
+
+//**/
+int spectra_sigma_cb(
+                  struct background * pba,
+                  struct primordial * ppm,
+                  struct spectra * psp,
+                  double R,
+                  double z,
+                  double * sigma_cb
+                  ) {
+
+  double pk;
+  double * pk_ic = NULL;
+
+  double pk_cb;
+  double * pk_cb_ic = NULL;
+
+  double * array_for_sigma;
+  int index_num;
+  int index_k;
+  int index_y;
+  int index_ddy;
+  int i;
+
+  double k,W,x;
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1){
+    class_alloc(pk_ic,
+                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+                psp->error_message);
+    if (pba->has_ncdm)
+    class_alloc(pk_cb_ic,
+                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+                psp->error_message);
+  }
+
+  i=0;
+  index_k=i;
+  i++;
+  index_y=i;
+  i++;
+  index_ddy=i;
+  i++;
+  index_num=i;
+
+  class_alloc(array_for_sigma,
+              psp->ln_k_size*index_num*sizeof(double),
+              psp->error_message);
+
+  for (i=0;i<psp->ln_k_size;i++) {
+    k=exp(psp->ln_k[i]);
+    if (i == (psp->ln_k_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    x=k*R;
+    W=3./x/x/x*(sin(x)-x*cos(x));
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic),
+               psp->error_message,
+               psp->error_message);
+    array_for_sigma[i*index_num+index_k]=k;
+    array_for_sigma[i*index_num+index_y]=k*k*pk_cb*W*W;
+  }
+
+  class_call(array_spline(array_for_sigma,
+                          index_num,
+                          psp->ln_k_size,
+                          index_k,
+                          index_y,
+                          index_ddy,
+                          _SPLINE_EST_DERIV_,
+                          psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  class_call(array_integrate_all_spline(array_for_sigma,
+                                        index_num,
+                                        psp->ln_k_size,
+                                        index_k,
+                                        index_y,
+                                        index_ddy,
+                                        sigma_cb,
+                                        psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  free(array_for_sigma);
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1){
+    free(pk_ic);
+    if (pba->has_ncdm)
+    free(pk_cb_ic);
+  }
+
+  *sigma_cb = sqrt(*sigma_cb/(2.*_PI_*_PI_));
 
   return _SUCCESS_;
 
