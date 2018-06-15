@@ -2702,15 +2702,15 @@ int spectra_pk(
 //             psp->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
- 
+  z=0.; 
   k_1_over_Mpc = pba->h*pow((100.*(Omega0_m*pow((1.+z),3.)+(1.-Omega0_m))),(1./2.))/(1.+z)*psp->k_s_over_km;
   class_call(spectra_neff(pba,ppm,psp,k_1_over_Mpc,0.,&(psp->neff)),
              psp->error_message,
              psp->error_message);
   if (psp->spectra_verbose>0){
-    fprintf(stdout," -> neff=%g (computed at k = %g h/Mpc)\n",
+    fprintf(stdout," -> neff=%g (computed at k = %g 1/Mpc)\n",
             psp->neff,
-            k_1_over_Mpc/pba->h);
+            k_1_over_Mpc);
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
@@ -2900,7 +2900,7 @@ int spectra_neff(
     class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic),
                psp->error_message,
                psp->error_message);
-    array_for_neff[i*index_num+index_y]=pk;
+    array_for_neff[i*index_num+index_y]=log(pk);
   }
 //spline y to get ddy
   class_call(array_spline_table_line_to_line(psp->ln_k,
@@ -2938,6 +2938,7 @@ int spectra_neff(
   for (i=0;i<psp->ln_k_size;i++) {
       dy[i]=array_for_neff[i*index_num+index_dy];
       d2dy[i]=array_for_neff[i*index_num+index_d2dy];
+      fprintf(stdout,"%g %g\n",exp(psp->ln_k[i]),dy[i]);
   }
 //interpolate to get dy at k_pivot_sim
   class_call(array_interpolate_spline(psp->ln_k,
