@@ -63,6 +63,7 @@ struct background
 
   double Omega0_idr; /**< ethos dark radiation*/
   double Omega0_idm; /**< ethos interacting daark matter*/
+  double f_idm_dr;   /**< ethos fraction of idm */
 
   double xi_idr; /**< Ethos interaction rate */
   double stat_f_idr; /**< Dark radiation statistical facotr */

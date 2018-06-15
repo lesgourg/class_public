@@ -742,6 +742,15 @@ int input_read_parameters(
   //New ethos (independent from CDM), added by DCH
 
   class_read_double("a_dark",pth->a_dark);//if a_dark is zero then it is the standard CDM case
+  class_read_double("f_idm_dr",pba->f_idm_dr); //read fraction of interacting DM
+
+  class_test(((pba->f_idm_dr > 1.)||(pba->f_idm_dr < 0.)),
+             errmsg,
+             "The fraction of DM interacting with DR has to be between 0 and 1."); //check that the fraction of idm is consistent
+  class_test(((pba->f_idm_dr > 0.) && (pth->a_dark == 0.)),
+             errmsg,
+             "You asked for interacting DM but didn't give it anything to interact with. Please give a non-zero a_dark."); //check that if IDM is called, there is some coupling
+
 
   /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -750,18 +759,15 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-  class_call(parser_read_double(pfc,"f_idm",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
+  class_test(((pba->f_idm_dr!=0.) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
 
   //this is the standard CDM case
-  if ((flag3 == _FALSE_)||(pth->a_dark==0.0)){
+  if ((pba->f_idm_dr == 0.)||(pth->a_dark==0.0)){
     if (flag1 == _TRUE_)
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
@@ -772,12 +778,12 @@ int input_read_parameters(
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
     if (flag1 == _TRUE_){
-      pba->Omega0_idm = param3*param1;
-      pba->Omega0_cdm = (1.-param3)*param1;
+      pba->Omega0_idm = pba->f_idm_dr*param1;
+      pba->Omega0_cdm = (1.-pba->f_idm_dr)*param1;
     }
     else if (flag2 == _TRUE_){
-      pba->Omega0_idm = param3*(param2/pba->h/pba->h);
-      pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
+      pba->Omega0_idm = pba->f_idm_dr*(param2/pba->h/pba->h);
+      pba->Omega0_cdm = (1.-pba->f_idm_dr)*(param2/pba->h/pba->h);
     }
   }
 
@@ -788,7 +794,7 @@ int input_read_parameters(
   class_read_double("stat_f_idr",pba->stat_f_idr);
 
   pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
-  
+
   Omega_tot += pba->Omega0_idr;
 
   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
@@ -797,42 +803,39 @@ int input_read_parameters(
              errmsg,
              "You can only have IDM different from 0 if you also have IDR different from 0");
 
-      //Read the rest of the ethos parameters
-      class_read_double("m_dm",pth->m_dm);
+  //Read the rest of the ethos parameters
+  class_read_double("m_dm",pth->m_dm);
+  class_read_double("b_dark",pth->b_dark);
+  class_read_double("nindex_dark",pth->nindex_dark);
+  class_read_int("l_max_idr",ppr->l_max_idr);
 
-      class_read_double("b_dark",pth->b_dark);
+  class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    if(entries_read != (ppr->l_max_idr-1)){
+      class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+    }
+  }
+  else{
+    class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
+  }
 
-      class_read_double("nindex_dark",pth->nindex_dark);
-
-      class_read_int("l_max_idr",ppr->l_max_idr);
-
-      class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
-               errmsg,
-               errmsg);
-      if(flag1 == _TRUE_){
-            if(entries_read != (ppr->l_max_idr-1)){
-               class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-               for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
-            }
-      }
-      else{
-            class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-            for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
-      }
-
-      class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
-               errmsg,
-               errmsg);
-      if(flag1 == _TRUE_){
-            if(entries_read != (ppr->l_max_idr-1)){
-               class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-               for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
-            }
-      }
-      else{
-            class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-            for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
-      }
+  class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    if(entries_read != (ppr->l_max_idr-1)){
+      class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+    }
+  }
+  else{
+    class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
+  }
   //end of ethos
 
   /** - Omega_0_dcdmdr (DCDM) */
@@ -2924,8 +2927,9 @@ int input_default_params(
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  pba->Omega0_idr = 0.0;//ethos
-  pba->Omega0_idm = 0.0;
+  pba->Omega0_idr = 0.0; //ethos
+  pba->Omega0_idm = 0.0; //ethos
+  pba->f_idm_dr = 0.0; //ethos DCH
   pba->stat_f_idr = 7./8.; //ethos
   pba->xi_idr = 0;//ethos
   pba->Omega0_b = 0.022032/pow(pba->h,2);
