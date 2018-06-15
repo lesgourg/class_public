@@ -2877,6 +2877,9 @@ int spectra_neff(
   //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
   Lya_k_1_over_Mpc = pvecback_short[pba->index_bg_H]*_c_/1.e3*pvecback_short[pba->index_bg_a]*psp->Lya_k_s_over_km;
   //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
+  if (Lya_k_1_over_Mpc>0.999*exp(psp->ln_k[psp->ln_k_size-1])){
+     class_stop(psp->error_message,"Lya_k_1_over_Mpc>P_k_max_1/Mpc\n");
+  }
   if (psp->spectra_verbose>0){
     fprintf(stdout," -> neff is computed at k = %g 1/Mpc\n",
             Lya_k_1_over_Mpc);

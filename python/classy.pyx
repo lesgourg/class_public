@@ -728,6 +728,30 @@ cdef class Class:
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
+    # Gives neff(Lya_k_s_over_km,z) for a given z (Lya_k_s_over_km is fixed)
+    #def get_neffz(self,double z):
+    #    """
+    #    Gives the pk slope for a given z at Lya_k_s_over_km
+    #
+    #    .. note::
+    #
+    #        there is an additional check to verify whether output contains `mPk`,
+    #        and whether k_max > ...
+    #        because otherwise a segfault will occur
+    #
+    #    """
+    #    cdef double neffz
+    #
+    #    if (self.pt.has_pk_matter == _FALSE_):
+    #        raise CosmoSevereError(
+    #            "No power spectrum computed. In order to get neff you must add mPk to the list of outputs."
+    #            )
+    #
+    #    if spectra_sigma_neff(&self.ba,&self.pm,&self.sp,z,&neffz)==_FAILURE_:
+    #             raise CosmoSevereError(self.sp.error_message)
+    #
+    #    return neffz
+
     def age(self):
         self.compute(["background"])
         return self.ba.age
