@@ -1549,6 +1549,8 @@ int input_read_parameters(
 
   class_read_double("k_pivot",ppm->k_pivot);
 
+  class_read_double("k_s_over_km",psp->k_s_over_km);//MArchi Lya
+
   if (ppm->primordial_spec_type == two_scales) {
 
     class_read_double("k1",k1);
@@ -3180,6 +3182,7 @@ int input_default_params(
 
   psp->z_max_pk = pop->z_pk[0];
   psp->non_diag=0;
+  psp->k_s_over_km=0.005;//MArchi Lya
 
   /** - nonlinear structure */
 
