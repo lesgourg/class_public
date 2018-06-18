@@ -7,6 +7,8 @@
 //#include "arrays.h"
 //#include "helium.h"
 //#include "hydrogen.h"
+#include "evolver_ndf15.h"
+#include "evolver_rkck.h"
 
 /**
  * List of possible recombination algorithms.
@@ -574,6 +576,15 @@ extern "C" {
 					 ErrorMsg error_message
 					 );
 
+  int thermodynamics_sources_with_recfast(
+                                        double z,
+                                        double * y,
+                                        double * dy,
+                                        int index_z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        ErrorMsg error_message
+                                          );
+
   int thermodynamics_merge_reco_and_reio(
 					 struct precision * ppr,
 					 struct thermo * pth,
@@ -598,6 +609,22 @@ extern "C" {
                           double after,
                           double width,
                           double * result);
+
+  int thermodynamics_sources_with_recfast(
+                                        double z,
+                                        double * y,
+                                        double * dy,
+                                        int index_z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        ErrorMsg error_message
+                                          );
+
+  int thermodynamics_timescale_with_recfast(
+                                        double z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        double * timescale,
+                                        ErrorMsg error_message
+                                            );
 
 #ifdef __cplusplus
 }

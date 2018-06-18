@@ -2968,6 +2968,8 @@ int thermodynamics_recombination_with_recfast(
   double zstart,zend,rhs;
   int i,Nz;
 
+  double mz,mzstart,mzend;
+
   /* introduced by JL for smoothing the various steps */
   double x0_previous,x0_new,s,weight;
 
@@ -2977,14 +2979,40 @@ int thermodynamics_recombination_with_recfast(
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
   struct thermodynamics_parameters_and_workspace tpaw;
 
+  /* function pointer to ODE evolver and names of possible evolvers */
+
+  extern int evolver_rk();
+  extern int evolver_ndf15();
+  int (*generic_evolver)();
+  int * used_in_output;
+  double * z_output;
+
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
   preco->rt_size = ppr->recfast_Nz0;
   class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
 
   /** - initialize generic integrator with initialize_generic_integrator() */
+
   class_call(initialize_generic_integrator(_RECFAST_INTEG_SIZE_, &gi),
              gi.error_message,
              pth->error_message);
+
+  /*
+  if(ppr->evolver == rk){
+    generic_evolver = evolver_rk;
+  }
+  else{
+    generic_evolver = evolver_ndf15;
+  }
+  */
+  generic_evolver = evolver_rk;
+  //generic_evolver = evolver_ndf15;
+
+  class_alloc(used_in_output, 3*sizeof(int), pth->error_message);
+  used_in_output[0]=_TRUE_;
+  used_in_output[1]=_TRUE_;
+  used_in_output[2]=_TRUE_;
+  class_alloc(z_output,2*sizeof(double), pth->error_message);
 
   /** - read a few precision/cosmological parameters */
 
@@ -3085,14 +3113,15 @@ int thermodynamics_recombination_with_recfast(
 
   for(i=0; i <Nz; i++) {
 
-    zstart = zinitial * (double)(Nz-i) / (double)Nz;
-    zend   = zinitial * (double)(Nz-i-1) / (double)Nz;
+    mzstart = -zinitial * (double)(Nz-i) / (double)Nz;
+    mzend   = -zinitial * (double)(Nz-i-1) / (double)Nz;
 
-    z = zend;
+    mz = mzend;
+    z = -mz;
 
     /** - --> first approximation: H and Helium fully ionized */
 
-    if (z > ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1) {
+    if (z > ppr->recfast_z_He_1-ppr->recfast_delta_z_He_1) {
       x_H0 = 1.;
       x_He0 = 1.;
       x0 = 1.+2.*preco->fHe;
@@ -3199,9 +3228,12 @@ int thermodynamics_recombination_with_recfast(
       rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
       x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
 
+      /*
+      fprintf(stderr,"get here for [%e %e]\n",mzstart,mzend);
+      fprintf(stderr,"start from %e\n",y[2]);
       class_call(generic_integrator(thermodynamics_derivs_with_recfast,
-                                    zstart,
-                                    zend,
+                                    mzstart,
+                                    mzend,
                                     y,
                                     &tpaw,
                                     ppr->tol_thermo_integration,
@@ -3209,6 +3241,32 @@ int thermodynamics_recombination_with_recfast(
                                     &gi),
                  gi.error_message,
                  pth->error_message);
+      fprintf(stderr,"goes to %e\n",y[2]);
+      */
+
+      //fprintf(stderr,"get here for [%e %e]\n",zstart,zend);
+      z_output[0] = mzstart;
+      z_output[1] = mzend;
+      //fprintf(stderr,"start from %e\n",y[2]);
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mzstart,
+                                 mzend,
+                                 y,
+                                 used_in_output, // array [_FALSE_, _FALSE_, _FALSE_]
+                                 3,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 0.1, // stepsize
+                                 z_output, // values of z for output
+                                 2, // size of previous arry
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+      //fprintf(stderr,"goes to %e\n",y[2]);
 
       y[0] = x_H0;
 
@@ -3241,15 +3299,38 @@ int thermodynamics_recombination_with_recfast(
         x_H0 = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
       }
 
+      /*
       class_call(generic_integrator(thermodynamics_derivs_with_recfast,
-                                    zstart,
-                                    zend,
+                                    mzstart,
+                                    mzend,
                                     y,
                                     &tpaw,
                                     ppr->tol_thermo_integration,
                                     ppr->smallest_allowed_variation,
                                     &gi),
                  gi.error_message,
+                 pth->error_message);
+      */
+
+      z_output[0] = mzstart;
+      z_output[1] = mzend;
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mzstart,
+                                 mzend,
+                                 y,
+                                 used_in_output, // array [_FALSE_, _FALSE_, _FALSE_]
+                                 3,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 0.1, // stepsize
+                                 z_output, // values of z for output
+                                 2, // size of previous arry
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
                  pth->error_message);
 
       /* smoothed transition */
@@ -3272,7 +3353,7 @@ int thermodynamics_recombination_with_recfast(
     /* results are obtained in order of decreasing z, and stored in order of growing z */
 
     /* redshift */
-    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=zend;
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z)=-mzend;
 
     /* ionization fraction */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_xe)=x0;
@@ -3281,17 +3362,17 @@ int thermodynamics_recombination_with_recfast(
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=y[2];
 
     /* get dTb/dz=dy[2] */
-    class_call(thermodynamics_derivs_with_recfast(zend, y, dy, &tpaw,pth->error_message),
+    class_call(thermodynamics_derivs_with_recfast(mzend, y, dy, &tpaw,pth->error_message),
                pth->error_message,
                pth->error_message);
 
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2] * (1. - (1.-mzend) * dy[2] / y[2] / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
-      = (1.+zend) * (1.+zend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
+      = (1.-mzend) * (1.-mzend) * preco->Nnow * x0 * _sigma_ * _Mpc_over_m_;
 
     /* fprintf(stdout,"%e %e %e %e %e %e\n", */
     /* 	    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_z), */
@@ -3342,7 +3423,7 @@ int thermodynamics_recombination_with_recfast(
  */
 
 int thermodynamics_derivs_with_recfast(
-                                       double z,
+                                       double mz,
                                        double * y,
                                        double * dy,
                                        void * parameters_and_workspace,
@@ -3352,6 +3433,7 @@ int thermodynamics_derivs_with_recfast(
 
   /* define local variables */
 
+  double z;
   double x,n,n_He,Trad,Tmat,x_H,x_He,Hz,dHdz,epsilon;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
   double timeTh,timeH;
@@ -3379,11 +3461,18 @@ int thermodynamics_derivs_with_recfast(
   double chi_ion_H;
   int last_index_back;
 
+  z = -mz;
+
   ptpaw = parameters_and_workspace;
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   preco = ptpaw->preco;
   pvecback = ptpaw->pvecback;
+
+  //fprintf(stderr,"Now in derivs\n");
+  //fprintf(stderr,"Check that we are passing fHe=%e\n",preco->fHe);
+  //fprintf(stderr,"y=%e %e %e\n",y[0],y[1],y[2]);
+  //class_stop(error_message,"stop");
 
   x_H = y[0];
   x_He = y[1];
@@ -3531,7 +3620,6 @@ int thermodynamics_derivs_with_recfast(
 
     dy[0] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
       -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
-
   }
 
   /************/
@@ -3589,6 +3677,10 @@ int thermodynamics_derivs_with_recfast(
     dy[2]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
   }
+
+  dy[0]=-dy[0];
+  dy[1]=-dy[1];
+  dy[2]=-dy[2];
 
   return _SUCCESS_;
 }
@@ -3764,4 +3856,27 @@ int thermodynamics_tanh(double x,
   *result = before + (after-before)*(tanh((x-center)/width)+1.)/2.;
 
   return _SUCCESS_;
+}
+
+int thermodynamics_sources_with_recfast(
+                                        double z,
+                                        double * y,
+                                        double * dy,
+                                        int index_z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        ErrorMsg error_message
+                    ) {
+  return _SUCCESS_;
+
+}
+
+int thermodynamics_timescale_with_recfast(
+                                        double z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        double * timescale,
+                                        ErrorMsg error_message
+                    ) {
+  *timescale = 1.;
+  return _SUCCESS_;
+
 }
