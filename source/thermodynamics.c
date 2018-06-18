@@ -3005,8 +3005,8 @@ int thermodynamics_recombination_with_recfast(
     generic_evolver = evolver_ndf15;
   }
   */
-  //generic_evolver = evolver_rk;
-  generic_evolver = evolver_ndf15;
+  generic_evolver = evolver_rk;
+  //generic_evolver = evolver_ndf15;
 
   class_alloc(used_in_output, 3*sizeof(int), pth->error_message);
   used_in_output[0]=_TRUE_;
@@ -3258,7 +3258,7 @@ int thermodynamics_recombination_with_recfast(
                                  ppr->tol_thermo_integration,
                                  ppr->smallest_allowed_variation,
                                  thermodynamics_timescale_with_recfast,  // timescale
-                                 0.1, // stepsize
+                                 1., // stepsize
                                  z_output, // values of z for output
                                  2, // size of previous arry
                                  thermodynamics_sources_with_recfast, // function for output
@@ -3324,7 +3324,7 @@ int thermodynamics_recombination_with_recfast(
                                  ppr->tol_thermo_integration,
                                  ppr->smallest_allowed_variation,
                                  thermodynamics_timescale_with_recfast,  // timescale
-                                 0.1, // stepsize
+                                 1., // stepsize
                                  z_output, // values of z for output
                                  2, // size of previous arry
                                  thermodynamics_sources_with_recfast, // function for output
