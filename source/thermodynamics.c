@@ -3005,8 +3005,8 @@ int thermodynamics_recombination_with_recfast(
     generic_evolver = evolver_ndf15;
   }
   */
-  generic_evolver = evolver_rk;
-  //generic_evolver = evolver_ndf15;
+  //generic_evolver = evolver_rk;
+  generic_evolver = evolver_ndf15;
 
   class_alloc(used_in_output, 3*sizeof(int), pth->error_message);
   used_in_output[0]=_TRUE_;
@@ -3125,9 +3125,32 @@ int thermodynamics_recombination_with_recfast(
       x_H0 = 1.;
       x_He0 = 1.;
       x0 = 1.+2.*preco->fHe;
+
+      /* now call the ODE to get at least Tb */
+      z_output[0] = mzstart;
+      z_output[1] = mzend;
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mzstart,
+                                 mzend,
+                                 y,
+                                 used_in_output, // array [_FALSE_, _FALSE_, _FALSE_]
+                                 3,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 1., // stepsize
+                                 z_output, // values of z for output
+                                 2, // size of previous arry
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+
       y[0] = x_H0;
       y[1] = x_He0;
-      y[2] = preco->Tnow*(1.+z);
+      //y[2] = preco->Tnow*(1.+z); // now commented to get it from evolver
     }
 
     /** - --> second approximation: first Helium recombination (analytic approximation) */
@@ -3155,9 +3178,31 @@ int thermodynamics_recombination_with_recfast(
         x0 = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
       }
 
+      /* now call the ODE to get at least Tb */
+      z_output[0] = mzstart;
+      z_output[1] = mzend;
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mzstart,
+                                 mzend,
+                                 y,
+                                 used_in_output, // array [_FALSE_, _FALSE_, _FALSE_]
+                                 3,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 1., // stepsize
+                                 z_output, // values of z for output
+                                 2, // size of previous arry
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+
       y[0] = x_H0;
       y[1] = x_He0;
-      y[2] = preco->Tnow*(1.+z);
+      //y[2] = preco->Tnow*(1.+z); // now commented to get it from evolver
     }
 
     /** - --> third approximation: first Helium recombination completed */
@@ -3184,9 +3229,31 @@ int thermodynamics_recombination_with_recfast(
         x0 = 1.+preco->fHe;
       }
 
+      /* now call the ODE to get at least Tb */
+      z_output[0] = mzstart;
+      z_output[1] = mzend;
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mzstart,
+                                 mzend,
+                                 y,
+                                 used_in_output, // array [_FALSE_, _FALSE_, _FALSE_]
+                                 3,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 1., // stepsize
+                                 z_output, // values of z for output
+                                 2, // size of previous arry
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+
       y[0] = x_H0;
       y[1] = x_He0;
-      y[2] = preco->Tnow*(1.+z);
+      //y[2] = preco->Tnow*(1.+z); // now commented to get it from evolver
     }
 
     /** - --> fourth approximation: second Helium recombination starts (analytic approximation) */
@@ -3214,9 +3281,32 @@ int thermodynamics_recombination_with_recfast(
       }
 
       x_He0 = (x0-1.)/preco->fHe;
+
+      /* now call the ODE to get at least Tb */
+      z_output[0] = mzstart;
+      z_output[1] = mzend;
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mzstart,
+                                 mzend,
+                                 y,
+                                 used_in_output, // array [_FALSE_, _FALSE_, _FALSE_]
+                                 3,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 1., // stepsize
+                                 z_output, // values of z for output
+                                 2, // size of previous arry
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+
       y[0] = x_H0;
       y[1] = x_He0;
-      y[2] = preco->Tnow*(1.+z);
+      //y[2] = preco->Tnow*(1.+z); // now commented to get it from evolver
     }
 
     /** - --> fifth approximation: second Helium recombination (full
