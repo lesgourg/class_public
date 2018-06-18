@@ -1941,7 +1941,13 @@ int nonlinear_hmcode_fill_sigtab(
 
 /** Function that fills pnl->tautable and pnl->growtable with (tau, D(tau))
  * linearly spaced in scalefactor a.
- * Called by nonlinear_init at before the loop over tau */
+ * Called by nonlinear_init at before the loop over tau 
+ * 
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure (will provide the scale independent growth factor)
+ * @param pnl Input/Output: pointer to nonlinear structure
+ * @return the error status
+ */
 
 int nonlinear_hmcode_fill_growtab(
               struct precision * ppr,
@@ -1995,7 +2001,17 @@ int nonlinear_hmcode_fill_growtab(
 }
 
 /** This function finds the scale independent growth factor by integrating the approximate relation 
- * d(lnD)/d(lna) = Omega_m(z)^gamma by Linder & Cahn 2007 */
+ * d(lnD)/d(lna) = Omega_m(z)^gamma by Linder & Cahn 2007
+ * 
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param a   Input: scalefactor
+ * @param w0  Input: dark energy equation of state today
+ * @param wa  Input: dark energy equation of state varying with a: w=w0+(1-a)wa
+ * @param growth Output: scale independent growth factor at a
+ * @return the error status
+ */
 int nonlinear_hmcode_growint(
               struct precision * ppr,
 						  struct background * pba,
@@ -2089,9 +2105,15 @@ int nonlinear_hmcode_growint(
   return _SUCCESS_; 	
 }
 
-/** this is the fourier transform of the NFW density profile
- ** it depends on k, the virial radius rv and the concentration c
- ** of a halo  */
+/** This is the fourier transform of the NFW density profile.
+ * 
+ * @param k   Input: wave vector
+ * @param rv  Input: virial radius
+ * @param c   Input: concentration = rv/rs (with scale radius rs)
+ * @param window_nfw Output: Window Function of the NFW profile
+ * @return the error status  
+ * 
+ *   */
 int nonlinear_hmcode_window_nfw(
 						  					 struct nonlinear * pnl,
 						  					 double k,
@@ -2104,28 +2126,28 @@ int nonlinear_hmcode_window_nfw(
 																
 	ks = k*rv/c;
 	
-	class_call(nonlinear_hmcode_si(
+	class_call(sine_integral(
 													ks*(1.+c),
 													&si2,
                           pnl->error_message
 													),
 					pnl->error_message, pnl->error_message);	
 	
-	class_call(nonlinear_hmcode_si(
+	class_call(sine_integral(
 													ks,
 													&si1,
                           pnl->error_message
 													),
 					pnl->error_message, pnl->error_message);				
 	
-	class_call(nonlinear_hmcode_ci(
+	class_call(cosine_integral(
 													ks*(1.+c),
 													&ci2,
                           pnl->error_message
 													),
 					pnl->error_message, pnl->error_message);	
 	
-	class_call(nonlinear_hmcode_ci(
+	class_call(cosine_integral(
 													ks,
 													&ci1,
                           pnl->error_message
@@ -2142,7 +2164,12 @@ int nonlinear_hmcode_window_nfw(
 	return _SUCCESS_;
 }
 
-/** This is the Sheth-Tormen halo mass function (1999, MNRAS, 308, 119) */
+/** This is the Sheth-Tormen halo mass function (1999, MNRAS, 308, 119) 
+ * 
+ * @param nu   Input: the \nu parameter that depends on the halo mass via \nu(M) = \delta_c/\sigma(M)
+ * @param hmf  Output: Value of the halo mass function at this \nu
+ * @return the error status  
+ * */
 int nonlinear_hmcode_halomassfunction(
                                       double nu, 
                                       double *hmf
@@ -2162,6 +2189,7 @@ int nonlinear_hmcode_halomassfunction(
 
 /** Computes the nonlinear correction on the linear power spectrum via 
  * the method presented in Mead et al. 1505.07833 */
+ 
 
 int nonlinear_hmcode(
                       struct precision *ppr,
@@ -2314,12 +2342,14 @@ int nonlinear_hmcode(
    * The halo concentration-mass-relation c(M) will be found later.  */
    
   for (index_mass=0;index_mass<ppr->nsteps_for_p1h_integral;index_mass++){
-	  m = exp(log(mmin)+log(mmax/mmin)*(index_mass)/(ppr->nsteps_for_p1h_integral-1));
+	  
+    m = exp(log(mmin)+log(mmax/mmin)*(index_mass)/(ppr->nsteps_for_p1h_integral-1));
 	  r = pow((3.*m/(4.*_PI_*rho_crit_today_in_msun_mpc3*Omega0_m)), (1./3.)); 
 	  mass[index_mass] = m;
 	  r_real[index_mass] = r;
 	  r_virial[index_mass] = r_real[index_mass]/pow(Delta_v, 1./3.);
-	  class_call(array_interpolate_spline(pnl->rtab,
+	  
+    class_call(array_interpolate_spline(pnl->rtab,
 										  nsig,
 										  pnl->stab,
 										  pnl->ddstab,
@@ -2330,7 +2360,8 @@ int nonlinear_hmcode(
 										  1,
 										  pnl->error_message),
 					pnl->error_message, pnl->error_message);
-	  class_call(array_interpolate_spline(pnl->rtab,
+	  
+    class_call(array_interpolate_spline(pnl->rtab,
 										  nsig,
 										  pnl->stab,
 										  pnl->ddstab,
@@ -2364,9 +2395,9 @@ int nonlinear_hmcode(
     free(nu_arr);
     return _SUCCESS_;
   }
-	else {
-		* halofit_found_k_max = _TRUE_;
-	}
+	//else {
+		//* halofit_found_k_max = _TRUE_;
+	//}
   
   /* make a first guess for the nonlinear scale */
   class_call(array_interpolate_two_arrays_one_column(
@@ -2443,14 +2474,6 @@ int nonlinear_hmcode(
   
   /** Calculate halo concentration-mass relation conc(mass) (Bullock et al. 2001) */ 
 	class_alloc(conc,ppr->nsteps_for_p1h_integral*sizeof(double),pnl->error_message);
-
-  if (tau==pba->conformal_age && pnl->nonlinear_verbose > 4) {
-    fprintf(stdout, "#################################################################\n");
-    fprintf(stdout, "tau = %f; z = %f\n", tau, z_at_tau);
-    fprintf(stdout, "--------------------------------------------------------------------\n");
-    fprintf(stdout, "M,		rf,		s(fM),		zf,		gf,		c \n");
-    fprintf(stdout, "--------------------------------------------------------------------\n");
-  }
     
   for (index_mass=0;index_mass<ppr->nsteps_for_p1h_integral;index_mass++){
 		//find growth rate at formation
@@ -2473,10 +2496,8 @@ int nonlinear_hmcode(
 		} else {
 			conc[index_mass] = pnl->c_min*(1.+z_form)/(1.+z_at_tau)*pnl->dark_energy_correction;
 	  } 	
-		if (tau==pba->conformal_age && pnl->nonlinear_verbose > 4) fprintf(stdout, "%e %e %e %e %e %e\n",mass[index_mass], r_real[index_mass]*fraction*pba->h, sigmaf_r[index_mass], z_form, g_form, conc[index_mass]);
-	}
-  if (tau==pba->conformal_age && pnl->nonlinear_verbose > 4) fprintf(stdout, "#################################################################\n");
-
+  }
+  
   
 	/** Now compute the nonlinear correction */
   double factor = 1;
@@ -2558,9 +2579,7 @@ int nonlinear_hmcode(
     else{
       fac=exp(-pow((pnl->k[index_k]/k_star), 2.));
     }
-    /*if (tau==pba->conformal_age){
-      fprintf(stdout, "%e %e %e\n",pnl->k[index_k]/pba->h, fac, pk_1h);
-    }*/
+
     pk_1h = pk_1h*anorm*pow(pnl->k[index_k],3)*(1.-fac)/(rho_crit_today_in_msun_mpc3*Omega0_m);  // dimensionless power
 		
 		if (fdamp==0){
@@ -2570,16 +2589,12 @@ int nonlinear_hmcode(
 		}
 		if (pk_2h<0.) pk_2h=0.;	
 		pk_nl[index_k] = pow((pow(pk_1h, alpha) + pow(pk_2h, alpha)), (1./alpha))/pow(pnl->k[index_k],3)/anorm; //converted back to P_k
-		
-    // for debugging:
-    //if (tau==pba->conformal_age) fprintf(stdout, "%e %e %e %e %e\n", pnl->k[index_k], pk_lin, pk_1h, pk_2h, pk_nl[index_k]*pow(pnl->k[index_k],3)*anorm);			
-		//if (tau==pba->conformal_age) fprintf(stdout, "%e, %e\n",pnl->k[index_k]/pba->h, pk_nl[index_k]);
-		
+				
 		free(p1h_integrand);
 	}
 	
   // print parameter values  
-  if ((pnl->nonlinear_verbose > 1 && tau==pba->conformal_age) || pnl->nonlinear_verbose > 4){
+  if ((pnl->nonlinear_verbose > 1 && tau==pba->conformal_age) || pnl->nonlinear_verbose > 3){
 		fprintf(stdout, " -> Parameters at redshift z = %e:\n", z_at_tau); 
 		fprintf(stdout, "    fnu:		%e\n", fnu);
 		fprintf(stdout, "    sigd [Mpc/h]:	%e\n", sigma_disp*pba->h);
@@ -2603,12 +2618,6 @@ int nonlinear_hmcode(
 		fprintf(stdout, "    fdamp:		%e\n", fdamp);		
 		fprintf(stdout, "    alpha:		%e\n", alpha);
 		fprintf(stdout, "    ksize, kmin, kmax:   %d, %e, %e\n", pnl->k_size, pnl->k[0]/pba->h, pnl->k[pnl->k_size-1]/pba->h);	
-		
-    // for debugging:
-    //for (index_mass=0;index_mass<ppr->n_hmcode_tables;index_mass++){
-			//fprintf(stdout, "%d %e %e %e\n",index_mass+1, pnl->rtab[index_mass*pnl->tau_size+index_tau]*pba->h, pnl->stab[index_mass*pnl->tau_size+index_tau], pnl->ddstab[index_mass*pnl->tau_size+index_tau]);
-			//fprintf(stdout, "%e %e\n",1./(1.+pnl->ztable[index_mass]), pnl->growtable[index_mass]);
-  	//}
   	
   } 
 	
