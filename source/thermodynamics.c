@@ -3005,8 +3005,8 @@ int thermodynamics_recombination_with_recfast(
     generic_evolver = evolver_ndf15;
   }
   */
-  generic_evolver = evolver_rk;
-  //generic_evolver = evolver_ndf15;
+  //generic_evolver = evolver_rk;
+  generic_evolver = evolver_ndf15;
 
   class_alloc(used_in_output, 3*sizeof(int), pth->error_message);
   used_in_output[0]=_TRUE_;
@@ -3121,7 +3121,7 @@ int thermodynamics_recombination_with_recfast(
 
     /** - --> first approximation: H and Helium fully ionized */
 
-    if (z > ppr->recfast_z_He_1-ppr->recfast_delta_z_He_1) {
+    if (z > ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1) {
       x_H0 = 1.;
       x_He0 = 1.;
       x0 = 1.+2.*preco->fHe;
