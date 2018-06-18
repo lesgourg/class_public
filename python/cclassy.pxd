@@ -192,6 +192,7 @@ cdef extern from "class.h":
         int index_md_scalars
         double* ln_k
         double sigma8
+        double sigma8_cb
         double alpha_II_2_20
         double alpha_RI_2_20
         double alpha_RR_2_20
@@ -346,10 +347,17 @@ cdef extern from "class.h":
                   void * pba,
                   void * ppm,
                   void * psp,
-                  short compute_sigma8_cb,
                   double R,
                   double z,
                   double * sigma)
+
+    int spectra_sigma_cb(
+                  void * pba,
+                  void * ppm,
+                  void * psp,
+                  double R,
+                  double z,
+                  double * sigma_cb)
 
     int spectra_fast_pk_at_kvec_and_zvec(
                   void * pba,
