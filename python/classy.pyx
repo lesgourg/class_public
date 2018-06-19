@@ -764,7 +764,7 @@ cdef class Class:
 
     # Defined twice ?
     def Omega_m(self):
-        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
+        return self.ba.Omega0_b+self.ba.Omega0_idm+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
     def Omega_b(self):
         return self.ba.Omega0_b
@@ -927,7 +927,7 @@ cdef class Class:
         """
         Return the sum of Omega0 for all non-relativistic components
         """
-        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
+        return self.ba.Omega0_b+self.ba.Omega0_idm+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
     def get_background(self):
         """
@@ -1238,10 +1238,10 @@ cdef class Class:
             elif name == 'Neff':
                 value = self.ba.Neff
             elif name == 'Omega_m':
-                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
+                value = (self.ba.Omega0_b + self.ba.Omega0_idm + self.ba.Omega0_cdm+
                          self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)
             elif name == 'omega_m':
-                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
+                value = (self.ba.Omega0_b + self.ba.Omega0_idm + self.ba.Omega0_cdm+
                          self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)/self.ba.h**2
             elif name == 'tau_reio':
                 value = self.th.tau_reio

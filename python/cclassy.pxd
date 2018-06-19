@@ -46,6 +46,8 @@ cdef extern from "class.h":
         double * m_ncdm_in_eV
         double Neff
         double Omega0_b
+        double f_idm_dr
+        double Omega0_idm
         double Omega0_cdm
         double Omega0_dcdm
         double Omega0_ncdm_tot
@@ -78,7 +80,7 @@ cdef extern from "class.h":
         double n_e
         double a_dark
         double nindex_dark
-        double xi_dark
+        double xi_idr
         double m_dm
 
         int tt_size

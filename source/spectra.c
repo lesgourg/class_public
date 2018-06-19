@@ -2692,7 +2692,7 @@ int spectra_pk(
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
-//MArchi Lya
+/*MArchi Lya
   class_call(spectra_neff(pba,ppm,psp,0.,&(psp->neff)),
              psp->error_message,
              psp->error_message);
@@ -2700,7 +2700,7 @@ int spectra_pk(
     fprintf(stdout," -> neff=%g (computed at k = %g s/km and at z=0)\n",
             psp->neff,
             psp->Lya_k_s_over_km);
-  }
+  }*/
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
