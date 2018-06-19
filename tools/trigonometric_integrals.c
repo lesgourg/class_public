@@ -3,7 +3,7 @@
 #include "trigonometric_integrals.h"
 
 /** this is the Cosine Integral function Ci(x) */
-int nonlinear_hmcode_ci(
+int cosine_integral(
 								 double x,
 								 double *Ci,
                  ErrorMsg error_message
@@ -51,7 +51,7 @@ int nonlinear_hmcode_ci(
 }
 
 /** this is the Sine Integral function Si(x) */
-int nonlinear_hmcode_si(
+int sine_integral(
 								 double x,
 								 double *Si,
                  ErrorMsg error_message
