@@ -1,0 +1,6 @@
+Lya.data=data.path['data']
+Lya.grid_file="grid.dat"
+Lya.k_size=1000
+Lya.khmin=0.001
+Lya.khmax=10.415
+#add astro parameters as nuisance
