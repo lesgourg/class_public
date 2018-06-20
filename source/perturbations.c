@@ -2906,7 +2906,7 @@ int perturb_find_approximation_switches(
           if (pba->has_idm == _TRUE_){
             if ((interval_approx[index_switch-1][ppw->index_ap_tca_dark]==(int)tca_dark_on) && //ethos
                 (interval_approx[index_switch][ppw->index_ap_tca_dark]==(int)tca_dark_off))
-              fprintf(stdout,"Mode k=%e: will switch off DM-DR tight-coupling approximation at tau=%e\n",k,interval_limit[index_switch]);
+              fprintf(stdout,"Mode k=%e: will switch off dark tight-coupling approximation at tau=%e\n",k,interval_limit[index_switch]);
           }
 
           if (pba->has_ur == _TRUE_) {
@@ -3531,7 +3531,7 @@ int perturb_vector_init(
       if (pba->has_idm == _TRUE_){
         class_test((pa_old[ppw->index_ap_tca] == (int)tca_dark_off) && (ppw->approx[ppw->index_ap_tca] == (int)tca_dark_on),
                    ppt->error_message,
-                   "at tau=%g: the Dark Radiation tight-coupling approximation can be switched off, not on",tau);
+                   "at tau=%g: the dark tight-coupling approximation can be switched off, not on",tau);
       }
 
       /** - ---> (a.2.) some variables (b, cdm, fld, ...) are not affected by
@@ -3965,12 +3965,13 @@ int perturb_vector_init(
           }
 
         }//end of rsa_idr block
-
+      }// end of has_idr block
+      if (pba->has_idm == _TRUE_) {
         /*ethos: case of switching off dark radiation tight coupling approximation*/
         if ((pa_old[ppw->index_ap_tca_dark] == (int)tca_dark_on) && (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off)) {
 
           if (ppt->perturbations_verbose>2)
-            fprintf(stdout,"Mode k=%e: switch off dark radiation tight coupling approximation at tau=%e\n",k,tau);
+            fprintf(stdout,"Mode k=%e: switch off dark tight coupling approximation at tau=%e\n",k,tau);
 
           if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_idr_off) {
             ppv->y[ppv->index_pt_delta_idr] =
@@ -4071,7 +4072,7 @@ int perturb_vector_init(
           }
 
         }//end of tca_dark block
-      }//end of has_idr block(s)
+      }//end of has_idm block
 
       /* -- case of switching on ncdm fluid
          approximation. Provide correct initial conditions to new set
