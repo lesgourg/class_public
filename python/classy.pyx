@@ -787,6 +787,10 @@ cdef class Class:
         self.compute(["thermodynamics"])
         return self.th.rs_d
 
+    def z_reio(self):
+        self.compute(["thermodynamics"])
+        return self.th.z_reio
+
     def angular_distance(self, z):
         """
         angular_distance(z)

@@ -21,8 +21,8 @@ class Lya(Likelihood):
         
         self.kh_0 = np.linspace(self.khmin, self.khmax, num=self.k_size)
 
-        self.DATASET = "mike-hires" 
-        self.zp = 4.5
+        DATASET = "mike-hires" 
+        zp = 4.5
 
         lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
@@ -52,12 +52,8 @@ class Lya(Likelihood):
            X_real[k][2] = gammas[k]
 
         #for the normalization (see Alex's notes) #???
-        self.a_min = min(X_real[:,0])
-        self.b_min = min(X_real[:,1])
-        self.g_min = min(X_real[:,2])
-        self.a_max = max(X_real[:,0])
-        self.b_max = max(X_real[:,1])
-        self.g_max = max(X_real[:,2])
+        a_min = min(X_real[:,0]); b_min = min(X_real[:,1]); g_min = min(X_real[:,2])
+        a_max = max(X_real[:,0]); b_max = max(X_real[:,1]); g_max = max(X_real[:,2])
 
         #redshift independent parameters - params order: z_reio, sigma_8, n_eff, f_UV
         zind_param_size = [3, 5, 5, 3] #how many values I have for each param
@@ -85,8 +81,8 @@ class Lya(Likelihood):
         zeta_range_hm = [4.2, 4.6, 5.0, 5.4]  #list of redshifts corresponding to the 7 wavenumbers (k) (see ./SPECTRA/README)
         k_hm = [0.00501187,0.00794328,0.0125893,0.0199526,0.0316228,0.0501187,0.0794328] #in s/km
 
-        self.zeta_full_lenght = (len(zeta_range_XQ) + len(zeta_range_hm))
-        self.kappa_full_lenght = (len(k_XQ) + len(k_hm))
+        zeta_full_lenght = (len(zeta_range_XQ) + len(zeta_range_hm))
+        kappa_full_lenght = (len(k_XQ) + len(k_hm))
         redshift = [3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.2, 4.6, 5.0, 5.4] #which snapshots (first 7 for first dataset, last 4 for second one)
 
         #T0 AND SLOPE VALUES
@@ -120,23 +116,23 @@ class Lya(Likelihood):
         file_path = os.path.join(self.data_directory, self.abg_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
-           self.full_matrix_interpolated_ABG = pickle.load(pkl)
-           print self.full_matrix_interpolated_ABG.shape
+           full_matrix_interpolated_ABG = pickle.load(pkl)
+           print full_matrix_interpolated_ABG.shape
         else
            raise io_mp.ConfigurationError('Error: abg spectra file is missing')
            exit()
 
         ALL_zdep_params = len(flux_ref_old) + len(t0_ref_old) + len(slope_ref_old)
-        grid_lenght_ABG = len(self.full_matrix_interpolated_ABG[0,0,:])
+        grid_lenght_ABG = len(full_matrix_interpolated_ABG[0,0,:])
         grid_lenght_ASTRO = len(full_matrix_interpolated_ASTRO[0,0,:])
         astroparams_number_KRIG = len(zind_param_size) + ALL_zdep_params
 
         #### --- ABG GRID --- {alpha, beta, gamma} GRID
         file_path = os.path.join(self.data_directory, self.abg_grid_file)
         if os.path.exists(file_path):
-           self.X_ABG = np.zeros((grid_lenght_ABG, params_numbers))
+           X_ABG = np.zeros((grid_lenght_ABG, params_numbers))
            for param_index in range(params_numbers):
-               self.X_ABG[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
+               X_ABG[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
         else
            raise io_mp.ConfigurationError('Error: abg grid file is missing')
 
@@ -155,7 +151,7 @@ class Lya(Likelihood):
         self.exponent = 6.
         #  STUFF FOR INTERPOLATING IN THE ASTROPARAMS SPACE ####################################
         redshift_list = np.array([3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.6, 5.0, 5.4]) #combined dataset (MIKE/HIRES + XQ-100)
-        astrokrig_result = np.zeros((self.zeta_full_lenght, self.kappa_full_lenght ))
+        astrokrig_result = np.zeros(( zeta_full_lenght, kappa_full_lenght ))
         #minimum and maximum values for the kriging normalisation###
         self.F_prior_min = np.array([0.535345,0.493634,0.44921,0.392273,0.338578,0.28871,0.218493,0.146675,0.0676442,0.0247793])
         self.F_prior_max = np.array([0.803017,0.748495,0.709659,0.669613,0.628673,0.587177,0.545471,0.439262,0.315261,0.204999])
@@ -197,7 +193,7 @@ class Lya(Likelihood):
         file_path = os.path.join(self.data_directory, self.PF_noPRACE_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
-           self.PF_noPRACE = pickle.load(pkl)
+           PF_noPRACE = pickle.load(pkl)
         else
            raise io_mp.ConfigurationError('Error: PF_noPRACE file is missing')
 
@@ -323,16 +319,17 @@ class Lya(Likelihood):
 
         # fitting the given linear P(k) with the {alpha,beta,gamma}-formula 
 
+        #MArchi functions moved outside
         #model function #T^2=P_model/P_ref
-        def T(kh,alpha,beta,gamma):
-            return (1. + (alpha*kh)**(beta))**(gamma)
-        #define objective function: returns the array to be minimized
-        def fcn2min(params, kh, Tk):
-            alpha = params['alpha']
-            beta = params['beta']
-            gamma = params['gamma']
-            model = T(kh,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
-            return (model - Tk)      #standard residuals
+        #def T(kh,alpha,beta,gamma):
+        #    return (1. + (alpha*kh)**(beta))**(gamma)
+        # define objective function: returns the array to be minimized
+        #def fcn2min(params, kh, Tk):
+        #    alpha = params['alpha']
+        #    beta = params['beta']
+        #    gamma = params['gamma']
+        #    model = T(kh,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+        #    return (model - Tk)      #standard residuals
 
         # create a set of Parameters
         params = Parameters()
@@ -369,44 +366,19 @@ class Lya(Likelihood):
         #plt.show()
         plt.savefig('grid_fit_plot.pdf')
 
-        ABG_matrix_new = np.zeros((self.zeta_full_lenght, self.kappa_full_lenght, len(self.alphas)+8 )) #??? why + 8? what is 8? define a parameter/quantity related to this 8
 
-        NEW_ABG_matrix = np.zeros(( len(self.alphas)+8, self.zeta_full_lenght, self.kappa_full_lenght))
-        for i in range(zeta_full_lenght):
-            for j in range(kappa_full_lenght):
-                NEW_ABG_matrix[:,i,j] = self.full_matrix_interpolated_ABG[i,j,:]
-
-        def ordkrig_estimator_3D(p21, z):
-            ABG_matrix_new = NEW_ABG_matrix + ordkrig_estimator(p21,z) - 1.
-            ABG_matrix_new = np.clip(ABG_matrix_new, 0. , None)
-            for i in range(self.zeta_full_lenght):
-                for j in range(self.kappa_full_lenght):
-                    self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
-        return np.sum(np.multiply(ordkrig_lambda_3D((k12(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
-
-        def ordkrig_estimator(p21, z):
-            pa10 = (z_dep_func(p21[11], p21[12], z[:])*1e4)/(t0_max[:]-t0_min[:])
-            pb10 = z_dep_func(p21[13], p21[14], z[:])/(slope_max[:]-slope_min[:])
-            p37 = np.concatenate((p21[3:11], pa10[6:], pb10[6:]))
-            for index in range(7,len(redshift)): #??? 7 what is 7?
-                astrokrig_result[index,:] = np.sum(np.multiply(ordkrig_lambda(p37[0]/zreio_range, p37[1], p37[2]/neff_range, p37[3], p37[4+index-7]/(F_prior_max[index-1]-F_prior_min[index-1]), p37[8+index-7], p37[12+index-7], X[:,0], X[:,1], X[:,2], X[:,3], X[:,4+index-1], X[:,14+index-1], X[:,24+index-1]), full_matrix_interpolated_ASTRO[index,:,:]),axis=1)
-        return astrokrig_result
-
-        def z_dep_func(parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
-        return parA*(( (1.+z)/(1.+self.zp) )**parS)
-
-
-        model = self.PF_noPRACE*ordkrig_estimator_3D(theta, z)
-        upper_block = np.vsplit(model, [7,11])[0]
-        lower_block = np.vsplit(model, [7,11])[1]
-        if self.DATASET == "mike-hires":
-           model_H[:,:] = lower_block[:,19:]; model_H_reshaped = np.reshape(model_H, -1, order='C')
-           model_M[:,:] = lower_block[:3,19:]; model_M_reshaped = np.reshape(model_M, -1, order='C')
-           model_MH_reshaped = np.concatenate((model_H_reshaped,model_M_reshaped))
-           chi2 = np.dot((y_MH_reshaped - model_MH_reshaped),np.dot(cov_MH_inverted,(y_MH_reshaped - model_MH_reshaped)))
-        else
-           raise io_mp.LikelihoodError('Error: for the time being, only the mike - hires dataset is available')
-           exit()
-
-        print 'chi^2 = ',chi2
+        chi2 = 1.;
         return -chi2/2.
+
+        #model function #T^2=P_model/P_ref
+        def T(kh,alpha,beta,gamma):
+            return (1. + (alpha*kh)**(beta))**(gamma)
+
+        # define objective function: returns the array to be minimized
+        def fcn2min(params, kh, Tk):
+            alpha = params['alpha']
+            beta = params['beta']
+            gamma = params['gamma']
+            model = T(kh,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+            return (model - Tk)      #standard residuals
+

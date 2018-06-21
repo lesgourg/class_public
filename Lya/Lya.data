@@ -1,6 +1,19 @@
-Lya.data=data.path['data']
-Lya.grid_file="grid.dat"
-Lya.k_size=1000
-Lya.khmin=0.001
-Lya.khmax=10.415
-#add astro parameters as nuisance
+# MontePython Lyman alpha likelihood 
+# by Maria Archidiacono and Riccardo Murgia
+# be carefull there are a lot of hard coded parameters
+Lya.data   = data.path['data']
+Lya.grid_file = "ABG_fullgrid+LCDM.dat"
+Lya.astro_spectra_file = "full_matrix_interpolated_ASTRO.pkl"
+Lya.abg_spectra_file = "full_matrix_interpolated_ABG.pkl"
+Lya.abg_grid_file = "kriging_GRID_2R_ABG+WDM.dat"
+Lya.abg+astro_grid_file = "kriging_GRID_2R_astro_18p_HR_noPRACE.dat"
+Lya.MIKE_spectra_file = "y_M_reshaped.pkl"
+Lya.HIRES_spectra_file = "y_H_reshaped.pkl"
+Lya.MIKE_cov_file = "cov_M_inverted.pkl"
+Lya.HIRES_cov_file = "cov_H_inverted.pkl"
+Lya.PF_noPRACE_file = "PF_noPRACE.pkl"
+Lya.khmax  = 10.415
+Lya.khmin  = 0.001
+Lya.k_size = 10000
+Lya.use_nuisance = ['T0a','T0s','gamma_a','gamma_s','Fz1','Fz2','Fz3','Fz4','F_UV']
+
