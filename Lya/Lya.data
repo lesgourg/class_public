@@ -1,12 +1,21 @@
 # MontePython Lyman alpha likelihood 
 # by Maria Archidiacono and Riccardo Murgia
 # be carefull there are a lot of hard coded parameters
-Lya.data   = data.path['data']
+Lya.DATASET = "mike-hires"
+Lya.zp = 4.5
+Lya.num_sim_thermal = 8
+#the redshift array had first the XQ-100 z (low z) and then the MIKE HIRES z (high z)
+#so we need num_z_XQ to rescale the redshift array when using only MIKE HIRES
+Lya.num_z_XQ = 7
+#z with overlapping data of both XQ-100 and MIKE HIRES
+Lya.num_z_overlap = 1
+Lya.data_directory   = os.path.join(data.path['data'], 'Lya_grid')
 Lya.grid_file = "ABG_fullgrid+LCDM.dat"
+Lya.grid_size = 142 
 Lya.astro_spectra_file = "full_matrix_interpolated_ASTRO.pkl"
 Lya.abg_spectra_file = "full_matrix_interpolated_ABG.pkl"
 Lya.abg_grid_file = "kriging_GRID_2R_ABG+WDM.dat"
-Lya.abg+astro_grid_file = "kriging_GRID_2R_astro_18p_HR_noPRACE.dat"
+Lya.abg_astro_grid_file = "kriging_GRID_2R_astro_18p_HR_noPRACE.dat"
 Lya.MIKE_spectra_file = "y_M_reshaped.pkl"
 Lya.HIRES_spectra_file = "y_H_reshaped.pkl"
 Lya.MIKE_cov_file = "cov_M_inverted.pkl"
@@ -16,4 +25,6 @@ Lya.khmax  = 10.415
 Lya.khmin  = 0.001
 Lya.k_size = 10000
 Lya.use_nuisance = ['T0a','T0s','gamma_a','gamma_s','Fz1','Fz2','Fz3','Fz4','F_UV']
+Lya.epsilon = 1e-8
+Lya.exponent = 6.
 
