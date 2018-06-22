@@ -21,10 +21,18 @@ Lya.HIRES_spectra_file = "y_H_reshaped.pkl"
 Lya.MIKE_cov_file = "cov_M_inverted.pkl"
 Lya.HIRES_cov_file = "cov_H_inverted.pkl"
 Lya.PF_noPRACE_file = "PF_noPRACE.pkl"
+Lya.epsilon = 1e-8
+Lya.exponent = 6.
+#important for the goodness of fit
+Lya.alpha_min = 0.
+Lya.alpha_max = 0.17
+Lya.beta_min = 1.5
+Lya.beta_max = 10.
+Lya.gamma_min = -10.
+Lya.gamma_max = -0.15
+#below stuff that can be changed (with some grain of salt!)
 Lya.khmax  = 10.415
 Lya.khmin  = 0.001
 Lya.k_size = 10000
 Lya.use_nuisance = ['T0a','T0s','gamma_a','gamma_s','Fz1','Fz2','Fz3','Fz4','F_UV']
-Lya.epsilon = 1e-8
-Lya.exponent = 6.
 
