@@ -310,14 +310,13 @@ class Lya(Likelihood):
 
         Tk_0 = np.zeros(len(self.kh_0), 'float64')
         Tk_0 = np.sqrt(Plin_0/Plin_equiv_0) 
-        spline=interpolate.splrep(self.kh_0,Tk_0)
+        spline=interpolate.splrep(self.kh_0,Tk_0**2)
         der = interpolate.splev(self.kh_0, spline, der=1)
 
-        #Now merge with Riccardo's interpolation code
         #setting k_max (i.e. cutting oscillations from the fitted region)
         for index_k in range(len(self.kh_0)):
             index_khmax = -1
-            if Tk_0[index_k]<0.5 and der[index_k]>0.:
+            if Tk_0[index_k]<0.5 and der[index_k]>0.: #perhaps we could find a better condition?!
                index_khmax = index_k
                print self.kh_0[index_khmax]
                break
