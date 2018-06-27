@@ -12,8 +12,6 @@
  */
 
 #include "nonlinear.h"
-#include "extrapolate_source.h"
-#include "trigonometric_integrals.h"
 
 int nonlinear_k_nl_at_z(
                         struct background *pba,
@@ -565,9 +563,9 @@ int nonlinear_init(
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
       
-      /* // uncomment this to see the time spent at each tau
+      // uncomment this to see the time spent at each tau
       clock_t begin = clock();
-      */
+      
       
       /** loop over the dummie index pk_type, such that it is ensured that index_pk starts at index_pk_cb when neutrinos are included
        * This is necessary for hmcode, since the sigmatable needs to be filled for sigma_cb only */
@@ -754,12 +752,12 @@ int nonlinear_init(
 
     } //end loop over pk_type
     
-    /* // uncomment this to see the time spent at each tau
-    show the time spent for each tau:
+     // uncomment this to see the time spent at each tau
+    //show the time spent for each tau:
     clock_t end = clock();
     double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
     fprintf(stdout, "index_tau = %d, tau = %e, time spent: %e s\n", index_tau, pnl->tau[index_tau], time_spent);    
-    */
+    
     
     } //end loop over index_tau
 
@@ -1533,7 +1531,19 @@ int nonlinear_halofit_integrate(
   return _SUCCESS_;
 }
 
-/** Calculates the sigma integral for a given scale R*/
+/** Calculates the sigma integral for a given scale R
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pba Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param R   Input: scale at which to compute sigma
+ * @param *lnk_l     Input: logarithm of the wavevector for either index_m or index_cb
+ * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param * sigma    Output: Sigma
+ * @return the error status
+ */ 
 
 int nonlinear_hmcode_sigma(
                   struct precision * ppr,
@@ -1644,7 +1654,19 @@ int nonlinear_hmcode_sigma(
 
 }
 
-/** Calculates the d(sigma)/dR integral for a given scale R*/
+/** Calculates the d\sigma/dR integral for a given scale R
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pba Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param R   Input: scale at which to compute sigma
+ * @param *lnk_l     Input: logarithm of the wavevector for either index_m or index_cb
+ * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param * sigma_prime    Output: d\sigma/dR
+ * @return the error status
+ */ 
 
 int nonlinear_hmcode_sigma_prime(
                   struct precision * ppr,
@@ -1758,7 +1780,19 @@ int nonlinear_hmcode_sigma_prime(
 
 }
 
-/** Calculates the sigma_velocitydispersion integral for a given scale R*/
+/** Calculates the sigma_velocitydispersion integral for a given scale R
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pba Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param R   Input: scale at which to compute sigma
+ * @param *lnk_l     Input: logarithm of the wavevector for either index_m or index_cb
+ * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param * sigma_disp Output: \sigma_{disp}
+ * @return the error status
+ */ 
 
 int nonlinear_hmcode_sigma_disp(
                   struct precision * ppr,
@@ -1863,7 +1897,18 @@ int nonlinear_hmcode_sigma_disp(
 /** Function that fills pnl->rtab, pnl->stab and pnl->ddstab with (r, sigma, ddsigma)
  * logarithmically spaced in r.
  * Called by nonlinear_init at for all tau to account for scale-dependant growth
- * before nonlinear_hmcode is called */
+ * before nonlinear_hmcode is called 
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pba Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param index_tau  Input: index of tau, at which to compute the nl correction
+ * @param *lnk_l    Input: logarithm of the wavevector for either index_m or index_cb
+ * @param *lnpk_l   Input: logarithm of the linear power spectrum for either index_m or index_cb
+ * @param *ddlnpk_l Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @return the error status
+ * */
 
 int nonlinear_hmcode_fill_sigtab(
               struct precision * ppr,
@@ -1877,9 +1922,6 @@ int nonlinear_hmcode_fill_sigtab(
               double *ddlnpk_l             
 						  ) {
 	
-  //double rmin;
-  //double rmax;
-  //int nsig;
   double r;
   double rmin, rmax;
   double sig;
@@ -2188,8 +2230,23 @@ int nonlinear_hmcode_halomassfunction(
 
 
 /** Computes the nonlinear correction on the linear power spectrum via 
- * the method presented in Mead et al. 1505.07833 */
- 
+ * the method presented in Mead et al. 1505.07833
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pba Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param index_pk   Input: index of the pk type, either index_m or index_cb
+ * @param index_tau  Input: index of tau, at which to compute the nl correction
+ * @param tau        Input: tau, at which to compute the nl correction
+ * @param *pk_l      Input: pointer to the linear power spectrum
+ * @param *pk_nl     Output:nonlinear power spectrum
+ * @param **lnk_l    Input: logarithm of the wavevector for both index_m and index_cb
+ * @param **lnpk_l   Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param **ddlnpk_l Input: spline of the logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *k_nl      Output:nonlinear scale for index_m and index_cb
+ * @return the error status
+ */
 
 int nonlinear_hmcode(
                       struct precision *ppr,
@@ -2287,8 +2344,8 @@ int nonlinear_hmcode(
 
   z_at_tau = 1./pvecback[pba->index_bg_a]-1.;
   
-  /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] with rho_c = 8*pi*G/3*c^2 */
-  rho_crit_today_in_msun_mpc3 = 2.77474589e11*pow(pba->h, 2); 
+  /* The number below does the unit conversion to solar masses over Mpc^3: 2.77474589e11=rho_c/h^2 [Msun/Mpc^3] with rho_c = 3*c^2 / 8*pi*G*/
+  rho_crit_today_in_msun_mpc3 = _RHO_CRIT_MSUN_MPC3_*pow(pba->h, 2); 
   
   free(pvecback);
   

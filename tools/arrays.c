@@ -470,6 +470,7 @@ int array_spline_table_line_to_line(
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
   }
+  
 
   if (spline_mode == _SPLINE_NATURAL_) {
     *(array+0*n_columns+index_ddydx2) = u[0] = 0.0;
@@ -589,7 +590,9 @@ int array_spline_table_lines(
     return _FAILURE_;
   }
   
-  class_test((x_size<3), errmsg, "%s(L:%d) Array too small for spline, it should have at least size 3",__func__,__LINE__ );
+  class_test((x_size<2), errmsg, "%s(L:%d) Array too small for spline, it should have at least size 2",__func__,__LINE__ );
+  
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
 
   index_x=0;
 
@@ -911,6 +914,10 @@ int array_spline_table_columns(
     return _FAILURE_;
   }
 
+  class_test((x_size<2), errmsg, "%s(L:%d) Array too small for spline, it should have at least size 2",__func__,__LINE__ );
+  
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
+
   index_x=0;
 
   if (spline_mode == _SPLINE_NATURAL_) {
@@ -1080,6 +1087,10 @@ int array_spline_table_columns2(
     return _FAILURE_;
   }
 
+  class_test((x_size<2), errmsg, "%s(L:%d) Array too small for spline, it should have at least size 2",__func__,__LINE__ );
+  
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
+
 #pragma omp parallel                                                \
   shared(x,x_size,y_array,y_size,ddy_array,spline_mode,p,qn,un,u)   \
   private(index_y,index_x,sig,dy_first,dy_last)
@@ -1201,7 +1212,11 @@ int array_spline_table_one_column(
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
   }
-
+  
+  class_test((x_size<2), errmsg, "%s(L:%d) Array too small for spline, it should have at least size 2",__func__,__LINE__ );
+  
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
+  
   /************************************************/
 
   index_x=0;

@@ -3255,13 +3255,12 @@ int spectra_pk(
                                           psp->error_message),
                  psp->error_message,
                  psp->error_message);
-    }
     
-    if((pba->has_ncdm)&&(psp->ln_tau_nl_size > 1)){
+      if (pba->has_ncdm){
 
-      class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,psp->error_message);
+        class_alloc(psp->ddln_pk_cb_nl,sizeof(double)*psp->ln_tau_nl_size*psp->ln_k_size,psp->error_message);
 
-      class_call(array_spline_table_lines(psp->ln_tau_nl,
+        class_call(array_spline_table_lines(psp->ln_tau_nl,
                                           psp->ln_tau_nl_size,
                                           psp->ln_pk_cb_nl,
                                           psp->ln_k_size,
@@ -3271,6 +3270,7 @@ int spectra_pk(
                  psp->error_message,
                  psp->error_message);
 
+      }
     }
   }
 

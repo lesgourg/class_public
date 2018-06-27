@@ -1,6 +1,8 @@
 /** @file nonlinear.h Documented includes for trg module */
 
 #include "primordial.h"
+#include "extrapolate_source.h"
+#include "trigonometric_integrals.h"
 #include <time.h>
 
 #ifndef __NONLINEAR__
