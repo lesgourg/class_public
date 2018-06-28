@@ -178,6 +178,7 @@ struct spectra {
 
   double neff;//MArchi Lya
   double Lya_k_s_over_km;//MArchi Lya
+  double Lya_z;//MArchi Lya
 
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:

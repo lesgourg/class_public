@@ -2693,13 +2693,14 @@ int spectra_pk(
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
 //MArchi Lya
-  class_call(spectra_neff(pba,ppm,psp,0.,&(psp->neff)),
+  class_call(spectra_neff(pba,ppm,psp,psp->Lya_z,&(psp->neff)),
              psp->error_message,
              psp->error_message);
   if (psp->spectra_verbose>0){
-    fprintf(stdout," -> neff=%g (computed at k = %g s/km and at z=0)\n",
+    fprintf(stdout," -> neff=%g (computed at k = %g s/km and at z= %g)\n",
             psp->neff,
-            psp->Lya_k_s_over_km);
+            psp->Lya_k_s_over_km,
+            psp->Lya_z);
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
