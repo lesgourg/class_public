@@ -10,7 +10,7 @@ import pprint, pickle
 import matplotlib.pyplot as plt
 import time
 
-#Lyman alpha likelihood by Maria Archidiacono and Riccardo Murgia
+#Lyman alpha likelihood by M. Archidiacono, J. Lesgourgues, R. Murgia, M. Viel
 
 class Lya(Likelihood):
 
@@ -23,8 +23,8 @@ class Lya(Likelihood):
         
         self.kh_0 = np.linspace(self.khmin, self.khmax, num=self.k_size)
 
-        lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
-        params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
+        #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
+        self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
       
         alphas = np.zeros(self.grid_size, 'float64')      
         betas = np.zeros(self.grid_size, 'float64')
@@ -47,7 +47,7 @@ class Lya(Likelihood):
            raise io_mp.ConfigurationError('Error: grid file is missing')
            exit()
 
-        X_real = np.zeros((self.grid_size, params_numbers),'float64') #real params
+        X_real = np.zeros((self.grid_size, self.params_numbers),'float64') #real params
 
         ##from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
         #def khalf(alpha,beta,gamma):
@@ -67,7 +67,7 @@ class Lya(Likelihood):
         self.g_max = max(X_real[:,2])
 
         #redshift independent parameters - params order: z_reio, sigma_8, n_eff, f_UV
-        zind_param_size = [3, 5, 5, 3] #how many values I have for each param
+        self.zind_param_size = [3, 5, 5, 3] #how many values I have for each param
         self.zind_param_min = np.array([7., 0.5, -2.6, 0.])
         self.zind_param_max = np.array([15., 1.5, -2.0, 1.])
         zind_param_ref = np.array([9., 0.829, -2.3074, 0.])
@@ -138,13 +138,13 @@ class Lya(Likelihood):
         ALL_zdep_params = len(flux_ref_old) + len(t0_ref_old) + len(slope_ref_old)
         grid_lenght_ABG = len(self.full_matrix_interpolated_ABG[0,0,:])
         grid_lenght_ASTRO = len(self.full_matrix_interpolated_ASTRO[0,0,:])
-        astroparams_number_KRIG = len(zind_param_size) + ALL_zdep_params
+        astroparams_number_KRIG = len(self.zind_param_size) + ALL_zdep_params
 
         #### --- ABG GRID --- {alpha, beta, gamma} GRID
         file_path = os.path.join(self.data_directory, self.abg_grid_file)
         if os.path.exists(file_path):
-           self.X_ABG = np.zeros((grid_lenght_ABG, params_numbers), 'float64')
-           for param_index in range(params_numbers):
+           self.X_ABG = np.zeros((grid_lenght_ABG, self.params_numbers), 'float64')
+           for param_index in range(self.params_numbers):
                self.X_ABG[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
         else:
            raise io_mp.ConfigurationError('Error: abg grid file is missing')
@@ -220,6 +220,7 @@ class Lya(Likelihood):
     def loglkl(self, cosmo, data):
 
         #deal with the astro nuisance parameters
+        print 'len self.use_nuisance',len(self.use_nuisance)
         if 'T0a' in self.use_nuisance:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
         if 'T0s' in self.use_nuisance:
@@ -250,29 +251,33 @@ class Lya(Likelihood):
         print 'initial data.cosmo_arguments'
         print data.cosmo_arguments
 
-        #pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
-        #N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-        DeltaNeff=data.cosmo_arguments['stat_f_idr']*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))
-        eta2=(1.+0.2271*(data.cosmo_arguments['N_ur']+DeltaNeff))/(1.+0.2271*data.cosmo_arguments['N_ur'])
-        eta=np.sqrt(eta2)
-        print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
-        print '\n'
-
         param_lcdm_equiv = deepcopy(data.cosmo_arguments)
 
-        #ob_backup = data.cosmo_arguments['omega_b']
-        param_lcdm_equiv['omega_b'] *= 1./eta2
-        #oc_backup = data.cosmo_arguments['omega_cdm']
-        param_lcdm_equiv['omega_cdm'] *= 1./eta2
-        #H0_backup = data.cosmo_arguments['H0']
-        param_lcdm_equiv['H0'] *= 1./eta
-        h=param_lcdm_equiv['H0']/100.
-        #xi_backup = data.cosmo_arguments['xi_idr']
-        param_lcdm_equiv['xi_idr'] = 0.
-        #f_backup = data.cosmo_arguments['f_idm_dr']
-        param_lcdm_equiv['f_idm_dr'] = 0.
-        #a_backup = data.cosmo_arguments['a_dark']
-        param_lcdm_equiv['a_dark'] = 0.
+        #deal with ethos like dark radiation
+        if ('xi_idr' in data.cosmo_arguments and 'stat_f_idr' in data.cosmo_arguments and 'N_ur' in data.cosmo_arguments):
+		#pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
+		#N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
+		DeltaNeff=data.cosmo_arguments['stat_f_idr']*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))
+		eta2=(1.+0.2271*(data.cosmo_arguments['N_ur']+DeltaNeff))/(1.+0.2271*data.cosmo_arguments['N_ur'])
+		eta=np.sqrt(eta2)
+		print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
+		print '\n'
+
+        #deal with ethos like dark matter interactions
+        if ('f_idm_dr' in data.cosmo_arguments and 'a_dark' in data.cosmo_arguments):
+		#ob_backup = data.cosmo_arguments['omega_b']
+		param_lcdm_equiv['omega_b'] *= 1./eta2
+		#oc_backup = data.cosmo_arguments['omega_cdm']
+		param_lcdm_equiv['omega_cdm'] *= 1./eta2
+		#H0_backup = data.cosmo_arguments['H0']
+		param_lcdm_equiv['H0'] *= 1./eta
+		h=param_lcdm_equiv['H0']/100.
+		#xi_backup = data.cosmo_arguments['xi_idr']
+		param_lcdm_equiv['xi_idr'] = 0.
+		#f_backup = data.cosmo_arguments['f_idm_dr']
+		param_lcdm_equiv['f_idm_dr'] = 0.
+		#a_backup = data.cosmo_arguments['a_dark']
+		param_lcdm_equiv['a_dark'] = 0.
         
         cosmo.empty()
         print 'param_lcdm_equiv'
@@ -316,7 +321,7 @@ class Lya(Likelihood):
         #setting k_max (i.e. cutting oscillations from the fitted region)
         for index_k in range(len(self.kh_0)):
             index_khmax = -1
-            if Tk_0[index_k]<0.5 and der[index_k]>0.: #perhaps we could find a better condition?!
+            if (Tk_0[index_k])**2<0.1 and der[index_k]>0.: #perhaps we could find a better condition?!
                index_khmax = index_k
                print self.kh_0[index_khmax]
                break
@@ -343,9 +348,9 @@ class Lya(Likelihood):
 
         # create a set of Parameters
         params = Parameters()
-        params.add('alpha', value=0.001, min = 0., max = 1.) #the min and max set here are not the ones of the tables, the evaluation is done afterwards
-        params.add('beta', value=2.24, min = 0., max = 50.)
-        params.add('gamma', value=-4.46, min=-50., max=-1.)
+        params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
+        params.add('beta', value=2.24, min = 0.5, max = 10.)
+        params.add('gamma', value=-4.46, min=-10., max=-0.1)
 
         # do fit, default is with least squares method
         t0_fit = time.clock()
@@ -358,31 +363,35 @@ class Lya(Likelihood):
 
         t1_fit = time.clock()
 
+        Tk_abg=T(kh, best_alpha, best_beta, best_gamma)
+
         # write error report
         report_fit(result)
-        #here add condition on the goodness of fit
         #print result.chisqr, result.redchi
-        if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.beta_min or best_gamma>self.beta_max)):
-           print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
-           return data.boundary_loglike
-
 
         plt.xlabel('k [h/Mpc]')
         plt.ylabel('$P_{nCDM}/P_{CDM}$')
-
-        plt.ylim(0.,1.1)
+        #plt.ylim(0.,1.1)
         plt.xlim(self.khmin,self.khmax)
         plt.xscale('log')
         #plt.yscale('log')
         plt.grid(True)
-
-        plt.plot(self.kh_0, Tk_0**2, 'r')
-        plt.plot(self.kh_0, (T(self.kh_0, best_alpha, best_beta, best_gamma))**2, 'b--')
-        plt.plot(kh, Tk**2, 'k')
-        plt.plot(kh, (T(kh, best_alpha, best_beta, best_gamma))**2, 'k--')
-        #plt.plot(self.kh_0, der, 'k')
+        #plt.plot(self.kh_0, Tk_0**2, 'r')
+        #plt.plot(self.kh_0, (T(self.kh_0, best_alpha, best_beta, best_gamma))**2, 'b--')
+        plt.plot(kh, abs(Tk**2/Tk_abg**2-1.), 'k')
         #plt.show()
         plt.savefig('grid_fit_plot.pdf')
+
+        #here add condition on the goodness of fit
+#        if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
+#           print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
+#           return data.boundary_loglike
+
+        for index_k in range(len(kh)):
+            if abs(Tk[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:
+               print 'Error: alpha,beta,gamma cannot provide a good fit of the true transfer function'
+               print 'Skipping this point'
+               return data.boundary_loglike
 
 	def z_dep_func(parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
 	    return parA*(( (1.+z)/(1.+self.zp) )**parS)
@@ -431,13 +440,13 @@ class Lya(Likelihood):
 		    self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
 	    return np.sum(np.multiply(ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
 
-        theta=np.zeros(15, 'float64')
+        theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
         model_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
         y_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
         model_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
         y_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
         theta=np.array([best_alpha,best_beta,best_gamma,z_reio,sigma8,neff,F_UV,Fz1,Fz2,Fz3,Fz4,T0a,T0s,gamma_a,gamma_s])
-        model = self.PF_noPRACE*ordkrig_estimator_3D(theta, self.redshift_list) # what is this z??? the redshift of what??? if this is the z of the redshift array then there should be a loop
+        model = self.PF_noPRACE*ordkrig_estimator_3D(theta, self.redshift_list)
         upper_block = np.vsplit(model, [7,11])[0]
         lower_block = np.vsplit(model, [7,11])[1]
         if self.DATASET == "mike-hires":

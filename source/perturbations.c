@@ -278,7 +278,7 @@ int perturb_init(
              ppt->error_message);
 
   /** - if we want to store perturbations, write titles and allocate storage */
-  class_call(perturb_prepare_output(ppr,pba,ppt), //MArchi ethos add ppr
+  class_call(perturb_prepare_output(ppr,pba,ppt), //ethos add ppr
              ppt->error_message,
              ppt->error_message);
 
@@ -1384,7 +1384,7 @@ int perturb_get_k_list(
     //ethos MArchi
     class_alloc(ppt->k[ppt->index_md_scalars],
                 ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                 (int)(MAX(ppr->k_per_decade_for_pk_idmdr,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
+                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                 *sizeof(double),ppt->error_message);
 
     /* first value */
@@ -1458,8 +1458,8 @@ int perturb_get_k_list(
 
     while (k < k_max) {
 
-      k *= pow(10.,1./(ppr->k_per_decade_for_pk_idmdr //ethos MArchi
-                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk_idmdr)
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk //ethos MArchi
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
@@ -2472,7 +2472,7 @@ int perturb_solve(
   return _SUCCESS_;
 }
 
-int perturb_prepare_output(struct precision * ppr, //MArchi ethos
+int perturb_prepare_output(struct precision * ppr, //ethos
                            struct background * pba,
                            struct perturbs * ppt){
 
@@ -6817,7 +6817,7 @@ int perturb_print_variables(double tau,
   /** - define local variables */
   double k;
   int index_md;
-  struct precision * ppr;//ethos MArchi
+  struct precision * ppr;//ethos
   struct background * pba;
   struct thermo * pth;
   struct perturbs * ppt;
@@ -7819,7 +7819,7 @@ int perturb_derivs(double tau,
         //Seb//dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
         //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
-                                                   y[pv->index_pt_delta_idm] + k2/4.*Sinv*(delta_idr - tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
+                                                   y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
       }
     }
 
