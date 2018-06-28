@@ -747,6 +747,7 @@ int input_read_parameters(
   class_test(((pba->f_idm_dr > 1.)||(pba->f_idm_dr < 0.)),
              errmsg,
              "The fraction of DM interacting with DR has to be between 0 and 1."); //check that the fraction of idm is consistent
+//MArchi if we check this case, then we should also check the opposite, otherwise in MCMC the opposite goes to cdm wiht no error
   class_test(((pba->f_idm_dr > 0.) && (pth->a_dark == 0.)),
              errmsg,
              "You asked for interacting DM but didn't give it anything to interact with. Please give a non-zero a_dark."); //check that if IDM is called, there is some coupling
@@ -767,7 +768,7 @@ int input_read_parameters(
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
 
   //this is the standard CDM case
-  if ((pba->f_idm_dr == 0.)||(pth->a_dark==0.0)){
+  if ((pba->f_idm_dr == 0.)||(pth->a_dark==0.0)){ //MArchi here we should also check the presence of idr, rather then doing this later
     if (flag1 == _TRUE_)
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
@@ -789,7 +790,7 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
 
-  //Check for presence of dark radiation
+  //Check for presence of dark radiation //MArchi this should be done before and with flags
   class_read_double("xi_idr",pba->xi_idr);
   class_read_double("stat_f_idr",pba->stat_f_idr);
 
