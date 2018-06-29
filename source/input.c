@@ -821,7 +821,7 @@ int input_read_parameters(
   }
   else{
     class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.;
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.5;
   }
 
   class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
@@ -835,7 +835,7 @@ int input_read_parameters(
   }
   else{
     class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.;
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
   }
   //end of ethos
 
@@ -3007,7 +3007,7 @@ int input_default_params(
   //ethos
   pth->a_dark = 0.;
   pth->b_dark = 0.;
-  pth->nindex_dark = 0.;
+  pth->nindex_dark = 4.;
   pth->m_dm = 1.e11;
 
   /** - perturbation structure */
