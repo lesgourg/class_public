@@ -1553,9 +1553,6 @@ int input_read_parameters(
 
   class_read_double("k_pivot",ppm->k_pivot);
 
-  class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);//MArchi Lya
-  class_read_double("Lya_z",psp->Lya_z);//MArchi Lya
-
   if (ppm->primordial_spec_type == two_scales) {
 
     class_read_double("k1",k1);
@@ -2391,6 +2388,11 @@ int input_read_parameters(
                errmsg,
                errmsg);
 
+    /*MArchi Lya*/
+    class_call(parser_read_string(pfc,"compute_neff_Lya",&string2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+
     if (flag1==_TRUE_) {
       ppt->z_max_pk = param1;
     }
@@ -2420,10 +2422,28 @@ int input_read_parameters(
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
+      /*MArchi Lya*/
+      if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))) {
+           psp->compute_neff_Lya=_TRUE_;
+           class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
+           class_read_double("Lya_z",psp->Lya_z);
+           ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
+      }/*end Lya*/
     }
     psp->z_max_pk = ppt->z_max_pk;
   }
   /* end of z_max section */
+
+  /*MArchi Lya*/
+  class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+       psp->compute_neff_Lya=_TRUE_;
+  }
+  class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
+  class_read_double("Lya_z",psp->Lya_z);
+  /*end Lya*/
 
   class_read_string("root",pop->root);
 
@@ -3188,6 +3208,8 @@ int input_default_params(
 
   psp->z_max_pk = pop->z_pk[0];
   psp->non_diag=0;
+
+  psp->compute_neff_Lya=_FALSE_;//MArchi Lya
   psp->Lya_k_s_over_km=0.009;//MArchi Lya
   psp->Lya_z=3.0;//MArchi Lya
 

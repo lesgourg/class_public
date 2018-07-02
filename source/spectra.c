@@ -2693,6 +2693,7 @@ int spectra_pk(
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
 //MArchi Lya
+  if(psp->compute_neff_Lya==_TRUE_){
   class_call(spectra_neff(pba,ppm,psp,psp->Lya_z,&(psp->neff)),
              psp->error_message,
              psp->error_message);
@@ -2701,6 +2702,7 @@ int spectra_pk(
             psp->neff,
             psp->Lya_k_s_over_km,
             psp->Lya_z);
+  }
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
