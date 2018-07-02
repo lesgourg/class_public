@@ -690,7 +690,7 @@ int perturb_indices_of_perturbs(
         ppt->has_lss = _TRUE_;
         ppt->has_source_theta_g = _TRUE_;
         ppt->has_source_theta_b = _TRUE_;
-        if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
+        if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)) //MArchi maybe here is a bug
           ppt->has_source_theta_cdm = _TRUE_;
         if (pba->has_dcdm == _TRUE_)
           ppt->has_source_theta_dcdm = _TRUE_;
@@ -3101,7 +3101,7 @@ int perturb_vector_init(
     /* cdm */
 
     class_define_index(ppv->index_pt_delta_cdm,pba->has_cdm,index_pt,1); /* cdm density */
-    class_define_index(ppv->index_pt_theta_cdm,pba->has_cdm && (ppt->gauge == newtonian),index_pt,1); /* cdm velocity */
+    class_define_index(ppv->index_pt_theta_cdm,pba->has_cdm && (ppt->gauge == newtonian),index_pt,1); /* cdm velocity *///MArchi perhaps here is a bug
 
     /* idm ethos */
     class_define_index(ppv->index_pt_delta_idm,pba->has_idm,index_pt,1); /* idm density */
@@ -3550,7 +3550,7 @@ int perturb_vector_init(
         ppv->y[ppv->index_pt_delta_cdm] =
           ppw->pv->y[ppw->pv->index_pt_delta_cdm];
 
-        if (ppt->gauge == newtonian) {
+        if (ppt->gauge == newtonian) { //MArchi maybe bug here
           ppv->y[ppv->index_pt_theta_cdm] =
             ppw->pv->y[ppw->pv->index_pt_theta_cdm];
         }
@@ -5671,7 +5671,14 @@ int perturb_einstein(
 
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
-        if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on) { //ethos
+        if (pba->has_ur == _TRUE_) {
+
+          ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
+
+        }
+      }
+
+      if ((pba->has_idr==_TRUE_)&&(ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on)) { //ethos
 
           class_call(perturb_rsa_idr_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
                      ppt->error_message,
@@ -5679,13 +5686,6 @@ int perturb_einstein(
 
           ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*ppw->rsa_theta_idr;
 
-        }
-
-        if (pba->has_ur == _TRUE_) {
-
-          ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
-
-        }
       }
 
       /* second equation involving total velocity */
