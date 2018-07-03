@@ -1,5 +1,5 @@
-CLASS: Cosmic Linear Anisotropy Solving System
-==============================================
+CLASS overview (architecture, input/output, general principles)
+===============================================================
 
 Author: Julien Lesgourgues
 
@@ -58,9 +58,7 @@ it can be interfaced with other codes, etc.
 
 ### Ten tasks ###
 
-The purpose of `class` consists in computing some power spectra for a
-given set of cosmological parameters. This task can be decomposed in few steps
-or modules:
+The purpose of `class` consists in computing some background quantities, thermodynamical quantities, perturbation transfer functions, and finally 2-point statistics (power spectra) for a given set of cosmological parameters. This task can be decomposed in few steps or modules:
 
 1. set input parameter values.
 
@@ -80,7 +78,7 @@ or modules:
 
 9. eventually, compute the lensed CMB spectra (using second-order perturbation theory)
 
-10. write results in  files (when `CLASS` is used interactively. The pyhton wrapper would not go to this step and just keep the output stored internally).
+10. write results in  files (when `CLASS` is used interactively. The python wrapper does not go through this step, after 1.-9. it just keeps the output stored internally).
 
 
 ### Ten structures ###

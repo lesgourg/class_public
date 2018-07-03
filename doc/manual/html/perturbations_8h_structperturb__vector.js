@@ -18,6 +18,7 @@ var perturbations_8h_structperturb__vector =
     [ "index_pt_theta_dcdm", "perturbations_8h.html#a0e5b783604c49ed75aef9f4236dcfbc4", null ],
     [ "index_pt_delta_fld", "perturbations_8h.html#a2ba29ae12a6e302ce402414725e33789", null ],
     [ "index_pt_theta_fld", "perturbations_8h.html#ac9a5e67be69b5f0e5e9b989955d83cc6", null ],
+    [ "index_pt_Gamma_fld", "perturbations_8h.html#a1c321640393390c1a9939892074a1a90", null ],
     [ "index_pt_phi_scf", "perturbations_8h.html#a3ee8bc8b3b99653b7df06d7752fe946d", null ],
     [ "index_pt_phi_prime_scf", "perturbations_8h.html#a3302f70bf8b89c982fa60399e7f54114", null ],
     [ "index_pt_delta_ur", "perturbations_8h.html#a5a0627cf3b3a1c743cac4e3264444c3a", null ],

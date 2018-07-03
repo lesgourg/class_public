@@ -10,7 +10,13 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
+/** list of possible types of spatial curvature */
+
 enum spatial_curvature {flat,open,closed};
+
+/** list of possible parametrisations of the DE equation of state */
+
+enum equation_of_state {CLP,EDE};
 
 /**
  * All background parameters and evolution that other modules need to know.
@@ -49,15 +55,26 @@ struct background
 
   double Omega0_lambda; /**< \f$ \Omega_{0_\Lambda} \f$: cosmological constant */
 
-  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid with constant
-			\f$ w \f$ and \f$ c_s^2 \f$ */
+  double Omega0_fld; /**< \f$ \Omega_{0 de} \f$: fluid */
+
+  enum equation_of_state fluid_equation_of_state; /**< parametrisation scheme for fluid equation of state */
+
   double w0_fld; /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
   double wa_fld; /**< \f$ wa_{DE} \f$: fluid equation of state parameter derivative */
+  double Omega_EDE; /**< \f$ wa_{DE} \f$: Early Dark Energy density parameter */
 
   double cs2_fld; /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid
 		     in the frame comoving with the fluid (so, this is
 		     not [delta p/delta rho] in the synchronous or
 		     newtonian gauge!) */
+
+  short use_ppf; /**< flag switching on PPF perturbation equations
+                    instead of true fluid equations for
+                    perturbations. It could have been defined inside
+                    perturbation structure, but we leave it here in
+                    such way to have all fld parameters grouped. */
+
+  double c_gamma_over_c_fld; /**< ppf parameter defined in eq. (16) of 0808.3125 [astro-ph] */
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
@@ -135,7 +152,10 @@ struct background
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
   double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
   double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
-
+  double a_eq;      /**< scale factor at radiation/matter equality */
+  double H_eq;      /**< Hubble rate at radiation/matter equality [Mpc^-1] */
+  double z_eq;      /**< redshift at radiation/matter equality */
+  double tau_eq;    /**< conformal time at radiation/matter equality [Mpc] */
 
   //@}
 
@@ -161,7 +181,8 @@ struct background
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
   int index_bg_rho_lambda;    /**< cosmological constant density */
-  int index_bg_rho_fld;       /**< fluid with constant w density */
+  int index_bg_rho_fld;       /**< fluid density */
+  int index_bg_w_fld;         /**< fluid equation of state */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
   int index_bg_rho_idr;       /**< ethos interacting dark radiation*/
   int index_bg_rho_dcdm;      /**< dcdm density */
@@ -192,8 +213,8 @@ struct background
   int index_bg_time;          /**< proper (cosmological) time in Mpc */
   int index_bg_rs;            /**< comoving sound horizon in Mpc */
 
-  int index_bg_D;             /**< density growth factor in dust universe, \f$ D = H \int [da/(aH)^3] \f$ (arbitrary normalization) */
-  int index_bg_f;             /**< velocity growth factor in dust universe, [dlnD]/[dln a] */
+  int index_bg_D;             /**< scale independent growth factor D(a) for CDM perturbations */
+  int index_bg_f;             /**< corresponding velocity growth factor [dlnD]/[dln a] */
 
   int bg_size_short;  /**< size of background vector in the "short format" */
   int bg_size_normal; /**< size of background vector in the "normal format" */
@@ -238,13 +259,15 @@ struct background
   int index_bi_a;       /**< {B} scale factor */
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
+  int index_bi_rho_fld; /**< {B} fluid density */
   int index_bi_phi_scf;       /**< {B} scalar field value */
   int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */
 
   int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
   int index_bi_rs;      /**< {C} sound horizon */
   int index_bi_tau;     /**< {C} conformal time in Mpc */
-  int index_bi_growth;  /**< {C} integral over \f$ [da/(aH)^3]=[d\tau/(aH^2)]\f$, useful for growth factor */
+  int index_bi_D;       /**< {C} scale independent growth factor D(a) for CDM perturbations. */
+  int index_bi_D_prime; /**< {C} D satisfies \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
 
   int bi_B_size;        /**< Number of {B} parameters */
   int bi_size;          /**< Number of {B}+{C} parameters */
@@ -281,7 +304,9 @@ struct background
 
 
   //@{
-
+  int * ncdm_quadrature_strategy; /**< Vector of integers according to quadrature strategy. */
+  int * ncdm_input_q_size; /**< Vector of numbers of q bins */
+  double * ncdm_qmax;   /**< Vector of maximum value of q */
   double ** q_ncdm_bg;  /**< Pointers to vectors of background sampling in q */
   double ** w_ncdm_bg;  /**< Pointers to vectors of corresponding quadrature weights w */
   double ** q_ncdm;     /**< Pointers to vectors of perturbation sampling in q */
@@ -378,6 +403,12 @@ extern "C" {
 			double * pvecback
 			);
 
+  int background_tau_of_z(
+                          struct background *pba,
+                          double z,
+                          double * tau
+                          );
+
   int background_functions(
 			   struct background *pba,
 			   double * pvecback_B,
@@ -385,11 +416,12 @@ extern "C" {
 			   double * pvecback
 			   );
 
-  int background_tau_of_z(
-			  struct background *pba,
-			  double z,
-			  double * tau
-			  );
+  int background_w_fld(
+                       struct background * pba,
+                       double a,
+                       double * w_fld,
+                       double * dw_over_da_fld,
+                       double * integral_fld);
 
   int background_init(
 		      struct precision *ppr,
@@ -403,6 +435,10 @@ extern "C" {
   int background_free_input(
                             struct background *pba
                             );
+
+  int background_free_noinput(
+                    struct background *pba
+                    );
 
   int background_indices(
 			 struct background *pba
@@ -457,6 +493,11 @@ extern "C" {
 				    double * pvecback,
 				    double * pvecback_integration
 				    );
+
+  int background_find_equality(
+                               struct precision *ppr,
+                               struct background *pba
+                               );
 
   int background_output_titles(struct background * pba,
                                char titles[_MAXTITLESTRINGLENGTH_]

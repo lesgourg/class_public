@@ -88,7 +88,7 @@ int lensing_init(
                  struct nonlinear * pnl,
                  struct lensing * ple
                  ) {
-  
+
   /** Summary: */
   /** - Define local variables */
 
@@ -100,25 +100,25 @@ int lensing_init(
   double ** d00;  /* dmn[index_mu][index_l] */
   double ** d11;
   double ** d2m2;
-  double ** d22;
-  double ** d20;
+  double ** d22 = NULL;
+  double ** d20 = NULL;
   double ** d1m1;
-  double ** d31;
-  double ** d40;
-  double ** d3m1;
-  double ** d3m3;
-  double ** d4m2;
-  double ** d4m4;
+  double ** d31 = NULL;
+  double ** d40 = NULL;
+  double ** d3m1 = NULL;
+  double ** d3m3 = NULL;
+  double ** d4m2 = NULL;
+  double ** d4m4 = NULL;
   double * buf_dxx; /* buffer */
 
   double * Cgl;   /* Cgl[index_mu] */
   double * Cgl2;  /* Cgl2[index_mu] */
   double * sigma2; /* sigma[index_mu] */
 
-  double * ksi;  /* ksi[index_mu] */
-  double * ksiX;  /* ksiX[index_mu] */
-  double * ksip;  /* ksip[index_mu] */
-  double * ksim;  /* ksim[index_mu] */
+  double * ksi = NULL;  /* ksi[index_mu] */
+  double * ksiX = NULL;  /* ksiX[index_mu] */
+  double * ksip = NULL;  /* ksip[index_mu] */
+  double * ksim = NULL;  /* ksim[index_mu] */
 
   double fac,fac1;
   double X_000;
@@ -135,9 +135,9 @@ int lensing_init(
   double ll;
   double * cl_unlensed;  /* cl_unlensed[index_ct] */
   double * cl_tt; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_te; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_ee; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
-  double * cl_bb; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_te = NULL; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_ee = NULL; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
+  double * cl_bb = NULL; /* unlensed  cl, to be filled to avoid repeated calls to spectra_cl_at_l */
   double * cl_pp; /* potential cl, to be filled to avoid repeated calls to spectra_cl_at_l */
 
   double res,resX,lens;

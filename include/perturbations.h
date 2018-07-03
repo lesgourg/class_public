@@ -136,6 +136,7 @@ struct perturbs
   short has_pk_matter;                /**< do we need matter Fourier spectrum? */
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
+  short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -243,6 +244,7 @@ struct perturbs
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarization? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
+  short has_source_delta_cb; /**< do we ALSO need source for delta of ONLY cdm and baryon? */
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
   short has_source_delta_b;    /**< do we need source for delta of baryons? */
   short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
@@ -255,6 +257,7 @@ struct perturbs
   short has_source_delta_idm;  /**< do we need source for delta interacting dark matter ethos*/
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
+  short has_source_theta_cb; /**< do we ALSO need source for theta of ONLY cdm and baryon? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
   short has_source_theta_b;    /**< do we need source for theta of baryons? */
   short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
@@ -270,6 +273,10 @@ struct perturbs
   short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
   short has_source_phi_plus_psi; /**< do we need source for metric fluctuation (phi+psi)? */
   short has_source_psi;          /**< do we need source for metric fluctuation psi? */
+  short has_source_h;            /**< do we need source for metric fluctuation h? */
+  short has_source_h_prime;      /**< do we need source for metric fluctuation h'? */
+  short has_source_eta;          /**< do we need source for metric fluctuation eta? */
+  short has_source_eta_prime;    /**< do we need source for metric fluctuation eta'? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -280,6 +287,7 @@ struct perturbs
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
   int index_tp_delta_m; /**< index value for delta tot */
+  int index_tp_delta_cb; /**< index value for delta cb */
   int index_tp_delta_g;   /**< index value for delta of gammas */
   int index_tp_delta_b;   /**< index value for delta of baryons */
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
@@ -294,13 +302,15 @@ struct perturbs
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
-  int index_tp_theta_m;   /**< index value for theta tot */
-  int index_tp_theta_g;   /**< index value for theta of gammas */
-  int index_tp_theta_b;   /**< index value for theta of baryons */
-  int index_tp_theta_cdm; /**< index value for theta of cold dark matter */
-  int index_tp_theta_dcdm;/**< index value for theta of DCDM */
+  int index_tp_theta_m;    /**< index value for theta tot */
+  int index_tp_theta_cb;   /**< index value for theta cb */
+  int index_tp_theta_g;    /**< index value for theta of gammas */
+  int index_tp_theta_b;    /**< index value for theta of baryons */
+  int index_tp_theta_cdm;  /**< index value for theta of cold dark matter */
+  int index_tp_theta_dcdm; /**< index value for theta of DCDM */
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
   int index_tp_theta_scf;  /**< index value for theta of scalar field */
+
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_idr; /**< index value for theta of dark radiation ethos*/
   int index_tp_theta_idm; /**< index value for theta of interacting dark matter ethos*/
@@ -311,6 +321,10 @@ struct perturbs
   int index_tp_phi_prime;    /**< index value for metric fluctuation phi' */
   int index_tp_phi_plus_psi; /**< index value for metric fluctuation phi+psi */
   int index_tp_psi;          /**< index value for metric fluctuation psi */
+  int index_tp_h;            /**< index value for metric fluctuation h */
+  int index_tp_h_prime;      /**< index value for metric fluctuation h' */
+  int index_tp_eta;          /**< index value for metric fluctuation eta */
+  int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
@@ -411,8 +425,9 @@ struct perturb_vector
   int index_pt_theta_idm; /**< idm velocity ethos*/
   int index_pt_delta_dcdm; /**< dcdm density */
   int index_pt_theta_dcdm; /**< dcdm velocity */
-  int index_pt_delta_fld;  /**< dark energy density */
-  int index_pt_theta_fld;  /**< dark energy velocity */
+  int index_pt_delta_fld;  /**< dark energy density in true fluid case */
+  int index_pt_theta_fld;  /**< dark energy velocity in true fluid case */
+  int index_pt_Gamma_fld;  /**< unique dark energy dynamical variable in PPF case */
   int index_pt_phi_scf;  /**< scalar field density */
   int index_pt_phi_prime_scf;  /**< scalar field velocity */
   int index_pt_delta_ur; /**< density of ultra-relativistic neutrinos/relics */
@@ -525,6 +540,14 @@ struct perturb_workspace
 
   double delta_m;	/**< relative density perturbation of all non-relativistic species */
   double theta_m;	/**< velocity divergence theta of all non-relativistic species */
+
+  double delta_cb;       /**< relative density perturbation of only cdm and baryon */
+  double theta_cb;       /**< velocity divergence theta of only cdm and baryon */
+
+  double delta_rho_fld;        /**< density perturbation of fluid, not so trivial in PPF scheme */
+  double rho_plus_p_theta_fld; /**< velocity divergence of fluid, not so trivial in PPF scheme */
+  double S_fld;                /**< S quantity sourcing Gamma_prime evolution in PPF scheme (equivalent to eq. 15 in 0808.3125) */
+  double Gamma_prime_fld;      /**< Gamma_prime in PPF scheme (equivalent to eq. 14 in 0808.3125) */
 
   FILE * perturb_output_file; /**< filepointer to output file*/
   int index_ikout;            /**< index for output k value (when k_output_values is set) */

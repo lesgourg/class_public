@@ -134,10 +134,10 @@
  * temporary parameters for background fzero function
  */
 
-enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm};
+enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
 enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations,
                         cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
-#define _NUM_TARGETS_ 6 //Keep this number as number of target_names
+#define _NUM_TARGETS_ 7 //Keep this number as number of target_names
 
 struct input_pprpba {
   struct precision * ppr;
@@ -155,7 +155,7 @@ struct fzerofun_workspace {
 
 
 /**************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */ 
+/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
@@ -275,6 +275,15 @@ extern "C" {
   int compare_integers (const void * elem1, const void * elem2);
 
   int compare_doubles(const void *a,const void *b);
+
+  int input_prepare_pk_eq(
+                          struct precision * ppr,
+                          struct background *pba,
+                          struct thermo *pth,
+                          struct nonlinear *pnl,
+                          int input_verbose,
+                          ErrorMsg errmsg
+                          );
 
 
 #ifdef __cplusplus

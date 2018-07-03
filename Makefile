@@ -24,8 +24,13 @@ CC       = gcc
 # your tool for creating static libraries:
 AR        = ar rv
 
-# (OPT) your python interpreter
-PYTHON = python
+# Your python interpreter.
+# In order to use Python 3, you can manually
+# substitute python3 to python in the line below, or you can simply
+# add a compilation option on the terminal command line:
+# "PYTHON=python3 make all" (THanks to Marius Millea for pyhton3
+# compatibility)
+PYTHON ?= python
 
 # your optimization flag
 OPTFLAG = -O4 -ffast-math #-march=native
@@ -57,16 +62,6 @@ INCLUDES = -I../include
 
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
-
-# Try to automatically avoid an error 'error: can't combine user with ...'
-# which sometimes happens with brewed Python on OSX:
-CFGFILE=$(shell $(PYTHON) -c "import sys; print sys.prefix+'/lib/'+'python'+'.'.join(['%i' % e for e in sys.version_info[0:2]])+'/distutils/distutils.cfg'")
-PYTHONPREFIX=$(shell grep -s "prefix" $(CFGFILE))
-ifeq ($(PYTHONPREFIX),)
-PYTHONFLAGS=--user
-else
-PYTHONFLAGS=
-endif
 
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
@@ -141,9 +136,6 @@ INI_ALL = explanatory.ini lcdm.ini
 MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
 PYTHON_FILES = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
 
-
-
-
 all: class libclass.a classy
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
@@ -190,7 +182,13 @@ tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(
 	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-	cd python; export CC=$(CC); $(PYTHON) setup.py install $(PYTHONFLAGS)
+ifdef OMPFLAG
+	cp python/setup.py python/autosetup.py
+else
+	grep -v "lgomp" python/setup.py > python/autosetup.py
+endif
+	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
+	rm python/autosetup.py
 
 clean: .base
 	rm -rf $(WRKDIR);
