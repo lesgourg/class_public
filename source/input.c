@@ -253,7 +253,7 @@ int input_init(
     if (flag1 == _TRUE_){
       /** - --> input_auxillary_target_conditions() takes care of the case where for
           instance Omega_dcdmdr is set to 0.0.
-       */
+      */
       class_call(input_auxillary_target_conditions(pfc,
                                                    index_target,
                                                    param1,
@@ -305,8 +305,8 @@ int input_init(
                                     &param1,
                                     &flag1,
                                     errmsg),
-               errmsg,
-               errmsg);
+                 errmsg,
+                 errmsg);
 
       // store name of target parameter
       fzw.target_name[counter] = index_target;
@@ -751,7 +751,7 @@ int input_read_parameters(
   class_test(((pba->f_idm_dr > 1.)||(pba->f_idm_dr < 0.)),
              errmsg,
              "The fraction of DM interacting with DR has to be between 0 and 1."); //check that the fraction of idm is consistent
-//MArchi if we check this case, then we should also check the opposite, otherwise in MCMC the opposite goes to cdm wiht no error
+  //MArchi if we check this case, then we should also check the opposite, otherwise in MCMC the opposite goes to cdm wiht no error
   class_test(((pba->f_idm_dr > 0.) && (pth->a_dark == 0.)),
              errmsg,
              "You asked for interacting DM but didn't give it anything to interact with. Please give a non-zero a_dark."); //check that if IDM is called, there is some coupling
@@ -1052,7 +1052,7 @@ int input_read_parameters(
    *  1) set each Omega0 and add to the total for each specified component.
    *  2) go through the components in order {lambda, fld, scf} and
    *     fill using first unspecified component.
-  */
+   */
 
   /* Step 1 */
   if (flag1 == _TRUE_){
@@ -1085,12 +1085,12 @@ int input_read_parameters(
   }
 
   /*
-  fprintf(stderr,"%e %e %e %e %e\n",
-          pba->Omega0_lambda,
-          pba->Omega0_fld,
-          pba->Omega0_scf,
-          pba->Omega0_k,
-          Omega_tot);
+    fprintf(stderr,"%e %e %e %e %e\n",
+    pba->Omega0_lambda,
+    pba->Omega0_fld,
+    pba->Omega0_scf,
+    pba->Omega0_k,
+    Omega_tot);
   */
 
   /** - Test that the user have not specified Omega_scf = -1 but left either
@@ -1106,8 +1106,8 @@ int input_read_parameters(
                                   &string1,
                                   &flag1,
                                   errmsg),
-                errmsg,
-                errmsg);
+               errmsg,
+               errmsg);
 
     if (flag1 == _TRUE_){
       if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
@@ -1177,8 +1177,8 @@ int input_read_parameters(
                                   &string1,
                                   &flag1,
                                   errmsg),
-                errmsg,
-                errmsg);
+               errmsg,
+               errmsg);
 
     if (flag1 == _TRUE_){
       if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
@@ -1187,8 +1187,8 @@ int input_read_parameters(
       else{
         pba->attractor_ic_scf = _FALSE_;
         class_test(pba->scf_parameters_size<2,
-               errmsg,
-               "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
+                   errmsg,
+                   "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
         pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
         pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
       }
@@ -1420,18 +1420,18 @@ int input_read_parameters(
       ppt->has_perturbations = _TRUE_;
 
       /*if (pba->Omega0_ncdm_tot != 0.0){
-          class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
-                     errmsg,
-                     errmsg);
-          if (flag1 == _TRUE_){
-              if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
-                  ppt->pk_only_cdm_bar = _TRUE_;
-              }
-              else {
-                  ppt->pk_only_cdm_bar = _FALSE_;
-              }
-          }
-      }*/
+        class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
+        errmsg,
+        errmsg);
+        if (flag1 == _TRUE_){
+        if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+        ppt->pk_only_cdm_bar = _TRUE_;
+        }
+        else {
+        ppt->pk_only_cdm_bar = _FALSE_;
+        }
+        }
+        }*/
 
     }
 
@@ -2524,7 +2524,7 @@ int input_read_parameters(
 
         for (bin=0; bin<ppt->selection_num; bin++) {
 
-            /* the few lines below should be consistent with their counterpart in transfer.c, in transfer_selection_times() */
+          /* the few lines below should be consistent with their counterpart in transfer.c, in transfer_selection_times() */
           if (ppt->selection==gaussian) {
             z_max = ppt->selection_mean[bin]+ppt->selection_width[bin]*ppr->selection_cut_at_sigma;
           }
@@ -2539,10 +2539,10 @@ int input_read_parameters(
       }
       /*MArchi Lya*/
       if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))) {
-           psp->compute_neff_Lya=_TRUE_;
-           class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
-           class_read_double("Lya_z",psp->Lya_z);
-           ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
+        psp->compute_neff_Lya=_TRUE_;
+        class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
+        class_read_double("Lya_z",psp->Lya_z);
+        ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
       }/*end Lya*/
     }
     psp->z_max_pk = ppt->z_max_pk;
@@ -2554,7 +2554,7 @@ int input_read_parameters(
              errmsg,
              errmsg);
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-       psp->compute_neff_Lya=_TRUE_;
+    psp->compute_neff_Lya=_TRUE_;
   }
   class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
   class_read_double("Lya_z",psp->Lya_z);
@@ -2822,7 +2822,7 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
-//ethos
+  //ethos
   if (pba->Omega0_idr != 0.){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
@@ -3010,7 +3010,7 @@ int input_read_parameters(
   }
 
   /** - (i.5) special buisness if we want Halofit with wa_fld non-zero:
-        so-called "Pk-equal method" of 0810.0190 and 1601.07230 */
+      so-called "Pk-equal method" of 0810.0190 and 1601.07230 */
 
   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.))
     pnl->has_pk_eq = _TRUE_;
@@ -3636,7 +3636,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->halofit_sigma_precision = 0.05;
   ppr->halofit_tol_sigma = 1.e-6;
   ppr->pk_eq_z_max = 5.;
-  
+
   /**
    * - parameter related to lensing
    */
@@ -3888,16 +3888,16 @@ int input_try_unknown_parameters(double * unknown_parameter,
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
-   if (input_verbose>2)
-     printf("Stage 2: thermodynamics\n");
+    if (input_verbose>2)
+      printf("Stage 2: thermodynamics\n");
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
-       if (input_verbose>2)
-         printf("Stage 3: perturbations\n");
+    if (input_verbose>2)
+      printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
     class_call(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg);
   }
@@ -4091,16 +4091,16 @@ int input_get_guess(double *xguess,
         a_decay = pow(1+(gamma*gamma-1.)/Omega_M,-1./3.);
       xguess[index_guess] = pfzw->target_value[index_guess]/ba.h/ba.h/a_decay;
       dxdy[index_guess] = 1./a_decay/ba.h/ba.h;
-        //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
+      //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     case Omega_scf:
 
- /** - This guess is arbitrary, something nice using WKB should be implemented.
-  *
-  * - Version 2: use a fit: `xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
-  * dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.)`;
-  *
-  * - Version 3: use attractor solution */
+      /** - This guess is arbitrary, something nice using WKB should be implemented.
+       *
+       * - Version 2: use a fit: `xguess[index_guess] = 1.77835*pow(ba.Omega0_scf,-2./7.);
+       * dxdy[index_guess] = -0.5081*pow(ba.Omega0_scf,-9./7.)`;
+       *
+       * - Version 3: use attractor solution */
 
       if (ba.scf_tuning_index == 0){
         xguess[index_guess] = sqrt(3.0/ba.Omega0_scf);
@@ -4170,7 +4170,7 @@ int input_find_root(double *xzero,
                                pfzw,
                                &f1,
                                errmsg),
-                 errmsg, errmsg);
+             errmsg, errmsg);
   (*fevals)++;
   //printf("x1= %g, f1= %g\n",x1,f1);
 
@@ -4244,10 +4244,10 @@ int input_auxillary_target_conditions(struct file_content * pfc,
                                       ErrorMsg errmsg){
   *aux_flag = _TRUE_;
   /*
-  double param1;
-  int int1, flag1;
-  int input_verbose = 0;
-  class_read_int("input_verbose",input_verbose);
+    double param1;
+    int int1, flag1;
+    int input_verbose = 0;
+    class_read_int("input_verbose",input_verbose);
   */
   switch (target_name){
   case Omega_dcdmdr:
@@ -4268,11 +4268,11 @@ int input_auxillary_target_conditions(struct file_content * pfc,
 }
 
 int compare_integers (const void * elem1, const void * elem2) {
-    int f = *((int*)elem1);
-    int s = *((int*)elem2);
-    if (f > s) return  1;
-    if (f < s) return -1;
-    return 0;
+  int f = *((int*)elem1);
+  int s = *((int*)elem2);
+  if (f > s) return  1;
+  if (f < s) return -1;
+  return 0;
 }
 
 int compare_doubles(const void *a,const void *b) {

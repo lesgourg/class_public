@@ -739,7 +739,7 @@ int perturb_indices_of_perturbs(
         if (ppt->has_nc_rsd == _TRUE_) {
           ppt->has_source_theta_m = _TRUE_;
           if (pba->has_ncdm == _TRUE_)
-              ppt->has_source_theta_cb = _TRUE_; //probably we do not need theta_cb at all, rsd always defined for the total matter
+            ppt->has_source_theta_cb = _TRUE_; //probably we do not need theta_cb at all, rsd always defined for the total matter
         }
         if (ppt->has_nc_lens == _TRUE_) {
           ppt->has_source_phi_plus_psi = _TRUE_;
@@ -3500,10 +3500,10 @@ int perturb_vector_init(
       /*if (pba->has_idm == _TRUE_){
 
         class_test(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off,
-                 ppt->error_message,
-                 "scalar initial conditions assume dark radiation tight coupling approximation turned on");
+        ppt->error_message,
+        "scalar initial conditions assume dark radiation tight coupling approximation turned on");
 
-      }*///no need for this check, if n_index_dark < 2 always off, the initial conditions are consistent with any tca_dark
+        }*///no need for this check, if n_index_dark < 2 always off, the initial conditions are consistent with any tca_dark
 
       if (pba->has_ur == _TRUE_) {
 
@@ -5311,30 +5311,30 @@ int perturb_approximations(
     }
 
     //ethos//MArchi
-      if(pba->has_idm == _TRUE_){
+    if(pba->has_idm == _TRUE_){
 
-        if(ppw->pvecthermo[pth->index_th_dmu_dark] == 0.){
-          ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+      if(ppw->pvecthermo[pth->index_th_dmu_dark] == 0.){
+        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+      }
+      else{
+
+        class_test(1./ppw->pvecthermo[pth->index_th_dmu_dark] < 0.,
+                   ppt->error_message,
+                   "negative tau_dark=1/dmu_dark=%e at z=%e, conformal time=%e.(This could come from the interpolation of a too poorly sampled reionisation history?).\n",
+                   1./ppw->pvecthermo[pth->index_th_dmu_dark],
+                   1./ppw->pvecback[pba->index_bg_a]-1.,
+                   tau);
+
+        if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
+            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
+            (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) {
+          ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
         }
         else{
-
-          class_test(1./ppw->pvecthermo[pth->index_th_dmu_dark] < 0.,
-                     ppt->error_message,
-                     "negative tau_dark=1/dmu_dark=%e at z=%e, conformal time=%e.(This could come from the interpolation of a too poorly sampled reionisation history?).\n",
-                     1./ppw->pvecthermo[pth->index_th_dmu_dark],
-                     1./ppw->pvecback[pba->index_bg_a]-1.,
-                     tau);
-
-          if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-              (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-              (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) {
-            ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
-          }
-          else{
-            ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-          }
+          ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
         }
       }
+    }
 
     /** - --> (c) free-streaming approximations */
 
@@ -5742,11 +5742,11 @@ int perturb_einstein(
 
       if ((pba->has_idr==_TRUE_)&&(ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_on)) { //ethos
 
-          class_call(perturb_rsa_idr_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
-                     ppt->error_message,
-                     ppt->error_message);
+        class_call(perturb_rsa_idr_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
+                   ppt->error_message,
+                   ppt->error_message);
 
-          ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*ppw->rsa_theta_idr;
+        ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*ppw->rsa_theta_idr;
 
       }
 
@@ -6249,7 +6249,7 @@ int perturb_total_stress_energy(
 
       /* infer delta_cb */
       if (ppt->has_source_delta_cb)
-       ppw->delta_cb = delta_rho_m/rho_m;
+        ppw->delta_cb = delta_rho_m/rho_m;
 
 
       /* include any other species non-relativistic today (like ncdm species) */
@@ -6301,7 +6301,7 @@ int perturb_total_stress_energy(
       }
 
       if ((ppt->has_source_delta_cb == _TRUE_) || (ppt->has_source_theta_cb == _TRUE_))
-       ppw->theta_cb = rho_plus_p_theta_m/rho_plus_p_m;
+        ppw->theta_cb = rho_plus_p_theta_m/rho_plus_p_m;
 
 
       /* include any other species non-relativistic today (like ncdm species) */

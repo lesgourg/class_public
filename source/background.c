@@ -515,7 +515,7 @@ int background_w_fld(
     Omega_m = pba->Omega0_b;
     if (pba->has_cdm == _TRUE_) Omega_m += pba->Omega0_cdm;
     if (pba->has_dcdm == _TRUE_)
-        class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
+      class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
     a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
     class_stop(pba->error_message,"a_eq = %e, z_eq =%e\n",a_eq,1./a_eq-1.);
 
@@ -526,10 +526,10 @@ int background_w_fld(
 
 
   /** - then, give the corresponding analytic derivative dw/da (used
-        by perturbation equations; we could compute it numerically,
-        but with a loss of precision; as long as there is a simple
-        analytic expression of the derivative of the previous
-        function, let's use it! */
+      by perturbation equations; we could compute it numerically,
+      but with a loss of precision; as long as there is a simple
+      analytic expression of the derivative of the previous
+      function, let's use it! */
   switch (pba->fluid_equation_of_state) {
   case CLP:
     *dw_over_da_fld = - pba->wa_fld / pba->a_today;
@@ -544,15 +544,15 @@ int background_w_fld(
   }
 
   /** - finally, give the analytic solution of the following integral:
-        \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
-        one place, in the initial conditions for the background, and
-        with a=a_ini. If your w(a) does not lead to a simple analytic
-        solution of this integral, no worry: instead of writing
-        something here, the best would then be to leave it equal to
-        zero, and then in background_initial_conditions() you should
-        implement a numerical calculation of this integral only for
-        a=a_ini, using for instance Romberg integration. It should be
-        fast, simple, and accurate enough. */
+      \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
+      one place, in the initial conditions for the background, and
+      with a=a_ini. If your w(a) does not lead to a simple analytic
+      solution of this integral, no worry: instead of writing
+      something here, the best would then be to leave it equal to
+      zero, and then in background_initial_conditions() you should
+      implement a numerical calculation of this integral only for
+      a=a_ini, using for instance Romberg integration. It should be
+      fast, simple, and accurate enough. */
   *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
 
   /** note: of course you can generalise these formulas to anything,
@@ -664,8 +664,8 @@ int background_init(
   /* H0 in Mpc^{-1} */
   /* Many users asked for this test to be supressed. It is commented out. */
   /*class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-             pba->error_message,
-             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
+    pba->error_message,
+    "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
 
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
              pba->error_message,
@@ -674,14 +674,14 @@ int background_init(
   /* T_cmb in K */
   /* Many users asked for this test to be supressed. It is commented out. */
   /*class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
-             pba->error_message,
-             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
+    pba->error_message,
+    "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
 
   /* Omega_k */
   /* Many users asked for this test to be supressed. It is commented out. */
   /*class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
-             pba->error_message,
-             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
+    pba->error_message,
+    "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
@@ -762,8 +762,8 @@ int background_free(
  */
 
 int background_free_noinput(
-                    struct background *pba
-                    ) {
+                            struct background *pba
+                            ) {
   free(pba->tau_table);
   free(pba->z_table);
   free(pba->d2tau_dz2_table);
@@ -1302,55 +1302,55 @@ int background_ncdm_init(
       class_alloc(pba->w_ncdm[k],_QUADRATURE_MAX_*sizeof(double),pba->error_message);
 
       class_call(get_qsampling(pba->q_ncdm[k],
-			       pba->w_ncdm[k],
-			       &(pba->q_size_ncdm[k]),
-			       _QUADRATURE_MAX_,
-			       ppr->tol_ncdm,
-			       pbadist.q,
-			       pbadist.tablesize,
-			       background_ncdm_test_function,
-			       background_ncdm_distribution,
-			       &pbadist,
-			       pba->error_message),
-		 pba->error_message,
-		 pba->error_message);
+                               pba->w_ncdm[k],
+                               &(pba->q_size_ncdm[k]),
+                               _QUADRATURE_MAX_,
+                               ppr->tol_ncdm,
+                               pbadist.q,
+                               pbadist.tablesize,
+                               background_ncdm_test_function,
+                               background_ncdm_distribution,
+                               &pbadist,
+                               pba->error_message),
+                 pba->error_message,
+                 pba->error_message);
       pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
       pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
 
 
       if (pba->background_verbose > 0)
-	printf("ncdm species i=%d sampled with %d points for purpose of perturbation integration\n",
-	       k+1,
-	       pba->q_size_ncdm[k]);
+        printf("ncdm species i=%d sampled with %d points for purpose of perturbation integration\n",
+               k+1,
+               pba->q_size_ncdm[k]);
 
       /* Handle background q_sampling: */
       class_alloc(pba->q_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
       class_alloc(pba->w_ncdm_bg[k],_QUADRATURE_MAX_BG_*sizeof(double),pba->error_message);
 
       class_call(get_qsampling(pba->q_ncdm_bg[k],
-			       pba->w_ncdm_bg[k],
-			       &(pba->q_size_ncdm_bg[k]),
-			       _QUADRATURE_MAX_BG_,
-			       ppr->tol_ncdm_bg,
-			       pbadist.q,
-			       pbadist.tablesize,
-			       background_ncdm_test_function,
-			       background_ncdm_distribution,
-			       &pbadist,
-			       pba->error_message),
-		 pba->error_message,
-		 pba->error_message);
+                               pba->w_ncdm_bg[k],
+                               &(pba->q_size_ncdm_bg[k]),
+                               _QUADRATURE_MAX_BG_,
+                               ppr->tol_ncdm_bg,
+                               pbadist.q,
+                               pbadist.tablesize,
+                               background_ncdm_test_function,
+                               background_ncdm_distribution,
+                               &pbadist,
+                               pba->error_message),
+                 pba->error_message,
+                 pba->error_message);
 
 
       pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
       pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
 
       /** - in verbose mode, inform user of number of sampled momenta
-	  for background quantities */
+          for background quantities */
       if (pba->background_verbose > 0)
-	printf("ncdm species i=%d sampled with %d points for purpose of background integration\n",
-	       k+1,
-	       pba->q_size_ncdm_bg[k]);
+        printf("ncdm species i=%d sampled with %d points for purpose of background integration\n",
+               k+1,
+               pba->q_size_ncdm_bg[k]);
     }
     else{
       /** Manual q-sampling for this species. Same sampling used for both perturbation and background sampling, since this will usually be a high precision setting anyway */
@@ -1361,27 +1361,27 @@ int background_ncdm_init(
       class_alloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double),pba->error_message);
       class_alloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double),pba->error_message);
       class_call(get_qsampling_manual(pba->q_ncdm[k],
-				      pba->w_ncdm[k],
-				      pba->q_size_ncdm[k],
-				      pba->ncdm_qmax[k],
-				      pba->ncdm_quadrature_strategy[k],
-				      pbadist.q,
-				      pbadist.tablesize,
-				      background_ncdm_distribution,
-				      &pbadist,
-				      pba->error_message),
-		 pba->error_message,
-		 pba->error_message);
+                                      pba->w_ncdm[k],
+                                      pba->q_size_ncdm[k],
+                                      pba->ncdm_qmax[k],
+                                      pba->ncdm_quadrature_strategy[k],
+                                      pbadist.q,
+                                      pbadist.tablesize,
+                                      background_ncdm_distribution,
+                                      &pbadist,
+                                      pba->error_message),
+                 pba->error_message,
+                 pba->error_message);
       for (index_q=0; index_q<pba->q_size_ncdm[k]; index_q++) {
-	pba->q_ncdm_bg[k] = pba->q_ncdm[k];
-	pba->w_ncdm_bg[k] = pba->w_ncdm[k];
+        pba->q_ncdm_bg[k] = pba->q_ncdm[k];
+        pba->w_ncdm_bg[k] = pba->w_ncdm[k];
       }
-    /** - in verbose mode, inform user of number of sampled momenta
-        for background quantities */
+      /** - in verbose mode, inform user of number of sampled momenta
+          for background quantities */
       if (pba->background_verbose > 0)
-	printf("ncdm species i=%d sampled with %d points for purpose of background andperturbation integration using the manual method\n",
-	       k+1,
-	       pba->q_size_ncdm[k]);
+        printf("ncdm species i=%d sampled with %d points for purpose of background andperturbation integration using the manual method\n",
+               k+1,
+               pba->q_size_ncdm[k]);
     }
 
     class_alloc(pba->dlnf0_dlnq_ncdm[k],
@@ -1848,14 +1848,14 @@ int background_solve(
 
   /** - compute remaining "related parameters"
    *     - so-called "effective neutrino number", computed at earliest
-      time in interpolation table. This should be seen as a
-      definition: Neff is the equivalent number of
-      instantaneously-decoupled neutrinos accounting for the
-      radiation density, beyond photons */
+   time in interpolation table. This should be seen as a
+   definition: Neff is the equivalent number of
+   instantaneously-decoupled neutrinos accounting for the
+   radiation density, beyond photons */
   pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
-               /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
+    /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
 
   /** - done */
   if (pba->background_verbose > 0) {
@@ -1877,7 +1877,7 @@ int background_solve(
       printf("     -> Omega_scf = %g, wished %g\n",
              pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit], pba->Omega0_scf);
       if(pba->has_lambda == _TRUE_)
-	printf("     -> Omega_Lambda = %g, wished %g\n",
+        printf("     -> Omega_Lambda = %g, wished %g\n",
                pvecback[pba->index_bg_rho_lambda]/pvecback[pba->index_bg_rho_crit], pba->Omega0_lambda);
       printf("     -> parameters: [lambda, alpha, A, B] = \n");
       printf("                    [");
@@ -1930,8 +1930,8 @@ int background_initial_conditions(
   a = ppr->a_ini_over_a_today_default * pba->a_today;
 
   /**  If we have ncdm species, perhaps we need to start earlier
-      than the standard value for the species to be relativistic.
-      This could happen for some WDM models.
+       than the standard value for the species to be relativistic.
+       This could happen for some WDM models.
   */
 
   if (pba->has_ncdm == _TRUE_) {
@@ -1943,31 +1943,31 @@ int background_initial_conditions(
 
       for (n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
 
-	class_call(background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
-					   pba->w_ncdm_bg[n_ncdm],
-					   pba->q_size_ncdm_bg[n_ncdm],
-					   pba->M_ncdm[n_ncdm],
-					   pba->factor_ncdm[n_ncdm],
-					   pba->a_today/a-1.0,
-					   NULL,
-					   &rho_ncdm,
-					   &p_ncdm,
-					   NULL,
-					   NULL),
+        class_call(background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+                                           pba->w_ncdm_bg[n_ncdm],
+                                           pba->q_size_ncdm_bg[n_ncdm],
+                                           pba->M_ncdm[n_ncdm],
+                                           pba->factor_ncdm[n_ncdm],
+                                           pba->a_today/a-1.0,
+                                           NULL,
+                                           &rho_ncdm,
+                                           &p_ncdm,
+                                           NULL,
+                                           NULL),
                    pba->error_message,
                    pba->error_message);
-	rho_ncdm_rel_tot += 3.*p_ncdm;
-	if (fabs(p_ncdm/rho_ncdm-1./3.)>ppr->tol_ncdm_initial_w)
-	  is_early_enough = _FALSE_;
+        rho_ncdm_rel_tot += 3.*p_ncdm;
+        if (fabs(p_ncdm/rho_ncdm-1./3.)>ppr->tol_ncdm_initial_w)
+          is_early_enough = _FALSE_;
       }
       if (is_early_enough == _TRUE_)
-	break;
+        break;
       else
-	a *= _SCALE_BACK_;
+        a *= _SCALE_BACK_;
     }
     class_test(counter == _MAX_IT_,
-	       pba->error_message,
-	       "Search for initial scale factor a such that all ncdm species are relativistic failed.");
+               pba->error_message,
+               "Search for initial scale factor a such that all ncdm species are relativistic failed.");
   }
 
   pvecback_integration[pba->index_bi_a] = a;
@@ -2019,10 +2019,10 @@ int background_initial_conditions(
     class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
 
     /* Note: for complicated w_fld(a) functions with no simple
-    analytic integral, this is the place were you should compute
-    numerically the simple 1d integral [int_{a_ini}^{a_0} 3
-    [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
-    calling background_w_fld */
+       analytic integral, this is the place were you should compute
+       numerically the simple 1d integral [int_{a_ini}^{a_0} 3
+       [(1+w_fld)/a] da] (e.g. with the Romberg method?) instead of
+       calling background_w_fld */
 
     /* rho_fld at initial time */
     pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
@@ -2045,8 +2045,8 @@ int background_initial_conditions(
       if (3.*pow(scf_lambda,2)-12. < 0){
         /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
     	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
-	if (pba->background_verbose > 0)
-	  printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
+        if (pba->background_verbose > 0)
+          printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
       }
       pvecback_integration[pba->index_bi_phi_prime_scf] = 2*pvecback_integration[pba->index_bi_a]*
         sqrt(V_scf(pba,pvecback_integration[pba->index_bi_phi_scf]))*pba->phi_prime_ini_scf;
@@ -2067,15 +2067,15 @@ int background_initial_conditions(
 
   /* Infer pvecback from pvecback_integration */
   class_call(background_functions(pba, pvecback_integration, pba->normal_info, pvecback),
-	     pba->error_message,
-	     pba->error_message);
+             pba->error_message,
+             pba->error_message);
 
   /* Just checking that our initial time indeed is deep enough in the radiation
      dominated regime */
   class_test(fabs(pvecback[pba->index_bg_Omega_r]-1.) > ppr->tol_initial_Omega_r,
-	     pba->error_message,
-	     "Omega_r = %e, not close enough to 1. Decrease a_ini_over_a_today_default in order to start from radiation domination.",
-	     pvecback[pba->index_bg_Omega_r]);
+             pba->error_message,
+             "Omega_r = %e, not close enough to 1. Decrease a_ini_over_a_today_default in order to start from radiation domination.",
+             pvecback[pba->index_bg_Omega_r]);
 
   /** - compute initial proper time, assuming radiation-dominated
       universe since Big Bang and therefore \f$ t=1/(2H) \f$ (good
@@ -2109,7 +2109,7 @@ int background_initial_conditions(
  *
  * @param ppr                  Input: pointer to precision structure
  * @param pba                  Input/Output: pointer to background structure
-  * @return the error status
+ * @return the error status
  */
 
 int background_find_equality(
@@ -2421,8 +2421,8 @@ int background_derivs(
  * - the potential \f$ V(\phi) \f$ is given in units of \f$ m_{pl}^2/Mpc^2 \f$.
  * With this convention, we have
  * \f$ \rho^{class} = (8 \pi G)/3 \rho^{physical} = 1/(3 m_{pl}^2) \rho^{physical} = 1/3 * [ 1/(2a^2) (\phi')^2 + V(\phi) ] \f$
-    and \f$ \rho^{class} \f$ has the proper dimension \f$ Mpc^-2 \f$.
- */
+ and \f$ \rho^{class} \f$ has the proper dimension \f$ Mpc^-2 \f$.
+*/
 
 double V_e_scf(struct background *pba,
                double phi
@@ -2513,7 +2513,7 @@ double V_scf(
 
 double dV_scf(
               struct background *pba,
-	      double phi) {
+              double phi) {
   return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
 }
 

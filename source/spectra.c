@@ -3409,7 +3409,7 @@ int spectra_sigma_cb(
                      struct spectra * psp,
                      double R,
                      double z,
-                  double * sigma_cb
+                     double * sigma_cb
                      ) {
 
   double pk;
@@ -3504,7 +3504,7 @@ int spectra_neff(
                  struct primordial * ppm,
                  struct spectra * psp,
                  double z,
-                  double * neff
+                 double * neff
                  ) {
 
   double pk;
