@@ -154,7 +154,7 @@ struct thermo
   /** parameters for ethos framework */
 
   double a_dark; /**< stregth of the coupling between DM and DR in ethos */
-  //double b_dark; /**< stregth of the coupling between DR and DR in ethos */
+  double b_dark; /**< stregth of the coupling between DR and DR in ethos */
   double nindex_dark;/**< ethos power of the temperature dependence of tau_{DR}^{-1} */
   double m_dm; /**< ethos dark matter mass */
 

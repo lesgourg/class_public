@@ -810,7 +810,7 @@ int input_read_parameters(
 
   //Read the rest of the ethos parameters
   class_read_double("m_dm",pth->m_dm);
-  //class_read_double("b_dark",pth->b_dark);//removed to solve mismatch between thermodynamics and perturbations
+  class_read_double("b_dark",pth->b_dark);
   class_read_double("nindex_dark",pth->nindex_dark);
   class_read_int("l_max_idr",ppr->l_max_idr);
 
@@ -839,7 +839,7 @@ int input_read_parameters(
   }
   else{
     class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 0.0;
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
   }
   //end of ethos
 
@@ -3166,7 +3166,7 @@ int input_default_params(
 
   //ethos
   pth->a_dark = 0.;
-  //pth->b_dark = 0.;
+  pth->b_dark = 0.;
   pth->nindex_dark = 4.;
   pth->m_dm = 1.e11;
 
