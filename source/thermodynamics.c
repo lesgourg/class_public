@@ -186,7 +186,7 @@ int thermodynamics_at_z(
 
       //((pth->nindex_dark-1.)*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/(1.+z)-pvecback[pba->index_bg_H_prime])*pth->nindex_dark/(1.+z)*pvecthermo[pth->index_th_dmu_dark];
 
-      pvecthermo[pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_idr*pow(pba->h,2);
+      pvecthermo[pth->index_th_dmu_drdr] = pth->a_dark*pow((1.+z)/1.e7,pth->nindex_dark)*pba->Omega0_idr*pow(pba->h,2);
       pvecthermo[pth->index_th_tau_idm] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_idm]+
         (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_idm]-pth->thermodynamics_table[(pth->tt_size-2)*pth->th_size+pth->index_th_tau_idm])
         *(z-pth->z_table[pth->tt_size-1])/(pth->z_table[pth->tt_size-1]-pth->z_table[pth->tt_size-2]);//TBC
@@ -482,7 +482,7 @@ int thermodynamics_init(
 
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddmu_dark]= 4./3.*pvecback[pba->index_bg_rho_idr]/pvecback[pba->index_bg_rho_idm]*pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_dark];
 
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_drdr] = pth->b_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_idr*pow(pba->h,2);
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dmu_drdr] = pth->a_dark*pow((1.+pth->z_table[index_tau])/1.e7,pth->nindex_dark)*pba->Omega0_idr*pow(pba->h,2);
     }
   }
 
