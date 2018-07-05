@@ -10,7 +10,7 @@ from scipy import interpolate
 from lmfit import Minimizer, Parameters, report_fit
 from scipy.linalg import block_diag
 import pprint, pickle
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 #import time
 
 #Lyman alpha likelihood by M. Archidiacono, R. Murgia, D. Hooper, J. Lesgourgues, M. Viel
@@ -33,14 +33,18 @@ class Lya(Likelihood):
         gammas = np.zeros(self.grid_size, 'float64') 
 
         param = data.get_mcmc_parameters(['varying'])
-        for elem in data.get_mcmc_parameters(['derived']):
-            param.append(elem)
+        self.len_varying_params=len(param)
+        #self.len_derived_params=0
+        #for elem in data.get_mcmc_parameters(['derived']):
+            #param.append(elem)
+            #self.len_derived_params += 1
         self.bin_file_path = os.path.join(command_line.folder, 'Lya_bin_file.txt')
         with open(self.bin_file_path, 'a') as bin_file:
            bin_file.write('#')
            for name in param:
                name = re.sub('[$*&]', '', name)
                bin_file.write(' %s' % name)
+           bin_file.write(' lcdm_equiv_z_reio lcdm_equiv_neff lcdm_equiv_sigma8')
            bin_file.write('\n')
 
         file_path = os.path.join(self.data_directory, self.grid_file)
@@ -261,9 +265,9 @@ class Lya(Likelihood):
         Plin *= h**3
 
         #see likelihood_class get_flat_fid
-        print '\n'
-        print 'initial data.cosmo_arguments'
-        print data.cosmo_arguments
+        #print '\n'
+        #print 'initial data.cosmo_arguments'
+        #print data.cosmo_arguments
 
         param_lcdm_equiv = deepcopy(data.cosmo_arguments)
 
@@ -274,8 +278,8 @@ class Lya(Likelihood):
 		DeltaNeff=data.cosmo_arguments['stat_f_idr']*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))
 		eta2=(1.+0.2271*(data.cosmo_arguments['N_ur']+DeltaNeff))/(1.+0.2271*data.cosmo_arguments['N_ur'])
 		eta=np.sqrt(eta2)
-		print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
-		print '\n'
+		#print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
+		#print '\n'
                 param_lcdm_equiv['xi_idr'] = 0.
                 param_lcdm_equiv['omega_b'] *= 1./eta2
                 param_lcdm_equiv['omega_cdm'] *= 1./eta2
@@ -291,9 +295,9 @@ class Lya(Likelihood):
 		param_lcdm_equiv['a_dark'] = 0.
         
         cosmo.empty()
-        print 'param_lcdm_equiv'
-        print param_lcdm_equiv
-        print '\n'
+        #print 'param_lcdm_equiv'
+        #print param_lcdm_equiv
+        #print '\n'
         cosmo.set(param_lcdm_equiv)
         cosmo.compute(['lensing'])
 
@@ -305,13 +309,13 @@ class Lya(Likelihood):
         z_reio=cosmo.z_reio()
         neff=cosmo.neff()
         sigma8=cosmo.sigma8()
-        print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
-        print '\n'
+        #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
+        #print '\n'
 
         cosmo.empty()
-        print 'back to data.cosmo_arguments'
-        print data.cosmo_arguments
-        print '\n'
+        #print 'back to data.cosmo_arguments'
+        #print data.cosmo_arguments
+        #print '\n'
         cosmo.set(data.cosmo_arguments)
         cosmo.compute(['lensing'])
 
@@ -329,7 +333,7 @@ class Lya(Likelihood):
             index_k_fit_max = -1
             if (Tk[index_k])**2<0.1 and der[index_k]>0.: #perhaps we could find a better condition?!
                index_k_fit_max = index_k
-               print k[index_k_fit_max]
+               #print k[index_k_fit_max]
                break
 
         k_fit = k[:index_k_fit_max]
@@ -369,31 +373,35 @@ class Lya(Likelihood):
         Tk_abg=T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
-        report_fit(result)
+        #report_fit(result)
         #print result.chisqr, result.redchi
 
-        plt.xlabel('k [h/Mpc]')
-        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-        #plt.ylim(0.,1.1)
-        plt.xlim(self.kmin,self.kmax)
-        plt.xscale('log')
-        #plt.yscale('log')
-        plt.grid(True)
-        plt.plot(k, Tk**2, 'r')
-        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
-        #plt.show()
-        plt.savefig('grid_fit_plot.pdf')
+#        plt.xlabel('k [h/Mpc]')
+#        plt.ylabel('$P_{nCDM}/P_{CDM}$')
+#        #plt.ylim(0.,1.1)
+#        plt.xlim(self.kmin,self.kmax)
+#        plt.xscale('log')
+#        #plt.yscale('log')
+#        plt.grid(True)
+#        plt.plot(k, Tk**2, 'r')
+#        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+#        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
+#        #plt.show()
+#        plt.savefig('grid_fit_plot.pdf')
+
 
         #first condition on the cosmological parameters
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
            #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
            with open(self.bin_file_path, 'a') as bin_file:
-                #bin_file.write('#ErrLya1')
-                for key, value in data.mcmc_parameters.iteritems():
-                    bin_file.write(' %.5g' % (value['current']*value['scale']))
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                 if count <= self.len_varying_params:
+                    bin_file.write(' %e' % (value['current']*value['scale']))
+                    count += 1
+                bin_file.write(' %e %e %e' % (z_reio, neff, sigma8))
                 bin_file.write('\n')
-           sys.stderr.write('#ErrLya1'+'\n')
+           sys.stderr.write('#ErrLya1 ')
            sys.stderr.flush()
            return data.boundary_loglike
 
@@ -401,11 +409,14 @@ class Lya(Likelihood):
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
            with open(self.bin_file_path, 'a') as bin_file:
-                #bin_file.write('#ErrLya2')
-                for key, value in data.mcmc_parameters.iteritems():
-                    bin_file.write('%.5g' % (value['current']*value['scale']))
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                 if count <= self.len_varying_params:
+                    bin_file.write(' %e' % (value['current']*value['scale']))
+                    count += 1
+                bin_file.write(' %e %e %e' % (z_reio, neff, sigma8))
                 bin_file.write('\n')
-           sys.stderr.write('#ErrLya2'+'\n')
+           sys.stderr.write('#ErrLya2 ')
            sys.stderr.flush()
            return data.boundary_loglike
 
@@ -418,11 +429,14 @@ class Lya(Likelihood):
         for index_k in range(len(k_fit)):
             if abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:
                with open(self.bin_file_path, 'a') as bin_file:
-                    #bin_file.write('#ErrLya3')
-                    for key, value in data.mcmc_parameters.iteritems():
-                        bin_file.write(' %.5g' % (value['current']*value['scale']))
+                    count=1
+                    for name, value in data.mcmc_parameters.iteritems():
+                     if count <= self.len_varying_params:
+                        bin_file.write(' %e' % (value['current']*value['scale']))
+                        count += 1
+                    bin_file.write(' %e %e %e' % (z_reio, neff, sigma8))
                     bin_file.write('\n')
-               sys.stderr.write('#ErrLya3'+'\n')
+               sys.stderr.write('#ErrLya3 ')
                sys.stderr.flush()
                return data.boundary_loglike
 
@@ -495,5 +509,5 @@ class Lya(Likelihood):
            raise io_mp.LikelihoodError('Error: for the time being, only the mike - hires dataset is available')
            exit()
 
-        #print 'chi^2 = ',chi2
+        print 'Lya chi^2 = ',chi2
         return -chi2/2.
