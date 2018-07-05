@@ -1,5 +1,8 @@
 from montepython.likelihood_class import Likelihood
 import io_mp
+import re  # Module to handle regular expressions
+#from datetime import date
+import sys
 import os
 import numpy as np
 from copy import deepcopy
@@ -8,9 +11,9 @@ from lmfit import Minimizer, Parameters, report_fit
 from scipy.linalg import block_diag
 import pprint, pickle
 import matplotlib.pyplot as plt
-import time
+#import time
 
-#Lyman alpha likelihood by M. Archidiacono, J. Lesgourgues, R. Murgia, M. Viel
+#Lyman alpha likelihood by M. Archidiacono, R. Murgia, D. Hooper, J. Lesgourgues, M. Viel
 
 class Lya(Likelihood):
 
@@ -19,9 +22,8 @@ class Lya(Likelihood):
         Likelihood.__init__(self, path, data, command_line)
 
         self.need_cosmo_arguments(data, {'output': 'mPk'})
-        self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.khmax}) 
-        
-        self.kh_0 = np.linspace(self.khmin, self.khmax, num=self.k_size)
+        self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.kmax}) 
+        self.need_cosmo_arguments(data, {'compute_neff_Lya':'yes'})
 
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
@@ -29,6 +31,17 @@ class Lya(Likelihood):
         alphas = np.zeros(self.grid_size, 'float64')      
         betas = np.zeros(self.grid_size, 'float64')
         gammas = np.zeros(self.grid_size, 'float64') 
+
+        param = data.get_mcmc_parameters(['varying'])
+        for elem in data.get_mcmc_parameters(['derived']):
+            param.append(elem)
+        self.bin_file_path = os.path.join(command_line.folder, 'Lya_bin_file.txt')
+        with open(self.bin_file_path, 'a') as bin_file:
+           bin_file.write('#')
+           for name in param:
+               name = re.sub('[$*&]', '', name)
+               bin_file.write(' %s' % name)
+           bin_file.write('\n')
 
         file_path = os.path.join(self.data_directory, self.grid_file)
         if os.path.exists(file_path):
@@ -219,8 +232,9 @@ class Lya(Likelihood):
 
     def loglkl(self, cosmo, data):
 
+        k = np.logspace(np.log10(self.kmin), np.log10(self.kmax), num=self.k_size)
+
         #deal with the astro nuisance parameters
-        print 'len self.use_nuisance',len(self.use_nuisance)
         if 'T0a' in self.use_nuisance:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
         if 'T0s' in self.use_nuisance:
@@ -240,11 +254,11 @@ class Lya(Likelihood):
         if 'F_UV' in self.use_nuisance:
             F_UV=data.mcmc_parameters['F_UV']['current']*data.mcmc_parameters['F_UV']['scale']
 
-        h=data.cosmo_arguments['H0']/100.
-        Plin_0 = np.zeros(len(self.kh_0), 'float64')
-        for index_k in range(len(self.kh_0)):
-            Plin_0[index_k] = cosmo.pk(self.kh_0[index_k]*h, 0.0) #use pk_lin with the new class version 
-        Plin_0 *= h**3
+        h=cosmo.h()
+        Plin = np.zeros(len(k), 'float64')
+        for index_k in range(len(k)):
+            Plin[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version 
+        Plin *= h**3
 
         #see likelihood_class get_flat_fid
         print '\n'
@@ -262,21 +276,18 @@ class Lya(Likelihood):
 		eta=np.sqrt(eta2)
 		print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
 		print '\n'
+                param_lcdm_equiv['xi_idr'] = 0.
+                param_lcdm_equiv['omega_b'] *= 1./eta2
+                param_lcdm_equiv['omega_cdm'] *= 1./eta2
+                if ('H0' in data.cosmo_arguments):
+                     param_lcdm_equiv['H0'] *= 1./eta
+                else:# ('100*theta_s' in data.cosmo_arguments):
+                     raise io_mp.ConfigurationError('Error: run with H0')
+                     exit()
 
         #deal with ethos like dark matter interactions
         if ('f_idm_dr' in data.cosmo_arguments and 'a_dark' in data.cosmo_arguments):
-		#ob_backup = data.cosmo_arguments['omega_b']
-		param_lcdm_equiv['omega_b'] *= 1./eta2
-		#oc_backup = data.cosmo_arguments['omega_cdm']
-		param_lcdm_equiv['omega_cdm'] *= 1./eta2
-		#H0_backup = data.cosmo_arguments['H0']
-		param_lcdm_equiv['H0'] *= 1./eta
-		h=param_lcdm_equiv['H0']/100.
-		#xi_backup = data.cosmo_arguments['xi_idr']
-		param_lcdm_equiv['xi_idr'] = 0.
-		#f_backup = data.cosmo_arguments['f_idm_dr']
 		param_lcdm_equiv['f_idm_dr'] = 0.
-		#a_backup = data.cosmo_arguments['a_dark']
 		param_lcdm_equiv['a_dark'] = 0.
         
         cosmo.empty()
@@ -286,64 +297,56 @@ class Lya(Likelihood):
         cosmo.set(param_lcdm_equiv)
         cosmo.compute(['lensing'])
 
-        Plin_equiv_0 = np.zeros(len(self.kh_0), 'float64')
-        for index_k in range(len(self.kh_0)):
-            Plin_equiv_0[index_k] = cosmo.pk(self.kh_0[index_k]*h, 0.0) #use pk_lin with the new class version
-        Plin_equiv_0 *= h**3
+        Plin_equiv = np.zeros(len(k), 'float64')
+        h = cosmo.h()
+        for index_k in range(len(k)):
+            Plin_equiv[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version
+        Plin_equiv *= h**3
         z_reio=cosmo.z_reio()
         neff=cosmo.neff()
         sigma8=cosmo.sigma8()
         print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         print '\n'
-        if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
-           print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
-           return data.boundary_loglike 
 
         cosmo.empty()
         print 'back to data.cosmo_arguments'
         print data.cosmo_arguments
         print '\n'
-        #data.cosmo_arguments['omega_b'] = ob_backup 
-        #data.cosmo_arguments['omega_cdm'] = oc_backup
-        #data.cosmo_arguments['H0'] = H0_backup
-        h=data.cosmo_arguments['H0']/100.
-        #data.cosmo_arguments['xi_idr'] = xi_backup
-        #data.cosmo_arguments['f_idm_dr'] = f_backup
-        #data.cosmo_arguments['a_dark'] = a_backup
         cosmo.set(data.cosmo_arguments)
         cosmo.compute(['lensing'])
 
-        Tk_0 = np.zeros(len(self.kh_0), 'float64')
-        Tk_0 = np.sqrt(Plin_0/Plin_equiv_0) 
-        spline=interpolate.splrep(self.kh_0,Tk_0**2)
-        der = interpolate.splev(self.kh_0, spline, der=1)
+        Tk = np.zeros(len(k), 'float64')
+        Tk = np.sqrt(Plin/Plin_equiv) 
+        if (abs(Tk[0]**2-1.0)>0.005):
+           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+           return data.boundary_loglike
+
+        spline=interpolate.splrep(k,Tk**2)
+        der = interpolate.splev(k, spline, der=1)
 
         #setting k_max (i.e. cutting oscillations from the fitted region)
-        for index_k in range(len(self.kh_0)):
-            index_khmax = -1
-            if (Tk_0[index_k])**2<0.1 and der[index_k]>0.: #perhaps we could find a better condition?!
-               index_khmax = index_k
-               print self.kh_0[index_khmax]
+        for index_k in range(len(k)):
+            index_k_fit_max = -1
+            if (Tk[index_k])**2<0.1 and der[index_k]>0.: #perhaps we could find a better condition?!
+               index_k_fit_max = index_k
+               print k[index_k_fit_max]
                break
 
-        kh = self.kh_0[:index_khmax]
-        Plin_equiv = Plin_equiv_0[:index_khmax]
-        Plin = Plin_0[:index_khmax]
-
-        Tk = np.sqrt(Plin/Plin_equiv)
+        k_fit = k[:index_k_fit_max]
+        Tk_fit = Tk[:index_k_fit_max]
 
         # fitting the given linear P(k) with the {alpha,beta,gamma}-formula 
 
         #model function #T^2=P_model/P_ref
-        def T(kh,alpha,beta,gamma):
-            return (1. + (alpha*kh)**(beta))**(gamma)
+        def T(k,alpha,beta,gamma):
+            return (1. + (alpha*k)**(beta))**(gamma)
 
         #define objective function: returns the array to be minimized
-        def fcn2min(params, kh, Tk):
+        def fcn2min(params, k, Tk):
             alpha = params['alpha']
             beta = params['beta']
             gamma = params['gamma']
-            model = T(kh,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+            model = T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
             return (model - Tk)      #standard residuals
 
         # create a set of Parameters
@@ -353,17 +356,17 @@ class Lya(Likelihood):
         params.add('gamma', value=-4.46, min=-10., max=-0.1)
 
         # do fit, default is with least squares method
-        t0_fit = time.clock()
+        #t0_fit = time.clock()
 
-        minner = Minimizer(fcn2min, params, fcn_args=(kh, Tk))
+        minner = Minimizer(fcn2min, params, fcn_args=(k_fit, Tk_fit))
         result = minner.minimize(method = 'leastsq')
         best_alpha = result.params['alpha'].value
         best_beta  = result.params['beta'].value
         best_gamma = result.params['gamma'].value
 
-        t1_fit = time.clock()
+        #t1_fit = time.clock()
 
-        Tk_abg=T(kh, best_alpha, best_beta, best_gamma)
+        Tk_abg=T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
         report_fit(result)
@@ -372,26 +375,58 @@ class Lya(Likelihood):
         plt.xlabel('k [h/Mpc]')
         plt.ylabel('$P_{nCDM}/P_{CDM}$')
         #plt.ylim(0.,1.1)
-        plt.xlim(self.khmin,self.khmax)
+        plt.xlim(self.kmin,self.kmax)
         plt.xscale('log')
         #plt.yscale('log')
         plt.grid(True)
-        #plt.plot(self.kh_0, Tk_0**2, 'r')
-        #plt.plot(self.kh_0, (T(self.kh_0, best_alpha, best_beta, best_gamma))**2, 'b--')
-        plt.plot(kh, abs(Tk**2/Tk_abg**2-1.), 'k')
+        plt.plot(k, Tk**2, 'r')
+        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
         #plt.show()
         plt.savefig('grid_fit_plot.pdf')
 
-        #here add condition on the goodness of fit
-#        if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
-#           print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
-#           return data.boundary_loglike
+        #first condition on the cosmological parameters
+        if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
+           #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
+           with open(self.bin_file_path, 'a') as bin_file:
+                #bin_file.write('#ErrLya1')
+                for key, value in data.mcmc_parameters.iteritems():
+                    bin_file.write(' %.5g' % (value['current']*value['scale']))
+                bin_file.write('\n')
+           sys.stderr.write('#ErrLya1'+'\n')
+           sys.stderr.flush()
+           return data.boundary_loglike
 
-        for index_k in range(len(kh)):
-            if abs(Tk[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:
-               print 'Error: alpha,beta,gamma cannot provide a good fit of the true transfer function'
-               print 'Skipping this point'
+        #second condition on the goodness of fit
+        if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
+           #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
+           with open(self.bin_file_path, 'a') as bin_file:
+                #bin_file.write('#ErrLya2')
+                for key, value in data.mcmc_parameters.iteritems():
+                    bin_file.write('%.5g' % (value['current']*value['scale']))
+                bin_file.write('\n')
+           sys.stderr.write('#ErrLya2'+'\n')
+           sys.stderr.flush()
+           return data.boundary_loglike
+
+        #here compute the Lya k max
+        #Om=cosmo.Omega_m()
+        #k_Lya_max=100./(1.+self.zeta_range_mh[len(self.zeta_range_mh)-1])*(((1.+self.zeta_range_mh[len(self.zeta_range_mh)-1])**3*Om+(1.-Om))**(1./2.))*self.k_mh[len(self.k_mh)-1]
+        #print 'k_Lya_max = ',k_Lya_max, 'h/Mpc'
+        
+        #third condition on the goodness of fit
+        for index_k in range(len(k_fit)):
+            if abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:
+               with open(self.bin_file_path, 'a') as bin_file:
+                    #bin_file.write('#ErrLya3')
+                    for key, value in data.mcmc_parameters.iteritems():
+                        bin_file.write(' %.5g' % (value['current']*value['scale']))
+                    bin_file.write('\n')
+               sys.stderr.write('#ErrLya3'+'\n')
+               sys.stderr.flush()
                return data.boundary_loglike
+
+        #Now get the chi^2
 
 	def z_dep_func(parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
 	    return parA*(( (1.+z)/(1.+self.zp) )**parS)
@@ -460,5 +495,5 @@ class Lya(Likelihood):
            raise io_mp.LikelihoodError('Error: for the time being, only the mike - hires dataset is available')
            exit()
 
-        print 'chi^2 = ',chi2
+        #print 'chi^2 = ',chi2
         return -chi2/2.

@@ -802,7 +802,8 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_idr;
 
-  printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
+  if (input_verbose > 2)
+   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
 
   class_test(((pba->Omega0_idm != 0) && (pba->Omega0_idr == 0)),
              errmsg,
