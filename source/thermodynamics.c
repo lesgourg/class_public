@@ -371,9 +371,9 @@ int thermodynamics_init(
              pth->error_message,
              "characteristic annihilation redshift cannot be negative");
 
-  class_test((pth->annihilation>0)&&(pba->has_cdm==_FALSE_),
+  class_test((pth->annihilation>0)&&((pba->has_cdm==_FALSE_)&&(pba->has_idm==_FALSE_)),
              pth->error_message,
-             "CDM annihilation effects require the presence of CDM!");
+             "CDM annihilation effects require the presence of CDM or IDM!");
 
   class_test((pth->annihilation_f_halo>0) && (pth->recombination==recfast),
              pth->error_message,
@@ -395,9 +395,9 @@ int thermodynamics_init(
              pth->error_message,
              "decay parameter cannot be negative");
 
-  class_test((pth->decay>0)&&(pba->has_cdm==_FALSE_),
+  class_test((pth->decay>0)&&((pba->has_cdm==_FALSE_)&&(pba->has_idm==_FALSE_)),
              pth->error_message,
-             "CDM decay effects require the presence of CDM!");
+             "CDM decay effects require the presence of CDM or IDM!");
 
   /* tests in order to prevent segmentation fault in the following */
   class_test(_not4_ == 0.,
@@ -1662,7 +1662,7 @@ int thermodynamics_onthespot_energy_injection(
                                          +pow(log((preco->annihilation_zmin+1.)/(preco->annihilation_zmax+1.)),2)));
   }
 
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_idm+pba->Omega0_cdm)*_c_*_c_; /* energy density in J/m^3 */
 
   u_min = (1+z)/(1+preco->annihilation_z_halo);
 
@@ -1715,7 +1715,7 @@ int thermodynamics_energy_injection(
       nH0 = 3.*preco->H0*preco->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-preco->YHe);
 
       /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */
-      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_idm);
 
       /* integral over z'(=zp) with step dz */
       dz=1.;
@@ -3001,7 +3001,7 @@ int thermodynamics_recombination_with_hyrec(
 
   param.T0 = pba->T_cmb;
   param.obh2 = pba->Omega0_b*pba->h*pba->h;
-  param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
+  param.omh2 = (pba->Omega0_b+pba->Omega0_cdm+pba->Omega0_idm+pba->Omega0_ncdm_tot)*pba->h*pba->h;
   param.okh2 = pba->Omega0_k*pba->h*pba->h;
   param.odeh2 = (pba->Omega0_lambda+pba->Omega0_fld)*pba->h*pba->h;
   class_call(background_w_fld(pba,pba->a_today,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pth->error_message);
