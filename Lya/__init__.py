@@ -2,7 +2,7 @@ from montepython.likelihood_class import Likelihood
 import io_mp
 import re  # Module to handle regular expressions
 #from datetime import date
-import sys
+#import sys
 import os
 import numpy as np
 from copy import deepcopy
@@ -272,11 +272,19 @@ class Lya(Likelihood):
         param_lcdm_equiv = deepcopy(data.cosmo_arguments)
 
         #deal with ethos like dark radiation
-        if ('xi_idr' in data.cosmo_arguments and 'stat_f_idr' in data.cosmo_arguments and 'N_ur' in data.cosmo_arguments):
+        if 'xi_idr' in data.cosmo_arguments:
+		if 'stat_f_idr' in data.cosmo_arguments:
+		  stat_f_idr = data.cosmo_arguments['stat_f_idr']
+		else:
+		  stat_f_idr = 7./8.
+		if 'N_ur' in data.cosmo_arguments:
+		  N_ur = data.cosmo_arguments['stat_f_idr']
+		else:
+		  N_ur = 3.046
 		#pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
 		#N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-		DeltaNeff=data.cosmo_arguments['stat_f_idr']*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))
-		eta2=(1.+0.2271*(data.cosmo_arguments['N_ur']+DeltaNeff))/(1.+0.2271*data.cosmo_arguments['N_ur'])
+		DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.)
+		eta2=(1.+0.2271*(3.+DeltaNeff))/(1.+0.2271*3.])
 		eta=np.sqrt(eta2)
 		#print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
 		#print '\n'
@@ -307,8 +315,8 @@ class Lya(Likelihood):
             Plin_equiv[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version
         Plin_equiv *= h**3
         z_reio=cosmo.z_reio()
-        neff=cosmo.neff()
         sigma8=cosmo.sigma8()
+        neff=cosmo.neff()
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
@@ -399,10 +407,10 @@ class Lya(Likelihood):
                  if count <= self.len_varying_params:
                     bin_file.write(' %e' % (value['current']*value['scale']))
                     count += 1
-                bin_file.write(' %e %e %e' % (z_reio, neff, sigma8))
+                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
-           sys.stderr.write('#ErrLya1 ')
-           sys.stderr.flush()
+           #sys.stderr.write('#ErrLya1')
+           #sys.stderr.flush()
            return data.boundary_loglike
 
         #second condition on the goodness of fit
@@ -414,10 +422,10 @@ class Lya(Likelihood):
                  if count <= self.len_varying_params:
                     bin_file.write(' %e' % (value['current']*value['scale']))
                     count += 1
-                bin_file.write(' %e %e %e' % (z_reio, neff, sigma8))
+                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
-           sys.stderr.write('#ErrLya2 ')
-           sys.stderr.flush()
+           #sys.stderr.write('#ErrLya2')
+           #sys.stderr.flush()
            return data.boundary_loglike
 
         #here compute the Lya k max
@@ -434,10 +442,10 @@ class Lya(Likelihood):
                      if count <= self.len_varying_params:
                         bin_file.write(' %e' % (value['current']*value['scale']))
                         count += 1
-                    bin_file.write(' %e %e %e' % (z_reio, neff, sigma8))
+                    bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                     bin_file.write('\n')
-               sys.stderr.write('#ErrLya3 ')
-               sys.stderr.flush()
+               #sys.stderr.write('#ErrLya3')
+               #sys.stderr.flush()
                return data.boundary_loglike
 
         #Now get the chi^2
