@@ -1,0 +1,6 @@
+# Gaussian likelihood for sigma8 *(Omega_m/Omega_m_ref)^Omega_m_index,
+# KiDS https://arxiv.org/pdf/1606.05338.pdf 
+KiDS.Omega_m_ref    = 0.3
+KiDS.Omega_m_index  = 0.5
+KiDS.bestfit  	= 0.745
+KiDS.sigma  	= 0.039
