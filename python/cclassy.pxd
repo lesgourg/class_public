@@ -162,6 +162,7 @@ cdef extern from "class.h":
         int has_tp
         int has_dd
         int has_td
+        int has_pd
         int has_ll
         int has_dl
         int has_tl
@@ -216,6 +217,7 @@ cdef extern from "class.h":
         int has_bb
         int has_pp
         int has_tp
+        int has_pd
         int has_dd
         int has_td
         int has_ll
@@ -227,6 +229,7 @@ cdef extern from "class.h":
         int index_lt_bb
         int index_lt_pp
         int index_lt_tp
+        int index_lt_pd
         int index_lt_dd
         int index_lt_td
         int index_lt_ll
