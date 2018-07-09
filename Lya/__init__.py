@@ -278,7 +278,7 @@ class Lya(Likelihood):
 		else:
 		  stat_f_idr = 7./8.
 		if 'N_ur' in data.cosmo_arguments:
-		  N_ur = data.cosmo_arguments['stat_f_idr']
+		  N_ur = data.cosmo_arguments['N_ur']
 		else:
 		  N_ur = 3.046
 		#pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;

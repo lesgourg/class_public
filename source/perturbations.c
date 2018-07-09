@@ -1486,9 +1486,9 @@ int perturb_get_k_list(
     /* values until k_max_cl[ppt->index_md_scalars] */
 
     while (k < k_max_cl[ppt->index_md_scalars]) {
-      //MArchi ethos
-      k *= pow(10.,1./(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk
-                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk)
+      
+      k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
@@ -7595,7 +7595,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark,tca_shear_dark;
+  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -7962,14 +7962,13 @@ int perturb_derivs(double tau,
         tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
           (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
            (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
-
+        //if(abs(k-0.5)<0.001) printf("%e %e %e\n",a,k,tca_slip_dark);
         //Seb//tca_shear_dark = 8./15./dmu_dark/ppt->alpha_dark[0]*y[pv->index_pt_theta_idm];
-        ppw->tca_shear_dark = 0.5*(8./15./dmu_dark/ppt->alpha_dark[0]*(y[pv->index_pt_theta_idm]));
-        //MArchi//tca_shear_dark = 0.5*(8./15./dmu_dark/ppt->alpha_dark[0]*(y[pv->index_pt_theta_idm]+metric_shear);//this is the one that has to be saved
+        ppw->tca_shear_dark = 0.5*(8./15./dmu_dark/ppt->alpha_dark[0]*(y[pv->index_pt_theta_idm]+metric_shear));
         //Seb//dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
         //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
-                                                   y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
+                                                   y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
       }
     }
 
@@ -8134,7 +8133,7 @@ int perturb_derivs(double tau,
         }
         else{//tca_dark_on
           dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]
-                                                     + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
+                                                     + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
         }
       }
     }

@@ -2725,10 +2725,12 @@ int input_read_parameters(
   class_read_double("k_step_transition",ppr->k_step_transition);
   class_read_double("k_step_super_reduction",ppr->k_step_super_reduction);
   class_read_double("k_per_decade_for_pk",ppr->k_per_decade_for_pk);
+  if(pba->Omega0_idm>0.){
   class_read_double("idmdr_boost_k_per_decade_for_pk",ppr->idmdr_boost_k_per_decade_for_pk);//ethos
   class_test((ppr->idmdr_boost_k_per_decade_for_pk<1.),
              errmsg,
              "k_per_decade_for_pk_idmdr has to be larger or equal to k_per_decade_for_pk");
+  }
   class_read_double("k_per_decade_for_bao",ppr->k_per_decade_for_bao);
   class_read_double("k_bao_center",ppr->k_bao_center);
   class_read_double("k_bao_width",ppr->k_bao_width);
