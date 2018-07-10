@@ -10,7 +10,7 @@ from scipy import interpolate
 from lmfit import Minimizer, Parameters, report_fit
 from scipy.linalg import block_diag
 import pprint, pickle
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
 #import time
 
 #Lyman alpha likelihood by M. Archidiacono, R. Murgia, D. Hooper, J. Lesgourgues, M. Viel
@@ -264,6 +264,12 @@ class Lya(Likelihood):
             Plin[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version 
         Plin *= h**3
 
+        z_reio=cosmo.z_reio()
+        sigma8=cosmo.sigma8()
+        neff=cosmo.neff()
+        #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
+        #print '\n'
+
         #see likelihood_class get_flat_fid
         #print '\n'
         #print 'initial data.cosmo_arguments'
@@ -283,22 +289,26 @@ class Lya(Likelihood):
 		  N_ur = 3.046
 		#pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
 		#N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-		DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.)
-		eta2=(1.+0.2271*(3.+DeltaNeff))/(1.+0.2271*3.])
+		DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.046)
+		eta2=(1.+0.2271*(3.046+DeltaNeff))/(1.+0.2271*3.046)
 		eta=np.sqrt(eta2)
 		#print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
 		#print '\n'
+                #param_lcdm_equiv['N_ur'] = 3.046 #default in class
                 param_lcdm_equiv['xi_idr'] = 0.
                 param_lcdm_equiv['omega_b'] *= 1./eta2
                 param_lcdm_equiv['omega_cdm'] *= 1./eta2
-                if ('H0' in data.cosmo_arguments):
+                if 'H0' in data.cosmo_arguments:
                      param_lcdm_equiv['H0'] *= 1./eta
                 else:# ('100*theta_s' in data.cosmo_arguments):
                      raise io_mp.ConfigurationError('Error: run with H0')
                      exit()
 
         #deal with ethos like dark matter interactions
-        if ('f_idm_dr' in data.cosmo_arguments and 'a_dark' in data.cosmo_arguments):
+        if 'a_dark' in data.cosmo_arguments:
+                if (not 'f_idm_dr' in data.cosmo_arguments or data.cosmo_arguments['f_idm_dr'] != 1.0):
+                   raise io_mp.ConfigurationError('Error: f_idm_dr has to be set to 1.0')
+                   exit()
 		param_lcdm_equiv['f_idm_dr'] = 0.
 		param_lcdm_equiv['a_dark'] = 0.
         
@@ -314,11 +324,6 @@ class Lya(Likelihood):
         for index_k in range(len(k)):
             Plin_equiv[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version
         Plin_equiv *= h**3
-        z_reio=cosmo.z_reio()
-        sigma8=cosmo.sigma8()
-        neff=cosmo.neff()
-        #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
-        #print '\n'
 
         cosmo.empty()
         #print 'back to data.cosmo_arguments'
@@ -329,9 +334,9 @@ class Lya(Likelihood):
 
         Tk = np.zeros(len(k), 'float64')
         Tk = np.sqrt(Plin/Plin_equiv) 
-        if (abs(Tk[0]**2-1.0)>0.005):
-           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
-           return data.boundary_loglike
+#        if (abs(Tk[0]**2-1.0)>0.01):
+#           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+#           return data.boundary_loglike
 
         spline=interpolate.splrep(k,Tk**2)
         der = interpolate.splev(k, spline, der=1)
@@ -384,19 +389,22 @@ class Lya(Likelihood):
         #report_fit(result)
         #print result.chisqr, result.redchi
 
-#        plt.xlabel('k [h/Mpc]')
-#        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-#        #plt.ylim(0.,1.1)
-#        plt.xlim(self.kmin,self.kmax)
-#        plt.xscale('log')
-#        #plt.yscale('log')
-#        plt.grid(True)
-#        plt.plot(k, Tk**2, 'r')
-#        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-#        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
-#        #plt.show()
-#        plt.savefig('grid_fit_plot.pdf')
+        plt.xlabel('k [h/Mpc]')
+        plt.ylabel('$P_{nCDM}/P_{CDM}$')
+        #plt.ylim(0.,1.1)
+        plt.xlim(self.kmin,self.kmax)
+        plt.xscale('log')
+        #plt.yscale('log')
+        plt.grid(True)
+        plt.plot(k, Tk**2, 'r')
+        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
+        #plt.show()
+        plt.savefig('grid_fit_plot.pdf')
 
+        if (abs(Tk[0]**2-1.0)>0.01):
+           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+           return data.boundary_loglike
 
         #first condition on the cosmological parameters
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
@@ -517,5 +525,5 @@ class Lya(Likelihood):
            raise io_mp.LikelihoodError('Error: for the time being, only the mike - hires dataset is available')
            exit()
 
-        print 'Lya chi^2 = ',chi2
+        #print 'Lya chi^2 = ',chi2
         return -chi2/2.
