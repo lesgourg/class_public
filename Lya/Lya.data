@@ -30,7 +30,10 @@ Lya.beta_max = 10.
 Lya.gamma_min = -10.
 Lya.gamma_max = -0.15
 #below stuff that can be changed (with some grain of salt!)
-#k are in h/Mpc
+#k_neff is in s/km
+Lya.k_s_over_km = 0.009
+Lya.z = 3.
+#other k in h/Mpc
 Lya.kmax  = 20.
 Lya.kmin  = 0.01
 Lya.k_size = 10000

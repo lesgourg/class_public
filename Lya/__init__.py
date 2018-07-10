@@ -24,6 +24,8 @@ class Lya(Likelihood):
         self.need_cosmo_arguments(data, {'output': 'mPk'})
         self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.kmax}) 
         self.need_cosmo_arguments(data, {'compute_neff_Lya':'yes'})
+        self.need_cosmo_arguments(data, {'Lya_k_s_over_km':self.k_s_over_km})
+        self.need_cosmo_arguments(data, {'Lya_z':self.z})
 
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
@@ -44,7 +46,7 @@ class Lya(Likelihood):
            for name in param:
                name = re.sub('[$*&]', '', name)
                bin_file.write(' %s' % name)
-           bin_file.write(' lcdm_equiv_z_reio lcdm_equiv_neff lcdm_equiv_sigma8')
+           bin_file.write(' z_reio neff sigma8')
            bin_file.write('\n')
 
         file_path = os.path.join(self.data_directory, self.grid_file)
@@ -264,13 +266,43 @@ class Lya(Likelihood):
             Plin[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version 
         Plin *= h**3
 
+        #here compute the Lya k scale
+        Om=cosmo.Omega_m()
+        k_neff=self.k_s_over_km*100./(1.+self.z)*(((1.+self.z)**3*Om+(1.-Om))**(1./2.))
+        #print 'k_neff = ',k_neff, 'h/Mpc'
+
         z_reio=cosmo.z_reio()
         sigma8=cosmo.sigma8()
         neff=cosmo.neff()
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
-        #see likelihood_class get_flat_fid
+#        Pspline=interpolate.splrep(k,Plin)
+#        Pder = interpolate.splev(k, Pspline, der=1)
+#        Pder2 = interpolate.splev(k, Pspline, der=2)
+#        #plt.plot(k,Plin, 'k')
+#        plt.plot(k,Pder,'b')
+#        #plt.plot(k,Pder2,'r')
+#        plt.xscale('log')
+#        #plt.yscale('log')
+#        plt.savefig('grid_fit_plot.pdf')
+#        exit()
+
+        #sanity check on the cosmological parameters
+        if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
+           #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
+           with open(self.bin_file_path, 'a') as bin_file:
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                 if count <= self.len_varying_params:
+                    bin_file.write(' %e' % (value['current']*value['scale']))
+                    count += 1
+                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write('\n')
+           #sys.stderr.write('#ErrLya1')
+           #sys.stderr.flush()
+           return data.boundary_loglike
+        
         #print '\n'
         #print 'initial data.cosmo_arguments'
         #print data.cosmo_arguments
@@ -334,9 +366,9 @@ class Lya(Likelihood):
 
         Tk = np.zeros(len(k), 'float64')
         Tk = np.sqrt(Plin/Plin_equiv) 
-#        if (abs(Tk[0]**2-1.0)>0.01):
-#           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
-#           return data.boundary_loglike
+        if (abs(Tk[0]**2-1.0)>0.01):
+           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+           return data.boundary_loglike
 
         spline=interpolate.splrep(k,Tk**2)
         der = interpolate.splev(k, spline, der=1)
@@ -348,6 +380,20 @@ class Lya(Likelihood):
                index_k_fit_max = index_k
                #print k[index_k_fit_max]
                break
+
+        #sanity check for neff (check that the DAO do not start before k_neff)
+        if k[index_k_fit_max]<k_neff:
+           with open(self.bin_file_path, 'a') as bin_file:
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                 if count <= self.len_varying_params:
+                    bin_file.write(' %e' % (value['current']*value['scale']))
+                    count += 1
+                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write('\n')
+           #sys.stderr.write('#ErrLya2')
+           #sys.stderr.flush()
+           return data.boundary_loglike
 
         k_fit = k[:index_k_fit_max]
         Tk_fit = Tk[:index_k_fit_max]
@@ -389,39 +435,20 @@ class Lya(Likelihood):
         #report_fit(result)
         #print result.chisqr, result.redchi
 
-        plt.xlabel('k [h/Mpc]')
-        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-        #plt.ylim(0.,1.1)
-        plt.xlim(self.kmin,self.kmax)
-        plt.xscale('log')
-        #plt.yscale('log')
-        plt.grid(True)
-        plt.plot(k, Tk**2, 'r')
-        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
-        #plt.show()
-        plt.savefig('grid_fit_plot.pdf')
+#        plt.xlabel('k [h/Mpc]')
+#        plt.ylabel('$P_{nCDM}/P_{CDM}$')
+#        #plt.ylim(0.,1.1)
+#        plt.xlim(self.kmin,self.kmax)
+#        plt.xscale('log')
+#        #plt.yscale('log')
+#        plt.grid(True)
+#        plt.plot(k, Tk**2, 'r')
+#        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+#        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
+#        #plt.show()
+#        plt.savefig('grid_fit_plot.pdf')
 
-        if (abs(Tk[0]**2-1.0)>0.01):
-           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
-           return data.boundary_loglike
-
-        #first condition on the cosmological parameters
-        if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
-           #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
-           with open(self.bin_file_path, 'a') as bin_file:
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                 if count <= self.len_varying_params:
-                    bin_file.write(' %e' % (value['current']*value['scale']))
-                    count += 1
-                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
-                bin_file.write('\n')
-           #sys.stderr.write('#ErrLya1')
-           #sys.stderr.flush()
-           return data.boundary_loglike
-
-        #second condition on the goodness of fit
+        #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
            with open(self.bin_file_path, 'a') as bin_file:
@@ -436,12 +463,7 @@ class Lya(Likelihood):
            #sys.stderr.flush()
            return data.boundary_loglike
 
-        #here compute the Lya k max
-        #Om=cosmo.Omega_m()
-        #k_Lya_max=100./(1.+self.zeta_range_mh[len(self.zeta_range_mh)-1])*(((1.+self.zeta_range_mh[len(self.zeta_range_mh)-1])**3*Om+(1.-Om))**(1./2.))*self.k_mh[len(self.k_mh)-1]
-        #print 'k_Lya_max = ',k_Lya_max, 'h/Mpc'
-        
-        #third condition on the goodness of fit
+        #sanity check on the alpha beta gamma fit wrt the model
         for index_k in range(len(k_fit)):
             if abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:
                with open(self.bin_file_path, 'a') as bin_file:

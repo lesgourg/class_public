@@ -3532,10 +3532,10 @@ int spectra_neff(
   double tau;
   double Omega0_m;
 
-  int last_index_back;
-  double * pvecback_short; /* array with argument pvecback_sp_long[pba->index_bg] */
+  //int last_index_back;
+  //double * pvecback_short; /* array with argument pvecback_sp_long[pba->index_bg] */
 
-  class_call(background_tau_of_z(pba,z,&tau),
+  /*class_call(background_tau_of_z(pba,z,&tau),
              pba->error_message,
              psp->error_message);
 
@@ -3543,14 +3543,14 @@ int spectra_neff(
 
   class_call(background_at_tau(pba,tau,pba->short_info,pba->inter_normal,&last_index_back,pvecback_short),
              pba->error_message,
-             psp->error_message);
+             psp->error_message);*/
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
 
   //k(h/Mpc)=a*H*k(s/km)
-  //Lya_k_1_over_Mpc = pba->h*100.*pow((Omega0_m*pow((1.+z),3.)+(1.-Omega0_m)),(1./2.))/(1.+z)*psp->Lya_k_s_over_km;
+  Lya_k_1_over_Mpc = pba->h*100.*pow((Omega0_m*pow((1.+z),3.)+(1.-Omega0_m)),(1./2.))/(1.+z)*psp->Lya_k_s_over_km;
   //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
-  Lya_k_1_over_Mpc = pvecback_short[pba->index_bg_H]*_c_/1.e3*pvecback_short[pba->index_bg_a]*psp->Lya_k_s_over_km;
+  //Lya_k_1_over_Mpc = pvecback_short[pba->index_bg_H]*_c_/1.e3*pvecback_short[pba->index_bg_a]*psp->Lya_k_s_over_km;
   //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
   if (Lya_k_1_over_Mpc>0.999*exp(psp->ln_k[psp->ln_k_size-1])){
     class_stop(psp->error_message,"Lya_k_1_over_Mpc>P_k_max_1/Mpc\n");
@@ -3654,7 +3654,7 @@ int spectra_neff(
   if (psp->ic_ic_size[psp->index_md_scalars]>1)
     free(pk_ic);
 
-  free(pvecback_short);
+  //free(pvecback_short);
 
   return _SUCCESS_;
 
