@@ -269,7 +269,7 @@ class Lya(Likelihood):
         h=cosmo.h()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
-            Plin[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version
+            Plin[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)
         Plin *= h**3
 
         #here compute the Lya k scale
@@ -360,10 +360,11 @@ class Lya(Likelihood):
         Plin_equiv = np.zeros(len(k), 'float64')
         h = cosmo.h()
         for index_k in range(len(k)):
-            Plin_equiv[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)  #use pk_lin with the new class version
+            Plin_equiv[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)
         Plin_equiv *= h**3
 
         cosmo.empty()
+        del param_lcdm_equiv
         #print 'back to data.cosmo_arguments'
         #print data.cosmo_arguments
         #print '\n'
@@ -400,7 +401,9 @@ class Lya(Likelihood):
            #sys.stderr.write('#ErrLya2')
            #sys.stderr.flush()
             return data.boundary_loglike
-
+  
+        #k_fit = np.zeros(len(k), 'float64')
+        #Tk_fit = np.zeros(len(k), 'float64')
         k_fit = k[:index_k_fit_max]
         Tk_fit = Tk[:index_k_fit_max]
 
@@ -434,7 +437,8 @@ class Lya(Likelihood):
         best_gamma = result.params['gamma'].value
 
         #t1_fit = time.clock()
-
+ 
+        Tk_abg=np.zeros(len(k_fit),'float64')
         Tk_abg=T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
@@ -486,6 +490,8 @@ class Lya(Likelihood):
 
         #Now get the chi^2
 
+        astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
+
 	def z_dep_func(parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
 	    return parA*(( (1.+z)/(1.+self.zp) )**parS)
 
@@ -507,8 +513,6 @@ class Lya(Likelihood):
 	    return astrokrig_result
 
 	###########################  STUFF FOR INTERPOLATING IN THE {alpha,beta,gamma} SPACE ####################################
-        astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
-
 	ABG_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
 
 	def ordkrig_distance_3D(par1, par2, par3, var1, var2, var3):
@@ -533,11 +537,11 @@ class Lya(Likelihood):
 		    self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
 	    return np.sum(np.multiply(ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
 
-        theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
+        #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
         model_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
-        y_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
+        #y_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
         model_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
-        y_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
+        #y_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
         theta=np.array([best_alpha,best_beta,best_gamma,z_reio,sigma8,neff,F_UV,Fz1,Fz2,Fz3,Fz4,T0a,T0s,gamma_a,gamma_s])
         model = self.PF_noPRACE*ordkrig_estimator_3D(theta, self.redshift_list)
         upper_block = np.vsplit(model, [7,11])[0]
