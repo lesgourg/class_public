@@ -13,7 +13,7 @@ import pprint, pickle
 import matplotlib.pyplot as plt
 #import time
 
-#Lyman alpha likelihood by M. Archidiacono, R. Murgia, D. Hooper, J. Lesgourgues, M. Viel
+#Lyman alpha likelihood by M. Archidiacono, R. Murgia, D.C. Hooper, J. Lesgourgues, M. Viel
 
 class Lya(Likelihood):
 
@@ -22,17 +22,15 @@ class Lya(Likelihood):
         Likelihood.__init__(self, path, data, command_line)
 
         self.need_cosmo_arguments(data, {'output': 'mPk'})
-        self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.kmax}) 
+        self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.kmax})
         self.need_cosmo_arguments(data, {'compute_neff_Lya':'yes'})
-        self.need_cosmo_arguments(data, {'Lya_k_s_over_km':self.k_s_over_km})
-        self.need_cosmo_arguments(data, {'Lya_z':self.z})
 
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
-      
-        alphas = np.zeros(self.grid_size, 'float64')      
+
+        alphas = np.zeros(self.grid_size, 'float64')
         betas = np.zeros(self.grid_size, 'float64')
-        gammas = np.zeros(self.grid_size, 'float64') 
+        gammas = np.zeros(self.grid_size, 'float64')
 
         param = data.get_mcmc_parameters(['varying'])
         self.len_varying_params=len(param)
@@ -46,7 +44,7 @@ class Lya(Likelihood):
            for name in param:
                name = re.sub('[$*&]', '', name)
                bin_file.write(' %s' % name)
-           bin_file.write(' z_reio neff sigma8')
+           bin_file.write('z_reio neff sigma8')
            bin_file.write('\n')
 
         file_path = os.path.join(self.data_directory, self.grid_file)
@@ -96,14 +94,14 @@ class Lya(Likelihood):
 
         # redshift dependent parameters - params order: params order: mean_f , t0, slope
         zdep_params_size = [9, 3, 3] #how many values I have for each param
-        zdep_params_refpos = [4, 1, 2] #where to store the P_F(ref)# DATA 
+        zdep_params_refpos = [4, 1, 2] #where to store the P_F(ref)# DATA
 
         #MEAN FLUXES values###
         flux_ref_old = (np.array([0.669181, 0.617042, 0.564612, 0.512514, 0.461362, 0.411733, 0.364155, 0.253828, 0.146033, 0.0712724]))
         #flux_min_meanf = (np.array([0.401509, 0.370225, 0.338767, 0.307509, 0.276817, 0.24704, 0.218493, 0.152297, 0.0876197, 0.0427634]))
         #flux_max_meanf = (np.array([0.936854, 0.863859, 0.790456, 0.71752, 0.645907, 0.576426, 0.509816, 0.355359, 0.204446, 0.0997813]))
 
-        # DATA 
+        # DATA
         # FIRST (NOT USED) DATASET (19 wavenumbers) ***XQ-100***
         self.zeta_range_XQ = [3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2]  #list of redshifts corresponding to the 19 wavenumbers (k) (see ./SPECTRA/README)
         self.k_XQ = [0.003,0.006,0.009,0.012,0.015,0.018,0.021,0.024,0.027,0.03,0.033,0.036,0.039,0.042,0.045,0.048,0.051,0.054,0.057]
@@ -112,8 +110,8 @@ class Lya(Likelihood):
         self.zeta_range_mh = [4.2, 4.6, 5.0, 5.4]  #list of redshifts corresponding to the 7 wavenumbers (k) (see ./SPECTRA/README)
         self.k_mh = [0.00501187,0.00794328,0.0125893,0.0199526,0.0316228,0.0501187,0.0794328] #in s/km
 
-        self.zeta_full_lenght = (len(self.zeta_range_XQ) + len(self.zeta_range_mh))
-        self.kappa_full_lenght = (len(self.k_XQ) + len(self.k_mh))
+        self.zeta_full_length = (len(self.zeta_range_XQ) + len(self.zeta_range_mh))
+        self.kappa_full_length = (len(self.k_XQ) + len(self.k_mh))
         self.redshift = [3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.2, 4.6, 5.0, 5.4] #which snapshots (first 7 for first dataset, last 4 for second one)
 
         #T0 AND SLOPE VALUES
@@ -136,7 +134,7 @@ class Lya(Likelihood):
         self.slope_max = slope_values_old[:,2]*1.15
 
         #IMPORTING THE TWO GRIDS FOR KRIGING
-        # Here I import the gridS that I pre-computed through the file "setting_Kriging_grid_2R.py"  
+        # Here I import the grids that I pre-computed through the file "setting_Kriging_grid_2R.py"
         file_path = os.path.join(self.data_directory, self.astro_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
@@ -158,14 +156,14 @@ class Lya(Likelihood):
            exit()
 
         ALL_zdep_params = len(flux_ref_old) + len(t0_ref_old) + len(slope_ref_old)
-        grid_lenght_ABG = len(self.full_matrix_interpolated_ABG[0,0,:])
-        grid_lenght_ASTRO = len(self.full_matrix_interpolated_ASTRO[0,0,:])
+        grid_length_ABG = len(self.full_matrix_interpolated_ABG[0,0,:])
+        grid_length_ASTRO = len(self.full_matrix_interpolated_ASTRO[0,0,:])
         astroparams_number_KRIG = len(self.zind_param_size) + ALL_zdep_params
 
         #### --- ABG GRID --- {alpha, beta, gamma} GRID
         file_path = os.path.join(self.data_directory, self.abg_grid_file)
         if os.path.exists(file_path):
-           self.X_ABG = np.zeros((grid_lenght_ABG, self.params_numbers), 'float64')
+           self.X_ABG = np.zeros((grid_length_ABG, self.params_numbers), 'float64')
            for param_index in range(self.params_numbers):
                self.X_ABG[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
         else:
@@ -176,7 +174,7 @@ class Lya(Likelihood):
         #### HIGH REDSHIFT
         file_path = os.path.join(self.data_directory, self.abg_astro_grid_file)
         if os.path.exists(file_path):
-           self.X = np.zeros((grid_lenght_ASTRO,astroparams_number_KRIG), 'float64')
+           self.X = np.zeros((grid_length_ASTRO,astroparams_number_KRIG), 'float64')
            for param_index in range(astroparams_number_KRIG):
                self.X[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
         else:
@@ -185,7 +183,7 @@ class Lya(Likelihood):
 
         #  STUFF FOR INTERPOLATING IN THE ASTROPARAMS SPACE ####################################
         self.redshift_list = np.array([3.0, 3.2, 3.4, 3.6, 3.8, 4.0, 4.2, 4.6, 5.0, 5.4]) #combined dataset (MIKE/HIRES + XQ-100)
-        #astrokrig_result = np.zeros((self.zeta_full_lenght, self.kappa_full_lenght ), 'float64')
+        #astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
         #minimum and maximum values for the kriging normalisation###
         self.F_prior_min = np.array([0.535345,0.493634,0.44921,0.392273,0.338578,0.28871,0.218493,0.146675,0.0676442,0.0247793])
         self.F_prior_max = np.array([0.803017,0.748495,0.709659,0.669613,0.628673,0.587177,0.545471,0.439262,0.315261,0.204999])
@@ -198,7 +196,7 @@ class Lya(Likelihood):
            pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: MIKE spectra file is missing')
-           exit() 
+           exit()
         file_path = os.path.join(self.data_directory, self.HIRES_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
@@ -240,7 +238,7 @@ class Lya(Likelihood):
 
         return
 
-    #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
+    #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid !!!check why this was moved
     def khalf(self,alpha,beta,gamma):
         return ((((0.5)**(1/(2*gamma)) - 1)**(1/beta))/alpha)**(-1)       #1./k1half
 
@@ -271,7 +269,7 @@ class Lya(Likelihood):
         h=cosmo.h()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
-            Plin[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0) #use pk_lin with the new class version 
+            Plin[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version
         Plin *= h**3
 
         #here compute the Lya k scale
@@ -310,7 +308,7 @@ class Lya(Likelihood):
            #sys.stderr.write('#ErrLya1')
            #sys.stderr.flush()
            return data.boundary_loglike
-        
+
         #print '\n'
         #print 'initial data.cosmo_arguments'
         #print data.cosmo_arguments
@@ -319,39 +317,39 @@ class Lya(Likelihood):
 
         #deal with ethos like dark radiation
         if 'xi_idr' in data.cosmo_arguments:
-		if 'stat_f_idr' in data.cosmo_arguments:
-		  stat_f_idr = data.cosmo_arguments['stat_f_idr']
-		else:
-		  stat_f_idr = 7./8.
-		if 'N_ur' in data.cosmo_arguments:
-		  N_ur = data.cosmo_arguments['N_ur']
-		else:
-		  N_ur = 3.046
-		#pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
-		#N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-		DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.046)
-		eta2=(1.+0.2271*(3.046+DeltaNeff))/(1.+0.2271*3.046)
-		eta=np.sqrt(eta2)
-		#print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
-		#print '\n'
-                #param_lcdm_equiv['N_ur'] = 3.046 #default in class
-                param_lcdm_equiv['xi_idr'] = 0.
-                param_lcdm_equiv['omega_b'] *= 1./eta2
-                param_lcdm_equiv['omega_cdm'] *= 1./eta2
-                if 'H0' in data.cosmo_arguments:
-                     param_lcdm_equiv['H0'] *= 1./eta
-                else:# ('100*theta_s' in data.cosmo_arguments):
-                     raise io_mp.ConfigurationError('Error: run with H0')
-                     exit()
+            if 'stat_f_idr' in data.cosmo_arguments:
+                stat_f_idr = data.cosmo_arguments['stat_f_idr']
+            else:
+                stat_f_idr = 7./8.
+            if 'N_ur' in data.cosmo_arguments:
+                N_ur = data.cosmo_arguments['N_ur']
+            else:
+                N_ur = 3.046
+            #pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
+            #N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
+            DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.046)
+            eta2=(1.+0.2271*(3.046+DeltaNeff))/(1.+0.2271*3.046)
+            eta=np.sqrt(eta2)
+            #print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
+            #print '\n'
+            #param_lcdm_equiv['N_ur'] = 3.046 #default in class
+            param_lcdm_equiv['xi_idr'] = 0.
+            param_lcdm_equiv['omega_b'] *= 1./eta2
+            param_lcdm_equiv['omega_cdm'] *= 1./eta2
+            if 'H0' in data.cosmo_arguments:
+                param_lcdm_equiv['H0'] *= 1./eta
+            else:# ('100*theta_s' in data.cosmo_arguments):
+                raise io_mp.ConfigurationError('Error: run with H0')
+                exit()
 
         #deal with ethos like dark matter interactions
         if 'a_dark' in data.cosmo_arguments:
-                if (not 'f_idm_dr' in data.cosmo_arguments or data.cosmo_arguments['f_idm_dr'] != 1.0):
-                   raise io_mp.ConfigurationError('Error: f_idm_dr has to be set to 1.0')
-                   exit()
-		param_lcdm_equiv['f_idm_dr'] = 0.
-		param_lcdm_equiv['a_dark'] = 0.
-        
+            if (not 'f_idm_dr' in data.cosmo_arguments or data.cosmo_arguments['f_idm_dr'] != 1.0):
+                raise io_mp.ConfigurationError('Error: f_idm_dr has to be set to 1.0')
+                exit()
+            param_lcdm_equiv['f_idm_dr'] = 0.
+            param_lcdm_equiv['a_dark'] = 0.
+
         cosmo.empty()
         #print 'param_lcdm_equiv'
         #print param_lcdm_equiv
@@ -362,7 +360,7 @@ class Lya(Likelihood):
         Plin_equiv = np.zeros(len(k), 'float64')
         h = cosmo.h()
         for index_k in range(len(k)):
-            Plin_equiv[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0) #use pk_lin with the new class version
+            Plin_equiv[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)  #use pk_lin with the new class version
         Plin_equiv *= h**3
 
         cosmo.empty()
@@ -373,7 +371,7 @@ class Lya(Likelihood):
         cosmo.compute(['lensing'])
 
         Tk = np.zeros(len(k), 'float64')
-        Tk = np.sqrt(Plin/Plin_equiv) 
+        Tk = np.sqrt(Plin/Plin_equiv)
         if (abs(Tk[0]**2-1.0)>0.01):
            print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
            return data.boundary_loglike
@@ -391,22 +389,22 @@ class Lya(Likelihood):
 
         #sanity check for neff (check that the DAO do not start before k_neff)
         if k[index_k_fit_max]<k_neff:
-           with open(self.bin_file_path, 'a') as bin_file:
+            with open(self.bin_file_path, 'a') as bin_file:
                 count=1
                 for name, value in data.mcmc_parameters.iteritems():
-                 if count <= self.len_varying_params:
-                    bin_file.write(' %e' % (value['current']*value['scale']))
-                    count += 1
+                    if count <= self.len_varying_params:
+                        bin_file.write(' %e' % (value['current']*value['scale']))
+                        count += 1
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
            #sys.stderr.write('#ErrLya2')
            #sys.stderr.flush()
-           return data.boundary_loglike
+            return data.boundary_loglike
 
         k_fit = k[:index_k_fit_max]
         Tk_fit = Tk[:index_k_fit_max]
 
-        # fitting the given linear P(k) with the {alpha,beta,gamma}-formula 
+        # fitting the given linear P(k) with the {alpha,beta,gamma}-formula
 
         #model function #T^2=P_model/P_ref
         def T(k,alpha,beta,gamma):
@@ -443,18 +441,18 @@ class Lya(Likelihood):
         #report_fit(result)
         #print result.chisqr, result.redchi
 
-#        plt.xlabel('k [h/Mpc]')
-#        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-#        #plt.ylim(0.,1.1)
-#        plt.xlim(self.kmin,self.kmax)
-#        plt.xscale('log')
-#        #plt.yscale('log')
-#        plt.grid(True)
-#        plt.plot(k, Tk**2, 'r')
-#        plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-#        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
-#        #plt.show()
-#        plt.savefig('grid_fit_plot.pdf')
+        #plt.xlabel('k [h/Mpc]')
+        #plt.ylabel('$P_{nCDM}/P_{CDM}$')
+        #plt.ylim(0.,1.1)
+        #plt.xlim(self.kmin,self.kmax)
+        #plt.xscale('log')
+        #plt.yscale('log')
+        #plt.grid(True)
+        #plt.plot(k, Tk**2, 'r')
+        #plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
+        #plt.show()
+        #plt.savefig('grid_fit_plot.pdf')
 
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
@@ -509,9 +507,9 @@ class Lya(Likelihood):
 	    return astrokrig_result
 
 	###########################  STUFF FOR INTERPOLATING IN THE {alpha,beta,gamma} SPACE ####################################
-        astrokrig_result = np.zeros((self.zeta_full_lenght, self.kappa_full_lenght ), 'float64')
+        astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
 
-	ABG_matrix_new = np.zeros(( self.zeta_full_lenght, self.kappa_full_lenght, self.grid_size+self.num_sim_thermal), 'float64')
+	ABG_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
 
 	def ordkrig_distance_3D(par1, par2, par3, var1, var2, var3):
 	    return (((par1 - var1)**2 + (par2 - var2)**2 + (par3 - var3)**2)**(0.5) + self.epsilon)**self.exponent
@@ -522,16 +520,16 @@ class Lya(Likelihood):
 	def ordkrig_lambda_3D(par1, par2, par3, var1, var2, var3):
 	    return (1./ordkrig_distance_3D(par1, par2, par3, var1, var2, var3))/ordkrig_norm_3D(par1,par2,par3)
 
-	NEW_ABG_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_lenght, self.kappa_full_lenght), 'float64')
-	for i in range(self.zeta_full_lenght):
-	    for j in range(self.kappa_full_lenght):
+	NEW_ABG_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_length, self.kappa_full_length), 'float64')
+	for i in range(self.zeta_full_length):
+	    for j in range(self.kappa_full_length):
 		NEW_ABG_matrix[:,i,j] = self.full_matrix_interpolated_ABG[i,j,:]
 
 	def ordkrig_estimator_3D(p21, z):
 	    ABG_matrix_new = NEW_ABG_matrix + ordkrig_estimator(p21,z) - 1.
 	    ABG_matrix_new = np.clip(ABG_matrix_new, 0. , None)
-	    for i in range(self.zeta_full_lenght):
-		for j in range(self.kappa_full_lenght):
+	    for i in range(self.zeta_full_length):
+		for j in range(self.kappa_full_length):
 		    self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
 	    return np.sum(np.multiply(ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
 
