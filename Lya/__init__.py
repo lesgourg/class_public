@@ -62,6 +62,7 @@ class Lya(Likelihood):
                     betas[index] = float(line.split()[1])
                     gammas[index] = float(line.split()[2])
                     line = grid_file.readline()
+                grid_file.close()
         else:
            raise io_mp.ConfigurationError('Error: grid file is missing')
            exit()
@@ -141,6 +142,7 @@ class Lya(Likelihood):
            pkl = open(file_path, 'r')
            self.full_matrix_interpolated_ASTRO = pickle.load(pkl)
            #print self.full_matrix_interpolated_ASTRO.shape
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: astro spectra file is missing')
            exit()
@@ -150,6 +152,7 @@ class Lya(Likelihood):
            pkl = open(file_path, 'r')
            self.full_matrix_interpolated_ABG = pickle.load(pkl)
            #print self.full_matrix_interpolated_ABG.shape
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: abg spectra file is missing')
            exit()
@@ -192,6 +195,7 @@ class Lya(Likelihood):
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
            y_M_reshaped = pickle.load(pkl)
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: MIKE spectra file is missing')
            exit() 
@@ -199,6 +203,7 @@ class Lya(Likelihood):
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
            y_H_reshaped = pickle.load(pkl)
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: HIRES spectra file is missing')
            exit()
@@ -207,6 +212,7 @@ class Lya(Likelihood):
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
            cov_M_inverted = pickle.load(pkl)
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: MIKE covariance matrix file is missing')
            exit()
@@ -215,6 +221,7 @@ class Lya(Likelihood):
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
            cov_H_inverted = pickle.load(pkl)
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: HIRES covariance matrix file is missing')
            exit()
@@ -223,6 +230,7 @@ class Lya(Likelihood):
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
            self.PF_noPRACE = pickle.load(pkl)
+           pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: PF_noPRACE file is missing')
            exit()
@@ -263,7 +271,7 @@ class Lya(Likelihood):
         h=cosmo.h()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
-            Plin[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version 
+            Plin[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0) #use pk_lin with the new class version 
         Plin *= h**3
 
         #here compute the Lya k scale
@@ -354,7 +362,7 @@ class Lya(Likelihood):
         Plin_equiv = np.zeros(len(k), 'float64')
         h = cosmo.h()
         for index_k in range(len(k)):
-            Plin_equiv[index_k] = cosmo.pk(k[index_k]*h, 0.0) #use pk_lin with the new class version
+            Plin_equiv[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0) #use pk_lin with the new class version
         Plin_equiv *= h**3
 
         cosmo.empty()
