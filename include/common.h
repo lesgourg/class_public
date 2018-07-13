@@ -780,7 +780,10 @@ struct precision
                                whcih defines the wavenumber of
                                non-linearity, k_nl=1./R_nl */
 
-  double pk_eq_z_max; /**< Maximum z until the pk_eq method tries to calculate */
+  double pk_eq_z_max; /**< Maximum z until which the Pk_equal method of 0810.0190 and 1601.07230 is used */
+
+  double pk_eq_tol;   /**< tolerance for finding the equivalent models of the pk_equal method */
+
   //@}
 
   /** @name - parameters related to lensing */

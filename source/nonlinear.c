@@ -180,7 +180,7 @@ int nonlinear_init(
     class_alloc(lnk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);//this is not really necessary
     class_alloc(lnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
     class_alloc(ddlnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-  
+
     }
 
     print_warning=_FALSE_;
@@ -220,7 +220,7 @@ int nonlinear_init(
 
        /* get P_NL(k) at this time */
       if (print_warning == _FALSE_) {
-      
+
         class_call(nonlinear_halofit(ppr,
                                      pba,
                                      ppt,
@@ -241,7 +241,7 @@ int nonlinear_init(
         if (halofit_found_k_max == _TRUE_) {
 
           // for debugging:
-            /*if ((index_tau == pnl->tau_size-1)){ 
+            /*if ((index_tau == pnl->tau_size-1)){
             for (index_k=0; index_k<pnl->k_size; index_k++) {
             fprintf(stdout,"%d %e  %e  %e\n",index_pk,pnl->k[index_k],pk_l[index_pk][index_k],pk_nl[index_pk][index_k]);
             }
@@ -285,7 +285,7 @@ int nonlinear_init(
       }
 
     }//end loop over pk_type
-   
+
     }//end loop over tau
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
      free(pk_l[index_pk]);
@@ -313,7 +313,7 @@ int nonlinear_free(
                    struct nonlinear *pnl
                    ) {
   int index_pk;
-  
+
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
@@ -329,9 +329,9 @@ int nonlinear_free(
   }
 
   if (pnl->has_pk_eq == _TRUE_) {
-    free(pnl->eq_tau);
-    free(pnl->eq_w_and_Omega);
-    free(pnl->eq_ddw_and_ddOmega);
+    free(pnl->pk_eq_tau);
+    free(pnl->pk_eq_w_and_Omega);
+    free(pnl->pk_eq_ddw_and_ddOmega);
   }
 
   return _SUCCESS_;
@@ -358,7 +358,7 @@ int nonlinear_pk_l(
   double source_ic1,source_ic2;
 
   index_md = ppt->index_md_scalars;
-  
+
   // Initialize first, then assign correct value
   index_delta = ppt->index_tp_delta_m;
   if(index_pk == pnl->index_pk_m){
@@ -506,7 +506,7 @@ int nonlinear_halofit(
   double * w_and_Omega;
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-  
+
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
 
   //Initialize first, then assign correct value
@@ -519,7 +519,7 @@ int nonlinear_halofit(
   }
   else {
     class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
-  } 
+  }
 
   if (pnl->has_pk_eq == _FALSE_) {
 
@@ -538,33 +538,33 @@ int nonlinear_halofit(
   }
   else {
 
-    /* alternative method called PK-equal, described in 0810.0190 and
-                      1601.0723, extending the range of validity of
-                      HALOFIT from constant w to w0-wa models. In that
+    /* alternative method called Pk_equal, described in 0810.0190 and
+                      1601.07230, extending the range of validity of
+                      HALOFIT from constant w to (w0,wa) models. In that
                       case, some effective values of w0(tau_i) and
-                      Omega_m(tau_i) have been pre-computed in the input
-                      module, and we just ned to interpolate within
-                      tabulated arrays, to get them at the current tau
-                      value. */
+                      Omega_m(tau_i) have been pre-computed in the
+                      input module, and we just ned to interpolate
+                      within tabulated arrays, to get them at the
+                      current tau value. */
 
-    class_alloc(w_and_Omega,pnl->eq_size*sizeof(double),pnl->error_message);
+    class_alloc(w_and_Omega,pnl->pk_eq_size*sizeof(double),pnl->error_message);
 
     class_call(array_interpolate_spline(
-                                        pnl->eq_tau,
-                                        pnl->eq_tau_size,
-                                        pnl->eq_w_and_Omega,
-                                        pnl->eq_ddw_and_ddOmega,
-                                        pnl->eq_size,
+                                        pnl->pk_eq_tau,
+                                        pnl->pk_eq_tau_size,
+                                        pnl->pk_eq_w_and_Omega,
+                                        pnl->pk_eq_ddw_and_ddOmega,
+                                        pnl->pk_eq_size,
                                         tau,
                                         &last_index,
                                         w_and_Omega,
-                                        pnl->eq_size,
+                                        pnl->pk_eq_size,
                                         pnl->error_message),
                pnl->error_message,
                pnl->error_message);
 
-    w0 = w_and_Omega[pnl->index_eq_w];
-    Omega_m = w_and_Omega[pnl->index_eq_Omega_m];
+    w0 = w_and_Omega[pnl->index_pk_eq_w];
+    Omega_m = w_and_Omega[pnl->index_pk_eq_Omega_m];
     Omega_v = 1.-Omega_m;
 
     free(w_and_Omega);
