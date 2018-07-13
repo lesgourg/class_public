@@ -24,6 +24,8 @@ class Lya(Likelihood):
         self.need_cosmo_arguments(data, {'output': 'mPk'})
         self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.kmax})
         self.need_cosmo_arguments(data, {'compute_neff_Lya':'yes'})
+        self.need_cosmo_arguments(data, {'Lya_k_s_over_km':self.k_s_over_km})
+        self.need_cosmo_arguments(data, {'Lya_z':self.z})
 
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
