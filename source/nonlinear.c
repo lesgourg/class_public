@@ -564,7 +564,7 @@ int nonlinear_init(
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
       
       // uncomment this to see the time spent at each tau
-      clock_t begin = clock();
+      //clock_t begin = clock();
       
       
       /** loop over the dummie index pk_type, such that it is ensured that index_pk starts at index_pk_cb when neutrinos are included
@@ -754,9 +754,9 @@ int nonlinear_init(
     
      // uncomment this to see the time spent at each tau
     //show the time spent for each tau:
-    clock_t end = clock();
-    double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
-    fprintf(stdout, "index_tau = %d, tau = %e, time spent: %e s\n", index_tau, pnl->tau[index_tau], time_spent);    
+    //clock_t end = clock();
+    //double time_spent = ((double)(end - begin))/CLOCKS_PER_SEC;
+    //fprintf(stdout, "index_tau = %d, tau = %e, time spent: %e s\n", index_tau, pnl->tau[index_tau], time_spent);    
     
     
     } //end loop over index_tau

@@ -588,7 +588,7 @@ int array_spline_table_lines(
     sprintf(errmsg,"%s(L:%d) Cannot allocate un",__func__,__LINE__);
     return _FAILURE_;
   }
-  
+
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
 
   index_x=0;
@@ -1206,9 +1206,9 @@ int array_spline_table_one_column(
     sprintf(errmsg,"%s(L:%d) Cannot allocate u",__func__,__LINE__);
     return _FAILURE_;
   }
-  
-  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
-  
+
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
+
   /************************************************/
 
   index_x=0;
