@@ -821,6 +821,8 @@ int input_read_parameters(
   if(flag1 == _TRUE_){
     if(entries_read != (ppr->l_max_idr-1)){
       class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      //free(ppt->alpha_dark);
+      //class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
       for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
     }
   }
@@ -835,6 +837,8 @@ int input_read_parameters(
   if(flag1 == _TRUE_){
     if(entries_read != (ppr->l_max_idr-1)){
       class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      //free(ppt->beta_dark);
+      //class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
       for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
     }
   }

@@ -169,6 +169,8 @@ int perturb_init(
                 "your dark_radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
   }
 
+  ppt->has_idm = pba->has_idm; //DCH !!!
+
   if (pba->has_ur == _TRUE_) {
 
     class_test ((ppr->ur_fluid_approximation < ufa_mb) ||
@@ -517,7 +519,10 @@ int perturb_free(
       if (ppt->tensor_perturbations_data[filenum] != NULL)
         free(ppt->tensor_perturbations_data[filenum]);
     }
-
+    if(ppt->has_idm == _TRUE_){ //DCH
+      free(ppt->alpha_dark);
+      free(ppt->beta_dark);
+    }
   }
 
   return _SUCCESS_;
@@ -1486,7 +1491,7 @@ int perturb_get_k_list(
     /* values until k_max_cl[ppt->index_md_scalars] */
 
     while (k < k_max_cl[ppt->index_md_scalars]) {
-      
+
       k *= pow(10.,1./(ppr->k_per_decade_for_pk
                        +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
