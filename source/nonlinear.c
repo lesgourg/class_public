@@ -529,25 +529,41 @@ int nonlinear_init(
       class_alloc(pnl->ddstab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
       
      /** if HMcode, Set the baryonic feedback parameters according to the chosen feedback models */
-      if (pnl->feedback == nl_emu_dmonly){
-        pnl->eta_0 = 0.603;
-        pnl->c_min = 3.13;
-      }
-      if (pnl->feedback == nl_owls_dmonly){
-        pnl->eta_0 = 0.64;
-        pnl->c_min = 3.43;
-      }			
-      if (pnl->feedback == nl_owls_ref){
-        pnl->eta_0 = 0.68;
-        pnl->c_min = 3.91;
-      }		
-      if (pnl->feedback == nl_owls_agn){
-        pnl->eta_0 = 0.76;
-        pnl->c_min = 2.32;
-      }		
-      if (pnl->feedback == nl_owls_dblim){
-        pnl->eta_0 = 0.70;
-        pnl->c_min = 3.01;
+      switch (pnl->feedback) {
+        case nl_emu_dmonly: 
+        {
+          pnl->eta_0 = 0.603;
+          pnl->c_min = 3.13;
+          break;
+        }
+        
+        case nl_owls_dmonly: 
+        {
+          pnl->eta_0 = 0.64;
+          pnl->c_min = 3.43;
+          break;
+        }			
+        
+        case nl_owls_ref: 
+        {
+          pnl->eta_0 = 0.68;
+          pnl->c_min = 3.91;
+          break;
+        }		
+        
+        case nl_owls_agn:
+        {
+          pnl->eta_0 = 0.76;
+          pnl->c_min = 2.32;
+          break;
+        }		
+        
+        case nl_owls_dblim:
+        {
+          pnl->eta_0 = 0.70;
+          pnl->c_min = 3.01;
+          break;
+        }
       }
     }
     
