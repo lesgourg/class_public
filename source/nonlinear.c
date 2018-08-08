@@ -2573,9 +2573,8 @@ int nonlinear_hmcode(
   
   
 	/** Now compute the nonlinear correction */
-  double factor = 1;
   eta = pnl->eta_0 - 0.3*sigma8; // halo bloating parameter
-  k_star=factor*0.584/sigma_disp;   // Damping wavenumber of the 1-halo term at very large scales;
+  k_star=0.584/sigma_disp;   // Damping wavenumber of the 1-halo term at very large scales;
 	fdamp = 0.0095*pow(sigma_disp100*pba->h, 1.37); // Damping factor for 2-halo term 
 	if (fdamp<1.e-3) fdamp=1.e-3;
   if (fdamp>0.99)  fdamp=0.99;
