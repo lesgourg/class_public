@@ -503,6 +503,11 @@ int perturb_free(
 
     free(ppt->sources);
 
+    //if(ppt->has_idm == _TRUE_){ //DCH
+    free(ppt->alpha_dark);
+    free(ppt->beta_dark);
+    //}
+
     /** Stuff related to perturbations output: */
 
     /** - Free non-NULL pointers */
@@ -2534,23 +2539,33 @@ int perturb_prepare_output(struct precision * ppr, //ethos
 
       class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"a",_TRUE_);
+/*MArchi ethos debug*/
+      class_store_columntitle(ppt->scalar_titles,"adotoa",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"eta",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"h_prime_over_2",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"alpha",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"convert_delta",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"convert_theta",_TRUE_);
+      //class_store_columntitle(ppt->scalar_titles,"phi",_TRUE_);
+      //class_store_columntitle(ppt->scalar_titles,"psi",_TRUE_);
+/*MArchi ethos debug end*/
       class_store_columntitle(ppt->scalar_titles,"delta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"theta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"shear_g",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"pol0_g",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"pol1_g",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"pol2_g",_TRUE_);
+      //class_store_columntitle(ppt->scalar_titles,"pol0_g",_TRUE_);
+      //class_store_columntitle(ppt->scalar_titles,"pol1_g",_TRUE_);
+      //class_store_columntitle(ppt->scalar_titles,"pol2_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"delta_b",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"theta_b",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"psi",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"phi",_TRUE_);
       /* Perturbed recombination */
-      class_store_columntitle(ppt->scalar_titles,"delta_Tb",ppt->has_perturbed_recombination);
-      class_store_columntitle(ppt->scalar_titles,"delta_chi",ppt->has_perturbed_recombination);
+      //class_store_columntitle(ppt->scalar_titles,"delta_Tb",ppt->has_perturbed_recombination);
+      //class_store_columntitle(ppt->scalar_titles,"delta_chi",ppt->has_perturbed_recombination);
       /* Ultrarelativistic species */
-      class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
-      class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
-      class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
+      //class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
+      //class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
+      //class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
       /* ethos interacting dark radiation */
       class_store_columntitle(ppt->scalar_titles,"delta_idr",pba->has_idr);
       class_store_columntitle(ppt->scalar_titles,"theta_idr",pba->has_idr);
@@ -4051,7 +4066,7 @@ int perturb_vector_init(
 
             if (ppr->idr_nature == idr_free_streaming){// ppr->idr_free_streaming always if tca_dark is on
               ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
-              //MArchi: do we have to initialize l3 too?
+              ppv->y[ppv->index_pt_l3_idr] = 3./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0];//MArchi ad l3
             }
           }
 
@@ -5338,14 +5353,15 @@ int perturb_approximations(
 
         class_test(1./ppw->pvecthermo[pth->index_th_dmu_dark] < 0.,
                    ppt->error_message,
-                   "negative tau_dark=1/dmu_dark=%e at z=%e, conformal time=%e.(This could come from the interpolation of a too poorly sampled reionisation history?).\n",
+                   "negative tau_dark=1/dmu_dark=%e at z=%e, conformal time=%e.\n",
                    1./ppw->pvecthermo[pth->index_th_dmu_dark],
                    1./ppw->pvecback[pba->index_bg_a]-1.,
                    tau);
 
         if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-            (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) {
+            //MArchi//(1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
+            (tau_k>tau_h) &&
+	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) {
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
         }
         else{
@@ -5731,7 +5747,7 @@ int perturb_einstein(
 
     /* synchronous gauge */
     if (ppt->gauge == synchronous) {
-
+      /*MArchi ethos debug the error is in h_prime, not on eta*/
       /* first equation involving total density fluctuation */
       ppw->pvecmetric[ppw->index_mt_h_prime] =
         ( k2 * s2_squared * y[ppw->pv->index_pt_eta] + 1.5 * a2 * ppw->delta_rho)/(0.5*a_prime_over_a);  /* h' */
@@ -6051,6 +6067,7 @@ int perturb_total_stress_energy(
     if (pba->has_idm == _TRUE_) {
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_delta_idm];
       ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_theta_idm];
+      rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_idm]; //MArchi ethos this was missing and it was a bug
     }
 
     /* dcdm contribution */
@@ -6326,9 +6343,9 @@ int perturb_total_stress_energy(
 
       /* ethos interacting dark matter */
 
-      if (pba->has_idm == _TRUE_) {
-        delta_rho_m += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_delta_idm];
-        rho_m += ppw->pvecback[pba->index_bg_rho_idm];
+      if (pba->has_idm == _TRUE_) { //MArchi ethos here there was a big bug, instead of rho_plus_p there was again delta_rho
+        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_theta_idm];
+        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_idm];
       }
 
       if ((ppt->has_source_delta_cb == _TRUE_) || (ppt->has_source_theta_cb == _TRUE_))
@@ -7354,23 +7371,33 @@ int perturb_print_variables(double tau,
 
     class_store_double(dataptr, tau, _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a], _TRUE_, storeidx);
+/*MArchi ethos debug*/
+    class_store_double(dataptr, pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H], _TRUE_, storeidx);
+    class_store_double(dataptr, y[ppw->pv->index_pt_eta], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecmetric[ppw->index_mt_h_prime]/2., _TRUE_, storeidx);
+    class_store_double(dataptr, alpha, _TRUE_, storeidx);
+    class_store_double(dataptr, -pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha, _TRUE_, storeidx);
+    class_store_double(dataptr,k*k*alpha, _TRUE_, storeidx);
+    //class_store_double(dataptr, phi, _TRUE_, storeidx);
+    //class_store_double(dataptr, psi, _TRUE_, storeidx);
+/*MArchi ethos debug end*/
     class_store_double(dataptr, delta_g, _TRUE_, storeidx);
     class_store_double(dataptr, theta_g, _TRUE_, storeidx);
     class_store_double(dataptr, shear_g, _TRUE_, storeidx);
-    class_store_double(dataptr, pol0_g, _TRUE_, storeidx);
-    class_store_double(dataptr, pol1_g, _TRUE_, storeidx);
-    class_store_double(dataptr, pol2_g, _TRUE_, storeidx);
+    //class_store_double(dataptr, pol0_g, _TRUE_, storeidx);
+    //class_store_double(dataptr, pol1_g, _TRUE_, storeidx);
+    //class_store_double(dataptr, pol2_g, _TRUE_, storeidx);
     class_store_double(dataptr, delta_b, _TRUE_, storeidx);
     class_store_double(dataptr, theta_b, _TRUE_, storeidx);
     class_store_double(dataptr, psi, _TRUE_, storeidx);
     class_store_double(dataptr, phi, _TRUE_, storeidx);
     /* perturbed recombination */
-    class_store_double(dataptr, delta_temp, ppt->has_perturbed_recombination, storeidx);
-    class_store_double(dataptr, delta_chi, ppt->has_perturbed_recombination, storeidx);
+    //class_store_double(dataptr, delta_temp, ppt->has_perturbed_recombination, storeidx);
+    //class_store_double(dataptr, delta_chi, ppt->has_perturbed_recombination, storeidx);
     /* Ultra relativistic species */
-    class_store_double(dataptr, delta_ur, pba->has_ur, storeidx);
-    class_store_double(dataptr, theta_ur, pba->has_ur, storeidx);
-    class_store_double(dataptr, shear_ur, pba->has_ur, storeidx);
+    //class_store_double(dataptr, delta_ur, pba->has_ur, storeidx);
+    //class_store_double(dataptr, theta_ur, pba->has_ur, storeidx);
+    //class_store_double(dataptr, shear_ur, pba->has_ur, storeidx);
     /* Interacting Dark Radiation ethos */
     class_store_double(dataptr, delta_idr, pba->has_idr, storeidx);
     class_store_double(dataptr, theta_idr, pba->has_idr, storeidx);
@@ -7996,16 +8023,17 @@ int perturb_derivs(double tau,
             (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
         //Seb//tca_shear_dark = 8./15./dmu_dark/ppt->alpha_dark[0]*y[pv->index_pt_theta_idm];
         ppw->tca_shear_dark = 0.5*(8./15./dmu_dark/ppt->alpha_dark[0]*(theta_idr+metric_shear));
-        FILE *blah;
-        if(k==0.1){
-           blah = fopen("blah.txt","a"); 
-           fprintf(blah,"%e %e %e %e %e\n",k,tau,tca_slip_dark,ppw->tca_shear_dark,(pth->nindex_dark+Sinv/(1.+Sinv))*a_prime_over_a);
-           fclose(blah);
-        }
         //Seb//dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
         //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
                                                    y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
+        /*FILE *blah;
+        if(k==0.1){
+           blah = fopen("blah.txt","a");
+           fprintf(blah,"%e %e %e %e %e\n",k,tau,metric_continuity,dy[pv->index_pt_delta_idr],dy[pv->index_pt_delta_idm]);
+           fclose(blah);
+        }*/
+
       }
     }
 
