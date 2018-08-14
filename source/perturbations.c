@@ -2542,11 +2542,11 @@ int perturb_prepare_output(struct precision * ppr, //ethos
 /*MArchi ethos debug*/
       class_store_columntitle(ppt->scalar_titles,"a2*delta_rho",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"adotoa",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"eta",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"h_prime_over_2",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"alpha",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"convert_delta",_TRUE_);
-      class_store_columntitle(ppt->scalar_titles,"convert_theta",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"eta",ppt->gauge == synchronous);
+      class_store_columntitle(ppt->scalar_titles,"h_prime_over_2",ppt->gauge == synchronous);
+      class_store_columntitle(ppt->scalar_titles,"alpha",ppt->gauge == synchronous);
+      class_store_columntitle(ppt->scalar_titles,"convert_delta",ppt->gauge == synchronous);
+      class_store_columntitle(ppt->scalar_titles,"convert_theta",ppt->gauge == synchronous);
       //class_store_columntitle(ppt->scalar_titles,"phi",_TRUE_);
       //class_store_columntitle(ppt->scalar_titles,"psi",_TRUE_);
 /*MArchi ethos debug end*/
@@ -7374,11 +7374,11 @@ int perturb_print_variables(double tau,
 /*MArchi ethos debug*/
     class_store_double(dataptr, ppw->delta_rho*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a], _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H], _TRUE_, storeidx);
-    class_store_double(dataptr, y[ppw->pv->index_pt_eta], _TRUE_, storeidx);
-    class_store_double(dataptr, pvecmetric[ppw->index_mt_h_prime]/2., _TRUE_, storeidx);
-    class_store_double(dataptr, alpha, _TRUE_, storeidx);
-    class_store_double(dataptr, -pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha, _TRUE_, storeidx);
-    class_store_double(dataptr,k*k*alpha, _TRUE_, storeidx);
+    class_store_double(dataptr, y[ppw->pv->index_pt_eta], ppt->gauge == synchronous, storeidx);
+    class_store_double(dataptr, pvecmetric[ppw->index_mt_h_prime]/2., ppt->gauge == synchronous, storeidx);
+    class_store_double(dataptr, alpha, ppt->gauge == synchronous, storeidx);
+    class_store_double(dataptr, -pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha, ppt->gauge == synchronous, storeidx);
+    class_store_double(dataptr,k*k*alpha, ppt->gauge == synchronous, storeidx);
     //class_store_double(dataptr, phi, _TRUE_, storeidx);
     //class_store_double(dataptr, psi, _TRUE_, storeidx);
 /*MArchi ethos debug end*/
