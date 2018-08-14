@@ -2540,6 +2540,7 @@ int perturb_prepare_output(struct precision * ppr, //ethos
       class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"a",_TRUE_);
 /*MArchi ethos debug*/
+      class_store_columntitle(ppt->scalar_titles,"a2*delta_rho",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"adotoa",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"eta",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"h_prime_over_2",_TRUE_);
@@ -4066,7 +4067,7 @@ int perturb_vector_init(
 
             if (ppr->idr_nature == idr_free_streaming){// ppr->idr_free_streaming always if tca_dark is on
               ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
-              ppv->y[ppv->index_pt_l3_idr] = 3./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0];//MArchi ad l3
+              ppv->y[ppv->index_pt_l3_idr] = 3./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0];//MArchi add l3
             }
           }
 
@@ -5359,9 +5360,8 @@ int perturb_approximations(
                    tau);
 
         if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-            //MArchi//(1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-            (tau_k>tau_h) &&
-	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) {
+            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
+	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) { //MArchi ethos in the check of the index we can add ||(tau_k>tau_h)
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
         }
         else{
@@ -5747,7 +5747,7 @@ int perturb_einstein(
 
     /* synchronous gauge */
     if (ppt->gauge == synchronous) {
-      /*MArchi ethos debug the error is in h_prime, not on eta*/
+      /*MArchi ethos debug the error is in h_prime. Btw 1.5 * a2 * ppw->delta_rho shouldn't be 0.5 * a2 * ppw->delta_rho (according to CAMB)? */
       /* first equation involving total density fluctuation */
       ppw->pvecmetric[ppw->index_mt_h_prime] =
         ( k2 * s2_squared * y[ppw->pv->index_pt_eta] + 1.5 * a2 * ppw->delta_rho)/(0.5*a_prime_over_a);  /* h' */
@@ -6343,7 +6343,7 @@ int perturb_total_stress_energy(
 
       /* ethos interacting dark matter */
 
-      if (pba->has_idm == _TRUE_) { //MArchi ethos here there was a big bug, instead of rho_plus_p there was again delta_rho
+      if (pba->has_idm == _TRUE_) {
         rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_theta_idm];
         rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_idm];
       }
@@ -7372,6 +7372,7 @@ int perturb_print_variables(double tau,
     class_store_double(dataptr, tau, _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a], _TRUE_, storeidx);
 /*MArchi ethos debug*/
+    class_store_double(dataptr, ppw->delta_rho*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a], _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H], _TRUE_, storeidx);
     class_store_double(dataptr, y[ppw->pv->index_pt_eta], _TRUE_, storeidx);
     class_store_double(dataptr, pvecmetric[ppw->index_mt_h_prime]/2., _TRUE_, storeidx);
@@ -8011,7 +8012,7 @@ int perturb_derivs(double tau,
       if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off) {
 
         dy[pv->index_pt_theta_idm] = - a_prime_over_a*y[pv->index_pt_theta_idm] + metric_euler; /* idm velocity */
-        dy[pv->index_pt_theta_idm] -= Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm];
+        dy[pv->index_pt_theta_idm] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]);
         // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos, added to Sinv
       }
       else{
