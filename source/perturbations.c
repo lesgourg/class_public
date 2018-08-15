@@ -902,7 +902,7 @@ int perturb_indices_of_perturbs(
  * @param ppt Input/Output: Initialized perturbation structure
  * @return the error status
  */
-
+/*MArchi ethos add a check for tau_ini before dark decoupling*/
 int perturb_timesampling_for_sources(
                                      struct precision * ppr,
                                      struct background * pba,
@@ -2547,8 +2547,6 @@ int perturb_prepare_output(struct precision * ppr, //ethos
       class_store_columntitle(ppt->scalar_titles,"alpha",ppt->gauge == synchronous);
       class_store_columntitle(ppt->scalar_titles,"convert_delta",ppt->gauge == synchronous);
       class_store_columntitle(ppt->scalar_titles,"convert_theta",ppt->gauge == synchronous);
-      //class_store_columntitle(ppt->scalar_titles,"phi",_TRUE_);
-      //class_store_columntitle(ppt->scalar_titles,"psi",_TRUE_);
 /*MArchi ethos debug end*/
       class_store_columntitle(ppt->scalar_titles,"delta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"theta_g",_TRUE_);
@@ -4067,7 +4065,7 @@ int perturb_vector_init(
 
             if (ppr->idr_nature == idr_free_streaming){// ppr->idr_free_streaming always if tca_dark is on
               ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
-              ppv->y[ppv->index_pt_l3_idr] = 3./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0];//MArchi add l3
+              ppv->y[ppv->index_pt_l3_idr] = 3./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0];//MArchi check the l3 factor
             }
           }
 
@@ -4897,15 +4895,6 @@ int perturb_initial_conditions(struct precision * ppr,
 
     if (ppt->gauge == synchronous) {
 
-      /*MArchi
-        class_test((pba->has_idr == _TRUE_), //ethos this flag is temporary until synchronous is fully operational in ethos framework
-        ppt->error_message,
-        "only Newtonian Gauge in presence of interacting dark radiation");
-
-        class_test((pba->has_idm == _TRUE_), //ethos this flag is temporary until synchronous is fully operational in ethos framework
-        ppt->error_message,
-        "only Newtonian Gauge in presence of interacting dark matter");*/
-
       ppw->pv->y[ppw->pv->index_pt_eta] = eta;
     }
 
@@ -4947,7 +4936,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
       velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*fracb*ppw->pv->y[ppw->pv->index_pt_theta_b])/(1.+rho_m_over_rho_r);
 
-      //velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_theta_b]+fraccdm*ppw->pv->y[ppw->pv->index_pt_theta_idm]))/(1.+rho_m_over_rho_r);//ethos MArchi
+      //velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_theta_b]+fraccdm*ppw->pv->y[ppw->pv->index_pt_theta_idm]))/(1.+rho_m_over_rho_r);//ethos MArchi check this
 
 
       alpha = (eta + 3./2.*a_prime_over_a*a_prime_over_a/k/k/s2_squared*(delta_tot + 3.*a_prime_over_a/k/k*velocity_tot))/a_prime_over_a;
@@ -5361,7 +5350,7 @@ int perturb_approximations(
 
         if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
             (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) { //MArchi ethos in the check of the index we can add ||(tau_k>tau_h)
+	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) { //MArchi ethos inside the check of the index we can add ||(tau_k>tau_h)
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
         }
         else{
@@ -5747,7 +5736,7 @@ int perturb_einstein(
 
     /* synchronous gauge */
     if (ppt->gauge == synchronous) {
-      /*MArchi ethos debug the error is in h_prime. Btw 1.5 * a2 * ppw->delta_rho shouldn't be 0.5 * a2 * ppw->delta_rho (according to CAMB)? */
+
       /* first equation involving total density fluctuation */
       ppw->pvecmetric[ppw->index_mt_h_prime] =
         ( k2 * s2_squared * y[ppw->pv->index_pt_eta] + 1.5 * a2 * ppw->delta_rho)/(0.5*a_prime_over_a);  /* h' */
@@ -6067,7 +6056,7 @@ int perturb_total_stress_energy(
     if (pba->has_idm == _TRUE_) {
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_delta_idm];
       ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_idm]*y[ppw->pv->index_pt_theta_idm];
-      rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_idm]; //MArchi ethos this was missing and it was a bug
+      rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_idm];
     }
 
     /* dcdm contribution */
@@ -7062,7 +7051,7 @@ int perturb_print_variables(double tau,
   pppaw = parameters_and_workspace;
   k = pppaw->k;
   index_md = pppaw->index_md;
-  ppr = pppaw->ppr;//ethos MArchi uncomment this
+  ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
   ppt = pppaw->ppt;
@@ -7379,8 +7368,6 @@ int perturb_print_variables(double tau,
     class_store_double(dataptr, alpha, ppt->gauge == synchronous, storeidx);
     class_store_double(dataptr, -pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha, ppt->gauge == synchronous, storeidx);
     class_store_double(dataptr,k*k*alpha, ppt->gauge == synchronous, storeidx);
-    //class_store_double(dataptr, phi, _TRUE_, storeidx);
-    //class_store_double(dataptr, psi, _TRUE_, storeidx);
 /*MArchi ethos debug end*/
     class_store_double(dataptr, delta_g, _TRUE_, storeidx);
     class_store_double(dataptr, theta_g, _TRUE_, storeidx);
@@ -8028,12 +8015,12 @@ int perturb_derivs(double tau,
         //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
                                                    y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
-        /*FILE *blah;
+        FILE *blah;
         if(k==0.1){
-           blah = fopen("blah.txt","a");
-           fprintf(blah,"%e %e %e %e %e\n",k,tau,metric_continuity,dy[pv->index_pt_delta_idr],dy[pv->index_pt_delta_idm]);
+           blah = fopen("blah_01.txt","a");
+           fprintf(blah,"%e %e %e\n",k,tau,a);
            fclose(blah);
-        }*/
+        }
 
       }
     }
