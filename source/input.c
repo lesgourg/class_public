@@ -3531,8 +3531,8 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->radiation_streaming_trigger_tau_over_tau_k = 45.;
   ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
 
-  ppr->dark_tight_coupling_trigger_tau_c_over_tau_h=0.01; /* decrease to switch off earlier in time */
-  ppr->dark_tight_coupling_trigger_tau_c_over_tau_k=0.005;
+  ppr->dark_tight_coupling_trigger_tau_c_over_tau_h=0.005; /* decrease to switch off earlier in time */
+  ppr->dark_tight_coupling_trigger_tau_c_over_tau_k=0.01; /* be carefull: P(k) at small scales is very sensitive to this value*/
 
   ppr->dark_radiation_streaming_approximation = rsa_idr_none;
   ppr->dark_radiation_streaming_trigger_tau_over_tau_k = 50.;

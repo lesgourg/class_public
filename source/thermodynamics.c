@@ -976,10 +976,10 @@ int thermodynamics_init(
 
   /* - ethos approx find dark radiation streaming*/
   index_tau_fs = index_tau;
-  if(pba->has_idm == _TRUE_){
+  if(pba->has_idr == _TRUE_){
+   if(pba->has_idm == _TRUE_){
     if(pth->nindex_dark>=2){
-      index_tau=pth->tt_size-1;
-      //index_tau=pth->index_tau;//using index_tau_max instead of pth->tt_size-1 ensures that the switch is always after recombination;
+      index_tau=index_tau_fs-1;//using index_tau_max (index_tau_fs) instead of pth->tt_size-1 ensures that the switch is always after recombination (free streaming);
     }
     else{
       index_tau=0;
@@ -1009,19 +1009,15 @@ int thermodynamics_init(
 
     tau_dark_fs = tau;
     pth->tau_idr_free_streaming = tau;
-
-    //to avoid problems with the approximation, set the rsa_idr switch always after the rsa switch
-    /*if (tau_dark_fs<=pth->tau_free_streaming){
-
-      index_tau = index_tau_fs-1;
-      class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
-      pba->error_message,
-      pth->error_message);
-      pth->tau_idr_free_streaming = tau;
-      }
-      else{
-      pth->tau_idr_free_streaming = tau;
-      }*/
+   }
+   else{//no idm
+	   index_tau=index_tau_fs-1;
+	   class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
+                 pba->error_message,
+                 pth->error_message)
+	   tau_dark_fs = tau;
+           pth->tau_idr_free_streaming = tau;
+   }
   }
 
   /** - find baryon drag time (when tau_d crosses one, using linear
@@ -1099,7 +1095,9 @@ int thermodynamics_init(
     if(pba->has_idm == _TRUE_) { //ethos
 
       if((pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_idm]>1.) && (pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_tau_idr]>1.)){
-        printf(" -> ETHOS dark decoupling at tau_idm = %e Mpc(T = %e eV) and tau_idr=%e Mpc\n",tau_idm,pba->T_cmb*_k_B_/_eV_*(1+z_idm),tau_idr);
+        printf(" -> DR decouples at tau_idr = %e Mpc\n",tau_idr);
+	printf(" -> DM decouples at tau_idm = %e Mpc\n",tau_idm);
+   	      //printf(" -> ETHOS dark decoupling at tau_idm = %e Mpc(T = %e eV) and tau_idr=%e Mpc\n",tau_idm,pba->T_cmb*_k_B_/_eV_*(1+z_idm),tau_idr);
       }
       else{
         printf(" -> computation of ETHOS dark decoupling skipped because z would not be in z_table\n");

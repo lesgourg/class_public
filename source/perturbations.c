@@ -5350,7 +5350,7 @@ int perturb_approximations(
 
         if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
             (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) { //MArchi ethos inside the check of the index we can add ||(tau_k>tau_h)
+	    (pth->nindex_dark>=2) && (ppr->idr_nature == idr_free_streaming)) { //MArchi ethos
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
         }
         else{
@@ -5373,15 +5373,30 @@ int perturb_approximations(
 
     /* ethos: dark radiation free streaming approximation*/
     if (pba->has_idr == _TRUE_){
-      if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
-          ((tau > pth->tau_idr_free_streaming) && (pth->nindex_dark>=2)) &&
-          // or ((tau < pth->tau_idr_free_streaming)&&(pth->nindex_dark<2))) && for n<2 no approximation
-          (ppr->dark_radiation_streaming_approximation != rsa_idr_none)){
+ 
+      if(pba->has_idm==_TRUE_){
 
-        ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
+           if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
+              ((tau > pth->tau_idr_free_streaming) && (pth->nindex_dark>=2)) &&
+              (ppr->dark_radiation_streaming_approximation != rsa_idr_none)){
+
+               ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
+           }
+           else{
+               ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_off;
+           }
       }
-      else {
-        ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_off;
+
+      else{
+           if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
+              (tau > pth->tau_idr_free_streaming) &&
+              (ppr->dark_radiation_streaming_approximation != rsa_idr_none)){
+
+               ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
+           }
+           else{
+               ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_off;
+           }
       }
     }
 
@@ -6018,7 +6033,7 @@ int perturb_total_stress_energy(
           if(ppt->gauge == newtonian)
            shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]));
           else
-           shear_idr = 0.;//MArchi this has to be set in perturb_einstein
+           shear_idr = 0.;//MArchi this is set in perturb_einstein
         }
          else{
           shear_idr = y[ppw->pv->index_pt_shear_idr];
@@ -8015,12 +8030,12 @@ int perturb_derivs(double tau,
         //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
                                                    y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
-        FILE *blah;
-        if(k==0.1){
-           blah = fopen("blah_01.txt","a");
-           fprintf(blah,"%e %e %e\n",k,tau,a);
+        /*FILE *blah;
+        if(k==1.0){
+           blah = fopen("blah_1.txt","a");
+           fprintf(blah,"%e %e\n",tau,a);
            fclose(blah);
-        }
+        }*/
 
       }
     }
@@ -8184,7 +8199,7 @@ int perturb_derivs(double tau,
               dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
           }
         }
-        else{//tca_dark_on
+        else{//tca_dark_on !MArchi ethos check this equation
           dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]
                                                      + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
         }
@@ -9144,7 +9159,7 @@ int perturb_rsa_delta_and_theta(
 
 }
 
-/* ethos */
+/* ethos */ //MArchi ethos check the validity of the rsa_idr equations
 int perturb_rsa_idr_delta_and_theta(
                                     struct precision * ppr,
                                     struct background * pba,
