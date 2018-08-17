@@ -441,6 +441,50 @@ struct reionization {
  * temporary  parameters and workspace passed to the thermodynamics_derivs function
  */
 
+struct thermo_vector {
+  
+  int tv_size;            /**< size of thermo vector */
+
+  int index_x_H;         /**< index for hydrogen fraction in y */
+  int index_x_He;        /**< index for helium fraction in y */
+  int index_Tmat;         /**< index for matter temperature fraction in y */
+
+
+  double * y;             /**< vector of quantities to be integrated */
+  double * dy;            /**< time-derivative of the same vector */
+
+  int * used_in_output; /**< boolean array specifying which
+                            quantities enter in the calculation of
+                            output functions */
+
+};
+
+
+struct thermo_workspace {
+
+  struct thermo_vector * tv; /**< pointer to vector of integrated
+                                 quantities and their
+                                 time-derivatives */
+
+  double x_H;  /**< Hydrogen ionization fraction */
+  double x_He; /**< Helium ionization fraction */
+  double x; /**< Electron ionization fraction */
+  double dx_H;
+  double dx_He;
+  
+  int index_ap_brec; /**< index for approximation before recombination */
+  int index_ap_He1; /**< index for 1st He-recombination (HeIII) */
+  int index_ap_He1f; /**< index for approximation after 1st He recombination before 2nd */
+  int index_ap_frec; /**< index for full recombination */
+
+  int ap_current; /** current fixed approximation scheme index */
+  int ap_size; /**< number of approximation intervals during recombination */
+
+  double * ap_z_limits; /**< vector storing ending limits of each approximation */
+
+};
+
+
 struct thermodynamics_parameters_and_workspace {
 
   /* structures containing fixed input parameters (indices, ...) */
@@ -450,6 +494,7 @@ struct thermodynamics_parameters_and_workspace {
 
   /* workspace */
   double * pvecback;
+  struct thermo_workspace * ptw;
 
 };
 
@@ -565,6 +610,7 @@ extern "C" {
 						struct background * pba,
 						struct thermo * pth,
 						struct recombination * prec,
+                        struct thermo_workspace * ptw,
 						double * pvecback
 						);
 
@@ -576,6 +622,48 @@ extern "C" {
 					 ErrorMsg error_message
 					 );
 
+  
+  int thermodynamics_x_analytic(
+                              double z,
+                              struct recombination * preco,
+                              struct thermo_workspace * ptw,
+                              int current_ap                          
+                              );
+  
+  int thermo_vector_init(
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct recombination *preco,
+                       double z,
+                       struct thermo_workspace * ptw
+                       );
+  
+  int thermo_vector_free(
+                        struct thermo_vector * tv
+                        );
+  
+  int thermo_workspace_init(
+                           struct precision * ppr,
+                           struct background * pba,
+                           struct thermo * pth,
+                           struct thermo_workspace * ptw
+                           );
+  
+  int thermodynamics_set_approximation_limits(
+                                      struct precision * ppr,
+                                      struct background * pba,
+                                      struct thermo * pth,
+                                      struct recombination * preco,
+                                      struct thermo_workspace * ptw,
+                                      double mz_ini,
+                                      double mz_end,
+                                      int* interval_number,
+                                      double * interval_limit
+                                      );
+  
+  
+  
   int thermodynamics_sources_with_recfast(
                                         double z,
                                         double * y,
