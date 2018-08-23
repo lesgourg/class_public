@@ -481,6 +481,7 @@ struct thermo_workspace {
   int ap_size; /**< number of approximation intervals during recombination */
 
   double * ap_z_limits; /**< vector storing ending limits of each approximation */
+  double * ap_z_limits_delta; /**< vector storing smoothing deltas of each approximation */
 
 };
 
@@ -610,7 +611,7 @@ extern "C" {
 						struct background * pba,
 						struct thermo * pth,
 						struct recombination * prec,
-                        struct thermo_workspace * ptw,
+                                                struct thermo_workspace * ptw,
 						double * pvecback
 						);
 

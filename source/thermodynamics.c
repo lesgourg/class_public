@@ -3103,9 +3103,6 @@ int thermodynamics_recombination_with_recfast(
   /* create mz_output array (inverted array of decreasing negative redshift)*/
   class_alloc(mz_output,Nz*sizeof(double), pth->error_message);
   class_alloc(interval_limit,(ptw->ap_size+1)*sizeof(double),pth->error_message);
-    for(i=0; i <ptw->ap_size+1; i++) {
-  interval_limit[i] = -1;
-  }
   
   
   for(i=0; i <Nz; i++) {
@@ -3275,6 +3272,7 @@ int thermodynamics_derivs_with_recfast(
   int index_y;
 
 
+
   /* new in recfast 1.4: */
   double Rdown_trip,Rup_trip,tauHe_s,pHe_s,Doppler,gamma_2Ps,pb,qb,AHcon;
   double tauHe_t,pHe_t,CL_PSt,gamma_2Pt;
@@ -3359,7 +3357,7 @@ int thermodynamics_derivs_with_recfast(
     x_H = ptw->x_H; 
     x_He = ptw->x_He; 
     x = ptw->x;
-    Tmat = y[ptw->tv->index_Tmat];
+    Tmat = MAX(y[ptw->tv->index_Tmat],0.);
     dx_H = ptw->dx_H;
     dx_He = ptw->dx_He;
   }
@@ -3367,8 +3365,8 @@ int thermodynamics_derivs_with_recfast(
       
     x_H = y[ptw->tv->index_x_H];
     x_He = y[ptw->tv->index_x_He];
-    x = x_H + preco->fHe * x_He;
-    Tmat = y[ptw->tv->index_Tmat];
+    x = MAX(x_H + preco->fHe * x_He,0.);
+    Tmat = MAX(0.,y[ptw->tv->index_Tmat]);
   
   
     Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
@@ -3381,7 +3379,7 @@ int thermodynamics_derivs_with_recfast(
     K = preco->CK/Hz;
 
     /* following is from recfast 1.5 */
-
+  
     if (ppr->recfast_Hswitch == _TRUE_ )
       K *= 1.
         + ppr->recfast_AGauss1*exp(-pow((log(1.+z)-ppr->recfast_zGauss1)/ppr->recfast_wGauss1,2))
@@ -3407,7 +3405,7 @@ int thermodynamics_derivs_with_recfast(
       K_He = 1./(_A2P_s_*pHe_s*3.*n_He*(1.-x_He));
 
       /*    if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) { */
-      if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.9999999)) { /* threshold changed by Antony Lewis in 2008 to get smoother Helium */
+      if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) { /* threshold changed by Antony Lewis in 2008 to get smoother Helium */
 
         Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
         Doppler = _c_*_L_He_2p_*sqrt(Doppler);
@@ -3476,8 +3474,8 @@ int thermodynamics_derivs_with_recfast(
     // JL: test for debugginf reio_inter
     //fprintf(stdout,"%e  %e  %e  %e\n",z,Tmat,K*_Lambda_*n,K*Rup*n);
 
-    dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
-      -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+    dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z));       /* Peeble's equation with fudged factors */
+      //-energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
 
   /************/
@@ -3502,29 +3500,22 @@ int thermodynamics_derivs_with_recfast(
 
       /* following is from recfast 1.4 */
       /* this correction is not self-consistent when there is energy injection  from dark matter, and leads to nan's  at small redshift (unimportant when reionization takes   over before that redshift) */
-
-      if (Heflag >= 3)
+     
+      /*if (Heflag >= 3)
         dy[ptw->tv->index_x_He] = dy[ptw->tv->index_x_He] +
             (x*x_He*n*Rdown_trip
            - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
           *CfHe_t/(Hz*(1.+z));
 
       /* end of new recfast 1.4 piece */
-
+   
     }
   /* Store derivatives for temperature integration */
   
   dx_H = dy[ptw->tv->index_x_H];
   dx_He = dy[ptw->tv->index_x_He];
-  printf("flag= %i \n",Heflag); 
-  printf("x_He= %e \n",x_He); 
-  printf("dXHe= %e \n",dx_He);
-  printf("x_H= %e \n",x_H); 
-  printf("dx_H= %e \n",dx_H);
-   printf("x= %e \n",x);
-  
-  /* Store ionization fraction*/
-  ptw->x = x;
+  //printf("flag= %i \n",Heflag); 
+
   }
 
   
@@ -3541,6 +3532,7 @@ int thermodynamics_derivs_with_recfast(
     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x);
     dy[ptw->tv->index_Tmat] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((dx_H+preco->fHe*dx_He)/x)
       - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
+      
   }
   else {
     /* equations modified to take into account energy injection from dark matter */
@@ -3553,16 +3545,40 @@ int thermodynamics_derivs_with_recfast(
     else
       chi_heat = 1.;
 
-    dy[ptw->tv->index_Tmat]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
-      -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
-  }
+    dy[ptw->tv->index_Tmat]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
+      //-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
+    
+
+      
+}
+
+
+  /* Store ionization fraction to workspace with smoothing for x*/
+
+  
+
+  
+  ptw->x = x;
+  ptw->x_H = x_H; 
+  ptw->x_He = x_He; 
+  ptw->dx_H = dx_H; 
+  ptw->dx_He = dx_He;
 
   /* time-invert derivatives */
   for(index_y=0;index_y<ptw->tv->tv_size;index_y++)
   dy[index_y]=-dy[index_y];
 
+  if(z>3450.){
+ printf("derivs \n"); 
+ printf("z= %e \n",z);
+  //printf("x_He= %e \n",ptw->x_He); 
+ // printf("dXHe= %e \n",ptw->dx_He);
+  //printf("x_H= %e \n",ptw->x_H); 
+  //printf("dx_H= %e \n",ptw->dx_H);
+  printf("x= %e \n",ptw->x);
+  //printf("T= %e \n",y[ptw->tv->index_Tmat]);
+  }
   
-
   return _SUCCESS_;
 }
 
@@ -3615,8 +3631,295 @@ int thermodynamics_x_analytic(
   ptw->dx_H = dx_H;
   ptw->dx_He = dx_He;
   
+ 
   return _SUCCESS_;
 }    
+
+
+int thermo_vector_init(
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct recombination *preco,
+                       double mz,
+                       struct thermo_workspace * ptw /* ptw->tv unallocated if ap_current == index_ap_brec, allocated and filled otherwise */
+                       ) {
+
+  int index_tv;
+  double z;
+  z = -mz;
+  
+  struct thermo_vector * ptv;
+
+  class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
+
+  if(ptw->ap_current == ptw->index_ap_brec){
+    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  }
+  else if(ptw->ap_current == ptw->index_ap_He1){ 
+    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  }
+  else if(ptw->ap_current == ptw->index_ap_He1f){ 
+    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  }
+  else if(ptw->ap_current == ptw->index_ap_frec){ 
+    class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
+    class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
+    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  }
+ 
+  ptv->tv_size = index_tv;
+  class_calloc(ptv->y,ptv->tv_size,sizeof(double),pth->error_message);
+  class_alloc(ptv->dy,ptv->tv_size*sizeof(double),pth->error_message);
+  class_alloc(ptv->used_in_output,ptv->tv_size*sizeof(int),pth->error_message);
+
+ 
+  for (index_tv=0; index_tv<ptv->tv_size; index_tv++)
+    ptv->used_in_output[index_tv] = _TRUE_;
+
+ /* setting intial conditions for each approximation */
+
+  if(ptw->ap_current == ptw->index_ap_brec){
+
+    ptw->tv = ptv;
+
+    ptw->tv->y[ptw->tv->index_Tmat] = preco->Tnow*(1.+z);
+  
+
+  }
+  else if(ptw->ap_current != ptw->index_ap_frec){
+
+    ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];
+
+    class_call(thermo_vector_free(ptw->tv),
+               pth->error_message,
+               pth->error_message);
+   
+    ptw->tv = ptv; 
+  }  
+  else {
+
+    ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
+    ptv->y[ptv->index_x_H] = 1.;
+    ptv->y[ptv->index_x_He] = 1.;
+
+    class_call(thermo_vector_free(ptw->tv),
+               pth->error_message,
+               pth->error_message);
+   
+    ptw->tv = ptv; 
+  }    
+
+  return _SUCCESS_;
+}
+
+int thermo_vector_free(
+                        struct thermo_vector * tv
+                        ) {
+
+  free(tv->y);
+  free(tv->dy);
+  free(tv->used_in_output);
+  free(tv);
+
+  return _SUCCESS_;
+}
+
+int thermo_workspace_init(
+                           struct precision * ppr,
+                           struct background * pba,
+                           struct thermo * pth,
+                           struct thermo_workspace * ptw
+                           ) {
+
+  int index_ap;
+
+  /** - count number of approximations, initialize their indices */
+  index_ap=0;
+
+
+  if(ppr->evolver == rk){
+    class_stop(pth->error_message,
+             "Runge-Kutta not supported yet.");
+  }
+  else{
+	/**for stiff integrator full recombination integration starts with 2nd He recombination*/    
+
+	/** approximations have to appear in chronological order here*/
+	class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_He1f,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
+
+    ptw->ap_size=index_ap;
+
+
+	/** store all ending redshifts for each approximation */
+	class_alloc(ptw->ap_z_limits,ptw->ap_size*sizeof(double),pth->error_message);
+
+    
+	ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
+	ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
+	ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
+	ptw->ap_z_limits[ptw->index_ap_frec] = 0.;
+
+    
+    /** store smoothing deltas for transitions at the beginning of each aproximation */
+    class_alloc(ptw->ap_z_limits_delta,ptw->ap_size*sizeof(double),pth->error_message);
+    
+    ptw->ap_z_limits_delta[ptw->index_ap_brec] = 0.;
+	ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_2;
+	ptw->ap_z_limits_delta[ptw->index_ap_He1f] = ppr->recfast_delta_z_He_1;
+	ptw->ap_z_limits_delta[ptw->index_ap_frec] = ppr->recfast_delta_z_He_3;
+    
+    
+  }
+
+  /*fix current approximation scheme abritrarily */
+  ptw->ap_current = ptw->index_ap_brec;
+  
+  return _SUCCESS_;
+}
+
+int thermodynamics_set_approximation_limits(
+                                      struct precision * ppr,
+                                      struct background * pba,
+                                      struct thermo * pth,
+                                      struct recombination * preco,
+                                      struct thermo_workspace * ptw,
+                                      double mz_ini,
+                                      double mz_end,
+                                      int* interval_number,
+                                      double * interval_limit
+                                      ){
+
+  int index_ap; 
+  /*fix interval number to number of approximations*/
+
+  *interval_number= ptw->ap_size;
+
+  class_test(-mz_ini < ppr->recfast_z_He_3,
+           pth->error_message,
+           "increase zinitial, otherwise should get initial conditions from recfast's get_init routine (less precise anyway)");
+
+
+  /*set limits for the intervals. Redshift is set negative for the evolver.*/
+  /*integration starts at z_ini*/	
+  
+  interval_limit[0]= mz_ini;
+  
+  for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+	
+	interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
+      
+  }
+  
+  if(-mz_end > ptw->ap_z_limits[ptw->ap_size-1]) interval_limit[ptw->ap_size] = mz_end;		
+
+ return _SUCCESS_;
+
+}
+
+int thermodynamics_sources_with_recfast(
+                                        double mz,
+                                        double * y,
+                                        double * dy,
+                                        int index_z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        ErrorMsg error_message
+                    ) {
+  int Nz;
+  double z;
+  
+  double x,x_previous, weight,s;
+  
+  struct thermodynamics_parameters_and_workspace * ptpaw;
+  struct precision * ppr;
+  struct background * pba;
+  struct recombination * preco;
+  double * pvecback;
+  struct thermo_workspace * ptw;
+  int ap_current;
+
+  /** - rename structure fields (just to avoid heavy notations) */
+  ptpaw = thermodynamics_parameters_and_workspace;
+  ppr = ptpaw->ppr;
+  pba = ptpaw->pba;
+  preco = ptpaw->preco;
+  pvecback = ptpaw->pvecback;
+  ptw = ptpaw->ptw;
+  ap_current = ptw->ap_current;
+  
+  Nz = preco->rt_size;  
+  z = -mz;  
+  x = ptw->x;
+  
+  if(z >= ptw->ap_z_limits[ap_current-1]-ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
+        
+        class_call(thermodynamics_x_analytic(z,
+                                             preco,
+                                             ptw,
+                                             ap_current-1),  
+                   error_message,
+                   error_message);
+        x_previous = ptw->x;
+        /* get s from 0 to 1 */
+        s = (ptw->ap_z_limits[ap_current-1]+ptw->ap_z_limits_delta[ap_current]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
+        /* infer f2(x) = smooth function interpolating from 0 to 1 */
+        weight = f2(s);
+
+        //printf("z= %e, x_pre = %e, x_new = %e, s=%e, weight=%e \n", z,x_previous,x,s,weight);
+
+        x = weight*x+(1.-weight)*x_previous;
+      }
+  
+  
+  
+  /** - --> store the results in the table */
+  /* results are obtained in order of decreasing z, and stored in order of growing z */
+
+  /* redshift */
+  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_z)=z;
+
+  /* ionization fraction */
+  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_xe)=x;
+
+  /* Tb */
+  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_Tb)=y[ptw->tv->index_Tmat];
+
+  /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
+  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_cb2)
+    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x * (1.-preco->YHe)) * y[ptw->tv->index_Tmat] * (1. - (1.+z) * dy[ptw->tv->index_Tmat] / y[ptw->tv->index_Tmat] / 3.);
+
+  /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
+  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_dkappadtau)
+    = (1.+z) * (1.+z) * preco->Nnow * x * _sigma_ * _Mpc_over_m_;
+   
+if( (int)z % 50 == 0){
+    printf("write ###########################\n");
+        printf("z= %e \n",z);
+  printf("x_He= %e \n",ptw->x_He); 
+  printf("dXHe= %e \n",ptw->dx_He);
+  printf("x_H= %e \n",ptw->x_H); 
+  printf("dx_H= %e \n",ptw->dx_H);
+  printf("x= %e \n",x);
+  printf("T= %e \n",y[ptw->tv->index_Tmat]);
+    }
+    
+    return _SUCCESS_;
+
+}
+
+int thermodynamics_timescale_with_recfast(
+                                        double z,
+                                        void * thermodynamics_parameters_and_workspace,
+                                        double * timescale,
+                                        ErrorMsg error_message
+                    ) {
+  *timescale = 1.;
+  return _SUCCESS_;
+
+}
 
 /**
  * This routine merges the two tables 'recombination_table' and
@@ -3791,246 +4094,3 @@ int thermodynamics_tanh(double x,
   return _SUCCESS_;
 }
 
-int thermo_vector_init(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct recombination *preco,
-                       double mz,
-                       struct thermo_workspace * ptw /* ptw->tv unallocated if ap_current == index_ap_brec, allocated and filled otherwise */
-                       ) {
-
-  int index_tv;
-  double z;
-  z = -mz;
-  
-  struct thermo_vector * ptv;
-
-  class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
-
-  if(ptw->ap_current == ptw->index_ap_brec){
-    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
-  }
-  else if(ptw->ap_current == ptw->index_ap_He1){ 
-    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
-  }
-  else if(ptw->ap_current == ptw->index_ap_He1f){ 
-    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
-  }
-  else if(ptw->ap_current == ptw->index_ap_frec){ 
-    class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
-    class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
-    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
-  }
- 
-  ptv->tv_size = index_tv;
-  class_calloc(ptv->y,ptv->tv_size,sizeof(double),pth->error_message);
-  class_alloc(ptv->dy,ptv->tv_size*sizeof(double),pth->error_message);
-  class_alloc(ptv->used_in_output,ptv->tv_size*sizeof(int),pth->error_message);
-
- /* initialize all arrays abritrarily*/
-
-  for (index_tv=0; index_tv<ptv->tv_size; index_tv++)
-    ptv->y[index_tv] = -1.;
- 
-  for (index_tv=0; index_tv<ptv->tv_size; index_tv++)
-    ptv->dy[index_tv] = -1.;
-  
-  for (index_tv=0; index_tv<ptv->tv_size; index_tv++)
-    ptv->used_in_output[index_tv] = _TRUE_;
-
- /* setting intial conditions for each approximation */
-
-  if(ptw->ap_current == ptw->index_ap_brec){
-
-    ptw->tv = ptv;
-
-    ptw->tv->y[ptw->tv->index_Tmat] = preco->Tnow*(1.+z);
-  
-
-  }
-  else if(ptw->ap_current != ptw->index_ap_frec){
-
-    ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];
-
-    class_call(thermo_vector_free(ptw->tv),
-               pth->error_message,
-               pth->error_message);
-   
-    ptw->tv = ptv; 
-  }  
-  else {
-
-    ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
-    ptv->y[ptv->index_x_H] = 1.;
-    ptv->y[ptv->index_x_He] = 1.;
-
-    class_call(thermo_vector_free(ptw->tv),
-               pth->error_message,
-               pth->error_message);
-   
-    ptw->tv = ptv; 
-  }    
-
-  return _SUCCESS_;
-}
-
-int thermo_vector_free(
-                        struct thermo_vector * tv
-                        ) {
-
-  free(tv->y);
-  free(tv->dy);
-  free(tv->used_in_output);
-  free(tv);
-
-  return _SUCCESS_;
-}
-
-int thermo_workspace_init(
-                           struct precision * ppr,
-                           struct background * pba,
-                           struct thermo * pth,
-                           struct thermo_workspace * ptw
-                           ) {
-
-  int index_ap;
-
-  /** - count number of approximations, initialize their indices */
-  index_ap=0;
-
-
-  if(ppr->evolver == rk){
-    class_stop(pth->error_message,
-             "Runge-Kutta not supported yet.");
-  }
-  else{
-	/**for stiff integrator full recombination integration starts with 2nd He recombination*/    
-
-	/** approximations have to appear in chronological order here*/
-	class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_He1f,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
-
-        ptw->ap_size=index_ap;
-
-
-	/** store all ending redshifts for each approximation */
-	class_alloc(ptw->ap_z_limits,ptw->ap_size*sizeof(double),pth->error_message);
-
-	ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1;
-	ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2;
-	ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3;
-	ptw->ap_z_limits[ptw->index_ap_frec] = 0.;
-
-  }
-
-  /*fix current approximation scheme abritrarily */
-  ptw->ap_current = ptw->index_ap_brec;
-  
-  return _SUCCESS_;
-}
-
-int thermodynamics_set_approximation_limits(
-                                      struct precision * ppr,
-                                      struct background * pba,
-                                      struct thermo * pth,
-                                      struct recombination * preco,
-                                      struct thermo_workspace * ptw,
-                                      double mz_ini,
-                                      double mz_end,
-                                      int* interval_number,
-                                      double * interval_limit
-                                      ){
-
-  int index_ap; 
-  /*fix interval number to number of approximations*/
-
-  *interval_number= ptw->ap_size;
-
-  class_test(-mz_ini < ppr->recfast_z_He_3,
-           pth->error_message,
-           "increase zinitial, otherwise should get initial conditions from recfast's get_init routine (less precise anyway)");
-
-
-  /*set limits for the intervals. Redshift is set negative for the evolver.*/
-  /*integration starts at z_ini*/	
-  
-  interval_limit[0]= mz_ini;
-  
-  for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
-	
-	interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
-      
-  }
-  
-  if(-mz_end > ptw->ap_z_limits[ptw->ap_size-1]) interval_limit[ptw->ap_size] = mz_end;		
-
- return _SUCCESS_;
-
-}
-
-int thermodynamics_sources_with_recfast(
-                                        double z,
-                                        double * y,
-                                        double * dy,
-                                        int index_z,
-                                        void * thermodynamics_parameters_and_workspace,
-                                        ErrorMsg error_message
-                    ) {
-  int Nz;
-    
-  struct thermodynamics_parameters_and_workspace * ptpaw;
-  struct precision * ppr;
-  struct background * pba;
-  struct recombination * preco;
-  double * pvecback;
-  struct thermo_workspace * ptw;
-
-
-  /** - rename structure fields (just to avoid heavy notations) */
-  ptpaw = thermodynamics_parameters_and_workspace;
-  ppr = ptpaw->ppr;
-  pba = ptpaw->pba;
-  preco = ptpaw->preco;
-  pvecback = ptpaw->pvecback;
-  ptw = ptpaw->ptw;
- 
-  Nz = preco->rt_size;    
-  /** - --> store the results in the table */
-  /* results are obtained in order of decreasing z, and stored in order of growing z */
-
-  /* redshift */
-  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_z)=-z;
-
-  /* ionization fraction */
-  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_xe)=ptw->x;
-
-  /* Tb */
-  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_Tb)=y[ptw->tv->index_Tmat];
-
-  /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
-  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_cb2)
-    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + ptw->x * (1.-preco->YHe)) * y[ptw->tv->index_Tmat] * (1. - (1.-z) * dy[ptw->tv->index_Tmat] / y[ptw->tv->index_Tmat] / 3.);
-
-  /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
-  *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_dkappadtau)
-    = (1.-z) * (1.-z) * preco->Nnow * ptw->x * _sigma_ * _Mpc_over_m_;
-  
-    
-    
-    return _SUCCESS_;
-
-}
-
-int thermodynamics_timescale_with_recfast(
-                                        double z,
-                                        void * thermodynamics_parameters_and_workspace,
-                                        double * timescale,
-                                        ErrorMsg error_message
-                    ) {
-  *timescale = 1.;
-  return _SUCCESS_;
-
-}
