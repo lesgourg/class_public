@@ -3357,7 +3357,7 @@ int thermodynamics_derivs_with_recfast(
     x_H = ptw->x_H; 
     x_He = ptw->x_He; 
     x = ptw->x;
-    Tmat = MAX(y[ptw->tv->index_Tmat],0.);
+    Tmat = y[ptw->tv->index_Tmat];
     dx_H = ptw->dx_H;
     dx_He = ptw->dx_He;
   }
@@ -3365,8 +3365,8 @@ int thermodynamics_derivs_with_recfast(
       
     x_H = y[ptw->tv->index_x_H];
     x_He = y[ptw->tv->index_x_He];
-    x = MAX(x_H + preco->fHe * x_He,0.);
-    Tmat = MAX(0.,y[ptw->tv->index_Tmat]);
+    x = x_H + preco->fHe * x_He;
+    Tmat = y[ptw->tv->index_Tmat];
   
   
     Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
@@ -3475,7 +3475,7 @@ int thermodynamics_derivs_with_recfast(
     //fprintf(stdout,"%e  %e  %e  %e\n",z,Tmat,K*_Lambda_*n,K*Rup*n);
 
     dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z));       /* Peeble's equation with fudged factors */
-      //-energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
+      -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)); /* energy injection (neglect fraction going to helium) */
 
 
   /************/
@@ -3516,6 +3516,13 @@ int thermodynamics_derivs_with_recfast(
   dx_He = dy[ptw->tv->index_x_He];
   //printf("flag= %i \n",Heflag); 
 
+  ptw->x = x;
+  ptw->x_H = x_H; 
+  ptw->x_He = x_He; 
+  ptw->dx_H = dx_H; 
+  ptw->dx_He = dx_He;
+
+  
   }
 
   
@@ -3546,7 +3553,7 @@ int thermodynamics_derivs_with_recfast(
       chi_heat = 1.;
 
     dy[ptw->tv->index_Tmat]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
-      //-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
+      -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
     
 
       
@@ -3558,17 +3565,12 @@ int thermodynamics_derivs_with_recfast(
   
 
   
-  ptw->x = x;
-  ptw->x_H = x_H; 
-  ptw->x_He = x_He; 
-  ptw->dx_H = dx_H; 
-  ptw->dx_He = dx_He;
 
   /* time-invert derivatives */
   for(index_y=0;index_y<ptw->tv->tv_size;index_y++)
   dy[index_y]=-dy[index_y];
 
-  if(z>3450.){
+  if(z>10000000.){
  printf("derivs \n"); 
  printf("z= %e \n",z);
   //printf("x_He= %e \n",ptw->x_He); 
@@ -3621,8 +3623,20 @@ int thermodynamics_x_analytic(
       x_He = 1.;
       x = 1.+preco->fHe;
       dx_H=0.;
-      dx_He=0.;        
+      dx_He=0.; 
+      
+      
     }
+    /** - --> fourth approximation: second Helium recombination starts */
+    else if (current_ap == ptw->index_ap_He2) {
+      /* analytic approximations */
+      x_H = 1.;
+      rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
+      x = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
+      dx_H=0.;
+      dx_He=0.;  
+      x_He = (x-1.)/preco->fHe;
+    } 
   
   /** Save x_H, x_He and x into workspace */
   ptw->x_H = x_H;
@@ -3662,6 +3676,9 @@ int thermo_vector_init(
   else if(ptw->ap_current == ptw->index_ap_He1f){ 
     class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
   }
+  else if(ptw->ap_current == ptw->index_ap_He2){ 
+    class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  }
   else if(ptw->ap_current == ptw->index_ap_frec){ 
     class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
     class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
@@ -3699,9 +3716,16 @@ int thermo_vector_init(
   }  
   else {
 
+    class_call(thermodynamics_x_analytic(z,
+                                         preco,
+                                         ptw,
+                                         ptw->ap_current-1),  
+               pth->error_message,
+               pth->error_message);
+      
     ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
     ptv->y[ptv->index_x_H] = 1.;
-    ptv->y[ptv->index_x_He] = 1.;
+    ptv->y[ptv->index_x_He] = ptw->x_He;
 
     class_call(thermo_vector_free(ptw->tv),
                pth->error_message,
@@ -3749,6 +3773,7 @@ int thermo_workspace_init(
 	class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_He1f,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_He2,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
 
     ptw->ap_size=index_ap;
@@ -3761,7 +3786,8 @@ int thermo_workspace_init(
 	ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
 	ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
 	ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
-	ptw->ap_z_limits[ptw->index_ap_frec] = 0.;
+	ptw->ap_z_limits[ptw->index_ap_He2] = 3200.;
+    ptw->ap_z_limits[ptw->index_ap_frec] = 0.;
 
     
     /** store smoothing deltas for transitions at the beginning of each aproximation */
@@ -3770,7 +3796,8 @@ int thermo_workspace_init(
     ptw->ap_z_limits_delta[ptw->index_ap_brec] = 0.;
 	ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_2;
 	ptw->ap_z_limits_delta[ptw->index_ap_He1f] = ppr->recfast_delta_z_He_1;
-	ptw->ap_z_limits_delta[ptw->index_ap_frec] = ppr->recfast_delta_z_He_3;
+    ptw->ap_z_limits_delta[ptw->index_ap_He2] = ppr->recfast_delta_z_He_3;
+	ptw->ap_z_limits_delta[ptw->index_ap_frec] = 10.;
     
     
   }
@@ -3811,6 +3838,7 @@ int thermodynamics_set_approximation_limits(
   for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
 	
 	interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
+    
       
   }
   
@@ -3852,9 +3880,24 @@ int thermodynamics_sources_with_recfast(
   
   Nz = preco->rt_size;  
   z = -mz;  
-  x = ptw->x;
   
-  if(z >= ptw->ap_z_limits[ap_current-1]-ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
+  /* If we are currently in an approximation scheme x has to be calcuated for this specific z */
+  if(ap_current != ptw->index_ap_frec){
+    class_call(thermodynamics_x_analytic(z,
+                                         preco,
+                                         ptw,
+                                         ap_current),  
+               error_message,
+               error_message);
+  
+    x = ptw->x;
+  }
+  else{
+    x = y[ptw->tv->index_x_H]+preco->fHe*y[ptw->tv->index_x_He];
+  }
+  
+  /* Smoothing if we are shortly after an approximation change */
+  if(z >= ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
         
         class_call(thermodynamics_x_analytic(z,
                                              preco,
@@ -3864,11 +3907,11 @@ int thermodynamics_sources_with_recfast(
                    error_message);
         x_previous = ptw->x;
         /* get s from 0 to 1 */
-        s = (ptw->ap_z_limits[ap_current-1]+ptw->ap_z_limits_delta[ap_current]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
+        s = (ptw->ap_z_limits[ap_current-1]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
         /* infer f2(x) = smooth function interpolating from 0 to 1 */
         weight = f2(s);
 
-        //printf("z= %e, x_pre = %e, x_new = %e, s=%e, weight=%e \n", z,x_previous,x,s,weight);
+        //printf("limit= %e, z= %e, xHe = %e, x_pre = %e, x_new = %e, s=%e, weight=%e \n",ptw->ap_z_limits[ap_current-1], z,ptw->x_He,x_previous,x,s,weight);
 
         x = weight*x+(1.-weight)*x_previous;
       }
@@ -3895,17 +3938,17 @@ int thermodynamics_sources_with_recfast(
   *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_dkappadtau)
     = (1.+z) * (1.+z) * preco->Nnow * x * _sigma_ * _Mpc_over_m_;
    
-if( (int)z % 50 == 0){
+/*if( (int)z % 50 == 0 && (ap_current == ptw->index_ap_frec || ap_current == ptw->index_ap_He2)){
     printf("write ###########################\n");
         printf("z= %e \n",z);
   printf("x_He= %e \n",ptw->x_He); 
-  printf("dXHe= %e \n",ptw->dx_He);
+  //printf("dXHe= %e \n",ptw->dx_He);
   printf("x_H= %e \n",ptw->x_H); 
-  printf("dx_H= %e \n",ptw->dx_H);
+  //printf("dx_H= %e \n",ptw->dx_H);
   printf("x= %e \n",x);
-  printf("T= %e \n",y[ptw->tv->index_Tmat]);
+  //printf("T= %e \n",y[ptw->tv->index_Tmat]);
     }
-    
+  */  
     return _SUCCESS_;
 
 }
