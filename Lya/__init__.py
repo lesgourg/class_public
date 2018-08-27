@@ -317,40 +317,49 @@ class Lya(Likelihood):
 
         param_lcdm_equiv = deepcopy(data.cosmo_arguments)
 
-        #deal with ethos like dark radiation
-        if 'xi_idr' in data.cosmo_arguments:
-            if 'stat_f_idr' in data.cosmo_arguments:
-                stat_f_idr = data.cosmo_arguments['stat_f_idr']
+        #deal with dark radiation (ethos & Co.) according to arXiv:1412.6763
+        if 'xi_idr' in data.cosmo_arguments or 'N_ur' in data.cosmo_arguments: #add ncdm
+
+            if 'xi_idr' in data.cosmo_arguments:
+                xi_idr = data.cosmo_arguments['xi_idr']
+                if 'stat_f_idr' in data.cosmo_arguments:
+                    stat_f_idr = data.cosmo_arguments['stat_f_idr']
+                else:
+                    stat_f_idr = 7./8.
             else:
-                stat_f_idr = 7./8.
+                xi_idr=0.0
+
             if 'N_ur' in data.cosmo_arguments:
                 N_ur = data.cosmo_arguments['N_ur']
             else:
-                N_ur = 3.046
+                N_ur = 3.0 #as in simulations
+
             #pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
             #N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-            DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.046)
-            eta2=(1.+0.2271*(3.046+DeltaNeff))/(1.+0.2271*3.046)
+            DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.0)
+            eta2=(1.+0.2271*(3.0+DeltaNeff))/(1.+0.2271*3.0)
             eta=np.sqrt(eta2)
             #print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
             #print '\n'
-            #param_lcdm_equiv['N_ur'] = 3.046 #default in class
-            param_lcdm_equiv['xi_idr'] = 0.
+            param_lcdm_equiv['N_ur'] = 3.0 #as in simulations
+            param_lcdm_equiv['xi_idr'] = 0.0
             param_lcdm_equiv['omega_b'] *= 1./eta2
             param_lcdm_equiv['omega_cdm'] *= 1./eta2
             if 'H0' in data.cosmo_arguments:
                 param_lcdm_equiv['H0'] *= 1./eta
-            else:# ('100*theta_s' in data.cosmo_arguments):
-                raise io_mp.ConfigurationError('Error: run with H0')
+            if '100*theta_s' in data.cosmo_arguments:
+                raise io_mp.ConfigurationError('Error: run with H0 instead of 100*theta_s')
                 exit()
 
         #deal with ethos like dark matter interactions
-        if 'a_dark' in data.cosmo_arguments:
-            if (not 'f_idm_dr' in data.cosmo_arguments or data.cosmo_arguments['f_idm_dr'] != 1.0):
-                raise io_mp.ConfigurationError('Error: f_idm_dr has to be set to 1.0')
+        if 'f_idm_dr' in data.cosmo_arguments:
+            if (data.cosmo_arguments['f_idm_dr'] != 1.0):
+                raise io_mp.ConfigurationError('Error: for the time being, f_idm_dr has to be set to 1.0')
                 exit()
-            param_lcdm_equiv['f_idm_dr'] = 0.
-            param_lcdm_equiv['a_dark'] = 0.
+            param_lcdm_equiv['f_idm_dr'] = 0.0
+
+        if 'a_dark' in data.cosmo_arguments:#this is not really needed, because once f_idm_dr = 0., whatever is a_dark, pba->has_idm==_FALSE_
+            param_lcdm_equiv['a_dark'] = 0.0
 
         cosmo.empty()
         #print 'param_lcdm_equiv'
