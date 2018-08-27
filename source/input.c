@@ -754,6 +754,8 @@ int input_read_parameters(
 
   //DCH
 
+  class_read_double("a_dark",pth->a_dark);
+
   /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -764,9 +766,6 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"f_idm_dr",&param3,&flag3,errmsg),
              errmsg,
              errmsg);
-  class_call(parser_read_double(pfc,"a_dark",&param4,&flag4,errmsg),
-             errmsg,
-             errmsg);
 
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
@@ -774,7 +773,8 @@ int input_read_parameters(
   class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
-  class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_)||(param4==0.0))),
+
+  class_test(((flag3 == _TRUE_) && (pth->a_dark==0.0)),
              errmsg,
              "In input file, you have f_idm_dr but no a_dark");
 
@@ -789,7 +789,6 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
-    pth->a_dark = param4;
     if (flag1 == _TRUE_){
       pba->Omega0_idm = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
