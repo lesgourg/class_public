@@ -3495,7 +3495,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->k_step_transition=0.2;
   ppr->k_step_super_reduction=0.1;
   ppr->k_per_decade_for_pk=10.;
-  ppr->idmdr_boost_k_per_decade_for_pk=1.;//ethos
+  ppr->idmdr_boost_k_per_decade_for_pk=1.;//ethos//this is multiplied by nindex_dark (if>=2) in perturbations
   ppr->k_per_decade_for_bao=70.;
   ppr->k_bao_center=3.;
   ppr->k_bao_width=4.;

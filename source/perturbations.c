@@ -1430,10 +1430,18 @@ int perturb_get_k_list(
 
     /* allocate array with, for the moment, the largest possible size */
     //ethos here add a boost on k_per_decade_for_pk for very large k and very large a_dark
-    class_alloc(ppt->k[ppt->index_md_scalars],
+    if((pba->has_idm==_TRUE_)&&(pth->nindex_dark>=2)){
+	    class_alloc(ppt->k[ppt->index_md_scalars],
                 ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                 (int)(MAX(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
+                 (int)(MAX(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_dark,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                 *sizeof(double),ppt->error_message);
+    }
+    else{
+	    class_alloc(ppt->k[ppt->index_md_scalars],
+                ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
+                 (int)(MAX(ppr->k_per_decade_for_pk,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
+                *sizeof(double),ppt->error_message);
+    }
 
     /* first value */
 
@@ -1506,9 +1514,16 @@ int perturb_get_k_list(
 
     while (k < k_max) {
       //ethos
-      k *= pow(10.,1./(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk
-                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk)
+      if((pba->has_idm==_TRUE_)&&(pth->nindex_dark>=2)){
+              k *= pow(10.,1./(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_dark
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_dark)
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+      }
+      else{
+	      k *= pow(10.,1./(ppr->k_per_decade_for_pk
+                       +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
+                       *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
+      }
 
       ppt->k[ppt->index_md_scalars][index_k] = k;
       index_k++;
