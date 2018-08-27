@@ -503,10 +503,10 @@ int perturb_free(
 
     free(ppt->sources);
 
-    //if(ppt->has_idm == _TRUE_){ //DCH ethos
+    if(ppt->has_idm == _TRUE_){ //DCH ethos
     free(ppt->alpha_dark);
     free(ppt->beta_dark);
-    //}
+    }
 
     /** Stuff related to perturbations output: */
 

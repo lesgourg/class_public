@@ -514,8 +514,8 @@ int input_read_parameters(
 
   /** - define local variables */
 
-  int flag1,flag2,flag3;
-  double param1,param2,param3;
+  int flag1,flag2,flag3,flag4;
+  double param1,param2,param3,param4;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
   double scf_lambda;
@@ -742,20 +742,17 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_ur;
 
+  //ethos:Check for presence of dark radiation
+  class_read_double("xi_idr",pba->xi_idr);
+  class_read_double("stat_f_idr",pba->stat_f_idr);
 
-  //New ethos (independent from CDM), added by DCH
+  pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
 
-  class_read_double("a_dark",pth->a_dark);//if a_dark is zero then it is the standard CDM case
-  class_read_double("f_idm_dr",pba->f_idm_dr); //read fraction of interacting DM
+  Omega_tot += pba->Omega0_idr;
 
-  class_test(((pba->f_idm_dr > 1.)||(pba->f_idm_dr < 0.)),
-             errmsg,
-             "The fraction of DM interacting with DR has to be between 0 and 1."); //check that the fraction of idm is consistent
-  //MArchi if we check this case, then we should also check the opposite, otherwise in MCMC the opposite goes to cdm wiht no error
-  class_test(((pba->f_idm_dr > 0.) && (pth->a_dark == 0.)),
-             errmsg,
-             "You asked for interacting DM but didn't give it anything to interact with. Please give a non-zero a_dark."); //check that if IDM is called, there is some coupling
+  class_read_int("l_max_idr",ppr->l_max_idr);
 
+  //DCH
 
   /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -764,15 +761,25 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
+  class_call(parser_read_double(pfc,"f_idm_dr",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"a_dark",&param4,&flag4,errmsg),
+             errmsg,
+             errmsg);
+
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  class_test(((pba->f_idm_dr!=0.) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
+  class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
+  class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_)||(param4==0.0))),
+             errmsg,
+             "In input file, you have f_idm_dr but no a_dark");
 
   //this is the standard CDM case
-  if ((pba->f_idm_dr == 0.)||(pth->a_dark==0.0)){ //MArchi here we should also check the presence of idr, rather then doing this later
+  if ((flag3 == _FALSE_)||(pba->Omega0_idr==0.0)){
     if (flag1 == _TRUE_)
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
@@ -782,38 +789,26 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
+    pth->a_dark = param4;
     if (flag1 == _TRUE_){
-      pba->Omega0_idm = pba->f_idm_dr*param1;
-      pba->Omega0_cdm = (1.-pba->f_idm_dr)*param1;
+      pba->Omega0_idm = param3*param1;
+      pba->Omega0_cdm = (1.-param3)*param1;
     }
     else if (flag2 == _TRUE_){
-      pba->Omega0_idm = pba->f_idm_dr*(param2/pba->h/pba->h);
-      pba->Omega0_cdm = (1.-pba->f_idm_dr)*(param2/pba->h/pba->h);
+      pba->Omega0_idm = param3*(param2/pba->h/pba->h);
+      pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
     }
   }
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
 
-  //Check for presence of dark radiation //MArchi this should be done before and with flags
-  class_read_double("xi_idr",pba->xi_idr);
-  class_read_double("stat_f_idr",pba->stat_f_idr);
-
-  pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
-
-  Omega_tot += pba->Omega0_idr;
-
   if (input_verbose > 2)
    printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
 
-  class_test(((pba->Omega0_idm != 0) && (pba->Omega0_idr == 0)),
-             errmsg,
-             "You can only have IDM different from 0 if you also have IDR different from 0");
-
+  if (pba->Omega0_idm!=0.0){
   //Read the rest of the ethos parameters
   class_read_double("m_dm",pth->m_dm);
-  class_read_double("b_dark",pth->b_dark);
   class_read_double("nindex_dark",pth->nindex_dark);
-  class_read_int("l_max_idr",ppr->l_max_idr);
 
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
@@ -831,6 +826,8 @@ int input_read_parameters(
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.5;
   }
 
+  class_read_double("b_dark",pth->b_dark);
+
   class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
              errmsg,
              errmsg);
@@ -845,6 +842,7 @@ int input_read_parameters(
   else{
     class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
+  }
   }
   //end of ethos
 
@@ -3094,7 +3092,6 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0; //ethos
   pba->Omega0_idm = 0.0; //ethos
-  pba->f_idm_dr = 0.0; //ethos DCH
   pba->stat_f_idr = 7./8.; //ethos
   pba->xi_idr = 0;//ethos
   pba->Omega0_b = 0.022032/pow(pba->h,2);
