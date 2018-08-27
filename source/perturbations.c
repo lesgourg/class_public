@@ -2554,7 +2554,7 @@ int perturb_prepare_output(struct precision * ppr, //ethos
 
       class_store_columntitle(ppt->scalar_titles,"tau [Mpc]",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"a",_TRUE_);
-/*MArchi ethos debug*/
+/*MArchi ethos debug
       class_store_columntitle(ppt->scalar_titles,"a2*delta_rho",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"adotoa",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"eta",ppt->gauge == synchronous);
@@ -2562,24 +2562,24 @@ int perturb_prepare_output(struct precision * ppr, //ethos
       class_store_columntitle(ppt->scalar_titles,"alpha",ppt->gauge == synchronous);
       class_store_columntitle(ppt->scalar_titles,"convert_delta",ppt->gauge == synchronous);
       class_store_columntitle(ppt->scalar_titles,"convert_theta",ppt->gauge == synchronous);
-/*MArchi ethos debug end*/
+MArchi ethos debug end*/
       class_store_columntitle(ppt->scalar_titles,"delta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"theta_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"shear_g",_TRUE_);
-      //class_store_columntitle(ppt->scalar_titles,"pol0_g",_TRUE_);
-      //class_store_columntitle(ppt->scalar_titles,"pol1_g",_TRUE_);
-      //class_store_columntitle(ppt->scalar_titles,"pol2_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"pol0_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"pol1_g",_TRUE_);
+      class_store_columntitle(ppt->scalar_titles,"pol2_g",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"delta_b",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"theta_b",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"psi",_TRUE_);
       class_store_columntitle(ppt->scalar_titles,"phi",_TRUE_);
       /* Perturbed recombination */
-      //class_store_columntitle(ppt->scalar_titles,"delta_Tb",ppt->has_perturbed_recombination);
-      //class_store_columntitle(ppt->scalar_titles,"delta_chi",ppt->has_perturbed_recombination);
+      class_store_columntitle(ppt->scalar_titles,"delta_Tb",ppt->has_perturbed_recombination);
+      class_store_columntitle(ppt->scalar_titles,"delta_chi",ppt->has_perturbed_recombination);
       /* Ultrarelativistic species */
-      //class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
-      //class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
-      //class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
+      class_store_columntitle(ppt->scalar_titles,"delta_ur",pba->has_ur);
+      class_store_columntitle(ppt->scalar_titles,"theta_ur",pba->has_ur);
+      class_store_columntitle(ppt->scalar_titles,"shear_ur",pba->has_ur);
       /* ethos interacting dark radiation */
       class_store_columntitle(ppt->scalar_titles,"delta_idr",pba->has_idr);
       class_store_columntitle(ppt->scalar_titles,"theta_idr",pba->has_idr);
@@ -7390,7 +7390,7 @@ int perturb_print_variables(double tau,
 
     class_store_double(dataptr, tau, _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a], _TRUE_, storeidx);
-/*MArchi ethos debug*/
+/*MArchi ethos debug
     class_store_double(dataptr, ppw->delta_rho*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a], _TRUE_, storeidx);
     class_store_double(dataptr, pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H], _TRUE_, storeidx);
     class_store_double(dataptr, y[ppw->pv->index_pt_eta], ppt->gauge == synchronous, storeidx);
@@ -7398,24 +7398,24 @@ int perturb_print_variables(double tau,
     class_store_double(dataptr, alpha, ppt->gauge == synchronous, storeidx);
     class_store_double(dataptr, -pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]*alpha, ppt->gauge == synchronous, storeidx);
     class_store_double(dataptr,k*k*alpha, ppt->gauge == synchronous, storeidx);
-/*MArchi ethos debug end*/
+MArchi ethos debug end*/
     class_store_double(dataptr, delta_g, _TRUE_, storeidx);
     class_store_double(dataptr, theta_g, _TRUE_, storeidx);
     class_store_double(dataptr, shear_g, _TRUE_, storeidx);
-    //class_store_double(dataptr, pol0_g, _TRUE_, storeidx);
-    //class_store_double(dataptr, pol1_g, _TRUE_, storeidx);
-    //class_store_double(dataptr, pol2_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol0_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol1_g, _TRUE_, storeidx);
+    class_store_double(dataptr, pol2_g, _TRUE_, storeidx);
     class_store_double(dataptr, delta_b, _TRUE_, storeidx);
     class_store_double(dataptr, theta_b, _TRUE_, storeidx);
     class_store_double(dataptr, psi, _TRUE_, storeidx);
     class_store_double(dataptr, phi, _TRUE_, storeidx);
     /* perturbed recombination */
-    //class_store_double(dataptr, delta_temp, ppt->has_perturbed_recombination, storeidx);
-    //class_store_double(dataptr, delta_chi, ppt->has_perturbed_recombination, storeidx);
+    class_store_double(dataptr, delta_temp, ppt->has_perturbed_recombination, storeidx);
+    class_store_double(dataptr, delta_chi, ppt->has_perturbed_recombination, storeidx);
     /* Ultra relativistic species */
-    //class_store_double(dataptr, delta_ur, pba->has_ur, storeidx);
-    //class_store_double(dataptr, theta_ur, pba->has_ur, storeidx);
-    //class_store_double(dataptr, shear_ur, pba->has_ur, storeidx);
+    class_store_double(dataptr, delta_ur, pba->has_ur, storeidx);
+    class_store_double(dataptr, theta_ur, pba->has_ur, storeidx);
+    class_store_double(dataptr, shear_ur, pba->has_ur, storeidx);
     /* Interacting Dark Radiation ethos */
     class_store_double(dataptr, delta_idr, pba->has_idr, storeidx);
     class_store_double(dataptr, theta_idr, pba->has_idr, storeidx);
