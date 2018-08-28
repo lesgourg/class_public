@@ -3347,26 +3347,30 @@ int thermodynamics_derivs_with_recfast(
   /* First check for the current appoximation scheme. As long as there is 
      no full recombination, x_H, x_He and x are evolved with analytic functions.
   */
-  
+  Tmat = y[ptw->tv->index_Tmat];
+  if(ptw->require_H){
+    
+  }else{
+    
+  }
+  if(ptw->require_He){
+    
+  }else{
+    
+  }
   if(ap_current != ptw->index_ap_frec){
-    if(ap_current != ptw->index_ap_H){
-      class_call(thermodynamics_x_analytic(z,
-                                         preco,
-                                         ptw,
-                                         ap_current),  
-               error_message,
-               error_message);
-  
-      x_H = ptw->x_H; 
-      x_He = y[ptw->tv->index_x_He];
-      x = x_H + preco->fHe * x_He;
-      Tmat = y[ptw->tv->index_Tmat];
-      dx_H = ptw->dx_H;
-      dx_He = ptw->dx_He;
-    }
-    else{
-      
-    }
+    class_call(thermodynamics_x_analytic(z,
+                                       preco,
+                                       ptw,
+                                       ap_current),  
+             error_message,
+             error_message);
+    
+    x_H = ptw->x_H;
+    x_He = ptw->x_He;
+    x = ptw->x;
+    dx_H = ptw->dx_H;
+    dx_He = ptw->dx_He;
     printf("At z = %.10e \n",z);
     printf("x_H = %.10e , x_He = %.10e , x= %.10e , T = %.10e ,dx_H = %.10e , dx_He = %.10e \n",x_H,x_He,x,Tmat,dx_H,dx_He);
   }
@@ -3374,7 +3378,6 @@ int thermodynamics_derivs_with_recfast(
     x_H = y[ptw->tv->index_x_H];
     x_He = y[ptw->tv->index_x_He];
     x = x_H + preco->fHe * x_He;
-    Tmat = y[ptw->tv->index_Tmat];
   
   
     Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
