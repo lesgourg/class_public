@@ -476,6 +476,7 @@ struct thermo_workspace {
   int index_ap_He1; /**< index for 1st He-recombination (HeIII) */
   int index_ap_He1f; /**< index for approximation after 1st He recombination before 2nd */
   int index_ap_He2; /**< index for start of 2nd He-recombination (HeII) */
+  int index_ap_H; /**< index for start of H-recombination (HI) */
   int index_ap_frec; /**< index for full recombination */
 
   int ap_current; /** current fixed approximation scheme index */
@@ -483,7 +484,9 @@ struct thermo_workspace {
 
   double * ap_z_limits; /**< vector storing ending limits of each approximation */
   double * ap_z_limits_delta; /**< vector storing smoothing deltas of each approximation */
-
+  
+  int require_H;
+  int require_He;
 };
 
 
