@@ -754,8 +754,6 @@ int input_read_parameters(
 
   //DCH
 
-  class_read_double("a_dark",pth->a_dark);
-
   /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -766,6 +764,9 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"f_idm_dr",&param3,&flag3,errmsg),
              errmsg,
              errmsg);
+  class_call(parser_read_double(pfc,"a_dark",&param4,&flag4,errmsg),
+             errmsg,
+             errmsg);
 
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
@@ -774,9 +775,13 @@ int input_read_parameters(
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
 
-  class_test(((flag3 == _TRUE_) && (pth->a_dark==0.0)),
+  //class_read_double("a_dark",pth->a_dark);
+  class_test(((flag3 == _TRUE_) && (flag4 == _FALSE_)),
              errmsg,
-             "In input file, you have f_idm_dr but no a_dark");
+             "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem
+  class_test(((param3!=0.0) && (param4==0.0)),
+             errmsg,
+             "In input file, you have f_idm_dr!=0. but a_dark=0.");
 
   //this is the standard CDM case
   if ((flag3 == _FALSE_)||(pba->Omega0_idr==0.0)){
@@ -789,6 +794,7 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
+    pth->a_dark = param4;
     if (flag1 == _TRUE_){
       pba->Omega0_idm = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
@@ -804,7 +810,7 @@ int input_read_parameters(
   if (input_verbose > 2)
    printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
 
-  if (pba->Omega0_idm!=0.0){
+  //if (pba->Omega0_idm!=0.0){
   //Read the rest of the ethos parameters
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
@@ -842,7 +848,7 @@ int input_read_parameters(
     class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
   }
-  }
+  //}
   //end of ethos
 
   /** - Omega_0_dcdmdr (DCDM) */
