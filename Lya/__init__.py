@@ -318,10 +318,11 @@ class Lya(Likelihood):
         param_lcdm_equiv = deepcopy(data.cosmo_arguments)
 
         #deal with dark radiation (ethos & Co.) according to arXiv:1412.6763
-        if 'xi_idr' in data.cosmo_arguments or 'N_ur' in data.cosmo_arguments: #add ncdm
+        if 'xi_idr' in data.cosmo_arguments or 'N_ur' in data.cosmo_arguments or 'N_ncdm' in data.cosmo_arguments:
 
             if 'xi_idr' in data.cosmo_arguments:
                 xi_idr = data.cosmo_arguments['xi_idr']
+                param_lcdm_equiv['xi_idr'] = 0.0
                 if 'stat_f_idr' in data.cosmo_arguments:
                     stat_f_idr = data.cosmo_arguments['stat_f_idr']
                 else:
@@ -331,20 +332,31 @@ class Lya(Likelihood):
 
             if 'N_ur' in data.cosmo_arguments:
                 N_ur = data.cosmo_arguments['N_ur']
+                param_lcdm_equiv['N_ur'] = 3.0 #as in simulations
             else:
-                N_ur = 3.0 #as in simulations
+                N_ur = 3.046 #as in class 
+
+            if 'N_ncdm' in data.cosmo_arguments:
+                N_ncdm = data.cosmo_arguments['N_ncdm']
+                param_lcdm_equiv['N_ncdm'] = 0.0
+            else:
+                N_ncdm = 0.0
 
             #pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
             #N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-            DeltaNeff=stat_f_idr*(data.cosmo_arguments['xi_idr']**4)/7.*8./((4./11.)**(4./3.))+(N_ur-3.0)
+            DeltaNeff=stat_f_idr*(xi_idr**4)/7.*8./((4./11.)**(4./3.))+(N_ur+N_ncdm-3.0)
             eta2=(1.+0.2271*(3.0+DeltaNeff))/(1.+0.2271*3.0)
             eta=np.sqrt(eta2)
             #print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
             #print '\n'
-            param_lcdm_equiv['N_ur'] = 3.0 #as in simulations
-            param_lcdm_equiv['xi_idr'] = 0.0
-            param_lcdm_equiv['omega_b'] *= 1./eta2
-            param_lcdm_equiv['omega_cdm'] *= 1./eta2
+            if 'omega_b' in data.cosmo_arguments:
+                param_lcdm_equiv['omega_b'] *= 1./eta2
+            if 'Omega_b' in data.cosmo_arguments:
+                param_lcdm_equiv['Omega_b'] *= 1./eta
+            if 'omega_cdm' in data.cosmo_arguments:
+                param_lcdm_equiv['omega_cdm'] *= 1./eta2
+            if 'Omega_cdm' in data.cosmo_arguments:
+                param_lcdm_equiv['Omega_cdm'] *= 1./eta
             if 'H0' in data.cosmo_arguments:
                 param_lcdm_equiv['H0'] *= 1./eta
             if '100*theta_s' in data.cosmo_arguments:
@@ -360,6 +372,10 @@ class Lya(Likelihood):
 
         if 'a_dark' in data.cosmo_arguments:#this is not really needed, because once f_idm_dr = 0., whatever is a_dark, pba->has_idm==_FALSE_
             param_lcdm_equiv['a_dark'] = 0.0
+
+        #deal with warm dark matter
+        #if 'm_ncdm' in data.cosmo_arguments:
+            #param_lcdm_equiv['m_ncdm'] = 1.0e6
 
         cosmo.empty()
         #print 'param_lcdm_equiv'
