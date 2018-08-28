@@ -48,6 +48,7 @@ class Lya(Likelihood):
                bin_file.write(' %s' % name)
            bin_file.write('z_reio neff sigma8')
            bin_file.write('\n')
+           bin_file.close()
 
         file_path = os.path.join(self.data_directory, self.grid_file)
         if os.path.exists(file_path):
@@ -307,6 +308,7 @@ class Lya(Likelihood):
                     count += 1
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
+                bin_file.close()
            #sys.stderr.write('#ErrLya1')
            #sys.stderr.flush()
            return data.boundary_loglike
@@ -425,6 +427,7 @@ class Lya(Likelihood):
                         count += 1
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
+                bin_file.close()
            #sys.stderr.write('#ErrLya2')
            #sys.stderr.flush()
             return data.boundary_loglike
@@ -496,6 +499,7 @@ class Lya(Likelihood):
                     count += 1
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
+                bin_file.close()
            #sys.stderr.write('#ErrLya2')
            #sys.stderr.flush()
            return data.boundary_loglike
@@ -511,6 +515,7 @@ class Lya(Likelihood):
                         count += 1
                     bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                     bin_file.write('\n')
+                    bin_file.close()
                #sys.stderr.write('#ErrLya3')
                #sys.stderr.flush()
                return data.boundary_loglike
