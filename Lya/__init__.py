@@ -30,6 +30,12 @@ class Lya(Likelihood):
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
 
+        # create a set of Parameters
+        self.lmfit_params = Parameters()
+        self.lmfit_params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
+        self.lmfit_params.add('beta', value=2.24, min = 0.5, max = 10.)
+        self.lmfit_params.add('gamma', value=-4.46, min=-10., max=-0.1)
+
         alphas = np.zeros(self.grid_size, 'float64')
         betas = np.zeros(self.grid_size, 'float64')
         gammas = np.zeros(self.grid_size, 'float64')
@@ -69,10 +75,6 @@ class Lya(Likelihood):
            exit()
 
         X_real = np.zeros((self.grid_size, self.params_numbers),'float64') #real params
-
-        ##from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
-        #def khalf(alpha,beta,gamma):
-        #   return ((((0.5)**(1/(2*gamma)) - 1)**(1/beta))/alpha)**(-1)       #1./k1half
 
         for k in range(self.grid_size):  #real params
            X_real[k][0] = self.khalf(alphas[k], betas[k], gammas[k])    #k_1/2
@@ -241,7 +243,7 @@ class Lya(Likelihood):
 
         return
 
-    #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid !!!check why this was moved
+    #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
     def khalf(self,alpha,beta,gamma):
         return ((((0.5)**(1/(2*gamma)) - 1)**(1/beta))/alpha)**(-1)       #1./k1half
 
@@ -317,7 +319,8 @@ class Lya(Likelihood):
         #print 'initial data.cosmo_arguments'
         #print data.cosmo_arguments
 
-        param_lcdm_equiv = deepcopy(data.cosmo_arguments)
+        #param_lcdm_equiv = deepcopy(data.cosmo_arguments)
+        param_lcdm_equiv = data.cosmo_arguments.copy()
 
         #deal with dark radiation (ethos & Co.) according to arXiv:1412.6763
         if 'xi_idr' in data.cosmo_arguments or 'N_ur' in data.cosmo_arguments or 'N_ncdm' in data.cosmo_arguments:
@@ -393,7 +396,8 @@ class Lya(Likelihood):
         Plin_equiv *= h**3
 
         cosmo.empty()
-        del param_lcdm_equiv
+        #del param_lcdm_equiv
+        param_lcdm_equiv.clear()
         #print 'back to data.cosmo_arguments'
         #print data.cosmo_arguments
         #print '\n'
@@ -403,7 +407,7 @@ class Lya(Likelihood):
         Tk = np.zeros(len(k), 'float64')
         Tk = np.sqrt(Plin/Plin_equiv)
         if (abs(Tk[0]**2-1.0)>0.01):
-           print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+           #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
            return data.boundary_loglike
 
         spline=interpolate.splrep(k,Tk**2)
@@ -439,28 +443,16 @@ class Lya(Likelihood):
 
         # fitting the given linear P(k) with the {alpha,beta,gamma}-formula
 
-        #model function #T^2=P_model/P_ref
-        def T(k,alpha,beta,gamma):
-            return (1. + (alpha*k)**(beta))**(gamma)
-
-        #define objective function: returns the array to be minimized
-        def fcn2min(params, k, Tk):
-            alpha = params['alpha']
-            beta = params['beta']
-            gamma = params['gamma']
-            model = T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
-            return (model - Tk)      #standard residuals
-
         # create a set of Parameters
-        params = Parameters()
-        params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
-        params.add('beta', value=2.24, min = 0.5, max = 10.)
-        params.add('gamma', value=-4.46, min=-10., max=-0.1)
+        #params = Parameters()
+        #params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
+        #params.add('beta', value=2.24, min = 0.5, max = 10.)
+        #params.add('gamma', value=-4.46, min=-10., max=-0.1)
 
         # do fit, default is with least squares method
         #t0_fit = time.clock()
 
-        minner = Minimizer(fcn2min, params, fcn_args=(k_fit, Tk_fit))
+        minner = Minimizer(self.fcn2min, self.lmfit_params, fcn_args=(k_fit, Tk_fit))
         result = minner.minimize(method = 'leastsq')
         best_alpha = result.params['alpha'].value
         best_beta  = result.params['beta'].value
@@ -469,10 +461,16 @@ class Lya(Likelihood):
         #t1_fit = time.clock()
  
         Tk_abg=np.zeros(len(k_fit),'float64')
-        Tk_abg=T(k_fit, best_alpha, best_beta, best_gamma)
+        Tk_abg=self.T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
-        #report_fit(result)
+        print '\n'
+        print self.lmfit_params
+        print '\n'
+        report_fit(result)
+        print '\n'
+        print best_alpha,best_beta,best_gamma
+        print '\n'
         #print result.chisqr, result.redchi
 
         #plt.xlabel('k [h/Mpc]')
@@ -483,7 +481,7 @@ class Lya(Likelihood):
         #plt.yscale('log')
         #plt.grid(True)
         #plt.plot(k, Tk**2, 'r')
-        #plt.plot(k, (T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+        #plt.plot(k, (self.(k, best_alpha, best_beta, best_gamma))**2, 'b--')
         #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
         #plt.show()
         #plt.savefig('grid_fit_plot.pdf')
@@ -591,3 +589,16 @@ class Lya(Likelihood):
 
         #print 'Lya chi^2 = ',chi2
         return -chi2/2.
+
+    #model function #T^2=P_model/P_ref
+    def T(self,k,alpha,beta,gamma):
+        return (1. + (alpha*k)**(beta))**(gamma)
+
+    #define objective function: returns the array to be minimized
+    def fcn2min(self,params, k, Tk):
+        alpha = params['alpha']
+        beta = params['beta']
+        gamma = params['gamma']
+        model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+        return (model - Tk)      #standard residuals
+
