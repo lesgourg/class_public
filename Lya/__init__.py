@@ -464,13 +464,13 @@ class Lya(Likelihood):
         Tk_abg=self.T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
-        print '\n'
-        print self.lmfit_params
-        print '\n'
-        report_fit(result)
-        print '\n'
-        print best_alpha,best_beta,best_gamma
-        print '\n'
+        #print '\n'
+        #print self.lmfit_params
+        #print '\n'
+        #report_fit(result)
+        #print '\n'
+        #print best_alpha,best_beta,best_gamma
+        #print '\n'
         #print result.chisqr, result.redchi
 
         #plt.xlabel('k [h/Mpc]')
