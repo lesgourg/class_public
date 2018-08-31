@@ -406,6 +406,7 @@ class Lya(Likelihood):
 
         Tk = np.zeros(len(k), 'float64')
         Tk = np.sqrt(Plin/Plin_equiv)
+
         if (abs(Tk[0]**2-1.0)>0.05):
            #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
                with open(self.bin_file_path, 'a') as bin_file:
