@@ -5,7 +5,7 @@ import re  # Module to handle regular expressions
 #import sys
 import os
 import numpy as np
-from copy import deepcopy
+#from copy import deepcopy
 from scipy import interpolate
 from lmfit import Minimizer, Parameters, report_fit
 from scipy.linalg import block_diag
@@ -20,6 +20,8 @@ class Lya(Likelihood):
     def __init__(self, path, data, command_line):
 
         Likelihood.__init__(self, path, data, command_line)
+
+        print "Initializing Lya likelihood"
 
         self.need_cosmo_arguments(data, {'output': 'mPk'})
         self.need_cosmo_arguments(data, {'P_k_max_h/Mpc': 1.5*self.kmax})
@@ -46,15 +48,19 @@ class Lya(Likelihood):
         #for elem in data.get_mcmc_parameters(['derived']):
             #param.append(elem)
             #self.len_derived_params += 1
-        self.bin_file_path = os.path.join(command_line.folder, 'Lya_bin_file.txt')
-        with open(self.bin_file_path, 'w') as bin_file:
-           bin_file.write('#')
-           for name in param:
-               name = re.sub('[$*&]', '', name)
-               bin_file.write(' %s' % name)
-           bin_file.write('z_reio neff sigma8')
-           bin_file.write('\n')
-           bin_file.close()
+        self.bin_file_path = os.path.join(self.bin_file_name)
+        if os.path.exists(self.bin_file_path):
+           raise io_mp.ConfigurationError('Error: bin file already exists')
+           exit()
+        else:
+           with open(self.bin_file_path, 'w') as bin_file:
+                bin_file.write('#')
+                for name in param:
+                    name = re.sub('[$*&]', '', name)
+                    bin_file.write(' %s' % name)
+                bin_file.write('z_reio neff sigma8')
+                bin_file.write('\n')
+                bin_file.close()
 
         file_path = os.path.join(self.data_directory, self.grid_file)
         if os.path.exists(file_path):
@@ -194,6 +200,11 @@ class Lya(Likelihood):
         self.F_prior_max = np.array([0.803017,0.748495,0.709659,0.669613,0.628673,0.587177,0.545471,0.439262,0.315261,0.204999])
 
         #DATA
+
+        if not self.DATASET == "mike-hires":
+           raise io_mp.LikelihoodError('Error: for the time being, only the mike - hires dataset is available')
+           exit()
+
         file_path = os.path.join(self.data_directory, self.MIKE_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
@@ -240,6 +251,8 @@ class Lya(Likelihood):
 
         self.cov_MH_inverted = block_diag(cov_H_inverted,cov_M_inverted)
         self.y_MH_reshaped = np.concatenate((y_H_reshaped, y_M_reshaped))
+
+        print "Initialization of Lya likelihood done"
 
     #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
     def khalf(self,alpha,beta,gamma):
@@ -311,22 +324,40 @@ class Lya(Likelihood):
         #deal with the astro nuisance parameters
         if 'T0a' in self.use_nuisance:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
+        else:
+            T0a=0.74
         if 'T0s' in self.use_nuisance:
             T0s=data.mcmc_parameters['T0s']['current']*data.mcmc_parameters['T0s']['scale']
+        else:
+            T0s=-4.38
         if 'gamma_a' in self.use_nuisance:
             gamma_a=data.mcmc_parameters['gamma_a']['current']*data.mcmc_parameters['gamma_a']['scale']
+        else:
+            gamma_a=1.45
         if 'gamma_s' in self.use_nuisance:
             gamma_s=data.mcmc_parameters['gamma_s']['current']*data.mcmc_parameters['gamma_s']['scale']
+        else:
+            gamma_s=1.93
         if 'Fz1' in self.use_nuisance:
             Fz1=data.mcmc_parameters['Fz1']['current']*data.mcmc_parameters['Fz1']['scale']
+        else:
+            Fz1=0.35
         if 'Fz2' in self.use_nuisance:
             Fz2=data.mcmc_parameters['Fz2']['current']*data.mcmc_parameters['Fz2']['scale']
+        else:
+            Fz2=0.26
         if 'Fz3' in self.use_nuisance:
             Fz3=data.mcmc_parameters['Fz3']['current']*data.mcmc_parameters['Fz3']['scale']
+        else:
+            Fz3=0.18
         if 'Fz4' in self.use_nuisance:
             Fz4=data.mcmc_parameters['Fz4']['current']*data.mcmc_parameters['Fz4']['scale']
+        else:
+            Fz4=0.07
         if 'F_UV' in self.use_nuisance:
             F_UV=data.mcmc_parameters['F_UV']['current']*data.mcmc_parameters['F_UV']['scale']
+        else:
+            F_UV=0.0
 
         h=cosmo.h()
         Plin = np.zeros(len(k), 'float64')
@@ -360,6 +391,7 @@ class Lya(Likelihood):
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
            #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
            with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_cosmo ')
                 count=1
                 for name, value in data.mcmc_parameters.iteritems():
                  if count <= self.len_varying_params:
@@ -368,8 +400,6 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
-           #sys.stderr.write('#ErrLya1')
-           #sys.stderr.flush()
            return data.boundary_loglike
 
         #print '\n'
@@ -467,6 +497,7 @@ class Lya(Likelihood):
         if (abs(Tk[0]**2-1.0)>0.05):
             #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_equiv ')
                 count=1
                 for name, value in data.mcmc_parameters.iteritems():
                     if count <= self.len_varying_params:
@@ -491,6 +522,7 @@ class Lya(Likelihood):
         #sanity check for neff (check that the DAO do not start before k_neff)
         if k[index_k_fit_max]<k_neff:
             with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_kneff')
                 count=1
                 for name, value in data.mcmc_parameters.iteritems():
                     if count <= self.len_varying_params:
@@ -499,8 +531,6 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
-           #sys.stderr.write('#ErrLya2')
-           #sys.stderr.flush()
             return data.boundary_loglike
 
         #k_fit = np.zeros(len(k), 'float64')
@@ -519,7 +549,7 @@ class Lya(Likelihood):
         # do fit, default is with least squares method
         #t0_fit = time.clock()
 
-        minner = Minimizer(self.fcn2min, params, fcn_args=(k_fit, Tk_fit))
+        minner = Minimizer(self.fcn2min, self.lmfit_params, fcn_args=(k_fit, Tk_fit))
         result = minner.minimize(method = 'leastsq')
         best_alpha = result.params['alpha'].value
         best_beta  = result.params['beta'].value
@@ -540,23 +570,24 @@ class Lya(Likelihood):
         #print '\n'
         #print result.chisqr, result.redchi
 
-        #plt.xlabel('k [h/Mpc]')
-        #plt.ylabel('$P_{nCDM}/P_{CDM}$')
+        plt.xlabel('k [h/Mpc]')
+        plt.ylabel('$P_{nCDM}/P_{CDM}$')
         #plt.ylim(0.,1.1)
         #plt.xlim(self.kmin,self.kmax)
-        #plt.xscale('log')
+        plt.xscale('log')
         #plt.yscale('log')
-        #plt.grid(True)
+        plt.grid(True)
         #plt.plot(k, Tk**2, 'r')
         #plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-        #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
+        plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
         #plt.show()
-        #plt.savefig('grid_fit_plot.pdf')
+        plt.savefig('grid_fit_plot.pdf')
 
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
            with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_abg ')
                 count=1
                 for name, value in data.mcmc_parameters.iteritems():
                  if count <= self.len_varying_params:
@@ -565,14 +596,13 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
-           #sys.stderr.write('#ErrLya2')
-           #sys.stderr.flush()
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
         for index_k in range(len(k_fit)):
-            if abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:
+            if abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:#MArchi perhaps this check should be done on Tk instead of Tk**2
                with open(self.bin_file_path, 'a') as bin_file:
+                    bin_file.write('Error_fit ')
                     count=1
                     for name, value in data.mcmc_parameters.iteritems():
                      if count <= self.len_varying_params:
@@ -581,8 +611,6 @@ class Lya(Likelihood):
                     bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                     bin_file.write('\n')
                     bin_file.close()
-               #sys.stderr.write('#ErrLya3')
-               #sys.stderr.flush()
                return data.boundary_loglike
 
 
@@ -595,16 +623,14 @@ class Lya(Likelihood):
         model = self.PF_noPRACE*self.ordkrig_estimator_3D(theta, self.redshift_list)
         upper_block = np.vsplit(model, [7,11])[0]
         lower_block = np.vsplit(model, [7,11])[1]
-        if self.DATASET == "mike-hires":
-           model_H[:,:] = lower_block[:,19:]
-           model_H_reshaped = np.reshape(model_H, -1, order='C')
-           model_M[:,:] = lower_block[:3,19:]
-           model_M_reshaped = np.reshape(model_M, -1, order='C')
-           model_MH_reshaped = np.concatenate((model_H_reshaped,model_M_reshaped))
-           chi2 = np.dot((self.y_MH_reshaped - model_MH_reshaped),np.dot(self.cov_MH_inverted,(self.y_MH_reshaped - model_MH_reshaped)))
-        else:
-           raise io_mp.LikelihoodError('Error: for the time being, only the mike - hires dataset is available')
-           exit()
+        
+        model_H[:,:] = lower_block[:,19:]
+        model_H_reshaped = np.reshape(model_H, -1, order='C')
+        model_M[:,:] = lower_block[:3,19:]
+        model_M_reshaped = np.reshape(model_M, -1, order='C')
+        model_MH_reshaped = np.concatenate((model_H_reshaped,model_M_reshaped))
+        chi2 = np.dot((self.y_MH_reshaped - model_MH_reshaped),np.dot(self.cov_MH_inverted,(self.y_MH_reshaped - model_MH_reshaped)))
 
-        #print 'Lya chi^2 = ',chi2
-        return -chi2/2.
+        loglkl = - 0.5 * chi2
+        print 'Lya -chi^2/2 = ',loglkl
+        return loglkl
