@@ -241,11 +241,68 @@ class Lya(Likelihood):
         self.cov_MH_inverted = block_diag(cov_H_inverted,cov_M_inverted)
         self.y_MH_reshaped = np.concatenate((y_H_reshaped, y_M_reshaped))
 
-        return
-
     #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
     def khalf(self,alpha,beta,gamma):
         return ((((0.5)**(1/(2*gamma)) - 1)**(1/beta))/alpha)**(-1)       #1./k1half
+
+#### functions used later on in the code, moved here to avoid nested definitions #####
+
+    #model function #T^2=P_model/P_ref
+    def T(self,k,alpha,beta,gamma):
+        return (1. + (alpha*k)**(beta))**(gamma)
+
+    #define objective function: returns the array to be minimized
+    def fcn2min(self,params, k, Tk):
+        alpha = params['alpha']
+        beta = params['beta']
+        gamma = params['gamma']
+        model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+        return (model - Tk)      #standard residuals
+
+    def z_dep_func(self,parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
+        return parA*(( (1.+z)/(1.+self.zp) )**parS)
+
+    def ordkrig_distance(self,p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7):
+        return (((p1 - v1)**2 + (p2 - v2)**2 + (p3 - v3)**2 + (p4 - v4)**2 + (p5 - v5)**2 + (p6 - v6)**2 + (p7 - v7)**2)**(0.5) + self.epsilon)**self.exponent
+
+    def ordkrig_norm(self,p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7):
+        return np.sum(1./self.ordkrig_distance(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7))
+
+    def ordkrig_lambda(self,p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7):
+        return (1./self.ordkrig_distance(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7))/self.ordkrig_norm(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7)
+
+    def ordkrig_estimator(self,p21, z):
+        pa10 = (self.z_dep_func(p21[11], p21[12], z[:])*1e4)/(self.t0_max[:]-self.t0_min[:])
+        pb10 = self.z_dep_func(p21[13], p21[14], z[:])/(self.slope_max[:]-self.slope_min[:])
+        p37 = np.concatenate((p21[3:11], pa10[6:], pb10[6:]))
+        astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
+        for index in range(self.num_z_XQ,len(self.redshift)):
+            astrokrig_result[index,:] = np.sum(np.multiply(self.ordkrig_lambda(p37[0]/self.zreio_range, p37[1], p37[2]/self.neff_range, p37[3], p37[4+index-self.num_z_XQ]/(self.F_prior_max[index-self.num_z_overlap]-self.F_prior_min[index-self.num_z_overlap]), p37[8+index-self.num_z_XQ], p37[12+index-self.num_z_XQ], self.X[:,0], self.X[:,1], self.X[:,2], self.X[:,3], self.X[:,4+index-self.num_z_overlap], self.X[:,14+index-self.num_z_overlap], self.X[:,24+index-self.num_z_overlap]), self.full_matrix_interpolated_ASTRO[index,:,:]),axis=1)
+        return astrokrig_result
+
+    def ordkrig_distance_3D(self,par1, par2, par3, var1, var2, var3):
+        return (((par1 - var1)**2 + (par2 - var2)**2 + (par3 - var3)**2)**(0.5) + self.epsilon)**self.exponent
+
+    def ordkrig_norm_3D(self,par1, par2, par3):
+        return np.sum(1./self.ordkrig_distance_3D(par1, par2, par3, self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]))
+
+    def ordkrig_lambda_3D(self,par1, par2, par3, var1, var2, var3):
+        return (1./self.ordkrig_distance_3D(par1, par2, par3, var1, var2, var3))/self.ordkrig_norm_3D(par1,par2,par3)
+
+    def ordkrig_estimator_3D(self,p21, z):
+        ABG_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
+        NEW_ABG_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_length, self.kappa_full_length), 'float64')
+        for i in range(self.zeta_full_length):
+            for j in range(self.kappa_full_length):
+                NEW_ABG_matrix[:,i,j] = self.full_matrix_interpolated_ABG[i,j,:]
+        ABG_matrix_new = NEW_ABG_matrix + self.ordkrig_estimator(p21,z) - 1.
+        ABG_matrix_new = np.clip(ABG_matrix_new, 0. , None)
+        for i in range(self.zeta_full_length):
+            for j in range(self.kappa_full_length):
+                self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
+        return np.sum(np.multiply(self.ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
+
+### end of block ####
 
     def loglkl(self, cosmo, data):
 
@@ -339,7 +396,7 @@ class Lya(Likelihood):
                 N_ur = data.cosmo_arguments['N_ur']
                 param_lcdm_equiv['N_ur'] = 3.0 #as in simulations
             else:
-                N_ur = 3.046 #as in class 
+                N_ur = 3.046 #as in class
 
             if 'N_ncdm' in data.cosmo_arguments:
                 N_ncdm = data.cosmo_arguments['N_ncdm']
@@ -408,17 +465,17 @@ class Lya(Likelihood):
         Tk = np.sqrt(Plin/Plin_equiv)
 
         if (abs(Tk[0]**2-1.0)>0.05):
-           #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
-               with open(self.bin_file_path, 'a') as bin_file:
-                    count=1
-                    for name, value in data.mcmc_parameters.iteritems():
-                     if count <= self.len_varying_params:
+            #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+            with open(self.bin_file_path, 'a') as bin_file:
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                    if count <= self.len_varying_params:
                         bin_file.write(' %e' % (value['current']*value['scale']))
                         count += 1
-                    bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
-                    bin_file.write('\n')
-                    bin_file.close()
-               return data.boundary_loglike
+                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write('\n')
+                bin_file.close()
+            return data.boundary_loglike
 
         spline=interpolate.splrep(k,Tk**2)
         der = interpolate.splev(k, spline, der=1)
@@ -445,7 +502,7 @@ class Lya(Likelihood):
            #sys.stderr.write('#ErrLya2')
            #sys.stderr.flush()
             return data.boundary_loglike
-  
+
         #k_fit = np.zeros(len(k), 'float64')
         #Tk_fit = np.zeros(len(k), 'float64')
         k_fit = k[:index_k_fit_max]
@@ -462,14 +519,14 @@ class Lya(Likelihood):
         # do fit, default is with least squares method
         #t0_fit = time.clock()
 
-        minner = Minimizer(self.fcn2min, self.lmfit_params, fcn_args=(k_fit, Tk_fit))
+        minner = Minimizer(self.fcn2min, params, fcn_args=(k_fit, Tk_fit))
         result = minner.minimize(method = 'leastsq')
         best_alpha = result.params['alpha'].value
         best_beta  = result.params['beta'].value
         best_gamma = result.params['gamma'].value
 
         #t1_fit = time.clock()
- 
+
         Tk_abg=np.zeros(len(k_fit),'float64')
         Tk_abg=self.T(k_fit, best_alpha, best_beta, best_gamma)
 
@@ -491,7 +548,7 @@ class Lya(Likelihood):
         #plt.yscale('log')
         #plt.grid(True)
         #plt.plot(k, Tk**2, 'r')
-        #plt.plot(k, (self.(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+        #plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
         #plt.plot(k_fit, abs(Tk**2/Tk_abg**2-1.), 'k')
         #plt.show()
         #plt.savefig('grid_fit_plot.pdf')
@@ -528,54 +585,6 @@ class Lya(Likelihood):
                #sys.stderr.flush()
                return data.boundary_loglike
 
-        #Now get the chi^2
-
-        astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
-
-	def z_dep_func(parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
-	    return parA*(( (1.+z)/(1.+self.zp) )**parS)
-
-	def ordkrig_distance(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7):
-	    return (((p1 - v1)**2 + (p2 - v2)**2 + (p3 - v3)**2 + (p4 - v4)**2 + (p5 - v5)**2 + (p6 - v6)**2 + (p7 - v7)**2)**(0.5) + self.epsilon)**self.exponent
-
-	def ordkrig_norm(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7):
-	    return np.sum(1./ordkrig_distance(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7))
-
-	def ordkrig_lambda(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7):
-	    return (1./ordkrig_distance(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7))/ordkrig_norm(p1, p2, p3, p4, p5, p6, p7, v1, v2, v3, v4, v5, v6, v7)
-
-	def ordkrig_estimator(p21, z):
-	    pa10 = (z_dep_func(p21[11], p21[12], z[:])*1e4)/(self.t0_max[:]-self.t0_min[:])
-	    pb10 = z_dep_func(p21[13], p21[14], z[:])/(self.slope_max[:]-self.slope_min[:])
-	    p37 = np.concatenate((p21[3:11], pa10[6:], pb10[6:]))
-	    for index in range(self.num_z_XQ,len(self.redshift)):
-		astrokrig_result[index,:] = np.sum(np.multiply(ordkrig_lambda(p37[0]/self.zreio_range, p37[1], p37[2]/self.neff_range, p37[3], p37[4+index-self.num_z_XQ]/(self.F_prior_max[index-self.num_z_overlap]-self.F_prior_min[index-self.num_z_overlap]), p37[8+index-self.num_z_XQ], p37[12+index-self.num_z_XQ], self.X[:,0], self.X[:,1], self.X[:,2], self.X[:,3], self.X[:,4+index-self.num_z_overlap], self.X[:,14+index-self.num_z_overlap], self.X[:,24+index-self.num_z_overlap]), self.full_matrix_interpolated_ASTRO[index,:,:]),axis=1)
-	    return astrokrig_result
-
-	###########################  STUFF FOR INTERPOLATING IN THE {alpha,beta,gamma} SPACE ####################################
-	ABG_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
-
-	def ordkrig_distance_3D(par1, par2, par3, var1, var2, var3):
-	    return (((par1 - var1)**2 + (par2 - var2)**2 + (par3 - var3)**2)**(0.5) + self.epsilon)**self.exponent
-
-	def ordkrig_norm_3D(par1, par2, par3):
-	    return np.sum(1./ordkrig_distance_3D(par1, par2, par3, self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]))
-
-	def ordkrig_lambda_3D(par1, par2, par3, var1, var2, var3):
-	    return (1./ordkrig_distance_3D(par1, par2, par3, var1, var2, var3))/ordkrig_norm_3D(par1,par2,par3)
-
-	NEW_ABG_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_length, self.kappa_full_length), 'float64')
-	for i in range(self.zeta_full_length):
-	    for j in range(self.kappa_full_length):
-		NEW_ABG_matrix[:,i,j] = self.full_matrix_interpolated_ABG[i,j,:]
-
-	def ordkrig_estimator_3D(p21, z):
-	    ABG_matrix_new = NEW_ABG_matrix + ordkrig_estimator(p21,z) - 1.
-	    ABG_matrix_new = np.clip(ABG_matrix_new, 0. , None)
-	    for i in range(self.zeta_full_length):
-		for j in range(self.kappa_full_length):
-		    self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
-	    return np.sum(np.multiply(ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
 
         #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
         model_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
@@ -583,7 +592,7 @@ class Lya(Likelihood):
         model_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
         #y_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
         theta=np.array([best_alpha,best_beta,best_gamma,z_reio,sigma8,neff,F_UV,Fz1,Fz2,Fz3,Fz4,T0a,T0s,gamma_a,gamma_s])
-        model = self.PF_noPRACE*ordkrig_estimator_3D(theta, self.redshift_list)
+        model = self.PF_noPRACE*self.ordkrig_estimator_3D(theta, self.redshift_list)
         upper_block = np.vsplit(model, [7,11])[0]
         lower_block = np.vsplit(model, [7,11])[1]
         if self.DATASET == "mike-hires":
@@ -599,16 +608,3 @@ class Lya(Likelihood):
 
         #print 'Lya chi^2 = ',chi2
         return -chi2/2.
-
-    #model function #T^2=P_model/P_ref
-    def T(self,k,alpha,beta,gamma):
-        return (1. + (alpha*k)**(beta))**(gamma)
-
-    #define objective function: returns the array to be minimized
-    def fcn2min(self,params, k, Tk):
-        alpha = params['alpha']
-        beta = params['beta']
-        gamma = params['gamma']
-        model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
-        return (model - Tk)      #standard residuals
-
