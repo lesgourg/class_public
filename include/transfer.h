@@ -11,6 +11,17 @@
 
 /* macro: test if index_tt is in the range between index and index+num, while the flag is true */
 #define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
+#define _integrated_ncl_ (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) || \
+          (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) || \
+          (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) || \
+          (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
+#define _nonintegrated_ncl_ (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) || \
+          (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) || \
+          (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) || \
+          (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) || \
+          (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  || \
+          (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  || \
+          (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
 
 /**
  * Structure containing everything about transfer functions in

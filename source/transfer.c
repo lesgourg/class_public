@@ -1548,14 +1548,7 @@ int transfer_source_tau_size(
     }
 
     /* density Cl's */
-    if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-        (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-        ) {
+    if (_nonintegrated_ncl_) {
 
       /* bin number associated to particular redshift bin and selection function */
       if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
@@ -1612,18 +1605,14 @@ int transfer_source_tau_size(
            We need to cut the interval (tau_max-tau_min) in pieces of size
            [Delta tau]=2pi/k_max. This gives the number below.
         */
-        *tau_size=MAX(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/l_limber))*ppr->selection_sampling_bessel);
+        *tau_size=MAX(*tau_size,(int)((tau_max-tau_min)/((tau0-tau_mean)/MIN(l_limber,ppt->l_lss_max)))*ppr->selection_sampling_bessel);
       }
     }
 
     /* galaxy lensing Cl's, differs from density Cl's since the source
        function will spread from the selection function region up to
        tau0 */
-    if ((_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) ||
-        (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g4, ppt->selection_num, ppt->has_nc_gr)) ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr))
-        ) {
+    if (_integrated_ncl_) {
 
       /* bin number associated to particular redshift bin and selection function */
       if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential))
@@ -1658,7 +1647,7 @@ int transfer_source_tau_size(
       if(_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)) {
         /* Even if G5 is integrated along the line-of-sight, we do not apply the same Limber criteria as for the other integrated terms, because here we have the derivative of the Bessel.  */
         l_limber=ppr->l_switch_limber_for_nc_local_over_z*ppt->selection_mean[bin];
-        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel);
+        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./MIN(l_limber,ppt->l_lss_max)))*ppr->selection_sampling_bessel);
       }
       else {
         l_limber=ppr->l_switch_limber_for_nc_los_over_z*ppt->selection_mean[bin];
@@ -1670,7 +1659,7 @@ int transfer_source_tau_size(
            We need to cut the interval (tau_0-tau_min) in pieces of size
            [Delta tau]=2pi/k_max. This gives the number below.
         */
-        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./l_limber))*ppr->selection_sampling_bessel_los);
+        *tau_size=MAX(*tau_size,(int)((tau0-tau_min)/((tau0-tau_mean)/2./MIN(l_limber,ppt->l_lss_max)))*ppr->selection_sampling_bessel_los);
       }
     }
   }
@@ -2177,23 +2166,9 @@ int transfer_sources(
       redefine_source = _TRUE_;
 
     /* number count Cl's */
-    if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-        (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-        (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))||
-        (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))  ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr))  ||
-        (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
-        )
+    if (_nonintegrated_ncl_ || _integrated_ncl_)
       redefine_source = _TRUE_;
-
-    /* galaxy lensing potential */
-    if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= ptr->index_tt_lensing) && (index_tt < ptr->index_tt_lensing+ppt->selection_num))
-      redefine_source = _TRUE_;
-
+    
   }
 
   /* conformal time today */
@@ -2284,44 +2259,9 @@ int transfer_sources(
                    ptr->error_message);
       }
 
-      /* density source: redefine the time sampling, multiply by
-         coefficient of Poisson equation, and multiply by selection
-         function */
+      /* Non-integrated contributions to dCl/nCl need selection time sampling*/
 
-      if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-          (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-          ) {
-        /*
-        //// bin number associated to particular redshift bin and selection function 
-        if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
-          bin = index_tt - ptr->index_tt_density;
-
-        if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_rsd;
-
-        if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_d0;
-
-        if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_d1;
-
-        if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g1;
-
-        if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g2;
-
-        if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g3;
-        */
-        /* allocate temporary arrays for storing sources and for calling background */
-        ////class_alloc(selection,tau_size*sizeof(double),ptr->error_message);
-        ////class_alloc(pvecback,pba->bg_size*sizeof(double),ptr->error_message);
+      if (_nonintegrated_ncl_) {
 
         /* redefine the time sampling */
         class_call(transfer_selection_sampling(ppr,
@@ -2361,109 +2301,8 @@ int transfer_sources(
                    ptr->error_message,
                    ptr->error_message);
         
-        /* compute values of selection function at sampled values of tau */
-        /*class_call(transfer_selection_compute(ppr,
-                                              pba,
-                                              ppt,
-                                              ptr,
-                                              selection,
-                                              tau0_minus_tau,
-                                              w_trapz,
-                                              tau_size,
-                                              pvecback,
-                                              tau0,
-                                              bin),
-                   ptr->error_message,
-                   ptr->error_message);
-        */
         /* loop over time and rescale */
         for (index_tau = 0; index_tau < tau_size; index_tau++) {
-
-          /* conformal time */
-          ////tau = tau0 - tau0_minus_tau[index_tau];
-
-          /* geometrical quantity */
-          /*switch (pba->sgnK){
-          case 1:
-            cotKgen_source = sqrt(pba->K)/ptr->k[index_md][index_q]
-              *cos(tau0_minus_tau[index_tau]*sqrt(pba->K))
-              /sin(tau0_minus_tau[index_tau]*sqrt(pba->K));
-            break;
-          case 0:
-            cotKgen_source = 1./(ptr->k[index_md][index_q]*tau0_minus_tau[index_tau]);
-            break;
-          case -1:
-            cotKgen_source = sqrt(-pba->K)/ptr->k[index_md][index_q]
-              *cosh(tau0_minus_tau[index_tau]*sqrt(-pba->K))
-              /sinh(tau0_minus_tau[index_tau]*sqrt(-pba->K));
-            break;
-          }*/
-
-          /* corresponding background quantities */
-          /*class_call(background_at_tau(pba,
-                                       tau,
-                                       pba->long_info,
-                                       pba->inter_normal,
-                                       &last_index,
-                                       pvecback),
-                     pba->error_message,
-                     ptr->error_message);*/
-
-          /* Source evolution, used by number counf rsd and number count gravity terms */
-
-          /*if ((_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
-              (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-              (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))) {
-
-            if((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
-
-              f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
-                + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
-
-              z = pba->a_today/pvecback[pba->index_bg_a]-1.;
-
-              if (ptr->has_nz_evo_file ==_TRUE_) {
-
-                class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
-                           ptr->error_message,
-                           "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
-                           ptr->nz_evo_z[0],
-                           ptr->nz_evo_z[ptr->nz_evo_size-1],
-                           z);
-
-
-                class_call(array_interpolate_spline(
-                                                    ptr->nz_evo_z,
-                                                    ptr->nz_evo_size,
-                                                    ptr->nz_evo_dlog_nz,
-                                                    ptr->nz_evo_dd_dlog_nz,
-                                                    1,
-                                                    z,
-                                                    &last_index,
-                                                    &dln_dNdz_dz,
-                                                    1,
-                                                    ptr->error_message),
-                           ptr->error_message,
-                           ptr->error_message);
-
-              }
-              else {
-
-                class_call(transfer_dNdz_analytic(ptr,
-                                                  z,
-                                                  &dNdz,
-                                                  &dln_dNdz_dz),
-                           ptr->error_message,
-                           ptr->error_message);
-              }
-
-              f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
-            }
-            else {
-              f_evo = 0.;
-            }
-
-          }*/
 
           /* matter density source =  [- (dz/dtau) W(z)] * delta_m(k,tau)
              = W(tau) delta_m(k,tau)
@@ -2474,150 +2313,24 @@ int transfer_sources(
              (in tau = tau_0, set source = 0 to avoid division by zero;
              regulated anyway by Bessel).
           */
-
-          //if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
-          //  rescaling = ptr->selection_bias[bin]*selection[index_tau];
-
-          /* redshift space distortion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
-
-          //if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
-          //  rescaling = selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
           
           rescaling = window[index_tt*tau_size_max+index_tau];
+          
           if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
-            rescaling*=1./ptr->k[index_md][index_q]/ptr->k[index_md][index_q];
-            //rescaling = (f_evo-3.)*selection[index_tau]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a]
-            //  /ptr->k[index_md][index_q]/ptr->k[index_md][index_q];
-
-          if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
-            rescaling *= 1./ptr->k[index_md][index_q];
-            /*rescaling = selection[index_tau]*(1.
-                                              +pvecback[pba->index_bg_H_prime]
-                                              /pvecback[pba->index_bg_a]
-                                              /pvecback[pba->index_bg_H]
-                                              /pvecback[pba->index_bg_H]
-                                              +(2.-5.*ptr->selection_magnification_bias[bin])
-                                              // /tau0_minus_tau[index_tau] // in flat space
-                                              *cotKgen_source*ptr->k[index_md][index_q]  // in general case
-                                              /pvecback[pba->index_bg_a]
-                                              /pvecback[pba->index_bg_H]
-                                              +5.*ptr->selection_magnification_bias[bin]
-                                              -f_evo
-                                              )/ptr->k[index_md][index_q];
-            */
-          //if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
-
-            //rescaling = selection[index_tau];
-
-          //if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
-
-            /*rescaling = -selection[index_tau]*(3.
-                                               +pvecback[pba->index_bg_H_prime]
-                                               /pvecback[pba->index_bg_a]
-                                               /pvecback[pba->index_bg_H]
-                                               /pvecback[pba->index_bg_H]
-                                               +(2.-5.*ptr->selection_magnification_bias[bin])
-                                               // /tau0_minus_tau[index_tau]  // in flat space
-                                               *cotKgen_source*ptr->k[index_md][index_q]  // in general case
-                                               /pvecback[pba->index_bg_a]
-                                               /pvecback[pba->index_bg_H]
-                                               -f_evo
-                                               );
-            */
-          //if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-          //  rescaling = selection[index_tau]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H];
-
+            rescaling *= 1./ptr->k[index_md][index_q]/ptr->k[index_md][index_q]; // Factor from original ClassGAL paper ( arXiv 1307.1459 )
+          
+          if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) 
+            rescaling *= 1./ptr->k[index_md][index_q]; // Factor from original ClassGAL paper ( arXiv 1307.1459 )
+          
           sources[index_tau] *= rescaling;
-
         }
-
-        /* deallocate temporary arrays */
-        ////free(pvecback);
-        ////free(selection);
       }
+      /* End normal contributions */
 
-      /* lensing potential: eliminate early times, and multiply by selection
-         function */
+      /* Integrated contributions to dCl/nCl/sCl need integrated selection time sampling */
 
-      if ((_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) ||
-          (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
-          ) {
+      if (_integrated_ncl_) {
         
-        /* bin number associated to particular redshift bin and selection function */
-        /*if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential))
-          bin = index_tt - ptr->index_tt_lensing;
-
-        if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))
-          bin = index_tt - ptr->index_tt_nc_lens;
-
-        if (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g4;
-
-        if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g5;
-        */
-        /* allocate temporary arrays for storing sources and for calling background */
-        /* class_alloc(pvecback,
-                    pba->bg_size*sizeof(double),
-                    ptr->error_message);
-        */
-        /* dirac case */
-        //if (ppt->selection == dirac) {
-        //  tau_sources_size=1;
-        //}
-        /* other cases (gaussian, tophat...) */
-        //else {
-        //  tau_sources_size=ppr->selection_sampling;
-        //}
-        /*
-        class_alloc(selection,
-                    tau_sources_size*sizeof(double),
-                    ptr->error_message);
-
-        class_alloc(tau0_minus_tau_lensing_sources,
-                    tau_sources_size*sizeof(double),
-                    ptr->error_message);
-
-        class_alloc(w_trapz_lensing_sources,
-                    tau_sources_size*sizeof(double),
-                    ptr->error_message);
-        */
-        /* time sampling for source selection function */
-        /*class_call(transfer_selection_sampling(ppr,
-                                               pba,
-                                               ppt,
-                                               ptr,
-                                               bin,
-                                               tau0_minus_tau_lensing_sources,
-                                               tau_sources_size),
-                   ptr->error_message,
-                   ptr->error_message);
-        */
-        /* Compute trapezoidal weights for integration over tau */
-        /*class_call(array_trapezoidal_mweights(tau0_minus_tau_lensing_sources,
-                                              tau_sources_size,
-                                              w_trapz_lensing_sources,
-                                              ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
-        */
-        /* compute values of selection function at sampled values of tau */
-        /*class_call(transfer_selection_compute(ppr,
-                                              pba,
-                                              ppt,
-                                              ptr,
-                                              selection,
-                                              tau0_minus_tau_lensing_sources,
-                                              w_trapz_lensing_sources,
-                                              tau_sources_size,
-                                              pvecback,
-                                              tau0,
-                                              bin),
-                   ptr->error_message,
-                   ptr->error_message);
-        */
         /* redefine the time sampling */
         class_call(transfer_lensing_sampling(ppr,
                                              pba,
@@ -2664,185 +2377,15 @@ int transfer_sources(
              (in tau = tau_0, set source = 0 to avoid division by zero;
              regulated anyway by Bessel).
           */
-          /*
-          if (index_tau == tau_size-1) {
-            rescaling=0.;
-          }
-          else {
-
-            rescaling = 0.;
-
-
-            for (index_tau_sources=0;
-                 index_tau_sources < tau_sources_size;
-                 index_tau_sources++) {
-
-              switch (pba->sgnK){
-              case 1:
-                sinKgen_source = ptr->k[index_md][index_q]*sin(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sqrt(pba->K);
-                sinKgen_source_to_lens = ptr->k[index_md][index_q]*sin((tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])*sqrt(pba->K))/sqrt(pba->K);
-                cotKgen_source = cos(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(pba->K))/sinKgen_source;
-                cscKgen_lens = sqrt(pba->K)/ptr->k[index_md][index_q]/sin(sqrt(pba->K)*tau0_minus_tau[index_tau]);
-                break;
-              case 0:
-                sinKgen_source = ptr->k[index_md][index_q]*tau0_minus_tau_lensing_sources[index_tau_sources];
-                sinKgen_source_to_lens = ptr->k[index_md][index_q]*(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources]);
-                cotKgen_source = 1./(ptr->k[index_md][index_q]*tau0_minus_tau_lensing_sources[index_tau_sources]);
-                cscKgen_lens = 1./(ptr->k[index_md][index_q]*tau0_minus_tau[index_tau]);
-                break;
-              case -1:
-                sinKgen_source = ptr->k[index_md][index_q]*sinh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(-pba->K))/sqrt(-pba->K);
-                sinKgen_source_to_lens = ptr->k[index_md][index_q]*sinh((tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])*sqrt(-pba->K))/sqrt(-pba->K);
-                cotKgen_source = cosh(tau0_minus_tau_lensing_sources[index_tau_sources]*sqrt(-pba->K))/sinKgen_source;
-                cscKgen_lens = sqrt(-pba->K)/ptr->k[index_md][index_q]/sinh(sqrt(-pba->K)*tau0_minus_tau[index_tau]);
-                break;
-              }
-
-
-              //// condition for excluding from the sum the sources located in z=zero 
-              if ((tau0_minus_tau_lensing_sources[index_tau_sources] > 0.) && (tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau] > 0.)) {
-
-                if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) {
-
-                  rescaling +=
-                    //  *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
-                    //  /tau0_minus_tau[index_tau]
-                    //  /tau0_minus_tau_lensing_sources[index_tau_sources]
-                    ptr->k[index_md][index_q]
-                    *sinKgen_source_to_lens
-                    *cscKgen_lens
-                    /sinKgen_source
-                    * selection[index_tau_sources]
-                    * w_trapz_lensing_sources[index_tau_sources];
-                }
-
-                if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) {
-
-                  rescaling -=
-                    (2.-5.*ptr->selection_magnification_bias[bin])/2.
-                    //  *(tau0_minus_tau[index_tau]-tau0_minus_tau_lensing_sources[index_tau_sources])
-                    //  /tau0_minus_tau[index_tau]
-                    //  /tau0_minus_tau_lensing_sources[index_tau_sources]
-                    *ptr->k[index_md][index_q]
-                    *sinKgen_source_to_lens
-                    *cscKgen_lens
-                    /sinKgen_source
-                    * selection[index_tau_sources]
-                    * w_trapz_lensing_sources[index_tau_sources];
-                }
-
-                if (_index_tt_in_range_(ptr->index_tt_nc_g4, ppt->selection_num, ppt->has_nc_gr)) {
-
-                  rescaling +=
-                    (2.-5.*ptr->selection_magnification_bias[bin])
-                    // /tau0_minus_tau_lensing_sources[index_tau_sources]
-                    * cotKgen_source*ptr->k[index_md][index_q]
-                    * selection[index_tau_sources]
-                    * w_trapz_lensing_sources[index_tau_sources];
-
-                }
-
-                if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr)) {
-
-                  //// background quantities at time tau_lensing_source 
-
-                  class_call(background_at_tau(pba,
-                                               tau0-tau0_minus_tau_lensing_sources[index_tau_sources],
-                                               pba->long_info,
-                                               pba->inter_normal,
-                                               &last_index,
-                                               pvecback),
-                             pba->error_message,
-                             ptr->error_message);
-
-                  //// Source evolution at time tau_lensing_source 
-
-                  if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)) {
-
-                    f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen_source*ptr->k[index_md][index_q]
-                      + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
-
-                    z = pba->a_today/pvecback[pba->index_bg_a]-1.;
-
-                    if (ptr->has_nz_evo_file == _TRUE_) {
-
-                      class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
-                                 ptr->error_message,
-                                 "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
-                                 ptr->nz_evo_z[0],
-                                 ptr->nz_evo_z[ptr->nz_evo_size-1],
-                                 z);
-
-                      class_call(array_interpolate_spline(
-                                                          ptr->nz_evo_z,
-                                                          ptr->nz_evo_size,
-                                                          ptr->nz_evo_dlog_nz,
-                                                          ptr->nz_evo_dd_dlog_nz,
-                                                          1,
-                                                          z,
-                                                          &last_index,
-                                                          &dln_dNdz_dz,
-                                                          1,
-                                                          ptr->error_message),
-                                 ptr->error_message,
-                                 ptr->error_message);
-
-                    }
-                    else {
-
-                      class_call(transfer_dNdz_analytic(ptr,
-                                                        z,
-                                                        &dNdz,
-                                                        &dln_dNdz_dz),
-                                 ptr->error_message,
-                                 ptr->error_message);
-                    }
-
-                    f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
-                  }
-                  else {
-                    f_evo = 0.;
-                  }
-
-                  rescaling +=
-                    (1.
-                     + pvecback[pba->index_bg_H_prime]
-                     /pvecback[pba->index_bg_a]
-                     /pvecback[pba->index_bg_H]
-                     /pvecback[pba->index_bg_H]
-                     + (2.-5.*ptr->selection_magnification_bias[bin])
-                     //  /tau0_minus_tau_lensing_sources[index_tau_sources]
-                     * cotKgen_source*ptr->k[index_md][index_q]
-                     /pvecback[pba->index_bg_a]
-                     /pvecback[pba->index_bg_H]
-                     + 5.*ptr->selection_magnification_bias[bin]
-                     - f_evo)
-                    * ptr->k[index_md][index_q]
-                    * selection[index_tau_sources]
-                    * w_trapz_lensing_sources[index_tau_sources];
-                }
-
-              }
-            }
-          }*/
-          //printf(" index %i \n",index_tt*tau_size_max+index_tau);
-          //printf("Current %.10e , new %.10e \n",rescaling,window[index_tt*tau_size_max+index_tau]);
-          //if(fabs(rescaling-window[index_tt*tau_size_max+index_tau])>fabs(rescaling)*1e-14){printf("CRITICAL FAILURE\n");printf("%.20e\n",rescaling-window[index_tt*tau_size_max+index_tau]);exit(0);}
+          
           /* copy from input array to output array */
           sources[index_tau] *= window[index_tt*tau_size_max+index_tau];
 
-          if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr)) {
+          if (_index_tt_in_range_(ptr->index_tt_nc_g5, ppt->selection_num, ppt->has_nc_gr))
             sources[index_tau] *= ptr->k[index_md][index_q]; // Factor from chi derivative of d/dchi j_ell(k*chi)= d/d(kchi) j_ell(k chi) * k = k * j_ell'(kchi)
-          }
         }
-
-        /* deallocate temporary arrays */
-        /*free(pvecback);
-        free(selection);
-        free(tau0_minus_tau_lensing_sources);
-        free(w_trapz_lensing_sources);*/
-
       }
+      /* End integrated contributions */
     }
   }
 
@@ -5056,6 +4599,26 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
   return _SUCCESS_;
 }
 
+/**
+ * Here we can precompute the window functions for the final integration
+ * For each type of nCl/dCl/sCl we combine the selection function
+ *  with the corresponding prefactor (e.g. 1/aH), and, if required, 
+ *  we also integrate for integrated (lensed) contributions
+ * (In the original ClassGAL paper these would be labeled g4,g5, and lens)
+ * 
+ * All factors of k have to be added later (at least in the current version)
+ *
+ * @param ppr                   Input: pointer to precision structure
+ * @param pba                   Input: pointer to background structure
+ * @param ppt                   Input: pointer to perturbation structure
+ * @param ptr                   Input: pointer to transfers structure
+ * @param interpolated_sources  Input: interpolated perturbation source
+ * @param tau_rec               Input: recombination time
+ * @param tau_size_max          Input: maximum size that tau array can have
+ * @param window                Output: pointer to array of selection functions
+ * @return the error status
+ */
+
 int transfer_precompute_selection(
                      struct precision * ppr,
                      struct background * pba,
@@ -5131,15 +4694,20 @@ int transfer_precompute_selection(
   int index_md = ppt->index_md_scalars;
   int index_tt;
   
+  /* allocate temporary arrays for storing selections, weights, times, and output; and for calling background */
   class_alloc(tau0_minus_tau,tau_size_max*sizeof(double),ptr->error_message);
+  class_alloc(selection,tau_size_max*sizeof(double),ptr->error_message);
   class_alloc(w_trapz,tau_size_max*sizeof(double),ptr->error_message);
-  //printf("Alloc with size %i \n",tau_size_max*ptr->tt_size[index_md]);
   class_alloc((*window),tau_size_max*ptr->tt_size[index_md]*sizeof(double),ptr->error_message);
+  class_alloc(pvecback,pba->bg_size*sizeof(double),ptr->error_message);
   
   /* conformal time today */
   tau0 = pba->conformal_age;
   
+  /* Loop through different types to be precomputed */
   for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
+    
+    /* First set the corresponding tau size */
     class_call(transfer_source_tau_size(ppr,
                                     pba,
                                     ppt,
@@ -5151,119 +4719,111 @@ int transfer_precompute_selection(
                                     &tau_size),
            ptr->error_message,
            ptr->error_message);
-    if ((_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) ||
-          (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  ||
-          (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-          ) {
+    
+    /* Start with non-integrated contributions */
+    if (_nonintegrated_ncl_) {
 
-        /* bin number associated to particular redshift bin and selection function */
-        if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
-          bin = index_tt - ptr->index_tt_density;
+      /* bin number associated to particular redshift bin and selection function */
+      if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
+        bin = index_tt - ptr->index_tt_density;
 
-        if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_rsd;
+      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
+        bin = index_tt - ptr->index_tt_rsd;
 
-        if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_d0;
+      if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
+        bin = index_tt - ptr->index_tt_d0;
 
-        if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
-          bin = index_tt - ptr->index_tt_d1;
+      if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
+        bin = index_tt - ptr->index_tt_d1;
 
-        if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g1;
+      if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
+        bin = index_tt - ptr->index_tt_nc_g1;
 
-        if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g2;
+      if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
+        bin = index_tt - ptr->index_tt_nc_g2;
 
-        if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-          bin = index_tt - ptr->index_tt_nc_g3;
+      if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
+        bin = index_tt - ptr->index_tt_nc_g3;
 
-        /* allocate temporary arrays for storing sources and for calling background */
-        class_alloc(selection,tau_size*sizeof(double),ptr->error_message);
-        class_alloc(pvecback,pba->bg_size*sizeof(double),ptr->error_message);
+      /* redefine the time sampling */
+      class_call(transfer_selection_sampling(ppr,
+                                             pba,
+                                             ppt,
+                                             ptr,
+                                             bin,
+                                             tau0_minus_tau,
+                                             tau_size),
+                 ptr->error_message,
+                 ptr->error_message);
 
-        /* redefine the time sampling */
-        class_call(transfer_selection_sampling(ppr,
-                                               pba,
-                                               ppt,
-                                               ptr,
-                                               bin,
-                                               tau0_minus_tau,
-                                               tau_size),
-                   ptr->error_message,
+      class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
+                 ptr->error_message,
+                 "this should not happen, there was probably a rounding error, if this error occurred, then this must be coded more carefully");
+
+      /* Compute trapezoidal weights for integration over tau */
+      class_call(array_trapezoidal_mweights(tau0_minus_tau,
+                                            tau_size,
+                                            w_trapz,
+                                            ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+
+      /* compute values of selection function at sampled values of tau */
+      class_call(transfer_selection_compute(ppr,
+                                            pba,
+                                            ppt,
+                                            ptr,
+                                            selection,
+                                            tau0_minus_tau,
+                                            w_trapz,
+                                            tau_size,
+                                            pvecback,
+                                            tau0,
+                                            bin),
+                 ptr->error_message,
+                 ptr->error_message);
+
+      /* loop over time and rescale */
+      for (index_tau = 0; index_tau < tau_size; index_tau++) {
+
+        /* conformal time */
+        tau = tau0 - tau0_minus_tau[index_tau];
+
+        /* geometrical quantity */
+        switch (pba->sgnK){
+        case 1:
+          cotKgen_source = sqrt(pba->K)
+            *cos(tau0_minus_tau[index_tau]*sqrt(pba->K))
+            /sin(tau0_minus_tau[index_tau]*sqrt(pba->K));
+          break;
+        case 0:
+          cotKgen_source = 1./(tau0_minus_tau[index_tau]);
+          break;
+        case -1:
+          cotKgen_source = sqrt(-pba->K)
+            *cosh(tau0_minus_tau[index_tau]*sqrt(-pba->K))
+            /sinh(tau0_minus_tau[index_tau]*sqrt(-pba->K));
+          break;
+        }
+
+        /* corresponding background quantities */
+        class_call(background_at_tau(pba,
+                                     tau,
+                                     pba->long_info,
+                                     pba->inter_normal,
+                                     &last_index,
+                                     pvecback),
+                   pba->error_message,
                    ptr->error_message);
 
-        class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
-                   ptr->error_message,
-                   "this should not happen, there was probably a rounding error, if this error occurred, then this must be coded more carefully");
+        /* Source evolution, used by nCl doppler and nCl gravity terms */
 
-        /* Compute trapezoidal weights for integration over tau */
-        class_call(array_trapezoidal_mweights(tau0_minus_tau,
-                                              tau_size,
-                                              w_trapz,
-                                              ptr->error_message),
-                   ptr->error_message,
-                   ptr->error_message);
-
-        /* compute values of selection function at sampled values of tau */
-        class_call(transfer_selection_compute(ppr,
-                                              pba,
-                                              ppt,
-                                              ptr,
-                                              selection,
-                                              tau0_minus_tau,
-                                              w_trapz,
-                                              tau_size,
-                                              pvecback,
-                                              tau0,
-                                              bin),
-                   ptr->error_message,
-                   ptr->error_message);
-
-        /* loop over time and rescale */
-        for (index_tau = 0; index_tau < tau_size; index_tau++) {
-
-          /* conformal time */
-          tau = tau0 - tau0_minus_tau[index_tau];
-
-          /* geometrical quantity */
-          switch (pba->sgnK){
-          case 1:
-            cotKgen_source = sqrt(pba->K)
-              *cos(tau0_minus_tau[index_tau]*sqrt(pba->K))
-              /sin(tau0_minus_tau[index_tau]*sqrt(pba->K));
-            break;
-          case 0:
-            cotKgen_source = 1./(tau0_minus_tau[index_tau]);
-            break;
-          case -1:
-            cotKgen_source = sqrt(-pba->K)
-              *cosh(tau0_minus_tau[index_tau]*sqrt(-pba->K))
-              /sinh(tau0_minus_tau[index_tau]*sqrt(-pba->K));
-            break;
-          }
-
-          /* corresponding background quantities */
-          class_call(background_at_tau(pba,
-                                       tau,
-                                       pba->long_info,
-                                       pba->inter_normal,
-                                       &last_index,
-                                       pvecback),
-                     pba->error_message,
-                     ptr->error_message);
-
-          /* Source evolution, used by number counf rsd and number count gravity terms */
-
-          if ((_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
-              (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-              (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))) {
-
-            if((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
+        if ((_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
+            (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
+            (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))) 
+          {
+            //class_call(transfer_f_evo(ptr,pba,pvecback,last_index,*fevo);
+            if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
 
               f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
                 + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
@@ -5313,79 +4873,74 @@ int transfer_precompute_selection(
 
           }
 
-          /* matter density source =  [- (dz/dtau) W(z)] * delta_m(k,tau)
-             = W(tau) delta_m(k,tau)
-             with
-             delta_m = total matter perturbation (defined in gauge-independent way, see arXiv 1307.1459)
-             W(z) = redshift space selection function = dN/dz
-             W(tau) = same wrt conformal time = dN/dtau
-             (in tau = tau_0, set source = 0 to avoid division by zero;
-             regulated anyway by Bessel).
-          */
+        /* matter density source =  [- (dz/dtau) W(z)] * delta_m(k,tau)
+           = W(tau) delta_m(k,tau)
+           with
+           delta_m = total matter perturbation (defined in gauge-independent way, see arXiv 1307.1459)
+           W(z) = redshift space selection function = dN/dz
+           W(tau) = same wrt conformal time = dN/dtau
+           (in tau = tau_0, set source = 0 to avoid division by zero;
+           regulated anyway by Bessel).
+        */
 
-          if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
-            rescaling = ptr->selection_bias[bin]*selection[index_tau];
+        if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
+          rescaling = ptr->selection_bias[bin]*selection[index_tau];
 
-          /* redshift space distortion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
+        /* redshift space distortion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
 
-          if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
-            rescaling = selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+        if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
+          rescaling = selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
 
-          if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
-            rescaling = (f_evo-3.)*selection[index_tau]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a];
+        if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
+          rescaling = (f_evo-3.)*selection[index_tau]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a];
 
-          if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
+        if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
 
-            rescaling = selection[index_tau]*(1.
-                                              +pvecback[pba->index_bg_H_prime]
-                                              /pvecback[pba->index_bg_a]
-                                              /pvecback[pba->index_bg_H]
-                                              /pvecback[pba->index_bg_H]
-                                              +(2.-5.*ptr->selection_magnification_bias[bin])
-                                              // /tau0_minus_tau[index_tau] // in flat space
-                                              *cotKgen_source  // in general case
-                                              /pvecback[pba->index_bg_a]
-                                              /pvecback[pba->index_bg_H]
-                                              +5.*ptr->selection_magnification_bias[bin]
-                                              -f_evo
-                                              );
+          rescaling = selection[index_tau]*(1.
+                                            +pvecback[pba->index_bg_H_prime]
+                                            /pvecback[pba->index_bg_a]
+                                            /pvecback[pba->index_bg_H]
+                                            /pvecback[pba->index_bg_H]
+                                            +(2.-5.*ptr->selection_magnification_bias[bin])
+                                            // /tau0_minus_tau[index_tau] // in flat space
+                                            *cotKgen_source  // in general case
+                                            /pvecback[pba->index_bg_a]
+                                            /pvecback[pba->index_bg_H]
+                                            +5.*ptr->selection_magnification_bias[bin]
+                                            -f_evo
+                                            );
 
-          if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
+        if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
 
-            rescaling = selection[index_tau];
+          rescaling = selection[index_tau];
 
-          if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
+        if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
 
-            rescaling = -selection[index_tau]*(3.
-                                               +pvecback[pba->index_bg_H_prime]
-                                               /pvecback[pba->index_bg_a]
-                                               /pvecback[pba->index_bg_H]
-                                               /pvecback[pba->index_bg_H]
-                                               +(2.-5.*ptr->selection_magnification_bias[bin])
-                                               // /tau0_minus_tau[index_tau]  // in flat space
-                                               *cotKgen_source  // in general case
-                                               /pvecback[pba->index_bg_a]
-                                               /pvecback[pba->index_bg_H]
-                                               -f_evo
-                                               );
+          rescaling = -selection[index_tau]*(3.
+                                             +pvecback[pba->index_bg_H_prime]
+                                             /pvecback[pba->index_bg_a]
+                                             /pvecback[pba->index_bg_H]
+                                             /pvecback[pba->index_bg_H]
+                                             +(2.-5.*ptr->selection_magnification_bias[bin])
+                                             // /tau0_minus_tau[index_tau]  // in flat space
+                                             *cotKgen_source  // in general case
+                                             /pvecback[pba->index_bg_a]
+                                             /pvecback[pba->index_bg_H]
+                                             -f_evo
+                                             );
 
-          if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-            rescaling = selection[index_tau]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H];
-
-          (*window)[index_tt*tau_size_max+index_tau] = rescaling;
-
-        }
-
-        /* deallocate temporary arrays */
-        free(pvecback);
-        free(selection);
+        if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
+          rescaling = selection[index_tau]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H];
+        
+        /* finally store in array */
+        (*window)[index_tt*tau_size_max+index_tau] = rescaling;
       }
-      if ((_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) ||
-            (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) ||
-            (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) ||
-            (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
-            ) {
+    }
+    /* End non-integrated contribution */
       
+    /* Now deal with integrated contributions */
+    if (_integrated_ncl_) {
+    
       /* bin number associated to particular redshift bin and selection function */
       if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)){
         bin = index_tt - ptr->index_tt_lensing;
@@ -5399,10 +4954,6 @@ int transfer_precompute_selection(
       if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)){
         bin = index_tt - ptr->index_tt_nc_g5;
       }
-      /* allocate temporary arrays for storing sources and for calling background */
-      class_alloc(pvecback,
-                  pba->bg_size*sizeof(double),
-                  ptr->error_message);
 
       /* dirac case */
       if (ppt->selection == dirac) {
@@ -5498,7 +5049,6 @@ int transfer_precompute_selection(
 
           rescaling = 0.;
 
-
           for (index_tau_sources=0;
                index_tau_sources < tau_sources_size;
                index_tau_sources++) {
@@ -5523,7 +5073,6 @@ int transfer_precompute_selection(
               cscKgen_lens = sqrt(-pba->K)/sinh(sqrt(-pba->K)*tau0_minus_tau[index_tau]);
               break;
             }
-
 
             /* condition for excluding from the sum the sources located in z=zero */
             if ((tau0_minus_tau_lensing_sources[index_tau_sources] > 0.) && (tau0_minus_tau_lensing_sources[index_tau_sources]-tau0_minus_tau[index_tau] > 0.)) {
@@ -5647,23 +5196,22 @@ int transfer_precompute_selection(
             }
           }
         }
-        //printf(" index %i \n",index_tt*tau_size_max+index_tau);
 
-        /* copy from input array to output array */
+        /* Finally store integrated result for later use */
         (*window)[index_tt*tau_size_max+index_tau] = rescaling;
-    
       }
       
       /* deallocate temporary arrays */
-      free(pvecback);
-      free(selection);
       free(tau0_minus_tau_lensing_sources);
       free(w_trapz_lensing_sources);
     }
+    /* End integrated contribution */
   }
-
+  
+  /* deallocate temporary arrays */
+  free(selection);
   free(tau0_minus_tau);
   free(w_trapz);
-  
+  free(pvecback);
   return _SUCCESS_;
 }
