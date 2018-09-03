@@ -4914,10 +4914,6 @@ int transfer_precompute_selection(
         tau_sources_size=ppr->selection_sampling;
       }
 
-      class_alloc(selection,
-                  tau_sources_size*sizeof(double),
-                  ptr->error_message);
-
       class_alloc(tau0_minus_tau_lensing_sources,
                   tau_sources_size*sizeof(double),
                   ptr->error_message);
