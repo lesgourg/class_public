@@ -390,6 +390,7 @@ extern "C" {
                                   double tau_rec,
                                   double *** sources,
                                   double *** sources_spline,
+                                  double * window,
                                   struct transfer_workspace * ptw
                                   );
 
@@ -423,6 +424,8 @@ extern "C" {
                        int index_md,
                        int index_tt,
                        double * sources,
+                       double * window,
+                       int tau_size_max,
                        double * tau0_minus_tau,
                        double * delta_tau,
                        int * tau_size_out
@@ -664,7 +667,16 @@ extern "C" {
                         int *index_l_left,
                         int *index_l_right,
                         ErrorMsg error_message);
-
+                        
+  int transfer_precompute_selection(
+                     struct precision * ppr,
+                     struct background * pba,
+                     struct perturbs * ppt,
+                     struct transfers * ptr,
+                     double tau_rec,
+                     int tau_size_max,
+                     double ** window
+                     );
 #ifdef __cplusplus
 }
 #endif
