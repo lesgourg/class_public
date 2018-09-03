@@ -372,7 +372,7 @@ class Lya(Likelihood):
 
         z_reio=cosmo.z_reio()
         sigma8=cosmo.sigma8()
-        neff=-2.3#cosmo.neff()
+        neff=cosmo.neff()
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
