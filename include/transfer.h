@@ -688,6 +688,16 @@ extern "C" {
                      int tau_size_max,
                      double ** window
                      );
+  
+  int transfer_f_evo(
+                   struct background* pba,
+                   struct transfers * ptr,
+                   double* pvecback,
+                   int last_index,
+                   double cotKgen,
+                   double* f_evo
+                  );
+  
 #ifdef __cplusplus
 }
 #endif

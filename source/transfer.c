@@ -4684,11 +4684,6 @@ int transfer_precompute_selection(
   /* source evolution factor */
   double f_evo = 0.;
   
-  /* when the selection function is multiplied by a function dNdz */
-  double z;
-  double dNdz;
-  double dln_dNdz_dz;
-  
   
   /* Setup initial variables and arrays*/
   int index_md = ppt->index_md_scalars;
@@ -4822,55 +4817,10 @@ int transfer_precompute_selection(
             (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
             (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))) 
           {
-            //class_call(transfer_f_evo(ptr,pba,pvecback,last_index,*fevo);
-            if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
-
-              f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]/tau0_minus_tau[index_tau]
-                + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
-
-              z = pba->a_today/pvecback[pba->index_bg_a]-1.;
-
-              if (ptr->has_nz_evo_file ==_TRUE_) {
-
-                class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
-                           ptr->error_message,
-                           "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
-                           ptr->nz_evo_z[0],
-                           ptr->nz_evo_z[ptr->nz_evo_size-1],
-                           z);
-
-
-                class_call(array_interpolate_spline(
-                                                    ptr->nz_evo_z,
-                                                    ptr->nz_evo_size,
-                                                    ptr->nz_evo_dlog_nz,
-                                                    ptr->nz_evo_dd_dlog_nz,
-                                                    1,
-                                                    z,
-                                                    &last_index,
-                                                    &dln_dNdz_dz,
-                                                    1,
-                                                    ptr->error_message),
-                           ptr->error_message,
-                           ptr->error_message);
-
-              }
-              else {
-
-                class_call(transfer_dNdz_analytic(ptr,
-                                                  z,
-                                                  &dNdz,
-                                                  &dln_dNdz_dz),
-                           ptr->error_message,
-                           ptr->error_message);
-              }
-
-              f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
-            }
-            else {
-              f_evo = 0.;
-            }
-
+            class_call(transfer_f_evo(pba,ptr,pvecback,last_index,cotKgen_source,&f_evo),
+                       ptr->error_message,
+                       ptr->error_message);
+            /* Error in old CLASS 2.6.3 : Number count evolution did not respect curvature */
           }
 
         /* matter density source =  [- (dz/dtau) W(z)] * delta_m(k,tau)
@@ -5130,52 +5080,10 @@ int transfer_precompute_selection(
 
                 /* Source evolution at time tau_lensing_source */
 
-                if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)) {
-
-                  f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen_source
-                    + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
-
-                  z = pba->a_today/pvecback[pba->index_bg_a]-1.;
-
-                  if (ptr->has_nz_evo_file == _TRUE_) {
-
-                    class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
-                               ptr->error_message,
-                               "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
-                               ptr->nz_evo_z[0],
-                               ptr->nz_evo_z[ptr->nz_evo_size-1],
-                               z);
-
-                    class_call(array_interpolate_spline(
-                                                        ptr->nz_evo_z,
-                                                        ptr->nz_evo_size,
-                                                        ptr->nz_evo_dlog_nz,
-                                                        ptr->nz_evo_dd_dlog_nz,
-                                                        1,
-                                                        z,
-                                                        &last_index,
-                                                        &dln_dNdz_dz,
-                                                        1,
-                                                        ptr->error_message),
-                               ptr->error_message,
-                               ptr->error_message);
-
-                  }
-                  else {
-
-                    class_call(transfer_dNdz_analytic(ptr,
-                                                      z,
-                                                      &dNdz,
-                                                      &dln_dNdz_dz),
-                               ptr->error_message,
-                               ptr->error_message);
-                  }
-
-                  f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
-                }
-                else {
-                  f_evo = 0.;
-                }
+                class_call(transfer_f_evo(pba,ptr,pvecback,last_index,cotKgen_source,&f_evo),
+                           ptr->error_message,
+                           ptr->error_message);
+                
 
                 rescaling +=
                   (1.
@@ -5213,5 +5121,73 @@ int transfer_precompute_selection(
   free(tau0_minus_tau);
   free(w_trapz);
   free(pvecback);
+  return _SUCCESS_;
+}
+
+int transfer_f_evo(
+                   struct background* pba,
+                   struct transfers * ptr,
+                   double* pvecback,
+                   int last_index,
+                   double cotKgen, /* Should be FILLED with values of corresponding time */
+                   double* f_evo
+                  ){
+  /* Allocate temporary variables for calculation of f_evo */
+  double z;
+  double dNdz;
+  double dln_dNdz_dz;
+  double temp_f_evo;
+  
+  if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
+
+    temp_f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen
+      + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+
+    z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+
+    if (ptr->has_nz_evo_file ==_TRUE_) {
+
+      class_test((z<ptr->nz_evo_z[0]) || (z>ptr->nz_evo_z[ptr->nz_evo_size-1]),
+                 ptr->error_message,
+                 "Your input file for the selection function only covers the redshift range [%f : %f]. However, your input for the selection function requires z=%f",
+                 ptr->nz_evo_z[0],
+                 ptr->nz_evo_z[ptr->nz_evo_size-1],
+                 z);
+
+
+      class_call(array_interpolate_spline(
+                                          ptr->nz_evo_z,
+                                          ptr->nz_evo_size,
+                                          ptr->nz_evo_dlog_nz,
+                                          ptr->nz_evo_dd_dlog_nz,
+                                          1,
+                                          z,
+                                          &last_index,
+                                          &dln_dNdz_dz,
+                                          1,
+                                          ptr->error_message),
+                 ptr->error_message,
+                 ptr->error_message);
+
+    }
+    else {
+
+      class_call(transfer_dNdz_analytic(ptr,
+                                        z,
+                                        &dNdz,
+                                        &dln_dNdz_dz),
+                 ptr->error_message,
+                 ptr->error_message);
+    }
+
+    temp_f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
+  }
+  else {
+    temp_f_evo = 0.;
+  }
+  
+  /* after obtaining f_evo, store it in output */
+  *f_evo = temp_f_evo;
+  
   return _SUCCESS_;
 }
