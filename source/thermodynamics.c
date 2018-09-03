@@ -3581,11 +3581,11 @@ int thermodynamics_derivs_with_recfast(
   for(index_y=0;index_y<ptw->tv->tv_size;index_y++){
     dy[index_y]=-dy[index_y];
   }
-  if(z>10000000.){
+  if(z>1700.){
     printf("derivs \n"); 
     printf("z= %e \n",z);
-    //printf("x_He= %e \n",ptw->x_He); 
-    // printf("dXHe= %e \n",ptw->dx_He);
+    printf("x_He= %e \n",ptw->x_He); 
+    printf("dXHe= %e \n",ptw->dx_He);
     //printf("x_H= %e \n",ptw->x_H); 
     //printf("dx_H= %e \n",ptw->dx_H);
     printf("x= %e \n",ptw->x);
@@ -3874,7 +3874,7 @@ int thermo_workspace_init(
     ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
     ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
     ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
-    ptw->ap_z_limits[ptw->index_ap_He2] = 3200.;// TODO :: set correctly
+    ptw->ap_z_limits[ptw->index_ap_He2] = 2700.;// TODO :: set correctly
     ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
     ptw->ap_z_limits[ptw->index_ap_frec] = 0.5;
 
@@ -3886,8 +3886,8 @@ int thermo_workspace_init(
     ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_1;
     ptw->ap_z_limits_delta[ptw->index_ap_He1f] = ppr->recfast_delta_z_He_2;
     ptw->ap_z_limits_delta[ptw->index_ap_He2] = ppr->recfast_delta_z_He_3;
-    ptw->ap_z_limits_delta[ptw->index_ap_H] = 10.; // TODO :: set correctly
-    ptw->ap_z_limits_delta[ptw->index_ap_frec] = 10.;// TODO :: set correctly
+    ptw->ap_z_limits_delta[ptw->index_ap_H] = 50.; // TODO :: set correctly
+    ptw->ap_z_limits_delta[ptw->index_ap_frec] = 50.;// TODO :: set correctly
     
   }
 
