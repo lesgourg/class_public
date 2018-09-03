@@ -3348,61 +3348,104 @@ int thermodynamics_derivs_with_recfast(
      no full recombination, x_H, x_He and x are evolved with analytic functions.
   */
   Tmat = y[ptw->tv->index_Tmat];
-  if(ptw->require_H){
-    
-  }else{
-    
-  }
-  if(ptw->require_He){
-    
-  }else{
-    
-  }
-  if(ap_current != ptw->index_ap_frec){
-    class_call(thermodynamics_x_analytic(z,
+
+  class_call(thermodynamics_x_analytic(z,
                                        preco,
                                        ptw,
                                        ap_current),  
              error_message,
              error_message);
-    
-    x_H = ptw->x_H;
-    x_He = ptw->x_He;
-    x = ptw->x;
-    dx_H = ptw->dx_H;
-    dx_He = ptw->dx_He;
-    printf("At z = %.10e \n",z);
-    printf("x_H = %.10e , x_He = %.10e , x= %.10e , T = %.10e ,dx_H = %.10e , dx_He = %.10e \n",x_H,x_He,x,Tmat,dx_H,dx_He);
-  }
-  else{
-    x_H = y[ptw->tv->index_x_H];
+  /* Obtain values for x_H and x_He and x
+   * (H can never be required without He being also required)
+   * 
+   * */
+  printf("\n\n");
+  printf("Require = %s and %s  ----- ",(ptw->require_H?"H yes":"H no"),(ptw->require_He?"He yes":"He no"));
+  if(ptw->require_He){
     x_He = y[ptw->tv->index_x_He];
+    dx_He = dy[ptw->tv->index_x_He];
+    x = ptw->x_H + preco->fHe * x_He;
+  }else{
+    x_He = ptw->x_He;
+    dx_He = ptw->dx_He;
+    x = ptw->x;
+  }
+  if(ptw->require_H){
+    x_H = y[ptw->tv->index_x_H];
+    dx_H = dy[ptw->tv->index_x_H];
     x = x_H + preco->fHe * x_He;
-  
-  
+  }else{
+    x_H = ptw->x_H;
+    dx_H = ptw->dx_H;
+  }
+  printf("x_H = %.10e , x_He = %.10e , x= %.10e , T = %.10e ,dx_H = %.10e , dx_He = %.10e \n",x_H,x_He,x,Tmat,dx_H,dx_He);
+
+  if(ptw->require_H){
+    
+    printf("T_MAT ===  %.10e \n",Tmat);
+    printf("Hydrogen ionization first,second : %.10e , %.10e \n",pow((Tmat/1.e4),_b_PPB_),pow((Tmat/1.e4),_d_PPB_));
     Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
     Rup = Rdown * pow((preco->CR*Tmat),1.5)*exp(-preco->CDB/Tmat);
+    K = preco->CK/Hz;
+    printf("Hydrogen ionization Rd,Ru : %.10e , %.10e \n",Rdown,Rup);
+    
+    /* following is from recfast 1.5 */
+  
+    if (ppr->recfast_Hswitch == _TRUE_ ){
+      K *= 1.
+        + ppr->recfast_AGauss1*exp(-pow((log(1.+z)-ppr->recfast_zGauss1)/ppr->recfast_wGauss1,2))
+        + ppr->recfast_AGauss2*exp(-pow((log(1.+z)-ppr->recfast_zGauss2)/ppr->recfast_wGauss2,2));
+    }
+    /* end of new recfast 1.5 piece */
+    
+    /************/
+    /* hydrogen */
+    /************/
+    /* Peebles' coefficient (approximated as one when the Hydrogen
+     * ionization fraction is very close to one) */
+    if (x_H < ppr->recfast_x_H0_trigger2) {
+      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
+    }
+    else {
+      C = 1.;
+    }
 
+    /* For DM annihilation: fraction of injected energy going into
+       ionization and Lya excitation */
+
+    /* - old approximation from Chen and Kamionkowski: */
+
+    //chi_ion_H = (1.-x)/3.;
+
+    /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
+
+    if (x < 1.)
+      chi_ion_H = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+    else
+      chi_ion_H = 0.;
+
+    /* evolution of hydrogen ionisation fraction: */
+
+    // JL: test for debugginf reio_inter
+    //fprintf(stdout,"%e  %e  %e  %e\n",z,Tmat,K*_Lambda_*n,K*Rup*n);
+    dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
+                      -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));  /* energy injection (neglect fraction going to helium) */
+    
+    printf("Hydrogen ionization D : %.10e  , from (%.10e - %.10e)*%.10e + %.10e \n",dy[ptw->tv->index_x_H],
+            x*x_H*n*Rdown,Rup*(1.-x_H)*exp(-preco->CL/Tmat), C / (Hz*(1.+z)),-energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)));
+    
+    /* Store derivatives for temperature integration */
+    dx_H = dy[ptw->tv->index_x_H];
+    
+  }
+  if(ptw->require_He){
+    //printf("flag= %i \n",Heflag); 
+    
     sq_0 = sqrt(Tmat/_T_0_);
     sq_1 = sqrt(Tmat/_T_1_);
     Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
     Rup_He = 4.*Rdown_He*pow((preco->CR*Tmat),1.5)*exp(-preco->CDB_He/Tmat);
-    K = preco->CK/Hz;
-
-    /* following is from recfast 1.5 */
-  
-    if (ppr->recfast_Hswitch == _TRUE_ )
-      K *= 1.
-        + ppr->recfast_AGauss1*exp(-pow((log(1.+z)-ppr->recfast_zGauss1)/ppr->recfast_wGauss1,2))
-        + ppr->recfast_AGauss2*exp(-pow((log(1.+z)-ppr->recfast_zGauss2)/ppr->recfast_wGauss2,2));
-
-    /* end of new recfast 1.5 piece */
-
-    /* following is from recfast 1.4 */
-
-    Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
-    Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(preco->CR*Tmat,1.5)*4./3.;
-
+    
     if ((x_He < 5.e-9) || (x_He > ppr->recfast_x_He0_trigger2))
       Heflag = 0;
     else
@@ -3416,7 +3459,7 @@ int thermodynamics_derivs_with_recfast(
       K_He = 1./(_A2P_s_*pHe_s*3.*n_He*(1.-x_He));
 
       /*    if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) { */
-      if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.99999)) { /* threshold changed by Antony Lewis in 2008 to get smoother Helium */
+      if (((Heflag == 2) || (Heflag >= 5)) && (x_H < 0.9999999)) { /* threshold changed by Antony Lewis in 2008 to get smoother Helium */
 
         Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
         Doppler = _c_*_L_He_2p_*sqrt(Doppler);
@@ -3448,49 +3491,9 @@ int thermodynamics_derivs_with_recfast(
           AHcon = _A2P_t_/(1.+pb*pow(gamma_2Pt,qb))/3.;
           CfHe_t = (_A2P_t_*pHe_t+AHcon)*exp(-CL_PSt/Tmat);
           CfHe_t = CfHe_t/(Rup_trip+CfHe_t);
-        } 
+        }
       }
     }
-
-    /* end of new recfast 1.4 piece */
-
-    /************/
-    /* hydrogen */
-    /************/
-    /* Peebles' coefficient (approximated as one when the Hydrogen
-     * ionization fraction is very close to one) */
-    if (x_H < ppr->recfast_x_H0_trigger2) {
-      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./preco->fu+K*_Lambda_*n*(1.-x_H)/preco->fu +K*Rup*n*(1.-x_H));
-    }
-    else {
-      C = 1.;
-    }
-
-    /* For DM annihilation: fraction of injected energy going into
-       ionization and Lya excitation */
-
-    /* - old approximation from Chen and Kamionkowski: */
-
-    //chi_ion_H = (1.-x)/3.;
-
-    /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-
-    if (x < 1.)
-      chi_ion_H = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-    else
-      chi_ion_H = 0.;
-
-    /* evolution of hydrogen ionisation fraction: */
-
-    // JL: test for debugginf reio_inter
-    //fprintf(stdout,"%e  %e  %e  %e\n",z,Tmat,K*_Lambda_*n,K*Rup*n);
-
-    dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z))       /* Peeble's equation with fudged factors */
-                      -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));  /* energy injection (neglect fraction going to helium) */
-    
-    printf("Hydrogen ionization D : %.10e  , from (%.10e - %.10e)*%.10e + %.10e \n",dy[ptw->tv->index_x_H],
-          x*x_H*n*Rdown,Rup*(1.-x_H)*exp(-preco->CL/Tmat), C / (Hz*(1.+z)),-energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z)));
-    
     /************/
     /* helium   */
     /************/
@@ -3511,32 +3514,32 @@ int thermodynamics_derivs_with_recfast(
                *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
         /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz)); /* in case of energy injection due to DM, we neglect the contribution to helium ionization */
 
-      /* following is from recfast 1.4 */
+      /* following is from recfast 1.4 (now reordered) */
       /* this correction is not self-consistent when there is energy injection  from dark matter, and leads to nan's  at small redshift (unimportant when reionization takes   over before that redshift) */
      
-      /*if (Heflag >= 3)
-        dy[ptw->tv->index_x_He] = dy[ptw->tv->index_x_He] +
-            (x*x_He*n*Rdown_trip
-           - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
-          *CfHe_t/(Hz*(1.+z));
-
+      /*if (Heflag >= 3){
+          Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
+          Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(preco->CR*Tmat,1.5)*4./3.;
+          
+          dy[ptw->tv->index_x_He] = dy[ptw->tv->index_x_He] +
+              (x*x_He*n*Rdown_trip
+             - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
+            *CfHe_t/(Hz*(1.+z));
+        }
       /* end of new recfast 1.4 piece */
-   
     }
     /* Store derivatives for temperature integration */
-    
-    dx_H = dy[ptw->tv->index_x_H];
     dx_He = dy[ptw->tv->index_x_He];
-    //printf("flag= %i \n",Heflag); 
-    
-    ptw->x = x;
-    ptw->x_H = x_H;
-    ptw->x_He = x_He;
-    ptw->dx_H = dx_H;
-    ptw->dx_He = dx_He;
-    printf("Integrating z = %.10e \n",z);
-    printf("x_H = %.10e , x_He = %.10e , x= %.10e , T = %.10e ,dx_H = %.10e , dx_He = %.10e \n",x_H,x_He,x,Tmat,dx_H,dx_He);
   }
+  
+  ptw->x = x;
+  ptw->x_H = x_H;
+  ptw->x_He = x_He;
+  ptw->dx_H = dx_H;
+  ptw->dx_He = dx_He;
+  
+  printf("Integrating z = %.10e \n",z);
+  printf("x_H = %.10e , x_He = %.10e , x= %.10e , T = %.10e ,dx_H = %.10e , dx_He = %.10e \n",x_H,x_He,x,Tmat,dx_H,dx_He);
   
   
   /* Matter temperature */
@@ -3564,9 +3567,10 @@ int thermodynamics_derivs_with_recfast(
       chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
     else
       chi_heat = 1.;
-
-    dy[ptw->tv->index_Tmat]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
+    
+    dy[ptw->tv->index_Tmat]= preco->CT * pow(Trad,4) * x / (1.+x+preco->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)); /* energy injection */
+    printf("dT = %.10e (from %.10e , %.10e , %.10e)\n",dy[ptw->tv->index_Tmat],x / (1.+x+preco->fHe) * (Tmat-Trad),2.*Tmat/(1.+z),-2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+preco->fHe+x)/(Hz*(1.+z)));
     
   }
 
@@ -3574,18 +3578,18 @@ int thermodynamics_derivs_with_recfast(
 
   
   /* time-invert derivatives */
-  for(index_y=0;index_y<ptw->tv->tv_size;index_y++)
-  dy[index_y]=-dy[index_y];
-
+  for(index_y=0;index_y<ptw->tv->tv_size;index_y++){
+    dy[index_y]=-dy[index_y];
+  }
   if(z>10000000.){
- printf("derivs \n"); 
- printf("z= %e \n",z);
-  //printf("x_He= %e \n",ptw->x_He); 
- // printf("dXHe= %e \n",ptw->dx_He);
-  //printf("x_H= %e \n",ptw->x_H); 
-  //printf("dx_H= %e \n",ptw->dx_H);
-  printf("x= %e \n",ptw->x);
-  //printf("T= %e \n",y[ptw->tv->index_Tmat]);
+    printf("derivs \n"); 
+    printf("z= %e \n",z);
+    //printf("x_He= %e \n",ptw->x_He); 
+    // printf("dXHe= %e \n",ptw->dx_He);
+    //printf("x_H= %e \n",ptw->x_H); 
+    //printf("dx_H= %e \n",ptw->dx_H);
+    printf("x= %e \n",ptw->x);
+    //printf("T= %e \n",y[ptw->tv->index_Tmat]);
   }
   
   return _SUCCESS_;
@@ -3643,9 +3647,9 @@ int thermodynamics_x_analytic(
     x_H = 1.;
     rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
     x = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
+    x_He = (x-1.)/preco->fHe;
     dx_H=0.;
     dx_He=0.;
-    x_He = (x-1.)/preco->fHe;
     
   }
   /** - --> fifth approximation: Hydrogen recombination starts */
@@ -3654,7 +3658,6 @@ int thermodynamics_x_analytic(
     /* analytic approximations */
     rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
     x_H = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
-    x =  x_H + preco->fHe*y[1];
     dx_H=0.;
     
   }
@@ -3691,6 +3694,9 @@ int thermo_vector_init(
   /* Start from no component */
   index_tv = 0;
   
+  /* Add common indices (Have to be added before) */
+  class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  
   /* Add all components that should be evolved */
   if(ptw->ap_current == ptw->index_ap_brec){
     /* Nothing else to add */
@@ -3708,12 +3714,10 @@ int thermo_vector_init(
     class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
   }
   else if(ptw->ap_current == ptw->index_ap_frec){ 
-    class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
     class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
+    class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
   }
   
-  /* Add common indices */
-  class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
   
   /* We have now obtained the full size */
   ptv->tv_size = index_tv;
@@ -3801,8 +3805,8 @@ int thermo_vector_init(
     ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
     ptv->y[ptv->index_x_H] = ptw->x_H;
     ptv->dy[ptv->index_x_H] = 0.;
-    ptv->y[ptv->index_x_He] = ptv->y[ptv->index_x_He];//ptw->x_He;
-    ptv->dy[ptv->index_x_He] = ptv->dy[ptv->index_x_He];//0.;
+    ptv->y[ptv->index_x_He] = ptw->tv->y[ptv->index_x_He];//ptw->x_He;
+    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptv->index_x_He];//0.;
     
     /* Free the old vector and its indices */
     class_call(thermo_vector_free(ptw->tv),
@@ -3872,7 +3876,7 @@ int thermo_workspace_init(
     ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
     ptw->ap_z_limits[ptw->index_ap_He2] = 3200.;// TODO :: set correctly
     ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
-    ptw->ap_z_limits[ptw->index_ap_frec] = 0.;
+    ptw->ap_z_limits[ptw->index_ap_frec] = 0.5;
 
     
     /** store smoothing deltas for transitions at the beginning of each aproximation */
@@ -3882,7 +3886,7 @@ int thermo_workspace_init(
     ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_1;
     ptw->ap_z_limits_delta[ptw->index_ap_He1f] = ppr->recfast_delta_z_He_2;
     ptw->ap_z_limits_delta[ptw->index_ap_He2] = ppr->recfast_delta_z_He_3;
-    ptw->ap_z_limits[ptw->index_ap_H] = 10.; // TODO :: set correctly
+    ptw->ap_z_limits_delta[ptw->index_ap_H] = 10.; // TODO :: set correctly
     ptw->ap_z_limits_delta[ptw->index_ap_frec] = 10.;// TODO :: set correctly
     
   }
@@ -3922,6 +3926,7 @@ int thermodynamics_set_approximation_limits(
   
   for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
     interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
+    printf("Interval %i ending at %e \n",index_ap+1,ptw->ap_z_limits[index_ap]);
   }
   
   if(-mz_end > ptw->ap_z_limits[ptw->ap_size-1]) interval_limit[ptw->ap_size] = mz_end;		
@@ -3964,7 +3969,16 @@ int thermodynamics_sources_with_recfast(
   z = -mz;  
   
   /* If we are currently in an approximation scheme x has to be calcuated for this specific z */
-  if(ap_current != ptw->index_ap_frec){
+  if(ap_current == ptw->index_ap_H){
+    class_call(thermodynamics_x_analytic(z,
+                                         preco,
+                                         ptw,
+                                         ap_current),  
+               error_message,
+               error_message);
+    x = ptw->x_H+preco->fHe*y[ptw->tv->index_x_He];
+  }
+  else if(ap_current != ptw->index_ap_frec){
     class_call(thermodynamics_x_analytic(z,
                                          preco,
                                          ptw,
@@ -3980,24 +3994,29 @@ int thermodynamics_sources_with_recfast(
   
   /* Smoothing if we are shortly after an approximation change */
   if(z >= ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
-        
-        class_call(thermodynamics_x_analytic(z,
-                                             preco,
-                                             ptw,
-                                             ap_current-1),  
-                   error_message,
-                   error_message);
-        x_previous = ptw->x;
-        /* get s from 0 to 1 */
-        s = (ptw->ap_z_limits[ap_current-1]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
-        /* infer f2(x) = smooth function interpolating from 0 to 1 */
-        weight = f2(s);
+    
+    class_call(thermodynamics_x_analytic(z,
+                                         preco,
+                                         ptw,
+                                         ap_current-1),  
+               error_message,
+               error_message);
+    if(ap_current-1 != ptw->index_ap_H){
+      x_previous = ptw->x;
+    }
+    else{
+      //TODO :: fix this part
+      x_previous = ptw->x_H+preco->fHe*y[ptw->tv->index_x_He];
+    }
+    /* get s from 0 to 1 */
+    s = (ptw->ap_z_limits[ap_current-1]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
+    /* infer f2(x) = smooth function interpolating from 0 to 1 */
+    weight = f2(s);
 
-        //printf("limit= %e, z= %e, xHe = %e, x_pre = %e, x_new = %e, s=%e, weight=%e \n",ptw->ap_z_limits[ap_current-1], z,ptw->x_He,x_previous,x,s,weight);
+    //printf("limit= %e, z= %e, xHe = %e, x_pre = %e, x_new = %e, s=%e, weight=%e \n",ptw->ap_z_limits[ap_current-1], z,ptw->x_He,x_previous,x,s,weight);
 
-        x = weight*x+(1.-weight)*x_previous;
-      }
-  
+    x = weight*x+(1.-weight)*x_previous;
+  }
   
   
   /** - --> store the results in the table */
