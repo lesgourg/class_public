@@ -42,23 +42,22 @@ class Lya(Likelihood):
         betas = np.zeros(self.grid_size, 'float64')
         gammas = np.zeros(self.grid_size, 'float64')
 
-        param = data.get_mcmc_parameters(['varying'])
-        self.len_varying_params=len(param)
+        self.len_varying_params=len(data.get_mcmc_parameters(['varying']))
         #self.len_derived_params=0
         #for elem in data.get_mcmc_parameters(['derived']):
             #param.append(elem)
             #self.len_derived_params += 1
-        self.bin_file_path = os.path.join(self.bin_file_name)
+        self.bin_file_path = os.path.join(command_line.folder, self.bin_file_name)
         if os.path.exists(self.bin_file_path):
            raise io_mp.ConfigurationError('Error: bin file already exists')
            exit()
         else:
            with open(self.bin_file_path, 'w') as bin_file:
                 bin_file.write('#')
-                for name in param:
+                for name in data.get_mcmc_parameters(['varying']):
                     name = re.sub('[$*&]', '', name)
                     bin_file.write(' %s' % name)
-                bin_file.write('z_reio neff sigma8')
+                bin_file.write(' z_reio neff sigma8')
                 bin_file.write('\n')
                 bin_file.close()
 
@@ -149,7 +148,7 @@ class Lya(Likelihood):
         file_path = os.path.join(self.data_directory, self.astro_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
-           self.full_matrix_interpolated_ASTRO = pickle.load(pkl)
+           self.input_full_matrix_interpolated_ASTRO = pickle.load(pkl)
            #print self.full_matrix_interpolated_ASTRO.shape
            pkl.close()
         else:
@@ -159,7 +158,7 @@ class Lya(Likelihood):
         file_path = os.path.join(self.data_directory, self.abg_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
-           self.full_matrix_interpolated_ABG = pickle.load(pkl)
+           self.input_full_matrix_interpolated_ABG = pickle.load(pkl)
            #print self.full_matrix_interpolated_ABG.shape
            pkl.close()
         else:
@@ -167,8 +166,8 @@ class Lya(Likelihood):
            exit()
 
         ALL_zdep_params = len(flux_ref_old) + len(t0_ref_old) + len(slope_ref_old)
-        grid_length_ABG = len(self.full_matrix_interpolated_ABG[0,0,:])
-        grid_length_ASTRO = len(self.full_matrix_interpolated_ASTRO[0,0,:])
+        grid_length_ABG = len(self.input_full_matrix_interpolated_ABG[0,0,:])
+        grid_length_ASTRO = len(self.input_full_matrix_interpolated_ASTRO[0,0,:])
         astroparams_number_KRIG = len(self.zind_param_size) + ALL_zdep_params
 
         #### --- ABG GRID --- {alpha, beta, gamma} GRID
@@ -290,7 +289,7 @@ class Lya(Likelihood):
         p37 = np.concatenate((p21[3:11], pa10[6:], pb10[6:]))
         astrokrig_result = np.zeros((self.zeta_full_length, self.kappa_full_length ), 'float64')
         for index in range(self.num_z_XQ,len(self.redshift)):
-            astrokrig_result[index,:] = np.sum(np.multiply(self.ordkrig_lambda(p37[0]/self.zreio_range, p37[1], p37[2]/self.neff_range, p37[3], p37[4+index-self.num_z_XQ]/(self.F_prior_max[index-self.num_z_overlap]-self.F_prior_min[index-self.num_z_overlap]), p37[8+index-self.num_z_XQ], p37[12+index-self.num_z_XQ], self.X[:,0], self.X[:,1], self.X[:,2], self.X[:,3], self.X[:,4+index-self.num_z_overlap], self.X[:,14+index-self.num_z_overlap], self.X[:,24+index-self.num_z_overlap]), self.full_matrix_interpolated_ASTRO[index,:,:]),axis=1)
+            astrokrig_result[index,:] = np.sum(np.multiply(self.ordkrig_lambda(p37[0]/self.zreio_range, p37[1], p37[2]/self.neff_range, p37[3], p37[4+index-self.num_z_XQ]/(self.F_prior_max[index-self.num_z_overlap]-self.F_prior_min[index-self.num_z_overlap]), p37[8+index-self.num_z_XQ], p37[12+index-self.num_z_XQ], self.X[:,0], self.X[:,1], self.X[:,2], self.X[:,3], self.X[:,4+index-self.num_z_overlap], self.X[:,14+index-self.num_z_overlap], self.X[:,24+index-self.num_z_overlap]), self.input_full_matrix_interpolated_ASTRO[index,:,:]),axis=1)
         return astrokrig_result
 
     def ordkrig_distance_3D(self,par1, par2, par3, var1, var2, var3):
@@ -305,15 +304,16 @@ class Lya(Likelihood):
     def ordkrig_estimator_3D(self,p21, z):
         ABG_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
         NEW_ABG_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_length, self.kappa_full_length), 'float64')
+        full_matrix_interpolated_ABG = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
         for i in range(self.zeta_full_length):
             for j in range(self.kappa_full_length):
-                NEW_ABG_matrix[:,i,j] = self.full_matrix_interpolated_ABG[i,j,:]
+                NEW_ABG_matrix[:,i,j] = self.input_full_matrix_interpolated_ABG[i,j,:]
         ABG_matrix_new = NEW_ABG_matrix + self.ordkrig_estimator(p21,z) - 1.
         ABG_matrix_new = np.clip(ABG_matrix_new, 0. , None)
         for i in range(self.zeta_full_length):
             for j in range(self.kappa_full_length):
-                self.full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
-        return np.sum(np.multiply(self.ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), self.full_matrix_interpolated_ABG[:,:,:]),axis=2)
+                full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
+        return np.sum(np.multiply(self.ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), full_matrix_interpolated_ABG[:,:,:]),axis=2)
 
 ### end of block ####
 
@@ -372,20 +372,20 @@ class Lya(Likelihood):
 
         z_reio=cosmo.z_reio()
         sigma8=cosmo.sigma8()
-        neff=cosmo.neff()
+        neff=-2.3#cosmo.neff()
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
-#        Pspline=interpolate.splrep(k,Plin)
-#        Pder = interpolate.splev(k, Pspline, der=1)
-#        Pder2 = interpolate.splev(k, Pspline, der=2)
-#        #plt.plot(k,Plin, 'k')
-#        plt.plot(k,Pder,'b')
-#        #plt.plot(k,Pder2,'r')
-#        plt.xscale('log')
-#        #plt.yscale('log')
-#        plt.savefig('grid_fit_plot.pdf')
-#        exit()
+        #Pspline=interpolate.splrep(k,Plin)
+        #Pder = interpolate.splev(k, Pspline, der=1)
+        #Pder2 = interpolate.splev(k, Pspline, der=2)
+        #plt.plot(k,Plin, 'k')
+        #plt.plot(k,Pder,'b')
+        #plt.plot(k,Pder2,'r')
+        #plt.xscale('log')
+        #plt.yscale('log')
+        #plt.savefig('grid_fit_plot.pdf')
+        #exit()
 
         #sanity check on the cosmological parameters
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
@@ -570,19 +570,19 @@ class Lya(Likelihood):
         #print '\n'
         #print result.chisqr, result.redchi
 
-        plt.xlabel('k [h/Mpc]')
-        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-        #plt.ylim(0.,1.1)
-        #plt.xlim(self.kmin,self.kmax)
-        plt.xscale('log')
-        #plt.yscale('log')
-        plt.grid(True)
-        #plt.plot(k, Tk**2, 'r')
-        #plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-        plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
-        #plt.show()
-        plt.savefig('grid_fit_plot.pdf')
-
+#        plt.xlabel('k [h/Mpc]')
+#        plt.ylabel('$P_{nCDM}/P_{CDM}$')
+#        #plt.ylim(0.,1.1)
+#        #plt.xlim(self.kmin,self.kmax)
+#        plt.xscale('log')
+#        #plt.yscale('log')
+#        plt.grid(True)
+#        #plt.plot(k, Tk**2, 'r')
+#        #plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+#        plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
+#        #plt.show()
+#        plt.savefig('grid_fit_plot.pdf')
+#
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
@@ -613,7 +613,7 @@ class Lya(Likelihood):
                     bin_file.close()
                return data.boundary_loglike
 
-
+        chi2=0.
         #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
         model_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
         #y_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
@@ -632,5 +632,7 @@ class Lya(Likelihood):
         chi2 = np.dot((self.y_MH_reshaped - model_MH_reshaped),np.dot(self.cov_MH_inverted,(self.y_MH_reshaped - model_MH_reshaped)))
 
         loglkl = - 0.5 * chi2
-        print 'Lya -chi^2/2 = ',loglkl
+
+        #print 'Lya -chi^2/2 = ',loglkl
+
         return loglkl
