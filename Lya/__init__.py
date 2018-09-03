@@ -372,7 +372,7 @@ class Lya(Likelihood):
 
         z_reio=cosmo.z_reio()
         sigma8=cosmo.sigma8()
-        neff=cosmo.neff()
+        neff=-2.3#cosmo.neff()
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
@@ -402,19 +402,20 @@ class Lya(Likelihood):
                 bin_file.close()
            return data.boundary_loglike
 
-        #print '\n'
-        #print 'initial data.cosmo_arguments'
-        #print data.cosmo_arguments
+        print '\n'
+        print 'initial model'
+        print data.cosmo_arguments
+        print '\n'
 
         #param_lcdm_equiv = deepcopy(data.cosmo_arguments)
-        param_lcdm_equiv = data.cosmo_arguments.copy()
+        param_backup = data.cosmo_arguments.copy()
 
         #deal with dark radiation (ethos & Co.) according to arXiv:1412.6763
         if 'xi_idr' in data.cosmo_arguments or 'N_ur' in data.cosmo_arguments or 'N_ncdm' in data.cosmo_arguments:
 
             if 'xi_idr' in data.cosmo_arguments:
                 xi_idr = data.cosmo_arguments['xi_idr']
-                param_lcdm_equiv['xi_idr'] = 0.0
+                data.cosmo_arguments['xi_idr'] = 0.0
                 if 'stat_f_idr' in data.cosmo_arguments:
                     stat_f_idr = data.cosmo_arguments['stat_f_idr']
                 else:
@@ -424,13 +425,13 @@ class Lya(Likelihood):
 
             if 'N_ur' in data.cosmo_arguments:
                 N_ur = data.cosmo_arguments['N_ur']
-                param_lcdm_equiv['N_ur'] = 3.0 #as in simulations
+                data.cosmo_arguments['N_ur'] = 3.0 #as in simulations
             else:
                 N_ur = 3.046 #as in class
 
             if 'N_ncdm' in data.cosmo_arguments:
                 N_ncdm = data.cosmo_arguments['N_ncdm']
-                param_lcdm_equiv['N_ncdm'] = 0.0
+                data.cosmo_arguments['N_ncdm'] = 0.0
             else:
                 N_ncdm = 0.0
 
@@ -442,15 +443,15 @@ class Lya(Likelihood):
             #print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
             #print '\n'
             if 'omega_b' in data.cosmo_arguments:
-                param_lcdm_equiv['omega_b'] *= 1./eta2
+                data.cosmo_arguments['omega_b'] *= 1./eta2
             if 'Omega_b' in data.cosmo_arguments:
-                param_lcdm_equiv['Omega_b'] *= 1./eta
+                data.cosmo_arguments['Omega_b'] *= 1./eta
             if 'omega_cdm' in data.cosmo_arguments:
-                param_lcdm_equiv['omega_cdm'] *= 1./eta2
+                data.cosmo_arguments['omega_cdm'] *= 1./eta2
             if 'Omega_cdm' in data.cosmo_arguments:
-                param_lcdm_equiv['Omega_cdm'] *= 1./eta
+                data.cosmo_arguments['Omega_cdm'] *= 1./eta
             if 'H0' in data.cosmo_arguments:
-                param_lcdm_equiv['H0'] *= 1./eta
+                data.cosmo_arguments['H0'] *= 1./eta
             if '100*theta_s' in data.cosmo_arguments:
                 raise io_mp.ConfigurationError('Error: run with H0 instead of 100*theta_s')
                 exit()
@@ -460,20 +461,20 @@ class Lya(Likelihood):
             if (data.cosmo_arguments['f_idm_dr'] != 1.0):
                 raise io_mp.ConfigurationError('Error: for the time being, f_idm_dr has to be set to 1.0')
                 exit()
-            param_lcdm_equiv['f_idm_dr'] = 0.0
+            data.cosmo_arguments['f_idm_dr'] = 0.0
 
         if 'a_dark' in data.cosmo_arguments:#this is not really needed, because once f_idm_dr = 0., whatever is a_dark, pba->has_idm==_FALSE_
-            param_lcdm_equiv['a_dark'] = 0.0
+            data.cosmo_arguments['a_dark'] = 0.0
 
         #deal with warm dark matter
         #if 'm_ncdm' in data.cosmo_arguments:
             #param_lcdm_equiv['m_ncdm'] = 1.0e6
 
         cosmo.empty()
-        #print 'param_lcdm_equiv'
-        #print param_lcdm_equiv
-        #print '\n'
-        cosmo.set(param_lcdm_equiv)
+        cosmo.set(data.cosmo_arguments)
+        print 'lcdm equivalent'
+        print data.cosmo_arguments
+        print '\n'
         cosmo.compute(['lensing'])
 
         Plin_equiv = np.zeros(len(k), 'float64')
@@ -483,12 +484,11 @@ class Lya(Likelihood):
         Plin_equiv *= h**3
 
         cosmo.empty()
-        #del param_lcdm_equiv
-        param_lcdm_equiv.clear()
-        #print 'back to data.cosmo_arguments'
-        #print data.cosmo_arguments
-        #print '\n'
+        data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
+        print 'back to model'
+        print data.cosmo_arguments
+        print '\n'
         cosmo.compute(['lensing'])
 
         Tk = np.zeros(len(k), 'float64')
