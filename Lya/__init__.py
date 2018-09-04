@@ -43,15 +43,7 @@ class Lya(Likelihood):
         gammas = np.zeros(self.grid_size, 'float64')
 
         self.len_varying_params=len(data.get_mcmc_parameters(['varying']))
-        #self.len_derived_params=0
-        #for elem in data.get_mcmc_parameters(['derived']):
-            #param.append(elem)
-            #self.len_derived_params += 1
         self.bin_file_path = os.path.join(command_line.folder,self.bin_file_name)
-        #if os.path.exists(self.bin_file_path):
-           #raise io_mp.ConfigurationError('Error: bin file already exists')
-           #exit()
-        #else:
         if not os.path.exists(self.bin_file_path):
            with open(self.bin_file_path, 'w') as bin_file:
                 bin_file.write('#')
@@ -321,7 +313,17 @@ class Lya(Likelihood):
     def loglkl(self, cosmo, data):
 
         k = np.logspace(np.log10(self.kmin), np.log10(self.kmax), num=self.k_size)
-        print data.mcmc_parameters
+
+#        if not os.path.exists(self.bin_file_path):
+#           with open(self.bin_file_path, 'w') as bin_file:
+#                bin_file.write('#')
+#                for name in data.get_mcmc_parameters(['varying']):
+#                    name = re.sub('[$*&]', '', name)
+#                    bin_file.write(' %s' % name)
+#                bin_file.write(' z_reio neff sigma8')
+#                bin_file.write('\n')
+#                bin_file.close()
+#        
         #deal with the astro nuisance parameters
         if 'T0a' in data.mcmc_parameters:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
@@ -473,9 +475,12 @@ class Lya(Likelihood):
 
         cosmo.empty()
         cosmo.set(data.cosmo_arguments)
+
+        #print '\n'
         #print 'lcdm equivalent'
         #print data.cosmo_arguments
         #print '\n'
+
         cosmo.compute(['lensing'])
 
         Plin_equiv = np.zeros(len(k), 'float64')
@@ -487,9 +492,12 @@ class Lya(Likelihood):
         cosmo.empty()
         data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
+
+        #print '\n'
         #print 'back to model'
         #print data.cosmo_arguments
         #print '\n'
+
         cosmo.compute(['lensing'])
 
         Tk = np.zeros(len(k), 'float64')
