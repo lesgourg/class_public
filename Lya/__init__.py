@@ -2,7 +2,7 @@ from montepython.likelihood_class import Likelihood
 import io_mp
 import re  # Module to handle regular expressions
 #from datetime import date
-#import sys
+import sys
 import os
 import numpy as np
 #from copy import deepcopy
@@ -403,6 +403,8 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
+           sys.stderr.write('#Error_cosmo\n')
+           sys.stderr.flush()
            return data.boundary_loglike
 
         #print '\n'
@@ -474,6 +476,7 @@ class Lya(Likelihood):
             #param_lcdm_equiv['m_ncdm'] = 1.0e6
 
         cosmo.empty()
+        cosmo.struct_cleanup()
         cosmo.set(data.cosmo_arguments)
 
         #print '\n'
@@ -490,6 +493,7 @@ class Lya(Likelihood):
         Plin_equiv *= h**3
 
         cosmo.empty()
+        cosmo.struct_cleanup()
         data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
 
@@ -515,6 +519,8 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
+            sys.stderr.write('#Error_equiv\n')
+            sys.stderr.flush()
             return data.boundary_loglike
 
         spline=interpolate.splrep(k,Tk**2)
@@ -540,6 +546,8 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
+            sys.stderr.write('#Error_kneff\n')
+            sys.stderr.flush()
             return data.boundary_loglike
 
         #k_fit = np.zeros(len(k), 'float64')
@@ -605,11 +613,15 @@ class Lya(Likelihood):
                 bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                 bin_file.write('\n')
                 bin_file.close()
+           sys.stderr.write('#Error_abg\n')
+           sys.stderr.flush()
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
         for index_k in range(len(k_fit)):
-            if abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1:#MArchi perhaps this check should be done on Tk instead of Tk**2
+            once=True
+            if (once is True) and (abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1):#MArchi perhaps this check should be done on Tk instead of Tk**2
+               once=False
                with open(self.bin_file_path, 'a') as bin_file:
                     bin_file.write('Error_fit ')
                     count=1
@@ -620,6 +632,8 @@ class Lya(Likelihood):
                     bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
                     bin_file.write('\n')
                     bin_file.close()
+               sys.stderr.write('#Error_fit\n')
+               sys.stderr.flush()
                return data.boundary_loglike
 
         chi2=0.
