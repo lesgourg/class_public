@@ -47,11 +47,12 @@ class Lya(Likelihood):
         #for elem in data.get_mcmc_parameters(['derived']):
             #param.append(elem)
             #self.len_derived_params += 1
-        self.bin_file_path = os.path.join(command_line.folder, self.bin_file_name)
-        if os.path.exists(self.bin_file_path):
-           raise io_mp.ConfigurationError('Error: bin file already exists')
-           exit()
-        else:
+        self.bin_file_path = os.path.join(command_line.folder,self.bin_file_name)
+        #if os.path.exists(self.bin_file_path):
+           #raise io_mp.ConfigurationError('Error: bin file already exists')
+           #exit()
+        #else:
+        if not os.path.exists(self.bin_file_path):
            with open(self.bin_file_path, 'w') as bin_file:
                 bin_file.write('#')
                 for name in data.get_mcmc_parameters(['varying']):
@@ -320,41 +321,41 @@ class Lya(Likelihood):
     def loglkl(self, cosmo, data):
 
         k = np.logspace(np.log10(self.kmin), np.log10(self.kmax), num=self.k_size)
-
+        print data.mcmc_parameters
         #deal with the astro nuisance parameters
-        if 'T0a' in self.use_nuisance:
+        if 'T0a' in data.mcmc_parameters:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
         else:
             T0a=0.74
-        if 'T0s' in self.use_nuisance:
+        if 'T0s' in data.mcmc_parameters:
             T0s=data.mcmc_parameters['T0s']['current']*data.mcmc_parameters['T0s']['scale']
         else:
             T0s=-4.38
-        if 'gamma_a' in self.use_nuisance:
+        if 'gamma_a' in data.mcmc_parameters:
             gamma_a=data.mcmc_parameters['gamma_a']['current']*data.mcmc_parameters['gamma_a']['scale']
         else:
             gamma_a=1.45
-        if 'gamma_s' in self.use_nuisance:
+        if 'gamma_s' in data.mcmc_parameters:
             gamma_s=data.mcmc_parameters['gamma_s']['current']*data.mcmc_parameters['gamma_s']['scale']
         else:
             gamma_s=1.93
-        if 'Fz1' in self.use_nuisance:
+        if 'Fz1' in data.mcmc_parameters:
             Fz1=data.mcmc_parameters['Fz1']['current']*data.mcmc_parameters['Fz1']['scale']
         else:
             Fz1=0.35
-        if 'Fz2' in self.use_nuisance:
+        if 'Fz2' in data.mcmc_parameters:
             Fz2=data.mcmc_parameters['Fz2']['current']*data.mcmc_parameters['Fz2']['scale']
         else:
             Fz2=0.26
-        if 'Fz3' in self.use_nuisance:
+        if 'Fz3' in data.mcmc_parameters:
             Fz3=data.mcmc_parameters['Fz3']['current']*data.mcmc_parameters['Fz3']['scale']
         else:
             Fz3=0.18
-        if 'Fz4' in self.use_nuisance:
+        if 'Fz4' in data.mcmc_parameters:
             Fz4=data.mcmc_parameters['Fz4']['current']*data.mcmc_parameters['Fz4']['scale']
         else:
             Fz4=0.07
-        if 'F_UV' in self.use_nuisance:
+        if 'F_UV' in data.mcmc_parameters:
             F_UV=data.mcmc_parameters['F_UV']['current']*data.mcmc_parameters['F_UV']['scale']
         else:
             F_UV=0.0
@@ -372,7 +373,7 @@ class Lya(Likelihood):
 
         z_reio=cosmo.z_reio()
         sigma8=cosmo.sigma8()
-        neff=-2.3#cosmo.neff()
+        neff=cosmo.neff()
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
@@ -402,10 +403,10 @@ class Lya(Likelihood):
                 bin_file.close()
            return data.boundary_loglike
 
-        print '\n'
-        print 'initial model'
-        print data.cosmo_arguments
-        print '\n'
+        #print '\n'
+        #print 'initial model'
+        #print data.cosmo_arguments
+        #print '\n'
 
         #param_lcdm_equiv = deepcopy(data.cosmo_arguments)
         param_backup = data.cosmo_arguments.copy()
@@ -472,9 +473,9 @@ class Lya(Likelihood):
 
         cosmo.empty()
         cosmo.set(data.cosmo_arguments)
-        print 'lcdm equivalent'
-        print data.cosmo_arguments
-        print '\n'
+        #print 'lcdm equivalent'
+        #print data.cosmo_arguments
+        #print '\n'
         cosmo.compute(['lensing'])
 
         Plin_equiv = np.zeros(len(k), 'float64')
@@ -486,9 +487,9 @@ class Lya(Likelihood):
         cosmo.empty()
         data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
-        print 'back to model'
-        print data.cosmo_arguments
-        print '\n'
+        #print 'back to model'
+        #print data.cosmo_arguments
+        #print '\n'
         cosmo.compute(['lensing'])
 
         Tk = np.zeros(len(k), 'float64')
