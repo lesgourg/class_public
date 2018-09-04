@@ -618,8 +618,8 @@ class Lya(Likelihood):
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
+        once=True
         for index_k in range(len(k_fit)):
-            once=True
             if (once is True) and (abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1):#MArchi perhaps this check should be done on Tk instead of Tk**2
                once=False
                with open(self.bin_file_path, 'a') as bin_file:
