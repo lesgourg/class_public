@@ -449,12 +449,8 @@ class Lya(Likelihood):
             #print '\n'
             if 'omega_b' in data.cosmo_arguments:
                 data.cosmo_arguments['omega_b'] *= 1./eta2
-            if 'Omega_b' in data.cosmo_arguments:
-                data.cosmo_arguments['Omega_b'] *= 1./eta
             if 'omega_cdm' in data.cosmo_arguments:
                 data.cosmo_arguments['omega_cdm'] *= 1./eta2
-            if 'Omega_cdm' in data.cosmo_arguments:
-                data.cosmo_arguments['Omega_cdm'] *= 1./eta
             if 'H0' in data.cosmo_arguments:
                 data.cosmo_arguments['H0'] *= 1./eta
             if '100*theta_s' in data.cosmo_arguments:
@@ -507,7 +503,10 @@ class Lya(Likelihood):
         Tk = np.zeros(len(k), 'float64')
         Tk = np.sqrt(Plin/Plin_equiv)
 
-        if (abs(Tk[0]**2-1.0)>0.05):
+        #sanity check on the equivalent
+        #equiv_error=abs(Tk**2-1.0)
+        #if any(x>0.05 for x in equiv_error):
+        if (abs(Tk[0]**2-1.0)>0.01):
             #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('Error_equiv ')
@@ -589,17 +588,17 @@ class Lya(Likelihood):
 
 #        plt.xlabel('k [h/Mpc]')
 #        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-#        #plt.ylim(0.,1.1)
-#        #plt.xlim(self.kmin,self.kmax)
+#       plt.ylim(0.,1.1)
+#       plt.xlim(self.kmin,self.kmax)
 #        plt.xscale('log')
-#        #plt.yscale('log')
+#       plt.yscale('log')
 #        plt.grid(True)
-#        #plt.plot(k, Tk**2, 'r')
-#        #plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-#        plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
-#        #plt.show()
+#        plt.plot(k, Tk**2, 'r')
+#       plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+#       plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
+#       plt.show()
 #        plt.savefig('grid_fit_plot.pdf')
-#
+
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
@@ -618,23 +617,21 @@ class Lya(Likelihood):
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
-        once=True
-        for index_k in range(len(k_fit)):
-            if (once is True) and (abs(Tk_fit[index_k]**2/Tk_abg[index_k]**2-1.)>0.1):#MArchi perhaps this check should be done on Tk instead of Tk**2
-               once=False
-               with open(self.bin_file_path, 'a') as bin_file:
-                    bin_file.write('Error_fit ')
-                    count=1
-                    for name, value in data.mcmc_parameters.iteritems():
-                     if count <= self.len_varying_params:
-                        bin_file.write(' %e' % (value['current']*value['scale']))
-                        count += 1
-                    bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
-                    bin_file.write('\n')
-                    bin_file.close()
-               sys.stderr.write('#Error_fit\n')
-               sys.stderr.flush()
-               return data.boundary_loglike
+        fit_error=abs(Tk_fit**2/Tk_abg**2-1.)
+        if any(x>0.1 for x in fit_error):#MArchi perhaps Tk
+            with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_fit ')
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                    if count <= self.len_varying_params:
+                     bin_file.write(' %e' % (value['current']*value['scale']))
+                     count += 1
+                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write('\n')
+                bin_file.close()
+            sys.stderr.write('#Error_fit\n')
+            sys.stderr.flush()
+            return data.boundary_loglike
 
         chi2=0.
         #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
