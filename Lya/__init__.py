@@ -323,7 +323,7 @@ class Lya(Likelihood):
 #                bin_file.write(' z_reio neff sigma8')
 #                bin_file.write('\n')
 #                bin_file.close()
-#        
+#
         #deal with the astro nuisance parameters
         if 'T0a' in data.mcmc_parameters:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
@@ -475,8 +475,8 @@ class Lya(Likelihood):
         #if 'm_ncdm' in data.cosmo_arguments:
             #param_lcdm_equiv['m_ncdm'] = 1.0e6
 
-        cosmo.empty()
         cosmo.struct_cleanup()
+        cosmo.empty()
         cosmo.set(data.cosmo_arguments)
 
         #print '\n'
@@ -492,8 +492,8 @@ class Lya(Likelihood):
             Plin_equiv[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)
         Plin_equiv *= h**3
 
-        cosmo.empty()
         cosmo.struct_cleanup()
+        cosmo.empty()
         data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
 
@@ -646,7 +646,7 @@ class Lya(Likelihood):
         model = self.PF_noPRACE*self.ordkrig_estimator_3D(theta, self.redshift_list)
         upper_block = np.vsplit(model, [7,11])[0]
         lower_block = np.vsplit(model, [7,11])[1]
-        
+
         model_H[:,:] = lower_block[:,19:]
         model_H_reshaped = np.reshape(model_H, -1, order='C')
         model_M[:,:] = lower_block[:3,19:]
