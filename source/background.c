@@ -1337,8 +1337,8 @@ int background_ncdm_init(
 		 pba->error_message,
 		 pba->error_message);
       for (index_q=0; index_q<pba->q_size_ncdm[k]; index_q++) {
-	pba->q_ncdm_bg[k] = pba->q_ncdm[k];
-	pba->w_ncdm_bg[k] = pba->w_ncdm[k];
+	pba->q_ncdm_bg[k][index_q] = pba->q_ncdm[k][index_q];
+	pba->w_ncdm_bg[k][index_q] = pba->w_ncdm[k][index_q];
       }
     /** - in verbose mode, inform user of number of sampled momenta
         for background quantities */
@@ -1477,7 +1477,7 @@ int background_ncdm_momenta(
   }
 
   /** - adjust normalization */
-  if (n!=NULL) *n *= factor2*(1.+z);
+  if (n!=NULL) *n *= factor2/(1.+z);
   if (rho!=NULL) *rho *= factor2;
   if (p!=NULL) *p *= factor2;
   if (drho_dM!=NULL) *drho_dM *= factor2;
