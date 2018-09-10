@@ -127,7 +127,6 @@ int nonlinear_init(
     class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
     class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
     pnl->pk_size = index_pk;
-    //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
 
     /** - copy list of (k,tau) from perturbation module */
 
@@ -195,7 +194,7 @@ int nonlinear_init(
 
         if(pk_type == 0) {
           if(pba->has_ncdm) {
-            index_pk=pnl->index_pk_cb;
+            index_pk = pnl->index_pk_cb;
           }
           else {
             index_pk = pnl->index_pk_m;
@@ -364,7 +363,7 @@ int nonlinear_pk_l(
   if(index_pk == pnl->index_pk_m){
     index_delta = ppt->index_tp_delta_m;
   }
-  else if((pba->has_ncdm)&&(index_pk == pnl->index_pk_cb)){
+  else if ((pba->has_ncdm) && (index_pk == pnl->index_pk_cb)) {
     index_delta = ppt->index_tp_delta_cb;
   }
   else {
@@ -514,7 +513,7 @@ int nonlinear_halofit(
   if (index_pk == pnl->index_pk_m){
     fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
-  else if((pba->has_ncdm)&&(index_pk == pnl->index_pk_cb)){
+  else if ((pba->has_ncdm) && (index_pk == pnl->index_pk_cb)) {
     fnu = 0.;
   }
   else {
