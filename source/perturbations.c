@@ -718,7 +718,10 @@ int perturb_indices_of_perturbs(
         if (ppt->has_nc_rsd == _TRUE_) {
           ppt->has_source_theta_m = _TRUE_;
           if (pba->has_ncdm == _TRUE_)
-              ppt->has_source_theta_cb = _TRUE_; //probably we do not need theta_cb at all, rsd always defined for the total matter
+            /* we may not need theta_cb at all, rsd always defined for
+               the total matter, but at least this is made
+               available */
+              ppt->has_source_theta_cb = _TRUE_;
         }
         if (ppt->has_nc_lens == _TRUE_) {
           ppt->has_source_phi_plus_psi = _TRUE_;
@@ -5647,8 +5650,8 @@ int perturb_total_stress_energy(
         rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
       }
 
-      /* infer delta_cb */   
-      if (ppt->has_source_delta_cb)   
+      /* infer delta_cb */
+      if (ppt->has_source_delta_cb)
        ppw->delta_cb = delta_rho_m/rho_m;
 
       /* include any other species non-relativistic today (like ncdm species) */
@@ -6125,7 +6128,6 @@ int perturb_sources(
     if (ppt->has_source_delta_cb == _TRUE_) {
       _set_source_(ppt->index_tp_delta_cb) = ppw->delta_cb;
     }
-
 
     /* delta_g */
     if (ppt->has_source_delta_g == _TRUE_)  {

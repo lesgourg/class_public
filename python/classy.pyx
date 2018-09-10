@@ -968,6 +968,9 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
+    # This is commented because in the current form it only applies
+    # to minimal LambdaCDM.
+    # On would need to add contributions from ncdm, ddmdr, etc.
     #def Omega_r(self):
     #    return self.ba.Omega0_g+self.ba.Omega0_ur
 
