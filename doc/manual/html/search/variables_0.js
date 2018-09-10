@@ -1,5 +1,6 @@
 var searchData=
 [
+  ['a_5feq',['a_eq',['../background_8h.html#aa0ad2aa08ed53a47ca0b44a65bff6870',1,'background']]],
   ['a_5fini_5fover_5fa_5ftoday_5fdefault',['a_ini_over_a_today_default',['../common_8h.html#aad54dc307fbda7514b045d1bb75a174a',1,'precision']]],
   ['a_5fs',['A_s',['../primordial_8h.html#aa0f16cc1899ef595fff193fee7639933',1,'primordial']]],
   ['a_5ftoday',['a_today',['../background_8h.html#a383ea35b2eda4f1849b9be48048344e5',1,'background']]],

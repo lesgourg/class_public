@@ -8,7 +8,7 @@ var searchData=
   ['k_5fmax_5ftau0_5fover_5fl_5fmax',['k_max_tau0_over_l_max',['../common_8h.html#a97d5f791e87f30f894a5ba0f0a8eed5a',1,'precision']]],
   ['k_5fmin',['k_min',['../perturbations_8h.html#a2efabcc7ceb38767671e282da56e7331',1,'perturbs']]],
   ['k_5fmin_5ftau0',['k_min_tau0',['../common_8h.html#aeac5c1c43202273395e87a94224ce0a9',1,'precision']]],
-  ['k_5fnl',['k_nl',['../structnonlinear.html#a0cf43f23da9a66bad019e2cdc8c7128e',1,'nonlinear']]],
+  ['k_5fnl',['k_nl',['../structnonlinear.html#a0cf43f23da9a66bad019e2cdc8c7128e',1,'nonlinear::k_nl()'],['../structnonlinear.html#afb3529188cde54269e8faeb411f323d4',1,'nonlinear::k_nl()']]],
   ['k_5foutput_5fvalues',['k_output_values',['../perturbations_8h.html#a88b5ec9a18e294c2e9e1b0c4b9846d46',1,'perturbs']]],
   ['k_5foutput_5fvalues_5fnum',['k_output_values_num',['../perturbations_8h.html#ade6a029d5354ed2f317951009edc55e0',1,'perturbs']]],
   ['k_5fper_5fdecade_5ffor_5fbao',['k_per_decade_for_bao',['../common_8h.html#aacd801b9cb8b7df946ffa229b9645723',1,'precision']]],

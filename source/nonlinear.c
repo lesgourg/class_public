@@ -17,10 +17,12 @@ int nonlinear_k_nl_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
                         double z,
-                        double * k_nl
+                        double * k_nl,
+                        double * k_nl_cb
                         ) {
 
   double tau;
+  int index_pk;
 
   class_call(background_tau_of_z(pba,
                                  z,
@@ -29,13 +31,13 @@ int nonlinear_k_nl_at_z(
              pnl->error_message);
 
   if (pnl->tau_size == 1) {
-    *k_nl = pnl->k_nl[0];
+    *k_nl = pnl->k_nl[pnl->index_pk_m][0];
   }
   else {
     class_call(array_interpolate_two(pnl->tau,
                                      1,
                                      0,
-                                     pnl->k_nl,
+                                     pnl->k_nl[pnl->index_pk_m],
                                      1,
                                      pnl->tau_size,
                                      tau,
@@ -44,6 +46,31 @@ int nonlinear_k_nl_at_z(
                                      pnl->error_message),
                pnl->error_message,
                pnl->error_message);
+  }
+
+ if (pba->has_ncdm){
+
+ if (pnl->tau_size == 1) {
+    *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
+  }
+  else {
+    class_call(array_interpolate_two(pnl->tau,
+                                     1,
+                                     0,
+                                     pnl->k_nl[pnl->index_pk_cb],
+                                     1,
+                                     pnl->tau_size,
+                                     tau,
+                                     k_nl_cb,
+                                     1,
+                                     pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  }
+  else{
+    *k_nl_cb = *k_nl;
   }
 
   return _SUCCESS_;
@@ -61,16 +88,18 @@ int nonlinear_init(
   int index_ncdm;
   int index_k;
   int index_tau;
-  double *pk_l;
-  double *pk_nl;
-  double *lnk_l;
-  double *lnpk_l;
-  double *ddlnpk_l;
+  int index_pk;
+  double **pk_l;
+  double **pk_nl;
+  double **lnk_l;
+  double **lnpk_l;
+  double **ddlnpk_l;
   short print_warning=_FALSE_;
   double * pvecback;
   int last_index;
   double a,z;
-  enum halofit_statement halofit_found_k_max;
+  short halofit_found_k_max;
+  int pk_type;
 
   /** Summary
    *
@@ -94,6 +123,11 @@ int nonlinear_init(
       }
     }
 
+    index_pk = 0;
+    class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
+    class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
+    pnl->pk_size = index_pk;
+
     /** - copy list of (k,tau) from perturbation module */
 
     pnl->k_size = ppt->k_size[ppt->index_md_scalars];
@@ -106,54 +140,115 @@ int nonlinear_init(
     for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
       pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
 
-    class_alloc(pnl->nl_corr_density,pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
-    class_alloc(pnl->k_nl,pnl->tau_size*sizeof(double),pnl->error_message);
+    class_alloc(pnl->nl_corr_density,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
 
-    class_alloc(pk_l,pnl->k_size*sizeof(double),pnl->error_message);
-    class_alloc(pk_nl,pnl->k_size*sizeof(double),pnl->error_message);
+    class_alloc(pnl->k_nl,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
 
-    class_alloc(lnk_l,pnl->k_size*sizeof(double),pnl->error_message);
-    class_alloc(lnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
-    class_alloc(ddlnpk_l,pnl->k_size*sizeof(double),pnl->error_message);
+    class_alloc(pk_l,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    class_alloc(pk_nl,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    class_alloc(lnk_l,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    class_alloc(lnpk_l,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    class_alloc(ddlnpk_l,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+
+    class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
+    class_alloc(pnl->k_nl[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+
+    class_alloc(pk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
+    class_alloc(pk_nl[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
+
+    class_alloc(lnk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);//this is not really necessary
+    class_alloc(lnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
+    class_alloc(ddlnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
+
+    }
+
+    print_warning=_FALSE_;
+
+    pnl->index_tau_min_nl = 0;
 
     /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
+      for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
+
+        if(pk_type == 0) {
+          if(pba->has_ncdm) {
+            index_pk = pnl->index_pk_cb;
+          }
+          else {
+            index_pk = pnl->index_pk_m;
+          }
+        }
+        else if(pk_type == 1) {
+          if(pba->has_ncdm){
+            index_pk = pnl->index_pk_m;
+          }
+          else {
+            class_stop(pnl->error_message,"looks like pk_size=2 even if you do not have any massive neutrinos");
+          }
+        }
+        else {
+         class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
+        }
+
       /* get P_L(k) at this time */
-      class_call(nonlinear_pk_l(ppt,ppm,pnl,index_tau,pk_l,lnk_l,lnpk_l,ddlnpk_l),
+      class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                  pnl->error_message,
                  pnl->error_message);
 
        /* get P_NL(k) at this time */
       if (print_warning == _FALSE_) {
+
         class_call(nonlinear_halofit(ppr,
                                      pba,
+                                     ppt,
                                      ppm,
                                      pnl,
+                                     index_pk,
                                      pnl->tau[index_tau],
-                                     pk_l,
-                                     pk_nl,
-                                     lnk_l,
-                                     lnpk_l,
-                                     ddlnpk_l,
-                                     &(pnl->k_nl[index_tau]),
+                                     pk_l[index_pk],
+                                     pk_nl[index_pk],
+                                     lnk_l[index_pk],
+                                     lnpk_l[index_pk],
+                                     ddlnpk_l[index_pk],
+                                     &(pnl->k_nl[index_pk][index_tau]),
                                      &halofit_found_k_max),
                    pnl->error_message,
                    pnl->error_message);
 
-        if (halofit_found_k_max == ok) {
+        if (halofit_found_k_max == _TRUE_) {
 
           // for debugging:
-          /*
+            /*if ((index_tau == pnl->tau_size-1)){
             for (index_k=0; index_k<pnl->k_size; index_k++) {
-            fprintf(stdout,"%e  %e  %e\n",pnl->k[index_k],pk_l[index_k],pk_nl[index_k]);
+            fprintf(stdout,"%d %e  %e  %e\n",index_pk,pnl->k[index_k],pk_l[index_pk][index_k],pk_nl[index_pk][index_k]);
             }
-            fprintf(stdout,"\n\n");
-          */
+            fprintf(stdout,"\n\n\n");
+            }*/
 
           for (index_k=0; index_k<pnl->k_size; index_k++) {
-            pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
+            pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
           }
         }
         else {
@@ -163,7 +258,7 @@ int nonlinear_init(
           print_warning = _TRUE_;
           pnl->index_tau_min_nl = index_tau+1;
           for (index_k=0; index_k<pnl->k_size; index_k++) {
-            pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+            pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
           }
           if (pnl->nonlinear_verbose > 0) {
             class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
@@ -173,8 +268,8 @@ int nonlinear_init(
             a = pvecback[pba->index_bg_a];
             z = pba->a_today/a-1.;
             fprintf(stdout,
-                    " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",
-                    z);
+                    " -> [WARNING:] index_pk=%d Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",
+                    index_pk,z);
             free(pvecback);
           }
         }
@@ -184,11 +279,20 @@ int nonlinear_init(
              time/redhsift, use 1 as the non-linear correction for all
              higher redshifts/earlier times. */
         for (index_k=0; index_k<pnl->k_size; index_k++) {
-          pnl->nl_corr_density[index_tau * pnl->k_size + index_k] = 1.;
+          pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
         }
       }
-    }
 
+    }//end loop over pk_type
+
+    }//end loop over tau
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+     free(pk_l[index_pk]);
+     free(pk_nl[index_pk]);
+     free(lnk_l[index_pk]);
+     free(lnpk_l[index_pk]);
+     free(ddlnpk_l[index_pk]);
+    }
     free(pk_l);
     free(pk_nl);
     free(lnk_l);
@@ -207,16 +311,26 @@ int nonlinear_init(
 int nonlinear_free(
                    struct nonlinear *pnl
                    ) {
+  int index_pk;
 
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
-      /* free here */
       free(pnl->k);
       free(pnl->tau);
+      for(index_pk=0;index_pk<pnl->pk_size;++index_pk){
+        free(pnl->nl_corr_density[index_pk]);
+        free(pnl->k_nl[index_pk]);
+      }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
     }
+  }
+
+  if (pnl->has_pk_eq == _TRUE_) {
+    free(pnl->pk_eq_tau);
+    free(pnl->pk_eq_w_and_Omega);
+    free(pnl->pk_eq_ddw_and_ddOmega);
   }
 
   return _SUCCESS_;
@@ -224,9 +338,11 @@ int nonlinear_free(
 }
 
 int nonlinear_pk_l(
+                   struct background *pba,
                    struct perturbs *ppt,
                    struct primordial *ppm,
                    struct nonlinear *pnl,
+                   int index_pk,
                    int index_tau,
                    double *pk_l,
                    double *lnk,
@@ -235,11 +351,24 @@ int nonlinear_pk_l(
 
   int index_md;
   int index_k;
+  int index_delta;
   int index_ic1,index_ic2,index_ic1_ic2;
   double * primordial_pk;
   double source_ic1,source_ic2;
 
   index_md = ppt->index_md_scalars;
+
+  // Initialize first, then assign correct value
+  index_delta = ppt->index_tp_delta_m;
+  if(index_pk == pnl->index_pk_m){
+    index_delta = ppt->index_tp_delta_m;
+  }
+  else if ((pba->has_ncdm) && (index_pk == pnl->index_pk_cb)) {
+    index_delta = ppt->index_tp_delta_cb;
+  }
+  else {
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
+  }
 
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
 
@@ -261,12 +390,13 @@ int nonlinear_pk_l(
       index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
 
       source_ic1 = ppt->sources[index_md]
-        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+        [index_ic1 * ppt->tp_size[index_md] + index_delta]
         [index_tau * ppt->k_size[index_md] + index_k];
 
       pk_l[index_k] += 2.*_PI_*_PI_/pow(pnl->k[index_k],3)
         *source_ic1*source_ic1
         *primordial_pk[index_ic1_ic2];
+
     }
 
     /* part non-diagonal in initial conditions */
@@ -278,11 +408,11 @@ int nonlinear_pk_l(
         if (ppm->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
           source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+            [index_ic1 * ppt->tp_size[index_md] + index_delta]
             [index_tau * ppt->k_size[index_md] + index_k];
 
           source_ic2 = ppt->sources[index_md]
-            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+            [index_ic2 * ppt->tp_size[index_md] + index_delta]
             [index_tau * ppt->k_size[index_md] + index_k];
 
           pk_l[index_k] += 2.*2.*_PI_*_PI_/pow(pnl->k[index_k],3)
@@ -295,8 +425,9 @@ int nonlinear_pk_l(
 
     lnk[index_k] = log(pnl->k[index_k]);
     lnpk[index_k] = log(pk_l[index_k]);
-  }
 
+  }
+//??? this array_spline table columns has to be replaced with another function
   class_call(array_spline_table_columns(lnk,
                                         pnl->k_size,
                                         lnpk,
@@ -316,8 +447,10 @@ int nonlinear_pk_l(
 int nonlinear_halofit(
                       struct precision *ppr,
                       struct background *pba,
+                      struct perturbs *ppt,
                       struct primordial *ppm,
                       struct nonlinear *pnl,
+                      int index_pk,
                       double tau,
                       double *pk_l,
                       double *pk_nl,
@@ -325,7 +458,7 @@ int nonlinear_halofit(
                       double *lnpk_l,
                       double *ddlnpk_l,
                       double *k_nl,
-                      enum halofit_statement * halofit_found_k_max
+                      short * halofit_found_k_max
                       ) {
 
   double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
@@ -344,7 +477,7 @@ int nonlinear_halofit(
 
   double * pvecback;
 
-  int last_index;
+  int last_index=0;
   int counter;
   double sum1,sum2,sum3;
   double anorm;
@@ -369,14 +502,73 @@ int nonlinear_halofit(
 
   double R;
 
+  double * w_and_Omega;
+
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
 
-  /* Halofit needs w0 = w_fld today */
-  class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+  //Initialize first, then assign correct value
+  fnu = pba->Omega0_ncdm_tot/Omega0_m;
+  if (index_pk == pnl->index_pk_m){
+    fnu = pba->Omega0_ncdm_tot/Omega0_m;
+  }
+  else if ((pba->has_ncdm) && (index_pk == pnl->index_pk_cb)) {
+    fnu = 0.;
+  }
+  else {
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
+  }
 
-  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+  if (pnl->has_pk_eq == _FALSE_) {
+
+    /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
+       all required by HALFIT fitting formulas */
+
+    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
+    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    Omega_m = pvecback[pba->index_bg_Omega_m];
+    Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
+
+  }
+  else {
+
+    /* alternative method called Pk_equal, described in 0810.0190 and
+                      1601.07230, extending the range of validity of
+                      HALOFIT from constant w to (w0,wa) models. In that
+                      case, some effective values of w0(tau_i) and
+                      Omega_m(tau_i) have been pre-computed in the
+                      input module, and we just ned to interpolate
+                      within tabulated arrays, to get them at the
+                      current tau value. */
+
+    class_alloc(w_and_Omega,pnl->pk_eq_size*sizeof(double),pnl->error_message);
+
+    class_call(array_interpolate_spline(
+                                        pnl->pk_eq_tau,
+                                        pnl->pk_eq_tau_size,
+                                        pnl->pk_eq_w_and_Omega,
+                                        pnl->pk_eq_ddw_and_ddOmega,
+                                        pnl->pk_eq_size,
+                                        tau,
+                                        &last_index,
+                                        w_and_Omega,
+                                        pnl->pk_eq_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    w0 = w_and_Omega[pnl->index_pk_eq_w];
+    Omega_m = w_and_Omega[pnl->index_pk_eq_Omega_m];
+    Omega_v = 1.-Omega_m;
+
+    free(w_and_Omega);
+  }
+
   anorm    = 1./(2*pow(_PI_,2));
 
   /*      Until the 17.02.2015 the values of k used for integrating sigma(R) quantities needed by Halofit where the same as in the perturbation module.
@@ -490,13 +682,13 @@ int nonlinear_halofit(
   */
 
   if (sigma < 1.) {
-    * halofit_found_k_max = too_small;
+    * halofit_found_k_max = _FALSE_;
     free(pvecback);
     free(integrand_array);
     return _SUCCESS_;
   }
   else {
-    * halofit_found_k_max = ok;
+    * halofit_found_k_max = _TRUE_;
   }
 
   xlogr1 = log(R)/log(10.);

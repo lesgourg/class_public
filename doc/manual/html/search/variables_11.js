@@ -32,6 +32,7 @@ var searchData=
   ['shooting_5ffailed',['shooting_failed',['../background_8h.html#a378f8b0f2a436630570e71f0387a70ab',1,'background']]],
   ['short_5finfo',['short_info',['../background_8h.html#a539b135329ad8c7493e936a559062170',1,'background']]],
   ['sigma8',['sigma8',['../spectra_8h.html#a6ee88df802d2cb48a003ade7adcb600a',1,'spectra']]],
+  ['sigma8_5fcb',['sigma8_cb',['../spectra_8h.html#a061198a8d906bce9c36007567db6b30a',1,'spectra']]],
   ['size_5fscalar_5fperturbation_5fdata',['size_scalar_perturbation_data',['../perturbations_8h.html#ad60d11a36d328dedd1b02871e6b8f2d1',1,'perturbs']]],
   ['size_5ftensor_5fperturbation_5fdata',['size_tensor_perturbation_data',['../perturbations_8h.html#acac6423c3019d7802de6587088cfc7d5',1,'perturbs']]],
   ['size_5fvector_5fperturbation_5fdata',['size_vector_perturbation_data',['../perturbations_8h.html#a117d7e63ef4287a8bf785057fc81c6f8',1,'perturbs']]],

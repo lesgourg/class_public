@@ -473,15 +473,59 @@ int background_w_fld(
                      double * dw_over_da_fld,
                      double * integral_fld) {
 
+  double Omega_ede = 0.;
+  double dOmega_ede_over_da = 0.;
+  double d2Omega_ede_over_da2 = 0.;
+  double a_eq, Omega_r, Omega_m;
+
   /** - first, define the function w(a) */
-  *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+    break;
+  case EDE:
+    // Omega_ede(a) taken from eq. (10) in 1706.00730
+    Omega_ede = (pba->Omega0_fld - pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld)))
+      /(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld))
+      + pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld));
+
+    // d Omega_ede / d a taken analytically from the above
+    dOmega_ede_over_da = - pba->Omega_EDE* 3.*pba->w0_fld*pow(a,-3.*pba->w0_fld-1.)/(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld))
+      - (pba->Omega0_fld - pba->Omega_EDE*(1.-pow(a,-3.*pba->w0_fld)))*(1.-pba->Omega0_fld)*3.*pba->w0_fld*pow(a,3.*pba->w0_fld-1.)/pow(pba->Omega0_fld+(1.-pba->Omega0_fld)*pow(a,3.*pba->w0_fld),2)
+      + pba->Omega_EDE*3.*pba->w0_fld*pow(a,-3.*pba->w0_fld-1.);
+
+    // find a_equality (needed because EDE tracks first radiation, then matter)
+    Omega_r = pba->Omega0_g * (1. + 3.046 * 7./8.*pow(4./11.,4./3.)); // assumes LambdaCDM + eventually massive neutrinos so light that they are relativistic at equality; needs to be generalised later on.
+    Omega_m = pba->Omega0_b;
+    if (pba->has_cdm == _TRUE_) Omega_m += pba->Omega0_cdm;
+    if (pba->has_dcdm == _TRUE_)
+        class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
+    a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
+    class_stop(pba->error_message,"a_eq = %e, z_eq =%e\n",a_eq,1./a_eq-1.);
+
+    // w_ede(a) taken from eq. (11) in 1706.00730
+    *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
+    break;
+  }
+
 
   /** - then, give the corresponding analytic derivative dw/da (used
         by perturbation equations; we could compute it numerically,
         but with a loss of precision; as long as there is a simple
         analytic expression of the derivative of the previous
         function, let's use it! */
-  *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+    break;
+  case EDE:
+    d2Omega_ede_over_da2 = 0.;
+    *dw_over_da_fld = - d2Omega_ede_over_da2*a/3./(1.-Omega_ede)/Omega_ede
+      - dOmega_ede_over_da/3./(1.-Omega_ede)/Omega_ede
+      + dOmega_ede_over_da*dOmega_ede_over_da*a/3./(1.-Omega_ede)/(1.-Omega_ede)/Omega_ede
+      + a_eq/3./(a+a_eq)/(a+a_eq);
+    break;
+  }
 
   /** - finally, give the analytic solution of the following integral:
         \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
@@ -656,6 +700,11 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
+  /** - this function finds and stores a few derived parameters at radiation-matter equality */
+  class_call(background_find_equality(ppr,pba),
+             pba->error_message,
+             pba->error_message);
+
   return _SUCCESS_;
 
 }
@@ -684,6 +733,24 @@ int background_free(
   return err;
 }
 
+/**
+ * Free only the memory space NOT allocated through input_read_parameters()
+ *
+ * @param pba Input: pointer to background structure (to be freed)
+ * @return the error status
+ */
+
+int background_free_noinput(
+                    struct background *pba
+                    ) {
+  free(pba->tau_table);
+  free(pba->z_table);
+  free(pba->d2tau_dz2_table);
+  free(pba->background_table);
+  free(pba->d2background_dtau2_table);
+
+  return _SUCCESS_;
+}
 /**
  * Free pointers inside background structure which were
  * allocated in input_read_parameters()
@@ -1270,8 +1337,8 @@ int background_ncdm_init(
 		 pba->error_message,
 		 pba->error_message);
       for (index_q=0; index_q<pba->q_size_ncdm[k]; index_q++) {
-	pba->q_ncdm_bg[k] = pba->q_ncdm[k];
-	pba->w_ncdm_bg[k] = pba->w_ncdm[k];
+	pba->q_ncdm_bg[k][index_q] = pba->q_ncdm[k][index_q];
+	pba->w_ncdm_bg[k][index_q] = pba->w_ncdm[k][index_q];
       }
     /** - in verbose mode, inform user of number of sampled momenta
         for background quantities */
@@ -1410,7 +1477,7 @@ int background_ncdm_momenta(
   }
 
   /** - adjust normalization */
-  if (n!=NULL) *n *= factor2*(1.+z);
+  if (n!=NULL) *n *= factor2/(1.+z);
   if (rho!=NULL) *rho *= factor2;
   if (p!=NULL) *p *= factor2;
   if (drho_dM!=NULL) *drho_dM *= factor2;
@@ -1997,6 +2064,83 @@ int background_initial_conditions(
   return _SUCCESS_;
 
 }
+
+/**
+ * Find the time of radiation/matter equality and store characteristic
+ * quantitites at that time in the background structure..
+ *
+ * @param ppr                  Input: pointer to precision structure
+ * @param pba                  Input/Output: pointer to background structure
+  * @return the error status
+ */
+
+int background_find_equality(
+                             struct precision *ppr,
+                             struct background *pba) {
+
+  double Omega_m_over_Omega_r=0.;
+  int index_tau_minus = 0;
+  int index_tau_plus = pba->bt_size-1;
+  int index_tau_mid = 0;
+  double tau_minus,tau_plus,tau_mid=0.;
+  double * pvecback;
+
+  /* first bracket the right tau value between two consecutive indices in the table */
+
+  while ((index_tau_plus - index_tau_minus) > 1) {
+
+    index_tau_mid = (int)(0.5*(index_tau_plus+index_tau_minus));
+
+    Omega_m_over_Omega_r = pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_m]
+      /pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_r];
+
+    if (Omega_m_over_Omega_r > 1)
+      index_tau_plus = index_tau_mid;
+    else
+      index_tau_minus = index_tau_mid;
+
+  }
+
+  /* then get a better estimate within this range */
+
+  tau_minus = pba->tau_table[index_tau_minus];
+  tau_plus =  pba->tau_table[index_tau_plus];
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+
+  while ((tau_plus - tau_minus) > ppr->tol_tau_eq) {
+
+    tau_mid = 0.5*(tau_plus+tau_minus);
+
+    class_call(background_at_tau(pba,tau_mid,pba->long_info,pba->inter_closeby,&index_tau_minus,pvecback),
+               pba->error_message,
+               pba->error_message);
+
+    Omega_m_over_Omega_r = pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_Omega_r];
+
+    if (Omega_m_over_Omega_r > 1)
+      tau_plus = tau_mid;
+    else
+      tau_minus = tau_mid;
+
+  }
+
+  pba->a_eq = pvecback[pba->index_bg_a];
+  pba->H_eq = pvecback[pba->index_bg_H];
+  pba->z_eq = pba->a_today/pba->a_eq -1.;
+  pba->tau_eq = tau_mid;
+
+  if (pba->background_verbose > 0) {
+    printf(" -> radiation/matter equality at z = %f\n",pba->z_eq);
+    printf("    corresponding to conformal time = %f Mpc\n",pba->tau_eq);
+  }
+
+  free(pvecback);
+
+  return _SUCCESS_;
+
+}
+
 
 /**
  * Subroutine for formatting background output

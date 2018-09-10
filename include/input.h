@@ -276,6 +276,15 @@ extern "C" {
 
   int compare_doubles(const void *a,const void *b);
 
+  int input_prepare_pk_eq(
+                          struct precision * ppr,
+                          struct background *pba,
+                          struct thermo *pth,
+                          struct nonlinear *pnl,
+                          int input_verbose,
+                          ErrorMsg errmsg
+                          );
+
 
 #ifdef __cplusplus
 }
