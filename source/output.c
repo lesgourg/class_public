@@ -1149,7 +1149,7 @@ int output_tk(
   double z;
 
   FileName file_name;
-  FileName redshift_suffix;
+  char redshift_suffix[18]; //Slightly larger than maximum size required (11+2=13)
   char first_line[_LINE_LENGTH_MAX_];
   FileName ic_suffix;
 
