@@ -1,0 +1,11 @@
+<map id="thermodynamics_energy_injection" name="thermodynamics_energy_injection">
+<area shape="rect" id="node2" href="$thermodynamics_8c.html#a056862f1b2d37b8408ab7fdde116968f" title="thermodynamics_reionization\l_sample" alt="" coords="219,5,410,46"/>
+<area shape="rect" id="node8" href="$thermodynamics_8c.html#a00dc65dc088eabe075227c673f091297" title="thermodynamics_derivs\l_with_recfast" alt="" coords="235,70,395,111"/>
+<area shape="rect" id="node3" href="$thermodynamics_8c.html#aa8e6b48cadc0a989b729fa624e1d61b3" title="thermodynamics_reionization" alt="" coords="723,17,914,44"/>
+<area shape="rect" id="node4" href="$thermodynamics_8c.html#a1acbfae38edb0c73d8991645f89b2d13" title="thermodynamics_init" alt="" coords="971,44,1114,71"/>
+<area shape="rect" id="node5" href="$input_8c.html#a8902799b68422227ff6a3293ebd6bd94" title="input_try_unknown_parameters" alt="" coords="1163,44,1365,71"/>
+<area shape="rect" id="node6" href="$input_8c.html#a31052a91cf14f73d6f2bb0e7874429fb" title="input_init" alt="" coords="1413,44,1488,71"/>
+<area shape="rect" id="node7" href="$input_8c.html#a40aecd22732b07db752cb4bc34e55ad4" title="input_init_from_arguments" alt="" coords="1537,44,1711,71"/>
+<area shape="rect" id="node9" href="$thermodynamics_8c.html#ab7d2c22e2a933156c291bfa467731ab2" title="thermodynamics_recombination\l_with_recfast" alt="" coords="459,67,666,109"/>
+<area shape="rect" id="node10" href="$thermodynamics_8c.html#a13696727ba92af10edfed3ebf8c43a8a" title="thermodynamics_recombination" alt="" coords="715,71,922,97"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="input_read_parameters" name="input_read_parameters">
+<area shape="rect" id="node2" href="$input_8c.html#a31052a91cf14f73d6f2bb0e7874429fb" title="input_init" alt="" coords="624,64,699,90"/>
+<area shape="rect" id="node4" href="$input_8c.html#a8902799b68422227ff6a3293ebd6bd94" title="input_try_unknown_parameters" alt="" coords="373,38,576,65"/>
+<area shape="rect" id="node5" href="$input_8c.html#a5faf7f188b4f34fd45b34e3eec302d12" title="input_get_guess" alt="" coords="208,89,325,116"/>
+<area shape="rect" id="node3" href="$input_8c.html#a40aecd22732b07db752cb4bc34e55ad4" title="input_init_from_arguments" alt="" coords="747,64,922,90"/>
+<area shape="rect" id="node6" href="$input_8c.html#aee772d452d6a10313e151ffc9d4db8c5" title="input_find_root" alt="" coords="421,140,528,166"/>
+</map>
