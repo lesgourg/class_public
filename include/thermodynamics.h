@@ -471,6 +471,10 @@ struct thermo_workspace {
   double x; /**< Electron ionization fraction */
   double dx_H;
   double dx_He;
+  double dx;
+
+  double Tmat;
+  double dTmat;
   
   int index_ap_brec; /**< index for approximation before recombination */
   int index_ap_He1; /**< index for 1st He-recombination (HeIII) */

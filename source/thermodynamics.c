@@ -3267,7 +3267,7 @@ int thermodynamics_derivs_with_recfast(
   /* define local variables */
 
   double z;
-  double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,Hz,dHdz,epsilon;
+  double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,Hz,dHdz,epsilon;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
   double timeTh,timeH;
   double sq_0,sq_1;
@@ -3349,21 +3349,26 @@ int thermodynamics_derivs_with_recfast(
   */
   Tmat = y[ptw->tv->index_Tmat];
 
+  ptw->Tmat = Tmat;
+  ptw->dTmat = -dy[ptw->tv->index_Tmat];
+
   class_call(thermodynamics_x_analytic(z,
                                        preco,
                                        ptw,
                                        ap_current),  
              error_message,
              error_message);
-  /* Obtain values for x_H and x_He and x
+  /* 
+   * Obtain values for x_H and x_He and x
    * (H can never be required without He being also required)
    * 
    * */
   printf("\n\n");
   printf("Require = %s and %s  ----- ",(ptw->require_H?"H yes":"H no"),(ptw->require_He?"He yes":"He no"));
+  
   if(ptw->require_He){
     x_He = y[ptw->tv->index_x_He];
-    dx_He = dy[ptw->tv->index_x_He];
+    dx_He = -dy[ptw->tv->index_x_He];
     x = ptw->x_H + preco->fHe * x_He;
   }else{
     x_He = ptw->x_He;
@@ -3372,12 +3377,13 @@ int thermodynamics_derivs_with_recfast(
   }
   if(ptw->require_H){
     x_H = y[ptw->tv->index_x_H];
-    dx_H = dy[ptw->tv->index_x_H];
+    dx_H = -dy[ptw->tv->index_x_H];
     x = x_H + preco->fHe * x_He;
   }else{
     x_H = ptw->x_H;
     dx_H = ptw->dx_H;
   }
+  
   printf("x_H = %.10e , x_He = %.10e , x= %.10e , T = %.10e ,dx_H = %.10e , dx_He = %.10e \n",x_H,x_He,x,Tmat,dx_H,dx_He);
 
   if(ptw->require_H){
@@ -3525,14 +3531,25 @@ int thermodynamics_derivs_with_recfast(
               (x*x_He*n*Rdown_trip
              - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
             *CfHe_t/(Hz*(1.+z));
-        }
+        }*/
       /* end of new recfast 1.4 piece */
     }
     /* Store derivatives for temperature integration */
     dx_He = dy[ptw->tv->index_x_He];
   }
-  
+
+  /* Calculate dx depending on approximation scheme */
+  if(ap_current == ptw->index_ap_H){
+    dx = ptw->dx_H + preco->fHe * dx_He;
+  }
+  else if(ap_current == ptw->index_ap_frec){
+    dx = dx_H + preco->fHe * dx_He;
+  }
+  else{
+    dx = ptw->dx;  
+  }
   ptw->x = x;
+  ptw->dx = dx;
   ptw->x_H = x_H;
   ptw->x_He = x_He;
   ptw->dx_H = dx_H;
@@ -3553,9 +3570,9 @@ int thermodynamics_derivs_with_recfast(
     /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
     dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today* _c_ / _Mpc_over_m_;
     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x);
-    dy[ptw->tv->index_Tmat] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*((dx_H+preco->fHe*dx_He)/x)
+    dy[ptw->tv->index_Tmat] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*(dx/x)
       - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
-      
+    printf("Approximation 1 \n");
   }
   else {
     /* equations modified to take into account energy injection from dark matter */
@@ -3603,7 +3620,7 @@ int thermodynamics_x_analytic(
                               int current_ap                          
                               ) {
   
-  double x_H, x_He, x, rhs,dx_H,dx_He;
+  double x_H, x_He, x, rhs,dx_H,dx_He,dx,sqrt_val,drhs;
   
   /** calculate Hydrogen and Helium fraction with analytical approximations specific for each current approximation interval.
   /** - --> first approximation: H and Helium fully ionized */
@@ -3612,6 +3629,7 @@ int thermodynamics_x_analytic(
     x_H = 1.;
     x_He = 1.;
     x = 1. + 2.*preco->fHe;
+    dx = 0.;
     dx_H=0.;
     dx_He=0.;
     
@@ -3622,12 +3640,13 @@ int thermodynamics_x_analytic(
     /* analytic approximations */
     x_H = 1.;
     x_He = 1.;
-    rhs = exp( 1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He2/(preco->Tnow*(1.+z)) ) / preco->Nnow;
-    
-    x = 0.5*(sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs) - (rhs-1.-preco->fHe));
+    rhs = exp( 1.5*log(preco->CR*ptw->Tmat/(1.+z)/(1.+z)) - preco->CB1_He2/ptw->Tmat ) / preco->Nnow;
+    sqrt_val = sqrt(pow((rhs-1.-preco->fHe),2) + 4.*(1.+2.*preco->fHe)*rhs);
+    drhs = rhs*((preco->CB1_He2*ptw->dTmat/ptw->Tmat/ptw->Tmat)+1.5*(ptw->dTmat/ptw->Tmat-2./(1.+z)) );
+    x = 0.5*(sqrt_val - (rhs-1.-preco->fHe));
     dx_H=0.;
     dx_He=0.;
-    
+    dx = 0.5*(  ((rhs-1.-preco->fHe) + 2.*(1.+2.*preco->fHe))/sqrt_val   -   1.  )*drhs;
   }
   /** - --> third approximation: first Helium recombination finished */
   else if (current_ap == ptw->index_ap_He1f) {
@@ -3638,27 +3657,34 @@ int thermodynamics_x_analytic(
     x = 1.+preco->fHe;
     dx_H=0.;
     dx_He=0.;
-    
+    dx = 0.;
   }
   /** - --> fourth approximation: second Helium recombination starts */
   else if (current_ap == ptw->index_ap_He2) {
     
     /* analytic approximations */
     x_H = 1.;
-    rhs = 4.*exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1_He1/(preco->Tnow*(1.+z)))/preco->Nnow;
+    rhs = 4.*exp(1.5*log(preco->CR*ptw->Tmat/(1.+z)/(1.+z)) - preco->CB1_He1/ptw->Tmat )/preco->Nnow;
+    sqrt_val = sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs );
+    drhs = rhs*((preco->CB1_He1*ptw->dTmat/ptw->Tmat/ptw->Tmat)+1.5*(ptw->dTmat/ptw->Tmat-2./(1.+z)) );
+    
     x = 0.5*(sqrt(pow((rhs-1.),2) + 4.*(1.+preco->fHe)*rhs )- (rhs-1.));
     x_He = (x-1.)/preco->fHe;
     dx_H=0.;
-    dx_He=0.;
-    
+    dx = 0.5*(  ((rhs-1.) + 2.*(1.+ preco->fHe))/sqrt_val   -   1.  )*drhs;
+    dx_He = (dx/preco->fHe);
   }
   /** - --> fifth approximation: Hydrogen recombination starts */
   else if (current_ap == ptw->index_ap_H) {
     
     /* analytic approximations */
-    rhs = exp(1.5*log(preco->CR*preco->Tnow/(1.+z)) - preco->CB1/(preco->Tnow*(1.+z)))/preco->Nnow;
-    x_H = 0.5*(sqrt(pow(rhs,2)+4.*rhs) - rhs);
-    dx_H=0.;
+    rhs = exp(1.5*log(preco->CR*ptw->Tmat/(1.+z)/(1.+z)) - preco->CB1/ptw->Tmat)/preco->Nnow;
+    
+    sqrt_val = sqrt(pow(rhs,2)+4.*rhs);
+    drhs = rhs*((preco->CB1*ptw->dTmat/ptw->Tmat/ptw->Tmat)+1.5*(ptw->dTmat/ptw->Tmat-2./(1.+z)) );
+    
+    x_H = 0.5*(sqrt_val - rhs);
+    dx_H = 0.5*(  (rhs + 2.)/sqrt_val   -   1.  )*drhs;
     
   }
   /** Save x_H, x_He and x into workspace */
@@ -3667,7 +3693,8 @@ int thermodynamics_x_analytic(
   ptw->x = x;
   ptw->dx_H = dx_H;
   ptw->dx_He = dx_He;
-  
+  ptw->dx = dx;
+
   return _SUCCESS_;
 }    
 
@@ -3732,8 +3759,11 @@ int thermo_vector_init(
   }
   
   /* setting intial conditions for each approximation */
-  
+
   if(ptw->ap_current == ptw->index_ap_brec){
+    /* Store Tmat in workspace for later use */
+    ptw->Tmat = preco->Tnow*(1.+z);
+    ptw->dTmat = preco->Tnow;
     
     /* Set the new vector and its indices */ 
     ptw->tv = ptv;
@@ -3747,6 +3777,9 @@ int thermo_vector_init(
     
   }
   else if(ptw->ap_current == ptw->index_ap_H){
+    /* Store Tmat in workspace for later use */
+    ptw->Tmat = ptw->tv->y[ptw->tv->index_Tmat];
+    ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
     
     /* Obtain initial contents of new vector analytically, especially x_He */
     class_call(thermodynamics_x_analytic(z,
@@ -3774,6 +3807,9 @@ int thermo_vector_init(
     ptw->require_He = _TRUE_;
   }
   else if(ptw->ap_current != ptw->index_ap_frec){
+    /* Store Tmat in workspace for later use */
+    ptw->Tmat = ptw->tv->y[ptw->tv->index_Tmat];
+    ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
     
     /* Set the new vector and its indices */ 
     ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];
@@ -3791,6 +3827,9 @@ int thermo_vector_init(
     ptw->require_He = _FALSE_;
   }
   else {
+    /* Store Tmat in workspace for later use */
+    ptw->Tmat = ptw->tv->y[ptw->tv->index_Tmat];
+    ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
     
     /* Obtain initial contents of new vector analytically, especially x_H */
     class_call(thermodynamics_x_analytic(z,
@@ -3849,11 +3888,12 @@ int thermo_workspace_init(
   index_ap=0;
 
 
-  if(ppr->evolver == rk){
+  /*if(ppr->evolver == rk){
     class_stop(pth->error_message,
              "Runge-Kutta not supported yet.");
   }
-  else{
+  else*/
+  {
     /**for stiff integrator full recombination integration starts with 2nd He recombination*/    
 
     /** approximations have to appear in chronological order here*/
@@ -3870,7 +3910,7 @@ int thermo_workspace_init(
     /** store all ending redshifts for each approximation */
     class_alloc(ptw->ap_z_limits,ptw->ap_size*sizeof(double),pth->error_message);
 
-      
+
     ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
     ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
     ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
@@ -3966,7 +4006,10 @@ int thermodynamics_sources_with_recfast(
   ap_current = ptw->ap_current;
   
   Nz = preco->rt_size;  
-  z = -mz;  
+  z = -mz;
+  
+  ptw->Tmat = y[ptw->tv->index_Tmat];
+  ptw->dTmat = -dy[ptw->tv->index_Tmat];
   
   /* If we are currently in an approximation scheme x has to be calcuated for this specific z */
   if(ap_current == ptw->index_ap_H){
@@ -4005,7 +4048,6 @@ int thermodynamics_sources_with_recfast(
       x_previous = ptw->x;
     }
     else{
-      //TODO :: fix this part
       x_previous = ptw->x_H+preco->fHe*y[ptw->tv->index_x_He];
     }
     /* get s from 0 to 1 */
