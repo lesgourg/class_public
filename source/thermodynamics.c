@@ -2989,9 +2989,6 @@ int thermodynamics_recombination_with_recfast(
   int i,Nz;
 
 
-  /* contains all quantities relevant for the integration algorithm */
-  struct generic_integrator_workspace gi;
-
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
   struct thermodynamics_parameters_and_workspace tpaw;
 
@@ -3005,13 +3002,6 @@ int thermodynamics_recombination_with_recfast(
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
   preco->rt_size = ppr->recfast_Nz0;
   class_alloc(preco->recombination_table,preco->re_size*preco->rt_size*sizeof(double),pth->error_message);
-
-  /** - initialize generic integrator with initialize_generic_integrator() */
-
-  //class_call(initialize_generic_integrator(_RECFAST_INTEG_SIZE_, &gi),
-  //           gi.error_message,
-  //           pth->error_message);
-
 
   /** - read a few precision/cosmological parameters */
 
@@ -3089,8 +3079,6 @@ int thermodynamics_recombination_with_recfast(
   preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
 
-
-
   
   /** - define the fields of the 'thermodynamics parameter and workspace' structure */
   tpaw.pba = pba;
@@ -3100,7 +3088,7 @@ int thermodynamics_recombination_with_recfast(
   tpaw.ptw = ptw;
 
  
-  /* create mz_output array (inverted array of decreasing negative redshift)*/
+  /* create mz_output array (inverted array of decreasing negative redshift) and interval_limit array*/
   class_alloc(mz_output,Nz*sizeof(double), pth->error_message);
   class_alloc(interval_limit,(ptw->ap_size+1)*sizeof(double),pth->error_message);
   
@@ -3192,12 +3180,6 @@ int thermodynamics_recombination_with_recfast(
 
   
 
-  /** - cleanup generic integrator with cleanup_generic_integrator() */
-
-  //class_call(cleanup_generic_integrator(&gi),
-  //           gi.error_message,
-  //           pth->error_message);
-  
   /** - free quantities allocated at the beginning of the routine */
 
   
@@ -3570,6 +3552,21 @@ int thermodynamics_derivs_with_recfast(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes analytic values of x_H, x_He, x and redshift 
+ * derivatives dx_H, dx_He and dx (in positive redshift direction) 
+ * depending on the input approximation scheme current_ap. Because
+ * some functions depend on the current Tmat, directly before calling
+ * this routine the thermo_workspace should be updated with the current
+ * Tmat at this z.
+ *
+ * @param z   Input: redshift
+ * @param preco Input: pointer to recombination structure
+ * @param ptw Input/Output: pointer to thermo workspace
+ * @param current_ap Input: index of the wished approximation scheme
+ * @return the error status
+ */
+
 
 int thermodynamics_x_analytic(
                               double z,
@@ -3645,7 +3642,7 @@ int thermodynamics_x_analytic(
     dx_H = 0.5*(  (rhs + 2.)/sqrt_val   -   1.  )*drhs;
     
   }
-  /** Save x_H, x_He and x into workspace */
+  /** Save x_H, x_He and x and their derivatives into workspace */
   ptw->x_H = x_H;
   ptw->x_He = x_He;
   ptw->x = x;
@@ -3656,6 +3653,27 @@ int thermodynamics_x_analytic(
   return _SUCCESS_;
 }    
 
+/**
+ * Initialize the field '-->tv' of a thermo_workspace structure, which
+ * is a thermo_vector structure. This structure contains indices and
+ * values of all quantities which need to be integrated with respect
+ * to time (and only them: quantities fixed analytically or obeying
+ * constraint equations are NOT included in this vector). 
+ * 
+ * The routine sets and allocates the vector y, dy and used_in_output 
+ * with the right size depending on the current approximation scheme 
+ * stored in the workspace. Moreover the initial conditions for each
+ * approximation scheme are calculated and set correctly.
+ * 
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to the thermodynamics structure
+ * @param preco      Input: pointer to the recombination structure
+ * @param mz         Input: negative redshift
+ * @param ptw        Input/Output: workspace containing in input the approximation scheme, the background/thermodynamics/metric quantities, and possibly the previous vector y; and in output the new vector y.
+ * @return the error status
+ */
 
 int thermo_vector_init(
                        struct precision * ppr,
@@ -3790,12 +3808,12 @@ int thermo_vector_init(
     ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
     
     /* Obtain initial contents of new vector analytically, especially x_H */
-    /*class_call(thermodynamics_x_analytic(z,
+    class_call(thermodynamics_x_analytic(z,
                                          preco,
                                          ptw,
                                          ptw->ap_current-1),  
                pth->error_message,
-               pth->error_message);*/
+               pth->error_message);
     
     /* Set the new vector and its indices */ 
     ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
@@ -3821,6 +3839,13 @@ int thermo_vector_init(
   return _SUCCESS_;
 }
 
+/**
+ * Free the thermo_vector structure.
+ *
+ * @param tv        Input: pointer to thermo_vector structure to be freed
+ * @return the error status
+ */
+
 int thermo_vector_free(
                         struct thermo_vector * tv
                         ) {
@@ -3832,6 +3857,22 @@ int thermo_vector_free(
 
   return _SUCCESS_;
 }
+
+/**
+ * Initialize a thermo_workspace structure. All fields are allocated
+ * here, with the exception of the thermo_vector '-->tv' field, which
+ * is allocated separately in thermo_vector_init. We allocate the
+ * thermo_workspace structure before calling thermodynamics_recombination_with_recfast.
+ * 
+ * Here the approximation schemes are set with their respective ending
+ * redshifts and their smoothing parameters. 
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to the thermodynamics structure
+ * @param ptw        Input/Output: pointer to thermo_workspace structure which fields are allocated or filled here
+ * @return the error status
+ */
 
 int thermo_workspace_init(
                            struct precision * ppr,
@@ -3852,8 +3893,7 @@ int thermo_workspace_init(
   }
   else*/
   {
-    /**for stiff integrator full recombination integration starts with 2nd He recombination*/    
-
+    
     /** approximations have to appear in chronological order here*/
     class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
@@ -3895,6 +3935,27 @@ int thermo_workspace_init(
   return _SUCCESS_;
 }
 
+/**
+ * This routine is called in thermodynamics_recombination_with_recfast
+ * before the loop over the approximation schemes to set their boundary
+ * redshifts in the vector interval_limit. Note that the the redshifts
+ * are stored in negative values as we integrate in negative direction.
+ *
+ * Moreover the number of intervals is fixed to the number of approximation
+ * schemes used.
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to the thermodynamics structure
+ * @param preco      Input: pointer to the recombination structure
+ * @param ptw        Input: pointer to perturb_workspace structure which fields are allocated or filled here
+ * @param mz_ini     Input: negative redshift of the starting point of integration
+ * @param mz_end     Input: negative redshift of the ending point of integration
+ * @param interval_number Output: Number of intervals over which the evolver loop goes
+ * @param interval_limit  Output: Vector which stores the negative redshifts which are the boundaries of each approximation scheme
+ * @return the error status
+ */
+
 int thermodynamics_set_approximation_limits(
                                       struct precision * ppr,
                                       struct background * pba,
@@ -3908,6 +3969,7 @@ int thermodynamics_set_approximation_limits(
                                       ){
 
   int index_ap; 
+  
   /*fix interval number to number of approximations*/
 
   *interval_number = ptw->ap_size;
@@ -3918,20 +3980,53 @@ int thermodynamics_set_approximation_limits(
 
 
   /*set limits for the intervals. Redshift is set negative for the evolver.*/
+  
   /*integration starts at z_ini*/	
+    interval_limit[0]= mz_ini;
   
-  interval_limit[0]= mz_ini;
-  
-  for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+  /*each interval ends with the proper ending redshift of its approximation */
+    for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
     interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
     printf("Interval %i ending at %e \n",index_ap+1,ptw->ap_z_limits[index_ap]);
   }
   
-  if(-mz_end > ptw->ap_z_limits[ptw->ap_size-1]) interval_limit[ptw->ap_size] = mz_end;		
+  /*change limit if we want integration to end before the fixed interval limit of the last interval*/
+  if(-mz_end > ptw->ap_z_limits[ptw->ap_size]) interval_limit[ptw->ap_size] = mz_end;		
 
  return _SUCCESS_;
 
 }
+
+/**
+ * This function is passed to the generic evolver and is called whenever
+ * we want to store values for a given z that is passed in mz_output.
+ * Depending on the current approximation scheme the ionization fraction
+ * is either computed analytically, semi-analytically and from the 
+ * (interpolated) output values of y. Moreover there is an automatic
+ * smoothing enabled which smoothes out the the ionization_fraction 
+ * after each approximation switch.
+ *
+ * This is one of the few functions in the code which is passed to
+ * the generic_evolver() routine. Since generic_evolver()
+ * should work with functions passed from various modules, the format
+ * of the arguments is a bit special:
+ *
+ * - fixed parameters and workspaces are passed through a generic
+ * pointer.  generic_evolver() doesn't know the content of this
+ * pointer.
+ *
+ * - the error management is a bit special: errors are not written as
+ * usual to pth->error_message, but to a generic error_message passed
+ * in the list of arguments.
+ *
+ * @param mz                       Input: negative redshift
+ * @param y                        Input: vector of thermodynamical quantities
+ * @param dy                       Input: vector of redshift derivatives of theses quantities
+ * @param index_z                  Input: index in the array mz_output
+ * @param parameters_and_workspace Input/Output: in input, all parameters needed by thermodynamics_derivs_with_recfast; in output, recombination table
+ * @param error_message            Output: error message
+ * @return the error status
+ */
 
 int thermodynamics_sources_with_recfast(
                                         double mz,
@@ -3993,7 +4088,7 @@ int thermodynamics_sources_with_recfast(
     x = y[ptw->tv->index_x_H]+preco->fHe*y[ptw->tv->index_x_He];
   }
   
-  /* Smoothing if we are shortly after an approximation change */
+  /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
   if(z >= ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
     
     class_call(thermodynamics_x_analytic(z,
@@ -4013,7 +4108,6 @@ int thermodynamics_sources_with_recfast(
     /* infer f2(x) = smooth function interpolating from 0 to 1 */
     weight = f2(s);
 
-    //printf("limit= %e, z= %e, xHe = %e, x_pre = %e, x_new = %e, s=%e, weight=%e \n",ptw->ap_z_limits[ap_current-1], z,ptw->x_He,x_previous,x,s,weight);
 
     x = weight*x+(1.-weight)*x_previous;
   }
