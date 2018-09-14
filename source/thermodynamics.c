@@ -3156,8 +3156,6 @@ int thermodynamics_recombination_with_recfast(
       generic_evolver = evolver_ndf15;
     }
     
-    generic_evolver = evolver_rk; //Nils :: Force rk currently, as ndf15 introduces big errors
-    
     class_call(generic_evolver(thermodynamics_derivs_with_recfast,
                                interval_limit[index_interval],
                                interval_limit[index_interval+1],
@@ -3730,7 +3728,7 @@ int thermo_vector_init(
 
     ptw->tv->y[ptw->tv->index_Tmat] = preco->Tnow*(1.+z);
     
-    ptw->tv->dy[ptw->tv->index_Tmat] = preco->Tnow;
+    ptw->tv->dy[ptw->tv->index_Tmat] = -preco->Tnow;
     
     ptw->require_H = _FALSE_;
     ptw->require_He = _FALSE_;
@@ -3753,7 +3751,7 @@ int thermo_vector_init(
     ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
     ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
     ptv->y[ptv->index_x_He] = ptw->x_He;
-    ptv->dy[ptv->index_x_He] = ptw->dx_He;
+    ptv->dy[ptv->index_x_He] = -ptw->dx_He;
     
     /* Free the old vector and its indices */ 
     class_call(thermo_vector_free(ptw->tv),
@@ -3803,7 +3801,7 @@ int thermo_vector_init(
     ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
     ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
     ptv->y[ptv->index_x_H] = ptw->x_H;
-    ptv->dy[ptv->index_x_H] = ptw->dx_H;
+    ptv->dy[ptv->index_x_H] = -ptw->dx_H;
     ptv->y[ptv->index_x_He] = ptw->tv->y[ptv->index_x_He];//ptw->x_He;
     ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptv->index_x_He];//0.;
     

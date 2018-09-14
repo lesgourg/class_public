@@ -3268,7 +3268,7 @@ int input_default_precision ( struct precision * ppr ) {
   ppr->recfast_z_initial=1.e4;
 
   ppr->recfast_Nz0=20000;
-  ppr->tol_thermo_integration=1.e-2;
+  ppr->tol_thermo_integration=1.e-6; // Required for ndf15 to not overshoot
 
   ppr->recfast_Heswitch=6;                 /* from recfast 1.4 */
   ppr->recfast_fudge_He=0.86;              /* from recfast 1.4 */
