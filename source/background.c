@@ -705,6 +705,10 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
+  class_call(background_output_budget(pba),
+             pba->error_message,
+             pba->error_message);
+
   return _SUCCESS_;
 
 }
@@ -2479,4 +2483,82 @@ double ddV_scf(
                struct background *pba,
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+}
+
+int background_output_budget(struct background* pba){
+  double budget_matter, budget_radiation, budget_other,budget_neutrino;
+  int index_ncdm;
+  
+  budget_matter = 0;
+  budget_radiation = 0;
+  budget_other = 0;
+  budget_neutrino = 0;
+  //The name for the _class_print_species_ macro can be at most 30 characters total
+  if(pba->background_verbose > 2){
+    printf(" ---------------------------- Budget equation ----------------------- \n");
+    
+    
+    printf(" ---> Nonrelativistic Species \n");
+    _class_print_species_("Bayrons",b);
+    budget_matter+=pba->Omega0_b;
+    if(pba->has_cdm){
+      _class_print_species_("Cold Dark Matter",cdm);
+      budget_matter+=pba->Omega0_cdm;
+    }
+    if(pba->has_dcdm){
+      _class_print_species_("Decaying Dark Matter (to dark g)",dcdm);
+      budget_matter+=pba->Omega0_dcdm;
+    }
+    
+    
+    printf(" ---> Relativistic Species \n");
+    _class_print_species_("Photons",g);
+    budget_radiation+=pba->Omega0_g;
+    if(pba->has_ur){
+      _class_print_species_("Ultra-relativistic",ur);
+      budget_radiation+=pba->Omega0_ur;
+    }
+    if(pba->has_dr){
+      _class_print_species_("Dark Radiation (by decay)",dr);
+      budget_radiation+=pba->Omega0_dr;
+    }
+    
+    
+    printf(" ---> Neutrino Species \n");
+    if(pba->N_ncdm > 0){
+      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm){
+        printf("-> %-26s%4d Omega=%15g , omega=%15g\n","Neutrinos Species",index_ncdm,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
+      }
+    }
+    
+    
+    printf(" ---> Other Content \n");
+    if(pba->has_lambda){
+      _class_print_species_("Cosmological Constant",lambda);
+      budget_other+=pba->Omega0_lambda;
+    }
+    if(pba->has_fld){
+      _class_print_species_("Dark Energy Fluid",fld);
+      budget_other+=pba->Omega0_fld;
+    }
+    if(pba->has_scf){
+      _class_print_species_("Scalar Field",scf);
+      budget_other+=pba->Omega0_scf;
+    }
+    if(pba->has_curvature){
+      _class_print_species_("Spatial Curvature",k);
+      budget_other+=pba->Omega0_k;
+    }
+    
+    printf(" ---> Total budgets \n");
+    printf(" Radiation                        Omega = %15g , omega = %15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
+    printf(" Non-relativistic                 Omega = %15g , omega = %15g \n",budget_matter,budget_matter*pba->h*pba->h);
+    printf(" Neutrinos                        Omega = %15g , omega = %15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+    printf(" Other Content                    Omega = %15g , omega = %15g \n",budget_other,budget_other*pba->h*pba->h);
+    printf(" TOTAL                            Omega = %15g , omega = %15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
+  
+    printf(" -------------------------------------------------------------------- \n");
+  }
+  return _SUCCESS_;
 }
