@@ -4,7 +4,7 @@ var NAVTREE =
     [ "CLASS: Cosmic Linear Anisotropy Solving System", "index.html", null ],
     [ "Where to find information and documentation on CLASS?", "md_chap2.html", null ],
     [ "CLASS overview (architecture, input/output, general principles)", "md_chap3.html", null ],
-    [ "The `external_Pk` mode", "md__Users_lesgourg_OwnCloud_documents_codes_ClassProject_class_external_Pk_README.html", null ],
+    [ "The `external_Pk` mode", "md__Users_deannach_software_class_2_87_external_Pk_README.html", null ],
     [ "Updating the manual", "md_mod.html", null ],
     [ "Data Structures", "annotated.html", [
       [ "Data Structures", "annotated.html", "annotated_dup" ],
@@ -30,10 +30,10 @@ var NAVTREEINDEX =
 [
 "annotated.html",
 "common_8h.html#a7939de1608d831ca7497618b20163faf",
-"output_8c.html#ac8276c52bb11691d12c9e21977be5d55",
-"perturbations_8h.html#ac3a019d980669a3707024d0bab0bbe08",
-"spectra_8h.html#a196d78f8357b4db11abcac0cdf2f8bc8",
-"thermodynamics_8h.html#abc7c14bfb190b723f1a99e6c4012c025"
+"nonlinear_8h.html#ac4dca0626fe3ba4625d38e6471d394ad",
+"perturbations_8h.html#aa6fbc9ffce88dd7b66a6e797df710a58",
+"spectra_8c.html#abbacb8b60693f02f2f0e37fd76c6bdcb",
+"thermodynamics_8h.html#ac05844feb6dd9b8f8b23913fe00e5f77"
 ];
 
 var SYNCONMSG = 'click to disable panel synchronisation';

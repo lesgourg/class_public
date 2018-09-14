@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['nonlinear',['nonlinear',['../structnonlinear.html',1,'']]]
+  ['nonlinear',['nonlinear',['../nonlinear_8h.html#structnonlinear',1,'']]]
 ];

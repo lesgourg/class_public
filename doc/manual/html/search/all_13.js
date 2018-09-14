@@ -1,11 +1,11 @@
 var searchData=
 [
-  ['the_20_60external_5fpk_60_20mode',['The `external_Pk` mode',['../md__Users_lesgourg_OwnCloud_documents_codes_ClassProject_class_external_Pk_README.html',1,'']]],
+  ['the_20_60external_5fpk_60_20mode',['The `external_Pk` mode',['../md__Users_deannach_software_class_2_87_external_Pk_README.html',1,'']]],
   ['t_5fcmb',['T_cmb',['../background_8h.html#aacce0972bf2d6ba25b4fa6ebb0cbf42a',1,'background']]],
   ['t_5fncdm_5fdefault',['T_ncdm_default',['../background_8h.html#a10ccd157c2ca672eec8a402cdb330054',1,'background']]],
   ['target_5fnames',['target_names',['../input_8h.html#a2ab2421221f92f632c015f3d088f047c',1,'input.h']]],
   ['target_5fquantity',['target_quantity',['../primordial_8h.html#a02d8d27be2ed6238b22b76c29ad0142a',1,'primordial.h']]],
-  ['tau',['tau',['../structnonlinear.html#a58f60e148801438e7291a5ca86dbf088',1,'nonlinear']]],
+  ['tau',['tau',['../nonlinear_8h.html#a8457e334373ab9a00d3b5ca0958d79fe',1,'nonlinear']]],
   ['tau0_5fminus_5ftau',['tau0_minus_tau',['../transfer_8h.html#ac173b95d9119c27f08bb0eca6e0a585e',1,'transfer_workspace']]],
   ['tau0_5fminus_5ftau_5fcut',['tau0_minus_tau_cut',['../transfer_8h.html#a2850c0e6097bdd5e63fce840c199c248',1,'transfer_workspace']]],
   ['tau_5fcut',['tau_cut',['../thermodynamics_8h.html#a40d90d7624f973a3e1ad4f7dd45a6aa4',1,'thermo']]],
@@ -16,7 +16,7 @@ var searchData=
   ['tau_5frec',['tau_rec',['../thermodynamics_8h.html#a58263bc073a96346f1ea034eeb8d66cc',1,'thermo']]],
   ['tau_5freio',['tau_reio',['../thermodynamics_8h.html#a3a2458620f9e70183e0df4900abe2764',1,'thermo']]],
   ['tau_5fsampling',['tau_sampling',['../perturbations_8h.html#a0b470ea24cec696c098942196d2ebaff',1,'perturbs']]],
-  ['tau_5fsize',['tau_size',['../structnonlinear.html#a65b7e2e5ec57b04277e3797c6953e6ba',1,'nonlinear::tau_size()'],['../perturbations_8h.html#a67c386309ed51644f43b4545c4e067bd',1,'perturbs::tau_size()'],['../transfer_8h.html#a687f3dc5e1e24c16db6feb562de9477d',1,'transfer_workspace::tau_size()']]],
+  ['tau_5fsize',['tau_size',['../nonlinear_8h.html#a65b7e2e5ec57b04277e3797c6953e6ba',1,'nonlinear::tau_size()'],['../perturbations_8h.html#a67c386309ed51644f43b4545c4e067bd',1,'perturbs::tau_size()'],['../transfer_8h.html#a687f3dc5e1e24c16db6feb562de9477d',1,'transfer_workspace::tau_size()']]],
   ['tau_5fsize_5fmax',['tau_size_max',['../transfer_8h.html#ae456d6ef31a91fe0adc33af4260fe547',1,'transfer_workspace']]],
   ['tau_5ftable',['tau_table',['../background_8h.html#ad6b709b1e61e2afb17f27b8a5b09cf95',1,'background']]],
   ['tca_5fflags',['tca_flags',['../perturbations_8h.html#a77375d40cb1991478d464eb520df72a7',1,'perturbations.h']]],

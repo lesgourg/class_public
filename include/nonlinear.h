@@ -152,11 +152,10 @@ extern "C" {
                                   double * sum
                                   );
 
+
 #ifdef __cplusplus
 }
 #endif
-
-/**************************************************************/
 
 #endif
 /* @endcond */

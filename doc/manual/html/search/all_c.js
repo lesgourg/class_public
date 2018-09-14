@@ -9,6 +9,6 @@ var searchData=
   ['matter_5ftransfer',['matter_transfer',['../spectra_8h.html#a196d78f8357b4db11abcac0cdf2f8bc8',1,'spectra']]],
   ['max_5fl_5fmax',['max_l_max',['../perturbations_8h.html#a96761f7981d819dc36e4c799c421b895',1,'perturb_workspace']]],
   ['md_5fsize',['md_size',['../perturbations_8h.html#a0b02540b63842769707585822981dabd',1,'perturbs::md_size()'],['../primordial_8h.html#adb653bc4b8147c7975500778cfc91cf4',1,'primordial::md_size()'],['../spectra_8h.html#a7162896ffe54e04b025389a38f0b6e51',1,'spectra::md_size()'],['../transfer_8h.html#acc9c66aebf8723431d019b397747a8cc',1,'transfers::md_size()']]],
-  ['method',['method',['../structnonlinear.html#aa5256a476f6fa766b8977272715be21a',1,'nonlinear']]],
+  ['method',['method',['../nonlinear_8h.html#aa5256a476f6fa766b8977272715be21a',1,'nonlinear']]],
   ['mt_5fsize',['mt_size',['../perturbations_8h.html#adac9de5f30d729bfd93d63581605842f',1,'perturb_workspace']]]
 ];
