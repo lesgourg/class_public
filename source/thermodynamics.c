@@ -3156,6 +3156,7 @@ int thermodynamics_recombination_with_recfast(
       generic_evolver = evolver_ndf15;
     }
     
+    generic_evolver = evolver_rk; //Nils :: Force rk currently, as ndf15 introduces big errors
     
     class_call(generic_evolver(thermodynamics_derivs_with_recfast,
                                interval_limit[index_interval],
