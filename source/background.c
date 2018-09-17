@@ -2504,7 +2504,7 @@ int background_output_budget(struct background* pba){
   budget_other = 0;
   budget_neutrino = 0;
   //The name for the _class_print_species_ macro can be at most 30 characters total
-  if(pba->background_verbose > 2){
+  if(pba->background_verbose > 1){
     printf(" ---------------------------- Budget equation ----------------------- \n");
     
     
