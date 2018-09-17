@@ -2485,6 +2485,16 @@ double ddV_scf(
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
 }
 
+/**
+ * Function outputting the fractions Omega of the total critical density
+ * today, and also the reduced fractions omega=Omega*h*h
+ *
+ * It also prints the total budgets of non-relativistic, relativistic,
+ * and other contents, and of the total
+ *
+ * @param pba                      Input: Pointer to background structure
+ * @return the error status
+ */
 int background_output_budget(struct background* pba){
   double budget_matter, budget_radiation, budget_other,budget_neutrino;
   int index_ncdm;
