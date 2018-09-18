@@ -1,13 +1,13 @@
 #include "precision_macros.h"
 
-/**
+/*
  * Background Quantities
  * */
 
 
 /**
  * Default initial value of scale factor used in the integration of background quantities.
- * For models like ncdm, the code may decide to start the integration earlier.))
+ * For models like ncdm, the code may decide to start the integration earlier.
  */
 class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
 /**
@@ -20,13 +20,14 @@ class_precision_parameter(back_integration_stepsize,double,7.e-3)
  */
 class_precision_parameter(tol_background_integration,double,1.e-2)
 /**
- * Tolerance of the deviation of Omega_r from 1 for which to start integration:
+ * Tolerance of the deviation of \f$ \Omega_r \f$ from 1 for which to start integration:
  * The starting point of integration will be chosen,
  * such that the Omega of radiation at that point is close to 1 within tolerance.
+ * (Class starts background integration during complete radiation domination)
  */
 class_precision_parameter(tol_initial_Omega_r,double,1.e-4)
 /**
- * Tolerance of relative deviation of the used non-cold dark matter mass compared to that which would give the correct density
+ * Tolerance of relative deviation of the used non-cold dark matter mass compared to that which would give the correct density.
  * The dark matter mass is estimated from the dark matter density using a Newton-Method.
  * In the nonrelativistic limit, this could be estimated using M=density/number density
  */
@@ -53,27 +54,30 @@ class_precision_parameter(tol_ncdm_newtonian,double,1.e-5)
 class_precision_parameter(tol_ncdm_bg,double,1.e-5)
 /**
  * Tolerance on the initial deviation of non-cold dark matter from being fully relativistic.
- * Using w = pressure/density, this quantifies the maximum deviation from 1/3 (for relativistic species)
+ * Using w = pressure/density, this quantifies the maximum deviation from 1/3. (for relativistic species)
  */
 class_precision_parameter(tol_ncdm_initial_w,double,1.e-3)
 /**
  * Tolerance on the deviation of the conformal time of equality from the true value in 1/Mpc.
  */
 class_precision_parameter(tol_tau_eq,double,1.e-6)
-/**
+/*
  * Currently unused parameter.
  */
 //class_precision_parameter(safe_phi_scf,double,0.0)
-
+/**
+ * Big Bang Nucleosynthesis file path. The file specifies the predictions for
+ * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
+ */
 class_string_parameter(sBBN_file,"/bbn/sBBN_2017.dat","sBBN file")
 
-/**
+/*
  *  Thermodynamical quantities
  * */
 
 
 /**
- * The initial z for recfast calculating the recombination
+ * The initial z for the recfast calculation of the recombination history
  */
 class_precision_parameter(recfast_z_initial,double,1.0e4)
 /**
@@ -81,54 +85,53 @@ class_precision_parameter(recfast_z_initial,double,1.0e4)
  */
 class_precision_parameter(recfast_Nz0,int,20000)
 /**
- * Tolerance of relative value of integral during thermodynamical integration
+ * Tolerance of the relative value of integral during thermodynamical integration
  */
 class_precision_parameter(tol_thermo_integration,double,1.0e-2)
 /*
  * Recfast 1.4 switch parameters
  */
-class_precision_parameter(recfast_Heswitch,int,6)                 /**< from recfast 1.4 */
-class_precision_parameter(recfast_fudge_He,double,0.86)              /**< from recfast 1.4 */
+class_precision_parameter(recfast_Heswitch,int,6)       /**< from recfast 1.4, specifies how accurate the Helium recombination should be handled */
+class_precision_parameter(recfast_fudge_He,double,0.86) /**< from recfast 1.4, fugde factor for Peeble's equation coefficient of Helium */
 
 /*
  * Recfast 1.5 parameters
  */
-class_precision_parameter(recfast_Hswitch,int,_TRUE_)          /**< from recfast 1.5 */
-class_precision_parameter(recfast_fudge_H,double,1.14)             /**< from recfast 1.4 */
-class_precision_parameter(recfast_delta_fudge_H,double,-0.015)     /**< from recfast 1.5.2 */
-class_precision_parameter(recfast_AGauss1,double,-0.14)            /**< from recfast 1.5 */
-class_precision_parameter(recfast_AGauss2,double,0.079)           /**< from recfast 1.5.2 */
-class_precision_parameter(recfast_zGauss1,double,7.28)            /**< from recfast 1.5 */
-class_precision_parameter(recfast_zGauss2,double,6.73)            /**< from recfast 1.5.2 */
-class_precision_parameter(recfast_wGauss1,double,0.18)            /**< from recfast 1.5 */
-class_precision_parameter(recfast_wGauss2,double,0.33)            /**< from recfast 1.5 */
+class_precision_parameter(recfast_Hswitch,int,_TRUE_)   /**< from recfast 1.5, specifies how accurate the Hydrogen recombination should be handled */
+class_precision_parameter(recfast_fudge_H,double,1.14)  /**< from recfast 1.4, fudge factor for Peeble's equation coeffient of Hydrogen */
+class_precision_parameter(recfast_delta_fudge_H,double,-0.015) /**< from recfast 1.5.2, increasing Hydrogen fudge factor if Hswitch is enabled */
+class_precision_parameter(recfast_AGauss1,double,-0.14) /**< from recfast 1.5, Gaussian Peeble prefactor fit, amplitude */
+class_precision_parameter(recfast_AGauss2,double,0.079) /**< from recfast 1.5.2, Gaussian Peeble prefactor fit, amplitude */
+class_precision_parameter(recfast_zGauss1,double,7.28)  /**< from recfast 1.5, Gaussian Peeble prefactor fit, center */
+class_precision_parameter(recfast_zGauss2,double,6.73)  /**< from recfast 1.5.2, Gaussian Peeble prefactor fit, center */
+class_precision_parameter(recfast_wGauss1,double,0.18)  /**< from recfast 1.5, Gaussian Peeble prefactor fit, width */
+class_precision_parameter(recfast_wGauss2,double,0.33)  /**< from recfast 1.5, Gaussian Peeble prefactor fit, width */
 
-class_precision_parameter(recfast_z_He_1,double,8000.0)            /**< from recfast 1.4 */
-class_precision_parameter(recfast_delta_z_He_1,double,50.0)         /**< found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_2,double,5000.0)             /**< from recfast 1.4 */
-class_precision_parameter(recfast_delta_z_He_2,double,100.0)      /**< found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_3,double,3500.0)          /**< from recfast 1.4 */
-class_precision_parameter(recfast_delta_z_He_3,double,50.0)         /**< found to be OK on 3.09.10 */
-class_precision_parameter(recfast_x_He0_trigger,double,0.995)      /**< raised from 0.99 to 0.995 for smoother Helium */
-class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /**< raised from 0.985 to same as previous one for smoother Helium */
-class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /**< found to be OK on 3.09.10 */
-class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /**< raised from 0.99 to 0.995 for smoother Hydrogen */
-class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< raised from 0.98 to same as previous one for smoother Hydrogen */
-class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< found to be OK on 3.09.10 */
+class_precision_parameter(recfast_z_He_1,double,8000.0) /**< from recfast 1.4, Starting value of Helium recombination 1 */
+class_precision_parameter(recfast_delta_z_He_1,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+class_precision_parameter(recfast_z_He_2,double,5000.0) /**< from recfast 1.4, Ending value of Helium recombination 1 */
+class_precision_parameter(recfast_delta_z_He_2,double,100.0)/**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+class_precision_parameter(recfast_z_He_3,double,3500.0) /**< from recfast 1.4, Starting value of Helium recombination 2 */
+class_precision_parameter(recfast_delta_z_He_3,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+class_precision_parameter(recfast_x_He0_trigger,double,0.995) /**< Switch for Helium full calculation during reco, raised from 0.99 to 0.995 for smoother Helium */
+class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /**< Switch for Helium full calculation during reco, for changing Helium flag, raised from 0.985 to same as previous one for smoother Helium */
+class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /**< Switch for Hydrogen full calculation during reco, raised from 0.99 to 0.995 for smoother Hydrogen */
+class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< Switch for Hydrogen full calculation during reco, for changing Hydrogen flag, raised from 0.98 to same as previous one for smoother Hydrogen */
+class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 
-class_precision_parameter(recfast_H_frac,double,1.0e-3)              /**< from recfast 1.4 */
+class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation */
 
-class_precision_parameter(reionization_z_start_max,double,50.0)
-class_precision_parameter(reionization_sampling,double,5.0e-2)
-class_precision_parameter(reionization_optical_depth_tol,double,1.0e-4)
-class_precision_parameter(reionization_start_factor,double,8.0)
+class_precision_parameter(reionization_z_start_max,double,50.0) /**< Maximum starting value in z for reionization */
+class_precision_parameter(reionization_sampling,double,5.0e-2)  /**< Sampling density in z during reionization */
+class_precision_parameter(reionization_optical_depth_tol,double,1.0e-4) /**< Relative tolerance on finding the user-given optical depth of reionization given a certain redshift of reionization */
+class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching optical depth corresponding to the redshift is started from an initial offset beyond z_reionization_start, multiplied by reionization_width */
 
+class_precision_parameter(thermo_rate_smoothing_radius,int,50) /**< Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards */
 
-class_precision_parameter(thermo_rate_smoothing_radius,int,50)
-
-class_string_parameter(hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat","Alpha_inf hyrec file")
-class_string_parameter(hyrec_R_inf_file,"/hyrec/R_inf.dat","R_inf hyrec file")
-class_string_parameter(hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat","two_photon_tables hyrec file")
+class_string_parameter(hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
+class_string_parameter(hyrec_R_inf_file,"/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
+class_string_parameter(hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
 
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
@@ -150,26 +153,25 @@ class_precision_parameter(start_small_k_at_tau_c_over_tau_h,double,0.0015) /**< 
 
 class_precision_parameter(start_large_k_at_tau_h_over_tau_k,double,0.07)  /**< largest wavelengths start being sampled when mode is sufficiently outside Hubble scale. This is quantified in terms of the ratio of hubble time scale to wavenumber time scale, \f$ \tau_h/\tau_k \f$ which is roughly equal to (k*tau). Start when this ratio equals start_large_k_at_tau_k_over_tau_h. Decrease this value to start integrating the wavenumbers earlier in time. */
 
-  /**
-   * when to switch off tight-coupling approximation: first condition:
-   * \f$ \tau_c/\tau_H \f$ > tight_coupling_trigger_tau_c_over_tau_h.
-   * Decrease this value to switch off earlier in time.  If this
-   * number is larger than start_sources_at_tau_c_over_tau_h, the code
-   * returns an error, because the source computation requires
-   * tight-coupling to be switched off.
-   */
+/**
+ * when to switch off tight-coupling approximation: first condition:
+ * \f$ \tau_c/\tau_H \f$ > tight_coupling_trigger_tau_c_over_tau_h.
+ * Decrease this value to switch off earlier in time.  If this
+ * number is larger than start_sources_at_tau_c_over_tau_h, the code
+ * returns an error, because the source computation requires
+ * tight-coupling to be switched off.
+ */
 class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h,double,0.015)
 
-  /**
-   * when to switch off tight-coupling approximation:
-   * second condition: \f$ \tau_c/\tau_k \equiv k \tau_c \f$ <
-   * tight_coupling_trigger_tau_c_over_tau_k.
-   * Decrease this value to switch off earlier in time.
-   */
+/**
+ * when to switch off tight-coupling approximation:
+ * second condition: \f$ \tau_c/\tau_k \equiv k \tau_c \f$ <
+ * tight_coupling_trigger_tau_c_over_tau_k.
+ * Decrease this value to switch off earlier in time.
+ */
 class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k,double,0.01)
 
-class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008)
-/**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
+class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
 
@@ -185,75 +187,78 @@ class_precision_parameter(curvature_ini,double,1.0)     /**< initial condition f
 class_precision_parameter(entropy_ini,double,1.0) /**< initial condition for entropy perturbation for isocurvature */
 class_precision_parameter(gw_ini,double,1.0)      /**< initial condition for tensor metric perturbation h */
 
-  /**
-   * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usually, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
-   */
+/**
+ * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usually, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
+ */
 class_precision_parameter(perturb_integration_stepsize,double,0.5)
 
-  /**
-   * default step \f$ d \tau \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
-   */
+/**
+ * default step \f$ d \tau \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
+ */
 class_precision_parameter(perturb_sampling_stepsize,double,0.1)
 
-  /**
-   * control parameter for the precision of the perturbation integration
-   */
+/**
+ * control parameter for the precision of the perturbation integration,
+ * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15
+ */
 class_precision_parameter(tol_perturb_integration,double,1.0e-5)
 
-  /**
-   * precision with which the code should determine (by bisection) the
-   * times at which sources start being sampled, and at which
-   * approximations must be switched on/off (units of Mpc)
-   */
+/**
+ * precision with which the code should determine (by bisection) the
+ * times at which sources start being sampled, and at which
+ * approximations must be switched on/off (units of Mpc)
+ */
 class_precision_parameter(tol_tau_approx,double,1.0e-10)
 
-  /**
-   * method for switching off photon perturbations
-   */
+/**
+ * method for switching off photon perturbations
+ */
 class_precision_parameter(radiation_streaming_approximation,int,rsa_MD_with_reio)
 
-  /**
-   * when to switch off photon perturbations, ie when to switch
-   * on photon free-streaming approximation (keep density and thtau, set
-   * shear and higher momenta to zero):
-   * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
-   */
+/**
+ * when to switch off photon perturbations, ie when to switch
+ * on photon free-streaming approximation (keep density and thtau, set
+ * shear and higher momenta to zero):
+ * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
+ */
 class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0)
 
-  /**
-   * when to switch off photon perturbations, ie when to switch
-   * on photon free-streaming approximation (keep density and theta, set
-   * shear and higher momenta to zero):
-   * second condition:
-   */
+/**
+ * when to switch off photon perturbations, ie when to switch
+ * on photon free-streaming approximation (keep density and theta, set
+ * shear and higher momenta to zero):
+ * second condition:
+ */
 class_precision_parameter(radiation_streaming_trigger_tau_c_over_tau,double,5.0)
 
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
 
-  /**
-   * when to switch off ur (massless neutrinos / ultra-relativistic
-   * relics) fluid approximation
-   */
+/**
+ * when to switch off ur (massless neutrinos / ultra-relativistic
+ * relics) fluid approximation
+ */
 class_precision_parameter(ur_fluid_trigger_tau_over_tau_k,double,30.0)
 
 class_precision_parameter(ncdm_fluid_approximation,int,ncdmfa_CLASS) /**< method for non-cold dark matter fluid approximation */
 
-  /**
-   * when to switch off ncdm (massive neutrinos / non-cold
-   * relics) fluid approximation
-   */
+/**
+ * when to switch off ncdm (massive neutrinos / non-cold
+ * relics) fluid approximation
+ */
 class_precision_parameter(ncdm_fluid_trigger_tau_over_tau_k,double,31.0)
 
-  /**
-   * whether CMB source functions can be approximated as zero when
-   * visibility function g(tau) is tiny
-   */
+/**
+ * whether CMB source functions can be approximated as zero when
+ * visibility function g(tau) is tiny
+ */
 class_precision_parameter(neglect_CMB_sources_below_visibility,double,1.0e-3)
 
+/**
+ * The type of evolver to use: options are ndf15 or rk
+ */
 class_type_parameter(evolver,int,enum evolver_type,ndf15)
 
-
-/**
+/*
  * Primordial parameters
  * */
 
@@ -277,8 +282,7 @@ class_precision_parameter(primordial_inflation_small_epsilon,double,0.1) /**< va
 class_precision_parameter(primordial_inflation_small_epsilon_tol,double,0.01) /**< tolerance in the search for phi_end */
 class_precision_parameter(primordial_inflation_extra_efolds,double,2.0) /**< a small number of efolds, irrelevant at the end, used in the search for the pivot scale (backward from the end of inflation) */
 
-
-/**
+/*
  * Transfer function parameters
  * */
 
@@ -287,9 +291,8 @@ class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing 
 
 class_precision_parameter(l_logstep,double,1.12) /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
-//parameters relevant for bessel functions
 class_precision_parameter(hyper_x_min,double,1.0e-5)  /**< flat case: lower bound on the smallest value of x at which we sample \f$ \Phi_l^{\nu}(x)\f$ or \f$ j_l(x)\f$ */
-class_precision_parameter(hyper_sampling_flat,double,8.0)  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$*/
+class_precision_parameter(hyper_sampling_flat,double,8.0)  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$, should remain >7.5 */
 class_precision_parameter(hyper_sampling_curved_low_nu,double,7.0)  /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ smaller than hyper_nu_sampling_step */
 class_precision_parameter(hyper_sampling_curved_high_nu,double,3.0) /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ greater than hyper_nu_sampling_step */
 class_precision_parameter(hyper_nu_sampling_step,double,1000.0)  /**< open/closed cases: value of nu at which sampling changes  */
@@ -297,17 +300,15 @@ class_precision_parameter(hyper_phi_min_abs,double,1.0e-10)  /**< small value of
 class_precision_parameter(hyper_x_tol,double,1.0e-4)  /**< tolerance parameter used to determine first value of x */
 class_precision_parameter(hyper_flat_approximation_nu,double,4000.0)  /**< value of nu below which the flat approximation is used to compute Bessel function */
 
-//parameters relevant for transfer function
-
 class_precision_parameter(q_linstep,double,0.45)         /**< asymptotic linear sampling step in q
                                space, in units of \f$ 2\pi/r_a(\tau_rec) \f$
                                (comoving angular diameter distance to
-                               recombination) */
+                               recombination), very important for CMB */
 
 class_precision_parameter(q_logstep_spline,double,170.0) /**< initial logarithmic sampling step in q
                                 space, in units of \f$ 2\pi/r_a(\tau_{rec})\f$
                                 (comoving angular diameter distance to
-                                recombination) */
+                                recombination), very important for CMB and LSS */
 
 class_precision_parameter(q_logstep_open,double,6.0)   /**< in open models, the value of
                                 q_logstep_spline must be decreased
@@ -346,46 +347,31 @@ class_precision_parameter(transfer_neglect_delta_k_T_b,double,0.1)  /**< same fo
 
 class_precision_parameter(transfer_neglect_late_source,double,400.0)  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
-  /** when to use the Limber approximation for project gravitational potential cl's */
-class_precision_parameter(l_switch_limber,double,10.)
-  // For density Cl, we recommend not to use the Limber approximation
-  // at all, and hence to put here a very large number (e.g. 10000); but
-  // if you have wide and smooth selection functions you may wish to
-  // use it; then 100 might be OK
-  /** when to use the Limber approximation for local number count contributions to cl's (relative to central redshift of each bin) */
-class_precision_parameter(l_switch_limber_for_nc_local_over_z,double,100.0)
-  // For terms integrated along the line-of-sight involving spherical
-  // Bessel functions (but not their derivatives), Limber
-  // approximation works well. High precision can be reached with 2000
-  // only. But if you have wide and smooth selection functions you may
-  // reduce to e.g. 30.
-  /** when to use the Limber approximation for number count contributions to cl's integrated along the line-of-sight (relative to central redshift of each bin) */
-class_precision_parameter(l_switch_limber_for_nc_los_over_z,double,30.0)
+class_precision_parameter(l_switch_limber,double,10.) /**< when to use the Limber approximation for project gravitational potential cl's */
+// For density Cl, we recommend not to use the Limber approximation
+// at all, and hence to put here a very large number (e.g. 10000); but
+// if you have wide and smooth selection functions you may wish to
+// use it; then 100 might be OK
+class_precision_parameter(l_switch_limber_for_nc_local_over_z,double,100.0) /**< when to use the Limber approximation for local number count contributions to cl's (relative to central redshift of each bin) */
+// For terms integrated along the line-of-sight involving spherical
+// Bessel functions (but not their derivatives), Limber
+// approximation works well. High precision can be reached with 2000
+// only. But if you have wide and smooth selection functions you may
+// reduce to e.g. 30.
+class_precision_parameter(l_switch_limber_for_nc_los_over_z,double,30.0) /**< when to use the Limber approximation for number count contributions to cl's integrated along the line-of-sight (relative to central redshift of each bin) */
 
-  /** in sigma units, where to cut gaussian selection functions */
-class_precision_parameter(selection_cut_at_sigma,double,5.0)
+class_precision_parameter(selection_cut_at_sigma,double,5.0)/**< in sigma units, where to cut gaussian selection functions */
+class_precision_parameter(selection_sampling,double,50.0) /**< controls sampling of integral over time when selection functions vary quicker than Bessel functions. Increase for better sampling. */
+class_precision_parameter(selection_sampling_bessel,double,20.0)/**< controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling. IMPORTANT for lensed contributions. */
+class_precision_parameter(selection_sampling_bessel_los,double,ppr->selection_sampling_bessel)/**< controls sampling of integral over time when selection functions vary slower than Bessel functions. This parameter is specific to number counts contributions to Cl integrated along the line of sight. Increase for better sampling */
+class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
 
-  /** controls sampling of integral over time when selection functions vary quicker than Bessel functions. Increase for better sampling. */
-class_precision_parameter(selection_sampling,double,50.0)
-
-  /** controls sampling of integral over time when selection functions vary slower than Bessel functions. Increase for better sampling */
-class_precision_parameter(selection_sampling_bessel,double,20.0)
-
-  /** controls sampling of integral over time when selection functions vary slower than Bessel functions. This parameter is specific to number counts contributions to Cl integrated along the line of sight. Increase for better sampling */
-class_precision_parameter(selection_sampling_bessel_los,double,ppr->selection_sampling_bessel)
-
-  /** controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
-class_precision_parameter(selection_tophat_edge,double,0.1)
+/*
+ * Nonlinear module precision parameters
+ * */
 
 
-  /**
-   * Nonlinear module precision parameters
-   * */
-
-//HALOFIT parameters
-class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)
-/**< value of k in 1/Mpc below which
-				     non-linear corrections will be neglected */
+class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
 
 class_precision_parameter(halofit_min_k_max,double,5.0) /**< when halofit is used, k_max must be
                                at least equal to this value (otherwise
@@ -414,9 +400,10 @@ class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance requir
                                whcih defines the wavenumber of
                                non-linearity, k_nl=1./R_nl */
 
-class_precision_parameter(pk_eq_z_max,double,5.0)
-class_precision_parameter(pk_eq_tol,double,1.0e-7)
-/**
+class_precision_parameter(pk_eq_z_max,double,5.0) /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq method for finding the pk */
+
+/*
  * Lensing precision parameters
  * */
 
@@ -424,7 +411,6 @@ class_precision_parameter(accurate_lensing,int,_FALSE_) /**< switch between Gaus
 class_precision_parameter(num_mu_minus_lmax,int,70) /**< difference between num_mu and l_max, increase for more precision */
 class_precision_parameter(delta_l_max,int,500)/**< difference between l_max in unlensed and lensed spectra */
 class_precision_parameter(tol_gauss_legendre,double,ppr->smallest_allowed_variation) /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
-
 
 #undef class_precision_parameter
 #undef class_string_parameter
