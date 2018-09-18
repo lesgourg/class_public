@@ -3820,8 +3820,8 @@ int thermo_vector_init(
     ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
     ptv->y[ptv->index_x_H] = ptw->x_H;
     ptv->dy[ptv->index_x_H] = -ptw->dx_H;
-    ptv->y[ptv->index_x_He] = ptw->tv->y[ptv->index_x_He];//ptw->x_He;
-    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptv->index_x_He];//0.;
+    ptv->y[ptv->index_x_He] = ptw->tv->y[ptv->index_x_He];
+    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptv->index_x_He];
     
     /* Free the old vector and its indices */
     class_call(thermo_vector_free(ptw->tv),
@@ -3914,7 +3914,7 @@ int thermo_workspace_init(
     ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
     ptw->ap_z_limits[ptw->index_ap_He2] = 2870.;// TODO :: set correctly
     ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
-    ptw->ap_z_limits[ptw->index_ap_frec] = 0.5;
+    ptw->ap_z_limits[ptw->index_ap_frec] = 0.0;
 
     
     /** store smoothing deltas for transitions at the beginning of each aproximation */
