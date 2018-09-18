@@ -8,11 +8,11 @@
 /**
  * Default initial value of scale factor used in the integration of background quantities.
  * For models like ncdm, the code may decide to start the integration earlier.))
- */                             
+ */
 class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
 /**
  * Default stepsize in conformal time for the background integration,
- * in units for the conformal Hubble time. dtau = back_integration_stepsize/aH 
+ * in units for the conformal Hubble time. dtau = back_integration_stepsize/aH
  */
 class_precision_parameter(back_integration_stepsize,double,7.e-3)
 /**
@@ -21,7 +21,7 @@ class_precision_parameter(back_integration_stepsize,double,7.e-3)
 class_precision_parameter(tol_background_integration,double,1.e-2)
 /**
  * Tolerance of the deviation of Omega_r from 1 for which to start integration:
- * The starting point of integration will be chosen, 
+ * The starting point of integration will be chosen,
  * such that the Omega of radiation at that point is close to 1 within tolerance.
  */
 class_precision_parameter(tol_initial_Omega_r,double,1.e-4)
@@ -31,22 +31,22 @@ class_precision_parameter(tol_initial_Omega_r,double,1.e-4)
  * In the nonrelativistic limit, this could be estimated using M=density/number density
  */
 class_precision_parameter(tol_M_ncdm,double,1.e-7)
-/** 
+/**
  * Tolerance on the relative precision of the integration over
  * non-cold dark matter phase-space distributions.
  */
 class_precision_parameter(tol_ncdm,double,1.e-3)
-/** 
+/**
  * Tolerance on the relative precision of the integration over
  * non-cold dark matter phase-space distributions in the synchronous gauge.
  */
 class_precision_parameter(tol_ncdm_synchronous,double,1.e-3)
-/** 
+/**
  * Tolerance on the relative precision of the integration over
  * non-cold dark matter phase-space distributions in the newtonian gauge.
  */
 class_precision_parameter(tol_ncdm_newtonian,double,1.e-5)
-/** 
+/**
  * Tolerance on the relative precision of the integration over
  * non-cold dark matter phase-space distributions during the background evolution.
  */
@@ -84,39 +84,39 @@ class_precision_parameter(recfast_Nz0,int,20000)
  * Tolerance of relative value of integral during thermodynamical integration
  */
 class_precision_parameter(tol_thermo_integration,double,1.0e-2)
-/**
+/*
  * Recfast 1.4 switch parameters
- * */
-class_precision_parameter(recfast_Heswitch,int,6)                 /* from recfast 1.4 */
-class_precision_parameter(recfast_fudge_He,double,0.86)              /* from recfast 1.4 */
+ */
+class_precision_parameter(recfast_Heswitch,int,6)                 /**< from recfast 1.4 */
+class_precision_parameter(recfast_fudge_He,double,0.86)              /**< from recfast 1.4 */
 
-/**
+/*
  * Recfast 1.5 parameters
- * */
-class_precision_parameter(recfast_Hswitch,int,_TRUE_)          /* from recfast 1.5 */
-class_precision_parameter(recfast_fudge_H,double,1.14)             /* from recfast 1.4 */
-class_precision_parameter(recfast_delta_fudge_H,double,-0.015)     /* from recfast 1.5.2 */
-class_precision_parameter(recfast_AGauss1,double,-0.14)            /* from recfast 1.5 */
-class_precision_parameter(recfast_AGauss2,double,0.079)           /* from recfast 1.5.2 */
-class_precision_parameter(recfast_zGauss1,double,7.28)            /* from recfast 1.5 */
-class_precision_parameter(recfast_zGauss2,double,6.73)            /* from recfast 1.5.2 */
-class_precision_parameter(recfast_wGauss1,double,0.18)            /* from recfast 1.5 */
-class_precision_parameter(recfast_wGauss2,double,0.33)            /* from recfast 1.5 */
+ */
+class_precision_parameter(recfast_Hswitch,int,_TRUE_)          /**< from recfast 1.5 */
+class_precision_parameter(recfast_fudge_H,double,1.14)             /**< from recfast 1.4 */
+class_precision_parameter(recfast_delta_fudge_H,double,-0.015)     /**< from recfast 1.5.2 */
+class_precision_parameter(recfast_AGauss1,double,-0.14)            /**< from recfast 1.5 */
+class_precision_parameter(recfast_AGauss2,double,0.079)           /**< from recfast 1.5.2 */
+class_precision_parameter(recfast_zGauss1,double,7.28)            /**< from recfast 1.5 */
+class_precision_parameter(recfast_zGauss2,double,6.73)            /**< from recfast 1.5.2 */
+class_precision_parameter(recfast_wGauss1,double,0.18)            /**< from recfast 1.5 */
+class_precision_parameter(recfast_wGauss2,double,0.33)            /**< from recfast 1.5 */
 
-class_precision_parameter(recfast_z_He_1,double,8000.0)            /* from recfast 1.4 */
-class_precision_parameter(recfast_delta_z_He_1,double,50.0)         /* found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_2,double,5000.0)             /* from recfast 1.4 */
-class_precision_parameter(recfast_delta_z_He_2,double,100.0)      /* found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_3,double,3500.0)          /* from recfast 1.4 */
-class_precision_parameter(recfast_delta_z_He_3,double,50.0)         /* found to be OK on 3.09.10 */
-class_precision_parameter(recfast_x_He0_trigger,double,0.995)      /* raised from 0.99 to 0.995 for smoother Helium */
-class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /* raised from 0.985 to same as previous one for smoother Helium */
-class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /* found to be OK on 3.09.10 */
-class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /* raised from 0.99 to 0.995 for smoother Hydrogen */
-class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /* raised from 0.98 to same as previous one for smoother Hydrogen */
-class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /* found to be OK on 3.09.10 */
+class_precision_parameter(recfast_z_He_1,double,8000.0)            /**< from recfast 1.4 */
+class_precision_parameter(recfast_delta_z_He_1,double,50.0)         /**< found to be OK on 3.09.10 */
+class_precision_parameter(recfast_z_He_2,double,5000.0)             /**< from recfast 1.4 */
+class_precision_parameter(recfast_delta_z_He_2,double,100.0)      /**< found to be OK on 3.09.10 */
+class_precision_parameter(recfast_z_He_3,double,3500.0)          /**< from recfast 1.4 */
+class_precision_parameter(recfast_delta_z_He_3,double,50.0)         /**< found to be OK on 3.09.10 */
+class_precision_parameter(recfast_x_He0_trigger,double,0.995)      /**< raised from 0.99 to 0.995 for smoother Helium */
+class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /**< raised from 0.985 to same as previous one for smoother Helium */
+class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /**< found to be OK on 3.09.10 */
+class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /**< raised from 0.99 to 0.995 for smoother Hydrogen */
+class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< raised from 0.98 to same as previous one for smoother Hydrogen */
+class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< found to be OK on 3.09.10 */
 
-class_precision_parameter(recfast_H_frac,double,1.0e-3)              /* from recfast 1.4 */
+class_precision_parameter(recfast_H_frac,double,1.0e-3)              /**< from recfast 1.4 */
 
 class_precision_parameter(reionization_z_start_max,double,50.0)
 class_precision_parameter(reionization_sampling,double,5.0e-2)
@@ -168,7 +168,7 @@ class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_h,double,0.015)
    */
 class_precision_parameter(tight_coupling_trigger_tau_c_over_tau_k,double,0.01)
 
-class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) 
+class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008)
 /**< sources start being sampled when universe is sufficiently opaque. This is quantified in terms of the ratio of thermo to hubble time scales, \f$ \tau_c/\tau_H \f$. Start when start_sources_at_tau_c_over_tau_h equals this ratio. Decrease this value to start sampling the sources earlier in time. */
 
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
@@ -256,8 +256,8 @@ class_type_parameter(evolver,int,enum evolver_type,ndf15)
 /**
  * Primordial parameters
  * */
- 
- 
+
+
 class_precision_parameter(k_per_decade_primordial,double,10.0) /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
 class_precision_parameter(primordial_inflation_ratio_min,double,100.0) /**< for each k, start following wavenumber when aH = k/primordial_inflation_ratio_min */
@@ -281,13 +281,13 @@ class_precision_parameter(primordial_inflation_extra_efolds,double,2.0) /**< a s
 /**
  * Transfer function parameters
  * */
- 
- 
+
+
 class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
 
 class_precision_parameter(l_logstep,double,1.12) /**< maximum spacing of values of l over which Bessel and transfer functions are sampled (so, spacing becomes linear instead of logarithmic at some point) */
 
-//parameters relevant for bessel functions 
+//parameters relevant for bessel functions
 class_precision_parameter(hyper_x_min,double,1.0e-5)  /**< flat case: lower bound on the smallest value of x at which we sample \f$ \Phi_l^{\nu}(x)\f$ or \f$ j_l(x)\f$ */
 class_precision_parameter(hyper_sampling_flat,double,8.0)  /**< flat case: number of sampled points x per approximate wavelength \f$ 2\pi \f$*/
 class_precision_parameter(hyper_sampling_curved_low_nu,double,7.0)  /**< open/closed cases: number of sampled points x per approximate wavelength \f$ 2\pi/\nu\f$, when \f$ \nu \f$ smaller than hyper_nu_sampling_step */
@@ -376,14 +376,14 @@ class_precision_parameter(selection_sampling_bessel_los,double,ppr->selection_sa
 
   /** controls how smooth are the edge of top-hat window function (<<1 for very sharp, 0.1 for sharp) */
 class_precision_parameter(selection_tophat_edge,double,0.1)
-  
-  
+
+
   /**
    * Nonlinear module precision parameters
    * */
-  
+
 //HALOFIT parameters
-class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4) 
+class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)
 /**< value of k in 1/Mpc below which
 				     non-linear corrections will be neglected */
 
@@ -419,7 +419,7 @@ class_precision_parameter(pk_eq_tol,double,1.0e-7)
 /**
  * Lensing precision parameters
  * */
- 
+
 class_precision_parameter(accurate_lensing,int,_FALSE_) /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
 class_precision_parameter(num_mu_minus_lmax,int,70) /**< difference between num_mu and l_max, increase for more precision */
 class_precision_parameter(delta_l_max,int,500)/**< difference between l_max in unlensed and lensed spectra */
