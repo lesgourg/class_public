@@ -866,27 +866,32 @@ int input_read_parameters(
     pba->Omega0_dcdmdr = param1;
   if (flag2 == _TRUE_)
     pba->Omega0_dcdmdr = param2/pba->h/pba->h;
-  Omega_tot += pba->Omega0_dcdmdr;
 
-  /** - Read Omega_ini_dcdm or omega_ini_dcdm */
-  class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
-  if (flag1 == _TRUE_)
-    pba->Omega_ini_dcdm = param1;
-  if (flag2 == _TRUE_)
-    pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+  if (pba->Omega0_dcdmdr > 0) {
 
-  /** - Read Gamma in same units as H0, i.e. km/(s Mpc)*/
-  class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
-  /* Convert to Mpc */
-  pba->Gamma_dcdm *= (1.e3 / _c_);
+    Omega_tot += pba->Omega0_dcdmdr;
+
+    /** - Read Omega_ini_dcdm or omega_ini_dcdm */
+    class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
+    if (flag1 == _TRUE_)
+      pba->Omega_ini_dcdm = param1;
+    if (flag2 == _TRUE_)
+      pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+
+    /** - Read Gamma in same units as H0, i.e. km/(s Mpc)*/
+    class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
+    /* Convert to Mpc */
+    pba->Gamma_dcdm *= (1.e3 / _c_);
+
+  }
 
   /** - non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
@@ -1427,6 +1432,21 @@ int input_read_parameters(
     if ((strstr(string1,"mPk") != NULL) || (strstr(string1,"MPk") != NULL) || (strstr(string1,"MPK") != NULL)) {
       ppt->has_pk_matter=_TRUE_;
       ppt->has_perturbations = _TRUE_;
+
+      /*if (pba->Omega0_ncdm_tot != 0.0){
+          class_call(parser_read_string(pfc,"pk_only_cdm_bar",&string1,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          if (flag1 == _TRUE_){
+              if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+                  ppt->pk_only_cdm_bar = _TRUE_;
+              }
+              else {
+                  ppt->pk_only_cdm_bar = _FALSE_;
+              }
+          }
+      }*/
+
     }
 
     if ((strstr(string1,"mTk") != NULL) || (strstr(string1,"MTk") != NULL) || (strstr(string1,"MTK") != NULL) ||
@@ -2683,7 +2703,6 @@ int input_read_parameters(
              errmsg,
              "You passed in input a precision parameter called l_switch_limber_for_cl_density_over_z. This syntax is deprecated since v2.5.0. Please use instead the two precision parameters l_switch_limber_for_nc_local_over_z, l_switch_limber_for_nc_los_over_z, defined in include/common.h, and allowing for better performance.");
 
-  
   /** (i) Write values in file */
   if (ple->has_lensed_cls == _TRUE_)
     ppt->l_scalar_max+=ppr->delta_l_max;
@@ -2754,8 +2773,8 @@ int input_read_parameters(
 
   }
 
-  /** - (i.5) special buisness if we want Halofit with wa_fld non-zero:
-        so-called "Pk-equal method" of 0810.0190 and 1601.07230 */
+  /** - (i.5) special steps if we want Halofit with wa_fld non-zero:
+        so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
 
   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.))
     pnl->has_pk_eq = _TRUE_;
@@ -2764,7 +2783,7 @@ int input_read_parameters(
 
     if (input_verbose > 0) {
       printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
-      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk-equal method\n");
+      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
     }
     class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
                errmsg,
@@ -2922,6 +2941,8 @@ int input_default_params(
   ppt->has_nc_rsd = _FALSE_;
   ppt->has_nc_lens = _FALSE_;
   ppt->has_nc_gr = _FALSE_;
+
+  //ppt->pk_only_cdm_bar=_FALSE_;
 
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;
@@ -3766,6 +3787,26 @@ int compare_doubles(const void *a,const void *b) {
   return 0;
 }
 
+
+/**
+ * Perform preliminary steps fur using the method called Pk_equal,
+ * described in 0810.0190 and 1601.07230, extending the range of
+ * validity of HALOFIT from constant w to (w0,wa) models. In that
+ * case, one must compute here some effective values of w0_eff(z_i)
+ * and Omega_m_eff(z_i), that will be interpolated later at arbitrary
+ * redshift in the non-linear module.
+ *
+ * Returns table of values [z_i, tau_i, w0_eff_i, Omega_m_eff_i]
+ * stored in nonlinear structure.
+ *
+ * @param ppr           Input: pointer to precision structure
+ * @param pba           Input: pointer to background structure
+ * @param pth           Input: pointer to thermodynamics structure
+ * @param pnl    Input/Output: pointer to nonlinear structure
+ * @param input_verbose Input: verbosity of this input module
+ * @param errmsg  Input/Ouput: error message
+ */
+
 int input_prepare_pk_eq(
                         struct precision * ppr,
                         struct background *pba,
@@ -3775,13 +3816,17 @@ int input_prepare_pk_eq(
                         ErrorMsg errmsg
                         ) {
 
+  /** Summary: */
+
+  /** - define local variables */
+
   double tau_of_z;
   double delta_tau;
   double error;
   double delta_tau_eq;
   double * pvecback;
   int last_index=0;
-  int index_eq_z;
+  int index_pk_eq_z;
   int index_eq;
   int true_background_verbose;
   int true_thermodynamics_verbose;
@@ -3789,39 +3834,59 @@ int input_prepare_pk_eq(
   double true_wa_fld;
   double * z;
 
+  /** - store the true cosmological parameters (w0, wa) somwhere before using temporarily some fake ones in this function */
+
   true_background_verbose = pba->background_verbose;
   true_thermodynamics_verbose = pth->thermodynamics_verbose;
   true_w0_fld = pba->w0_fld;
   true_wa_fld = pba->wa_fld;
-  ////
+
+  /** - the fake calls of the background and thermodynamics module will be done in non-verbose mode */
 
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
 
-  pnl->eq_tau_size = 10;
-  class_alloc(pnl->eq_tau,pnl->eq_tau_size*sizeof(double),errmsg);
-  class_alloc(z,pnl->eq_tau_size*sizeof(double),errmsg);
+  /** - allocate indices and arrays for storing the results */
+
+  pnl->pk_eq_tau_size = 10;
+  class_alloc(pnl->pk_eq_tau,pnl->pk_eq_tau_size*sizeof(double),errmsg);
+  class_alloc(z,pnl->pk_eq_tau_size*sizeof(double),errmsg);
 
   index_eq = 0;
-  class_define_index(pnl->index_eq_w,_TRUE_,index_eq,1);
-  class_define_index(pnl->index_eq_Omega_m,_TRUE_,index_eq,1);
-  pnl->eq_size = index_eq;
-  class_alloc(pnl->eq_w_and_Omega,pnl->eq_tau_size*pnl->eq_size*sizeof(double),errmsg);
-  class_alloc(pnl->eq_ddw_and_ddOmega,pnl->eq_tau_size*pnl->eq_size*sizeof(double),errmsg);
+  class_define_index(pnl->index_pk_eq_w,_TRUE_,index_eq,1);
+  class_define_index(pnl->index_pk_eq_Omega_m,_TRUE_,index_eq,1);
+  pnl->pk_eq_size = index_eq;
+  class_alloc(pnl->pk_eq_w_and_Omega,pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),errmsg);
+  class_alloc(pnl->pk_eq_ddw_and_ddOmega,pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),errmsg);
+
+  /** - call the background module in order to fill a table of tau_i[z_i] */
 
   class_call(background_init(ppr,pba), pba->error_message, errmsg);
-  for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
-    z[index_eq_z] = exp(log(1.+5.)/(pnl->eq_tau_size-1)*index_eq_z)-1.;
-    class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z),
+  for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
+    z[index_pk_eq_z] = exp(log(1.+ppr->pk_eq_z_max)/(pnl->pk_eq_tau_size-1)*index_pk_eq_z)-1.;
+    class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z),
                pba->error_message, errmsg);
-    pnl->eq_tau[index_eq_z] = tau_of_z;
+    pnl->pk_eq_tau[index_pk_eq_z] = tau_of_z;
   }
-  class_call(background_free(pba), pba->error_message, errmsg);
+  class_call(background_free_noinput(pba), pba->error_message, errmsg);
 
-  for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
+  /** - loop over z_i values. For each of them, we will call the
+     background and thermodynamics module for fake models. The goal is
+     to find, for each z_i, and effective w0_eff[z_i] and
+     Omega_m_eff{z_i], such that: the true model with (w0,wa) and the
+     equivalent model with (w0_eff[z_i],0) have the same conformal
+     distance between z_i and z_recombination, namely chi = tau[z_i] -
+     tau_rec. It is thus necessary to call both the background and
+     thermodynamics module for each fake model and to re-compute
+     tau_rec for each of them. Once the eqauivalent model is found we
+     compute and store Omega_m_effa(z_i) of the equivalent model */
+
+  for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
 
     if (input_verbose > 2)
-      printf("    * computing PK-equal parameters at z=%e\n",z[index_eq_z]);
+      printf("    * computing Pk_equal parameters at z=%e\n",z[index_pk_eq_z]);
+
+    /* get chi = (tau[z_i] - tau_rec) in true model */
 
     pba->w0_fld = true_w0_fld;
     pba->wa_fld = true_wa_fld;
@@ -3829,18 +3894,18 @@ int input_prepare_pk_eq(
     class_call(background_init(ppr,pba), pba->error_message, errmsg);
     class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
 
-    delta_tau = pnl->eq_tau[index_eq_z] - pth->tau_rec;
+    delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - pth->tau_rec;
 
-    ///////
+    /* launch iterations in order to coverge to effective model with wa=0 but the same chi = (tau[z_i] - tau_rec) */
 
     pba->wa_fld=0.;
 
     do {
-      class_call(background_free(pba), pba->error_message, errmsg);
+      class_call(background_free_noinput(pba), pba->error_message, errmsg);
       class_call(thermodynamics_free(pth), pth->error_message, errmsg);
 
       class_call(background_init(ppr,pba), pba->error_message, errmsg);
-      class_call(background_tau_of_z(pba,z[index_eq_z],&tau_of_z), pba->error_message, errmsg);
+      class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z), pba->error_message, errmsg);
       class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
 
       delta_tau_eq = tau_of_z - pth->tau_rec;
@@ -3849,9 +3914,11 @@ int input_prepare_pk_eq(
       pba->w0_fld = pba->w0_fld*pow(1.+error,10.);
 
     }
-    while(fabs(error) > 1.e-7);
+    while(fabs(error) > ppr->pk_eq_tol);
 
-    pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_w] = pba->w0_fld;
+    /* Equivalent model found. Store w0(z) in that model. Find Omega_m(z) in that model and store it. */
+
+    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w] = pba->w0_fld;
 
     class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
     class_call(background_at_tau(pba,
@@ -3861,42 +3928,48 @@ int input_prepare_pk_eq(
                                  &last_index,
                                  pvecback),
                pba->error_message, errmsg);
-    pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
+    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
     free(pvecback);
 
-    class_call(background_free(pba), pba->error_message, errmsg);
+    class_call(background_free_noinput(pba), pba->error_message, errmsg);
     class_call(thermodynamics_free(pth), pth->error_message, errmsg);
 
   }
+
+  /** - restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules */
 
   pba->background_verbose = true_background_verbose;
   pth->thermodynamics_verbose = true_thermodynamics_verbose;
   pba->w0_fld = true_w0_fld;
   pba->wa_fld = true_wa_fld;
 
+  /* in verbose mode, report the results */
+
   if (input_verbose > 1) {
 
-    fprintf(stdout,"    Effective parameters for Pk-equal:\n");
+    fprintf(stdout,"    Effective parameters for Pk_equal:\n");
 
-    for (index_eq_z=0; index_eq_z<pnl->eq_tau_size; index_eq_z++) {
+    for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
 
       fprintf(stdout,"    * at z=%e, tau=%e w=%e Omega_m=%e\n",
-              z[index_eq_z],
-              pnl->eq_tau[index_eq_z],
-              pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_w],
-              pnl->eq_w_and_Omega[pnl->eq_size*index_eq_z+pnl->index_eq_Omega_m]
+              z[index_pk_eq_z],
+              pnl->pk_eq_tau[index_pk_eq_z],
+              pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w],
+              pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_Omega_m]
               );
     }
   }
 
   free(z);
 
+  /** - spline the table for later interpolation */
+
   class_call(array_spline_table_lines(
-                                      pnl->eq_tau,
-                                      pnl->eq_tau_size,
-                                      pnl->eq_w_and_Omega,
-                                      pnl->eq_size,
-                                      pnl->eq_ddw_and_ddOmega,
+                                      pnl->pk_eq_tau,
+                                      pnl->pk_eq_tau_size,
+                                      pnl->pk_eq_w_and_Omega,
+                                      pnl->pk_eq_size,
+                                      pnl->pk_eq_ddw_and_ddOmega,
                                       _SPLINE_NATURAL_,
                                       errmsg),
              errmsg,errmsg);

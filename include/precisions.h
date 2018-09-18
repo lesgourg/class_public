@@ -347,7 +347,7 @@ class_precision_parameter(transfer_neglect_delta_k_T_b,double,0.1)  /**< same fo
 class_precision_parameter(transfer_neglect_late_source,double,400.0)  /**< value of l below which the CMB source functions can be neglected at late time, excepted when there is a Late ISW contribution */
 
   /** when to use the Limber approximation for project gravitational potential cl's */
-class_precision_parameter(l_switch_limber,double,10.0)
+class_precision_parameter(l_switch_limber,double,10.)
   // For density Cl, we recommend not to use the Limber approximation
   // at all, and hence to put here a very large number (e.g. 10000); but
   // if you have wide and smooth selection functions you may wish to
@@ -414,6 +414,8 @@ class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance requir
                                whcih defines the wavenumber of
                                non-linearity, k_nl=1./R_nl */
 
+class_precision_parameter(pk_eq_z_max,double,5.0)
+class_precision_parameter(pk_eq_tol,double,1.0e-7)
 /**
  * Lensing precision parameters
  * */

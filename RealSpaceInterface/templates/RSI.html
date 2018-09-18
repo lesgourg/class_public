@@ -1,0 +1,180 @@
+{% extends "Header.html" %}
+
+	{% block body %}
+    <!-- <div id="transferFunctionPlot" class="functionPlot"></div> -->
+		<div id="container"></div>
+
+        <div id="plotWindowContainer">
+	        <div id="plotWindowWrapper" class="bg-dark plotWindowWrapperVisible">
+		        <div id="transferFunctionPlot" class="plotWindowVisible"></div>
+		        <div id="tClPlot" class="plotWindowVisible"></div>
+                <div id="mPkPlot" class="plotWindowVisible"></div>
+	        </div>
+	        <button id="plotWindowToggle" type="button" class="btn btn-secondary btn-sm">
+	        	<span id="plotWindowToggleIcon" class="oi oi-caret-top"></span>
+	        </button>
+	    </div>
+
+        <div id="statusBar" class="bg-dark text-light">
+            <div class="status-bar-item">
+                <div id="colormap-selector" class="btn-group btn-group-sm dropup mr-2">
+                    <button type="button"
+                        id="colormap-selector-button"
+                        class="btn btn-sm btn-secondary"
+                        >
+                        <span id="colormap-selector-button-placeholder"></span>
+                    </button>
+                    <button type="button"
+                        class="btn btn-sm btn-secondary dropdown-toggle dropdown-toggle-split"
+                        data-toggle="dropdown">
+                    </button>
+
+                    <div class="dropdown-menu scrollable-menu" id="colormap-selector-menu">
+                        {% for category, cmaps in zip(categories, colormaps) %}
+                            <h6 class="dropdown-header">{{ category }}</h6>
+                            {% for cmap in cmaps %}
+                            <a href="#" class="dropdown-item colormap-selector-item">
+                                {{ escape(cmap['label']) }}
+                                <img class="cmap-preview" src="{{ static_url(cmap['src']) }}" alt="">
+                            </a>
+                            {% end %}
+                        {% end %}
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="status-bar-item">
+                <span>Division Size: <span id="displayRealScale">N/A</span></span>
+            </div>
+            <div class="status-bar-item">
+                <span id="displayHover"></span>
+            </div>
+            <div class="status-bar-item">
+                <div id="activityIndicator" class="activityIndicator-active"></div>
+            </div>
+        </div>
+
+        <a class="bg-dark text-light" id="aboutLink" href="#" data-toggle="modal" data-target="#aboutModal">About</a>
+
+        <div id="aboutModal" class="modal fade" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">About</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="credits">
+                            <p>
+                                Powered by the Cosmic Linear Anisotropy Solving System <a target="_blank" href="http://class-code.net/">CLASS</a>.
+                            </p>
+
+                            <p>Developed by Max Beutelspacher and Georgios Samaras.</p>
+
+                            <div>
+                                Built using
+                                <a target="_blank" href="https://threejs.org/">three.js</a>,
+                                <a target="_blank" href="https://github.com/dataarts/dat.gui">dat.gui</a>,
+                                <a target="_blank" href="https://getbootstrap.com/">Bootstrap</a>,
+                                <a target="_blank" href="https://jquery.com/">jQuery</a>,
+                                <a target="_blank" href="https://www.flotcharts.org/">Flot</a> and
+                                <a target="_blank" href="http://www.tornadoweb.org/en/stable/">Tornado</a>.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+	{% end %}
+
+	{% block threejs %}
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/92/three.js"></script>
+		<script src="{{ static_url("threejs/controls/OrbitControls.js") }}"></script>
+		<script src="{{ static_url("threejs/Detector.js") }}"></script>
+		<script src="{{ static_url("threejs/libs/stats.min.js") }}"></script>
+
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.2/dat.gui.min.js"></script>
+
+  		<script src="{{static_url("js/sockjs.min.js")}}"></script>
+
+        <script src="{{static_url("js/paramGui.js")}}"></script>
+        <script src="{{static_url("js/simulationList.js")}}"></script>
+        <script src="{{static_url("js/playerPanel.js")}}"></script>
+        <script src="{{static_url("js/gridLayout.js")}}"></script>
+        <script src="{{static_url("js/simulation.js")}}"></script>
+
+        <script src="{{static_url("js/parameterConfig.js")}}"></script>
+
+        <script src="{{static_url("js/redshiftModal.js")}}"></script>
+
+		<script type="x-shader/x-vertex" id="vertexshader">
+			// switch on high precision floats
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+
+			uniform int notFlat;
+			uniform float amplitude;
+			attribute float displacement;
+
+			varying float vHeight;
+
+			void main() {
+
+                // displacement ranges from -1 to 1, map to [0, 1] for cmap sampling
+				vHeight = (displacement + 1.0) / 2.0;
+
+				vec3 newPosition = position + amplitude * displacement * normal * float(notFlat);
+
+
+				gl_Position = projectionMatrix *
+							  modelViewMatrix *
+							  vec4(newPosition,1.0);
+
+			}
+		</script>
+
+		<script type="x-shader/x-fragment" id="fragmentshader">
+			#ifdef GL_ES
+			precision highp float;
+			#endif
+
+			varying float vHeight;
+            uniform sampler2D cmap;
+
+			void main() {
+				gl_FragColor = texture2D(cmap, vec2(vHeight, 0));
+			}
+		</script>
+        <!-- This section is dedicated to retrieval of static resources which
+            require template processing by tornado -->
+        <a id="colormap-url" style="display: none" href="{{ static_url("images/colormaps/") }}"></a>
+        <script>
+        	var cmapTexture;
+
+
+            new THREE.TextureLoader().load(
+            	"{{ static_url("images/colormaps/Uniform/inferno.png") }}",
+            	function(texture) {
+            		cmapTexture = texture;
+                    if (simulationManager) {
+                        simulationManager.setColorMap(texture);
+                    }
+            	},
+            	undefined,
+            	function(err) {
+            		console.error("Error loading texture: " + err);
+            	}
+        	);
+        </script>
+
+		<script src="{{ static_url("js/RSI.js") }}"></script>
+	{% end %}

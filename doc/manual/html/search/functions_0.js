@@ -2,8 +2,10 @@ var searchData=
 [
   ['background_5fat_5ftau',['background_at_tau',['../background_8c.html#ac47004414b208d36153f35d8465cace2',1,'background.c']]],
   ['background_5fderivs',['background_derivs',['../background_8c.html#a7125aa3a44915ea6d0cca6f37613421a',1,'background.c']]],
+  ['background_5ffind_5fequality',['background_find_equality',['../background_8c.html#aed2984c000b71ae610410cd1a5490966',1,'background.c']]],
   ['background_5ffree',['background_free',['../background_8c.html#a5b0d8db279856b3c96aba08c83aa19d6',1,'background.c']]],
   ['background_5ffree_5finput',['background_free_input',['../background_8c.html#a61601a17447fc6a806921680d2e52c8f',1,'background.c']]],
+  ['background_5ffree_5fnoinput',['background_free_noinput',['../background_8c.html#a7c4d314e8a6131c2d1ebfb2cd2c17946',1,'background.c']]],
   ['background_5ffunctions',['background_functions',['../background_8c.html#a302eb502773905601fa9b6936840682a',1,'background.c']]],
   ['background_5findices',['background_indices',['../background_8c.html#a8934d2c903bb4c78b1b6a33a8c56e293',1,'background.c']]],
   ['background_5finit',['background_init',['../background_8c.html#afeb0656453b92be39c60fb3fb1abd910',1,'background.c']]],
