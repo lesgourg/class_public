@@ -316,7 +316,7 @@ int matter_init(
                 struct nonlinear * pnl,
                 struct matters * pma
              ){
-  CALLGRIND_TOGGLE_COLLECT;
+  //CALLGRIND_TOGGLE_COLLECT;
   double start_time_omp = omp_get_wtime();
   clock_t start_time = clock();
   double clocksecs;
@@ -890,7 +890,7 @@ int matter_init(
   if(pma->matter_verbose>MATTER_VERBOSITY_TIMING){
     printf("Matter took %f seconds \n",clocksecs);
   }
-  CALLGRIND_TOGGLE_COLLECT;
+  //CALLGRIND_TOGGLE_COLLECT;
   return _SUCCESS_;
 }
 
@@ -1027,8 +1027,8 @@ int matter_free(
     free(pma->is_non_zero);
     for(i=0;i<pma->ic_ic_size;++i){
       for(j=0;j<pma->cltp_size;++j){
-        free(pma->cl[index_delete*pma->cltp_size+index_cltp]);
-        free(pma->ddcl[index_delete*pma->cltp_size+index_cltp]);
+        free(pma->cl[i*pma->cltp_size+j]);
+        free(pma->ddcl[i*pma->cltp_size+j]);
       }
     }
     free(pma->cl);

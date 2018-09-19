@@ -1339,7 +1339,7 @@ int perturb_get_k_list(
          pi/lmax: this is equivalent to
          k_max_cl[ppt->index_md_scalars]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[ppt->index_md_scalars] = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
+      k_max_cmb[ppt->index_md_scalars] = ppr->k_max_tau0_over_l_max_cmb*ppt->l_scalar_max
         /pba->conformal_age/pth->angular_rescaling;
       k_max_cl[ppt->index_md_scalars] = k_max_cmb[ppt->index_md_scalars];
       k_max     = k_max_cmb[ppt->index_md_scalars];
@@ -1364,7 +1364,7 @@ int perturb_get_k_list(
                    pba->error_message,
                    ppt->error_message);
 
-        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],ppr->k_max_tau0_over_l_max*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redshift instead of comoving radius: would implement corrections depending on curvature
+        k_max_cl[ppt->index_md_scalars] = MAX(k_max_cl[ppt->index_md_scalars],ppr->k_max_tau0_over_l_max_lss*ppt->l_lss_max/(pba->conformal_age-tau1)); // to be very accurate we should use angular diameter distance to given redshift instead of comoving radius: would implement corrections depending on curvature
         k_max    = k_max_cl[ppt->index_md_scalars];
       }
     }
@@ -1532,7 +1532,7 @@ int perturb_get_k_list(
          pi/lmax: this is equivalent to
          k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[ppt->index_md_vectors] = ppr->k_max_tau0_over_l_max*ppt->l_vector_max
+      k_max_cmb[ppt->index_md_vectors] = ppr->k_max_tau0_over_l_max_cmb*ppt->l_vector_max
         /pba->conformal_age/pth->angular_rescaling;
       k_max_cl[ppt->index_md_vectors]  = k_max_cmb[ppt->index_md_vectors];
       k_max     = k_max_cmb[ppt->index_md_vectors];
@@ -1666,7 +1666,7 @@ int perturb_get_k_list(
          pi/lmax: this is equivalent to
          k_max_cl[ppt->index_md_tensors]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[ppt->index_md_tensors] = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max
+      k_max_cmb[ppt->index_md_tensors] = ppr->k_max_tau0_over_l_max_cmb*ppt->l_tensor_max
         /pba->conformal_age/pth->angular_rescaling;
       k_max_cl[ppt->index_md_tensors]  = k_max_cmb[ppt->index_md_tensors];
       k_max     = k_max_cmb[ppt->index_md_tensors];

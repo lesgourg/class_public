@@ -509,6 +509,7 @@ int transfer_indices_of_transfers(
     class_define_index(ptr->index_tt_t0,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_t1,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_lcmb,   ppt->has_cl_cmb_lensing_potential,index_tt,1);
+    printf("HAS NC? %s \n",(ptr->has_nc?"yes":"no"));
     if(ptr->has_nc){
       class_define_index(ptr->index_tt_density,ppt->has_nc_density,              index_tt,ppt->selection_num);
       class_define_index(ptr->index_tt_rsd,    ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
@@ -1018,6 +1019,9 @@ int transfer_get_q_list(
   int last_index=0;
   double q_logstep_spline;
   double q_logstep_trapzd;
+  double q_logstep_lss;
+  double k_max_cmb;
+  double q_switch_lss;
   int index_md;
 
   /* first and last value in flat case*/
@@ -1061,7 +1065,39 @@ int transfer_get_q_list(
       q_max = MAX(q_max,ppt->k[index_md][ppt->k_size_cl[index_md]-1]);
     }
   }
-
+  
+  /* find value of q at which we want to switch back
+     to logarithmic sampling for lss.
+     
+     This is currently only done in the flat or open case */
+  
+  if(sgnK <=0){
+    k_max_cmb = 0.0;
+    for (index_md=0; index_md<ppt->md_size; index_md++) {
+      k_max_cmb = MAX(k_max_cmb,ppt->k[index_md][ppt->k_size_cmb[index_md]-1]);
+    }
+    if(sgnK==0){
+      q_switch_lss = k_max_cmb;
+    }
+    else{
+      q_switch_lss = sqrt(k_max_cmb*k_max_cmb+K);
+      if (ppt->has_vectors == _TRUE_)
+        q_switch_lss = MIN(q_switch_lss,sqrt(k_max_cmb*k_max_cmb+2.*K));
+      if (ppt->has_tensors == _TRUE_)
+        q_switch_lss = MIN(q_switch_lss,sqrt(k_max_cmb*k_max_cmb+3.*K));
+    }
+    q_logstep_lss = ppr->q_logstep_lss/pow(ptr->angular_rescaling,ppr->q_logstep_open);
+    
+    class_test(q_switch_lss > q_max,
+               ptr->error_message,
+               "buggy q-list definition");
+  }
+  else{
+    /* Not yet implemented */
+    q_switch_lss = 0.;
+    q_logstep_lss = 0.;
+  }
+  
   /* adjust the parameter governing the log step size to curvature */
 
   q_logstep_spline = ppr->q_logstep_spline/pow(ptr->angular_rescaling,ppr->q_logstep_open);
@@ -1092,16 +1128,18 @@ int transfer_get_q_list(
 
     /* max contribution from non-integer nu values */
     q_step = 1.+q_period*ppr->q_logstep_spline;
-    q_size_max = 5*(int)(log(q_max/q_min)/log(q_step));
+    q_size_max = 5*(int)(log(q_switch_lss/q_min)/log(q_step));
+    
+    q_step = 1.+q_period*ppr->q_logstep_lss;
+    q_size_max += 5*(int)(log(q_max/q_switch_lss)/log(q_step));
 
     q_step = q_period*ppr->q_linstep;
-    q_size_max += 5*(int)((q_max-q_min)/q_step);
-
+    q_size_max += 5*(int)((q_switch_lss-q_min)/q_step);
+    
   }
 
   /* create array with this conservative size estimate. The exact size
      will be readjusted below, after filling the array. */
-
   class_alloc(ptr->q,
               q_size_max*sizeof(double),
               ptr->error_message);
@@ -1110,11 +1148,11 @@ int transfer_get_q_list(
 
   index_q = 0;
   ptr->q[index_q] = q_min;
+  q = q_min;
   nu = 3;
   index_q++;
-
+  
   /* loop over the values */
-
   while (ptr->q[index_q-1] < q_max) {
 
     class_test(index_q >= q_size_max,ptr->error_message,"buggy q-list definition");
@@ -1130,11 +1168,14 @@ int transfer_get_q_list(
        */
 
     if (sgnK<=0) {
-
-      q = ptr->q[index_q-1]
-        + q_period * ppr->q_linstep * ptr->q[index_q-1]
-        / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_spline);
-
+      if(q > q_switch_lss){
+        q = ptr->q[index_q-1] *( 1. + q_period * q_logstep_lss );
+      }
+      else{
+        q = ptr->q[index_q-1]
+          + q_period * ppr->q_linstep * ptr->q[index_q-1]
+          / (ptr->q[index_q-1] + ppr->q_linstep/q_logstep_spline);
+      }
     }
 
     /* step size formula in closed case. Same thing excepted that:
@@ -1200,7 +1241,7 @@ int transfer_get_q_list(
                 ptr->q,
                 ptr->q_size*sizeof(double),
                 ptr->error_message);
-
+  
   /* in curved universe, check at which index the flat rescaling
      approximation will start being used */
 
@@ -1762,7 +1803,6 @@ int transfer_compute_for_each_q(
         /* - loop over types. For each of them: */
 
         for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
-
           /** - check if we must now deal with a new source with a
               new index ppt->index_type. If yes, interpolate it at the
               right values of k. */

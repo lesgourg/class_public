@@ -2849,7 +2849,7 @@ int input_read_parameters(
    * The new parameter names should be used preferrably
    * */
   class_read_double("k_scalar_min_tau0",ppr->k_min_tau0); // obsolete precision parameter: read for compatibility with old precision files
-  class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_max_tau0_over_l_max); // obsolete precision parameter: read for compatibility with old precision files
+  class_read_double("k_scalar_max_tau0_over_l_max",ppr->k_max_tau0_over_l_max_cmb); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_step_sub",ppr->k_step_sub); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_step_super",ppr->k_step_super); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_step_transition",ppr->k_step_transition); // obsolete precision parameter: read for compatibility with old precision files

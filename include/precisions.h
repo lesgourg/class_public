@@ -135,7 +135,8 @@ class_string_parameter(hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.da
 
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
-class_precision_parameter(k_max_tau0_over_l_max,double,2.4) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
+class_precision_parameter(k_max_tau0_over_l_max_cmb,double,2.4) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
+class_precision_parameter(k_max_tau0_over_l_max_lss,double,2400) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
 class_precision_parameter(k_step_sub,double,0.05) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales inside sound horizon at decoupling */
 class_precision_parameter(k_step_super,double,0.002) /**< step in k space, in units of one period of acoustic oscillation at decoupling, for scales above sound horizon at decoupling */
 class_precision_parameter(k_step_transition,double,0.2) /**< dimensionless number regulating the transition from 'sub' steps to 'super' steps. Decrease for more precision. */
@@ -333,6 +334,12 @@ class_precision_parameter(q_numstep_transition,double,250.0) /**< number of step
                                  q_logstep_spline steps (transition
                                  must be smooth for spline) */
 
+class_precision_parameter(q_logstep_lss,double,200.0) /**< logarithmic sampling step in q
+                                space, in units of \f$ 2\pi/r_a(\tau_{rec})\f$
+                                (comoving angular diameter distance to
+                                recombination) for large scale structure*/
+
+
 class_precision_parameter(transfer_neglect_delta_k_S_t0,double,0.15) /**< for temperature source function T0 of scalar mode, range of k values (in 1/Mpc) taken into account in transfer function: for l < (k-delta_k)*tau0, ie for k > (l/tau0 + delta_k), the transfer function is set to zero */
 class_precision_parameter(transfer_neglect_delta_k_S_t1,double,0.04) /**< same for temperature source function T1 of scalar mode */
 class_precision_parameter(transfer_neglect_delta_k_S_t2,double,0.15) /**< same for temperature source function T2 of scalar mode */
@@ -402,6 +409,21 @@ class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance requir
 
 class_precision_parameter(pk_eq_z_max,double,5.0) /**< Maximum z for the pk_eq method */
 class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq method for finding the pk */
+
+/*
+ * Matter module precision parameters
+ * */
+class_precision_parameter(matter_k_max_extrapolation,double,1000.0) /** < Extrapolation of sources is done up to this k value in 1/Mpc */
+class_precision_parameter(matter_window_preparation_size,int,800) /** < Number of samples for which the window function is being prepared and multiplied with the growth factor */
+class_precision_parameter(matter_integrated_window_preparation_size,int,1600) /** < Number of samples for which the window function is being prepared and multiplied with the growth factor */
+class_precision_parameter(matter_bi_sample_size,int,200) /** < Number of samples for which the I_l(nu,t) is being prepared */
+class_precision_parameter(matter_bessel_imag_offset,double,1.e-6) /** < A small offset that avoids strong divergences of I_l(nu,t) that appear only on the real axis */
+class_precision_parameter(matter_t_offset,double,1.e-7) /** < A small offset that avoids strong divergences of I_l(nu,t) that appear as t->1 and large Re[nu] */
+class_precision_parameter(matter_chi_offset,double,1.e-10) /** < A small offset in conformal distance integrations */
+class_precision_parameter(matter_k_weight_kmin,double,0.01) /** < The minimum k in 1/Mpc for the estimation of the growth factor from the (nonlinear) sources */
+class_precision_parameter(matter_k_weight_kmax,double,10.0) /** < The maximum k in 1/Mpc for the estimation of the growth factor from the (nonlinear) sources */
+class_precision_parameter(matter_k_weight_mode,int,matter_k_weights_gaussian) /** < The type of weighted summation performed to obtain the growthfactor from the (nonlinear) sources */
+
 
 /*
  * Lensing precision parameters
