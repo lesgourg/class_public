@@ -11,6 +11,7 @@ int main(int argc, char **argv) {
   struct thermo th;           /* for thermodynamics */
   struct perturbs pt;         /* for source functions */
   struct transfers tr;        /* for transfer functions */
+  struct matters ma;          /* for matter functions*/
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
@@ -18,7 +19,7 @@ int main(int argc, char **argv) {
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */
 
-  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
+  if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&ma,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
     return _FAILURE_;
   }
@@ -52,18 +53,23 @@ int main(int argc, char **argv) {
     printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
     return _FAILURE_;
   }
-
+  
   if (spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp) == _FAILURE_) {
     printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
     return _FAILURE_;
   }
-
+  
+  if (matter_init(&pr,&ba,&th,&pt,&pm,&nl,&ma) == _FAILURE_) {
+    printf("\n\nError in matter_init \n=>%s\n",ma.error_message);
+    return _FAILURE_;
+  }
+  
   if (lensing_init(&pr,&pt,&sp,&nl,&le) == _FAILURE_) {
     printf("\n\nError in lensing_init \n=>%s\n",le.error_message);
     return _FAILURE_;
   }
 
-  if (output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&op) == _FAILURE_) {
+  if (output_init(&ba,&th,&pt,&pm,&tr,&sp,&ma,&nl,&le,&op) == _FAILURE_) {
     printf("\n\nError in output_init \n=>%s\n",op.error_message);
     return _FAILURE_;
   }
@@ -74,7 +80,12 @@ int main(int argc, char **argv) {
     printf("\n\nError in lensing_free \n=>%s\n",le.error_message);
     return _FAILURE_;
   }
-
+  
+  if (matter_free(&ma) == _FAILURE_) {
+    printf("\n\nError in matter_free \n=>%s\n",ma.error_message);
+    return _FAILURE_;
+  }
+  
   if (spectra_free(&sp) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
     return _FAILURE_;

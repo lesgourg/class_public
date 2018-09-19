@@ -100,6 +100,7 @@ int output_total_cl_at_l(
  * @param ppm Input: pointer to primordial structure
  * @param ptr Input: pointer to transfer structure
  * @param psp Input: pointer to spectra structure
+ * @param pma Input: pointer to matter structure
  * @param pnl Input: pointer to nonlinear structure
  * @param ple Input: pointer to lensing structure
  * @param pop Input: pointer to output structure
@@ -112,6 +113,7 @@ int output_init(
                 struct primordial * ppm,
                 struct transfers * ptr,
                 struct spectra * psp,
+                struct matters* pma,
                 struct nonlinear * pnl,
                 struct lensing * ple,
                 struct output * pop
@@ -135,7 +137,7 @@ int output_init(
 
   if (ppt->has_cls == _TRUE_) {
 
-    class_call(output_cl(pba,ppt,psp,ple,pop),
+    class_call(output_cl(pba,ppt,psp,pma,ple,pop),
                pop->error_message,
                pop->error_message);
   }
@@ -214,6 +216,7 @@ int output_init(
  * @param pba Input: pointer to background structure (needed for \f$ T_{cmb}\f$)
  * @param ppt Input: pointer perturbation structure
  * @param psp Input: pointer to spectra structure
+ * @param pma Input: pointer to matter structure
  * @param ple Input: pointer to lensing structure
  * @param pop Input: pointer to output structure
  */
@@ -222,6 +225,7 @@ int output_cl(
               struct background * pba,
               struct perturbs * ppt,
               struct spectra * psp,
+              struct matters* pma,
               struct lensing * ple,
               struct output * pop
               ) {
@@ -250,6 +254,13 @@ int output_cl(
 
   double * cl_tot;    /* array with argument
                          cl_tot[index_ct] */
+
+  double ** cl_matter_ic; /* array with argument
+                         cl_matter_ic[index_ic1_ic2][index_cltp*pma->num_window_grid+index_cltp] */
+
+  double * cl_matter_tot;    /* array with argument
+                         cl_matter_tot[index_cltp*pma->num_window_grid+index_cltp] */
+
 
   int index_md;
   int index_ic1,index_ic2,index_ic1_ic2;
@@ -289,6 +300,7 @@ int output_cl(
   sprintf(file_name,"%s%s",pop->root,"cl.dat");
 
   class_call(output_open_cl_file(psp,
+                                 pma,
                                  pop,
                                  &out,
                                  file_name,
@@ -302,12 +314,18 @@ int output_cl(
               psp->ct_size*sizeof(double),
               pop->error_message);
 
+  if(pma->has_cls){
+    class_alloc(cl_matter_tot,
+                pma->cltp_size*pma->num_window_grid*sizeof(double),
+                pop->error_message);
+  }
 
   if (ple->has_lensed_cls == _TRUE_) {
 
     sprintf(file_name,"%s%s",pop->root,"cl_lensed.dat");
 
     class_call(output_open_cl_file(psp,
+                                   pma,
                                    pop,
                                    &out_lensed,
                                    file_name,
@@ -337,6 +355,7 @@ int output_cl(
       }
 
       class_call(output_open_cl_file(psp,
+                                     pma,
                                      pop,
                                      &(out_md[index_md]),
                                      file_name,
@@ -483,6 +502,7 @@ int output_cl(
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
             class_call(output_open_cl_file(psp,
+                                           pma,
                                            pop,
                                            &(out_md_ic[index_md][index_ic1_ic2]),
                                            file_name,
@@ -502,17 +522,33 @@ int output_cl(
     }
   }
 
+  if(pma->has_cls && ppt->ic_size[ppt->index_md_scalars]>1){
+    class_alloc(cl_matter_ic,
+                pma->ic_ic_size*sizeof(double*),
+                pop->error_message);
+    for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
+      class_alloc(cl_matter_ic[index_ic1_ic2],
+                  pma->cltp_size*pma->num_window_grid*sizeof(double),
+                  pop->error_message);
+    }
+  }
+
   /** - third, perform loop over l. For each multipole, get all \f$ C_l\f$'s
       by calling spectra_cl_at_l() and distribute the results to
       relevant files */
 
-  for (l = 2; l <= psp->l_max_tot; l++) {
+  for (l = 2; l <= MAX(psp->l_max_tot,ppt->l_lss_max); l++) {
 
     class_call(spectra_cl_at_l(psp,(double)l,cl_tot,cl_md,cl_md_ic),
                psp->error_message,
                pop->error_message);
+    if(pma->has_cls){
+      class_call(matter_cl_at_l(pma,(double)l,cl_matter_tot,cl_matter_ic),
+                 pma->error_message,
+                 pop->error_message);
+    }
 
-    class_call(output_one_line_of_cl(pba,psp,pop,out,(double)l,cl_tot,psp->ct_size),
+    class_call(output_one_line_of_cl(pba,psp,pma,pop,out,(double)l,cl_tot,cl_matter_tot,psp->ct_size),
                pop->error_message,
                pop->error_message);
 
@@ -524,7 +560,7 @@ int output_cl(
                  ple->error_message,
                  pop->error_message);
 
-      class_call(output_one_line_of_cl(pba,psp,pop,out_lensed,l,cl_tot,psp->ct_size),
+      class_call(output_one_line_of_cl(pba,psp,pma,pop,out_lensed,l,cl_tot,NULL,psp->ct_size),
                  pop->error_message,
                  pop->error_message);
     }
@@ -533,7 +569,7 @@ int output_cl(
       for (index_md = 0; index_md < ppt->md_size; index_md++) {
         if (l <= psp->l_max[index_md]) {
 
-          class_call(output_one_line_of_cl(pba,psp,pop,out_md[index_md],l,cl_md[index_md],psp->ct_size),
+          class_call(output_one_line_of_cl(pba,psp,pma,pop,out_md[index_md],l,cl_md[index_md],(index_md==ppt->index_md_scalars?cl_matter_tot:NULL),psp->ct_size),
                      pop->error_message,
                      pop->error_message);
         }
@@ -545,7 +581,7 @@ int output_cl(
         for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-            class_call(output_one_line_of_cl(pba,psp,pop,out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*psp->ct_size]),psp->ct_size),
+            class_call(output_one_line_of_cl(pba,psp,pma,pop,out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*psp->ct_size]),(index_md==ppt->index_md_scalars?cl_matter_ic[index_ic1_ic2]:NULL),psp->ct_size),
                        pop->error_message,
                        pop->error_message);
           }
@@ -577,6 +613,15 @@ int output_cl(
     fclose(out_lensed);
   }
   free(cl_tot);
+  if(pma->has_cls){
+    free(cl_matter_tot);
+    if(ppt->ic_size[ppt->index_md_scalars]>1){
+      for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
+        free(cl_matter_ic[index_ic1_ic2]);
+      }
+      free(cl_matter_ic);
+    }
+  }
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
     free(out_md_ic[index_md]);
   }
@@ -1525,6 +1570,7 @@ int output_print_data(FILE *out,
 
 int output_open_cl_file(
                         struct spectra * psp,
+                        struct matters* pma,
                         struct output * pop,
                         FILE * * clfile,
                         FileName filename,
@@ -1651,6 +1697,25 @@ int output_open_cl_file(
         }
       }
     }
+    
+    
+    /** Either spectra or matter will have the nCl/sCl saved */
+    if (pma->has_cls == _TRUE_ && pma->has_cltp_nc == _TRUE_ ){
+      for (index_d1=0; index_d1<pma->num_windows; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+pma->non_diag,pma->num_windows-1); index_d2++){
+          sprintf(tmp,"dens[%d]-dens[%d]",index_d1+1,index_d2+1);
+          class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+        }
+      }
+    }
+    if (pma->has_cls == _TRUE_ && pma->has_cltp_sh == _TRUE_ ){
+      for (index_d1=0; index_d1<pma->num_windows; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+pma->non_diag,pma->num_windows-1); index_d2++){
+          sprintf(tmp,"lens[%d]-lens[%d]",index_d1+1,index_d2+1);
+          class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
+        }
+      }
+    }
     fprintf(*clfile,"\n");
   }
 
@@ -1674,13 +1739,15 @@ int output_open_cl_file(
 int output_one_line_of_cl(
                           struct background * pba,
                           struct spectra * psp,
+                          struct matters* pma,
                           struct output * pop,
                           FILE * clfile,
                           double l,
                           double * cl, /* array with argument cl[index_ct] */
+                          double * cl_matter, /* array with argument cl[index_cltp] */
                           int ct_size
                           ) {
-  int index_ct, index_ct_rest;
+  int index_ct, index_ct_rest, index_wd_grid, index_cltp;
   double factor;
 
   factor = l*(l+1)/2./_PI_;
@@ -1698,6 +1765,22 @@ int output_one_line_of_cl(
 
     for (index_ct=0; index_ct < ct_size; index_ct++) {
       class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
+    }
+    if(pma->has_cls){
+      if(cl_matter!=NULL){
+        for (index_cltp=0; index_cltp < pma->cltp_size; index_cltp++) {
+          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
+            class_fprintf_double(clfile, factor*cl_matter[index_cltp*pma->num_window_grid+index_wd_grid], _TRUE_);
+          }
+        }
+      }
+      else{
+        for (index_cltp=0; index_cltp < pma->cltp_size; index_cltp++) {
+          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
+            class_fprintf_double(clfile, 0.0, _TRUE_);
+          }
+        }
+      }
     }
     fprintf(clfile,"\n");
   }
@@ -1729,7 +1812,22 @@ int output_one_line_of_cl(
     for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {
       class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
     }
-
+    if(pma->has_cls){
+      if(cl_matter!=NULL){
+        for (index_cltp=0; index_cltp < pma->cltp_size; index_cltp++) {
+          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
+            class_fprintf_double(clfile, factor*cl_matter[index_cltp*pma->num_window_grid+index_wd_grid], _TRUE_);
+          }
+        }
+      }
+      else{
+        for (index_cltp=0; index_cltp < pma->cltp_size; index_cltp++) {
+          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
+            class_fprintf_double(clfile, 0.0, _TRUE_);
+          }
+        }
+      }
+    }
     fprintf(clfile,"\n");
 
   }

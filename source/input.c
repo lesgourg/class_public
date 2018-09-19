@@ -24,6 +24,7 @@ int input_init_from_arguments(
                               struct transfers *ptr,
                               struct primordial *ppm,
                               struct spectra *psp,
+                              struct matters * pma,
                               struct nonlinear * pnl,
                               struct lensing *ple,
                               struct output *pop,
@@ -171,6 +172,7 @@ int input_init_from_arguments(
                         ptr,
                         ppm,
                         psp,
+                        pma,
                         pnl,
                         ple,
                         pop,
@@ -200,6 +202,7 @@ int input_init(
                struct transfers *ptr,
                struct primordial *ppm,
                struct spectra *psp,
+               struct matters *pma,
                struct nonlinear * pnl,
                struct lensing *ple,
                struct output *pop,
@@ -238,6 +241,7 @@ int input_init(
                                    ptr,
                                    ppm,
                                    psp,
+                                   pma,
                                    pnl,
                                    ple,
                                    pop,
@@ -455,6 +459,7 @@ int input_init(
                                      ptr,
                                      ppm,
                                      psp,
+                                     pma,
                                      pnl,
                                      ple,
                                      pop,
@@ -494,6 +499,7 @@ int input_init(
                                      ptr,
                                      ppm,
                                      psp,
+                                     pma,
                                      pnl,
                                      ple,
                                      pop,
@@ -563,6 +569,7 @@ int input_read_precisions(
                           struct transfers *ptr,
                           struct primordial *ppm,
                           struct spectra *psp,
+                          struct matters *pma,
                           struct nonlinear * pnl,
                           struct lensing *ple,
                           struct output *pop,
@@ -601,6 +608,7 @@ int input_read_parameters(
                           struct transfers *ptr,
                           struct primordial *ppm,
                           struct spectra *psp,
+                          struct matters *pma,
                           struct nonlinear * pnl,
                           struct lensing *ple,
                           struct output *pop,
@@ -658,6 +666,7 @@ int input_read_parameters(
                                   ptr,
                                   ppm,
                                   psp,
+                                  pma,
                                   pnl,
                                   ple,
                                   pop),
@@ -2357,7 +2366,9 @@ int input_read_parameters(
                    "input of selection functions: the list of mean redshifts must be passed in growing order; you entered %e before %e",ppt->selection_mean[i-1],ppt->selection_mean[i]);
         ppt->selection_width[i] = ppt->selection_width[0];
         ptr->selection_bias[i] = ptr->selection_bias[0];
+        pma->selection_bias[i] = pma->selection_bias[0];
         ptr->selection_magnification_bias[i] = ptr->selection_magnification_bias[0];
+        pma->selection_magnification_bias[i] = pma->selection_magnification_bias[0];
       }
 
       class_call(parser_read_list_of_doubles(pfc,
@@ -2403,11 +2414,13 @@ int input_read_parameters(
         if (int1==1) {
           for (i=0; i<ppt->selection_num; i++) {
             ptr->selection_bias[i] = pointer1[0];
+            pma->selection_bias[i] = pointer1[0];
           }
         }
         else if (int1==ppt->selection_num) {
           for (i=0; i<int1; i++) {
             ptr->selection_bias[i] = pointer1[i];
+            pma->selection_bias[i] = pointer1[i];
           }
         }
         else {
@@ -2432,11 +2445,13 @@ int input_read_parameters(
         if (int1==1) {
           for (i=0; i<ppt->selection_num; i++) {
             ptr->selection_magnification_bias[i] = pointer1[0];
+            pma->selection_magnification_bias[i] = pointer1[0];
           }
         }
         else if (int1==ppt->selection_num) {
           for (i=0; i<int1; i++) {
             ptr->selection_magnification_bias[i] = pointer1[i];
+            pma->selection_magnification_bias[i] = pointer1[i];
           }
         }
         else {
@@ -2451,10 +2466,14 @@ int input_read_parameters(
 
     if (ppt->selection_num>1) {
       class_read_int("non_diagonal",psp->non_diag);
-      if ((psp->non_diag<0) || (psp->non_diag>=ppt->selection_num))
+      if(psp->non_diag==-1){ 
+        psp->non_diag = ppt->selection_num-1;
+      }
+      if ((psp->non_diag<-1) || (psp->non_diag>=ppt->selection_num))
         class_stop(errmsg,
                    "Input for non_diagonal is %d, while it is expected to be between 0 and %d\n",
                    psp->non_diag,ppt->selection_num-1);
+      pma->non_diag = psp->non_diag;
     }
 
     class_call(parser_read_string(pfc,
@@ -2468,9 +2487,12 @@ int input_read_parameters(
     if ((flag1 == _TRUE_)) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_analytic = _TRUE_;
+        pma->has_nz_analytic = _TRUE_;
       }else{
         ptr->has_nz_file = _TRUE_;
+        pma->has_nz_file = _TRUE_;
         class_read_string("dNdz_selection",ptr->nz_file_name);
+        class_read_string("dNdz_selection",pma->nz_file_name);
       }
     }
 
@@ -2485,9 +2507,12 @@ int input_read_parameters(
     if ((flag1 == _TRUE_)) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_evo_analytic = _TRUE_;
+        pma->has_nz_evo_analytic = _TRUE_;
       }else{
         ptr->has_nz_evo_file = _TRUE_;
+        pma->has_nz_evo_file = _TRUE_;
         class_read_string("dNdz_evolution",ptr->nz_evo_file_name);
+        class_read_string("dNdz_evolution",pma->nz_evo_file_name);
       }
     }
 
@@ -2509,6 +2534,151 @@ int input_read_parameters(
 
   }
   /* end of selection function section */
+  
+  /* deal with matter struct */
+  if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
+    /** First check, if matter should be used at all */
+    class_call(parser_read_string(pfc,"matter_activate",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+      /** Activate the module */
+      pma->has_cls = _TRUE_;
+      /** Check for comparison with spectra or ignore spectra */
+      class_call(parser_read_string(pfc,"matter_compare_spectra",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        ptr->has_nc = _TRUE_;
+      }
+      else{
+        ptr->has_nc = _FALSE_;
+      }
+      /** Now read further flags */
+      class_call(parser_read_string(pfc,"matter_uses_separability",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        pma->uses_separability = _TRUE_;
+      }
+      else if(flag1 == _TRUE_){
+        pma->uses_separability = _FALSE_;
+      }
+      class_call(parser_read_string(pfc,"matter_uses_intchi_interpolation",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        pma->uses_intxi_interpolation = _TRUE_;
+      }
+      else if(flag1 == _TRUE_){
+        pma->uses_intxi_interpolation = _FALSE_;
+      }
+      class_call(parser_read_string(pfc,"matter_uses_intchi_symmetrization",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        pma->uses_intxi_symmetrized = _TRUE_;
+      }
+      else if(flag1 == _TRUE_){
+        pma->uses_intxi_symmetrized = _FALSE_;
+      }
+      class_call(parser_read_string(pfc,"matter_uses_intchi_asymptotic",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        pma->uses_intxi_asymptotic = _TRUE_;
+      }
+      else if(flag1 == _TRUE_){
+        pma->uses_intxi_asymptotic = _FALSE_;
+      }
+      /** Read other options */
+      class_call(parser_read_string(pfc,"matter_extrapolation",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+      if(flag1 == _TRUE_){
+        if (((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))) {
+          pma->allow_extrapolation = _FALSE_;
+        }
+        else if(strstr(string1,"zeroes") != NULL || strstr(string1,"zeros") != NULL){
+          pma->allow_extrapolation = _TRUE_;
+          pma->extrapolation_type = extrapolation_zero;
+        }
+        else if(strstr(string1,"max_units") != NULL || strstr(string1,"max units") != NULL || strstr(string1,"units") != NULL){
+          pma->allow_extrapolation = _TRUE_;
+          pma->extrapolation_type = extrapolation_only_max_units;
+        }
+        else if(strstr(string1,"max_scaled") != NULL || strstr(string1,"scaled") != NULL){
+          pma->allow_extrapolation = _TRUE_;
+          pma->extrapolation_type = extrapolation_max_scaled;
+        }
+        else if(strstr(string1,"only_max") != NULL || strstr(string1,"only max") != NULL || strstr(string1,"max") != NULL){
+          pma->allow_extrapolation = _TRUE_;
+          pma->extrapolation_type = extrapolation_only_max;
+        }
+        else if(strstr(string1,"hmcode") != NULL || strstr(string1,"HMcode") != NULL || strstr(string1,"Hmcode") != NULL){
+          pma->allow_extrapolation = _TRUE_;
+          pma->extrapolation_type = extrapolation_hmcode;
+        }
+        else if(strstr(string1,"user") != NULL){
+          pma->allow_extrapolation = _TRUE_;
+          pma->extrapolation_type = extrapolation_user_defined;
+        }
+      }
+      class_call(parser_read_double(pfc,"matter_tw_size",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->tw_size = param1;
+      }
+      class_call(parser_read_double(pfc,"matter_integrated_tw_size",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->integrated_tw_size = param1;
+      }
+      class_call(parser_read_double(pfc,"matter_t_spline_size",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->t_spline_size = param1;
+      }
+      class_call(parser_read_double(pfc,"matter_t_size",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->t_size = param1;
+      }
+      class_call(parser_read_double(pfc,"matter_tau_size_max",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->tau_size_max = param1;
+      }
+      class_call(parser_read_double(pfc,"matter_fft_size",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->size_fft_cutoff = param1;
+      }
+      pma->size_fft_input = 2;
+      while(pma->size_fft_input < param1-1){
+        pma->size_fft_input*=2;
+      }
+      pma->size_fft_input*=2;
+      printf("%4d = size fft input \n",pma->size_fft_input);
+      
+      class_call(parser_read_double(pfc,"matter_tilt",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if(flag1 == _TRUE_){
+        pma->bias = param1;
+      }
+    }
+    else{
+      pma->has_cls=_FALSE_;
+    }
+  }
+  /* end of matter struct */
 
   /* deal with z_max issues */
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
@@ -2622,6 +2792,9 @@ int input_read_parameters(
 
   class_read_int("spectra_verbose",
                  psp->spectra_verbose);
+  
+  class_read_int("matter_verbose",
+                 pma->matter_verbose);
                  
   class_read_int("nonlinear_verbose",
                  pnl->nonlinear_verbose);
@@ -2816,6 +2989,7 @@ int input_default_params(
                          struct transfers *ptr,
                          struct primordial *ppm,
                          struct spectra *psp,
+                         struct matters *pma,
                          struct nonlinear * pnl,
                          struct lensing *ple,
                          struct output *pop
@@ -3087,6 +3261,8 @@ int input_default_params(
   ptr->has_nz_file = _FALSE_;
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
+  ptr->has_nc = _TRUE_;
+  
   /** - output structure */
 
   pop->z_pk_num = 1;
@@ -3104,6 +3280,33 @@ int input_default_params(
   psp->z_max_pk = pop->z_pk[0];
   psp->non_diag=0;
 
+  /** - matter structure */
+  pma->has_cls = _FALSE_;
+  pma->uses_separability = _TRUE_;
+  pma->uses_intxi_interpolation = _TRUE_;
+  pma->uses_intxi_symmetrized = _TRUE_;
+  pma->uses_intxi_logarithmic = _TRUE_;
+  pma->uses_intxi_asymptotic = _FALSE_;
+  
+  pma->selection_bias[0]=1.;
+  pma->selection_magnification_bias[0]=0.;
+  pma->has_nz_file = _FALSE_;
+  pma->has_nz_analytic = _FALSE_;
+  pma->has_nz_evo_analytic = _FALSE_;
+  pma->has_nz_evo_file = _FALSE_;
+  pma->non_diag=0;
+  
+  pma->allow_extrapolation = _TRUE_;
+  pma->extrapolation_type = extrapolation_max_scaled;
+  pma->tw_size = 25;
+  pma->integrated_tw_size = 75;
+  pma->t_spline_size = 60;
+  pma->t_size = 150;
+  pma->tau_size_max = 200;
+  pma->size_fft_input = pow(2,8);
+  pma->size_fft_cutoff = pma->size_fft_input/2+1;
+  pma->bias = 1.9;
+  
   /** - nonlinear structure */
 
   /** - lensing structure */
@@ -3121,6 +3324,7 @@ int input_default_params(
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;
   ptr->transfer_verbose = 0;
+  pma->matter_verbose = 0;
   ppm->primordial_verbose = 0;
   psp->spectra_verbose = 0;
   pnl->nonlinear_verbose = 0;
@@ -3314,6 +3518,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
+  struct matters ma;          /* for matter spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
@@ -3340,6 +3545,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
                                    &tr,
                                    &pm,
                                    &sp,
+                                   &ma,
                                    &nl,
                                    &le,
                                    &op,
@@ -3432,6 +3638,13 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
   }
   
+  if (pfzw->required_computation_stage >= cs_matter){
+    if (input_verbose>2)
+      printf("Stage 8: matter spectra\n");
+    ma.matter_verbose = 0;
+    class_call(matter_init(&pr,&ba,&th,&pt,&pm,&nl,&ma), ma.error_message, errmsg);
+  }
+  
   /** - Get the corresponding shoot variable and put into output */
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
@@ -3476,6 +3689,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 
   /** - Free structures */
+  if (pfzw->required_computation_stage >= cs_matter){
+    class_call(matter_free(&ma), ma.error_message, errmsg);
+  }
   if (pfzw->required_computation_stage >= cs_spectra){
     class_call(spectra_free(&sp), sp.error_message, errmsg);
   }
@@ -3518,6 +3734,7 @@ int input_get_guess(double *xguess,
   struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
   struct spectra sp;          /* for output spectra */
+  struct matters ma;          /* for matter spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
@@ -3536,6 +3753,7 @@ int input_get_guess(double *xguess,
                                    &tr,
                                    &pm,
                                    &sp,
+                                   &ma,
                                    &nl,
                                    &le,
                                    &op,

@@ -27,6 +27,7 @@
 #include "primordial.h"
 #include "nonlinear.h"
 #include "transfer.h"
+#include "matter.h"
 #include "spectra.h"
 #include "lensing.h"
 #include "output.h"

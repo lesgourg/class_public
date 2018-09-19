@@ -1946,12 +1946,12 @@ int spectra_indices(
     }
 
     if ((ppt->has_scalars == _TRUE_) &&
-        ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)))
+        ((ptr->has_nc && ppt->has_cl_number_count == _TRUE_) || (ptr->has_nc && ppt->has_cl_lensing_potential == _TRUE_)) && (ptr->has_nc))
       psp->d_size=ppt->selection_num;
     else
       psp->d_size=0;
 
-    if ((ppt->has_cl_number_count == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+    if ((ptr->has_nc && ppt->has_cl_number_count == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_dd = _TRUE_;
       psp->index_ct_dd=index_ct;
       index_ct+=(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2;
@@ -1977,7 +1977,7 @@ int spectra_indices(
     */
     psp->has_td = _FALSE_;
 
-    if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ppt->has_cl_number_count == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+    if ((ptr->has_nc && ppt->has_cl_cmb_lensing_potential == _TRUE_) && (ptr->has_nc && ppt->has_cl_number_count == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_pd = _TRUE_;
       psp->index_ct_pd=index_ct;
       index_ct+=psp->d_size;
@@ -1988,7 +1988,7 @@ int spectra_indices(
 
     psp->has_td = _FALSE_;
 
-    if ((ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+    if ((ptr->has_nc && ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_ll = _TRUE_;
       psp->index_ct_ll=index_ct;
       index_ct+=(psp->d_size*(psp->d_size+1)-(psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag))/2;
@@ -2003,7 +2003,7 @@ int spectra_indices(
        than either slowing down the code considerably, or producing
        very inaccurate spectra.
 
-       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+       if ((ppt->has_cl_cmb_temperature == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)  && (ptr->has_nc)) {
        psp->has_tl = _TRUE_;
        psp->index_ct_tl=index_ct;
        index_ct+=psp->d_size;
@@ -2014,7 +2014,7 @@ int spectra_indices(
     */
     psp->has_tl = _FALSE_;
 
-    if ((ppt->has_cl_number_count == _TRUE_) && (ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
+    if ((ptr->has_nc && ppt->has_cl_number_count == _TRUE_) && (ptr->has_nc && ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_dl = _TRUE_;
       psp->index_ct_dl=index_ct;
       index_ct += psp->d_size*psp->d_size - (psp->d_size-psp->non_diag)*(psp->d_size-1-psp->non_diag);
@@ -2398,7 +2398,7 @@ int spectra_compute_cl(
 
   index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
 
-  if (ppt->has_cl_number_count == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_  && (ptr->has_nc)) {
     class_alloc(transfer_ic1_nc,psp->d_size*sizeof(double),psp->error_message);
     class_alloc(transfer_ic2_nc,psp->d_size*sizeof(double),psp->error_message);
   }
@@ -2461,7 +2461,7 @@ int spectra_compute_cl(
       }
     }
 
-    if (ppt->has_cl_number_count == _TRUE_) {
+    if (ppt->has_cl_number_count == _TRUE_  && (ptr->has_nc == _TRUE_)) {
 
       for (index_d1=0; index_d1<psp->d_size; index_d1++) {
 
@@ -2765,7 +2765,7 @@ int spectra_compute_cl(
     }
   }
 
-  if (ppt->has_cl_number_count == _TRUE_) {
+  if (ppt->has_cl_number_count == _TRUE_  && (ptr->has_nc)) {
     free(transfer_ic1_nc);
     free(transfer_ic2_nc);
   }

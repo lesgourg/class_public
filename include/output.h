@@ -5,6 +5,7 @@
 
 #include "common.h"
 #include "lensing.h"
+#include "matter.h"
 
 /**
  * Maximum number of values of redshift at which the spectra will be
@@ -86,6 +87,7 @@ extern "C" {
                   struct primordial * ppm,
                   struct transfers * ptr,
                   struct spectra * psp,
+                  struct matters* pma,
                   struct nonlinear * pnl,
                   struct lensing * ple,
                   struct output * pop
@@ -95,6 +97,7 @@ extern "C" {
                 struct background * pba,
                 struct perturbs * ppt,
                 struct spectra * psp,
+                struct matters * pma,
                 struct lensing * ple,
                 struct output * pop
                 );
@@ -149,6 +152,7 @@ extern "C" {
                         int tau_size);
   int output_open_cl_file(
                           struct spectra * psp,
+                          struct matters * pma,
                           struct output * pop,
                           FILE ** clfile,
                           FileName filename,
@@ -159,10 +163,12 @@ extern "C" {
   int output_one_line_of_cl(
                             struct background * pba,
                             struct spectra * psp,
+                            struct matters * pma,
                             struct output * pop,
                             FILE * clfile,
                             double l,
                             double * cl,
+                            double * cl_matter,
                             int ct_size
                             );
 

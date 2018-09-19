@@ -12,6 +12,7 @@
 #include "transfer.h"
 #include "primordial.h"
 #include "spectra.h"
+#include "matter.h"
 #include "nonlinear.h"
 #include "lensing.h"
 #include "output.h"
@@ -136,7 +137,7 @@
 
 enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
 enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations,
-                        cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
+                        cs_primordial, cs_nonlinear, cs_transfer, cs_spectra ,cs_matter};
 #define _NUM_TARGETS_ 7 //Keep this number as number of target_names
 
 struct input_pprpba {
@@ -173,6 +174,7 @@ extern "C" {
 		 struct transfers *ptr,
 		 struct primordial *ppm,
 		 struct spectra *psp,
+	   	 struct matters *pma,
 		 struct nonlinear *pnl,
 		 struct lensing *ple,
 		 struct output *pop,
@@ -188,6 +190,7 @@ extern "C" {
 		 struct transfers *ptr,
 		 struct primordial *ppm,
 		 struct spectra *psp,
+		 struct matters *pma,
 		 struct nonlinear *pnl,
 		 struct lensing *ple,
 		 struct output *pop,
@@ -203,27 +206,27 @@ extern "C" {
                             struct transfers *ptr,
                             struct primordial *ppm,
                             struct spectra *psp,
+			    struct matters *pma,
                             struct nonlinear *pnl,
                             struct lensing *ple,
                             struct output *pop,
                             ErrorMsg errmsg
                             );
-
   int input_read_precisions(
                             struct file_content * pfc,
                             struct precision * ppr,
-                            struct background * pba,
+                            struct background *pba,
                             struct thermo *pth,
                             struct perturbs *ppt,
                             struct transfers *ptr,
                             struct primordial *ppm,
                             struct spectra *psp,
-                            struct nonlinear *pnl,
+                            struct matters *pma,
+                            struct nonlinear * pnl,
                             struct lensing *ple,
                             struct output *pop,
                             ErrorMsg errmsg
                             );
-
   int input_default_params(
 			   struct background *pba,
 			   struct thermo *pth,
@@ -231,6 +234,7 @@ extern "C" {
 			   struct transfers *ptr,
 			   struct primordial *ppm,
 			   struct spectra *psp,
+			   struct matters *pma,
 			   struct nonlinear *pnl,
 			   struct lensing *ple,
 			   struct output *pop

@@ -79,6 +79,7 @@ struct transfers {
   //@{
 
   short has_cls; /**< copy of same flag in perturbation structure */
+  short has_nc; /**< same flag, but only for nc contributions, used to disable module's nc capabilities if matter is used instead */
 
   //@}
 
