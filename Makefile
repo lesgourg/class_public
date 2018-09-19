@@ -75,9 +75,9 @@ endif
 %.o:  %.c .base
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o hypergeom.o fft.o extrapolate_source.o
 
-SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o
+SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o matter.o lensing.o
 
 INPUT = input.o
 
@@ -90,6 +90,8 @@ THERMO = thermodynamics.o
 PERTURBATIONS = perturbations.o
 
 TRANSFER = transfer.o
+
+MATTER = matter.o
 
 PRIMORDIAL = primordial.o
 
