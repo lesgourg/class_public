@@ -509,7 +509,6 @@ int transfer_indices_of_transfers(
     class_define_index(ptr->index_tt_t0,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_t1,     ppt->has_cl_cmb_temperature,      index_tt,1);
     class_define_index(ptr->index_tt_lcmb,   ppt->has_cl_cmb_lensing_potential,index_tt,1);
-    printf("HAS NC? %s \n",(ptr->has_nc?"yes":"no"));
     if(ptr->has_nc){
       class_define_index(ptr->index_tt_density,ppt->has_nc_density,              index_tt,ppt->selection_num);
       class_define_index(ptr->index_tt_rsd,    ppt->has_nc_rsd,                  index_tt,ppt->selection_num);
