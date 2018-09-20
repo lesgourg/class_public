@@ -482,7 +482,8 @@ struct thermo_workspace {
   int index_ap_He2; /**< index for start of 2nd He-recombination (HeII) */
   int index_ap_H; /**< index for start of H-recombination (HI) */
   int index_ap_frec; /**< index for full recombination */
-
+  int index_ap_reio; /**< index for reionization */
+  
   int ap_current; /** current fixed approximation scheme index */
   int ap_size; /**< number of approximation intervals during recombination */
 
@@ -499,7 +500,9 @@ struct thermodynamics_parameters_and_workspace {
   /* structures containing fixed input parameters (indices, ...) */
   struct background * pba;
   struct precision * ppr;
+  struct thermo * pth;
   struct recombination * preco;
+  struct reionization * preio;
 
   /* workspace */
   double * pvecback;
@@ -533,11 +536,11 @@ extern "C" {
 			  );
 
   int thermodynamics_free(
-			  struct thermo * pthermo
+			  struct thermo * pth
 			  );
 
   int thermodynamics_indices(
-			     struct thermo * pthermo,
+			     struct thermo * pth,
 			     struct recombination * preco,
 			     struct reionization * preio
 			     );
@@ -602,7 +605,8 @@ extern "C" {
 				   struct precision * ppr,
 				   struct background * pba,
 				   struct thermo * pth,
-				   struct recombination * prec,
+				   struct recombination * preco,
+                   struct reionization * preio,
 				   double * pvecback
 				   );
 
@@ -610,7 +614,7 @@ extern "C" {
 						struct precision * ppr,
 						struct background * pba,
 						struct thermo * pth,
-						struct recombination * prec,
+						struct recombination * preco,
 						double * pvecback
 						);
 
@@ -618,8 +622,9 @@ extern "C" {
 						struct precision * ppr,
 						struct background * pba,
 						struct thermo * pth,
-						struct recombination * prec,
-                                                struct thermo_workspace * ptw,
+						struct recombination * preco,
+                        struct reionization * preio,
+                        struct thermo_workspace * ptw,
 						double * pvecback
 						);
 
@@ -634,7 +639,9 @@ extern "C" {
   
   int thermodynamics_x_analytic(
                               double z,
+                              struct thermo * pth,
                               struct recombination * preco,
+                              struct reionization * preio,
                               struct thermo_workspace * ptw,
                               int current_ap                          
                               );
@@ -643,7 +650,8 @@ extern "C" {
                        struct precision * ppr,
                        struct background * pba,
                        struct thermo * pth,
-                       struct recombination *preco,
+                       struct recombination * preco,
+                       struct reionization * preio,
                        double z,
                        struct thermo_workspace * ptw
                        );
@@ -658,6 +666,29 @@ extern "C" {
                            struct thermo * pth,
                            struct thermo_workspace * ptw
                            );
+  
+  int thermodynamics_recombination_set_parameters(
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct recombination * preco
+                       );
+  
+  int thermodynamics_reionization_set_parameters(
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct recombination * preco,
+                       struct reionization * preio
+                       ); 
+  
+  int thermodynamics_reionization_get_tau(
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct thermo * pth,
+                                struct recombination * preco,
+                                struct reionization * preio
+                                );
   
   int thermodynamics_set_approximation_limits(
                                       struct precision * ppr,

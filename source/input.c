@@ -1222,7 +1222,7 @@ int input_read_parameters(
     class_read_double("many_tanh_width",pth->many_tanh_width);
   }
 
-  /** - reionization parameters if reio_parametrization=reio_many_tanh */
+  /** - reionization parameters if reio_parametrization=reio_inter */
   if (pth->reio_parametrization == reio_inter) {
     class_read_int("reio_inter_num",pth->reio_inter_num);
     class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
@@ -3308,7 +3308,7 @@ int input_default_precision ( struct precision * ppr ) {
   /* for reionization */
 
   ppr->reionization_z_start_max = 50.;
-  ppr->reionization_sampling=5.e-2;
+  ppr->reionization_sampling=0.1; // 5.e-2 changed to new calculation of reionization, now represents minimal stepsize in z
   ppr->reionization_optical_depth_tol=1.e-4;
   ppr->reionization_start_factor=8.;
 
