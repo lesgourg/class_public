@@ -2115,7 +2115,7 @@ int nonlinear_hmcode_growint(
 			z = 1./scalefactor-1.;
       X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
       Hubble2 = (Omega0_m*pow((1.+z), 3.) + Omega0_k*pow((1.+z), 2.) + Omega0_v*X_de);
-      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;
+      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;//TBC check that the matching between the background quantity and this fitting formula improves by using Omega_cb (as it is done in background). Carefull: Hubble remains with Omega0_m 
  
 			if (w0 == -1.){
 				gamma = 0.55;
@@ -2294,7 +2294,7 @@ int nonlinear_hmcode(
   int index_ddy;
   
   /* Background parameters */
-  double Omega_m,fnu,Omega0_m,Omega0_cb,Omega0_cbn;
+  double Omega_m,fnu,Omega0_m;
   double z_at_tau;
   double rho_crit_today_in_msun_mpc3;
   double growth;  
@@ -2345,25 +2345,21 @@ int nonlinear_hmcode(
   /** Call all the relevant background parameters at this tau */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  Omega0_cbn = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  Omega0_cb = (pba->Omega0_cdm + pba->Omega0_b);
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
   
   /** If index_pk_cb, choose Omega0_cb as the matter density parameter. If index_pk_m, choose Omega0_cbn as the matter density parameter. */
   if (index_pk==pnl->index_pk_cb){
-    Omega0_m = Omega0_cbn;
-  }
-  else {
-    Omega0_m = Omega0_cb;
+    Omega0_m = Omega0_m - pba->Omega0_ncdm_tot;
   }
   
-  fnu      = pba->Omega0_ncdm_tot/Omega0_cbn;
+  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
   anorm    = 1./(2*pow(_PI_,2));  
   
   class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
              pba->error_message,
              pnl->error_message);
 
-  Omega_m = pvecback[pba->index_bg_Omega_m];
+  Omega_m = pvecback[pba->index_bg_Omega_m];//TBC (i.e. check if for P_cb here we should use Omega_cb) here the total time varying Omega_m is used for delta_c and for Delta_v according to the Mead fit of the Massara simulations.
 
   growth = pvecback[pba->index_bg_D];
 
