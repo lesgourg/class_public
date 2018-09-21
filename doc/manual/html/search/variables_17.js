@@ -1,6 +1,7 @@
 var searchData=
 [
   ['z_5fd',['z_d',['../thermodynamics_8h.html#a538b4456df5d31848278443a33358dc2',1,'thermo']]],
+  ['z_5feq',['z_eq',['../background_8h.html#a935a0fd24b41fd978c09b1ab6dafb5f9',1,'background']]],
   ['z_5fmax_5fpk',['z_max_pk',['../perturbations_8h.html#a2d72e5b17cdc85ac301e50c3835d1311',1,'perturbs::z_max_pk()'],['../spectra_8h.html#a41d693f09f93f7d77ff9a441c9403f09',1,'spectra::z_max_pk()']]],
   ['z_5fpk',['z_pk',['../output_8h.html#af0802a2f0198a459a538665088453276',1,'output']]],
   ['z_5fpk_5fnum',['z_pk_num',['../output_8h.html#a50a980e835994df9d57456ae1c264629',1,'output']]],

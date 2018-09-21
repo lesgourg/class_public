@@ -5,7 +5,7 @@ class
 libclass.a
 *out
 python/classy.c
-python/*.pyc
+*.pyc
 python/build/
 DM_Annihilation/
 DM_decay_files/
@@ -32,3 +32,6 @@ output/*
 root_ini_files/
 class.dSYM/*
 cosmorec/
+
+RealSpaceInterface/cache/
+.DS_Store

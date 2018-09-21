@@ -185,6 +185,8 @@ struct spectra {
 
   double sigma8;    /**< sigma8 parameter */
 
+  double sigma8_cb; /**< if ncdm present: contribution to sigma8 from only baryons and cdm */
+
   double * ln_pk_l;   /**q< Total linear matter power spectrum, just
                            depending on indices index_k, index_tau as:
                            ln_pk[index_tau * psp->k_size + index_k]
@@ -214,6 +216,13 @@ struct spectra {
                           ln_pk_nl[index_tau * psp->k_size + index_k]
                     */
   double * ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  double * ln_pk_cb;           /**< same as ln_pk_l for baryon+cdm component only */
+  double * ddln_pk_cb;         /**< same as ddln_pk_cb for baryon+cdm component only */
+  double * ln_pk_cb_l;         /**< same as ln_pk_cb_l for baryon+cdm component only */
+  double * ddln_pk_cb_l;       /**< same as ddln_pk_cb_l for baryon+cdm component only */
+  double * ln_pk_cb_nl;        /**< same as ln_pk_cb_nl for baryon+cdm component only */
+  double * ddln_pk_cb_nl;      /**< same as ddln_pk_cb_nl for baryon+cdm component only */
 
   int index_tr_delta_g;        /**< index of gamma density transfer function */
   int index_tr_delta_b;        /**< index of baryon density transfer function */
@@ -299,7 +308,9 @@ extern "C" {
                       enum linear_or_logarithmic mode,
                       double z,
                       double * output_tot,
-                      double * output_ic
+                      double * output_ic,
+                      double * output_cb_tot,
+                      double * output_cb_ic
                       );
 
   int spectra_pk_at_k_and_z(
@@ -309,7 +320,9 @@ extern "C" {
                             double k,
                             double z,
                             double * pk,
-                            double * pk_ic
+                            double * pk_ic,
+                            double * pk_cb,
+                            double * pk_cb_ic
                             );
 
   int spectra_pk_nl_at_z(
@@ -317,7 +330,8 @@ extern "C" {
                          struct spectra * psp,
                          enum linear_or_logarithmic mode,
                          double z,
-                         double * output_tot
+                         double * output_tot,
+                         double * output_cb_tot
                          );
 
   int spectra_pk_nl_at_k_and_z(
@@ -326,7 +340,8 @@ extern "C" {
                                struct spectra * psp,
                                double k,
                                double z,
-                               double * pk_tot
+                               double * pk_tot,
+                               double * pk_cb_tot
                                );
 
   int spectra_tk_at_z(
@@ -415,6 +430,15 @@ extern "C" {
                     double *sigma
                     );
 
+  int spectra_sigma_cb(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct spectra * psp,
+                    double R,
+                    double z,
+                    double *sigma_cb
+                    );
+
   int spectra_matter_transfers(
                                struct background * pba,
                                struct perturbs * ppt,
@@ -441,6 +465,17 @@ extern "C" {
                                      int index_ic,
                                      char first_line[_LINE_LENGTH_MAX_],
                                      FileName ic_suffix);
+
+  int spectra_fast_pk_at_kvec_and_zvec(
+				       struct background * pba,
+				       struct spectra * psp,
+				       double * kvec,
+				       int kvec_size,
+				       double * zvec,
+				       int zvec_size,
+				       double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
+                       double * pk_cb_tot_out,
+				       int nonlinear);
 
 #ifdef __cplusplus
 }

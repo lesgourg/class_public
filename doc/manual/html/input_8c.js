@@ -9,5 +9,6 @@ var input_8c =
     [ "class_fzero_ridder", "input_8c.html#a3fce286212c955b92a4cfd3f76194e2e", null ],
     [ "input_try_unknown_parameters", "input_8c.html#a8902799b68422227ff6a3293ebd6bd94", null ],
     [ "input_get_guess", "input_8c.html#a5faf7f188b4f34fd45b34e3eec302d12", null ],
-    [ "input_find_root", "input_8c.html#aee772d452d6a10313e151ffc9d4db8c5", null ]
+    [ "input_find_root", "input_8c.html#aee772d452d6a10313e151ffc9d4db8c5", null ],
+    [ "input_prepare_pk_eq", "input_8c.html#a978f28690f3030ff6b5f2f5f15310d03", null ]
 ];

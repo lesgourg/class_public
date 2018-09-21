@@ -1,0 +1,189 @@
+body {
+    margin: 0;
+    overflow: hidden;
+}
+
+.activityIndicator-active, .activityIndicator-inactive {
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: inline-block;
+    vertical-align: sub;
+}
+
+.activityIndicator-active {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    animation: spin 2s linear infinite;
+}
+
+.activityIndicator-inactive {
+    border: 3px solid #444;
+    display: none;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+td.color-circle-container {
+    vertical-align: middle;
+}
+
+.color-circle {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin: auto;
+}
+
+.popover {
+    max-width: 100%;
+}
+
+.modal {
+    overflow-y: scroll;
+}
+
+/* PLOTS */
+
+#plotWindowContainer {
+    position: absolute;
+    top: 50px;
+    left: 0px;
+    overflow: hidden;
+}
+
+#plotWindowWrapper {
+    min-width: 550px;
+    border-radius: 3px;
+}
+
+.plotWindowWrapperHidden {
+}
+
+.plotWindowWrapperVisible {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.plotWindowHidden, .plotWindowVisible {
+    overflow-x: hidden;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+.plotWindowHidden {
+    display: none;
+    margin: 0px;
+}
+
+.plotWindowVisible {
+    display: block;
+    min-height: 200px;
+}
+
+.plotWindowVisible:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+#plotWindowToggle {
+    width: 100%;
+}
+
+/* END PLOTS */
+
+#aboutLink {
+    position: absolute;
+    padding: 5px;
+    right: 0;
+    bottom: 0;
+    text-align: right;
+    vertical-align: bottom;
+    border-top-left-radius: 3px;
+}
+
+#statusBar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    padding: 5px;
+    border-top-right-radius: 3px;
+}
+
+#statusBar p {
+    margin: 0;
+    vertical-align: bottom;
+}
+
+.status-bar-item {
+    display: inline-block;
+}
+
+/* */
+#simulationTable td {
+    text-align: center;
+    vertical-align: middle;
+}
+
+#simulationTable th {
+    text-align: center;
+    border: none;
+}
+
+.visible-checkbox {
+    vertical-align: middle;
+}
+
+/* .cmap-preview, .cmap-preview-button { */
+/* } */
+
+.cmap-preview {
+    width: 64px;
+    height: inherit;
+    margin-left: 1em;
+}
+
+/* .cmap-preview-button { */
+/*     height: 1em; */
+/*     vertical-align: middle; */
+/* } */
+
+#colormap-selector-button-placeholder {
+    width: 64px;
+    display: inline-block;
+}
+
+.colormap-selector-item {
+    display: flex;
+    justify-content: space-between;
+}
+
+.scrollable-menu {
+    height: auto;
+    max-height: 200px;
+    overflow-x: hidden;
+}
+
+
+/* FIX DAT.GUI */
+.dg .c input[type=text] {
+    line-height:normal;
+}
+
+.dg .c div {
+    box-sizing: content-box;
+}
+
+/* END FIX */
+
+
+#exceptionModalMessage {
+    white-space: pre;
+}
+
+.modal-lg {
+    max-width: 900px;
+}

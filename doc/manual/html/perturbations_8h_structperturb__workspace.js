@@ -33,6 +33,8 @@ var perturbations_8h_structperturb__workspace =
     [ "shear_ncdm", "perturbations_8h.html#a2eddf1e8180bec09e4dfdc9431f325c0", null ],
     [ "delta_m", "perturbations_8h.html#ae531e6d411f7f9dc56e39d3d3cc09b4a", null ],
     [ "theta_m", "perturbations_8h.html#aca8d43e66e75be956a00a410ccf2cf10", null ],
+    [ "delta_cb", "perturbations_8h.html#a897f5b42ffea7a51e4516dcf37af018f", null ],
+    [ "theta_cb", "perturbations_8h.html#a17e489d57102234b09ff12d15a4f8db8", null ],
     [ "delta_rho_fld", "perturbations_8h.html#a1ff232ab9972a00e7d7a6555a273e3ff", null ],
     [ "rho_plus_p_theta_fld", "perturbations_8h.html#a25bc2272bfc81d102eedaf2190c41a1f", null ],
     [ "S_fld", "perturbations_8h.html#a0f7a31f3e3545c35d86d5c8df320960b", null ],
