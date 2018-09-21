@@ -2294,7 +2294,7 @@ int nonlinear_hmcode(
   int index_ddy;
   
   /* Background parameters */
-  double Omega_m,fnu,Omega0_m;
+  double Omega_m,fnu,Omega0_m,Omega0_cb,Omega0_cbn;
   double z_at_tau;
   double rho_crit_today_in_msun_mpc3;
   double growth;  
@@ -2345,9 +2345,18 @@ int nonlinear_hmcode(
   /** Call all the relevant background parameters at this tau */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  Omega0_cbn = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  Omega0_cb = (pba->Omega0_cdm + pba->Omega0_b);
   
-  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
+  /** If index_pk_cb, choose Omega0_cb as the matter density parameter. If index_pk_m, choose Omega0_cbn as the matter density parameter. */
+  if (index_pk==pnl->index_pk_cb){
+    Omega0_m = Omega0_cbn;
+  }
+  else {
+    Omega0_m = Omega0_cb;
+  }
+  
+  fnu      = pba->Omega0_ncdm_tot/Omega0_cbn;
   anorm    = 1./(2*pow(_PI_,2));  
   
   class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
@@ -2372,6 +2381,7 @@ int nonlinear_hmcode(
   else {
     index_pk_cb = index_pk;
   }
+  
    
   /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h) and write them into pnl structure */
   class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,8./pba->h,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],&sigma8), 
