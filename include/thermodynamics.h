@@ -462,6 +462,9 @@ struct thermo_vector {
 
 struct thermo_workspace {
 
+  double * pvecback;
+  int last_index_back;
+  
   struct thermo_vector * tv; /**< pointer to vector of integrated
                                  quantities and their
                                  time-derivatives */
@@ -502,7 +505,6 @@ struct thermodynamics_parameters_and_workspace {
   struct recombination * preco;
 
   /* workspace */
-  double * pvecback;
   struct thermo_workspace * ptw;
 
 };
@@ -658,6 +660,10 @@ extern "C" {
                            struct thermo * pth,
                            struct thermo_workspace * ptw
                            );
+  
+  int thermo_workspace_free (
+                            struct thermo_workspace * ptw
+                            );
   
   int thermodynamics_set_approximation_limits(
                                       struct precision * ppr,

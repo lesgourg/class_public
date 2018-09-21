@@ -2624,7 +2624,10 @@ int thermodynamics_recombination(
                pth->error_message,
                pth->error_message);
 
-    free(ptw);
+    class_call(thermo_workspace_free(ptw),
+               pth->error_message,
+               pth->error_message);   
+    
   }
 
   return _SUCCESS_;
@@ -3078,13 +3081,13 @@ int thermodynamics_recombination_with_recfast(
 
   preco->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
-
+  /** - initialize indices relevant for background tables search */
+  ptw->last_index_back=0;
   
   /** - define the fields of the 'thermodynamics parameter and workspace' structure */
   tpaw.pba = pba;
   tpaw.ppr = ppr;
   tpaw.preco = preco;
-  tpaw.pvecback = pvecback;
   tpaw.ptw = ptw;
 
  
@@ -3136,6 +3139,8 @@ int thermodynamics_recombination_with_recfast(
                pth->error_message,
                pth->error_message);
     
+
+    
     /** - --> (c) integrate the quantities over the current interval. */
     if(ppr->evolver == rk){
       generic_evolver = evolver_rk;
@@ -3162,6 +3167,8 @@ int thermodynamics_recombination_with_recfast(
                                pth->error_message),
                  pth->error_message,
                  pth->error_message);
+    
+
 
   }
 
@@ -3188,6 +3195,7 @@ int thermodynamics_recombination_with_recfast(
                pth->error_message);
   
   free(interval_limit);
+  free(mz_output);
   
 
   return _SUCCESS_;
@@ -3234,6 +3242,8 @@ int thermodynamics_derivs_with_recfast(
 
   /* define local variables */
 
+
+
   double z;
   double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,Hz,dHdz,epsilon;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
@@ -3265,31 +3275,33 @@ int thermodynamics_derivs_with_recfast(
   double tau;
   double chi_heat;
   double chi_ion_H;
-  int last_index_back;
 
   z = -mz;
 
   /** - rename structure fields (just to avoid heavy notations) */
   ptpaw = parameters_and_workspace;
+  
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   preco = ptpaw->preco;
-  pvecback = ptpaw->pvecback;
+   
   ptw = ptpaw->ptw;
+  pvecback = ptw->pvecback;
   ap_current = ptw->ap_current;
-
+  
   /** - get background/thermo quantities in this point */
   class_call(background_tau_of_z(pba,
                                  z,
                                  &tau),
              pba->error_message,
              error_message);
+  
 
   class_call(background_at_tau(pba,
                                tau,
                                pba->short_info,
                                pba->inter_normal,
-                               &last_index_back,
+                               &ptw->last_index_back,
                                pvecback),
              pba->error_message,
              error_message);
@@ -3297,8 +3309,8 @@ int thermodynamics_derivs_with_recfast(
   class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,error_message),
              error_message,
              error_message);
-
-
+  
+  
   /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs) */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
   
@@ -3310,11 +3322,11 @@ int thermodynamics_derivs_with_recfast(
   /* First check for the current appoximation scheme. As long as there is 
      no full recombination, x_H, x_He and x are evolved with analytic functions.
   */
-  Tmat = y[ptw->tv->index_Tmat];
+  Tmat = ptw->tv->y[ptw->tv->index_Tmat];
 
   ptw->Tmat = Tmat;
-  ptw->dTmat = -dy[ptw->tv->index_Tmat];
-
+  ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
+  
   class_call(thermodynamics_x_analytic(z,
                                        preco,
                                        ptw,
@@ -3399,7 +3411,6 @@ int thermodynamics_derivs_with_recfast(
     
   }
   if(ptw->require_He){
-    
     sq_0 = sqrt(Tmat/_T_0_);
     sq_1 = sqrt(Tmat/_T_1_);
     Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
@@ -3517,6 +3528,9 @@ int thermodynamics_derivs_with_recfast(
     /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
     dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today* _c_ / _Mpc_over_m_;
     epsilon = Hz * (1.+x+preco->fHe) / (preco->CT*pow(Trad,3)*x);
+    
+   
+    
     dy[ptw->tv->index_Tmat] = preco->Tnow + epsilon*((1.+preco->fHe)/(1.+preco->fHe+x))*(dx/x)
       - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
   }
@@ -3536,6 +3550,7 @@ int thermodynamics_derivs_with_recfast(
 
   }
 
+  
   /* Store ionization fraction to workspace without smoothing for x*/
   ptw->x = x;
   ptw->dx = dx;
@@ -3549,7 +3564,9 @@ int thermodynamics_derivs_with_recfast(
     dy[index_y]=-dy[index_y];
   }
 
+  
   return _SUCCESS_;
+  
 }
 
 /**
@@ -3579,6 +3596,7 @@ int thermodynamics_x_analytic(
   
   /** calculate Hydrogen and Helium fraction with analytical approximations specific for each current approximation interval.
   /** - --> first approximation: H and Helium fully ionized */
+  
   if(current_ap == ptw->index_ap_brec){
     
     x_H = 1.;
@@ -3602,6 +3620,7 @@ int thermodynamics_x_analytic(
     dx_H=0.;
     dx_He=0.;
     dx = 0.5*(  ((rhs-1.-preco->fHe) + 2.*(1.+2.*preco->fHe))/sqrt_val   -   1.  )*drhs;
+
   }
   /** - --> third approximation: first Helium recombination finished */
   else if (current_ap == ptw->index_ap_He1f) {
@@ -3779,6 +3798,7 @@ int thermo_vector_init(
     /* Copy the new vector into the position of the old one*/
     ptw->tv = ptv;
     
+ 
     ptw->require_H = _FALSE_;
     ptw->require_He = _TRUE_;
   }
@@ -3836,6 +3856,8 @@ int thermo_vector_init(
     ptw->require_He = _TRUE_;
   }
   
+
+  
   return _SUCCESS_;
 }
 
@@ -3885,53 +3907,68 @@ int thermo_workspace_init(
 
   /** - count number of approximations, initialize their indices */
   index_ap=0;
-
-
-  /*if(ppr->evolver == rk){
-    class_stop(pth->error_message,
-             "Runge-Kutta not supported yet.");
-  }
-  else*/
-  {
-    
-    /** approximations have to appear in chronological order here*/
-    class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_He1f,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_He2,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_H,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
-
-    ptw->ap_size=index_ap;
-
-
-    /** store all ending redshifts for each approximation */
-    class_alloc(ptw->ap_z_limits,ptw->ap_size*sizeof(double),pth->error_message);
-
-
-    ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
-    ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
-    ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
-    ptw->ap_z_limits[ptw->index_ap_He2] = 2870.;// TODO :: set correctly
-    ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
-    ptw->ap_z_limits[ptw->index_ap_frec] = 0.0;
-
-    
-    /** store smoothing deltas for transitions at the beginning of each aproximation */
-    class_alloc(ptw->ap_z_limits_delta,ptw->ap_size*sizeof(double),pth->error_message);
-    
-    ptw->ap_z_limits_delta[ptw->index_ap_brec] = 0.;
-    ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_1;
-    ptw->ap_z_limits_delta[ptw->index_ap_He1f] = ppr->recfast_delta_z_He_2;
-    ptw->ap_z_limits_delta[ptw->index_ap_He2] = ppr->recfast_delta_z_He_3;
-    ptw->ap_z_limits_delta[ptw->index_ap_H] = 50.; // TODO :: set correctly
-    ptw->ap_z_limits_delta[ptw->index_ap_frec] = 50.;// TODO :: set correctly
-    
-  }
-
+  
+  /** approximations have to appear in chronological order here*/
+  class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
+  class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
+  class_define_index(ptw->index_ap_He1f,_TRUE_,index_ap,1);
+  class_define_index(ptw->index_ap_He2,_TRUE_,index_ap,1);
+  class_define_index(ptw->index_ap_H,_TRUE_,index_ap,1);
+  class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
+  
+  ptw->ap_size=index_ap;
+  
+  
+  /** store all ending redshifts for each approximation */
+  class_alloc(ptw->ap_z_limits,ptw->ap_size*sizeof(double),pth->error_message);
+  
+  
+  ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
+  ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
+  ptw->ap_z_limits[ptw->index_ap_He1f] = ppr->recfast_z_He_3+ppr->recfast_delta_z_He_3;
+  ptw->ap_z_limits[ptw->index_ap_He2] = 2870.;// TODO :: set correctly
+  ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
+  ptw->ap_z_limits[ptw->index_ap_frec] = 0.0;
+  
+  
+  /** store smoothing deltas for transitions at the beginning of each aproximation */
+  class_alloc(ptw->ap_z_limits_delta,ptw->ap_size*sizeof(double),pth->error_message);
+  
+  ptw->ap_z_limits_delta[ptw->index_ap_brec] = 0.;
+  ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_1;
+  ptw->ap_z_limits_delta[ptw->index_ap_He1f] = ppr->recfast_delta_z_He_2;
+  ptw->ap_z_limits_delta[ptw->index_ap_He2] = ppr->recfast_delta_z_He_3;
+  ptw->ap_z_limits_delta[ptw->index_ap_H] = 50.; // TODO :: set correctly
+  ptw->ap_z_limits_delta[ptw->index_ap_frec] = 50.;// TODO :: set correctly
+  
   /*fix current approximation scheme abritrarily */
   ptw->ap_current = ptw->index_ap_brec;
   
+  class_alloc(ptw->pvecback,pba->bg_size_normal*sizeof(double),pth->error_message);
+
+  
+  return _SUCCESS_;
+}
+
+/**
+ * Free the thermo_workspace structure (with the exception of the
+ * thermo_vector '-->tv' field, which is freed separately in
+ * thermo_vector_free).
+ *
+ * @param ptw        Input: pointer to perturb_workspace structure to be freed
+ * @return the error status
+ */
+
+int thermo_workspace_free (
+                            struct thermo_workspace * ptw
+                            ) {
+
+  free(ptw->pvecback);
+  free(ptw->ap_z_limits);
+  free(ptw->ap_z_limits_delta);
+
+  free(ptw);
+
   return _SUCCESS_;
 }
 
@@ -3981,18 +4018,24 @@ int thermodynamics_set_approximation_limits(
 
   /*set limits for the intervals. Redshift is set negative for the evolver.*/
   
-  /*integration starts at z_ini*/	
-    interval_limit[0]= mz_ini;
-  
+  /*integration starts at z_ini and ends at z_end*/	
+  interval_limit[0]= mz_ini;
+  interval_limit[ptw->ap_size] = mz_end;	
+    
   /*each interval ends with the proper ending redshift of its approximation */
-    for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+  for(index_ap=0; index_ap < ptw->ap_size-1; index_ap++){
     interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
-    printf("Interval %i ending at %e \n",index_ap+1,ptw->ap_z_limits[index_ap]);
   }
   
-  /*change limit if we want integration to end before the fixed interval limit of the last interval*/
-  if(-mz_end > ptw->ap_z_limits[ptw->ap_size]) interval_limit[ptw->ap_size] = mz_end;		
-
+  class_test(interval_limit[ptw->ap_size-1] > mz_end,
+             pth->error_message,
+             "you want the second to last approximation scheme to end after z_end, that should not happen");
+              
+  
+  for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+    printf("Interval %i ending at %e \n",index_ap+1,-interval_limit[index_ap+1]);
+  }
+  
  return _SUCCESS_;
 
 }
@@ -4054,8 +4097,9 @@ int thermodynamics_sources_with_recfast(
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   preco = ptpaw->preco;
-  pvecback = ptpaw->pvecback;
+  
   ptw = ptpaw->ptw;
+  pvecback = ptw->pvecback;
   ap_current = ptw->ap_current;
   
   Nz = preco->rt_size;  
@@ -4088,28 +4132,30 @@ int thermodynamics_sources_with_recfast(
     x = y[ptw->tv->index_x_H]+preco->fHe*y[ptw->tv->index_x_He];
   }
   
-  /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
-  if(z >= ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
-    
-    class_call(thermodynamics_x_analytic(z,
-                                         preco,
-                                         ptw,
-                                         ap_current-1),  
-               error_message,
-               error_message);
-    if(ap_current-1 != ptw->index_ap_H){
-      x_previous = ptw->x;
+  /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch. At the start of the table there is no smoothing*/
+  if(ap_current != ptw->index_ap_brec){
+    if(z >= ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current]){
+          
+        class_call(thermodynamics_x_analytic(z,
+                                             preco,
+                                             ptw,
+                                             ap_current-1),  
+                   error_message,
+                   error_message);
+        if(ap_current-1 != ptw->index_ap_H){
+            x_previous = ptw->x;
+        }
+        else{
+            x_previous = ptw->x_H+preco->fHe*y[ptw->tv->index_x_He];
+        }
+        /* get s from 0 to 1 */
+        s = (ptw->ap_z_limits[ap_current-1]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
+        /* infer f2(x) = smooth function interpolating from 0 to 1 */
+        weight = f2(s);
+          
+          
+        x = weight*x+(1.-weight)*x_previous;
     }
-    else{
-      x_previous = ptw->x_H+preco->fHe*y[ptw->tv->index_x_He];
-    }
-    /* get s from 0 to 1 */
-    s = (ptw->ap_z_limits[ap_current-1]-z)/(2*ptw->ap_z_limits_delta[ap_current]);
-    /* infer f2(x) = smooth function interpolating from 0 to 1 */
-    weight = f2(s);
-
-
-    x = weight*x+(1.-weight)*x_previous;
   }
   
   
