@@ -682,6 +682,13 @@ extern "C" {
                        struct reionization * preio
                        ); 
   
+  int thermodynamics_reionization_evolve_with_tau(
+                                struct thermodynamics_parameters_and_workspace * tpaw,
+                                double mz_ini,
+                                double mz_end,
+                                double * mz_output,
+                                int Nz);
+  
   int thermodynamics_reionization_get_tau(
                                 struct precision * ppr,
                                 struct background * pba,

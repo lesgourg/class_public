@@ -3133,39 +3133,58 @@ int thermodynamics_recombination_with_recfast(
       generic_evolver = evolver_ndf15;
     }
     
-    class_call(generic_evolver(thermodynamics_derivs_with_recfast,
-                               interval_limit[index_interval],
-                               interval_limit[index_interval+1],
-                               ptw->tv->y,
-                               ptw->tv->used_in_output,
-                               ptw->tv->tv_size,
-                               &tpaw,
-                               ppr->tol_thermo_integration,
-                               ppr->smallest_allowed_variation,
-                               thermodynamics_timescale_with_recfast,  // timescale
-                               1., // stepsize
-                               mz_output, // values of z for output
-                               Nz, // size of previous array
-                               thermodynamics_sources_with_recfast, // function for output
-                               NULL, // print variables
-                               pth->error_message),
-                 pth->error_message,
-                 pth->error_message);
+    /* If we have tau_reio as input the last evolver step has to be done separately in a loop to approximate tau by dichotomy */
+    
+    if(pth->reio_z_or_tau == reio_tau && index_interval == ptw->index_ap_reio){
+        class_call(thermodynamics_reionization_evolve_with_tau(&tpaw,
+                                                               interval_limit[index_interval],
+                                                               interval_limit[index_interval+1],
+                                                               mz_output,
+                                                               Nz),
+                   pth->error_message,
+                   pth->error_message);                   
+        
+    }
+    else{
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 interval_limit[index_interval],
+                                 interval_limit[index_interval+1],
+                                 ptw->tv->y,
+                                 ptw->tv->used_in_output,
+                                 ptw->tv->tv_size,
+                                 &tpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 1., // stepsize
+                                 mz_output, // values of z for output
+                                 Nz, // size of previous array
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                   pth->error_message,
+                   pth->error_message);
+    }
 
   }
 
-  class_call(thermodynamics_reionization_get_tau(ppr,
-                                                 pba,
-                                                 pth,
-                                                 preco,
-                                                 preio),
+  /* Compute reionization optical depth */
+  if (pth->reio_parametrization != reio_none && pth->reio_z_or_tau == reio_z) {
+
+    class_call(thermodynamics_reionization_get_tau(ppr,
+                                                   pba,
+                                                   pth,
+                                                   preco,
+                                                   preio),
                pth->error_message,
                pth->error_message);
-  
+    
+    pth->tau_reio=preio->reionization_optical_depth;
+      
+  }
   
 
   /** - free quantities allocated at the beginning of the routine */
-
   
   class_call(thermo_vector_free(ptw->tv),
              pth->error_message,
@@ -3173,6 +3192,7 @@ int thermodynamics_recombination_with_recfast(
   
   free(interval_limit);
   free(preio->reionization_parameters);
+  free(mz_output);
 
 
   return _SUCCESS_;
@@ -3299,10 +3319,10 @@ int thermodynamics_derivs_with_recfast(
   /* First check for the current appoximation scheme. As long as there is 
      no full recombination, x_H, x_He and x are evolved with analytic functions.
   */
-  Tmat = y[ptw->tv->index_Tmat];
+  Tmat = ptw->tv->y[ptw->tv->index_Tmat];
 
   ptw->Tmat = Tmat;
-  ptw->dTmat = -dy[ptw->tv->index_Tmat];
+  ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
 
   //printf("z %e, x %e, ap %d \n", z,x,ap_current);  
   class_call(thermodynamics_x_analytic(z,
@@ -3752,7 +3772,7 @@ int thermo_vector_init(
     class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
     class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
   }
-  else if( ptw->ap_current == ptw->index_ap_reio){ 
+  else if(ptw->ap_current == ptw->index_ap_reio){ 
     class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
     class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
   }
@@ -3841,8 +3861,8 @@ int thermo_vector_init(
     ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
     ptv->y[ptv->index_x_H] = ptw->x_H;
     ptv->dy[ptv->index_x_H] = -ptw->dx_H;
-    ptv->y[ptv->index_x_He] = ptw->tv->y[ptv->index_x_He];
-    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptv->index_x_He];
+    ptv->y[ptv->index_x_He] = ptw->tv->y[ptw->tv->index_x_He];
+    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptw->tv->index_x_He];
     
     /* Free the old vector and its indices */
     class_call(thermo_vector_free(ptw->tv),
@@ -3862,10 +3882,10 @@ int thermo_vector_init(
     /* Set the new vector and its indices */ 
     ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
     ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
-    ptv->y[ptv->index_x_H] = ptw->tv->y[ptv->index_x_H];
-    ptv->dy[ptv->index_x_H] = ptw->tv->dy[ptv->index_x_H];
-    ptv->y[ptv->index_x_He] = ptw->tv->y[ptv->index_x_He];
-    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptv->index_x_He];
+    ptv->y[ptv->index_x_H] = ptw->tv->y[ptw->tv->index_x_H];
+    ptv->dy[ptv->index_x_H] = ptw->tv->dy[ptw->tv->index_x_H];
+    ptv->y[ptv->index_x_He] = ptw->tv->y[ptw->tv->index_x_He];
+    ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptw->tv->index_x_He];
     
     /* Free the old vector and its indices */
     class_call(thermo_vector_free(ptw->tv),
@@ -3966,9 +3986,15 @@ int thermo_workspace_init(
     class_define_index(ptw->index_ap_He2,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_H,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
-    class_define_index(ptw->index_ap_reio,_TRUE_,index_ap,1);
+    if (pth->reio_parametrization != reio_none) {
+      class_define_index(ptw->index_ap_reio,_TRUE_,index_ap,1);
+      ptw->ap_size=index_ap;
+    }
+    else{
+      ptw->ap_size=index_ap;
+      class_define_index(ptw->index_ap_reio,_TRUE_,index_ap,1);
+    }
     
-    ptw->ap_size=index_ap;
     
 
     /** store all ending redshifts for each approximation */
@@ -3982,6 +4008,7 @@ int thermo_workspace_init(
     ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
     ptw->ap_z_limits[ptw->index_ap_frec] = ppr->reionization_z_start_max;
     ptw->ap_z_limits[ptw->index_ap_reio] = 0.0;
+
     
     /** store smoothing deltas for transitions at the beginning of each aproximation */
     class_alloc(ptw->ap_z_limits_delta,ptw->ap_size*sizeof(double),pth->error_message);
@@ -4097,7 +4124,7 @@ int thermodynamics_reionization_set_parameters(
     
   int bin;
   int point;
-  double xe_input,xe_actual;
+  double xe_input,xe_actual,z_sup;
   
   /** - allocate the vector of parameters defining the function \f$ X_e(z) \f$ */
 
@@ -4170,8 +4197,17 @@ int thermodynamics_reionization_set_parameters(
     /** - --> if reionization optical depth given as an input, find reionization redshift by dichotomy and initialize the remaining values */
 
     if (pth->reio_z_or_tau == reio_tau) {
-     class_stop(pth->error_message,
-                "Reionization optical depth as input not supported yet.");   
+           z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
+      class_test(z_sup < 0.,
+                 pth->error_message,
+                 "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
+
+      /* maximum possible reionization redshift */
+      preio->reionization_parameters[preio->index_reio_redshift] = z_sup;
+      /* maximum possible starting redshift */
+      preio->reionization_parameters[preio->index_reio_start] = ppr->reionization_z_start_max;
+      /* infer xe_before_reio */   
+      
     }
 
 
@@ -4421,11 +4457,256 @@ int thermodynamics_reionization_set_parameters(
                ppr->reionization_z_start_max);
 
   }
+  else if (pth->reio_parametrization == reio_none) {
+  printf("Computing thermodynamics without reionization \n");
+  }
   else{
     class_stop(pth->error_message,
                "Other reionization schemes not supported yet.");
   }
        
+ return _SUCCESS_;
+
+}
+
+int thermodynamics_reionization_evolve_with_tau(
+                                struct thermodynamics_parameters_and_workspace * ptpaw,
+                                double mz_ini,
+                                double mz_end,
+                                double * mz_output,
+                                int Nz
+                                ) {
+    
+  /** - define local variables */
+
+  int counter;
+  double z_sup,z_mid,z_inf;
+  double tau_sup,tau_mid,tau_inf;
+  
+  int index_tv;
+  
+  struct precision * ppr;
+  struct background * pba;
+  struct thermo * pth;
+  struct recombination * preco;
+  struct reionization * preio;
+  struct thermo_workspace * ptw;
+
+  /* function pointer to ODE evolver and names of possible evolvers */
+  extern int evolver_rk();
+  extern int evolver_ndf15();
+  int (*generic_evolver)();
+    
+
+  /* Remame fields to avoid heavy notations */
+  ppr = ptpaw->ppr;
+  pba = ptpaw->pba;
+  pth = ptpaw->pth;
+  preco = ptpaw->preco;
+  preio = ptpaw->preio;
+  ptw = ptpaw->ptw;
+   
+  
+  /* Initialiaze two thermo vectors to store initial conditions and as temporal vector */
+  struct thermo_vector * ptv;
+  struct thermo_vector * ptv_store;
+  
+  ptv_store = ptw->tv;
+  
+  class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
+  
+  class_define_index(ptv->index_Tmat,_TRUE_,index_tv,1);
+  class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
+  class_define_index(ptv->index_x_H,_TRUE_,index_tv,1);
+  
+  /* We have now obtained the full size */
+  ptv->tv_size = index_tv;
+    
+  /* Allocate all arrays used during the evolution */
+  class_calloc(ptv->y,ptv->tv_size,sizeof(double),pth->error_message);
+  class_alloc(ptv->dy,ptv->tv_size*sizeof(double),pth->error_message);
+  class_alloc(ptv->used_in_output,ptv->tv_size*sizeof(int),pth->error_message);
+  
+  for (index_tv=0; index_tv<ptv->tv_size; index_tv++){
+    ptv->used_in_output[index_tv] = _TRUE_;
+  }
+  /* Set the new vector and its indices */ 
+  ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
+  ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
+  ptv->y[ptv->index_x_H] = ptw->tv->y[ptw->tv->index_x_H];
+  ptv->dy[ptv->index_x_H] = ptw->tv->dy[ptw->tv->index_x_H];
+  ptv->y[ptv->index_x_He] = ptw->tv->y[ptw->tv->index_x_He];
+  ptv->dy[ptv->index_x_He] = ptw->tv->dy[ptw->tv->index_x_He];
+  
+  /*
+  for (index_tv=0; index_tv<ptv->tv_size; index_tv++){
+    printf("i=%i , y=%e dy=%e used %d \n", index_tv, ptw->tv->y[index_tv],ptw->tv->dy[index_tv],ptw->tv->used_in_output[index_tv]);
+  }*/
+  
+  ptw->tv = ptv;
+  
+  /* upper value */
+  
+  z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
+  class_test(z_sup < 0.,
+             pth->error_message,
+             "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
+  
+  /* maximum possible reionization redshift */
+  preio->reionization_parameters[preio->index_reio_redshift] = z_sup;
+  /* maximum possible starting redshift */
+  preio->reionization_parameters[preio->index_reio_start] = ppr->reionization_z_start_max;
+  /* infer xe_before_reio */
+  
+  
+  if(ppr->evolver == rk){
+    generic_evolver = evolver_rk;
+  }
+  else{
+    generic_evolver = evolver_ndf15;
+  }
+  
+  /* Calculate a first ionization history */ 
+  class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                             mz_ini,
+                             mz_end,
+                             ptv->y,
+                             ptv->used_in_output,
+                             ptv->tv_size,
+                             ptpaw,
+                             ppr->tol_thermo_integration,
+                             ppr->smallest_allowed_variation,
+                             thermodynamics_timescale_with_recfast,  // timescale
+                             1., // stepsize
+                             mz_output, // values of z for output
+                             Nz, // size of previous array
+                             thermodynamics_sources_with_recfast, // function for output
+                             NULL, // print variables
+                             pth->error_message),
+             pth->error_message,
+             pth->error_message);
+  
+  class_call(thermodynamics_reionization_get_tau(ppr,
+                                                 pba,
+                                                 pth,
+                                                 preco,
+                                                 preio),
+             pth->error_message,
+             pth->error_message);
+    
+  tau_sup=preio->reionization_optical_depth;
+
+  class_test(tau_sup < pth->tau_reio,
+             pth->error_message,
+             "parameters are such that reionization cannot start after z_start_max");
+
+  /* lower value */
+
+  z_inf = 0.;
+  tau_inf = 0.;
+  
+  /* Restore initial conditions */ 
+  ptv->y[ptv->index_Tmat] = ptv_store->y[ptv_store->index_Tmat];  
+  ptv->dy[ptv->index_Tmat] = ptv_store->dy[ptv_store->index_Tmat];
+  ptv->y[ptv->index_x_H] = ptv_store->y[ptv_store->index_x_H];
+  ptv->dy[ptv->index_x_H] = ptv_store->dy[ptv_store->index_x_H];
+  ptv->y[ptv->index_x_He] = ptv_store->y[ptv_store->index_x_He];
+  ptv->dy[ptv->index_x_He] = ptv_store->dy[ptv_store->index_x_He];
+
+  /* try intermediate values */
+
+  counter=0;
+  while ((tau_sup-tau_inf) > pth->tau_reio * ppr->reionization_optical_depth_tol) {
+      z_mid=0.5*(z_sup+z_inf);
+      
+      /* reionization redshift */
+      preio->reionization_parameters[preio->index_reio_redshift] = z_mid;
+      /* infer starting redshift for hygrogen */
+      preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
+      /* if starting redshift for helium is larger, take that one
+       *    (does not happen in realistic models) */
+      if(preio->reionization_parameters[preio->index_reio_start] < pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width){      
+         
+          preio->reionization_parameters[preio->index_reio_start] = pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
+      }
+      
+      class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
+                 pth->error_message,
+                 "starting redshift for reionization > reionization_z_start_max = %e",ppr->reionization_z_start_max);
+ 
+     
+      /* Compute a new ionization history */
+      
+      class_call(generic_evolver(thermodynamics_derivs_with_recfast,
+                                 mz_ini,
+                                 mz_end,
+                                 ptv->y,
+                                 ptv->used_in_output,
+                                 ptv->tv_size,
+                                 ptpaw,
+                                 ppr->tol_thermo_integration,
+                                 ppr->smallest_allowed_variation,
+                                 thermodynamics_timescale_with_recfast,  // timescale
+                                 1., // stepsize
+                                 mz_output, // values of z for output
+                                 Nz, // size of previous array
+                                 thermodynamics_sources_with_recfast, // function for output
+                                 NULL, // print variables
+                                 pth->error_message),
+                 pth->error_message,
+                 pth->error_message);
+      
+      /* Restore initial conditions */ 
+      ptv->y[ptv->index_Tmat] = ptv_store->y[ptv_store->index_Tmat];  
+      ptv->dy[ptv->index_Tmat] = ptv_store->dy[ptv_store->index_Tmat];
+      ptv->y[ptv->index_x_H] = ptv_store->y[ptv_store->index_x_H];
+      ptv->dy[ptv->index_x_H] = ptv_store->dy[ptv_store->index_x_H];
+      ptv->y[ptv->index_x_He] = ptv_store->y[ptv_store->index_x_He];
+      ptv->dy[ptv->index_x_He] = ptv_store->dy[ptv_store->index_x_He];
+      
+      
+      class_call(thermodynamics_reionization_get_tau(ppr,
+                                                     pba,
+                                                     pth,
+                                                     preco,
+                                                     preio),
+                 pth->error_message,
+                 pth->error_message);
+      
+      tau_mid=preio->reionization_optical_depth;
+      
+      //printf("tau %d: %e, z_mid: %e tausup %e\n", counter+2,tau_mid,z_mid,tau_sup);
+
+      /* trial */
+      
+      if (tau_mid > pth->tau_reio) {
+          z_sup=z_mid;
+          tau_sup=tau_mid;
+      }
+      else {
+          z_inf=z_mid;
+          tau_inf=tau_mid;
+      }
+
+      
+         
+      counter++;
+      class_test(counter > _MAX_IT_,
+                 pth->error_message,
+                 "while searching for reionization_optical_depth, maximum number of iterations exceeded");
+  }
+
+  /* store z_reionization in thermodynamics structure */
+  pth->z_reio=preio->reionization_parameters[preio->index_reio_redshift];
+  
+  
+  class_call(thermo_vector_free(ptv),
+             pth->error_message,
+             pth->error_message);
+  
+  ptw->tv = ptv_store;
+  
+  
  return _SUCCESS_;
 
 }
@@ -4447,7 +4728,7 @@ int thermodynamics_reionization_get_tau(
   i=0;
   while (preio->reionization_table[i*preio->re_size+preio->index_re_z] < preio->reionization_parameters[preio->index_reio_start]){
     i++;
-    class_test(i == ppr->recfast_Nz0,
+    class_test(i == preio->rt_size,
                pth->error_message,
                "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
   }
@@ -4478,9 +4759,6 @@ int thermodynamics_reionization_get_tau(
              pth->error_message,
              pth->error_message); 
   
-  pth->tau_reio=preio->reionization_optical_depth;
-    
-    
  return _SUCCESS_;
 
 }
@@ -4525,23 +4803,31 @@ int thermodynamics_set_approximation_limits(
   *interval_number = ptw->ap_size;
 
   class_test(-mz_ini < ppr->recfast_z_He_3,
-           pth->error_message,
-           "increase zinitial, otherwise should get initial conditions from recfast's get_init routine (less precise anyway)");
+             pth->error_message,
+             "increase zinitial, otherwise should get initial conditions from recfast's get_init routine (less precise anyway)");
 
 
   /*set limits for the intervals. Redshift is set negative for the evolver.*/
   
-  /*integration starts at z_ini*/	
-    interval_limit[0]= mz_ini;
-  
+  /*integration starts at z_ini and ends at z_end*/	
+  interval_limit[0]= mz_ini;
+  interval_limit[ptw->ap_size] = mz_end;	
+    
   /*each interval ends with the proper ending redshift of its approximation */
-    for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+  for(index_ap=0; index_ap < ptw->ap_size-1; index_ap++){
     interval_limit[index_ap+1] = -ptw->ap_z_limits[index_ap];
-    printf("Interval %i ending at %e \n",index_ap+1,ptw->ap_z_limits[index_ap]);
   }
   
-  /*change limit if we want integration to end before the fixed interval limit of the last interval*/
-  if(-mz_end > ptw->ap_z_limits[ptw->ap_size]) interval_limit[ptw->ap_size] = mz_end;		
+  class_test(interval_limit[ptw->ap_size-1] > mz_end,
+             pth->error_message,
+             "you want the second to last approximation scheme to end after z_end, that should not happen");
+              
+  
+  for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+    printf("Interval %i ending at %e \n",index_ap+1,-interval_limit[index_ap+1]);
+  }
+  
+	
 
  return _SUCCESS_;
 
@@ -4682,7 +4968,7 @@ int thermodynamics_sources_with_recfast(
     x = ptw->x;
   }
   /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
-  if(z > ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current] && ap_current != ptw->index_ap_brec){
+  if(ap_current != ptw->index_ap_brec && z > ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current]){
     
     class_call(thermodynamics_x_analytic(z,
                                          pth,
