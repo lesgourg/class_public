@@ -384,24 +384,13 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
-  /** - solve recombination and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_recombination() */
+  /** - solve recombination and reionization (if needed) and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_solve() */
 
-  class_call(thermodynamics_recombination(ppr,pba,pth,preco,preio,pvecback),
+  class_call(thermodynamics_solve(ppr,pba,pth,preco,preio,pvecback),
              pth->error_message,
              pth->error_message);
 
-  /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
-/*
-  if (pth->reio_parametrization != reio_none) {
-    class_call(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
-  }
-  else {
-    preio->rt_size=0;
-    preio->index_reco_when_reio_start=-1;
-  }
-*/
+
   /** - merge tables in recombination and reionization structures into
       a single table in thermo structure */
 
@@ -1455,20 +1444,22 @@ int thermodynamics_energy_injection(
  * @param z     Input: redshift
  * @param pth   Input: pointer to thermo structure, to know which scheme is used
  * @param preio Input: pointer to reionization structure, containing the parameters of the function \f$ X_e(z) \f$
- * @param xe    Output: \f$ X_e(z) \f$
+ * @param x    Output: \f$ X_e(z) \f$
+ * @param dx    Output: \f$ X_e(z) \f$
  */
 
 int thermodynamics_reionization_function(
                                          double z,
                                          struct thermo * pth,
                                          struct reionization * preio,
-                                         double * xe
+                                         double * x,
+                                         double * dx
                                          ) {
 
   /** Summary: */
 
   /** - define local variables */
-  double argument;
+  double argument,dargument;
   int i;
   double z_jump;
 
@@ -1485,7 +1476,8 @@ int thermodynamics_reionization_function(
 
     if (z > preio->reionization_parameters[preio->index_reio_start]) {
 
-      *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+      *dx = 0.0;
 
     }
 
@@ -1494,26 +1486,41 @@ int thermodynamics_reionization_function(
       /** - --> case z < z_reio_start: hydrogen contribution (tanh of complicated argument) */
 
       argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-                      preio->reionization_parameters[preio->index_reio_exponent])
-                  - pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
-        /(preio->reionization_parameters[preio->index_reio_exponent]
+                    preio->reionization_parameters[preio->index_reio_exponent])
+                   -pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
+                 /(preio->reionization_parameters[preio->index_reio_exponent]
           /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-          *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
-               (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
+                 *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                    (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
         /preio->reionization_parameters[preio->index_reio_width];
       /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
 
+      dargument = -pow((1.+z),(preio->reionization_parameters[preio->index_reio_exponent]-1.))
+          /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
+                 /pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                   (preio->reionization_parameters[preio->index_reio_exponent]-1.))
+                 /preio->reionization_parameters[preio->index_reio_width];
+      
+      
       if (pth->reio_parametrization == reio_camb) {
-        *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+        *x = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])
-          *(tanh(argument)+1.)/2.
-          +preio->reionization_parameters[preio->index_reio_xe_before];
+             *(tanh(argument)+1.)/2.
+             +preio->reionization_parameters[preio->index_reio_xe_before];
+          
+        *dx = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+              *(1-tanh(argument)*tanh(argument))/2.*dargument;  
       }
       else {
-        *xe = (preio->reionization_parameters[preio->index_reio_xe_after]
+        *x = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])
-          *tanh(argument)
-          +preio->reionization_parameters[preio->index_reio_xe_before];
+             *tanh(argument)
+             +preio->reionization_parameters[preio->index_reio_xe_before];
+          
+        *dx = (preio->reionization_parameters[preio->index_reio_xe_after]
+                -preio->reionization_parameters[preio->index_reio_xe_before])
+              *(1-tanh(argument)*tanh(argument))*dargument;
       }
 
       /** - --> case z < z_reio_start: helium contribution (tanh of simpler argument) */
@@ -1521,9 +1528,15 @@ int thermodynamics_reionization_function(
       if (pth->reio_parametrization == reio_camb) {
         argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
           /preio->reionization_parameters[preio->index_helium_fullreio_width];
+          
+        dargument = -1./preio->reionization_parameters[preio->index_helium_fullreio_width];
         /* no possible segmentation fault: checked to be non-zero in thermodynamics_reionization() */
-        *xe += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
-          * (tanh(argument)+1.)/2.;
+        *x += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
+              *(tanh(argument)+1.)/2.;
+          
+        *dx += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
+               *(1-tanh(argument)*tanh(argument))/2.*dargument;
+          
       }
     }
 
@@ -1538,11 +1551,14 @@ int thermodynamics_reionization_function(
     /** - --> case z > z_reio_start */
  
     if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
-      *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+      *dx = 0.0;
+      
     }
 
     else if (z < preio->reionization_parameters[preio->index_reio_first_z]) {
-      *xe = preio->reionization_parameters[preio->index_reio_first_xe];
+      *x = preio->reionization_parameters[preio->index_reio_first_xe];
+      *dx = 0.0;
     }
 
     else {
@@ -1587,12 +1603,17 @@ int thermodynamics_reionization_function(
 
       /* implementation of the tanh jump */
 
-      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+      *x = preio->reionization_parameters[preio->index_reio_first_xe+i]
         +0.5*(tanh((z-z_jump)
                    /preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
         *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
           -preio->reionization_parameters[preio->index_reio_first_xe+i]);
      
+      *dx = 0.5*(1-tanh((z-z_jump)/preio->reionization_parameters[preio->index_reio_step_sharpness])
+                  *tanh((z-z_jump)/preio->reionization_parameters[preio->index_reio_step_sharpness]))
+            *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+              -preio->reionization_parameters[preio->index_reio_first_xe+i]) 
+            /preio->reionization_parameters[preio->index_reio_step_sharpness];
     }
 
     return _SUCCESS_;
@@ -1606,12 +1627,15 @@ int thermodynamics_reionization_function(
     /** - --> case z > z_reio_start */
 
     if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
-      *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+      *dx = 0.0;
+      
     }
 
     else if (z > preio->reionization_parameters[preio->index_reio_first_z]) {
 
-      *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+      *dx = 0.0;
       
       /* fix the final xe to xe_before*/
       preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1] = preio->reionization_parameters[preio->index_reio_xe_before];
@@ -1626,18 +1650,18 @@ int thermodynamics_reionization_function(
         after = 0.;
         width = preio->reionization_parameters[preio->index_reio_step_sharpness];
 
-        class_call(thermodynamics_tanh(z,center,before,after,width,&one_jump),
-                   pth->error_message,
-                   pth->error_message);
+        one_jump = before + (after-before)*(tanh((z-center)/width)+1.)/2.;
 
-        *xe += one_jump;
+        *x += one_jump;
+        *dx += (after-before)*(1-tanh((z-center)/width)*tanh((z-center)/width))/2./width;
 
       }
 
     }
 
     else {
-      *xe = preio->reionization_parameters[preio->index_reio_first_xe];
+      *x = preio->reionization_parameters[preio->index_reio_first_xe];
+      *dx = 0.0;
     }
 
     return _SUCCESS_;
@@ -1651,7 +1675,8 @@ int thermodynamics_reionization_function(
     /** - --> case z > z_reio_start */
 
     if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]){
-      *xe = preio->reionization_parameters[preio->index_reio_xe_before];
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+      *dx = 0.0;
     }
     else{
 
@@ -1677,11 +1702,17 @@ int thermodynamics_reionization_function(
         /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
           -preio->reionization_parameters[preio->index_reio_first_z+i]);
 
-      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+      dargument = 1./(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+          -preio->reionization_parameters[preio->index_reio_first_z+i]);
+        
+      *x = preio->reionization_parameters[preio->index_reio_first_xe+i]
         + argument*(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
              -preio->reionization_parameters[preio->index_reio_first_xe+i]);
 
-      class_test(*xe<0.,
+      *dx = dargument*(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+             -preio->reionization_parameters[preio->index_reio_first_xe+i]);  
+        
+      class_test(*x<0.,
                  pth->error_message,
                  "Interpolation gives negative ionization fraction\n",
                  argument,
@@ -1700,7 +1731,7 @@ int thermodynamics_reionization_function(
 }
 
 /**
- * This subroutine reads \f$ X_e(z) \f$ in the recombination table at
+ * This subroutine reads \f$ X_e(z) \f$ and \f$ Tmat(z) \f$ in the recombination table at
  * the time at which reionization starts. Hence it provides correct
  * initial conditions for the reionization function.
  *
@@ -1708,15 +1739,17 @@ int thermodynamics_reionization_function(
  * @param pth   Input: pointer to thermo structure
  * @param preco Input: pointer to recombination structure
  * @param z     Input: redshift z_reio_start
- * @param xe    Output: \f$ X_e(z) \f$ at z
+ * @param x    Output: \f$ X_e(z) \f$ at z
+ * @param Tmat  Output: \f$ Tmat(z) \f$ at z
  */
 
-int thermodynamics_get_xe_before_reionization(
+int thermodynamics_interpolate_recombination_table(
                                               struct precision * ppr,
                                               struct thermo * pth,
                                               struct recombination * preco,
                                               double z,
-                                              double * xe
+                                              double * x,
+                                              double * Tmat
                                               ) {
 
   int last_index=0;
@@ -1728,878 +1761,22 @@ int thermodynamics_get_xe_before_reionization(
                                                    z,
                                                    &last_index,
                                                    preco->index_re_xe,
-                                                   xe,
+                                                   x,
                                                    pth->error_message),
              pth->error_message,
              pth->error_message);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * This routine computes the reionization history. In the reio_camb
- * scheme, this is straightforward if the input parameter is the
- * reionization redshift. If the input is the optical depth, need to
- * find z_reio by dichotomy (trying several z_reio until the correct
- * tau_reio is approached).
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input: pointer to thermo structure
- * @param preco Input: pointer to filled recombination structure
- * @param preio Input/Output: pointer to reionization structure (to be filled)
- * @param pvecback   Input: vector of background quantities (used as workspace: must be already allocated, with format short_info or larger, but does not need to be filled)
- * @return the error status
- */
-
-int thermodynamics_reionization(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct thermo * pth,
-                                struct recombination * preco,
-                                struct reionization * preio,
-                                double * pvecback
-                                ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  int counter;
-  double z_sup,z_mid,z_inf;
-  double tau_sup,tau_mid,tau_inf;
-  int bin;
-  int point;
-  double xe_input,xe_actual;
-
-  /** - allocate the vector of parameters defining the function \f$ X_e(z) \f$ */
-
-  class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message);
-
-  /** - (a) if reionization implemented like in CAMB */
-
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
-
-    /** - --> set values of these parameters, excepted those depending on the reionization redshift */
-
-    if (pth->reio_parametrization == reio_camb) {
-      preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
-    }
-    if (pth->reio_parametrization == reio_half_tanh) {
-      preio->reionization_parameters[preio->index_reio_xe_after] = 1.; /* xe_after_reio: neglect He ionization */
-      //+ 2*pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + fully ionized He */
-    }
-    preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
-    preio->reionization_parameters[preio->index_reio_width] = pth->reionization_width;    /* reio_width */
-    preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
-    preio->reionization_parameters[preio->index_helium_fullreio_redshift] = pth->helium_fullreio_redshift; /* helium_fullreio_redshift */
-    preio->reionization_parameters[preio->index_helium_fullreio_width] = pth->helium_fullreio_width;    /* helium_fullreio_width */
-
-    class_test(preio->reionization_parameters[preio->index_reio_exponent]==0,
-               pth->error_message,
-               "stop to avoid division by zero");
-
-    class_test(preio->reionization_parameters[preio->index_reio_width]==0,
-               pth->error_message,
-               "stop to avoid division by zero");
-
-    class_test(preio->reionization_parameters[preio->index_helium_fullreio_width]==0,
-               pth->error_message,
-               "stop to avoid division by zero");
-
-    /** - --> if reionization redshift given as an input, initialize the remaining values and fill reionization table*/
-
-    if (pth->reio_z_or_tau == reio_z) {
-
-      /* reionization redshift */
-      preio->reionization_parameters[preio->index_reio_redshift] = pth->z_reio;
-
-      /* infer starting redshift for hydrogen */
-
-      if (pth->reio_parametrization == reio_camb) {
-
-        preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
-
-        /* if starting redshift for helium is larger, take that one
-           (does not happen in realistic models) */
-        if (preio->reionization_parameters[preio->index_reio_start] <
-            pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
-
-          preio->reionization_parameters[preio->index_reio_start] =
-            pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
-
-      }
-      else {
-
-        preio->reionization_parameters[preio->index_reio_start] = pth->z_reio;
-      }
-
-      class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
-                 pth->error_message,
-                 "starting redshift for reionization > reionization_z_start_max = %e\n",ppr->reionization_z_start_max);
-
-      /* infer xe_before_reio */
-      class_call(thermodynamics_get_xe_before_reionization(ppr,
-                                                           pth,
-                                                           preco,
-                                                           preio->reionization_parameters[preio->index_reio_start],
-                                                           &(preio->reionization_parameters[preio->index_reio_xe_before])),
-                 pth->error_message,
-                 pth->error_message);
-
-      /* fill reionization table */
-      class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
-                 pth->error_message,
-                 pth->error_message);
-
-      pth->tau_reio=preio->reionization_optical_depth;
-
-    }
-
-    /** - --> if reionization optical depth given as an input, find reionization redshift by dichotomy and initialize the remaining values */
-
-    if (pth->reio_z_or_tau == reio_tau) {
-
-      /* upper value */
-
-      z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
-      class_test(z_sup < 0.,
-                 pth->error_message,
-                 "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
-
-      /* maximum possible reionization redshift */
-      preio->reionization_parameters[preio->index_reio_redshift] = z_sup;
-      /* maximum possible starting redshift */
-      preio->reionization_parameters[preio->index_reio_start] = ppr->reionization_z_start_max;
-      /* infer xe_before_reio */
-      class_call(thermodynamics_get_xe_before_reionization(ppr,
-                                                           pth,
-                                                           preco,
-                                                           preio->reionization_parameters[preio->index_reio_start],
-                                                           &(preio->reionization_parameters[preio->index_reio_xe_before])),
-                 pth->error_message,
-                 pth->error_message);
-
-      /* fill reionization table */
-      class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
-                 pth->error_message,
-                 pth->error_message);
-
-      tau_sup=preio->reionization_optical_depth;
-
-      class_test(tau_sup < pth->tau_reio,
-                 pth->error_message,
-                 "parameters are such that reionization cannot start after z_start_max");
-
-      /* lower value */
-
-      z_inf = 0.;
-      tau_inf = 0.;
-
-      /* try intermediate values */
-
-      counter=0;
-      while ((tau_sup-tau_inf) > pth->tau_reio * ppr->reionization_optical_depth_tol) {
-        z_mid=0.5*(z_sup+z_inf);
-
-        /* reionization redshift */
-        preio->reionization_parameters[preio->index_reio_redshift] = z_mid;
-        /* infer starting redshift for hygrogen */
-        preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
-        /* if starting redshift for helium is larger, take that one
-           (does not happen in realistic models) */
-        if (preio->reionization_parameters[preio->index_reio_start] <
-            pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
-
-          preio->reionization_parameters[preio->index_reio_start] =
-            pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
-
-        class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
-                   pth->error_message,
-                   "starting redshift for reionization > reionization_z_start_max = %e",ppr->reionization_z_start_max);
-
-        /* infer xe_before_reio */
-        class_call(thermodynamics_get_xe_before_reionization(ppr,
-                                                             pth,
-                                                             preco,
-                                                             preio->reionization_parameters[preio->index_reio_start],
-                                                             &(preio->reionization_parameters[preio->index_reio_xe_before])),
-                   pth->error_message,
-                   pth->error_message);
-
-        /* clean and fill reionization table */
-        free(preio->reionization_table);
-        class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
-                   pth->error_message,
-                   pth->error_message);
-
-        tau_mid=preio->reionization_optical_depth;
-
-        /* trial */
-
-        if (tau_mid > pth->tau_reio) {
-          z_sup=z_mid;
-          tau_sup=tau_mid;
-        }
-        else {
-          z_inf=z_mid;
-          tau_inf=tau_mid;
-        }
-
-        counter++;
-        class_test(counter > _MAX_IT_,
-                   pth->error_message,
-                   "while searching for reionization_optical_depth, maximum number of iterations exceeded");
-      }
-
-      /* store z_reionization in thermodynamics structure */
-      pth->z_reio=preio->reionization_parameters[preio->index_reio_redshift];
-
-    }
-
-    free(preio->reionization_parameters);
-
-    return _SUCCESS_;
-
-  }
-
-  /** - (b) if reionization implemented with reio_bins_tanh scheme */
-
-  if (pth->reio_parametrization == reio_bins_tanh) {
-
-    /* this algorithm requires at least two bin centers (i.e. at least
-       4 values in the (z,xe) array, counting the edges). */
-    class_test(pth->binned_reio_num<2,
-               pth->error_message,
-               "current implementation of binned reio requires at least two bin centers");
-
-    /* check that this input can be interpreted by the code */
-    for (bin=1; bin<pth->binned_reio_num; bin++) {
-      class_test(pth->binned_reio_z[bin-1]>=pth->binned_reio_z[bin],
-                 pth->error_message,
-                 "value of reionization bin centers z_i expected to be passed in growing order: %e, %e",
-                 pth->binned_reio_z[bin-1],
-                 pth->binned_reio_z[bin]);
-    }
-
-    /* the code will not only copy here the "bin centers" passed in
-       input. It will add an initial and final value for (z,xe).
-       First, fill all entries except the first and the last */
-
-    for (bin=1; bin<preio->reio_num_z-1; bin++) {
-      preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->binned_reio_z[bin-1];
-      preio->reionization_parameters[preio->index_reio_first_xe+bin] = pth->binned_reio_xe[bin-1];
-    }
-
-
-    /* find largest value of z in the array. We choose to define it as
-       z_(i_max) + 2*(the distance between z_(i_max) and z_(i_max-1)). E.g. if
-       the bins are in 10,12,14, the largest z will be 18. */
-    preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
-      preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
-      +2.*(preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
-        -preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-3]);
-
-    /* copy this value in reio_start */
-    preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
-
-    /* check it's not too big */
-    class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
-               pth->error_message,
-               "starting redshift for reionization = %e, reionization_z_start_max = %e, you must change the binning or increase reionization_z_start_max",
-               preio->reionization_parameters[preio->index_reio_start],
-               ppr->reionization_z_start_max);
-
-    /* find smallest value of z in the array. We choose
-       to define it as z_0 - (the distance between z_1 and z_0). E.g. if
-       the bins are in 10,12,14, the stop redshift will be 8. */
-
-    preio->reionization_parameters[preio->index_reio_first_z] =
-      2.*preio->reionization_parameters[preio->index_reio_first_z+1]
-      -preio->reionization_parameters[preio->index_reio_first_z+2];
-
-    /* check it's not too small */
-    /* 6.06.2015: changed this test to simply imposing that the first z is at least zero */
-    /*
-    class_test(preio->reionization_parameters[preio->index_reio_first_z] < 0,
-               pth->error_message,
-               "final redshift for reionization = %e, you must change the binning or redefine the way in which the code extrapolates below the first value of z_i",preio->reionization_parameters[preio->index_reio_first_z]);
-    */
-    if (preio->reionization_parameters[preio->index_reio_first_z] < 0) {
-      preio->reionization_parameters[preio->index_reio_first_z] = 0.;
-    }
-
-    /* infer xe before reio */
-    class_call(thermodynamics_get_xe_before_reionization(ppr,
-                                                         pth,
-                                                         preco,
-                                                         preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1],
-                                                         &(preio->reionization_parameters[preio->index_reio_xe_before])),
-               pth->error_message,
-               pth->error_message);
-
-    /* infer xe after reio */
-    preio->reionization_parameters[preio->index_reio_first_xe] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
-
-    /* pass step sharpness parameter */
-    preio->reionization_parameters[preio->index_reio_step_sharpness] = pth->binned_reio_step_sharpness;
-
-    /* fill reionization table */
-    class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
-
-    pth->tau_reio=preio->reionization_optical_depth;
-
-    return _SUCCESS_;
-
-  }
-
-  /** - (c) if reionization implemented with reio_many_tanh scheme */
-
-  if (pth->reio_parametrization == reio_many_tanh) {
-
-    /* this algorithm requires at least one jump centers */
-    class_test(pth->many_tanh_num<1,
-               pth->error_message,
-               "current implementation of reio_many_tanh requires at least one jump center");
-
-    /* check that z input can be interpreted by the code */
-    for (bin=1; bin<pth->many_tanh_num; bin++) {
-      class_test(pth->many_tanh_z[bin-1]>=pth->many_tanh_z[bin],
-                 pth->error_message,
-                 "value of reionization bin centers z_i expected to be passed in growing order: %e, %e",
-                 pth->many_tanh_z[bin-1],
-                 pth->many_tanh_z[bin]);
-    }
-
-    /* the code will not only copy here the "jump centers" passed in
-       input. It will add an initial and final value for (z,xe).
-       First, fill all entries except the first and the last */
-
-    for (bin=1; bin<preio->reio_num_z-1; bin++) {
-
-      preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->many_tanh_z[bin-1];
-
-      /* check that xe input can be interpreted by the code */
-      xe_input = pth->many_tanh_xe[bin-1];
-      if (xe_input >= 0.) {
-        xe_actual = xe_input;
-      }
-      //-1 means "after hydrogen + first helium recombination"
-      else if ((xe_input<-0.9) && (xe_input>-1.1)) {
-        xe_actual = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
-      }
-      //-2 means "after hydrogen + second helium recombination"
-      else if ((xe_input<-1.9) && (xe_input>-2.1)) {
-        xe_actual = 1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe));
-      }
-      //other negative number is nonsense
-      else {
-        class_stop(pth->error_message,
-                   "Your entry for many_tanh_xe[%d] is %e, this makes no sense (either positive or 0,-1,-2)",
-                   bin-1,pth->many_tanh_xe[bin-1]);
-      }
-
-      preio->reionization_parameters[preio->index_reio_first_xe+bin] = xe_actual;
-    }
-
-    /* find largest value of z in the array. We choose to define it as
-       z_(i_max) + ppr->reionization_start_factor*step_sharpness. */
-    preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
-      preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
-      +ppr->reionization_start_factor*pth->many_tanh_width;
-
-    /* copy this value in reio_start */
-    preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
-
-    /* check it's not too big */
-    class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
-               pth->error_message,
-               "starting redshift for reionization = %e, reionization_z_start_max = %e, you must change the binning or increase reionization_z_start_max",
-               preio->reionization_parameters[preio->index_reio_start],
-               ppr->reionization_z_start_max);
-
-    /* find smallest value of z in the array. We choose
-       to define it as z_0 - ppr->reionization_start_factor*step_sharpness, but at least zero. */
-
-    preio->reionization_parameters[preio->index_reio_first_z] =
-      preio->reionization_parameters[preio->index_reio_first_z+1]
-      -ppr->reionization_start_factor*pth->many_tanh_width;
-
-    if (preio->reionization_parameters[preio->index_reio_first_z] < 0) {
-      preio->reionization_parameters[preio->index_reio_first_z] = 0.;
-    }
-
-    /* infer xe before reio */
-    class_call(thermodynamics_get_xe_before_reionization(ppr,
-                                                         pth,
-                                                         preco,
-                                                         preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1],
-                                                         &(preio->reionization_parameters[preio->index_reio_xe_before])),
-               pth->error_message,
-               pth->error_message);
-
-    /* infer xe after reio */
-
-    preio->reionization_parameters[preio->index_reio_first_xe] = preio->reionization_parameters[preio->index_reio_first_xe+1];
-
-    /* if we want to model only hydrogen reionization and neglect both helium reionization */
-    //preio->reionization_parameters[preio->index_reio_first_xe] = 1.;
-
-    /* if we want to model only hydrogen + first helium reionization and neglect second helium reionization */
-    //preio->reionization_parameters[preio->index_reio_first_xe] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
-
-    /* if we want to model hydrogen + two helium reionization */
-    //preio->reionization_parameters[preio->index_reio_first_xe] = 1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe));
-
-    /* pass step sharpness parameter */
-    class_test(pth->many_tanh_width<=0,
-               pth->error_message,
-               "many_tanh_width must be strictly positive, you passed %e",
-               pth->many_tanh_width);
-
-    preio->reionization_parameters[preio->index_reio_step_sharpness] = pth->many_tanh_width;
-
-    /* fill reionization table */
-    class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
-
-    pth->tau_reio=preio->reionization_optical_depth;
-
-    return _SUCCESS_;
-
-  }
-
-  /** - (d) if reionization implemented with reio_inter scheme */
-
-  if (pth->reio_parametrization == reio_inter) {
-
-    /* this parametrization requires at least one point (z,xe) */
-    class_test(pth->reio_inter_num<1,
-               pth->error_message,
-               "current implementation of reio_inter requires at least one point (z,xe)");
-
-    /* this parametrization requires that the first z value is zero */
-    class_test(pth->reio_inter_z[0] != 0.,
-               pth->error_message,
-               "For reio_inter scheme, the first value of reio_inter_z[...]  should always be zero, you passed %e",
-               pth->reio_inter_z[0]);
-
-    /* check that z input can be interpreted by the code */
-    for (point=1; point<pth->reio_inter_num; point++) {
-      class_test(pth->reio_inter_z[point-1]>=pth->reio_inter_z[point],
-                 pth->error_message,
-                 "value of reionization bin centers z_i expected to be passed in growing order, unlike: %e, %e",
-                 pth->reio_inter_z[point-1],
-                 pth->reio_inter_z[point]);
-    }
-
-    /* this parametrization requires that the last x_i value is zero
-       (the code will substitute it with the value that one would get in
-       absence of reionization, as compute by the recombination code) */
-    class_test(pth->reio_inter_xe[pth->reio_inter_num-1] != 0.,
-               pth->error_message,
-               "For reio_inter scheme, the last value of reio_inter_xe[...]  should always be zero, you passed %e",
-               pth->reio_inter_xe[pth->reio_inter_num-1]);
-
-    /* copy here the (z,xe) values passed in input. */
-
-    for (point=0; point<preio->reio_num_z; point++) {
-
-      preio->reionization_parameters[preio->index_reio_first_z+point] = pth->reio_inter_z[point];
-
-      /* check that xe input can be interpreted by the code */
-      xe_input = pth->reio_inter_xe[point];
-      if (xe_input >= 0.) {
-        xe_actual = xe_input;
-      }
-      //-1 means "after hydrogen + first helium recombination"
-      else if ((xe_input<-0.9) && (xe_input>-1.1)) {
-        xe_actual = 1. + pth->YHe/(_not4_*(1.-pth->YHe));
-      }
-      //-2 means "after hydrogen + second helium recombination"
-      else if ((xe_input<-1.9) && (xe_input>-2.1)) {
-        xe_actual = 1. + 2.*pth->YHe/(_not4_*(1.-pth->YHe));
-      }
-      //other negative number is nonsense
-      else {
-        class_stop(pth->error_message,
-                   "Your entry for reio_inter_xe[%d] is %e, this makes no sense (either positive or 0,-1,-2)",
-                   point,pth->reio_inter_xe[point]);
-      }
-
-      preio->reionization_parameters[preio->index_reio_first_xe+point] = xe_actual;
-    }
-
-    /* copy highest redshift in reio_start */
-    preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1];
-
-    /* check it's not too big */
-    class_test(preio->reionization_parameters[preio->index_reio_start] > ppr->reionization_z_start_max,
-               pth->error_message,
-               "starting redshift for reionization = %e, reionization_z_start_max = %e, you must change the binning or increase reionization_z_start_max",
-               preio->reionization_parameters[preio->index_reio_start],
-               ppr->reionization_z_start_max);
-
-    /* infer xe before reio */
-    class_call(thermodynamics_get_xe_before_reionization(ppr,
-                                                         pth,
-                                                         preco,
-                                                         preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1],
-                                                         &(preio->reionization_parameters[preio->index_reio_xe_before])),
-               pth->error_message,
-               pth->error_message);
-
-    /* fill reionization table */
-    class_call(thermodynamics_reionization_sample(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
-
-    pth->tau_reio=preio->reionization_optical_depth;
-
-    return _SUCCESS_;
-
-  }
-
-  class_test(0 == 0,
-             pth->error_message,
-             "value of reio_z_or_tau=%d unclear",pth->reio_z_or_tau);
-
-}
-
-/**
- * For fixed input reionization parameters, this routine computes the
- * reionization history and fills the reionization table.
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input: pointer to thermo structure
- * @param preco Input: pointer to filled recombination structure
- * @param preio Input/Output: pointer to reionization structure (to be filled)
- * @param pvecback   Input: vector of background quantities (used as workspace: must be already allocated, with format short_info or larger, but does not need to be filled)
- * @return the error status
- */
-
-int thermodynamics_reionization_sample(
-                                       struct precision * ppr,
-                                       struct background * pba,
-                                       struct thermo * pth,
-                                       struct recombination * preco,
-                                       struct reionization * preio,
-                                       double * pvecback
-                                       ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  /* a growing table (since the number of redshift steps is not known a priori) */
-  growTable gTable;
-  /* needed for growing table */
-  double * pData;
-  /* needed for growing table */
-  void * memcopy_result;
-  /* current vector of values related to reionization */
-  double * reio_vector;
-  /* running index inside thermodynamics table */
-  int i;
-  int number_of_redshifts;
-  /* values of z, dz, X_e */
-  double dz,dz_max;
-  double z,z_next;
-  double xe,xe_next;
-  double dkappadz,dkappadz_next;
-  double Tb,Yp,dTdz,opacity,mu;
-  double dkappadtau,dkappadtau_next;
-  double energy_rate;
-  double tau;
-  double chi_heat;
-  int last_index_back;
-  double relative_variation;
-
-  Yp = pth->YHe;
-
-  /** - (a) allocate vector of values related to reionization */
-  class_alloc(reio_vector,preio->re_size*sizeof(double),pth->error_message);
-
-  /** - (b) create a growTable with gt_init() */
-  class_call(gt_init(&gTable),
-             gTable.error_message,
-             pth->error_message);
-
-  /** - (c) first line is taken from thermodynamics table, just before reionization starts */
-
-  /** - --> look where to start in current thermodynamics table */
-  i=0;
-  while (preco->recombination_table[i*preco->re_size+preco->index_re_z] < preio->reionization_parameters[preio->index_reio_start]) {
-    i++;
-    class_test(i == ppr->recfast_Nz0,
-               pth->error_message,
-               "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
-  }
-
-  /** - --> get redshift */
-  z=preco->recombination_table[i*preco->re_size+preco->index_re_z];
-  reio_vector[preio->index_re_z]=z;
-  preio->index_reco_when_reio_start=i;
-
-  /** - --> get \f$ X_e \f$ */
-  class_call(thermodynamics_reionization_function(z,pth,preio,&xe),
-             pth->error_message,
-             pth->error_message);
-
-  reio_vector[preio->index_re_xe] = xe;
-
-  /** -  --> get \f$ d \kappa / d z = (d \kappa / d \tau) * (d \tau / d z) = - (d \kappa / d \tau) / H \f$ */
-
-  class_call(background_tau_of_z(pba,
-                                 z,
-                                 &tau),
-             pba->error_message,
-             pth->error_message);
-
-  class_call(background_at_tau(pba,
-                               tau,
-                               pba->short_info,
-                               pba->inter_normal,
-                               &last_index_back,
-                               pvecback),
-             pba->error_message,
-             pth->error_message);
-
-  reio_vector[preio->index_re_dkappadtau] = (1.+z) * (1.+z) * pth->n_e * xe * _sigma_ * _Mpc_over_m_;
-
-  class_test(pvecback[pba->index_bg_H] == 0.,
-             pth->error_message,
-             "stop to avoid division by zero");
-
-  reio_vector[preio->index_re_dkappadz] = reio_vector[preio->index_re_dkappadtau] / pvecback[pba->index_bg_H];
-
-  dkappadz = reio_vector[preio->index_re_dkappadz];
-  dkappadtau = reio_vector[preio->index_re_dkappadtau];
-
-  /** - --> get baryon temperature **/
-  Tb = preco->recombination_table[i*preco->re_size+preco->index_re_Tb];
-  reio_vector[preio->index_re_Tb] = Tb;
-
-  /** - --> after recombination, Tb scales like (1+z)**2. Compute constant factor Tb/(1+z)**2. */
-  //Tba2 = Tb/(1+z)/(1+z);
-
-  /** - --> get baryon sound speed */
-  reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
-
-  /** - --> store these values in growing table */
-  class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
-             gTable.error_message,
-             pth->error_message);
-
-  number_of_redshifts=1;
-
-  /** - (d) set the maximum step value (equal to the step in thermodynamics table) */
-  dz_max=preco->recombination_table[i*preco->re_size+preco->index_re_z]
-    -preco->recombination_table[(i-1)*preco->re_size+preco->index_re_z];
-
-  /** - (e) loop over redshift values in order to find values of z, x_e, kappa' (Tb and cb2 found later by integration). The sampling in z space is found here. */
-
-  /* initial step */
-  dz = dz_max;
-
-  while (z > 0.) {
-
-    class_test(dz < ppr->smallest_allowed_variation,
-               pth->error_message,
-               "stuck in the loop for reionization sampling, as if you were trying to impose a discontinuous evolution for xe(z)");
-
-    /* - try next step */
-    z_next=z-dz;
-    if (z_next < 0.) z_next=0.;
-
-    class_call(thermodynamics_reionization_function(z_next,pth,preio,&xe_next),
-               pth->error_message,
-               pth->error_message);
-
-    class_call(background_tau_of_z(pba,
-                                   z_next,
-                                   &tau),
-               pba->error_message,
-               pth->error_message);
-
-    class_call(background_at_tau(pba,
-                                 tau,
-                                 pba->short_info,
-                                 pba->inter_normal,
-                                 &last_index_back,
-                                 pvecback),
-               pba->error_message,
-               pth->error_message);
-
-    class_test(pvecback[pba->index_bg_H] == 0.,
-               pth->error_message,
-               "stop to avoid division by zero");
-
-    dkappadz_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_ / pvecback[pba->index_bg_H];
-
-    dkappadtau_next= (1.+z_next) * (1.+z_next) * pth->n_e * xe_next * _sigma_ * _Mpc_over_m_;
-
-    class_test((dkappadz == 0.) || (dkappadtau == 0.),
-               pth->error_message,
-               "stop to avoid division by zero");
-
-    relative_variation = fabs((dkappadz_next-dkappadz)/dkappadz) +
-      fabs((dkappadtau_next-dkappadtau)/dkappadtau);
-
-    if (relative_variation < ppr->reionization_sampling) {
-      /* accept the step: get \f$ z, X_e, d kappa / d z \f$ and store in growing table */
-
-      z=z_next;
-      xe=xe_next;
-      dkappadz=dkappadz_next;
-      dkappadtau= dkappadtau_next;
-
-      class_test((dkappadz == 0.) || (dkappadtau == 0.),
-                 pth->error_message,
-                 "dkappadz=%e, dkappadtau=%e, stop to avoid division by zero",dkappadz,dkappadtau);
-
-      reio_vector[preio->index_re_z] = z;
-      reio_vector[preio->index_re_xe] = xe;
-      reio_vector[preio->index_re_dkappadz] = dkappadz;
-      reio_vector[preio->index_re_dkappadtau] = dkappadz * pvecback[pba->index_bg_H];
-
-      class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
-                 gTable.error_message,
-                 pth->error_message);
-
-      number_of_redshifts++;
-
-      dz = MIN(0.9*(ppr->reionization_sampling/relative_variation),5.)*dz;
-      dz = MIN(dz,dz_max);
-    }
-    else {
-      /* do not accept the step and update dz */
-      dz = 0.9*(ppr->reionization_sampling/relative_variation)*dz;
-    }
-  }
-
-  /** - (f) allocate reionization_table with correct size */
-  class_alloc(preio->reionization_table,preio->re_size*number_of_redshifts*sizeof(double),pth->error_message);
-
-  preio->rt_size=number_of_redshifts;
-
-  /** - (g) retrieve data stored in the growTable with gt_getPtr() */
-  class_call(gt_getPtr(&gTable,(void**)&pData),
-             gTable.error_message,
-             pth->error_message);
-
-  /** - (h) copy growTable to reionization_temporary_table (invert order of lines, so that redshift is growing, like in recombination table) */
-  for (i=0; i < preio->rt_size; i++) {
-    memcopy_result = memcpy(preio->reionization_table+i*preio->re_size,pData+(preio->rt_size-i-1)*preio->re_size,preio->re_size*sizeof(double));
-    class_test(memcopy_result != preio->reionization_table+i*preio->re_size,
-               pth->error_message,
-               "cannot copy data back to reionization_temporary_table");
-
-  }
-
-  /** - (i) free the growTable with gt_free() , free vector of reionization variables */
-  class_call(gt_free(&gTable),
-             gTable.error_message,
-             pth->error_message);
-
-  free(reio_vector);
-
-  /** - (j) another loop on z, to integrate equation for Tb and to compute cb2 */
-  for (i=preio->rt_size-1; i >0 ; i--) {
-
-    z = preio->reionization_table[i*preio->re_size+preio->index_re_z];
-
-    class_call(background_tau_of_z(pba,
-                                   z,
-                                   &tau),
-               pba->error_message,
-               pth->error_message);
-
-    class_call(background_at_tau(pba,
-                                 tau,
-                                 pba->normal_info,
-                                 pba->inter_normal,
-                                 &last_index_back,
-                                 pvecback),
-               pba->error_message,
-               pth->error_message);
-
-    dz = (preio->reionization_table[i*preio->re_size+preio->index_re_z]-preio->reionization_table[(i-1)*preio->re_size+preio->index_re_z]);
-
-    opacity = (1.+z) * (1.+z) * pth->n_e
-      * preio->reionization_table[i*preio->re_size+preio->index_re_xe] * _sigma_ * _Mpc_over_m_;
-
-    mu = _m_H_/(1. + (1./_not4_ - 1.) * pth->YHe + preio->reionization_table[i*preio->re_size+preio->index_re_xe] * (1.-pth->YHe));
-
-    /** - --> derivative of baryon temperature */
-
-    dTdz=2./(1+z)*preio->reionization_table[i*preio->re_size+preio->index_re_Tb]
-      -2.*mu/_m_e_*4.*pvecback[pba->index_bg_rho_g]/3./pvecback[pba->index_bg_rho_b]*opacity*
-      (pba->T_cmb * (1.+z)-preio->reionization_table[i*preio->re_size+preio->index_re_Tb])/pvecback[pba->index_bg_H];
-
-    if (preco->annihilation > 0) {
-
-      class_call(thermodynamics_energy_injection(ppr,pba,preco,z,&energy_rate,pth->error_message),
-                 pth->error_message,
-                 pth->error_message);
-
-      // old approximation from Chen and Kamionkowski:
-      // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.;
-
-      // coefficient as revised by Slatyer et al. 2013
-      // (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V
-      // of Slatyer et al. 2013):
-      xe = preio->reionization_table[i*preio->re_size+preio->index_re_xe];
-      if (xe < 1.)
-        chi_heat = MIN(0.996857*(1.-pow(1.-pow(xe,0.300134),1.51035)),1);
-      else
-        chi_heat = 1.;
-
-      dTdz+= -2./(3.*_k_B_)*energy_rate*chi_heat
-        /(preco->Nnow*pow(1.+z,3))/(1.+preco->fHe+preio->reionization_table[i*preio->re_size+preio->index_re_xe])
-        /(pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_*(1.+z)); /* energy injection */
-
-    }
-
-    /** - --> increment baryon temperature */
-
-    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
-      preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
-
-    /** - --> get baryon sound speed */
-
-    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] = _k_B_/ ( _c_ * _c_ * mu)
-      * preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]
-      *(1.+(1+z)/3.*dTdz/preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]);
-  }
-
-  /** - --> spline \f$ d \tau / dz \f$ with respect to z in view of integrating for optical depth */
-  class_call(array_spline(preio->reionization_table,
-                          preio->re_size,
-                          preio->rt_size,
-                          preio->index_re_z,
-                          preio->index_re_dkappadz,
-                          preio->index_re_d3kappadz3,
-                          _SPLINE_EST_DERIV_,
-                          pth->error_message),
-             pth->error_message,
-             pth->error_message);
-
-  /** - --> integrate for optical depth */
-  class_call(array_integrate_all_spline(preio->reionization_table,
-                                        preio->re_size,
-                                        preio->rt_size,
-                                        preio->index_re_z,
-                                        preio->index_re_dkappadz,
-                                        preio->index_re_d3kappadz3,
-                                        &(preio->reionization_optical_depth),
-                                        pth->error_message),
+  
+  last_index=0;
+  
+  class_call(array_interpolate_one_growing_closeby(preco->recombination_table,
+                                                   preco->re_size,
+                                                   preco->rt_size,
+                                                   preco->index_re_z,
+                                                   z,
+                                                   &last_index,
+                                                   preco->index_re_Tb,
+                                                   Tmat,
+                                                   pth->error_message),
              pth->error_message,
              pth->error_message);
 
@@ -2612,46 +1789,55 @@ int thermodynamics_reionization_sample(
  *
  */
 
-int thermodynamics_recombination(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct thermo * pth,
-                                 struct recombination * preco,
-                                 struct reionization * preio,
-                                 double * pvecback
-                                 ) {
+int thermodynamics_solve(
+                         struct precision * ppr,
+                         struct background * pba,
+                         struct thermo * pth,
+                         struct recombination * preco,
+                         struct reionization * preio,
+                         double * pvecback
+                         ) {
 
   struct thermo_workspace * ptw;
+  
+  /** - allocate and initialize the 'thermo workspace' structure */
+  class_alloc(ptw,sizeof(struct thermo_workspace),pth->error_message);
+  
+  class_call(thermo_workspace_init(ppr,
+                                   pba,
+                                   pth,
+                                   ptw),
+             pth->error_message,
+             pth->error_message);
+  
+  if (pth->recombination == hyrec) {
 
-    if (pth->recombination==hyrec) {
-
+    /* Compute recombination */
     class_call(thermodynamics_recombination_with_hyrec(ppr,pba,pth,preco,pvecback),
                pth->error_message,
                pth->error_message);
 
-  }
-
-  if (pth->recombination==recfast) {
-          
-      /** - allocate and initialize the 'thermo workspace' structure */
-    class_alloc(ptw,sizeof(struct thermo_workspace),pth->error_message);
-
-    class_call(thermo_workspace_init(ppr,
-                                     pba,
-                                     pth,
-                                     ptw),
+    /* Compute reionization if needed*/
+    if(pth->reio_parametrization != reio_none){    
+    class_call(thermodynamics_solve_with_recfast(ppr,pba,pth,preco,preio,ptw,pvecback),
                pth->error_message,
                pth->error_message);
-  
-  
-    class_call(thermodynamics_recombination_with_recfast(ppr,pba,pth,preco,preio,ptw,pvecback),
+    }
+    
+  }
+  else if (pth->recombination == recfast) {
+    
+    /* Compute thermodynamics */
+    class_call(thermodynamics_solve_with_recfast(ppr,pba,pth,preco,preio,ptw,pvecback),
                pth->error_message,
                pth->error_message);
-
-    free(ptw);
   }
-
-  return _SUCCESS_;
+  
+  class_call(thermo_workspace_free(ptw),
+             pth->error_message,
+             pth->error_message);    
+  
+ return _SUCCESS_;
 
 }
 
@@ -2661,7 +1847,7 @@ int thermodynamics_recombination(
  * Integrate thermodynamics with HyRec, allocate and fill the part
  * of the thermodynamics interpolation table (the rest is filled in
  * thermodynamics_init()). Called once by
- * thermodynamics_recombination(), from thermodynamics_init().
+ * thermodynamics_solve(), from thermodynamics_init().
  *
  *************************************************************************************************
  *                 HYREC: Hydrogen and Helium Recombination Code
@@ -2985,15 +2171,15 @@ int thermodynamics_recombination_with_hyrec(
  * @return the error status
  */
 
-int thermodynamics_recombination_with_recfast(
-                                              struct precision * ppr,
-                                              struct background * pba,
-                                              struct thermo * pth,
-                                              struct recombination * preco,
-                                              struct reionization * preio,
-                                              struct thermo_workspace * ptw,
-                                              double * pvecback
-                                              ) {
+int thermodynamics_solve_with_recfast(
+                                      struct precision * ppr,
+                                      struct background * pba,
+                                      struct thermo * pth,
+                                      struct recombination * preco,
+                                      struct reionization * preio,
+                                      struct thermo_workspace * ptw,
+                                      double * pvecback
+                                     ) {
 
   /** Summary: */
 
@@ -3010,14 +2196,12 @@ int thermodynamics_recombination_with_recfast(
 
   /* other recfast variables */
   double zinitial;
-  int i,Nz,Nz_reco,Nz_reio;
-
+  int i,Nz;
 
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
   struct thermodynamics_parameters_and_workspace tpaw;
 
   /* function pointer to ODE evolver and names of possible evolvers */
-
   extern int evolver_rk();
   extern int evolver_ndf15();
   int (*generic_evolver)();
@@ -3043,23 +2227,14 @@ int thermodynamics_recombination_with_recfast(
   
   
   
-  /* number of timesteps for recombination*/
-  Nz_reco=ppr->recfast_Nz0;
-
-  /* number of timesteps for reionization*/
-  Nz_reio=ppr->reionization_z_start_max / ppr->reionization_sampling;
-
   /* z_initial */
   zinitial=ppr->recfast_z_initial;
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
-  Nz = Nz_reco + Nz_reio;
+  Nz = preco->Nz_reco + preio->Nz_reio;
   
   preio->rt_size = Nz;
   class_alloc(preio->reionization_table,preio->re_size*preio->rt_size*sizeof(double),pth->error_message);
-  
-  class_alloc(preco->recombination_table,preco->re_size*preio->rt_size*sizeof(double),pth->error_message);
-
   
   /** - define the fields of the 'thermodynamics parameter and workspace' structure */
   tpaw.pba = pba;
@@ -3077,12 +2252,11 @@ int thermodynamics_recombination_with_recfast(
   class_alloc(interval_limit,(ptw->ap_size+1)*sizeof(double),pth->error_message);
   
   
-  for(i=0; i <Nz_reco; i++) {
-    mz_output[i] = -(zinitial-ppr->reionization_z_start_max) * (double)(Nz_reco-1-i) / (double)(Nz_reco-1) 
-                   - ppr->reionization_z_start_max;
+  for(i=0; i <preco->Nz_reco; i++) {
+    mz_output[i] = -(zinitial-ppr->reionization_z_start_max) * (double)(preco->Nz_reco-1-i) / (double)(preco->Nz_reco-1) - ppr->reionization_z_start_max;
   }
-  for(i=0; i <Nz_reio; i++) {
-    mz_output[i+Nz_reco] = -ppr->reionization_z_start_max * (double)(Nz_reio-1-i) / (double)(Nz_reio);
+  for(i=0; i <preio->Nz_reio; i++) {
+    mz_output[i+preco->Nz_reco] = -ppr->reionization_z_start_max * (double)(preio->Nz_reio-1-i) / (double)(preio->Nz_reio);
   }
   
   /*set the switching z's for the approximations */
@@ -3185,10 +2359,11 @@ int thermodynamics_recombination_with_recfast(
   
 
   /** - free quantities allocated at the beginning of the routine */
-  
-  class_call(thermo_vector_free(ptw->tv),
-             pth->error_message,
-             pth->error_message);
+  if(ptw->ap_size != 0){
+    class_call(thermo_vector_free(ptw->tv),
+               pth->error_message,
+               pth->error_message);
+  }
   
   free(interval_limit);
   free(preio->reionization_parameters);
@@ -3316,7 +2491,7 @@ int thermodynamics_derivs_with_recfast(
   Trad = preco->Tnow * (1.+z);
 
   /* Hydrogen and helium */
-  /* First check for the current appoximation scheme. As long as there is 
+  /* First check for the current approximation scheme. As long as there is 
      no full recombination, x_H, x_He and x are evolved with analytic functions.
   */
   Tmat = ptw->tv->y[ptw->tv->index_Tmat];
@@ -3324,8 +2499,8 @@ int thermodynamics_derivs_with_recfast(
   ptw->Tmat = Tmat;
   ptw->dTmat = -ptw->tv->dy[ptw->tv->index_Tmat];
 
-  //printf("z %e, x %e, ap %d \n", z,x,ap_current);  
   class_call(thermodynamics_x_analytic(z,
+                                       ppr,
                                        pth,
                                        preco,
                                        preio,
@@ -3364,6 +2539,7 @@ int thermodynamics_derivs_with_recfast(
   if(ap_current == ptw->index_ap_reio){
     ptw->x = x;
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -3373,6 +2549,34 @@ int thermodynamics_derivs_with_recfast(
                error_message);
   
     x = ptw->x;
+    dx = ptw->dx + dx_H + preco->fHe * dx_He;
+    
+  }
+  else if(ap_current == ptw->index_ap_reio_hyrec){
+    
+    /* get x from the recombination */
+    class_call(thermodynamics_interpolate_recombination_table(ppr,
+                                                              pth,
+                                                              preco,
+                                                              z,
+                                                              &(ptw->x),
+                                                              &(ptw->Tmat)),
+               pth->error_message,
+               pth->error_message);
+  
+    class_call(thermodynamics_x_analytic(z,
+                                         ppr,
+                                         pth,
+                                         preco,
+                                         preio,
+                                         ptw,
+                                         ptw->index_ap_reio),  
+               error_message,
+               error_message);
+    
+    x = ptw->x;
+    dx = ptw->dx;
+    
   }
   
   
@@ -3580,6 +2784,7 @@ int thermodynamics_derivs_with_recfast(
   ptw->dx_H = dx_H;
   ptw->dx_He = dx_He;
   
+  
   /* time-invert derivatives */
   for(index_y=0;index_y<ptw->tv->tv_size;index_y++){
     dy[index_y]=-dy[index_y];
@@ -3606,6 +2811,7 @@ int thermodynamics_derivs_with_recfast(
 
 int thermodynamics_x_analytic(
                               double z,
+                              struct precision * ppr,
                               struct thermo * pth,
                               struct recombination * preco,
                               struct reionization * preio,
@@ -3686,9 +2892,10 @@ int thermodynamics_x_analytic(
 
     preio->reionization_parameters[preio->index_reio_xe_before] = ptw->x;
       
-    class_call(thermodynamics_reionization_function(z,pth,preio,&x),
+    class_call(thermodynamics_reionization_function(z,pth,preio,&x,&dx),
              pth->error_message,
              pth->error_message);
+    
     
   }
   
@@ -3739,7 +2946,7 @@ int thermo_vector_init(
   int index_tv;
   struct thermo_vector * ptv;
   
-  double z;
+  double z,x,Tmat;
   
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
   
@@ -3775,6 +2982,9 @@ int thermo_vector_init(
   else if(ptw->ap_current == ptw->index_ap_reio){ 
     class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
     class_define_index(ptv->index_x_H,_TRUE_,index_tv,1); 
+  }
+  else if(ptw->ap_current == ptw->index_ap_reio){ 
+    /* Nothing else to add */
   }
   
   /* We have now obtained the full size */
@@ -3815,6 +3025,7 @@ int thermo_vector_init(
     
     /* Obtain initial contents of new vector analytically, especially x_He */
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -3848,6 +3059,7 @@ int thermo_vector_init(
     
     /* Obtain initial contents of new vector analytically, especially x_H */
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -3899,6 +3111,31 @@ int thermo_vector_init(
     ptw->require_H = _TRUE_;
     ptw->require_He = _TRUE_;
   }
+  else if(ptw->ap_current == ptw->index_ap_reio_hyrec){
+    
+    class_call(thermodynamics_interpolate_recombination_table(ppr,
+                                                              pth,
+                                                              preco,
+                                                              z,
+                                                              &x,
+                                                              &Tmat),
+               pth->error_message,
+               pth->error_message);
+    
+    /* Store Tmat in workspace for later use */
+    ptw->Tmat = Tmat;
+        
+    /* Set the new vector and its indices */ 
+    ptw->tv = ptv;
+
+    ptw->tv->y[ptw->tv->index_Tmat] = Tmat;
+    
+    /* Approximated dTmat by adiabatic cooling */
+    ptw->tv->dy[ptw->tv->index_Tmat] = -preco->Tnow*(1.+z)*2.;
+    
+    ptw->require_H = _FALSE_;
+    ptw->require_He = _FALSE_;
+  }
   /* - in all other approximations we only evolve Tmat and set its initial conditions from the previous scheme */
   else{
     /* Store Tmat in workspace for later use */
@@ -3947,7 +3184,7 @@ int thermo_vector_free(
  * Initialize a thermo_workspace structure. All fields are allocated
  * here, with the exception of the thermo_vector '-->tv' field, which
  * is allocated separately in thermo_vector_init. We allocate the
- * thermo_workspace structure before calling thermodynamics_recombination_with_recfast.
+ * thermo_workspace structure before calling thermodynamics_solve_with_recfast.
  * 
  * Here the approximation schemes are set with their respective ending
  * redshifts and their smoothing parameters. 
@@ -3971,13 +3208,34 @@ int thermo_workspace_init(
   /** - count number of approximations, initialize their indices */
   index_ap=0;
 
+  /* With recombination computed by HyRec, the evolver only has to integrate reionization */
+  if(pth->recombination == hyrec){
+    
+    /** approximations have to appear in chronological order here*/
+    if (pth->reio_parametrization != reio_none) {
+      class_define_index(ptw->index_ap_reio_hyrec,_TRUE_,index_ap,1);
+      ptw->ap_size=index_ap;
+    }
+    else{
+      ptw->ap_size=index_ap;
+      
+      /*Initialize approximation schemes not included in the evolver loop */
+      class_define_index(ptw->index_ap_reio_hyrec,_TRUE_,index_ap,1);
+    }
+    
+    class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_He1,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_He1f,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_He2,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_H,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
+    class_define_index(ptw->index_ap_reio,_TRUE_,index_ap,1);
 
-  /*if(ppr->evolver == rk){
-    class_stop(pth->error_message,
-             "Runge-Kutta not supported yet.");
+    
+    ptw->ap_size_loaded=index_ap;
+
   }
-  else*/
-  {
+  else{
     
     /** approximations have to appear in chronological order here*/
     class_define_index(ptw->index_ap_brec,_TRUE_,index_ap,1);
@@ -3986,20 +3244,27 @@ int thermo_workspace_init(
     class_define_index(ptw->index_ap_He2,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_H,_TRUE_,index_ap,1);
     class_define_index(ptw->index_ap_frec,_TRUE_,index_ap,1);
+    
     if (pth->reio_parametrization != reio_none) {
       class_define_index(ptw->index_ap_reio,_TRUE_,index_ap,1);
       ptw->ap_size=index_ap;
     }
     else{
       ptw->ap_size=index_ap;
+      
+      /*Initialize approximation schemes not included in the evolver loop */
       class_define_index(ptw->index_ap_reio,_TRUE_,index_ap,1);
     }
     
+    class_define_index(ptw->index_ap_reio_hyrec,_TRUE_,index_ap,1);
+
+    ptw->ap_size_loaded=index_ap;
+
+  }  
     
 
     /** store all ending redshifts for each approximation */
-    class_alloc(ptw->ap_z_limits,ptw->ap_size*sizeof(double),pth->error_message);
-
+    class_alloc(ptw->ap_z_limits,ptw->ap_size_loaded*sizeof(double),pth->error_message);
 
     ptw->ap_z_limits[ptw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
     ptw->ap_z_limits[ptw->index_ap_He1] = ppr->recfast_z_He_2+ppr->recfast_delta_z_He_2;
@@ -4008,10 +3273,11 @@ int thermo_workspace_init(
     ptw->ap_z_limits[ptw->index_ap_H] = 1600.;// TODO :: set correctly
     ptw->ap_z_limits[ptw->index_ap_frec] = ppr->reionization_z_start_max;
     ptw->ap_z_limits[ptw->index_ap_reio] = 0.0;
+    ptw->ap_z_limits[ptw->index_ap_reio_hyrec] = 0.0;
 
     
     /** store smoothing deltas for transitions at the beginning of each aproximation */
-    class_alloc(ptw->ap_z_limits_delta,ptw->ap_size*sizeof(double),pth->error_message);
+    class_alloc(ptw->ap_z_limits_delta,ptw->ap_size_loaded*sizeof(double),pth->error_message);
     
     ptw->ap_z_limits_delta[ptw->index_ap_brec] = 0.;
     ptw->ap_z_limits_delta[ptw->index_ap_He1] = ppr->recfast_delta_z_He_1;
@@ -4020,13 +3286,34 @@ int thermo_workspace_init(
     ptw->ap_z_limits_delta[ptw->index_ap_H] = 50.; // TODO :: set correctly
     ptw->ap_z_limits_delta[ptw->index_ap_frec] = 50.;// TODO :: set correctly
     ptw->ap_z_limits_delta[ptw->index_ap_reio] = 2.0;// TODO :: set correctly
+    ptw->ap_z_limits_delta[ptw->index_ap_reio_hyrec] = 2.0;// TODO :: set correctly
 
-
-  }
 
   /*fix current approximation scheme abritrarily */
   ptw->ap_current = ptw->index_ap_brec;
   
+  return _SUCCESS_;
+}
+
+/**
+ * Free the thermo_workspace structure (with the exception of the
+ * thermo_vector '-->tv' field, which is freed separately in
+ * thermo_vector_free).
+ *
+ * @param ptw        Input: pointer to perturb_workspace structure to be freed
+ * @return the error status
+ */
+
+int thermo_workspace_free (
+                            struct thermo_workspace * ptw
+                            ) {
+
+  //free(ptw->pvecback);
+  free(ptw->ap_z_limits);
+  free(ptw->ap_z_limits_delta);
+
+  free(ptw);
+
   return _SUCCESS_;
 }
 
@@ -4043,6 +3330,13 @@ int thermodynamics_recombination_set_parameters(
 
   /** - read a few precision/cosmological parameters */
   
+  if(pth->recombination == hyrec){
+    preco->Nz_reco = 0;
+  }
+  else{
+    preco->Nz_reco = ppr->recfast_Nz0;
+  }
+    
   /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */
   preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
 
@@ -4130,6 +3424,12 @@ int thermodynamics_reionization_set_parameters(
 
   class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message);
 
+  
+  class_test(ppr->reionization_sampling <= 0.0,
+             pth->error_message,
+             "stop to avoid division by zero. Reionization stepsize has to be larger than zero");
+  
+  preio->Nz_reio = ppr->reionization_z_start_max / ppr->reionization_sampling;
   /** - (a) if reionization implemented like in CAMB */
 
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
@@ -4507,9 +3807,9 @@ int thermodynamics_reionization_evolve_with_tau(
   ptw = ptpaw->ptw;
    
   
-  /* Initialiaze two thermo vectors to store initial conditions and as temporal vector */
-  struct thermo_vector * ptv;
-  struct thermo_vector * ptv_store;
+  /* Initialiaze two thermo vectors to store initial conditions and one temporal vector for the calculations in the bisection*/
+  struct thermo_vector * ptv; // Temporal vector as workspace
+  struct thermo_vector * ptv_store; // Vector for storing the initial conditions
   
   ptv_store = ptw->tv;
   
@@ -4530,7 +3830,7 @@ int thermodynamics_reionization_evolve_with_tau(
   for (index_tv=0; index_tv<ptv->tv_size; index_tv++){
     ptv->used_in_output[index_tv] = _TRUE_;
   }
-  /* Set the new vector and its indices */ 
+  /* Set the new vector */ 
   ptv->y[ptv->index_Tmat] = ptw->tv->y[ptw->tv->index_Tmat];  
   ptv->dy[ptv->index_Tmat] = ptw->tv->dy[ptw->tv->index_Tmat];
   ptv->y[ptv->index_x_H] = ptw->tv->y[ptw->tv->index_x_H];
@@ -4722,7 +4022,7 @@ int thermodynamics_reionization_get_tau(
                                 ) {
  
   /* running index inside thermodynamics table */
-  int i;
+  int i,integration_index;
 
   /** - --> search of index of reionization start in current table */
   i=0;
@@ -4733,12 +4033,12 @@ int thermodynamics_reionization_get_tau(
                "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
   }
  
-  preio->index_reco_when_reio_start=i;
+  integration_index=i;
   
   /** - --> spline \f$ d \tau / dz \f$ with respect to z in view of integrating for optical depth between 0 and the just found starting index */
   class_call(array_spline(preio->reionization_table,
                           preio->re_size,
-                          preio->index_reco_when_reio_start,
+                          integration_index,
                           preio->index_re_z,
                           preio->index_re_dkappadz,
                           preio->index_re_d3kappadz3,
@@ -4750,7 +4050,7 @@ int thermodynamics_reionization_get_tau(
   /** - --> integrate for optical depth */
   class_call(array_integrate_all_spline(preio->reionization_table,
                                         preio->re_size,
-                                        preio->index_reco_when_reio_start,
+                                        integration_index,
                                         preio->index_re_z,
                                         preio->index_re_dkappadz,
                                         preio->index_re_d3kappadz3,
@@ -4764,7 +4064,7 @@ int thermodynamics_reionization_get_tau(
 }
 
 /**
- * This routine is called in thermodynamics_recombination_with_recfast
+ * This routine is called in thermodynamics_solve_with_recfast
  * before the loop over the approximation schemes to set their boundary
  * redshifts in the vector interval_limit. Note that the the redshifts
  * are stored in negative values as we integrate in negative direction.
@@ -4802,7 +4102,7 @@ int thermodynamics_set_approximation_limits(
 
   *interval_number = ptw->ap_size;
 
-  class_test(-mz_ini < ppr->recfast_z_He_3,
+  class_test(pth->recombination == recfast && -mz_ini < ppr->recfast_z_He_3,
              pth->error_message,
              "increase zinitial, otherwise should get initial conditions from recfast's get_init routine (less precise anyway)");
 
@@ -4918,7 +4218,7 @@ int thermodynamics_sources_with_recfast(
              pba->error_message,
              pth->error_message);
 
-    class_test(pvecback[pba->index_bg_H] == 0.,
+  class_test(pvecback[pba->index_bg_H] == 0.,
              pth->error_message,
              "stop to avoid division by zero");
 
@@ -4926,9 +4226,10 @@ int thermodynamics_sources_with_recfast(
   ptw->Tmat = y[ptw->tv->index_Tmat];
   ptw->dTmat = -dy[ptw->tv->index_Tmat];
   
-  /* If we are currently in an approximation scheme x has to be calcuated for this specific z */
+  /* Depending on the current approximation scheme x has to be calculated for this specific z */
   if(ap_current == ptw->index_ap_H){
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -4936,6 +4237,7 @@ int thermodynamics_sources_with_recfast(
                                          ap_current),  
                error_message,
                error_message);
+    
     x = ptw->x_H+preco->fHe*y[ptw->tv->index_x_He];
   }
   else if(ap_current == ptw->index_ap_frec){
@@ -4945,6 +4247,7 @@ int thermodynamics_sources_with_recfast(
     ptw->x = y[ptw->tv->index_x_H]+preco->fHe*y[ptw->tv->index_x_He];
       
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -4955,8 +4258,32 @@ int thermodynamics_sources_with_recfast(
     
     x = ptw->x;
   }
+  else if(ap_current == ptw->index_ap_reio_hyrec){
+    /* get x from the recombination */
+    class_call(thermodynamics_interpolate_recombination_table(ppr,
+                                                              pth,
+                                                              preco,
+                                                              z,
+                                                              &(ptw->x),
+                                                              &(ptw->Tmat)),
+               pth->error_message,
+               pth->error_message);
+  
+    class_call(thermodynamics_x_analytic(z,
+                                         ppr,
+                                         pth,
+                                         preco,
+                                         preio,
+                                         ptw,
+                                         ptw->index_ap_reio),  
+               error_message,
+               error_message);
+    
+    x = ptw->x;
+  }
   else{
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -4968,9 +4295,10 @@ int thermodynamics_sources_with_recfast(
     x = ptw->x;
   }
   /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
-  if(ap_current != ptw->index_ap_brec && z > ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current]){
+  if(ap_current != 0 && z > ptw->ap_z_limits[ap_current-1]-2*ptw->ap_z_limits_delta[ap_current]){
     
     class_call(thermodynamics_x_analytic(z,
+                                         ppr,
                                          pth,
                                          preco,
                                          preio,
@@ -5022,6 +4350,7 @@ int thermodynamics_sources_with_recfast(
     = (1.+z) * (1.+z) * preco->Nnow * x * _sigma_ * _Mpc_over_m_ / pvecback[pba->index_bg_H];
     
   //  printf("%e ,%e \n",x, *(preco->recombination_table+(Nz-index_z-1)*preco->re_size+preco->index_re_dkappadtau));
+  
   return _SUCCESS_;
 
 }
@@ -5062,18 +4391,40 @@ int thermodynamics_merge_reco_and_reio(
   int i,index_th,index_re;
 
   /** - first, a little check that the two tables match each other and can be merged */
-  /*
-  if (pth->reio_parametrization != reio_none) {
-    class_test(preco->recombination_table[preio->index_reco_when_reio_start*preco->re_size+preco->index_re_z] !=
-               preio->reionization_table[(preio->rt_size -1)*preio->re_size+preio->index_re_z],
-               pth->error_message,
-               "mismatch which should never happen");
-  }*/
+  
+  if (pth->recombination == hyrec){ 
+    if(pth->reio_parametrization != reio_none) {
+      /** - --> look where to start in current recombination table */
+      i=0;
+      while (preco->recombination_table[i*preco->re_size+preco->index_re_z] < preio->reionization_table[(preio->rt_size -1)*preio->re_size+preio->index_re_z]) {
+        i++;
+        class_test(i == preco->rt_size,
+                   pth->error_message,
+                   "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
+      }
+      
+      preio->index_reco_when_reio_start=i;   
+      /*
+       *  class_test(preco->recombination_table[preio->index_reco_when_reio_start*preco->re_size+preco->index_re_z] !=
+       *             preio->reionization_table[(preio->rt_size -1)*preio->re_size+preio->index_re_z],
+       *             pth->error_message,
+       *             "mismatch which should never happen");*/
+      
+    }
+    else{
+      preio->rt_size = 0;
+      preio->index_reco_when_reio_start = -1;
+    }
+  }
+  else{
+    /* When not in hyrec mode there is no recombination table */      
+    preco->rt_size = 0;
+    preio->index_reco_when_reio_start = -1;
+  }
 
   /** - find number of redshift in full table = number in reco + number in reio - overlap */
 
-  pth->tt_size = preio->rt_size;
-  //pth->tt_size = ppr->recfast_Nz0 + preio->rt_size - preio->index_reco_when_reio_start - 1;
+  pth->tt_size = preco->rt_size + preio->rt_size - preio->index_reco_when_reio_start - 1;
 
   //printf("tt size %d \n", pth->tt_size);
   /** - allocate arrays in thermo structure */
@@ -5083,7 +4434,7 @@ int thermodynamics_merge_reco_and_reio(
   class_alloc(pth->d2thermodynamics_dz2_table,pth->th_size*pth->tt_size*sizeof(double),pth->error_message);
 
   /** - fill these arrays */
-/*
+
   for (i=0; i < preio->rt_size; i++) {
     pth->z_table[i]=
       preio->reionization_table[i*preio->re_size+preio->index_re_z];
@@ -5096,7 +4447,7 @@ int thermodynamics_merge_reco_and_reio(
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_cb2]=
       preio->reionization_table[i*preio->re_size+preio->index_re_cb2];
   }
-  for (i=0; i < ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1; i++) {
+  for (i=0; i < preco->rt_size - preio->index_reco_when_reio_start - 1; i++) {
     index_th=i+preio->rt_size;
     index_re=i+preio->index_reco_when_reio_start+1;
     pth->z_table[index_th]=
@@ -5109,32 +4460,22 @@ int thermodynamics_merge_reco_and_reio(
       preco->recombination_table[index_re*preco->re_size+preco->index_re_Tb];
     pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=
       preco->recombination_table[index_re*preco->re_size+preco->index_re_cb2];
-  }*/ 
-
-  for (i=0; i < pth->tt_size; i++) {
-
-    pth->z_table[i]=
-      preio->reionization_table[i*preio->re_size+preio->index_re_z];
-    pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]=
-      preio->reionization_table[i*preio->re_size+preio->index_re_xe];
-    pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa]=
-      preio->reionization_table[i*preio->re_size+preio->index_re_dkappadtau];
-    pth->thermodynamics_table[i*pth->th_size+pth->index_th_Tb]=
-      preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
-    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=
-      preio->reionization_table[i*preio->re_size+preio->index_re_cb2];
-      
-      //printf("z %e , x %e, dkappa %e, Tb %e, cb2 %e \n", pth->z_table[i], pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe], pth->thermodynamics_table[i*pth->th_size+pth->index_th_dkappa], pth->thermodynamics_table[i*pth->th_size+pth->index_th_Tb], pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]);
-      
   } 
 
   /** - free the temporary structures */
-
-  free(preco->recombination_table);
-
-  if (pth->reio_parametrization != reio_none)
-    free(preio->reionization_table);
-
+  if(pth->recombination == hyrec){
+    free(preco->recombination_table);
+    
+    if (pth->reio_parametrization != reio_none){
+      free(preio->reionization_table);
+    }
+  }
+  else{
+    free(preio->reionization_table);    
+  }
+  
+  
+  
   return _SUCCESS_;
 }
 
@@ -5212,18 +4553,6 @@ int thermodynamics_output_data(struct background * pba,
     class_store_double(dataptr,pvecthermo[pth->index_th_r_d],pth->compute_damping_scale,storeidx);
 
   }
-
-  return _SUCCESS_;
-}
-
-int thermodynamics_tanh(double x,
-                        double center,
-                        double before,
-                        double after,
-                        double width,
-                        double * result) {
-
-  *result = before + (after-before)*(tanh((x-center)/width)+1.)/2.;
 
   return _SUCCESS_;
 }

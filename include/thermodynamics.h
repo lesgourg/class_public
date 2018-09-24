@@ -282,7 +282,8 @@ struct recombination {
   /** @name - table of the above variables at each redshift, and number of redshifts */
 
   //@{
-
+  
+  int Nz_reco; /**< number of redshitfs for recombination during the evolver loop */
   int rt_size; /**< number of lines (redshift steps) in the table */
   double * recombination_table; /**< table recombination_table[index_z*preco->re_size+index_re] with all other quantities (array of size preco->rt_size*preco->re_size) */
 
@@ -379,6 +380,7 @@ struct reionization {
 
   //@{
 
+  int Nz_reio;                 /**< number of redshift points of reionization during evolver loop*/
   int rt_size;                 /**< number of lines (redshift steps) in the table */
   double * reionization_table; /**< table reionization_table[index_z*preio->re_size+index_re] with all other quantities (array of size preio->rt_size*preio->re_size) */
 
@@ -483,9 +485,11 @@ struct thermo_workspace {
   int index_ap_H; /**< index for start of H-recombination (HI) */
   int index_ap_frec; /**< index for full recombination */
   int index_ap_reio; /**< index for reionization */
+  int index_ap_reio_hyrec; /**< index for reionization with HyRec*/
   
   int ap_current; /** current fixed approximation scheme index */
-  int ap_size; /**< number of approximation intervals during recombination */
+  int ap_size; /**< number of approximation intervals used during evolver loop */
+  int ap_size_loaded; /**< number of all approximations  */
 
   double * ap_z_limits; /**< vector storing ending limits of each approximation */
   double * ap_z_limits_delta; /**< vector storing smoothing deltas of each approximation */
@@ -573,35 +577,20 @@ extern "C" {
 					   double z,
 					   struct thermo * pth,
 					   struct reionization * preio,
-					   double * xe
+					   double * x,
+					   double * dx
 					   );
 
-  int thermodynamics_reionization(
-				  struct precision * ppr,
-				  struct background * pba,
-				  struct thermo * pth,
-				  struct recombination * preco,
-				  struct reionization * preio,
-				  double * pvecback
-				  );
-
-  int thermodynamics_reionization_sample(
-					 struct precision * ppr,
-					 struct background * pba,
-					 struct thermo * pth,
-					 struct recombination * preco,
-					 struct reionization * preio,
-					 double * pvecback
-					 );
-
-  int thermodynamics_get_xe_before_reionization(
+  int thermodynamics_interpolate_recombination_table(
                                                 struct precision * ppr,
                                                 struct thermo * pth,
                                                 struct recombination * preco,
                                                 double z,
-                                                double * xe);
+                                                double * x,
+                                                double * Tmat    
+                                                );
 
-  int thermodynamics_recombination(
+  int thermodynamics_solve(
 				   struct precision * ppr,
 				   struct background * pba,
 				   struct thermo * pth,
@@ -618,7 +607,7 @@ extern "C" {
 						double * pvecback
 						);
 
-  int thermodynamics_recombination_with_recfast(
+  int thermodynamics_solve_with_recfast(
 						struct precision * ppr,
 						struct background * pba,
 						struct thermo * pth,
@@ -639,6 +628,7 @@ extern "C" {
   
   int thermodynamics_x_analytic(
                               double z,
+                              struct precision * ppr,
                               struct thermo * pth,
                               struct recombination * preco,
                               struct reionization * preio,
@@ -666,6 +656,10 @@ extern "C" {
                            struct thermo * pth,
                            struct thermo_workspace * ptw
                            );
+   
+  int thermo_workspace_free (
+                            struct thermo_workspace * ptw
+                            );
   
   int thermodynamics_recombination_set_parameters(
                        struct precision * ppr,
@@ -737,13 +731,6 @@ extern "C" {
                                  int number_of_titles,
                                  double *data
                                  );
-
-  int thermodynamics_tanh(double x,
-                          double center,
-                          double before,
-                          double after,
-                          double width,
-                          double * result);
 
   int thermodynamics_sources_with_recfast(
                                         double z,
