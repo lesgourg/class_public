@@ -2516,7 +2516,7 @@ int background_output_budget(struct background* pba){
       budget_matter+=pba->Omega0_cdm;
     }
     if(pba->has_dcdm){
-      _class_print_species_("Decaying Dark Matter (to dark g)",dcdm);
+      _class_print_species_("Decaying Dark Matter (dark g)",dcdm);
       budget_matter+=pba->Omega0_dcdm;
     }
     
@@ -2525,7 +2525,7 @@ int background_output_budget(struct background* pba){
     _class_print_species_("Photons",g);
     budget_radiation+=pba->Omega0_g;
     if(pba->has_ur){
-      _class_print_species_("Ultra-relativistic",ur);
+      _class_print_species_("Massless ultra-relativistic",ur);
       budget_radiation+=pba->Omega0_ur;
     }
     if(pba->has_dr){
@@ -2534,10 +2534,10 @@ int background_output_budget(struct background* pba){
     }
     
     
-    printf(" ---> Neutrino Species \n");
+    printf(" ---> Massive Neutrino Species \n");
     if(pba->N_ncdm > 0){
       for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm){
-        printf("-> %-26s%4d Omega=%15g , omega=%15g\n","Neutrinos Species",index_ncdm,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
         budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
       }
     }
@@ -2562,11 +2562,11 @@ int background_output_budget(struct background* pba){
     }
     
     printf(" ---> Total budgets \n");
-    printf(" Radiation                        Omega = %15g , omega = %15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
-    printf(" Non-relativistic                 Omega = %15g , omega = %15g \n",budget_matter,budget_matter*pba->h*pba->h);
-    printf(" Neutrinos                        Omega = %15g , omega = %15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
-    printf(" Other Content                    Omega = %15g , omega = %15g \n",budget_other,budget_other*pba->h*pba->h);
-    printf(" TOTAL                            Omega = %15g , omega = %15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
+    printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
+    printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
+    printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+    printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
+    printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
   
     printf(" -------------------------------------------------------------------- \n");
   }
