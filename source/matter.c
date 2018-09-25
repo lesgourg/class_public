@@ -6,22 +6,19 @@
 
 #include "matter.h"
 #include "hypergeom.h"
-#define MATH_PI 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679
-/** ^ The first 100 digits of pi*/
-#define G_EPSILON 1e-10
-#define GH_MAXITER 50
-#define PI_1_4 0.7511255444649425
-
-#define CHUNK_SIZE 4
-#define WARN_LARGE_NU_IMAG 40.0
-#define MATTER_REWRITE_PRINTING _FALSE_
-
+#include <time.h>
+#define GAUSS_EPSILON 1e-10
+#define GAUSS_HERMITE_MAXITER 50
 #define gauss_type_chebyshev_1 0
 #define gauss_type_chebyshev_2 1
 #define gauss_type_legendre 2
 #define gauss_type_hermite 3
 #define gauss_type_trapezoid 4
 #define gauss_type_legendre_half 5
+
+#define CHUNK_SIZE 4
+#define WARN_LARGE_NU_IMAG 40.0
+#define MATTER_REWRITE_PRINTING _FALSE_
 
 #define MATTER_VERBOSITY_TIMING 1
 #define MATTER_VERBOSITY_INDICES 5
@@ -52,33 +49,7 @@ if(integrate_logarithmically && !pma->uses_limber_approximation){   \
 }                                                                   \
 else{                                                               \
   t = 1.0;                                                          \
-}                                                                   \
-class_test(t==0,                                                    \
-           pma->error_message,                                      \
-           "stop to avoid division by zero or logarithm of zero");
-#define matter_get_tij(index_t)                                     \
-if(integrate_logarithmically && !pma->uses_limber_approximation){   \
-  double y = pma->t_spline_sampling[(index_t)]*(y_max-y_min)+y_min; \
-  t = 1.0-exp(-y);                                                  \
-}else if(!pma->uses_limber_approximation){                          \
-  t = pma->t_spline_sampling[(index_t)]*(t_max-t_min)+t_min;        \
-}                                                                   \
-else{                                                               \
-  t = 1.0;                                                          \
 }
-#define matter_get_t_parallel(index_t)                              \
-if(integrate_logarithmically && !pma->uses_limber_approximation){   \
-  double y = pma->t_spline_sampling[(index_t)]*(y_max-y_min)+y_min; \
-  t = 1.0-exp(-y);                                                  \
-}else if(!pma->uses_limber_approximation){                          \
-  t = pma->t_spline_sampling[(index_t)]*(t_max-t_min)+t_min;        \
-}                                                                   \
-else{                                                               \
-  t = 1.0;                                                          \
-}                                                                   \
-class_test_parallel(t==0,                                           \
-           pma->error_message,                                      \
-           "stop to avoid division by zero or logarithm of zero");
 #define matter_get_t_orig(index_t)                                  \
 if(integrate_logarithmically){                                      \
   double y = pma->t_sampling[index_t]*(y_max-y_min)+y_min;          \
@@ -86,24 +57,6 @@ if(integrate_logarithmically){                                      \
 }else{                                                              \
   t = pma->t_sampling[index_t]*(t_max-t_min)+t_min;                 \
 }
-#define matter_get_bessel_t(index_t,index_l,index_coeff)            \
-matter_get_t_limits(index_wd1,index_wd2)                            \
-t_min = MAX(t_min,MIN(1.0-pma->bi_max[index_tilt1_tilt2][index_l_eval*pma->size_fft_result+pma->size_fft_cutoff-1],1.0-pma->bi_max[index_tilt1_tilt2][index_l_eval*pma->size_fft_result]));\
-if(integrate_logarithmically){                                      \
-  double y = pma->t_sampling[index_t]*(y_max-y_min)+y_min;          \
-  t = 1.0-exp(-y);                                                  \
-}else{                                                              \
-  t = pma->t_sampling[index_t]*(t_max-t_min)+t_min;                 \
-}
-#define matter_get_tij_orig(index_t)                                \
-if(integrate_logarithmically){                                      \
-  double y = pma->t_sampling[index_t]*(y_max-y_min)+y_min;          \
-  t = 1.0-exp(-y);                                                  \
-}else{                                                              \
-  t = pma->t_sampling[index_t]*(t_max-t_min)+t_min;                 \
-}
-#define matter_get_chimax(index_wd1,index_wd2)                      \
-chimax = MAX((pma->tau0-pma->tw_min[index_wd1]),(pma->tau0-pma->tw_min[index_wd2]));
 #define matter_get_tij_limits(index_wd1,index_wd2)                    \
 t_min = MAX((pma->tau0-pma->tw_max[index_wd1])/(pma->tau0-pma->tw_min[index_wd2]),0.0+pma->bi_maximal_t_offset);\
 t_max = MIN((pma->tau0-pma->tw_min[index_wd1])/(pma->tau0-pma->tw_max[index_wd2]),1.0-pma->bi_maximal_t_offset);
@@ -1211,7 +1164,7 @@ int matter_obtain_coeff_sampling(
      * It was very important here, that the N-1 factor should cancel,
      *  which is only possible if we include this correction factor here
      * */
-    pma->nu_imag[index_coeff]=2*MATH_PI*(((double)(index_coeff))/(pma->deltalogk))*((double)pma->size_fft_input-1)/((double)pma->size_fft_input);
+    pma->nu_imag[index_coeff]=_TWOPI_*(((double)(index_coeff))/(pma->deltalogk))*((double)pma->size_fft_input-1)/((double)pma->size_fft_input);
     /**
      * The algorithm used to obtain the bessel integrals is not always stable,
      *  especially not when the imaginary part of the coefficients gets too large
@@ -6619,11 +6572,11 @@ int matter_integrate_cl(
             index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
             printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
             printf("%.10e",
-              pma->l_sampling[0]*(pma->l_sampling[0]+1.0)/(2*MATH_PI)*pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+0]
+              pma->l_sampling[0]*(pma->l_sampling[0]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+0]
             );
             for(index_l=1;index_l<pma->l_size;++index_l){
               printf(",%.10e",
-                pma->l_sampling[index_l]*(pma->l_sampling[index_l]+1.0)/(2*MATH_PI)*pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+index_l]
+                pma->l_sampling[index_l]*(pma->l_sampling[index_l]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+index_l]
               );
             }
             printf("\n");
@@ -7446,7 +7399,7 @@ int matter_integrate_cosmological_function(
     int index_ic2_ic1 = index_ic2*pma->ic_size+index_ic1;
     #pragma omp for
     for(index_t=0;index_t<t_size_local;++index_t){
-      matter_get_tij(index_t)
+      matter_get_t(index_t)
       class_call_parallel(matter_get_half_integrand(pba,
                                 ppt,
                                 pma,
@@ -7526,7 +7479,10 @@ int matter_integrate_cosmological_function(
   else if(pma->uses_intxi_logarithmic && is_integrated1==1 && is_integrated2 == 1){
     #pragma omp for
     for(index_t=0;index_t<t_size_local;++index_t){
-      matter_get_t_parallel(index_t)
+      matter_get_t(index_t)
+      class_test_parallel(t==0,
+           pma->error_message,
+           "stop to avoid division by zero or logarithm of zero");
       class_call_parallel(matter_get_ttau_integrand(pba,
                                 ppt,
                                 pma,
@@ -7582,7 +7538,10 @@ int matter_integrate_cosmological_function(
     int index_ic2_ic1 = index_ic2*pma->stp_size+index_ic1;
     #pragma omp for
     for(index_t=0;index_t<t_size_local;++index_t){
-      matter_get_t_parallel(index_t)
+      matter_get_t(index_t)
+      class_test_parallel(t==0,
+           pma->error_message,
+           "stop to avoid division by zero or logarithm of zero");
       class_call_parallel(matter_get_half_integrand(pba,
                                 ppt,
                                 pma,
@@ -7663,7 +7622,10 @@ int matter_integrate_cosmological_function(
   else{
     #pragma omp for
     for(index_t=0;index_t<t_size_local;++index_t){
-      matter_get_t_parallel(index_t)
+      matter_get_t(index_t)
+      class_test_parallel(t==0,
+           pma->error_message,
+           "stop to avoid division by zero or logarithm of zero");
       class_call_parallel(matter_get_ttau_integrand(pba,
                                 ppt,
                                 pma,
@@ -7719,6 +7681,9 @@ int matter_integrate_cosmological_function(
     if(pma->uses_intxi_asymptotic && !(matter_is_integrated(index_radtp1) || matter_is_integrated(index_radtp2))){
       for(index_t=0;index_t<t_size_local;++index_t){
         matter_get_t(index_t)
+        class_test(t==0,
+           pma->error_message,
+           "stop to avoid division by zero or logarithm of zero");
         double temp;
         class_call(matter_asymptote(ppr, pma, t, index_wd1,index_wd2, &temp),pma->error_message,pma->error_message);
         for(index_coeff=0;index_coeff<pma->size_fft_cutoff;++index_coeff){
@@ -8201,11 +8166,11 @@ int matter_get_bessel_limber(
        * The theoretical factor would be (2pi^2),
        *  but we get aformentioned additional factor of 1/2.
        * */
-      window_bessel_real[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0] = MATH_PI*MATH_PI*exp_factor*cos(phase);
-      window_bessel_imag[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0] = MATH_PI*MATH_PI*exp_factor*sin(phase);
+      window_bessel_real[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0] = _PI_*_PI_*exp_factor*cos(phase);
+      window_bessel_imag[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0] = _PI_*_PI_*exp_factor*sin(phase);
       if(pma->has_integrated_windows){
-        window_bessel_real[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0+pma->t_size] = MATH_PI*MATH_PI*exp_factor*cos(phase);
-        window_bessel_imag[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0+pma->t_size] = MATH_PI*MATH_PI*exp_factor*sin(phase);
+        window_bessel_real[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0+pma->t_size] = _PI_*_PI_*exp_factor*cos(phase);
+        window_bessel_imag[index_tilt1_tilt2*pma->size_fft_result+index_coeff][0+pma->t_size] = _PI_*_PI_*exp_factor*sin(phase);
       }
     }
     //End coeff
@@ -8387,7 +8352,6 @@ int matter_get_bessel_fort_parallel_integrated(
           // HERE :: last_t t change
           last_t = 0;
           for(index_t=0;index_t<pma->t_size;++index_t){
-            //matter_get_bessel_t(index_t,index_l,pma->size_fft_cutoff-1);
             matter_get_t_orig(index_t);
             eval_pt = 1.0-t;
             if(eval_pt>pma->bi_max[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]){
@@ -8644,7 +8608,7 @@ int array_integrate_gauss(double* xarray, double* warray, int N,short gauss_type
         dpol = N*(zero*polnext-pol)/(zero*zero-1.0);
         zeroprev = zero;
         zero = zeroprev-polnext/dpol;
-      }while(fabs(zero-zeroprev)>G_EPSILON);
+      }while(fabs(zero-zeroprev)>GAUSS_EPSILON);
       xarray[i]=-zero;
       xarray[N-1-i]=zero;
       /*
@@ -8678,7 +8642,7 @@ int array_integrate_gauss(double* xarray, double* warray, int N,short gauss_type
         dpol = (2*N-1)*(zero*polnext-pol)/(zero*zero-1.0);
         zeroprev = zero;
         zero = zeroprev-polnext/dpol;
-      }while(fabs(zero-zeroprev)>G_EPSILON);
+      }while(fabs(zero-zeroprev)>GAUSS_EPSILON);
       xarray[N-1-i]=2*zero-1;
       /*
       printf("dpol = %.25e",dpol);
@@ -8713,8 +8677,8 @@ int array_integrate_gauss(double* xarray, double* warray, int N,short gauss_type
       else{
         zero = 2.0*zero-xarray[i-2];
       }
-      for(newstep=1;newstep<=GH_MAXITER;++newstep){
-        polnext = PI_1_4;
+      for(newstep=1;newstep<=GAUSS_HERMITE_MAXITER;++newstep){
+        polnext = 0.25*_PI_;
         pol = 0.0;
         for(j=1;j<=N;++j){
           polprev = pol;
@@ -8724,9 +8688,9 @@ int array_integrate_gauss(double* xarray, double* warray, int N,short gauss_type
         dpol = sqrt(2.0*N)*pol;
         zeroprev = zero;
         zero = zeroprev - polnext/dpol;
-        if(fabs(zero-zeroprev)<=G_EPSILON){break;}
+        if(fabs(zero-zeroprev)<=GAUSS_EPSILON){break;}
       }
-      class_test((newstep>=GH_MAXITER),
+      class_test((newstep>=GAUSS_HERMITE_MAXITER),
           err_msg,
           "no convergence of Newton's method during finding integration points for Gauss Hermite Quadrature."
           );
