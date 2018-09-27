@@ -329,7 +329,7 @@ int matter_init(
   pma->bi_wanted_samples = ppr->matter_bi_sample_size+1;
   pma->bessel_recursion_t_size = ppr->matter_bi_sample_size;
 
-  pma->tau_size = MAX(2*(int)(0.5*ppt->tau_size+0.25),pma->tau_size_max);
+  pma->tau_size = MIN(2*(int)(0.5*ppt->tau_size+0.25),pma->tau_size_max);
 
   //TODO :: FIX CAN ONLY BE POWER OF 2 (?)
   pma->size_fft_result = pma->size_fft_cutoff;
@@ -1617,14 +1617,24 @@ int matter_obtain_time_sampling(
      * Find tau_max (and keep it smaller than tau0)
      * */
     if (ppt->selection==gaussian) {
-      zmax = MAX(ppt->selection_mean[index_wd]-ppt->selection_width[index_wd]*ppr->selection_cut_at_sigma,0.);
+      zmax = ppt->selection_mean[index_wd]-ppt->selection_width[index_wd]*ppr->selection_cut_at_sigma;
     }
     if (ppt->selection==tophat) {
-      zmax = MAX(ppt->selection_mean[index_wd]-(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[index_wd],0.);
+      zmax = ppt->selection_mean[index_wd]-(1.+ppr->selection_cut_at_sigma*ppr->selection_tophat_edge)*ppt->selection_width[index_wd];
     }
     if (ppt->selection==dirac) {
       zmax = ppt->selection_mean[index_wd]-pma->small_log_offset;
     }
+
+    class_test(zmax<0,pma->error_message,
+               "\n\
+                The window function cannot reach z=0, otherwise numerical \n\
+                divergencies (which are unphysical) will appear. This is \n\
+                a matter of problem reformulation, which is currently \n\
+                being worked on to be solved. For now, please choose \n\
+                a window function which vanishes at z=0, \n\
+                and make sure that this function calculates the correct \n\
+                maximal time value.");
 
     class_call(background_tau_of_z(pba,
                                    zmax,
@@ -8067,7 +8077,7 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
               bes_local_real = window_bessel_real[index_l][index_tilt1_tilt2*pma->size_fft_result+0][index_t+integrated_t_offset];
               bes_local_imag = window_bessel_imag[index_l][index_tilt1_tilt2*pma->size_fft_result+0][index_t+integrated_t_offset];
               sum_temp +=intxi_local_real*bes_local_real-intxi_local_imag*bes_local_imag;
-              if(index_l==0 && index_wd1 == index_wd2){printf("%.10e,",sum_temp);}
+
               if(pma->size_fft_cutoff==pma->size_fft_result){
                 intxi_local_real = pma->intxi_real[index_radtp1*pma->radtp_size_total+index_radtp2][(pma->size_fft_result-1)*pma->t_size+index_t];
                 intxi_local_imag = pma->intxi_imag[index_radtp1*pma->radtp_size_total+index_radtp2][(pma->size_fft_result-1)*pma->t_size+index_t];
