@@ -14,10 +14,7 @@
 #define T_SWITCH_FORWARD_RECURSION_SIMPLE 0.9
 //0.9999
 //0.94
-//void bessel_integral(double l, double nu_real, double nu_imag, double t, double* res_real, double* res_imag);
 void bessel_integral_transform(double l, double nu_real, double nu_imag, double t, double* res_real, double* res_imag);
-//void bessel_integral_l0(double nu_real, double nu_imag, double t, double* res_real, double* res_imag);
-//void bessel_integral_l1(double nu_real, double nu_imag, double t, double* res_real, double* res_imag);
 void bessel_integral_recursion_initial_abs(int l_max,double nu_real,double nu_imag,double* abi_real,double* abi_imag,double* initial_abs);
 int bessel_integral_recursion_complicated(int l_max,int l_recursion_max,double nu_real, double nu_imag, double t,double bi_allowed_error,double* bi_real,double* bi_imag,double* max_t,double* initial_abs,ErrorMsg errmsg);
 void bessel_integral_recursion_taylor(int l_max,double nu_real,double nu_imag,double t,double* max_t,double* initial_abs,double* bi_real,double* bi_imag);
@@ -27,10 +24,6 @@ int bessel_integral_recursion_backward_simple(
                                              double nu_real,
                                              double nu_imag,
                                              double t,
-                                             double nu_fraction,
-                                             int bessel_recursion_backward_min_l_step_high_nu,
-                                             int bessel_recursion_backward_min_l_step_low_nu,
-                                             int bessel_recursion_backward_max_l_step,
                                              double* abi_real,
                                              double* abi_imag,
                                              double* max_t,
@@ -43,10 +36,6 @@ int bessel_integral_recursion_backward_simple_safe(
                                              double nu_real,
                                              double nu_imag,
                                              double t,
-                                             double nu_fraction,
-                                             int bessel_recursion_backward_min_l_step_high_nu,
-                                             int bessel_recursion_backward_min_l_step_low_nu,
-                                             int bessel_recursion_backward_max_l_step,
                                              double* abi_real,
                                              double* abi_imag,
                                              double* max_t,
@@ -59,10 +48,6 @@ int bessel_integral_recursion_forward_simple(
                                              double nu_real,
                                              double nu_imag,
                                              double t,
-                                             double nu_fraction,
-                                             int bessel_recursion_forward_min_l_step_higj_nu,
-                                             int bessel_recursion_forward_min_l_step_low_nu,
-                                             int bessel_recursion_forward_max_l_step,
                                              double* abi_real,
                                              double* abi_imag,
                                              double* max_t,

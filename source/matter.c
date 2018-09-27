@@ -5095,10 +5095,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                                                        nu_real,
                                                        nu_imag,
                                                        t,
-                                                       nu_fraction,
-                                                       bessel_recursion_forward_min_l_step_high_nu,
-                                                       bessel_recursion_forward_min_l_step_low_nu,
-                                                       bessel_recursion_forward_max_l_step,
                                                        abi_real,
                                                        abi_imag,
                                                        max_t,
@@ -5123,10 +5119,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                                                        nu_real,
                                                        nu_imag,
                                                        t,
-                                                       nu_fraction,
-                                                       bessel_recursion_backward_min_l_step_high_nu,
-                                                       bessel_recursion_backward_min_l_step_low_nu,
-                                                       bessel_recursion_backward_max_l_step,
                                                        abi_real,
                                                        abi_imag,
                                                        max_t,
@@ -5182,6 +5174,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                 pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = index_t+1;
                 pma->bi_max[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = 1.0 - t;
 
+                //TODO :: figure out why parallel reallocation leads to segmentation faults
                 /*class_realloc_parallel(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                               pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                               pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
