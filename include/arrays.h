@@ -10,6 +10,15 @@
 #define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */
 
+#define GAUSS_EPSILON 1e-10 /**< Accuracy of determination of gaussian quadrature weights,absiccas */
+//#define GAUSS_HERMITE_MAXITER 50 //Currently unused
+#define gauss_type_trapezoid 0/**< Trapezoidal integration in [-1,1], unweighted integration, absicca spacing is constant, weights are constant */
+#define gauss_type_legendre 1/**< Legendre integration in [-1,1], unweighted integration, absiccas are the roots of the Legendre polynomials, weights are Legendre derivatives */
+#define gauss_type_legendre_half 2/**< Legendre integration in [-1,1], unweighted integration, absiccas are only the POSITIVE roots of the Legendre polynomials (half of the roots only), weights are corresponding Legendre derivatives*/
+#define gauss_type_chebyshev_1 3/**< Chebyshev integration in [-1,1], weighted integration 1/sqrt(1-x*x), absiccas are the (cosine) roots of the Chebyshev polynomails, weights are constant */
+#define gauss_type_chebyshev_2 4/**< Chebyshev integration in [-1,1], weighted integration sqrt(1-x*x), absiccas are the (cosine) roots of the Chebyshev polynomails, weights are sin*sin */
+//#define gauss_type_hermite 5/**< Hermite integration in [-inf,inf], weighted integration e^(-x*x), absicccas are the roots of Hermite polynomials, weights are exponentially decreasing */ //Currently unused
+
 /**
  * Boilerplate for C++
  */
@@ -433,6 +442,29 @@ int array_integrate_all_trapzd_or_spline(
                                     double * __restrict__ w_trapz,
                                     double * __restrict__ I,
                                     ErrorMsg errmsg);
+
+  int array_weights_gauss(double* xarray,
+                          double* warray,
+                          int N,
+                          short gauss_type,
+                          ErrorMsg err_msg);
+
+  int array_weights_gauss_limits(double* xarray,
+                                 double* warray,
+                                 double xmin,
+                                 double xmax,
+                                 int N,
+                                 short gauss_type,
+                                 ErrorMsg err_msg);
+
+  int array_weights_gauss_rescale_limits(double* xarray,
+                                         double* warray,
+                                         double* xarrayres,
+                                         double* warrayres,
+                                         double xmin,
+                                         double xmax,
+                                         int N,
+                                         ErrorMsg err_msg);
 
 #ifdef __cplusplus
 }

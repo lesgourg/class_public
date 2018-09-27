@@ -3142,3 +3142,225 @@ int array_trapezoidal_convolution(
   *I = res;
   return _SUCCESS_;
 }
+
+
+
+
+/**
+ * Compute weights and absiccas for Gaussian quadrature rules, including
+ * Gauss-Chebyshev integration (both versions)
+ * Gauss-Legendre integration
+ * Gauss-Legendre half-integration
+ * and normal trapezoidal integration
+ *
+ * See the arrays.h file for their descriptions, or open the manual.
+ *
+ * @param xarray                Input: Allocated array of size N, in which absiccas are stored
+ * @param warray                Input: Allocated array of size N, in which weights are stored
+ * @param N                     Input: Array size
+ * @param gauss_type            Input: Method to use for integration
+ * @return the error status
+ */
+
+int array_weights_gauss(double* xarray, double* warray, int N,short gauss_type,ErrorMsg err_msg){
+  int i;
+  class_test(N<1,
+             err_msg,
+             "invalid array size for integration");
+  if(gauss_type==gauss_type_chebyshev_1){
+    for(i=0;i<N;++i){
+      xarray[i]=cos((2.0*i+1.0)/(2.0*(double)N)*_PI_);
+      warray[i]=_PI_/(double)N;
+    }
+    return _SUCCESS_;
+  }
+  else if(gauss_type==gauss_type_chebyshev_2){
+    for(i=0;i<N;++i){
+      xarray[i]=cos((i+1.0)/((double)N+1.0)*_PI_);
+      double sinval = sin((i+1.0)/((double)N+1.0)*_PI_);
+      warray[i]=_PI_/((double)N+1.0)*sinval*sinval;
+    }
+    return _SUCCESS_;
+  }
+  else if(gauss_type==gauss_type_legendre){
+    int Nhalf,j;
+    double zero,zeroprev,pol,dpol,polprev,polnext;
+
+    Nhalf = 0.5*((double)(N+1));
+    for(i=0;i<Nhalf;++i){
+      zero = cos(_PI_*(2.0*i+1.5)/(2.0*(double)N+1.0));
+      do{
+        polnext = 1.0;
+        pol = 0.0;
+        for(j=1;j<=N;++j){
+          polprev = pol;
+          pol = polnext;
+          polnext = ((2.0*j-1.0)*zero*pol-(j-1.0)*polprev)/j;
+        }
+        dpol = N*(zero*polnext-pol)/(zero*zero-1.0);
+        zeroprev = zero;
+        zero = zeroprev-polnext/dpol;
+      }while(fabs(zero-zeroprev)>GAUSS_EPSILON);
+      xarray[i]=-zero;
+      xarray[N-1-i]=zero;
+      warray[i]=2.0/((1.0-zero*zero)*dpol*dpol);
+      warray[N-1-i]=warray[i];
+    }
+    return _SUCCESS_;
+  }
+  else if(gauss_type==gauss_type_legendre_half){
+    int Nhalf,j;
+    double zero,zeroprev,pol,dpol,polprev,polnext;
+
+    Nhalf = 0.5*((double)((2*N-1)+1));
+    for(i=0;i<Nhalf;++i){
+      zero = cos(_PI_*(2.0*i+1.5)/(2.0*(double)(2*N-1)+1.0));
+      do{
+        polnext = 1.0;
+        pol = 0.0;
+        for(j=1;j<=(2*N-1);++j){
+          polprev = pol;
+          pol = polnext;
+          polnext = ((2.0*j-1.0)*zero*pol-(j-1.0)*polprev)/j;
+        }
+        dpol = (2*N-1)*(zero*polnext-pol)/(zero*zero-1.0);
+        zeroprev = zero;
+        zero = zeroprev-polnext/dpol;
+      }while(fabs(zero-zeroprev)>GAUSS_EPSILON);
+      xarray[N-1-i]=2*zero-1;
+      warray[N-1-i]=4.0/((1.0-zero*zero)*dpol*dpol);
+    }
+    return _SUCCESS_;
+  }
+  /* This gauss-hermite method currently only works until N=150 due
+   * to numerical underflow of the weights giving NaN's otherwise.
+   * It will stay commented out for now.
+   * TODO :: Find a way of extending beyond N=150
+   * */
+  /*else if(gauss_type==gauss_type_hermite){
+    //Careful, has to go from -inf to inf, not -1 to 1
+    int j,newstep,Nhalf;
+    double polprev,pol,polnext,dpol,zero,zeroprev;
+    Nhalf = 0.5*((double)N+1.0);
+    class_test(N>150,err_msg,"Gauss-Hermite quadrature is not numerically viable with this huge N");
+    for(i=1;i<=Nhalf;++i){
+      if(i==1){
+        zero = sqrt(2.0*N+1.0)-1.85575*pow(2.0*N+1.0,-1.0/6.0);
+      }
+      else if(i==2){
+        zero -= 1.14*pow((double)N,0.426)/zero;
+      }
+      else if(i==3){
+        zero = 1.86*zero-0.86*xarray[0];
+      }
+      else if(i==4){
+        zero = 1.91*zero-0.91*xarray[1];
+      }
+      else{
+        zero = 2.0*zero-xarray[i-3];
+      }
+      for(newstep=1;newstep<=GAUSS_HERMITE_MAXITER;++newstep){
+        polnext = 0.25*_PI_;
+        pol = 0.0;
+        for(j=1;j<=N;++j){
+          polprev = pol;
+          pol = polprev;
+          polnext = zero*sqrt(2.0/j)*pol-sqrt(((double)(j-1.0))/j)*polprev;
+        }
+        dpol = sqrt(2.0*N)*pol;
+        zeroprev = zero;
+        zero = zeroprev - polnext/dpol;
+        if(fabs(zero-zeroprev)<=GAUSS_EPSILON){break;}
+      }
+      class_test((newstep>=GAUSS_HERMITE_MAXITER),
+          err_msg,
+          "no convergence of Newton's method during finding integration points for Gauss Hermite Quadrature."
+          );
+      xarray[i-1]=zero;
+      xarray[N-i]=-zero;
+      warray[i-1]=2.0/(dpol*dpol);
+      warray[N-i]=warray[i-1];
+    }
+    return _SUCCESS_;
+  }*/
+  else if(gauss_type==gauss_type_trapezoid){
+    if(N==1){
+      warray[0]=2.0;
+      return _SUCCESS_;
+    }
+    for(i=0;i<N;++i){
+      xarray[i] = 2.0*((double)i/(double)(N-1))-1.0;
+      warray[i] = 2.0/(double)(N-1);
+    }
+    warray[0]*=0.5;
+    warray[N-1]*=0.5;
+    return _SUCCESS_;
+  }
+  else{
+    class_stop(err_msg,
+               "gauss integration type not recognized");
+  }
+}
+/**
+ * Compute weights and absiccas for Gaussian quadrature rules, including
+ * Gauss-Chebyshev integration (both versions)
+ * Gauss-Legendre integration
+ * and normal trapezoidal integration
+ *
+ * Additionally rescales the weights and abscissas to conform to a
+ * given integration region [xmin,xmax]
+ *
+ * @param xarray                Input: Allocated array of size N, in which absiccas are stored
+ * @param warray                Input: Allocated array of size N, in which weights are stored
+ * @param xmin                  Input: Minimum integration boundary
+ * @param xmax                  Input: Maximum integration boundary
+ * @param N                     Input: Array size
+ * @param gauss_type            Input: Method to use for integration
+ * @return the error status
+ */
+int array_weights_gauss_limits(double* xarray, double* warray,double xmin,double xmax, int N,short gauss_type,ErrorMsg err_msg){
+  int i;
+  /* Obtain absiccas, weights in the -1 to 1 region */
+  array_weights_gauss(xarray,warray,N,gauss_type,err_msg);
+  /* Rescale absiccas, weights to the xmin,xmax region */
+  double xmean = 0.5*(xmax+xmin);
+  double xdelta = 0.5*(xmax-xmin);
+  for(i=1;i<N-1;++i){
+    xarray[i]=xdelta*xarray[i]+xmean;
+    warray[i]*=xdelta;
+  }
+  /* The first and last elements need to be precise */
+  xarray[0] = xmin;
+  warray[0]*=xdelta;
+  xarray[N-1] = xmax;
+  warray[N-1]*=xdelta;
+  return _SUCCESS_;
+}
+/**
+ * Rescales the weights and abscissas of a given
+ * Gauss-integration to conform to another
+ * integration region [xmin,xmax]
+ *
+ * This method allows the user to only compute the Gauss-weights once,
+ * and subsequently rescale for any required integration with the same
+ * number of total points N
+ *
+ * @param xarray                Input: Previous absiccas
+ * @param warray                Input: Previous weights
+ * @param xarray                Input: Allocated array of size N, in which final absiccas are stored
+ * @param warray                Input: Allocated array of size N, in which final weights are stored
+ * @param xmin                  Input: Minimum integration boundary
+ * @param xmax                  Input: Maximum integration boundary
+ * @param N                     Input: Array size
+ * @return the error status
+ */
+int array_weights_gauss_rescale_limits(double* xarray,double* warray,double* xarrayres,double* warrayres,double xmin,double xmax,int N,ErrorMsg err_msg){
+  int i;
+  double xmean = 0.5*(xmax+xmin);
+  double xdelta = 0.5*(xmax-xmin);
+  for(i=0;i<N;++i){
+    xarrayres[i]=xdelta*xarray[i]+xmean;
+    warrayres[i]=warray[i]*xdelta;
+  }
+  return _SUCCESS_;
+}

@@ -7,14 +7,6 @@
 #include "matter.h"
 #include "hypergeom.h"
 #include <time.h>
-#define GAUSS_EPSILON 1e-10
-#define GAUSS_HERMITE_MAXITER 50
-#define gauss_type_chebyshev_1 0
-#define gauss_type_chebyshev_2 1
-#define gauss_type_legendre 2
-#define gauss_type_hermite 3
-#define gauss_type_trapezoid 4
-#define gauss_type_legendre_half 5
 
 #define CHUNK_SIZE 4
 #define WARN_LARGE_NU_IMAG 40.0
@@ -1465,7 +1457,7 @@ int matter_obtain_t_sampling(struct matters* pma){
     class_alloc(pma->t_weights,
                 pma->t_size*sizeof(double),
                 pma->error_message);
-    class_call(array_integrate_gauss_limits(
+    class_call(array_weights_gauss_limits(
                                     pma->t_sampling,
                                     pma->t_weights,
                                     0.0,//1e-8 for trapz integration
@@ -1504,7 +1496,7 @@ int matter_obtain_t_sampling(struct matters* pma){
     class_alloc(pma->t_spline_sampling,
                 pma->t_spline_size*sizeof(double),
                 pma->error_message);
-    class_call(array_integrate_gauss_limits(
+    class_call(array_weights_gauss_limits(
                                     pma->t_spline_sampling,
                                     ignore,
                                     0.0,//+1e-8 ? for trapz integration
@@ -1654,7 +1646,7 @@ int matter_obtain_time_sampling(
      *
      * The same we do for the integrated windows
      * */
-    class_call(array_integrate_gauss_limits(
+    class_call(array_weights_gauss_limits(
                                             pma->tw_sampling+index_wd*pma->tw_size,
                                             pma->tw_weights+index_wd*pma->tw_size,
                                             tau_min,
@@ -1685,7 +1677,7 @@ int matter_obtain_time_sampling(
         double chi_epsilon = (pma->tau0-0.5*(tau_min+tau_max))*pow(window_epsilon,-1./nu_reduction);//*(1-(pma->tau0-tau_max)/(pma->tau0-tau_min));
         xmin = MAX(chi_epsilon,pma->small_log_offset);
       }
-      class_call(array_integrate_gauss_limits(
+      class_call(array_weights_gauss_limits(
                                               pma->integrated_tw_sampling+index_wd*pma->integrated_tw_size,
                                               pma->integrated_tw_weights+index_wd*pma->integrated_tw_size,
                                               log(xmin),
@@ -1708,7 +1700,7 @@ int matter_obtain_time_sampling(
       pma->exp_integrated_tw_sampling[index_wd*pma->integrated_tw_size+pma->integrated_tw_size-1] = xmax;
     }
     else{
-      class_call(array_integrate_gauss_limits(
+      class_call(array_weights_gauss_limits(
                                         pma->integrated_tw_sampling+index_wd*pma->integrated_tw_size,
                                         pma->integrated_tw_weights+index_wd*pma->integrated_tw_size,
                                         tau_min,
@@ -1726,7 +1718,7 @@ int matter_obtain_time_sampling(
      *
      * The same we do for the integrated windows
      * */
-    class_call(array_integrate_gauss_limits(
+    class_call(array_weights_gauss_limits(
                                             pma->ptw_sampling+index_wd*pma->ptw_size,
                                             pma->ptw_weights+index_wd*pma->ptw_size,
                                             tau_min,
@@ -1737,7 +1729,7 @@ int matter_obtain_time_sampling(
                                             ),
                pma->error_message,
                pma->error_message);
-    class_call(array_integrate_gauss_limits(
+    class_call(array_weights_gauss_limits(
                                             pma->ptw_integrated_sampling+index_wd*pma->ptw_integrated_size,
                                             pma->ptw_integrated_weights+index_wd*pma->ptw_integrated_size,
                                             tau_min,
@@ -8565,186 +8557,6 @@ int matter_estimate_t_max_bessel(
     double val_at_nmax = (slope_nmax*(l-l_offset-lowl)+offset_nmax)*(l-l_offset);
     double interpol_val = val_at_nmin*(1.0-nu_imag/nu_imag_max) + val_at_nmax*nu_imag/nu_imag_max;
     *t_max_estimate = interpol_val;
-  }
-  return _SUCCESS_;
-}
-
-//1.0/pi^(1/4)
-int array_integrate_gauss(double* xarray, double* warray, int N,short gauss_type,ErrorMsg err_msg){
-  int i;
-  class_test(N<1,
-             err_msg,
-             "invalid array size for integration");
-  if(gauss_type==gauss_type_chebyshev_1){
-    for(i=0;i<N;++i){
-      xarray[i]=cos((2.0*i+1.0)/(2.0*(double)N)*_PI_);
-      warray[i]=_PI_/(double)N;
-    }
-    return _SUCCESS_;
-  }
-  else if(gauss_type==gauss_type_chebyshev_2){
-    for(i=0;i<N;++i){
-      xarray[i]=cos((i+1.0)/((double)N+1.0)*_PI_);
-      double sinval = sin((i+1.0)/((double)N+1.0)*_PI_);
-      warray[i]=_PI_/((double)N+1.0)*sinval*sinval;
-    }
-    return _SUCCESS_;
-  }
-  else if(gauss_type==gauss_type_legendre){
-    int Nhalf,j;
-    double zero,zeroprev,pol,dpol,polprev,polnext;
-
-    Nhalf = 0.5*((double)(N+1));
-    for(i=0;i<Nhalf;++i){
-      zero = cos(_PI_*(2.0*i+1.5)/(2.0*(double)N+1.0));
-      do{
-        polnext = 1.0;
-        pol = 0.0;
-        for(j=1;j<=N;++j){
-          polprev = pol;
-          pol = polnext;
-          polnext = ((2.0*j-1.0)*zero*pol-(j-1.0)*polprev)/j;
-        }
-        dpol = N*(zero*polnext-pol)/(zero*zero-1.0);
-        zeroprev = zero;
-        zero = zeroprev-polnext/dpol;
-      }while(fabs(zero-zeroprev)>GAUSS_EPSILON);
-      xarray[i]=-zero;
-      xarray[N-1-i]=zero;
-      /*
-      printf("dpol = %.25e",dpol);
-      printf("nextpol = %.25e",polnext);
-      printf("pol = %.25e",dpol);
-      printf("prevpol = %.25e",polprev);
-      printf("Zero = %.25e",zero);
-      printf("Zero prev = %.25e",zeroprev);
-      */
-      warray[i]=2.0/((1.0-zero*zero)*dpol*dpol);
-      warray[N-1-i]=warray[i];
-    }
-    return _SUCCESS_;
-  }
-  else if(gauss_type==gauss_type_legendre_half){
-    int Nhalf,j;
-    double zero,zeroprev,pol,dpol,polprev,polnext;
-
-    Nhalf = 0.5*((double)((2*N-1)+1));
-    for(i=0;i<Nhalf;++i){
-      zero = cos(_PI_*(2.0*i+1.5)/(2.0*(double)(2*N-1)+1.0));
-      do{
-        polnext = 1.0;
-        pol = 0.0;
-        for(j=1;j<=(2*N-1);++j){
-          polprev = pol;
-          pol = polnext;
-          polnext = ((2.0*j-1.0)*zero*pol-(j-1.0)*polprev)/j;
-        }
-        dpol = (2*N-1)*(zero*polnext-pol)/(zero*zero-1.0);
-        zeroprev = zero;
-        zero = zeroprev-polnext/dpol;
-      }while(fabs(zero-zeroprev)>GAUSS_EPSILON);
-      xarray[N-1-i]=2*zero-1;
-      /*
-      printf("dpol = %.25e",dpol);
-      printf("nextpol = %.25e",polnext);
-      printf("pol = %.25e",dpol);
-      printf("prevpol = %.25e",polprev);
-      printf("Zero = %.25e",zero);
-      printf("Zero prev = %.25e",zeroprev);
-      */
-      warray[N-1-i]=4.0/((1.0-zero*zero)*dpol*dpol);
-    }
-    return _SUCCESS_;
-  }
-  else if(gauss_type==gauss_type_hermite){
-    //Careful, has to go from -inf to inf, not -1 to 1
-    int j,newstep,Nhalf;
-    double polprev,pol,polnext,dpol,zero,zeroprev;
-    Nhalf = 0.5*((double)N+1.0);
-    for(i=1;i<=Nhalf;++i){
-      if(i==1){
-        zero = sqrt(2.0*N+1.0)-1.85575*pow(2.0*N+1.0,-1.0/6.0);
-      }
-      else if(i==2){
-        zero -= 1.14*pow((double)N,0.426)/zero;
-      }
-      else if(i==3){
-        zero = 1.86*zero-0.86*xarray[1];
-      }
-      else if(i==4){
-        zero = 1.91*zero-0.91*xarray[2];
-      }
-      else{
-        zero = 2.0*zero-xarray[i-2];
-      }
-      for(newstep=1;newstep<=GAUSS_HERMITE_MAXITER;++newstep){
-        polnext = 0.25*_PI_;
-        pol = 0.0;
-        for(j=1;j<=N;++j){
-          polprev = pol;
-          pol = polprev;
-          polnext = zero*sqrt(2.0/j)*pol-sqrt(((double)(j-1.0))/j)*polprev;
-        }
-        dpol = sqrt(2.0*N)*pol;
-        zeroprev = zero;
-        zero = zeroprev - polnext/dpol;
-        if(fabs(zero-zeroprev)<=GAUSS_EPSILON){break;}
-      }
-      class_test((newstep>=GAUSS_HERMITE_MAXITER),
-          err_msg,
-          "no convergence of Newton's method during finding integration points for Gauss Hermite Quadrature."
-          );
-      xarray[i-1]=zero;
-      xarray[N-i]=-zero;
-      warray[i-1]=2.0/(dpol*dpol);
-      warray[N-i]=warray[i-1];
-    }
-    return _SUCCESS_;
-  }
-  else if(gauss_type==gauss_type_trapezoid){
-    if(N==1){
-      warray[0]=2.0;
-      return _SUCCESS_;
-    }
-    for(i=0;i<N;++i){
-      xarray[i] = 2.0*((double)i/(double)(N-1))-1.0;
-      warray[i] = 2.0/(double)(N-1);
-    }
-    warray[0]*=0.5;
-    warray[N-1]*=0.5;
-    return _SUCCESS_;
-  }
-  else{
-    class_stop(err_msg,
-               "gauss integrationt type not recognized");
-  }
-}
-//Obtains and rescales a xarray,warray for gauss quadrature
-int array_integrate_gauss_limits(double* xarray, double* warray,double xmin,double xmax, int N,short gauss_type,ErrorMsg err_msg){
-  int i;
-  array_integrate_gauss(xarray,warray,N,gauss_type,err_msg);
-  double xmean = 0.5*(xmax+xmin);
-  double xdelta = 0.5*(xmax-xmin);
-  for(i=1;i<N-1;++i){
-    xarray[i]=xdelta*xarray[i]+xmean;
-    warray[i]*=xdelta;
-  }
-  //The first and last elements should be precise
-  xarray[0] = xmin;
-  warray[0]*=xdelta;
-  xarray[N-1] = xmax;
-  warray[N-1]*=xdelta;
-  return _SUCCESS_;
-}
-//Rescales an already obtained xarray,warray
-//This can be used to only compute xarray,warray once and rescale differently for every integration
-int array_integrate_gauss_rescale_limits(double* xarray,double* warray,double* xarrayres,double* warrayres,double xmin,double xmax,int N){
-  int i;
-  double xmean = 0.5*(xmax+xmin);
-  double xdelta = 0.5*(xmax-xmin);
-  for(i=0;i<N;++i){
-    xarrayres[i]=xdelta*xarray[i]+xmean;
-    warrayres[i]=warray[i]*xdelta;
   }
   return _SUCCESS_;
 }
