@@ -4992,7 +4992,16 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
           clock_t TOT = 0;
           clock_t COPY = 0;
           clock_t T = clock();
-          short overflow_flag = _FALSE_;
+          /**
+           * This flag keeps track of overflows happening during the summation
+           * of the hypergeometric functions. If no more overflows occur
+           *  ( this flag being set to _FALSE_ )
+           * then a simplified version of the summation can be used,
+           * which does not check for further overflows.
+           *
+           * Always initialize as _TRUE_ !
+           * */
+          short overflow_flag = _TRUE_;
           for(index_t=1;index_t<bi_recursion_t_size;++index_t){
             /**
              * Obtain the t at which we want to sample
@@ -5017,6 +5026,8 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
              * Backward simple:
              *  Limited to t close to 1 (surprisingly),
              *  but with a much broader range
+             * Update: Using the overflow-safe version, which requires the
+             *  overflow_flag to keep track of overflows during calculation
              *
              * Self inverse taylor:
              *  Limited to very very close to 1,
