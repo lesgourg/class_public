@@ -407,7 +407,7 @@ int matter_init(
   class_alloc(sources,
               pma->ic_size*pma->stp_size*sizeof(double*),
               pma->error_message);
-  class_call(matter_obtain_perturbation_sources(ppt,pnl,pma,sources),
+  class_call(matter_obtain_perturbation_sources(pba,ppt,pnl,pma,sources),
              pma->error_message,
              pma->error_message);
 
@@ -3989,7 +3989,12 @@ int matter_obtain_indices(
               pma->radtp_size_total*sizeof(int),
               pma->error_message);
   if(pma->has_stp_delta_m){
-    pma->index_perturb_tp_of_stp[pma->stp_index_delta_m] = ppt->index_tp_delta_m;
+    if(ppt->has_source_delta_cb){
+      pma->index_perturb_tp_of_stp[pma->stp_index_delta_m] = ppt->index_tp_delta_cb;
+    }
+    else{
+      pma->index_perturb_tp_of_stp[pma->stp_index_delta_m] = ppt->index_tp_delta_m;
+    }
     if(pma->matter_verbose > MATTER_VERBOSITY_INDICES){
       printf(" -> Found delta_m at %i \n",pma->stp_index_delta_m);
     }
@@ -5419,6 +5424,7 @@ int matter_obtain_nonseparability(
   return _SUCCESS_;
 }
 int matter_obtain_perturbation_sources(
+                                      struct background* pba,
                                       struct perturbs * ppt,
                                       struct nonlinear * pnl,
                                       struct matters * pma,
@@ -5468,10 +5474,19 @@ int matter_obtain_perturbation_sources(
       if (pnl->method != nl_none) {
         for(index_tau_perturbs=0;index_tau_perturbs<ppt->tau_size;++index_tau_perturbs){
           for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
-            source_temp[index_k*ppt->tau_size+index_tau_perturbs] =
-            ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp]
-              [index_tau_perturbs * ppt->k_size[index_md] + index_k]
-            * pnl->nl_corr_density[pnl->index_pk_m][index_tau_perturbs * ppt->k_size[index_md] + index_k];
+            if(pba->has_ncdm){
+              //Here we trust nonlinear to set index_pk_cb correctly
+              source_temp[index_k*ppt->tau_size+index_tau_perturbs] =
+              ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp]
+                [index_tau_perturbs * ppt->k_size[index_md] + index_k]
+              * pnl->nl_corr_density[pnl->index_pk_cb][index_tau_perturbs * ppt->k_size[index_md] + index_k];
+            }
+            else{
+              source_temp[index_k*ppt->tau_size+index_tau_perturbs] =
+              ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp]
+                [index_tau_perturbs * ppt->k_size[index_md] + index_k]
+              * pnl->nl_corr_density[pnl->index_pk_m][index_tau_perturbs * ppt->k_size[index_md] + index_k];
+            }
           }
           //End k
         }

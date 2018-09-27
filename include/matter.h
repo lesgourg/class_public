@@ -356,6 +356,7 @@ extern "C" {
                   struct matters * pma
                   );   
   int matter_obtain_perturbation_sources(
+                  struct background * pba,
                   struct perturbs * ppt,
                   struct nonlinear * pnl,
                   struct matters * pma,
