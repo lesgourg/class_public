@@ -4829,33 +4829,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   pma->l_size_recursion = bessel_recursion_l_size;
 
   /**
-   * It is possible to restart the recursion relations
-   * for different l, thus reducing the peak error
-   *
-   * In practice, it slows the program down by more than it
-   *  can reduce the error, since the starting points themselves
-   *  are error-prone
-   *
-   * As such, they are currently disabled (very high) with the option
-   *  to enable them again if desired
-   * */
-  int bessel_recursion_backward_min_l_step_low_nu = 500000;
-  int bessel_recursion_backward_min_l_step_high_nu;
-  int bessel_recursion_backward_max_l_step = 1000000;
-  int bessel_recursion_forward_min_l_step_low_nu = 400000;
-  int bessel_recursion_forward_min_l_step_high_nu;
-  int bessel_recursion_forward_max_l_step = 200000;
-
-  if(pma->has_tilt_normal){
-    bessel_recursion_forward_min_l_step_high_nu = 60000;
-    bessel_recursion_backward_min_l_step_high_nu = 500000;
-  }
-  else{
-    bessel_recursion_forward_min_l_step_high_nu = 10000;
-    bessel_recursion_backward_min_l_step_high_nu = 500000;
-  }
-
-  /**
    * Allocate the arrays in which we want to store the final bessel integrals
    *  (Bessel Integrals are shortened to BI)
    * */

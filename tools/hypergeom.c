@@ -3,16 +3,15 @@
  * Nils Schoenberg, 12.10.2017
  *
  * This module computes complex gamma functions, the gaussian hypergeometric function (Hypergeometric2F1) and various derived functions (bessel integrals)
+ * Additionally, it uses various types of recursions.
  */
 #include "common.h"
 #include "hypergeom.h"
 #include <math.h>
 
-#include <time.h>
 //Mathematical constants used in this file
 
 #define MATH_PI 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679 /** < The first 100 digits of pi*/
-
 
 //Variations of PI
 #define MATH_PI_3_2 pow(MATH_PI,1.5) /** < PI^(3/2) */
@@ -35,7 +34,6 @@
 
 // Constants definition for the Lanczos Approximation
 const int NUM_GAMMA_COEFF = 8;
-//double GAMMA_COEFF[NUM_GAMMA_COEFF] = { 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 };
 const double GAMMA_COEFF[] = { 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 };
 
 
@@ -1915,7 +1913,7 @@ int bessel_integral_recursion_complicated(int l_max,
  * Explicitly t=1 is important for criterium of 'vanishing' function
  *  (as a good approximation for maximum value for t in [0,1])
  * */
-void bessel_integral_recursion_initial_abs(int l_max,double nu_real,double nu_imag,double* abi_real,double* abi_imag,double* initial_abs){
+int bessel_integral_recursion_initial_abs(int l_max,double nu_real,double nu_imag,double* abi_real,double* abi_imag,double* initial_abs){
   //Initialize recursion relation
   double bi_real,bi_imag,bi_next_real,bi_next_imag;
   bessel_integral_l0(
@@ -1932,6 +1930,7 @@ void bessel_integral_recursion_initial_abs(int l_max,double nu_real,double nu_im
                      &bi_next_real,
                      &bi_next_imag
                      );
+
   //Initialize loop
   double bi_next_next_real;
   double bi_next_next_imag;
@@ -1960,15 +1959,14 @@ void bessel_integral_recursion_initial_abs(int l_max,double nu_real,double nu_im
     bi_next_real = bi_next_next_real;
     bi_next_imag = bi_next_next_imag;
   }
-  return;
+  return _SUCCESS_;
 }
 
 /**
  * This function calculates the integral over the bessel functions
  *  at small t by a simple recursion relation
  * */
-void bessel_integral_recursion_taylor(int l_max,double nu_real,double nu_imag,double t,double* max_t,double* initial_abs,double* bi_real,double* bi_imag){
-  //clock_t start = clock();
+int bessel_integral_recursion_taylor(int l_max,double nu_real,double nu_imag,double t,double* max_t,double* initial_abs,double* bi_real,double* bi_imag){
   double res_real,res_imag;
   int index_l;
   for(index_l=0;index_l<=l_max;++index_l){
@@ -1992,6 +1990,7 @@ void bessel_integral_recursion_taylor(int l_max,double nu_real,double nu_imag,do
     //End max t
   }
   //End l
+  return _SUCCESS_;
 }
 
 
