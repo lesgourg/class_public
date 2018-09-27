@@ -2573,6 +2573,15 @@ int input_read_parameters(
       else if(flag1 == _TRUE_){
         pma->uses_intxi_interpolation = _FALSE_;
       }
+      class_call(parser_read_string(pfc,"matter_uses_intchi_logarithmic",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        pma->uses_intxi_logarithmic = _TRUE_;
+      }
+      else if(flag1 == _TRUE_){
+        pma->uses_intxi_logarithmic = _FALSE_;
+      }
       class_call(parser_read_string(pfc,"matter_uses_intchi_symmetrization",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
