@@ -82,6 +82,7 @@ cdef class Class:
     cdef nonlinear nl
     cdef transfers tr
     cdef spectra sp
+    cdef matters ma
     cdef output op
     cdef lensing le
     cdef file_content fc
@@ -176,6 +177,8 @@ cdef class Class:
              return
         if "lensing" in self.ncp:
             lensing_free(&self.le)
+        if "matter" in self.ncp:
+            matter_free(&self.ma)
         if "spectra" in self.ncp:
             spectra_free(&self.sp)
         if "transfer" in self.ncp:
@@ -212,6 +215,8 @@ cdef class Class:
 
         """
         if "lensing" in level:
+            level.append("matter")
+        if "matter" in level:
             level.append("spectra")
         if "spectra" in level:
             level.append("transfer")
@@ -306,7 +311,8 @@ cdef class Class:
         if "input" in level:
             if input_init(&self.fc, &self.pr, &self.ba, &self.th,
                           &self.pt, &self.tr, &self.pm, &self.sp,
-                          &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
+                          &self.ma, &self.nl, &self.le, &self.op,
+                          errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
             self.ncp.add("input")
             # This part is done to list all the unread parameters, for debugging
@@ -372,6 +378,14 @@ cdef class Class:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
             self.ncp.add("spectra")
+
+        if "matter" in level:
+            if matter_init(&(self.pr), &(self.ba), &(self.th),
+                           &(self.pt), &(self.pm), &(self.nl),
+                           &(self.ma)) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.ma.error_message)
+            self.ncp.add("matter")
 
         if "lensing" in level:
             if lensing_init(&(self.pr), &(self.pt), &(self.sp),

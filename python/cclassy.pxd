@@ -208,6 +208,9 @@ cdef extern from "class.h":
         double alpha_k1
         double alpha_k2
 
+    cdef struct matters:
+        ErrorMsg error_message
+
     cdef struct output:
         ErrorMsg error_message
 
@@ -253,6 +256,7 @@ cdef extern from "class.h":
         short * read
 
     void lensing_free(void*)
+    void matter_free(void*)
     void spectra_free(void*)
     void transfer_free(void*)
     void primordial_free(void*)
@@ -265,7 +269,7 @@ cdef extern from "class.h":
     cdef int _FALSE_
     cdef int _TRUE_
 
-    int input_init(void*, void*, void*, void*, void*, void*, void*, void*, void*,
+    int input_init(void*, void*, void*, void*, void*, void*, void*, void*, void*, void*,
         void*, void*, char*)
     int background_init(void*,void*)
     int thermodynamics_init(void*,void*,void*)
@@ -274,6 +278,7 @@ cdef extern from "class.h":
     int nonlinear_init(void*,void*,void*,void*,void*,void*)
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int spectra_init(void*,void*,void*,void*,void*,void*,void*)
+    int matter_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
 
     int background_tau_of_z(void* pba, double z,double* tau)
