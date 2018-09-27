@@ -4992,6 +4992,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
           clock_t TOT = 0;
           clock_t COPY = 0;
           clock_t T = clock();
+          short overflow_flag = _FALSE_;
           for(index_t=1;index_t<bi_recursion_t_size;++index_t){
             /**
              * Obtain the t at which we want to sample
@@ -5105,7 +5106,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
               //printf("USING BACKWARD SIMPLE \n\n");
               clock_t func_start = clock();
               double func_start_t = omp_get_wtime();
-              class_call_parallel(bessel_integral_recursion_backward_simple(
+              class_call_parallel(bessel_integral_recursion_backward_simple_safe(
                                                        l_max_cur,
                                                        (1.1+backward_simple_lfactor)*l_max_cur,
                                                        nu_real,
@@ -5119,6 +5120,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                                                        abi_imag,
                                                        max_t,
                                                        initial_abs,
+                                                       &overflow_flag,
                                                        pma->error_message),
                          pma->error_message,
                          pma->error_message);
@@ -8114,7 +8116,6 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
                 bes_local_imag = window_bessel_imag[index_l][index_tilt1_tilt2*pma->size_fft_result+(pma->size_fft_result-1)][index_t+integrated_t_offset];
                 sum_temp +=intxi_local_real*bes_local_real-intxi_local_imag*bes_local_imag;
               }
-
               for(index_coeff=1;index_coeff<pma->size_fft_cutoff-1;++index_coeff){
                 intxi_local_real = pma->intxi_real[index_radtp1*pma->radtp_size_total+index_radtp2][index_coeff*pma->t_size+index_t];
                 intxi_local_imag = pma->intxi_imag[index_radtp1*pma->radtp_size_total+index_radtp2][index_coeff*pma->t_size+index_t];

@@ -1501,12 +1501,11 @@ void bessel_integral_lowt_transform(double l, double nu_real, double nu_imag, do
 		//Calculate hypergeometric function
 		double hypergeom_real = 0.0; double hypergeom_imag = 0.0;
 		hypergeom(nu_real*0.25 + 0.5*l, nu_imag*0.25, l*0.5+0.5 + nu_real*0.25, nu_imag*0.25, l + 1.5 ,0.0, z_fac, &hypergeom_real, &hypergeom_imag);
-		
+
 		//Calculate the new additional prefactor of (1+z)^(-(l+nu/2))*t^l
 		double new_pref_factor = exp(-log1pz*(l+nu_real*0.5) + log(t)*l);
 		double new_pref_real = new_pref_factor*cos(-log1pz*nu_imag*0.5);
 		double new_pref_imag = new_pref_factor*sin(-log1pz*nu_imag*0.5);
-		
 		//Multiply old and new prefactor to obtain result
 		double bet_real = (hypergeom_real*tot_pref_real - hypergeom_imag*tot_pref_imag);
 		double bet_imag = (hypergeom_real*tot_pref_imag + hypergeom_imag*tot_pref_real);
@@ -1604,6 +1603,138 @@ void bessel_integral_lowt_transform_safe(double l, double nu_real, double nu_ima
 		//Calculate hypergeometric function
 		double hypergeom_real = 0.0; double hypergeom_imag = 0.0;
 		hypergeom_safe(nu_real*0.25 + 0.5*l, nu_imag*0.25, l*0.5+0.5 + nu_real*0.25, nu_imag*0.25, l + 1.5 ,0.0, z_fac, &hypergeom_real, &hypergeom_imag,&overflows);
+		
+    //Calculate total prefactor of hypergeometric function
+		double exp_factor = exp(LOG_2*nu_real - LOG_2);
+		double pref_real = exp_factor*cos(LOG_2*nu_imag);
+		double pref_imag = exp_factor*sin(LOG_2*nu_imag);
+
+		//Only Gamma((3-nu)/2) can be calculated normally without overflow here
+		double first_den_gamma_real = 0.0; double first_den_gamma_imag = 0.0;
+		gamma_complex(1.5 - 0.5*nu_real, -0.5*nu_imag, &first_den_gamma_real, &first_den_gamma_imag);
+		double first_den_gamma_abs_squared = first_den_gamma_real*first_den_gamma_real + first_den_gamma_imag*first_den_gamma_imag;
+		
+		//Calculate Gamma(l+nu/2)/Gamma(l+3/2)
+		double lgamma_num_real = 0.0; double lgamma_num_imag = 0.0;
+		ln_gamma_complex_2(l + 0.5*nu_real, 0.5*nu_imag, &lgamma_num_real, &lgamma_num_imag);
+		double scnd_den_gamma = ln_gamma_real(l + 1.5);
+		
+		exp_factor = exp(lgamma_num_real - scnd_den_gamma);
+		double exp_real = exp_factor*cos(lgamma_num_imag);
+		double exp_imag = exp_factor*sin(lgamma_num_imag);
+
+		//Calculate fraction of numerator and denominator
+		double frac_real = (first_den_gamma_real*exp_real+first_den_gamma_imag*exp_imag)/ first_den_gamma_abs_squared;
+		double frac_imag = (first_den_gamma_real*exp_imag-first_den_gamma_imag*exp_real)/ first_den_gamma_abs_squared;
+		
+		//The old naming convention calls this "tot_pref", but it is not the total prefactor
+		double tot_pref_real = MATH_PI*MATH_PI* (pref_real*frac_real - pref_imag*frac_imag);
+		double tot_pref_imag = MATH_PI*MATH_PI* (pref_imag*frac_real + pref_real*frac_imag);
+
+		//Calculate the new additional prefactor of (1+z)^(-(l+nu/2))*t^l
+		double new_pref_factor = exp(-log1pz*(l+nu_real*0.5) + log(t)*l + overflows*log(ABS_LIMIT));
+		double new_pref_real = new_pref_factor*cos(-log1pz*nu_imag*0.5);
+		double new_pref_imag = new_pref_factor*sin(-log1pz*nu_imag*0.5);
+		
+		//Multiply old and new prefactor to obtain result
+		double bet_real = (hypergeom_real*tot_pref_real - hypergeom_imag*tot_pref_imag);
+		double bet_imag = (hypergeom_real*tot_pref_imag + hypergeom_imag*tot_pref_real);
+		*res_real = (bet_real*new_pref_real-bet_imag*new_pref_imag);
+		*res_imag = (bet_imag*new_pref_real+bet_real*new_pref_imag);
+		return;	
+	}
+
+}
+void bessel_integral_lowt_transform_safe_flag(double l, double nu_real, double nu_imag, double t, double* res_real, double* res_imag,short* overflow_flag){
+	//Uses a single transformation to reduce parameters of hypergeo significantly
+	//Recurrent parameters
+	double z = t*t;
+	double z_fac = 4.0*z/(1.0+z)/(1.0+z);
+	double log1pz = log(1.0+z);
+	//Gamma-overflow safe version
+	if(nu_imag>NU_IMAG_LIMIT){
+    int overflows = 0;
+		//Calculate hypergeometric function
+		double hypergeom_real = 0.0; double hypergeom_imag = 0.0;
+		hypergeom_safe(nu_real*0.25 + 0.5*l, nu_imag*0.25, l*0.5+0.5 + nu_real*0.25, nu_imag*0.25, l + 1.5 ,0.0, z_fac, &hypergeom_real, &hypergeom_imag,&overflows);
+		if(overflows>0){*overflow_flag = _TRUE_;}else{*overflow_flag=_FALSE_;}
+    //Calculate total prefactor of hypergeometric function
+		double exp_factor = exp(LOG_2*nu_real - LOG_2);
+		double pref_real = exp_factor*cos(LOG_2*nu_imag);
+		double pref_imag = exp_factor*sin(LOG_2*nu_imag);
+		
+		//Calculate Division of Gammas and factor of (1+z)^(l+nu/2)
+		double a_0 = 0.0; double  b_0 = 0.0;
+		ln_gamma_complex_2(1.5 - 0.5*nu_real, -0.5*nu_imag, &a_0, &b_0);
+		double lgamma_num_real = 0.0; double lgamma_num_imag = 0.0;
+		ln_gamma_complex_2(l + 0.5*nu_real, 0.5*nu_imag, &lgamma_num_real, &lgamma_num_imag);
+		double scnd_den_gamma = ln_gamma_real(l + 1.5);
+		exp_factor = exp(overflows*log(ABS_LIMIT)+lgamma_num_real - a_0 - scnd_den_gamma+log(t)*l-log1pz*(l+0.5*nu_real));
+		
+		double exp_real = exp_factor*cos(lgamma_num_imag - b_0 - log1pz*0.5*nu_imag);
+		double exp_imag = exp_factor*sin(lgamma_num_imag - b_0 - log1pz*0.5*nu_imag);
+		
+		//Multiply this with other prefactor to obtain total prefactor
+		double tot_pref_real = MATH_PI*MATH_PI* (pref_real*exp_real - pref_imag*exp_imag);
+		double tot_pref_imag = MATH_PI*MATH_PI* (pref_imag*exp_real + pref_real*exp_imag);
+
+		
+		//Result
+		*res_real = (hypergeom_real*tot_pref_real - hypergeom_imag*tot_pref_imag);
+		*res_imag = (hypergeom_real*tot_pref_imag + hypergeom_imag*tot_pref_real);
+		return;
+	}
+	else if (l < BESSEL_INTEGRAL_MAX_L){
+    int overflows = 0;
+		//Calculate hypergeometric function
+		double hypergeom_real = 0.0; double hypergeom_imag = 0.0;
+		hypergeom_safe(nu_real*0.25 + 0.5*l, nu_imag*0.25, l*0.5+0.5 + nu_real*0.25, nu_imag*0.25, l + 1.5 ,0.0, z_fac, &hypergeom_real, &hypergeom_imag, &overflows);
+		if(overflows>0){*overflow_flag = _TRUE_;}else{*overflow_flag=_FALSE_;}
+		
+    //Calculate total prefactor of hypergeometric function
+		double exp_factor = exp(LOG_2*nu_real - LOG_2);
+		double pref_real = exp_factor*cos(LOG_2*nu_imag);
+		double pref_imag = exp_factor*sin(LOG_2*nu_imag);
+		
+		//Calculate denominator
+		//The Gamma((3-nu)/2) and Gamma(l+3/2) can be calculated normally in this case
+		double first_den_gamma_real = 0.0; double first_den_gamma_imag = 0.0;
+		gamma_complex(1.5 - 0.5*nu_real, -0.5*nu_imag, &first_den_gamma_real, &first_den_gamma_imag);
+		double first_den_gamma_abs_squared = first_den_gamma_real*first_den_gamma_real + first_den_gamma_imag*first_den_gamma_imag;
+		double scnd_den_gamma = gamma_real(l + 1.5);
+		
+		
+		double gamma_num_real = 0.0; double gamma_num_imag = 0.0;
+		gamma_complex(l + 0.5*nu_real, 0.5*nu_imag, &gamma_num_real, &gamma_num_imag);
+		
+		
+		//Calculate fraction of numerator/denominator and multiply with prefactor
+		double frac_real = (first_den_gamma_real*gamma_num_real+first_den_gamma_imag*gamma_num_imag)/ first_den_gamma_abs_squared / scnd_den_gamma;
+		double frac_imag = (first_den_gamma_real*gamma_num_imag-first_den_gamma_imag*gamma_num_real)/ first_den_gamma_abs_squared / scnd_den_gamma;
+		
+		//The old naming convention calls this "tot_pref", but it is not the total prefactor
+		double tot_pref_real = MATH_PI*MATH_PI* (pref_real*frac_real - pref_imag*frac_imag);
+		double tot_pref_imag = MATH_PI*MATH_PI* (pref_imag*frac_real + pref_real*frac_imag);
+		
+		
+		//Calculate the new additional prefactor of (1+z)^(-(l+nu/2))*t^l
+		double new_pref_factor = exp(-log1pz*(l+nu_real*0.5) + log(t)*l + overflows*log(ABS_LIMIT));
+		double new_pref_real = new_pref_factor*cos(-log1pz*nu_imag*0.5);
+		double new_pref_imag = new_pref_factor*sin(-log1pz*nu_imag*0.5);
+		
+		//Multiply old and new prefactor to obtain result
+		double bet_real = (hypergeom_real*tot_pref_real - hypergeom_imag*tot_pref_imag);
+		double bet_imag = (hypergeom_real*tot_pref_imag + hypergeom_imag*tot_pref_real);
+		*res_real = (bet_real*new_pref_real-bet_imag*new_pref_imag);
+		*res_imag = (bet_imag*new_pref_real+bet_real*new_pref_imag);
+		return;		
+	}
+	else{
+    int overflows = 0;
+		//Calculate hypergeometric function
+		double hypergeom_real = 0.0; double hypergeom_imag = 0.0;
+		hypergeom_safe(nu_real*0.25 + 0.5*l, nu_imag*0.25, l*0.5+0.5 + nu_real*0.25, nu_imag*0.25, l + 1.5 ,0.0, z_fac, &hypergeom_real, &hypergeom_imag,&overflows);
+		if(overflows>0){*overflow_flag = _TRUE_;}else{*overflow_flag=_FALSE_;}
 		
     //Calculate total prefactor of hypergeometric function
 		double exp_factor = exp(LOG_2*nu_real - LOG_2);
@@ -2812,18 +2943,60 @@ void bessel_integral_transform(double l, double nu_real, double nu_imag, double 
     bessel_taylor_for_small_t(l,nu_real,nu_imag,t,res_real,res_imag);
   }
 	else if(t*t<BESSEL_INTEGRAL_T_SWITCH_SAFE){
-    //printf("Non-safe \n");
+    //printf("low t = %.10e \n",t);
 		//bessel_integral_lowt_lownu(l, nu_real, nu_imag, t, res_real,res_imag); // Less efficient, but sometimes useful (?)
 		bessel_integral_lowt_transform(l, nu_real, nu_imag, t, res_real,res_imag);
 		return;
 	}
   else if(t*t<BESSEL_INTEGRAL_T_SWITCH){
-    //printf("Safe \n");
+    //printf("Safe t = %.10e \n",t);
     bessel_integral_lowt_transform_safe(l, nu_real, nu_imag, t, res_real,res_imag);
     return;
   }
 	else{
-    //printf("high t ? \n");
+    //printf("high t = %.10e \n",t);
+		bessel_integral_hight_transform(l, nu_real, nu_imag, t, res_real,res_imag);
+		//bessel_integral_hight_transform_safe(l, nu_real, nu_imag, t, res_real,res_imag);
+		return;
+	}
+}
+/**
+ * This function calculates the integral over the bessel functions using the transformed versions of the equations
+ * 
+ * When l=0 or l=1 the function is a very simple analytical one
+ * 
+ * When getting into regimes of t<<1 or (1-t*t)<<1, we have to switch the method of calculation
+ * This is done using a BESSEL_INTEGRAL_T_SWITCH which decides how high t² should be for a switch to occur
+ * */
+void bessel_integral_transform_safety(double l, double nu_real, double nu_imag, double t, double* res_real, double* res_imag, short* overflow_flag){
+	if( l == 0){
+    bessel_integral_l0(nu_real,nu_imag,t,res_real,res_imag);
+    return;
+  }
+  if( l == 1){
+    bessel_integral_l1(nu_real,nu_imag,t,res_real,res_imag);
+    return;
+  }
+  if (t == 1){
+		bessel_analytic_limit_atz1(l,nu_real,nu_imag,res_real,res_imag);
+		return;
+	}
+  if (t<T_MIN_TAYLOR){
+    bessel_taylor_for_small_t(l,nu_real,nu_imag,t,res_real,res_imag);
+  }
+	else if(t*t<BESSEL_INTEGRAL_T_SWITCH_SAFE && !(*overflow_flag)){
+    //printf("low t = %.10e \n",t);
+		//bessel_integral_lowt_lownu(l, nu_real, nu_imag, t, res_real,res_imag); // Less efficient, but sometimes useful (?)
+		bessel_integral_lowt_transform(l, nu_real, nu_imag, t, res_real,res_imag);
+		return;
+	}
+  else if(t*t<BESSEL_INTEGRAL_T_SWITCH){
+    //printf("Safe t = %.10e \n",t);
+    bessel_integral_lowt_transform_safe_flag(l, nu_real, nu_imag, t, res_real,res_imag,overflow_flag);
+    return;
+  }
+	else{
+    //printf("high t = %.10e \n",t);
 		bessel_integral_hight_transform(l, nu_real, nu_imag, t, res_real,res_imag);
 		//bessel_integral_hight_transform_safe(l, nu_real, nu_imag, t, res_real,res_imag);
 		return;
@@ -3237,7 +3410,9 @@ void bessel_integral_recursion_taylor(int l_max,double nu_real,double nu_imag,do
   //clock_t end = clock();
   //printf(" -> Recursion Taylor took %.10e seconds \n",((double)(end-start))/CLOCKS_PER_SEC);
 }
-int bessel_integral_recursion_backward_simple(
+
+
+int bessel_integral_recursion_backward_simple_safe(
                                              int l_max, 
                                              int l_recursion_max,
                                              double nu_real,
@@ -3251,6 +3426,7 @@ int bessel_integral_recursion_backward_simple(
                                              double* abi_imag,
                                              double* max_t,
                                              double* initial_abs,
+                                             short* overflow_flag,
                                              ErrorMsg errmsg
                                             ){
                                               
@@ -3271,21 +3447,22 @@ int bessel_integral_recursion_backward_simple(
     //  l_start--;
     //}
     //printf("Current rec_step  = %4d , l_max = %4d , l_start = %4d , dl = %4d \n",index_recursion_step,l_max,l_start,(index_recursion_step+1)*bessel_recursion_l_step);
-    
-    bessel_integral_transform(
+    bessel_integral_transform_safety(
                        l_start,
                        nu_real,
                        nu_imag,
                        t,
                        &bi_real,
-                       &bi_imag);
-    bessel_integral_transform(
+                       &bi_imag,
+                       overflow_flag);
+    bessel_integral_transform_safety(
                        l_start-1,
                        nu_real,
                        nu_imag,
                        t,
                        &bi_next_real,
-                       &bi_next_imag);
+                       &bi_next_imag,
+                       overflow_flag);
     
     abi_real[l_start] = bi_real;
     abi_imag[l_start] = bi_imag;
@@ -3300,6 +3477,7 @@ int bessel_integral_recursion_backward_simple(
       //printf("Starting with %.10e+%.10ej (l %2d) and %.10e+%.10ej (l-1 %2d) \n",
       //       bi_real,bi_imag,(int)l_start,bi_next_real,bi_next_imag,(int)l_start-1);
       //Explicitly t=1 is important for criterium of 'vanishing' function 
+      
       double den_real = (l-2.0+nu_real*0.5);
       double den_abs_squared = den_real*den_real+0.25*nu_imag*nu_imag;
       double bi_factor_real = -((1.0+l-nu_real*0.5)*bi_real+nu_imag*bi_imag*0.5);
@@ -3382,6 +3560,154 @@ int bessel_integral_recursion_backward_simple(
   //printf(" -> Backward Simple took %.10e seconds \n",((double)(end-start))/CLOCKS_PER_SEC);
   return _SUCCESS_;
 }
+
+
+int bessel_integral_recursion_backward_simple(
+                                             int l_max, 
+                                             int l_recursion_max,
+                                             double nu_real,
+                                             double nu_imag,
+                                             double t,
+                                             double nu_fraction,
+                                             int bessel_recursion_backward_min_l_step_high_nu,
+                                             int bessel_recursion_backward_min_l_step_low_nu,
+                                             int bessel_recursion_backward_max_l_step,
+                                             double* abi_real,
+                                             double* abi_imag,
+                                             double* max_t,
+                                             double* initial_abs,
+                                             ErrorMsg errmsg
+                                            ){
+  //clock_t start = clock();
+  double bi_real,bi_imag,bi_next_real,bi_next_imag,bi_next_next_real,bi_next_next_imag;
+  double temp_real,temp_imag;
+  int bessel_recursion_backward_min_l_step = (int)(nu_fraction*(bessel_recursion_backward_min_l_step_high_nu-bessel_recursion_backward_min_l_step_low_nu)+bessel_recursion_backward_min_l_step_low_nu);
+  //if(index_coeff>105 && t>0.945){printf("step = %d",bessel_recursion_backward_min_l_step);}
+  double min_factor = bessel_recursion_backward_min_l_step*T_SWITCH_FORWARD_RECURSION_SIMPLE;
+  int bessel_recursion_l_step = (int)MIN(min_factor/t,bessel_recursion_backward_max_l_step);
+  
+  int num_recursion_steps = (int)ceil((double)(l_recursion_max+1)/(double)bessel_recursion_l_step);
+  int index_recursion_step;
+  for(index_recursion_step = 0 ;index_recursion_step < num_recursion_steps;++index_recursion_step){
+    int l_start = MAX(l_recursion_max-index_recursion_step*bessel_recursion_l_step,2);
+    //printf("Starting at %4d \n",l_start);
+    //while(t<max_t[l_start]){
+    //  l_start--;
+    //}
+    //printf("Current rec_step  = %4d , l_max = %4d , l_start = %4d , dl = %4d \n",index_recursion_step,l_max,l_start,(index_recursion_step+1)*bessel_recursion_l_step);
+    
+    bessel_integral_transform(
+                       l_start,
+                       nu_real,
+                       nu_imag,
+                       t,
+                       &bi_real,
+                       &bi_imag);
+    bessel_integral_transform(
+                       l_start-1,
+                       nu_real,
+                       nu_imag,
+                       t,
+                       &bi_next_real,
+                       &bi_next_imag);
+    
+    abi_real[l_start] = bi_real;
+    abi_imag[l_start] = bi_imag;
+    abi_real[l_start-1] = bi_next_real;
+    abi_imag[l_start-1] = bi_next_imag;
+    int index_l;
+    for(index_l=l_start;index_l>=(l_recursion_max-(index_recursion_step+1)*bessel_recursion_l_step) && index_l>=2;--index_l){  
+
+      //printf("Allowed, since max_t[%i]=%.10e \n",index_l,max_t[index_l]);
+      double l = (double)index_l;
+
+      //printf("Starting with %.10e+%.10ej (l %2d) and %.10e+%.10ej (l-1 %2d) \n",
+      //       bi_real,bi_imag,(int)l_start,bi_next_real,bi_next_imag,(int)l_start-1);
+      //Explicitly t=1 is important for criterium of 'vanishing' function 
+      
+      double den_real = (l-2.0+nu_real*0.5);
+      double den_abs_squared = den_real*den_real+0.25*nu_imag*nu_imag;
+      double bi_factor_real = -((1.0+l-nu_real*0.5)*bi_real+nu_imag*bi_imag*0.5);
+      double bi_factor_imag = -((1.0+l-nu_real*0.5)*bi_imag-nu_imag*bi_real*0.5);
+      double bi_factor_next_real = (1+t*t)/t*(l-0.5)*bi_next_real;
+      double bi_factor_next_imag = (1+t*t)/t*(l-0.5)*bi_next_imag;
+      //printf("%4d bi facs = %.10e+%.10ej and %.10e+%.10ej \n",index_l,bi_factor_real,bi_factor_imag,bi_factor_next_real,bi_factor_next_imag);
+      
+      temp_real = (bi_factor_next_real+bi_factor_real);
+      temp_imag = (bi_factor_next_imag+bi_factor_imag);
+      bi_next_next_real = (temp_real*den_real+temp_imag*nu_imag*0.5)/den_abs_squared;
+      bi_next_next_imag = (temp_imag*den_real-temp_real*nu_imag*0.5)/den_abs_squared;
+      bi_real = bi_next_real;
+      bi_imag = bi_next_imag;
+      bi_next_real = bi_next_next_real;
+      bi_next_imag = bi_next_next_imag;
+      
+      abi_real[index_l-2] = bi_next_next_real;
+      abi_imag[index_l-2] = bi_next_next_imag;
+      /*if(bessel_recursion_error_check>1){
+        bessel_integral_transform(l-2.0,nu_real,nu_imag,t,&res_real,&res_imag);
+        double err = sqrt((((bi_next_real-res_real)*(bi_next_real-res_real))
+              +((bi_next_imag-res_imag)*(bi_next_imag-res_imag)))
+              /(res_real*res_real+res_imag*res_imag));
+        
+        //printf("Err %.10e :: %.10e+%.10ej vs %.10e+%.10ej \n",
+        //       err,bi_next_real,bi_next_imag,res_real,res_imag);
+        
+        class_test(err>bi_allowed_error,
+              errmsg,
+              "recursion MIDDLE on backward recursion exceeds maximum allowed error at l = %4d, t = %.10e (err = %.10e, seed offset %1d , last seed = %2d) \n Compare wrong %.10e+%.10ei to wanted %.10e+%.10ei",
+              (int)l-2,t,err,index_recursion_step,(int)l_start+2,bi_next_real,bi_next_imag,res_real,res_imag);
+      }*/
+      if(bi_next_real*bi_next_real+bi_next_imag*bi_next_imag<BESSEL_EPSILON*initial_abs[index_l]){ 
+        /*max_t[index_l]=t;
+        if(index_l==*l_max_cur){
+          (*l_max_cur)--;
+        }*/
+        /*if(bessel_recursion_error_check>0){
+          bessel_integral_transform(l-2.0,nu_real,nu_imag,t,&res_real,&res_imag);
+          double err = sqrt((((bi_next_real-res_real)*(bi_next_real-res_real))
+              +((bi_next_imag-res_imag)*(bi_next_imag-res_imag)))
+              /(res_real*res_real+res_imag*res_imag));
+          class_test(err>bi_allowed_error,
+              errmsg,
+              "recursion exit on backward recursion exceeds maximum allowed error at l = %4d, t = %.10e (err = %.10e, seed offset %1d , last seed = %2d) \n Compare wrong %.10e+%.10ei to wanted %.10e+%.10ei",
+              (int)l-2,t,err,index_recursion_step,(int)l_start+2,bi_next_real,bi_next_imag,res_real,res_imag);
+        }*/
+        //End iff error check
+      }
+      //End iff exit
+      
+      //End iff t
+    }
+    //End l
+  }
+  //End recursion step
+  int DOES_BACK_CHECK = _TRUE_;
+  if(DOES_BACK_CHECK){
+    double res_real,res_imag;
+    bessel_integral_transform(0,nu_real,nu_imag,t,&res_real,&res_imag);
+    double abi_0_abs_sq = abi_real[0]*abi_real[0]+abi_imag[0]*abi_imag[0];
+    double lambda_real = (res_real*abi_real[0]+res_imag*abi_imag[0])/abi_0_abs_sq;
+    double lambda_imag = (res_imag*abi_real[0]-res_real*abi_imag[0])/abi_0_abs_sq;
+    //printf("Found lambda = %.10e+%.10ej \n",lambda_real,lambda_imag);
+    
+    int index_l;
+    for(index_l=0;index_l<=l_max;++index_l){
+      temp_real = abi_real[index_l]*lambda_real-abi_imag[index_l]*lambda_imag;
+      temp_imag = abi_real[index_l]*lambda_imag+abi_imag[index_l]*lambda_real;
+      abi_real[index_l] = temp_real;
+      abi_imag[index_l] = temp_imag;
+      if(temp_real*temp_real+temp_imag*temp_imag<BESSEL_EPSILON*initial_abs[index_l]){
+        //printf("Exiting :: %4d \n",index_l);
+        max_t[index_l]=t;
+      }
+    }
+  }
+  //clock_t end = clock();
+  //printf(" -> Backward Simple took %.10e seconds \n",((double)(end-start))/CLOCKS_PER_SEC);
+  return _SUCCESS_;
+}
+
 int bessel_integral_recursion_forward_simple(int l_max, 
                                              double nu_real,
                                              double nu_imag,

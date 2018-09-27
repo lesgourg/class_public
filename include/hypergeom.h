@@ -37,6 +37,23 @@ int bessel_integral_recursion_backward_simple(
                                              double* initial_abs,
                                              ErrorMsg errmsg
                                             );
+int bessel_integral_recursion_backward_simple_safe(
+                                             int l_max,
+                                             int l_recursion_max, 
+                                             double nu_real,
+                                             double nu_imag,
+                                             double t,
+                                             double nu_fraction,
+                                             int bessel_recursion_backward_min_l_step_high_nu,
+                                             int bessel_recursion_backward_min_l_step_low_nu,
+                                             int bessel_recursion_backward_max_l_step,
+                                             double* abi_real,
+                                             double* abi_imag,
+                                             double* max_t,
+                                             double* initial_abs,
+                                             short* overflow_flag,
+                                             ErrorMsg errmsg
+                                            );
 int bessel_integral_recursion_forward_simple(
                                              int l_max, 
                                              double nu_real,
