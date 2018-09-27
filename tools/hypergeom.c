@@ -9,49 +9,50 @@
 #include "hypergeom.h"
 #include <math.h>
 
-//Mathematical constants used in this file
 
-#define MATH_PI 3.1415926535897932384626433832795028841971693993751058209749445923078164062862089986280348253421170679 /** < The first 100 digits of pi*/
+
+/* Mathematical constants used in this file */
 
 //Variations of PI
-#define MATH_PI_3_2 pow(MATH_PI,1.5) /** < PI^(3/2) */
-// 5.5683279968317078452848179821188357020136243902832
-#define MATH_2_PI 2*MATH_PI/** < 2 PI */
-#define MATH_PI_HALF 0.5*MATH_PI/** < PI/2 */
-#define SQRT_2_PI sqrt(2*MATH_PI)/** < sqrt(2*PI) */
-//2.5066282746310005024157652848110452530069867406099;
-
+#define MATH_PI 3.141592653589793238462643383279502884197169399375105820974944592307816406286208998628034825342117067982148086513282306647093844609550582231725359408128481117450284102701938521105559644622948954930382 /** < PI , 200 digits*/
+#define MATH_PI_3_2 5.5683279968317078452848179821188357020136243902832439107536758188297455336477957022121776873847084940970621035598961308638949212663157851705967389211068321811703451381324726069689321738560369691961862 /** < PI^(3/2) , 200 digits*/
+#define MATH_2_PI 6.2831853071795864769252867665590057683943387987502116419498891846156328125724179972560696506842341359642961730265646132941876892191011644634507188162569622349005682054038770422111192892458979098607639 /** < 2 PI , 200 digits*/
+#define MATH_PI_HALF 1.570796326794896619231321691639751442098584699687552910487472296153908203143104499314017412671058533991074043256641153323546922304775291115862679704064240558725142051350969260552779822311474477465191/** < PI/2 , 200 digits */
+#define SQRT_2_PI 2.5066282746310005024157652848110452530069867406099383166299235763422936546078419749465958383780572661160099726652038796448663236181267361809578556559661479319134354804581237311373278043130199388026472 /** < sqrt(2*PI) , 200 digits */
 
 //Logarithms of PI
-#define ln2PI log(2*MATH_PI)/** < ln(2*PI) */
-#define ln2PI_05 0.5*log(2*MATH_PI)/** < ln(2*PI)/2 */
-//0.39908993417905752478250359150769595020993410292128
-#define lnPI_HALF_05 0.5*log(MATH_PI*0.5)/** < ln(PI/2)/2 */
+#define ln2PI 1.8378770664093454835606594728112352797227949472755668256343030809655313918545207953894865972719083952440112932492686748927337257636815871443117518304453627872071214850947173380927918119827616112603265 /** < ln(2*PI) , 200 digits */
+#define lnPI_HALF_05 0.22579135264472743236309761494744107178589733927752815869647153098937207395756568208887997163953551008000416560406365171268134264608266301512320516358760543167283317171898723385608886736748913215903988 /** < ln(PI/2)/2 , 200 digits */
 
 //Logarithms
-#define LOG_2 log(2)/** < log(2) */
+#define LOG_2 0.69314718055994530941723212145817656807550013436025525412068000949339362196969471560586332699641868754200148102057068573368552023575813055703267075163507596193072757082837143519030703862389167347112335 /** < ln(2) , 200 digits*/
 
 
-// Constants definition for the Lanczos Approximation
+
+/* Constants definition for the Lanczos Approximation */
 const int NUM_GAMMA_COEFF = 8;
 const double GAMMA_COEFF[] = { 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 };
 
 
-// Precision parameters
-double BESSEL_INTEGRAL_MAX_L = 80.0;
-double BESSEL_INTEGRAL_T_SWITCH = 0.95;//0.95;
-double BESSEL_INTEGRAL_T_SWITCH_SAFE = 0.9;//0.9;
-double TAYLOR_HYPERGEOM_ACCURACY = 1e-10;
-double HYPERGEOM_EPSILON = 1e-20;
-const int HYPERGEOM_MAX_ITER = 100000;
+
+/* Precision parameters */
+double BESSEL_INTEGRAL_T_SWITCH = 0.95;/** < switching value of bessel integrals, low t safe to high t, Default : 0.95*/
+double BESSEL_INTEGRAL_T_SWITCH_SAFE = 0.9;/** < switching value of bessel integrals, low t to low t safe, Default : 0.9*/
+double TAYLOR_HYPERGEOM_ACCURACY = 1e-10; /** < numerical accuracy */
+const int HYPERGEOM_MAX_ITER = 100000; /** < Maximum number of iterations in taylor sums */
 double ABS_LIMIT = 1e100; /** < Maximum acceptable absolute magnitude for a number, whose square should (easily) fit double precision */
 double NU_IMAG_LIMIT = 150; /** < Maximum value of nu_imag such that cosh(nu_imag) or gamma(nu_imag) doesn't overflow */
-double MAX_SINE_IMAG = 100.0; /** < Maximum value that is acceptable for cosh(z) doesn't overflow*/
+double BESSEL_INTEGRAL_MAX_L = 80.0;/** < Maximum acceptable l for Gamma(l+...) to be still finite */
+double MAX_SINE_IMAG = 100.0; /** < Maximum value that is acceptable for cosh(z) doesn't overflow */
 
-//Function declarations
+
+
+/* Function declarations */
 void hypergeom(double a_real, double a_imag, double b_real, double b_imag, double c_real, double c_imag, double z, double* result_real, double* result_imag);
 
-//Function implementations
+
+
+/* Function implementations */
 /**
  * This small helper function computes the logarithm of the sine for large imaginary part of the argument (y)
  * Basically we ignore the small exponent of exp(i*(x+iy))=exp(-y+ix) and exp(-i*(x+iy))=exp(y-ix)
@@ -227,7 +228,7 @@ void ln_gamma_complex(double z_real,double z_imag,double* res_real,double* res_i
 		double log_t_real = 0.5*log(t_real*t_real+z_imag*z_imag);
 		double log_t_imag = atan2(z_imag,t_real);
 		//Return result
-		*res_real = ln2PI_05+log_sum_real-t_real+log_t_real*(0.5+z_real)-log_t_imag*z_imag;
+		*res_real = 0.5*ln2PI+log_sum_real-t_real+log_t_real*(0.5+z_real)-log_t_imag*z_imag;
 		*res_imag = log_sum_imag-z_imag+log_t_imag*(0.5+z_real)+log_t_real*z_imag;
 		return;
 	}
