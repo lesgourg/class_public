@@ -1626,6 +1626,35 @@ int matter_obtain_time_sampling(
       zmax = ppt->selection_mean[index_wd]-pma->small_log_offset;
     }
 
+    /**
+     * If the window function vanishes at exactly 0,
+     * we need to make sure that log(chi_min) = log(0) doesn't give a
+     * numerical divergence. Hence this small offset.
+     *
+     * If the window function does not vanish at 0, and reaches instead
+     * into the regime z<0, a mathematically real but unphysical divergence
+     * appears in our equations.
+     *
+     * (Reminder: t = chi_2/chi_1, chi=chi_1
+     *  The limit t = fixed, and chi->0
+     * is neither the same as chi_1 -> 0 with chi_2 = fixed
+     *        nor the same as chi_2 -> 0 with chi_1 = fixed
+     *
+     * Instead, the function chi^(-nu) I_ell(nu,t) has a different limit
+     * depending on t fixed or t loose.
+     * The reason for this is the unphysicalness of the transformation
+     * u = k chi_1 as the variable of integration for I_ell for chi_1->0
+     * or similarly for ut = k chi_2 for chi_2->0
+     *
+     * If t is not held fixed, either chi_1 -> 0 corresponds to t->inf
+     * leading to the function vanishing, or chi_2 ->0 corresponds to t->0
+     * leading also to the function vanishing. Only the t = fixed case
+     * is problematic
+     *
+     * We will investigate in the future different approaches that
+     * do not substitute the variables as mentioned.
+     * */
+    if(zmax ==0){zmax+=pma->small_log_offset;}
     class_test(zmax<0,pma->error_message,
                "\n\
                 The window function cannot reach z=0, otherwise numerical \n\
