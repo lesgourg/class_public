@@ -127,6 +127,7 @@ struct matters{
    * Cl types 
    * */
   int cltp_size;
+  int cltp_grid_size;
   short has_cltp_nc;
   int cltp_index_nc;
   short has_cltp_sh;
@@ -620,7 +621,8 @@ extern "C" {
                   int index_ic1_ic2,
                   int index_wd1,
                   int index_wd2,
-                  int index_cltp,
+                  int index_cltp1,
+                  int index_cltp2,
                   double*** window_fft_real,
                   double*** window_fft_imag,
                   double*** window_bessel_real,
@@ -656,7 +658,6 @@ extern "C" {
                   int index_tilt1_tilt2,
                   int index_ic1_ic2,
                   int index_stp1_stp2,
-                  int index_cltp,
                   int index_wd1,
                   int index_wd2,
                   double** integrand_real,
@@ -701,7 +702,6 @@ extern "C" {
                   int index_tilt1_tilt2,
                   int index_ic1_ic2,
                   int index_stp1_stp2,
-                  int index_cltp,
                   int index_wd1,
                   int index_wd2,
                   double* integrand_real,
@@ -725,7 +725,6 @@ extern "C" {
                   int index_tilt1_tilt2,
                   int index_ic1_ic2,
                   int index_stp1_stp2,
-                  int index_cltp,
                   int index_wd1,
                   int index_wd2,
                   double* integrand_real,

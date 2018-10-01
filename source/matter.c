@@ -94,8 +94,8 @@ else{                                                               \
 int matter_cl_at_l(
                     struct matters* pma,
                     double l,
-                    double * cl_tot,    // array with argument cl_tot[index_cltp*pma->num_window_grid+index_wd_grid] (must be already allocated)
-                    double ** cl_ic      // array with argument cl_ic[index_ic1_ic2][index_cltp*pma->num_window_grid+index_wd_grid] (must be already allocated for a given mode only if several ic's)
+                    double * cl_tot,    // array with argument cl_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid] (must be already allocated)
+                    double ** cl_ic      // array with argument cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid] (must be already allocated for a given mode only if several ic's)
                     ) {
   class_test(pma->has_cls && pma->l_size<=0,pma->error_message,"Matter was never calculated. Cannot obtain Cl's");
 
@@ -105,7 +105,7 @@ int matter_cl_at_l(
 
   int last_index;
   int index_ic1,index_ic2,index_ic1_ic2;
-  int index_cltp;
+  int index_cltp_grid;
   int index_wd_grid;
   last_index = 0;
 
@@ -118,20 +118,20 @@ int matter_cl_at_l(
 
   if (pma->ic_size <= 1) {
     if ((int)l <= pma->l_sampling[pma->l_size-1]) {
-      for (index_cltp=0; index_cltp<pma->cltp_size; index_cltp++){
+      for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
         /**
          * Interpolate at given value of l for all cltps
          * */
         class_call(matter_interpolate_spline_growing_hunt(
                                             pma->l_sampling,
                                             pma->l_size,
-                                            pma->cl[index_cltp],
-                                            pma->ddcl[index_cltp],
+                                            pma->cl[index_cltp_grid],
+                                            pma->ddcl[index_cltp_grid],
                                             //(pma->num_windows*(pma->num_windows+1))/2,
                                             pma->num_window_grid,
                                             l,
                                             &last_index,
-                                            cl_tot+index_cltp*pma->num_window_grid,
+                                            cl_tot+index_cltp_grid*pma->num_window_grid,
                                             _FALSE_,
                                             pma->error_message),
                    pma->error_message,
@@ -141,9 +141,9 @@ int matter_cl_at_l(
     }
     else {
       /** Set zero elements to zero */
-      for (index_cltp=0; index_cltp<pma->cltp_size; index_cltp++){
+      for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
         for(index_wd_grid=0; index_wd_grid < pma->num_window_grid; ++ index_wd_grid){
-          cl_tot[index_cltp]=0.;
+          cl_tot[index_cltp_grid]=0.;
         }
         //End wd grid
       }
@@ -158,28 +158,28 @@ int matter_cl_at_l(
    * We set those Cl's above l_max to 0
    * */
   else{
-    for (index_cltp=0; index_cltp<pma->cltp_size; index_cltp++)
-      cl_tot[index_cltp]=0.;
+    for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++)
+      cl_tot[index_cltp_grid]=0.;
     for (index_ic1 = 0; index_ic1 < pma->ic_size; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < pma->ic_size; index_ic2++) {
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pma->ic_size);
         if (((int)l <= pma->l_sampling[pma->l_size-1]) &&
             (pma->is_non_zero[index_ic1_ic2] == _TRUE_)) {
 
-          for (index_cltp=0; index_cltp<pma->cltp_size; index_cltp++){
+          for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
             /**
              * Interpolate at given value of l and ic combination for all cltps
              * */
             class_call(matter_interpolate_spline_growing_hunt(
                                                 pma->l_sampling,
                                                 pma->l_size,
-                                                pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp],
-                                                pma->ddcl[index_ic1_ic2*pma->cltp_size+index_cltp],
+                                                pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp_grid],
+                                                pma->ddcl[index_ic1_ic2*pma->cltp_grid_size+index_cltp_grid],
                                                 //(pma->num_windows*(pma->num_windows+1))/2,
                                                 pma->num_window_grid,
                                                 l,
                                                 &last_index,
-                                                cl_ic[index_ic1_ic2]+index_cltp*pma->num_window_grid,
+                                                cl_ic[index_ic1_ic2]+index_cltp_grid*pma->num_window_grid,
                                                 _FALSE_,
                                                 pma->error_message),
                        pma->error_message,
@@ -188,9 +188,9 @@ int matter_cl_at_l(
           //End cltp
         }
         else {
-          for (index_cltp=0; index_cltp<pma->cltp_size; index_cltp++){
+          for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
             for(index_wd_grid=0;index_wd_grid<pma->num_window_grid;++index_wd_grid){
-              cl_ic[index_ic1_ic2][index_cltp*pma->num_window_grid+index_wd_grid]=0.;
+              cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid]=0.;
             }
             //End wd grid
           }
@@ -201,12 +201,12 @@ int matter_cl_at_l(
         /**
          * We compute the total Cl's by summing over the different initial conditions
          * */
-        for (index_cltp=0; index_cltp<pma->cltp_size; index_cltp++) {
+        for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++) {
           for(index_wd_grid=0;index_wd_grid<pma->num_window_grid;++index_wd_grid){
             if (index_ic1 == index_ic2){
-              cl_tot[index_cltp*pma->num_window_grid+index_wd_grid]+=cl_ic[index_ic1_ic2][index_cltp*pma->num_window_grid+index_wd_grid];
+              cl_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid]+=cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid];
             }else{
-              cl_tot[index_cltp*pma->num_window_grid+index_wd_grid]+=2.*cl_ic[index_ic1_ic2][index_cltp*pma->num_window_grid+index_wd_grid];
+              cl_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid]+=2.*cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid];
             }
             //Ifend ic1==ic2
           }
@@ -221,6 +221,11 @@ int matter_cl_at_l(
   //Ifend only single ic
   return _SUCCESS_;
 }
+
+
+
+
+
 /**
  * Initiate the matter construct
  *
@@ -234,7 +239,11 @@ int matter_init(
                 struct nonlinear * pnl,
                 struct matters * pma
              ){
+#ifdef _OPENMP
   double start_time_omp = omp_get_wtime();
+#else
+  double start_time_omp = 0.0;
+#endif
   clock_t start_time = clock();
   double clocksecs;
   if (pma->has_cls == _FALSE_){
@@ -299,12 +308,16 @@ int matter_init(
   pma->uses_bessel_recursion = _TRUE_;
   //TODO :: do automatic assignment except for when manual requested, then class_test combinations
 
+
+
   class_call(matter_obtain_indices(ppm,ppt,pma),
              pma->error_message,
              pma->error_message);
   class_call(matter_obtain_bi_indices(pma),
              pma->error_message,
              pma->error_message);
+
+
 
   //ALWAYS REMEMBER TO MAKE RECLASS FOR BIAS PROBLEMS
   //ANY CHANGE TO matter.h REQUIRES RECLASS (independently of matter.c changes)
@@ -374,6 +387,11 @@ int matter_init(
              pma->error_message,
              "The tau_size parameter currently has to be a multiple of 2");
 
+
+
+
+
+
   /**
    * Obtain samplings in k and tau
    * */
@@ -390,11 +408,16 @@ int matter_init(
   class_call(matter_obtain_tau_sampling(ppr,pba,ppt,pma),
              pma->error_message,
              pma->error_message);
+  clock_t point_1_time = clock();
+
+
+
+
+
 
   /**
    * Obtain primordial spectrum and sources
    * */
-  clock_t point_1_time = clock();
   double ** prim_spec;
   class_alloc(prim_spec,
               pma->ic_ic_size*sizeof(double*),
@@ -410,11 +433,16 @@ int matter_init(
   class_call(matter_obtain_perturbation_sources(pba,ppt,pnl,pma,sources),
              pma->error_message,
              pma->error_message);
+  clock_t point_2_time = clock();
+
+
+
+
+
 
   /**
    * Obtain the growth factor from the sources
    * */
-  clock_t point_2_time = clock();
   double* k_weights;
   class_alloc(k_weights,
               pma->k_size*sizeof(double),
@@ -455,6 +483,12 @@ int matter_init(
             pma->error_message,
             pma->error_message);
   clock_t point_3_time = clock();
+
+
+
+
+
+
   /**
    * Extrapolate the sources
    * */
@@ -521,6 +555,14 @@ int matter_init(
   }
   clock_t point_4_time = clock();
 
+
+
+
+
+
+
+
+
   /**
    * All sources are obtained,
    *  we can proceed with calculating the FFT in
@@ -564,13 +606,17 @@ int matter_init(
   class_call(matter_free_primordial(ppm,pma,prim_spec),
              pma->error_message,
              pma->error_message);
+  clock_t point_5_time = clock();
+
+
+
+
+
+
 
   class_call(matter_obtain_l_sampling(ppr,ppt,pth,pma),
              pma->error_message,
              pma->error_message);
-
-  clock_t point_5_time = clock();
-
   /**
    * There are two big ways of obtaining the bessel integrals
    *
@@ -588,7 +634,11 @@ int matter_init(
    * It is done this way because the points at which evaluation is required
    *  changes depending on the l and nu
    * */
+#ifdef _OPENMP
   double bessel_start_omp = omp_get_wtime();
+#else
+  double bessel_start_omp = 0.0;
+#endif
   if(!pma->uses_limber_approximation){
     /**
      * Obtain the bessel integrals
@@ -623,8 +673,20 @@ int matter_init(
     }
   }
   //Ifend obtain bessel integrals
+#ifdef _OPENMP
   double bessel_end_omp = omp_get_wtime();
+#else
+  double bessel_end_omp = 0.0;
+#endif
   clock_t point_6_time = clock();
+
+
+
+
+
+
+
+
 
   /**
    * Finally, we want to prepare the window functions.
@@ -640,6 +702,12 @@ int matter_init(
              pma->error_message);
   clock_t point_7_time = clock();
 
+
+
+
+
+
+
   /**
    * Now we resample the growth factor for later use
    * */
@@ -654,7 +722,19 @@ int matter_init(
              pma->error_message,
              pma->error_message);
   clock_t point_8_time = clock();
+#ifdef _OPENMP
   double point_8_time_omp = omp_get_wtime();
+#else
+  double point_8_time_omp = 0.0;
+#endif
+
+
+
+
+
+
+
+
   /**
    * Now we have truly assembled all ingredients
    *  to integrate the final C_l's
@@ -673,8 +753,11 @@ int matter_init(
                                  fft_coeff_imag),
              pma->error_message,
              pma->error_message);
-
+#ifdef _OPENMP
   double point_9_time_omp = omp_get_wtime();
+#else
+  double point_9_time_omp = 0.0;
+#endif
   clock_t point_9_time = clock();
 
   /**
@@ -689,6 +772,13 @@ int matter_init(
   class_call(matter_free_prepare_window(pma),
              pma->error_message,
              pma->error_message);
+
+
+
+
+
+
+
   /**
    * Finally we spline the Cl's to interpolate
    *  for all l's
@@ -698,9 +788,17 @@ int matter_init(
              pma->error_message);
 
 
-  clock_t point_10_time = clock();
-  double end_time_omp = omp_get_wtime();
 
+
+
+
+
+  clock_t point_10_time = clock();
+#ifdef _OPENMP
+  double end_time_omp = omp_get_wtime();
+#else
+  double end_time_omp = 0.0;
+#endif
   if(pma->matter_verbose > MATTER_VERBOSITY_PARAMETERS){
     printf("\n\n\n PARAMETER SUMMARY \n\n ");
     printf("Calculationary parameters \n");
@@ -933,9 +1031,9 @@ int matter_free(
 
     free(pma->is_non_zero);
     for(i=0;i<pma->ic_ic_size;++i){
-      for(j=0;j<pma->cltp_size;++j){
-        free(pma->cl[i*pma->cltp_size+j]);
-        free(pma->ddcl[i*pma->cltp_size+j]);
+      for(j=0;j<pma->cltp_grid_size;++j){
+        free(pma->cl[i*pma->cltp_grid_size+j]);
+        free(pma->ddcl[i*pma->cltp_grid_size+j]);
       }
     }
     free(pma->cl);
@@ -1033,25 +1131,25 @@ int matter_spline_cls(
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
     printf("Method :: Splining the final Cl's \n");
   }
-  int index_cltp;
+  int index_cltp_grid;
   int index_ic_ic;
   int index_wd1_wd2;
   class_alloc(pma->ddcl,
-              pma->ic_ic_size*pma->cltp_size*sizeof(double*),
+              pma->ic_ic_size*pma->cltp_grid_size*sizeof(double*),
               pma->error_message);
 
-  for(index_cltp=0;index_cltp<pma->cltp_size;++index_cltp){
+  for(index_cltp_grid=0;index_cltp_grid<pma->cltp_grid_size;++index_cltp_grid){
     for(index_ic_ic=0;index_ic_ic<pma->ic_ic_size;++index_ic_ic){
-      class_alloc(pma->ddcl[index_ic_ic*pma->cltp_size+index_cltp],
+      class_alloc(pma->ddcl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid],
                   ((pma->num_windows+1)*pma->num_windows)/2*pma->l_size*sizeof(double),
                   pma->error_message);
       for(index_wd1_wd2=0;index_wd1_wd2<((pma->num_windows+1)*pma->num_windows)/2;++index_wd1_wd2){
         array_spline_table_columns(
                  pma->l_sampling,
                  pma->l_size,
-                 pma->cl[index_ic_ic*pma->cltp_size+index_cltp]+index_wd1_wd2*pma->l_size, // array of size x_size*y_size with elements
+                 pma->cl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid]+index_wd1_wd2*pma->l_size, // array of size x_size*y_size with elements
                  1,
-                 pma->ddcl[index_ic_ic*pma->cltp_size+index_cltp]+index_wd1_wd2*pma->l_size,
+                 pma->ddcl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid]+index_wd1_wd2*pma->l_size,
                  _SPLINE_EST_DERIV_,
                  pma->error_message
                  );
@@ -2963,11 +3061,11 @@ int matter_obtain_prepare_windows_parallel(
   double** rsd_combined_dwindows  = NULL;
   double** rsd_combined_ddwindows = NULL;
   int N_threads;
-  //#ifdef _USE_OMP_
+#ifdef _OPENMP
   N_threads = omp_get_max_threads();
-  //#else
-  //N_threads = 1;
-  //#endif
+#else
+  N_threads = 1;
+#endif
   int n_thread;
   if((!pma->uses_relative_factors && pma->has_redshift_space_distortion && pma->uses_rsd_combination)
   || (pma->has_redshift_space_distortion && pma->uses_relative_factors)){
@@ -3101,7 +3199,11 @@ int matter_obtain_prepare_windows_parallel(
         int abort = _FALSE_;
         #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
         for(index_wd=0;index_wd<pma->num_windows;++index_wd){
+#ifdef _OPENMP
           int tid = omp_get_thread_num();
+#else
+          int tid = 0;
+#endif
           class_call_parallel(matter_spline_prepare_hunt(pma->tau_sampling,
                                      pma->tau_size,
                                      pma->ptw_sampling[index_wd*pma->ptw_size],
@@ -3240,7 +3342,11 @@ int matter_obtain_prepare_windows_parallel(
         int abort = _FALSE_;
         #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
         for(index_wd=0;index_wd<pma->num_windows;++index_wd){
+#ifdef _OPENMP
           int tid = omp_get_thread_num();
+#else
+          int tid = 0;
+#endif
           class_call_parallel(matter_spline_prepare_hunt(pma->tau_sampling,
                                      pma->tau_size,
                                      pma->ptw_sampling[index_wd*pma->ptw_size],
@@ -4156,6 +4262,7 @@ int matter_obtain_indices(
   class_define_index(pma->cltp_index_nc,pma->has_cltp_nc,cltp_size_counter,                 1);
   class_define_index(pma->cltp_index_sh,pma->has_cltp_sh,cltp_size_counter,                 1);
   pma->cltp_size = cltp_size_counter;
+  pma->cltp_grid_size = (pma->cltp_size*(pma->cltp_size+1))/2;
 
   if(pma->matter_verbose>MATTER_VERBOSITY_INDICES){
     printf(" -> Found requested Cl's :\n");
@@ -4736,7 +4843,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
     printf("Method :: Obtain bessel integrals from recursion \n");
   }
   clock_t start_bessel = clock();
+#ifdef _OPENMP
   double start_bessel_omp = omp_get_wtime();
+#else
+  double start_bessel_omp = 0.0;
+#endif
   int index_tilt1,index_tilt2,index_tilt1_tilt2;
   int index_coeff;
   int index_l;
@@ -5031,9 +5142,17 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
             if(t<T_MIN_TAYLOR){
               //printf("USING TAYLOR \n\n");
               clock_t func_start = clock();
+#ifdef _OPENMP
               double func_start_t = omp_get_wtime();
+#else
+              double func_start_t = 0.0;
+#endif
               bessel_integral_recursion_taylor(l_max_cur,nu_real,nu_imag,t,max_t,initial_abs,abi_real,abi_imag);
+#ifdef _OPENMP
               taylor_time += omp_get_wtime()-func_start_t;
+#else
+              taylor_time +=0.0;
+#endif
               TOT += clock()-func_start;
             }
             /**
@@ -5050,9 +5169,17 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
             else if(l_max_self_inverse_taylor >l_max_cur && t>1.-T_MIN_INVERSE_TAYLOR){
               //printf("USING SELF \n\n");
               clock_t func_start = clock();
+#ifdef _OPENMP
               double func_start_t = omp_get_wtime();
+#else
+              double func_start_t = 0.0;
+#endif
               bessel_integral_recursion_inverse_self(l_max_cur,nu_real,nu_imag,t,abi_real,abi_imag,max_t,initial_abs,pma->error_message);
+#ifdef _OPENMP
               inverse_time += omp_get_wtime()-func_start_t;
+#else
+              inverse_time += 0.0;
+#endif
               TOT += clock()-func_start;
             }
             else if(
@@ -5062,7 +5189,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
             ){
               //printf("USING FORWARD SIMPLE \n\n");
               clock_t func_start = clock();
+#ifdef _OPENMP
               double func_start_t = omp_get_wtime();
+#else
+              double func_start_t = 0.0;
+#endif
               class_call_parallel(bessel_integral_recursion_forward_simple(
                                                        l_max_cur,
                                                        nu_real,
@@ -5075,7 +5206,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                                                        pma->error_message),
                          pma->error_message,
                          pma->error_message);
+#ifdef _OPENMP
               for_simple_time += omp_get_wtime()-func_start_t;
+#else
+              for_simple_time += 0.0;
+#endif
               TOT += clock()-func_start;
             }
             else if(
@@ -5085,7 +5220,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
             ){
               //printf("USING BACKWARD SIMPLE \n\n");
               clock_t func_start = clock();
+#ifdef _OPENMP
               double func_start_t = omp_get_wtime();
+#else
+              double func_start_t = 0.0;
+#endif
               class_call_parallel(bessel_integral_recursion_backward_simple_safe(
                                                        l_max_cur,
                                                        (1.1+backward_simple_lfactor)*l_max_cur,
@@ -5101,12 +5240,20 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                          pma->error_message,
                          pma->error_message);
               TOT += clock()-func_start;
+#ifdef _OPENMP
               back_simple_time += omp_get_wtime()-func_start_t;
+#else
+              back_simple_time += 0.0;
+#endif
             }
             else{
                 //printf("USING COMPLICATED \n\n");
                 clock_t func_start = clock();
+#ifdef _OPENMP
                 double func_start_t = omp_get_wtime();
+#else
+                double func_start_t = 0.0;
+#endif
                 class_call_parallel(bessel_integral_recursion_complicated(l_max_cur,
                                                                  l_max_cur+delta_l_required-1,
                                                                  nu_real,
@@ -5121,7 +5268,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                            pma->error_message,
                            pma->error_message);
               TOT += clock()-func_start;
+#ifdef _OPENMP
               complex_time += omp_get_wtime()-func_start_t;
+#else
+              complex_time += 0.0;
+#endif
             }
             /**
              * After obtaining the corresponding bessel integrals through recursion
@@ -5218,7 +5369,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
    * Delete temporary arrays
    * */
   clock_t end_bessel = clock();
+#ifdef _OPENMP
   double end_bessel_omp = omp_get_wtime();
+#else
+  double end_bessel_omp = 0.0;
+#endif
   if(pma->matter_verbose > MATTER_VERBOSITY_TIMING) {
     printf(" -> Obtaining (recursion) Bessel Integrals took %f seconds \n",((double)(end_bessel-start_bessel))/CLOCKS_PER_SEC);
     printf(" -> Obtaining (recursion) Bessel Integrals took %f REAL seconds \n",end_bessel_omp-start_bessel_omp);
@@ -5677,7 +5832,11 @@ int matter_spline_bessel_integrals(
     printf("Method :: Spline bessel integrals\n");
   }
   clock_t spline_start = clock();
+#ifdef _OPENMP
   double spline_start_omp = omp_get_wtime();
+#else
+  double spline_start_omp = 0.0;
+#endif
   /**
    * Initialize and allocate initial arrays
    * */
@@ -5728,7 +5887,11 @@ int matter_spline_bessel_integrals(
   }
   //End tilt1
   clock_t spline_end = clock();
+#ifdef _OPENMP
   double spline_end_omp = omp_get_wtime();
+#else
+  double spline_end_omp = 0.0;
+#endif
   if(pma->matter_verbose > MATTER_VERBOSITY_TIMING){
     printf(" -> Splining bessel integrals took %f CPU  seconds \n",((double)(spline_end-spline_start))/CLOCKS_PER_SEC);
     printf(" -> Splining bessel integrals took %f REAL seconds \n",spline_end_omp-spline_start_omp);
@@ -5742,7 +5905,11 @@ int matter_spline_bessel_integrals_recursion(
     printf("Method :: Spline (recursion) bessel integrals\n");
   }
   clock_t spline_start = clock();
+#ifdef _OPENMP
   double spline_start_omp = omp_get_wtime();
+#else
+  double spline_start_omp = 0.0;
+#endif
   /**
    * Define indices and allocate arrays
    * */
@@ -5803,7 +5970,11 @@ int matter_spline_bessel_integrals_recursion(
   }
   //End tilt1
   clock_t spline_end = clock();
+#ifdef _OPENMP
   double spline_end_omp = omp_get_wtime();
+#else
+  double spline_end_omp = 0.0;
+#endif
   if(pma->matter_verbose > MATTER_VERBOSITY_TIMING ){
     printf(" -> Splining bessel integrals (recursion) took %f CPU  seconds \n",((double)(spline_end-spline_start))/CLOCKS_PER_SEC);
     printf(" -> Splining bessel integrals (recursion) took %f REAL seconds \n",spline_end_omp-spline_start_omp);
@@ -6006,11 +6177,11 @@ int matter_FFTlog_perturbation_sources_parallel(
                                       double ** fft_coeff_imag
                                       ) {
   int N_threads;
-  //#ifdef _USE_OMP_
+#ifdef _OPENMP
   N_threads = omp_get_max_threads();
-  //#else
-  //N_threads = 1;
-  //#endif
+#else
+  N_threads = 1;
+#endif
   int n_thread;
   double** integrand1;
   double** integrand2;
@@ -6065,7 +6236,11 @@ int matter_FFTlog_perturbation_sources_parallel(
         #pragma omp parallel for collapse(2) private(index_stp1,index_stp2,index_coeff,index_stp1_stp2,index_tau1,index_tau2,index_tau1_tau2) firstprivate(fft_coeff_real,fft_coeff_imag)
         for (index_stp1 = 0; index_stp1 < pma->stp_size; index_stp1++){
           for (index_stp2 = 0; index_stp2 < pma->stp_size; index_stp2++){
+#ifdef _OPENMP
             int tid = omp_get_thread_num();
+#else
+            int tid = 0;
+#endif
             index_stp1_stp2 = index_stp1*pma->stp_size+index_stp2;
             index_tau1=pma->tau_size-1;
             index_tau2=pma->tau_size-1;
@@ -6169,7 +6344,11 @@ int matter_FFTlog_perturbation_sources_parallel(
             #pragma omp parallel for collapse(2) private(index_tau1,index_tau2,index_tau1_tau2,index_coeff) firstprivate(fft_coeff_real,fft_coeff_imag)
             for(index_tau1=0;index_tau1<pma->tau_size;++index_tau1){
               for(index_tau2=0;index_tau2<pma->tau_size;index_tau2+=2){
+#ifdef _OPENMP
                 int tid = omp_get_thread_num();
+#else
+                int tid = 0;
+#endif
                 index_tau1_tau2 = index_tau1*pma->tau_size+index_tau2;
                 /**
                  * There is a neat trick with FFT transformations for real inputs,
@@ -6264,7 +6443,7 @@ int matter_integrate_cl(
   int index_tw;
   int index_wd1,index_wd2,index_wd1_wd2;
   int index_ic1,index_ic2,index_ic1_ic2;
-  int index_cltp;
+  int index_cltp1,index_cltp2,index_cltp1_cltp2;
 
   int index_radtp1_radtp2;
   double*** window_fft_real;
@@ -6281,11 +6460,11 @@ int matter_integrate_cl(
    *
    * */
   int N_threads;
-  //#ifdef _USE_OMP_
+#ifdef _OPENMP
   N_threads = omp_get_max_threads();
-  //#else
-  //N_threads = 1;
-  //#endif
+#else
+  N_threads = 1;
+#endif
   class_alloc(window_fft_real,
               N_threads*sizeof(double**),
               pma->error_message);
@@ -6409,136 +6588,141 @@ int matter_integrate_cl(
    *  and iterate through all initial conditions and window functions
    * */
   class_alloc(pma->cl,
-              pma->ic_ic_size*pma->cltp_size*sizeof(double*),
+              pma->ic_ic_size*pma->cltp_grid_size*sizeof(double*),
               pma->error_message);
-  for(index_cltp=0;index_cltp<pma->cltp_size;++index_cltp){
-    for(index_ic1=0;index_ic1<pma->ic_size;++index_ic1){
-      for(index_ic2=index_ic1;index_ic2<pma->ic_size;++index_ic2){
-        index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pma->ic_size);
-        class_alloc(pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp],
-                    //(pma->num_windows*(pma->num_windows+1))/2*pma->l_size*sizeof(double),
-                    pma->num_window_grid*pma->l_size*sizeof(double),
-                    pma->error_message);
-        int win_counter = 0;
-        for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
-          for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
-            index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
-            win_counter++;
-            if(pma->matter_verbose > MATTER_VERBOSITY_CLCALCULATION){
-            //  printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,index_wd1_wd2,(pma->num_windows*(pma->num_windows+1))/2)
-              printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,win_counter,((pma->non_diag+1)*(2*pma->num_windows-pma->non_diag))/2);
-            }
-            /**
-             * Now allocate local arrays to store the function f_n^{ij}(t) in
-             *
-             * These can theoretically become quite big,
-             *   so we allocate a single one for every window and ic combination
-             * */
-            class_alloc(pma->intxi_real,
-                        pma->radtp_grid_size*sizeof(double*),
-                        pma->error_message);
-            class_alloc(pma->intxi_imag,
-                        pma->radtp_grid_size*sizeof(double*),
-                        pma->error_message);
-            for(index_radtp1_radtp2=0;index_radtp1_radtp2<pma->radtp_grid_size;++index_radtp1_radtp2){
-              class_alloc(pma->intxi_real[index_radtp1_radtp2],
-                          pma->size_fft_result*pma->t_size*sizeof(double),
-                          pma->error_message);
-              class_alloc(pma->intxi_imag[index_radtp1_radtp2],
-                          pma->size_fft_result*pma->t_size*sizeof(double),
-                          pma->error_message);
-            }
-            /**
-             * If we desire interpolation, those arrays also have to be allocated
-             * */
-            if(pma->uses_intxi_interpolation){
-              class_alloc(pma->intxi_spline_real,
+  for(index_cltp1=0;index_cltp1<pma->cltp_size;++index_cltp1){
+    for(index_cltp2=index_cltp1;index_cltp2<pma->cltp_size;++index_cltp2){
+      index_cltp1_cltp2 = index_symmetric_matrix(index_cltp1,index_cltp2,pma->cltp_size);
+      for(index_ic1=0;index_ic1<pma->ic_size;++index_ic1){
+        for(index_ic2=index_ic1;index_ic2<pma->ic_size;++index_ic2){
+          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pma->ic_size);
+          class_alloc(pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2],
+                      //(pma->num_windows*(pma->num_windows+1))/2*pma->l_size*sizeof(double),
+                      pma->num_window_grid*pma->l_size*sizeof(double),
+                      pma->error_message);
+          int win_counter = 0;
+          for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
+            for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
+              index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
+              win_counter++;
+              if(pma->matter_verbose > MATTER_VERBOSITY_CLCALCULATION){
+              //  printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,index_wd1_wd2,(pma->num_windows*(pma->num_windows+1))/2)
+                printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,win_counter,((pma->non_diag+1)*(2*pma->num_windows-pma->non_diag))/2);
+              }
+              /**
+               * Now allocate local arrays to store the function f_n^{ij}(t) in
+               *
+               * These can theoretically become quite big,
+               *   so we allocate a single one for every window and ic combination
+               * */
+              class_alloc(pma->intxi_real,
                           pma->radtp_grid_size*sizeof(double*),
                           pma->error_message);
-              class_alloc(pma->intxi_spline_imag,
-                          pma->radtp_grid_size*sizeof(double*),
-                          pma->error_message);
-              class_alloc(pma->ddintxi_spline_real,
-                          pma->radtp_grid_size*sizeof(double*),
-                          pma->error_message);
-              class_alloc(pma->ddintxi_spline_imag,
+              class_alloc(pma->intxi_imag,
                           pma->radtp_grid_size*sizeof(double*),
                           pma->error_message);
               for(index_radtp1_radtp2=0;index_radtp1_radtp2<pma->radtp_grid_size;++index_radtp1_radtp2){
-                class_alloc(pma->intxi_spline_real[index_radtp1_radtp2],
-                            pma->size_fft_result*pma->t_spline_size*sizeof(double*),
+                class_alloc(pma->intxi_real[index_radtp1_radtp2],
+                            pma->size_fft_result*pma->t_size*sizeof(double),
                             pma->error_message);
-                class_alloc(pma->intxi_spline_imag[index_radtp1_radtp2],
-                            pma->size_fft_result*pma->t_spline_size*sizeof(double*),
-                            pma->error_message);
-                class_alloc(pma->ddintxi_spline_real[index_radtp1_radtp2],
-                            pma->size_fft_result*pma->t_spline_size*sizeof(double*),
-                            pma->error_message);
-                class_alloc(pma->ddintxi_spline_imag[index_radtp1_radtp2],
-                            pma->size_fft_result*pma->t_spline_size*sizeof(double*),
+                class_alloc(pma->intxi_imag[index_radtp1_radtp2],
+                            pma->size_fft_result*pma->t_size*sizeof(double),
                             pma->error_message);
               }
-            }
-            /**
-             * Now integrate the actual integral
-             * */
-            if(pma->uses_integration == matter_integrate_tw_t  || pma->uses_integration == matter_integrate_tw_logt){
-              class_call(matter_integrate_for_each_ttau_parallel_chi_pre(ppr,
-                                                        pba,
-                                                        ppt,
-                                                        pma,
-                                                        fft_coeff_real,
-                                                        fft_coeff_imag,
-                                                        index_ic1,
-                                                        index_ic2,
-                                                        index_ic1_ic2,
-                                                        index_wd1,
-                                                        index_wd2,
-                                                        index_cltp,
-                                                        window_fft_real,
-                                                        window_fft_imag,
-                                                        window_bessel_real,
-                                                        window_bessel_imag,
-                                                        (pma->uses_integration == matter_integrate_tw_logt)
-                                                        ),
-                         pma->error_message,
-                         pma->error_message);
-            }
-            else{
-              class_stop(pma->error_message,
-                         "Unrecognized integration method \n");
-            }
-            /**
-             * Finally delete the intxi storage arrays again
-             * */
-            if(pma->uses_intxi_interpolation){
+              /**
+               * If we desire interpolation, those arrays also have to be allocated
+               * */
+              if(pma->uses_intxi_interpolation){
+                class_alloc(pma->intxi_spline_real,
+                            pma->radtp_grid_size*sizeof(double*),
+                            pma->error_message);
+                class_alloc(pma->intxi_spline_imag,
+                            pma->radtp_grid_size*sizeof(double*),
+                            pma->error_message);
+                class_alloc(pma->ddintxi_spline_real,
+                            pma->radtp_grid_size*sizeof(double*),
+                            pma->error_message);
+                class_alloc(pma->ddintxi_spline_imag,
+                            pma->radtp_grid_size*sizeof(double*),
+                            pma->error_message);
+                for(index_radtp1_radtp2=0;index_radtp1_radtp2<pma->radtp_grid_size;++index_radtp1_radtp2){
+                  class_alloc(pma->intxi_spline_real[index_radtp1_radtp2],
+                              pma->size_fft_result*pma->t_spline_size*sizeof(double*),
+                              pma->error_message);
+                  class_alloc(pma->intxi_spline_imag[index_radtp1_radtp2],
+                              pma->size_fft_result*pma->t_spline_size*sizeof(double*),
+                              pma->error_message);
+                  class_alloc(pma->ddintxi_spline_real[index_radtp1_radtp2],
+                              pma->size_fft_result*pma->t_spline_size*sizeof(double*),
+                              pma->error_message);
+                  class_alloc(pma->ddintxi_spline_imag[index_radtp1_radtp2],
+                              pma->size_fft_result*pma->t_spline_size*sizeof(double*),
+                              pma->error_message);
+                }
+              }
+              /**
+               * Now integrate the actual integral
+               * */
+              if(pma->uses_integration == matter_integrate_tw_t  || pma->uses_integration == matter_integrate_tw_logt){
+                class_call(matter_integrate_for_each_ttau_parallel_chi_pre(ppr,
+                                                          pba,
+                                                          ppt,
+                                                          pma,
+                                                          fft_coeff_real,
+                                                          fft_coeff_imag,
+                                                          index_ic1,
+                                                          index_ic2,
+                                                          index_ic1_ic2,
+                                                          index_wd1,
+                                                          index_wd2,
+                                                          index_cltp1,
+                                                          index_cltp2,
+                                                          window_fft_real,
+                                                          window_fft_imag,
+                                                          window_bessel_real,
+                                                          window_bessel_imag,
+                                                          (pma->uses_integration == matter_integrate_tw_logt)
+                                                          ),
+                           pma->error_message,
+                           pma->error_message);
+              }
+              else{
+                class_stop(pma->error_message,
+                           "Unrecognized integration method \n");
+              }
+              /**
+               * Finally delete the intxi storage arrays again
+               * */
+              if(pma->uses_intxi_interpolation){
+                for(index_radtp1_radtp2=0;index_radtp1_radtp2<pma->radtp_grid_size;++index_radtp1_radtp2){
+                  free(pma->intxi_spline_real[index_radtp1_radtp2]);
+                  free(pma->intxi_spline_imag[index_radtp1_radtp2]);
+                  free(pma->ddintxi_spline_real[index_radtp1_radtp2]);
+                  free(pma->ddintxi_spline_imag[index_radtp1_radtp2]);
+                }
+                free(pma->intxi_spline_real);
+                free(pma->intxi_spline_imag);
+                free(pma->ddintxi_spline_real);
+                free(pma->ddintxi_spline_imag);
+              }
               for(index_radtp1_radtp2=0;index_radtp1_radtp2<pma->radtp_grid_size;++index_radtp1_radtp2){
-                free(pma->intxi_spline_real[index_radtp1_radtp2]);
-                free(pma->intxi_spline_imag[index_radtp1_radtp2]);
-                free(pma->ddintxi_spline_real[index_radtp1_radtp2]);
-                free(pma->ddintxi_spline_imag[index_radtp1_radtp2]);
+                free(pma->intxi_real[index_radtp1_radtp2]);
+                free(pma->intxi_imag[index_radtp1_radtp2]);
               }
-              free(pma->intxi_spline_real);
-              free(pma->intxi_spline_imag);
-              free(pma->ddintxi_spline_real);
-              free(pma->ddintxi_spline_imag);
+              free(pma->intxi_real);
+              free(pma->intxi_imag);
             }
-            for(index_radtp1_radtp2=0;index_radtp1_radtp2<pma->radtp_grid_size;++index_radtp1_radtp2){
-              free(pma->intxi_real[index_radtp1_radtp2]);
-              free(pma->intxi_imag[index_radtp1_radtp2]);
-            }
-            free(pma->intxi_real);
-            free(pma->intxi_imag);
+            //End wd2
           }
-          //End wd2
+          //End wd1
         }
-        //End wd1
+        //End ic2
       }
-      //End ic2
+      //End ic1
     }
-    //End ic1
+    //End cltp2
   }
-  //End cltp
+  //End cltp1
   /**
    * Finally print the obtained results
    * */
@@ -6552,32 +6736,35 @@ int matter_integrate_cl(
       printf("%i,",(int)pma->l_sampling[index_l]);
     }
     printf("\n");
-    for(index_cltp=0;index_cltp<pma->cltp_size;++index_cltp){
-      printf(" -> At cltp %4d \n",index_cltp);
-      for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
-        printf("    ->At icic %4d \n",index_ic1_ic2);
-        for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
-          for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
-            index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
-            printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
-            printf("%.10e",
-              pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+0]
-            );
-            for(index_l=1;index_l<pma->l_size;++index_l){
-              printf(",%.10e",
-                pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+index_l]
+    for(index_cltp1=0;index_cltp1<pma->cltp_size;++index_cltp1){
+      for(index_cltp2=index_cltp1;index_cltp2<pma->cltp_size;++index_cltp2){
+        printf(" -> At cltp (%4d,%4d) \n",index_cltp1,index_cltp2);
+        for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
+          printf("    ->At icic %4d \n",index_ic1_ic2);
+          for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
+            for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
+              index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
+              printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
+              printf("%.10e",
+                pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+0]
               );
+              for(index_l=1;index_l<pma->l_size;++index_l){
+                printf(",%.10e",
+                  pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+index_l]
+                );
+              }
+              printf("\n");
+              //End l
             }
-            printf("\n");
-            //End l
+            //End wd2
           }
-          //End wd2
+          //End wd1
         }
-        //End wd1
+        //End icgrid
       }
-      //End icgrid
+      //End cltp1
     }
-    //End cltp
+    //End cltp2
     printf("\n");
     /**
      * Now also print the l(l+1)/2pi C_l's
@@ -6588,32 +6775,35 @@ int matter_integrate_cl(
       printf("%i,", (int)pma->l_sampling[index_l]);
     }
     printf("\n");
-    for(index_cltp=0;index_cltp<pma->cltp_size;++index_cltp){
-      printf(" -> At cltp %4d \n",index_cltp);
-      for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
-        printf("   -> At icic %4d \n",index_ic1_ic2);
-        for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
-          for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
-            index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
-            printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
-            printf("%.10e",
-              pma->l_sampling[0]*(pma->l_sampling[0]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+0]
-            );
-            for(index_l=1;index_l<pma->l_size;++index_l){
-              printf(",%.10e",
-                pma->l_sampling[index_l]*(pma->l_sampling[index_l]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+index_l]
+    for(index_cltp1=0;index_cltp1<pma->cltp_size;++index_cltp1){
+      for(index_cltp2=index_cltp1;index_cltp2<pma->cltp_size;++index_cltp2){
+        printf(" -> At cltp (%4d,%4d) \n",index_cltp1,index_cltp2);
+        for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
+          printf("   -> At icic %4d \n",index_ic1_ic2);
+          for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
+            for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
+              index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
+              printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
+              printf("%.10e",
+                pma->l_sampling[0]*(pma->l_sampling[0]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+0]
               );
+              for(index_l=1;index_l<pma->l_size;++index_l){
+                printf(",%.10e",
+                  pma->l_sampling[index_l]*(pma->l_sampling[index_l]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+index_l]
+                );
+              }
+              printf("\n");
+              //End l
             }
-            printf("\n");
-            //End l
+            //End wd2
           }
-          //End wd2
+          //End wd1
         }
-        //End wd1
+        //End icgrid
       }
-      //End icgrid
+      //End cltp1
     }
-    //End cltp
+    //End cltp2
     printf("\n\n");
   }
   //Ifend Cl printing
@@ -6787,7 +6977,6 @@ int matter_get_half_integrand(
                              int index_tilt1_tilt2,
                              int index_ic1_ic2,
                              int index_stp1_stp2,
-                             int index_cltp,
                              int index_wd1,
                              int index_wd2,
                              double* integrand_real,
@@ -6994,7 +7183,6 @@ int matter_get_ttau_integrand(
                              int index_tilt1_tilt2,
                              int index_ic1_ic2,
                              int index_stp1_stp2,
-                             int index_cltp,
                              int index_wd1,
                              int index_wd2,
                              double* integrand_real,
@@ -7348,7 +7536,6 @@ int matter_integrate_cosmological_function(
                                            int index_tilt1_tilt2,
                                            int index_ic1_ic2,
                                            int index_stp1_stp2,
-                                           int index_cltp,
                                            int index_wd1,
                                            int index_wd2,
                                            double** integrand_real,
@@ -7408,7 +7595,11 @@ int matter_integrate_cosmological_function(
   int index_t,index_coeff,index_tw_local;
   #pragma omp parallel private(index_t,index_coeff,index_tw_local,t,int_real,int_imag,window_fft_real,window_fft_imag) firstprivate(pma,pba,ppt,is_integrated1,is_integrated2)
   {
+#ifdef _OPENMP
     int tid = omp_get_thread_num();
+#else
+    int tid = 0;
+#endif
     int_real = integrand_real[tid];
     int_imag = integrand_imag[tid];
     window_fft_real = win_fft_real[tid];
@@ -7436,7 +7627,6 @@ int matter_integrate_cosmological_function(
                                 index_tilt1_tilt2,
                                 index_ic1_ic2,
                                 index_stp1_stp2,
-                                index_cltp,
                                 index_wd1,
                                 index_wd2,
                                 int_real,
@@ -7461,7 +7651,6 @@ int matter_integrate_cosmological_function(
                                 index_tilt1_tilt2,
                                 index_ic2_ic1,
                                 index_stp2_stp1,
-                                index_cltp,
                                 index_wd2,
                                 index_wd1,
                                 int_real+tw_max_size*pma->size_fft_result,
@@ -7519,7 +7708,6 @@ int matter_integrate_cosmological_function(
                                 index_tilt1_tilt2,
                                 index_ic1_ic2,
                                 index_stp1_stp2,
-                                index_cltp,
                                 index_wd1,
                                 index_wd2,
                                 int_real,
@@ -7578,7 +7766,6 @@ int matter_integrate_cosmological_function(
                                 index_tilt1_tilt2,
                                 index_ic1_ic2,
                                 index_stp1_stp2,
-                                index_cltp,
                                 index_wd1,
                                 index_wd2,
                                 int_real,
@@ -7603,7 +7790,6 @@ int matter_integrate_cosmological_function(
                                 index_tilt1_tilt2,
                                 index_ic2_ic1,
                                 index_stp2_stp1,
-                                index_cltp,
                                 index_wd2,
                                 index_wd1,
                                 int_real+tw_max_size*pma->size_fft_result,
@@ -7662,7 +7848,6 @@ int matter_integrate_cosmological_function(
                                 index_tilt1_tilt2,
                                 index_ic1_ic2,
                                 index_stp1_stp2,
-                                index_cltp,
                                 index_wd1,
                                 index_wd2,
                                 int_real,
@@ -7799,7 +7984,8 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
                         int index_ic1_ic2,
                         int index_wd1,
                         int index_wd2,
-                        int index_cltp,
+                        int index_cltp1,
+                        int index_cltp2,
                         double*** window_fft_real,
                         double*** window_fft_imag,
                         double*** window_bessel_real,
@@ -7809,12 +7995,14 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
   /**
    * Define and allocate local variables
    * */
+  printf("Executing for %i %i \n",index_cltp1,index_cltp2);
   int index_wd1_wd2;
   int index_coeff;
   int index_radtp1,index_radtp2;
   int index_radtp_of_bitp1,index_radtp_of_bitp2;
   int index_bitp1,index_bitp2;
   int index_tilt1,index_tilt2,index_tilt1_tilt2;
+  int index_cltp1_cltp2;
   int thread_id;
   double sum_temp = 0.0;
   int index_l;
@@ -7824,6 +8012,7 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
   double intxi_local_real,intxi_local_imag;
   int integrated_t_offset;
   index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
+  index_cltp1_cltp2 = index_symmetric_matrix(index_cltp1,index_cltp2,pma->cltp_size);
 
   int print_total_index = 0;
   int tw_max_size = 0;
@@ -7844,10 +8033,12 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
   memset(sum_l,0,pma->l_size*sizeof(double));
   double** integrand_real = NULL;
   double** integrand_imag = NULL;
-  int N_threads = 1;
-  //#ifdef _USE_OMP_
+  int N_threads;
+#ifdef _OPENMP
   N_threads = omp_get_max_threads();
-  //#endif
+#else
+  N_threads = 1;
+#endif
   class_alloc(integrand_real,
               N_threads*sizeof(double*),
               pma->error_message);
@@ -7943,11 +8134,11 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
         index_tilt2 = pma->tilt_index_reduced;
       }
       index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
-      for(index_radtp_of_bitp1 =0; index_radtp_of_bitp1 < pma->radtp_of_bitp_size[index_cltp*pma->bitp_size+index_bitp1];++index_radtp_of_bitp1){
-        for(index_radtp_of_bitp2 =0; index_radtp_of_bitp2 < pma->radtp_of_bitp_size[index_cltp*pma->bitp_size+index_bitp2]; ++index_radtp_of_bitp2){
-          index_radtp1 = pma->radtps_of_bitp[index_cltp*pma->bitp_size+index_bitp1][index_radtp_of_bitp1];
-          index_radtp2 = pma->radtps_of_bitp[index_cltp*pma->bitp_size+index_bitp2][index_radtp_of_bitp2];
-          if((index_wd1==index_wd2) && (index_ic1 == index_ic2)){
+      for(index_radtp_of_bitp1 =0; index_radtp_of_bitp1 < pma->radtp_of_bitp_size[index_cltp1*pma->bitp_size+index_bitp1];++index_radtp_of_bitp1){
+        for(index_radtp_of_bitp2 =0; index_radtp_of_bitp2 < pma->radtp_of_bitp_size[index_cltp2*pma->bitp_size+index_bitp2]; ++index_radtp_of_bitp2){
+          index_radtp1 = pma->radtps_of_bitp[index_cltp1*pma->bitp_size+index_bitp1][index_radtp_of_bitp1];
+          index_radtp2 = pma->radtps_of_bitp[index_cltp2*pma->bitp_size+index_bitp2][index_radtp_of_bitp2];
+          if((index_wd1==index_wd2) && (index_ic1 == index_ic2) && (index_cltp1 == index_cltp2)){
             if(index_radtp2 > index_radtp1){type_doubling = _FALSE_;continue;}
             else if(index_radtp2 < index_radtp1){type_doubling = _TRUE_;}
             else{type_doubling = _FALSE_;}
@@ -7962,6 +8153,9 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
             temp = index_ic1;
             index_ic2 = index_ic1;
             index_ic1 = temp;
+            temp = index_cltp1;
+            index_cltp1 = index_cltp2;
+            index_cltp2 = temp;
             switched_flag = _TRUE_;
           }
           int index_stp1 = pma->index_stp_of_radtp[index_radtp1];
@@ -8033,7 +8227,6 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
                                                             index_tilt1_tilt2,
                                                             index_ic1_ic2,
                                                             index_stp1_stp2,
-                                                            index_cltp,
                                                             index_wd1,
                                                             index_wd2,
                                                             integrand_real,
@@ -8124,11 +8317,11 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
             if(pma->has_bitp_lfactor && index_bitp1 == pma->bitp_index_lfactor){
               sum_t*=pma->l_sampling[index_l]*(pma->l_sampling[index_l]+1.0);
             }
+            if(type_doubling == _TRUE_){sum_t*=2.;}
+            sum_l[index_l] += sum_t;
             if(pma->matter_verbose > MATTER_VERBOSITY_CLCALCULATION_PARTIAL && !MATTER_REWRITE_PRINTING){
               printf("(l:%i (bitp1 =%i ,bitp2 =%i, radtp1 =%i , radtp2 = %i) = %.10e (total = %.10e) \n",(int)pma->l_sampling[index_l],index_bitp1,index_bitp2,index_radtp1,index_radtp2,sum_t,sum_l[index_l]);
             }
-            if(type_doubling == _TRUE_){sum_t*=2.;}
-            sum_l[index_l] += sum_t;
           }
           //End l
           if(switched_flag==_TRUE_){
@@ -8138,6 +8331,12 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
             temp = index_radtp1;
             index_radtp1 = index_radtp2;
             index_radtp2 = temp;
+            temp = index_ic1;
+            index_ic2 = index_ic1;
+            index_ic1 = temp;
+            temp = index_cltp1;
+            index_cltp1 = index_cltp2;
+            index_cltp2 = temp;
             switched_flag = _FALSE_;
           }
         }
@@ -8158,7 +8357,7 @@ int matter_integrate_for_each_ttau_parallel_chi_pre(
     if(pma->matter_verbose > MATTER_VERBOSITY_CLCALCULATION){
       printf("(l:%i) = %.10e \n",(int)pma->l_sampling[index_l],sum_l[index_l]);
     }
-    pma->cl[index_ic1_ic2*pma->cltp_size+index_cltp][index_wd1_wd2*pma->l_size+index_l] = sum_l[index_l];
+    pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+index_l] = sum_l[index_l];
   }
   for(thread_id=0;thread_id<N_threads;++thread_id){
     free(integrand_real[thread_id]);
