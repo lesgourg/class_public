@@ -494,19 +494,6 @@ extern "C" {
                   double x,
                   int * last_index,
                   double * result,
-                  int IS_PRINT,
-                  ErrorMsg errmsg
-                  );
-  int matter_interpolate_spline_growing_hunt_transposed(
-                  double * x_array,
-                  int x_size,
-                  double * array,
-                  double * array_splined,
-                  int y_size,
-                  double x,
-                  int * last_index,
-                  double * result,
-                  int IS_PRINT,
                   ErrorMsg errmsg
                   );
   int matter_estimate_t_max_bessel(

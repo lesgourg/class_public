@@ -132,7 +132,6 @@ int matter_cl_at_l(
                                             l,
                                             &last_index,
                                             cl_tot+index_cltp_grid*pma->num_window_grid,
-                                            _FALSE_,
                                             pma->error_message),
                    pma->error_message,
                    pma->error_message);
@@ -180,7 +179,6 @@ int matter_cl_at_l(
                                                 l,
                                                 &last_index,
                                                 cl_ic[index_ic1_ic2]+index_cltp_grid*pma->num_window_grid,
-                                                _FALSE_,
                                                 pma->error_message),
                        pma->error_message,
                        pma->error_message);
@@ -5729,7 +5727,7 @@ int matter_obtain_perturbation_sources(
         tau_fraction = (log(pma->tau_sampling[index_tau_matter])-log(tau_beginning))/(log(pma->tau0)-log(tau_beginning));
         last_index_tau = pma->index_tau_perturbs_beginning+(ppt->tau_size-1-pma->index_tau_perturbs_beginning)*tau_fraction;
 
-        class_call(matter_interpolate_spline_growing_hunt_transposed(
+        class_call(matter_interpolate_spline_growing_hunt(
                                                ppt->tau_sampling,
                                                ppt->tau_size,
                                                source_temp,
@@ -5738,7 +5736,6 @@ int matter_obtain_perturbation_sources(
                                                pma->tau_sampling[index_tau_matter],
                                                &last_index_tau,
                                                sources[index_ic*pma->stp_size+index_stp]+index_tau_matter*pma->k_size,
-                                               _FALSE_,
                                                pma->error_message
                                                ),
                    pma->error_message,
@@ -5981,109 +5978,21 @@ int matter_spline_bessel_integrals_recursion(
   }
   return _SUCCESS_;
 }
- /**
-  * interpolate to get y_i(x), x is arranged in growing order, and the point x is presumably close (but maybe not so close) to the previous point x from the last call of this function.
-  *
-  */
+/**
+ * Two shortcut routins for first using spline_hunt to navigate to correct index,
+ *  which for non-evenly spaced arrays is almost always faster than bisection
+ * Then use the result for cubic hermite interpolation,
+ *  respecting the ordering of the y array access
+ * */
 int matter_interpolate_spline_growing_hunt(
 					     double * x_array,
 					     int x_size,
-					     double * array,
+					     double * array, //[index_y*x_size+index_x]
 					     double * array_splined,
 					     int y_size,
 					     double x,
 					     int * last_index,
 					     double * result,
-               int IS_PRINT,
-					     ErrorMsg errmsg
-               ) {
-
-  int inf,sup,mid,index_y,inc;
-  double h,a,b;
-  //Deal with arrays of different size
-  if(*last_index>=x_size) *last_index=x_size-1;
-  if(*last_index<0) *last_index=0;
-
-  inc=1;
-  if (x >= x_array[*last_index]) {
-    if (x > x_array[x_size-1]) {
-      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,
-	      x,x_array[x_size-1]);
-      return _FAILURE_;
-    }
-    /* try closest neighboor upward */
-    inf = *last_index;
-    sup = inf + inc;
-    if (x > x_array[sup]) {
-      /* hunt upward */
-      while (x > x_array[sup]) {
-        inf = sup;
-        inc += 1;
-        sup += inc;
-        if (sup > x_size-1) {
-          sup = x_size-1;
-        }
-      }
-      /* bisect */
-      while (sup-inf > 1) {
-        mid=(int)(0.5*(inf+sup));
-        if (x < x_array[mid]) {sup=mid;}
-        else {inf=mid;}
-      }
-    }
-  }
-  else {
-    if (x < x_array[0]) {
-      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,
-	      x,x_array[0]);
-      return _FAILURE_;
-    }
-    /* try closest neighboor downward */
-    sup = *last_index;
-    inf = sup - inc;
-    if (x < x_array[inf]) {
-      /* hunt downward */
-      while (x < x_array[inf]) {
-        sup = inf;
-        inc += 1;
-        inf -= inc;
-        if (inf < 0) {
-          inf = 0;
-        }
-      }
-      /* bisect */
-      while (sup-inf > 1) {
-        mid=(int)(0.5*(inf+sup));
-        if (x < x_array[mid]) {sup=mid;}
-        else {inf=mid;}
-      }
-    }
-  }
-
-  *last_index = inf;
-
-  h = x_array[sup] - x_array[inf];
-  b = (x-x_array[inf])/h;
-  a = 1.0-b;
-  for (index_y=0; index_y<y_size; index_y++){
-    *(result+index_y) =
-      a * *(array+inf+x_size*index_y) +
-      b * *(array+sup+x_size*index_y) +
-      ((a*a*a-a)* *(array_splined+inf+x_size*index_y) +
-       (b*b*b-b)* *(array_splined+sup+x_size*index_y))*h*h/6.;
-  }
-  return _SUCCESS_;
-}
-int matter_interpolate_spline_growing_hunt_transposed(
-					     double * x_array,
-					     int x_size,
-					     double * array,
-					     double * array_splined,
-					     int y_size,
-					     double x,
-					     int * last_index,
-					     double * result,
-               int IS_PRINT,
 					     ErrorMsg errmsg
                ) {
   double h,a,b;
@@ -6149,7 +6058,6 @@ int matter_sample_sources(
                                       pma->k_sampling[index_coeff],
                                       &last_index,
                                       sampled_source[index_ic * pma->stp_size + index_stp]+index_coeff*pma->tau_size,
-                                      0,
                                       pma->error_message
                                       ),
                   pma->error_message,
@@ -8815,7 +8723,6 @@ int matter_resample_growth_factor(
                           pma->tw_sampling[index_wd*pma->tw_size+index_tw],
                           &last_index,
                           &pma->growth_factor[index_ic * pma->stp_size + index_stp][index_wd*pma->tw_size+index_tw],
-                          _FALSE_,
                           pma->error_message),
                      pma->error_message,
                      pma->error_message);
