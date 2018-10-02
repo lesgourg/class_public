@@ -4031,9 +4031,10 @@ int thermodynamics_set_approximation_limits(
              pth->error_message,
              "you want the second to last approximation scheme to end after z_end, that should not happen");
               
-  
-  for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
-    printf("Interval %i ending at %e \n",index_ap+1,-interval_limit[index_ap+1]);
+  if( pth->thermodynamics_verbose > 2){
+    for(index_ap=0; index_ap < ptw->ap_size; index_ap++){
+      printf("Interval %i ending at %e \n",index_ap+1,-interval_limit[index_ap+1]);
+    }
   }
   
  return _SUCCESS_;
