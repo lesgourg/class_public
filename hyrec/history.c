@@ -27,7 +27,7 @@ Cosmological parameters Input/Output
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   int fscanf_result;
-  
+
   fscanf_result = 0;
   /* Cosmology */
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter CMB temperature today [Kelvin]: ");
