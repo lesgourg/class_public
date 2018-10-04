@@ -2263,6 +2263,8 @@ int transfer_sources(
 
       if (_nonintegrated_ncl_) {
 
+        _get_bin_nonintegrated_ncl_(index_tt)
+
         /* redefine the time sampling */
         class_call(transfer_selection_sampling(ppr,
                                                pba,
@@ -2330,6 +2332,8 @@ int transfer_sources(
       /* Integrated contributions to dCl/nCl/sCl need integrated selection time sampling */
 
       if (_integrated_ncl_) {
+
+        _get_bin_integrated_ncl_(index_tt)
 
         /* redefine the time sampling */
         class_call(transfer_lensing_sampling(ppr,
@@ -4718,27 +4722,7 @@ int transfer_precompute_selection(
     /* Start with non-integrated contributions */
     if (_nonintegrated_ncl_) {
 
-      /* bin number associated to particular redshift bin and selection function */
-      if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))
-        bin = index_tt - ptr->index_tt_density;
-
-      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))
-        bin = index_tt - ptr->index_tt_rsd;
-
-      if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
-        bin = index_tt - ptr->index_tt_d0;
-
-      if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
-        bin = index_tt - ptr->index_tt_d1;
-
-      if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))
-        bin = index_tt - ptr->index_tt_nc_g1;
-
-      if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))
-        bin = index_tt - ptr->index_tt_nc_g2;
-
-      if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
-        bin = index_tt - ptr->index_tt_nc_g3;
+      _get_bin_nonintegrated_ncl_(index_tt)
 
       /* redefine the time sampling */
       class_call(transfer_selection_sampling(ppr,
@@ -4891,19 +4875,7 @@ int transfer_precompute_selection(
     /* Now deal with integrated contributions */
     if (_integrated_ncl_) {
 
-      /* bin number associated to particular redshift bin and selection function */
-      if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)){
-        bin = index_tt - ptr->index_tt_lensing;
-      }
-      if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)){
-        bin = index_tt - ptr->index_tt_nc_lens;
-      }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)){
-        bin = index_tt - ptr->index_tt_nc_g4;
-      }
-      if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr)){
-        bin = index_tt - ptr->index_tt_nc_g5;
-      }
+      _get_bin_integrated_ncl_(index_tt)
 
       /* dirac case */
       if (ppt->selection == dirac) {
