@@ -303,13 +303,13 @@ int transfer_init(
                                            &(window)),
              ptr->error_message,
              ptr->error_message);
-  
+
   /* (a.3.) workspace, allocated in a parallel zone since in openmp
       version there is one workspace per thread */
 
   /* initialize error management flag */
   abort = _FALSE_;
-  
+
   /* beginning of parallel region */
 #pragma omp parallel                                                    \
   shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS,tau0) \
@@ -399,7 +399,7 @@ int transfer_init(
 
   /** - finally, free arrays allocated outside parallel zone */
   free(window);
-  
+
   class_call(transfer_perturbation_sources_spline_free(ppt,ptr,sources_spline),
              ptr->error_message,
              ptr->error_message);
@@ -1742,7 +1742,7 @@ int transfer_compute_for_each_q(
   w_trapz  = ptw->w_trapz;
   tau_size = &(ptw->tau_size);
   sources = ptw->sources;
-  
+
   /** - loop over all modes. For each mode */
 
   for (index_md = 0; index_md < ptr->md_size; index_md++) {
@@ -2168,7 +2168,7 @@ int transfer_sources(
     /* number count Cl's */
     if (_nonintegrated_ncl_ || _integrated_ncl_)
       redefine_source = _TRUE_;
-    
+
   }
 
   /* conformal time today */
@@ -2277,7 +2277,7 @@ int transfer_sources(
         class_test(tau0 - tau0_minus_tau[0] > ppt->tau_sampling[ppt->tau_size-1],
                    ptr->error_message,
                    "this should not happen, there was probably a rounding error, if this error occurred, then this must be coded more carefully");
-        
+
         /* resample the source at those times */
         class_call(transfer_source_resample(ppr,
                                             pba,
@@ -2292,7 +2292,7 @@ int transfer_sources(
                                             sources),
                    ptr->error_message,
                    ptr->error_message);
-        
+
         /* Compute trapezoidal weights for integration over tau */
         class_call(array_trapezoidal_mweights(tau0_minus_tau,
                                               tau_size,
@@ -2300,7 +2300,7 @@ int transfer_sources(
                                               ptr->error_message),
                    ptr->error_message,
                    ptr->error_message);
-        
+
         /* loop over time and rescale */
         for (index_tau = 0; index_tau < tau_size; index_tau++) {
 
@@ -2313,15 +2313,15 @@ int transfer_sources(
              (in tau = tau_0, set source = 0 to avoid division by zero;
              regulated anyway by Bessel).
           */
-          
+
           rescaling = window[index_tt*tau_size_max+index_tau];
-          
+
           if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))
             rescaling *= 1./ptr->k[index_md][index_q]/ptr->k[index_md][index_q]; // Factor from original ClassGAL paper ( arXiv 1307.1459 )
-          
-          if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) 
+
+          if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))
             rescaling *= 1./ptr->k[index_md][index_q]; // Factor from original ClassGAL paper ( arXiv 1307.1459 )
-          
+
           sources[index_tau] *= rescaling;
         }
       }
@@ -2330,7 +2330,7 @@ int transfer_sources(
       /* Integrated contributions to dCl/nCl/sCl need integrated selection time sampling */
 
       if (_integrated_ncl_) {
-        
+
         /* redefine the time sampling */
         class_call(transfer_lensing_sampling(ppr,
                                              pba,
@@ -2342,7 +2342,7 @@ int transfer_sources(
                                              tau_size),
                    ptr->error_message,
                    ptr->error_message);
-        
+
         /* resample the source at those times */
         class_call(transfer_source_resample(ppr,
                                             pba,
@@ -2357,7 +2357,7 @@ int transfer_sources(
                                             sources),
                    ptr->error_message,
                    ptr->error_message);
-        
+
         /* Compute trapezoidal weights for integration over tau */
         class_call(array_trapezoidal_mweights(tau0_minus_tau,
                                               tau_size,
@@ -2365,10 +2365,10 @@ int transfer_sources(
                                               ptr->error_message),
                    ptr->error_message,
                    ptr->error_message);
-        
+
         /* loop over time and rescale */
         for (index_tau = 0; index_tau < tau_size; index_tau++) {
-          
+
           /* lensing source =  - W(tau) (phi(k,tau) + psi(k,tau)) Heaviside(tau-tau_rec)
              with
              psi,phi = metric perturbation in newtonian gauge (phi+psi = Phi_A-Phi_H of Bardeen)
@@ -2377,7 +2377,7 @@ int transfer_sources(
              (in tau = tau_0, set source = 0 to avoid division by zero;
              regulated anyway by Bessel).
           */
-          
+
           /* copy from input array to output array */
           sources[index_tau] *= window[index_tt*tau_size_max+index_tau];
 
@@ -4602,10 +4602,10 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
 /**
  * Here we can precompute the window functions for the final integration
  * For each type of nCl/dCl/sCl we combine the selection function
- *  with the corresponding prefactor (e.g. 1/aH), and, if required, 
+ *  with the corresponding prefactor (e.g. 1/aH), and, if required,
  *  we also integrate for integrated (lensed) contributions
  * (In the original ClassGAL paper these would be labeled g4,g5, and lens)
- * 
+ *
  * All factors of k have to be added later (at least in the current version)
  *
  * @param ppr                   Input: pointer to precision structure
@@ -4629,79 +4629,79 @@ int transfer_precompute_selection(
                      double ** window /* Pass a pointer to the pointer, so the pointer can be allocated inside of the function */
                      ){
   /** Summary: */
-  
+
   /** - define local variables */
-  
+
   double* tau0_minus_tau;
   double* w_trapz;
-  
+
   /* index running on time */
   int index_tau;
-  
+
   /* bin for computation of cl_density */
   int bin=0;
-  
+
   /* number of tau values */
   int tau_size;
-  
+
   /* minimum tau index kept in transfer sources */
   int index_tau_min;
-  
+
   /* for calling background_at_eta */
   int last_index;
   double * pvecback = NULL;
-  
+
   /* conformal time */
   double tau, tau0;
-  
+
   /* geometrical quantities */
   double sinKgen_source=0.;
   double sinKgen_source_to_lens=0.;
   double cotKgen_source=0.;
   double cscKgen_lens=0.;
-  
+
   /* rescaling factor depending on the background at a given time */
   double rescaling=0.;
-  
+
   /* flag: is there any difference between the perturbation and transfer source? */
   short redefine_source;
-  
+
   /* array of selection function values at different times */
   double * selection;
-  
+
   /* array of time sampling for lensing source selection function */
   double * tau0_minus_tau_lensing_sources;
-  
+
   /* trapezoidal weights for lensing source selection function */
   double * w_trapz_lensing_sources;
-  
+
   /* index running on time in previous two arrays */
   int index_tau_sources;
-  
+
   /* number of time values in previous two arrays */
   int tau_sources_size;
-  
+
   /* source evolution factor */
   double f_evo = 0.;
-  
-  
+
+
   /* Setup initial variables and arrays*/
   int index_md = ppt->index_md_scalars;
   int index_tt;
-  
+
   /* allocate temporary arrays for storing selections, weights, times, and output; and for calling background */
   class_alloc(tau0_minus_tau,tau_size_max*sizeof(double),ptr->error_message);
   class_alloc(selection,tau_size_max*sizeof(double),ptr->error_message);
   class_alloc(w_trapz,tau_size_max*sizeof(double),ptr->error_message);
   class_alloc((*window),tau_size_max*ptr->tt_size[index_md]*sizeof(double),ptr->error_message);
   class_alloc(pvecback,pba->bg_size*sizeof(double),ptr->error_message);
-  
+
   /* conformal time today */
   tau0 = pba->conformal_age;
-  
+
   /* Loop through different types to be precomputed */
   for (index_tt = 0; index_tt < ptr->tt_size[index_md]; index_tt++) {
-    
+
     /* First set the corresponding tau size */
     class_call(transfer_source_tau_size(ppr,
                                     pba,
@@ -4714,7 +4714,7 @@ int transfer_precompute_selection(
                                     &tau_size),
            ptr->error_message,
            ptr->error_message);
-    
+
     /* Start with non-integrated contributions */
     if (_nonintegrated_ncl_) {
 
@@ -4815,7 +4815,7 @@ int transfer_precompute_selection(
 
         if ((_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) ||
             (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) ||
-            (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))) 
+            (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr)))
           {
             class_call(transfer_f_evo(pba,ptr,pvecback,last_index,cotKgen_source,&f_evo),
                        ptr->error_message,
@@ -4881,16 +4881,16 @@ int transfer_precompute_selection(
 
         if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
           rescaling = selection[index_tau]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H];
-        
+
         /* finally store in array */
         (*window)[index_tt*tau_size_max+index_tau] = rescaling;
       }
     }
     /* End non-integrated contribution */
-      
+
     /* Now deal with integrated contributions */
     if (_integrated_ncl_) {
-    
+
       /* bin number associated to particular redshift bin and selection function */
       if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)){
         bin = index_tt - ptr->index_tt_lensing;
@@ -4975,7 +4975,7 @@ int transfer_precompute_selection(
                                             ptr->error_message),
                  ptr->error_message,
                  ptr->error_message);
-      
+
       /* loop over time and rescale */
       for (index_tau = 0; index_tau < tau_size; index_tau++) {
 
@@ -5079,7 +5079,7 @@ int transfer_precompute_selection(
                 class_call(transfer_f_evo(pba,ptr,pvecback,last_index,cotKgen_source,&f_evo),
                            ptr->error_message,
                            ptr->error_message);
-                
+
 
                 rescaling +=
                   (1.
@@ -5104,14 +5104,14 @@ int transfer_precompute_selection(
         /* Finally store integrated result for later use */
         (*window)[index_tt*tau_size_max+index_tau] = rescaling;
       }
-      
+
       /* deallocate temporary arrays */
       free(tau0_minus_tau_lensing_sources);
       free(w_trapz_lensing_sources);
     }
     /* End integrated contribution */
   }
-  
+
   /* deallocate temporary arrays */
   free(selection);
   free(tau0_minus_tau);
@@ -5133,7 +5133,7 @@ int transfer_f_evo(
   double dNdz;
   double dln_dNdz_dz;
   double temp_f_evo;
-  
+
   if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
 
     temp_f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen
@@ -5181,9 +5181,9 @@ int transfer_f_evo(
   else {
     temp_f_evo = 0.;
   }
-  
+
   /* after obtaining f_evo, store it in output */
   *f_evo = temp_f_evo;
-  
+
   return _SUCCESS_;
 }

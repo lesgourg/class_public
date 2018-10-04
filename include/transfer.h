@@ -11,10 +11,12 @@
 
 /* macro: test if index_tt is in the range between index and index+num, while the flag is true */
 #define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
+/* macro : test if index_tt corresponds to an integrated nCl/sCl contribution */
 #define _integrated_ncl_ (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) || \
           (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) || \
           (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) || \
           (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
+/* macro : test if index_tt corresponds to an non-integrated nCl/sCl contribution */
 #define _nonintegrated_ncl_ (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) || \
           (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) || \
           (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) || \
@@ -204,7 +206,7 @@ struct transfer_workspace {
 
   int tau_size;                  /**< number of discrete time values for a given type */
   int tau_size_max;              /**< maximum number of discrete time values for all types */
-  double * interpolated_sources; /**< interpolated_sources[index_tau]: 
+  double * interpolated_sources; /**< interpolated_sources[index_tau]:
                                     sources interpolated from the
                                     perturbation module at the right
                                     value of k */
@@ -678,7 +680,7 @@ extern "C" {
                         int *index_l_left,
                         int *index_l_right,
                         ErrorMsg error_message);
-                        
+
   int transfer_precompute_selection(
                      struct precision * ppr,
                      struct background * pba,
@@ -688,7 +690,7 @@ extern "C" {
                      int tau_size_max,
                      double ** window
                      );
-  
+
   int transfer_f_evo(
                    struct background* pba,
                    struct transfers * ptr,
@@ -697,7 +699,7 @@ extern "C" {
                    double cotKgen,
                    double* f_evo
                   );
-  
+
 #ifdef __cplusplus
 }
 #endif
