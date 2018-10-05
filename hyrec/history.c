@@ -46,7 +46,7 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   fscanf_result += fscanf(fin, "%lg", &(param->Y));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter effective number of neutrino species, N_nu_eff: ");
   fscanf_result += fscanf(fin, "%lg", &(param->Nnueff));
-  if (fscanf_result!=8){printf("Hyrec Warning :: Failed to read cosmological parameters");}
+  if (fscanf_result!=9){printf("Hyrec Warning :: Failed to read cosmological parameters");}
 
   param->nH0 = 11.223846333047*param->obh2*(1.-param->Y);  /* number density of hudrogen today in m-3 */
   param->fHe = param->Y/(1-param->Y)/3.97153;              /* abundance of helium by number */
