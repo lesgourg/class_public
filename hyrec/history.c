@@ -26,24 +26,27 @@ Cosmological parameters Input/Output
 *************************************************************************************************/
 
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
+  int fscanf_result;
 
+  fscanf_result = 0;
   /* Cosmology */
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter CMB temperature today [Kelvin]: ");
-  fscanf(fin, "%lg", &(param->T0));
+  fscanf_result += fscanf(fin, "%lg", &(param->T0));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter baryon density, omega_bh2: ");
-  fscanf(fin, "%lg", &(param->obh2));
+  fscanf_result += fscanf(fin, "%lg", &(param->obh2));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter total matter (CDM+baryons) density, omega_mh2: ");
-  fscanf(fin, "%lg", &(param->omh2));
+  fscanf_result += fscanf(fin, "%lg", &(param->omh2));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter curvature, omega_kh2: ");
-  fscanf(fin, "%lg", &(param->okh2));
+  fscanf_result += fscanf(fin, "%lg", &(param->okh2));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter dark energy density, omega_deh2: ");
-  fscanf(fin, "%lg", &(param->odeh2));
+  fscanf_result += fscanf(fin, "%lg", &(param->odeh2));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter dark energy equation of state parameters, w wa: ");
-  fscanf(fin, "%lg %lg", &(param->w0), &(param->wa));
+  fscanf_result += fscanf(fin, "%lg %lg", &(param->w0), &(param->wa));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter primordial helium mass fraction, Y: ");
-  fscanf(fin, "%lg", &(param->Y));
+  fscanf_result += fscanf(fin, "%lg", &(param->Y));
   if (fout!=NULL && PROMPT==1) fprintf(fout, "Enter effective number of neutrino species, N_nu_eff: ");
-  fscanf(fin, "%lg", &(param->Nnueff));
+  fscanf_result += fscanf(fin, "%lg", &(param->Nnueff));
+  if (fscanf_result!=9){printf("Hyrec Warning :: Failed to read cosmological parameters");}
 
   param->nH0 = 11.223846333047*param->obh2*(1.-param->Y);  /* number density of hudrogen today in m-3 */
   param->fHe = param->Y/(1-param->Y)/3.97153;              /* abundance of helium by number */

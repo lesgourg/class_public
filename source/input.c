@@ -2458,8 +2458,13 @@ int input_read_parameters(
   }
   /* end of z_max section */
 
-  class_read_string("root",pop->root);
-
+  class_call(parser_read_string(pfc,"root",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if (flag1 == _TRUE_){
+    class_test(strlen(string1)>_FILENAMESIZE_-32,errmsg,"Root directory name is too long. Please install in other directory, or increase _FILENAMESIZE_ in common.h");
+    strcpy(pop->root,string1);
+  }
   class_call(parser_read_string(pfc,
                                 "headers",
                                 &(string1),
