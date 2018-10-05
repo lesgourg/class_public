@@ -508,21 +508,34 @@ int nonlinear_init(
       /** if HMcode, fill table with scale independent growth factor */
 	    class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl), 
 				pnl->error_message, pnl->error_message);	
-        
+      
+      double tau_growth;  
+      class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
       /** if HMcode, Calculate the Dark Energy correction: */  
       if (pba->has_fld==_TRUE_){      
+        class_call(background_tau_of_z(
+                        pba,
+                        pnl->z_infinity,
+                        &tau_growth
+                        ),
+					pba->error_message, pnl->error_message);
+			
+        class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
+             pba->error_message,
+             pnl->error_message);
+        // why is background_w_fld() called here? You only need the input parameters w0_fld and wa_fld right?
         class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
         class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
             pnl->error_message, pnl->error_message);
-        class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1),&g_wcdm),
+        class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1.),&g_wcdm),
             pnl->error_message, pnl->error_message);
         pnl->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
-        //fprintf(stdout, "%e %e %e %e\n", dw_over_da_fld, g_wcdm, g_lcdm, pnl->dark_energy_correction); 
+        //fprintf(stdout, "%e, %e, %e, %e, %e\n", dw_over_da_fld, g_wcdm, pvecback[pba->index_bg_D], g_lcdm, pnl->dark_energy_correction); 
       }
       else {
         pnl->dark_energy_correction = 1.;
       }
-      
+      	free(pvecback);
       /** if HMcode, Allocate the R, sigma and sigma_splined arrays */
       class_alloc(pnl->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
       class_alloc(pnl->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
