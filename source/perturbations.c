@@ -6345,6 +6345,7 @@ int perturb_print_variables(double tau,
   struct perturbs * ppt;
   struct perturb_workspace * ppw;
   double * pvecback;
+  double * pvecthermo;
   double * pvecmetric;
 
   double delta_g,theta_g,shear_g,l4_g,pol0_g,pol1_g,pol2_g,pol4_g;
@@ -6385,7 +6386,29 @@ int perturb_print_variables(double tau,
   ppt = pppaw->ppt;
   ppw = pppaw->ppw;
   pvecback = ppw->pvecback;
+  pvecthermo = ppw->pvecthermo;
   pvecmetric = ppw->pvecmetric;
+
+  /** - update background/thermo quantities in this point */
+
+  class_call(background_at_tau(pba,
+                               tau,
+                               pba->normal_info,
+                               pba->inter_closeby,
+                               &(ppw->last_index_back),
+                               pvecback),
+             pba->error_message,
+             error_message);
+
+  class_call(thermodynamics_at_z(pba,
+                                 pth,
+                                 1./pvecback[pba->index_bg_a]-1.,
+                                 pth->inter_closeby,
+                                 &(ppw->last_index_thermo),
+                                 pvecback,
+                                 pvecthermo),
+             pth->error_message,
+             error_message);
 
   a = pvecback[pba->index_bg_a];
   a2 = a*a;
@@ -6419,11 +6442,11 @@ int perturb_print_variables(double tau,
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
         shear_g = ppw->tca_shear_g;
-        //l3_g = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+        //l3_g = 6./7.*k/pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
         pol0_g = 2.5*ppw->tca_shear_g;
-        pol1_g = 7./12.*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+        pol1_g = 7./12.*6./7.*k/pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
         pol2_g = 0.5*ppw->tca_shear_g;
-        //pol3_g = 0.25*6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+        //pol3_g = 0.25*6./7.*k/pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
       }
       else {
         shear_g = y[ppw->pv->index_pt_shear_g];
@@ -6703,10 +6726,10 @@ int perturb_print_variables(double tau,
         pol4_g = y[ppw->pv->index_pt_pol0_g+4];
       }
       else {
-        delta_g = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+        delta_g = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa]; //TBC
         shear_g = 0.;
         l4_g = 0.;
-        pol0_g = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+        pol0_g = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa]; //TBC
         pol2_g = 0.;
         pol4_g = 0.;
       }
