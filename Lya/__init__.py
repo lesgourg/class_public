@@ -32,11 +32,11 @@ class Lya(Likelihood):
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
 
-        # create a set of Parameters
-        self.lmfit_params = Parameters()
-        self.lmfit_params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
-        self.lmfit_params.add('beta', value=2.24, min = 0.5, max = 10.)
-        self.lmfit_params.add('gamma', value=-4.46, min=-10., max=-0.1)
+#        # create a set of Parameters #MArchi moved the definition of the Parameters in loglkl
+#        self.lmfit_params = Parameters()
+#        self.lmfit_params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
+#        self.lmfit_params.add('beta', value=2.24, min = 0.5, max = 10.)
+#        self.lmfit_params.add('gamma', value=-4.46, min=-10., max=-0.1)
 
         alphas = np.zeros(self.grid_size, 'float64')
         betas = np.zeros(self.grid_size, 'float64')
@@ -256,13 +256,13 @@ class Lya(Likelihood):
     def T(self,k,alpha,beta,gamma):
         return (1. + (alpha*k)**(beta))**(gamma)
 
-    #define objective function: returns the array to be minimized
-    def fcn2min(self,params, k, Tk):
-        alpha = params['alpha']
-        beta = params['beta']
-        gamma = params['gamma']
-        model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
-        return (model - Tk)      #standard residuals
+#    #define objective function: returns the array to be minimized # MArchi: moved fcn2min inside loglkl
+#    def fcn2min(self,params, k, Tk):
+#        alpha = params['alpha']
+#        beta = params['beta']
+#        gamma = params['gamma']
+#        model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+#        return (model - Tk)      #standard residuals
 
     def z_dep_func(self,parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
         return parA*(( (1.+z)/(1.+self.zp) )**parS)
@@ -314,16 +314,16 @@ class Lya(Likelihood):
 
         k = np.logspace(np.log10(self.kmin), np.log10(self.kmax), num=self.k_size)
 
-#        if not os.path.exists(self.bin_file_path):
-#           with open(self.bin_file_path, 'w') as bin_file:
-#                bin_file.write('#')
-#                for name in data.get_mcmc_parameters(['varying']):
-#                    name = re.sub('[$*&]', '', name)
-#                    bin_file.write(' %s' % name)
-#                bin_file.write(' z_reio neff sigma8')
-#                bin_file.write('\n')
-#                bin_file.close()
-#
+        if not os.path.exists(self.bin_file_path):
+           with open(self.bin_file_path, 'w') as bin_file:
+                bin_file.write('#')
+                for name in data.get_mcmc_parameters(['varying']):
+                    name = re.sub('[$*&]', '', name)
+                    bin_file.write(' %s' % name)
+                bin_file.write(' z_reio neff sigma8')
+                bin_file.write('\n')
+                bin_file.close()
+
         #deal with the astro nuisance parameters
         if 'T0a' in data.mcmc_parameters:
             T0a=data.mcmc_parameters['T0a']['current']*data.mcmc_parameters['T0a']['scale']
@@ -556,16 +556,24 @@ class Lya(Likelihood):
 
         # fitting the given linear P(k) with the {alpha,beta,gamma}-formula
 
+        #define objective function: returns the array to be minimized
+        def fcn2min(params, k, Tk):
+            alpha = params['alpha']
+            beta = params['beta']
+            gamma = params['gamma']
+            model = T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+            return (model - Tk)      #standard residuals
+
         # create a set of Parameters
-        #params = Parameters()
-        #params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
-        #params.add('beta', value=2.24, min = 0.5, max = 10.)
-        #params.add('gamma', value=-4.46, min=-10., max=-0.1)
+        params = Parameters()
+        params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
+        params.add('beta', value=2.24, min = 0.5, max = 10.)
+        params.add('gamma', value=-4.46, min=-10., max=-0.1)
 
         # do fit, default is with least squares method
         #t0_fit = time.clock()
 
-        minner = Minimizer(self.fcn2min, self.lmfit_params, fcn_args=(k_fit, Tk_fit))
+        minner = Minimizer(fcn2min, params, fcn_args=(k_fit, Tk_fit))
         result = minner.minimize(method = 'leastsq')
         best_alpha = result.params['alpha'].value
         best_beta  = result.params['beta'].value
