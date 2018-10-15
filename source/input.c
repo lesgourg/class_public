@@ -779,7 +779,7 @@ int input_read_parameters(
   class_test(((flag3 == _TRUE_) && (flag4 == _FALSE_)),
              errmsg,
              "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem
-  class_test(((param3!=0.0) && (param4==0.0)),
+  class_test((((flag3 == _TRUE_)&&(param3!=0.0)) && (param4==0.0)),
              errmsg,
              "In input file, you have f_idm_dr!=0. but a_dark=0.");
 
