@@ -3167,6 +3167,7 @@ int array_weights_gauss(double* xarray, double* warray, int N,short gauss_type,E
   class_test(N<1,
              err_msg,
              "invalid array size for integration");
+  if(N==1){*xarray=0.0; *warray = 2.;return _SUCCESS_;}
   if(gauss_type==gauss_type_chebyshev_1){
     for(i=0;i<N;++i){
       xarray[i]=cos((2.0*i+1.0)/(2.0*(double)N)*_PI_);
@@ -3284,10 +3285,6 @@ int array_weights_gauss(double* xarray, double* warray, int N,short gauss_type,E
     return _SUCCESS_;
   }*/
   else if(gauss_type==gauss_type_trapezoid){
-    if(N==1){
-      warray[0]=2.0;
-      return _SUCCESS_;
-    }
     for(i=0;i<N;++i){
       xarray[i] = 2.0*((double)i/(double)(N-1))-1.0;
       warray[i] = 2.0/(double)(N-1);
