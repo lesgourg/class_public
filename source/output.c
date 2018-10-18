@@ -316,7 +316,7 @@ int output_cl(
 
   if(pma->has_cls){
     class_alloc(cl_matter_tot,
-                pma->cltp_size*pma->num_window_grid*sizeof(double),
+                pma->cltp_grid_size*pma->num_window_grid*sizeof(double),
                 pop->error_message);
   }
 
