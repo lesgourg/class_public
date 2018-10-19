@@ -176,6 +176,13 @@ int perturb_init(
                 (ppr->ncdm_fluid_approximation > ncdmfa_none),
                 ppt->error_message,
                 "your ncdm_fluid_approximation is set to %d, out of range defined in perturbations.h",ppr->ncdm_fluid_approximation);
+
+    if (ppt->has_nc_density == _TRUE_) {
+      if (ppt->perturbations_verbose > 0) {
+        fprintf(stdout," -> [WARNING:] You request the number count Cl's in presence of non-cold dark matter.\n    Like in all previous CLASS and CLASSgal versions, this will be inferred from the total matter density,\n    but it could make much more sense physically to compute it from the CDM+baryon density only.\n    To get the latter behavior you would just need to change one line in transfer.c:\n    search there for a comment starting with 'use here delta_cb'\n");
+      }
+    }
+
   }
 
   if (pba->has_fld == _TRUE_) {

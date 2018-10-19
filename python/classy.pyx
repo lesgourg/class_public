@@ -1659,7 +1659,7 @@ cdef class Class:
             elif name == 'sigma8':
                 value = self.sp.sigma8
             elif name == 'sigma8_cb':
-                value = self.sp.sigma8
+                value = self.sp.sigma8_cb
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
