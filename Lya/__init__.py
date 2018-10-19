@@ -434,8 +434,12 @@ class Lya(Likelihood):
             else:
                 N_ur = 3.046 #as in class
 
-            if 'N_ncdm' in data.cosmo_arguments:
-                N_ncdm = data.cosmo_arguments['N_ncdm']
+            if 'N_ncdm' in data.cosmo_arguments: 
+                if 'm_ncdm' in data.cosmo_arguments and ('omega_ncdm' in data.cosmo_arguments or 'Omega_ncdm' in data.cosmo_arguments): #wdm
+                    data.cosmo_arguments['m_ncdm'] = 1.0e6 #so that it behaves like cold #MArchi check if 1 MeV is enough
+                    N_ncdm = data.cosmo_arguments['N_ncdm'] #check T issues?
+                else:#hdm, m_ncdm or omega_ncdm are rescaled after (see below #hdm)
+                    N_ncdm = data.cosmo_arguments['N_ncdm']
                 data.cosmo_arguments['N_ncdm'] = 0.0
             else:
                 N_ncdm = 0.0
@@ -447,9 +451,16 @@ class Lya(Likelihood):
             eta=np.sqrt(eta2)
             #print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
             #print '\n'
+            #if 'Omega_ncdm' in data.cosmo_arguments:
+                #raise io_mp.ConfigurationError('Error: run with m_ncdm and/or omega_ncdm instead of Omega_ncdm')
+                #exit()
+            if 'm_ncdm' in data.cosmo_arguments and not 'omega_ncdm' in data.cosmo_arguments and not 'Omega_ncdm' in data.cosmo_arguments:#hdm
+                data.cosmo_arguments['m_ncdm'] *= 1./eta2
+            if 'omega_ncdm' in data.cosmo_arguments: #both hdm and wdm #and not 'm_ncdm' in data.cosmo_arguments:
+                data.cosmo_arguments['omega_ncdm'] *= 1./eta2
             if 'omega_b' in data.cosmo_arguments:
                 data.cosmo_arguments['omega_b'] *= 1./eta2
-            if 'omega_cdm' in data.cosmo_arguments:
+            if 'omega_cdm' in data.cosmo_arguments: #MArchi wdm might give 0*0, but this should never be the case (see eta)
                 data.cosmo_arguments['omega_cdm'] *= 1./eta2
             if 'H0' in data.cosmo_arguments:
                 data.cosmo_arguments['H0'] *= 1./eta
@@ -466,10 +477,6 @@ class Lya(Likelihood):
 
         if 'a_dark' in data.cosmo_arguments:#this is not really needed, because once f_idm_dr = 0., whatever is a_dark, pba->has_idm==_FALSE_
             data.cosmo_arguments['a_dark'] = 0.0
-
-        #deal with warm dark matter
-        #if 'm_ncdm' in data.cosmo_arguments:
-            #param_lcdm_equiv['m_ncdm'] = 1.0e6
 
         cosmo.struct_cleanup()
         cosmo.empty()
@@ -561,7 +568,7 @@ class Lya(Likelihood):
             alpha = params['alpha']
             beta = params['beta']
             gamma = params['gamma']
-            model = T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+            model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
             return (model - Tk)      #standard residuals
 
         # create a set of Parameters
