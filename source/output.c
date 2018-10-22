@@ -149,9 +149,9 @@ int output_init(
                pop->error_message);
 
     if (pnl->method != nl_none) {
-          class_call(output_pk_nl(pba,ppt,psp,pop),
-                     pop->error_message,
-                     pop->error_message);
+      class_call(output_pk_nl(pba,ppt,psp,pop),
+                 pop->error_message,
+                 pop->error_message);
     }
   }
 
@@ -621,10 +621,11 @@ int output_pk(
   double * pk_tot; /* array with argument
                       pk_tot[index_k] */
 
-  FILE ** out_cb_ic=NULL;
-  FILE * out_cb;
-  double * pk_cb_ic=NULL;
-  double * pk_cb_tot;
+  FILE ** out_cb_ic=NULL; /* same as out_ic for CDM+baryon only */
+  FILE * out_cb;          /* same as out for CDM+baryon only */
+
+  double * pk_cb_ic=NULL; /* same as pk_ic for CDM+baryon only */
+  double * pk_cb_tot=NULL;     /* same as pk_tot for CDM+baryon only */
 
   int index_md;
   int index_ic1,index_ic2;
@@ -667,32 +668,32 @@ int output_pk(
                                    ),
                pop->error_message,
                pop->error_message);
- 
+
     if(pba->has_ncdm){
-    class_call(output_open_pk_file(pba,
-                                   psp,
-                                   pop,
-                                   &out_cb,
-                                   file_cb_name,
-                                   "",
-                                   pop->z_pk[index_z]
-                                   ),
-               pop->error_message,
-               pop->error_message);
+      class_call(output_open_pk_file(pba,
+                                     psp,
+                                     pop,
+                                     &out_cb,
+                                     file_cb_name,
+                                     "",
+                                     pop->z_pk[index_z]
+                                     ),
+                 pop->error_message,
+                 pop->error_message);
     }
 
     class_alloc(pk_tot,
                 psp->ln_k_size*sizeof(double),
                 pop->error_message);
 
-    //if(pba->has_ncdm){
-    class_alloc(pk_cb_tot,
-                psp->ln_k_size*sizeof(double),
-                pop->error_message);
-    //}
+    if(pba->has_ncdm){
+      class_alloc(pk_cb_tot,
+                  psp->ln_k_size*sizeof(double),
+                  pop->error_message);
+    }
 
     if (psp->ic_size[index_md] > 1) {
-//MAcb P_cb for multiple initial conditions has to be implemented
+
       class_alloc(out_ic,
                   psp->ic_ic_size[index_md]*sizeof(FILE *),
                   pop->error_message);
@@ -700,16 +701,16 @@ int output_pk(
       class_alloc(pk_ic,
                   psp->ln_k_size*psp->ic_ic_size[index_md]*sizeof(double),
                   pop->error_message);
-      
+
       if (pba->has_ncdm){
-      class_alloc(out_cb_ic,
-                  psp->ic_ic_size[index_md]*sizeof(FILE *),
-                  pop->error_message);
-      }//
-      class_alloc(pk_cb_ic,
-                  psp->ln_k_size*psp->ic_ic_size[index_md]*sizeof(double),
-                  pop->error_message);
-      
+        class_alloc(out_cb_ic,
+                    psp->ic_ic_size[index_md]*sizeof(FILE *),
+                    pop->error_message);
+
+        class_alloc(pk_cb_ic,
+                    psp->ln_k_size*psp->ic_ic_size[index_md]*sizeof(double),
+                    pop->error_message);
+      }
 
       for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_md]; index_ic1++) {
 
@@ -719,6 +720,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad.dat");
+
             strcpy(first_line,"for adiabatic (AD) mode ");
           }
 
@@ -726,6 +729,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_bi.dat");
+
             strcpy(first_line,"for baryon isocurvature (BI) mode ");
           }
 
@@ -733,6 +738,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_cdi.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_cdi.dat");
+
             strcpy(first_line,"for CDM isocurvature (CDI) mode ");
           }
 
@@ -740,6 +747,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nid.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nid.dat");
+
             strcpy(first_line,"for neutrino density isocurvature (NID) mode ");
           }
 
@@ -747,6 +756,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_niv.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_niv.dat");
+
             strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode ");
           }
 
@@ -754,6 +765,8 @@ int output_pk(
               (ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_bi.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_bi.dat");
+
             strcpy(first_line,"for cross ADxBI mode ");
           }
 
@@ -761,6 +774,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_cdi.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_cdi.dat");
+
             strcpy(first_line,"for cross ADxCDI mode ");
           }
 
@@ -768,6 +783,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_nid.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_nid.dat");
+
             strcpy(first_line,"for scalar cross ADxNID mode ");
           }
 
@@ -775,6 +792,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_niv.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_niv.dat");
+
             strcpy(first_line,"for cross ADxNIV mode ");
           }
 
@@ -782,6 +801,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi_cdi.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_bi_cdi.dat");
+
             strcpy(first_line,"for cross BIxCDI mode ");
           }
 
@@ -789,6 +810,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi_nid.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_bi_nid.dat");
+
             strcpy(first_line,"for cross BIxNID mode ");
           }
 
@@ -796,6 +819,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi_niv.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ni_niv.dat");
+
             strcpy(first_line,"for cross BIxNIV mode ");
           }
 
@@ -803,6 +828,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_cdi_nid.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_cdi_nid.dat");
+
             strcpy(first_line,"for cross CDIxNID mode ");
           }
 
@@ -810,6 +837,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_cdi_niv.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_cdi_niv.dat");
+
             strcpy(first_line,"for cross CDIxNIV mode ");
           }
 
@@ -817,6 +846,8 @@ int output_pk(
               (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
 
             sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nid_niv.dat");
+            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nid_niv.dat");
+
             strcpy(first_line,"for cross NIDxNIV mode ");
           }
 
@@ -834,6 +865,19 @@ int output_pk(
                                            ),
                        pop->error_message,
                        pop->error_message);
+
+            if (pba->has_ncdm) {
+              class_call(output_open_pk_file(pba,
+                                             psp,
+                                             pop,
+                                             &(out_cb_ic[index_ic1_ic2]),
+                                             file_cb_name,
+                                             first_line,
+                                             pop->z_pk[index_z]
+                                             ),
+                         pop->error_message,
+                         pop->error_message);
+            }
           }
         }
       }
@@ -860,8 +904,8 @@ int output_pk(
             pk_tot[index_k] += pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
 
             if(pba->has_ncdm){
-            pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = exp(psp->ln_pk_cb[((psp->ln_tau_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-            pk_cb_tot[index_k] += pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
+              pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = exp(psp->ln_pk_cb[((psp->ln_tau_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_md] + index_ic1_ic2]);
+              pk_cb_tot[index_k] += pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
             }
           }
           for (index_ic1=0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
@@ -873,13 +917,12 @@ int output_pk(
               pk_tot[index_k] += 2.*pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
 
               if(pba->has_ncdm){
-              pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])] =
-                psp->ln_pk_cb[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])]
-                *sqrt(pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])] *
-                      pk_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-              pk_cb_tot[index_k] += 2.*pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
+                pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])] =
+                  psp->ln_pk_cb[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])]
+                  *sqrt(pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])] *
+                        pk_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
+                pk_cb_tot[index_k] += 2.*pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
               }
-
             }
           }
         }
@@ -912,11 +955,11 @@ int output_pk(
                  pop->error_message);
 
       if(pba->has_ncdm){
-      class_call(output_one_line_of_pk(out_cb,
-                                       exp(psp->ln_k[index_k])/pba->h,
-                                       pk_cb_tot[index_k]*pow(pba->h,3)),
-                 pop->error_message,
-                 pop->error_message);
+        class_call(output_one_line_of_pk(out_cb,
+                                         exp(psp->ln_k[index_k])/pba->h,
+                                         pk_cb_tot[index_k]*pow(pba->h,3)),
+                   pop->error_message,
+                   pop->error_message);
       }
 
       if (psp->ic_size[index_md] > 1) {
@@ -932,14 +975,13 @@ int output_pk(
                        pop->error_message);
 
             if(pba->has_ncdm){
-            class_call(output_one_line_of_pk(out_cb_ic[index_ic1_ic2],
-                                             exp(psp->ln_k[index_k])/pba->h,
-                                             pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]*pow(pba->h,3)),
-                       pop->error_message,
-                       pop->error_message);
+              class_call(output_one_line_of_pk(out_cb_ic[index_ic1_ic2],
+                                               exp(psp->ln_k[index_k])/pba->h,
+                                               pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]*pow(pba->h,3)),
+                         pop->error_message,
+                         pop->error_message);
 
             }
-
           }
         }
       }
@@ -948,7 +990,7 @@ int output_pk(
     /** - fifth, free memory and close files */
 
     free(pk_tot);
-    free(pk_cb_tot);
+    if(pba->has_ncdm) free(pk_cb_tot);
     fclose(out);
     if(pba->has_ncdm) fclose(out_cb);
 
@@ -962,9 +1004,8 @@ int output_pk(
       free(out_ic);
       if(pba->has_ncdm) free(out_cb_ic);
       free(pk_ic);
-      free(pk_cb_ic);
+      if(pba->has_ncdm) free(pk_cb_ic);
     }
-
   }
 
   return _SUCCESS_;
@@ -995,9 +1036,9 @@ int output_pk_nl(
 
   double * pk_tot; /* array with argument pk_tot[index_k] */
 
-  FILE * out_cb; 
+  FILE * out_cb;
   double * pk_cb_tot;
-  
+
   int index_k;
   int index_z;
 
@@ -1035,25 +1076,27 @@ int output_pk_nl(
                pop->error_message);
 
     if (pba->has_ncdm){
-    class_call(output_open_pk_file(pba,
-                                   psp,
-                                   pop,
-                                   &out_cb,
-                                   file_cb_name,
-                                   "",
-                                   pop->z_pk[index_z]
-                                   ),
-               pop->error_message,
-               pop->error_message);
+      class_call(output_open_pk_file(pba,
+                                     psp,
+                                     pop,
+                                     &out_cb,
+                                     file_cb_name,
+                                     "",
+                                     pop->z_pk[index_z]
+                                     ),
+                 pop->error_message,
+                 pop->error_message);
     }
 
     class_alloc(pk_tot,
                 psp->ln_k_size*sizeof(double),
                 pop->error_message);
 
-    class_alloc(pk_cb_tot,
-                psp->ln_k_size*sizeof(double),
-                pop->error_message);
+    if (pba->has_ncdm){
+      class_alloc(pk_cb_tot,
+                  psp->ln_k_size*sizeof(double),
+                  pop->error_message);
+    }
 
     /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
 
@@ -1064,7 +1107,7 @@ int output_pk_nl(
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
 
         pk_tot[index_k] = exp(psp->ln_pk_nl[(psp->ln_tau_nl_size-1) * psp->ln_k_size + index_k]);
-      
+
         if (pba->has_ncdm) pk_cb_tot[index_k] = exp(psp->ln_pk_cb_nl[(psp->ln_tau_nl_size-1) * psp->ln_k_size + index_k]);
 
       }
@@ -1092,13 +1135,13 @@ int output_pk_nl(
                                        pk_tot[index_k]*pow(pba->h,3)),
                  pop->error_message,
                  pop->error_message);
-      
+
       if (pba->has_ncdm){
-      class_call(output_one_line_of_pk(out_cb,
-                                       exp(psp->ln_k[index_k])/pba->h,
-                                       pk_cb_tot[index_k]*pow(pba->h,3)),
-                 pop->error_message,
-                 pop->error_message);
+        class_call(output_one_line_of_pk(out_cb,
+                                         exp(psp->ln_k[index_k])/pba->h,
+                                         pk_cb_tot[index_k]*pow(pba->h,3)),
+                   pop->error_message,
+                   pop->error_message);
       }
 
     }
@@ -1108,7 +1151,7 @@ int output_pk_nl(
     fclose(out);
     if (pba->has_ncdm) fclose(out_cb);
     free(pk_tot);
-    free(pk_cb_tot);
+    if (pba->has_ncdm) free(pk_cb_tot);
 
   }
 
@@ -1319,7 +1362,7 @@ int output_thermodynamics(
                           struct background * pba,
                           struct thermo * pth,
                           struct output * pop
-                      ) {
+                          ) {
 
   FileName file_name;
   FILE * thermofile;
