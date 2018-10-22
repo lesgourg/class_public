@@ -67,7 +67,7 @@ var searchData=
   ['rho_5fplus_5fp_5fshear',['rho_plus_p_shear',['../perturbations_8h.html#a946fe20b37bcf2a2fc486653536c2a7c',1,'perturb_workspace']]],
   ['rho_5fplus_5fp_5ftheta',['rho_plus_p_theta',['../perturbations_8h.html#a50e1b9cd712157932986c50aff9580ab',1,'perturb_workspace']]],
   ['rho_5fplus_5fp_5ftheta_5ffld',['rho_plus_p_theta_fld',['../perturbations_8h.html#a25bc2272bfc81d102eedaf2190c41a1f',1,'perturb_workspace']]],
-  ['root',['root',['../output_8h.html#acdc822c1442acf5c6f52ce752942f8a1',1,'output']]],
+  ['root',['root',['../output_8h.html#a9bf4ed2484f0a6183cb00fc36685d582',1,'output']]],
   ['rs_5fd',['rs_d',['../thermodynamics_8h.html#a84a5dfe70e2c9e1793ba7620c7ad00fd',1,'thermo']]],
   ['rs_5frec',['rs_rec',['../thermodynamics_8h.html#a7c76a1b25abab3fe341b07387f5d3475',1,'thermo']]],
   ['rsa_5fdelta_5fg',['rsa_delta_g',['../perturbations_8h.html#a5eadd3c9e5003c0f74938558a27e5a6d',1,'perturb_workspace']]],
