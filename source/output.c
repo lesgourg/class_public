@@ -635,7 +635,7 @@ int output_pk(
 
   FileName file_name;
   FileName file_cb_name;
-  FileName redshift_suffix;
+  char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
   char first_line[_LINE_LENGTH_MAX_];
 
   index_md=ppt->index_md_scalars;
@@ -1037,14 +1037,14 @@ int output_pk_nl(
   double * pk_tot; /* array with argument pk_tot[index_k] */
 
   FILE * out_cb;
-  double * pk_cb_tot;
+  double * pk_cb_tot=NULL;
 
   int index_k;
   int index_z;
 
   FileName file_name;
   FileName file_cb_name;
-  FileName redshift_suffix;
+  char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
@@ -1192,9 +1192,10 @@ int output_tk(
   double z;
 
   FileName file_name;
-  char redshift_suffix[18]; //Slightly larger than maximum size required (11+2=13)
+  char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
   char first_line[_LINE_LENGTH_MAX_];
-  FileName ic_suffix;
+  char ic_suffix[4];   // 4 is enough to write "ad", "bi", "cdi", "nid", "niv", ...
+
 
   index_md=ppt->index_md_scalars;
 

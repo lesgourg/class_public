@@ -311,6 +311,8 @@ int transfer_init(
 
     /* allocate workspace */
 
+    ptw = NULL;
+
     class_call_parallel(transfer_workspace_init(ptr,
                                                 ppr,
                                                 &ptw,
