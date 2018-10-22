@@ -6346,7 +6346,7 @@ int perturb_print_variables(double tau,
   /** - define local variables */
   double k;
   int index_md;
-  //struct precision * ppr;
+  struct precision * ppr;
   struct background * pba;
   struct thermo * pth;
   struct perturbs * ppt;
@@ -6387,7 +6387,7 @@ int perturb_print_variables(double tau,
   pppaw = parameters_and_workspace;
   k = pppaw->k;
   index_md = pppaw->index_md;
-  //ppr = pppaw->ppr;
+  ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
   ppt = pppaw->ppt;
@@ -6415,6 +6415,20 @@ int perturb_print_variables(double tau,
                                  pvecback,
                                  pvecthermo),
              pth->error_message,
+             error_message);
+
+  /** - update metric perturbations in this point */
+
+  class_call(perturb_einstein(ppr,
+                              pba,
+                              pth,
+                              ppt,
+                              index_md,
+                              k,
+                              tau,
+                              y,
+                              ppw),
+             ppt->error_message,
              error_message);
 
   a = pvecback[pba->index_bg_a];
