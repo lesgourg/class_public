@@ -209,6 +209,21 @@ extern "C" {
                             ErrorMsg errmsg
                             );
 
+  int input_read_precisions(
+                            struct file_content * pfc,
+                            struct precision * ppr,
+                            struct background * pba,
+                            struct thermo *pth,
+                            struct perturbs *ppt,
+                            struct transfers *ptr,
+                            struct primordial *ppm,
+                            struct spectra *psp,
+                            struct nonlinear *pnl,
+                            struct lensing *ple,
+                            struct output *pop,
+                            ErrorMsg errmsg
+                            );
+
   int input_default_params(
 			   struct background *pba,
 			   struct thermo *pth,
