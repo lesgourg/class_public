@@ -1,0 +1,15 @@
+<map id="spectra_init" name="spectra_init">
+<area shape="rect" id="node2" href="$spectra_8c.html#ab9a34eea930c566c6b47cc79da887853" title="spectra_indices" alt="" coords="171,5,285,32"/>
+<area shape="rect" id="node3" href="$spectra_8c.html#aff413243f74650e6eba56225ef30fb81" title="spectra_cls" alt="" coords="183,56,273,83"/>
+<area shape="rect" id="node7" href="$spectra_8c.html#a8cf07f6b59b5c27822187b8dfb2e257e" title="spectra_k_and_tau" alt="" coords="361,157,493,184"/>
+<area shape="rect" id="node9" href="$spectra_8c.html#a1a6dd87098ad3da12ff3a685a6e32010" title="spectra_pk" alt="" coords="185,107,271,133"/>
+<area shape="rect" id="node13" href="$spectra_8c.html#a5c100c52fd6479fee1c477d9fd841f28" title="spectra_matter_transfers" alt="" coords="145,208,311,235"/>
+<area shape="rect" id="node4" href="$spectra_8c.html#a202211a45920a13d8f0f0d545e45b226" title="spectra_compute_cl" alt="" coords="552,5,691,32"/>
+<area shape="rect" id="node5" href="$primordial_8c.html#a89f883182d64a767893f44af3cc76156" title="primordial_spectrum_at_k" alt="" coords="749,56,920,83"/>
+<area shape="rect" id="node6" href="$primordial_8c.html#ac1c10cc04ed3b0932fc2d97ad8b989bb" title="primordial_analytic\l_spectrum" alt="" coords="976,49,1107,90"/>
+<area shape="rect" id="node8" href="$background_8c.html#a868e85eefe464a31b25639170ff9550c" title="background_tau_of_z" alt="" coords="968,136,1115,163"/>
+<area shape="rect" id="node10" href="$spectra_8c.html#aad251bcc29d8eee1448d01e30260eb4a" title="spectra_sigma" alt="" coords="373,107,480,133"/>
+<area shape="rect" id="node11" href="$spectra_8c.html#a31176b43d36e06fd89804ca7b6d77f6e" title="spectra_pk_at_k_and_z" alt="" coords="541,107,701,133"/>
+<area shape="rect" id="node12" href="$spectra_8c.html#aa30ca71782f1b8bf9aed8a3be0637959" title="spectra_pk_at_z" alt="" coords="775,107,894,133"/>
+<area shape="rect" id="node14" href="$background_8c.html#ac47004414b208d36153f35d8465cace2" title="background_at_tau" alt="" coords="361,208,493,235"/>
+</map>

@@ -1,0 +1,9 @@
+<map id="thermodynamics_reionization" name="thermodynamics_reionization">
+<area shape="rect" id="node2" href="$thermodynamics_8c.html#a81120dad31dd155c4c3eaca36da53080" title="thermodynamics_get\l_xe_before_reionization" alt="" coords="262,23,421,65"/>
+<area shape="rect" id="node3" href="$thermodynamics_8c.html#a056862f1b2d37b8408ab7fdde116968f" title="thermodynamics_reionization\l_sample" alt="" coords="246,89,437,130"/>
+<area shape="rect" id="node4" href="$thermodynamics_8c.html#a2c452e9b63299d65eaabe2065bfbb8a8" title="thermodynamics_reionization\l_function" alt="" coords="486,5,677,46"/>
+<area shape="rect" id="node5" href="$background_8c.html#a868e85eefe464a31b25639170ff9550c" title="background_tau_of_z" alt="" coords="508,71,655,97"/>
+<area shape="rect" id="node6" href="$background_8c.html#ac47004414b208d36153f35d8465cace2" title="background_at_tau" alt="" coords="515,121,647,148"/>
+<area shape="rect" id="node7" href="$thermodynamics_8c.html#ad83c9423d4031f0f3797afb6ff2e33b5" title="thermodynamics_energy\l_injection" alt="" coords="499,173,663,214"/>
+<area shape="rect" id="node8" href="$thermodynamics_8c.html#a7f1a04c6e4b080dbbe2855969e16eb25" title="thermodynamics_onthespot\l_energy_injection" alt="" coords="726,173,909,214"/>
+</map>
