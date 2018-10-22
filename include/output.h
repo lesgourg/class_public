@@ -23,7 +23,7 @@ struct output {
 
   //@{
 
-  FileName root; /**< root for all file names */
+  char root[_FILENAMESIZE_-32]; /**< root for all file names */
 
   //@}
 
