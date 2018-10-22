@@ -3317,6 +3317,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
+
   int i;
   double rho_dcdm_today, rho_dr_today;
   struct fzerofun_workspace * pfzw;
@@ -3331,6 +3332,21 @@ int input_try_unknown_parameters(double * unknown_parameter,
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
             "%e",unknown_parameter[i]);
   }
+
+  class_call(input_read_precisions(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
 
   class_call(input_read_parameters(&(pfzw->fc),
                                    &pr,
@@ -3528,6 +3544,22 @@ int input_get_guess(double *xguess,
 
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
+
+  class_call(input_read_precisions(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
+
   class_call(input_read_parameters(&(pfzw->fc),
                                    &pr,
                                    &ba,
@@ -3542,6 +3574,7 @@ int input_get_guess(double *xguess,
                                    errmsg),
              errmsg,
              errmsg);
+
   pfzw->fc.size += pfzw->target_size;
   /** Summary: */
   /** - Here we should write reasonable guesses for the unknown parameters.
