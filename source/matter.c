@@ -2799,6 +2799,8 @@ int matter_obtain_prepare_windows_parallel(
   double prefactor;
   double* f_evo;
 
+  double** pvecback;
+
   /**
    * Allocate corresponding arrays
    * */
@@ -2817,6 +2819,7 @@ int matter_obtain_prepare_windows_parallel(
   class_alloc(pma->ptw_ddwindow,
               pma->radtp_size_total*pma->ic_size*sizeof(double*),
               pma->error_message);
+
   for(index_ic=0;index_ic<pma->ic_size;++index_ic){
     for(index_radtp=0;index_radtp<pma->radtp_size_total;++index_radtp){
       int size_local = pma->ptw_size;
@@ -3065,6 +3068,14 @@ int matter_obtain_prepare_windows_parallel(
   N_threads = 1;
 #endif
   int n_thread;
+  class_alloc(pvecback,
+              N_threads*sizeof(double*),
+              pma->error_message);
+  for(n_thread=0;n_thread<N_threads;++n_thread){
+    class_alloc(pvecback[n_thread],
+                pba->bg_size_short*sizeof(double),
+                pma->error_message);
+  }
   if((!pma->uses_relative_factors && pma->has_redshift_space_distortion && pma->uses_rsd_combination)
   || (pma->has_redshift_space_distortion && pma->uses_relative_factors)){
     class_alloc(rsd_combined_windows,
@@ -3195,7 +3206,7 @@ int matter_obtain_prepare_windows_parallel(
          * */
         last_index = last_index_initial;
         int abort = _FALSE_;
-        #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
+        #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(pvecback,last_index,index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
         for(index_wd=0;index_wd<pma->num_windows;++index_wd){
 #ifdef _OPENMP
           int tid = omp_get_thread_num();
@@ -3221,7 +3232,7 @@ int matter_obtain_prepare_windows_parallel(
                                pba->short_info,
                                pba->inter_normal,
                                &last_index,
-                               pma->short_pvecback),
+                               pvecback[tid]),
                 pma->error_message,
                 pma->error_message);
             class_call_parallel(matter_spline_hunt(
@@ -3247,16 +3258,16 @@ int matter_obtain_prepare_windows_parallel(
              * */
             prefactor_dop1 = (
                     1.0 +
-                    pma->short_pvecback[pba->index_bg_H_prime]/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]*pma->short_pvecback[pba->index_bg_H]) +
-                    (2.0-5.0*pma->selection_magnification_bias[index_wd])/(pma->tau0-tau)/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]) +
+                    pvecback[tid][pba->index_bg_H_prime]/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]*pvecback[tid][pba->index_bg_H]) +
+                    (2.0-5.0*pma->selection_magnification_bias[index_wd])/(pma->tau0-tau)/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]) +
                     5*pma->selection_magnification_bias[index_wd] -
                     f_evo[index_wd*pma->ptw_size+index_ptw]
                   );
             prefactor_dop2 = (
-                  (f_evo[index_wd*pma->ptw_size+index_ptw]-3.0)*pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]
+                  (f_evo[index_wd*pma->ptw_size+index_ptw]-3.0)*pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]
                   );
             prefactor_rsd = (
-                    1.0/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H])
+                    1.0/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H])
                   );
             //Ordered by amount of derivatives
             rsd_combined_windows[tid][index_ptw] = prefactor_rsd*window_val;
@@ -3337,8 +3348,9 @@ int matter_obtain_prepare_windows_parallel(
          * Here, we first allocate the required temporary window functions
          * */
         int index_stp_combined;
+        last_index = last_index_initial;
         int abort = _FALSE_;
-        #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
+        #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(last_index,index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
         for(index_wd=0;index_wd<pma->num_windows;++index_wd){
 #ifdef _OPENMP
           int tid = omp_get_thread_num();
@@ -3363,7 +3375,7 @@ int matter_obtain_prepare_windows_parallel(
                                pba->short_info,
                                pba->inter_normal,
                                &last_index,
-                               pma->short_pvecback),
+                               pvecback[tid]),
                 pma->error_message,
                 pma->error_message);
             class_call_parallel(matter_spline_hunt(
@@ -3403,16 +3415,16 @@ int matter_obtain_prepare_windows_parallel(
               if(matter_is_index(index_stp_combined,pma->stp_index_theta_m,pma->has_redshift_space_distortion)){
                 prefactor_dop1 = pma->relative_factors[index_stp_combined]*(
                         1.0 +
-                        pma->short_pvecback[pba->index_bg_H_prime]/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]*pma->short_pvecback[pba->index_bg_H]) +
-                        (2.0-5.0*pma->selection_magnification_bias[index_wd])/(pma->tau0-tau)/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]) +
+                        pvecback[tid][pba->index_bg_H_prime]/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]*pvecback[tid][pba->index_bg_H]) +
+                        (2.0-5.0*pma->selection_magnification_bias[index_wd])/(pma->tau0-tau)/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]) +
                         5*pma->selection_magnification_bias[index_wd] -
                         f_evo[index_wd*pma->ptw_size+index_ptw]
                       );
                 prefactor_dop2 = pma->relative_factors[index_stp_combined]*(
-                      (f_evo[index_wd*pma->ptw_size+index_ptw]-3.0)*pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]
+                      (f_evo[index_wd*pma->ptw_size+index_ptw]-3.0)*pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]
                       );
                 prefactor_rsd = pma->relative_factors[index_stp_combined]*(
-                        1.0/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H])
+                        1.0/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H])
                       );
                 rsd_combined_windows[tid][index_ptw] = prefactor_rsd*window_val_cur;
                 rsd_combined_windows[tid][index_ptw+pma->ptw_size] = prefactor_dop1*window_val_cur;
@@ -3434,8 +3446,8 @@ int matter_obtain_prepare_windows_parallel(
                 double prefactor = 0;
                 if(matter_is_index(index_stp_combined,pma->stp_index_psi,pma->has_gravitational_terms)){
                   prefactor = pma->relative_factors[index_stp_combined]*(
-                    2.0 + pma->short_pvecback[pba->index_bg_H_prime]/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]*pma->short_pvecback[pba->index_bg_H])
-                    + (2.0-5.0*pma->selection_magnification_bias[index_wd])/pma->short_pvecback[pba->index_bg_a]/pma->short_pvecback[pba->index_bg_H]/(pma->tau0-tau)
+                    2.0 + pvecback[tid][pba->index_bg_H_prime]/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]*pvecback[tid][pba->index_bg_H])
+                    + (2.0-5.0*pma->selection_magnification_bias[index_wd])/pvecback[tid][pba->index_bg_a]/pvecback[tid][pba->index_bg_H]/(pma->tau0-tau)
                     +5.0*pma->selection_magnification_bias[index_wd]-f_evo[index_wd*pma->ptw_size+index_ptw]
                   );
                 }
@@ -3443,7 +3455,7 @@ int matter_obtain_prepare_windows_parallel(
                   prefactor = pma->relative_factors[index_stp_combined]*(-2.0+5.0*pma->selection_magnification_bias[index_wd]);
                 }
                 else if(matter_is_index(index_stp_combined,pma->stp_index_phi_prime,pma->has_gravitational_terms)){
-                  prefactor = pma->relative_factors[index_stp_combined]/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]);
+                  prefactor = pma->relative_factors[index_stp_combined]/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]);
                 }
                 else{
                   class_test_parallel(_FALSE_,pma->error_message,
@@ -3554,8 +3566,14 @@ int matter_obtain_prepare_windows_parallel(
       }
       else{
         int abort = _FALSE_;
-        #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
+        last_index = last_index_initial;
+        #pragma omp parallel for private(index_wd,index_ptw,index_ptw_integrated,window_at_z,z,prefactor,tau,a,b,h,inf,prefactor_dop1,prefactor_dop2,prefactor_rsd,window_val) firstprivate(last_index,index_ic,index_radtp,pma,index_stp,f_evo,rsd_combined_windows,rsd_combined_dwindows,rsd_combined_ddwindows,combined_windows,dens1_window,dens1_dwindow,dens1_ddwindow)
         for(index_wd=0;index_wd<pma->num_windows;++index_wd){
+#ifdef _OPENMP
+          int tid = omp_get_thread_num();
+#else
+          int tid = 0;
+#endif
           prefactor = 0.0;
           class_call_parallel(matter_spline_prepare_hunt(pma->tau_sampling,
                                      pma->tau_size,
@@ -3576,7 +3594,7 @@ int matter_obtain_prepare_windows_parallel(
                                pba->short_info,
                                pba->inter_normal,
                                &last_index,
-                               pma->short_pvecback),
+                               pvecback[tid]),
                 pma->error_message,
                 pma->error_message);
             class_call_parallel(matter_spline_hunt(
@@ -3611,26 +3629,26 @@ int matter_obtain_prepare_windows_parallel(
             else if(matter_is_index(index_radtp,pma->radtp_dop1,pma->has_doppler_terms && (!pma->uses_rsd_combination))){
               prefactor = (
                     1.0 +
-                    pma->short_pvecback[pba->index_bg_H_prime]/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]*pma->short_pvecback[pba->index_bg_H]) +
-                    (2.0-5.0*pma->selection_magnification_bias[index_wd])/(pma->tau0-tau)/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]) +
+                    pvecback[tid][pba->index_bg_H_prime]/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]*pvecback[tid][pba->index_bg_H]) +
+                    (2.0-5.0*pma->selection_magnification_bias[index_wd])/(pma->tau0-tau)/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]) +
                     5*pma->selection_magnification_bias[index_wd] -
                     f_evo[index_wd*pma->ptw_size+index_ptw]
                   );
             }
             else if(matter_is_index(index_radtp,pma->radtp_dop2,pma->has_doppler_terms && (!pma->uses_rsd_combination))){
               prefactor = (
-                    (f_evo[index_wd*pma->ptw_size+index_ptw]-3.0)*pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]
+                    (f_evo[index_wd*pma->ptw_size+index_ptw]-3.0)*pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]
                   );
             }
             else if(matter_is_index(index_radtp,pma->radtp_rsd,pma->has_redshift_space_distortion && (!pma->uses_rsd_combination))){
               prefactor = (
-                    1.0/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H])
+                    1.0/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H])
                   );
             }
             else if(matter_is_index(index_radtp,pma->radtp_g1,pma->has_gravitational_terms)){
               prefactor = (
-                2.0 + pma->short_pvecback[pba->index_bg_H_prime]/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]*pma->short_pvecback[pba->index_bg_H])
-                + (2.0-5.0*pma->selection_magnification_bias[index_wd])/pma->short_pvecback[pba->index_bg_a]/pma->short_pvecback[pba->index_bg_H]/(pma->tau0-tau)
+                2.0 + pvecback[tid][pba->index_bg_H_prime]/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]*pvecback[tid][pba->index_bg_H])
+                + (2.0-5.0*pma->selection_magnification_bias[index_wd])/pvecback[tid][pba->index_bg_a]/pvecback[tid][pba->index_bg_H]/(pma->tau0-tau)
                 +5.0*pma->selection_magnification_bias[index_wd]-f_evo[index_wd*pma->ptw_size+index_ptw]
               );
             }
@@ -3638,7 +3656,7 @@ int matter_obtain_prepare_windows_parallel(
               prefactor = (-2.0+5.0*pma->selection_magnification_bias[index_wd]);
             }
             else if(matter_is_index(index_radtp,pma->radtp_g3,pma->has_gravitational_terms)){
-              prefactor = 1.0/(pma->short_pvecback[pba->index_bg_a]*pma->short_pvecback[pba->index_bg_H]);
+              prefactor = 1.0/(pvecback[tid][pba->index_bg_a]*pvecback[tid][pba->index_bg_H]);
             }
             else{
               class_test_parallel(_FALSE_,
@@ -3708,6 +3726,10 @@ int matter_obtain_prepare_windows_parallel(
     }
     free(combined_windows);
   }
+  for(n_thread=0;n_thread<N_threads;++n_thread){
+    free(pvecback[n_thread]);
+  }
+  free(pvecback);
   return _SUCCESS_;
 }
 int matter_get_prepared_window_at(
@@ -6646,6 +6668,7 @@ int matter_integrate_cl(
     printf("\n");
     for(index_cltp1=0;index_cltp1<pma->cltp_size;++index_cltp1){
       for(index_cltp2=index_cltp1;index_cltp2<pma->cltp_size;++index_cltp2){
+        index_cltp1_cltp2 = index_symmetric_matrix(index_cltp1,index_cltp2,pma->cltp_size);
         printf(" -> At cltp (%4d,%4d) \n",index_cltp1,index_cltp2);
         for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
           printf("    ->At icic %4d \n",index_ic1_ic2);
@@ -6685,6 +6708,7 @@ int matter_integrate_cl(
     printf("\n");
     for(index_cltp1=0;index_cltp1<pma->cltp_size;++index_cltp1){
       for(index_cltp2=index_cltp1;index_cltp2<pma->cltp_size;++index_cltp2){
+        index_cltp1_cltp2 = index_symmetric_matrix(index_cltp1,index_cltp2,pma->cltp_size);
         printf(" -> At cltp (%4d,%4d) \n",index_cltp1,index_cltp2);
         for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
           printf("   -> At icic %4d \n",index_ic1_ic2);
