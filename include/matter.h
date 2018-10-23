@@ -13,18 +13,18 @@ enum matter_k_weight_method {matter_k_weights_gaussian,matter_k_weights_step};
 struct matters{
   short matter_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
   ErrorMsg error_message; /**< zone for writing error messages */
-  
+
   /**
    * Use/Has/Allow flags, general
    * */
   short has_cls;
   short uses_separability;
-  
+
   short uses_intxi_interpolation;
   short uses_intxi_symmetrized;
   short uses_intxi_logarithmic;
   short uses_intxi_asymptotic;
-  
+
   short uses_rsd_combination;
   short uses_density_splitting;
   short has_integrated_windows;
@@ -37,33 +37,33 @@ struct matters{
   short uses_bessel_analytic_integration;
   short uses_lensing_reduction;
   short uses_filon_clenshaw_curtis;
-  
+
   int* is_non_zero;
   int non_diag;
   enum matter_integration_method uses_integration;
-  /**
+  /*
    * Tau sampling and tau, other general quantities
    * */
-  double* tau_sampling; // of size tau_size
+  double* tau_sampling; /**< The tau sampling of the sources */
   double tau0;
   double h;
-  
+
   int tau_size_max; //The limit to growing tau_size
   int tau_size; //The number of samples in tau space
   int tau_grid_size; // = tau_size*(tau_size+1)/2;
   int index_tau_perturbs_beginning; //Index of start of tau_matter sampling in tau_perturbs
-  
-  
+
+
   /**
    * ICs
    * */
   int ic_size;
   int ic_ic_size;
-  
+
   /**
    * Type indices and type 'has' conditions
    * */
-  
+
   int stp_index_delta_m;
   short has_stp_delta_m;
   int stp_index_theta_m;
@@ -77,10 +77,10 @@ struct matters{
   short has_stp_phi_plus_psi;
   int stp_index_phi_plus_psi;
   int stp_index_psi;
-  
+
   int stp_size;
   int stp_grid_size;
-  
+
   int radtp_dens;
   int radtp_dens1;
   int radtp_dens2;
@@ -95,36 +95,36 @@ struct matters{
   int radtp_g4;
   int radtp_g5;
   int radtp_combined;
-  
+
   int radtp_shlens;
-  
+
   int* radtp_of_bitp_size;
   int** radtps_of_bitp;
   int radtp_size_total;
   int radtp_grid_size;
-  
+
   int bitp_index_normal;
   short has_bitp_normal;
   int bitp_index_lfactor;
   short has_bitp_lfactor;
   int bitp_index_nu_reduced;
   short has_bitp_nu_reduced;
-  
+
   short has_tilt_normal;
   int tilt_index_normal;
   short has_tilt_reduced;
   int tilt_index_reduced;
-  
+
   int bitp_size;
   int tilt_size;
   int tilt_grid_size;
-  
+
   int* index_perturb_tp_of_stp;
   int* index_stp_of_radtp;
-  
+
   /**
    * Radial types (bessel or bessel derivatives) and
-   * Cl types 
+   * Cl types
    * */
   int cltp_size;
   int cltp_grid_size;
@@ -132,8 +132,8 @@ struct matters{
   int cltp_index_nc;
   short has_cltp_sh;
   int cltp_index_sh;
-  
-  
+
+
   /**
    * Window max and mins
    * */
@@ -142,21 +142,21 @@ struct matters{
   double tau_min; //Minimum tau given by normal window functions
   double* tw_max;
   double* tw_min;
-  
-  
+
+
   /**
    * FFT size
    * */
   int size_fft_input;
   int size_fft_result;
   int size_fft_cutoff;
-  
+
   /**
    * Relative factors
    * */
   double* relative_factors;
   int index_relative_stp;
-  
+
   /**
    * Growth factor
    * */
@@ -165,82 +165,82 @@ struct matters{
   double ** ddgrowth_factor_tau; //Sampled in tau
   double k_weight_k_max;
   double k_weight_k_min;
-  enum matter_k_weight_method k_weight_mode; 
-  
+  enum matter_k_weight_method k_weight_mode;
+
   /**
    * k sampling, normal and extrapolated
    * */
   short allow_extrapolation;
   short extrapolation_type;
-  
+
   double* k_sampling;
   double* logk_sampling; // Of size size_fft_coeff due to the nature of fft
   double logmink;
   double deltalogk;
-  
+
   double k_max;
   double k_max_extr;
-  
+
   int k_size;
-  
+
   /**
    * Window sampling and windows
    * */
-  
+
   double small_log_offset;
   int num_windows;
   int num_window_grid;
   int tw_size; //Length in steps of tau-indices of the window
   double* tw_sampling; //[index_wd*tw_size+index_tw]The tau values sampled for the windows
   double* tw_weights; //Trapezoidal weights for tau window integration
-  
+
   double* exp_integrated_tw_sampling; //exp(integrated_tw_sampling), ONLY in case of logarithmic sampling
   double* integrated_tw_sampling;
   double* integrated_tw_weights;
   int integrated_tw_size;
-  
+
   int ptw_size;
   double* ptw_sampling;
   double* ptw_weights;
   double* ptw_orig_window;
-  
+
   int ptw_integrated_size;
   double* ptw_integrated_sampling;
   double* ptw_integrated_weights;
-  
+
   double** ptw_window;
   double** ptw_dwindow;
   double** ptw_ddwindow;
-  
+
   /**
    * Intxi
    * */
-  
-  
+
+
   double** intxi_real;
   double** intxi_imag;
-  
+
   double** intxi_spline_real;
   double** intxi_spline_imag;
   double** ddintxi_spline_real;
   double** ddintxi_spline_imag;
-  
+
   /**
    * Short pvecback
    * */
   double* short_pvecback;//Used to obtain a(tau) to get z(tau)
-  
-  
+
+
   /**
    * T sampling
    * */
   int t_size;
   double* t_sampling;
   double* t_weights;
-  
+
   int t_spline_size;
   double* t_spline_sampling;
-  
+
   /**
    * Hypergeometric/Bessel integrals coefficients
    * */
@@ -248,12 +248,12 @@ struct matters{
   double* nu_real;
   double* nu_imag;
   double bessel_imag_offset;
-  
+
   /**
    * Hypergeometric/Bessel arrays
    * */
   int bi_wanted_samples;
-  double*** bi_real; //Bessel integral real 
+  double*** bi_real; //Bessel integral real
   double*** bi_imag; //Bessel integral imag
   double*** ddbi_real;
   double*** ddbi_imag;
@@ -263,7 +263,7 @@ struct matters{
   double** bi_max;
   double bi_maximal_t_offset;
   double bessel_recursion_t_size;
-  
+
   /**
    * Experimental
    * */
@@ -280,15 +280,15 @@ struct matters{
   int l_size_recursion;
   double* l_sampling;
   double* l_sampling_recursion;
-  
-  
+
+
   /**
    * Cl's
    * */
   double ** cl;
   double ** ddcl;
-  
-  
+
+
   /**
    * Selection/Window values, and other adjustments
    * */
@@ -310,7 +310,76 @@ struct matters{
   double * nz_evo_dlog_nz;    /**< log of tabulated values of evolution function */
   double * nz_evo_dd_dlog_nz; /**< second derivatives in splined log of evolution function */
 };
- struct matters_workspace{};
+struct matters_vector{
+
+  double* integrand_real;
+  double* integrand_imag;
+
+  double** window_fft_real;
+  double** window_fft_imag;
+};
+struct matters_workspace{
+
+  double** intxi_spline_real;
+  double** intxi_spline_imag;
+  double** ddintxi_spline_real;
+  double** ddintxi_spline_imag;
+
+  double** intxi_real;
+  double** intxi_imag;
+
+  double** fft_coeff_real;
+  double** fft_coeff_imag;
+
+  double*** window_fft_real;
+  double*** window_fft_imag;
+
+  double*** window_bessel_real;
+  double*** window_bessel_imag;
+
+  int index_ic1;
+  int index_ic2;
+  int index_ic1_ic2;
+
+  int index_wd1;
+  int index_wd2;
+  int index_wd1_wd2;
+
+  int index_stp1;
+  int index_stp2;
+  int index_stp1_stp2;
+  int index_stp2_stp1;
+
+  int index_cltp1;
+  int index_cltp2;
+  int index_cltp1_cltp2;
+
+  int index_radtp1;
+  int index_radtp2;
+
+  int index_tilt1_tilt2;
+
+  double* tau_sampling; /**< The tau sampling of actual integration */
+  double* tau_weights;
+  int tau_size;
+
+  double t_min;
+  double t_max;
+
+  double* pref_real;
+  double* pref_imag;
+  int tau_max_size;
+
+  double** integrand_real;
+  double** integrand_imag;
+
+  int is_integrated_radtp1;
+  int is_integrated_radtp2;
+
+  int N_threads;
+  struct matters_vector** pmv; /**< array of pointers, one for each thread */
+
+};
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -355,7 +424,7 @@ extern "C" {
                   );
   int matter_obtain_bessel_integrals(
                   struct matters * pma
-                  );   
+                  );
   int matter_obtain_perturbation_sources(
                   struct background * pba,
                   struct perturbs * ppt,
@@ -419,7 +488,7 @@ extern "C" {
                   struct nonlinear * pnl,
                   struct matters * pma,
                   double ** sources
-                  ); 
+                  );
   int matter_free_primordial(
                   struct primordial * ppm,
                   struct matters * pma,
@@ -484,7 +553,7 @@ extern "C" {
                   int index_wd,
                   int radtp,
                   double* f_evo
-                  );             
+                  );
   int matter_interpolate_spline_growing_hunt(
                   double * x_array,
                   int n_lines,
@@ -498,7 +567,7 @@ extern "C" {
                   );
   int matter_estimate_t_max_bessel(
                   struct matters * pma,
-                  double l, 
+                  double l,
                   double nu_imag,
                   double* t_max_estimate
                   );
@@ -515,17 +584,17 @@ extern "C" {
                   double * dNdz,
                   double * dln_dNdz_dz);
   int array_integrate_gauss(
-                  double* xarray, 
-                  double* warray, 
+                  double* xarray,
+                  double* warray,
                   int N,
                   short gauss_type,
                   ErrorMsg err_msg
                   );
   int array_integrate_gauss_limits(
-                  double* xarray, 
+                  double* xarray,
                   double* warray,
                   double xmin,
-                  double xmax, 
+                  double xmax,
                   int N,
                   short gauss_type,
                   ErrorMsg err_msg
@@ -556,8 +625,7 @@ extern "C" {
   int matter_get_bessel_limber(
                   struct matters* pma,
                   int index_l,
-                  double** window_bessel_real,
-                  double** window_bessel_imag
+                  struct matters_workspace * pmw
                   );
   int matter_get_derivative_type(
                   struct matters* pma,
@@ -568,18 +636,15 @@ extern "C" {
                   );
   int matter_precompute_chit_factors(
                   struct matters* pma,
-                  double* tw_local_sampling,
-                  int tw_local_size,
-                  int index_tilt1_tilt2,
                   int index_wd,
-                  short integrate_logarithmically,
                   double* pref_real,
-                  double* pref_imag);
+                  double* pref_imag,
+                  struct matters_workspace* pmw);
   int matter_asymptote(
-                  struct precision* ppr, 
+                  struct precision* ppr,
                   struct matters* pma,
-                  double t, 
-                  int index_wd1, 
+                  double t,
+                  int index_wd1,
                   int index_wd2,
                   double* result
                   );
@@ -596,85 +661,39 @@ extern "C" {
   int matter_obtain_t_sampling(
                   struct matters* pma
                   );
-  int matter_integrate_for_each_ttau_parallel_chi_pre(
+  int matter_integrate_each(
                   struct precision* ppr,
                   struct background* pba,
                   struct perturbs * ppt,
                   struct matters* pma,
-                  double ** fft_coeff_real,
-                  double ** fft_coeff_imag,
-                  int index_ic1,
-                  int index_ic2,
-                  int index_ic1_ic2,
-                  int index_wd1,
-                  int index_wd2,
-                  int index_cltp1,
-                  int index_cltp2,
-                  double*** window_fft_real,
-                  double*** window_fft_imag,
-                  double*** window_bessel_real,
-                  double*** window_bessel_imag,
-                  short integrate_logarithmically
+                  struct matters_workspace * pmw
                   );
   int matter_get_bessel_fort_parallel(
                   struct background* pba,
                   struct matters* pma,
-                  int index_wd1,
-                  int index_wd2,
                   int index_l,
-                  double** window_bessel_real,
-                  double** window_bessel_imag,
-                  short integrate_logarithmically
+                  struct matters_workspace* pmw
                   );
   int matter_obtain_time_sampling(
                   struct precision* ppr,
                   struct perturbs* ppt,
                   struct background* pba,
                   struct matters* pma);
-  int matter_integrate_cosmological_function(
+  int matter_integrate_cosmo(
                   struct precision* ppr,
                   struct background* pba,
                   struct perturbs* ppt,
                   struct matters* pma,
-                  int index_ic1,
-                  int index_ic2,
-                  int index_radtp1,
-                  int index_radtp2,
-                  int index_stp1,
-                  int index_stp2,
-                  int index_tilt1_tilt2,
-                  int index_ic1_ic2,
-                  int index_stp1_stp2,
-                  int index_wd1,
-                  int index_wd2,
-                  double** integrand_real,
-                  double** integrand_imag,
-                  double** fft_coeff_real,
-                  double** fft_coeff_imag,
-                  double*** win_fft_real,
-                  double*** win_fft_imag,
-                  double* tw_local_sampling,
-                  double* tw_local_weights,
-                  int tw_local_size,
-                  double* chi_pref_real,
-                  double* chi_pref_imag,
-                  int is_integrated1,
-                  int is_integrated2,
-                  int integrate_logarithmically,
-                  double t_min,
-                  double t_max,
-                  int tw_max_size
+                  struct matters_workspace* pmw
                   );
-  int matter_obtain_bessel_recursion_parallel(struct matters* pma);
+  int matter_obtain_bessel_recursion_parallel(
+                  struct matters* pma
+                  );
   int matter_get_bessel_fort_parallel_integrated(
                   struct background* pba,
                   struct matters* pma,
-                  int index_wd1,
-                  int index_wd2,
                   int index_l,
-                  double** window_bessel_real,
-                  double** window_bessel_imag,
-                  short integrate_logarithmically
+                  struct matters_workspace* pmw
                   );
   int array_integrate_gauss_rescale_limits(double* xarray,double* warray,double* xarrayres,double* warrayres,double xmin,double xmax,int N);
   int matter_get_half_integrand(
@@ -686,19 +705,15 @@ extern "C" {
                   int index_ic2,
                   int index_radtp1,
                   int index_radtp2,
-                  int index_tilt1_tilt2,
                   int index_ic1_ic2,
                   int index_stp1_stp2,
                   int index_wd1,
                   int index_wd2,
                   double* integrand_real,
                   double* integrand_imag,
-                  double** fft_coeff_real,
-                  double** fft_coeff_imag,
                   double** wint_fft_real,
                   double** wint_fft_imag,
-                  double* tw_local_sampling,
-                  int tw_local_size
+                  struct matters_workspace* pmw
                   );
   int matter_get_ttau_integrand(
                   struct background* pba,
@@ -709,19 +724,15 @@ extern "C" {
                   int index_ic2,
                   int index_radtp1,
                   int index_radtp2,
-                  int index_tilt1_tilt2,
                   int index_ic1_ic2,
                   int index_stp1_stp2,
                   int index_wd1,
                   int index_wd2,
                   double* integrand_real,
                   double* integrand_imag,
-                  double** fft_coeff_real,
-                  double** fft_coeff_imag,
                   double** wint_fft_real,
                   double** wint_fft_imag,
-                  double* tw_local_sampling,
-                  int tw_local_size
+                  struct matters_workspace* pmw
                   );
   int matter_obtain_prepare_windows_parallel(
                   struct precision* ppr,
@@ -739,6 +750,13 @@ extern "C" {
                   double ** fft_coeff_real,
                   double ** fft_coeff_imag
                   );
+  int matter_swap_workspace(struct matters_workspace* pmw);
+  int matter_vector_alloc(
+                  struct matters* pma,
+                  struct matters_workspace* pmw);
+  int matter_vector_free(
+                  struct matters* pma,
+                  struct matters_workspace* pmw);
 #ifdef __cplusplus
 }
 #endif
