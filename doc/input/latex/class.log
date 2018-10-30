@@ -1,0 +1,336 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (TeX Live 2014) (preloaded format=pdflatex 2015.5.1)  25 MAR 2016 10:46
+entering extended mode
+ restricted \write18 enabled.
+ file:line:error style messages enabled.
+ %&-line parsing enabled.
+**class.tex
+(./class.tex
+LaTeX2e <2014/05/01>
+Babel <3.9k> and hyphenation patterns for 78 languages loaded.
+(/usr/local/texlive/2014/texmf-dist/tex/latex/base/article.cls
+Document Class: article 2007/10/19 v1.4h Standard LaTeX document class
+(/usr/local/texlive/2014/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2007/10/19 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+) (./class.aux)
+\openout1 = `class.aux'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 6.
+LaTeX Font Info:    ... okay on input line 6.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <12> on input line 18.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <8> on input line 18.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <6> on input line 18.
+LaTeX Font Info:    Try loading font information for OMS+cmr on input line 23.
+
+(/usr/local/texlive/2014/texmf-dist/tex/latex/base/omscmr.fd
+File: omscmr.fd 1999/05/25 v2.5h Standard LaTeX font definitions
+)
+LaTeX Font Info:    Font shape `OMS/cmr/m/n' in size <10> not available
+(Font)              Font shape `OMS/cmsy/m/n' tried instead on input line 23.
+ [1
+
+{/usr/local/texlive/2014/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
+Underfull \hbox (badness 10000) in paragraph at lines 93--94
+
+ []
+
+
+Overfull \hbox (61.77669pt too wide) in paragraph at lines 95--96
+[]\OT1/cmtt/m/n/10 https://www.dropbox.com/sh/ma5muh76sggwk8k/AABl[]DDUBEzAjjdy
+wMjeTya2a?dl=0 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 95--96
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 99--100
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 101--102
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 103--104
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 105--106
+
+ []
+
+[2]
+Overfull \hbox (10.02719pt too wide) in paragraph at lines 138--142
+[]\OT1/cmtt/m/n/10 main/ \OT1/cmr/m/n/10 con-tains the main mod-ule \OT1/cmtt/m
+/n/10 class.c \OT1/cmr/m/n/10 with the main rou-tine \OT1/cmtt/m/n/10 class(...
+)\OT1/cmr/m/n/10 ,
+ []
+
+
+Overfull \hbox (33.7492pt too wide) in paragraph at lines 150--152
+[]\OT1/cmtt/m/n/10 python/ \OT1/cmr/m/n/10 con-tains the python wrap-per of \OT
+1/cmtt/m/n/10 CLASS \OT1/cmr/m/n/10 , called classy (see \OT1/cmtt/m/n/10 pytho
+n/README\OT1/cmr/m/n/10 ) 
+ []
+
+
+Overfull \hbox (22.11061pt too wide) in paragraph at lines 152--154
+[]\OT1/cmtt/m/n/10 cpp/ \OT1/cmr/m/n/10 con-tains the C++ wrap-per of \OT1/cmtt
+/m/n/10 CLASS \OT1/cmr/m/n/10 , called Clas-sEn-gine (see \OT1/cmtt/m/n/10 cpp/
+README\OT1/cmr/m/n/10 ) 
+ []
+
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <7> on input line 158.
+LaTeX Font Info:    External font `cmex10' loaded for size
+(Font)              <5> on input line 158.
+[3]
+Overfull \hbox (5.25061pt too wide) in paragraph at lines 182--184
+[]\OT1/cmr/m/n/10 eventually, com-pute non-linear cor-rec-tions at small red-sh
+ift/large wavenum-
+ []
+
+[4]
+Overfull \hbox (21.63858pt too wide) in paragraph at lines 222--225
+[]\OT1/cmr/m/n/10 All ``pre-ci-sion pa-ram-e-ters'' are grouped in the sin-gle 
+struc-ture \OT1/cmtt/m/n/10 struct precision\OT1/cmr/m/n/10 .
+ []
+
+[5]
+Overfull \hbox (40.63068pt too wide) in paragraph at lines 248--249
+\OT1/cmr/m/n/10 where \OT1/cmr/m/it/10 mod-ule \OT1/cmr/m/n/10 is one of \OT1/c
+mtt/m/n/10 input, background, thermodynamics, perturb, primordial,
+ []
+
+
+Overfull \hbox (17.8606pt too wide) in paragraph at lines 289--293
+\OT1/cmr/m/n/10 The main ex-e-cutable of \OT1/cmr/m/sc/10 class \OT1/cmr/m/n/10
+ is the func-tion \OT1/cmtt/m/n/10 main() \OT1/cmr/m/n/10 lo-cated in the file 
+\OT1/cmtt/m/n/10 main/main.c\OT1/cmr/m/n/10 .
+ []
+
+[6]
+LaTeX Font Info:    Try loading font information for OMS+cmtt on input line 298
+.
+LaTeX Font Info:    No file OMScmtt.fd. on input line 298.
+
+
+LaTeX Font Warning: Font shape `OMS/cmtt/m/n' undefined
+(Font)              using `OMS/cmsy/m/n' instead
+(Font)              for symbol `textbraceleft' on input line 298.
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 296--333
+
+ []
+
+
+Overfull \hbox (111.8361pt too wide) in paragraph at lines 296--333
+[]\OT1/cmtt/m/n/10 input[]init[]from[]arguments(argc, argv,&pr,&ba,&th,&pt,&tr,
+&pm,&sp,&nl,&le,&op,errmsg); 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 296--333
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 296--333
+
+ []
+
+[7]
+Overfull \hbox (17.60573pt too wide) in paragraph at lines 356--359
+\OT1/cmr/m/n/10 loop over dif-fer-ent pa-ram-e-ter val-ues. There is also a ver
+-sion \OT1/cmtt/m/n/10 test/test[]loops[]omp.c
+ []
+
+[8]
+Underfull \hbox (badness 10000) in paragraph at lines 369--370
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 371--373
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 375--383
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 384--385
+
+ []
+
+
+Overfull \hbox (7.52757pt too wide) in paragraph at lines 402--404
+[]\OT1/cmr/m/n/10 The syn-tax of the in-put files is ex-plained at the be-gin-n
+ing of \OT1/cmtt/m/n/10 explanatory.ini\OT1/cmr/m/n/10 .
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 407--412
+
+ []
+
+[9]
+Underfull \hbox (badness 10000) in paragraph at lines 437--442
+
+ []
+
+
+Overfull \hbox (15.77684pt too wide) in paragraph at lines 449--453
+\OT1/cmtt/m/n/10 omega[]ur = 1.7e-5    # ur is the label for ultra-relativistic
+ species 
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 449--453
+
+ []
+
+
+Overfull \hbox (9.3886pt too wide) in paragraph at lines 474--475
+[]\OT1/cmr/m/n/10 Let us men-tion a two use-ful pa-ram-e-ters de-fined at the e
+nd of \OT1/cmtt/m/n/10 explanatory.ini\OT1/cmr/m/n/10 ,
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 474--475
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 476--477
+
+ []
+
+[10]
+Underfull \hbox (badness 10000) in paragraph at lines 478--480
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 481--482
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 494--495
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 496--497
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 502--503
+
+ []
+
+[11]
+Underfull \hbox (badness 10000) in paragraph at lines 529--533
+
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 543--547
+
+ []
+
+
+Overfull \hbox (35.30666pt too wide) in paragraph at lines 562--569
+\OT1/cmtt/m/n/10 => module[]x[]functionN (L:735) : your choice of input paramet
+er blabla=30
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 562--569
+
+ []
+
+[12]
+Underfull \hbox (badness 10000) in paragraph at lines 570--575
+
+ []
+
+
+Overfull \hbox (3.63605pt too wide) in paragraph at lines 576--582
+[]                \OT1/cmtt/m/n/10 "your choice of input parameter blabla=%e is
+ not consistent
+ []
+
+
+Underfull \hbox (badness 10000) in paragraph at lines 576--582
+
+ []
+
+[13] (./class.aux)
+
+LaTeX Font Warning: Some font shapes were not available, defaults substituted.
+
+ ) 
+Here is how much of TeX's memory you used:
+ 269 strings out of 493117
+ 3013 string characters out of 6135434
+ 57909 words of memory out of 5000000
+ 3798 multiletter control sequences out of 15000+600000
+ 9180 words of font info for 33 fonts, out of 8000000 for 9000
+ 1141 hyphenation exceptions out of 8191
+ 23i,6n,19p,629b,233s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
+></usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb>
+</usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmcsc10.pfb>
+</usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb><
+/usr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></u
+sr/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr
+/local/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb></usr/l
+ocal/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/loc
+al/texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/
+texlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/t
+exlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmti10.pfb></usr/local/te
+xlive/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/tex
+live/2014/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt12.pfb>
+Output written on class.pdf (13 pages, 191829 bytes).
+PDF statistics:
+ 99 PDF objects out of 1000 (max. 8388607)
+ 70 compressed objects within 1 object stream
+ 0 named destinations out of 1000 (max. 500000)
+ 1 words of extra memory for PDF output out of 10000 (max. 10000000)
+

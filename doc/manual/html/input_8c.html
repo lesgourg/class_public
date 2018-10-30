@@ -138,6 +138,8 @@ Functions</h2></td></tr>
 <tr class="separator:a5faf7f188b4f34fd45b34e3eec302d12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aee772d452d6a10313e151ffc9d4db8c5"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="input_8c.html#aee772d452d6a10313e151ffc9d4db8c5">input_find_root</a> (double *xzero, int *fevals, struct fzerofun_workspace *pfzw, ErrorMsg errmsg)</td></tr>
 <tr class="separator:aee772d452d6a10313e151ffc9d4db8c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a978f28690f3030ff6b5f2f5f15310d03"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="input_8c.html#a978f28690f3030ff6b5f2f5f15310d03">input_prepare_pk_eq</a> (struct <a class="el" href="common_8h.html#structprecision">precision</a> *ppr, struct <a class="el" href="background_8h.html#structbackground">background</a> *pba, struct <a class="el" href="thermodynamics_8h.html#structthermo">thermo</a> *pth, struct <a class="el" href="structnonlinear.html">nonlinear</a> *pnl, int input_verbose, ErrorMsg errmsg)</td></tr>
+<tr class="separator:a978f28690f3030ff6b5f2f5f15310d03"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
 <div class="textblock"><p>Documented input module.</p>
@@ -508,7 +510,8 @@ Functions</h2></td></tr>
 <li>(i.1.) shall we write background quantities in a file?</li>
 <li>(i.2.) shall we write thermodynamics quantities in a file?</li>
 <li>(i.3.) shall we write perturbation quantities in files?</li>
-<li>(i.4.) shall we write primordial spectra in a file? </li>
+<li>(i.4.) shall we write primordial spectra in a file?</li>
+<li>(i.5) special steps if we want Halofit with wa_fld non-zero: so-called "Pk_equal method" of 0810.0190 and 1601.07230 </li>
 </ul>
 
 </div>
@@ -799,6 +802,7 @@ Functions</h2></td></tr>
 </div><div class="memdoc">
 <p>Summary:</p><ul>
 <li>Call the structures</li>
+<li>Optimise flags for sigma8 calculation.</li>
 <li>Do computations</li>
 <li>In case scalar field is used to fill, pba-&gt;Omega0_scf is not equal to pfzw-&gt;target_value[i].</li>
 <li>Free structures</li>
@@ -906,13 +910,91 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="a978f28690f3030ff6b5f2f5f15310d03"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a978f28690f3030ff6b5f2f5f15310d03">&#9670;&nbsp;</a></span>input_prepare_pk_eq()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int input_prepare_pk_eq </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="common_8h.html#structprecision">precision</a> *&#160;</td>
+          <td class="paramname"><em>ppr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="background_8h.html#structbackground">background</a> *&#160;</td>
+          <td class="paramname"><em>pba</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="thermodynamics_8h.html#structthermo">thermo</a> *&#160;</td>
+          <td class="paramname"><em>pth</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="structnonlinear.html">nonlinear</a> *&#160;</td>
+          <td class="paramname"><em>pnl</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">int&#160;</td>
+          <td class="paramname"><em>input_verbose</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">ErrorMsg&#160;</td>
+          <td class="paramname"><em>errmsg</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Perform preliminary steps fur using the method called Pk_equal, described in 0810.0190 and 1601.07230, extending the range of validity of HALOFIT from constant w to (w0,wa) models. In that case, one must compute here some effective values of w0_eff(z_i) and Omega_m_eff(z_i), that will be interpolated later at arbitrary redshift in the non-linear module.</p>
+<p>Returns table of values [z_i, tau_i, w0_eff_i, Omega_m_eff_i] stored in nonlinear structure.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ppr</td><td>Input: pointer to precision structure </td></tr>
+    <tr><td class="paramname">pba</td><td>Input: pointer to background structure </td></tr>
+    <tr><td class="paramname">pth</td><td>Input: pointer to thermodynamics structure </td></tr>
+    <tr><td class="paramname">pnl</td><td>Input/Output: pointer to nonlinear structure </td></tr>
+    <tr><td class="paramname">input_verbose</td><td>Input: verbosity of this input module </td></tr>
+    <tr><td class="paramname">errmsg</td><td>Input/Ouput: error message </td></tr>
+  </table>
+  </dd>
+</dl>
+<p>Summary:</p>
+<ul>
+<li>define local variables</li>
+<li>store the true cosmological parameters (w0, wa) somwhere before using temporarily some fake ones in this function</li>
+<li>the fake calls of the background and thermodynamics module will be done in non-verbose mode</li>
+<li>allocate indices and arrays for storing the results</li>
+<li>call the background module in order to fill a table of tau_i[z_i]<ul>
+<li>loop over z_i values. For each of them, we will call the background and thermodynamics module for fake models. The goal is to find, for each z_i, and effective w0_eff[z_i] and Omega_m_eff{z_i], such that: the true model with (w0,wa) and the equivalent model with (w0_eff[z_i],0) have the same conformal distance between z_i and z_recombination, namely chi = tau[z_i] - tau_rec. It is thus necessary to call both the background and thermodynamics module for each fake model and to re-compute tau_rec for each of them. Once the eqauivalent model is found we compute and store Omega_m_effa(z_i) of the equivalent model</li>
+</ul>
+</li>
+<li>restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules</li>
+<li>spline the table for later interpolation </li>
+</ul>
+
+</div>
+</div>
 </div><!-- contents -->
 </div><!-- doc-content -->
 <!-- start footer part -->
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_b2f33c71d4aa5e7af42a1ca61ff5af1b.html">source</a></li><li class="navelem"><a class="el" href="input_8c.html">input.c</a></li>
-    <li class="footer">Generated on Sat Mar 25 2017 10:54:45 for CLASS MANUAL by
+    <li class="footer">Generated on Mon Oct 22 2018 16:09:37 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
   </ul>

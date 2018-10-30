@@ -9,5 +9,6 @@ var searchData=
   ['factor_5fncdm',['factor_ncdm',['../background_8h.html#a96b570d10c77a6fc4ca09759ed233906',1,'background']]],
   ['fhe',['fHe',['../thermodynamics_8h.html#abd42dddfc07621c1934035dce015ade4',1,'recombination']]],
   ['file_5fformat',['file_format',['../common_8h.html#abd81d11867ad50357ea8332e8d36cf8a',1,'common.h']]],
+  ['fluid_5fequation_5fof_5fstate',['fluid_equation_of_state',['../background_8h.html#a9120b4e2259f7ddbe89bb77db8b30269',1,'background']]],
   ['fu',['fu',['../thermodynamics_8h.html#ae23d85a5262d4ff6121889e3b38bb4ed',1,'recombination']]]
 ];

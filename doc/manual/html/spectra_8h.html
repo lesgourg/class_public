@@ -580,21 +580,21 @@ ln_k</td>
 <td class="fieldname">
 ln_tau_size</td>
 <td class="fielddoc">
-<p>number ln(tau) values (only one if z_max_pk = 0) </p>
+<p>number of ln(tau) values, for the matter power spectrum and the matter transfer functions, (only one if z_max_pk = 0) </p>
 </td></tr>
 <tr><td class="fieldtype">
 <a id="a5f7d064aff5ca9c3aa2b99db6d3d8d64"></a>double *</td>
 <td class="fieldname">
 ln_tau</td>
 <td class="fielddoc">
-<p>list of ln(tau) values ln_tau[index_tau] </p>
+<p>list of ln(tau) values ln_tau[index_tau], for the matter power spectrum and the matter transfer functions, in growing order. So exp(ln_tau[0]) is the earliest time (i.e. highest redshift), while exp(ln_tau[ln_tau_size-1]) is today (i.e z=0). </p>
 </td></tr>
 <tr><td class="fieldtype">
 <a id="a658520d8cde6f2367dc6de37c6b5f069"></a>double *</td>
 <td class="fieldname">
 ln_pk</td>
 <td class="fielddoc">
-<p>Matter power spectrum. depends on indices index_md, index_ic1, index_ic2, index_k, index_tau as: ln_pk[(index_tau * psp-&gt;k_size + index_k)* psp-&gt;ic_ic_size[index_md] + index_ic1_ic2] where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since the primordial spectrum is symmetric in (index_ic1, index_ic2)).</p><ul>
+<p>Matter power spectrum. depends on indices index_ic1_ic2, index_k, index_tau as: ln_pk[(index_tau * psp-&gt;k_size + index_k)* psp-&gt;ic_ic_size[index_md] + index_ic1_ic2] where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since the primordial spectrum is symmetric in (index_ic1, index_ic2)).</p><ul>
 <li>for diagonal elements (index_ic1 = index_ic2) this arrays contains ln[P(k)] where P(k) is positive by construction.</li>
 <li>for non-diagonal elements this arrays contains the k-dependent cosine of the correlation angle, namely P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2] This choice is convenient since the sign of the non-diagonal cross-correlation is arbitrary. For fully correlated or anti-correlated initial conditions, this non-diagonal element is independent on k, and equal to +1 or -1. </li>
 </ul>
@@ -617,6 +617,40 @@ sigma8</td>
 <p>sigma8 parameter </p>
 </td></tr>
 <tr><td class="fieldtype">
+<a id="a061198a8d906bce9c36007567db6b30a"></a>double</td>
+<td class="fieldname">
+sigma8_cb</td>
+<td class="fielddoc">
+<p>if ncdm present: contribution to sigma8 from only baryons and cdm </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="a13f7f8afee8a3eb99cd0f0c1eb0d149f"></a>double *</td>
+<td class="fieldname">
+ln_pk_l</td>
+<td class="fielddoc">
+</td></tr>
+<tr><td class="fieldtype">
+<a id="a371feb8b5ec10d495e05b81df054664d"></a>double *</td>
+<td class="fieldname">
+ddln_pk_l</td>
+<td class="fielddoc">
+<p>q&lt; Total linear matter power spectrum, just depending on indices index_k, index_tau as: ln_pk[index_tau * psp-&gt;k_size + index_k] Range of k and tau value identical to ln_pk array. second derivative of above array with respect to log(tau), for spline interpolation. </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="aed0aa0a8c85c43cad6cf07664f664be8"></a>int</td>
+<td class="fieldname">
+ln_tau_nl_size</td>
+<td class="fielddoc">
+<p>number of ln(tau) values for non-linear spectrum (possibly smaller than ln_tau_size, because the non-linear spectrum is stored only in the time/redhsift range where the non-linear corrections were really computed, to avoid dealing with discontinuities in the spline interpolation) </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="aee71399f6b9835fbe3bb396634f69bee"></a>double *</td>
+<td class="fieldname">
+ln_tau_nl</td>
+<td class="fielddoc">
+<p>list of ln(tau) values ln_tau_nl[index_tau], for the non-linear power spectrum, in growing order. So exp(ln_tau_nl[0]) is the earliest time (i.e. highest redshift), while exp(ln_tau_nl[ln_tau_nl_size-1]) is today (i.e z=0). </p>
+</td></tr>
+<tr><td class="fieldtype">
 <a id="a38c2aeac727751ecad8885c8df23586a"></a>double *</td>
 <td class="fieldname">
 ln_pk_nl</td>
@@ -629,6 +663,48 @@ ln_pk_nl</td>
 ddln_pk_nl</td>
 <td class="fielddoc">
 <p>second derivative of above array with respect to log(tau), for spline interpolation. </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="a55da2c80f6c3948181df1b6c2065fc64"></a>double *</td>
+<td class="fieldname">
+ln_pk_cb</td>
+<td class="fielddoc">
+<p>same as ln_pk for baryon+cdm component only </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="a3eafe6f1a176487cb7ca3453e013fccc"></a>double *</td>
+<td class="fieldname">
+ddln_pk_cb</td>
+<td class="fielddoc">
+<p>same as ddln_pk for baryon+cdm component only </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="a2efde47762e8fe37b3ac48ad3e81566b"></a>double *</td>
+<td class="fieldname">
+ln_pk_cb_l</td>
+<td class="fielddoc">
+<p>same as ln_pk_l for baryon+cdm component only </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="aad1321f83b0d65048029d28d13292403"></a>double *</td>
+<td class="fieldname">
+ddln_pk_cb_l</td>
+<td class="fielddoc">
+<p>same as ddln_pk_l for baryon+cdm component only </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="acf8c92999d79ae673698d04629b9cabe"></a>double *</td>
+<td class="fieldname">
+ln_pk_cb_nl</td>
+<td class="fielddoc">
+<p>same as ln_pk_nl for baryon+cdm component only </p>
+</td></tr>
+<tr><td class="fieldtype">
+<a id="a2e66e2a8471670ca82c66451aa5f474f"></a>double *</td>
+<td class="fieldname">
+ddln_pk_cb_nl</td>
+<td class="fielddoc">
+<p>same as ddln_pk_nl for baryon+cdm component only </p>
 </td></tr>
 <tr><td class="fieldtype">
 <a id="ada527499c8c57e4f3f03ce677c215677"></a>int</td>
@@ -864,7 +940,7 @@ error_message</td>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_d44c64559bbebec7f509842c48db8b23.html">include</a></li><li class="navelem"><a class="el" href="spectra_8h.html">spectra.h</a></li>
-    <li class="footer">Generated on Sat Mar 25 2017 10:54:45 for CLASS MANUAL by
+    <li class="footer">Generated on Mon Oct 22 2018 16:09:37 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
   </ul>

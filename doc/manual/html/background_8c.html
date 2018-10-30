@@ -117,6 +117,8 @@ Functions</h2></td></tr>
 <tr class="separator:afeb0656453b92be39c60fb3fb1abd910"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b0d8db279856b3c96aba08c83aa19d6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#a5b0d8db279856b3c96aba08c83aa19d6">background_free</a> (struct <a class="el" href="background_8h.html#structbackground">background</a> *pba)</td></tr>
 <tr class="separator:a5b0d8db279856b3c96aba08c83aa19d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7c4d314e8a6131c2d1ebfb2cd2c17946"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#a7c4d314e8a6131c2d1ebfb2cd2c17946">background_free_noinput</a> (struct <a class="el" href="background_8h.html#structbackground">background</a> *pba)</td></tr>
+<tr class="separator:a7c4d314e8a6131c2d1ebfb2cd2c17946"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a61601a17447fc6a806921680d2e52c8f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#a61601a17447fc6a806921680d2e52c8f">background_free_input</a> (struct <a class="el" href="background_8h.html#structbackground">background</a> *pba)</td></tr>
 <tr class="separator:a61601a17447fc6a806921680d2e52c8f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8934d2c903bb4c78b1b6a33a8c56e293"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#a8934d2c903bb4c78b1b6a33a8c56e293">background_indices</a> (struct <a class="el" href="background_8h.html#structbackground">background</a> *pba)</td></tr>
@@ -135,6 +137,8 @@ Functions</h2></td></tr>
 <tr class="separator:aeb523f9c8e728f79e9b431d2020faa41"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad2dc56f010363d90bb1ad8447a32baf9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#ad2dc56f010363d90bb1ad8447a32baf9">background_initial_conditions</a> (struct <a class="el" href="common_8h.html#structprecision">precision</a> *ppr, struct <a class="el" href="background_8h.html#structbackground">background</a> *pba, double *pvecback, double *pvecback_integration)</td></tr>
 <tr class="separator:ad2dc56f010363d90bb1ad8447a32baf9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed2984c000b71ae610410cd1a5490966"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#aed2984c000b71ae610410cd1a5490966">background_find_equality</a> (struct <a class="el" href="common_8h.html#structprecision">precision</a> *ppr, struct <a class="el" href="background_8h.html#structbackground">background</a> *pba)</td></tr>
+<tr class="separator:aed2984c000b71ae610410cd1a5490966"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a038afb8102e9f45af7524a59011c371f"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#a038afb8102e9f45af7524a59011c371f">background_output_titles</a> (struct <a class="el" href="background_8h.html#structbackground">background</a> *pba, char titles[_MAXTITLESTRINGLENGTH_])</td></tr>
 <tr class="separator:a038afb8102e9f45af7524a59011c371f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ff17dd11a557890bcd66920397828ad"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="background_8c.html#a0ff17dd11a557890bcd66920397828ad">background_output_data</a> (struct <a class="el" href="background_8h.html#structbackground">background</a> *pba, int number_of_titles, double *data)</td></tr>
@@ -474,7 +478,8 @@ Functions</h2></td></tr>
 <li>if shooting failed during input, catch the error here</li>
 <li>assign values to all indices in vectors of background quantities with <a class="el" href="background_8c.html#a8934d2c903bb4c78b1b6a33a8c56e293">background_indices()</a></li>
 <li>control that cosmological parameter values make sense</li>
-<li>this function integrates the background over time, allocates and fills the background table </li>
+<li>this function integrates the background over time, allocates and fills the background table</li>
+<li>this function finds and stores a few derived parameters at radiation-matter equality </li>
 </ul>
 
 </div>
@@ -512,6 +517,32 @@ Functions</h2></td></tr>
 <area shape="rect" id="node2" href="background_8c.html#a61601a17447fc6a806921680d2e52c8f" title="background_free_input" alt="" coords="175,5,332,31"/>
 </map>
 </div>
+
+</div>
+</div>
+<a id="a7c4d314e8a6131c2d1ebfb2cd2c17946"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7c4d314e8a6131c2d1ebfb2cd2c17946">&#9670;&nbsp;</a></span>background_free_noinput()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int background_free_noinput </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="background_8h.html#structbackground">background</a> *&#160;</td>
+          <td class="paramname"><em>pba</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Free only the memory space NOT allocated through <a class="el" href="input_8c.html#a2ca13f55e0c5117997d052118a3395ae">input_read_parameters()</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">pba</td><td>Input: pointer to background structure (to be freed) </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the error status </dd></dl>
 
 </div>
 </div>
@@ -711,6 +742,9 @@ Functions</h2></td></tr>
   </table>
   </dd>
 </dl>
+<p>Automatic q-sampling for this species </p><pre class="fragment">- in verbose mode, inform user of number of sampled momenta
+</pre><p> for background quantities</p>
+<p>Manual q-sampling for this species. Same sampling used for both perturbation and background sampling, since this will usually be a high precision setting anyway</p>
 <ul>
 <li>in verbose mode, inform user of number of sampled momenta for background quantities </li>
 </ul>
@@ -1024,6 +1058,43 @@ Functions</h2></td></tr>
 
 </div>
 </div>
+<a id="aed2984c000b71ae610410cd1a5490966"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aed2984c000b71ae610410cd1a5490966">&#9670;&nbsp;</a></span>background_find_equality()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int background_find_equality </td>
+          <td>(</td>
+          <td class="paramtype">struct <a class="el" href="common_8h.html#structprecision">precision</a> *&#160;</td>
+          <td class="paramname"><em>ppr</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">struct <a class="el" href="background_8h.html#structbackground">background</a> *&#160;</td>
+          <td class="paramname"><em>pba</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>Find the time of radiation/matter equality and store characteristic quantitites at that time in the background structure..</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ppr</td><td>Input: pointer to precision structure </td></tr>
+    <tr><td class="paramname">pba</td><td>Input/Output: pointer to background structure </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>the error status </dd></dl>
+
+</div>
+</div>
 <a id="a038afb8102e9f45af7524a59011c371f"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a038afb8102e9f45af7524a59011c371f">&#9670;&nbsp;</a></span>background_output_titles()</h2>
 
@@ -1309,7 +1380,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_b2f33c71d4aa5e7af42a1ca61ff5af1b.html">source</a></li><li class="navelem"><a class="el" href="background_8c.html">background.c</a></li>
-    <li class="footer">Generated on Sat Mar 25 2017 10:54:44 for CLASS MANUAL by
+    <li class="footer">Generated on Mon Oct 22 2018 16:09:37 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
   </ul>

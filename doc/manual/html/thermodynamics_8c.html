@@ -297,10 +297,10 @@ Functions</h2></td></tr>
 <li>compute table of corresponding conformal times</li>
 <li>store initial value of conformal time in the structure</li>
 <li>fill missing columns (quantities not computed previously but related)</li>
-<li>&ndash;&gt; baryon drag interaction rate time minus one, -[R * kappa'], stored temporarily in column ddkappa</li>
-<li>&ndash;&gt; second derivative of this rate, -[R * kappa']'', stored temporarily in column dddkappa</li>
+<li>&ndash;&gt; baryon drag interaction rate time minus one, -[1/R * kappa'], with R = 3 rho_b / 4 rho_gamma, stored temporarily in column ddkappa</li>
+<li>&ndash;&gt; second derivative of this rate, -[1/R * kappa']'', stored temporarily in column dddkappa</li>
 <li>&ndash;&gt; compute tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau]</li>
-<li>&ndash;&gt; compute r_d = [int_{tau_ini}^{tau} dtau [1/kappa']</li>
+<li>&ndash;&gt; compute r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') (R^2+4/5(1+R))/(1+R^2)/6 ]^1/2 (see e.g. Wayne Hu's thesis eq. (5.59)</li>
 <li>&ndash;&gt; second derivative with respect to tau of dkappa (in view of spline interpolation)</li>
 <li>&ndash;&gt; first derivative with respect to tau of dkappa (using spline interpolation)</li>
 <li>&ndash;&gt; compute -kappa = [int_{tau_today}^{tau} dtau dkappa/dtau], store temporarily in column "g"</li>
@@ -1246,7 +1246,7 @@ Functions</h2></td></tr>
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="dir_b2f33c71d4aa5e7af42a1ca61ff5af1b.html">source</a></li><li class="navelem"><a class="el" href="thermodynamics_8c.html">thermodynamics.c</a></li>
-    <li class="footer">Generated on Sat Mar 25 2017 10:54:45 for CLASS MANUAL by
+    <li class="footer">Generated on Mon Oct 22 2018 16:09:37 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
   </ul>

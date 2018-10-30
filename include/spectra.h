@@ -185,7 +185,7 @@ struct spectra {
 
   double sigma8;    /**< sigma8 parameter */
 
-  double sigma8_cb;
+  double sigma8_cb; /**< if ncdm present: contribution to sigma8 from only baryons and cdm */
 
   double * ln_pk_l;   /**q< Total linear matter power spectrum, just
                            depending on indices index_k, index_tau as:
@@ -213,16 +213,17 @@ struct spectra {
 
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:
-                          ln_pk_nl[index_tau * psp->k_size + index_k]
-                    */
+                          ln_pk_nl[index_tau * psp->k_size + index_k] */
   double * ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
-  double * ln_pk_cb;
-  double * ddln_pk_cb;
-  double * ln_pk_cb_l;
-  double * ddln_pk_cb_l;
-  double * ln_pk_cb_nl;
-  double * ddln_pk_cb_nl;
+  double * ln_pk_cb;           /**< same as ln_pk for baryon+cdm component only */
+  double * ddln_pk_cb;         /**< same as ddln_pk for baryon+cdm component only */
+
+  double * ln_pk_cb_l;         /**< same as ln_pk_l for baryon+cdm component only */
+  double * ddln_pk_cb_l;       /**< same as ddln_pk_l for baryon+cdm component only */
+
+  double * ln_pk_cb_nl;        /**< same as ln_pk_nl for baryon+cdm component only */
+  double * ddln_pk_cb_nl;      /**< same as ddln_pk_nl for baryon+cdm component only */
 
   int index_tr_delta_g;        /**< index of gamma density transfer function */
   int index_tr_delta_b;        /**< index of baryon density transfer function */
@@ -474,7 +475,7 @@ extern "C" {
 				       double * zvec,
 				       int zvec_size,
 				       double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
-                                       double * pk_cb_tot_out,
+                       double * pk_cb_tot_out,
 				       int nonlinear);
 
 #ifdef __cplusplus

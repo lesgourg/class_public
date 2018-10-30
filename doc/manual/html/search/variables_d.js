@@ -12,6 +12,7 @@ var searchData=
   ['omega0_5fncdm_5ftot',['Omega0_ncdm_tot',['../background_8h.html#a05f67862c306f12461a02afd1c6b955a',1,'background']]],
   ['omega0_5fscf',['Omega0_scf',['../background_8h.html#a3ec7cb89aee15662360e4ec7b85436f8',1,'background']]],
   ['omega0_5fur',['Omega0_ur',['../background_8h.html#a0fb6c6ef3e802c8f11c03a0561ff3994',1,'background']]],
+  ['omega_5fede',['Omega_EDE',['../background_8h.html#a73cece3d366da582e32a3e46869d0c17',1,'background']]],
   ['omega_5fini_5fdcdm',['Omega_ini_dcdm',['../background_8h.html#a31ef8cc19fade403f356531c713a589c',1,'background']]],
   ['output_5fformat',['output_format',['../output_8h.html#a5792445d2cb4ddf1520fe8dbe1a29568',1,'output']]],
   ['output_5fverbose',['output_verbose',['../output_8h.html#abcfb9ab7c27dc27c33810dbd025468df',1,'output']]]
