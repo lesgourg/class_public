@@ -986,6 +986,9 @@ cdef class Class:
     #def Omega_r(self):
     #    return self.ba.Omega0_g+self.ba.Omega0_ur
 
+    def theta_s_100(self):
+        return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+
     def Omega_Lambda(self):
         return self.ba.Omega0_lambda
 
