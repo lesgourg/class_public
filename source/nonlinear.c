@@ -394,9 +394,6 @@ int nonlinear_init(
     class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
     pnl->pk_size = index_pk;
     
-    //just for debugging
-    //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
-    
     
     /** - copy list of (k,tau) from perturbation module */
 
@@ -523,14 +520,16 @@ int nonlinear_init(
         class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
              pba->error_message,
              pnl->error_message);
-        // why is background_w_fld() called here? You only need the input parameters w0_fld and wa_fld right?
+ 
         class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+        
         class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
             pnl->error_message, pnl->error_message);
+        
         class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1.),&g_wcdm),
             pnl->error_message, pnl->error_message);
+        
         pnl->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
-        //fprintf(stdout, "%e, %e, %e, %e, %e\n", dw_over_da_fld, g_wcdm, pvecback[pba->index_bg_D], g_lcdm, pnl->dark_energy_correction); 
       }
       else {
         pnl->dark_energy_correction = 1.;
@@ -701,7 +700,7 @@ int nonlinear_init(
             class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]), 
               pnl->error_message, pnl->error_message);
           }
-   
+
             class_call(nonlinear_hmcode(ppr,
                        pba,
                        ppt,
@@ -725,7 +724,7 @@ int nonlinear_init(
 						// for debugging:
 						/*
 							for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-							if (index_tau == pnl->tau_size-1) fprintf(stdout,"%e  %e  %e\n",pnl->k_extra[index_k],pk_l[index_k],pk_l_cb[index_k]);
+                if (index_tau == pnl->tau_size-1) fprintf(stdout,"%e  %e  %e\n",pnl->k_extra[index_k],pk_l[index_k],pk_l_cb[index_k]);
 							}
 							if (index_tau == pnl->tau_size-1) fprintf(stdout,"\n\n");
 						*/
@@ -938,7 +937,7 @@ int nonlinear_pk_l(
 
 			pk_l[index_k] = 0;
 			
-				// part diagonal in initial conditions 
+      // part diagonal in initial conditions 
 			for (index_ic1 = 0; index_ic1 < ppm->ic_size[index_md]; index_ic1++) {
 
 				index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,ppm->ic_size[index_md]);
@@ -2302,7 +2301,7 @@ int nonlinear_hmcode(
   int index_pk_cb;
   int counter, index_nl;
   
-	int index_nu;
+	int index_nu, index_cut;
   int index_y;
   int index_ddy;
   
@@ -2334,6 +2333,7 @@ int nonlinear_hmcode(
   
   double eta;
   double gst, window_nfw;
+  double nu_cut;
   double fac, k_star, fdamp;
   double pk_lin, pk_2h, pk_1h;
   
@@ -2360,7 +2360,8 @@ int nonlinear_hmcode(
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
   
-  /** If index_pk_cb, choose Omega0_cb as the matter density parameter. If index_pk_m, choose Omega0_cbn as the matter density parameter. */
+  /** If index_pk_cb, choose Omega0_cb as the matter density parameter. 
+   * If index_pk_m, choose Omega0_cbn as the matter density parameter. */
   if (index_pk==pnl->index_pk_cb){
     Omega0_m = Omega0_m - pba->Omega0_ncdm_tot;
   }
@@ -2487,9 +2488,6 @@ int nonlinear_hmcode(
     free(nu_arr);
     return _SUCCESS_;
   }
-	//else {
-		//* halofit_found_k_max = _TRUE_;
-	//}
   
   /* make a first guess for the nonlinear scale */
   class_call(array_interpolate_two_arrays_one_column(
@@ -2523,10 +2521,10 @@ int nonlinear_hmcode(
 
     diff = sigma_nl - delta_c;
 
-    if (diff > ppr->halofit_tol_sigma){
+    if (diff > ppr->hmcode_tol_sigma){
       r1=r_nl;
     }
-    else if (diff < -ppr->halofit_tol_sigma) {
+    else if (diff < -ppr->hmcode_tol_sigma) {
       r2 = r_nl;
     }
 
@@ -2591,16 +2589,23 @@ int nonlinear_hmcode(
   }
   
   
-	/** Now compute the nonlinear correction */
+	/** Compute the nonlinear correction */
   eta = pnl->eta_0 - 0.3*sigma8; // halo bloating parameter
   k_star=0.584/sigma_disp;   // Damping wavenumber of the 1-halo term at very large scales;
 	fdamp = 0.0095*pow(sigma_disp100*pba->h, 1.37); // Damping factor for 2-halo term 
 	if (fdamp<1.e-3) fdamp=1.e-3;
   if (fdamp>0.99)  fdamp=0.99;
   
-  double nu_cut = 10.;
-  int index_cut;
-  class_call(array_search_bisect(ppr->nsteps_for_p1h_integral,nu_arr,nu_cut,&index_cut,pnl->error_message), pnl->error_message, pnl->error_message);
+  /* the 1h integral contains the halo mass function proportional to exp(-nu^2).
+   * To save time, the integration loop cuts, when nu exceeds a large value, 
+   * where the integrand is 0 anyhow. This cut index is found here. */
+  nu_cut = 10.;
+  if (nu_cut < nu_arr[ppr->nsteps_for_p1h_integral-1]){
+    class_call(array_search_bisect(ppr->nsteps_for_p1h_integral,nu_arr,nu_cut,&index_cut,pnl->error_message), pnl->error_message, pnl->error_message);
+  }
+  else {
+    index_cut = ppr->nsteps_for_p1h_integral;
+  }
   
   i=0;
   index_nu=i;

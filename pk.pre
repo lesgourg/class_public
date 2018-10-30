@@ -81,14 +81,9 @@ accurate_lensing=1
 num_mu_minus_lmax = 1000.
 delta_l_max = 1000.
 
-halofit_k_per_decade = 500.
 k_per_decade_for_pk = 50.
 k_per_decade_primordial = 50.
 k_per_decade_for_bao = 350.
-
-
-
-
 
 
 
