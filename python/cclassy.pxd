@@ -209,6 +209,14 @@ cdef extern from "class.h":
         double alpha_k2
 
     cdef struct matters:
+        int has_cltp_nc
+        int has_cltp_sh
+        int cltp_size
+        int cltp_grid_size
+        int cltp_index_nc
+        int cltp_index_sh
+        int num_window_grid
+        int ic_ic_size
         ErrorMsg error_message
 
     cdef struct output:
@@ -297,6 +305,7 @@ cdef extern from "class.h":
     int spectra_output_tk_data(void *pba,void *ppt,void *psp,  file_format output_format, double z, int number_of_titles, double *data)
 
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
+    int matter_cl_at_l(void* pma,double l,double * cl,double * * cl_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
     int spectra_pk_at_z(
         void * pba,

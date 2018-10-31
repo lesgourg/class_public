@@ -1559,13 +1559,13 @@ int spectra_init(
   /** - deal with \f$ C_l\f$'s, if any */
 
   if (ptr->has_cls == _TRUE_) {
-
+    psp->has_cls = _TRUE_;
     class_call(spectra_cls(pba,ppt,ptr,ppm,psp),
                psp->error_message,
                psp->error_message);
-
   }
   else {
+    psp->has_cls = _FALSE_;
     psp->ct_size=0;
   }
 

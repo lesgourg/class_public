@@ -667,6 +667,91 @@ cdef class Class:
 
         return cl
 
+
+
+    def matter_density_cl(self, lmax=-1, nofail=False):
+        def index_symmetric_matrix(a,b,N):
+            if(a <= b):
+                return b+N*a-(a*(a+1))//2
+            else:
+                return a+N*b-(b*(b+1))//2
+        """
+        matter_density_cl(lmax=-1, nofail=False)
+
+        Return a dictionary of the primary number count/shear C_l for the matter structure
+
+        Parameters
+        ----------
+        lmax : int, optional
+            Define the maximum l for which the C_l will be returned (inclusively)
+        nofail: bool, optional
+            Check and enforce the computation of the lensing module beforehand
+
+        Returns
+        -------
+        cl : numpy array of numpy.ndarrays
+            Array that contains the list (in this order) of self correlation of
+            1st bin, then successive correlations (set by non_diagonal) to the
+            following bins, then self correlation of 2nd bin, etc. The array
+            starts at index_ct_dd.
+        """
+        cdef int lmaxR
+        cdef double *dcl = <double*> calloc(self.ma.cltp_grid_size*self.ma.num_window_grid,sizeof(double))
+
+        # Quantities for tensor modes
+        cdef double **dcl_ic = <double**> calloc(self.ma.ic_ic_size, sizeof(double*))
+        for index_ic_ic in range(self.ma.ic_ic_size):
+            dcl_ic[index_ic_ic] = <double*> calloc(self.ma.cltp_grid_size*self.ma.num_window_grid, sizeof(double))
+
+        lmaxR = self.pt.l_lss_max
+
+        if (not self.ma.has_cltp_nc) and (not self.ma.has_cltp_sh):
+            raise CosmoSevereError("No density Cl computed with matters struct")
+        if lmax == -1:
+            lmax = lmaxR
+        if lmax > lmaxR:
+            if nofail:
+                self._pars_check("l_max_lss",lmax)
+                self._pars_check("output",'nCl')
+                self.compute()
+            else:
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+
+        cl = {}
+        spectra = []
+        if self.ma.has_cltp_nc:
+            spectra.append('dd')
+            if self.ma.has_cltp_sh:
+                spectra.append('dl')
+        if self.ma.has_cltp_sh:
+            spectra.append('ll')
+
+        for elem in spectra:
+            cl[elem] = {}
+            for index in range(self.ma.num_window_grid):
+                cl[elem][index] = np.zeros(
+                    lmax+1, dtype=np.double)
+
+        for ell from 2<=ell<lmax+1:
+            if matter_cl_at_l(&self.ma, ell, dcl, dcl_ic) == _FAILURE_:
+                raise CosmoSevereError(self.sp.error_message)
+            for index in range(self.ma.num_window_grid):
+                if self.ma.has_cltp_nc:
+                    cl['dd'][index][ell] = dcl[index_symmetric_matrix(self.ma.cltp_index_nc,self.ma.cltp_index_nc,self.ma.cltp_size)*self.ma.num_window_grid+index]
+                    if self.ma.has_cltp_sh:
+                        cl['dl'][index][ell] = dcl[index_symmetric_matrix(self.ma.cltp_index_nc,self.ma.cltp_index_sh,self.ma.cltp_size)*self.ma.num_window_grid+index]
+                if self.ma.has_cltp_sh:
+                    cl['ll'][index][ell] = dcl[index_symmetric_matrix(self.ma.cltp_index_sh,self.ma.cltp_index_sh,self.ma.cltp_size)*self.ma.num_window_grid+index]
+
+        cl['ell'] = np.arange(lmax+1)
+
+        free(dcl)
+        for index in range(self.ma.ic_ic_size):
+            free(dcl_ic[index])
+        free(dcl_ic)
+
+        return cl
+
     def z_of_r (self,z_array):
         cdef double tau=0.0
         cdef int last_index=0 #junk
