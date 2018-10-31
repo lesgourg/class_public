@@ -187,9 +187,20 @@ int transfer_init(
       printf("No harmonic space transfer functions to compute. Transfer module skipped.\n");
     return _SUCCESS_;
   }
-  else
-    ptr->has_cls = _TRUE_;
-
+  else{
+    if(ppt->has_cl_cmb_lensing_potential || ppt->has_cl_cmb_polarization || ppt->has_cl_cmb_temperature){
+      ptr->has_cls = _TRUE_;
+    }
+    else if(ptr->has_nc){
+      ptr->has_cls = _TRUE_;
+    }
+    else{
+      ptr->has_cls = _FALSE_;
+      if (ptr->transfer_verbose > 0)
+        printf("nCl/sCl's computed by matter struct. Transfer module skipped.\n");
+      return _SUCCESS_;
+    }
+  }
   if (ptr->transfer_verbose > 0)
     fprintf(stdout,"Computing transfers\n");
 

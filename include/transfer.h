@@ -80,6 +80,7 @@ struct transfers {
 
   short has_cls; /**< copy of same flag in perturbation structure */
   short has_nc; /**< same flag, but only for nc contributions, used to disable module's nc capabilities if matter is used instead */
+  short has_cmb; /**< same flag, but only for cmb-like contributions */
 
   //@}
 
@@ -194,7 +195,7 @@ struct transfer_workspace {
 
   int tau_size;                  /**< number of discrete time values for a given type */
   int tau_size_max;              /**< maximum number of discrete time values for all types */
-  double * interpolated_sources; /**< interpolated_sources[index_tau]: 
+  double * interpolated_sources; /**< interpolated_sources[index_tau]:
                                     sources interpolated from the
                                     perturbation module at the right
                                     value of k */

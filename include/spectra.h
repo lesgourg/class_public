@@ -51,6 +51,8 @@ struct spectra {
 
   //@{
 
+  int has_cls; /**< do we want any kind of \f$ C_l\f$'s from spectra? */
+
   int has_tt; /**< do we want \f$ C_l^{TT}\f$? (T = temperature) */
   int has_ee; /**< do we want \f$ C_l^{EE}\f$? (E = E-polarization) */
   int has_te; /**< do we want \f$ C_l^{TE}\f$? */

@@ -539,9 +539,11 @@ int output_cl(
 
   for (l = 2; l <= MAX(psp->l_max_tot,ppt->l_lss_max); l++) {
 
-    class_call(spectra_cl_at_l(psp,(double)l,cl_tot,cl_md,cl_md_ic),
-               psp->error_message,
-               pop->error_message);
+    if(psp->has_cls){
+      class_call(spectra_cl_at_l(psp,(double)l,cl_tot,cl_md,cl_md_ic),
+                 psp->error_message,
+                 pop->error_message);
+    }
     if(pma->has_cls){
       class_call(matter_cl_at_l(pma,(double)l,cl_matter_tot,cl_matter_ic),
                  pma->error_message,
@@ -1771,8 +1773,10 @@ int output_one_line_of_cl(
 
   if (pop->output_format == class_format) {
 
-    for (index_ct=0; index_ct < ct_size; index_ct++) {
-      class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
+    if(psp->has_cls){
+      for (index_ct=0; index_ct < ct_size; index_ct++) {
+        class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
+      }
     }
     if(pma->has_cls){
       if(cl_matter!=NULL){
@@ -1794,31 +1798,33 @@ int output_one_line_of_cl(
   }
 
   if (pop->output_format == camb_format) {
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_tt], psp->has_tt);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_ee], psp->has_ee);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_bb], psp->has_bb);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_te], psp->has_te);
-    class_fprintf_double(clfile, l*(l+1)*factor*cl[psp->index_ct_pp], psp->has_pp);
-    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_tp], psp->has_tp);
-    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_ep], psp->has_ep);
-    index_ct_rest = 0;
-    if (psp->has_tt == _TRUE_)
-      index_ct_rest++;
-    if (psp->has_ee == _TRUE_)
-      index_ct_rest++;
-    if (psp->has_bb == _TRUE_)
-      index_ct_rest++;
-    if (psp->has_te == _TRUE_)
-      index_ct_rest++;
-    if (psp->has_pp == _TRUE_)
-      index_ct_rest++;
-    if (psp->has_tp == _TRUE_)
-      index_ct_rest++;
-    if (psp->has_ep == _TRUE_)
-      index_ct_rest++;
-    /* Now print the remaining (if any) entries:*/
-    for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {
-      class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
+    if(psp->has_cls){
+      class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_tt], psp->has_tt);
+      class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_ee], psp->has_ee);
+      class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_bb], psp->has_bb);
+      class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_te], psp->has_te);
+      class_fprintf_double(clfile, l*(l+1)*factor*cl[psp->index_ct_pp], psp->has_pp);
+      class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_tp], psp->has_tp);
+      class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_ep], psp->has_ep);
+      index_ct_rest = 0;
+      if (psp->has_tt == _TRUE_)
+        index_ct_rest++;
+      if (psp->has_ee == _TRUE_)
+        index_ct_rest++;
+      if (psp->has_bb == _TRUE_)
+        index_ct_rest++;
+      if (psp->has_te == _TRUE_)
+        index_ct_rest++;
+      if (psp->has_pp == _TRUE_)
+        index_ct_rest++;
+      if (psp->has_tp == _TRUE_)
+        index_ct_rest++;
+      if (psp->has_ep == _TRUE_)
+        index_ct_rest++;
+      /* Now print the remaining (if any) entries:*/
+      for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {
+        class_fprintf_double(clfile, factor*cl[index_ct], _TRUE_);
+      }
     }
     if(pma->has_cls){
       if(cl_matter!=NULL){

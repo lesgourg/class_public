@@ -2668,12 +2668,12 @@ int input_read_parameters(
                  errmsg);
       if(flag1 == _TRUE_){
         pma->size_fft_cutoff = param1;
-      }
-      pma->size_fft_input = 2;
-      while(pma->size_fft_input < param1-1){
+        pma->size_fft_input = 2;
+        while(pma->size_fft_input < param1-1){
+          pma->size_fft_input*=2;
+        }
         pma->size_fft_input*=2;
       }
-      pma->size_fft_input*=2;
 
       class_call(parser_read_double(pfc,"matter_tilt",&param1,&flag1,errmsg),
                  errmsg,

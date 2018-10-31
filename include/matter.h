@@ -46,7 +46,6 @@ struct matters{
    * */
   double* tau_sampling; /**< The tau sampling of the sources */
   double tau0;
-  double h;
 
   int tau_size_max; //The limit to growing tau_size
   int tau_size; //The number of samples in tau space
@@ -331,9 +330,6 @@ struct matters_workspace{
   double** fft_coeff_real;
   double** fft_coeff_imag;
 
-  double*** window_fft_real;
-  double*** window_fft_imag;
-
   double*** window_bessel_real;
   double*** window_bessel_imag;
 
@@ -552,7 +548,8 @@ extern "C" {
                   int oldtw_size,
                   int index_wd,
                   int radtp,
-                  double* f_evo
+                  double* f_evo,
+                  double* pvecback
                   );
   int matter_interpolate_spline_growing_hunt(
                   double * x_array,
@@ -705,7 +702,6 @@ extern "C" {
                   int index_ic2,
                   int index_radtp1,
                   int index_radtp2,
-                  int index_ic1_ic2,
                   int index_stp1_stp2,
                   int index_wd1,
                   int index_wd2,
@@ -724,7 +720,6 @@ extern "C" {
                   int index_ic2,
                   int index_radtp1,
                   int index_radtp2,
-                  int index_ic1_ic2,
                   int index_stp1_stp2,
                   int index_wd1,
                   int index_wd2,
