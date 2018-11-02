@@ -778,7 +778,10 @@ int input_read_parameters(
   //class_read_double("a_dark",pth->a_dark);
   class_test(((flag3 == _TRUE_) && (flag4 == _FALSE_)),
              errmsg,
-             "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem
+             "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem, anyhow let's add an additional check for MP runs
+  //class_test(((flag3 == _FALSE_) && (flag4 == _TRUE_)),
+    //         errmsg,
+      //       "In input file, you have a_dark but no f_idm_dr");//additional check for MP runs
   class_test((((flag3 == _TRUE_)&&(param3!=0.0)) && (param4==0.0)),
              errmsg,
              "In input file, you have f_idm_dr!=0. but a_dark=0.");
@@ -808,7 +811,7 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
 
   if (input_verbose > 2)
-   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
+   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e, a_dark= %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr, pth->a_dark);
 
   //if (pba->Omega0_idm!=0.0){
   //Read the rest of the ethos parameters

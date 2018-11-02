@@ -1865,6 +1865,7 @@ int background_solve(
   }
 
   if (pba->background_verbose > 2) {
+    printf(" -> pba->Neff = %f\n",pba->Neff);
     if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)){
       printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
       printf("     -> Omega0_dcdm = %f\n",pba->Omega0_dcdm);

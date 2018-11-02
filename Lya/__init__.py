@@ -363,6 +363,7 @@ class Lya(Likelihood):
             F_UV=0.0
 
         h=cosmo.h()
+        classNeff=cosmo.Neff()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
             Plin[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)
@@ -407,10 +408,10 @@ class Lya(Likelihood):
            sys.stderr.flush()
            return data.boundary_loglike
 
-        #print '\n'
-        #print 'initial model'
-        #print data.cosmo_arguments
-        #print '\n'
+        print '\n'
+        print 'initial model'
+        print data.cosmo_arguments
+        print '\n'
 
         #param_lcdm_equiv = deepcopy(data.cosmo_arguments)
         param_backup = data.cosmo_arguments.copy()
@@ -418,46 +419,19 @@ class Lya(Likelihood):
         #deal with dark radiation (ethos & Co.) according to arXiv:1412.6763
         if 'xi_idr' in data.cosmo_arguments or 'N_ur' in data.cosmo_arguments or 'N_ncdm' in data.cosmo_arguments:
 
-            if 'xi_idr' in data.cosmo_arguments:
-                xi_idr = data.cosmo_arguments['xi_idr']
-                data.cosmo_arguments['xi_idr'] = 0.0
-                if 'stat_f_idr' in data.cosmo_arguments:
-                    stat_f_idr = data.cosmo_arguments['stat_f_idr']
-                else:
-                    stat_f_idr = 7./8.
-            else:
-                xi_idr=0.0
-
-            if 'N_ur' in data.cosmo_arguments:
-                N_ur = data.cosmo_arguments['N_ur']
-                data.cosmo_arguments['N_ur'] = 3.0 #as in simulations
-            else:
-                N_ur = 3.046 #as in class
-
-            if 'N_ncdm' in data.cosmo_arguments: 
-                if 'm_ncdm' in data.cosmo_arguments and ('omega_ncdm' in data.cosmo_arguments or 'Omega_ncdm' in data.cosmo_arguments): #wdm
-                    data.cosmo_arguments['m_ncdm'] = 1.0e6 #so that it behaves like cold #MArchi check if 1 MeV is enough
-                    N_ncdm = data.cosmo_arguments['N_ncdm'] #check T issues?
-                else:#hdm, m_ncdm or omega_ncdm are rescaled after (see below #hdm)
-                    N_ncdm = data.cosmo_arguments['N_ncdm']
-                data.cosmo_arguments['N_ncdm'] = 0.0
-            else:
-                N_ncdm = 0.0
-
-            #pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
-            #N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-            DeltaNeff=stat_f_idr*(xi_idr**4)/7.*8./((4./11.)**(4./3.))+(N_ur+N_ncdm-3.0)
-            eta2=(1.+0.2271*(3.0+DeltaNeff))/(1.+0.2271*3.0)
+            #DeltaNeff=stat_f_idr*(xi_idr**4)/7.*8./((4./11.)**(4./3.))+(N_ur+N_ncdm-3.046)
+            #eta2=(1.+0.2271*(3.046+DeltaNeff))/(1.+0.2271*3.046)
+            eta2=(1.+0.2271*classNeff)/(1.+0.2271*3.046)
             eta=np.sqrt(eta2)
-            #print 'DeltaNeff = ',DeltaNeff,' eta^2 = ',eta2
-            #print '\n'
-            #if 'Omega_ncdm' in data.cosmo_arguments:
-                #raise io_mp.ConfigurationError('Error: run with m_ncdm and/or omega_ncdm instead of Omega_ncdm')
-                #exit()
-            if 'm_ncdm' in data.cosmo_arguments and not 'omega_ncdm' in data.cosmo_arguments and not 'Omega_ncdm' in data.cosmo_arguments:#hdm
-                data.cosmo_arguments['m_ncdm'] *= 1./eta2
-            if 'omega_ncdm' in data.cosmo_arguments: #both hdm and wdm #and not 'm_ncdm' in data.cosmo_arguments:
-                data.cosmo_arguments['omega_ncdm'] *= 1./eta2
+            print 'classNeff-3.046 = ',classNeff-3.046,' eta^2 = ',eta2
+            print '\n'
+
+            
+            if 'N_ur' in data.cosmo_arguments:
+                data.cosmo_arguments['N_ur'] = 3.046 #3.0 in simulations
+            if 'N_ncdm' in data.cosmo_arguments:
+                del data.cosmo_arguments['N_ncdm']
+
             if 'omega_b' in data.cosmo_arguments:
                 data.cosmo_arguments['omega_b'] *= 1./eta2
             if 'omega_cdm' in data.cosmo_arguments: #MArchi wdm might give 0*0, but this should never be the case (see eta)
@@ -468,24 +442,56 @@ class Lya(Likelihood):
                 raise io_mp.ConfigurationError('Error: run with H0 instead of 100*theta_s')
                 exit()
 
-        #deal with ethos like dark matter interactions
-        if 'f_idm_dr' in data.cosmo_arguments:
-            if (data.cosmo_arguments['f_idm_dr'] != 1.0):
-                raise io_mp.ConfigurationError('Error: for the time being, f_idm_dr has to be set to 1.0')
-                exit()
-            data.cosmo_arguments['f_idm_dr'] = 0.0
+            #idm
+            if 'xi_idr' in data.cosmo_arguments:
+                del data.cosmo_arguments['xi_idr']
+                if 'f_idm_dr' in data.cosmo_arguments:
+                    if (data.cosmo_arguments['f_idm_dr'] != 1.0):
+                        raise io_mp.ConfigurationError('Error: for the time being, f_idm_dr has to be set to 1.0')
+                        exit()
+                    del data.cosmo_arguments['f_idm_dr'] 
+                #if 'a_dark' in data.cosmo_arguments:#this is not really needed, because once f_idm_dr = 0., whatever is a_dark, pba->has_idm==_FALSE_
+                    #data.cosmo_arguments['a_dark'] = 0.0
 
-        if 'a_dark' in data.cosmo_arguments:#this is not really needed, because once f_idm_dr = 0., whatever is a_dark, pba->has_idm==_FALSE_
-            data.cosmo_arguments['a_dark'] = 0.0
+            #hdm
+            if 'm_ncdm' in data.cosmo_arguments and not 'omega_ncdm' in data.cosmo_arguments and not 'Omega_ncdm' in data.cosmo_arguments:
+                data.cosmo_arguments['m_ncdm'] *= 1./eta2
+            if 'omega_ncdm' in data.cosmo_arguments and not 'Omega_ncdm' in data.cosmo_arguments and not 'm_ncdm' in data.cosmo_arguments:
+                data.cosmo_arguments['omega_ncdm'] *= 1./eta2
+
+            #wdm
+            if 'm_ncdm' in data.cosmo_arguments and ('omega_ncdm' in data.cosmo_arguments or 'Omega_ncdm' in data.cosmo_arguments):
+                del data.cosmo_arguments['m_ncdm']
+
+                del data.cosmo_arguments['k_per_decade_for_pk']
+                del data.cosmo_arguments['ncdm_fluid_approximation']
+                del data.cosmo_arguments['l_max_ncdm']
+                del data.cosmo_arguments['Number of momentum bins']
+                del data.cosmo_arguments['Maximum q']
+                del data.cosmo_arguments['Quadrature strategy']
+
+                if 'Omega_ncdm' in data.cosmo_arguments:
+                    if 'Omega_cdm' in data.cosmo_arguments:
+                        data.cosmo_arguments['Omega_cdm'] +=data.cosmo_arguments['Omega_ncdm']
+                    if 'omega_cdm' in data.cosmo_arguments:
+                        data.cosmo_arguments['omega_cdm'] +=data.cosmo_arguments['Omega_ncdm']*h*h/eta/eta #here we need the eta correction
+                    del data.cosmo_arguments['Omega_ncdm']
+                if 'omega_ncdm' in data.cosmo_arguments:
+                    if 'Omega_cdm' in data.cosmo_arguments:
+                        data.cosmo_arguments['Omega_cdm'] +=data.cosmo_arguments['omega_ncdm']/h/h #no eta correction should be applied here
+                    if 'omega_cdm' in data.cosmo_arguments:
+                        data.cosmo_arguments['omega_cdm'] +=data.cosmo_arguments['omega_ncdm']/eta2
+                    del data.cosmo_arguments['omega_ncdm']
+
 
         cosmo.struct_cleanup()
         cosmo.empty()
         cosmo.set(data.cosmo_arguments)
 
-        #print '\n'
-        #print 'lcdm equivalent'
-        #print data.cosmo_arguments
-        #print '\n'
+        print '\n'
+        print 'lcdm equivalent'
+        print data.cosmo_arguments
+        print '\n'
 
         cosmo.compute(['lensing'])
 
@@ -500,10 +506,10 @@ class Lya(Likelihood):
         data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
 
-        #print '\n'
-        #print 'back to model'
-        #print data.cosmo_arguments
-        #print '\n'
+        print '\n'
+        print 'back to model'
+        print data.cosmo_arguments
+        print '\n'
 
         cosmo.compute(['lensing'])
 
@@ -513,7 +519,7 @@ class Lya(Likelihood):
         #sanity check on the equivalent
         #equiv_error=abs(Tk**2-1.0)
         #if any(x>0.05 for x in equiv_error):
-        if (abs(Tk[0]**2-1.0)>0.01):
+        if (abs(Tk[0]**2-1.0)>0.01): #0.1 only for testing wdm
             #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('Error_equiv ')
@@ -605,14 +611,14 @@ class Lya(Likelihood):
 #        plt.ylabel('$P_{nCDM}/P_{CDM}$')
 #       plt.ylim(0.,1.1)
 #       plt.xlim(self.kmin,self.kmax)
-#        plt.xscale('log')
+        plt.xscale('log')
 #       plt.yscale('log')
-#        plt.grid(True)
-#        plt.plot(k, Tk**2, 'r')
-#       plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+        plt.grid(True)
+        plt.plot(k, Tk**2, 'r')
+        plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
 #       plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
 #       plt.show()
-#        plt.savefig('grid_fit_plot.pdf')
+        plt.savefig('grid_fit_plot.pdf')
 
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
