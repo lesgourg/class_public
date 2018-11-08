@@ -9,7 +9,6 @@
 #include <time.h>
 
 #define CHUNK_SIZE 4
-#define WARN_LARGE_NU_IMAG 40.0
 #define MATTER_REWRITE_PRINTING _FALSE_
 
 #define MATTER_VERBOSITY_TIMING 1
@@ -317,11 +316,9 @@ int matter_init(
   pma->uses_limber_approximation = _FALSE_;
   pma->uses_relative_factors = _FALSE_;
 
+  pma->uses_bessel_storeall = _FALSE_;
+
   pma->uses_integration = matter_integrate_tw_t;
-
-
-  pma->uses_bessel_recursion = _TRUE_;
-
 
   /**
    *  - Obtain indices required for later evaluation
@@ -661,41 +658,34 @@ int matter_init(
    *    while the final one can and does depend on the precise nature
    *    of the window functions etc.
    * */
-  if(!pma->uses_limber_approximation){
+  short is_correct_file = pma->uses_bessel_store;
+  class_call(matter_read_bessel_file_correct(pma,&is_correct_file),
+             pma->error_message,
+             pma->error_message);
+  if(!pma->uses_limber_approximation && !is_correct_file){
     /**
      *  - Obtain the bessel integrals
      * */
-    if(pma->uses_bessel_recursion){
-      class_call(matter_obtain_bessel_recursion_parallel(pma),
-                 pma->error_message,
-                 pma->error_message);
-    }else{
-      class_call(matter_obtain_bessel_integrals(pma),
-                 pma->error_message,
-                 pma->error_message);
-    }
+    class_call(matter_obtain_bessel_recursion_parallel(pma),
+               pma->error_message,
+               pma->error_message);
     /**
      *  - Spline bessel integrals
      * */
-    class_alloc(pma->ddbi_real,
-                pma->tilt_grid_size*sizeof(double**),
-                pma->error_message);
-    class_alloc(pma->ddbi_imag,
-                pma->tilt_grid_size*sizeof(double**),
-                pma->error_message);
-    if(pma->uses_bessel_recursion){
-      class_call(matter_spline_bessel_integrals_recursion(pma),
-               pma->error_message,
-               pma->error_message);
+    class_call(matter_spline_bessel_integrals_recursion(pma),
+             pma->error_message,
+             pma->error_message);
+
+    if(pma->uses_bessel_store){
+      class_call(matter_write_bessel_integrals(pma),pma->error_message,pma->error_message);
     }
-    else{
-      class_call(matter_spline_bessel_integrals(pma),
-                 pma->error_message,
-                 pma->error_message);
-    }
+  }
+  if(is_correct_file){
+    class_call(matter_read_bessel_integrals(pma),pma->error_message,pma->error_message);
   }
   //Ifend obtain bessel integrals
   /* Done getting Bessel integrals and l sampling */
+
 
 
 
@@ -857,7 +847,6 @@ int matter_init(
     printf(" -> Parameter '%s' has value %s \n","uses seperability",(pma->uses_separability?"TRUE":"FALSE"));
     printf(" -> Parameter '%s' has value %s \n","allow extrapolation",(pma->allow_extrapolation?"TRUE":"FALSE"));
     printf(" -> Parameter '%s' has value %s \n","uses density spltting",(pma->uses_density_splitting?"TRUE":"FALSE"));
-    printf(" -> Parameter '%s' has value %s \n","uses bessel recursion",(pma->uses_bessel_recursion?"TRUE":"FALSE"));
     printf(" -> Parameter '%s' has value %s \n","uses intxi_interpolation",(pma->uses_intxi_interpolation?"TRUE":"FALSE"));
     printf(" -> Parameter '%s' has value %s \n","uses intxi_logarithmic",(pma->uses_intxi_logarithmic?"TRUE":"FALSE"));
     printf(" -> Parameter '%s' has value %s \n","uses intxi_symmetric",(pma->uses_intxi_symmetrized?"TRUE":"FALSE"));
@@ -974,31 +963,17 @@ int matter_free(
     free(pma->nu_imag);
     if(!pma->uses_limber_approximation){
       for(j=0;j<pma->tilt_grid_size;++j){
-        if(pma->uses_bessel_recursion){
-          for(i=0;i<pma->l_size_recursion*pma->size_fft_cutoff;++i){
-            int delta = (i/pma->size_fft_cutoff);
-            int index = delta*pma->size_fft_result+(i-pma->size_fft_cutoff*delta);
-            //printf("Freeing %4d %4d %4d \n",j,delta,i-pma->size_fft_cutoff*delta);
-            free(pma->bi_real[j][index]);
-            free(pma->bi_imag[j][index]);
-            free(pma->bi_sampling[j][index]);
-            free(pma->ddbi_real[j][index]);
-            free(pma->ddbi_imag[j][index]);
-          }
-        }
-        else{
-          for(i=0;i<pma->size_fft_result*pma->l_size;++i){
-            free(pma->bi_real[j][i]);
-            free(pma->bi_imag[j][i]);
-            free(pma->bi_sampling[j][i]);
-            free(pma->ddbi_real[j][i]);
-            free(pma->ddbi_imag[j][i]);
-          }
-
+        for(i=0;i<pma->l_size_recursion*pma->size_fft_cutoff;++i){
+          int delta = (i/pma->size_fft_cutoff);
+          int index = delta*pma->size_fft_result+(i-pma->size_fft_cutoff*delta);
+          //printf("Freeing %4d %4d %4d \n",j,delta,i-pma->size_fft_cutoff*delta);
+          free(pma->bi_real[j][index]);
+          free(pma->bi_imag[j][index]);
+          free(pma->ddbi_real[j][index]);
+          free(pma->ddbi_imag[j][index]);
         }
         free(pma->bi_real[j]);
         free(pma->bi_imag[j]);
-        free(pma->bi_sampling[j]);
         free(pma->ddbi_real[j]);
         free(pma->ddbi_imag[j]);
         free(pma->bi_size[j]);
@@ -1518,21 +1493,6 @@ int matter_obtain_coeff_sampling(
      *  which is only possible if we include this correction factor here
      * */
     pma->nu_imag[index_coeff]=_TWOPI_*(((double)(index_coeff))/(pma->deltalogk))*((double)pma->size_fft_input-1)/((double)pma->size_fft_input);
-    /**
-     * The algorithm used to obtain the bessel integrals is not always stable,
-     *  especially not when the imaginary part of the coefficients gets too large
-     * We want to warn the user about this fact
-     * */
-    if(!pma->uses_bessel_recursion && pma->nu_imag[index_coeff]> WARN_LARGE_NU_IMAG){
-      printf("PROBLEM :: nu_imag > %f , for index %i, DLOGK = %f , nu = %f \n \
-        The imaginary part of the coefficients was larger than \n \
-        what is currently supported without bessel recursion. \n \
-        Consider switching to bessel recursion, \n \
-        increasing your delta-logk (e.g. by using source extrapolation), \n \
-        or increasing the warning parameter 'WARN_LARGE_NU_IMAG' \n",
-        WARN_LARGE_NU_IMAG,index_coeff,pma->deltalogk,pma->nu_imag[index_coeff]);
-    }
-    //Ifend user warning
   }
   //End coeff
   return _SUCCESS_;
@@ -1798,6 +1758,7 @@ int matter_obtain_l_sampling(
                   pma->l_size*sizeof(double),
                   pma->error_message);
   }
+  pma->l_size_recursion = (int)(pma->uses_bessel_storeall?(pma->l_sampling[pma->l_size-1]+1):pma->l_size);
   return _SUCCESS_;
 }
 
@@ -3968,265 +3929,13 @@ int matter_obtain_bi_indices(
   }
   return _SUCCESS_;
 }
-int matter_obtain_bessel_integrals(
-                                  struct matters * pma
-                                  ){
-  if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
-    printf("Method :: Obtaining bessel integrals directly (no recursion) \n");
-  }
-  clock_t start_bessel = clock();
-  /**
-   * Declare variables to be used later
-   * */
-  int index_tilt1,index_tilt2,index_tilt1_tilt2;
-  int index_coeff;int index_l;
-  int index_t;
-  int current_bi_size;
-  double t_val = 0.0;
-  double y_val;
-  double y_max;
-
-  double t_min_estimate;
-  double y_min_guess;
-
-  double res_real,res_imag;
-
-  /**
-   * We sample in between 0.0 and 1.0-BI_SAMPLING_EPSILON
-   *
-   * The maximum number of samples is how many evaluations
-   *  are possible at most.
-   * */
-  double BI_SAMPLING_EPSILON = 1e-8;
-  int MAX_SAMPLES = 1000000+1;
-  y_max = -log(BI_SAMPLING_EPSILON);
-  /**
-   * We allocate the bessel integral arrays,
-   *  where we store the final results
-   * */
-  class_alloc(pma->bi_real,
-              pma->tilt_grid_size*sizeof(double**),
-              pma->error_message);
-  class_alloc(pma->bi_imag,
-              pma->tilt_grid_size*sizeof(double**),
-              pma->error_message);
-  class_alloc(pma->bi_size,
-              pma->tilt_grid_size*sizeof(int*),
-              pma->error_message);
-  class_alloc(pma->bi_sampling,
-              pma->tilt_grid_size*sizeof(double**),
-              pma->error_message);
-  class_alloc(pma->bi_max,
-              pma->tilt_grid_size*sizeof(double*),
-              pma->error_message);
-  for(index_tilt1=0;index_tilt1<pma->tilt_size;++index_tilt1){
-    for(index_tilt2=index_tilt1;index_tilt2<pma->tilt_size;++index_tilt2){
-      index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
-      class_alloc(pma->bi_real[index_tilt1_tilt2],
-                  pma->size_fft_result*pma->l_size*sizeof(double*),
-                  pma->error_message);
-      class_alloc(pma->bi_imag[index_tilt1_tilt2],
-                  pma->size_fft_result*pma->l_size*sizeof(double*),
-                  pma->error_message);
-      class_alloc(pma->bi_size[index_tilt1_tilt2],
-                  pma->size_fft_result*pma->l_size*sizeof(int),
-                  pma->error_message);
-      class_alloc(pma->bi_sampling[index_tilt1_tilt2],
-                  pma->size_fft_result*pma->l_size*sizeof(double*),
-                  pma->error_message);
-      class_alloc(pma->bi_max[index_tilt1_tilt2],
-                  pma->size_fft_result*pma->l_size*sizeof(double),
-                  pma->error_message);
-      if(pma->matter_verbose>MATTER_VERBOSITY_BESSEL){
-        printf(" -> Obtaining bessel integrals for tilt %f \n",pma->bias-pma->nu_real[index_tilt1_tilt2]);
-      }
-      for(index_l=0;index_l<pma->l_size;++index_l){
-        if(pma->matter_verbose >MATTER_VERBOSITY_BESSEL){
-          printf(" -> Obtaining bessel integrals of l = %4d (index %3d/%3d)\n",
-                 (int)pma->l_sampling[index_l],index_l,pma->l_size-1
-                );
-        }
-        for(index_coeff=0;index_coeff<pma->size_fft_cutoff;++index_coeff){
-          /**
-           * This estimation simply serves to find the minimum t
-           *  This we do simply to sample with approximately the same samples,
-           *  no matter which t we are using
-           * This is actually preferable to the recursion type of evaluation,
-           *  but for that we sadly do require the same t point for all l,
-           *  and thus this nice feature is sadly not possible there
-           * */
-          class_call(matter_estimate_t_max_bessel(
-                                                  pma,
-                                                  pma->l_sampling[index_l],
-                                                  pma->nu_imag[index_coeff],
-                                                  &t_min_estimate),
-                    pma->error_message,
-                    pma->error_message);
-          /**
-           *
-           * We calculate the minimum y of our guessed t
-           * First we find the sampling step size for a given wanted number of samples.
-           *  This also allows us to allocate the maximum size of bessel integrals,
-           *  that would be used if there was no t_min
-           * Of course we need to cap this maximum number off at some point,
-           *  so we do not run into the maximum integer limit
-           * However, the real number of samples should still be around the wanted one
-           *
-           * The real size is found later through the criterion
-           *  |I_l(nu,t)| < eps*|I_l(nu,1)|
-           * */
-          y_min_guess = -log(1.0-t_min_estimate);
-          current_bi_size= MIN((int)(pma->bi_wanted_samples*y_max/(y_max-y_min_guess))+1,MAX_SAMPLES);
-          pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = current_bi_size;
-          class_test(current_bi_size==0,
-                     pma->error_message,
-                     "the bessel-integral array size was found to be 0. Either this is a bug, or the parameter bi_wanted_samples is too low."
-                    );
-          /**
-           * Allocate the arrays of the maximum possible size
-           * */
-          class_alloc(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                  current_bi_size*sizeof(double),
-                  pma->error_message);
-          class_alloc(pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                  current_bi_size*sizeof(double),
-                  pma->error_message);
-          class_alloc(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                  current_bi_size*sizeof(double),
-                  pma->error_message);
-
-          /**
-           * First we calculate I_l(nu,1) and |I_l(nu,1)|
-           * */
-          double first_val_real; double first_val_imag;
-          bessel_integral_transform(
-                          pma->l_sampling[index_l],
-                          pma->nu_real[index_tilt1_tilt2],
-                          pma->nu_imag[index_coeff]+pma->bessel_imag_offset,
-                          1.0,
-                          &first_val_real,
-                          &first_val_imag
-                          );
-          double first_val_abs_squared = first_val_real*first_val_real+first_val_imag*first_val_imag;
-          /**
-           * This point is also our first sampling point
-           * */
-          pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0]= 0.0;
-          pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0] = first_val_real;
-          pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0] = first_val_imag;
-
-          /**
-           * We iterate through all possible (!) values of t,
-           *  and keep those that have an I_l that is large enough
-           *  (these t are probably (but not necessarily) larger than t_min_estimate)
-           * */
-          for(index_t=1;index_t<current_bi_size;++index_t){
-            y_val = y_max-y_max*((double)(index_t-1))/((double)(current_bi_size-2));
-            t_val = 1.0-exp(-y_val);
-            pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t]= 1.0 - t_val;
-            /**
-             * The hypergeometric function has problems if nu is close to 0 in absolute value
-             * Therefore, we add some infinitessimal 1e-5 to nu_imag to stabilize the function
-             *  (The reason is that the arguments degenerate to integer offset (l integer),
-             *  and this is where the gamma is near to a pole (divergence)
-             * At the exact divergence, we could calculate it with a finite sum with no problem,
-             *  but close to it, (say 1e-10 , 1e-20) , this would be a huge problem
-             *
-             * Of course it would be theoretically possible to do these cases as well
-             *  by a suitable transformation, but this would require a lot more checking,
-             *  slowing the program further down
-             * */
-            bessel_integral_transform(
-                                      pma->l_sampling[index_l],
-                                      pma->nu_real[index_tilt1_tilt2],
-                                      pma->nu_imag[index_coeff]+pma->bessel_imag_offset,
-                                      t_val,
-                                      &res_real,
-                                      &res_imag
-                                      );
-            /**
-             * At some point we will hopefully reach |I_l(nu,t)|< eps*|I_l(nu,1)|,
-             *  thus finding the ACTUAL size (which should be of order bi_wanted_samples)
-             *  If we reach below t_val==0.0, some error has happened
-             *  This should never happen.
-             * */
-            if(res_real*res_real+res_imag*res_imag<BESSEL_EPSILON*first_val_abs_squared || t_val<0.0){
-                class_test(t_val<0.0,
-                           pma->error_message,
-                           "Return due to t<0 in bessel_integral. This is a bug in the code."
-                          );
-                /**
-                 * Now we can store the maximum value of t and array size,
-                 *  and finally reallocate the arrays
-                 * */
-                pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = res_real;
-                pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = res_imag;
-                pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = index_t+1;
-                pma->bi_max[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = 1.0 - t_val;
-                class_realloc(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                              pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                              pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
-                              pma->error_message);
-                class_realloc(pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                              pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                              pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
-                              pma->error_message);
-                class_realloc(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                              pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                              pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
-                              pma->error_message);
-                /**
-                 * If we have found |I_l(nu,t)|<eps*|I_l(nu,1)| for this l value,
-                 *  we can ignore all t smaller than this one (because there the I_l(nu,t) is smaller in absolute value
-                 * (It goes to 0.0 for t->0.0)
-                 * */
-                break;
-            }
-            pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = res_real;
-            pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = res_imag;
-
-          }
-          //End t
-          /**
-           * If the I_l(nu,t) never statisfied the criterion |I_l(nu,t)|<eps*|I_l(nu,1)|
-           *  this is a mistake
-           * The last y_val is always 0.0, which corresponds to t = 1.0-exp(-0.0) = 0.0,
-           *  so here the function has to be exactly equal to 0.0,
-           *  for all l>=2 , which are considered here.
-           * Thus finding a mode where the criterion was not fulfilled at any point is
-           *  clearly a bug. (Or l<1 was somehow enabled, which should NOT be true)
-           * */
-          class_test(index_t==current_bi_size,
-                     pma->error_message,
-                     "The sampling in t-space for the I_l(nu,t) did not stop within the required parameter range ( t>=0.0 ) \n \
-                      This is a bug. Either l<1 was activated, or I_l(nu,0) =/= 0, both of which should not happen. \n \
-                      Here are a few more parameters that could be useful for debugging : \n \
-                      index_t = %i , t =%f , l = %i , nu= %.10e+%.10ej \n \
-                      Predicted number of required t steps %i, stepsize %.10e, up to 1.0 \n",
-                      index_t,t_val,(int)pma->l_sampling[index_l],pma->nu_real[index_tilt1_tilt2],pma->nu_imag[index_coeff],
-                      current_bi_size,1.0/current_bi_size
-                    );
-          //End if
-        }
-        //End coeff
-      }
-      //End l
-    }
-    //End tilt2
-  }
-  //End tilt1
-  clock_t end_bessel = clock();
-  if(pma->matter_verbose > MATTER_VERBOSITY_TIMING ){
-    printf(" -> Obtaining Bessel Integrals took %f seconds \n",((double)(end_bessel-start_bessel))/CLOCKS_PER_SEC);
-  }
-  return _SUCCESS_;
-}
 //TODO :: add final one with t=0, => Il = 0
 int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS ){
     printf("Method :: Obtain bessel integrals from recursion \n");
   }
   clock_t start_bessel = clock();
+  //long long TOTAL_ALLOC;
 #ifdef _OPENMP
   double start_bessel_omp = omp_get_wtime();
 #else
@@ -4234,7 +3943,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 #endif
   int index_tilt1,index_tilt2,index_tilt1_tilt2;
   int index_coeff;
-  int index_l;
+  int index_l,index_l_eval;
   int index_t;
   double y_max;
   double y_min;
@@ -4321,12 +4030,14 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
    * (bessel_recursion_l_size instead of pma->l_size)
    * */
   bessel_recursion_l_size = bessel_recursion_l_max+1;
-  pma->l_size_recursion = bessel_recursion_l_size;
+  pma->l_size_recursion = (pma->uses_bessel_storeall?bessel_recursion_l_size:pma->l_size);
 
   /**
    * Allocate the arrays in which we want to store the final bessel integrals
    *  (Bessel Integrals are shortened to BI)
    * */
+  //printf("Allocating %lu \n",3*pma->tilt_grid_size*sizeof(double**)+pma->tilt_grid_size*sizeof(int*)+pma->tilt_grid_size*sizeof(double*));
+  //TOTAL_ALLOC+=3*pma->tilt_grid_size*sizeof(double**)+pma->tilt_grid_size*sizeof(int*)+pma->tilt_grid_size*sizeof(double*);
   class_alloc(pma->bi_real,
               pma->tilt_grid_size*sizeof(double**),
               pma->error_message);
@@ -4336,11 +4047,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   class_alloc(pma->bi_size,
               pma->tilt_grid_size*sizeof(int*),
               pma->error_message);
-  class_alloc(pma->bi_sampling,
-              pma->tilt_grid_size*sizeof(double**),
-              pma->error_message);
   class_alloc(pma->bi_max,
               pma->tilt_grid_size*sizeof(double*),
+              pma->error_message);
+  class_alloc(pma->bi_sampling,
+              bi_recursion_t_size*sizeof(double),
               pma->error_message);
   /**
    * Define and allocate temporary arrays,
@@ -4349,39 +4060,39 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   for(index_tilt1=0;index_tilt1<pma->tilt_size;++index_tilt1){
     for(index_tilt2=index_tilt1;index_tilt2<pma->tilt_size;++index_tilt2){
       index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
-
+      //printf("Allocating %lu \n",3*l_size_current*pma->size_fft_result*sizeof(double*)+l_size_current*pma->size_fft_result*sizeof(int)+l_size_current*pma->size_fft_result*sizeof(double));
+      //TOTAL_ALLOC+=3*l_size_current*pma->size_fft_result*sizeof(double*)+l_size_current*pma->size_fft_result*sizeof(int)+l_size_current*pma->size_fft_result*sizeof(double);
       class_alloc(pma->bi_real[index_tilt1_tilt2],
-                  bessel_recursion_l_size*pma->size_fft_result*sizeof(double*),
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
                   pma->error_message);
       class_alloc(pma->bi_imag[index_tilt1_tilt2],
-                  bessel_recursion_l_size*pma->size_fft_result*sizeof(double*),
-                  pma->error_message);
-      class_alloc(pma->bi_sampling[index_tilt1_tilt2],
-                  bessel_recursion_l_size*pma->size_fft_result*sizeof(double*),
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
                   pma->error_message);
       class_alloc(pma->bi_size[index_tilt1_tilt2],
-                  bessel_recursion_l_size*pma->size_fft_result*sizeof(int),
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(int),
                   pma->error_message);
       class_alloc(pma->bi_max[index_tilt1_tilt2],
-                  bessel_recursion_l_size*pma->size_fft_result*sizeof(double),
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double),
                   pma->error_message);
       /**
        * Allocate the real and imaginary arrays
        * Also allocate the sampling array
        * */
-      for(index_l=0;index_l<=bessel_recursion_l_max;++index_l){
+      //printf("Going to allocate %lu \n",3*bi_recursion_t_size*sizeof(double)*l_size_current*pma->size_fft_cutoff);
+      //printf("%i %i %i \n",3*bi_recursion_t_size,l_size_current,pma->size_fft_cutoff);
+      for(index_l=0;index_l<pma->l_size_recursion;++index_l){
         for(index_coeff=0;index_coeff<pma->size_fft_cutoff;++index_coeff){
+          //printf("Allocating %lu \n",3*bi_recursion_t_size*sizeof(double));
+          //TOTAL_ALLOC+=3*bi_recursion_t_size*sizeof(double);
           class_alloc(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                       bi_recursion_t_size*sizeof(double),
                       pma->error_message);
           class_alloc(pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                       bi_recursion_t_size*sizeof(double),
                       pma->error_message);
-          class_alloc(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                      bi_recursion_t_size*sizeof(double),
-                      pma->error_message);
         }
       }
+      //printf("Total alloc so far %lld \n",TOTAL_ALLOC);
       if(pma->matter_verbose > MATTER_VERBOSITY_BESSEL){
         printf(" -> Obtaining recursion starting bessel integrals for tilt %f \n",pma->bias-pma->nu_real[index_tilt1_tilt2]);
       }
@@ -4404,7 +4115,8 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
         class_alloc_parallel(initial_abs,
                     bessel_recursion_l_size*sizeof(double),
                     pma->error_message);
-
+        //printf("Thread %i allocs %lu \n",omp_get_thread_num(),2*bessel_recursion_l_size*sizeof(double)+2*(bessel_recursion_l_size+back_complicated_max_size)*sizeof(double));
+        //TOTAL_ALLOC+=2*bessel_recursion_l_size*sizeof(double)+2*(bessel_recursion_l_size+back_complicated_max_size)*sizeof(double);
         double back_simple_time = 0;
         double for_simple_time = 0;
         double complex_time = 0;
@@ -4435,10 +4147,11 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
            * */
           bessel_integral_recursion_initial_abs(bessel_recursion_l_max,nu_real,nu_imag,abi_real,abi_imag,initial_abs);
 
-          for(index_l=0;index_l<=bessel_recursion_l_max;++index_l){
-            pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0]= 0.0;
-            pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0] = abi_real[index_l];
-            pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0] = abi_imag[index_l];
+          for(index_l=0;index_l<pma->l_size_recursion;++index_l){
+            index_l_eval = (pma->uses_bessel_storeall?index_l:(int)pma->l_sampling[index_l]);
+            pma->bi_sampling[0]= 0.0;
+            pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0] = abi_real[index_l_eval];
+            pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][0] = abi_imag[index_l_eval];
           }
           /**
            * Set the minimum t for which |I_l(nu,t)|<eps |I_l(nu,1)|
@@ -4663,11 +4376,13 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
              *  we need to store them within the storage arrays
              * */
             clock_t copy_start = clock();
-            for(index_l=0;index_l<=l_max_cur;++index_l){
-              pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t]= 1.0-t;
-              pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = abi_real[index_l];
-              pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = abi_imag[index_l];
-              if(max_t[index_l]>=t){
+            for(index_l=0;index_l<pma->l_size_recursion;++index_l){
+              index_l_eval = (pma->uses_bessel_storeall?index_l:(int)pma->l_sampling[index_l]);
+              if(index_l_eval>l_max_cur){continue;}
+              pma->bi_sampling[index_t]= 1.0-t;
+              pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = abi_real[index_l_eval];
+              pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff][index_t] = abi_imag[index_l_eval];
+              if(max_t[index_l_eval]>=t){
                 /**
                  * If the condition |I_l(nu,t)|<eps*|I_l(nu,1)|
                  * is fulfilled, we do not need to evaluate this mode
@@ -4680,7 +4395,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                  * */
                 pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = index_t+1;
                 pma->bi_max[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff] = 1.0 - t;
-
                 //TODO :: figure out why parallel reallocation leads to segmentation faults
                 /*class_realloc_parallel(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                               pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
@@ -4718,10 +4432,12 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
            *  continue to t=1 without reaching their criterion
            * (The l=0 goes towards a constant, the l=1 decreases too slowly to exit in most cases)
            * */
-          pma->bi_size[index_tilt1_tilt2][0*pma->size_fft_result+index_coeff] = bi_recursion_t_size;
-          pma->bi_max[index_tilt1_tilt2][0*pma->size_fft_result+index_coeff] = 0.0;
-          pma->bi_size[index_tilt1_tilt2][1*pma->size_fft_result+index_coeff] = bi_recursion_t_size;
-          pma->bi_max[index_tilt1_tilt2][1*pma->size_fft_result+index_coeff] = 0.0;
+          if(pma->uses_bessel_storeall){
+            pma->bi_size[index_tilt1_tilt2][0*pma->size_fft_result+index_coeff] = bi_recursion_t_size;
+            pma->bi_max[index_tilt1_tilt2][0*pma->size_fft_result+index_coeff] = 0.0;
+            pma->bi_size[index_tilt1_tilt2][1*pma->size_fft_result+index_coeff] = bi_recursion_t_size;
+            pma->bi_max[index_tilt1_tilt2][1*pma->size_fft_result+index_coeff] = 0.0;
+          }
 
         }
         //End coeff
@@ -4748,6 +4464,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
     //End tilt2
   }
   //End tilt1
+  //printf("TOTAL TOTAL TOTAL ALLOC : %lld \n",TOTAL_ALLOC);
   /**
    * Delete temporary arrays
    * */
@@ -4916,6 +4633,15 @@ int matter_obtain_relative_factor(
   //End ic
   return _SUCCESS_;
 }
+/**
+ * Obtain the nonlinearity factor, replacing the values of
+ * fft_coeff_real, and fft_coeff_imag
+ *
+ * @param pma                  Input: pointer to matter struct
+ * @param fft_coeff_real       Input/Output: fft coefficients (real)
+ * @param fft_coeff_imag       Input/Output: fft coefficients (imag)
+ * @return the error status
+ */
 int matter_obtain_nonseparability(
                                struct matters* pma,
                                double ** fft_coeff_real,
@@ -4979,6 +4705,17 @@ int matter_obtain_nonseparability(
   free(fft_coeff_factor_imag);
   return _SUCCESS_;
 }
+
+/**
+ * Obtain the desired sources from preturbation struct
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pnl                  Input: pointer to nonlinear struct
+ * @param pma                  Input: pointer to matter struct
+ * @param source               Input: array of source functions
+ * @return the error status
+ */
 int matter_obtain_perturbation_sources(
                                       struct background* pba,
                                       struct perturbs * ppt,
@@ -5136,6 +4873,19 @@ int matter_obtain_perturbation_sources(
   return _SUCCESS_;
 }
 
+/**
+ * Extrapolate the desired sources
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param ppr                  Input: pointer to precision struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param k_extrapolated       Input: the k sampling for extrapolation
+ * @param source               Input: array of source functions
+ * @param extrapolated_sources Output: array of extrapolated sources
+ * @param extrapolation_type   Input: the type of extrapolation
+ * @return the error status
+ */
 int matter_extrapolate_sources(
                                struct background* pba,
                                struct precision* ppr,
@@ -5207,79 +4957,12 @@ int matter_extrapolate_sources(
   pma->k_size = k_size_extr;
   return _SUCCESS_;
 }
-int matter_spline_bessel_integrals(
-                                   struct matters * pma
-                                  ) {
-  if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
-    printf("Method :: Spline bessel integrals\n");
-  }
-  clock_t spline_start = clock();
-#ifdef _OPENMP
-  double spline_start_omp = omp_get_wtime();
-#else
-  double spline_start_omp = 0.0;
-#endif
-  /**
-   * Initialize and allocate initial arrays
-   * */
-  int index_coeff;
-  int index_l;
-  int index_tilt1,index_tilt2,index_tilt1_tilt2;
-  for(index_tilt1=0;index_tilt1<pma->tilt_size;++index_tilt1){
-    for(index_tilt2=index_tilt1;index_tilt2<pma->tilt_size;++index_tilt2){
-      index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
-      class_alloc(pma->ddbi_real[index_tilt1_tilt2],
-                  pma->l_size*pma->size_fft_result*sizeof(double*),
-                  pma->error_message);
-      class_alloc(pma->ddbi_imag[index_tilt1_tilt2],
-                  pma->l_size*pma->size_fft_result*sizeof(double*),
-                  pma->error_message);
-      for(index_l=0;index_l<pma->l_size;++index_l){
-        for(index_coeff=0;index_coeff<pma->size_fft_cutoff;++index_coeff){
-          class_alloc(pma->ddbi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                      pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
-                      pma->error_message);
-          class_alloc(pma->ddbi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                      pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
-                      pma->error_message);
-          class_call(array_spline_table_columns(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                1,
-                                                pma->ddbi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                _SPLINE_EST_DERIV_,
-                                                pma->error_message),
-                    pma->error_message,
-                    pma->error_message);
-          class_call(array_spline_table_columns(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                1,
-                                                pma->ddbi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
-                                                _SPLINE_EST_DERIV_,
-                                                pma->error_message),
-                    pma->error_message,
-                    pma->error_message);
-        }
-        //End coeff
-      }
-      //End l
-    }
-    //End tilt2
-  }
-  //End tilt1
-  clock_t spline_end = clock();
-#ifdef _OPENMP
-  double spline_end_omp = omp_get_wtime();
-#else
-  double spline_end_omp = 0.0;
-#endif
-  if(pma->matter_verbose > MATTER_VERBOSITY_TIMING){
-    printf(" -> Splining bessel integrals took %f CPU  seconds \n",((double)(spline_end-spline_start))/CLOCKS_PER_SEC);
-    printf(" -> Splining bessel integrals took %f REAL seconds \n",spline_end_omp-spline_start_omp);
-  }
-  return _SUCCESS_;
-}
+/**
+ * Spline the bessel integrals after having recursively found them
+ *
+ * @param pma                  Input: pointer to matter struct
+ * @return the error status
+ */
 int matter_spline_bessel_integrals_recursion(
                                   struct matters * pma
                                   ) {
@@ -5298,6 +4981,12 @@ int matter_spline_bessel_integrals_recursion(
   int index_coeff;
   int index_l;
   int index_tilt1,index_tilt2,index_tilt1_tilt2;
+  class_alloc(pma->ddbi_real,
+              pma->tilt_grid_size*sizeof(double**),
+              pma->error_message);
+  class_alloc(pma->ddbi_imag,
+              pma->tilt_grid_size*sizeof(double**),
+              pma->error_message);
   for(index_tilt1=0;index_tilt1<pma->tilt_size;++index_tilt1){
     for(index_tilt2=index_tilt1;index_tilt2<pma->tilt_size;++index_tilt2){
       index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
@@ -5323,7 +5012,7 @@ int matter_spline_bessel_integrals_recursion(
       #pragma omp for
       for(index_l=0;index_l<pma->l_size_recursion;++index_l){
         for(index_coeff=0;index_coeff<pma->size_fft_cutoff;++index_coeff){
-          class_call_parallel(array_spline_table_columns(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+          class_call_parallel(array_spline_table_columns(pma->bi_sampling,
                                                 pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                                                 pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                                                 1,
@@ -5332,7 +5021,7 @@ int matter_spline_bessel_integrals_recursion(
                                                 pma->error_message),
                     pma->error_message,
                     pma->error_message);
-          class_call_parallel(array_spline_table_columns(pma->bi_sampling[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+          class_call_parallel(array_spline_table_columns(pma->bi_sampling,
                                                 pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                                                 pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                                                 1,
@@ -5364,21 +5053,29 @@ int matter_spline_bessel_integrals_recursion(
   return _SUCCESS_;
 }
 /**
- * Two shortcut routins for first using spline_hunt to navigate to correct index,
- *  which for non-evenly spaced arrays is almost always faster than bisection
- * Then use the result for cubic hermite interpolation,
- *  respecting the ordering of the y array access
- * */
+ * Cubic hermite spline interpolation
+ *
+ * @param x_array              Input: pointer x array
+ * @param x_size               Input: size x array
+ * @param array                Input: pointer y array
+ * @param array_splined        Input: pointer ddy array
+ * @param y_size               Input: size y array
+ * @param x                    Input: x to interpolate at
+ * @param last_index           Input/Output: last index at which x was found
+ * @param result               Output: pointer to y(x) value
+ * @param errmsg               Output: the error message
+ * @return the error status
+ */
 int matter_interpolate_spline_growing_hunt(
-					     double * x_array,
-					     int x_size,
-					     double * array, //[index_y*x_size+index_x]
-					     double * array_splined,
-					     int y_size,
-					     double x,
-					     int * last_index,
-					     double * result,
-					     ErrorMsg errmsg
+                double * x_array,
+                int x_size,
+                double * array, //[index_y*x_size+index_x]
+                double * array_splined,
+                int y_size,
+                double x,
+                int * last_index,
+                double * result,
+                ErrorMsg errmsg
                ) {
   double h,a,b;
   int index_y;
@@ -5395,6 +5092,16 @@ int matter_interpolate_spline_growing_hunt(
   }
   return _SUCCESS_;
 }
+/**
+ * Sample the desired sources
+ *
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param source               Input: array of source functions
+ * @param sampled_source       Output: array of sampled sources
+ * @param perturbed_k_sampling Input: the k sampling
+ * @return the error status
+ */
 int matter_sample_sources(
                         struct perturbs * ppt,
                         struct matters* pma,
@@ -5459,6 +5166,19 @@ int matter_sample_sources(
   free(ddsource);
   return _SUCCESS_;
 }
+/**
+ * FFTlog the perturbation sources in a parallelized fashion
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param ppm                  Input: pointer to primordial struct
+ * @param pma                  Input: pointer to matter struct
+ * @param sampled_sources      Input: array of sampled source
+ * @param prim_spec            Input: array of sampled primordial spectrum
+ * @param fft_coeff_real       Output: the fft coefficients (real)
+ * @param fft_coeff_imag       Output: the fft coefficients (imaginary)
+ * @return the error status
+ */
 int matter_FFTlog_perturbation_sources_parallel(
                 struct background * pba,
                 struct perturbs * ppt,
@@ -5715,6 +5435,17 @@ int matter_FFTlog_perturbation_sources_parallel(
 
   return _SUCCESS_;
 }
+/**
+ * Integrate the Cl's
+ *
+ * @param ppr                  Input: pointer to precision struct
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param fft_coeff_real       Input: the fft coefficients (real)
+ * @param fft_coeff_imag       Input: the fft coefficients (imaginary)
+ * @return the error status
+ */
 int matter_integrate_cl(struct precision* ppr,
                         struct background* pba,
                         struct perturbs * ppt,
@@ -5976,6 +5707,24 @@ int matter_integrate_cl(struct precision* ppr,
 }
 
 
+/**
+ * Integrate the window function for integrated contributions
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to matter struct
+ * @param window               Input: pointer to original window function
+ * @param integrated_window    Output: pointer to integrated window function
+ * @param integrated_sampling  Input: sampling used after integration
+ * @param oldtw_sampling       Input: sampling used before/during integration
+ * @param oldtw_weights        Input: weights used during integration
+ * @param integrated_size      Input: size of integrated array
+ * @param oldtw_size           Input: size of old array
+ * @param index_wd             Input: index of window to integrate
+ * @param index_radtp          Input: index of radial type to integrate
+ * @param f_evo                Input: temporary array for f_evo terms
+ * @param pvecback             Input: the pvecback to use
+ * @return the error status
+ */
 int matter_integrate_window_function(struct background* pba,
                                      struct matters* pma,
                                      double* window,
@@ -6095,6 +5844,28 @@ int matter_integrate_window_function(struct background* pba,
   return _SUCCESS_;
 }
 
+/**
+ * Get the integrand of the cosmological function in t and tau
+ * for the the t range where 1>2, and the whole tau range
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param t                    Input: current value of t
+ * @param index_ic1            Input: index of initial condition 1
+ * @param index_ic2            Input: index of initial condition 2
+ * @param index_radtp1         Input: index of radial type 1
+ * @param index_radtp2         Input: index of radial type 2
+ * @param index_stp1_stp2      Input: index of source type combo 1,2
+ * @param index_wd1            Input: index of window 1
+ * @param index_wd2            Input: index of window 2
+ * @param integrand_real       Output: the integrand (real part)
+ * @param integrand_imag       Output: the integrand (imaginary part)
+ * @param wint_fft_real        Input: temporary array for fft coefficients
+ * @param wint_fft_imag        Input: temporary array for fft coefficients
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_get_half_integrand(struct background* pba,
                               struct perturbs* ppt,
                               struct matters* pma,
@@ -6289,6 +6060,28 @@ int matter_get_half_integrand(struct background* pba,
   //End tw
   return _SUCCESS_;
 }
+/**
+ * Get the integrand of the cosmological function in t and tau
+ * for the whole t and tau ranges
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param t                    Input: current value of t
+ * @param index_ic1            Input: index of initial condition 1
+ * @param index_ic2            Input: index of initial condition 2
+ * @param index_radtp1         Input: index of radial type 1
+ * @param index_radtp2         Input: index of radial type 2
+ * @param index_stp1_stp2      Input: index of source type combo 1,2
+ * @param index_wd1            Input: index of window 1
+ * @param index_wd2            Input: index of window 2
+ * @param integrand_real       Output: the integrand (real part)
+ * @param integrand_imag       Output: the integrand (imaginary part)
+ * @param wint_fft_real        Input: temporary array for fft coefficients
+ * @param wint_fft_imag        Input: temporary array for fft coefficients
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_get_ttau_integrand(struct background* pba,
                               struct perturbs* ppt,
                               struct matters* pma,
@@ -6601,6 +6394,20 @@ int matter_get_ttau_integrand(struct background* pba,
   free(sin_val);
   return _SUCCESS_;
 }
+/**
+ * Small helper function specifying the cosmological function
+ * asymptote as a function of t for two windows in non-integrated
+ * contributions without derivatives for gaussian windows,
+ * to possibly improve interpolation accuracy
+ *
+ * @param ppr                  Input: pointer to precision struct
+ * @param pma                  Input: pointer to matter struct
+ * @param t                    Input: current value of t
+ * @param index_wd1            Input: current index of window 1
+ * @param index_wd2            Input: current index of window 2
+ * @param result               Output: pointer to output
+ * @return the error status
+ */
 int matter_asymptote(struct precision* ppr, struct matters* pma,double t, int index_wd1, int index_wd2,double* result){
   double x1 = pma->tau0-0.5*(pma->tw_max[index_wd1]+pma->tw_min[index_wd1]);
   double x2 = pma->tau0-0.5*(pma->tw_max[index_wd2]+pma->tw_min[index_wd2]);
@@ -6610,6 +6417,19 @@ int matter_asymptote(struct precision* ppr, struct matters* pma,double t, int in
   *result = exp(-0.5*(x1*t-x2)*(x1*t-x2)/(sigma1*sigma1*t*t+sigma2*sigma2))+exp(-0.5*(x2*t-x1)*(x2*t-x1)/(sigma2*sigma2*t*t+sigma1*sigma1));
   return _SUCCESS_;
 }
+/**
+ * Precompute chi^(1-nu) or chi^(2-nu) for normal and logarithmic
+ * chi integration respectively
+ *
+ * dchi = dlog(chi) * chi
+ *
+ * @param pma                  Input: pointer to matter struct
+ * @param index_wd             Input: current window index
+ * @param pref_real            Output: array of prefactors (real part)
+ * @param pref_imag            Output: array of prefactors (imaginary part)
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_precompute_chit_factors(struct matters* pma,
                                    int index_wd,
                                    double* pref_real,
@@ -6647,6 +6467,16 @@ int matter_precompute_chit_factors(struct matters* pma,
   }
   return _SUCCESS_;
 }
+/**
+ * Integrate the cosmological function f_n^ij(t)
+ *
+ * @param ppr                  Input: pointer to precision struct
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_integrate_cosmo(
                            struct precision* ppr,
                            struct background* pba,
@@ -7025,6 +6855,16 @@ int matter_integrate_cosmo(
   //Ifend interpolation
   return _SUCCESS_;
 }
+/**
+ * Integrate each bin combination of Cl's
+ *
+ * @param ppr                  Input: pointer to precision struct
+ * @param pba                  Input: pointer to background struct
+ * @param ppt                  Input: pointer to perturbation struct
+ * @param pma                  Input: pointer to matter struct
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_integrate_each(struct precision* ppr,
                           struct background* pba,
                           struct perturbs * ppt,
@@ -7306,6 +7146,15 @@ int matter_integrate_each(struct precision* ppr,
   free(sum_l);
   return _SUCCESS_;
 }
+/**
+ * Small helper function to get bessel integrals for every value of t
+ * in the limber approximation
+ *
+ * @param pma                  Input: pointer to matter struct
+ * @param index_l              Input: l index
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_get_bessel_limber(
                             struct matters* pma,
                             int index_l,
@@ -7338,6 +7187,17 @@ int matter_get_bessel_limber(
   //End tilt grid
   return _SUCCESS_;
 }
+/**
+ * Small helper function to get the type of derivative acting
+ * on the window function depending on the radial type
+ *
+ * @param pma                  Input: pointer to matter struct
+ * @param derivative_type1     Output: pointer to first derivative type
+ * @param derivative_type2     Output: pointer to second derivative type
+ * @param index_radtp1         Input: radial type of first source
+ * @param index_radtp2         Input: radial type of second source
+ * @return the error status
+ */
 int matter_get_derivative_type(
                                struct matters* pma,
                                int* derivative_type1,
@@ -7395,13 +7255,23 @@ int matter_get_derivative_type(
   }
   return _SUCCESS_;
 }
+/**
+ * Small helper function to get bessel integrals for every value of t
+ * in a parrallelized code for non-integrated contributions
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param pma                  Input: pointer to matter struct
+ * @param index_l              Input: l index
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_get_bessel_fort_parallel(
                       struct background* pba,
                       struct matters* pma,
                       int index_l,
                       struct matters_workspace* pmw
                       ){
-  int index_l_eval = (pma->uses_bessel_recursion?pma->l_sampling[index_l]:index_l);
+  int index_l_eval = (pma->uses_bessel_storeall?pma->l_sampling[index_l]:index_l);
   int index_wd1 = pmw->index_wd1;
   int index_wd2 = pmw->index_wd2;
   double** window_bessel_real = pmw->window_bessel_real[index_l];
@@ -7444,7 +7314,7 @@ int matter_get_bessel_fort_parallel(
               window_bessel_imag[index_tilt1_tilt2*pma->size_fft_result+index_coeff][index_t] = 0.0;
               continue;
             }
-            class_call(matter_spline_hunt(pma->bi_sampling[index_tilt1_tilt2][index_l_eval*pma->size_fft_result+index_coeff],
+            class_call(matter_spline_hunt(pma->bi_sampling,
                                           pma->bi_size[index_tilt1_tilt2][index_l_eval*pma->size_fft_result+index_coeff],
                                           eval_pt,
                                           &last_t,
@@ -7470,6 +7340,16 @@ int matter_get_bessel_fort_parallel(
   //End iff
   return _SUCCESS_;
 }
+/**
+ * Small helper function to get bessel integrals for every value of t
+ * in a parrallelized code for integrated contributions
+ *
+ * @param pba                  Input: pointer to background struct
+ * @param pma                  Input: pointer to matter struct
+ * @param index_l              Input: l index
+ * @param pmw                  Input: pointer to matter workspace
+ * @return the error status
+ */
 int matter_get_bessel_fort_parallel_integrated(
                       struct background* pba,
                       struct matters* pma,
@@ -7478,7 +7358,7 @@ int matter_get_bessel_fort_parallel_integrated(
                       ){
   double** window_bessel_real = pmw->window_bessel_real[index_l];
   double** window_bessel_imag = pmw->window_bessel_imag[index_l];
-  int index_l_eval = (pma->uses_bessel_recursion?pma->l_sampling[index_l]:index_l);
+  int index_l_eval = (pma->uses_bessel_storeall?pma->l_sampling[index_l]:index_l);
   short integrate_logarithmically = (pma->uses_integration == matter_integrate_tw_logt);
   int index_coeff;
   double res_real,res_imag;
@@ -7520,7 +7400,7 @@ int matter_get_bessel_fort_parallel_integrated(
               window_bessel_imag[index_tilt1_tilt2*pma->size_fft_result+index_coeff][index_t+pma->t_size] = 0.0;
               continue;
             }
-            class_call(matter_spline_hunt(pma->bi_sampling[index_tilt1_tilt2][index_l_eval*pma->size_fft_result+index_coeff],
+            class_call(matter_spline_hunt(pma->bi_sampling,
                                           pma->bi_size[index_tilt1_tilt2][index_l_eval*pma->size_fft_result+index_coeff],
                                           eval_pt,
                                           &last_t,
@@ -7547,6 +7427,17 @@ int matter_get_bessel_fort_parallel_integrated(
   return _SUCCESS_;
 }
 
+/**
+ * Small helper function for preparing an interpolation hunt,
+ * searching with binary search for the starting position of the hunt.
+ *
+ * @param x_array               Input: pointer to x array
+ * @param x_size                Input: size of x array
+ * @param x                     Input: x position to search at
+ * @param last                  Input/Output: last found position
+ * @param err_msg               Input/Output: Error messages
+ * @return the error status
+ */
 int matter_spline_prepare_hunt(
   double* x_array,
   int x_size,
@@ -7605,6 +7496,29 @@ int matter_spline_prepare_hunt(
   *last = inf;
   return _SUCCESS_;
 }
+/**
+ * Small helper function for doing the interpolation hunt without
+ * returning the final array
+ *
+ * Starts searching at last found position and gradually increases
+ * stepsize of search
+ *
+ * Returns the found interval of the x as the index last in the array,
+ * the width of the interval h, and the parameters a,b quantifying the
+ * relative distance x along the interval
+ * 
+ * a=1 if x is on the left border, and a=0 if on the right border
+ * b=1-a
+ * @param x_array               Input: pointer to x array
+ * @param x_size                Input: size of x array
+ * @param x                     Input: x position to search at
+ * @param last                  Input/Output: last found position
+ * @param h                     Output: Width of interval of found x
+ * @param a                     Output: Relative distance along interval
+ * @param b                     Output: 1-a
+ * @param err_msg               Input/Output: Error messages
+ * @return the error status
+ */
 int matter_spline_hunt(
   double* x_array,
   int x_size,
@@ -7682,53 +7596,12 @@ int matter_spline_hunt(
   *a = 1.0-(*b);
   return _SUCCESS_;
 }
-int matter_estimate_t_max_bessel(
-                                 struct matters * pma,
-                                 double l,
-                                 double nu_imag,
-                                 double* t_max_estimate
-                                 ){
-  double nu_imag_max = pma->nu_imag[pma->size_fft_result-1];
-  if(l>40){
-    //Exponential fit with two saturation curves to the t_max
-    //Using additional l/(c+l) offsets with c constant
-    //Done for nu=0, and nu=nu_max and interpolated between those two
-    //(guess_off is basically a multiple of nu_max)
-    double expval1 = (1.0-exp(-0.08405923801793776*l));
-    double expval2 = (1.0-exp(-0.03269491513404876*l));
-    double guess_loff_1 = 16.552260860083162;
-    double guess_loff_2 = 86.60472131391394;
-    double guess_off = 1.0/(2*fabs(nu_imag_max));//1.0/72.0;
-    *t_max_estimate = (
-                      expval1 * l / (guess_loff_1+l) +
-                      guess_off*(
-                                 -(expval1 * l / (guess_loff_1+l))+
-                                 (expval2 * l / (guess_loff_2+l))
-                               )*fabs(nu_imag)
-                      );
-  }
-  else{
-    //Parabolic fit with pts (0,0),(lowl,val_lowl),(highl,val_highl)
-    //for nmin = nu_min (=0) and nmax = nu_max
-    //Then interpolated linearly between both parabolas
-    double l_offset = pma->l_sampling[0];
-    double val_highl_nmin = 0.75;//0.835;
-    double val_lowl_nmin = 0.28;//0.620;
-    double val_highl_nmax = 0.44;//0.595;
-    double val_lowl_nmax = 0.05;//0.270;
-    double highl = 37-l_offset; //60;
-    double lowl = 8-l_offset;//22;
-    double slope_nmin = ((val_highl_nmin/highl-val_lowl_nmin/lowl)/(highl-lowl));
-    double offset_nmin = val_lowl_nmin/lowl;
-    double slope_nmax = ((val_highl_nmax/highl-val_lowl_nmax/lowl)/(highl-lowl));
-    double offset_nmax = val_lowl_nmax/lowl;
-    double val_at_nmin = (slope_nmin*(l-l_offset-lowl)+offset_nmin)*(l-l_offset);
-    double val_at_nmax = (slope_nmax*(l-l_offset-lowl)+offset_nmax)*(l-l_offset);
-    double interpol_val = val_at_nmin*(1.0-nu_imag/nu_imag_max) + val_at_nmax*nu_imag/nu_imag_max;
-    *t_max_estimate = interpol_val;
-  }
-  return _SUCCESS_;
-}
+/**
+ * Small helper function for resampling growth factor at desired k,tau
+ *
+ * @param pma               Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_resample_growth_factor(
                                   struct matters * pma
                                   ){
@@ -7766,6 +7639,12 @@ int matter_resample_growth_factor(
   //End ic
   return _SUCCESS_;
 }
+/**
+ * Small helper function for splining the growth factor
+ *
+ * @param pma               Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_spline_growth_factor(
                   struct matters* pma
                   ){
@@ -7792,6 +7671,15 @@ int matter_spline_growth_factor(
   return _SUCCESS_;
 }
 
+/**
+ * Small helper function for calculating the derivatives of an array
+ *
+ * @param x_array               Input: pointer to x array
+ * @param array                 Input: pointer to y array
+ * @param x_length              Input: size of x/y array
+ * @param dy_array              Input: pointer to dy array
+ * @return the error status
+ */
 int matter_derive(
                   double* x_array,
                   double* array,
@@ -7844,6 +7732,9 @@ int matter_derive(
 
 /**
  * Small helper function for swapping around the indices in the matter_workspace
+ *
+ * @param pmw               Input: pointer to matter workspace structure
+ * @return the error status
  */
 int matter_swap_workspace(struct matters_workspace* pmw){
   int temp;
@@ -7859,5 +7750,305 @@ int matter_swap_workspace(struct matters_workspace* pmw){
   temp = pmw->index_cltp1;
   pmw->index_cltp1 = pmw->index_cltp2;
   pmw->index_cltp2 = temp;
+  return _SUCCESS_;
+}
+
+/**
+ * Write the bessel integral file, including the header,
+ * and the actual data
+ *
+ * @param pma               Input: pointer to matter structure
+ * @return the error status
+ */
+int matter_write_bessel_integrals(struct matters* pma){
+  if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
+    printf("Method :: Writing bessel file \n");
+  }
+  /**
+   * Define initial variables
+   * */
+  FILE* write_file;
+  int index_tilt1_tilt2;
+  int index_fft_l;
+
+
+  /**
+   * Open file to write
+   * */
+  write_file = fopen(pma->bessel_file_name,"wb");
+
+
+  /**
+   * Write header
+   * */
+  fwrite(&(pma->tilt_grid_size),sizeof(int),1,write_file);
+  fwrite(&(pma->size_fft_result),sizeof(int),1,write_file);
+  fwrite(&(pma->l_size_recursion),sizeof(int),1,write_file);
+  fwrite(&(pma->bessel_recursion_t_size),sizeof(int),1,write_file);
+
+  
+  /**
+   * Write sampling
+   * */
+  fwrite(pma->bi_sampling,sizeof(double),(pma->bessel_recursion_t_size+2),write_file);
+
+  
+  /**
+   * Write actual data
+   * */
+  for(index_tilt1_tilt2=0;index_tilt1_tilt2<pma->tilt_grid_size;++index_tilt1_tilt2){
+    for(index_fft_l=0;index_fft_l<pma->size_fft_result*pma->l_size_recursion;++index_fft_l){
+      fwrite(&(pma->bi_size[index_tilt1_tilt2][index_fft_l]),sizeof(int),1,write_file);
+      fwrite(&(pma->bi_max[index_tilt1_tilt2][index_fft_l]),sizeof(double),1,write_file);
+      fwrite(pma->bi_real[index_tilt1_tilt2][index_fft_l],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_fft_l],write_file);
+      fwrite(pma->bi_imag[index_tilt1_tilt2][index_fft_l],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_fft_l],write_file);
+      fwrite(pma->ddbi_real[index_tilt1_tilt2][index_fft_l],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_fft_l],write_file);
+      fwrite(pma->ddbi_imag[index_tilt1_tilt2][index_fft_l],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_fft_l],write_file);
+    }
+  }
+
+  
+  /**
+   * Close the file
+   * */
+  fclose(write_file);
+  return _SUCCESS_;
+}
+
+/**
+ * Read the contents of the bessel file. Gives error if header
+ * or contents are invalid.
+ *
+ * @param pma               Input: pointer to matter structure
+ * @param is_correct_file  Output: pointer to correctness flag output
+ * @return the error status
+ */
+int matter_read_bessel_integrals(struct matters* pma){
+  if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
+    printf("Method :: Reading bessel file content \n");
+  }
+  
+  /**
+   * Define initial variables
+   * */
+  int index_tilt1,index_tilt2,index_tilt1_tilt2;
+  int index_l,index_coeff;
+  int tilt_grid_size_temp;
+  int fft_size_temp;
+  int l_size_temp;
+  int bessel_recursion_t_size_temp;
+  int f_read;
+#ifdef _OPENMP
+  double read_start_omp = omp_get_wtime();
+#else
+  double read_start_omp = 0.0;
+#endif
+  FILE* read_file;
+
+  
+  /**
+   * Open file for reading and check for errors during opening
+   * */
+  read_file = fopen(pma->bessel_file_name,"rb");
+  class_test(!read_file,
+             pma->error_message,
+             "file '%s' missing/unopenable even though initial check indicated existence.",pma->bessel_file_name);
+
+
+  /**
+   * Read header
+   * */
+  f_read = 0;
+  f_read+=fread(&tilt_grid_size_temp,sizeof(int),1,read_file);
+  f_read+=fread(&fft_size_temp,sizeof(int),1,read_file);
+  f_read+=fread(&l_size_temp,sizeof(int),1,read_file);
+  f_read+=fread(&bessel_recursion_t_size_temp,sizeof(int),1,read_file);
+  class_test(f_read!=4,
+             pma->error_message,
+             "file '%s' is corrupted even though initial check indicated none.",pma->bessel_file_name);
+
+
+  /**
+   * Allocate arrays to store content of file in
+   * */
+  class_alloc(pma->bi_real,
+              pma->tilt_grid_size*sizeof(double**),
+              pma->error_message);
+  class_alloc(pma->bi_imag,
+              pma->tilt_grid_size*sizeof(double**),
+              pma->error_message);
+  class_alloc(pma->bi_size,
+              pma->tilt_grid_size*sizeof(int*),
+              pma->error_message);
+  class_alloc(pma->bi_max,
+              pma->tilt_grid_size*sizeof(double*),
+              pma->error_message);
+  class_alloc(pma->bi_sampling,
+              (pma->bessel_recursion_t_size+2)*sizeof(double),
+              pma->error_message);
+  class_alloc(pma->ddbi_real,
+              pma->tilt_grid_size*sizeof(double**),
+              pma->error_message);
+  class_alloc(pma->ddbi_imag,
+              pma->tilt_grid_size*sizeof(double**),
+              pma->error_message);
+  for(index_tilt1=0;index_tilt1<pma->tilt_size;++index_tilt1){
+    for(index_tilt2=index_tilt1;index_tilt2<pma->tilt_size;++index_tilt2){
+      index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
+      class_alloc(pma->bi_real[index_tilt1_tilt2],
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
+                  pma->error_message);
+      class_alloc(pma->bi_imag[index_tilt1_tilt2],
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
+                  pma->error_message);
+      class_alloc(pma->bi_size[index_tilt1_tilt2],
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(int),
+                  pma->error_message);
+      class_alloc(pma->bi_max[index_tilt1_tilt2],
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double),
+                  pma->error_message);
+      class_alloc(pma->ddbi_real[index_tilt1_tilt2],
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
+                  pma->error_message);
+      class_alloc(pma->ddbi_imag[index_tilt1_tilt2],
+                  pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
+                  pma->error_message);
+    }
+  }
+
+  
+  /**
+   * Check header correctness
+   * */
+  class_test(pma->tilt_grid_size!=tilt_grid_size_temp,
+             pma->error_message,
+             "Invalid file read (tilt_grid)");
+  class_test(pma->size_fft_result!=fft_size_temp,
+             pma->error_message,
+             "Invalid file read (fft)");
+  class_test(pma->l_size_recursion!=l_size_temp,
+             pma->error_message,
+             "Invalid file read (l_size)");
+  class_test(pma->bessel_recursion_t_size!=bessel_recursion_t_size_temp,
+             pma->error_message,
+             "Invalid file read (t_size)");
+
+  
+  /**
+   * Read t sampling
+   * */
+  f_read = 0;
+  f_read+=fread(pma->bi_sampling,sizeof(double),(pma->bessel_recursion_t_size+2),read_file);
+  class_test(f_read!=(pma->bessel_recursion_t_size+2),
+             pma->error_message,
+             "Invalid file read (bi_sampling)");
+
+  
+  /**
+   * Read all content and for each iteration check if content is read correctly
+   * */
+  for(index_tilt1_tilt2=0;index_tilt1_tilt2<pma->tilt_grid_size;++index_tilt1_tilt2){
+    for(index_l=0;index_l<pma->l_size_recursion;++index_l){
+      for(index_coeff=0;index_coeff<pma->size_fft_result;++index_coeff){
+        f_read=0;
+        f_read+=fread(&(pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]),sizeof(int),1,read_file);
+        f_read+=fread(&(pma->bi_max[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]),sizeof(double),1,read_file);
+        class_alloc(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+                    (pma->bessel_recursion_t_size+2)*sizeof(double),
+                    pma->error_message);
+        class_alloc(pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+                    (pma->bessel_recursion_t_size+2)*sizeof(double),
+                    pma->error_message);
+        class_alloc(pma->ddbi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+                    pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
+                    pma->error_message);
+        class_alloc(pma->ddbi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+                    pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff]*sizeof(double),
+                    pma->error_message);
+        f_read+=fread(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],read_file);
+        f_read+=fread(pma->bi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],read_file);
+        f_read+=fread(pma->ddbi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],read_file);
+        f_read+=fread(pma->ddbi_imag[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],sizeof(double),pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],read_file);
+        class_test(f_read!=2+4*pma->bi_size[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
+                   pma->error_message,
+                   "Invalid file read (bi_size,bi_max,bi_real,bi_imag,ddbi_real or ddbi_imag)");
+      }
+    }
+  }
+
+  
+  /**
+   * Close the file
+   * */
+  fclose(read_file);
+#ifdef _OPENMP
+  double read_end_omp = omp_get_wtime();
+#else
+  double read_end_omp = 0.0;
+#endif
+  if(pma->matter_verbose > MATTER_VERBOSITY_TIMING ){
+    printf(" -> Reading bessel integrals (recursion) took %f REAL seconds \n",read_end_omp-read_start_omp);
+  }
+  return _SUCCESS_;
+}
+/**
+ * Read the usability of the bessel integral binary file.
+ * Checks for existence of file. If file exists, and it
+ * is readable as a binary file, and the header is correctly
+ * readable, and the header agrees with the precision parameters
+ * of the current run, the file is usable.
+ *
+ * Otherwise, it is not
+ *
+ * @param pma               Input: pointer to matter structure
+ * @param is_correct_file  Output: pointer to correctness flag output
+ * @return the error status
+ */
+int matter_read_bessel_file_correct(struct matters* pma,short* is_correct_file){
+  if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
+    printf("Method :: Reading bessel file existence/usability/correctness \n");
+  }
+  /**
+   * Define initial variables
+   * */
+  FILE* read_file;
+  int tilt_grid_size_temp;
+  int fft_size_temp;
+  int l_size_temp;
+  int bessel_recursion_t_size_temp;
+  int f_read;
+
+  /**
+   * Check if file is readable at all (exists)
+   * */
+  f_read = 0;
+  sprintf(pma->bessel_file_name,"output/bessel_%i_%i_%i_%i.bin",pma->tilt_grid_size,pma->size_fft_result,pma->l_size_recursion,pma->bessel_recursion_t_size);
+  read_file = fopen(pma->bessel_file_name,"rb");
+  if(!read_file){*is_correct_file=_FALSE_;return _SUCCESS_;}
+
+
+  /**
+   * Check if header is readable
+   * */
+  f_read+=fread(&tilt_grid_size_temp,sizeof(int),1,read_file);
+  f_read+=fread(&fft_size_temp,sizeof(int),1,read_file);
+  f_read+=fread(&l_size_temp,sizeof(int),1,read_file);
+  f_read+=fread(&bessel_recursion_t_size_temp,sizeof(int),1,read_file);
+  if(f_read!=4){*is_correct_file=_FALSE_;}
+
+  
+  /**
+   * Check if header agrees with desired precision parameters
+   * */
+  if(pma->tilt_grid_size!=tilt_grid_size_temp){*is_correct_file=_FALSE_;}
+  if(pma->size_fft_result!=fft_size_temp){*is_correct_file=_FALSE_;}
+  if(pma->l_size_recursion!=l_size_temp){*is_correct_file=_FALSE_;}
+  if(pma->bessel_recursion_t_size!=bessel_recursion_t_size_temp){*is_correct_file=_FALSE_;}
+
+
+  /**
+   * Close the file again
+   * */
+  fclose(read_file);
   return _SUCCESS_;
 }

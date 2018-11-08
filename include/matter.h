@@ -30,13 +30,15 @@ struct matters{
   short has_integrated_windows;
   short has_unintegrated_windows;
   short has_window_differentiation;
-  short uses_bessel_recursion;
   short uses_limber_approximation;
   short uses_relative_factors;
   short uses_all_l_sampling;
   short uses_bessel_analytic_integration;
   short uses_lensing_reduction;
   short uses_filon_clenshaw_curtis;
+
+  short uses_bessel_storeall;
+  short uses_bessel_store;
 
   int* is_non_zero;
   int non_diag;
@@ -252,16 +254,17 @@ struct matters{
    * Hypergeometric/Bessel arrays
    * */
   int bi_wanted_samples;
+  FileName bessel_file_name;
   double*** bi_real; //Bessel integral real
   double*** bi_imag; //Bessel integral imag
   double*** ddbi_real;
   double*** ddbi_imag;
   int** bi_size;
-  double*** bi_sampling;
+  double* bi_sampling;
   //[l*size_fft_coeff+ nu], [t]
   double** bi_max;
   double bi_maximal_t_offset;
-  double bessel_recursion_t_size;
+  int bessel_recursion_t_size;
 
   /**
    * Experimental
@@ -752,6 +755,9 @@ extern "C" {
   int matter_vector_free(
                   struct matters* pma,
                   struct matters_workspace* pmw);
+  int matter_read_bessel_integrals(struct matters* pma);
+  int matter_write_bessel_integrals(struct matters* pma);
+  int matter_read_bessel_file_correct(struct matters* pma,short* is_correct_file);
 #ifdef __cplusplus
 }
 #endif

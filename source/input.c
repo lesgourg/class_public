@@ -2600,6 +2600,16 @@ int input_read_parameters(
       else if(flag1 == _TRUE_){
         pma->uses_intxi_asymptotic = _FALSE_;
       }
+      class_call(parser_read_string(pfc,"matter_uses_bessel_store",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+        pma->uses_bessel_store = _TRUE_;
+      }
+      else if(flag1 == _TRUE_){
+        pma->uses_bessel_store = _FALSE_;
+      }
+
       /** Read other options */
       class_call(parser_read_string(pfc,"matter_extrapolation",&string1,&flag1,errmsg),
                errmsg,
@@ -3295,6 +3305,7 @@ int input_default_params(
   pma->uses_intxi_symmetrized = _TRUE_;
   pma->uses_intxi_logarithmic = _TRUE_;
   pma->uses_intxi_asymptotic = _FALSE_;
+  pma->uses_bessel_store = _TRUE_;
 
   pma->selection_bias[0]=1.;
   pma->selection_magnification_bias[0]=0.;
