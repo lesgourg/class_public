@@ -44,7 +44,7 @@ int input_init_from_arguments(
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
-  char tmp_file[_ARGUMENT_LENGTH_MAX_];
+  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the characters "output/[...]%02d_parameters.ini" (as done below)
 
   int i;
   char extension[5];
@@ -2739,8 +2739,13 @@ int input_read_parameters(
   }
   /* end of z_max section */
 
-  class_read_string("root",pop->root);
-
+  class_call(parser_read_string(pfc,"root",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if (flag1 == _TRUE_){
+    class_test(strlen(string1)>_FILENAMESIZE_-32,errmsg,"Root directory name is too long. Please install in other directory, or increase _FILENAMESIZE_ in common.h");
+    strcpy(pop->root,string1);
+  }
   class_call(parser_read_string(pfc,
                                 "headers",
                                 &(string1),
@@ -3541,6 +3546,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
+
   int i;
   double rho_dcdm_today, rho_dr_today;
   struct fzerofun_workspace * pfzw;
@@ -3555,6 +3561,21 @@ int input_try_unknown_parameters(double * unknown_parameter,
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
             "%e",unknown_parameter[i]);
   }
+
+  class_call(input_read_precisions(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
 
   class_call(input_read_parameters(&(pfzw->fc),
                                    &pr,
@@ -3764,6 +3785,22 @@ int input_get_guess(double *xguess,
 
   /* Cheat to read only known parameters: */
   pfzw->fc.size -= pfzw->target_size;
+
+  class_call(input_read_precisions(&(pfzw->fc),
+                                   &pr,
+                                   &ba,
+                                   &th,
+                                   &pt,
+                                   &tr,
+                                   &pm,
+                                   &sp,
+                                   &nl,
+                                   &le,
+                                   &op,
+                                   errmsg),
+             errmsg,
+             errmsg);
+
   class_call(input_read_parameters(&(pfzw->fc),
                                    &pr,
                                    &ba,
@@ -3779,6 +3816,7 @@ int input_get_guess(double *xguess,
                                    errmsg),
              errmsg,
              errmsg);
+
   pfzw->fc.size += pfzw->target_size;
   /** Summary: */
   /** - Here we should write reasonable guesses for the unknown parameters.

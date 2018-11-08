@@ -94,17 +94,16 @@ Data Fields</h2></td></tr>
 <tr class="memitem:aa5256a476f6fa766b8977272715be21a"><td class="memItemLeft" align="right" valign="top">enum non_linear_method&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#aa5256a476f6fa766b8977272715be21a">method</a></td></tr>
 <tr class="separator:aa5256a476f6fa766b8977272715be21a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr><td colspan="2"><div class="groupHeader">- table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z))</div></td></tr>
+<tr class="memitem:a187aed56225caf3f06e51f4eb9e6e62a"><td class="memItemLeft" align="right" valign="top">short&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#a187aed56225caf3f06e51f4eb9e6e62a">has_pk_m</a></td></tr>
+<tr class="separator:a187aed56225caf3f06e51f4eb9e6e62a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a545a784bf86e6304be4e2cf3f71e0a40"><td class="memItemLeft" align="right" valign="top">short&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#a545a784bf86e6304be4e2cf3f71e0a40">has_pk_cb</a></td></tr>
+<tr class="separator:a545a784bf86e6304be4e2cf3f71e0a40"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83116d2c8e45607d4b65bc4f627195ab"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#a83116d2c8e45607d4b65bc4f627195ab">index_pk_m</a></td></tr>
+<tr class="separator:a83116d2c8e45607d4b65bc4f627195ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab71f6984b0a86b82ce4bab5d78470461"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#ab71f6984b0a86b82ce4bab5d78470461">index_pk_cb</a></td></tr>
+<tr class="separator:ab71f6984b0a86b82ce4bab5d78470461"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad1989b77431ef92f23f2f291109191a6"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#ad1989b77431ef92f23f2f291109191a6">pk_size</a></td></tr>
 <tr class="separator:ad1989b77431ef92f23f2f291109191a6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a83116d2c8e45607d4b65bc4f627195ab"><td class="memItemLeft" align="right" valign="top"><a id="a83116d2c8e45607d4b65bc4f627195ab"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>index_pk_m</b></td></tr>
-<tr class="separator:a83116d2c8e45607d4b65bc4f627195ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab71f6984b0a86b82ce4bab5d78470461"><td class="memItemLeft" align="right" valign="top"><a id="ab71f6984b0a86b82ce4bab5d78470461"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>index_pk_cb</b></td></tr>
-<tr class="separator:ab71f6984b0a86b82ce4bab5d78470461"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a545a784bf86e6304be4e2cf3f71e0a40"><td class="memItemLeft" align="right" valign="top"><a id="a545a784bf86e6304be4e2cf3f71e0a40"></a>
-short&#160;</td><td class="memItemRight" valign="bottom"><b>has_pk_cb</b></td></tr>
-<tr class="separator:a545a784bf86e6304be4e2cf3f71e0a40"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5337c7a8ffea7bb7f178d6bad11b5622"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#a5337c7a8ffea7bb7f178d6bad11b5622">k_size</a></td></tr>
 <tr class="separator:a5337c7a8ffea7bb7f178d6bad11b5622"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6d371ac0fc8dfdef575a5751afd44565"><td class="memItemLeft" align="right" valign="top">double *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structnonlinear.html#a6d371ac0fc8dfdef575a5751afd44565">k</a></td></tr>
@@ -167,6 +166,66 @@ short&#160;</td><td class="memItemRight" valign="bottom"><b>has_pk_cb</b></td></
 
 </div>
 </div>
+<a id="a187aed56225caf3f06e51f4eb9e6e62a"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a187aed56225caf3f06e51f4eb9e6e62a">&#9670;&nbsp;</a></span>has_pk_m</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">short nonlinear::has_pk_m</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>do we want nonlinear corrections for total matter? </p>
+
+</div>
+</div>
+<a id="a545a784bf86e6304be4e2cf3f71e0a40"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a545a784bf86e6304be4e2cf3f71e0a40">&#9670;&nbsp;</a></span>has_pk_cb</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">short nonlinear::has_pk_cb</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>do we want nonlinear corrections for cdm+baryons? </p>
+
+</div>
+</div>
+<a id="a83116d2c8e45607d4b65bc4f627195ab"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83116d2c8e45607d4b65bc4f627195ab">&#9670;&nbsp;</a></span>index_pk_m</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int nonlinear::index_pk_m</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>index of pk for matter </p>
+
+</div>
+</div>
+<a id="ab71f6984b0a86b82ce4bab5d78470461"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab71f6984b0a86b82ce4bab5d78470461">&#9670;&nbsp;</a></span>index_pk_cb</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">int nonlinear::index_pk_cb</td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p>index of pk for cold dark matter plus baryons </p>
+
+</div>
+</div>
 <a id="ad1989b77431ef92f23f2f291109191a6"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ad1989b77431ef92f23f2f291109191a6">&#9670;&nbsp;</a></span>pk_size</h2>
 
@@ -178,7 +237,7 @@ short&#160;</td><td class="memItemRight" valign="bottom"><b>has_pk_cb</b></td></
         </tr>
       </table>
 </div><div class="memdoc">
-<p>k_size = total number of pk: 1 (P_m) if no massive neutrinos, 2 (P_m and P_cb) if massive neutrinos are present </p>
+<p>k_size = total number of pk </p>
 
 </div>
 </div>
@@ -193,7 +252,6 @@ short&#160;</td><td class="memItemRight" valign="bottom"><b>has_pk_cb</b></td></
         </tr>
       </table>
 </div><div class="memdoc">
-<p>calculate P(k) with only cold dark matter and baryons k_size = total number of k values</p>
 <p>k_size = total number of k values </p>
 
 </div>
@@ -481,7 +539,7 @@ short&#160;</td><td class="memItemRight" valign="bottom"><b>has_pk_cb</b></td></
 <div id="nav-path" class="navpath"><!-- id is needed for treeview function! -->
   <ul>
     <li class="navelem"><a class="el" href="structnonlinear.html">nonlinear</a></li>
-    <li class="footer">Generated on Mon Sep 10 2018 17:53:31 for CLASS MANUAL by
+    <li class="footer">Generated on Mon Oct 22 2018 16:09:37 for CLASS MANUAL by
     <a href="http://www.doxygen.org/index.html">
     <img class="footer" src="doxygen.png" alt="doxygen"/></a> 1.8.13 </li>
   </ul>

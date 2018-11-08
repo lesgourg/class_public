@@ -215,16 +215,17 @@ struct spectra {
 
   double * ln_pk_nl;   /**< Non-linear matter power spectrum.
                           depends on indices index_k, index_tau as:
-                          ln_pk_nl[index_tau * psp->k_size + index_k]
-                    */
+                          ln_pk_nl[index_tau * psp->k_size + index_k] */
   double * ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
-  double * ln_pk_cb;           /**< same as ln_pk_l for baryon+cdm component only */
-  double * ddln_pk_cb;         /**< same as ddln_pk_cb for baryon+cdm component only */
-  double * ln_pk_cb_l;         /**< same as ln_pk_cb_l for baryon+cdm component only */
-  double * ddln_pk_cb_l;       /**< same as ddln_pk_cb_l for baryon+cdm component only */
-  double * ln_pk_cb_nl;        /**< same as ln_pk_cb_nl for baryon+cdm component only */
-  double * ddln_pk_cb_nl;      /**< same as ddln_pk_cb_nl for baryon+cdm component only */
+  double * ln_pk_cb;           /**< same as ln_pk for baryon+cdm component only */
+  double * ddln_pk_cb;         /**< same as ddln_pk for baryon+cdm component only */
+
+  double * ln_pk_cb_l;         /**< same as ln_pk_l for baryon+cdm component only */
+  double * ddln_pk_cb_l;       /**< same as ddln_pk_l for baryon+cdm component only */
+
+  double * ln_pk_cb_nl;        /**< same as ln_pk_nl for baryon+cdm component only */
+  double * ddln_pk_cb_nl;      /**< same as ddln_pk_nl for baryon+cdm component only */
 
   int index_tr_delta_g;        /**< index of gamma density transfer function */
   int index_tr_delta_b;        /**< index of baryon density transfer function */

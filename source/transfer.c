@@ -322,6 +322,8 @@ int transfer_init(
 
     /* allocate workspace */
 
+    ptw = NULL;
+
     class_call_parallel(transfer_workspace_init(ptr,
                                                 ppr,
                                                 &ptw,
@@ -1397,8 +1399,9 @@ int transfer_get_source_correspondence(
         if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == ptr->index_tt_lcmb))
           tp_of_tt[index_md][index_tt]=ppt->index_tp_phi_plus_psi;
 
-        if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, (ptr->has_nc && ppt->has_nc_density)))
-          /* use delta_cb if density number counts calculated only for cold dark matter + baryon */
+        if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, (ptr->has_nc && ppt->has_nc_density))
+          /* use here delta_cb rather than delta_m if density number counts calculated only for cold dark matter + baryon */
+          /* (this important comment is referenced in a WARNING message in perturbations.c) */
           tp_of_tt[index_md][index_tt]=ppt->index_tp_delta_m;
 
         if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, (ptr->has_nc && ppt->has_nc_rsd)))
