@@ -113,7 +113,7 @@ int parser_read_line(
   if(left[0]=='\'' || left[0]=='\"'){
     left++;
   }
-  
+
   right=pequal-1;
   while (right[0]==' ') {
     right--;
@@ -121,12 +121,12 @@ int parser_read_line(
   if(right[0]=='\'' || right[0]=='\"'){
     right--;
   }
-  
+
   /* deal with missing variable names */
-  if (right-left < 0) {
-    //printf("In parser.c : Found variable assign operator '=' or ':' in input file, but could not find variable name \n");
-    *is_data = _FALSE_; return _SUCCESS_;
-  }
+
+  class_test(right-left < 0,
+             errmsg,
+             "Syntax error in the input line '%s': no name passed on the left of the '=' sign",line);
 
   class_test(right-left+1 >= _ARGUMENT_LENGTH_MAX_,
 	     errmsg,

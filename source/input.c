@@ -221,15 +221,17 @@ int input_init(
   FILE * param_unused;
   char param_output_name[_LINE_LENGTH_MAX_];
   char param_unused_name[_LINE_LENGTH_MAX_];
-  
+
   struct fzerofun_workspace fzw;
-  
-  /** 
+
+  /**
    * Before getting into the assignment of parameters,
    * and before the shooting, we want to already fix our precision parameters.
-   * 
+   *
    * No precision parameter should depend on any input parameter
-   * */
+   *
+   */
+
   class_call(input_read_precisions(pfc,
                                    ppr,
                                    pba,
@@ -244,34 +246,36 @@ int input_init(
                                    errmsg),
              errmsg,
              errmsg);
-  
-  
-  
+
+
+
   /**
    * In CLASS, we can do something we call 'shooting', where a variable,
-   *  which is not directly given is calculated by another variable 
+   *  which is not directly given is calculated by another variable
    *  through successive runs of class.
-   * 
-   * This is needed for variables which do not immediately follow from 
+   *
+   * This is needed for variables which do not immediately follow from
    *  other input parameters. An example is theta_s, the angular scale
    *  of the sound horizon giving us the horizontal peak positions.
-   *  This quantity can only replace the hubble parameter h, if we 
+   *  This quantity can only replace the hubble parameter h, if we
    *  run all the way into class through to thermodynamics to figure out
-   *  how h and theta_s relate numerically. 
-   * 
-   * A default parameter for h is chosen, and then we shoot through 
-   *  CLASS, finding what the corresponding theta_s is. We adjust our 
-   *  initial h, and shoot again, repeating this process until a 
-   *  suitable value for h is found which gives the correct 
+   *  how h and theta_s relate numerically.
+   *
+   * A default parameter for h is chosen, and then we shoot through
+   *  CLASS, finding what the corresponding theta_s is. We adjust our
+   *  initial h, and shoot again, repeating this process until a
+   *  suitable value for h is found which gives the correct
    *  100*theta_s value
    *
    * These two arrays must contain the strings of names to be searched
    *  for and the corresponding new parameter
-   * The third array contains the module inside of which the old 
+   * The third array contains the module inside of which the old
    *  parameter is calculated
-   * 
+   *
    * See input_try_unknown_parameters for the actual shooting
-   *  */
+   *
+   */
+
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
@@ -313,12 +317,12 @@ int input_init(
       }
     }
   }
-  
-  /** 
+
+  /**
    * Case with unknown parameters...
-   *  
+   *
    * Here we start shooting (see above for explanation of shooting)
-   * 
+   *
    *  */
   if (unknown_parameters_size > 0) {
 
@@ -397,7 +401,7 @@ int input_init(
     }
     else{
       /* We need to do multidimensional root finding */
-      
+
       if (input_verbose > 0) {
         fprintf(stdout,"Computing unknown input parameters\n");
       }
@@ -424,7 +428,7 @@ int input_init(
                                   errmsg),
                      errmsg, pba->shooting_error,shooting_failed=_TRUE_);
 
-     
+
 
       /* Store xzero */
       for (counter = 0; counter < unknown_parameters_size; counter++){
@@ -569,27 +573,27 @@ int input_read_precisions(
                           ErrorMsg errmsg
                           ) {
   /** - set all precision parameters to default values */
-  
+
   /**
    * Declare initial params to read into
    * */
   class_call(input_default_precision(ppr),
             errmsg,
             errmsg);
-             
+
   int int1;
   int flag1;
   double param1;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  
+
   /**
    * Parse all precision parameters
    * */
-   
+
   #define __PARSE_PRECISION_PARAMETER__
   #include "precisions.h"
-  #undef __PARSE_PRECISION_PARAMETER__ 
-  
+  #undef __PARSE_PRECISION_PARAMETER__
+
   return _SUCCESS_;
 }
 int input_read_parameters(
@@ -897,11 +901,7 @@ int input_read_parameters(
   class_read_int("N_ncdm",N_ncdm);
   if ((flag1 == _TRUE_) && (N_ncdm > 0)){
     pba->N_ncdm = N_ncdm;
-    /* Precision parameters for ncdm has to be read now since they are used here:*/
-    //class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
-    //class_read_double("tol_ncdm_newtonian",ppr->tol_ncdm_newtonian);
-    //class_read_double("tol_ncdm_synchronous",ppr->tol_ncdm_synchronous);
-    //class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
+
     if (ppt->gauge == synchronous)
       ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
     if (ppt->gauge == newtonian)
@@ -2468,7 +2468,8 @@ int input_read_parameters(
     if ((flag1 == _TRUE_)) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_analytic = _TRUE_;
-      }else{
+      }
+      else{
         ptr->has_nz_file = _TRUE_;
         class_read_string("dNdz_selection",ptr->nz_file_name);
       }
@@ -2485,7 +2486,8 @@ int input_read_parameters(
     if ((flag1 == _TRUE_)) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_evo_analytic = _TRUE_;
-      }else{
+      }
+      else{
         ptr->has_nz_evo_file = _TRUE_;
         class_read_string("dNdz_evolution",ptr->nz_evo_file_name);
       }
@@ -2627,7 +2629,7 @@ int input_read_parameters(
 
   class_read_int("spectra_verbose",
                  psp->spectra_verbose);
-                 
+
   class_read_int("nonlinear_verbose",
                  pnl->nonlinear_verbose);
 
@@ -2638,7 +2640,7 @@ int input_read_parameters(
                  pop->output_verbose);
 
   /** (h) deal with special parameters, and deprecated ones */
-  
+
   if (ppt->has_tensors == _TRUE_) {
     /** - ---> Include ur and ncdm shear in tensor computation? */
     class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
@@ -2676,7 +2678,7 @@ int input_read_parameters(
   }
 
   /**
-   * Here we can place all obsolete (deprecated) names for the precision parameters, 
+   * Here we can place all obsolete (deprecated) names for the precision parameters,
    *  so they will still get read.
    * The new parameter names should be used preferrably
    * */
@@ -2689,13 +2691,13 @@ int input_read_parameters(
   class_read_double("k_scalar_k_per_decade_for_bao",ppr->k_per_decade_for_bao); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_bao_center",ppr->k_bao_center); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_bao_width",ppr->k_bao_width); // obsolete precision parameter: read for compatibility with old precision files
-    
+
   class_read_double("k_step_trans_scalars",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans_tensors",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("q_linstep_trans",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("q_logstep_trans",ppr->q_logstep_spline); // obsolete precision parameter: read for compatibility with old precision files
-  
+
   class_call(parser_read_string(pfc,
                                 "l_switch_limber_for_cl_density_over_z",
                                 &string1,
@@ -3153,7 +3155,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - automatic estimate of machine precision
    */
   ppr->smallest_allowed_variation=DBL_EPSILON;
-  
+
   //get_machine_precision(&(ppr->smallest_allowed_variation));
 
   class_test(ppr->smallest_allowed_variation < 0,
@@ -3164,7 +3166,7 @@ int input_default_precision ( struct precision * ppr ) {
   #define __ASSIGN_DEFAULT_PRECISION__
   #include "precisions.h"
   #undef __ASSIGN_DEFAULT_PRECISION__
-  
+
   return _SUCCESS_;
 
 }
@@ -3445,14 +3447,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     tr.transfer_verbose = 0;
     class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
   }
-  
+
   if (pfzw->required_computation_stage >= cs_spectra){
     if (input_verbose>2)
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
     class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
   }
-  
+
   /** - Get the corresponding shoot variable and put into output */
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {

@@ -346,8 +346,9 @@ struct precision
 {
   /**
    * Define (allocate) all precision parameters
-   * */
-  
+   *
+   */
+
   #define __ALLOCATE_PRECISION_PARAMETER__
   #include "precisions.h"
   #undef __ALLOCATE_PRECISION_PARAMETER__
