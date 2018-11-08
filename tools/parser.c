@@ -93,7 +93,9 @@ int parser_read_line(
   char * left;
   char * right;
 
-  /* check that there is an '=' */
+  /* check that there is an '=' (if you want the role of '=' to be
+     played by ':' you only need to substitute it in the next line and
+     recompile) */
 
   pequal=strchr(line,'=');
   if (pequal == NULL) {*is_data = _FALSE_; return _SUCCESS_;}
