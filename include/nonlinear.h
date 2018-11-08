@@ -10,6 +10,8 @@
 
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
+#define _M_SUN_ 1.98847e30 /**< Solar mass in Kg */
+
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
 enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
@@ -74,17 +76,17 @@ struct nonlinear {
   double * growtable;
   double * ztable;
   double * tautable;
-  
+
   double ** sigma_8;
   double ** sigma_disp;
   double ** sigma_disp_100;
   double ** sigma_prime;
-  
+
   double c_min; /** minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0; /** halo bloating parameter */
-  
-  double z_infinity; /** z value at which Dark Energy correction is evaluated 
-                       * needs to be at early times (default */ 
+
+  double z_infinity; /** z value at which Dark Energy correction is evaluated
+                       * needs to be at early times (default */
   double dark_energy_correction; /** this is the ratio [g_wcdm(z_infinity)/g_lcdm(z_infinity)]^1.5
                                   * (power comes from Dolag et al. (2004) correction)
                                   * it is 1, if has_fld == _FALSE_ */
@@ -229,19 +231,19 @@ extern "C" {
   int nonlinear_hmcode(
                       struct precision *ppr,
                       struct background *pba,
-                      struct perturbs *ppt, 
+                      struct perturbs *ppt,
                       struct primordial *ppm,
                       struct nonlinear *pnl,
                       int index_pk,
                       int index_tau,
                       double tau,
-                      double *pk_l,                   
+                      double *pk_l,
                       double *pk_nl,
                       double **lnk_l,
                       double **lnpk_l,
                       double **ddlnpk_l,
                       double *k_nl,
-                      short * halofit_found_k_max                      
+                      short * halofit_found_k_max
                       );
 
   int nonlinear_hmcode_sigma(
@@ -253,11 +255,11 @@ extern "C" {
                   double R,
                   double *lnk_l,
                   double *lnpk_l,
-                  double *ddlnpk_l,               
+                  double *ddlnpk_l,
                   double * sigma
                   );
 
-  
+
   int nonlinear_hmcode_sigma_prime(
                   struct precision * ppr,
                   struct background * pba,
@@ -267,12 +269,12 @@ extern "C" {
                   double R,
                   double *lnk_l,
                   double *lnpk_l,
-                  double *ddlnpk_l,               
+                  double *ddlnpk_l,
                   double * sigma_prime
-                  );                
-                  
+                  );
+
   int nonlinear_hmcode_sigma_disp(
-                  struct precision * ppr,            
+                  struct precision * ppr,
                   struct background * pba,
                   struct perturbs * ppt,
                   struct primordial * ppm,
@@ -280,10 +282,10 @@ extern "C" {
                   double R,
                   double *lnk_l,
                   double *lnpk_l,
-                  double *ddlnpk_l,               
+                  double *ddlnpk_l,
                   double * sigma_disp
                   );
-                  
+
   int nonlinear_hmcode_fill_sigtab(
               struct precision *ppr,
 						  struct background * pba,
@@ -293,32 +295,32 @@ extern "C" {
               int index_tau,
 						  double *lnk_l,
               double *lnpk_l,
-              double *ddlnpk_l               
+              double *ddlnpk_l
 						  );
 
   int nonlinear_hmcode_fill_growtab(
-              struct precision *ppr,      
+              struct precision *ppr,
 						  struct background * pba,
-						  struct nonlinear * pnl            
-						  );  
+						  struct nonlinear * pnl
+						  );
 
 	int nonlinear_hmcode_halomassfunction(
-                                      double nu, 
+                                      double nu,
                                       double *hmf
                                       );
-  
+
   int nonlinear_hmcode_window_nfw(
                struct nonlinear * pnl,
 	  					 double k,
 	  					 double rv,
 	  					 double c,
                double *window_nfw
-               );	
+               );
 
   int nonlinear_hmcode_growint(
               struct precision *ppr,
 						  struct background * pba,
-						  struct nonlinear * pnl,            
+						  struct nonlinear * pnl,
 						  double a,
               double w,
               double wa,

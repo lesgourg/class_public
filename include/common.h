@@ -42,8 +42,6 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _SQRT_PI_ 1.77245385090551602729816748334e0 /**< square root of pi. */
 
-#define _RHO_CRIT_MSUN_MPC3_ 2.77474589e11 /**< critical density today in solar mass over megaparsec to the power 3 */
-
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
 #define _QUADRATURE_MAX_ 250 /**< maximum allowed number of abssices in quadrature integral estimation */
@@ -349,7 +347,7 @@ struct precision
   /**
    * Define (allocate) all precision parameters
    * */
-  
+
   #define __ALLOCATE_PRECISION_PARAMETER__
   #include "precisions.h"
   #undef __ALLOCATE_PRECISION_PARAMETER__
