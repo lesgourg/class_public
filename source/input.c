@@ -2610,71 +2610,70 @@ int input_read_parameters(
       pnl->method=nl_HMcode;
       ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->hmcode_min_k_max);
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
-    }
-  }
 
-	class_call(parser_read_string(pfc,
-                                "feedback model",
-                                &(string1),
-                                &(flag1),
-                                errmsg),
-             errmsg,
-             errmsg);
+      class_call(parser_read_string(pfc,
+                                    "feedback model",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
 
-	if (flag1 == _TRUE_) {
+      if (flag1 == _TRUE_) {
 
 		if (strstr(string1,"emu_dmonly") != NULL) {
-			pnl->feedback = nl_emu_dmonly;
+          pnl->feedback = nl_emu_dmonly;
 		}
 		if (strstr(string1,"owls_dmonly") != NULL) {
-			pnl->feedback = nl_owls_dmonly;
+          pnl->feedback = nl_owls_dmonly;
 		}
 		if (strstr(string1,"owls_ref") != NULL) {
-			pnl->feedback = nl_owls_ref;
+          pnl->feedback = nl_owls_ref;
 		}
 		if (strstr(string1,"owls_agn") != NULL) {
-			pnl->feedback = nl_owls_agn;
+          pnl->feedback = nl_owls_agn;
 		}
 		if (strstr(string1,"owls_dblim") != NULL) {
-			pnl->feedback = nl_owls_dblim;
+          pnl->feedback = nl_owls_dblim;
 		}
-  }
+      }
 
-	class_call(parser_read_double(pfc,"eta_0",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
+      class_call(parser_read_double(pfc,"eta_0",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
+                 errmsg,
+                 errmsg);
 
-  class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
-             errmsg,
-             "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
+      class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
+                 errmsg,
+                 "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
 
-  if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
+      if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
 		pnl->feedback = nl_user_defined;
 		class_read_double("eta_0", pnl->eta_0);
 		class_read_double("c_min", pnl->c_min);
-  }
-  else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
+      }
+      else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
 		pnl->feedback = nl_user_defined;
 		class_read_double("eta_0", pnl->eta_0);
 		pnl->c_min = (0.98 - pnl->eta_0)/0.12;
-  }
-  else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
+      }
+      else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
 		pnl->feedback = nl_user_defined;
 		class_read_double("c_min", pnl->c_min);
 		pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
+      }
+
+      class_call(parser_read_double(pfc,"z_infinity",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        class_read_double("z_infinity", pnl->z_infinity);
+      }
+    }
   }
-
-	class_call(parser_read_double(pfc,"z_infinity",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if (flag1 == _TRUE_) {
-    class_read_double("z_infinity", pnl->z_infinity);
-  }
-
 
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
@@ -2775,45 +2774,6 @@ int input_read_parameters(
   class_test(flag1 == _TRUE_,
              errmsg,
              "You passed in input a precision parameter called l_switch_limber_for_cl_density_over_z. This syntax is deprecated since v2.5.0. Please use instead the two precision parameters l_switch_limber_for_nc_local_over_z, l_switch_limber_for_nc_los_over_z, defined in include/common.h, and allowing for better performance.");
-
-  class_read_double("l_switch_limber_for_nc_local_over_z",ppr->l_switch_limber_for_nc_local_over_z);
-  class_read_double("l_switch_limber_for_nc_los_over_z",ppr->l_switch_limber_for_nc_los_over_z);
-
-  class_read_double("selection_cut_at_sigma",ppr->selection_cut_at_sigma);
-  class_read_double("selection_sampling",ppr->selection_sampling);
-  class_read_double("selection_sampling_bessel",ppr->selection_sampling_bessel);
-  class_read_double("selection_sampling_bessel_los",ppr->selection_sampling_bessel_los);
-  class_read_double("selection_tophat_edge",ppr->selection_tophat_edge);
-
-  /** - (h.6.) parameters related to nonlinear calculations */
-
-  class_read_double("halofit_min_k_nonlinear",ppr->halofit_min_k_nonlinear);
-  class_read_double("halofit_min_k_max",ppr->halofit_min_k_max);
-  class_read_double("halofit_k_per_decade",ppr->halofit_k_per_decade);
-  class_read_double("halofit_sigma_precision",ppr->halofit_sigma_precision);
-  class_read_double("halofit_tol_sigma",ppr->halofit_tol_sigma);
-  class_read_double("pk_eq_z_max",ppr->pk_eq_z_max);
-
-  class_read_double("hmcode_k_per_decade",ppr->hmcode_k_per_decade);
-  class_read_double("hmcode_tol_sigma",ppr->hmcode_tol_sigma);
-  class_read_double("hmcode_max_k_extra",ppr->hmcode_max_k_extra);
-  class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab);
-  class_read_double("rmax_for_sigtab",ppr->rmax_for_sigtab);
-  class_read_double("ainit_for_growtab",ppr->ainit_for_growtab);
-  class_read_double("amax_for_growtab",ppr->amax_for_growtab);
-  class_read_int("n_hmcode_tables",ppr->n_hmcode_tables);
-  class_read_double("mmin_for_p1h_integral",ppr->mmin_for_p1h_integral);
-  class_read_double("mmax_for_p1h_integral",ppr->mmax_for_p1h_integral);
-  class_read_int("nsteps_for_p1h_integral",ppr->nsteps_for_p1h_integral);
-
-  /** - (h.7.) parameter related to lensing */
-
-  class_read_int("accurate_lensing",ppr->accurate_lensing);
-  class_read_int("delta_l_max",ppr->delta_l_max);
-  if (ppr->accurate_lensing == _TRUE_) {
-    class_read_int("num_mu_minus_lmax",ppr->num_mu_minus_lmax);
-    class_read_int("tol_gauss_legendre",ppr->tol_gauss_legendre);
-  }
 
   /** (i) Write values in file */
   if (ple->has_lensed_cls == _TRUE_)
@@ -3226,8 +3186,8 @@ int input_default_params(
 
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
-  pnl->feedback = nl_emu_dmonly;
 
+  pnl->feedback = nl_emu_dmonly;
   pnl->z_infinity = 10.;
 
   /** - all verbose parameters */
@@ -3258,256 +3218,6 @@ int input_default_params(
  */
 
 int input_default_precision ( struct precision * ppr ) {
-
-  /** Initialize presicion parameters for different structures:
-   * - parameters related to the background
-   */
-
-  ppr->a_ini_over_a_today_default = 1.e-14;
-  ppr->back_integration_stepsize = 7.e-3;
-  ppr->tol_background_integration = 1.e-2;
-
-  ppr->tol_initial_Omega_r = 1.e-4;
-  ppr->tol_M_ncdm = 1.e-7;
-  ppr->tol_ncdm = 1.e-3;
-  ppr->tol_ncdm_synchronous = 1.e-3;
-  ppr->tol_ncdm_newtonian = 1.e-5;
-  ppr->tol_ncdm_bg = 1.e-5;
-  ppr->tol_ncdm_initial_w=1.e-3;
-
-  ppr->tol_tau_eq = 1.e-6;
-
-  /**
-   * - parameters related to the thermodynamics
-   */
-
-  /* for bbn */
-  sprintf(ppr->sBBN_file,__CLASSDIR__);
-  strcat(ppr->sBBN_file,"/bbn/sBBN_2017.dat");
-
-  /* for recombination */
-
-  ppr->recfast_z_initial=1.e4;
-
-  ppr->recfast_Nz0=20000;
-  ppr->tol_thermo_integration=1.e-2;
-
-  ppr->recfast_Heswitch=6;                 /* from recfast 1.4 */
-  ppr->recfast_fudge_He=0.86;              /* from recfast 1.4 */
-
-  ppr->recfast_Hswitch = _TRUE_;           /* from recfast 1.5 */
-  ppr->recfast_fudge_H = 1.14;             /* from recfast 1.4 */
-  ppr->recfast_delta_fudge_H = -0.015;     /* from recfast 1.5.2 */
-  ppr->recfast_AGauss1 = -0.14;            /* from recfast 1.5 */
-  ppr->recfast_AGauss2 =  0.079;           /* from recfast 1.5.2 */
-  ppr->recfast_zGauss1 =  7.28;            /* from recfast 1.5 */
-  ppr->recfast_zGauss2 =  6.73;            /* from recfast 1.5.2 */
-  ppr->recfast_wGauss1 =  0.18;            /* from recfast 1.5 */
-  ppr->recfast_wGauss2 =  0.33;            /* from recfast 1.5 */
-
-  ppr->recfast_z_He_1 = 8000.;             /* from recfast 1.4 */
-  ppr->recfast_delta_z_He_1 = 50.;         /* found to be OK on 3.09.10 */
-  ppr->recfast_z_He_2 = 5000.;             /* from recfast 1.4 */
-  ppr->recfast_delta_z_He_2 = 100.;        /* found to be OK on 3.09.10 */
-  ppr->recfast_z_He_3 = 3500.;             /* from recfast 1.4 */
-  ppr->recfast_delta_z_He_3 = 50.;         /* found to be OK on 3.09.10 */
-  ppr->recfast_x_He0_trigger = 0.995;      /* raised from 0.99 to 0.995 for smoother Helium */
-  ppr->recfast_x_He0_trigger2 = 0.995;     /* raised from 0.985 to same as previous one for smoother Helium */
-  ppr->recfast_x_He0_trigger_delta = 0.05; /* found to be OK on 3.09.10 */
-  ppr->recfast_x_H0_trigger = 0.995;       /* raised from 0.99 to 0.995 for smoother Hydrogen */
-  ppr->recfast_x_H0_trigger2 = 0.995;      /* raised from 0.98 to same as previous one for smoother Hydrogen */
-  ppr->recfast_x_H0_trigger_delta = 0.05;  /* found to be OK on 3.09.10 */
-
-  ppr->recfast_H_frac=1.e-3;               /* from recfast 1.4 */
-
-  sprintf(ppr->hyrec_Alpha_inf_file,__CLASSDIR__);
-  strcat(ppr->hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat");
-  sprintf(ppr->hyrec_R_inf_file,__CLASSDIR__);
-  strcat(ppr->hyrec_R_inf_file,"/hyrec/R_inf.dat");
-  sprintf(ppr->hyrec_two_photon_tables_file,__CLASSDIR__);
-  strcat(ppr->hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat");
-
-  /* for reionization */
-
-  ppr->reionization_z_start_max = 50.;
-  ppr->reionization_sampling=5.e-2;
-  ppr->reionization_optical_depth_tol=1.e-4;
-  ppr->reionization_start_factor=8.;
-
-  /* general */
-
-  ppr->thermo_rate_smoothing_radius=50;
-
-  /**
-   * - parameters related to the perturbations
-   */
-
-  ppr->evolver = ndf15;
-
-  ppr->k_min_tau0=0.1;
-  ppr->k_max_tau0_over_l_max=2.4; // very relevant for accuracy of lensed ClTT at highest l's
-  ppr->k_step_sub=0.05;
-  ppr->k_step_super=0.002;
-  ppr->k_step_transition=0.2;
-  ppr->k_step_super_reduction=0.1;
-  ppr->k_per_decade_for_pk=10.;
-  ppr->k_per_decade_for_bao=70.;
-  ppr->k_bao_center=3.;
-  ppr->k_bao_width=4.;
-
-  ppr->start_small_k_at_tau_c_over_tau_h = 0.0015;  /* decrease to start earlier in time */
-  ppr->start_large_k_at_tau_h_over_tau_k = 0.07;  /* decrease to start earlier in time */
-  ppr->tight_coupling_trigger_tau_c_over_tau_h=0.015; /* decrease to switch off earlier in time */
-  ppr->tight_coupling_trigger_tau_c_over_tau_k=0.01; /* decrease to switch off earlier in time */
-  ppr->start_sources_at_tau_c_over_tau_h = 0.008; /* decrease to start earlier in time */
-  ppr->tight_coupling_approximation=(int)compromise_CLASS;
-
-  ppr->l_max_g=12;
-  ppr->l_max_pol_g=10;
-  ppr->l_max_dr=17;
-  ppr->l_max_ur=17;
-  ppr->l_max_ncdm=17;
-  ppr->l_max_g_ten=5;
-  ppr->l_max_pol_g_ten=5;
-
-  ppr->curvature_ini=1.; /* initial curvature; used to fix adiabatic initial conditions; must remain fixed to one as long as the primordial adiabatic spectrum stands for the curvature power spectrum */
-  ppr->entropy_ini=1.;   /* initial entropy; used to fix isocurvature initial conditions; must remain fixed to one as long as the primordial isocurvature spectrum stands for an entropy power spectrum */
-  //ppr->gw_ini=0.25; /* to match normalization convention for GW in most of literature and ensure standard definition of r */
-  ppr->gw_ini=1.;
-
-  ppr->perturb_integration_stepsize=0.5;
-
-  ppr->tol_tau_approx=1.e-10;
-  ppr->tol_perturb_integration=1.e-5;
-  ppr->perturb_sampling_stepsize=0.10;
-
-  ppr->radiation_streaming_approximation = rsa_MD_with_reio;
-  ppr->radiation_streaming_trigger_tau_over_tau_k = 45.;
-  ppr->radiation_streaming_trigger_tau_c_over_tau = 5.;
-
-  ppr->ur_fluid_approximation = ufa_CLASS;
-  ppr->ur_fluid_trigger_tau_over_tau_k = 30.;
-
-  ppr->ncdm_fluid_approximation = ncdmfa_CLASS;
-  ppr->ncdm_fluid_trigger_tau_over_tau_k = 31.;
-
-  ppr->neglect_CMB_sources_below_visibility = 1.e-3;
-
-  /**
-   * - parameter related to the primordial spectra
-   */
-
-  ppr->k_per_decade_primordial = 10.;
-
-  ppr->primordial_inflation_ratio_min=100.;
-  ppr->primordial_inflation_ratio_max=1/50.;
-  ppr->primordial_inflation_phi_ini_maxit=10000;
-  ppr->primordial_inflation_pt_stepsize=0.01;
-  ppr->primordial_inflation_bg_stepsize=0.005;
-  ppr->primordial_inflation_tol_integration=1.e-3;
-  ppr->primordial_inflation_attractor_precision_pivot=0.001;
-  ppr->primordial_inflation_attractor_precision_initial=0.1;
-  ppr->primordial_inflation_attractor_maxit=10;
-  ppr->primordial_inflation_tol_curvature=1.e-3;
-  ppr->primordial_inflation_aH_ini_target=0.9;
-  ppr->primordial_inflation_end_dphi=1.e-10;
-  ppr->primordial_inflation_end_logstep=10.;
-  ppr->primordial_inflation_small_epsilon=0.1;
-  ppr->primordial_inflation_small_epsilon_tol=0.01;
-  ppr->primordial_inflation_extra_efolds=2.;
-
-  /**
-   * - parameter related to the transfer functions
-   */
-
-  ppr->l_logstep=1.12;
-  ppr->l_linstep=40;
-
-  ppr->hyper_x_min = 1.e-5;
-  ppr->hyper_sampling_flat = 8.;
-  ppr->hyper_sampling_curved_low_nu = 7.0; // changed from 6.0 to 7.0 in v2.6.0, otherwise C2 can be very wrong with large curvature
-  ppr->hyper_sampling_curved_high_nu = 3.0;
-  ppr->hyper_nu_sampling_step = 1000.;
-  ppr->hyper_phi_min_abs = 1.e-10;
-  ppr->hyper_x_tol = 1.e-4;
-  ppr->hyper_flat_approximation_nu = 4000.;
-
-  ppr->q_linstep=0.45;
-  ppr->q_logstep_spline=170.;
-  ppr->q_logstep_open=6.;
-  ppr->q_logstep_trapzd=20.;
-  ppr->q_numstep_transition=250.;
-
-  ppr->transfer_neglect_delta_k_S_t0 = 0.15;
-  ppr->transfer_neglect_delta_k_S_t1 = 0.04;
-  ppr->transfer_neglect_delta_k_S_t2 = 0.15;
-  ppr->transfer_neglect_delta_k_S_e = 0.11;
-  ppr->transfer_neglect_delta_k_V_t1 = 1.;
-  ppr->transfer_neglect_delta_k_V_t2 = 1.;
-  ppr->transfer_neglect_delta_k_V_e = 1.;
-  ppr->transfer_neglect_delta_k_V_b = 1.;
-  ppr->transfer_neglect_delta_k_T_t2 = 0.2;
-  ppr->transfer_neglect_delta_k_T_e = 0.25;
-  ppr->transfer_neglect_delta_k_T_b = 0.1;
-
-  ppr->transfer_neglect_late_source = 400.;
-
-  ppr->l_switch_limber=10.;
-  // For density Cl, we recommend not to use the Limber approximation
-  // at all, and hence to put here a very large number (e.g. 10000); but
-  // if you have wide and smooth selection functions you may wish to
-  // use it; then 100 might be OK
-  ppr->l_switch_limber_for_nc_local_over_z=100.;
-  // For terms integrated along the line-of-sight involving spherical
-  // Bessel functions (but not their derivatives), Limber
-  // approximation works well. High precision can be reached with 2000
-  // only. But if you have wide and smooth selection functions you may
-  // reduce to e.g. 30.
-  ppr->l_switch_limber_for_nc_los_over_z=30.;
-
-  ppr->selection_cut_at_sigma=5.;
-  ppr->selection_sampling=50;
-  ppr->selection_sampling_bessel=20;
-  ppr->selection_sampling_bessel_los=ppr->selection_sampling_bessel;
-  ppr->selection_tophat_edge=0.1;
-
-  /**
-   * - parameters related to spectra module
-   */
-
-  /* nothing */
-
-  /**
-   * - parameters related to nonlinear module
-   */
-
-  ppr->halofit_min_k_nonlinear = 1.e-4;
-  ppr->halofit_min_k_max = 5.;
-  ppr->halofit_k_per_decade = 80.;
-  ppr->halofit_sigma_precision = 0.05;
-  ppr->halofit_tol_sigma = 1.e-6;
-  ppr->pk_eq_z_max = 5.;
-
-  ppr->hmcode_min_k_max = 5.;
-  ppr->hmcode_k_per_decade = 80.;
-  ppr->hmcode_tol_sigma = 1.e-6;
-	ppr->hmcode_max_k_extra = 1.e6;
-	ppr->n_hmcode_tables = 64;
-	ppr->rmin_for_sigtab = 1.e-5;
-	ppr->rmax_for_sigtab = 1.e3;
-	ppr->ainit_for_growtab = 1.e-3;
-	ppr->amax_for_growtab = 1.;
-	ppr->nsteps_for_p1h_integral = 256;
-	ppr->mmin_for_p1h_integral = 1.e3;
-	ppr->mmax_for_p1h_integral = 1.e18;
-
-  /**
-   * - parameter related to lensing
-   */
-
-  ppr->accurate_lensing=_FALSE_;
-  ppr->num_mu_minus_lmax=70;
-  ppr->delta_l_max=500; // 750 for 0.2% near l_max, 1000 for 0.1%
 
   /**
    * - automatic estimate of machine precision
