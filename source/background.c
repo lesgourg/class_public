@@ -1887,7 +1887,6 @@ int background_initial_conditions(
   /* scale factor */
   double a;
 
-  double H;
   double rho_ncdm, p_ncdm, rho_ncdm_rel_tot=0.;
   double f,Omega_rad, rho_rad;
   int counter,is_early_enough,n_ncdm;
@@ -2065,7 +2064,6 @@ int background_initial_conditions(
   /** - set initial value of D and D' in RD. D will be renormalised later, but D' must be correct. */
   pvecback_integration[pba->index_bi_D] = a;
   pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
-  //pvecback_integration[pba->index_bi_D_prime] = pow(pvecback_integration[pba->index_bi_D], 2)*pvecback[pba->index_bg_H];
 
   return _SUCCESS_;
 
@@ -2298,7 +2296,6 @@ int background_derivs(
   struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
   double * pvecback, a, H, rho_M;
-  double w_fld, dw_over_da, integral_fld;
 
   pbpaw = parameters_and_workspace;
   pba =  pbpaw->pba;
