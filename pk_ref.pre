@@ -74,7 +74,7 @@ transfer_neglect_delta_k_T_b = 100.
 neglect_CMB_sources_below_visibility = 1.e-30
 transfer_neglect_late_source = 3000.
 
-halofit_per_decade = 3000.
+halofit_k_per_decade = 3000.
 
 l_switch_limber = 40.
 accurate_lensing=1
