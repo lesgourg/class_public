@@ -34,8 +34,8 @@ struct nonlinear {
 
   enum non_linear_method method; /**< method for computing non-linear corrections (none, Halogit, etc.) */
 
-  enum hmcode_baryonic_feedback_model feedback; /** to choose between different baryonic feedback models in hmcode (dmonly, gas cooling, Agn or supernova feedback) */
-
+  enum hmcode_baryonic_feedback_model feedback; /** to choose between different baryonic feedback models
+                                                in hmcode (dmonly, gas cooling, Agn or supernova feedback) */
   double c_min;      /** for HMcode: minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0;      /** for HMcode: halo bloating parameter */
   double z_infinity; /** for HMcode: z value at which Dark Energy correction is evaluated needs to be at early times (default */
@@ -63,11 +63,11 @@ struct nonlinear {
   double * tau;    /**< tau[index_tau] = list of time values */
 
   double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
-
   double ** k_nl;              /**< wavenumber at which non-linear corrections become important,
                                     defined differently by different non_linear_method's */
   int index_tau_min_nl;        /**< index of smallest value of tau at which nonlinear corrections have been computed
                                     (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
+
   //@}
 
   /** @name - parameters for the pk_eq method */

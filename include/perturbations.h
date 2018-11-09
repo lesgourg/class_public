@@ -135,9 +135,6 @@ struct perturbs
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
-  short has_nl_halofit_corrections_based_on_delta_m; 
-  short has_nl_hmcode_corrections_based_on_delta_m; 
-
 
   short has_nc_density;  /**< in dCl, do we want density terms ? */
   short has_nc_rsd;      /**< in dCl, do we want redshift space distortion terms ? */
