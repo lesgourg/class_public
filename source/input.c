@@ -221,13 +221,13 @@ int input_init(
   FILE * param_unused;
   char param_output_name[_LINE_LENGTH_MAX_];
   char param_unused_name[_LINE_LENGTH_MAX_];
-  
+
   struct fzerofun_workspace fzw;
-  
-  /** 
+
+  /**
    * Before getting into the assignment of parameters,
    * and before the shooting, we want to already fix our precision parameters.
-   * 
+   *
    * No precision parameter should depend on any input parameter
    * */
   class_call(input_read_precisions(pfc,
@@ -244,32 +244,32 @@ int input_init(
                                    errmsg),
              errmsg,
              errmsg);
-  
-  
-  
+
+
+
   /**
    * In CLASS, we can do something we call 'shooting', where a variable,
-   *  which is not directly given is calculated by another variable 
+   *  which is not directly given is calculated by another variable
    *  through successive runs of class.
-   * 
-   * This is needed for variables which do not immediately follow from 
+   *
+   * This is needed for variables which do not immediately follow from
    *  other input parameters. An example is theta_s, the angular scale
    *  of the sound horizon giving us the horizontal peak positions.
-   *  This quantity can only replace the hubble parameter h, if we 
+   *  This quantity can only replace the hubble parameter h, if we
    *  run all the way into class through to thermodynamics to figure out
-   *  how h and theta_s relate numerically. 
-   * 
-   * A default parameter for h is chosen, and then we shoot through 
-   *  CLASS, finding what the corresponding theta_s is. We adjust our 
-   *  initial h, and shoot again, repeating this process until a 
-   *  suitable value for h is found which gives the correct 
+   *  how h and theta_s relate numerically.
+   *
+   * A default parameter for h is chosen, and then we shoot through
+   *  CLASS, finding what the corresponding theta_s is. We adjust our
+   *  initial h, and shoot again, repeating this process until a
+   *  suitable value for h is found which gives the correct
    *  100*theta_s value
    *
    * These two arrays must contain the strings of names to be searched
    *  for and the corresponding new parameter
-   * The third array contains the module inside of which the old 
+   * The third array contains the module inside of which the old
    *  parameter is calculated
-   * 
+   *
    * See input_try_unknown_parameters for the actual shooting
    *  */
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
@@ -313,12 +313,12 @@ int input_init(
       }
     }
   }
-  
-  /** 
+
+  /**
    * Case with unknown parameters...
-   *  
+   *
    * Here we start shooting (see above for explanation of shooting)
-   * 
+   *
    *  */
   if (unknown_parameters_size > 0) {
 
@@ -397,7 +397,7 @@ int input_init(
     }
     else{
       /* We need to do multidimensional root finding */
-      
+
       if (input_verbose > 0) {
         fprintf(stdout,"Computing unknown input parameters\n");
       }
@@ -424,7 +424,7 @@ int input_init(
                                   errmsg),
                      errmsg, pba->shooting_error,shooting_failed=_TRUE_);
 
-     
+
 
       /* Store xzero */
       for (counter = 0; counter < unknown_parameters_size; counter++){
@@ -569,27 +569,27 @@ int input_read_precisions(
                           ErrorMsg errmsg
                           ) {
   /** - set all precision parameters to default values */
-  
+
   /**
    * Declare initial params to read into
    * */
   class_call(input_default_precision(ppr),
             errmsg,
             errmsg);
-             
+
   int int1;
   int flag1;
   double param1;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  
+
   /**
    * Parse all precision parameters
    * */
-   
+
   #define __PARSE_PRECISION_PARAMETER__
   #include "precisions.h"
-  #undef __PARSE_PRECISION_PARAMETER__ 
-  
+  #undef __PARSE_PRECISION_PARAMETER__
+
   return _SUCCESS_;
 }
 int input_read_parameters(
@@ -2603,13 +2603,13 @@ int input_read_parameters(
 
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
-      ppt->has_nl_halofit_corrections_based_on_delta_m = _TRUE_;      
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->halofit_min_k_max);
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
     if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pnl->method=nl_HMcode;
-      ppt->has_nl_hmcode_corrections_based_on_delta_m = _TRUE_;
-      ppt->has_nl_corrections_based_on_delta_m = _TRUE_; 
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->hmcode_min_k_max);
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
   }
 
@@ -2620,62 +2620,62 @@ int input_read_parameters(
                                 errmsg),
              errmsg,
              errmsg);
-	
+
 	if (flag1 == _TRUE_) {
-	
+
 		if (strstr(string1,"emu_dmonly") != NULL) {
-			pnl->feedback = nl_emu_dmonly; 
+			pnl->feedback = nl_emu_dmonly;
 		}
 		if (strstr(string1,"owls_dmonly") != NULL) {
 			pnl->feedback = nl_owls_dmonly;
 		}
 		if (strstr(string1,"owls_ref") != NULL) {
-			pnl->feedback = nl_owls_ref; 
-		}	
+			pnl->feedback = nl_owls_ref;
+		}
 		if (strstr(string1,"owls_agn") != NULL) {
 			pnl->feedback = nl_owls_agn;
 		}
 		if (strstr(string1,"owls_dblim") != NULL) {
-			pnl->feedback = nl_owls_dblim; 
+			pnl->feedback = nl_owls_dblim;
 		}
   }
-  
+
 	class_call(parser_read_double(pfc,"eta_0",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
   class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
              errmsg,
              errmsg);
-             
+
   class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
              errmsg,
              "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
-  
+
   if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
 		pnl->feedback = nl_user_defined;
 		class_read_double("eta_0", pnl->eta_0);
 		class_read_double("c_min", pnl->c_min);
-  }  
+  }
   else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
 		pnl->feedback = nl_user_defined;
 		class_read_double("eta_0", pnl->eta_0);
-		pnl->c_min = (0.98 - pnl->eta_0)/0.12; 
+		pnl->c_min = (0.98 - pnl->eta_0)/0.12;
   }
   else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
 		pnl->feedback = nl_user_defined;
 		class_read_double("c_min", pnl->c_min);
 		pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
-  }  
-  
+  }
+
 	class_call(parser_read_double(pfc,"z_infinity",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
-  
+
   if (flag1 == _TRUE_) {
     class_read_double("z_infinity", pnl->z_infinity);
   }
-  
-  
+
+
   /** (g) amount of information sent to standard output (none if all set to zero) */
 
   class_read_int("background_verbose",
@@ -2695,7 +2695,7 @@ int input_read_parameters(
 
   class_read_int("spectra_verbose",
                  psp->spectra_verbose);
-                 
+
   class_read_int("nonlinear_verbose",
                  pnl->nonlinear_verbose);
 
@@ -2706,7 +2706,7 @@ int input_read_parameters(
                  pop->output_verbose);
 
   /** (h) deal with special parameters, and deprecated ones */
-  
+
   if (ppt->has_tensors == _TRUE_) {
     /** - ---> Include ur and ncdm shear in tensor computation? */
     class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
@@ -2744,7 +2744,7 @@ int input_read_parameters(
   }
 
   /**
-   * Here we can place all obsolete (deprecated) names for the precision parameters, 
+   * Here we can place all obsolete (deprecated) names for the precision parameters,
    *  so they will still get read.
    * The new parameter names should be used preferrably
    * */
@@ -2757,13 +2757,13 @@ int input_read_parameters(
   class_read_double("k_scalar_k_per_decade_for_bao",ppr->k_per_decade_for_bao); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_bao_center",ppr->k_bao_center); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_scalar_bao_width",ppr->k_bao_width); // obsolete precision parameter: read for compatibility with old precision files
-    
+
   class_read_double("k_step_trans_scalars",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans_tensors",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("k_step_trans",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("q_linstep_trans",ppr->q_linstep); // obsolete precision parameter: read for compatibility with old precision files
   class_read_double("q_logstep_trans",ppr->q_logstep_spline); // obsolete precision parameter: read for compatibility with old precision files
-  
+
   class_call(parser_read_string(pfc,
                                 "l_switch_limber_for_cl_density_over_z",
                                 &string1,
@@ -2797,7 +2797,7 @@ int input_read_parameters(
   class_read_double("hmcode_k_per_decade",ppr->hmcode_k_per_decade);
   class_read_double("hmcode_tol_sigma",ppr->hmcode_tol_sigma);
   class_read_double("hmcode_max_k_extra",ppr->hmcode_max_k_extra);
-  class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab); 
+  class_read_double("rmin_for_sigtab",ppr->rmin_for_sigtab);
   class_read_double("rmax_for_sigtab",ppr->rmax_for_sigtab);
   class_read_double("ainit_for_growtab",ppr->ainit_for_growtab);
   class_read_double("amax_for_growtab",ppr->amax_for_growtab);
@@ -3229,7 +3229,7 @@ int input_default_params(
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
   pnl->feedback = nl_emu_dmonly;
-  
+
   pnl->z_infinity = 10.;
 
   /** - all verbose parameters */
@@ -3482,7 +3482,7 @@ int input_default_precision ( struct precision * ppr ) {
   /**
    * - parameters related to nonlinear module
    */
-	
+
   ppr->halofit_min_k_nonlinear = 1.e-4;
   ppr->halofit_min_k_max = 5.;
   ppr->halofit_k_per_decade = 80.;
@@ -3497,12 +3497,12 @@ int input_default_precision ( struct precision * ppr ) {
 	ppr->n_hmcode_tables = 64;
 	ppr->rmin_for_sigtab = 1.e-5;
 	ppr->rmax_for_sigtab = 1.e3;
-	ppr->ainit_for_growtab = 1.e-3; 
+	ppr->ainit_for_growtab = 1.e-3;
 	ppr->amax_for_growtab = 1.;
 	ppr->nsteps_for_p1h_integral = 256;
 	ppr->mmin_for_p1h_integral = 1.e3;
 	ppr->mmax_for_p1h_integral = 1.e18;
-  
+
   /**
    * - parameter related to lensing
    */
@@ -3515,7 +3515,7 @@ int input_default_precision ( struct precision * ppr ) {
    * - automatic estimate of machine precision
    */
   ppr->smallest_allowed_variation=DBL_EPSILON;
-  
+
   //get_machine_precision(&(ppr->smallest_allowed_variation));
 
   class_test(ppr->smallest_allowed_variation < 0,
@@ -3526,7 +3526,7 @@ int input_default_precision ( struct precision * ppr ) {
   #define __ASSIGN_DEFAULT_PRECISION__
   #include "precisions.h"
   #undef __ASSIGN_DEFAULT_PRECISION__
-  
+
   return _SUCCESS_;
 
 }
@@ -3807,14 +3807,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
     tr.transfer_verbose = 0;
     class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
   }
-  
+
   if (pfzw->required_computation_stage >= cs_spectra){
     if (input_verbose>2)
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
     class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
   }
-  
+
   /** - Get the corresponding shoot variable and put into output */
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
