@@ -371,7 +371,7 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
  * */
 
 /** parameters relevant for HALOFIT computation */
-  
+
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
 
 class_precision_parameter(halofit_min_k_max,double,5.0) /**< when halofit is used, k_max must be
@@ -406,11 +406,9 @@ class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq m
 
 /** Parameters relevant for HMcode computation */
 
-/**
- * parameter specifying the maximum k value for the extrapolation of
- * the linear power spectrum (needed for the sigma computation)
- */ 
-class_precision_parameter(hmcode_max_k_extra,double,1.e6) 
+class_precision_parameter(hmcode_max_k_extra,double,1.e6) /**< parameter specifying the maximum k value for
+                                                             the extrapolation of the linear power spectrum
+                                                             (needed for the sigma computation) */
 
 class_precision_parameter(hmcode_min_k_max,double,5.)   /**< when HMcode is used, k_max must be
                              at least equal to this value such that
@@ -421,31 +419,24 @@ class_precision_parameter(hmcode_min_k_max,double,5.)   /**< when HMcode is used
                              P_k_max_1/Mpc or P_k_max_h/Mpc even if
                              they are smaller */
 
+class_precision_parameter(hmcode_k_per_decade,double,80.) /**< hmcode needs to evalute integrals (linear power
+                                                             spectrum times spherical tophat). They are sampled
+                                                             using this logarithmic step size. */
 
-/** hmcode needs to evalute integrals
- * (linear power spectrum times spherical
- * tophat). They are sampled using
- * this logarithmic step size.
- */
-class_precision_parameter(hmcode_k_per_decade,double,80.) 
-
-
- /** tolerance required on sigma(R) when
-  *  matching the condition sigma(R_nl)=1,
-  * which defines the wavenumber of 
-  * non-linearity, k_nl=1./R_nl */
-class_precision_parameter(hmcode_tol_sigma,double,1.e-6)  
+class_precision_parameter(hmcode_tol_sigma,double,1.e-6) /**< tolerance required on sigma(R) when matching the
+                                                            condition sigma(R_nl)=1, which defines the wavenumber
+                                                            of non-linearity, k_nl=1./R_nl */
 
 /**
- * parameters controlling stepsize and min/max r & a values for 
+ * parameters controlling stepsize and min/max r & a values for
  * sigma(r) & grow table
  */
 class_precision_parameter(n_hmcode_tables,int,64)
-class_precision_parameter(rmin_for_sigtab,double,1.e-5) 
+class_precision_parameter(rmin_for_sigtab,double,1.e-5)
 class_precision_parameter(rmax_for_sigtab,double,1.e3)
-class_precision_parameter(ainit_for_growtab,double,1.e-3) 
+class_precision_parameter(ainit_for_growtab,double,1.e-3)
 class_precision_parameter(amax_for_growtab,double,1.)
- 
+
 /**
  * parameters controlling stepsize and min/max halomass values for the
  * 1-halo-power integral

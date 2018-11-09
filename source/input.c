@@ -3048,8 +3048,6 @@ int input_default_params(
   ppt->has_metricpotential_transfers = _FALSE_;
 
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
-  ppt->has_nl_halofit_corrections_based_on_delta_m = _FALSE_;
-  ppt->has_nl_hmcode_corrections_based_on_delta_m = _FALSE_;
 
   ppt->has_nc_density = _FALSE_;
   ppt->has_nc_rsd = _FALSE_;
