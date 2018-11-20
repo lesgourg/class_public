@@ -453,21 +453,38 @@ int perturb_init(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+      abort = _FALSE_;
 
-        class_call(array_spline_table_columns2(ppt->k[index_md],
-                                               ppt->k_size[index_md],
-                                               ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                               ppt->tau_size,
-                                               ppt->ddsources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                               _SPLINE_EST_DERIV_,
-                                               ppt->error_message),
-                   ppt->error_message,
-                   ppt->error_message);
+#pragma omp parallel                                     \
+  shared(ppt,index_md,index_ic,abort,number_of_threads)  \
+  private(index_tp)                                      \
+  num_threads(number_of_threads)
 
-      }
-    }
-  }
+      {
+
+#pragma omp for schedule (dynamic)
+
+        for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+
+          class_call_parallel(array_spline_table_columns2(ppt->k[index_md],
+                                                          ppt->k_size[index_md],
+                                                          ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                                          ppt->tau_size,
+                                                          ppt->ddsources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                                          _SPLINE_EST_DERIV_,
+                                                          ppt->error_message),
+                              ppt->error_message,
+                              ppt->error_message);
+
+        }
+
+      } /* end of parallel region */
+
+      if (abort == _TRUE_) return _FAILURE_;
+
+    } /* end of loop over initial condition */
+
+  } /* end of loop over mode */
 
   return _SUCCESS_;
 }
