@@ -659,6 +659,10 @@ extern "C" {
                     struct perturb_workspace * ppw
                     );
 
+  int perturb_prepare_output(
+                             struct background * pba,
+                             struct perturbs * ppt);
+
   int perturb_find_approximation_number(
                                         struct precision * ppr,
                                         struct background * pba,
@@ -802,14 +806,12 @@ extern "C" {
                                   struct perturb_workspace * ppw
                                   );
 
-  int perturb_prepare_output_file(struct background * pba,
+  int perturb_prepare_output_file(
+                                  struct background * pba,
                                   struct perturbs * ppt,
                                   struct perturb_workspace * ppw,
                                   int index_ikout,
                                   int index_md);
-
-  int perturb_prepare_output(struct background * pba,
-                             struct perturbs * ppt);
 
 #ifdef __cplusplus
 }

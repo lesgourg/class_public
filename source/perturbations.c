@@ -2378,11 +2378,6 @@ int perturb_solve(
     if (ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout] == index_k){
       ppw->index_ikout = index_ikout;
       perhaps_print_variables = perturb_print_variables;
-      /* class_call(perturb_prepare_output_file(
-         pba,ppt,ppw,index_ikout,index_md),
-         ppt->error_message,
-         ppt->error_message);
-      */
     }
   }
 
