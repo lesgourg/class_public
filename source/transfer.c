@@ -3033,8 +3033,8 @@ int transfer_dNdz_analytic(
      different functions for dN/dz and dln(dN/dz)/dz */
 
   double z0,alpha,beta;
-  
-  //Euclid IST dNdz, DO NOT CHANGE THIS!
+
+//Euclid IST dNdz, do not change this!
 
   z0 = 0.9/pow(2.,1./2.);
   alpha = 2.0;
