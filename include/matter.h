@@ -289,7 +289,9 @@ struct matters{
    * */
   double ** cl;
   double ** ddcl;
-
+  int* window_size; //Number of (i,j) combinations for given cltp
+  int** window_index_start;//Start of j for given i,cltp
+  int** window_index_end;//Final value of j for given i,cltp
 
   /**
    * Selection/Window values, and other adjustments
@@ -343,6 +345,8 @@ struct matters_workspace{
   int index_wd1;
   int index_wd2;
   int index_wd1_wd2;
+
+  int window_counter; //Storage position in cl array
 
   int index_stp1;
   int index_stp2;
@@ -619,8 +623,8 @@ extern "C" {
   int matter_cl_at_l(
                   struct matters* pma,
                   double l,
-                  double * cl_tot,    /* array with argument cl_tot[index_cltp*pma->num_window_grid+index_wd_grid] (must be already allocated) */
-                  double ** cl_ic /* array with argument cl_ic[index_ic1_ic2][index_cltp*pma->num_window_grid+index_wd_grid]  (must be already allocated only if several ic's) */
+                  double ** cl_tot,    /* array with argument cl_tot[index_cltp][index_wd_grid] (must be already allocated) */
+                  double *** cl_ic /* array with argument cl_ic[index_ic1_ic2][index_cltp][index_wd_grid]  (must be already allocated only if several ic's) */
                   );
   int matter_get_bessel_limber(
                   struct matters* pma,
@@ -758,6 +762,7 @@ extern "C" {
   int matter_read_bessel_integrals(struct matters* pma);
   int matter_write_bessel_integrals(struct matters* pma);
   int matter_read_bessel_file_correct(struct matters* pma,short* is_correct_file);
+  int matter_obtain_window_indices(struct perturbs* ppt,struct matters* pma);
 #ifdef __cplusplus
 }
 #endif

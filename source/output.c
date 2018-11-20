@@ -255,15 +255,16 @@ int output_cl(
   double * cl_tot;    /* array with argument
                          cl_tot[index_ct] */
 
-  double ** cl_matter_ic; /* array with argument
-                         cl_matter_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid] */
+  double *** cl_matter_ic; /* array with argument
+                         cl_matter_ic[index_ic1_ic2][index_cltp_grid][index_wd_grid] */
 
-  double * cl_matter_tot;    /* array with argument
-                         cl_matter_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid] */
+  double ** cl_matter_tot;    /* array with argument
+                         cl_matter_tot[index_cltp_grid][index_wd_grid] */
 
 
   int index_md;
   int index_ic1,index_ic2,index_ic1_ic2;
+  int index_cltp_grid;
   int l;
 
   FileName file_name;
@@ -313,12 +314,6 @@ int output_cl(
   class_alloc(cl_tot,
               psp->ct_size*sizeof(double),
               pop->error_message);
-
-  if(pma->has_cls){
-    class_alloc(cl_matter_tot,
-                pma->cltp_grid_size*pma->num_window_grid*sizeof(double),
-                pop->error_message);
-  }
 
   if (ple->has_lensed_cls == _TRUE_) {
 
@@ -522,14 +517,29 @@ int output_cl(
     }
   }
 
-  if(pma->has_cls && ppt->ic_size[ppt->index_md_scalars]>1){
-    class_alloc(cl_matter_ic,
-                pma->ic_ic_size*sizeof(double*),
+  if(pma->has_cls){
+    class_alloc(cl_matter_tot,
+                pma->cltp_grid_size*sizeof(double*),
                 pop->error_message);
-    for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
-      class_alloc(cl_matter_ic[index_ic1_ic2],
-                  pma->cltp_grid_size*pma->num_window_grid*sizeof(double),
+    for(index_cltp_grid=0;index_cltp_grid<pma->cltp_grid_size;++index_cltp_grid){
+      class_alloc(cl_matter_tot[index_cltp_grid],
+                  pma->window_size[index_cltp_grid]*sizeof(double),
                   pop->error_message);
+    }
+    if(ppt->ic_size[ppt->index_md_scalars]>1){
+      class_alloc(cl_matter_ic,
+                  pma->ic_ic_size*sizeof(double**),
+                  pop->error_message);
+      for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
+        class_alloc(cl_matter_ic[index_ic1_ic2],
+                    pma->cltp_grid_size*sizeof(double*),
+                    pop->error_message);
+        for(index_cltp_grid=0;index_cltp_grid<pma->cltp_grid_size;++index_cltp_grid){
+          class_alloc(cl_matter_ic[index_ic1_ic2][index_cltp_grid],
+                      pma->window_size[index_cltp_grid]*sizeof(double),
+                      pop->error_message);
+        }
+      }
     }
   }
 
@@ -616,9 +626,15 @@ int output_cl(
   }
   free(cl_tot);
   if(pma->has_cls){
+    for(index_cltp_grid=0;index_cltp_grid<pma->cltp_grid_size;++index_cltp_grid){
+      free(cl_matter_tot[index_cltp_grid]);
+    }
     free(cl_matter_tot);
     if(ppt->ic_size[ppt->index_md_scalars]>1){
       for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
+        for(index_cltp_grid=0;index_cltp_grid<pma->cltp_grid_size;++index_cltp_grid){
+          free(cl_matter_ic[index_ic1_ic2][index_cltp_grid]);
+        }
         free(cl_matter_ic[index_ic1_ic2]);
       }
       free(cl_matter_ic);
@@ -1756,7 +1772,7 @@ int output_open_cl_file(
     }
     if (pma->has_cls == _TRUE_ && pma->has_cltp_nc == _TRUE_ && pma->has_cltp_sh){
       for (index_d1=0; index_d1<pma->num_windows; index_d1++){
-        for (index_d2=index_d1; index_d2<=MIN(index_d1+pma->non_diag,pma->num_windows-1); index_d2++){
+        for (index_d2=MAX(index_d1-pma->non_diag,0); index_d2<=MIN(index_d1+pma->non_diag,pma->num_windows-1); index_d2++){
           sprintf(tmp,"dens[%d]-lens[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
@@ -1798,7 +1814,7 @@ int output_one_line_of_cl(
                           FILE * clfile,
                           double l,
                           double * cl, /* array with argument cl[index_ct] */
-                          double * cl_matter, /* array with argument cl[index_cltp_grid] */
+                          double ** cl_matter, /* array with argument cl[index_cltp_grid][index_wd_grid] */
                           int ct_size
                           ) {
   int index_ct, index_ct_rest, index_wd_grid, index_cltp_grid;
@@ -1825,14 +1841,14 @@ int output_one_line_of_cl(
     if(pma->has_cls){
       if(cl_matter!=NULL){
         for (index_cltp_grid=0; index_cltp_grid < pma->cltp_grid_size; index_cltp_grid++) {
-          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
-            class_fprintf_double(clfile, factor*cl_matter[index_cltp_grid*pma->num_window_grid+index_wd_grid], _TRUE_);
+          for(index_wd_grid =0; index_wd_grid < pma->window_size[index_cltp_grid];++index_wd_grid){
+            class_fprintf_double(clfile, factor*cl_matter[index_cltp_grid][index_wd_grid], _TRUE_);
           }
         }
       }
       else{
         for (index_cltp_grid=0; index_cltp_grid < pma->cltp_grid_size; index_cltp_grid++) {
-          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
+          for(index_wd_grid =0; index_wd_grid < pma->window_size[index_cltp_grid];++index_wd_grid){
             class_fprintf_double(clfile, 0.0, _TRUE_);
           }
         }
@@ -1873,14 +1889,14 @@ int output_one_line_of_cl(
     if(pma->has_cls){
       if(cl_matter!=NULL){
         for (index_cltp_grid=0; index_cltp_grid < pma->cltp_grid_size; index_cltp_grid++) {
-          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
-            class_fprintf_double(clfile, factor*cl_matter[index_cltp_grid*pma->num_window_grid+index_wd_grid], _TRUE_);
+          for(index_wd_grid =0; index_wd_grid < pma->window_size[index_cltp_grid];++index_wd_grid){
+            class_fprintf_double(clfile, factor*cl_matter[index_cltp_grid][index_wd_grid], _TRUE_);
           }
         }
       }
       else{
         for (index_cltp_grid=0; index_cltp_grid < pma->cltp_grid_size; index_cltp_grid++) {
-          for(index_wd_grid =0; index_wd_grid < pma->num_window_grid;++index_wd_grid){
+          for(index_wd_grid =0; index_wd_grid < pma->window_size[index_cltp_grid];++index_wd_grid){
             class_fprintf_double(clfile, 0.0, _TRUE_);
           }
         }

@@ -168,7 +168,7 @@ extern "C" {
                             FILE * clfile,
                             double l,
                             double * cl,
-                            double * cl_matter,
+                            double ** cl_matter,
                             int ct_size
                             );
 

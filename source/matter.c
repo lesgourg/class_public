@@ -93,11 +93,9 @@ else{                                                               \
 int matter_cl_at_l(
                   struct matters* pma,
                   double l,
-                  double * cl_tot,    // array with argument cl_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid] (must be already allocated)
-                  double ** cl_ic      // array with argument cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid] (must be already allocated for a given mode only if several ic's)
+                  double ** cl_tot,    // array with argument cl_tot[index_cltp_grid][index_wd_grid] (must be already allocated)
+                  double *** cl_ic      // array with argument cl_ic[index_ic1_ic2][index_cltp_grid][index_wd_grid] (must be already allocated for a given mode only if several ic's)
                   ) {
-  class_test(pma->has_cls && pma->l_size<=0,pma->error_message,"Matter was never calculated. Cannot obtain Cl's");
-
   /**
    * Initialize local variables
    * */
@@ -106,7 +104,14 @@ int matter_cl_at_l(
   int index_ic1,index_ic2,index_ic1_ic2;
   int index_cltp_grid;
   int index_wd_grid;
+  int offset = 0;
   last_index = 0;
+
+
+  /** Test for having calculated the cls  */
+  class_test(pma->has_cls && pma->l_size<=0,pma->error_message,"Matter was never calculated. Cannot obtain Cl's");
+
+
 
   /**
    * (a) treat case in which there is only one initial condition.
@@ -127,10 +132,10 @@ int matter_cl_at_l(
                                             pma->cl[index_cltp_grid],
                                             pma->ddcl[index_cltp_grid],
                                             //(pma->num_windows*(pma->num_windows+1))/2,
-                                            pma->num_window_grid,
+                                            pma->window_size[index_cltp_grid],
                                             l,
                                             &last_index,
-                                            cl_tot+index_cltp_grid*pma->num_window_grid,
+                                            cl_tot[index_cltp_grid],
                                             pma->error_message),
                    pma->error_message,
                    pma->error_message);
@@ -140,8 +145,8 @@ int matter_cl_at_l(
     else {
       /** Set zero elements to zero */
       for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
-        for(index_wd_grid=0; index_wd_grid < pma->num_window_grid; ++ index_wd_grid){
-          cl_tot[index_cltp_grid]=0.;
+        for(index_wd_grid=0; index_wd_grid < pma->window_size[index_cltp_grid]; ++ index_wd_grid){
+          cl_tot[index_cltp_grid][index_wd_grid]=0.;
         }
         //End wd grid
       }
@@ -156,8 +161,11 @@ int matter_cl_at_l(
    * We set those Cl's above l_max to 0
    * */
   else{
-    for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++)
-      cl_tot[index_cltp_grid]=0.;
+    for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
+      for(index_wd_grid=0; index_wd_grid < pma->window_size[index_cltp_grid]; ++ index_wd_grid){
+        cl_tot[index_cltp_grid][index_wd_grid]=0.;
+      }
+    }
     for (index_ic1 = 0; index_ic1 < pma->ic_size; index_ic1++) {
       for (index_ic2 = index_ic1; index_ic2 < pma->ic_size; index_ic2++) {
         index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pma->ic_size);
@@ -174,10 +182,10 @@ int matter_cl_at_l(
                                                 pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp_grid],
                                                 pma->ddcl[index_ic1_ic2*pma->cltp_grid_size+index_cltp_grid],
                                                 //(pma->num_windows*(pma->num_windows+1))/2,
-                                                pma->num_window_grid,
+                                                pma->window_size[index_cltp_grid],
                                                 l,
                                                 &last_index,
-                                                cl_ic[index_ic1_ic2]+index_cltp_grid*pma->num_window_grid,
+                                                cl_ic[index_ic1_ic2][index_cltp_grid],
                                                 pma->error_message),
                        pma->error_message,
                        pma->error_message);
@@ -186,8 +194,8 @@ int matter_cl_at_l(
         }
         else {
           for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++){
-            for(index_wd_grid=0;index_wd_grid<pma->num_window_grid;++index_wd_grid){
-              cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid]=0.;
+            for(index_wd_grid=0;index_wd_grid<pma->window_size[index_cltp_grid];++index_wd_grid){
+              cl_ic[index_ic1_ic2][index_cltp_grid][index_wd_grid]=0.;
             }
             //End wd grid
           }
@@ -199,11 +207,11 @@ int matter_cl_at_l(
          * We compute the total Cl's by summing over the different initial conditions
          * */
         for (index_cltp_grid=0; index_cltp_grid<pma->cltp_grid_size; index_cltp_grid++) {
-          for(index_wd_grid=0;index_wd_grid<pma->num_window_grid;++index_wd_grid){
+          for(index_wd_grid=0;index_wd_grid<pma->window_size[index_cltp_grid];++index_wd_grid){
             if (index_ic1 == index_ic2){
-              cl_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid]+=cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid];
+              cl_tot[index_cltp_grid][index_wd_grid]+=cl_ic[index_ic1_ic2][index_cltp_grid][index_wd_grid];
             }else{
-              cl_tot[index_cltp_grid*pma->num_window_grid+index_wd_grid]+=2.*cl_ic[index_ic1_ic2][index_cltp_grid*pma->num_window_grid+index_wd_grid];
+              cl_tot[index_cltp_grid][index_wd_grid]+=2.*cl_ic[index_ic1_ic2][index_cltp_grid][index_wd_grid];
             }
             //Ifend ic1==ic2
           }
@@ -297,8 +305,6 @@ int matter_init(
   /* (These should be assigned BEFORE any call to matter_obtain_indices) */
   pma->ic_size = ppt->ic_size[ppt->index_md_scalars];
   pma->ic_ic_size = (pma->ic_size*(pma->ic_size+1))/2;
-  pma->num_windows = ppt->selection_num;
-  pma->num_window_grid = (pma->num_windows*(pma->num_windows+1))/2;
   pma->has_cls = ppt->has_cls;
 
   pma->tau0 = pba->conformal_age;
@@ -324,6 +330,9 @@ int matter_init(
    *  - Obtain indices required for later evaluation
    * */
   class_call(matter_obtain_indices(ppm,ppt,pma),
+             pma->error_message,
+             pma->error_message);
+  class_call(matter_obtain_window_indices(ppt,pma),
              pma->error_message,
              pma->error_message);
   class_call(matter_obtain_bi_indices(pma),
@@ -1015,6 +1024,15 @@ int matter_free(
     free(pma->radtp_of_bitp_size);
 
     free(pma->is_non_zero);
+
+    for(i=0;i<pma->cltp_grid_size;++i){
+      free(pma->window_index_start[i]);
+      free(pma->window_index_end[i]);
+    }
+    free(pma->window_index_start);
+    free(pma->window_index_end);
+    free(pma->window_size);
+
     for(i=0;i<pma->ic_ic_size;++i){
       for(j=0;j<pma->cltp_grid_size;++j){
         free(pma->cl[i*pma->cltp_grid_size+j]);
@@ -1379,18 +1397,16 @@ int matter_spline_cls(
   for(index_cltp_grid=0;index_cltp_grid<pma->cltp_grid_size;++index_cltp_grid){
     for(index_ic_ic=0;index_ic_ic<pma->ic_ic_size;++index_ic_ic){
       class_alloc(pma->ddcl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid],
-                  ((pma->num_windows+1)*pma->num_windows)/2*pma->l_size*sizeof(double),
+                  pma->window_size[index_cltp_grid]*pma->l_size*sizeof(double),
                   pma->error_message);
-      for(index_wd1_wd2=0;index_wd1_wd2<((pma->num_windows+1)*pma->num_windows)/2;++index_wd1_wd2){
-        array_spline_table_columns(
-                 pma->l_sampling,
-                 pma->l_size,
-                 pma->cl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid]+index_wd1_wd2*pma->l_size, // array of size x_size*y_size with elements
-                 1,
-                 pma->ddcl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid]+index_wd1_wd2*pma->l_size,
-                 _SPLINE_EST_DERIV_,
-                 pma->error_message
-                 );
+      for(index_wd1_wd2=0;index_wd1_wd2<pma->window_size[index_cltp_grid];++index_wd1_wd2){
+        array_spline_table_columns(pma->l_sampling,
+                                   pma->l_size,
+                                   pma->cl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid]+index_wd1_wd2*pma->l_size, // array of size x_size*y_size with elements
+                                   1,
+                                   pma->ddcl[index_ic_ic*pma->cltp_grid_size+index_cltp_grid]+index_wd1_wd2*pma->l_size,
+                                   _SPLINE_EST_DERIV_,
+                                   pma->error_message);
       }
       //End wd
     }
@@ -5551,16 +5567,15 @@ int matter_integrate_cl(struct precision* ppr,
         for(index_ic2=index_ic1;index_ic2<pma->ic_size;++index_ic2){
           index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pma->ic_size);
           class_alloc(pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2],
-                      pma->num_window_grid*pma->l_size*sizeof(double),
+                      pma->window_size[index_cltp1_cltp2]*pma->l_size*sizeof(double),
                       pma->error_message);
           int win_counter = 0;
           for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
-            for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
+            for(index_wd2=pma->window_index_start[index_cltp1_cltp2][index_wd1];index_wd2<=pma->window_index_end[index_cltp1_cltp2][index_wd1];++index_wd2){
               index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
-              win_counter++;
               if(pma->matter_verbose > MATTER_VERBOSITY_CLCALCULATION){
               //  printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,index_wd1_wd2,(pma->num_windows*(pma->num_windows+1))/2)
-                printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,win_counter,((pma->non_diag+1)*(2*pma->num_windows-pma->non_diag))/2);
+                printf(" -> Calculating for Window Combination %5d,%5d (%10d/%10d) \n",index_wd1,index_wd2,win_counter,pma->window_size[index_cltp1_cltp2]);
               }
 
 
@@ -5577,6 +5592,7 @@ int matter_integrate_cl(struct precision* ppr,
               pmw->index_ic1_ic2 = index_symmetric_matrix(pmw->index_ic1,pmw->index_ic2,pma->ic_size);
               pmw->index_wd1_wd2 = index_symmetric_matrix(pmw->index_wd1,pmw->index_wd2,pma->num_windows);
               pmw->index_cltp1_cltp2 = index_symmetric_matrix(pmw->index_cltp1,pmw->index_cltp2,pma->cltp_size);
+              pmw->window_counter = win_counter;
 
               /**
                * Now integrate the actual integral
@@ -5588,6 +5604,7 @@ int matter_integrate_cl(struct precision* ppr,
                                                pmw),
                          pma->error_message,
                          pma->error_message);
+              win_counter++;
             }
             //End wd2
           }
@@ -5619,9 +5636,9 @@ int matter_integrate_cl(struct precision* ppr,
         printf(" -> At cltp (%4d,%4d) \n",index_cltp1,index_cltp2);
         for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
           printf("    ->At icic %4d \n",index_ic1_ic2);
+          index_wd1_wd2=0;
           for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
-            for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
-              index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
+            for(index_wd2=pma->window_index_start[index_cltp1_cltp2][index_wd1];index_wd2<=pma->window_index_end[index_cltp1_cltp2][index_wd1];++index_wd2){
               printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
               printf("%.10e",
                 pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+0]
@@ -5633,6 +5650,7 @@ int matter_integrate_cl(struct precision* ppr,
               }
               printf("\n");
               //End l
+              index_wd1_wd2++;
             }
             //End wd2
           }
@@ -5659,9 +5677,9 @@ int matter_integrate_cl(struct precision* ppr,
         printf(" -> At cltp (%4d,%4d) \n",index_cltp1,index_cltp2);
         for(index_ic1_ic2=0;index_ic1_ic2<pma->ic_ic_size;++index_ic1_ic2){
           printf("   -> At icic %4d \n",index_ic1_ic2);
+          index_wd1_wd2=0;
           for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
-            for(index_wd2=index_wd1;index_wd2<MIN(pma->num_windows,index_wd1+pma->non_diag+1);++index_wd2){
-              index_wd1_wd2 = index_symmetric_matrix(index_wd1,index_wd2,pma->num_windows);
+            for(index_wd2=pma->window_index_start[index_cltp1_cltp2][index_wd1];index_wd2<=pma->window_index_end[index_cltp1_cltp2][index_wd1];++index_wd2){
               printf(" -> At win (%4d,%4d) ... \n",index_wd1,index_wd2);
               printf("%.10e",
                 pma->l_sampling[0]*(pma->l_sampling[0]+1.0)/(_TWOPI_)*pma->cl[index_ic1_ic2*pma->cltp_grid_size+index_cltp1_cltp2][index_wd1_wd2*pma->l_size+0]
@@ -5673,6 +5691,7 @@ int matter_integrate_cl(struct precision* ppr,
               }
               printf("\n");
               //End l
+              index_wd1_wd2++;
             }
             //End wd2
           }
@@ -7139,7 +7158,7 @@ int matter_integrate_each(struct precision* ppr,
     if(pma->matter_verbose > MATTER_VERBOSITY_CLCALCULATION){
       printf("(l:%i) = %.10e \n",(int)pma->l_sampling[index_l],sum_l[index_l]);
     }
-    pma->cl[pmw->index_ic1_ic2*pma->cltp_grid_size+pmw->index_cltp1_cltp2][pmw->index_wd1_wd2*pma->l_size+index_l] = sum_l[index_l];
+    pma->cl[pmw->index_ic1_ic2*pma->cltp_grid_size+pmw->index_cltp1_cltp2][pmw->window_counter*pma->l_size+index_l] = sum_l[index_l];
   }
 
 
@@ -8050,5 +8069,62 @@ int matter_read_bessel_file_correct(struct matters* pma,short* is_correct_file){
    * Close the file again
    * */
   fclose(read_file);
+  return _SUCCESS_;
+}
+
+/**
+ * Set the indices relevant to handling the different window functions,
+ *  especially given the number of elements depending on cross-correlations
+ *  between different cl types, like nCl's and sCl's
+ *
+ *
+ * @param pma               Input: pointer to matter structure
+ * @param ppt               Input: pointer to perturbs structure
+ * @return the error status
+ */
+int matter_obtain_window_indices(struct perturbs* ppt,struct matters* pma){
+  int index_cltp1,index_cltp2,index_cltp1_cltp2;
+  int index_wd1;
+  pma->num_windows = ppt->selection_num;
+  pma->num_window_grid = (pma->num_windows*(pma->num_windows+1))/2;
+
+  //x = "missing" elements on the off-diagonal
+  int x = (pma->num_windows-1)-pma->non_diag;
+  int x_grid = (x*(x+1))/2;
+
+  class_alloc(pma->window_size,
+              pma->cltp_grid_size*sizeof(int),
+              pma->error_message);
+  class_alloc(pma->window_index_start,
+              pma->cltp_grid_size*sizeof(int*),
+              pma->error_message);
+  class_alloc(pma->window_index_end,
+              pma->cltp_grid_size*sizeof(int*),
+              pma->error_message);
+  for(index_cltp1=0;index_cltp1<pma->cltp_size;++index_cltp1){
+    for(index_cltp2=index_cltp1;index_cltp2<pma->cltp_size;++index_cltp2){
+      index_cltp1_cltp2 = index_symmetric_matrix(index_cltp1,index_cltp2,pma->cltp_size);
+      class_alloc(pma->window_index_start[index_cltp1_cltp2],
+                  pma->num_windows*sizeof(int),
+                  pma->error_message);
+      class_alloc(pma->window_index_end[index_cltp1_cltp2],
+                  pma->num_windows*sizeof(int),
+                  pma->error_message);
+      if(index_cltp1==index_cltp2){
+        pma->window_size[index_cltp1_cltp2]=pma->num_window_grid-x_grid;
+        for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
+          pma->window_index_start[index_cltp1_cltp2][index_wd1]=index_wd1;
+          pma->window_index_end[index_cltp1_cltp2][index_wd1]=MIN(index_wd1+pma->non_diag,pma->num_windows-1);
+        }
+      }
+      else{
+        pma->window_size[index_cltp1_cltp2]=pma->num_windows*pma->num_windows-2*x_grid;
+        for(index_wd1=0;index_wd1<pma->num_windows;++index_wd1){
+          pma->window_index_start[index_cltp1_cltp2][index_wd1]=MAX(0,index_wd1-pma->non_diag);
+          pma->window_index_end[index_cltp1_cltp2][index_wd1]=MIN(index_wd1+pma->non_diag,pma->num_windows-1);
+        }
+      }
+    }
+  }
   return _SUCCESS_;
 }
