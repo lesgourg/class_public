@@ -539,8 +539,10 @@ int background_w_fld(
   switch (pba->fluid_equation_of_state) {
   case CLP:
     *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    break;
   case EDE:
     class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    break;
   }
 
   /** note: of course you can generalise these formulas to anything,
