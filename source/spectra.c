@@ -987,7 +987,7 @@ int spectra_pk_at_k_and_z(
         }
         else {
           pk_ic[index_ic1_ic2] = 0.;
-          if pba->has_ncdm) pk_cb_ic[index_ic1_ic2] = 0.;
+          if (pba->has_ncdm) pk_cb_ic[index_ic1_ic2] = 0.;
         }
       }
     }
