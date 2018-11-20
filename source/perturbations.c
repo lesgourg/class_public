@@ -36,7 +36,7 @@
  * @param ppt        Input: pointer to perturbation structure containing interpolation tables
  * @param index_md   Input: index of requested mode
  * @param index_ic   Input: index of requested initial condition
- * @param index_type Input: index of requested source function type
+ * @param index_tp   Input: index of requested source function type
  * @param tau        Input: any value of conformal time
  * @param psource    Output: vector (already allocated) of source function as a function of k
  * @return the error status
@@ -46,7 +46,7 @@ int perturb_sources_at_tau(
                            struct perturbs * ppt,
                            int index_md,
                            int index_ic,
-                           int index_type,
+                           int index_tp,
                            double tau,
                            double * psource
                            ) {
@@ -58,7 +58,7 @@ int perturb_sources_at_tau(
   class_call(array_interpolate_two_bis(ppt->tau_sampling,
                                        1,
                                        0,
-                                       ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
+                                       ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
                                        ppt->k_size[index_md],
                                        ppt->tau_size,
                                        tau,
@@ -112,6 +112,8 @@ int perturb_init(
   int index_ic;
   /* running index for wavenumbers */
   int index_k;
+  /* running index for type of perturbation */
+  int index_tp;
   /* pointer to one struct perturb_workspace per thread (one if no openmp) */
   struct perturb_workspace ** pppw;
   /* background quantities */
@@ -445,6 +447,28 @@ int perturb_init(
 
   free(pppw);
 
+  /** - spline the source array with respect to the time variable */
+
+  for (index_md = 0; index_md < ppt->md_size; index_md++) {
+
+    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+
+      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+
+        class_call(array_spline_table_columns2(ppt->k[index_md],
+                                               ppt->k_size[index_md],
+                                               ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                               ppt->tau_size,
+                                               ppt->ddsources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                               _SPLINE_EST_DERIV_,
+                                               ppt->error_message),
+                   ppt->error_message,
+                   ppt->error_message);
+
+      }
+    }
+  }
+
   return _SUCCESS_;
 }
 
@@ -462,7 +486,7 @@ int perturb_free(
                  struct perturbs * ppt
                  ) {
 
-  int index_md,index_ic,index_type;
+  int index_md,index_ic,index_tp;
   int filenum;
 
   if (ppt->has_perturbations == _TRUE_) {
@@ -471,15 +495,17 @@ int perturb_free(
 
       for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-        for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
+        for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
-          free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type]);
+          free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
+          free(ppt->ddsources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
 
         }
 
       }
 
       free(ppt->sources[index_md]);
+      free(ppt->ddsources[index_md]);
 
       free(ppt->k[index_md]);
 
@@ -500,6 +526,7 @@ int perturb_free(
     free(ppt->k_size);
 
     free(ppt->sources);
+    free(ppt->ddsources);
 
     /** Stuff related to perturbations output: */
 
@@ -543,10 +570,10 @@ int perturb_indices_of_perturbs(
 
   /** - define local variables */
 
-  int index_type;
+  int index_tp;
   int index_md;
   int index_ic;
-  int index_type_common;
+  int index_tp_common;
 
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
@@ -571,6 +598,7 @@ int perturb_indices_of_perturbs(
   /** - allocate array of arrays of source functions for each mode, ppt->source[index_md] */
 
   class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
+  class_alloc(ppt->ddsources,ppt->md_size * sizeof(double *),ppt->error_message);
 
   /** - initialization of all flags to false (will eventually be set to true later) */
 
@@ -626,15 +654,15 @@ int perturb_indices_of_perturbs(
     ppt->has_cmb = _TRUE_;
   }
 
-  index_type = 0;
-  class_define_index(ppt->index_tp_t2,ppt->has_source_t,index_type,1);
-  class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
-  index_type_common = index_type;
+  index_tp = 0;
+  class_define_index(ppt->index_tp_t2,ppt->has_source_t,index_tp,1);
+  class_define_index(ppt->index_tp_p,ppt->has_source_p,index_tp,1);
+  index_tp_common = index_tp;
 
   /* indices for perturbed recombination */
 
-  class_define_index(ppt->index_tp_perturbed_recombination_delta_temp,ppt->has_perturbed_recombination,index_type,1);
-  class_define_index(ppt->index_tp_perturbed_recombination_delta_chi,ppt->has_perturbed_recombination,index_type,1);
+  class_define_index(ppt->index_tp_perturbed_recombination_delta_temp,ppt->has_perturbed_recombination,index_tp,1);
+  class_define_index(ppt->index_tp_perturbed_recombination_delta_chi,ppt->has_perturbed_recombination,index_tp,1);
 
 
 
@@ -757,42 +785,42 @@ int perturb_indices_of_perturbs(
         }
       }
 
-      index_type = index_type_common;
-      class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
-      class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
-      class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
-      class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
-      class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
-      class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
-      class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
-      class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_type,1);
-      class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
-      class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_type,1);
-      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
-      class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
-      class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
-      class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
-      class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_type,1);
-      class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
-      class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_type,1);
-      class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
-      class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_type,1);
-      class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
-      class_define_index(ppt->index_tp_theta_scf,  ppt->has_source_theta_scf, index_type,1);
-      class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_type,1);
-      class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
-      class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
-      class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_type,1);
-      class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_type,1);
-      class_define_index(ppt->index_tp_phi_plus_psi,ppt->has_source_phi_plus_psi,index_type,1);
-      class_define_index(ppt->index_tp_psi,        ppt->has_source_psi,       index_type,1);
-      class_define_index(ppt->index_tp_h,          ppt->has_source_h,         index_type,1);
-      class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,   index_type,1);
-      class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_type,1);
-      class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime, index_type,1);
-      ppt->tp_size[index_md] = index_type;
+      index_tp = index_tp_common;
+      class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_tp,1);
+      class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_tp,1);
+      class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_tp,1);
+      class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_tp,1);
+      class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_tp,1);
+      class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_tp,1);
+      class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_tp,1);
+      class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_tp,1);
+      class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_tp,1);
+      class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_tp,1);
+      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_tp,1);
+      class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_tp,1);
+      class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_tp,pba->N_ncdm);
+      class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_tp,1);
+      class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_tp,1);
+      class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_tp,1);
+      class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_tp,1);
+      class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_tp,1);
+      class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_tp,1);
+      class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_tp,1);
+      class_define_index(ppt->index_tp_theta_scf,  ppt->has_source_theta_scf, index_tp,1);
+      class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_tp,1);
+      class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_tp,1);
+      class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_tp,pba->N_ncdm);
+      class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_tp,1);
+      class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_tp,1);
+      class_define_index(ppt->index_tp_phi_plus_psi,ppt->has_source_phi_plus_psi,index_tp,1);
+      class_define_index(ppt->index_tp_psi,        ppt->has_source_psi,       index_tp,1);
+      class_define_index(ppt->index_tp_h,          ppt->has_source_h,         index_tp,1);
+      class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,   index_tp,1);
+      class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_tp,1);
+      class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime, index_tp,1);
+      ppt->tp_size[index_md] = index_tp;
 
-      class_test(index_type == 0,
+      class_test(index_tp == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarization, lensing/gravitational potential, ...). Please adjust your input.");
 
@@ -818,12 +846,12 @@ int perturb_indices_of_perturbs(
 
       /** - --> source flags and indices, for sources that are specific to vectors */
 
-      index_type = index_type_common;
-      class_define_index(ppt->index_tp_t1,ppt->has_source_t,index_type,1);
-      ppt->tp_size[index_md] = index_type;
+      index_tp = index_tp_common;
+      class_define_index(ppt->index_tp_t1,ppt->has_source_t,index_tp,1);
+      ppt->tp_size[index_md] = index_tp;
 
       /*
-      class_test(index_type == 0,
+      class_test(index_tp == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for vectors, so you should have at least one non-zero vector source type (temperature or polarization). Please adjust your input.");
       */
@@ -841,12 +869,12 @@ int perturb_indices_of_perturbs(
 
       /** - --> source flags and indices, for sources that are specific to tensors */
 
-      index_type = index_type_common;
+      index_tp = index_tp_common;
       /* nothing specific, unlike for vectors and scalars! */
-      ppt->tp_size[index_md] = index_type;
+      ppt->tp_size[index_md] = index_tp;
 
       /*
-      class_test(index_type == 0,
+      class_test(index_tp == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
       */
@@ -859,9 +887,13 @@ int perturb_indices_of_perturbs(
 
     }
 
-    /** - (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_type] */
+    /** - (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_tp] */
 
     class_alloc(ppt->sources[index_md],
+                ppt->ic_size[index_md] * ppt->tp_size[index_md] * sizeof(double *),
+                ppt->error_message);
+
+    class_alloc(ppt->ddsources[index_md],
                 ppt->ic_size[index_md] * ppt->tp_size[index_md] * sizeof(double *),
                 ppt->error_message);
 
@@ -898,7 +930,7 @@ int perturb_timesampling_for_sources(
 
   int counter;
   int index_md;
-  int index_type;
+  int index_tp;
   int index_ic;
   int last_index_back;
   int last_index_thermo;
@@ -1237,9 +1269,13 @@ int perturb_timesampling_for_sources(
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
-      for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
+      for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
-        class_alloc(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type],
+        class_alloc(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
+                    ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
+                    ppt->error_message);
+
+        class_alloc(ppt->ddsources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
                     ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
@@ -2130,7 +2166,7 @@ int perturb_solve(
   int tau_actual_size;
 
   /* running index over types (temperature, etc) */
-  int index_type;
+  int index_tp;
 
   /* Fourier mode */
   double k;
@@ -2462,9 +2498,9 @@ int perturb_solve(
       the last integrated time tau_max and tau_today. */
 
   for (index_tau = tau_actual_size; index_tau < ppt->tau_size; index_tau++) {
-    for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
+    for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
       ppt->sources[index_md]
-        [index_ic * ppt->tp_size[index_md] + index_type]
+        [index_ic * ppt->tp_size[index_md] + index_tp]
         [index_tau * ppt->k_size[index_md] + index_k] = 0.;
     }
   }
@@ -5859,7 +5895,7 @@ int perturb_sources(
   /** - define local variables */
 
   double P;
-  int index_type;
+  int index_tp;
 
   struct perturb_parameters_and_workspace * pppaw;
   struct precision * ppr;
@@ -6187,8 +6223,8 @@ int perturb_sources(
 
     /* delta_ncdm1 */
     if (ppt->has_source_delta_ncdm == _TRUE_) {
-      for (index_type = ppt->index_tp_delta_ncdm1; index_type < ppt->index_tp_delta_ncdm1+pba->N_ncdm; index_type++) {
-        _set_source_(index_type) = ppw->delta_ncdm[index_type - ppt->index_tp_delta_ncdm1];
+      for (index_tp = ppt->index_tp_delta_ncdm1; index_tp < ppt->index_tp_delta_ncdm1+pba->N_ncdm; index_tp++) {
+        _set_source_(index_tp) = ppw->delta_ncdm[index_tp - ppt->index_tp_delta_ncdm1];
       }
     }
 
@@ -6257,8 +6293,8 @@ int perturb_sources(
 
     /* theta_ncdm1 */
     if (ppt->has_source_theta_ncdm == _TRUE_) {
-      for (index_type = ppt->index_tp_theta_ncdm1; index_type < ppt->index_tp_theta_ncdm1+pba->N_ncdm; index_type++) {
-        _set_source_(index_type) = ppw->theta_ncdm[index_type - ppt->index_tp_theta_ncdm1];
+      for (index_tp = ppt->index_tp_theta_ncdm1; index_tp < ppt->index_tp_theta_ncdm1+pba->N_ncdm; index_tp++) {
+        _set_source_(index_tp) = ppw->theta_ncdm[index_tp - ppt->index_tp_theta_ncdm1];
       }
     }
   }

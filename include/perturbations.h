@@ -364,9 +364,13 @@ struct perturbs
 
   double *** sources; /**< Pointer towards the source interpolation table
                          sources[index_md]
-                         [index_ic * ppt->tp_size[index_md] + index_type]
+                         [index_ic * ppt->tp_size[index_md] + index_tp]
                          [index_tau * ppt->k_size + index_k] */
 
+  double *** ddsources; /**< Pointer towards the splined source interpolation table with second deriovatives with respect to time
+                         ddsources[index_md]
+                         [index_ic * ppt->tp_size[index_md] + index_tp]
+                         [index_tau * ppt->k_size + index_k] */
 
   //@}
 
@@ -597,7 +601,7 @@ extern "C" {
                              struct perturbs * ppt,
                              int index_md,
                              int index_ic,
-                             int index_type,
+                             int index_tp,
                              double tau,
                              double * pvecsources
                              );
