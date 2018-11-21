@@ -704,12 +704,16 @@ cdef class Class:
             starts at index_ct_dd.
         """
         cdef int lmaxR
-        cdef double *dcl = <double*> calloc(self.ma.cltp_grid_size*self.ma.num_window_grid,sizeof(double))
+        cdef double **dcl = <double**> calloc(self.ma.cltp_grid_size,sizeof(double*))
+        for index_cltp_grid in range(self.ma.cltp_grid_size):
+            dcl[index_cltp_grid] = <double*> calloc(self.ma.window_size[index_cltp_grid], sizeof(double))
 
         # Quantities for tensor modes
-        cdef double **dcl_ic = <double**> calloc(self.ma.ic_ic_size, sizeof(double*))
+        cdef double ***dcl_ic = <double***> calloc(self.ma.ic_ic_size, sizeof(double**))
         for index_ic_ic in range(self.ma.ic_ic_size):
-            dcl_ic[index_ic_ic] = <double*> calloc(self.ma.cltp_grid_size*self.ma.num_window_grid, sizeof(double))
+            dcl_ic[index_ic_ic] = <double**> calloc(self.ma.cltp_grid_size, sizeof(double*))
+            for index_cltp_grid in range(self.ma.cltp_grid_size):
+                dcl_ic[index_ic_ic][index_cltp_grid] = <double*> calloc(self.ma.window_size[index_cltp_grid], sizeof(double))
 
         lmaxR = self.pt.l_lss_max
 
@@ -734,27 +738,38 @@ cdef class Class:
         if self.ma.has_cltp_sh:
             spectra.append('ll')
 
+        indices_cltp_grid = {}
+        if self.ma.has_cltp_nc:
+            index_cltp_grid = index_symmetric_matrix(self.ma.cltp_index_nc,self.ma.cltp_index_nc,self.ma.cltp_size)
+            indices_cltp_grid['dd']=index_cltp_grid
+            if self.ma.has_cltp_sh:
+                index_cltp_grid = index_symmetric_matrix(self.ma.cltp_index_nc,self.ma.cltp_index_sh,self.ma.cltp_size)
+                indices_cltp_grid['dl']=index_cltp_grid
+        if self.ma.has_cltp_sh:
+            index_cltp_grid = index_symmetric_matrix(self.ma.cltp_index_sh,self.ma.cltp_index_sh,self.ma.cltp_size)
+            indices_cltp_grid['ll']=index_cltp_grid
+
         for elem in spectra:
             cl[elem] = {}
-            for index in range(self.ma.num_window_grid):
-                cl[elem][index] = np.zeros(
-                    lmax+1, dtype=np.double)
+            for index in range(self.ma.window_size[indices_cltp_grid[elem]]):
+                cl[elem][index] = np.zeros(lmax+1, dtype=np.double)
 
         for ell from 2<=ell<lmax+1:
             if matter_cl_at_l(&self.ma, ell, dcl, dcl_ic) == _FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
-            for index in range(self.ma.num_window_grid):
-                if self.ma.has_cltp_nc:
-                    cl['dd'][index][ell] = dcl[index_symmetric_matrix(self.ma.cltp_index_nc,self.ma.cltp_index_nc,self.ma.cltp_size)*self.ma.num_window_grid+index]
-                    if self.ma.has_cltp_sh:
-                        cl['dl'][index][ell] = dcl[index_symmetric_matrix(self.ma.cltp_index_nc,self.ma.cltp_index_sh,self.ma.cltp_size)*self.ma.num_window_grid+index]
-                if self.ma.has_cltp_sh:
-                    cl['ll'][index][ell] = dcl[index_symmetric_matrix(self.ma.cltp_index_sh,self.ma.cltp_index_sh,self.ma.cltp_size)*self.ma.num_window_grid+index]
+                raise CosmoSevereError(self.ma.error_message)
+            for elem in spectra:
+                for index in range(self.ma.window_size[indices_cltp_grid[elem]]):
+                    cl[elem][index][ell] = dcl[indices_cltp_grid[elem]][index]
 
         cl['ell'] = np.arange(lmax+1)
 
+
+        for index_cltp_grid in range(self.ma.cltp_grid_size):
+            free(dcl[index_cltp_grid])
         free(dcl)
         for index in range(self.ma.ic_ic_size):
+            for index_cltp_grid in range(self.ma.cltp_grid_size):
+                free(dcl_ic[index][index_cltp_grid])
             free(dcl_ic[index])
         free(dcl_ic)
 

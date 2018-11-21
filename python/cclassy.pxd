@@ -215,7 +215,9 @@ cdef extern from "class.h":
         int cltp_grid_size
         int cltp_index_nc
         int cltp_index_sh
-        int num_window_grid
+        int* window_size
+        int** window_index_start
+        int** window_index_end
         int ic_ic_size
         ErrorMsg error_message
 
@@ -305,7 +307,7 @@ cdef extern from "class.h":
     int spectra_output_tk_data(void *pba,void *ppt,void *psp,  file_format output_format, double z, int number_of_titles, double *data)
 
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
-    int matter_cl_at_l(void* pma,double l,double * cl,double * * cl_ic)
+    int matter_cl_at_l(void* pma,double l,double * * cl,double * * * cl_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
     int spectra_pk_at_z(
         void * pba,
