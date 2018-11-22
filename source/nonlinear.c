@@ -771,7 +771,7 @@ int nonlinear_pk_l(
                                     pnl->k_size,
                                     pnl->k_size_extra,
                                     ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_delta]+index_tau * pnl->k_size,
-                                    extrapolation_only_max,
+                                    extrapolation_max_scaled,
                                     source_ic_extra+index_ic*pnl->k_size_extra,
                                     pba->a_eq*pba->H_eq,
                                     pba->h,																		                           pnl->error_message),
