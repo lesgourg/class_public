@@ -63,7 +63,7 @@ int extrapolate_source(
       }
       /**
        * Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
-       * Here we use k in h/Mpc instead of 1/Mpc
+       * Here we use k in h/Mpc instead of 1/Mpc as it is done in the CAMB implementation of HMcode
        * Has a terrible bend in log slope, discontinuity only in derivative
        * */
     case extrapolation_only_max_units:
@@ -82,11 +82,11 @@ int extrapolate_source(
         break;
       }
       /**
-       * Extrapolate assuming source ~ ln(e+a*k) where a is estimated like is done in HMCode
+       * Extrapolate assuming source ~ ln(e+a*k) where a is estimated like is done in original HMCode
        * */
     case extrapolation_hmcode:
       {
-        //Extrapolation formula taken from HM_Code
+        //Extrapolation formula taken from original HMCode
         double scaled_factor = 1.8/(13.41*k_eq);
         source_extrapolated[index_extr]=source_max*(log(_E_+scaled_factor*k_extrapolated[index_extr])/log(_E_+scaled_factor*k_max));
         break;
