@@ -626,6 +626,7 @@ int perturb_indices_of_perturbs(
   ppt->has_source_p = _FALSE_;
   ppt->has_source_delta_m = _FALSE_;
   ppt->has_source_delta_cb = _FALSE_;
+  ppt->has_source_delta_tot = _FALSE_;
   ppt->has_source_delta_g = _FALSE_;
   ppt->has_source_delta_b = _FALSE_;
   ppt->has_source_delta_cdm = _FALSE_;
@@ -637,6 +638,7 @@ int perturb_indices_of_perturbs(
   ppt->has_source_delta_ncdm = _FALSE_;
   ppt->has_source_theta_m = _FALSE_;
   ppt->has_source_theta_cb = _FALSE_;
+  ppt->has_source_theta_tot = _FALSE_;
   ppt->has_source_theta_g = _FALSE_;
   ppt->has_source_theta_b = _FALSE_;
   ppt->has_source_theta_cdm = _FALSE_;
@@ -719,6 +721,7 @@ int perturb_indices_of_perturbs(
 
       if (ppt->has_density_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
+        ppt->has_source_delta_tot = _TRUE_;
         ppt->has_source_delta_g = _TRUE_;
         ppt->has_source_delta_b = _TRUE_;
         if (pba->has_cdm == _TRUE_)
@@ -745,6 +748,7 @@ int perturb_indices_of_perturbs(
 
       if (ppt->has_velocity_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
+        ppt->has_source_theta_tot = _TRUE_;
         ppt->has_source_theta_g = _TRUE_;
         ppt->has_source_theta_b = _TRUE_;
         if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
@@ -807,17 +811,19 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_tp,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_tp,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_tp,1);
+      class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_tp,1);
       class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_tp,1);
       class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_tp,1);
       class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_tp,1);
       class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_tp,1);
       class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_tp,1);
       class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_tp,1);
-      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_tp,1);
+      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr,  index_tp,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_tp,1);
       class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_tp,pba->N_ncdm);
       class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_tp,1);
       class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_tp,1);
+      class_define_index(ppt->index_tp_theta_tot,  ppt->has_source_theta_tot, index_tp,1);
       class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_tp,1);
       class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_tp,1);
       class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_tp,1);
@@ -5371,7 +5377,12 @@ int perturb_total_stress_energy(
   /** - define local variables */
 
   double a,a2,a_prime_over_a,k2;
+  double rho_tot=0.;
   double rho_plus_p_tot=0.;
+  double rho_m=0.;
+  double delta_rho_m=0.;
+  double rho_plus_p_m=0.;
+  double rho_plus_p_theta_m=0.;
   double delta_g=0.;
   double theta_g=0.;
   double shear_g=0.;
@@ -5386,7 +5397,6 @@ int perturb_total_stress_energy(
   double rho_plus_p_ncdm;
   int index_q,n_ncdm,idx;
   double epsilon,q,q2,cg2_ncdm,w_ncdm,rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm;
-  double rho_m,delta_rho_m,rho_plus_p_m,rho_plus_p_theta_m;
   double w_fld,dw_over_da_fld,integral_fld;
   double gwncdm;
   double rho_relativistic;
@@ -5480,27 +5490,61 @@ int perturb_total_stress_energy(
 
     /* photon and baryon contribution */
     ppw->delta_rho = ppw->pvecback[pba->index_bg_rho_g]*delta_g
-      + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+      + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to total perturbed stress-energy
     ppw->rho_plus_p_theta = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*theta_g
-      + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
-    ppw->rho_plus_p_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
+      + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b]; // contribution to total perturbed stress-energy
+    ppw->rho_plus_p_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g; // contribution to total perturbed stress-energy
     ppw->delta_p = 1./3.*ppw->pvecback[pba->index_bg_rho_g]*delta_g
-      + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
+      + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to total perturbed stress-energy
+
+    rho_tot = ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
     rho_plus_p_tot = 4./3. * ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
+
+    if (ppt->has_source_delta_m == _TRUE_) {
+      delta_rho_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to delta rho_matter
+      rho_m = ppw->pvecback[pba->index_bg_rho_b];
+    }
+    if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
+      rho_plus_p_theta_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b]; // contribution to [(rho+p)theta]_matter
+      rho_plus_p_m = ppw->pvecback[pba->index_bg_rho_b];
+    }
 
     /* cdm contribution */
     if (pba->has_cdm == _TRUE_) {
-      ppw->delta_rho = ppw->delta_rho + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
+      ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm]; // contribution to total perturbed stress-energy
       if (ppt->gauge == newtonian)
-        ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
+        ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm]; // contribution to total perturbed stress-energy
+
+      rho_tot += ppw->pvecback[pba->index_bg_rho_cdm];
       rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_cdm];
+
+      if (ppt->has_source_delta_m == _TRUE_) {
+        delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm]; // contribution to delta rho_matter
+        rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
+      }
+      if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
+        if (ppt->gauge == newtonian)
+          rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm]; // contribution to [(rho+p)theta]_matter
+        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
+      }
     }
 
     /* dcdm contribution */
     if (pba->has_dcdm == _TRUE_) {
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
       ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
+
+      rho_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
       rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
+
+      if (ppt->has_source_delta_m == _TRUE_) {
+        delta_rho_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm]; // contribution to delta rho_matter
+        rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+      }
+      if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
+        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm]; // contribution to [(rho+p)theta]_matter
+        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_dcdm];
+      }
     }
 
     /* ultra-relativistic decay radiation */
@@ -5516,6 +5560,8 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_theta += 4./3.*3./4*k*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+1];
       ppw->rho_plus_p_shear += 2./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+2];
       ppw->delta_p += 1./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
+
+      rho_tot += ppw->pvecback[pba->index_bg_rho_dr];
       rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_dr];
     }
 
@@ -5526,8 +5572,18 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*theta_ur;
       ppw->rho_plus_p_shear = ppw->rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*shear_ur;
       ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
+
+      rho_tot += ppw->pvecback[pba->index_bg_rho_ur];
       rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_ur];
     }
+
+    /* infer delta_cb abd theta_cb (perturbations from CDM and baryons) before adding ncdm */
+    if ((ppt->has_source_delta_m == _TRUE_) && (ppt->has_source_delta_cb == _TRUE_))
+      ppw->delta_cb = delta_rho_m/rho_m;
+
+    if (((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) &&
+        ((ppt->has_source_delta_cb == _TRUE_) || (ppt->has_source_theta_cb == _TRUE_)))
+      ppw->theta_cb = rho_plus_p_theta_m/rho_plus_p_m;
 
     /* non-cold dark matter contribution */
     if (pba->has_ncdm == _TRUE_) {
@@ -5552,6 +5608,8 @@ int perturb_total_stress_energy(
           ppw->rho_plus_p_theta += rho_plus_p_ncdm*y[idx+1];
           ppw->rho_plus_p_shear += rho_plus_p_ncdm*y[idx+2];
           ppw->delta_p += cg2_ncdm*rho_ncdm_bg*y[idx];
+
+          rho_tot += rho_ncdm_bg;
           rho_plus_p_tot += rho_plus_p_ncdm;
 
           idx += ppw->pv->l_max_ncdm[n_ncdm]+1;
@@ -5598,7 +5656,22 @@ int perturb_total_stress_energy(
           ppw->rho_plus_p_theta += rho_plus_p_theta_ncdm;
           ppw->rho_plus_p_shear += rho_plus_p_shear_ncdm;
           ppw->delta_p += delta_p_ncdm;
+
+          rho_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
           rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+        }
+      }
+      if (ppt->has_source_delta_m == _TRUE_) {
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          delta_rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm]; // contribution to delta rho_matter
+          rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+        }
+      }
+      if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
+        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
+          rho_plus_p_theta_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm])
+            *ppw->theta_ncdm[n_ncdm]; // contribution to [(rho+p)theta]_matter
+          rho_plus_p_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
         }
       }
     }
@@ -5639,6 +5712,7 @@ int perturb_total_stress_energy(
 
       ppw->delta_p += delta_p_scf;
 
+      rho_tot += ppw->pvecback[pba->index_bg_rho_scf];
       rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_scf]+ppw->pvecback[pba->index_bg_p_scf];
 
     }
@@ -5677,53 +5751,19 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_fld;
       ppw->delta_p += pba->cs2_fld * ppw->delta_rho_fld;
 
+      rho_tot += ppw->pvecback[pba->index_bg_rho_fld];
+      rho_plus_p_tot += (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld];
+
     }
 
-    /* don't add species here, add them before the fluid contribution: because of the PPF scheme that one must be the last one! */
+    /* don't add more species here, add them before the fluid contribution: because of the PPF scheme, the fluid must be the last one! */
 
     /* store delta_m in the current gauge. In perturb_einstein, this
        will be transformed later on into the gauge-independent variable D
        = delta_m - 2H'/H \theta_m/k^2 .  */
 
-    if (ppt->has_source_delta_m == _TRUE_) {
-
-      /* include baryons and cold dark matter */
-
-      delta_rho_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b];
-      rho_m = ppw->pvecback[pba->index_bg_rho_b];
-
-      if (pba->has_cdm == _TRUE_) {
-        delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm];
-        rho_m += ppw->pvecback[pba->index_bg_rho_cdm];
-      }
-
-      /* include decaying cold dark matter */
-
-      if (pba->has_dcdm == _TRUE_) {
-        delta_rho_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
-        rho_m += ppw->pvecback[pba->index_bg_rho_dcdm];
-      }
-
-      /* infer delta_cb */
-      if (ppt->has_source_delta_cb)
-       ppw->delta_cb = delta_rho_m/rho_m;
-
-      /* include any other species non-relativistic today (like ncdm species) */
-
-      if (pba->has_ncdm == _TRUE_) {
-
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-
-          delta_rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]*ppw->delta_ncdm[n_ncdm];
-          rho_m += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-        }
-      }
-
-      /* infer delta_m */
-
+    if (ppt->has_source_delta_m == _TRUE_)
       ppw->delta_m = delta_rho_m/rho_m;
-
-    }
 
     /* store theta_m in the current gauge. In perturb_einstein, this
        will be transformed later on into the gauge-independent variable
@@ -5731,40 +5771,16 @@ int perturb_total_stress_energy(
        the delta_m source only, because the gauge-invariant delta_m
        involves theta_m in the current gauge. */
 
-    if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_)) {
-
-      /* include baryons and cold dark matter */
-
-      rho_plus_p_theta_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b];
-      rho_plus_p_m = ppw->pvecback[pba->index_bg_rho_b];
-
-      if (pba->has_cdm == _TRUE_) {
-        if (ppt->gauge == newtonian)
-          rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm];
-        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_cdm];
-      }
-
-      if (pba->has_dcdm == _TRUE_) {
-        rho_plus_p_theta_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
-        rho_plus_p_m += ppw->pvecback[pba->index_bg_rho_dcdm];
-      }
-
-      if ((ppt->has_source_delta_cb == _TRUE_) || (ppt->has_source_theta_cb == _TRUE_))
-       ppw->theta_cb = rho_plus_p_theta_m/rho_plus_p_m;
-
-      /* include any other species non-relativistic today (like ncdm species) */
-
-      if (pba->has_ncdm == _TRUE_) {
-        for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          rho_plus_p_theta_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm])*ppw->theta_ncdm[n_ncdm];
-          rho_plus_p_m += (ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm]);
-        }
-      }
-
-      /* infer theta_m */
-
+    if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_))
       ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
-    }
+
+    /* store total density and velocity perturbations */
+
+    if (ppt->has_source_delta_tot == _TRUE_)
+      ppw->delta_tot = ppw->delta_rho/rho_tot;
+    if (ppt->has_source_theta_tot == _TRUE_)
+      ppw->theta_tot = ppw->rho_plus_p_theta/rho_plus_p_tot;
+
   }
 
   /** - for vector modes */
@@ -6173,7 +6189,7 @@ int perturb_sources(
 
     }
 
-    /* total matter over density (gauge-invariant, defined as in arXiv:1307.1459) */
+    /* total matter overdensity (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_delta_m == _TRUE_) {
       _set_source_(ppt->index_tp_delta_m) = ppw->delta_m;
     }
@@ -6181,6 +6197,11 @@ int perturb_sources(
     /* cdm and baryon over density */
     if (ppt->has_source_delta_cb == _TRUE_) {
       _set_source_(ppt->index_tp_delta_cb) = ppw->delta_cb;
+    }
+
+    /* delta_tot */
+    if (ppt->has_source_delta_tot == _TRUE_)  {
+      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_tot;
     }
 
     /* delta_g */
@@ -6253,6 +6274,11 @@ int perturb_sources(
     /* cdm and baryon velocity */
     if (ppt->has_source_theta_cb == _TRUE_) {
       _set_source_(ppt->index_tp_theta_cb) = ppw->theta_cb;
+    }
+
+    /* total velocity */
+    if (ppt->has_source_theta_tot == _TRUE_) {
+      _set_source_(ppt->index_tp_theta_tot) = ppw->theta_tot;
     }
 
     /* theta_g */
