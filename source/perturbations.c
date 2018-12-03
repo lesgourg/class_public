@@ -2545,7 +2545,9 @@ int perturb_solve(
 }
 
 /**
- * Fill array of strings that wioth the name of output transfer functions.
+ * Fill array of strings with the name of the 'k_output_values'
+ * functions (transfer functions as a function of time for fixed
+ * values of k).
  *
  * @param pba  Input: pointer to the background structure
  * @param ppt  Input/Output: pointer to the perturbation structure

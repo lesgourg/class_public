@@ -389,6 +389,12 @@ int nonlinear_init(
           pnl->c_min = 3.01;
           break;
         }
+
+      case nl_user_defined:
+        {
+          /* eta_0 and c_min already passed in input */
+          break;
+        }
       }
     }
 
