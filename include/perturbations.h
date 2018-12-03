@@ -371,7 +371,7 @@ struct perturbs
                          [index_ic * ppt->tp_size[index_md] + index_tp]
                          [index_tau * ppt->k_size + index_k] */
 
-  double *** ddsources; /**< Pointer towards the splined source interpolation table with second deriovatives with respect to time
+  double *** ddsources; /**< Pointer towards the splined source interpolation table with second derivatives with respect to time
                          ddsources[index_md]
                          [index_ic * ppt->tp_size[index_md] + index_tp]
                          [index_tau * ppt->k_size + index_k] */
@@ -672,12 +672,31 @@ extern "C" {
 
   int perturb_prepare_output(
                              struct background * pba,
-                             struct perturbs * ppt);
+                             struct perturbs * ppt
+                             );
 
-  int perturb_firstline_and_ic_suffix(struct perturbs *ppt,
+  int perturb_output_tk_titles(
+                               struct background *pba,
+                               struct perturbs *ppt,
+                               enum file_format output_format,
+                               char titles[_MAXTITLESTRINGLENGTH_]
+                               );
+
+  int perturb_firstline_and_ic_suffix(
+                                      struct perturbs *ppt,
                                       int index_ic,
                                       char first_line[_LINE_LENGTH_MAX_],
-                                      FileName ic_suffix);
+                                      FileName ic_suffix
+                                      );
+
+  int perturb_output_tk_data(
+                             struct background * pba,
+                             struct perturbs * ppt,
+                             enum file_format output_format,
+                             double z,
+                             int number_of_titles,
+                             double *data
+                             );
 
   int perturb_find_approximation_number(
                                         struct precision * ppr,
