@@ -674,6 +674,11 @@ extern "C" {
                              struct background * pba,
                              struct perturbs * ppt);
 
+  int perturb_firstline_and_ic_suffix(struct perturbs *ppt,
+                                      int index_ic,
+                                      char first_line[_LINE_LENGTH_MAX_],
+                                      FileName ic_suffix);
+
   int perturb_find_approximation_number(
                                         struct precision * ppr,
                                         struct background * pba,
@@ -816,13 +821,6 @@ extern "C" {
                                   double * pvecthermo,
                                   struct perturb_workspace * ppw
                                   );
-
-  int perturb_prepare_output_file(
-                                  struct background * pba,
-                                  struct perturbs * ppt,
-                                  struct perturb_workspace * ppw,
-                                  int index_ikout,
-                                  int index_md);
 
 #ifdef __cplusplus
 }

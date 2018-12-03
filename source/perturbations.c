@@ -2544,6 +2544,14 @@ int perturb_solve(
   return _SUCCESS_;
 }
 
+/**
+ * Fill array of strings that wioth the name of output transfer functions.
+ *
+ * @param pba  Input: pointer to the background structure
+ * @param ppt  Input/Output: pointer to the perturbation structure
+ * @return the error status
+ */
+
 int perturb_prepare_output(struct background * pba,
 			   struct perturbs * ppt){
 
@@ -2648,6 +2656,54 @@ int perturb_prepare_output(struct background * pba,
 
 }
 
+/**
+ * Fill strings that will be used when writing the transfer functions
+ * and the spectra in files (in the file names and in the comment at the beginning of each file).
+ *
+ * @param ppt        Input: pointer to the perturbation structure
+ * @param index_ic   Input: index of the initial condition
+ * @param first_line Output: line of comment
+ * @param ic_suffix  Output: suffix for the output file name
+ * @return the error status
+ *
+ */
+
+int spectra_firstline_and_ic_suffix(
+                                    struct perturbs *ppt,
+                                    int index_ic,
+                                    char first_line[_LINE_LENGTH_MAX_],
+                                    FileName ic_suffix
+                                    ){
+
+  first_line[0]='\0';
+  ic_suffix[0]='\0';
+
+  if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
+    strcpy(ic_suffix,"ad");
+    strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
+  }
+
+  if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
+    strcpy(ic_suffix,"bi");
+    strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) {
+    strcpy(ic_suffix,"cdi");
+    strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
+    strcpy(ic_suffix,"nid");
+    strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
+  }
+
+  if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
+    strcpy(ic_suffix,"niv");
+    strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
+  }
+  return _SUCCESS_;
+}
 
 /**
  * For a given mode and wavenumber, find the number of intervals of
