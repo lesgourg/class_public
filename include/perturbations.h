@@ -505,6 +505,10 @@ struct perturb_workspace
   double rho_plus_p_theta;	/**< total (rho+p)*theta perturbation (gives delta Toi) */
   double rho_plus_p_shear;	/**< total (rho+p)*shear (gives delta Tij) */
   double delta_p;		    /**< total pressure perturbation (gives Tii) */
+
+  double rho_tot;           /**< total rho (used to infer delta_tot from delta rho) */
+  double rho_plus_p_tot;    /**< total (rho+p) (used to infer theta_tot from rho_plus_p_theta) */
+
   double gw_source;		    /**< stress-energy source term in Einstein's tensor equations (gives Tij[tensor]) */
   double vector_source_pi;	/**< first stress-energy source term in Einstein's vector equations */
   double vector_source_v;	/**< second stress-energy source term in Einstein's vector equations */
@@ -525,9 +529,6 @@ struct perturb_workspace
 
   double delta_cb;       /**< relative density perturbation of only cdm and baryon */
   double theta_cb;       /**< velocity divergence theta of only cdm and baryon */
-
-  double delta_tot;	/**< total relative density perturbation */
-  double theta_tot;	/**< total velocity divergence theta */
 
   double delta_rho_fld;        /**< density perturbation of fluid, not so trivial in PPF scheme */
   double rho_plus_p_theta_fld; /**< velocity divergence of fluid, not so trivial in PPF scheme */

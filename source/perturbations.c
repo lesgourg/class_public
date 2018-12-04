@@ -2687,7 +2687,7 @@ int perturb_prepare_output(struct background * pba,
  * @return the error status
  */
 
-int spectra_output_tk_titles(
+int perturb_output_tk_titles(
                              struct background *pba,
                              struct perturbs *ppt,
                              enum file_format output_format,
@@ -2768,7 +2768,7 @@ int spectra_output_tk_titles(
  *
  */
 
-int spectra_firstline_and_ic_suffix(
+int perturb_firstline_and_ic_suffix(
                                     struct perturbs *ppt,
                                     int index_ic,
                                     char first_line[_LINE_LENGTH_MAX_],
@@ -2804,7 +2804,6 @@ int spectra_firstline_and_ic_suffix(
   }
   return _SUCCESS_;
 }
-
 
 
 
@@ -2929,7 +2928,7 @@ int perturb_output_tk_data(
           class_store_double(dataptr,tk[ppt->index_tp_delta_dcdm],ppt->has_source_delta_dcdm,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_dr],ppt->has_source_delta_dr,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_scf],ppt->has_source_delta_scf,storeidx);
-          class_store_double(dataptr,tk[ppt->index_tp_delta_tot],_TRUE_,storeidx);
+          class_store_double(dataptr,tk[ppt->index_tp_delta_tot],ppt->has_source_delta_tot,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_phi],ppt->has_source_phi,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_psi],ppt->has_source_psi,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_phi_prime],ppt->has_source_phi_prime,storeidx);
@@ -2953,7 +2952,7 @@ int perturb_output_tk_data(
           class_store_double(dataptr,tk[ppt->index_tp_theta_dcdm],ppt->has_source_theta_dcdm,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_theta_dr],ppt->has_source_theta_dr,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_theta_scf],ppt->has_source_theta_scf,storeidx);
-          class_store_double(dataptr,tk[ppt->index_tp_theta_tot],_TRUE_,storeidx);
+          class_store_double(dataptr,tk[ppt->index_tp_theta_tot],ppt->has_source_theta_tot,storeidx);
 
         }
 
@@ -5569,7 +5568,6 @@ int perturb_einstein(
         class_call(perturb_rsa_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
                    ppt->error_message,
                    ppt->error_message);
-
       }
     }
 
@@ -5589,16 +5587,6 @@ int perturb_einstein(
         class_call(perturb_rsa_delta_and_theta(ppr,pba,pth,ppt,k,y,a_prime_over_a,ppw->pvecthermo,ppw),
                    ppt->error_message,
                    ppt->error_message);
-
-        /* update total theta given rsa approximation results */
-
-        ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
-
-        if (pba->has_ur == _TRUE_) {
-
-          ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
-
-        }
       }
 
       /* second equation involving total velocity */
@@ -5718,8 +5706,6 @@ int perturb_total_stress_energy(
   /** - define local variables */
 
   double a,a2,a_prime_over_a,k2;
-  double rho_tot=0.;
-  double rho_plus_p_tot=0.;
   double rho_m=0.;
   double delta_rho_m=0.;
   double rho_plus_p_m=0.;
@@ -5838,8 +5824,8 @@ int perturb_total_stress_energy(
     ppw->delta_p = 1./3.*ppw->pvecback[pba->index_bg_rho_g]*delta_g
       + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to total perturbed stress-energy
 
-    rho_tot = ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
-    rho_plus_p_tot = 4./3. * ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
+    ppw->rho_tot = ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
+    ppw->rho_plus_p_tot = 4./3. * ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
 
     if (ppt->has_source_delta_m == _TRUE_) {
       delta_rho_m = ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to delta rho_matter
@@ -5856,8 +5842,8 @@ int perturb_total_stress_energy(
       if (ppt->gauge == newtonian)
         ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm]; // contribution to total perturbed stress-energy
 
-      rho_tot += ppw->pvecback[pba->index_bg_rho_cdm];
-      rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_cdm];
+      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_cdm];
+      ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_cdm];
 
       if (ppt->has_source_delta_m == _TRUE_) {
         delta_rho_m += ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_delta_cdm]; // contribution to delta rho_matter
@@ -5875,8 +5861,8 @@ int perturb_total_stress_energy(
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
       ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
 
-      rho_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
-      rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
+      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
+      ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
 
       if (ppt->has_source_delta_m == _TRUE_) {
         delta_rho_m += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm]; // contribution to delta rho_matter
@@ -5902,8 +5888,8 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_shear += 2./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+2];
       ppw->delta_p += 1./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
 
-      rho_tot += ppw->pvecback[pba->index_bg_rho_dr];
-      rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_dr];
+      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_dr];
+      ppw->rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_dr];
     }
 
     /* ultra-relativistic neutrino/relics contribution */
@@ -5914,8 +5900,8 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_shear = ppw->rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*shear_ur;
       ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
 
-      rho_tot += ppw->pvecback[pba->index_bg_rho_ur];
-      rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_ur];
+      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_ur];
+      ppw->rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_ur];
     }
 
     /* infer delta_cb abd theta_cb (perturbations from CDM and baryons) before adding ncdm */
@@ -5950,8 +5936,8 @@ int perturb_total_stress_energy(
           ppw->rho_plus_p_shear += rho_plus_p_ncdm*y[idx+2];
           ppw->delta_p += cg2_ncdm*rho_ncdm_bg*y[idx];
 
-          rho_tot += rho_ncdm_bg;
-          rho_plus_p_tot += rho_plus_p_ncdm;
+          ppw->rho_tot += rho_ncdm_bg;
+          ppw->rho_plus_p_tot += rho_plus_p_ncdm;
 
           idx += ppw->pv->l_max_ncdm[n_ncdm]+1;
         }
@@ -5998,8 +5984,8 @@ int perturb_total_stress_energy(
           ppw->rho_plus_p_shear += rho_plus_p_shear_ncdm;
           ppw->delta_p += delta_p_ncdm;
 
-          rho_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
-          rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+          ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+          ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
         }
       }
       if (ppt->has_source_delta_m == _TRUE_) {
@@ -6053,8 +6039,8 @@ int perturb_total_stress_energy(
 
       ppw->delta_p += delta_p_scf;
 
-      rho_tot += ppw->pvecback[pba->index_bg_rho_scf];
-      rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_scf]+ppw->pvecback[pba->index_bg_p_scf];
+      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_scf];
+      ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_scf]+ppw->pvecback[pba->index_bg_p_scf];
 
     }
 
@@ -6076,14 +6062,14 @@ int perturb_total_stress_energy(
         else
           alpha = 0.;
         ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*1.5*a2/k2/a_prime_over_a*
-          (ppw->rho_plus_p_theta/rho_plus_p_tot+k2*alpha);
+          (ppw->rho_plus_p_theta/ppw->rho_plus_p_tot+k2*alpha);
         // note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
         c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
         ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*y[ppw->pv->index_pt_Gamma_fld]);
         Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*y[ppw->pv->index_pt_Gamma_fld];
         // delta and theta in both gauges gauge:
-        ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*ppw->rho_plus_p_theta/rho_plus_p_tot-
-          k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*rho_plus_p_tot)*
+        ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*ppw->rho_plus_p_theta/ppw->rho_plus_p_tot-
+          k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*ppw->rho_plus_p_tot)*
           (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
         ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
       }
@@ -6092,8 +6078,8 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_fld;
       ppw->delta_p += pba->cs2_fld * ppw->delta_rho_fld;
 
-      rho_tot += ppw->pvecback[pba->index_bg_rho_fld];
-      rho_plus_p_tot += (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld];
+      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_fld];
+      ppw->rho_plus_p_tot += (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld];
 
     }
 
@@ -6115,12 +6101,7 @@ int perturb_total_stress_energy(
     if ((ppt->has_source_delta_m == _TRUE_) || (ppt->has_source_theta_m == _TRUE_))
       ppw->theta_m = rho_plus_p_theta_m/rho_plus_p_m;
 
-    /* store total density and velocity perturbations */
-
-    if (ppt->has_source_delta_tot == _TRUE_)
-      ppw->delta_tot = ppw->delta_rho/rho_tot;
-    if (ppt->has_source_theta_tot == _TRUE_)
-      ppw->theta_tot = ppw->rho_plus_p_theta/rho_plus_p_tot;
+    /* could include Lambda contribution to rho_tot (not done to match CMBFAST/CAMB definition) */
 
   }
 
@@ -6542,7 +6523,7 @@ int perturb_sources(
 
     /* delta_tot */
     if (ppt->has_source_delta_tot == _TRUE_)  {
-      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_tot;
+      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/ppw->rho_tot;
     }
 
     /* delta_g */
@@ -6619,7 +6600,7 @@ int perturb_sources(
 
     /* total velocity */
     if (ppt->has_source_theta_tot == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_tot) = ppw->theta_tot;
+      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/ppw->rho_plus_p_tot;
     }
 
     /* theta_g */
@@ -8662,47 +8643,47 @@ int perturb_rsa_delta_and_theta(
 
   k2 = k*k;
 
+  class_test(ppw->approx[ppw->index_ap_rsa] == (int)rsa_off,
+             "this function should not have been called now, bug was introduced",
+             ppt->error_message,
+             ppt->error_message);
+
   // formulas below TBC for curvaturema
 
   /* newtonian gauge */
   if (ppt->gauge == newtonian) {
 
-    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) {
+    if (ppr->radiation_streaming_approximation == rsa_null) {
+      ppw->rsa_delta_g = 0.;
+      ppw->rsa_theta_g = 0.;
+    }
+    else {
+      ppw->rsa_delta_g = -4.*y[ppw->pv->index_pt_phi];
+      ppw->rsa_theta_g = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
+    }
+
+    if (ppr->radiation_streaming_approximation == rsa_MD_with_reio) {
+
+      ppw->rsa_delta_g +=
+        -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_b];
+
+      ppw->rsa_theta_g +=
+        3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*y[ppw->pv->index_pt_theta_b]
+               +ppw->pvecthermo[pth->index_th_dkappa]*
+               (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
+                +ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
+                +k2*y[ppw->pv->index_pt_phi]));
+    }
+
+    if (pba->has_ur == _TRUE_) {
 
       if (ppr->radiation_streaming_approximation == rsa_null) {
-        ppw->rsa_delta_g = 0.;
-        ppw->rsa_theta_g = 0.;
+        ppw->rsa_delta_ur = 0.;
+        ppw->rsa_theta_ur = 0.;
       }
       else {
-
-        ppw->rsa_delta_g = -4.*y[ppw->pv->index_pt_phi];
-
-        ppw->rsa_theta_g = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
-      }
-
-      if (ppr->radiation_streaming_approximation == rsa_MD_with_reio) {
-
-        ppw->rsa_delta_g +=
-          -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_b];
-
-        ppw->rsa_theta_g +=
-          3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*y[ppw->pv->index_pt_theta_b]
-                 +ppw->pvecthermo[pth->index_th_dkappa]*
-                 (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
-                  +ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
-                  +k2*y[ppw->pv->index_pt_phi]));
-      }
-
-      if (pba->has_ur == _TRUE_) {
-
-        if (ppr->radiation_streaming_approximation == rsa_null) {
-          ppw->rsa_delta_ur = 0.;
-          ppw->rsa_theta_ur = 0.;
-        }
-        else {
-          ppw->rsa_delta_ur = -4.*y[ppw->pv->index_pt_phi];
-          ppw->rsa_theta_ur = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
-        }
+        ppw->rsa_delta_ur = -4.*y[ppw->pv->index_pt_phi];
+        ppw->rsa_theta_ur = 6.*ppw->pvecmetric[ppw->index_mt_phi_prime];
       }
     }
   }
@@ -8710,48 +8691,55 @@ int perturb_rsa_delta_and_theta(
   /* synchronous gauge */
   if (ppt->gauge == synchronous) {
 
-    if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_on) {
+    if (ppr->radiation_streaming_approximation == rsa_null) {
+      ppw->rsa_delta_g = 0.;
+      ppw->rsa_theta_g = 0.;
+    }
+    else {
+
+      ppw->rsa_delta_g = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+                                -k2*y[ppw->pv->index_pt_eta]);
+      ppw->rsa_theta_g = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
+    }
+
+    if (ppr->radiation_streaming_approximation == rsa_MD_with_reio) {
+
+      ppw->rsa_delta_g +=
+        -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]+0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
+
+      ppw->rsa_theta_g +=
+        3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
+               (y[ppw->pv->index_pt_theta_b]
+                +0.5*ppw->pvecmetric[ppw->index_mt_h_prime])
+               +ppw->pvecthermo[pth->index_th_dkappa]*
+               (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
+                + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
+                -a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+                +k2*y[ppw->pv->index_pt_eta]));
+    }
+
+    if (pba->has_ur == _TRUE_) {
 
       if (ppr->radiation_streaming_approximation == rsa_null) {
-        ppw->rsa_delta_g = 0.;
-        ppw->rsa_theta_g = 0.;
+        ppw->rsa_delta_ur = 0.;
+        ppw->rsa_theta_ur = 0.;
       }
       else {
-
-        ppw->rsa_delta_g = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
-                                  -k2*y[ppw->pv->index_pt_eta]);
-        ppw->rsa_theta_g = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
-      }
-
-      if (ppr->radiation_streaming_approximation == rsa_MD_with_reio) {
-
-        ppw->rsa_delta_g +=
-          -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]+0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
-
-        ppw->rsa_theta_g +=
-          3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
-                 (y[ppw->pv->index_pt_theta_b]
-                  +0.5*ppw->pvecmetric[ppw->index_mt_h_prime])
-                 +ppw->pvecthermo[pth->index_th_dkappa]*
-                 (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
-                  + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
-                  -a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
-                  +k2*y[ppw->pv->index_pt_eta]));
-      }
-
-      if (pba->has_ur == _TRUE_) {
-
-        if (ppr->radiation_streaming_approximation == rsa_null) {
-          ppw->rsa_delta_ur = 0.;
-          ppw->rsa_theta_ur = 0.;
-        }
-        else {
-          ppw->rsa_delta_ur = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
-                                     -k2*y[ppw->pv->index_pt_eta]);
-          ppw->rsa_theta_ur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
-        }
+        ppw->rsa_delta_ur = 4./k2*(a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
+                                   -k2*y[ppw->pv->index_pt_eta]);
+        ppw->rsa_theta_ur = -0.5*ppw->pvecmetric[ppw->index_mt_h_prime];
       }
     }
+  }
+
+  /* update total delta and theta given rsa approximation results */
+
+  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
+  ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
+
+  if (pba->has_ur == _TRUE_) {
+    ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_delta_ur;
+    ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
   }
 
   return _SUCCESS_;
