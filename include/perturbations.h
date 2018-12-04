@@ -346,9 +346,8 @@ struct perturbs
 
   //@{
 
-  int tau_size;          /**< tau_size = number of values */
-
-  double * tau_sampling; /**< tau_sampling[index_tau] = list of tau values */
+  double * tau_sampling;    /**< array of tau values */
+  int tau_size;             /**< number of values in this array */
 
   double selection_min_of_tau_min; /**< used in presence of selection functions (for matter density, cosmic shear...) */
   double selection_max_of_tau_max; /**< used in presence of selection functions (for matter density, cosmic shear...) */
@@ -371,10 +370,27 @@ struct perturbs
                          [index_ic * ppt->tp_size[index_md] + index_tp]
                          [index_tau * ppt->k_size + index_k] */
 
-  double *** ddsources; /**< Pointer towards the splined source interpolation table with second derivatives with respect to time
-                         ddsources[index_md]
-                         [index_ic * ppt->tp_size[index_md] + index_tp]
-                         [index_tau * ppt->k_size + index_k] */
+  //@}
+
+  /** @name - arrays related to the interpolation table for sources at late times, corresponding to z < z_max_pk (used for Fourier transfer function and spectra output) */
+
+  //@{
+
+  double * ln_tau;     /**< log of the arrau tau_sampling, covering only the final time range required for the output of
+                            Fourier transfer functions (used for interpolations) */
+  int ln_tau_size;     /**< number of values in this array */
+
+  double *** late_sources; /**< Pointer towards the source interpolation table
+                                late_sources[index_md]
+                                            [index_ic * ppt->tp_size[index_md] + index_tp]
+                                            [index_tau * ppt->k_size + index_k]
+                                Note that this is not a replication of part of the sources table,
+                                it is just poiting towards the same memory zone, at the place where the late_sources actually start */
+
+  double *** ddlate_sources; /**< Pointer towards the splined source interpolation table with second derivatives with respect to time
+                              ddlate_sources[index_md]
+                                            [index_ic * ppt->tp_size[index_md] + index_tp]
+                                            [index_tau * ppt->k_size + index_k] */
 
   //@}
 
