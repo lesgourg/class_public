@@ -626,6 +626,7 @@ int perturb_indices_of_perturbs(
   int index_md;
   int index_ic;
   int index_tp_common;
+  int filenum;
 
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
@@ -652,6 +653,20 @@ int perturb_indices_of_perturbs(
   class_alloc(ppt->sources,       ppt->md_size * sizeof(double *),ppt->error_message);
   class_alloc(ppt->late_sources,  ppt->md_size * sizeof(double *),ppt->error_message);
   class_alloc(ppt->ddlate_sources,ppt->md_size * sizeof(double *),ppt->error_message);
+
+  /** - initialize variables for the output of k values */
+
+  ppt->index_k_output_values=NULL;
+
+  ppt->number_of_scalar_titles=0;
+  ppt->number_of_vector_titles=0;
+  ppt->number_of_tensor_titles=0;
+
+  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
+    ppt->scalar_perturbations_data[filenum] = NULL;
+    ppt->vector_perturbations_data[filenum] = NULL;
+    ppt->tensor_perturbations_data[filenum] = NULL;
+  }
 
   /** - initialization of all flags to false (will eventually be set to true later) */
 
@@ -1928,7 +1943,8 @@ int perturb_get_k_list(
   }
 
   /** - If user asked for k_output_values, add those to all k lists: */
-  if (ppt->k_output_values_num>0){
+  if (ppt->k_output_values_num > 0) {
+
     /* Allocate storage */
     class_alloc(ppt->index_k_output_values,sizeof(double)*ppt->md_size*ppt->k_output_values_num,ppt->error_message);
 

@@ -2894,7 +2894,6 @@ int input_default_params(
                          ) {
 
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
-  int filenum;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -3048,15 +3047,6 @@ int input_default_params(
 
   ppt->k_output_values_num=0;
   ppt->store_perturbations = _FALSE_;
-  ppt->number_of_scalar_titles=0;
-  ppt->number_of_vector_titles=0;
-  ppt->number_of_tensor_titles=0;
-  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
-    ppt->scalar_perturbations_data[filenum] = NULL;
-    ppt->vector_perturbations_data[filenum] = NULL;
-    ppt->tensor_perturbations_data[filenum] = NULL;
-  }
-  ppt->index_k_output_values=NULL;
 
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
@@ -3147,6 +3137,14 @@ int input_default_params(
   ppm->custom9=0.;
   ppm->custom10=0.;
 
+  /** - nonlinear structure */
+
+  pnl->method = nl_none;
+  pnl->has_pk_eq = _FALSE_;
+
+  pnl->feedback = nl_emu_dmonly;
+  pnl->z_infinity = 10.;
+
   /** - transfer structure */
 
   ptr->selection_bias[0]=1.;
@@ -3159,6 +3157,16 @@ int input_default_params(
   ptr->has_nz_file = _FALSE_;
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
+
+  /** - spectra structure */
+
+  psp->z_max_pk = pop->z_pk[0];
+  psp->non_diag=0;
+
+  /** - lensing structure */
+
+  ple->has_lensed_cls = _FALSE_;
+
   /** - output structure */
 
   pop->z_pk_num = 1;
@@ -3170,25 +3178,6 @@ int input_default_params(
   pop->write_thermodynamics = _FALSE_;
   pop->write_perturbations = _FALSE_;
   pop->write_primordial = _FALSE_;
-
-  /** - spectra structure */
-
-  psp->z_max_pk = pop->z_pk[0];
-  psp->non_diag=0;
-
-  /** - nonlinear structure */
-
-  /** - lensing structure */
-
-  ple->has_lensed_cls = _FALSE_;
-
-  /** - nonlinear structure */
-
-  pnl->method = nl_none;
-  pnl->has_pk_eq = _FALSE_;
-
-  pnl->feedback = nl_emu_dmonly;
-  pnl->z_infinity = 10.;
 
   /** - all verbose parameters */
 
