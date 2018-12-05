@@ -1379,7 +1379,7 @@ int perturb_timesampling_for_sources(
                     ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
-        /* late_sources is just a pointer to the end of sources (stareting from the relevant time index) */
+        /* late_sources is just a pointer to the end of sources (starting from the relevant time index) */
         ppt->late_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp] = &(ppt->sources[index_md]
                                                                                   [index_ic * ppt->tp_size[index_md] + index_tp]
                                                                                   [(ppt->tau_size-ppt->ln_tau_size) * ppt->k_size[index_md]]);
