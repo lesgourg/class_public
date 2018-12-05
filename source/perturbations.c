@@ -75,9 +75,8 @@ int perturb_sources_at_tau(
 
   class_call(array_interpolate_spline(ppt->ln_tau,
                                       ppt->ln_tau_size,
-                                      //&(ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp][(ppt->tau_size-ppt->ln_tau_size)*ppt->k_size[index_md]]),
                                       ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                      ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
+                                      ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
                                       ppt->k_size[index_md],
                                       log(tau),
                                       &last_index,
@@ -485,20 +484,19 @@ int perturb_init(
 
         for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
-          class_call_parallel(array_spline_table_columns(ppt->ln_tau,
-                                                         ppt->ln_tau_size,
-                                                         //&(ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp][(ppt->tau_size-ppt->ln_tau_size)*ppt->k_size[index_md]]),
-                                                         ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                                         ppt->k_size[index_md],
-                                                         ppt->ddlate_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                                         _SPLINE_EST_DERIV_,
-                                                         ppt->error_message),
+          class_call_parallel(array_spline_table_lines(ppt->ln_tau,
+                                                       ppt->ln_tau_size,
+                                                       ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                                       ppt->k_size[index_md],
+                                                       ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
+                                                       _SPLINE_EST_DERIV_,
+                                                       ppt->error_message),
                               ppt->error_message,
                               ppt->error_message);
 
         }
 
-        } /* end of parallel region */
+      } /* end of parallel region */
 
       if (abort == _TRUE_) return _FAILURE_;
 
@@ -637,8 +635,8 @@ int perturb_indices_of_perturbs(
 
   /** - allocate array of arrays of source functions for each mode, ppt->source[index_md] */
 
-  class_alloc(ppt->sources,ppt->md_size * sizeof(double *),ppt->error_message);
-  class_alloc(ppt->late_sources,ppt->md_size * sizeof(double *),ppt->error_message);
+  class_alloc(ppt->sources,       ppt->md_size * sizeof(double *),ppt->error_message);
+  class_alloc(ppt->late_sources,  ppt->md_size * sizeof(double *),ppt->error_message);
   class_alloc(ppt->ddlate_sources,ppt->md_size * sizeof(double *),ppt->error_message);
 
   /** - initialization of all flags to false (will eventually be set to true later) */
