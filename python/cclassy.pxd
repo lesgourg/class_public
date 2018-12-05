@@ -286,6 +286,10 @@ cdef extern from "class.h":
     int thermodynamics_output_titles(void * pba, void *pth, char titles[_MAXTITLESTRINGLENGTH_])
     int thermodynamics_output_data(void *pba, void *pth, int number_of_titles, double *data)
 
+    int perturb_output_tk_titles(void *pba, void *ppt,  file_format output_format, char titles[_MAXTITLESTRINGLENGTH_])
+    int perturb_output_tk_data(void *pba,void *ppt, file_format output_format, double z, int number_of_titles, double *data)
+    int perturb_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
+
     int primordial_output_titles(void * ppt, void *ppm, char titles[_MAXTITLESTRINGLENGTH_])
     int primordial_output_data(void *ppt, void *ppm, int number_of_titles, double *data)
 

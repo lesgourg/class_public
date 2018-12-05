@@ -56,36 +56,45 @@ int perturb_sources_at_tau(
   /** - define local variables */
 
   int last_index;
+  double logtau;
+
+  logtau = log(tau);
 
   /** - interpolate in pre-computed table contained in ppt */
-  /*
-  class_call(array_interpolate_two_bis(ppt->tau_sampling,
-                                       1,
-                                       0,
-                                       ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
-                                       ppt->k_size[index_md],
-                                       ppt->tau_size,
-                                       tau,
-                                       psource,
-                                       ppt->k_size[index_md],
-                                       ppt->error_message),
-             ppt->error_message,
-             ppt->error_message);
-  */
 
-  class_call(array_interpolate_spline(ppt->ln_tau,
-                                      ppt->ln_tau_size,
-                                      ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                      ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
-                                      ppt->k_size[index_md],
-                                      log(tau),
-                                      &last_index,
-                                      psource,
-                                      ppt->k_size[index_md],
-                                      ppt->error_message),
-             ppt->error_message,
-             ppt->error_message);
+  /** - linear interpolation at early times (z>z_max_pk) */
+  if (logtau < ppt->ln_tau[0]) {
 
+    class_call(array_interpolate_two_bis(ppt->tau_sampling,
+                                         1,
+                                         0,
+                                         ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
+                                         ppt->k_size[index_md],
+                                         ppt->tau_size,
+                                         tau,
+                                         psource,
+                                         ppt->k_size[index_md],
+                                         ppt->error_message),
+               ppt->error_message,
+               ppt->error_message);
+  }
+
+  /** - spline interpolation at late times (z<z_max_pk) */
+  else {
+
+    class_call(array_interpolate_spline(ppt->ln_tau,
+                                        ppt->ln_tau_size,
+                                        ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                        ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
+                                        ppt->k_size[index_md],
+                                        logtau,
+                                        &last_index,
+                                        psource,
+                                        ppt->k_size[index_md],
+                                        ppt->error_message),
+               ppt->error_message,
+               ppt->error_message);
+  }
 
   return _SUCCESS_;
 }
@@ -1379,7 +1388,7 @@ int perturb_timesampling_for_sources(
                     ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
-        /* late_sources is just a pointer to the end of sources (starting from the relevant time index) */
+        /* late_sources is just a pointer to the end of sources (star ting from the relevant time index) */
         ppt->late_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp] = &(ppt->sources[index_md]
                                                                                   [index_ic * ppt->tp_size[index_md] + index_tp]
                                                                                   [(ppt->tau_size-ppt->ln_tau_size) * ppt->k_size[index_md]]);

@@ -119,13 +119,6 @@ extern "C" {
                 struct output * pop
                 );
 
-  int output_tk_old(
-                    struct background * pba,
-                    struct perturbs * ppt,
-                    struct spectra * psp,
-                    struct output * pop
-                    );
-
   int output_background(
                         struct background * pba,
                         struct output * pop
