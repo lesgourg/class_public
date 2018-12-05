@@ -777,7 +777,7 @@ int nonlinear_pk_l(
                                     pnl->k_size,
                                     pnl->k_size_extra,
                                     ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_delta]+index_tau * pnl->k_size,
-                                    extrapolation_max_scaled,
+                                    extrapolation_only_max,
                                     source_ic_extra+index_ic*pnl->k_size_extra,
                                     pba->a_eq*pba->H_eq,
                                     pba->h,																		                           pnl->error_message),
@@ -2255,6 +2255,7 @@ int nonlinear_hmcode(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  fnu      = pba->Omega0_ncdm_tot/Omega0_m;  
 
   /** If index_pk_cb, choose Omega0_cb as the matter density parameter.
    * If index_pk_m, choose Omega0_cbn as the matter density parameter. */
@@ -2262,7 +2263,6 @@ int nonlinear_hmcode(
     Omega0_m = Omega0_m - pba->Omega0_ncdm_tot;
   }
 
-  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
   anorm    = 1./(2*pow(_PI_,2));
 
   class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
