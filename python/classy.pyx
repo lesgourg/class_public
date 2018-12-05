@@ -1454,9 +1454,9 @@ cdef class Class:
     def get_transfer(self, z=0., output_format='class'):
         """
         Return the density and/or velocity transfer functions for all initial
-        conditions today. You must include 'dCl' and 'vCl' in the list of
+        conditions today. You must include 'mTk' and/or 'vCTk' in the list of
         'output'. The transfer functions can also be computed at higher redshift z
-        provided that 'z_pk' has been set and that z is inside the region spanned by 'z_pk'.
+        provided that 'z_pk' has been set and that 0<z<z_pk.
 
         Parameters
         ----------
@@ -1482,7 +1482,7 @@ cdef class Class:
         else:
             outf = class_format
 
-        index_md = 0;
+        index_md = self.pt.index_md_scalars;
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
         if perturb_output_tk_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
@@ -1492,17 +1492,17 @@ cdef class Class:
         tmp = str(tmp.decode())
         names = tmp.split("\t")[:-1]
         number_of_titles = len(names)
-        timesteps = self.sp.ln_k_size
+        timesteps = self.pt.k_size[index_md]
 
         size_ic_data = timesteps*number_of_titles;
-        ic_num = self.sp.ic_size[index_md];
+        ic_num = self.pt.ic_size[index_md];
 
         data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
 
         if perturb_output_tk_data(&self.ba, &self.pt, outf, <double> z, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.pt.error_message)
 
-        spectra = {}
+        transfers = {}
 
         for index_ic in range(ic_num):
             if perturb_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
@@ -1516,14 +1516,14 @@ cdef class Class:
                     tmpdict[names[i]][index] = data[index_ic*size_ic_data+index*number_of_titles+i]
 
             if ic_num==1:
-                spectra = tmpdict
+                transfers = tmpdict
             else:
-                spectra[ic_key] = tmpdict
+                transfers[ic_key] = tmpdict
 
         free(titles)
         free(data)
 
-        return spectra
+        return transfers
 
     def get_transfer_old(self, z=0., output_format='class'):
         """

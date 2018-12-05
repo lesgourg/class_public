@@ -63,7 +63,7 @@ int perturb_sources_at_tau(
   /** - interpolate in pre-computed table contained in ppt */
 
   /** - linear interpolation at early times (z>z_max_pk) */
-  if (logtau < ppt->ln_tau[0]) {
+  if ((logtau < ppt->ln_tau[0]) || (ppt->ln_tau_size <= 1)) {
 
     class_call(array_interpolate_two_bis(ppt->tau_sampling,
                                          1,
@@ -476,42 +476,46 @@ int perturb_init(
 
   /** - spline the source array with respect to the time variable */
 
-  for (index_md = 0; index_md < ppt->md_size; index_md++) {
+  if (ppt->ln_tau_size > 1) {
 
-    for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+    for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
-      abort = _FALSE_;
+      for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
+
+        abort = _FALSE_;
 
 #pragma omp parallel                                     \
   shared(ppt,index_md,index_ic,abort,number_of_threads)  \
   private(index_tp)                                      \
   num_threads(number_of_threads)
 
-      {
+        {
 
 #pragma omp for schedule (dynamic)
 
-        for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+          for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
-          class_call_parallel(array_spline_table_lines(ppt->ln_tau,
-                                                       ppt->ln_tau_size,
-                                                       ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                                       ppt->k_size[index_md],
-                                                       ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
-                                                       _SPLINE_EST_DERIV_,
-                                                       ppt->error_message),
-                              ppt->error_message,
-                              ppt->error_message);
+            class_call_parallel(array_spline_table_lines(ppt->ln_tau,
+                                                         ppt->ln_tau_size,
+                                                         ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                                         ppt->k_size[index_md],
+                                                         ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
+                                                         _SPLINE_EST_DERIV_,
+                                                         ppt->error_message),
+                                ppt->error_message,
+                                ppt->error_message);
 
-        }
+          }
 
-      } /* end of parallel region */
+        } /* end of parallel region */
 
-      if (abort == _TRUE_) return _FAILURE_;
+        if (abort == _TRUE_) return _FAILURE_;
 
-    } /* end of loop over initial condition */
+      } /* end of loop over initial condition */
 
-  } /* end of loop over mode */
+    } /* end of loop over mode */
+
+  }
 
   return _SUCCESS_;
 }
@@ -542,10 +546,10 @@ int perturb_free(
         for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
 
           free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
-          free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
+          if (ppt->ln_tau_size > 1)
+            free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
 
         }
-
       }
 
       free(ppt->sources[index_md]);
@@ -557,7 +561,8 @@ int perturb_free(
     }
 
     free(ppt->tau_sampling);
-    free(ppt->ln_tau);
+    if (ppt->ln_tau_size > 1)
+      free(ppt->ln_tau);
 
     free(ppt->tp_size);
 
@@ -1368,13 +1373,12 @@ int perturb_timesampling_for_sources(
     if (index_tau>0) index_tau--;
     ppt->ln_tau_size=ppt->tau_size-index_tau;
 
-  }
+    /* allocate and fill array of log(tau) */
+    class_alloc(ppt->ln_tau,ppt->ln_tau_size * sizeof(double),ppt->error_message);
 
-  /** - allocate and fill array of log(tau) */
-  class_alloc(ppt->ln_tau,ppt->ln_tau_size * sizeof(double),ppt->error_message);
-
-  for (index_tau=0; index_tau<ppt->ln_tau_size; index_tau++) {
-    ppt->ln_tau[index_tau]=log(ppt->tau_sampling[index_tau-ppt->ln_tau_size+ppt->tau_size]);
+    for (index_tau=0; index_tau<ppt->ln_tau_size; index_tau++) {
+      ppt->ln_tau[index_tau]=log(ppt->tau_sampling[index_tau-ppt->ln_tau_size+ppt->tau_size]);
+    }
   }
 
   /** - loop over modes, initial conditions and types. For each of
@@ -1388,15 +1392,16 @@ int perturb_timesampling_for_sources(
                     ppt->k_size[index_md] * ppt->tau_size * sizeof(double),
                     ppt->error_message);
 
-        /* late_sources is just a pointer to the end of sources (star ting from the relevant time index) */
-        ppt->late_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp] = &(ppt->sources[index_md]
-                                                                                  [index_ic * ppt->tp_size[index_md] + index_tp]
-                                                                                  [(ppt->tau_size-ppt->ln_tau_size) * ppt->k_size[index_md]]);
+        if (ppt->ln_tau_size > 1) {
+          /* late_sources is just a pointer to the end of sources (starting from the relevant time index) */
+          ppt->late_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp] = &(ppt->sources[index_md]
+                                                                                    [index_ic * ppt->tp_size[index_md] + index_tp]
+                                                                                    [(ppt->tau_size-ppt->ln_tau_size) * ppt->k_size[index_md]]);
 
-        class_alloc(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
-                    ppt->k_size[index_md] * ppt->ln_tau_size * sizeof(double),
-                    ppt->error_message);
-
+          class_alloc(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp],
+                      ppt->k_size[index_md] * ppt->ln_tau_size * sizeof(double),
+                      ppt->error_message);
+        }
       }
     }
   }
@@ -2944,6 +2949,10 @@ int perturb_output_tk_data(
                                    z,
                                    &tau),
                pba->error_message,
+               ppt->error_message);
+
+    class_test(log(tau) < ppt->ln_tau[0],
+               "Asking sources at a z bigger than z_max_pk, something probably went wrong\n",
                ppt->error_message);
 
     class_alloc(pvecsources,

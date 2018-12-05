@@ -120,6 +120,10 @@ cdef extern from "class.h":
         int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
 
+        int * k_size
+        int * ic_size
+        int index_md_scalars
+
     cdef struct transfers:
         ErrorMsg error_message
 
