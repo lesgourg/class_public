@@ -225,35 +225,6 @@ struct spectra {
   double * ln_pk_cb_nl;        /**< same as ln_pk_nl for baryon+cdm component only */
   double * ddln_pk_cb_nl;      /**< same as ddln_pk_nl for baryon+cdm component only */
 
-  int index_tr_delta_g;        /**< index of gamma density transfer function */
-  int index_tr_delta_b;        /**< index of baryon density transfer function */
-  int index_tr_delta_cdm;      /**< index of cold dark matter density transfer function */
-  int index_tr_delta_dcdm;     /**< index of decaying cold dark matter density transfer function */
-  int index_tr_delta_scf;      /**< index of scalar field phi transfer function */
-  int index_tr_delta_fld;      /**< index of dark energy fluid density transfer function */
-  int index_tr_delta_ur;       /**< index of ultra-relativistic neutrinos/relics density transfer function */
-  int index_tr_delta_dr;       /**< index of decay radiation density transfer function */
-  int index_tr_delta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) density transfer function */
-  int index_tr_delta_tot;      /**< index of total matter density transfer function */
-  int index_tr_theta_g;        /**< index of gamma velocity transfer function */
-  int index_tr_theta_b;        /**< index of baryon velocity transfer function */
-  int index_tr_theta_cdm;      /**< index of cold dark matter velocity transfer function */
-  int index_tr_theta_dcdm;     /**< index of decaying cold dark matter velocity transfer function */
-  int index_tr_theta_scf;      /**< index of derivative of scalar field phi transfer function */
-  int index_tr_theta_fld;      /**< index of dark energy fluid velocity transfer function */
-  int index_tr_theta_ur;       /**< index of ultra-relativistic neutrinos/relics velocity transfer function */
-  int index_tr_theta_dr;       /**< index of decay radiation velocity transfer function */
-  int index_tr_theta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) velocity transfer function */
-  int index_tr_theta_tot;      /**< index of total matter velocity transfer function */
-  int index_tr_phi;            /**< index of Bardeen potential phi */
-  int index_tr_psi;            /**< index of Bardeen potential psi */
-  int index_tr_phi_prime;      /**< index of derivative of Bardeen potential phi */
-  int index_tr_h;              /**< index of synchronous gauge metric perturbation h */
-  int index_tr_h_prime;        /**< index of synchronous gauge metric perturbation h' */
-  int index_tr_eta;            /**< index of synchronous gauge metric perturbation eta */
-  int index_tr_eta_prime;      /**< index of synchronous gauge metric perturbation eta' */
-  int tr_size;                 /**< total number of species in transfer functions */
-
   /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations between various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
 
   /* double * LTdCl; /\**< cross (temperature * density) Cl's in the Limber plus thin shell approximation; depends on index_tau,index_l as: LTdCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
