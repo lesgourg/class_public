@@ -4198,42 +4198,6 @@ int spectra_output_tk_data(
   return _SUCCESS_;
 }
 
-int spectra_firstline_and_ic_suffix(struct perturbs *ppt,
-                                    int index_ic,
-                                    char first_line[_LINE_LENGTH_MAX_],
-                                    FileName ic_suffix){
-
-  first_line[0]='\0';
-  ic_suffix[0]='\0';
-
-
-  if ((ppt->has_ad == _TRUE_) && (index_ic == ppt->index_ic_ad)) {
-    strcpy(ic_suffix,"ad");
-    strcpy(first_line,"for adiabatic (AD) mode (normalized to initial curvature=1) ");
-  }
-
-  if ((ppt->has_bi == _TRUE_) && (index_ic == ppt->index_ic_bi)) {
-    strcpy(ic_suffix,"bi");
-    strcpy(first_line,"for baryon isocurvature (BI) mode (normalized to initial entropy=1)");
-  }
-
-  if ((ppt->has_cdi == _TRUE_) && (index_ic == ppt->index_ic_cdi)) {
-    strcpy(ic_suffix,"cdi");
-    strcpy(first_line,"for CDM isocurvature (CDI) mode (normalized to initial entropy=1)");
-  }
-
-  if ((ppt->has_nid == _TRUE_) && (index_ic == ppt->index_ic_nid)) {
-    strcpy(ic_suffix,"nid");
-    strcpy(first_line,"for neutrino density isocurvature (NID) mode (normalized to initial entropy=1)");
-  }
-
-  if ((ppt->has_niv == _TRUE_) && (index_ic == ppt->index_ic_niv)) {
-    strcpy(ic_suffix,"niv");
-    strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode (normalized to initial entropy=1)");
-  }
-  return _SUCCESS_;
-}
-
 int spectra_fast_pk_at_kvec_and_zvec(
                                      struct background * pba,
                                      struct spectra * psp,
