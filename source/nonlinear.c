@@ -118,6 +118,8 @@ int nonlinear_init(
                    struct nonlinear *pnl
                    ) {
 
+  int index_md;
+  int index_ic1_ic2;
   int index_ncdm;
   int index_k;
   int index_tau;
@@ -138,13 +140,33 @@ int nonlinear_init(
   double g_lcdm, g_wcdm;
   double w0, dw_over_da_fld, integral_fld;
   short halofit_found_k_max;
+  double k;
 
   double tau_growth;
   struct nonlinear_workspace nw;
   struct nonlinear_workspace * pnw;
   int ng;
 
+  /** This module only makes sense for dealing with scalar
+      perturbations, so it should do nothing if there are no
+      scalars */
+  if (ppt->has_scalars == _FALSE_) {
+    pnl->method = nl_none;
+    printf("No scalar modes requested. Nonlinear module skipped.\n");
+    return _SUCCESS_;
+  }
+
   /** Define flags and indices (so few that no dedicated routine needed) */
+
+  index_md = ppt->index_md_scalars;
+
+  pnl->ic_size = ppm->ic_size[index_md];
+  pnl->ic_ic_size = ppm->ic_ic_size[index_md];
+  class_alloc(pnl->is_non_zero,
+              sizeof(short)*pnl->ic_ic_size,
+              pnl->error_message);
+  for (index_ic1_ic2=0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++)
+    pnl->is_non_zero[index_ic1_ic2] = ppm->is_non_zero[index_md][index_ic1_ic2];
 
   pnl->has_pk_m = _TRUE_;
   if (pba->has_ncdm == _TRUE_) {
@@ -158,6 +180,17 @@ int nonlinear_init(
   class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
   pnl->pk_size = index_pk;
+
+  /** - copy list of k from perturbation module */
+
+  pnl->k_size = ppt->k_size[index_md];
+  class_alloc(pnl->k,   pnl->k_size*sizeof(double),pnl->error_message);
+  class_alloc(pnl->ln_k,pnl->k_size*sizeof(double),pnl->error_message);
+  for (index_k=0; index_k<pnl->k_size; index_k++) {
+    k = ppt->k[index_md][index_k];
+    pnl->k[index_k] = k;
+    pnl->ln_k[index_k] = log(k);
+  }
 
   /** (a) First deal with the case where non non-linear corrections requested */
 
@@ -183,13 +216,7 @@ int nonlinear_init(
       }
     }
 
-    /** - copy list of (k,tau) from perturbation module */
-
-    pnl->k_size = ppt->k_size[ppt->index_md_scalars];
-    class_alloc(pnl->k,pnl->k_size*sizeof(double),pnl->error_message);
-    for (index_k=0; index_k<pnl->k_size; index_k++)
-      pnl->k[index_k] = ppt->k[ppt->index_md_scalars][index_k];
-
+    /** - copy list of tau from perturbation module */
 
     pnl->tau_size = ppt->tau_size;
     class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
@@ -710,6 +737,208 @@ int nonlinear_free(
 
   return _SUCCESS_;
 
+}
+
+/**
+ * This routine computes all the components of the matter power
+ * spectrum P(k), given the source functions and the primordial
+ * spectra, at a given time within the pre-computed table of sources
+ * (= Fourier transfer functions) of the perturbation module, and for
+ * the same array of k values as in this table. Thus, if the
+ * primordial spectrum has sharp features and needs to be sampled on a
+ * finer grid than the sources (= Fourier transfer functions), this
+ * function requires an extension.
+ *
+ * There are four output arrays, becasue we consider:
+ *
+ * - the matter power spectrum (_m) and also, in presence of
+ * non-cold dark matter, the CDM+baryon power spectrum (_cb)
+ *
+ * - in the quantitites labelled _ic, the splitting of the total
+ * spectrum in different modes for different initial conditions.  Then
+ * the convention is the following:
+ *
+ * -- the index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2)
+ * (since the primordial spectrum is symmetric in (index_ic1,
+ * index_ic2)).
+ *
+ * -- for diagonal elements (index_ic1 = index_ic2) this
+ * arrays contains ln[P(k)] where P(k) is positive by construction.
+ *
+ * -- for non-diagonal elements this arrays contains the k-dependent
+ * cosine of the correlation angle, namely P(k)_(index_ic1,
+ * index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]. E.g. for fully
+ * correlated or anti-correlated initial conditions, this non-diagonal
+ * element is independent on k, and equal to +1 or -1.
+ *
+ * @param pba           Input: pointer to background structure
+ * @param ppt           Input: pointer to perturbation structure
+ * @param ppm           Input: pointer to primordial structure
+ * @param pnl           Input: pointer to nonlinear structure
+ * @param index_tau     Input: index of time
+ * @param ln_pk_m_ic_l  Output: log of matter power spectrum for each wavenumber and initial condition
+ * @param ln_pk_m_l     Output: log of matter power spectrum for each wavenumber, summed over initial conditions
+ * @param ln_pk_cb_ic_l Output: log of cb power spectrum for each wavenumber and initial condition
+ * @param ln_pk_cb_l    Output: log of cb power spectrum for each wavenumber, summed over initial conditions
+ * @return the error status
+ */
+
+int nonlinear_pk_linear(
+                        struct background * pba,
+                        struct perturbs * ppt,
+                        struct primordial * ppm,
+                        struct nonlinear *pnl,
+                        int index_tau,
+                        double *ln_pk_m_ic_l,  // ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                        double *ln_pk_m_l,     // ln_pk_m_l[index_k]
+                        double *ln_pk_cb_ic_l, // ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                        double *ln_pk_cb_l     // ln_pk_cb_l[index_k]
+                        ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_md;
+  int index_ic1,index_ic2,index_ic1_ic1,index_ic2_ic2,index_ic1_ic2;
+  int index_k;
+  double * primordial_pk; /* array with argument primordial_pk[index_ic_ic] */
+  double source_ic1;
+  double source_ic2;
+  double pk_m=0.,pk_m_ic;
+  double source_ic1_cb;
+  double source_ic2_cb;
+  double pk_cb=0.,pk_cb_ic=0.;
+  double cosine_correlation;
+
+  index_md = ppt->index_md_scalars;
+
+  /** - allocate temporary vector where the primordial spectrum will be stored */
+
+  class_alloc(primordial_pk,pnl->ic_ic_size*sizeof(double),pnl->error_message);
+
+  for (index_k=0; index_k<pnl->k_size; index_k++) {
+
+    class_call(primordial_spectrum_at_k(ppm,index_md,logarithmic,pnl->ln_k[index_k],primordial_pk),
+               ppm->error_message,
+               pnl->error_message);
+
+    pk_m =0;
+    if (pnl->has_pk_cb)
+      pk_cb = 0.;
+
+    /* curvature primordial spectrum:
+       P_R(k) = 1/(2pi^2) k^3 <R R>
+       so, primordial curvature correlator:
+       <R R> = (2pi^2) k^-3 P_R(k)
+       so, delta_m correlator:
+       P(k) = <delta_m delta_m> = (2pi^2) k^-3 (source_m)^2 P_R(k)
+
+       For isocurvature or cross adiabatic-isocurvature parts,
+       replace one or two 'R' by 'S_i's */
+
+    /* part diagonal in initial conditions */
+    for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
+
+      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+
+      source_ic1 = ppt->sources[index_md]
+        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+        [index_tau * ppt->k_size[index_md] + index_k];
+
+      pk_m_ic = 2.*_PI_*_PI_/exp(3.*pnl->ln_k[index_k])
+        *source_ic1*source_ic1
+        *exp(primordial_pk[index_ic1_ic2]);
+
+      ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = log(pk_m_ic);
+
+      pk_m += pk_m_ic;
+
+      if (pnl->has_pk_cb) {
+
+        source_ic1_cb = ppt->sources[index_md]
+          [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+          [index_tau * ppt->k_size[index_md] + index_k];
+
+        pk_cb_ic = 2.*_PI_*_PI_/exp(3.*pnl->ln_k[index_k])
+          *source_ic1_cb*source_ic1_cb
+          *exp(primordial_pk[index_ic1_ic2]);
+
+        ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = log(pk_cb_ic);
+
+        pk_cb += pk_cb_ic;
+
+      }
+    }
+
+    /* part non-diagonal in initial conditions */
+    for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
+      for (index_ic2 = index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
+
+        index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+        index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+        index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+
+        if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+
+          source_ic1 = ppt->sources[index_md]
+            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+            [index_tau * ppt->k_size[index_md] + index_k];
+
+          source_ic2 = ppt->sources[index_md]
+            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
+            [index_tau * ppt->k_size[index_md] + index_k];
+
+          cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
+
+          ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
+
+          pk_m += cosine_correlation
+              * sqrt(ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
+                     * ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+
+          if (pnl->has_pk_cb) {
+
+            source_ic1_cb = ppt->sources[index_md]
+              [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+              [index_tau * ppt->k_size[index_md] + index_k];
+
+            source_ic2_cb = ppt->sources[index_md]
+              [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
+              [index_tau * ppt->k_size[index_md] + index_k];
+
+            cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1_cb)*SIGN(source_ic2_cb);
+
+            ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
+
+            pk_cb += cosine_correlation
+              * sqrt(ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
+                     * ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+
+          }
+        }
+        else {
+
+          cosine_correlation = 0.;
+
+          ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
+          if (pnl->has_pk_cb)
+            ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = 0.;
+
+        }
+      }
+    }
+
+    ln_pk_m_l[index_k] = log(pk_m);
+
+    if (pnl->has_pk_cb)
+      ln_pk_cb_l[index_k] = log(pk_cb);
+
+  }
+
+  free (primordial_pk);
+
+  return _SUCCESS_;
 }
 
 /**
@@ -2255,7 +2484,7 @@ int nonlinear_hmcode(
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  fnu      = pba->Omega0_ncdm_tot/Omega0_m;  
+  fnu      = pba->Omega0_ncdm_tot/Omega0_m;
 
   /** If index_pk_cb, choose Omega0_cb as the matter density parameter.
    * If index_pk_m, choose Omega0_cbn as the matter density parameter. */

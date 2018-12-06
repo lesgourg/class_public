@@ -42,6 +42,16 @@ struct nonlinear {
 
   //@}
 
+  /** @name - information on number of modes and pairs of initial conditions */
+
+  //@{
+
+  int ic_size;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
+  int ic_ic_size;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
+  short * is_non_zero; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
+
+  //@}
+
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
 
   //@{
@@ -55,6 +65,7 @@ struct nonlinear {
 
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
+  double * ln_k;   /**< ln_k[index_k] = list of log(k) values */
 
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
   double * k_extra;/** list of k-values with extrapolated high k-values  */
@@ -161,6 +172,20 @@ extern "C" {
   int nonlinear_free(
                      struct nonlinear *pnl
                      );
+
+  // new functions:
+  int nonlinear_pk_linear(
+                          struct background *pba,
+                          struct perturbs *ppt,
+                          struct primordial *ppm,
+                          struct nonlinear *pnl,
+                          int index_tau,
+                          double *ln_pk_m_ic_l,
+                          double *ln_pk_m_l,
+                          double *ln_pk_cb_ic_l,
+                          double *ln_pk_cb_l
+                          );
+  // end new functions
 
   int nonlinear_pk_l(struct background *pba,
                      struct perturbs *ppt,
