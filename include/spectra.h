@@ -254,12 +254,6 @@ struct spectra {
   int index_tr_eta_prime;      /**< index of synchronous gauge metric perturbation eta' */
   int tr_size;                 /**< total number of species in transfer functions */
 
-  double * matter_transfer;   /**< Matter transfer functions.
-                                 Depends on indices index_md,index_tau,index_ic,index_k, index_tr as:
-                                 matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + index_tr]
-                              */
-  double * ddmatter_transfer; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
-
   /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations between various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
 
   /* double * LTdCl; /\**< cross (temperature * density) Cl's in the Limber plus thin shell approximation; depends on index_tau,index_l as: LTdCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
@@ -439,12 +433,6 @@ extern "C" {
                     double z,
                     double *sigma_cb
                     );
-
-  int spectra_matter_transfers(
-                               struct background * pba,
-                               struct perturbs * ppt,
-                               struct spectra * psp
-                               );
 
   int spectra_fast_pk_at_kvec_and_zvec(
 				       struct background * pba,
