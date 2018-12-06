@@ -640,6 +640,29 @@ extern "C" {
                              double * pvecsources
                              );
 
+  int perturb_output_data(
+                          struct background * pba,
+                          struct perturbs * ppt,
+                          enum file_format output_format,
+                          double z,
+                          int number_of_titles,
+                          double *data
+                          );
+
+  int perturb_output_titles(
+                            struct background *pba,
+                            struct perturbs *ppt,
+                            enum file_format output_format,
+                            char titles[_MAXTITLESTRINGLENGTH_]
+                            );
+
+  int perturb_output_firstline_and_ic_suffix(
+                                      struct perturbs *ppt,
+                                      int index_ic,
+                                      char first_line[_LINE_LENGTH_MAX_],
+                                      FileName ic_suffix
+                                      );
+
   int perturb_init(
                    struct precision * ppr,
                    struct background * pba,
@@ -697,33 +720,10 @@ extern "C" {
                     struct perturb_workspace * ppw
                     );
 
-  int perturb_prepare_output(
-                             struct background * pba,
-                             struct perturbs * ppt
-                             );
-
-  int perturb_output_tk_titles(
-                               struct background *pba,
-                               struct perturbs *ppt,
-                               enum file_format output_format,
-                               char titles[_MAXTITLESTRINGLENGTH_]
+  int perturb_prepare_k_output(
+                               struct background * pba,
+                               struct perturbs * ppt
                                );
-
-  int perturb_firstline_and_ic_suffix(
-                                      struct perturbs *ppt,
-                                      int index_ic,
-                                      char first_line[_LINE_LENGTH_MAX_],
-                                      FileName ic_suffix
-                                      );
-
-  int perturb_output_tk_data(
-                             struct background * pba,
-                             struct perturbs * ppt,
-                             enum file_format output_format,
-                             double z,
-                             int number_of_titles,
-                             double *data
-                             );
 
   int perturb_find_approximation_number(
                                         struct precision * ppr,

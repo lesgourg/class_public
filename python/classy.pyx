@@ -1485,7 +1485,7 @@ cdef class Class:
         index_md = self.pt.index_md_scalars;
         titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
 
-        if perturb_output_tk_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
+        if perturb_output_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
             raise CosmoSevereError(self.pt.error_message)
 
         tmp = <bytes> titles
@@ -1499,13 +1499,13 @@ cdef class Class:
 
         data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
 
-        if perturb_output_tk_data(&self.ba, &self.pt, outf, <double> z, number_of_titles, data)==_FAILURE_:
+        if perturb_output_data(&self.ba, &self.pt, outf, <double> z, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.pt.error_message)
 
         transfers = {}
 
         for index_ic in range(ic_num):
-            if perturb_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
+            if perturb_output_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
                 raise CosmoSevereError(self.pt.error_message)
             ic_key = <bytes> ic_suffix
 

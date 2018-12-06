@@ -1210,7 +1210,7 @@ int output_tk(
   }
 
 
-  class_call(perturb_output_tk_titles(pba,ppt,pop->output_format,titles),
+  class_call(perturb_output_titles(pba,ppt,pop->output_format,titles),
              pba->error_message,
              pop->error_message);
   number_of_titles = get_number_of_titles(titles);
@@ -1235,7 +1235,7 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_call(perturb_output_tk_data(pba,
+    class_call(perturb_output_data(pba,
                                       ppt,
                                       pop->output_format,
                                       pop->z_pk[index_z],
@@ -1247,7 +1247,7 @@ int output_tk(
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      class_call(perturb_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
+      class_call(perturb_output_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
                  ppt->error_message, pop->error_message);
 
       if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
