@@ -183,9 +183,10 @@ int nonlinear_init(
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
   pnl->pk_size = index_pk;
 
-  /** - copy list of k from perturbation module */
+  /** - copy list of k from perturbation module; extend it to larger k_max if hmcode is used and extrapolation is needed. */
 
   pnl->k_size = ppt->k_size[index_md];
+
   class_alloc(pnl->k,   pnl->k_size*sizeof(double),pnl->error_message);
   class_alloc(pnl->ln_k,pnl->k_size*sizeof(double),pnl->error_message);
   for (index_k=0; index_k<pnl->k_size; index_k++) {
@@ -458,7 +459,7 @@ int nonlinear_init(
       /** get the linear power spectrum */
       /*
       if (pnl->has_pk_cb == _TRUE_) {
-        class_call(nonlinear_pk_l(pba,
+        class_call(nonlinear_pk_linear(pba,
                                   ppt,
                                   ppm,
                                   pnl,
@@ -471,7 +472,7 @@ int nonlinear_init(
                    pnl->error_message);
       }
       else {
-        class_call(nonlinear_pk_l(pba,
+        class_call(nonlinear_pk_linear(pba,
                                   ppt,
                                   ppm,
                                   pnl,
@@ -822,6 +823,9 @@ int nonlinear_free(
  * @param ppt           Input: pointer to perturbation structure
  * @param ppm           Input: pointer to primordial structure
  * @param pnl           Input: pointer to nonlinear structure
+ * @param sources       Input: pointer to source array
+ * @param k             Input: pointer to wavenumnber array
+ * @param k_size        Input: wavenumber array size
  * @param index_tau     Input: index of time
  * @param ln_pk_m_ic_l  Output: log of matter power spectrum for each wavenumber and initial condition
  * @param ln_pk_m_l     Output: log of matter power spectrum for each wavenumber, summed over initial conditions
@@ -835,6 +839,8 @@ int nonlinear_pk_linear(
                         struct perturbs * ppt,
                         struct primordial * ppm,
                         struct nonlinear *pnl,
+                        double ** sources, // sources[index_ic1 * tp_size + ppt->index_tp][index_tau * ppt->k_size + index_k], normally ppt->sources[ppt->index_md_scalars], unless we use extrapolated sources
+                        int k_size, // normally pnl->k_size, unless we use extrapolation at large k
                         int index_tau,
                         double *ln_pk_m_ic_l,  // ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
                         double *ln_pk_m_l,     // ln_pk_m_l[index_k]
@@ -889,9 +895,7 @@ int nonlinear_pk_linear(
 
       index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
 
-      source_ic1 = ppt->sources[index_md]
-        [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-        [index_tau * ppt->k_size[index_md] + index_k];
+      source_ic1 = sources[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m][index_tau * k_size + index_k];
 
       pk_m_ic = 2.*_PI_*_PI_/exp(3.*pnl->ln_k[index_k])
         *source_ic1*source_ic1
@@ -903,9 +907,7 @@ int nonlinear_pk_linear(
 
       if (pnl->has_pk_cb) {
 
-        source_ic1_cb = ppt->sources[index_md]
-          [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
-          [index_tau * ppt->k_size[index_md] + index_k];
+        source_ic1_cb = sources[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb][index_tau * k_size + index_k];
 
         pk_cb_ic = 2.*_PI_*_PI_/exp(3.*pnl->ln_k[index_k])
           *source_ic1_cb*source_ic1_cb
@@ -928,13 +930,9 @@ int nonlinear_pk_linear(
 
         if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
 
-          source_ic1 = ppt->sources[index_md]
-            [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [index_tau * ppt->k_size[index_md] + index_k];
+          source_ic1 = sources[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_m][index_tau * k_size + index_k];
 
-          source_ic2 = ppt->sources[index_md]
-            [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m]
-            [index_tau * ppt->k_size[index_md] + index_k];
+          source_ic2 = sources[index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_m][index_tau * k_size + index_k];
 
           cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 
@@ -947,13 +945,9 @@ int nonlinear_pk_linear(
 
           if (pnl->has_pk_cb) {
 
-            source_ic1_cb = ppt->sources[index_md]
-              [index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
-              [index_tau * ppt->k_size[index_md] + index_k];
+            source_ic1_cb = sources[index_ic1 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb][index_tau * k_size + index_k];
 
-            source_ic2_cb = ppt->sources[index_md]
-              [index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb]
-              [index_tau * ppt->k_size[index_md] + index_k];
+            source_ic2_cb = sources[index_ic2 * ppt->tp_size[index_md] + ppt->index_tp_delta_cb][index_tau * k_size + index_k];
 
             cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1_cb)*SIGN(source_ic2_cb);
 
