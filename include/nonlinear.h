@@ -52,6 +52,61 @@ struct nonlinear {
 
   //@}
 
+  /** @name - arrays for the Fourier power spectra P(k,tau) */
+
+  //@{
+
+  short has_pk_matter; /**< do we need matter Fourier spectrum? */
+
+  int k_size;      /**< k_size = total number of k values */
+  double * k;      /**< k[index_k] = list of k values */
+  double * ln_k;   /**< ln_k[index_k] = list of log(k) values */
+
+  double * ln_tau;     /**< log(tau) array, only needed if user wants some output at z>0, instead of only z=0 */
+  int ln_tau_size;     /**< number of values in this array */
+
+  double * ln_pk_m_ic_l;   /**< Matter power spectrum (linear).
+                              Depends on indices index_ic1_ic2, index_k, index_tau as:
+                              ln_pk_m_ic_l[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
+                              where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
+                              the primordial spectrum is symmetric in (index_ic1, index_ic2)).
+                              - for diagonal elements (index_ic1 = index_ic2) this arrays contains
+                              ln[P(k)] where P(k) is positive by construction.
+                              - for non-diagonal elements this arrays contains the k-dependent
+                              cosine of the correlation angle, namely
+                              P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+                              This choice is convenient since the sign of the non-diagonal cross-correlation
+                              is arbitrary. For fully correlated or anti-correlated initial conditions,
+                              this non-diagonal element is independent on k, and equal to +1 or -1.
+                           */
+
+  double * ddln_pk_m_ic_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. So:
+                              - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
+                              good since this function is usually smooth.
+                              - for non-diagonal coefficients, we spline
+                              P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
+                              vs. ln(k), which is fine since this quantity is often assumed to be
+                              constant (e.g for fully correlated/anticorrelated initial conditions)
+                              or nearly constant, and with arbitrary sign.
+                           */
+
+  double * ln_pk_m_l;   /**< Total matter power spectrum summed over initial conditions (linear).
+                           Only depends on indices index_k, index_tau as:
+                           ln_pk[index_tau * psp->k_size + index_k]
+                        */
+
+  double * ddln_pk_m_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  double * ln_pk_cb_ic_l; /**< Baryon+CDM power spectrum (linear). Same format as ln_pk_m_ic_l */
+
+  double * ddln_pk_cb_ic_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  double * ln_pk_cb_l;   /**< Total baryon+CDM power spectrum summed over initial conditions (linear). */
+
+  double * ddln_pk_cb_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
+  //@}
+
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
 
   //@{
@@ -62,10 +117,6 @@ struct nonlinear {
   int index_pk_m;  /**< index of pk for matter */
   int index_pk_cb; /**< index of pk for cold dark matter plus baryons */
   int pk_size;     /**< k_size = total number of pk */
-
-  int k_size;      /**< k_size = total number of k values */
-  double * k;      /**< k[index_k] = list of k values */
-  double * ln_k;   /**< ln_k[index_k] = list of log(k) values */
 
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
   double * k_extra;/** list of k-values with extrapolated high k-values  */

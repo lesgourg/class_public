@@ -149,6 +149,12 @@ int nonlinear_init(
   struct nonlinear_workspace * pnw;
   int ng;
 
+  double ** sources;
+  double * ln_pk_m_ic_l_at_tau;
+  double * ln_pk_m_l_at_tau;
+  double * ln_pk_cb_ic_l_at_tau;
+  double * ln_pk_cb_l_at_tau;
+
   /** This module only makes sense for dealing with scalar
       perturbations, so it should do nothing if there are no
       scalars */
@@ -157,10 +163,23 @@ int nonlinear_init(
     printf("No scalar modes requested. Nonlinear module skipped.\n");
     return _SUCCESS_;
   }
+  index_md = ppt->index_md_scalars;
+
+  /** Nothing to be done if we don't want the matter power spectrum */
+
+  pnl->has_pk_matter = ppt->has_pk_matter;
+
+  if (pnl->has_pk_matter == _FALSE_) {
+    if (pnl->nonlinear_verbose > 0)
+      printf("No Fourier spectra requested. Nonlinear module skipped.\n");
+    return _SUCCESS_;
+  }
+  else {
+    if (pnl->nonlinear_verbose > 0)
+      printf("Computing linear Fourier spectra.\n");
+  }
 
   /** Define flags and indices (so few that no dedicated routine needed) */
-
-  index_md = ppt->index_md_scalars;
 
   pnl->ic_size = ppm->ic_size[index_md];
   pnl->ic_ic_size = ppm->ic_ic_size[index_md];
@@ -183,7 +202,7 @@ int nonlinear_init(
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
   pnl->pk_size = index_pk;
 
-  /** - copy list of k from perturbation module; extend it to larger k_max if hmcode is used and extrapolation is needed. */
+  /** - copy list of k from perturbation module */
 
   pnl->k_size = ppt->k_size[index_md];
 
@@ -193,6 +212,159 @@ int nonlinear_init(
     k = ppt->k[index_md][index_k];
     pnl->k[index_k] = k;
     pnl->ln_k[index_k] = log(k);
+  }
+
+  /** copy list of tau from perturbation module (it already takes into account the upper limit in z_max_pk) */
+
+  pnl->ln_tau_size = ppt->ln_tau_size;
+
+  if (ppt->ln_tau_size > 1) {
+    class_alloc(pnl->ln_tau,pnl->ln_tau_size*sizeof(double),pnl->error_message);
+    for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
+      pnl->ln_tau[index_tau] = ppt->ln_tau[index_tau];
+    }
+  }
+
+  /** allocate array of linear power spectrum values */
+
+  if (pnl->has_pk_m == _TRUE_) {
+
+    class_alloc(pnl->ln_pk_m_ic_l,
+                sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
+                pnl->error_message);
+
+    class_alloc(pnl->ln_pk_m_l,
+                sizeof(double)*pnl->ln_tau_size*pnl->k_size,
+                pnl->error_message);
+  }
+
+  if (pnl->has_pk_cb == _TRUE_) {
+
+    class_alloc(pnl->ln_pk_cb_ic_l,
+                sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
+                pnl->error_message);
+
+    class_alloc(pnl->ln_pk_cb_l,
+                sizeof(double)*pnl->ln_tau_size*pnl->k_size,
+                pnl->error_message);
+  }
+
+  /** get the linear power spectrum at each time */
+
+  for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
+
+    /* the input sources should be ppt->late_sources if it exists.
+       It does not exist when the user only wants results at
+       z=0. Then, the input sources are in ppt->sources for the last
+       value of index_tau, corresponding to z=0. */
+
+    if (pnl->ln_tau_size > 1) {
+      sources = ppt->late_sources[index_md];
+    }
+    else {
+      sources = ppt->sources[index_md];
+      index_tau = ppt->tau_size-1;
+    }
+
+    /* the result of nonlinear_pk_linear should be stored at the
+       following locations (the region of the arrays
+       pnl->ln_pk_... with the right index_tau) */
+
+    ln_pk_m_ic_l_at_tau = &(pnl->ln_pk_m_ic_l[index_tau * pnl->k_size]);
+    ln_pk_m_l_at_tau = &(pnl->ln_pk_m_l[index_tau * pnl->k_size]);
+
+    if (pnl->has_pk_cb == _TRUE_) {
+      ln_pk_cb_ic_l_at_tau = &(pnl->ln_pk_cb_ic_l[index_tau * pnl->k_size]);
+      ln_pk_cb_l_at_tau = &(pnl->ln_pk_cb_l[index_tau * pnl->k_size]);
+    }
+    else {
+      ln_pk_cb_ic_l_at_tau = NULL;
+      ln_pk_cb_l_at_tau = NULL;
+    }
+
+    /** get the linear power spectrum at one time */
+
+    class_call(nonlinear_pk_linear(
+                                   pba,
+                                   ppt,
+                                   ppm,
+                                   pnl,
+                                   sources,
+                                   pnl->k_size,
+                                   index_tau,
+                                   ln_pk_m_ic_l_at_tau,
+                                   ln_pk_m_l_at_tau,
+                                   ln_pk_cb_ic_l_at_tau,
+                                   ln_pk_cb_l_at_tau
+                                   ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
+     compute array of second derivatives in view of spline interpolation */
+
+  if (pnl->ln_tau_size > 1) {
+
+    class_alloc(pnl->ddln_pk_m_ic_l,
+                sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
+                pnl->error_message);
+
+    class_call(array_spline_table_lines(pnl->ln_tau,
+                                        pnl->ln_tau_size,
+                                        pnl->ln_pk_m_ic_l,
+                                        pnl->k_size*pnl->ic_ic_size,
+                                        pnl->ddln_pk_m_ic_l,
+                                        _SPLINE_EST_DERIV_,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    class_alloc(pnl->ddln_pk_m_l,
+                sizeof(double)*pnl->ln_tau_size*pnl->k_size,
+                pnl->error_message);
+
+    class_call(array_spline_table_lines(pnl->ln_tau,
+                                        pnl->ln_tau_size,
+                                        pnl->ln_pk_m_l,
+                                        pnl->k_size,
+                                        pnl->ddln_pk_m_l,
+                                        _SPLINE_EST_DERIV_,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    if (pnl->has_pk_cb == _TRUE_) {
+
+      class_alloc(pnl->ddln_pk_cb_ic_l,
+                  sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
+                  pnl->error_message);
+
+      class_call(array_spline_table_lines(pnl->ln_tau,
+                                          pnl->ln_tau_size,
+                                          pnl->ln_pk_cb_ic_l,
+                                          pnl->k_size*pnl->ic_ic_size,
+                                          pnl->ddln_pk_cb_ic_l,
+                                          _SPLINE_EST_DERIV_,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      class_alloc(pnl->ddln_pk_cb_l,
+                  sizeof(double)*pnl->ln_tau_size*pnl->k_size,
+                  pnl->error_message);
+
+      class_call(array_spline_table_lines(pnl->ln_tau,
+                                          pnl->ln_tau_size,
+                                          pnl->ln_pk_cb_l,
+                                          pnl->k_size,
+                                          pnl->ddln_pk_cb_l,
+                                          _SPLINE_EST_DERIV_,
+                                        pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+    }
   }
 
   /** (a) First deal with the case where non non-linear corrections requested */
@@ -751,6 +923,27 @@ int nonlinear_free(
                    struct nonlinear *pnl
                    ) {
   int index_pk;
+
+  if (pnl->has_pk_matter == _TRUE_) {
+
+    free(pnl->k);
+    free(pnl->ln_k);
+    free(pnl->ln_tau);
+    free(pnl->ln_pk_m_ic_l);
+    free(pnl->ln_pk_m_l);
+    if (pnl->tau_size>1) {
+      free(pnl->ddln_pk_m_ic_l);
+      free(pnl->ddln_pk_m_l);
+    }
+    if (pnl->has_pk_cb == _TRUE_) {
+      free(pnl->ln_pk_cb_ic_l);
+      free(pnl->ln_pk_cb_l);
+      if (pnl->tau_size>1) {
+        free(pnl->ddln_pk_cb_ic_l);
+        free(pnl->ddln_pk_cb_l);
+      }
+    }
+  }
 
   if (pnl->method > nl_none) {
 
