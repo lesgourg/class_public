@@ -1681,6 +1681,8 @@ cdef class Class:
                 value = self.sp.sigma8
             elif name == 'neff':
                 value = self.sp.neff
+            elif name == 'k_eq':
+                value = self.ba.a_eq*self.ba.H_eq
             elif name == 'sigma8_cb':
                 value = self.sp.sigma8_cb
 

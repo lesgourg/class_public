@@ -50,7 +50,7 @@ class Lya(Likelihood):
                 for name in data.get_mcmc_parameters(['varying']):
                     name = re.sub('[$*&]', '', name)
                     bin_file.write(' %s' % name)
-                bin_file.write(' z_reio neff sigma8')
+                bin_file.write(' z_reio sigma8 neff alpha beta gamma')
                 bin_file.write('\n')
                 bin_file.close()
 
@@ -401,7 +401,7 @@ class Lya(Likelihood):
                  if count <= self.len_varying_params:
                     bin_file.write(' %e' % (value['current']*value['scale']))
                     count += 1
-                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
                 bin_file.write('\n')
                 bin_file.close()
            sys.stderr.write('#Error_cosmo\n')
@@ -517,10 +517,10 @@ class Lya(Likelihood):
         Tk = np.sqrt(Plin/Plin_equiv)
 
         #sanity check on the equivalent
-        #equiv_error=abs(Tk**2-1.0)
-        #if any(x>0.05 for x in equiv_error):
-        if (abs(Tk[0]**2-1.0)>0.01): #0.1 only for testing wdm
-            #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
+        k_eq=cosmo.k_eq()
+        if any(abs(Tk[k<0.1*k_eq]**2-1.0)>0.01): #0.1 only for testing wdm
+        #if any(equiv_error>0.01 for x in k<k_eq):
+           #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('Error_equiv ')
                 count=1
@@ -528,7 +528,7 @@ class Lya(Likelihood):
                     if count <= self.len_varying_params:
                         bin_file.write(' %e' % (value['current']*value['scale']))
                         count += 1
-                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_equiv\n')
@@ -555,7 +555,7 @@ class Lya(Likelihood):
                     if count <= self.len_varying_params:
                         bin_file.write(' %e' % (value['current']*value['scale']))
                         count += 1
-                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_kneff\n')
@@ -579,9 +579,9 @@ class Lya(Likelihood):
 
         # create a set of Parameters
         params = Parameters()
-        params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
-        params.add('beta', value=2.24, min = 0.5, max = 10.)
-        params.add('gamma', value=-4.46, min=-10., max=-0.1)
+        params.add('alpha', value=0.001, min = self.alpha_min, max = self.alpha_max) #the min and max set here are not the ones of the tables
+        params.add('beta', value=2.24, min = self.beta_min, max = self.beta_max)
+        params.add('gamma', value=-4.46, min= self.gamma_min, max=self.gamma_max)
 
         # do fit, default is with least squares method
         #t0_fit = time.clock()
@@ -623,18 +623,33 @@ class Lya(Likelihood):
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
-           with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_abg ')
+           if(best_alpha<self.alpha_min or best_alpha>self.alpha_max):
+               with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_a ')
                 count=1
                 for name, value in data.mcmc_parameters.iteritems():
                  if count <= self.len_varying_params:
                     bin_file.write(' %e' % (value['current']*value['scale']))
                     count += 1
-                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, best_alpha, best_beta, best_gamma))
                 bin_file.write('\n')
                 bin_file.close()
-           sys.stderr.write('#Error_abg\n')
-           sys.stderr.flush()
+               sys.stderr.write('#Error_a\n')
+               sys.stderr.flush()
+           else:
+               with open(self.bin_file_path, 'a') as bin_file:
+                bin_file.write('Error_bg ')
+                count=1
+                for name, value in data.mcmc_parameters.iteritems():
+                 if count <= self.len_varying_params:
+                    bin_file.write(' %e' % (value['current']*value['scale']))
+                    count += 1
+                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, best_alpha, best_beta, best_gamma))
+                bin_file.write('\n')
+                bin_file.close()
+               sys.stderr.write('#Error_bg\n')
+               sys.stderr.flush()
+
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
@@ -647,7 +662,7 @@ class Lya(Likelihood):
                     if count <= self.len_varying_params:
                      bin_file.write(' %e' % (value['current']*value['scale']))
                      count += 1
-                bin_file.write(' %e %e %e' % (z_reio, sigma8, neff))
+                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_fit\n')
