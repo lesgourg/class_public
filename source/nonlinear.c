@@ -132,6 +132,8 @@ int nonlinear_init(
   double **lnk_l;
   double **lnpk_l;
   double **ddlnpk_l;
+  // double * ln_pk_m_ic_l;
+  // double * ln_pk_cb_ic_l;
 
   short print_warning=_FALSE_;
   double * pvecback;
@@ -250,6 +252,17 @@ int nonlinear_init(
     class_alloc(ddlnpk_l,
                 pnl->k_size*sizeof(double),
                 pnl->error_message);
+
+    /*
+    class_alloc(ln_pk_m_ic_l,
+                pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                pnl->error_message);
+
+    if (pnl->has_pk_cb == _TRUE_)
+      class_alloc(ln_pk_cb_ic_l,
+                  pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                  pnl->error_message);
+    */
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
 
@@ -442,8 +455,42 @@ int nonlinear_init(
       // uncomment this to see the time spent at each tau
       //clock_t begin = clock();
 
+      /** get the linear power spectrum */
+      /*
+      if (pnl->has_pk_cb == _TRUE_) {
+        class_call(nonlinear_pk_l(pba,
+                                  ppt,
+                                  ppm,
+                                  pnl,
+                                  index_tau,
+                                  ln_pk_m_ic_l,
+                                  lnpk_l[pnl->index_pk_cb],
+                                  ln_pk_cb_ic_l,
+                                  lnpk_l[pnl->index_pk_m]),
+                   pnl->error_message,
+                   pnl->error_message);
+      }
+      else {
+        class_call(nonlinear_pk_l(pba,
+                                  ppt,
+                                  ppm,
+                                  pnl,
+                                  index_tau,
+                                  ln_pk_m_ic_l,
+                                  lnpk_l[pnl->index_pk_m],
+                                  NULL,
+                                  NULL),
+                   pnl->error_message,
+                   pnl->error_message);
+      }
+      */
+      //get lnk_l
+      //get pk_l
+      //get ddlnpk_l
+
       /** loop over the dummie index pk_type, such that it is ensured that index_pk starts at index_pk_cb when neutrinos are included
-       * This is necessary for hmcode, since the sigmatable needs to be filled for sigma_cb only */
+       * This is necessary for hmcode, since the sigmatable needs to be filled for sigma_cb only.
+       * Thus, when HMcode evalutes P_m_nl, it needs both P_m_l and P_cb_l. */
 
       for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
 
@@ -893,9 +940,10 @@ int nonlinear_pk_linear(
 
           ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
 
-          pk_m += cosine_correlation
+          pk_m += 2.*cosine_correlation
               * sqrt(ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
                      * ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+          // extra 2 factor (to include the symmetric term ic2,ic1)
 
           if (pnl->has_pk_cb) {
 
@@ -911,9 +959,10 @@ int nonlinear_pk_linear(
 
             ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
 
-            pk_cb += cosine_correlation
+            pk_cb += 2.*cosine_correlation
               * sqrt(ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
                      * ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+            // extra 2 factor (to include the symmetric term ic2,ic1)
 
           }
         }
