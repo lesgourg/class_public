@@ -96,6 +96,100 @@ int nonlinear_k_nl_at_z(
   return _SUCCESS_;
 }
 
+
+int nonlinear_pk_linear_at_z(
+                             struct background * pba,
+                             struct nonlinear *pnl,
+                             double z,
+                             double * ln_pk_m_ic_l,
+                             double * ln_pk_m_l,
+                             double * ln_pk_cb_ic_l,
+                             double * ln_pk_cb_l
+                             ) {
+  double tau;
+  double ln_tau;
+  int index_k;
+  int last_index;
+
+  if (z == 0) {
+    for (index_k=0; index_k<pnl->k_size; index_k++) {
+      ln_pk_m_ic_l[index_k] = pnl->ln_pk_m_ic_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+      ln_pk_m_l[index_k] = pnl->ln_pk_m_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+      if (pnl->has_pk_cb == _TRUE_) {
+        ln_pk_cb_ic_l[index_k] = pnl->ln_pk_cb_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+        ln_pk_cb_l[index_k] = pnl->ln_pk_cb_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+      }
+    }
+  }
+  else {
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               pnl->error_message);
+
+    ln_tau = log(tau);
+    last_index = pnl->ln_tau_size-1;
+
+    class_call(array_interpolate_spline(pnl->ln_tau,
+                                        pnl->ln_tau_size,
+                                        pnl->ln_pk_m_ic_l,
+                                        pnl->ddln_pk_m_ic_l,
+                                        pnl->k_size*pnl->ic_ic_size,
+                                        ln_tau,
+                                        &last_index,
+                                        ln_pk_m_ic_l,
+                                        pnl->k_size*pnl->ic_ic_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    class_call(array_interpolate_spline(pnl->ln_tau,
+                                        pnl->ln_tau_size,
+                                        pnl->ln_pk_m_l,
+                                        pnl->ddln_pk_m_l,
+                                        pnl->k_size,
+                                        ln_tau,
+                                        &last_index,
+                                        ln_pk_m_l,
+                                        pnl->k_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    if (pnl->has_pk_cb == _TRUE_) {
+
+      class_call(array_interpolate_spline(pnl->ln_tau,
+                                          pnl->ln_tau_size,
+                                          pnl->ln_pk_cb_ic_l,
+                                          pnl->ddln_pk_cb_ic_l,
+                                          pnl->k_size*pnl->ic_ic_size,
+                                          ln_tau,
+                                          &last_index,
+                                          ln_pk_m_ic_l,
+                                          pnl->k_size*pnl->ic_ic_size,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      class_call(array_interpolate_spline(pnl->ln_tau,
+                                          pnl->ln_tau_size,
+                                          pnl->ln_pk_cb_l,
+                                          pnl->ddln_pk_cb_l,
+                                          pnl->k_size,
+                                          ln_tau,
+                                          &last_index,
+                                          ln_pk_m_l,
+                                          pnl->k_size,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+  }
+
+  return _SUCCESS_;
+}
+
 /**
  * Initialize the nonlinear structure, and in particular the
  * nl_corr_density and k_nl interpolation tables.
@@ -123,6 +217,7 @@ int nonlinear_init(
   int index_ncdm;
   int index_k;
   int index_tau;
+  int index_tau_sources;
   int size_extrapolated_source;
 
   int index_pk, pk_type;
@@ -260,10 +355,11 @@ int nonlinear_init(
 
     if (pnl->ln_tau_size > 1) {
       sources = ppt->late_sources[index_md];
+      index_tau_sources = index_tau;
     }
     else {
       sources = ppt->sources[index_md];
-      index_tau = ppt->tau_size-1;
+      index_tau_sources = ppt->tau_size-1;
     }
 
     /* the result of nonlinear_pk_linear should be stored at the
@@ -283,7 +379,6 @@ int nonlinear_init(
     }
 
     /** get the linear power spectrum at one time */
-
     class_call(nonlinear_pk_linear(
                                    pba,
                                    ppt,
@@ -291,7 +386,7 @@ int nonlinear_init(
                                    pnl,
                                    sources,
                                    pnl->k_size,
-                                   index_tau,
+                                   index_tau_sources,
                                    ln_pk_m_ic_l_at_tau,
                                    ln_pk_m_l_at_tau,
                                    ln_pk_cb_ic_l_at_tau,
@@ -299,6 +394,7 @@ int nonlinear_init(
                                    ),
                pnl->error_message,
                pnl->error_message);
+
   }
 
   /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
@@ -1786,8 +1882,6 @@ int nonlinear_halofit(
   rncur = -d2;
 
   *k_nl = rknl;
-
-  //fprintf(stderr,"Here\n");
 
   for (index_k = 0; index_k < pnl->k_size; index_k++){
 

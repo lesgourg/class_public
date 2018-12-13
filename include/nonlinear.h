@@ -67,7 +67,7 @@ struct nonlinear {
 
   double * ln_pk_m_ic_l;   /**< Matter power spectrum (linear).
                               Depends on indices index_ic1_ic2, index_k, index_tau as:
-                              ln_pk_m_ic_l[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
+                              ln_pk_m_ic_l[(index_tau * pnl->k_size + index_k)* pnl->ic_ic_size + index_ic1_ic2]
                               where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
                               the primordial spectrum is symmetric in (index_ic1, index_ic2)).
                               - for diagonal elements (index_ic1 = index_ic2) this arrays contains
@@ -92,7 +92,7 @@ struct nonlinear {
 
   double * ln_pk_m_l;   /**< Total matter power spectrum summed over initial conditions (linear).
                            Only depends on indices index_k, index_tau as:
-                           ln_pk[index_tau * psp->k_size + index_k]
+                           ln_pk[index_tau * pnl->k_size + index_k]
                         */
 
   double * ddln_pk_m_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
@@ -210,6 +210,16 @@ extern "C" {
                           double * k_nl,
                           double * k_nl_cb
                           );
+
+  int nonlinear_pk_linear_at_z(
+                             struct background * pba,
+                             struct nonlinear *pnl,
+                             double z,
+                             double * ln_pk_m_ic_l,
+                             double * ln_pk_m_l,
+                             double * ln_pk_cb_ic_l,
+                             double * ln_pk_cb_l
+                               );
 
   int nonlinear_init(
                      struct precision *ppr,
