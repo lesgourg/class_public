@@ -283,6 +283,7 @@ struct recombination {
 
   //@{
 
+  int Nz_reco; /**< number of redshitfs for recombination during the evolver loop */
   int rt_size; /**< number of lines (redshift steps) in the table */
   double * recombination_table; /**< table recombination_table[index_z*preco->re_size+index_re] with all other quantities (array of size preco->rt_size*preco->re_size) */
 
@@ -379,6 +380,7 @@ struct reionization {
 
   //@{
 
+  int Nz_reio;                 /**< number of redshift points of reionization during evolver loop*/
   int rt_size;                 /**< number of lines (redshift steps) in the table */
   double * reionization_table; /**< table reionization_table[index_z*preio->re_size+index_re] with all other quantities (array of size preio->rt_size*preio->re_size) */
 
@@ -442,7 +444,7 @@ struct reionization {
  */
 
 struct thermo_vector {
-  
+
   int tv_size;            /**< size of thermo vector */
 
   int index_x_H;         /**< index for hydrogen fraction in y */
@@ -464,7 +466,7 @@ struct thermo_workspace {
 
   double * pvecback;
   int last_index_back;
-  
+
   struct thermo_vector * tv; /**< pointer to vector of integrated
                                  quantities and their
                                  time-derivatives */
@@ -478,20 +480,23 @@ struct thermo_workspace {
 
   double Tmat;
   double dTmat;
-  
+
   int index_ap_brec; /**< index for approximation before recombination */
   int index_ap_He1; /**< index for 1st He-recombination (HeIII) */
   int index_ap_He1f; /**< index for approximation after 1st He recombination before 2nd */
   int index_ap_He2; /**< index for start of 2nd He-recombination (HeII) */
   int index_ap_H; /**< index for start of H-recombination (HI) */
   int index_ap_frec; /**< index for full recombination */
+  int index_ap_reio; /**< index for reionization */
+  int index_ap_reio_hyrec; /**< index for reionization with HyRec*/
 
   int ap_current; /** current fixed approximation scheme index */
-  int ap_size; /**< number of approximation intervals during recombination */
+  int ap_size; /**< number of approximation intervals used during evolver loop */
+  int ap_size_loaded; /**< number of all approximations  */
 
   double * ap_z_limits; /**< vector storing ending limits of each approximation */
   double * ap_z_limits_delta; /**< vector storing smoothing deltas of each approximation */
-  
+
   int require_H;
   int require_He;
 };
@@ -502,7 +507,9 @@ struct thermodynamics_parameters_and_workspace {
   /* structures containing fixed input parameters (indices, ...) */
   struct background * pba;
   struct precision * ppr;
+  struct thermo * pth;
   struct recombination * preco;
+  struct reionization * preio;
 
   /* workspace */
   struct thermo_workspace * ptw;
@@ -535,11 +542,11 @@ extern "C" {
 			  );
 
   int thermodynamics_free(
-			  struct thermo * pthermo
+			  struct thermo * pth
 			  );
 
   int thermodynamics_indices(
-			     struct thermo * pthermo,
+			     struct thermo * pth,
 			     struct recombination * preco,
 			     struct reionization * preio
 			     );
@@ -572,39 +579,25 @@ extern "C" {
 					   double z,
 					   struct thermo * pth,
 					   struct reionization * preio,
-					   double * xe
+					   double * x,
+					   double * dx
 					   );
 
-  int thermodynamics_reionization(
-				  struct precision * ppr,
-				  struct background * pba,
-				  struct thermo * pth,
-				  struct recombination * preco,
-				  struct reionization * preio,
-				  double * pvecback
-				  );
-
-  int thermodynamics_reionization_sample(
-					 struct precision * ppr,
-					 struct background * pba,
-					 struct thermo * pth,
-					 struct recombination * preco,
-					 struct reionization * preio,
-					 double * pvecback
-					 );
-
-  int thermodynamics_get_xe_before_reionization(
+  int thermodynamics_interpolate_recombination_table(
                                                 struct precision * ppr,
                                                 struct thermo * pth,
                                                 struct recombination * preco,
                                                 double z,
-                                                double * xe);
+                                                double * x,
+                                                double * Tmat
+                                                );
 
-  int thermodynamics_recombination(
+  int thermodynamics_solve(
 				   struct precision * ppr,
 				   struct background * pba,
 				   struct thermo * pth,
-				   struct recombination * prec,
+				   struct recombination * preco,
+                   struct reionization * preio,
 				   double * pvecback
 				   );
 
@@ -612,16 +605,17 @@ extern "C" {
 						struct precision * ppr,
 						struct background * pba,
 						struct thermo * pth,
-						struct recombination * prec,
+						struct recombination * preco,
 						double * pvecback
 						);
 
-  int thermodynamics_recombination_with_recfast(
+  int thermodynamics_solve_with_recfast(
 						struct precision * ppr,
 						struct background * pba,
 						struct thermo * pth,
-						struct recombination * prec,
-                                                struct thermo_workspace * ptw,
+						struct recombination * preco,
+                        struct reionization * preio,
+                        struct thermo_workspace * ptw,
 						double * pvecback
 						);
 
@@ -633,38 +627,76 @@ extern "C" {
 					 ErrorMsg error_message
 					 );
 
-  
+
   int thermodynamics_x_analytic(
                               double z,
+                              struct precision * ppr,
+                              struct thermo * pth,
                               struct recombination * preco,
+                              struct reionization * preio,
                               struct thermo_workspace * ptw,
-                              int current_ap                          
+                              int current_ap
                               );
-  
+
   int thermo_vector_init(
                        struct precision * ppr,
                        struct background * pba,
                        struct thermo * pth,
-                       struct recombination *preco,
+                       struct recombination * preco,
+                       struct reionization * preio,
                        double z,
                        struct thermo_workspace * ptw
                        );
-  
+
   int thermo_vector_free(
                         struct thermo_vector * tv
                         );
-  
+
   int thermo_workspace_init(
                            struct precision * ppr,
                            struct background * pba,
                            struct thermo * pth,
                            struct thermo_workspace * ptw
                            );
-  
+
   int thermo_workspace_free (
                             struct thermo_workspace * ptw
                             );
-  
+
+  int thermodynamics_recombination_set_parameters(
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct recombination * preco
+                       );
+
+  int thermodynamics_reionization_set_parameters(
+                       struct precision * ppr,
+                       struct background * pba,
+                       struct thermo * pth,
+                       struct recombination * preco,
+                       struct reionization * preio
+                       );
+
+  int thermodynamics_reionization_evolve_with_tau(
+                                struct thermodynamics_parameters_and_workspace * tpaw,
+                                double mz_ini,
+                                double mz_end,
+                                double * mz_output,
+                                int Nz);
+
+  int thermodynamics_reionization_get_tau(
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct thermo * pth,
+                                struct recombination * preco,
+                                struct reionization * preio
+                                );
+
+  int thermo_workspace_free (
+                            struct thermo_workspace * ptw
+                            );
+
   int thermodynamics_set_approximation_limits(
                                       struct precision * ppr,
                                       struct background * pba,
@@ -676,9 +708,9 @@ extern "C" {
                                       int* interval_number,
                                       double * interval_limit
                                       );
-  
-  
-  
+
+
+
   int thermodynamics_sources_with_recfast(
                                         double z,
                                         double * y,
@@ -705,13 +737,6 @@ extern "C" {
                                  int number_of_titles,
                                  double *data
                                  );
-
-  int thermodynamics_tanh(double x,
-                          double center,
-                          double before,
-                          double after,
-                          double width,
-                          double * result);
 
   int thermodynamics_sources_with_recfast(
                                         double z,
