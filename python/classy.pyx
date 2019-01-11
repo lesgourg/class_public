@@ -20,6 +20,8 @@ from libc.string cimport *
 import cython
 cimport cython
 
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
+
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
 
@@ -115,16 +117,23 @@ cdef class Class:
 
     def __cinit__(self, default=False):
         cpdef char* dumc
+
         self.ready = False
         self.allocated = False
         self._pars = {}
         self.fc.size=0
-        self.fc.filename = <char*>malloc(sizeof(char)*30)
+        self.fc.filename = <char*>PyMem_Malloc(sizeof(char)*30)
         assert(self.fc.filename!=NULL)
         dumc = "NOFILE"
         sprintf(self.fc.filename,"%s",dumc)
         self.ncp = set()
         if default: self.set_default()
+
+    def __dealloc__(self):
+        PyMem_Free(self.fc.filename)
+        PyMem_Free(self.fc.name)
+        PyMem_Free(self.fc.value)
+        PyMem_Free(self.fc.read)
 
     # Set up the dictionary
     def set(self,*pars,**kars):
@@ -146,17 +155,17 @@ cdef class Class:
         cdef char* dumc
 
         if self.fc.size!=0:
-            free(self.fc.name)
-            free(self.fc.value)
-            free(self.fc.read)
+            PyMem_Free(self.fc.name)
+            PyMem_Free(self.fc.value)
+            PyMem_Free(self.fc.read)
         self.fc.size = len(self._pars)
-        self.fc.name = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
+        self.fc.name = <FileArg*> PyMem_Malloc(sizeof(FileArg)*len(self._pars))
         assert(self.fc.name!=NULL)
 
-        self.fc.value = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
+        self.fc.value = <FileArg*> PyMem_Malloc(sizeof(FileArg)*len(self._pars))
         assert(self.fc.value!=NULL)
 
-        self.fc.read = <short*> malloc(sizeof(short)*len(self._pars))
+        self.fc.read = <short*> PyMem_Malloc(sizeof(short)*len(self._pars))
         assert(self.fc.read!=NULL)
 
         # fill parameter file
@@ -1235,7 +1244,7 @@ cdef class Class:
         number_of_titles = len(names)
         timesteps = self.ba.bt_size
 
-        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+        data = <double*>PyMem_Malloc(sizeof(double)*timesteps*number_of_titles)
 
         if background_output_data(&self.ba, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.ba.error_message)
@@ -1248,7 +1257,7 @@ cdef class Class:
                 background[names[i]][index] = data[index*number_of_titles+i]
 
         free(titles)
-        free(data)
+        PyMem_Free(data)
         return background
 
     def get_thermodynamics(self):
@@ -1273,7 +1282,7 @@ cdef class Class:
         number_of_titles = len(names)
         timesteps = self.th.tt_size
 
-        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+        data = <double*>PyMem_Malloc(sizeof(double)*timesteps*number_of_titles)
 
         if thermodynamics_output_data(&self.ba, &self.th, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.th.error_message)
@@ -1286,7 +1295,7 @@ cdef class Class:
                 thermodynamics[names[i]][index] = data[index*number_of_titles+i]
 
         free(titles)
-        free(data)
+        PyMem_Free(data)
         return thermodynamics
 
     def get_primordial(self):
@@ -1312,7 +1321,7 @@ cdef class Class:
         number_of_titles = len(names)
         timesteps = self.pm.lnk_size
 
-        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+        data = <double*>PyMem_Malloc(sizeof(double)*timesteps*number_of_titles)
 
         if primordial_output_data(&self.pt, &self.pm, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.pm.error_message)
@@ -1325,7 +1334,7 @@ cdef class Class:
                 primordial[names[i]][index] = data[index*number_of_titles+i]
 
         free(titles)
-        free(data)
+        PyMem_Free(data)
         return primordial
 
 
@@ -1448,7 +1457,7 @@ cdef class Class:
         size_ic_data = timesteps*number_of_titles;
         ic_num = self.sp.ic_size[index_md];
 
-        data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
+        data = <double*>PyMem_Malloc(sizeof(double)*size_ic_data*ic_num)
 
         if spectra_output_tk_data(&self.ba, &self.pt, &self.sp, outf, <double> z, number_of_titles, data)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
@@ -1472,7 +1481,7 @@ cdef class Class:
                 spectra[ic_key] = tmpdict
 
         free(titles)
-        free(data)
+        PyMem_Free(data)
 
         return spectra
 
