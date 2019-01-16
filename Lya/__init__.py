@@ -377,8 +377,8 @@ class Lya(Likelihood):
         z_reio=cosmo.z_reio()
         sigma8=cosmo.sigma8()
         neff=cosmo.neff()
-        #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
-        #print '\n'
+        print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
+        print '\n'
 
         #Pspline=interpolate.splrep(k,Plin)
         #Pder = interpolate.splev(k, Pspline, der=1)
@@ -517,7 +517,9 @@ class Lya(Likelihood):
         Tk = np.sqrt(Plin/Plin_equiv)
 
         #sanity check on the equivalent
-        k_eq=cosmo.k_eq()
+        k_eq_der=cosmo.get_current_derived_parameters(['k_eq'])
+        k_eq=k_eq_der['k_eq']
+        print 'k_eq',k_eq
         if any(abs(Tk[k<0.1*k_eq]**2-1.0)>0.01): #0.1 only for testing wdm
         #if any(equiv_error>0.01 for x in k<k_eq):
            #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
@@ -598,19 +600,19 @@ class Lya(Likelihood):
         Tk_abg=self.T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
-        #print '\n'
-        #print self.lmfit_params
-        #print '\n'
-        #report_fit(result)
-        #print '\n'
-        #print best_alpha,best_beta,best_gamma
-        #print '\n'
-        #print result.chisqr, result.redchi
+        print '\n'
+        print params
+        print '\n'
+        report_fit(result)
+        print '\n'
+        print best_alpha,best_beta,best_gamma
+        print '\n'
+        print result.chisqr, result.redchi
 
 #        plt.xlabel('k [h/Mpc]')
 #        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-#       plt.ylim(0.,1.1)
-#       plt.xlim(self.kmin,self.kmax)
+        plt.ylim(0.01,1.01)
+        plt.xlim(self.kmin,self.kmax)
         plt.xscale('log')
 #       plt.yscale('log')
         plt.grid(True)
@@ -668,6 +670,14 @@ class Lya(Likelihood):
             sys.stderr.write('#Error_fit\n')
             sys.stderr.flush()
             return data.boundary_loglike
+
+        #store alpha beta and gamma
+        if 'alpha' in self.use_nuisance:
+            data.mcmc_parameters['alpha']['current']=best_alpha/data.mcmc_parameters['alpha']['scale']
+        if 'beta' in self.use_nuisance:
+            data.mcmc_parameters['beta']['current']=best_beta/data.mcmc_parameters['beta']['scale']
+        if 'gamma' in self.use_nuisance:
+            data.mcmc_parameters['gamma']['current']=best_gamma/data.mcmc_parameters['gamma']['scale']
 
         chi2=0.
         #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
