@@ -10,7 +10,7 @@ from scipy import interpolate
 from lmfit import Minimizer, Parameters, report_fit
 from scipy.linalg import block_diag
 import pprint, pickle
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 #import time
 
 #Lyman alpha likelihood by M. Archidiacono, R. Murgia, D.C. Hooper, J. Lesgourgues, M. Viel
@@ -32,27 +32,25 @@ class Lya(Likelihood):
         #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
         self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
 
-#        # create a set of Parameters #MArchi moved the definition of the Parameters in loglkl
-#        self.lmfit_params = Parameters()
-#        self.lmfit_params.add('alpha', value=0.001, min = 0., max = 0.3) #the min and max set here are not the ones of the tables
-#        self.lmfit_params.add('beta', value=2.24, min = 0.5, max = 10.)
-#        self.lmfit_params.add('gamma', value=-4.46, min=-10., max=-0.1)
-
         alphas = np.zeros(self.grid_size, 'float64')
         betas = np.zeros(self.grid_size, 'float64')
         gammas = np.zeros(self.grid_size, 'float64')
 
-        self.len_varying_params=len(data.get_mcmc_parameters(['varying']))
         self.bin_file_path = os.path.join(command_line.folder,self.bin_file_name)
         if not os.path.exists(self.bin_file_path):
            with open(self.bin_file_path, 'w') as bin_file:
                 bin_file.write('#')
                 for name in data.get_mcmc_parameters(['varying']):
                     name = re.sub('[$*&]', '', name)
-                    bin_file.write(' %s' % name)
-                bin_file.write(' z_reio sigma8 neff alpha beta gamma')
+                    bin_file.write(' %s\t' % name)
+                for name in data.get_mcmc_parameters(['derived']):
+                    name = re.sub('[$*&]', '', name)
+                    bin_file.write(' %s\t' % name)
                 bin_file.write('\n')
                 bin_file.close()
+        if 'z_reio' not in data.get_mcmc_parameters(['derived']) or 'sigma8' not in data.get_mcmc_parameters(['derived']) or 'neff' not in data.get_mcmc_parameters(['derived']):
+           raise io_mp.ConfigurationError('Error: Lya likelihood need z_reio, sigma8 and neff as derived parameters')
+           exit()
 
         file_path = os.path.join(self.data_directory, self.grid_file)
         if os.path.exists(file_path):
@@ -319,8 +317,10 @@ class Lya(Likelihood):
                 bin_file.write('#')
                 for name in data.get_mcmc_parameters(['varying']):
                     name = re.sub('[$*&]', '', name)
-                    bin_file.write(' %s' % name)
-                bin_file.write(' z_reio neff sigma8')
+                    bin_file.write(' %s\t' % name)
+                for name in data.get_mcmc_parameters(['derived']):
+                    name = re.sub('[$*&]', '', name)
+                    bin_file.write(' %s\t' % name)
                 bin_file.write('\n')
                 bin_file.close()
 
@@ -363,7 +363,6 @@ class Lya(Likelihood):
             F_UV=0.0
 
         h=cosmo.h()
-        classNeff=cosmo.Neff()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
             Plin[index_k] = cosmo.pk_lin(k[index_k]*h, 0.0)
@@ -374,44 +373,48 @@ class Lya(Likelihood):
         k_neff=self.k_s_over_km*100./(1.+self.z)*(((1.+self.z)**3*Om+(1.-Om))**(1./2.))
         #print 'k_neff = ',k_neff, 'h/Mpc'
 
-        z_reio=cosmo.z_reio()
-        sigma8=cosmo.sigma8()
-        neff=cosmo.neff()
-        print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
-        print '\n'
+        derived = cosmo.get_current_derived_parameters(data.get_mcmc_parameters(['derived']))
+        for name, value in derived.iteritems():
+                    data.mcmc_parameters[name]['current'] = value
+        for name in derived.iterkeys():
+                    data.mcmc_parameters[name]['current'] /= \
+                        data.mcmc_parameters[name]['scale']
 
-        #Pspline=interpolate.splrep(k,Plin)
-        #Pder = interpolate.splev(k, Pspline, der=1)
-        #Pder2 = interpolate.splev(k, Pspline, der=2)
-        #plt.plot(k,Plin, 'k')
-        #plt.plot(k,Pder,'b')
-        #plt.plot(k,Pder2,'r')
-        #plt.xscale('log')
-        #plt.yscale('log')
-        #plt.savefig('grid_fit_plot.pdf')
-        #exit()
+        #z_reio=cosmo.z_reio()
+        z_reio=data.mcmc_parameters['z_reio']['current'] 
+        if z_reio<self.zind_param_min[0]:
+           z_reio = self.zind_param_min[0]
+        if z_reio>self.zind_param_max[0]:
+           z_reio=self.zind_param_max[0]
+        sigma8=data.mcmc_parameters['sigma8']['current']
+        neff=data.mcmc_parameters['neff']['current']
+        #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
+        #print '\n'
 
-        #sanity check on the cosmological parameters
+
+        #sanity check on the cosmological parameters #the one on z_reio can be removed
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
            #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
            with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_cosmo ')
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                 if count <= self.len_varying_params:
-                    bin_file.write(' %e' % (value['current']*value['scale']))
-                    count += 1
-                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
+                bin_file.write('#Error_cosmo ')
+                #for name, value in data.mcmc_parameters.iteritems():
+                    #bin_file.write(' %.6e' % (value['current']*value['scale']))
+                for elem in data.get_mcmc_parameters(['varying']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
            sys.stderr.write('#Error_cosmo\n')
            sys.stderr.flush()
            return data.boundary_loglike
 
-        print '\n'
-        print 'initial model'
-        print data.cosmo_arguments
-        print '\n'
+        classNeff=cosmo.Neff()
+
+        #print '\n'
+        #print 'initial model'
+        #print data.cosmo_arguments
+        #print '\n'
 
         #param_lcdm_equiv = deepcopy(data.cosmo_arguments)
         param_backup = data.cosmo_arguments.copy()
@@ -423,8 +426,8 @@ class Lya(Likelihood):
             #eta2=(1.+0.2271*(3.046+DeltaNeff))/(1.+0.2271*3.046)
             eta2=(1.+0.2271*classNeff)/(1.+0.2271*3.046)
             eta=np.sqrt(eta2)
-            print 'classNeff-3.046 = ',classNeff-3.046,' eta^2 = ',eta2
-            print '\n'
+            #print 'classNeff-3.046 = ',classNeff-3.046,' eta^2 = ',eta2
+            #print '\n'
 
             
             if 'N_ur' in data.cosmo_arguments:
@@ -488,10 +491,10 @@ class Lya(Likelihood):
         cosmo.empty()
         cosmo.set(data.cosmo_arguments)
 
-        print '\n'
-        print 'lcdm equivalent'
-        print data.cosmo_arguments
-        print '\n'
+        #print '\n'
+        #print 'lcdm equivalent'
+        #print data.cosmo_arguments
+        #print '\n'
 
         cosmo.compute(['lensing'])
 
@@ -506,10 +509,10 @@ class Lya(Likelihood):
         data.cosmo_arguments = param_backup
         cosmo.set(data.cosmo_arguments)
 
-        print '\n'
-        print 'back to model'
-        print data.cosmo_arguments
-        print '\n'
+        #print '\n'
+        #print 'back to model'
+        #print data.cosmo_arguments
+        #print '\n'
 
         cosmo.compute(['lensing'])
 
@@ -519,18 +522,18 @@ class Lya(Likelihood):
         #sanity check on the equivalent
         k_eq_der=cosmo.get_current_derived_parameters(['k_eq'])
         k_eq=k_eq_der['k_eq']
-        print 'k_eq',k_eq
-        if any(abs(Tk[k<0.1*k_eq]**2-1.0)>0.01): #0.1 only for testing wdm
+        #print 'k_eq',k_eq
+        if any(abs(Tk[k<np.maximum(k_eq,k[0])]**2-1.0)>0.01):
         #if any(equiv_error>0.01 for x in k<k_eq):
            #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_equiv ')
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                    if count <= self.len_varying_params:
-                        bin_file.write(' %e' % (value['current']*value['scale']))
-                        count += 1
-                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
+                bin_file.write('#Error_equiv ')
+                #for name, value in data.mcmc_parameters.iteritems():
+                        #bin_file.write(' %.6e' % (value['current']*value['scale']))
+                for elem in data.get_mcmc_parameters(['varying']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_equiv\n')
@@ -551,13 +554,13 @@ class Lya(Likelihood):
         #sanity check for neff (check that the DAO do not start before k_neff)
         if k[index_k_fit_max]<k_neff:
             with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_kneff')
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                    if count <= self.len_varying_params:
-                        bin_file.write(' %e' % (value['current']*value['scale']))
-                        count += 1
-                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
+                bin_file.write('#Error_kneff')
+                #for name, value in data.mcmc_parameters.iteritems():
+                        #bin_file.write(' %.6e' % (value['current']*value['scale']))
+                for elem in data.get_mcmc_parameters(['varying']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_kneff\n')
@@ -594,59 +597,67 @@ class Lya(Likelihood):
         best_beta  = result.params['beta'].value
         best_gamma = result.params['gamma'].value
 
+        #store alpha beta and gamma
+        if 'alpha' in self.use_nuisance:
+            data.mcmc_parameters['alpha']['current']=best_alpha/data.mcmc_parameters['alpha']['scale']
+        if 'beta' in self.use_nuisance:
+            data.mcmc_parameters['beta']['current']=best_beta/data.mcmc_parameters['beta']['scale']
+        if 'gamma' in self.use_nuisance:
+            data.mcmc_parameters['gamma']['current']=best_gamma/data.mcmc_parameters['gamma']['scale']
+
         #t1_fit = time.clock()
 
         Tk_abg=np.zeros(len(k_fit),'float64')
         Tk_abg=self.T(k_fit, best_alpha, best_beta, best_gamma)
 
         # write error report
-        print '\n'
-        print params
-        print '\n'
-        report_fit(result)
-        print '\n'
-        print best_alpha,best_beta,best_gamma
-        print '\n'
-        print result.chisqr, result.redchi
+        #print '\n'
+        #print params
+        #print '\n'
+        #report_fit(result)
+        #print '\n'
+        #print best_alpha,best_beta,best_gamma
+        #print '\n'
+        #print result.chisqr, result.redchi
 
-#        plt.xlabel('k [h/Mpc]')
-#        plt.ylabel('$P_{nCDM}/P_{CDM}$')
-        plt.ylim(0.01,1.01)
-        plt.xlim(self.kmin,self.kmax)
-        plt.xscale('log')
-#       plt.yscale('log')
-        plt.grid(True)
-        plt.plot(k, Tk**2, 'r')
-        plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
-#       plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
-#       plt.show()
-        plt.savefig('grid_fit_plot.pdf')
+##        plt.xlabel('k [h/Mpc]')
+##        plt.ylabel('$P_{nCDM}/P_{CDM}$')
+#        plt.ylim(0.01,1.01)
+#        plt.xlim(self.kmin,self.kmax)
+#        plt.xscale('log')
+##       plt.yscale('log')
+#        plt.grid(True)
+#        plt.plot(k, Tk**2, 'r')
+#        plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+##       plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
+##       plt.show()
+#        plt.savefig('grid_fit_plot.pdf')
 
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
            if(best_alpha<self.alpha_min or best_alpha>self.alpha_max):
                with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_a ')
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                 if count <= self.len_varying_params:
-                    bin_file.write(' %e' % (value['current']*value['scale']))
-                    count += 1
-                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, best_alpha, best_beta, best_gamma))
+                bin_file.write('#Error_a ')
+                #for name, value in data.mcmc_parameters.iteritems():
+                    #bin_file.write(' %.6e' % (value['current']*value['scale']))
+                for elem in data.get_mcmc_parameters(['varying']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
                sys.stderr.write('#Error_a\n')
                sys.stderr.flush()
            else:
                with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_bg ')
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                 if count <= self.len_varying_params:
-                    bin_file.write(' %e' % (value['current']*value['scale']))
-                    count += 1
-                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, best_alpha, best_beta, best_gamma))
+                bin_file.write('#Error_bg ')
+                #for name, value in data.mcmc_parameters.iteritems():
+                    #bin_file.write(' %.6e' % (value['current']*value['scale']))
+                for elem in data.get_mcmc_parameters(['varying']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
                sys.stderr.write('#Error_bg\n')
@@ -658,26 +669,20 @@ class Lya(Likelihood):
         fit_error=abs(Tk_fit**2/Tk_abg**2-1.)
         if any(x>0.1 for x in fit_error):#MArchi perhaps Tk
             with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('Error_fit ')
-                count=1
-                for name, value in data.mcmc_parameters.iteritems():
-                    if count <= self.len_varying_params:
-                     bin_file.write(' %e' % (value['current']*value['scale']))
-                     count += 1
-                bin_file.write(' %e %e %e %e %e %e' % (z_reio, sigma8, neff, -1.e30, -1.e30, -1.e30))
+                bin_file.write('#Error_fit ')
+                #for name, value in data.mcmc_parameters.iteritems():
+                     #bin_file.write(' %.6e' % (value['current']*value['scale']))
+                for elem in data.get_mcmc_parameters(['varying']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_fit\n')
             sys.stderr.flush()
             return data.boundary_loglike
 
-        #store alpha beta and gamma
-        if 'alpha' in self.use_nuisance:
-            data.mcmc_parameters['alpha']['current']=best_alpha/data.mcmc_parameters['alpha']['scale']
-        if 'beta' in self.use_nuisance:
-            data.mcmc_parameters['beta']['current']=best_beta/data.mcmc_parameters['beta']['scale']
-        if 'gamma' in self.use_nuisance:
-            data.mcmc_parameters['gamma']['current']=best_gamma/data.mcmc_parameters['gamma']['scale']
+
 
         chi2=0.
         #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')

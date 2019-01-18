@@ -35,8 +35,7 @@ Lya.gamma_max = -0.15
 Lya.k_s_over_km = 0.009
 Lya.z = 3.
 #other k in h/Mpc
-Lya.kmax  = 100.
-#20.
+Lya.kmax  = 200.
 Lya.kmin  = 0.01
 Lya.k_size = 10000
 Lya.use_nuisance = ['T0a','T0s','gamma_a','gamma_s','Fz1','Fz2','Fz3','Fz4','F_UV','alpha','beta','gamma']
