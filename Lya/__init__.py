@@ -404,7 +404,7 @@ class Lya(Likelihood):
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
            #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
            with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_cosmo ')
+                bin_file.write('#Error_cosmo\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                     #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
@@ -535,7 +535,7 @@ class Lya(Likelihood):
         #if any(equiv_error>0.01 for x in k<k_eq):
            #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_equiv ')
+                bin_file.write('#Error_equiv\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                         #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
@@ -562,7 +562,7 @@ class Lya(Likelihood):
         #sanity check for neff (check that the DAO do not start before k_neff)
         if k[index_k_fit_max]<k_neff:
             with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_kneff')
+                bin_file.write('#Error_kneff\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                         #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
@@ -646,7 +646,7 @@ class Lya(Likelihood):
            #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
            if(best_alpha<self.alpha_min or best_alpha>self.alpha_max):
                with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_a ')
+                bin_file.write('#Error_a\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                     #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
@@ -659,7 +659,7 @@ class Lya(Likelihood):
                sys.stderr.flush()
            else:
                with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_bg ')
+                bin_file.write('#Error_bg\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                     #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
@@ -677,7 +677,7 @@ class Lya(Likelihood):
         fit_error=abs(Tk_fit**2/Tk_abg**2-1.)
         if any(x>0.1 for x in fit_error):#MArchi perhaps Tk
             with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_fit ')
+                bin_file.write('#Error_fit\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                      #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
