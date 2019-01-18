@@ -362,6 +362,14 @@ class Lya(Likelihood):
         else:
             F_UV=0.0
 
+        #Temporarily store alpha beta and gamma
+        if 'alpha' in self.use_nuisance:
+            data.mcmc_parameters['alpha']['current']=-1.e30
+        if 'beta' in self.use_nuisance:
+            data.mcmc_parameters['beta']['current']=-1.e30
+        if 'gamma' in self.use_nuisance:
+            data.mcmc_parameters['gamma']['current']=-1.e30
+
         h=cosmo.h()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
