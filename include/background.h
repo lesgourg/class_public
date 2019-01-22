@@ -84,6 +84,8 @@ struct background
 
   double xi_idr; /**< Ethos interaction rate */
   double stat_f_idr; /**< Dark radiation statistical facotr */
+  double N_dg; /**< nadm parameter for ethos comparisons */
+  double Gamma_0_nadm; /**< nadm parameter for ethos comparisons */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 

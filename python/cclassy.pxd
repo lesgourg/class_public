@@ -68,6 +68,9 @@ cdef extern from "class.h":
         int bt_size
         double a_eq
         double H_eq
+        double xi_idr
+        double N_dg
+        double Gamma_0_nadm
 
     cdef struct thermo:
         ErrorMsg error_message
@@ -90,7 +93,6 @@ cdef extern from "class.h":
         double n_e
         double a_dark
         double nindex_dark
-        double xi_idr
         double m_dm
 
         int tt_size

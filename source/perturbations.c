@@ -1499,7 +1499,7 @@ int perturb_get_k_list(
     /* values until k_max_cl[ppt->index_md_scalars] */
 
     while (k < k_max_cl[ppt->index_md_scalars]) {
-      
+
       k *= pow(10.,1./(ppr->k_per_decade_for_pk
                        +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk)
                        *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
@@ -5388,7 +5388,7 @@ int perturb_approximations(
 
     /* ethos: dark radiation free streaming approximation*/
     if (pba->has_idr == _TRUE_){
- 
+
       if(pba->has_idm==_TRUE_){
 
            if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
@@ -5826,7 +5826,7 @@ int perturb_einstein(
 
       if ((pba->has_idm == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){//ethos
 
-         shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]); 
+         shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
 
          ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
       }
@@ -8030,7 +8030,7 @@ int perturb_derivs(double tau,
 
         dy[pv->index_pt_theta_idm] = - a_prime_over_a*y[pv->index_pt_theta_idm] + metric_euler; /* idm velocity */
         dy[pv->index_pt_theta_idm] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]);
-        // an extra factor *(2.+pth->nindex_dark)/3. should be here according to ethos, added to Sinv
+        // an extra factor *(4./3.) should be here according to ethos, added to Sinv
       }
       else{
         //Seb//tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*

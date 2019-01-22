@@ -1010,6 +1010,10 @@ cdef class Class:
     def Neff(self):
         return self.ba.Neff
 
+    def k_eq(self):
+        self.compute(["background"])
+        return self.ba.a_eq*self.ba.H_eq
+
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
@@ -1553,6 +1557,14 @@ cdef class Class:
             elif name == 'omega_m':
                 value = (self.ba.Omega0_b + self.ba.Omega0_idm + self.ba.Omega0_cdm+
                          self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)/self.ba.h**2
+            elif name == 'xi_idr':
+                value = self.ba.xi_idr
+            elif name == 'N_dg':
+                value = self.ba.N_dg
+            elif name == 'Gamma_0_nadm':
+                value = self.ba.Gamma_0_nadm
+            elif name == 'a_dark':
+                value = self.th.a_dark
             elif name == 'tau_reio':
                 value = self.th.tau_reio
             elif name == 'z_reio':

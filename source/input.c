@@ -514,8 +514,8 @@ int input_read_parameters(
 
   /** - define local variables */
 
-  int flag1,flag2,flag3,flag4;
-  double param1,param2,param3,param4;
+  int flag1,flag2,flag3,flag4,flag5;
+  double param1,param2,param3,param4, param5;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
   double scf_lambda;
@@ -743,8 +743,33 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_ur;
 
   //ethos:Check for presence of dark radiation
-  class_read_double("xi_idr",pba->xi_idr);
+  //!!!adapted for nadm
   class_read_double("stat_f_idr",pba->stat_f_idr);
+
+  class_call(parser_read_double(pfc,"N_dg",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"xi_idr",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of N_dg or xi_idr, choose one");
+
+  if (flag1 == _TRUE_) {
+    pba->xi_idr = pow( param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
+    pba->N_dg = param1;
+
+    if (input_verbose > 2)
+      printf("xi_idr equiv = %e \n", pba->xi_idr);
+
+  }
+
+  else if (flag2 == _TRUE_) {
+    pba->xi_idr = param2;
+    pba->N_dg = pba->stat_f_idr*pow(param2,4.)/(7./8.)*pow(11./4.,(4./3.));
+  }
 
   pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
 
@@ -767,6 +792,9 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"a_dark",&param4,&flag4,errmsg),
              errmsg,
              errmsg);
+  class_call(parser_read_double(pfc,"invtau0_from_nadm",&param5,&flag5,errmsg),
+             errmsg,
+             errmsg);
 
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
@@ -774,17 +802,17 @@ int input_read_parameters(
   class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
              errmsg,
              "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
+  class_test(((flag4 == _TRUE_) && (flag5 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of a_dark or invtau0_from_nadm, choose one");
 
   //class_read_double("a_dark",pth->a_dark);
-  class_test(((flag3 == _TRUE_) && (flag4 == _FALSE_)),
+  class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_) && (flag5 == _FALSE_))),
              errmsg,
-             "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem, anyhow let's add an additional check for MP runs
-  //class_test(((flag3 == _FALSE_) && (flag4 == _TRUE_)),
-    //         errmsg,
-      //       "In input file, you have a_dark but no f_idm_dr");//additional check for MP runs
-  class_test((((flag3 == _TRUE_)&&(param3!=0.0)) && (param4==0.0)),
-             errmsg,
-             "In input file, you have f_idm_dr!=0. but a_dark=0.");
+             "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem
+  //class_test((param3!=0.0) && ((param4==0.0) && (param5==0.0)),
+  //           errmsg,
+  //           "In input file, you have f_idm_dr!=0. but a_dark=0.");
 
   //this is the standard CDM case
   if ((flag3 == _FALSE_)||(pba->Omega0_idr==0.0)){
@@ -797,7 +825,18 @@ int input_read_parameters(
 
   //in the presence of interacting dark matter, we take a fraction of CDM
   else {
-    pth->a_dark = param4;
+
+    if (flag5 == _TRUE_){
+      pth->a_dark = param5*(3./4.)/(pba->h*pba->h*pba->Omega0_idr); //DCH conversion from nadm to ethos
+      pba->Gamma_0_nadm = param5;
+      if (input_verbose > 2)
+        printf("adark equiv = %e \n", pth->a_dark);
+    }
+    else if(flag4 == _TRUE_){
+      pth->a_dark = param4;
+      pba->Gamma_0_nadm = param4*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
+    }
+
     if (flag1 == _TRUE_){
       pba->Omega0_idm = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
@@ -811,7 +850,7 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
 
   if (input_verbose > 2)
-   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e, a_dark= %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr, pth->a_dark);
+   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
 
   //if (pba->Omega0_idm!=0.0){
   //Read the rest of the ethos parameters
