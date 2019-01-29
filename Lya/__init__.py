@@ -674,7 +674,9 @@ class Lya(Likelihood):
         #sanity check on the alpha beta gamma fit wrt the model
         #fit_error=abs(Tk_fit/Tk_abg-1.) #MArchi perhaps Tk**2?
         #if any(x>0.1 for x in fit_error):
-        if any(abs(Tk_fit[k_fit<np.minimum(20.,k_fit[-1])]/Tk_abg[k_fit<np.minimum(20.,k_fit[-1])]-1.)>0.1):
+        #if any(abs(Tk_fit[k_fit<np.minimum(20.,k_fit[-1])]/Tk_abg[k_fit<np.minimum(20.,k_fit[-1])]-1.)>0.1):
+        k_check=(k_fit[-1]+1./self.khalf(best_alpha, best_beta, best_gamma))/1.8
+        if any(abs(Tk_fit[k_fit<k_check]/Tk_abg[k_fit<k_check]-1.)>0.1):
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_fit\t')
                 #for name, value in data.mcmc_parameters.iteritems():
