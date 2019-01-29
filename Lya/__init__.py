@@ -378,7 +378,8 @@ class Lya(Likelihood):
 
         #here compute the Lya k scale
         Om=cosmo.Omega_m()
-        k_neff=self.k_s_over_km*100./(1.+self.z)*(((1.+self.z)**3*Om+(1.-Om))**(1./2.))
+        OL=cosmo.Omega_Lambda()
+        k_neff=self.k_s_over_km*100./(1.+self.z)*(((1.+self.z)**3*Om+OL)**(1./2.))
         #print 'k_neff = ',k_neff, 'h/Mpc'
 
         derived = cosmo.get_current_derived_parameters(data.get_mcmc_parameters(['derived']))
@@ -402,7 +403,6 @@ class Lya(Likelihood):
 
         #sanity check on the cosmological parameters #the one on z_reio can be removed
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
-           #print 'Error: at least one of the redshift dependent parameters is outside of the grid range with z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
            with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_cosmo\t')
                 #for name, value in data.mcmc_parameters.iteritems():
@@ -533,7 +533,6 @@ class Lya(Likelihood):
         #print 'k_eq',k_eq
         if any(abs(Tk[k<np.maximum(k_eq,k[0])]**2-1.0)>0.01):
         #if any(equiv_error>0.01 for x in k<k_eq):
-           #print 'Error: Mismatch between the model and the lcdm equivalent at large scales'
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_equiv\t')
                 #for name, value in data.mcmc_parameters.iteritems():
@@ -556,8 +555,8 @@ class Lya(Likelihood):
             index_k_fit_max = -1
             if (Tk[index_k])**2<0.1 and der[index_k]>0.: #perhaps we could find a better condition?!
                index_k_fit_max = index_k
-               #print k[index_k_fit_max]
                break
+        #print k[index_k_fit_max]
 
         #sanity check for neff (check that the DAO do not start before k_neff)
         if k[index_k_fit_max]<k_neff:
@@ -643,7 +642,6 @@ class Lya(Likelihood):
 
         #sanity check on alpha beta gamma
         if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
-           #print 'Error: alpha beta gamma grid does not provide a good fit of the current transfer function with best_alpha = ',best_alpha,'best_beta = ',best_beta,' best_gamma = ',best_gamma
            if(best_alpha<self.alpha_min or best_alpha>self.alpha_max):
                with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_a\t')
@@ -674,8 +672,9 @@ class Lya(Likelihood):
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
-        fit_error=abs(Tk_fit**2/Tk_abg**2-1.)
-        if any(x>0.1 for x in fit_error):#MArchi perhaps Tk
+        #fit_error=abs(Tk_fit/Tk_abg-1.) #MArchi perhaps Tk**2?
+        #if any(x>0.1 for x in fit_error):
+        if any(abs(Tk_fit[k_fit<np.minimum(20.,k_fit[-1])]/Tk_abg[k_fit<np.minimum(20.,k_fit[-1])]-1.)>0.1):
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_fit\t')
                 #for name, value in data.mcmc_parameters.iteritems():

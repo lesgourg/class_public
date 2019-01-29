@@ -3549,7 +3549,7 @@ int spectra_neff(
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
 
   //k(h/Mpc)=a*H*k(s/km)
-  Lya_k_1_over_Mpc = pba->h*100.*pow((Omega0_m*pow((1.+z),3.)+(1.-Omega0_m)),(1./2.))/(1.+z)*psp->Lya_k_s_over_km;
+  Lya_k_1_over_Mpc = pba->h*100.*pow((Omega0_m*pow((1.+z),3.)+pba->Omega0_lambda),(1./2.))/(1.+z)*psp->Lya_k_s_over_km;
   //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
   //Lya_k_1_over_Mpc = pvecback_short[pba->index_bg_H]*_c_/1.e3*pvecback_short[pba->index_bg_a]*psp->Lya_k_s_over_km;
   //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
