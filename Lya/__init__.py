@@ -529,7 +529,7 @@ class Lya(Likelihood):
 
         #sanity check on the equivalent
         k_eq_der=cosmo.get_current_derived_parameters(['k_eq'])
-        k_eq=k_eq_der['k_eq']
+        k_eq=k_eq_der['k_eq']/h
         #print 'k_eq',k_eq
         if any(abs(Tk[k<np.maximum(k_eq,k[0])]**2-1.0)>0.01):
         #if any(equiv_error>0.01 for x in k<k_eq):
