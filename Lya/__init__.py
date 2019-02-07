@@ -547,13 +547,13 @@ class Lya(Likelihood):
             sys.stderr.flush()
             return data.boundary_loglike
 
-        spline=interpolate.splrep(k,Tk**2)
+        spline=interpolate.splrep(k,Tk)
         der = interpolate.splev(k, spline, der=1)
 
         #setting k_max (i.e. cutting oscillations from the fitted region)
         for index_k in range(len(k)):
             index_k_fit_max = -1
-            if (Tk[index_k])**2<0.1 and der[index_k]>0.: #perhaps we could find a better condition?!
+            if Tk[index_k]<0.1 and der[index_k]>=0.: #perhaps we could find a better condition?!
                index_k_fit_max = index_k
                break
         #print k[index_k_fit_max]
@@ -672,11 +672,16 @@ class Lya(Likelihood):
            return data.boundary_loglike
 
         #sanity check on the alpha beta gamma fit wrt the model
-        #fit_error=abs(Tk_fit/Tk_abg-1.) #MArchi perhaps Tk**2?
+        #fit_error=abs(Tk_fit/Tk_abg-1.)
         #if any(x>0.1 for x in fit_error):
-        #if any(abs(Tk_fit[k_fit<np.minimum(20.,k_fit[-1])]/Tk_abg[k_fit<np.minimum(20.,k_fit[-1])]-1.)>0.1):
-        k_check=(k_fit[-1]+1./self.khalf(best_alpha, best_beta, best_gamma))/1.8
-        if any(abs(Tk_fit[k_fit<k_check]/Tk_abg[k_fit<k_check]-1.)>0.1):
+
+        for ik in range(len(k_fit)):
+            index_k_check_max = -1
+            if Tk_fit[ik]<0.2:
+               index_k_check_max = ik
+               break
+
+        if any(abs(Tk_fit[:index_k_check_max]/Tk_abg[:index_k_check_max]-1.)>0.1):
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_fit\t')
                 #for name, value in data.mcmc_parameters.iteritems():
