@@ -4231,7 +4231,6 @@ int thermodynamics_sources_with_recfast(
   preio = ptpaw->preio;
   pvecback = ptpaw->pvecback;
   ptw = ptpaw->ptw;
-  pvecback = ptw->pvecback;
   ap_current = ptw->ap_current;
 
   Nz = preio->rt_size;
