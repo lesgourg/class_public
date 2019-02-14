@@ -86,7 +86,8 @@ cdef class Class:
     cdef lensing le
     cdef file_content fc
 
-    cpdef int ready # Flag
+    cpdef int ready # Flag to see if classy can currently compute
+    cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
@@ -115,6 +116,7 @@ cdef class Class:
     def __cinit__(self, default=False):
         cpdef char* dumc
         self.ready = False
+        self.allocated = False
         self._pars = {}
         self.fc.size=0
         self.fc.filename = <char*>malloc(sizeof(char)*30)
@@ -191,6 +193,7 @@ cdef class Class:
         if "background" in self.ncp:
             background_free(&self.ba)
         self.ready = False
+        self.allocated = False
 
     def _check_task_dependency(self, level):
         """
@@ -285,6 +288,10 @@ cdef class Class:
         # the function.
         if self.ready and self.ncp.issuperset(level):
             return
+
+        # Check if already allocated to prevent memory leaks
+        if self.allocated:
+            self.struct_cleanup()
 
         # Otherwise, proceed with the normal computation.
         self.ready = False
@@ -381,6 +388,7 @@ cdef class Class:
             self.ncp.add("lensing")
 
         self.ready = True
+        self.allocated = True
 
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
@@ -911,12 +919,12 @@ cdef class Class:
                 "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
                 )
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,_FALSE_,R,z,&sigma)==_FAILURE_:
+        if spectra_sigma(&self.ba,&self.pm,&self.sp,R,z,&sigma)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma
 
-    # Gives sigma(R,z) for a given (R,z)
+    # Gives sigma_cb(R,z) for a given (R,z)
     def sigma_cb(self,double R,double z):
         """
         Gives the pk for a given R and z
@@ -946,7 +954,7 @@ cdef class Class:
                 "No massive neutrinos. You must use sigma, rather than sigma_cb."
                 )
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,_TRUE_,R,z,&sigma_cb)==_FAILURE_:
+        if spectra_sigma_cb(&self.ba,&self.pm,&self.sp,R,z,&sigma_cb)==_FAILURE_:
                  raise CosmoSevereError(self.sp.error_message)
 
         return sigma_cb
@@ -968,6 +976,9 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
+    # This is commented because in the current form it only applies
+    # to minimal LambdaCDM.
+    # On would need to add contributions from ncdm, ddmdr, etc.
     #def Omega_r(self):
     #    return self.ba.Omega0_g+self.ba.Omega0_ur
 
@@ -989,6 +1000,10 @@ cdef class Class:
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
+
+    def sigma8_cb(self):
+        self.compute(["spectra"])
+        return self.sp.sigma8_cb
 
     def rs_drag(self):
         self.compute(["thermodynamics"])
@@ -1643,6 +1658,8 @@ cdef class Class:
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.sp.sigma8
+            elif name == 'sigma8_cb':
+                value = self.sp.sigma8_cb
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
@@ -1663,13 +1680,12 @@ cdef class Class:
                 Size of the redshift array
         """
         cdef int index_z
-        cdef int index_pk
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
         #cdef double *k_nl
-        index_pk=0
         #k_nl = <double*> calloc(z_size,sizeof(double))
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl[index_z]) == _FAILURE_:
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z],&k_nl_cb[index_z]) == _FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
 
         return k_nl
@@ -1689,17 +1705,16 @@ cdef class Class:
                 Size of the redshift array
         """
         cdef int index_z
-        cdef int index_pk
+        cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
         cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
         #cdef double *k_nl
-        index_pk=1
         #k_nl = <double*> calloc(z_size,sizeof(double))
         if (self.ba.Omega0_ncdm_tot == 0.):
             raise CosmoSevereError(
                 "No massive neutrinos. You must use nonlinear_scale, rather than nonlinear_scale_cb."
                 )
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.ba,&self.nl,index_pk,z[index_z],&k_nl_cb[index_z]) == _FAILURE_:
+            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z],&k_nl_cb[index_z]) == _FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
 
         return k_nl_cb

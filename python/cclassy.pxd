@@ -191,6 +191,7 @@ cdef extern from "class.h":
         int index_md_scalars
         double* ln_k
         double sigma8
+        double sigma8_cb
         double alpha_II_2_20
         double alpha_RI_2_20
         double alpha_RR_2_20
@@ -331,7 +332,7 @@ cdef extern from "class.h":
         double * output_tot,
         double * output_cb_tot)
 
-    int nonlinear_k_nl_at_z(void* pba, void* pnl, int index_pk, double z, double* k_nl)
+    int nonlinear_k_nl_at_z(void* pba, void* pnl, double z, double* k_nl, double* k_nl_cb)
 
     int spectra_firstline_and_ic_suffix(void *ppt, int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix)
 
@@ -339,10 +340,17 @@ cdef extern from "class.h":
                   void * pba,
                   void * ppm,
                   void * psp,
-                  short compute_sigma8_cb,
                   double R,
                   double z,
                   double * sigma)
+
+    int spectra_sigma_cb(
+                  void * pba,
+                  void * ppm,
+                  void * psp,
+                  double R,
+                  double z,
+                  double * sigma_cb)
 
     int spectra_fast_pk_at_kvec_and_zvec(
                   void * pba,

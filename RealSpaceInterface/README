@@ -1,0 +1,18 @@
+For installation of python packages, run
+
+    pip install -r requirements.txt
+
+Launch the application with
+
+    python tornadoserver.py
+
+Then in any browser open the URL
+
+    http://localhost:7777
+
+------------------------------------------------------------
+
+Cache files are located in cache/, so to clear the cache, run
+
+    rm cache/*
+

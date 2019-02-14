@@ -1,0 +1,57 @@
+<template id="redshift-modal-left">
+    <div class="col-sm-5">
+        <div class="input-group">
+            <div class="input-group-prepend">
+                <span class="input-group-text">z:</span>
+            </div>
+            <input type="number" class="form-control redshift-modal-z" placeholder="">
+        </div>
+    </div>
+    <div class="col-sm-5"></div>
+    <div class="col-sm-2"></div>
+</template>
+
+<template id="redshift-modal-right">
+    <div class="col-sm-1">
+    </div>
+    <div class="col-sm-9">
+        <div class="input-group">
+            <input type="number" class="form-control redshift-modal-samples" placeholder="">
+            <div class="input-group-append">
+                <span class="input-group-text">points</span>
+            </div>
+            <select class="custom-select redshift-modal-spacing">
+                <option value="0" selected>logarithmic</option>
+                <option value="1">linear</option>
+            </select>
+        </div>
+
+    </div>
+    <div class="col-sm-2">
+        <div class="btn-group">
+            <button type="button" class="btn btn-success redshift-modal-btn-add">+</button>
+            <button type="button" class="btn btn-danger redshift-modal-btn-delete">-</button>
+        </div>
+    </div>
+</template>
+
+<div class="modal fade" id="redshift-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Redshift configuration</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="container" id="redshift-modal-grid">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="redshift-modal-cancel" type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                <button id="redshift-modal-save" type="button" class="btn btn-primary">Save &amp; Close</button>
+            </div>
+        </div>
+    </div>
+</div>

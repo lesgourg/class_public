@@ -98,6 +98,7 @@ void read_rates(HRATEEFF *rate_table){
    FILE *fR = fopen(RR_FILE, "r");
 
    unsigned i, j, l;
+   int fscanf_result;
 
    maketab(log(TR_MIN), log(TR_MAX), NTR, rate_table->logTR_tab);
    maketab(TM_TR_MIN, TM_TR_MAX, NTM, rate_table->TM_TR_tab);
@@ -107,12 +108,14 @@ void read_rates(HRATEEFF *rate_table){
    for (i = 0; i < NTR; i++) {
       for (j = 0; j < NTM; j++) {
 	 for (l = 0; l <= 1; l++) {
-           fscanf(fA, "%le", &(rate_table->logAlpha_tab[l][j][i]));
+           fscanf_result = fscanf(fA, "%le", &(rate_table->logAlpha_tab[l][j][i]));
+           if(fscanf_result != 1){printf("Hyrec Warning :: Could not read log Alpha table (Alpha_inf.dat)");}
            rate_table->logAlpha_tab[l][j][i] = log(rate_table->logAlpha_tab[l][j][i]);
         }
       }
 
-      fscanf(fR, "%le", &(rate_table->logR2p2s_tab[i]));
+      fscanf_result = fscanf(fR, "%le", &(rate_table->logR2p2s_tab[i]));
+      if(fscanf_result != 1){printf("Hyrec Warning :: Could not read rate table (R_inf.dat)");}
       rate_table->logR2p2s_tab[i] = log(rate_table->logR2p2s_tab[i]);
 
    }
@@ -263,15 +266,18 @@ void read_twog_params(TWO_PHOTON_PARAMS *twog){
    FILE *fA;
    unsigned b;
    double L2s1s_current;
+   int fscanf_result;
 
    fA = fopen(TWOG_FILE, "r");
 
    for (b = 0; b < NVIRT; b++) {
-      fscanf(fA, "%le", &(twog->Eb_tab[b]));
-      fscanf(fA, "%le", &(twog->A1s_tab[b]));
-      fscanf(fA, "%le", &(twog->A2s_tab[b]));
-      fscanf(fA, "%le", &(twog->A3s3d_tab[b]));
-      fscanf(fA, "%le", &(twog->A4s4d_tab[b]));
+      fscanf_result = 0;
+      fscanf_result += fscanf(fA, "%le", &(twog->Eb_tab[b]));
+      fscanf_result += fscanf(fA, "%le", &(twog->A1s_tab[b]));
+      fscanf_result += fscanf(fA, "%le", &(twog->A2s_tab[b]));
+      fscanf_result += fscanf(fA, "%le", &(twog->A3s3d_tab[b]));
+      fscanf_result += fscanf(fA, "%le", &(twog->A4s4d_tab[b]));
+      if(fscanf_result!=5){printf("Hyrec Warning :: Could not read Two Photon table (two_photon_tables.dat)");}
    }
    fclose(fA);
 
