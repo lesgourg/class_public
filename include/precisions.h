@@ -69,7 +69,7 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
-class_string_parameter(sBBN_file,"/bbn/sBBN_2017.dat","sBBN file")
+class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
 
 /*
  *  Thermodynamical quantities
@@ -129,9 +129,9 @@ class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching o
 
 class_precision_parameter(thermo_rate_smoothing_radius,int,50) /**< Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards */
 
-class_string_parameter(hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
+class_string_parameter(hyrec_Alpha_inf_file,"/external/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
+class_string_parameter(hyrec_R_inf_file,"/external/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
+class_string_parameter(hyrec_two_photon_tables_file,"/external/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
 
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 

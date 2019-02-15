@@ -51,16 +51,13 @@ enum reionization_z_or_tau {
 /**
  * All thermodynamics parameters and evolution that other modules need to know.
  *
- * Once initialized by thermodynamics_init(), contains all the
- * necessary information on the thermodynamics, and in particular, a
- * table of thermodynamical quantities as a function of the redshift,
- * used for interpolation in other modules.
+ * Once initialized by thermodynamics_init(), contains all the necessary information on the thermodynamics, and in particular, a
+ * table of thermodynamical quantities as a function of the redshift, used for interpolation in other modules.
  */
 
 struct thermo
 {
-  /** @name - input parameters initialized by user in input module
-   *  (all other quantities are computed in this module, given these parameters
+  /** @name - input parameters initialized by user in input module (all other quantities are computed in this module, given these parameters
    *   and the content of the 'precision' and 'background' structures) */
 
   //@{
@@ -121,37 +118,20 @@ struct thermo
 
   /** parameters for energy injection */
 
-  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation;           /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation_variation; /**< if this parameter is non-zero, the function F(z)=(f <sigma*v>/m_cdm)(z) will be a parabola in
+				      log-log scale between zmin and zmax, with a curvature given by annihlation_variation (must be
+				      negative), and with a maximum in zmax; it will be constant outside this range */
+  double annihilation_z;         /**< if annihilation_variation is non-zero, this is the value of z at which the parameter annihilation is defined, i.e.
+			              F(annihilation_z)=annihilation */
+  double annihilation_zmax;      /**< if annihilation_variation is non-zero, redshift above which annihilation rate is maximal */
+  double annihilation_zmin;      /**< if annihilation_variation is non-zero, redshift below which annihilation rate is constant */
+  double annihilation_f_halo;    /**< takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo;    /**< characteristic redshift for DM annihilation in halos*/
 
-  short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+  short has_on_the_spot;         /**< flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-
-  double annihilation_variation; /** if this parameter is non-zero,
-				     the function F(z)=(f <sigma*v> /
-				     m_cdm)(z) will be a parabola in
-				     log-log scale between zmin and
-				     zmax, with a curvature given by
-				     annihlation_variation (must be
-				     negative), and with a maximum in
-				     zmax; it will be constant outside
-				     this range */
-
-  double annihilation_z; /** if annihilation_variation is non-zero,
-			     this is the value of z at which the
-			     parameter annihilation is defined, i.e.
-			     F(annihilation_z)=annihilation */
-
-  double annihilation_zmax; /** if annihilation_variation is non-zero,
-				redshift above which annihilation rate
-				is maximal */
-
-  double annihilation_zmin; /** if annihilation_variation is non-zero,
-				redshift below which annihilation rate
-				is constant */
-
-  double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
+  double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   //@}
 
@@ -164,14 +144,16 @@ struct thermo
   int index_th_tau_d;         /**< Baryon drag optical depth */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
   int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
-  int index_th_exp_m_kappa;  /**< \f$ exp^{-\kappa} \f$ */
+  int index_th_exp_m_kappa;   /**< \f$ exp^{-\kappa} \f$ */
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
-  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
+  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal 
+                                   tight-coupling schemes is requested) */
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some 
+                                   non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
   int th_size;                /**< size of thermodynamics vector */
@@ -213,8 +195,8 @@ struct thermo
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
-  double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
-  double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
+  double angular_rescaling;   /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
+  double tau_free_streaming;  /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
   //@}
 
@@ -260,8 +242,7 @@ struct thermo
 /**
  * Temporary structure where all the recombination history is defined and stored.
  *
- * This structure is used internally by the thermodynamics module,
- * but never passed to other modules.
+ * This structure is used internally by the thermodynamics module, but never passed to other modules.
  */
 
 struct recombination {
@@ -289,64 +270,46 @@ struct recombination {
 
   //@}
 
-  /** @name - recfast parameters needing to be passed to
-      thermodynamics_derivs_with_recfast() routine */
+  /** @name - recfast parameters needing to be passed to thermodynamics_derivs_with_recfast() routine */
 
   //@{
 
-  double CDB; /**< defined as in RECFAST */
-  double CR;  /**< defined as in RECFAST */
-  double CK;  /**< defined as in RECFAST */
-  double CL;  /**< defined as in RECFAST */
-  double CT;  /**< defined as in RECFAST */
-  double fHe; /**< defined as in RECFAST */
-  double CDB_He; /**< defined as in RECFAST */
-  double CK_He;  /**< defined as in RECFAST */
-  double CL_He;  /**< defined as in RECFAST */
-  double fu; /**< defined as in RECFAST */
-  double H_frac; /**< defined as in RECFAST */
-  double Tnow;   /**< defined as in RECFAST */
-  double Nnow;   /**< defined as in RECFAST */
-  double Bfact;  /**< defined as in RECFAST */
-  double CB1;    /**< defined as in RECFAST */
+  double CDB;     /**< defined as in RECFAST */
+  double CR;      /**< defined as in RECFAST */
+  double CK;      /**< defined as in RECFAST */
+  double CL;      /**< defined as in RECFAST */
+  double CT;      /**< defined as in RECFAST */
+  double fHe;     /**< defined as in RECFAST */
+  double CDB_He;  /**< defined as in RECFAST */
+  double CK_He;   /**< defined as in RECFAST */
+  double CL_He;   /**< defined as in RECFAST */
+  double fu;      /**< defined as in RECFAST */
+  double H_frac;  /**< defined as in RECFAST */
+  double Tnow;    /**< defined as in RECFAST */
+  double Nnow;    /**< defined as in RECFAST */
+  double Bfact;   /**< defined as in RECFAST */
+  double CB1;     /**< defined as in RECFAST */
   double CB1_He1; /**< defined as in RECFAST */
   double CB1_He2; /**< defined as in RECFAST */
-  double H0;  /**< defined as in RECFAST */
-  double YHe; /**< defined as in RECFAST */
+  double H0;      /**< defined as in RECFAST */
+  double YHe;     /**< defined as in RECFAST */
 
   /* parameters for energy injection */
 
-  double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation;           /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation_variation; /**< if this parameter is non-zero, the function F(z)=(f <sigma*v>/m_cdm)(z) will be a parabola in
+				      log-log scale between zmin and zmax, with a curvature given by annihlation_variation (must be
+				      negative), and with a maximum in zmax; it will be constant outside this range */
+  double annihilation_z;         /**< if annihilation_variation is non-zero, this is the value of z at which the parameter annihilation is defined, i.e.
+			              F(annihilation_z)=annihilation */
+  double annihilation_zmax;      /**< if annihilation_variation is non-zero, redshift above which annihilation rate is maximal */
+  double annihilation_zmin;      /**< if annihilation_variation is non-zero, redshift below which annihilation rate is constant */
+  double annihilation_f_halo;    /**< takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo;    /**< characteristic redshift for DM annihilation in halos*/
 
-  short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
+  short has_on_the_spot;         /**< flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-
-  double annihilation_variation; /**< if this parameter is non-zero,
-				     the function F(z)=(f <sigma*v> /
-				     m_cdm)(z) will be a parabola in
-				     log-log scale between zmin and
-				     zmax, with a curvature given by
-				     annihlation_variation (must be
-				     negative), and with a maximum in
-				     zmax; it will be constant outside
-				     this range */
-
-  double annihilation_z; /**< if annihilation_variation is non-zero,
-			     this is the value of z at which the
-			     parameter annihilation is defined, i.e.
-			     F(annihilation_z)=annihilation */
-
-  double annihilation_zmax; /**< if annihilation_variation is non-zero,
-				redshift above which annihilation rate
-				is maximal */
-
-  double annihilation_zmin; /**< if annihilation_variation is non-zero,
-				redshift below which annihilation rate
-				is constant */
-
-  double annihilation_f_halo; /**< takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
+  double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   //@}
 
@@ -355,8 +318,7 @@ struct recombination {
 /**
  * Temporary structure where all the reionization history is defined and stored.
  *
- * This structure is used internally by the thermodynamics module,
- * but never passed to other modules.
+ * This structure is used internally by the thermodynamics module, but never passed to other modules.
  */
 
 struct reionization {
@@ -411,9 +373,9 @@ struct reionization {
 
   /* parameters used by reio_bins_tanh, reio_many_tanh, reio_inter */
 
-  int reio_num_z; /**< number of reionization jumps */
-  int index_reio_first_z; /**< redshift at which we start to impose reionization function */
-  int index_reio_first_xe; /**< ionization fraction at redshift first_z (inferred from recombination code) */
+  int reio_num_z;                /**< number of reionization jumps */
+  int index_reio_first_z;        /**< redshift at which we start to impose reionization function */
+  int index_reio_first_xe;       /**< ionization fraction at redshift first_z (inferred from recombination code) */
   int index_reio_step_sharpness; /**< sharpness of tanh jump */
 
   /* parameters used by all schemes */
@@ -425,7 +387,7 @@ struct reionization {
   /** @name - vector of such parameters, and its size */
 
   double * reionization_parameters; /**< vector containing all reionization parameters necessary to compute xe(z) */
-  int reio_num_params; /**< length of vector reionization_parameters */
+  int reio_num_params;              /**< length of vector reionization_parameters */
 
   //@}
 
@@ -445,32 +407,27 @@ struct reionization {
 
 struct thermo_vector {
 
-  int tv_size;            /**< size of thermo vector */
+  int tv_size;          /**< size of thermo vector */
 
-  int index_x_H;         /**< index for hydrogen fraction in y */
-  int index_x_He;        /**< index for helium fraction in y */
-  int index_Tmat;         /**< index for matter temperature fraction in y */
+  int index_x_H;        /**< index for hydrogen fraction in y */
+  int index_x_He;       /**< index for helium fraction in y */
+  int index_Tmat;       /**< index for matter temperature fraction in y */
 
+  double * y;           /**< vector of quantities to be integrated */
+  double * dy;          /**< time-derivative of the same vector */
 
-  double * y;             /**< vector of quantities to be integrated */
-  double * dy;            /**< time-derivative of the same vector */
-
-  int * used_in_output; /**< boolean array specifying which
-                            quantities enter in the calculation of
-                            output functions */
+  int * used_in_output; /**< boolean array specifying which quantities enter in the calculation of output functions */
 
 };
 
 
 struct thermo_workspace {
 
-  struct thermo_vector * tv; /**< pointer to vector of integrated
-                                 quantities and their
-                                 time-derivatives */
+  struct thermo_vector * tv; /**< pointer to vector of integrated quantities and their time-derivatives */
 
   double x_H;  /**< Hydrogen ionization fraction */
   double x_He; /**< Helium ionization fraction */
-  double x; /**< Electron ionization fraction */
+  double x;    /**< Electron ionization fraction */
   double dx_H;
   double dx_He;
   double dx;
@@ -479,23 +436,24 @@ struct thermo_workspace {
   double dTmat;
 
   int index_ap_brec; /**< index for approximation before recombination */
-  int index_ap_He1; /**< index for 1st He-recombination (HeIII) */
+  int index_ap_He1;  /**< index for 1st He-recombination (HeIII) */
   int index_ap_He1f; /**< index for approximation after 1st He recombination before 2nd */
-  int index_ap_He2; /**< index for start of 2nd He-recombination (HeII) */
-  int index_ap_H; /**< index for start of H-recombination (HI) */
+  int index_ap_He2;  /**< index for start of 2nd He-recombination (HeII) */
+  int index_ap_H;    /**< index for start of H-recombination (HI) */
   int index_ap_frec; /**< index for full recombination */
   int index_ap_reio; /**< index for reionization */
   int index_ap_reio_hyrec; /**< index for reionization with HyRec*/
 
-  int ap_current; /** current fixed approximation scheme index */
-  int ap_size; /**< number of approximation intervals used during evolver loop */
+  int ap_current;     /** current fixed approximation scheme index */
+  int ap_size;        /**< number of approximation intervals used during evolver loop */
   int ap_size_loaded; /**< number of all approximations  */
 
-  double * ap_z_limits; /**< vector storing ending limits of each approximation */
+  double * ap_z_limits;       /**< vector storing ending limits of each approximation */
   double * ap_z_limits_delta; /**< vector storing smoothing deltas of each approximation */
 
   int require_H;
   int require_He;
+
 };
 
 
@@ -556,13 +514,13 @@ extern "C" {
 				     );
 
   int thermodynamics_onthespot_energy_injection(
-				      struct precision * ppr,
-				      struct background * pba,
-				      struct recombination * preco,
-				      double z,
-				      double * energy_rate,
-				      ErrorMsg error_message
-				      );
+				                struct precision * ppr,
+				                struct background * pba,
+				                struct recombination * preco,
+				                double z,
+				                double * energy_rate,
+				                ErrorMsg error_message
+				                );
 
   int thermodynamics_energy_injection(
 				      struct precision * ppr,
@@ -582,40 +540,40 @@ extern "C" {
 					   );
 
   int thermodynamics_interpolate_recombination_table(
-                                                struct precision * ppr,
-                                                struct thermo * pth,
-                                                struct recombination * preco,
-                                                double z,
-                                                double * x,
-                                                double * Tmat
-                                                );
+                                                     struct precision * ppr,
+                                                     struct thermo * pth,
+                                                     struct recombination * preco,
+                                                     double z,
+                                                     double * x,
+                                                     double * Tmat
+                                                     );
 
   int thermodynamics_solve(
-				   struct precision * ppr,
-				   struct background * pba,
-				   struct thermo * pth,
-				   struct recombination * preco,
-                   struct reionization * preio,
-				   double * pvecback
-				   );
+			   struct precision * ppr,
+			   struct background * pba,
+			   struct thermo * pth,
+			   struct recombination * preco,
+                           struct reionization * preio,
+			   double * pvecback
+			   );
 
   int thermodynamics_recombination_with_hyrec(
-						struct precision * ppr,
-						struct background * pba,
-						struct thermo * pth,
-						struct recombination * preco,
-						double * pvecback
-						);
+					      struct precision * ppr,
+					      struct background * pba,
+					      struct thermo * pth,
+					      struct recombination * preco,
+					      double * pvecback
+					      );
 
   int thermodynamics_solve_with_recfast(
-						struct precision * ppr,
-						struct background * pba,
-						struct thermo * pth,
-						struct recombination * preco,
-                        struct reionization * preio,
-                        struct thermo_workspace * ptw,
-						double * pvecback
-						);
+					struct precision * ppr,
+					struct background * pba,
+					struct thermo * pth,
+					struct recombination * preco,
+                        		struct reionization * preio,
+                        		struct thermo_workspace * ptw,
+					double * pvecback
+					);
 
   int thermodynamics_derivs_with_recfast(
 					 double z,
@@ -625,97 +583,95 @@ extern "C" {
 					 ErrorMsg error_message
 					 );
 
-
   int thermodynamics_x_analytic(
-                              double z,
-                              struct precision * ppr,
-                              struct thermo * pth,
-                              struct recombination * preco,
-                              struct reionization * preio,
-                              struct thermo_workspace * ptw,
-                              int current_ap
-                              );
+                                double z,
+                                struct precision * ppr,
+                                struct thermo * pth,
+                                struct recombination * preco,
+                                struct reionization * preio,
+                                struct thermo_workspace * ptw,
+                                int current_ap
+                                );
 
   int thermo_vector_init(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct recombination * preco,
-                       struct reionization * preio,
-                       double z,
-                       struct thermo_workspace * ptw
-                       );
+                         struct precision * ppr,
+                         struct background * pba,
+                         struct thermo * pth,
+                         struct recombination * preco,
+                         struct reionization * preio,
+                         double z,
+                         struct thermo_workspace * ptw
+                         );
 
   int thermo_vector_free(
-                        struct thermo_vector * tv
-                        );
+                         struct thermo_vector * tv
+                         );
 
   int thermo_workspace_init(
-                           struct precision * ppr,
-                           struct background * pba,
-                           struct thermo * pth,
-                           struct thermo_workspace * ptw
-                           );
+                            struct precision * ppr,
+                            struct background * pba,
+                            struct thermo * pth,
+                            struct thermo_workspace * ptw
+                            );
 
-  int thermo_workspace_free (
+  int thermo_workspace_free(
                             struct thermo_workspace * ptw
                             );
 
   int thermodynamics_recombination_set_parameters(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct recombination * preco
-                       );
+                                                  struct precision * ppr,
+                                                  struct background * pba,
+                                                  struct thermo * pth,
+                                                  struct recombination * preco
+                                                  );
 
   int thermodynamics_reionization_set_parameters(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct recombination * preco,
-                       struct reionization * preio
-                       );
+                                                 struct precision * ppr,
+                                                 struct background * pba,
+                                                 struct thermo * pth,
+                                                 struct recombination * preco,
+                                                 struct reionization * preio
+                                                 );
 
   int thermodynamics_reionization_evolve_with_tau(
-                                struct thermodynamics_parameters_and_workspace * tpaw,
-                                double mz_ini,
-                                double mz_end,
-                                double * mz_output,
-                                int Nz);
+                                                  struct thermodynamics_parameters_and_workspace * tpaw,
+                                                  double mz_ini,
+                                                  double mz_end,
+                                                  double * mz_output,
+                                                  int Nz
+                                                  );
 
   int thermodynamics_reionization_get_tau(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct thermo * pth,
-                                struct recombination * preco,
-                                struct reionization * preio
-                                );
+                                          struct precision * ppr,
+                                          struct background * pba,
+                                          struct thermo * pth,
+                                          struct recombination * preco,
+                                          struct reionization * preio
+                                          );
 
-  int thermo_workspace_free (
+  int thermo_workspace_free(
                             struct thermo_workspace * ptw
                             );
 
   int thermodynamics_set_approximation_limits(
-                                      struct precision * ppr,
-                                      struct background * pba,
-                                      struct thermo * pth,
-                                      struct recombination * preco,
-                                      struct thermo_workspace * ptw,
-                                      double mz_ini,
-                                      double mz_end,
-                                      int* interval_number,
-                                      double * interval_limit
-                                      );
-
-
+                                              struct precision * ppr,
+                                              struct background * pba,
+                                              struct thermo * pth,
+                                              struct recombination * preco,
+                                              struct thermo_workspace * ptw,
+                                              double mz_ini,
+                                              double mz_end,
+                                              int* interval_number,
+                                              double * interval_limit
+                                              );
 
   int thermodynamics_sources_with_recfast(
-                                        double z,
-                                        double * y,
-                                        double * dy,
-                                        int index_z,
-                                        void * thermodynamics_parameters_and_workspace,
-                                        ErrorMsg error_message
+                                          double z,
+                                          double * y,
+                                          double * dy,
+                                          int index_z,
+                                          void * thermodynamics_parameters_and_workspace,
+                                          ErrorMsg error_message
                                           );
 
   int thermodynamics_merge_reco_and_reio(
@@ -725,31 +681,33 @@ extern "C" {
 					 struct reionization * preio
 					 );
 
-  int thermodynamics_output_titles(struct background * pba,
+  int thermodynamics_output_titles(
+                                   struct background * pba,
                                    struct thermo *pth,
                                    char titles[_MAXTITLESTRINGLENGTH_]
                                    );
 
-  int thermodynamics_output_data(struct background * pba,
+  int thermodynamics_output_data(
+                                 struct background * pba,
                                  struct thermo *pth,
                                  int number_of_titles,
                                  double *data
                                  );
 
   int thermodynamics_sources_with_recfast(
-                                        double z,
-                                        double * y,
-                                        double * dy,
-                                        int index_z,
-                                        void * thermodynamics_parameters_and_workspace,
-                                        ErrorMsg error_message
+                                          double z,
+                                          double * y,
+                                          double * dy,
+                                          int index_z,
+                                          void * thermodynamics_parameters_and_workspace,
+                                          ErrorMsg error_message
                                           );
 
   int thermodynamics_timescale_with_recfast(
-                                        double z,
-                                        void * thermodynamics_parameters_and_workspace,
-                                        double * timescale,
-                                        ErrorMsg error_message
+                                            double z,
+                                            void * thermodynamics_parameters_and_workspace,
+                                            double * timescale,
+                                            ErrorMsg error_message
                                             );
 
 #ifdef __cplusplus
