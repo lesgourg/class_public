@@ -163,16 +163,12 @@ extern "C" {
                    double * pvecheat);
 
   int distortions_at_x(struct background* pba,
-                       struct perturbs * ppt,
-                       struct thermo * pth,
-                       struct primordial * ppm,
                        struct distortions * psd,
                        double x,
                        double * pvecdist);
 
-  int distortions_read_Greens_data(
-            struct precision * ppr,
-            struct distortions * psd);
+  int distortions_read_Greens_data(struct precision * ppr,
+                                   struct distortions * psd);
 
   int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
 

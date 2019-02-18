@@ -21,7 +21,7 @@ int distortions_init(struct precision * ppr,
                      struct thermo * pth,
                      struct primordial * ppm,
                      struct distortions * psd) {
-  /* Definitions */
+  /* Define local variables */
   double * pvecheat;
   double * pvecdist;
   int last_index = 0;
@@ -41,6 +41,9 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              "Cannot compute spectral distortions without damping scale \n");
 
+  /** 
+   * Define global quanties, e.g. indeces, z and x arrays and branching ratios
+   */ 
 
   /* Assign values to all indices in the distortions structure */
   class_call(distortions_indices(psd),
@@ -62,25 +65,19 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  /* Allocate space for heating output parameters */
-  class_alloc(psd->dQrho_dz_tot,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  /* Allocate space for spectral distortion amplitude parameters */
-  class_alloc(psd->sd_parameter,
-              psd->br_size*sizeof(double),
-              psd->error_message);
-  /* Allocate space for distortions output parameters */
-  class_alloc(psd->DI,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-
   /* TODO :: what to do with greens function data ? */
   class_call(distortions_read_Greens_data(ppr,psd),
              psd->error_message,
              psd->error_message);
 
+  /**
+   * Define heting function
+   */
 
+  /* Allocate space for heating output parameters */
+  class_alloc(psd->dQrho_dz_tot,
+              psd->z_size*sizeof(double),
+              psd->error_message);
   /* Get the heating TODO :: get from thermodynamics after exoclass hyrec recfast merge */
   class_alloc(pvecheat,
               psd->ht_size*sizeof(double),
@@ -98,11 +95,16 @@ int distortions_init(struct precision * ppr,
   /* Free space */
   free(pvecheat);
 
-
   /**
-   * After heating is known, the spectral distortion amplitudes can be calculated
+   * Define spectral distortion amplitudes
    * This boils down to the integral int ( f(z) dQ/drho(z) dz )
-   * */
+   */
+
+  /* Allocate space for spectral distortion amplitude parameters */
+  class_alloc(psd->sd_parameter,
+              psd->br_size*sizeof(double),
+              psd->error_message);
+
   for(int index_br=0;index_br<psd->br_size;++index_br){
     class_call(array_trapezoidal_convolution(
                           psd->branching_ratios[index_br],
@@ -121,26 +123,12 @@ int distortions_init(struct precision * ppr,
   psd->y = psd->sd_parameter[psd->index_br_f_y];
   psd->r = psd->sd_parameter[psd->index_br_f_r];
 
+  /* Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
+  psd->y += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  psd->y += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  psd->y += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
-  /**
-   * Include additional sources of distortions:
-   *    1) Superposition of blackbodies caused by CMB dipole as described in Chluba & Sunyaev 2004
-   *    2) Reionization and structure formation as described in Hill et al. 2015
-   *        a) without relativistic effects and
-   *        b) with relativistic effects (TODO)
-   * (see also Chluba 2016 for useful discussion)
-   */
-
-  /** 1) Superposition of blackbodies */
-  psd->y += 2.525e-7;   // Dipole
-  psd->y += 4.59e-13;   // Quadrupole
-
-  /** 2a) Reionization and structure formation without relativistic effects */
-  psd->y += 1.77e-6;
-
-  /** 2b) Contribution from relativistic effects */
-
-  /** Calculate total heating */
+  /* Calculate total heating */
   psd->Drho_over_rho = 4.*psd->g+psd->mu/1.401+4.*psd->y+psd->r;
 
   /* Print found parameters */
@@ -158,23 +146,26 @@ int distortions_init(struct precision * ppr,
 
   if (psd->distortions_verbose > 1) { printf("-> r-parameter = %g\n", psd->r); }
 
-  /* Calculate final distortions */
+  /**
+   * Define final spectral distortions
+   */
+
+  /* Allocate space for distortions output parameters */
+  class_alloc(psd->DI,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  /* Get the distortions */
   class_alloc(pvecdist,
               psd->sd_size*sizeof(double),
               psd->error_message);
-
   for (index_x = 0; index_x<psd->x_size; index_x++) {
-
-    class_call(distortions_at_x(pba,ppt,pth,ppm,psd,
+    class_call(distortions_at_x(pba,psd,
                                 psd->x[index_x],
                                 pvecdist),
                psd->error_message,
                psd->error_message);
-
     psd->DI[index_x] = pvecdist[psd->index_sd_DI];
-
   }
-
   /* Free space */
   free(pvecdist);
 
@@ -189,21 +180,25 @@ int distortions_init(struct precision * ppr,
  * @return the error status
  */
 int distortions_free(struct distortions * psd) {
+  /* Define local variables */
   int index_br;
+
   if(psd->has_distortions == _TRUE_){
+    /* Free from distortions_get_xz_lists() */
     free(psd->z);
-    free(psd->dQrho_dz_tot);
-
     free(psd->x);
-    free(psd->DI);
-
-    free(psd->bb_visibility_function);
     free(psd->z_weights);
-    free(psd->sd_parameter);
+
+    /* Free from distortions_visibility_function() */
+    free(psd->bb_visibility_function);
+
+    /* Free from distortions_branching_ratios() */
     for(index_br=0;index_br<psd->br_size;++index_br){
       free(psd->branching_ratios[index_br]);
     }
     free(psd->branching_ratios);
+
+    /* Free from distortions_read_Greens_data() */
     free(psd->Greens_z);
     free(psd->Greens_x);
     free(psd->Greens_T_ini);
@@ -212,6 +207,10 @@ int distortions_free(struct distortions * psd) {
     free(psd->Greens_blackbody);
     free(psd->Greens_function);
 
+    /* Free from distortions_init() */
+    free(psd->dQrho_dz_tot);
+    free(psd->sd_parameter);
+    free(psd->DI);
   }
 
   return _SUCCESS_;
@@ -225,12 +224,12 @@ int distortions_free(struct distortions * psd) {
  * @return the error status
  */
 int distortions_indices(struct distortions * psd) {
-  /* Definitions */
+  /* Define local variables */
   int index_ht = 0;
   int index_sd = 0;
   int index_br = 0;
 
-  /* z-dependent parameters */
+  /* Branching ratios from distortions_branching_ratios() */
   class_define_index(psd->index_br_f_g,_TRUE_,index_br,1);
   class_define_index(psd->index_br_f_mu,_TRUE_,index_br,1);
   class_define_index(psd->index_br_f_y,_TRUE_,index_br,1);
@@ -238,6 +237,7 @@ int distortions_indices(struct distortions * psd) {
 
   psd->br_size = index_br;
 
+  /* Heating functions from heating_at_z() */
   class_define_index(psd->index_ht_dQrho_dz_cool,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_diss,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_ann,_TRUE_,index_ht,1);
@@ -248,7 +248,7 @@ int distortions_indices(struct distortions * psd) {
 
   psd->ht_size = index_ht;
 
-  /* x-dependent parameters */
+  /* Spectral distortions from distortions_at_x() */
   class_define_index(psd->index_sd_Y,_TRUE_,index_sd,1);
   class_define_index(psd->index_sd_M,_TRUE_,index_sd,1);
   class_define_index(psd->index_sd_G,_TRUE_,index_sd,1);
@@ -259,8 +259,15 @@ int distortions_indices(struct distortions * psd) {
   return _SUCCESS_;
 }
 
+
+/**
+ * Compute redshift and frequency vectors and weights for redshift integral.
+ *
+ * @param psd     Input: pointer to distortions structure
+ * @return the error status
+ */
 int distortions_get_xz_lists(struct distortions* psd){
-  /* Definitions */
+  /* Define local variables */
   int index_z;
   int index_x;
 
@@ -273,8 +280,6 @@ int distortions_get_xz_lists(struct distortions* psd){
   psd->x_max = 5.e1;
   psd->x_size = (int) 550;
   psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
-
-
 
   class_alloc(psd->z,
               psd->z_size*sizeof(double),
@@ -303,6 +308,15 @@ int distortions_get_xz_lists(struct distortions* psd){
   return _SUCCESS_;
 }
 
+
+/**
+ * Compute visibility function.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to the thermodynamics structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
 int distortions_visibility_function(struct background * pba,
                                     struct thermo * pth,
                                     struct distortions * psd){
@@ -319,15 +333,36 @@ int distortions_visibility_function(struct background * pba,
 
     z_muy = 5.e4;
     z_th = 1.98e6*
-           pow((1.- pth->YHe/2.)/0.8767,-2./5.)*
+           pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
            pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
            pow(pba->T_cmb/2.726,1./5.);
+
     psd->bb_visibility_function[index_z] = exp(-pow(z/z_th,2.5));
   }
 
   return _SUCCESS_;
 }
 
+
+/**
+ * Calculate all the branching ratios of the Green's functions.
+ *
+ * Computing the full evolution of the thermal history of the universe is rather time consuming
+ * and mathematically challenging. It is therefore not implemented here. However, there are
+ * (at least) 5 levels of possible approximatin to evaluate the SD branching ratios (see also
+ * Chluba 2016 for useful discussion)
+ *    1) Use a sharp transition at z_mu-y and no distortions before z_th
+ *    2) Use a sharp transition at z_mu-y and a soft transition at z_th
+ *    3) Use a soft transition at a_mu-y and z_th as described in Chluba 2013
+ *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy
+ *    5) Use a PCA method as described in Chluba & Jeong 2014 (TODO)
+ * The user can select the preferred option with 'branching approx'=sharp_sharp for 1),
+ * =sharp_soft for 2), =soft_soft for 3), =soft_soft_cons for 4) and =exact for 5)
+ * (default =soft_soft).
+ *
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
 int distortions_branching_ratios(struct distortions* psd){
   /* Define local variables */
   int index_z,index_br;
@@ -344,7 +379,7 @@ int distortions_branching_ratios(struct distortions* psd){
                 psd->error_message);
   }
 
-  for(index_z=0;index_z<psd->z_size;++index_z){
+  for(index_z=0; index_z<psd->z_size; ++index_z){
     z = psd->z[index_z];
     f = psd->bb_visibility_function[index_z];
 
@@ -365,7 +400,6 @@ int distortions_branching_ratios(struct distortions* psd){
         f_mu = 0.;
         f_y = 1.;
       }
-      f_r = 1.-f_g-f_mu-f_y;
     }
 
     /** 2) Calculate branching ratios using sharp_soft transition */
@@ -379,7 +413,6 @@ int distortions_branching_ratios(struct distortions* psd){
         f_mu = 0.;
         f_y = 1.;
       }
-      f_r = 1.-f_g-f_mu-f_y;
     }
 
     /** 3) Calculate branching ratios unsing soft_soft transitions */
@@ -387,7 +420,6 @@ int distortions_branching_ratios(struct distortions* psd){
       f_g = 1.-f;
       f_mu = f*(1.0-exp(-pow((1.0+z)/(5.8e4),1.88)));
       f_y = 1.0/(1.0+pow((1.0+z)/(6.0e4),2.58));
-      f_r = 1.-f_g-f_mu-f_y;
     }
 
     /** 4) Calculate branching ratios unsing soft_soft_cons transitions */
@@ -395,12 +427,14 @@ int distortions_branching_ratios(struct distortions* psd){
       f_g = 1.-f;
       f_y = 1.0/(1.0+pow((1.0+z)/(6.0e4),2.58));
       f_mu = f*(1.-f_y);
-      f_r = 1.-f_g-f_mu-f_y;
+
     }
 
     /** 5) Calculate branching ratios according to Chluba & Jeong 2014 */
     if(psd->branching_approx == 5){
     }
+
+    f_r = 1.-f_g-f_mu-f_y;
     
     psd->branching_ratios[psd->index_br_f_g][index_z]=f_g/4.;
     psd->branching_ratios[psd->index_br_f_mu][index_z]=f_mu*1.401;
@@ -415,19 +449,6 @@ int distortions_branching_ratios(struct distortions* psd){
  * the branching ratios of the Green's functions and the heating rates.
  *
  * DOES NOT INCLUDE THE VISIBILITY FUNCTION CURRENTLY
- *
- * Computing the full evolution of the thermal history of the universe is rather time consuming
- * and mathematically challenging. It is therefore not implemented here. However, there are
- * (at least) 5 levels of possible approximatin to evaluate the SD branching ratios (see also
- * Chluba 2016 for useful discussion)
- *    1) Use a sharp transition at z_mu-y and no distortions before z_th
- *    2) Use a sharp transition at z_mu-y and a soft transition at z_th
- *    3) Use a soft transition at a_mu-y and z_th as described in Chluba 2013
- *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy
- *    5) Use a PCA method as described in Chluba & Jeong 2014 (TODO)
- * The user can select the preferred option with 'branching approx'=sharp_sharp for 1),
- * =sharp_soft for 2), =soft_soft for 3), =soft_soft_cons for 4) and =exact for 5)
- * (default =soft_soft).
  *
  * There are many possible sources of heating (for all details see e.g. Chluba & Sunyaev 2012),
  * some are present even for the standard cosmological model like
@@ -479,7 +500,6 @@ int heating_at_z(struct precision * ppr,
   double alpha_h, tilde_rho_g, theta_g;
   double k_max, k_min, k_size, k_delta, k, pk_primordial_k, * int_dQrho_dz_diss_full, * int_dQrho_dz_diss_approx;
   double g_h;
-  double z_dec, p_dec, tau_dec, t_dec, * pvecback_dec, G_dec;
 
   /* From z to tau */
   class_call(background_tau_of_z(pba,
@@ -500,18 +520,17 @@ int heating_at_z(struct precision * ppr,
                                pvecback),
              pba->error_message,
              psd->error_message);
-
-  O_b = pba->Omega0_b;                                                              // [-]
-  O_cdm = pba->Omega0_cdm;                                                          // [-]
-  h = pba->h;                                                                       // [-]
-  H = pvecback[pba->index_bg_H];                                                    // [1/Mpc]
-  a = pvecback[pba->index_bg_a];                                                    // [-]
-  t = pvecback[pba->index_bg_time];                                                 // [Mpc]
-  t /= _s_over_Mpc_;                                                                // [s]
-  rho_g = pvecback[pba->index_bg_rho_g];                                            // [1/Mpc^4]
-  rho_g /= _GeVcm3_over_Mpc4_;                                                      // [GeV/cm^3]
-  R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];          // [-]
-  T_g0 = pba->T_cmb;                                                                // [K]
+  O_b = pba->Omega0_b;                                                                // [-]
+  O_cdm = pba->Omega0_cdm;                                                            // [-]
+  h = pba->h;                                                                         // [-]
+  H = pvecback[pba->index_bg_H];                                                      // [1/Mpc]
+  a = pvecback[pba->index_bg_a];                                                      // [-]
+  t = pvecback[pba->index_bg_time];                                                   // [Mpc]
+  t /= _s_over_Mpc_;                                                                  // [s]
+  rho_g = pvecback[pba->index_bg_rho_g];                                              // [1/Mpc^4]
+  rho_g /= _GeVcm3_over_Mpc4_;                                                        // [GeV/cm^3]
+  R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];            // [-]
+  T_g0 = pba->T_cmb;                                                                  // [K]
 
   /* Import quantities from thermodynamics */
   class_alloc(pvecthermo,
@@ -526,26 +545,23 @@ int heating_at_z(struct precision * ppr,
                                  pvecthermo),
              pth->error_message,
              psd->error_message);
-
-  dk = pvecthermo[pth->index_th_dkappa];                                            // [1/Mpc]
-  dz_kD = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                 // [Mpc^2]
-  kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                       // [1/Mpc]
-  N_e = pth->n_e;                                                                   // [1/m^3] (today)
-  X_e = pvecthermo[pth->index_th_xe];                                               // [-]
-  Y_He = pth->YHe;                                                                  // [-]
-  Y_p = 1.-Y_He;                                                                    // [-]
+  dk = pvecthermo[pth->index_th_dkappa];                                              // [1/Mpc]
+  dz_kD = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                   // [Mpc^2]
+  kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                         // [1/Mpc]
+  N_e = pth->n_e;                                                                     // [1/m^3] (today)
+  X_e = pvecthermo[pth->index_th_xe];                                                 // [-]
+  Y_He = pth->YHe;                                                                    // [-]
+  Y_p = 1.-Y_He;                                                                      // [-]
 
   /* Free allocated space */
   free(pvecback);
   free(pvecthermo);
 
-  /** HEATING FUNCTIONS */
-
   /** 1) Adiabatically cooling electrons and barions */
-  tilde_rho_g = rho_g/(_m_e_/_GeV_over_kg_);                                        // [1/cm^3]
-  theta_g = (_k_B_*T_g0*(1.+z))/(_m_e_*pow(_c_,2.));                                // [-]
-  alpha_h = (3./2.)*N_e*1.e-6*pow(1.+z,3.)*(1.+Y_He+X_e);                           // [1/cm^3]
-  pvecheat[psd->index_ht_dQrho_dz_cool] = -a*alpha_h/tilde_rho_g*theta_g;           // [-]
+  tilde_rho_g = rho_g/(_m_e_/_GeV_over_kg_);                                          // [1/cm^3]
+  theta_g = (_k_B_*T_g0*(1.+z))/(_m_e_*pow(_c_,2.));                                  // [-]
+  alpha_h = (3./2.)*N_e*1.e-6*pow(1.+z,3.)*(1.+Y_He+X_e);                             // [1/cm^3]
+  pvecheat[psd->index_ht_dQrho_dz_cool] = -a*alpha_h/tilde_rho_g*theta_g;             // [-]
 
   /** 2) dissipation of acoustic waves */
   /* a) Full function */
@@ -579,7 +595,7 @@ int heating_at_z(struct precision * ppr,
       int_dQrho_dz_diss_approx[index_k] = 4.*0.81*
                                           pow(k,2.)*
                                           pk_primordial_k*
-                                          dz_kD*exp(-2.*pow(k/kD,2.));          // [-]
+                                          dz_kD*exp(-2.*pow(k/kD,2.));                // [-]
     }
 
     /* Integrate approximate function */
@@ -598,7 +614,7 @@ int heating_at_z(struct precision * ppr,
   /** 3) Cosmological recombination */
 
   /** 4) Annihilating particles */
-  g_h = (1.+Y_He+2*(X_e))/(3.*(1+Y_He));                                            // [-] (TODO: INCOMPLETE)
+  g_h = (1.+Y_He+2*(X_e))/(3.*(1+Y_He));                                              // [-] (TODO: INCOMPLETE)
 
   pvecheat[psd->index_ht_dQrho_dz_ann] = 0.;
   /*
@@ -684,7 +700,7 @@ int heating_at_z(struct precision * ppr,
 
 
 /**
- * Evaluation of the spectral distortions once the value of the g, mu and y-parameter is knwon.
+ * Evaluation of the spectral distortions.
  *
  * @param pba        Input: pointer to background structure
  * @param ppt        Input: pointer to the perturbations structure
@@ -696,9 +712,6 @@ int heating_at_z(struct precision * ppr,
  */
 int distortions_at_x(
                      struct background* pba,
-                     struct perturbs * ppt,
-                     struct thermo * pth,
-                     struct primordial * ppm,
                      struct distortions * psd,
                      double x,
                      double * pvecdist) {
@@ -729,10 +742,10 @@ int distortions_at_x(
  *
  * @param ppr        Input: pointer to precision structure
  * @param psd        Input: pointer to the distortions structure
+ * @return the error status
  */
-int distortions_read_Greens_data(
-          struct precision * ppr,
-          struct distortions * psd){
+int distortions_read_Greens_data(struct precision * ppr,
+                                 struct distortions * psd){
 
   FILE * infile;
   char line[_LINE_LENGTH_MAX_];
@@ -770,23 +783,37 @@ int distortions_read_Greens_data(
     }
   }
   for(int i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_z[i]))!=1,psd->error_message,"Could not read z values at line %i in file '%s'",headlines+1,ppr->Greens_file);
+    class_test(fscanf(infile,"%le",&(psd->Greens_z[i]))!=1,
+                      psd->error_message,
+                      "Could not read z values at line %i in file '%s'",headlines+1,ppr->Greens_file);
   }
   for(int i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_T_ini[i]))!=1,psd->error_message,"Could not read T_ini values at line %i in file '%s'",headlines+2,ppr->Greens_file);
+    class_test(fscanf(infile,"%le",&(psd->Greens_T_ini[i]))!=1,
+                      psd->error_message,
+                      "Could not read T_ini values at line %i in file '%s'",headlines+2,ppr->Greens_file);
   }
   for(int i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_T_last[i]))!=1,psd->error_message,"Could not read T_last values at line %i in file '%s'",headlines+3,ppr->Greens_file);
+    class_test(fscanf(infile,"%le",&(psd->Greens_T_last[i]))!=1,
+                      psd->error_message,
+                      "Could not read T_last values at line %i in file '%s'",headlines+3,ppr->Greens_file);
   }
   for(int i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_rho[i]))!=1,psd->error_message,"Could not read rho values at line %i in file '%s'",headlines+4,ppr->Greens_file);
+    class_test(fscanf(infile,"%le",&(psd->Greens_rho[i]))!=1,
+                      psd->error_message,
+                      "Could not read rho values at line %i in file '%s'",headlines+4,ppr->Greens_file);
   }
   for(int i=0;i<psd->Greens_Nx;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_x[i]))!=1,psd->error_message,"Could not read Greens x at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
+    class_test(fscanf(infile,"%le",&(psd->Greens_x[i]))!=1,
+                      psd->error_message,
+                      "Could not read Greens x at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
     for(int j=0;j<psd->Greens_Nz;++j){
-      class_test(fscanf(infile,"%le",&(psd->Greens_function[i*psd->Greens_Nz+j]))!=1,psd->error_message,"Could not read Greens function at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
+      class_test(fscanf(infile,"%le",&(psd->Greens_function[i*psd->Greens_Nz+j]))!=1,
+                        psd->error_message,
+                        "Could not read Greens function at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
     }
-    class_test(fscanf(infile,"%le",&(psd->Greens_blackbody[i]))!=1,psd->error_message,"Could not read Greens blackbody at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
+    class_test(fscanf(infile,"%le",&(psd->Greens_blackbody[i]))!=1,
+                      psd->error_message,
+                      "Could not read Greens blackbody at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
   }
 
   return _SUCCESS_;
