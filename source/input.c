@@ -1476,6 +1476,7 @@ int input_read_parameters(
       ppt->has_density_transfers=_TRUE_;
       ppt->has_velocity_transfers=_TRUE_;
       psd->has_distortions=_TRUE_;
+      pth->compute_damping_scale=_TRUE_; //Requires damping scale Nils
     }
 
   }

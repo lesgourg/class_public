@@ -17,7 +17,7 @@
  */
 
 
-struct distortions 
+struct distortions
 {
   /** @name - input parameters initialized by user in input module
    *  (all other quantities are computed in this module, given these
@@ -38,22 +38,27 @@ struct distortions
 
   //@{
 
-  /* z-dependent parameters 
+  /* z-dependent parameters
    * This quantities are calculated in heating_at_z() are stored in pvecheat */
-  int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */ 
-  int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */ 
-  int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */ 
+  int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
+  int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */
+  int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */
   int index_ht_dQrho_dz_dec;                 /* Heating function from particle decay */
   int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
-  int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */ 
-  int index_ht_dQrho_dz_tot;                 /* Total heating function */ 
-  int index_ht_f;                            /* Branching ratios */ 
-  int index_ht_f_g;
-  int index_ht_f_mu;
-  int index_ht_f_y;
-  int index_ht_f_r;
-
+  int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
+  int index_ht_dQrho_dz_tot;                 /* Total heating function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
+
+  int index_br_f_g;                          /* Branching ratios */
+  int index_br_f_mu;
+  int index_br_f_y;
+  int index_br_f_r;
+  int br_size;
+
+
+  double* bb_visibility_function; //bb = blackbody//Nils
+  double ** branching_ratios; //[index_br][index_z]
+  double * sd_parameter;
 
   /* x-dependent parameters
    * This quantities are calculated in distortions_at_x() are stored in pvecdist */
@@ -65,14 +70,19 @@ struct distortions
   int sd_size;                               /* Size of the allocated space for distortions quantities */
 
   /* Variable from external file Greens_data */
-  int Greens_lines;
+  int Greens_Nz;
+  int Greens_Nx;
   double * Greens_z;
+  double * Greens_x;
   double * Greens_T_ini;
   double * Greens_T_last;
   double * Greens_rho;
+  double * Greens_blackbody;
+  double * Greens_function;
 
   /* Output parameters */
   double * z;                                /* z[index_z] = list of values */
+  double * z_weights;
   double z_min;                              /* Minimum redshift */
   double z_max;                              /* Maximum redshift */
   double z_delta;                            /* Redshift intervals */
@@ -124,22 +134,26 @@ struct distortions
 extern "C" {
 #endif
 
-  int distortions_init(
-		       struct precision * ppr,
+  int distortions_init(struct precision * ppr,
                        struct background * pba,
                        struct perturbs * ppt,
                        struct thermo * pth,
                        struct primordial * ppm,
                        struct distortions * psd);
 
-  int distortions_free(
-                       struct distortions * psd);
+  int distortions_free(struct distortions * psd);
 
-  int distortions_indices(
-                          struct distortions * psd);
+  int distortions_indices(struct distortions * psd);
 
-  int heating_at_z(
-		   struct precision * ppr,
+  int distortions_get_xz_lists(struct distortions* psd);
+
+  int distortions_branching_ratios(struct distortions* psd);
+
+  int distortions_visibility_function(struct background* pba,
+                                      struct thermo * pth,
+                                      struct distortions* psd);
+
+  int heating_at_z(struct precision * ppr,
                    struct background* pba,
                    struct perturbs * ppt,
                    struct thermo * pth,
@@ -148,8 +162,7 @@ extern "C" {
                    double z,
                    double * pvecheat);
 
-  int distortions_at_x(
-                       struct background* pba,
+  int distortions_at_x(struct background* pba,
                        struct perturbs * ppt,
                        struct thermo * pth,
                        struct primordial * ppm,
@@ -157,21 +170,19 @@ extern "C" {
                        double x,
                        double * pvecdist);
 
-  int read_Greens_data(
-		       struct precision * ppr,
-		       struct distortions * psd);
+  int distortions_read_Greens_data(
+            struct precision * ppr,
+            struct distortions * psd);
 
-  int heating_output_titles(
-                            char titles[_MAXTITLESTRINGLENGTH_]);
-  int heating_output_data(
-                          struct distortions * psd,
+  int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
+
+  int heating_output_data(struct distortions * psd,
                           int number_of_titles,
                           double * data);
 
-  int distortions_output_titles(
-                                char titles[_MAXTITLESTRINGLENGTH_]);
-  int distortions_output_data(
-                              struct distortions * psd,
+  int distortions_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
+
+  int distortions_output_data(struct distortions * psd,
                               int number_of_titles,
                               double * data);
 
