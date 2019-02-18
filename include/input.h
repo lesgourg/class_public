@@ -14,6 +14,7 @@
 #include "spectra.h"
 #include "nonlinear.h"
 #include "lensing.h"
+#include "distortions.h" // [ML]
 #include "output.h"
 
 /* macro for reading parameter values with routines from the parser */
@@ -175,6 +176,7 @@ extern "C" {
 		 struct spectra *psp,
 		 struct nonlinear *pnl,
 		 struct lensing *ple,
+                 struct distortions *psd,  // [ML]
 		 struct output *pop,
 		 ErrorMsg errmsg
 		 );
@@ -190,6 +192,7 @@ extern "C" {
 		 struct spectra *psp,
 		 struct nonlinear *pnl,
 		 struct lensing *ple,
+                 struct distortions *psd,  // [ML]
 		 struct output *pop,
 		 ErrorMsg errmsg
 		 );
@@ -205,6 +208,7 @@ extern "C" {
                             struct spectra *psp,
                             struct nonlinear *pnl,
                             struct lensing *ple,
+                            struct distortions *psd,  // [ML]
                             struct output *pop,
                             ErrorMsg errmsg
                             );
@@ -220,6 +224,7 @@ extern "C" {
                             struct spectra *psp,
                             struct nonlinear *pnl,
                             struct lensing *ple,
+                            struct distortions *psd,  // [ML]
                             struct output *pop,
                             ErrorMsg errmsg
                             );
@@ -233,6 +238,7 @@ extern "C" {
 			   struct spectra *psp,
 			   struct nonlinear *pnl,
 			   struct lensing *ple,
+                           struct distortions *psd,  // [ML]
 			   struct output *pop
 			   );
 

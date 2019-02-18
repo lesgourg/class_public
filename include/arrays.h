@@ -434,6 +434,15 @@ int array_integrate_all_trapzd_or_spline(
                                     double * __restrict__ I,
                                     ErrorMsg errmsg);
 
+  // [ML]
+  int simpson_integration(
+                          int nptz,
+                          double int_f[nptz],
+                          double h,
+                          double * F,
+                          ErrorMsg errmsg);
+
+
 #ifdef __cplusplus
 }
 #endif

@@ -102,6 +102,7 @@ int output_total_cl_at_l(
  * @param psp Input: pointer to spectra structure
  * @param pnl Input: pointer to nonlinear structure
  * @param ple Input: pointer to lensing structure
+ * @param ple Input: pointer to distortions structure [ML]
  * @param pop Input: pointer to output structure
  */
 
@@ -114,6 +115,7 @@ int output_init(
                 struct spectra * psp,
                 struct nonlinear * pnl,
                 struct lensing * ple,
+                struct distortions * psd, // [ML]
                 struct output * pop
                 ) {
 
@@ -202,6 +204,15 @@ int output_init(
                pop->error_message,
                pop->error_message);
 
+  }
+
+  /** - deal with spectral distortions [ML] */
+
+  if (pop->write_distortions == _TRUE_) {
+
+    class_call(output_distortions(psd,pop),
+               pop->error_message,
+               pop->error_message);
   }
 
   return _SUCCESS_;
@@ -1512,6 +1523,76 @@ int output_primordial(
 
   free(data);
   fclose(out);
+
+  return _SUCCESS_;
+}
+
+/* [ML] */
+int output_distortions(
+                       struct distortions * psd,
+                       struct output * pop
+                       ) {
+  FileName file_name_heat, file_name_diss;
+  FILE * out_heat, * out_diss;
+  char titles_heat[_MAXTITLESTRINGLENGTH_]={0}, titles_diss[_MAXTITLESTRINGLENGTH_]={0};
+  double * data_heat, * data_diss;
+  int size_data_heat, size_data_diss, number_of_titles_heat, number_of_titles_diss;
+
+  if(pop->write_heating==_TRUE_){
+    sprintf(file_name_heat,"%s%s",pop->root,"heating.dat");
+
+    class_call(heating_output_titles(titles_heat),
+               psd->error_message,
+               pop->error_message);
+    number_of_titles_heat = get_number_of_titles(titles_heat);
+    size_data_heat = number_of_titles_heat*psd->z_size;
+    class_alloc(data_heat,
+                sizeof(double)*size_data_heat,
+                pop->error_message);
+    class_call(heating_output_data(psd,
+                                   number_of_titles_heat,
+                                   data_heat),
+               psd->error_message,
+               pop->error_message);
+    class_open(out_heat,
+               file_name_heat,
+               "w",
+               pop->error_message);
+    output_print_data(out_heat,
+                      titles_heat,
+                      data_heat,
+                      size_data_heat);
+    free(data_heat);
+    fclose(out_heat);
+  }
+
+  if(pop->write_distortions==_TRUE_){
+    sprintf(file_name_diss,"%s%s",pop->root,"distortions.dat");
+
+    class_call(distortions_output_titles(titles_diss),
+               psd->error_message,
+               pop->error_message);
+    number_of_titles_diss = get_number_of_titles(titles_diss);
+    size_data_diss = number_of_titles_diss*psd->x_size;
+    class_alloc(data_diss,
+                sizeof(double)*size_data_diss,
+                pop->error_message);
+    class_call(distortions_output_data(psd,
+                                       number_of_titles_diss,
+                                       data_diss),
+               psd->error_message,
+               pop->error_message);
+    class_open(out_diss,
+               file_name_diss,
+               "w",
+               pop->error_message);
+    output_print_data(out_diss,
+                      titles_diss,
+                      data_diss,
+                      size_data_diss);
+    free(data_diss);
+    fclose(out_diss);
+  }
 
   return _SUCCESS_;
 }

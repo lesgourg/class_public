@@ -26,6 +26,7 @@ int input_init_from_arguments(
                               struct spectra *psp,
                               struct nonlinear * pnl,
                               struct lensing *ple,
+                              struct distortions *psd, // [ML]
                               struct output *pop,
                               ErrorMsg errmsg
                               ) {
@@ -173,6 +174,7 @@ int input_init_from_arguments(
                         psp,
                         pnl,
                         ple,
+                        psd, // [ML]
                         pop,
                         errmsg),
              errmsg,
@@ -202,6 +204,7 @@ int input_init(
                struct spectra *psp,
                struct nonlinear * pnl,
                struct lensing *ple,
+               struct distortions *psd, // [ML]
                struct output *pop,
                ErrorMsg errmsg
                ) {
@@ -242,6 +245,7 @@ int input_init(
                                    psp,
                                    pnl,
                                    ple,
+                                   psd, // [ML]
                                    pop,
                                    errmsg),
              errmsg,
@@ -461,6 +465,7 @@ int input_init(
                                      psp,
                                      pnl,
                                      ple,
+                                     psd, // [ML]
                                      pop,
                                      errmsg),
                errmsg,
@@ -500,6 +505,7 @@ int input_init(
                                      psp,
                                      pnl,
                                      ple,
+                                     psd, // [ML]
                                      pop,
                                      errmsg),
                errmsg,
@@ -569,6 +575,7 @@ int input_read_precisions(
                           struct spectra *psp,
                           struct nonlinear * pnl,
                           struct lensing *ple,
+                          struct distortions *psd, // [ML]
                           struct output *pop,
                           ErrorMsg errmsg
                           ) {
@@ -607,6 +614,7 @@ int input_read_parameters(
                           struct spectra *psp,
                           struct nonlinear * pnl,
                           struct lensing *ple,
+                          struct distortions *psd, // [ML]
                           struct output *pop,
                           ErrorMsg errmsg
                           ) {
@@ -664,6 +672,7 @@ int input_read_parameters(
                                   psp,
                                   pnl,
                                   ple,
+                                  psd, // [ML]
                                   pop),
              errmsg,
              errmsg);
@@ -1391,6 +1400,7 @@ int input_read_parameters(
 
   ppt->has_perturbations = _FALSE_;
   ppt->has_cls = _FALSE_;
+  psd->has_distortions = _FALSE_; // [ML]
 
   class_call(parser_read_string(pfc,"output",&string1,&flag1,errmsg),
              errmsg,
@@ -1458,6 +1468,14 @@ int input_read_parameters(
     if ((strstr(string1,"vTk") != NULL) || (strstr(string1,"VTk") != NULL) || (strstr(string1,"VTK") != NULL)) {
       ppt->has_velocity_transfers=_TRUE_;
       ppt->has_perturbations = _TRUE_;
+    }
+
+    /* [ML] */
+    if ((strstr(string1,"Sd") != NULL) || (strstr(string1,"sd") != NULL) || (strstr(string1,"SD") != NULL)) {
+      ppt->has_perturbations = _TRUE_;
+      ppt->has_density_transfers=_TRUE_;
+      ppt->has_velocity_transfers=_TRUE_;
+      psd->has_distortions=_TRUE_;
     }
 
   }
@@ -2207,6 +2225,24 @@ int input_read_parameters(
                "inflationary module cannot work if you ask for isocurvature modes");
   }
 
+  /** (?) parameters for spectral distortions [ML] */
+
+  psd->dQrho_dz_diss_approx = _TRUE_;
+  class_call(parser_read_string(pfc,"heating approx",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))) { psd->dQrho_dz_diss_approx = _FALSE_; }
+
+  psd->branching_approx = 3;
+  class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL))) { psd->branching_approx = 1; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL))) { psd->branching_approx = 2; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL))) { psd->branching_approx = 3; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL))) { psd->branching_approx = 4; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) { psd->branching_approx = 5; }
+
   /** (e) parameters for final spectra */
 
   if (ppt->has_cls == _TRUE_) {
@@ -2636,6 +2672,9 @@ int input_read_parameters(
   class_read_int("lensing_verbose",
                  ple->lensing_verbose);
 
+  class_read_int("distortions_verbose",      // [ML] 
+                 psd->distortions_verbose);
+
   class_read_int("output_verbose",
                  pop->output_verbose);
 
@@ -2797,6 +2836,24 @@ int input_read_parameters(
                errmsg);
   }
 
+  /** - (i.6.) shall we write spectral distortions in a file? [ML] */
+
+  class_call(parser_read_string(pfc,"write heating",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    pop->write_heating = _TRUE_;
+  }
+
+  /** - (i.6.) shall we write spectral distortions in a file? [ML] */
+
+  class_call(parser_read_string(pfc,"write distortions",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    pop->write_distortions = _TRUE_;
+  }
+
   return _SUCCESS_;
 
 }
@@ -2812,6 +2869,7 @@ int input_read_parameters(
  * @param psp Input: pointer to spectra structure
  * @param pnl Input: pointer to nonlinear structure
  * @param ple Input: pointer to lensing structure
+ * @param psd Input: pointer to distortions structure [ML]
  * @param pop Input: pointer to output structure
  * @return the error status
  */
@@ -2825,6 +2883,7 @@ int input_default_params(
                          struct spectra *psp,
                          struct nonlinear * pnl,
                          struct lensing *ple,
+                         struct distortions *psd, // [ML]
                          struct output *pop
                          ) {
 
@@ -3105,6 +3164,8 @@ int input_default_params(
   pop->write_thermodynamics = _FALSE_;
   pop->write_perturbations = _FALSE_;
   pop->write_primordial = _FALSE_;
+  pop->write_heating = _FALSE_;      // [ML]
+  pop->write_distortions = _FALSE_;  // [ML]
 
   /** - spectra structure */
 
@@ -3132,6 +3193,7 @@ int input_default_params(
   psp->spectra_verbose = 0;
   pnl->nonlinear_verbose = 0;
   ple->lensing_verbose = 0;
+  psd->distortions_verbose = 0; // [ML] 
   pop->output_verbose = 0;
 
   return _SUCCESS_;
@@ -3323,6 +3385,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions [ML] */
   struct output op;           /* for output files */
 
   int i;
@@ -3350,6 +3413,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
                                    &sp,
                                    &nl,
                                    &le,
+                                   &sd, // [ML]
                                    &op,
                                    errmsg),
              errmsg,
@@ -3365,6 +3429,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
                                    &sp,
                                    &nl,
                                    &le,
+                                   &sd, // [ML]
                                    &op,
                                    errmsg),
              errmsg,
@@ -3543,6 +3608,7 @@ int input_get_guess(double *xguess,
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions [ML] */
   struct output op;           /* for output files */
   int i;
 
@@ -3562,6 +3628,7 @@ int input_get_guess(double *xguess,
                                    &sp,
                                    &nl,
                                    &le,
+                                   &sd, // [ML]
                                    &op,
                                    errmsg),
              errmsg,
@@ -3577,6 +3644,7 @@ int input_get_guess(double *xguess,
                                    &sp,
                                    &nl,
                                    &le,
+                                   &sd, // [ML]
                                    &op,
                                    errmsg),
              errmsg,

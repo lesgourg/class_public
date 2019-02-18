@@ -70,6 +70,11 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
 class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
+/**
+ * [ML] Spectral Distortions file path. The file specifies the predictions for
+ * \f$ G_\mathrm{th} \f$ for given \f$ x \f$ and \f$ z \f$.
+ */
+class_string_parameter(Greens_file,"/external/distortions/Greens_data.dat","Greens file")
 
 /*
  *  Thermodynamical quantities
