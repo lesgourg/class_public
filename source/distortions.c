@@ -88,7 +88,6 @@ int distortions_init(struct precision * ppr,
                             pvecheat),
                psd->error_message,
                psd->error_message);
-
     /* Public quantities */
     psd->dQrho_dz_tot[index_z] = pvecheat[psd->index_ht_dQrho_dz_tot]*psd->bb_visibility_function[index_z];
   }
@@ -97,7 +96,7 @@ int distortions_init(struct precision * ppr,
 
   /**
    * Define spectral distortion amplitudes
-   * This boils down to the integral int ( f(z) dQ/drho(z) dz )
+   * This boils down to the integral int ( f(z) d(Q/rho)(z)/dz )
    */
 
   /* Allocate space for spectral distortion amplitude parameters */
@@ -164,6 +163,7 @@ int distortions_init(struct precision * ppr,
                                 pvecdist),
                psd->error_message,
                psd->error_message);
+    /* Public quantities */
     psd->DI[index_x] = pvecdist[psd->index_sd_DI];
   }
   /* Free space */
@@ -710,8 +710,7 @@ int heating_at_z(struct precision * ppr,
  * @param z          Input: redshift
  * @param pvecdist   Output: vector of distortions functions (assumed to be already allocated)
  */
-int distortions_at_x(
-                     struct background* pba,
+int distortions_at_x(struct background* pba,
                      struct distortions * psd,
                      double x,
                      double * pvecdist) {
@@ -824,15 +823,13 @@ int distortions_read_Greens_data(struct precision * ppr,
 /**
  * Outputs
  */
-int heating_output_titles(
-                          char titles[_MAXTITLESTRINGLENGTH_]){
+int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]){
   class_store_columntitle(titles,"z",_TRUE_);
   class_store_columntitle(titles,"Heating function d(Q/rho)/dln(z) [-]",_TRUE_);
 
   return _SUCCESS_;
 }
-int heating_output_data(
-                        struct distortions * psd,
+int heating_output_data(struct distortions * psd,
                         int number_of_titles,
                         double * data){
   int storeidx;
@@ -848,15 +845,13 @@ int heating_output_data(
   return _SUCCESS_;
 }
 
-int distortions_output_titles(
-                              char titles[_MAXTITLESTRINGLENGTH_]){
+int distortions_output_titles(char titles[_MAXTITLESTRINGLENGTH_]){
   class_store_columntitle(titles,"x",_TRUE_);
   class_store_columntitle(titles,"Spectral distortions DI [10^26 W m^-2 Hz^-1 sr^-1]",_TRUE_);
 
   return _SUCCESS_;
 }
-int distortions_output_data(
-                            struct distortions * psd,
+int distortions_output_data(struct distortions * psd,
                             int number_of_titles,
                             double * data){
   int storeidx;
