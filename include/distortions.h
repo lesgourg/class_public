@@ -64,6 +64,13 @@ struct distortions
 
   int sd_size;                               /* Size of the allocated space for distortions quantities */
 
+  /* Variable from external file Greens_data */
+  int Greens_lines;
+  double * Greens_z;
+  double * Greens_T_ini;
+  double * Greens_T_last;
+  double * Greens_rho;
+
   /* Output parameters */
   double * z;                                /* z[index_z] = list of values */
   double z_min;                              /* Minimum redshift */
@@ -149,6 +156,10 @@ extern "C" {
                        struct distortions * psd,
                        double x,
                        double * pvecdist);
+
+  int read_Greens_data(
+		       struct precision * ppr,
+		       struct distortions * psd);
 
   int heating_output_titles(
                             char titles[_MAXTITLESTRINGLENGTH_]);

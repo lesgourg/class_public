@@ -77,6 +77,10 @@ int distortions_init(
                     psd->x_size*sizeof(double),
                     psd->error_message);
 
+        class_call(read_Greens_data(ppr,psd),
+                   psd->error_message,
+                   psd->error_message);
+
         psd->distortions_verbose = 1;
 
         /** Store quantities from heating_at_z() */ 
@@ -679,19 +683,54 @@ int read_Greens_data(
     FILE * fA;
     char line[_LINE_LENGTH_MAX_];
     char * left;
+    int array_line=0;
 
-    class_open(fA, 
-               ppr->Greens_file, 
-               "r", 
+    psd->Greens_lines = 0;
+    class_open(fA, ppr->Greens_file, "r", 
                psd->error_message);
 
+    char* input_template;
     while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
         /* Eliminate blank spaces at beginning of line */
         left=line;
         while (left[0]==' ') {
             left++;
         }
+        /* check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+           be the beginning of some data (it is not a newline, a #, a %, etc.) */
+        if (left[0] > 39) {
+            if (psd->Greens_lines == 0) {
+                /* read number of lines, infer size of arrays and allocate them */
+                class_test(sscanf(line, "%d", &psd->Greens_lines) != 1,
+                           psd->error_message,
+                           "could not read value of parameters num_lines in file %s\n", ppr->Greens_file);
+
+                class_alloc(psd->Greens_z, psd->Greens_lines*sizeof(double), psd->error_message);
+                class_alloc(psd->Greens_T_ini, psd->Greens_lines*sizeof(double), psd->error_message);
+                class_alloc(psd->Greens_T_last, psd->Greens_lines*sizeof(double), psd->error_message);
+                class_alloc(psd->Greens_rho, psd->Greens_lines*sizeof(double), psd->error_message);
+
+	        class_alloc(input_template, (3*psd->Greens_lines)*sizeof(char), psd->error_message);
+	        for(i=0;i<psd->Greens_lines;++i){strcat(input_template,"%d ");}
+            }
+            else{
+
+                class_test(sscanf(line, "%d", &psd->Greens_lines) != ,
+                           psd->error_message,
+                           "could not read value of parameters num_lines in file %s\n", ppr->Greens_file);
+
+                psd->Greens_z = (double *)line;
+                psd->Greens_T_ini = (double *)line;
+                psd->Greens_T_last = (double *)line;
+                psd->Greens_rho = (double *)line;
+
+            }
+
+
+        }
     }
+    free(input_template);
+                printf("%s\n",line);
 
 return _SUCCESS_;
 
