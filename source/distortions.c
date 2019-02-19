@@ -61,14 +61,14 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /* Define branching ratios */
-  class_call(distortions_branching_ratios(psd),
+  class_call(distortions_branching_ratios(ppr,psd),
              psd->error_message,
              psd->error_message);
 
-  /* TODO :: what to do with greens function data ? */
+  /* TODO :: what to do with greens function data ?
   class_call(distortions_read_Greens_data(ppr,psd),
              psd->error_message,
-             psd->error_message);
+             psd->error_message); */
 
   /**
    * Define heting function
@@ -105,13 +105,12 @@ int distortions_init(struct precision * ppr,
               psd->error_message);
 
   for(int index_br=0;index_br<psd->br_size;++index_br){
-    class_call(array_trapezoidal_convolution(
-                          psd->branching_ratios[index_br],
-                          psd->dQrho_dz_tot,
-                          psd->z_size,
-                          psd->z_weights,
-                          &(psd->sd_parameter[index_br]),
-                          psd->error_message),
+    class_call(array_trapezoidal_convolution(psd->branching_ratios[index_br],
+                                             psd->dQrho_dz_tot,
+                                             psd->z_size,
+                                             psd->z_weights,
+                                             &(psd->sd_parameter[index_br]),
+                                             psd->error_message),
                psd->error_message,
                psd->error_message);
   }
@@ -197,15 +196,6 @@ int distortions_free(struct distortions * psd) {
       free(psd->branching_ratios[index_br]);
     }
     free(psd->branching_ratios);
-
-    /* Free from distortions_read_Greens_data() */
-    free(psd->Greens_z);
-    free(psd->Greens_x);
-    free(psd->Greens_T_ini);
-    free(psd->Greens_T_last);
-    free(psd->Greens_rho);
-    free(psd->Greens_blackbody);
-    free(psd->Greens_function);
 
     /* Free from distortions_init() */
     free(psd->dQrho_dz_tot);
@@ -363,7 +353,8 @@ int distortions_visibility_function(struct background * pba,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_branching_ratios(struct distortions* psd){
+int distortions_branching_ratios(struct precision * ppr,
+                                 struct distortions* psd){
   /* Define local variables */
   int index_z,index_br;
   double f_g,f_mu,f_y,f_r,f;
@@ -432,6 +423,37 @@ int distortions_branching_ratios(struct distortions* psd){
 
     /** 5) Calculate branching ratios according to Chluba & Jeong 2014 */
     if(psd->branching_approx == 5){
+      class_call(distortions_read_BR_exact_data(ppr,psd),
+                 psd->error_message,
+                 psd->error_message);
+      class_alloc(psd->br_exact_table, psd->br_exact_Nz*sizeof(double),psd->error_message);
+      class_call(array_spline_table_lines(psd->br_exact_z,
+                                          psd->br_exact_Nz,
+                                          psd->f_g_exact,
+                                          1,
+                                          psd->br_exact_table,
+                                          _SPLINE_NATURAL_,
+                                          psd->error_message),
+                 psd->error_message,
+                 psd->error_message);
+      class_call(array_interpolate_spline(psd->br_exact_z,
+                                          psd->br_exact_Nz,
+                                          psd->f_g_exact,
+                                          psd->br_exact_table,
+                                          1,
+                                          z,
+                                          0,
+                                          &f_g,
+                                          1,
+                                          psd->error_message),
+                 psd->error_message,
+                 psd->error_message);
+
+      free(psd->br_exact_table);
+      class_call(distortions_free_BR_exact_data(psd),
+                 psd->error_message,
+                 psd->error_message);
+
     }
 
     f_r = 1.-f_g-f_mu-f_y;
@@ -817,6 +839,194 @@ int distortions_read_Greens_data(struct precision * ppr,
 
   return _SUCCESS_;
 
+}
+
+
+/**
+ * Free from distortions_read_Greens_data()
+ *
+ * @param psd     Input: pointer to distortions structure (to be freed)
+ * @return the error status
+ */
+int distortions_free_Greens_data(struct distortions * psd){
+    free(psd->Greens_z);
+    free(psd->Greens_x);
+    free(psd->Greens_T_ini);
+    free(psd->Greens_T_last);
+    free(psd->Greens_rho);
+    free(psd->Greens_blackbody);
+    free(psd->Greens_function);
+}
+
+
+
+/**
+ * Reads the external file branching_ratios_exact calculated according to Chluba & Jeong 2014
+ * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz)
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_read_BR_exact_data(struct precision * ppr,
+                                   struct distortions * psd){
+
+  FILE * infile;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines = 0;
+
+  class_open(infile, ppr->br_exact_file, "r",
+             psd->error_message);
+
+  psd->br_exact_Nz = 0;
+  psd->br_exact_N_columns = 0;
+  while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+        left++;
+    }
+    if (left[0] > 39) {
+      /* read number of lines, infer size of arrays and allocate them */
+      class_test(sscanf(line, "%d %d %d", &psd->br_exact_Nz,&psd->br_exact_N_columns, &psd->index_e) != 3,
+                 psd->error_message,
+                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->br_exact_file);
+
+      class_alloc(psd->br_exact_z, psd->br_exact_Nz*sizeof(double), psd->error_message);
+      class_alloc(psd->f_g_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
+      class_alloc(psd->f_y_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
+      class_alloc(psd->f_mu_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
+
+      class_alloc(psd->E_vec, psd->br_exact_Nz*psd->index_e*sizeof(double), psd->error_message);
+      break;
+    }
+  }
+  for(int i=0; i<psd->br_exact_Nz; ++i){
+    class_test(fscanf(infile,"%le",&(psd->br_exact_z[i]))!=1,
+                      psd->error_message,
+                      "Could not read x at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->f_g_exact[i]))!=1,
+                      psd->error_message,
+                      "Could not read J_T at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->f_y_exact[i]))!=1,
+                      psd->error_message,
+                      "Could not read J_y at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->f_mu_exact[i]))!=1,
+                      psd->error_message,
+                      "Could not read J_mu at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    for(int j=0; j<psd->index_e; ++j){
+      class_test(fscanf(infile,"%le",&(psd->E_vec[i*psd->index_e+j]))!=1,
+                        psd->error_message,
+                        "Could not read S vector at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Free from distortions_read_BR_exact_data()
+ *
+ * @param psd     Input: pointer to distortions structure (to be freed)
+ * @return the error status
+ */
+int distortions_free_BR_exact_data(struct distortions * psd){
+    /* Free from distortions_read_BR_exact_data() */
+    free(psd->br_exact_z);
+    free(psd->f_g_exact);
+    free(psd->f_y_exact);
+    free(psd->f_mu_exact);
+    free(psd->E_vec);
+}
+
+
+/**
+ * Reads the external file PCA_distortions_shapes calculated according to Chluba & Jeong 2014
+ * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz)
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
+                                          struct distortions * psd){
+
+  FILE * infile;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines = 0;
+
+  class_open(infile, ppr->br_exact_file, "r",
+             psd->error_message);
+
+  psd->PCA_Nx = 0;
+  psd->PCA_N_columns = 0;
+  while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+        left++;
+    }
+    if (left[0] > 39) {
+      /* read number of lines, infer size of arrays and allocate them */
+      class_test(sscanf(line, "%d %d %d", &psd->PCA_Nx,&psd->PCA_N_columns, &psd->index_s) != 3,
+                 psd->error_message,
+                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->br_exact_file);
+
+      class_alloc(psd->PCA_x, psd->PCA_Nx*sizeof(double), psd->error_message);
+      class_alloc(psd->PCA_J_T, psd->PCA_Nx*sizeof(double), psd->error_message);
+      class_alloc(psd->PCA_J_y, psd->PCA_Nx*sizeof(double), psd->error_message);
+      class_alloc(psd->PCA_J_mu, psd->PCA_Nx*sizeof(double), psd->error_message);
+
+      class_alloc(psd->S_vec, psd->PCA_Nx*psd->index_s*sizeof(double), psd->error_message);
+      break;
+    }
+  }
+  for(int i=0; i<psd->PCA_Nx; ++i){
+    class_test(fscanf(infile,"%le",&(psd->PCA_x[i]))!=1,
+                      psd->error_message,
+                      "Could not read z at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->PCA_J_T[i]))!=1,
+                      psd->error_message,
+                      "Could not read f_g at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->PCA_J_y[i]))!=1,
+                      psd->error_message,
+                      "Could not read f_y at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->PCA_J_mu[i]))!=1,
+                      psd->error_message,
+                      "Could not read f_mu at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    for(int j=0; j<psd->index_s; ++j){
+      class_test(fscanf(infile,"%le",&(psd->S_vec[i*psd->index_s+j]))!=1,
+                        psd->error_message,
+                        "Could not read E vector at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+    }
+  }
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Free from distortions_read_PCA_dist_shapes_data()
+ *
+ * @param psd     Input: pointer to distortions structure (to be freed)
+ * @return the error status
+ */
+int distortions_free_PCA_dist_shapes_data(struct distortions * psd){
+    /* Free from distortions_read_BR_exact_data() */
+    free(psd->PCA_x);
+    free(psd->PCA_J_T);
+    free(psd->PCA_J_y);
+    free(psd->PCA_J_mu);
+    free(psd->S_vec);
 }
 
 

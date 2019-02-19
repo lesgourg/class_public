@@ -38,8 +38,18 @@ struct distortions
 
   //@{
 
-  /* z-dependent parameters
-   * This quantities are calculated in heating_at_z() are stored in pvecheat */
+  /* Precision parameters */
+  double z_min;                              /* Minimum redshift */
+  double z_max;                              /* Maximum redshift */
+  double z_delta;                            /* Redshift intervals */
+  int z_size;                                /* Lenght of redshift array */
+
+  double x_min;                              /* Minimum dimentionless frequency */
+  double x_max;                              /* Maximum dimentionless frequency */
+  double x_delta;                            /* dimentionless frequency intervals */
+  int x_size;                                /* Lenght of dimentionless frequency array */
+
+  /* z-dependent parameters */
   int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
   int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */
   int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */
@@ -49,30 +59,48 @@ struct distortions
   int index_ht_dQrho_dz_tot;                 /* Total heating function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
 
+  double* bb_visibility_function;            /* bb = blackbody [NS] */
+  double ** branching_ratios;                /* [index_br][index_z] [NS] */
+  double * sd_parameter;
   int index_br_f_g;                          /* Branching ratios */
   int index_br_f_mu;
   int index_br_f_y;
   int index_br_f_r;
   int br_size;
 
-
-  double* bb_visibility_function; //bb = blackbody//Nils
-  double ** branching_ratios; //[index_br][index_z]
-  double * sd_parameter;
-
-  /* x-dependent parameters
-   * This quantities are calculated in distortions_at_x() are stored in pvecdist */
+  /* x-dependent parameters */
   int index_sd_Y;                            /* Shape of y distortions */
   int index_sd_M;                            /* Shape of mu distortions */
   int index_sd_G;                            /* Shape of shifted power specrum */
   int index_sd_DI;                           /* Shape of final distortions */
-
   int sd_size;                               /* Size of the allocated space for distortions quantities */
 
-  /* Variable from external file Greens_data */
+  /* Output parameters */
+  double * z;                                /* z[index_z] = list of values */
+  double * dQrho_dz_tot;                     /* dQrho_dz_tot[index_z] = list of values */
+
+  double g;                                  /* g-parameter */
+  double mu;                                 /* mu-parameter */
+  double y;                                  /* y-parameter */
+  double r;                                  /* r-parameter */
+  double Drho_over_rho;                      /* Total emitted/injected heat */
+
+  double * x;                                /* x[index_x] = list of values */
+  double * DI;                               /* DI[index_x] = list of values */
+
+  //@}
+
+
+  /** @name - Internal parameter used only in distortions.c */
+
+  //@{
+
+  double * z_weights;
+
+  /* Variable from external file Greens_data.dat */
   int Greens_Nz;
-  int Greens_Nx;
   double * Greens_z;
+  int Greens_Nx;
   double * Greens_x;
   double * Greens_T_ini;
   double * Greens_T_last;
@@ -80,34 +108,27 @@ struct distortions
   double * Greens_blackbody;
   double * Greens_function;
 
-  /* Output parameters */
-  double * z;                                /* z[index_z] = list of values */
-  double * z_weights;
-  double z_min;                              /* Minimum redshift */
-  double z_max;                              /* Maximum redshift */
-  double z_delta;                            /* Redshift intervals */
-  int z_size;                                /* Lenght of redshift array */
+  /* Variable from external file branching_ratios_exact.dat */
+  int br_exact_Nz;
+  int br_exact_N_columns;
+  double * br_exact_z;
+  double * f_g_exact;
+  double * f_y_exact;
+  double * f_mu_exact;
+  int index_e;
+  double * E_vec;                /* E_vec[index_e][index_z] with index_e=1-8 */
+  double * br_exact_table;         
 
-  double * dQrho_dz_tot;                     /* dQrho_dz_tot[index_z] = list of values */
-  double * f;                                /* f[index_z] = list of values */
-  double * f_g;                              /* f_g[index_z] = list of values */
-  double * f_mu;                             /* f_mu[index_z] = list of values */
-  double * f_y;                              /* f_y[index_z] = list of values */
-  double * f_r;                              /* f_r[index_z] = list of values */
-
-  double Drho_over_rho;                      /* Total emitted/injected heat */
-  double g;                                  /* g-parameter */
-  double mu;                                 /* mu-parameter */
-  double y;                                  /* y-parameter */
-  double r;                                  /* r-parameter */
-
-  double * x;                                /* x[index_x] = list of values */
-  double x_min;                              /* Minimum dimentionless frequency */
-  double x_max;                              /* Maximum dimentionless frequency */
-  double x_delta;                            /* dimentionless frequency intervals */
-  int x_size;                                /* Lenght of dimentionless frequency array */
-
-  double * DI;                               /* DI[index_x] = list of values */
+  /* Variable from external file PCA_distortions_schape.dat */
+  int PCA_Nx;
+  int PCA_N_columns;
+  double * PCA_x;
+  double * PCA_J_T;
+  double * PCA_J_y;
+  double * PCA_J_mu;
+  int index_s;
+  double * S_vec;                /* S_vec[index_s][index_x] with index_e=1-8 */
+  double * PCA_table;         
 
 
   //@}
@@ -147,7 +168,8 @@ extern "C" {
 
   int distortions_get_xz_lists(struct distortions* psd);
 
-  int distortions_branching_ratios(struct distortions* psd);
+  int distortions_branching_ratios(struct precision * ppr,
+                                   struct distortions* psd);
 
   int distortions_visibility_function(struct background* pba,
                                       struct thermo * pth,
@@ -169,6 +191,15 @@ extern "C" {
 
   int distortions_read_Greens_data(struct precision * ppr,
                                    struct distortions * psd);
+  int distortions_free_Greens_data(struct distortions * psd);
+
+  int distortions_read_BR_exact_data(struct precision * ppr,
+                                     struct distortions * psd);
+  int distortions_free_BR_exact_data(struct distortions * psd);
+
+  int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
+                                            struct distortions * psd);
+  int distortions_free_PCA_dist_shapes_data(struct distortions * psd);
 
   int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
 

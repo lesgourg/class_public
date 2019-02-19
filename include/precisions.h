@@ -71,10 +71,11 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  */
 class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
 /**
- * [ML] Spectral Distortions file path. The file specifies the predictions for
- * \f$ G_\mathrm{th} \f$ for given \f$ x \f$ and \f$ z \f$.
+ * [ML] Spectral Distortions file path.
  */
 class_string_parameter(Greens_file,"/external/distortions/Greens_data.dat","Greens file")
+class_string_parameter(br_exact_file,"/external/distortions/branching_ratios_exact.dat","BR exact file")
+class_string_parameter(PCA_file,"/external/distortions/PCA_distortions_shapes.dat","PCA file")
 
 /*
  *  Thermodynamical quantities
