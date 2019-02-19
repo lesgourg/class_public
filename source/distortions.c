@@ -8,6 +8,7 @@
 /**
  * Initialize the distortions structure.
  *
+ * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param ppt        Input: pointer to the perturbations structure
  * @param pth        Input: pointer to the thermodynamics structure
@@ -118,15 +119,15 @@ int distortions_init(struct precision * ppr,
   psd->y = psd->sd_parameter[psd->index_br_f_y];
   psd->r = psd->sd_parameter[psd->index_br_f_r];
 
-  if(psd->branching_approx == bra_exact){
-    for(int index_e=0;index_e<psd->N_PCA;++index_e){
+  if(psd->distortions_verbose > 2 && psd->branching_approx == bra_exact){
+    for(int index_e=0; index_e<psd->N_PCA; ++index_e){
       printf("[%i] = %.10e \n",index_e,psd->sd_parameter[psd->index_br_E_vec+index_e]);
     }
   }
   /* Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  //psd->y += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  //psd->y += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  //psd->y += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+  psd->y += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  psd->y += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  psd->y += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
   /* Calculate total heating */
   psd->Drho_over_rho = 4.*psd->g+psd->mu/1.401+4.*psd->y+psd->r;
@@ -266,46 +267,41 @@ int distortions_indices(struct distortions * psd) {
 /**
  * Compute redshift and frequency vectors and weights for redshift integral.
  *
- * @param psd     Input: pointer to distortions structure
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to the thermodynamics structure
+ * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_get_xz_lists(struct background* pba, struct thermo* pth, struct distortions* psd){
+int distortions_get_xz_lists(struct background * pba, 
+                             struct thermo * pth, 
+                             struct distortions * psd){
   /* Define local variables */
   int index_z;
   int index_x;
 
-  psd->z_min = 1010.7304367;
-  psd->z_max = 5.e6;
-  psd->z_size = (int) 5500;
-  psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
-
-  psd->x_min = 1.e-2;
-  psd->x_max = 5.e1;
-  psd->x_size = (int) 5500;
-  psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
-
+  /* Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;
   psd->z_th = 1.98e6*
          pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
          pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
          pow(pba->T_cmb/2.726,1./5.);
 
+  /* Define and allocate z array */
+  psd->z_min = 1.011e3;
+  psd->z_max = 5.e6;
+  psd->z_size = (int) 5500;
+  psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
   class_alloc(psd->z,
               psd->z_size*sizeof(double),
               psd->error_message);
-  class_alloc(psd->x,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  class_alloc(psd->z_weights,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-
   for (index_z = 0; index_z < psd->z_size; index_z++) {
     psd->z[index_z] = exp(log(psd->z_min)+psd->z_delta*index_z);
   }
-  for (index_x = 0; index_x<psd->x_size; index_x++) {
-    psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
-  }
+
+  /* Define and allocate integrating weights for z array */
+  class_alloc(psd->z_weights,
+              psd->z_size*sizeof(double),
+              psd->error_message);
   class_call(array_trapezoidal_weights(
                     psd->z,
                     psd->z_size,
@@ -314,9 +310,21 @@ int distortions_get_xz_lists(struct background* pba, struct thermo* pth, struct 
              psd->error_message,
              psd->error_message);
 
+  /* Define and allocate x array */
+  psd->x_min = 1.e-2;
+  psd->x_max = 5.e1;
+  psd->x_size = (int) 5500;
+  psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+  class_alloc(psd->x,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
+  for (index_x = 0; index_x<psd->x_size; index_x++) {
+    psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
+  }
+
   return _SUCCESS_;
 }
-
 
 
 /**
@@ -326,15 +334,14 @@ int distortions_get_xz_lists(struct background* pba, struct thermo* pth, struct 
  * and mathematically challenging. It is therefore not implemented here. However, there are
  * (at least) 5 levels of possible approximatin to evaluate the SD branching ratios (see also
  * Chluba 2016 for useful discussion)
- *    1) Use a sharp transition at z_mu-y and no distortions before z_th
- *    2) Use a sharp transition at z_mu-y and a soft transition at z_th
- *    3) Use a soft transition at a_mu-y and z_th as described in Chluba 2013
- *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy
- *    5) Use a PCA method as described in Chluba & Jeong 2014 (TODO)
- * The user can select the preferred option with 'branching approx'=sharp_sharp for 1),
- * =sharp_soft for 2), =soft_soft for 3), =soft_soft_cons for 4) and =exact for 5)
- * (default =soft_soft).
+ *    1) Use a sharp transition at z_mu-y and no distortions before z_th ('branching approx'=sharp_sharp)
+ *    2) Use a sharp transition at z_mu-y and a soft transition at z_th ('branching approx'=sharp_soft)
+ *    3) Use a soft transition at a_mu-y and z_th as described in Chluba 2013 ('branching approx'=soft_soft)
+ *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy 
+ *       ('branching approx'=soft_soft_cons)
+ *    5) Use a PCA method as described in Chluba & Jeong 2014 ('branching approx'=exact)
  *
+ * @param ppr        Input: pointer to the precision structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
@@ -345,18 +352,22 @@ int distortions_branching_ratios(struct precision * ppr,
   double f_g,f_mu,f_y,f_r,f;
   double* f_E;
   double z;
-
   int last_index = 0;
 
+  /** Allocate space for branching ratios in branching_ratios table */ 
+  // TODO: ML for NS: why double allocation? Does it work in only one step?
   class_alloc(psd->branching_ratios,
               psd->br_size*sizeof(double*),
               psd->error_message);
-  for(index_br=0;index_br<psd->br_size;++index_br){
+  for(index_br=0; index_br<psd->br_size; ++index_br){
     class_alloc(psd->branching_ratios[index_br],
                 psd->z_size*sizeof(double),
                 psd->error_message);
   }
 
+  /** In case of 5) branching_approx=exact, read and interpolate precomputed functions (also the multipole 
+     expansion of the residual vectors E) from external file branching_ratios_exact.dat. The computation has
+     been performed by J. Chluba and is based on PIXIE-like setups. For more details see Chluba & Jeong 2014. */ 
   if(psd->branching_approx == bra_exact){
     class_call(distortions_read_BR_exact_data(ppr,psd),
                psd->error_message,
@@ -369,12 +380,12 @@ int distortions_branching_ratios(struct precision * ppr,
                 psd->error_message);
   }
 
-
+  /** Calulate branching ratios */
   for(index_z=0; index_z<psd->z_size; ++index_z){
     z = psd->z[index_z];
     f = exp(-pow(z/psd->z_th,2.5));
 
-    /** 1) Calculate branching ratios using sharp_sharp transition */
+    /* 1) Calculate branching ratios using sharp_sharp transition */
     if(psd->branching_approx == bra_sharp_sharp){
       if(z>psd->z_th){
         f_g = 1.;
@@ -393,7 +404,7 @@ int distortions_branching_ratios(struct precision * ppr,
       }
     }
 
-    /** 2) Calculate branching ratios using sharp_soft transition */
+    /* 2) Calculate branching ratios using sharp_soft transition */
     if(psd->branching_approx == bra_sharp_soft){
       f_g = 1.-f;
       if(z>psd->z_muy){
@@ -406,21 +417,21 @@ int distortions_branching_ratios(struct precision * ppr,
       }
     }
 
-    /** 3) Calculate branching ratios unsing soft_soft transitions */
+    /* 3) Calculate branching ratios unsing soft_soft transitions */
     if(psd->branching_approx == bra_soft_soft){
       f_g = 1.-f;
       f_y = 1.0/(1.0+pow((1.0+z)/(6.0e4),2.58));
       f_mu = f*(1.0-exp(-pow((1.0+z)/(5.8e4),1.88)));
     }
 
-    /** 4) Calculate branching ratios unsing soft_soft_cons transitions */
+    /* 4) Calculate branching ratios unsing soft_soft_cons transitions */
     if(psd->branching_approx == bra_soft_soft_cons){
       f_g = 1.-f;
       f_y = 1.0/(1.0+pow((1.0+z)/(6.0e4),2.58));
       f_mu = f*(1.-f_y);
     }
 
-    /** 5) Calculate branching ratios according to Chluba & Jeong 2014 */
+    /* 5) Calculate branching ratios according to Chluba & Jeong 2014 */
     if(psd->branching_approx == bra_exact){
       class_call(distortions_interpolate_BR_exact_data(psd,
                                                        z,
@@ -439,11 +450,12 @@ int distortions_branching_ratios(struct precision * ppr,
     psd->branching_ratios[psd->index_br_f_mu][index_z]=f_mu*1.401;
     psd->branching_ratios[psd->index_br_f_y][index_z]=f_y/4.;
     psd->branching_ratios[psd->index_br_f_r][index_z]=f_r;
-    for(index_e=0;index_e<psd->N_PCA;++index_e){
+    for(index_e=0; index_e<psd->N_PCA; ++index_e){
       psd->branching_ratios[psd->index_br_E_vec+index_e][index_z]=f_E[index_e];
     }
   }
 
+  /** Free space allocated in distortions_read_BR_exact_data() */
   if(psd->branching_approx == bra_exact){
     class_call(distortions_free_BR_exact_data(psd),
                psd->error_message,
@@ -453,11 +465,11 @@ int distortions_branching_ratios(struct precision * ppr,
 
   return _SUCCESS_;
 }
+
+
 /**
  * Calculate all redshift dependent quantities needed to compute the spectral distortions, i.e.
  * the branching ratios of the Green's functions and the heating rates.
- *
- * DOES NOT INCLUDE THE VISIBILITY FUNCTION CURRENTLY
  *
  * There are many possible sources of heating (for all details see e.g. Chluba & Sunyaev 2012),
  * some are present even for the standard cosmological model like
@@ -484,6 +496,7 @@ int distortions_branching_ratios(struct precision * ppr,
  *          b) Disk accretion as described in Poulin et al. 2017
  *       (see also Carr et al. 2010 for useful discussion)
  *
+ * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param ppt        Input: pointer to the perturbations structure
  * @param pth        Input: pointer to the thermodynamics structure
@@ -500,7 +513,7 @@ int heating_at_z(struct precision * ppr,
                  struct distortions * psd,
                  double z,
                  double * pvecheat) {
-  /* Definitions */
+  /* Define local variables */
   double tau;
   int last_index = 0;
   double * pvecback, O_b, O_cdm, h, H, a, t, rho_g, R, T_g0;
@@ -517,7 +530,7 @@ int heating_at_z(struct precision * ppr,
              pba->error_message,
              psd->error_message);
 
-  /* Import quantities from background */
+  /** Import quantities from background */
   class_alloc(pvecback,
               pba->bg_size*sizeof(double),
               psd->error_message);
@@ -541,7 +554,7 @@ int heating_at_z(struct precision * ppr,
   R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];            // [-]
   T_g0 = pba->T_cmb;                                                                  // [K]
 
-  /* Import quantities from thermodynamics */
+  /** Import quantities from thermodynamics */
   class_alloc(pvecthermo,
               pth->tt_size*sizeof(double),
               psd->error_message);
@@ -698,7 +711,7 @@ int heating_at_z(struct precision * ppr,
   /** Total heating rate */
   pvecheat[psd->index_ht_dQrho_dz_tot] = 0.;
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_cool];    // [-]
-  //pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_diss];    // [-]
+  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_diss];    // [-]
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_ann];     // [-]
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_dec];     // [-]
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_eva_PBH]; // [-]
@@ -712,11 +725,8 @@ int heating_at_z(struct precision * ppr,
  * Evaluation of the spectral distortions.
  *
  * @param pba        Input: pointer to background structure
- * @param ppt        Input: pointer to the perturbations structure
- * @param pth        Input: pointer to the thermodynamics structure
- * @param ppm        Input: pointer to the primordial structure
  * @param psd        Input: pointer to the distortions structure
- * @param z          Input: redshift
+ * @param x          Input: dimensionless frequency
  * @param pvecdist   Output: vector of distortions functions (assumed to be already allocated)
  */
 int distortions_at_x(struct background* pba,
@@ -836,20 +846,23 @@ int distortions_read_Greens_data(struct precision * ppr,
  * @return the error status
  */
 int distortions_free_Greens_data(struct distortions * psd){
-    free(psd->Greens_z);
-    free(psd->Greens_x);
-    free(psd->Greens_T_ini);
-    free(psd->Greens_T_last);
-    free(psd->Greens_rho);
-    free(psd->Greens_blackbody);
-    free(psd->Greens_function);
-}
+  free(psd->Greens_z);
+  free(psd->Greens_x);
+  free(psd->Greens_T_ini);
+  free(psd->Greens_T_last);
+  free(psd->Greens_rho);
+  free(psd->Greens_blackbody);
+  free(psd->Greens_function);
 
+  return _SUCCESS_;
+
+}
 
 
 /**
  * Reads the external file branching_ratios_exact calculated according to Chluba & Jeong 2014
- * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz)
+ * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz).
+ * The file has been computed by J. Chluba.
  *
  * @param ppr        Input: pointer to precision structure
  * @param psd        Input: pointer to the distortions structure
@@ -857,13 +870,14 @@ int distortions_free_Greens_data(struct distortions * psd){
  */
 int distortions_read_BR_exact_data(struct precision * ppr,
                                    struct distortions * psd){
+  /* Define local variables */
   int index_e,index_z;
-
   FILE * infile;
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
 
+  /* Open file */
   class_open(infile, ppr->br_exact_file, "r",
              psd->error_message);
 
@@ -876,6 +890,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
     while (left[0]==' ') {
         left++;
     }
+
     if (left[0] > 39) {
       /* read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line,"%d %d", &psd->br_exact_Nz, &psd->E_vec_size) != 2,
@@ -915,7 +930,15 @@ int distortions_read_BR_exact_data(struct precision * ppr,
 
 }
 
+
+/**
+ * Spline the quantitites read in distortions_read_BR_exact_data()
+ *
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
 int distortions_spline_BR_exact_data(struct distortions* psd){
+  /* Allocate second derivatievs */
   class_alloc(psd->ddf_g_exact,
               psd->br_exact_Nz*sizeof(double),
               psd->error_message);
@@ -928,6 +951,8 @@ int distortions_spline_BR_exact_data(struct distortions* psd){
   class_alloc(psd->ddE_vec,
               psd->E_vec_size*psd->br_exact_Nz*sizeof(double),
               psd->error_message);
+
+  /* Interpolate branching ratios */
   class_call(array_spline_table_columns(psd->br_exact_z,
                                         psd->br_exact_Nz,
                                         psd->f_g_exact,
@@ -966,21 +991,35 @@ int distortions_spline_BR_exact_data(struct distortions* psd){
            psd->error_message);
 
   return _SUCCESS_;
+
 }
 
+
+/**
+ * Interpolate the quantitites splined in distortions_spline_BR_exact_data()
+ *
+ * @param psd        Input: pointer to the distortions structure
+ * @param z          Input: redshift
+ * @param f_g        Output: branching ratio for temperature shift
+ * @param f_y        Output: branching ratio for y distortions
+ * @param f_mu       Output: branching ratio for mu-distortions
+ * @param f_E        Output: branching ratio for residuals
+ * @param index      Output: multipole of PCA expansion for f_E
+ * @return the error status
+ */
 int distortions_interpolate_BR_exact_data(struct distortions* psd,
                                           double z,
-                                          double* f_g,
-                                          double* f_y,
-                                          double* f_mu,
-                                          double* f_E,
+                                          double * f_g,
+                                          double * f_y,
+                                          double * f_mu,
+                                          double * f_E,
                                           int * index){
-  /* Define quantities*/
+  /* Define local variables */
   int last_index = *index;
   int index_e;
   double h,a,b;
 
-  /* Find x position */
+  /* Find z position */
   class_call(array_spline_hunt(psd->br_exact_z,
                                psd->br_exact_Nz,
                                z,
@@ -992,8 +1031,7 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
              psd->error_message,
              psd->error_message);
 
-  /* Evaluate corresponding y values */
-  //Normalization fun //NS Nils
+  /* Evaluate corresponding values for the branching ratios */
   *f_g = 4*array_interpolate_spline_hunt(psd->f_g_exact,psd->ddf_g_exact,last_index,last_index+1,h,a,b);
   *f_y = 4*array_interpolate_spline_hunt(psd->f_y_exact,psd->ddf_y_exact,last_index,last_index+1,h,a,b);
   *f_mu = 1./1.401*array_interpolate_spline_hunt(psd->f_mu_exact,psd->ddf_mu_exact,last_index,last_index+1,h,a,b);
@@ -1002,8 +1040,12 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
   }
 
   *index = last_index;
+
   return _SUCCESS_;
+
 }
+
+
 /**
  * Free from distortions_read_BR_exact_data()
  *
@@ -1011,7 +1053,6 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
  * @return the error status
  */
 int distortions_free_BR_exact_data(struct distortions * psd){
-  /* Free from distortions_read_BR_exact_data() */
   free(psd->br_exact_z);
   free(psd->f_g_exact);
   free(psd->ddf_g_exact);
@@ -1021,13 +1062,16 @@ int distortions_free_BR_exact_data(struct distortions * psd){
   free(psd->ddf_mu_exact);
   free(psd->E_vec);
   free(psd->ddE_vec);
+
   return _SUCCESS_;
+
 }
 
 
 /**
  * Reads the external file PCA_distortions_shapes calculated according to Chluba & Jeong 2014
- * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz)
+ * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz).
+ * The file has been computed by J. Chluba.
  *
  * @param ppr        Input: pointer to precision structure
  * @param psd        Input: pointer to the distortions structure
@@ -1035,17 +1079,17 @@ int distortions_free_BR_exact_data(struct distortions * psd){
  */
 int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
                                           struct distortions * psd){
-
+  /* Define local variables */
   FILE * infile;
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
 
+  /* Open file */
   class_open(infile, ppr->br_exact_file, "r",
              psd->error_message);
 
   psd->PCA_Nx = 0;
-  psd->PCA_N_columns = 0;
   while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
     headlines++;
 
@@ -1054,9 +1098,10 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
     while (left[0]==' ') {
         left++;
     }
+
     if (left[0] > 39) {
       /* read number of lines, infer size of arrays and allocate them */
-      class_test(sscanf(line, "%d %d %d", &psd->PCA_Nx,&psd->PCA_N_columns, &psd->index_s) != 3,
+      class_test(sscanf(line, "%d %d", &psd->PCA_Nx, &psd->S_vec_size) != 3,
                  psd->error_message,
                  "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->br_exact_file);
 
@@ -1065,7 +1110,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
       class_alloc(psd->PCA_J_y, psd->PCA_Nx*sizeof(double), psd->error_message);
       class_alloc(psd->PCA_J_mu, psd->PCA_Nx*sizeof(double), psd->error_message);
 
-      class_alloc(psd->S_vec, psd->PCA_Nx*psd->index_s*sizeof(double), psd->error_message);
+      class_alloc(psd->S_vec, psd->PCA_Nx*psd->S_vec_size*sizeof(double), psd->error_message);
       break;
     }
   }
@@ -1082,8 +1127,8 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
     class_test(fscanf(infile,"%le",&(psd->PCA_J_mu[i]))!=1,
                       psd->error_message,
                       "Could not read f_mu at line %i in file '%s'",i+headlines,ppr->br_exact_file);
-    for(int j=0; j<psd->index_s; ++j){
-      class_test(fscanf(infile,"%le",&(psd->S_vec[i*psd->index_s+j]))!=1,
+    for(int j=0; j<psd->S_vec_size; ++j){
+      class_test(fscanf(infile,"%le",&(psd->S_vec[i*psd->S_vec_size+j]))!=1,
                         psd->error_message,
                         "Could not read E vector at line %i in file '%s'",i+headlines,ppr->br_exact_file);
     }
@@ -1101,12 +1146,13 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
  * @return the error status
  */
 int distortions_free_PCA_dist_shapes_data(struct distortions * psd){
-    /* Free from distortions_read_BR_exact_data() */
-    free(psd->PCA_x);
-    free(psd->PCA_J_T);
-    free(psd->PCA_J_y);
-    free(psd->PCA_J_mu);
-    free(psd->S_vec);
+  free(psd->PCA_x);
+  free(psd->PCA_J_T);
+  free(psd->PCA_J_y);
+  free(psd->PCA_J_mu);
+  free(psd->S_vec);
+
+  return _SUCCESS_;
 }
 
 

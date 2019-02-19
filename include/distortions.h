@@ -20,49 +20,41 @@ enum br_approx {bra_sharp_sharp,bra_sharp_soft,bra_soft_soft,bra_soft_soft_cons,
 
 struct distortions
 {
-  /** @name - input parameters initialized by user in input module
-   *  (all other quantities are computed in this module, given these
-   *  parameters and the content of the 'precision', 'background',
-   *  'thermodynamics' and 'primordial' structures) */
+  /** @name - input parameters initialized by user in input module (all other quantities are computed in this module,
+   *   given these parameters and the content of the 'precision', 'background', 'thermodynamics' and 
+   *  'primordial' structures) */
 
   //@{
 
   int has_distortions;
-
   int branching_approx;                      /* Which approximation to use for the branching ratios? */
   int dQrho_dz_diss_approx;                  /* Use full version of dQrho_dz_diss or its approximation? */
+  int N_PCA;
 
   //@}
 
 
-  /** @name - all indices for the vector of heating functions and distortions (=sd) stored in table */
+  /** @name - Internal parameter used only in distortions.c */
 
   //@{
 
-  /* Precision parameters */
+  /* Precision parameters called in distortions_get_xz_lists() */
+  double z_muy;
+  double z_th;
+
   double z_min;                              /* Minimum redshift */
   double z_max;                              /* Maximum redshift */
   double z_delta;                            /* Redshift intervals */
   int z_size;                                /* Lenght of redshift array */
 
-  double z_muy;
-  double z_th;
+  double * z_weights;
 
   double x_min;                              /* Minimum dimentionless frequency */
   double x_max;                              /* Maximum dimentionless frequency */
   double x_delta;                            /* dimentionless frequency intervals */
   int x_size;                                /* Lenght of dimentionless frequency array */
 
-  /* z-dependent parameters */
-  int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
-  int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */
-  int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */
-  int index_ht_dQrho_dz_dec;                 /* Heating function from particle decay */
-  int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
-  int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
-  int index_ht_dQrho_dz_tot;                 /* Total heating function */
-  int ht_size;                               /* Size of the allocated space for heating quantities */
-
+  /* Branching ratios called in distortions_branching_ratios() */
   double ** branching_ratios;                /* [index_br][index_z] [NS] */
   double * sd_parameter;
   int index_br_f_g;                          /* Branching ratios */
@@ -72,7 +64,17 @@ struct distortions
   int index_br_E_vec;
   int br_size;
 
-  /* x-dependent parameters */
+  /* Heating ratios called in heating_at_z() */
+  int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
+  int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */
+  int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */
+  int index_ht_dQrho_dz_dec;                 /* Heating function from particle decay */
+  int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
+  int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
+  int index_ht_dQrho_dz_tot;                 /* Total heating function */
+  int ht_size;                               /* Size of the allocated space for heating quantities */
+
+  /* Spectral distortions called in distortions_at_x() */
   int index_sd_Y;                            /* Shape of y distortions */
   int index_sd_M;                            /* Shape of mu distortions */
   int index_sd_G;                            /* Shape of shifted power specrum */
@@ -92,16 +94,7 @@ struct distortions
   double * x;                                /* x[index_x] = list of values */
   double * DI;                               /* DI[index_x] = list of values */
 
-  //@}
-
-
-  /** @name - Internal parameter used only in distortions.c */
-
-  //@{
-
-  double * z_weights;
-
-  /* Variable from external file Greens_data.dat */
+  /* Variables to read and allocate external file Greens_data.dat */
   int Greens_Nz;
   double * Greens_z;
   int Greens_Nx;
@@ -112,7 +105,7 @@ struct distortions
   double * Greens_blackbody;
   double * Greens_function;
 
-  /* Variable from external file branching_ratios_exact.dat */
+  /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
   double * br_exact_z;
   int br_exact_Nz;
 
@@ -126,20 +119,17 @@ struct distortions
   double * E_vec;                /* E_vec[index_e][index_z] with index_e=1-8 */
   double * ddE_vec;
   int E_vec_size;
-  int N_PCA;
 
-
-  /* Variable from external file PCA_distortions_schape.dat */
-  int PCA_Nx;
-  int PCA_N_columns;
+  /* Variable to read, allocate and interpolate external file PCA_distortions_schape.dat */
   double * PCA_x;
+  int PCA_Nx;
+
   double * PCA_J_T;
   double * PCA_J_y;
   double * PCA_J_mu;
-  int index_s;
-  double * S_vec;                /* S_vec[index_s][index_x] with index_e=1-8 */
-  double * PCA_table;         
 
+  double * S_vec;                /* S_vec[index_s][index_x] with index_e=1-8 */
+  int S_vec_size;
 
   //@}
 
@@ -150,7 +140,7 @@ struct distortions
 
   short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
-  ErrorMsg error_message; /**< zone for writing error messages */
+  ErrorMsg error_message;    /**< zone for writing error messages */
 
   //@}
 
@@ -165,6 +155,7 @@ struct distortions
 extern "C" {
 #endif
 
+  /* Main functions */
   int distortions_init(struct precision * ppr,
                        struct background * pba,
                        struct perturbs * ppt,
@@ -176,7 +167,9 @@ extern "C" {
 
   int distortions_indices(struct distortions * psd);
 
-  int distortions_get_xz_lists(struct background* pba, struct thermo* pth, struct distortions* psd);
+  int distortions_get_xz_lists(struct background* pba, 
+                               struct thermo* pth, 
+                               struct distortions* psd);
 
   int distortions_branching_ratios(struct precision * ppr,
                                    struct distortions* psd);
@@ -195,6 +188,7 @@ extern "C" {
                        double x,
                        double * pvecdist);
 
+  /* Read external files */
   int distortions_read_Greens_data(struct precision * ppr,
                                    struct distortions * psd);
   int distortions_free_Greens_data(struct distortions * psd);
@@ -215,14 +209,13 @@ extern "C" {
                                             struct distortions * psd);
   int distortions_free_PCA_dist_shapes_data(struct distortions * psd);
 
+  /* Output */
   int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
-
   int heating_output_data(struct distortions * psd,
                           int number_of_titles,
                           double * data);
 
   int distortions_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
-
   int distortions_output_data(struct distortions * psd,
                               int number_of_titles,
                               double * data);
