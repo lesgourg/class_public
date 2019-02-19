@@ -2484,6 +2484,96 @@ int array_interpolate_spline_growing_hunt(
   return _SUCCESS_;
 }
 
+
+ /**
+  * Nils NS
+  *
+  * Get the index in the array, and the relative offset,
+  *  but do not yet actually interpolate
+  */
+int array_spline_hunt(double* x_array,
+                       int x_size,
+                       double x,
+                       int* last,
+                       double* h,
+                       double* a,
+                       double* b,
+                       ErrorMsg errmsg){
+  /* Define local quantities */
+  int inf,sup,mid,inc;
+  int last_index = *last;
+
+  /* Error checking */
+  if(last_index>=x_size-1){last_index=x_size-2;}
+  if(last_index<0){last_index=0;}
+
+  /* Hunt ! */
+  inc=1;
+  if (x >= x_array[last_index]) {
+    if (x > x_array[x_size-1]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,
+        x,x_array[x_size-1]);
+      return _FAILURE_;
+    }
+    /* try closest neighboor upward */
+    inf = last_index;
+    sup = inf + inc;
+    if (x > x_array[sup]) {
+      /* hunt upward */
+      while (x > x_array[sup]) {
+        inf = sup;
+        inc += 1;
+        sup += inc;
+        if (sup > x_size-1) {
+          sup = x_size-1;
+        }
+      }
+      /* bisect */
+      while (sup-inf > 1) {
+        mid=(int)(0.5*(inf+sup));
+        if (x < x_array[mid]) {sup=mid;}
+        else {inf=mid;}
+      }
+    }
+  }
+  else {
+    if (x < x_array[0]) {
+      sprintf(errmsg,"%s(L:%d) : x=%.20e < x_min=%.20e",__func__,__LINE__,
+        x,x_array[0]);
+      return _FAILURE_;
+    }
+    /* try closest neighboor downward */
+    sup = last_index;
+    inf = sup - inc;
+    if (x < x_array[inf]) {
+      /* hunt downward */
+      while (x < x_array[inf]) {
+        sup = inf;
+        inc += 1;
+        inf -= inc;
+        if (inf < 0) {
+          inf = 0;
+        }
+      }
+      /* bisect */
+      while (sup-inf > 1) {
+        mid=(int)(0.5*(inf+sup));
+        if (x < x_array[mid]) {sup=mid;}
+        else {inf=mid;}
+      }
+    }
+  }
+
+  /* We have found the prey */
+  last_index = inf;
+  *last = last_index;
+  *h = x_array[sup] - x_array[inf];
+  *b = (x-x_array[inf])/(*h);
+  *a = 1.0-(*b);
+
+  return _SUCCESS_;
+}
+
 /**
  * interpolate linearily to get y_i(x), when x and y_i are in two different arrays
  *

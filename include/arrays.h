@@ -9,6 +9,8 @@
 
 #define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */
+// NS
+#define array_interpolate_spline_hunt(y,ddy,inf,sup,h,a,b) ((a)*(y)[inf]+(b)*(y)[sup] + (((a)*(a)*(a)-(a))* (ddy)[inf] + ((b)*(b)*(b)-(b))* (ddy)[sup])*(h)*(h)/6.)
 
 /**
  * Boilerplate for C++
@@ -298,7 +300,14 @@ int array_integrate_all_trapzd_or_spline(
 					       double * result,
 					       int result_size, /** from 1 to n_columns */
 					       ErrorMsg errmsg);
-
+  int array_spline_hunt(double* x_array,
+                        int x_size,
+                        double x,
+                        int* last,
+                        double* h,
+                        double* a,
+                        double* b,
+                        ErrorMsg errmsg);
   int array_interpolate_two(
 			    double * array_x,
 			    int n_columns_x,

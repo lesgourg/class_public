@@ -2234,15 +2234,16 @@ int input_read_parameters(
              errmsg);
   if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))) { psd->dQrho_dz_diss_approx = _FALSE_; }
 
-  psd->branching_approx = 3;
   class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL))) { psd->branching_approx = 1; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL))) { psd->branching_approx = 2; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL))) { psd->branching_approx = 3; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL))) { psd->branching_approx = 4; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) { psd->branching_approx = 5; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL))) { psd->branching_approx = bra_sharp_sharp; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL))) { psd->branching_approx = bra_sharp_soft; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL))) { psd->branching_approx = bra_soft_soft; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL))) { psd->branching_approx = bra_soft_soft_cons; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) { psd->branching_approx = bra_exact; }
+
+  class_read_int("PCA size",psd->N_PCA);
 
   /** (e) parameters for final spectra */
 
@@ -3183,6 +3184,10 @@ int input_default_params(
 
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
+
+  /** - distortions structure */
+  psd->N_PCA = 8; //[NS]
+  psd->branching_approx = bra_exact; //[NS]
 
   /** - all verbose parameters */
 

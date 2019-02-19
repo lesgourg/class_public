@@ -15,6 +15,7 @@
 /**
  * All deistortions parameters and evolution that other modules need to know.
  */
+enum br_approx {bra_sharp_sharp,bra_sharp_soft,bra_soft_soft,bra_soft_soft_cons,bra_exact};
 
 
 struct distortions
@@ -44,6 +45,9 @@ struct distortions
   double z_delta;                            /* Redshift intervals */
   int z_size;                                /* Lenght of redshift array */
 
+  double z_muy;
+  double z_th;
+
   double x_min;                              /* Minimum dimentionless frequency */
   double x_max;                              /* Maximum dimentionless frequency */
   double x_delta;                            /* dimentionless frequency intervals */
@@ -59,13 +63,13 @@ struct distortions
   int index_ht_dQrho_dz_tot;                 /* Total heating function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
 
-  double* bb_visibility_function;            /* bb = blackbody [NS] */
   double ** branching_ratios;                /* [index_br][index_z] [NS] */
   double * sd_parameter;
   int index_br_f_g;                          /* Branching ratios */
   int index_br_f_mu;
   int index_br_f_y;
   int index_br_f_r;
+  int index_br_E_vec;
   int br_size;
 
   /* x-dependent parameters */
@@ -109,15 +113,21 @@ struct distortions
   double * Greens_function;
 
   /* Variable from external file branching_ratios_exact.dat */
-  int br_exact_Nz;
-  int br_exact_N_columns;
   double * br_exact_z;
+  int br_exact_Nz;
+
   double * f_g_exact;
+  double * ddf_g_exact;
   double * f_y_exact;
+  double * ddf_y_exact;
   double * f_mu_exact;
-  int index_e;
+  double * ddf_mu_exact;
+
   double * E_vec;                /* E_vec[index_e][index_z] with index_e=1-8 */
-  double * br_exact_table;         
+  double * ddE_vec;
+  int E_vec_size;
+  int N_PCA;
+
 
   /* Variable from external file PCA_distortions_schape.dat */
   int PCA_Nx;
@@ -166,14 +176,10 @@ extern "C" {
 
   int distortions_indices(struct distortions * psd);
 
-  int distortions_get_xz_lists(struct distortions* psd);
+  int distortions_get_xz_lists(struct background* pba, struct thermo* pth, struct distortions* psd);
 
   int distortions_branching_ratios(struct precision * ppr,
                                    struct distortions* psd);
-
-  int distortions_visibility_function(struct background* pba,
-                                      struct thermo * pth,
-                                      struct distortions* psd);
 
   int heating_at_z(struct precision * ppr,
                    struct background* pba,
@@ -195,6 +201,14 @@ extern "C" {
 
   int distortions_read_BR_exact_data(struct precision * ppr,
                                      struct distortions * psd);
+  int distortions_spline_BR_exact_data(struct distortions* psd);
+  int distortions_interpolate_BR_exact_data(struct distortions* psd,
+                                            double z,
+                                            double* f_g,
+                                            double* f_y,
+                                            double* f_mu,
+                                            double* E,
+                                            int * index);
   int distortions_free_BR_exact_data(struct distortions * psd);
 
   int distortions_read_PCA_dist_shapes_data(struct precision * ppr,

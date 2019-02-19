@@ -21,6 +21,7 @@ int distortions_init(struct precision * ppr,
                      struct thermo * pth,
                      struct primordial * ppm,
                      struct distortions * psd) {
+
   /* Define local variables */
   double * pvecheat;
   double * pvecdist;
@@ -51,12 +52,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /* Define z and x arrays TODO :: convert to precision parameters the limits and N */
-  class_call(distortions_get_xz_lists(psd),
-             psd->error_message,
-             psd->error_message);
-
-  /* Define visibility function */
-  class_call(distortions_visibility_function(pba,pth,psd),
+  class_call(distortions_get_xz_lists(pba,pth,psd),
              psd->error_message,
              psd->error_message);
 
@@ -89,8 +85,9 @@ int distortions_init(struct precision * ppr,
                psd->error_message,
                psd->error_message);
     /* Public quantities */
-    psd->dQrho_dz_tot[index_z] = pvecheat[psd->index_ht_dQrho_dz_tot]*psd->bb_visibility_function[index_z];
+    psd->dQrho_dz_tot[index_z] = pvecheat[psd->index_ht_dQrho_dz_tot]*exp(-pow(psd->z[index_z]/psd->z_th,2.5));
   }
+
   /* Free space */
   free(pvecheat);
 
@@ -121,28 +118,45 @@ int distortions_init(struct precision * ppr,
   psd->y = psd->sd_parameter[psd->index_br_f_y];
   psd->r = psd->sd_parameter[psd->index_br_f_r];
 
+  if(psd->branching_approx == bra_exact){
+    for(int index_e=0;index_e<psd->N_PCA;++index_e){
+      printf("[%i] = %.10e \n",index_e,psd->sd_parameter[psd->index_br_E_vec+index_e]);
+    }
+  }
   /* Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  psd->y += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  psd->y += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  psd->y += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+  //psd->y += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  //psd->y += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  //psd->y += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
   /* Calculate total heating */
   psd->Drho_over_rho = 4.*psd->g+psd->mu/1.401+4.*psd->y+psd->r;
 
   /* Print found parameters */
-  if (psd->distortions_verbose > 1) { printf("-> total injected/extracted heat = %g\n", psd->Drho_over_rho); }
+  if (psd->distortions_verbose > 1) {
+    printf("-> total injected/extracted heat = %g\n", psd->Drho_over_rho);
+    printf("SHOULD BE [NS] (approx) : %g \n",8.11571e-06);
+  }
 
   if (psd->distortions_verbose > 1) {
-    if (psd->mu > 9.e-5) { printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->mu); }
+    if (psd->mu > 9.e-5) {
+      printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->mu);
+    }
     else{ printf("-> mu-parameter = %g\n", psd->mu); }
+    printf("SHOULD BE [NS] (soft_soft) : %g \n",1.64687e-08);
   }
 
   if (psd->distortions_verbose > 1) {
-    if (psd->y>1.5e-5) { printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->y); }
+    if (psd->y>1.5e-5) {
+      printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->y);
+    }
     else{ printf("-> y-parameter = %g\n", psd->y); }
+    printf("SHOULD BE [NS] (soft_soft) : %g \n",2.02608e-06);
   }
 
-  if (psd->distortions_verbose > 1) { printf("-> r-parameter = %g\n", psd->r); }
+  if (psd->distortions_verbose > 1) {
+    printf("-> r-parameter = %g\n", psd->r);
+    printf("SHOULD BE [NS] (soft_soft) : %g \n",-1.26128e-09);
+  }
 
   /**
    * Define final spectral distortions
@@ -188,8 +202,6 @@ int distortions_free(struct distortions * psd) {
     free(psd->x);
     free(psd->z_weights);
 
-    /* Free from distortions_visibility_function() */
-    free(psd->bb_visibility_function);
 
     /* Free from distortions_branching_ratios() */
     for(index_br=0;index_br<psd->br_size;++index_br){
@@ -224,6 +236,7 @@ int distortions_indices(struct distortions * psd) {
   class_define_index(psd->index_br_f_mu,_TRUE_,index_br,1);
   class_define_index(psd->index_br_f_y,_TRUE_,index_br,1);
   class_define_index(psd->index_br_f_r,_TRUE_,index_br,1);
+  class_define_index(psd->index_br_E_vec,psd->branching_approx==5,index_br,psd->N_PCA);
 
   psd->br_size = index_br;
 
@@ -256,20 +269,26 @@ int distortions_indices(struct distortions * psd) {
  * @param psd     Input: pointer to distortions structure
  * @return the error status
  */
-int distortions_get_xz_lists(struct distortions* psd){
+int distortions_get_xz_lists(struct background* pba, struct thermo* pth, struct distortions* psd){
   /* Define local variables */
   int index_z;
   int index_x;
 
-  psd->z_min = 1.e3;
+  psd->z_min = 1010.7304367;
   psd->z_max = 5.e6;
-  psd->z_size = (int) 550;
+  psd->z_size = (int) 5500;
   psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
 
   psd->x_min = 1.e-2;
   psd->x_max = 5.e1;
-  psd->x_size = (int) 550;
+  psd->x_size = (int) 5500;
   psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+
+  psd->z_muy = 5.e4;
+  psd->z_th = 1.98e6*
+         pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
+         pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
+         pow(pba->T_cmb/2.726,1./5.);
 
   class_alloc(psd->z,
               psd->z_size*sizeof(double),
@@ -299,40 +318,6 @@ int distortions_get_xz_lists(struct distortions* psd){
 }
 
 
-/**
- * Compute visibility function.
- *
- * @param pba        Input: pointer to background structure
- * @param pth        Input: pointer to the thermodynamics structure
- * @param psd        Input: pointer to the distortions structure
- * @return the error status
- */
-int distortions_visibility_function(struct background * pba,
-                                    struct thermo * pth,
-                                    struct distortions * psd){
-  /* Define local variables */
-  int index_z;
-  double z,z_th,z_muy;
-
-  class_alloc(psd->bb_visibility_function,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-
-  for(index_z=0;index_z<psd->z_size;++index_z){
-    z = psd->z[index_z];
-
-    z_muy = 5.e4;
-    z_th = 1.98e6*
-           pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
-           pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
-           pow(pba->T_cmb/2.726,1./5.);
-
-    psd->bb_visibility_function[index_z] = exp(-pow(z/z_th,2.5));
-  }
-
-  return _SUCCESS_;
-}
-
 
 /**
  * Calculate all the branching ratios of the Green's functions.
@@ -356,10 +341,12 @@ int distortions_visibility_function(struct background * pba,
 int distortions_branching_ratios(struct precision * ppr,
                                  struct distortions* psd){
   /* Define local variables */
-  int index_z,index_br;
+  int index_z,index_br,index_e;
   double f_g,f_mu,f_y,f_r,f;
-  double z_th,z_muy;
+  double* f_E;
   double z;
+
+  int last_index = 0;
 
   class_alloc(psd->branching_ratios,
               psd->br_size*sizeof(double*),
@@ -370,90 +357,80 @@ int distortions_branching_ratios(struct precision * ppr,
                 psd->error_message);
   }
 
+  if(psd->branching_approx == bra_exact){
+    class_call(distortions_read_BR_exact_data(ppr,psd),
+               psd->error_message,
+               psd->error_message);
+    class_call(distortions_spline_BR_exact_data(psd),
+               psd->error_message,
+               psd->error_message);
+    class_alloc(f_E,
+                psd->N_PCA*sizeof(double),
+                psd->error_message);
+  }
+
+
   for(index_z=0; index_z<psd->z_size; ++index_z){
     z = psd->z[index_z];
-    f = psd->bb_visibility_function[index_z];
+    f = exp(-pow(z/psd->z_th,2.5));
 
     /** 1) Calculate branching ratios using sharp_sharp transition */
-    if(psd->branching_approx == 1){
-      if(z>z_th){
+    if(psd->branching_approx == bra_sharp_sharp){
+      if(z>psd->z_th){
         f_g = 1.;
-        f_mu = 0.;
         f_y = 0.;
+        f_mu = 0.;
       }
-      if(z<z_th && z>z_muy){
+      if(z<psd->z_th && z>psd->z_muy){
         f_g = 0.;
+        f_y = 0.;
         f_mu = 1.;
-        f_y = 0.;
       }
-      if(z<z_muy){
+      if(z<psd->z_muy){
         f_g = 0.;
-        f_mu = 0.;
         f_y = 1.;
+        f_mu = 0.;
       }
     }
 
     /** 2) Calculate branching ratios using sharp_soft transition */
-    if(psd->branching_approx == 2){
+    if(psd->branching_approx == bra_sharp_soft){
       f_g = 1.-f;
-      if(z>z_muy){
-        f_mu = f;
+      if(z>psd->z_muy){
         f_y = 0.;
+        f_mu = f;
       }
-      if(z<z_muy){
-        f_mu = 0.;
+      if(z<psd->z_muy){
         f_y = 1.;
+        f_mu = 0.;
       }
     }
 
     /** 3) Calculate branching ratios unsing soft_soft transitions */
-    if(psd->branching_approx == 3){
+    if(psd->branching_approx == bra_soft_soft){
       f_g = 1.-f;
-      f_mu = f*(1.0-exp(-pow((1.0+z)/(5.8e4),1.88)));
       f_y = 1.0/(1.0+pow((1.0+z)/(6.0e4),2.58));
+      f_mu = f*(1.0-exp(-pow((1.0+z)/(5.8e4),1.88)));
     }
 
     /** 4) Calculate branching ratios unsing soft_soft_cons transitions */
-    if(psd->branching_approx == 4){
+    if(psd->branching_approx == bra_soft_soft_cons){
       f_g = 1.-f;
       f_y = 1.0/(1.0+pow((1.0+z)/(6.0e4),2.58));
       f_mu = f*(1.-f_y);
-
     }
 
     /** 5) Calculate branching ratios according to Chluba & Jeong 2014 */
-    if(psd->branching_approx == 5){
-      class_call(distortions_read_BR_exact_data(ppr,psd),
+    if(psd->branching_approx == bra_exact){
+      class_call(distortions_interpolate_BR_exact_data(psd,
+                                                       z,
+                                                       &f_g,
+                                                       &f_y,
+                                                       &f_mu,
+                                                       f_E,
+                                                       &last_index),
                  psd->error_message,
                  psd->error_message);
-      class_alloc(psd->br_exact_table, psd->br_exact_Nz*sizeof(double),psd->error_message);
-      class_call(array_spline_table_lines(psd->br_exact_z,
-                                          psd->br_exact_Nz,
-                                          psd->f_g_exact,
-                                          1,
-                                          psd->br_exact_table,
-                                          _SPLINE_NATURAL_,
-                                          psd->error_message),
-                 psd->error_message,
-                 psd->error_message);
-      class_call(array_interpolate_spline(psd->br_exact_z,
-                                          psd->br_exact_Nz,
-                                          psd->f_g_exact,
-                                          psd->br_exact_table,
-                                          1,
-                                          z,
-                                          0,
-                                          &f_g,
-                                          1,
-                                          psd->error_message),
-                 psd->error_message,
-                 psd->error_message);
-
-      free(psd->br_exact_table);
-      class_call(distortions_free_BR_exact_data(psd),
-                 psd->error_message,
-                 psd->error_message);
-
     }
 
     f_r = 1.-f_g-f_mu-f_y;
@@ -462,6 +439,16 @@ int distortions_branching_ratios(struct precision * ppr,
     psd->branching_ratios[psd->index_br_f_mu][index_z]=f_mu*1.401;
     psd->branching_ratios[psd->index_br_f_y][index_z]=f_y/4.;
     psd->branching_ratios[psd->index_br_f_r][index_z]=f_r;
+    for(index_e=0;index_e<psd->N_PCA;++index_e){
+      psd->branching_ratios[psd->index_br_E_vec+index_e][index_z]=f_E[index_e];
+    }
+  }
+
+  if(psd->branching_approx == bra_exact){
+    class_call(distortions_free_BR_exact_data(psd),
+               psd->error_message,
+               psd->error_message);
+    free(f_E);
   }
 
   return _SUCCESS_;
@@ -711,7 +698,7 @@ int heating_at_z(struct precision * ppr,
   /** Total heating rate */
   pvecheat[psd->index_ht_dQrho_dz_tot] = 0.;
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_cool];    // [-]
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_diss];    // [-]
+  //pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_diss];    // [-]
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_ann];     // [-]
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_dec];     // [-]
   pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_eva_PBH]; // [-]
@@ -870,6 +857,7 @@ int distortions_free_Greens_data(struct distortions * psd){
  */
 int distortions_read_BR_exact_data(struct precision * ppr,
                                    struct distortions * psd){
+  int index_e,index_z;
 
   FILE * infile;
   char line[_LINE_LENGTH_MAX_];
@@ -880,7 +868,6 @@ int distortions_read_BR_exact_data(struct precision * ppr,
              psd->error_message);
 
   psd->br_exact_Nz = 0;
-  psd->br_exact_N_columns = 0;
   while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
     headlines++;
 
@@ -891,7 +878,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
     }
     if (left[0] > 39) {
       /* read number of lines, infer size of arrays and allocate them */
-      class_test(sscanf(line, "%d %d %d", &psd->br_exact_Nz,&psd->br_exact_N_columns, &psd->index_e) != 3,
+      class_test(sscanf(line,"%d %d", &psd->br_exact_Nz, &psd->E_vec_size) != 2,
                  psd->error_message,
                  "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->br_exact_file);
 
@@ -900,27 +887,27 @@ int distortions_read_BR_exact_data(struct precision * ppr,
       class_alloc(psd->f_y_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
       class_alloc(psd->f_mu_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
 
-      class_alloc(psd->E_vec, psd->br_exact_Nz*psd->index_e*sizeof(double), psd->error_message);
+      class_alloc(psd->E_vec, psd->br_exact_Nz*psd->E_vec_size*sizeof(double), psd->error_message);
       break;
     }
   }
-  for(int i=0; i<psd->br_exact_Nz; ++i){
-    class_test(fscanf(infile,"%le",&(psd->br_exact_z[i]))!=1,
+  for(index_z=0; index_z<psd->br_exact_Nz; ++index_z){
+    class_test(fscanf(infile,"%le",&(psd->br_exact_z[index_z]))!=1,
                       psd->error_message,
-                      "Could not read x at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
-    class_test(fscanf(infile,"%le",&(psd->f_g_exact[i]))!=1,
+                      "Could not read z at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->f_g_exact[index_z]))!=1,
                       psd->error_message,
-                      "Could not read J_T at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
-    class_test(fscanf(infile,"%le",&(psd->f_y_exact[i]))!=1,
+                      "Could not read f_g at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->f_y_exact[index_z]))!=1,
                       psd->error_message,
-                      "Could not read J_y at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
-    class_test(fscanf(infile,"%le",&(psd->f_mu_exact[i]))!=1,
+                      "Could not read f_y at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+    class_test(fscanf(infile,"%le",&(psd->f_mu_exact[index_z]))!=1,
                       psd->error_message,
-                      "Could not read J_mu at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
-    for(int j=0; j<psd->index_e; ++j){
-      class_test(fscanf(infile,"%le",&(psd->E_vec[i*psd->index_e+j]))!=1,
+                      "Could not read f_mu at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+    for(index_e=0; index_e<psd->E_vec_size; ++index_e){
+      class_test(fscanf(infile,"%le",&(psd->E_vec[index_z*psd->E_vec_size+index_e]))!=1,
                         psd->error_message,
-                        "Could not read S vector at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+                        "Could not read E vector at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
     }
   }
 
@@ -928,7 +915,95 @@ int distortions_read_BR_exact_data(struct precision * ppr,
 
 }
 
+int distortions_spline_BR_exact_data(struct distortions* psd){
+  class_alloc(psd->ddf_g_exact,
+              psd->br_exact_Nz*sizeof(double),
+              psd->error_message);
+  class_alloc(psd->ddf_y_exact,
+              psd->br_exact_Nz*sizeof(double),
+              psd->error_message);
+  class_alloc(psd->ddf_mu_exact,
+              psd->br_exact_Nz*sizeof(double),
+              psd->error_message);
+  class_alloc(psd->ddE_vec,
+              psd->E_vec_size*psd->br_exact_Nz*sizeof(double),
+              psd->error_message);
+  class_call(array_spline_table_columns(psd->br_exact_z,
+                                        psd->br_exact_Nz,
+                                        psd->f_g_exact,
+                                        1,
+                                        psd->ddf_g_exact,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+             psd->error_message,
+             psd->error_message);
+  class_call(array_spline_table_columns(psd->br_exact_z,
+                                        psd->br_exact_Nz,
+                                        psd->f_y_exact,
+                                        1,
+                                        psd->ddf_y_exact,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+           psd->error_message,
+           psd->error_message);
+  class_call(array_spline_table_columns(psd->br_exact_z,
+                                        psd->br_exact_Nz,
+                                        psd->f_mu_exact,
+                                        1,
+                                        psd->ddf_mu_exact,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+           psd->error_message,
+           psd->error_message);
+  class_call(array_spline_table_columns(psd->br_exact_z,
+                                        psd->br_exact_Nz,
+                                        psd->E_vec,
+                                        psd->E_vec_size,
+                                        psd->ddE_vec,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+           psd->error_message,
+           psd->error_message);
 
+  return _SUCCESS_;
+}
+
+int distortions_interpolate_BR_exact_data(struct distortions* psd,
+                                          double z,
+                                          double* f_g,
+                                          double* f_y,
+                                          double* f_mu,
+                                          double* f_E,
+                                          int * index){
+  /* Define quantities*/
+  int last_index = *index;
+  int index_e;
+  double h,a,b;
+
+  /* Find x position */
+  class_call(array_spline_hunt(psd->br_exact_z,
+                               psd->br_exact_Nz,
+                               z,
+                               &last_index,
+                               &h,
+                               &a,
+                               &b,
+                               psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
+  /* Evaluate corresponding y values */
+  //Normalization fun //NS Nils
+  *f_g = 4*array_interpolate_spline_hunt(psd->f_g_exact,psd->ddf_g_exact,last_index,last_index+1,h,a,b);
+  *f_y = 4*array_interpolate_spline_hunt(psd->f_y_exact,psd->ddf_y_exact,last_index,last_index+1,h,a,b);
+  *f_mu = 1./1.401*array_interpolate_spline_hunt(psd->f_mu_exact,psd->ddf_mu_exact,last_index,last_index+1,h,a,b);
+  for(index_e=0;index_e<psd->N_PCA;++index_e){
+    f_E[index_e] = array_interpolate_spline_hunt(psd->E_vec,psd->ddE_vec,last_index*psd->E_vec_size+index_e,(last_index+1)*psd->E_vec_size+index_e,h,a,b);
+  }
+
+  *index = last_index;
+  return _SUCCESS_;
+}
 /**
  * Free from distortions_read_BR_exact_data()
  *
@@ -936,12 +1011,17 @@ int distortions_read_BR_exact_data(struct precision * ppr,
  * @return the error status
  */
 int distortions_free_BR_exact_data(struct distortions * psd){
-    /* Free from distortions_read_BR_exact_data() */
-    free(psd->br_exact_z);
-    free(psd->f_g_exact);
-    free(psd->f_y_exact);
-    free(psd->f_mu_exact);
-    free(psd->E_vec);
+  /* Free from distortions_read_BR_exact_data() */
+  free(psd->br_exact_z);
+  free(psd->f_g_exact);
+  free(psd->ddf_g_exact);
+  free(psd->f_y_exact);
+  free(psd->ddf_y_exact);
+  free(psd->f_mu_exact);
+  free(psd->ddf_mu_exact);
+  free(psd->E_vec);
+  free(psd->ddE_vec);
+  return _SUCCESS_;
 }
 
 
@@ -992,20 +1072,20 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
   for(int i=0; i<psd->PCA_Nx; ++i){
     class_test(fscanf(infile,"%le",&(psd->PCA_x[i]))!=1,
                       psd->error_message,
-                      "Could not read z at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+                      "Could not read z at line %i in file '%s'",i+headlines,ppr->br_exact_file);
     class_test(fscanf(infile,"%le",&(psd->PCA_J_T[i]))!=1,
                       psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+                      "Could not read f_g at line %i in file '%s'",i+headlines,ppr->br_exact_file);
     class_test(fscanf(infile,"%le",&(psd->PCA_J_y[i]))!=1,
                       psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+                      "Could not read f_y at line %i in file '%s'",i+headlines,ppr->br_exact_file);
     class_test(fscanf(infile,"%le",&(psd->PCA_J_mu[i]))!=1,
                       psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+                      "Could not read f_mu at line %i in file '%s'",i+headlines,ppr->br_exact_file);
     for(int j=0; j<psd->index_s; ++j){
       class_test(fscanf(infile,"%le",&(psd->S_vec[i*psd->index_s+j]))!=1,
                         psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",i+headlines+5,ppr->br_exact_file);
+                        "Could not read E vector at line %i in file '%s'",i+headlines,ppr->br_exact_file);
     }
   }
 
