@@ -349,21 +349,6 @@ struct precision
    *
    */
 
-  double idmdr_boost_k_per_decade_for_pk;
-
-  double dark_tight_coupling_trigger_tau_c_over_tau_h;
-
-  double dark_tight_coupling_trigger_tau_c_over_tau_k;
-
-  int dark_radiation_streaming_approximation; //ethos approx
-
-  double dark_radiation_streaming_trigger_tau_over_tau_k;//ethos
-
-  double dark_radiation_streaming_trigger_tau_c_over_tau;//ethos approx
-
-  int idr_nature; /**< ethos: methos for dark radiation, 0 hierarchy, 1 perfect fluid?*/
-
-
   #define __ALLOCATE_PRECISION_PARAMETER__
   #include "precisions.h"
   #undef __ALLOCATE_PRECISION_PARAMETER__

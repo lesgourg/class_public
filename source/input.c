@@ -954,6 +954,18 @@ int input_read_parameters(
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
 
+  class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+              errmsg,
+              errmsg);
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+      ppt->idr_nature = idr_free_streaming;
+    }
+    if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+      ppt->idr_nature = idr_fluid;
+    }
+  }
+
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
              errmsg);
@@ -2796,8 +2808,6 @@ int input_read_parameters(
   class_read_int("output_verbose",
                  pop->output_verbose);
 
-  class_read_double("dark_tight_coupling_trigger_tau_c_over_tau_h",ppr->dark_tight_coupling_trigger_tau_c_over_tau_h);
-  class_read_double("dark_tight_coupling_trigger_tau_c_over_tau_k",ppr->dark_tight_coupling_trigger_tau_c_over_tau_k);
 
   if (ppt->has_tensors == _TRUE_) {
     /** - ---> Include ur and ncdm shear in tensor computation? */
@@ -3162,6 +3172,8 @@ int input_default_params(
   ppt->k_max_for_pk=1.;
 
   ppt->gauge=synchronous;
+
+  ppt->idr_nature=idr_free_streaming; /* ethos */
 
   ppt->k_output_values_num=0;
   ppt->store_perturbations = _FALSE_;

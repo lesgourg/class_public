@@ -65,6 +65,7 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * Currently unused parameter.
  */
 //class_precision_parameter(safe_phi_scf,double,0.0)
+
 /**
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
@@ -143,6 +144,8 @@ class_precision_parameter(k_step_super_reduction,double,0.1) /**< the step k_ste
 
 class_precision_parameter(k_per_decade_for_pk,double,10.0) /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
 
+class_precision_parameter(idmdr_boost_k_per_decade_for_pk,double,1.0) /**< boost factor for the case of DAO in idmdr models (ethos) */
+
 class_precision_parameter(k_per_decade_for_bao,double,70.0) /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade inside the BAO region (for finer sampling)*/
 
 class_precision_parameter(k_bao_center,double,3.0) /**< in ln(k) space, the central value of the BAO region where sampling is finer is defined as k_rec times this number (recommended: 3, i.e. finest sampling near 3rd BAO peak) */
@@ -175,10 +178,17 @@ class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) /**< s
 
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
 
+
+class_precision_parameter(dark_tight_coupling_trigger_tau_c_over_tau_k,double,0.01) /* ethos */
+class_precision_parameter(dark_tight_coupling_trigger_tau_c_over_tau_h,double,0.015) /* ethos */
+
+
+
 class_precision_parameter(l_max_g,int,12)     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
 class_precision_parameter(l_max_pol_g,int,10) /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
 class_precision_parameter(l_max_dr,int,17)   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
 class_precision_parameter(l_max_ur,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+class_precision_parameter(l_max_idr,int,17)   /**< number of momenta in Boltzmann hierarchy for dark radiation (ethos) */
 class_precision_parameter(l_max_ncdm,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
 class_precision_parameter(l_max_g_ten,int,5)     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
 class_precision_parameter(l_max_pol_g_ten,int,5) /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
@@ -230,6 +240,12 @@ class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0
  * second condition:
  */
 class_precision_parameter(radiation_streaming_trigger_tau_c_over_tau,double,5.0)
+
+
+class_precision_parameter(dark_radiation_streaming_approximation,int,rsa_idr_none) /* ethos */
+class_precision_parameter(dark_radiation_streaming_trigger_tau_over_tau_k,double,50.0) /* ethos */
+class_precision_parameter(dark_radiation_streaming_trigger_tau_c_over_tau,double,10.0) /* ethos */
+
 
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
 

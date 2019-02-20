@@ -192,6 +192,8 @@ struct perturbs
   double * alpha_dark; /**<ethos Angular contribution to collisional term at l>=2 for DM-DR */
   double * beta_dark;  /**<ethos Angular contribution to collisional term at l>=2 for DR-DR */
 
+  int idr_nature; /* ethos */
+
   //@}
 
   /** @name - useful flags inferred from the ones above */
