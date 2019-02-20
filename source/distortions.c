@@ -43,10 +43,6 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              "Cannot compute spectral distortions without damping scale \n");
 
-  /** 
-   * Define global quanties, e.g. indeces, z and x arrays and branching ratios
-   */ 
-
   /* Assign values to all indices in the distortions structure */
   class_call(distortions_indices(psd),
              psd->error_message,
@@ -62,126 +58,20 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  /* TODO :: what to do with greens function data ?
-  class_call(distortions_read_Greens_data(ppr,psd),
+  /* Define heting function */
+  class_call(distortions_heating_rate(ppr,pba,ppt,pth,ppm,psd),
              psd->error_message,
-             psd->error_message); */
+             psd->error_message);
 
-  /**
-   * Define heting function
-   */
+  /* Define spectral distortion amplitudes */
+  class_call(distortions_amplitudes(psd),
+             psd->error_message,
+             psd->error_message);
 
-  /* Allocate space for heating output parameters */
-  class_alloc(psd->dQrho_dz_tot,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  /* Get the heating TODO :: get from thermodynamics after exoclass hyrec recfast merge */
-  class_alloc(pvecheat,
-              psd->ht_size*sizeof(double),
-              psd->error_message);
-  for (int index_z = 0; index_z < psd->z_size; index_z++) {
-    class_call(heating_at_z(ppr,pba,ppt,pth,ppm,psd,
-                            psd->z[index_z],
-                            pvecheat),
-               psd->error_message,
-               psd->error_message);
-    /* Public quantities */
-    psd->dQrho_dz_tot[index_z] = pvecheat[psd->index_ht_dQrho_dz_tot]*exp(-pow(psd->z[index_z]/psd->z_th,2.5));
-  }
-
-  /* Free space */
-  free(pvecheat);
-
-  /**
-   * Define spectral distortion amplitudes
-   * This boils down to the integral int ( f(z) d(Q/rho)(z)/dz )
-   */
-
-  /* Allocate space for spectral distortion amplitude parameters */
-  class_alloc(psd->sd_parameter,
-              psd->br_size*sizeof(double),
-              psd->error_message);
-
-  for(int index_br=0;index_br<psd->br_size;++index_br){
-    class_call(array_trapezoidal_convolution(psd->branching_ratios[index_br],
-                                             psd->dQrho_dz_tot,
-                                             psd->z_size,
-                                             psd->z_weights,
-                                             &(psd->sd_parameter[index_br]),
-                                             psd->error_message),
-               psd->error_message,
-               psd->error_message);
-  }
-
-  /* Small short-hand notations of the parameters stored in this array */
-  psd->g = psd->sd_parameter[psd->index_br_f_g]/4.;
-  psd->mu = psd->sd_parameter[psd->index_br_f_mu]*1.401;
-  psd->y = psd->sd_parameter[psd->index_br_f_y]/4.;
-  psd->r = psd->sd_parameter[psd->index_br_f_r];
-
-  if(psd->distortions_verbose > 2 && psd->branching_approx == bra_exact){
-    for(int index_e=0; index_e<psd->N_PCA; ++index_e){
-      printf("[%i] = %.10e \n",index_e,psd->sd_parameter[psd->index_br_E_vec+index_e]);
-    }
-  }
-  /* Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  psd->y += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  psd->y += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  psd->y += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
-
-  /* Calculate total heating */
-  psd->Drho_over_rho = 4.*psd->g+psd->mu/1.401+4.*psd->y+psd->r;
-
-  /* Print found parameters */
-  if (psd->distortions_verbose > 1) {
-    printf("-> total injected/extracted heat = %g\n", psd->Drho_over_rho);
-    printf("SHOULD BE [NS] (approx) : %g \n",8.11571e-06);
-  }
-
-  if (psd->distortions_verbose > 1) {
-    if (psd->mu > 9.e-5) {
-      printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->mu);
-    }
-    else{ printf("-> mu-parameter = %g\n", psd->mu); }
-    printf("SHOULD BE [NS] (soft_soft) : %g \n",1.64687e-08);
-  }
-
-  if (psd->distortions_verbose > 1) {
-    if (psd->y>1.5e-5) {
-      printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->y);
-    }
-    else{ printf("-> y-parameter = %g\n", psd->y); }
-    printf("SHOULD BE [NS] (soft_soft) : %g \n",2.02608e-06);
-  }
-
-  if (psd->distortions_verbose > 1) {
-    printf("-> r-parameter = %g\n", psd->r);
-    printf("SHOULD BE [NS] (soft_soft) : %g \n",-1.26128e-09);
-  }
-
-  /**
-   * Define final spectral distortions
-   */
-
-  /* Allocate space for distortions output parameters */
-  class_alloc(psd->DI,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  /* Get the distortions */
-  class_alloc(pvecdist,
-              psd->sd_size*sizeof(double),
-              psd->error_message);
-  for (index_x = 0; index_x<psd->x_size; index_x++) {
-    class_call(distortions_at_x(pba,psd,
-                                psd->x[index_x],
-                                pvecdist),
-               psd->error_message,
-               psd->error_message);
-    /* Public quantities */
-    psd->DI[index_x] = pvecdist[psd->index_sd_DI];
-  }
-  /* Free space */
-  free(pvecdist);
+  /* Define final spectral distortions */
+  class_call(distortions_spectral_shapes(pba,psd),
+             psd->error_message,
+             psd->error_message);
 
   return _SUCCESS_;
 }
@@ -194,25 +84,14 @@ int distortions_init(struct precision * ppr,
  * @return the error status
  */
 int distortions_free(struct distortions * psd) {
-  /* Define local variables */
-  int index_br;
-
   if(psd->has_distortions == _TRUE_){
-    /* Free from distortions_get_xz_lists() */
     free(psd->z);
     free(psd->x);
     free(psd->z_weights);
 
-
-    /* Free from distortions_branching_ratios() */
-    for(index_br=0;index_br<psd->br_size;++index_br){
-      free(psd->branching_ratios[index_br]);
-    }
-    free(psd->branching_ratios);
-
-    /* Free from distortions_init() */
-    free(psd->dQrho_dz_tot);
-    free(psd->sd_parameter);
+    free(psd->br_table);
+    free(psd->heating_table);
+    free(psd->sd_parameter_table);
     free(psd->DI);
   }
 
@@ -229,45 +108,38 @@ int distortions_free(struct distortions * psd) {
 int distortions_indices(struct distortions * psd) {
   /* Define local variables */
   int index_ht = 0;
-  int index_sd = 0;
-  int index_br = 0;
+  int index_type = 0;
 
-  /* Branching ratios from distortions_branching_ratios() */
-  class_define_index(psd->index_br_bb_visibility,_TRUE_,index_br,1);
-  class_define_index(psd->index_br_f_g,_TRUE_,index_br,1);
-  class_define_index(psd->index_br_f_mu,_TRUE_,index_br,1);
-  class_define_index(psd->index_br_f_y,_TRUE_,index_br,1);
-  class_define_index(psd->index_br_f_r,_TRUE_,index_br,1);
-  class_define_index(psd->index_br_E_vec,psd->branching_approx==bra_exact,index_br,psd->N_PCA);
-
-  psd->br_size = index_br;
-
-  /* Heating functions from heating_at_z() */
+  /* Indeces for table heating_table defined in distortions_heating_rate() */
   class_define_index(psd->index_ht_dQrho_dz_cool,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_diss,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_CRR,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_ann,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_dec,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_eva_PBH,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_acc_PBH,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_tot,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_tot_screened,_TRUE_,index_ht,1);
 
   psd->ht_size = index_ht;
 
-  /* Spectral distortions from distortions_at_x() */
-  class_define_index(psd->index_sd_Y,_TRUE_,index_sd,1);
-  class_define_index(psd->index_sd_M,_TRUE_,index_sd,1);
-  class_define_index(psd->index_sd_G,_TRUE_,index_sd,1);
-  class_define_index(psd->index_sd_S_vec,_TRUE_,index_sd,psd->N_PCA);
-  class_define_index(psd->index_sd_DI,_TRUE_,index_sd,1);
+  /* Indeces for tables br_table defined in distortions_branching_ratios(),
+                        sd_parameter_table defined in distortions_amplitudes() and
+                        distortions_table defined in distortions_at_x() */
+  class_define_index(psd->index_type_g,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_y,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_r,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_PCA,_TRUE_,index_type,1);
 
-  psd->sd_size = index_sd;
+  psd->type_size = index_type;
 
   return _SUCCESS_;
 }
 
 
 /**
- * Compute redshift and frequency vectors and weights for redshift integral.
+ * Calculate redshift and frequency vectors and weights for redshift integral.
  *
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
@@ -278,8 +150,7 @@ int distortions_get_xz_lists(struct background * pba,
                              struct thermo * pth, 
                              struct distortions * psd){
   /* Define local variables */
-  int index_z;
-  int index_x;
+  int index_z, index_x;
 
   /* Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;
@@ -330,7 +201,7 @@ int distortions_get_xz_lists(struct background * pba,
 
 
 /**
- * Calculate all the branching ratios of the Green's functions.
+ * Calculate branching ratios.
  *
  * Computing the full evolution of the thermal history of the universe is rather time consuming
  * and mathematically challenging. It is therefore not implemented here. However, there are
@@ -343,6 +214,8 @@ int distortions_get_xz_lists(struct background * pba,
  *       ('branching approx'=soft_soft_cons)
  *    5) Use a PCA method as described in Chluba & Jeong 2014 ('branching approx'=exact)
  *
+ * All quantities are stored in the table br_table
+ *
  * @param ppr        Input: pointer to the precision structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
@@ -350,24 +223,19 @@ int distortions_get_xz_lists(struct background * pba,
 int distortions_branching_ratios(struct precision * ppr,
                                  struct distortions* psd){
   /* Define local variables */
-  int index_z,index_br,index_e;
-  double* f_E;
+  int index_z,index_type,index_e;
+  double f_g, f_y, f_mu;
+  double * f_E;
   int last_index = 0;
 
-  /** Allocate space for branching ratios in branching_ratios table */ 
-  // TODO: ML for NS: why double allocation? Does it work in only one step?
-  class_alloc(psd->branching_ratios,
-              psd->br_size*sizeof(double*),
+  /** Allocate space for branching ratios in br_table */ 
+  class_alloc(psd->br_table,
+              psd->type_size*sizeof(double*),
               psd->error_message);
-  for(index_br=0; index_br<psd->br_size; ++index_br){
-    class_alloc(psd->branching_ratios[index_br],
+  for(index_type=0; index_type<psd->type_size; ++index_type){
+    class_alloc(psd->br_table[index_type],
                 psd->z_size*sizeof(double),
                 psd->error_message);
-  }
-
-  /** Calculate visibility function */
-  for(index_z=0; index_z<psd->z_size; ++index_z){
-    psd->branching_ratios[psd->index_br_bb_visibility][index_z] = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
   }
 
   /** Calulate branching ratios */
@@ -376,50 +244,54 @@ int distortions_branching_ratios(struct precision * ppr,
       /* 1) Calculate branching ratios using sharp_sharp transition */
       if(psd->branching_approx == bra_sharp_sharp){
         if(psd->z[index_z]>psd->z_th){
-          psd->branching_ratios[psd->index_br_f_g][index_z] = 1.;
-          psd->branching_ratios[psd->index_br_f_y][index_z] = 0.;
-          psd->branching_ratios[psd->index_br_f_mu][index_z] = 0.;
+          f_g = 1.;
+          f_y = 0.;
+          f_mu = 0.;
         }
         if(psd->z[index_z]<psd->z_th && psd->z[index_z]>psd->z_muy){
-          psd->branching_ratios[psd->index_br_f_g][index_z] = 0.;
-          psd->branching_ratios[psd->index_br_f_y][index_z] = 0.;
-          psd->branching_ratios[psd->index_br_f_mu][index_z] = 1.;
+          f_g = 0.;
+          f_y = 0.;
+          f_mu = 1.;
         }
         if(psd->z[index_z]<psd->z_muy){
-          psd->branching_ratios[psd->index_br_f_g][index_z] = 0.;
-          psd->branching_ratios[psd->index_br_f_y][index_z] = 1.;
-          psd->branching_ratios[psd->index_br_f_mu][index_z] = 0.;
+          f_g = 0.;
+          f_y = 1.;
+          f_mu = 0.;
         }
       }
 
       /* 2) Calculate branching ratios using sharp_soft transition */
       if(psd->branching_approx == bra_sharp_soft){
-        psd->branching_ratios[psd->index_br_f_g][index_z] = 1.-psd->branching_ratios[psd->index_br_bb_visibility][index_z];
+        f_g = 1.-exp(-pow(psd->z[index_z]/psd->z_th,2.5));
         if(psd->z[index_z]>psd->z_muy){
-          psd->branching_ratios[psd->index_br_f_y][index_z] = 0.;
-          psd->branching_ratios[psd->index_br_f_mu][index_z] = psd->branching_ratios[psd->index_br_bb_visibility][index_z];
+          f_y = 0.;
+          f_mu = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
         }
         if(psd->z[index_z]<psd->z_muy){
-          psd->branching_ratios[psd->index_br_f_y][index_z] = 1.;
-          psd->branching_ratios[psd->index_br_f_mu][index_z] = 0.;
+          f_y = 1.;
+          f_mu = 0.;
         }
       }
 
       /* 3) Calculate branching ratios unsing soft_soft transitions */
       if(psd->branching_approx == bra_soft_soft){
-        psd->branching_ratios[psd->index_br_f_g][index_z] = 1.-psd->branching_ratios[psd->index_br_bb_visibility][index_z];
-        psd->branching_ratios[psd->index_br_f_y][index_z] = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
-        psd->branching_ratios[psd->index_br_f_mu][index_z] = psd->branching_ratios[psd->index_br_bb_visibility][index_z]*
-                                                             (1.0-exp(-pow((1.0+psd->z[index_z])/(5.8e4),1.88)));
+        f_g = 1.-exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+        f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
+        f_mu = exp(-pow(psd->z[index_z]/psd->z_th,2.5))*
+                                                     (1.0-exp(-pow((1.0+psd->z[index_z])/(5.8e4),1.88)));
       }
 
       /* 4) Calculate branching ratios unsing soft_soft_cons transitions */
       if(psd->branching_approx == bra_soft_soft_cons){
-        psd->branching_ratios[psd->index_br_f_g][index_z] = 1.-psd->branching_ratios[psd->index_br_bb_visibility][index_z];
-        psd->branching_ratios[psd->index_br_f_y][index_z] = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
-        psd->branching_ratios[psd->index_br_f_mu][index_z] = psd->branching_ratios[psd->index_br_bb_visibility][index_z]*
-                                                             (1.-psd->branching_ratios[psd->index_br_f_y][index_z]);
+        f_g = 1.-exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+        f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
+        f_mu = exp(-pow(psd->z[index_z]/psd->z_th,2.5))*(1.-f_y);
       }
+
+    psd->br_table[psd->index_type_g][index_z] = f_g;
+    psd->br_table[psd->index_type_g][index_z] = f_y;
+    psd->br_table[psd->index_type_g][index_z] = f_mu;
+
     }
   }
   else{
@@ -443,17 +315,23 @@ int distortions_branching_ratios(struct precision * ppr,
     for(index_z=0; index_z<psd->z_size; ++index_z){
       class_call(distortions_interpolate_BR_exact_data(psd,
                                                        psd->z[index_z],
-                                                       &psd->branching_ratios[psd->index_br_f_g][index_z],
-                                                       &psd->branching_ratios[psd->index_br_f_y][index_z],
-                                                       &psd->branching_ratios[psd->index_br_f_mu][index_z],
+                                                       &psd->br_table[psd->index_type_g][index_z],
+                                                       &psd->br_table[psd->index_type_y][index_z],
+                                                       &psd->br_table[psd->index_type_mu][index_z],
                                                        f_E,
-                                                       &last_index),  //TODO: ML to NS: what corresponds to last_index?
+                                                       &last_index),
                  psd->error_message,
                  psd->error_message);
     }
     for(index_e=0; index_e<psd->N_PCA; ++index_e){
-      psd->branching_ratios[psd->index_br_E_vec+index_e][index_z]=f_E[index_e];
+      psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
+
+      if(psd->distortions_verbose > 2){
+        printf("[%i] = %.10e \n",index_e,
+                                 psd->br_table[psd->index_type_PCA+index_e][index_z]);
+      }
     }
+
     /* Free space allocated in distortions_read_BR_exact_data() */
     class_call(distortions_free_BR_exact_data(psd),
                psd->error_message,
@@ -461,10 +339,10 @@ int distortions_branching_ratios(struct precision * ppr,
     free(f_E);
   }
 
-  psd->branching_ratios[psd->index_br_f_r][index_z] = 1.-
-                                                      psd->branching_ratios[psd->index_br_f_g][index_z]-
-                                                      psd->branching_ratios[psd->index_br_f_g][index_z]-
-                                                      psd->branching_ratios[psd->index_br_f_g][index_z];
+  psd->br_table[psd->index_type_r][index_z] = 1.-
+                                              psd->br_table[psd->index_type_g][index_z]-
+                                              psd->br_table[psd->index_type_g][index_z]-
+                                              psd->br_table[psd->index_type_g][index_z];
 
   return _SUCCESS_;
 
@@ -472,8 +350,7 @@ int distortions_branching_ratios(struct precision * ppr,
 
 
 /**
- * Calculate all redshift dependent quantities needed to compute the spectral distortions, i.e.
- * the branching ratios of the Green's functions and the heating rates.
+ * Calculate heating rates.
  *
  * There are many possible sources of heating (for all details see e.g. Chluba & Sunyaev 2012),
  * some are present even for the standard cosmological model like
@@ -500,267 +377,342 @@ int distortions_branching_ratios(struct precision * ppr,
  *          b) Disk accretion as described in Poulin et al. 2017
  *       (see also Carr et al. 2010 for useful discussion)
  *
+ * All quantities are stored in the table heating_table
+ *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param ppt        Input: pointer to the perturbations structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param ppm        Input: pointer to the primordial structure
  * @param psd        Input: pointer to the distortions structure
- * @param z          Input: redshift
- * @param pvecheat   Output: vector of heating functions (assumed to be already allocated)
+ * @return the error status
  */
-int heating_at_z(struct precision * ppr,
-                 struct background* pba,
-                 struct perturbs * ppt,
-                 struct thermo * pth,
-                 struct primordial * ppm,
-                 struct distortions * psd,
-                 double z,
-                 double * pvecheat) {
+int distortions_heating_rate(struct precision * ppr,
+                             struct background* pba,
+                             struct perturbs * ppt,
+                             struct thermo * pth,
+                             struct primordial * ppm,
+                             struct distortions * psd){
   /* Define local variables */
+  int index_z;
   double tau;
-  int last_index = 0;
-  double * pvecback, O_b, O_cdm, h, H, a, t, rho_g, R, T_g0;
-  double * pvecthermo, dk, dz_kD, kD, N_e, X_e, Y_He, Y_p, p_ann;
-  double z_th, z_muy;
+  int last_index;
+  double * pvecback, O_b, h, H, a, t, rho_g, R, T_g0;
+  double * pvecthermo, dk, dz_kD, kD, N_e, X_e, Y_He;
+  int index_ht;
   double alpha_h, tilde_rho_g, theta_g;
   double k_max, k_min, k_size, k_delta, k, pk_primordial_k, * int_dQrho_dz_diss_full, * int_dQrho_dz_diss_approx;
   double g_h;
 
-  /* From z to tau */
-  class_call(background_tau_of_z(pba,
-                                 z,
-                                 &tau),
-             pba->error_message,
-             psd->error_message);
+  for(index_z=0; index_z<psd->z_size; ++index_z){
+    /* From z to tau */
+    class_call(background_tau_of_z(pba,
+                                   psd->z[index_z],
+                                   &tau),
+               pba->error_message,
+               psd->error_message);
 
-  /** Import quantities from background */
-  class_alloc(pvecback,
-              pba->bg_size*sizeof(double),
-              psd->error_message);
-  class_call(background_at_tau(pba,
-                               tau,
-                               pba->long_info,
-                               pba->inter_closeby,
-                               &last_index,
-                               pvecback),
-             pba->error_message,
-             psd->error_message);
-  O_b = pba->Omega0_b;                                                                // [-]
-  O_cdm = pba->Omega0_cdm;                                                            // [-]
-  h = pba->h;                                                                         // [-]
-  H = pvecback[pba->index_bg_H];                                                      // [1/Mpc]
-  a = pvecback[pba->index_bg_a];                                                      // [-]
-  t = pvecback[pba->index_bg_time];                                                   // [Mpc]
-  t /= _s_over_Mpc_;                                                                  // [s]
-  rho_g = pvecback[pba->index_bg_rho_g];                                              // [1/Mpc^4]
-  rho_g /= _GeVcm3_over_Mpc4_;                                                        // [GeV/cm^3]
-  R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];            // [-]
-  T_g0 = pba->T_cmb;                                                                  // [K]
-
-  /** Import quantities from thermodynamics */
-  class_alloc(pvecthermo,
-              pth->tt_size*sizeof(double),
-              psd->error_message);
-  class_call(thermodynamics_at_z(pba,
-                                 pth,
-                                 z,
-                                 pth->inter_normal,
-                                 &last_index,
-                                 pvecback,
-                                 pvecthermo),
-             pth->error_message,
-             psd->error_message);
-  dk = pvecthermo[pth->index_th_dkappa];                                              // [1/Mpc]
-  dz_kD = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                   // [Mpc^2]
-  kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                         // [1/Mpc]
-  N_e = pth->n_e;                                                                     // [1/m^3] (today)
-  X_e = pvecthermo[pth->index_th_xe];                                                 // [-]
-  Y_He = pth->YHe;                                                                    // [-]
-  Y_p = 1.-Y_He;                                                                      // [-]
-
-  /* Free allocated space */
-  free(pvecback);
-  free(pvecthermo);
-
-  /** 1) Adiabatically cooling electrons and barions */
-  tilde_rho_g = rho_g/(_m_e_/_GeV_over_kg_);                                          // [1/cm^3]
-  theta_g = (_k_B_*T_g0*(1.+z))/(_m_e_*pow(_c_,2.));                                  // [-]
-  alpha_h = (3./2.)*N_e*1.e-6*pow(1.+z,3.)*(1.+Y_He+X_e);                             // [1/cm^3]
-  pvecheat[psd->index_ht_dQrho_dz_cool] = -a*alpha_h/tilde_rho_g*theta_g;             // [-]
-
-  /** 2) dissipation of acoustic waves */
-  /* a) Full function */
-  if (psd->dQrho_dz_diss_approx == _FALSE_){
-  }
-
-  /* b) Approximated function */
-  if (psd->dQrho_dz_diss_approx == _TRUE_){
-    k_max = 5.*kD;
-    k_min = 0.12;
-    k_size = 500;        /* Found to be reasonable for this particular integral */
-
-    class_alloc(int_dQrho_dz_diss_approx,
-                k_size*sizeof(double),
+    /** Import quantities from background */
+    last_index = 0;
+    class_alloc(pvecback,
+                pba->bg_size*sizeof(double),
                 psd->error_message);
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->long_info,
+                                 pba->inter_closeby,
+                                 &last_index,
+                                 pvecback),
+               pba->error_message,
+               psd->error_message);
+    O_b = pba->Omega0_b;                                                              // [-]
+    h = pba->h;                                                                       // [-]
+    H = pvecback[pba->index_bg_H];                                                    // [1/Mpc]
+    a = pvecback[pba->index_bg_a];                                                    // [-]
+    t = pvecback[pba->index_bg_time];                                                 // [Mpc]
+    t /= _s_over_Mpc_;                                                                // [s]
+    rho_g = pvecback[pba->index_bg_rho_g];                                            // [1/Mpc^4]
+    rho_g /= _GeVcm3_over_Mpc4_;                                                      // [GeV/cm^3]
+    R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];          // [-]
+    T_g0 = pba->T_cmb;                                                                // [K]
 
-    for (int index_k=0; index_k<k_size; index_k++) {
-      k = exp(log(k_min)+(log(k_max)-log(k_min))/(k_size)*index_k);
+    /** Import quantities from thermodynamics */
+    class_alloc(pvecthermo,
+                pth->tt_size*sizeof(double),
+                psd->error_message);
+    class_call(thermodynamics_at_z(pba,
+                                   pth,
+                                   psd->z[index_z],
+                                   pth->inter_normal,
+                                   &last_index,
+                                   pvecback,
+                                   pvecthermo),
+               pth->error_message,
+               psd->error_message);
+    dk = pvecthermo[pth->index_th_dkappa];                                            // [1/Mpc]
+    dz_kD = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                 // [Mpc^2]
+    kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                       // [1/Mpc]
+    N_e = pth->n_e;                                                                   // [1/m^3] (today)
+    X_e = pvecthermo[pth->index_th_xe];                                               // [-]
+    Y_He = pth->YHe;                                                                  // [-]
 
-      /* Import quantities from primordial
-       * Note that the the heating caused by dissipation of acustic waves depends on the primordial
-       * power spectrum and to analyse the its influence it is enough to change initial parameters. */
-      class_call(primordial_spectrum_at_k(ppm,
+    /* Free allocated space */
+    free(pvecback);
+    free(pvecthermo);
+
+    /** Allocate space for heating rates in heating_table */ 
+    class_alloc(psd->heating_table,
+                psd->ht_size*sizeof(double*),
+                psd->error_message);
+    for(index_ht=0; index_ht<psd->ht_size; ++index_ht){
+      class_alloc(psd->heating_table[index_ht],
+                  psd->z_size*sizeof(double),
+                  psd->error_message);
+    }
+
+    /** 1) Adiabatically cooling electrons and barions */
+    tilde_rho_g = rho_g/(_m_e_/_GeV_over_kg_);                                        // [1/cm^3]
+    theta_g = (_k_B_*T_g0*(1.+psd->z[index_z]))/(_m_e_*pow(_c_,2.));                  // [-]
+    alpha_h = (3./2.)*N_e*1.e-6*pow(1.+psd->z[index_z],3.)*(1.+Y_He+X_e);             // [1/cm^3]
+    psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] = -a*alpha_h/
+                                                               tilde_rho_g*theta_g;   // [-]
+
+    /** 2) dissipation of acoustic waves */
+    /* a) Full function */
+    if (psd->dQrho_dz_diss_approx == _FALSE_){
+    }
+
+    /* b) Approximated function */
+    if (psd->dQrho_dz_diss_approx == _TRUE_){
+      k_max = 5.*kD;
+      k_min = 0.12;
+      k_size = 500;        /* Found to be reasonable for this particular integral */
+
+      class_alloc(int_dQrho_dz_diss_approx,
+                  k_size*sizeof(double),
+                  psd->error_message);
+
+      for (int index_k=0; index_k<k_size; index_k++) {
+        k = exp(log(k_min)+(log(k_max)-log(k_min))/(k_size)*index_k);
+
+        /* Import quantities from primordial
+         * Note that the the heating caused by dissipation of acustic waves depends on the primordial
+         * power spectrum and to analyse the its influence it is enough to change initial parameters. */
+        class_call(primordial_spectrum_at_k(ppm,
                                           ppt->index_md_scalars,
                                           linear,
                                           k,
                                           &pk_primordial_k),
-                 ppm->error_message,
+                   ppm->error_message,
+                   psd->error_message);
+        /* Define integrand for approximated function */
+        int_dQrho_dz_diss_approx[index_k] = 4.*0.81*
+                                            pow(k,2.)*
+                                            pk_primordial_k*
+                                            dz_kD*exp(-2.*pow(k/kD,2.));              // [-]
+      }
+
+      /* Integrate approximate function */
+      class_call(simpson_integration(k_size,
+                                     int_dQrho_dz_diss_approx,
+                                     (log(k_max)-log(k_min))/(k_size),
+                                     &psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z],
+                                     psd->error_message),
+                 psd->error_message,
                  psd->error_message);
-      /* Define integrand for approximated function */
-      int_dQrho_dz_diss_approx[index_k] = 4.*0.81*
-                                          pow(k,2.)*
-                                          pk_primordial_k*
-                                          dz_kD*exp(-2.*pow(k/kD,2.));                // [-]
+
+      /* Free space */
+      free(int_dQrho_dz_diss_approx);
     }
 
-    /* Integrate approximate function */
-    class_call(simpson_integration(k_size,
-                                   int_dQrho_dz_diss_approx,
-                                   (log(k_max)-log(k_min))/(k_size),
-                                   &pvecheat[psd->index_ht_dQrho_dz_diss],
-                                   psd->error_message),
-               psd->error_message,
-               psd->error_message);
+    /** 3) Cosmological recombination */
+    psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] = 0.;
 
-    /* Free space */
-    free(int_dQrho_dz_diss_approx);
-  }
+    /** 4) Annihilating particles */
+    g_h = (1.+Y_He+2*(X_e))/(3.*(1+Y_He));                                            // [-] (TODO: INCOMPLETE)
+    psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] = 0.;
 
-  /** 3) Cosmological recombination */
+    /** 5) Decaying relic particles */
+    psd->heating_table[psd->index_ht_dQrho_dz_dec][index_z] = 0.;
 
-  /** 4) Annihilating particles */
-  g_h = (1.+Y_He+2*(X_e))/(3.*(1+Y_He));                                              // [-] (TODO: INCOMPLETE)
+    /** 6) Evaporation of primordial black holes */
+    psd->heating_table[psd->index_ht_dQrho_dz_eva_PBH][index_z] = 0.;
 
-  pvecheat[psd->index_ht_dQrho_dz_ann] = 0.;
-  /*
-  if(pth->annihilation != 0.){
-      class_call(thermodynamics_DM_annihilation_energy_injection(ppr,
-                                                                 pba,
-                                                                 pth,
-                                                                 z,
-                                                                 &pvecheat[psd->index_ht_dQrho_dz_ann],
-                                                                 pth->error_message),
-                 pth->error_message,
-                 psd->error_message);                                                 // [J/(m^3 s)]
-      pvecheat[psd->index_ht_dQrho_dz_ann] *= a/(H*_s_over_Mpc_)*g_h/
-                                              (rho_g/(_eV_over_joules_*1.e-9)*1.e6);
+    /** 7) Accretion of matter into primordial black holes */
+    psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z] = 0.;
+
+    /** Total heating rate */
+    psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z] = 
+                                        psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_dec][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_eva_PBH][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z];
+    psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z] = 
+                                        psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*
+                                        exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
   }
-  */
-
-  /** 5) Decaying relic particles */
-  pvecheat[psd->index_ht_dQrho_dz_dec] = 0.;
-  /*
-  if(pth->decay_fraction != 0.){
-      class_call(thermodynamics_DM_decay_energy_injection(ppr,
-                                                          pba,
-                                                          pth,
-                                                          z,
-                                                          &pvecheat[psd->index_ht_dQrho_dz_dec],
-                                                          pth->error_message),
-                 pth->error_message,
-                 psd->error_message);                                                 // [J/(m^3 s)]
-      pvecheat[psd->index_ht_dQrho_dz_dec] *= a/(H*_s_over_Mpc_)*g_h/
-                                              (rho_g/(_eV_over_joules_*1.e-9)*1.e6);
-  }
-  */
-
-  /** 6) Evaporation of primordial black holes */
-  /* Note: to use this energy injection mechanism you need to set recfast_z_initial=5.1e6 and recfast_Nz0=4000000 in precision.h */
-  pvecheat[psd->index_ht_dQrho_dz_eva_PBH] = 0.;
-  /*
-  if(pth->PBH_evaporating_mass != 0.){
-      class_call(thermodynamics_evaporating_pbh_energy_injection(ppr,
-                                                                 pba,
-                                                                 pth,
-                                                                 z,
-                                                                 &pvecheat[psd->index_ht_dQrho_dz_eva_PBH],
-                                                                 pth->error_message),
-                 pth->error_message,
-                 psd->error_message);                                                 // [J/(m^3 s)]
-      pvecheat[psd->index_ht_dQrho_dz_eva_PBH] *= a/(H*_s_over_Mpc_)*g_h/
-                                                  (rho_g/(_eV_over_joules_*1.e-9)*1.e6);
-  }
-  */
-
-  /** 7) Accretion of matter into primordial black holes */
-  /* Note: To use this energy injection mechanism you need to set recfast_z_initial=5.1e6 and recfast_Nz0=4000000 in precision.h */
-  pvecheat[psd->index_ht_dQrho_dz_acc_PBH] = 0.;
-  /*
-  if(pth->PBH_accreting_mass != 0.){
-      class_call(thermodynamics_accreting_pbh_energy_injection(ppr,
-                                                               pba,
-                                                               pth,
-                                                               z,
-                                                               &pvecheat[psd->index_ht_dQrho_dz_acc_PBH],
-                                                               pth->error_message),
-                 pth->error_message,
-                 psd->error_message);                                                 // [J/(m^3 s)]
-      pvecheat[psd->index_ht_dQrho_dz_acc_PBH] *= a/(H*_s_over_Mpc_)*g_h/
-                                                  (rho_g/(_eV_over_joules_*1.e-9)*1.e6);
-  }
-  */
-
-  /** Total heating rate */
-  pvecheat[psd->index_ht_dQrho_dz_tot] = 0.;
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_cool];      // [-]
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_diss];      // [-]
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_ann];       // [-]
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_dec];       // [-]
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_eva_PBH];   // [-]
-  pvecheat[psd->index_ht_dQrho_dz_tot] += pvecheat[psd->index_ht_dQrho_dz_acc_PBH];   // [-]
 
   return _SUCCESS_;
+
 }
 
 
 /**
- * Evaluation of the spectral distortions.
+ * Calculate spectral distortions amplitudes.
  *
- * @param pba        Input: pointer to background structure
+ * All quantities are stored in the table heating_table
+ *
  * @param psd        Input: pointer to the distortions structure
- * @param x          Input: dimensionless frequency
- * @param pvecdist   Output: vector of distortions functions (assumed to be already allocated)
+ * @return the error status
  */
-int distortions_at_x(struct background* pba,
-                     struct distortions * psd,
-                     double x,
-                     double * pvecdist) {
+int distortions_amplitudes(struct distortions * psd){
+  /* Define local variables */
+  int index_type;
 
-  /* Calculate spectral distortions */
-  if(psd->N_PCA != 0){
-    class_call(distortions_interpolate_BR_exact_data(psd,
-                                                     x*(_k_B_*pba->T_cmb/_h_P_),      // [-]
-                                                     &pvecdist[psd->index_sd_G],      // [10^-18 W/(m^2 Hz sr)]
-                                                     &pvecdist[psd->index_sd_Y],      // [10^-18 W/(m^2 Hz sr)]
-                                                     &pvecdist[psd->index_sd_M],      // [10^-18 W/(m^2 Hz sr)]
-                                                     &pvecdist[psd->index_sd_S_vec],  // [10^-18 W/(m^2 Hz sr)]
-                                                     &psd->N_PCA),
+  /* Allocate space for spectral distortion amplitude in table sd_parameter_table */
+  class_alloc(psd->sd_parameter_table,
+              psd->type_size*sizeof(double),
+              psd->error_message);
+
+  /* Compute distortion amplitude corresponding to each branching ratio (g, y, mu and r) 
+     Note: as defined in distortions_branching_ratios, all branching ratios are normalized to 1 */
+  for(index_type=0; index_type<psd->type_size; ++index_type){
+    class_call(array_trapezoidal_convolution(psd->br_table[index_type],
+                                             psd->heating_table[psd->index_ht_dQrho_dz_tot_screened],
+                                             psd->z_size,
+                                             psd->z_weights,
+                                             &psd->sd_parameter_table[index_type],
+                                             psd->error_message),
                psd->error_message,
                psd->error_message);
   }
-  else{
-    pvecdist[psd->index_sd_G] = 1.e-18*2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.)*
-                                pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.);                 // [10^-18 W/(m^2 Hz sr)]
-    pvecdist[psd->index_sd_Y] = pvecdist[psd->index_sd_G]*(x*(1.+exp(-x))/
-                                (1.-exp(-x))-4.);                                     // [10^-18 W/(m^2 Hz sr)]
-    pvecdist[psd->index_sd_M] = pvecdist[psd->index_sd_G]*(1./2.19229-1./x);          // [10^-18 W/(m^2 Hz sr)]
+
+  psd->sd_parameter_table[psd->index_type_g] /= 4.;
+  psd->sd_parameter_table[psd->index_type_y] /= 4.;
+  psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
+
+  /* Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
+  psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+
+  /* Calculate total heating */
+  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
+                       psd->sd_parameter_table[psd->index_type_y]*4.+
+                       psd->sd_parameter_table[psd->index_type_mu]/1.401+
+                       psd->sd_parameter_table[psd->index_type_r];
+
+  /* Print found parameters */
+  if (psd->distortions_verbose > 1) {
+    printf("-> total injected/extracted heat = %g\n", psd->Drho_over_rho);
+    //printf("SHOULD BE [NS] (soft_soft) : %g \n",8.11571e-06);
   }
 
-  pvecdist[psd->index_sd_DI] = psd->y*pvecdist[psd->index_sd_Y]+
-                               psd->mu*pvecdist[psd->index_sd_M]+
-                               psd->g*pvecdist[psd->index_sd_G];                      // [10^-18 W/(m^2 Hz sr)]
+  if (psd->distortions_verbose > 1) {
+    if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
+      printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", 
+             psd->sd_parameter_table[psd->index_type_mu]);
+    }
+    else{ 
+      printf("-> mu-parameter = %g\n", 
+             psd->sd_parameter_table[psd->index_type_mu]); }
+      //printf("SHOULD BE [NS] (soft_soft) : %g \n",1.64687e-08);
+  }
+
+  if (psd->distortions_verbose > 1) {
+    if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
+      printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", 
+             psd->sd_parameter_table[psd->index_type_y]);
+    }
+    else{ 
+      printf("-> y-parameter = %g\n", 
+             psd->sd_parameter_table[psd->index_type_y]); }
+      //printf("SHOULD BE [NS] (soft_soft) : %g \n",2.02608e-06);
+  }
+
+  if (psd->distortions_verbose > 1) {
+    printf("-> r-parameter = %g\n", 
+           psd->sd_parameter_table[psd->index_type_r]);
+    //printf("SHOULD BE [NS] (soft_soft) : %g \n",-1.26128e-09);
+  }
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Calculate spectral distortions.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_spectral_shapes(struct background* pba,
+                                struct distortions * psd){
+  /* Define local variables */
+  double * S;
+  int last_index = 0;
+  int index_type, index_x, index_s;
+
+  /** Allocate space for distortions shapes in distortions_table */ 
+  class_alloc(psd->distortions_table,
+              psd->type_size*sizeof(double*),
+              psd->error_message);
+  for(index_type=0; index_type<psd->type_size; ++index_type){
+    class_alloc(psd->distortions_table[index_type],
+                psd->x_size*sizeof(double),
+                psd->error_message);
+  }
+
+  /** Allocate space for final spactral distortion */ 
+  class_alloc(psd->DI,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    /* Calculate spectral distortions */
+    if(psd->N_PCA != 0){
+      class_call(distortions_interpolate_BR_exact_data(psd,
+                                                       psd->x[index_x]*(_k_B_*pba->T_cmb/_h_P_),      // [-]
+                                                       &psd->distortions_table[psd->index_type_g][index_x],      // [10^-18 W/(m^2 Hz sr)]
+                                                       &psd->distortions_table[psd->index_type_y][index_x],      // [10^-18 W/(m^2 Hz sr)]
+                                                       &psd->distortions_table[psd->index_type_mu][index_x],     // [10^-18 W/(m^2 Hz sr)]
+                                                       S,                               // [10^-18 W/(m^2 Hz sr)]
+                                                       &last_index),
+                 psd->error_message,
+                 psd->error_message);
+
+      for(index_s=0; index_s<psd->N_PCA; ++index_s){
+        psd->distortions_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
+
+        if(psd->distortions_verbose > 2){
+          printf("[%i] = %.10e \n",index_s,
+                                   psd->distortions_table[psd->index_type_PCA+index_s][index_x]);
+        }
+      }
+
+    }
+    else{
+
+      psd->distortions_table[psd->index_type_g][index_x] = 1.e-18*2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.)*
+                                                           pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
+                                                           pow(1.-exp(-psd->x[index_x]),2.);                 // [10^-18 W/(m^2 Hz sr)]
+      psd->distortions_table[psd->index_type_y][index_x] = psd->distortions_table[psd->index_type_g][index_x]*
+                                                           (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
+                                                           (1.-exp(-psd->x[index_x]))-4.);                                     // [10^-18 W/(m^2 Hz sr)]
+      psd->distortions_table[psd->index_type_mu][index_x] = psd->distortions_table[psd->index_type_g][index_x]*
+                                                            (1./2.19229-1./psd->x[index_x]);          // [10^-18 W/(m^2 Hz sr)]
+    }
+
+    psd->DI[index_x] = psd->sd_parameter_table[psd->index_type_y]*psd->distortions_table[psd->index_type_g][index_x]+
+                       psd->sd_parameter_table[psd->index_type_mu]*psd->distortions_table[psd->index_type_y][index_x]+
+                       psd->sd_parameter_table[psd->index_type_g]*psd->distortions_table[psd->index_type_mu][index_x];                      // [10^-18 W/(m^2 Hz sr)]
+  }
 
   return _SUCCESS_;
 }
@@ -1029,9 +981,9 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
                                           double * f_y,
                                           double * f_mu,
                                           double * f_E,
-                                          int * index){
+                                          int * last_index){
   /* Define local variables */
-  int last_index = *index;
+  int index = *last_index;
   int index_e;
   double h,a,b;
 
@@ -1039,7 +991,7 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
   class_call(array_spline_hunt(psd->br_exact_z,
                                psd->br_exact_Nz,
                                z,
-                               &last_index,
+                               &index,
                                &h,
                                &a,
                                &b,
@@ -1050,28 +1002,28 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
   /* Evaluate corresponding values for the branching ratios */
   *f_g = 4*array_interpolate_spline_hunt(psd->f_g_exact,
                                          psd->ddf_g_exact,
-                                         last_index,
-                                         last_index+1,
+                                         index,
+                                         index+1,
                                          h,a,b);
   *f_y = 4*array_interpolate_spline_hunt(psd->f_y_exact,
                                          psd->ddf_y_exact,
-                                         last_index,
-                                         last_index+1,
+                                         index,
+                                         index+1,
                                          h,a,b);
   *f_mu = 1./1.401*array_interpolate_spline_hunt(psd->f_mu_exact,
                                                  psd->ddf_mu_exact,
-                                                 last_index,
-                                                 last_index+1,
+                                                 index,
+                                                 index+1,
                                                  h,a,b);
   for(index_e=0;index_e<psd->N_PCA;++index_e){
     f_E[index_e] = array_interpolate_spline_hunt(psd->E_vec,
                                                  psd->ddE_vec,
-                                                 last_index*psd->E_vec_size+index_e,
-                                                 (last_index+1)*psd->E_vec_size+index_e,
+                                                 index*psd->E_vec_size+index_e,
+                                                 (index+1)*psd->E_vec_size+index_e,
                                                  h,a,b);
   }
 
-  *index = last_index;
+  *last_index = index;
 
   return _SUCCESS_;
 
@@ -1347,7 +1299,7 @@ int heating_output_data(struct distortions * psd,
     dataptr = data + index_z*number_of_titles;
     storeidx = 0;
     class_store_double(dataptr, psd->z[index_z], _TRUE_, storeidx);
-    class_store_double(dataptr, psd->dQrho_dz_tot[index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z], _TRUE_, storeidx);
   }
 
   return _SUCCESS_;

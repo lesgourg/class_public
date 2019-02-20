@@ -38,7 +38,7 @@ struct distortions
 
   //@{
 
-  /* Precision parameters called in distortions_get_xz_lists() */
+  /* Precision parameters */
   double z_muy;
   double z_th;
 
@@ -46,6 +46,7 @@ struct distortions
   double z_max;                              /* Maximum redshift */
   double z_delta;                            /* Redshift intervals */
   int z_size;                                /* Lenght of redshift array */
+  double * z;                                /* z[index_z] = list of values */
 
   double * z_weights;
 
@@ -53,47 +54,35 @@ struct distortions
   double x_max;                              /* Maximum dimentionless frequency */
   double x_delta;                            /* dimentionless frequency intervals */
   int x_size;                                /* Lenght of dimentionless frequency array */
+  double * x;                                /* x[index_x] = list of values */
 
-  /* Branching ratios called in distortions_branching_ratios() */
-  double ** branching_ratios;                /* [index_br][index_z] [NS] */
-  double * sd_parameter;
-  int index_br_bb_visibility;                /* blackbody visibility function */
-  int index_br_f_g;                          /* Branching ratios */
-  int index_br_f_mu;
-  int index_br_f_y;
-  int index_br_f_r;
-  int index_br_E_vec;
-  int br_size;
-
-  /* Heating ratios called in heating_at_z() */
+  /* Table storing heating rates */
+  double ** heating_table;
   int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
   int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */
+  int index_ht_dQrho_dz_CRR;                 /* Heating function from cosmological recombination radiation */
   int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */
   int index_ht_dQrho_dz_dec;                 /* Heating function from particle decay */
   int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
   int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
   int index_ht_dQrho_dz_tot;                 /* Total heating function */
+  int index_ht_dQrho_dz_tot_screened;        /* Total heating function * blackbody visibility function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
 
-  /* Spectral distortions called in distortions_at_x() */
-  int index_sd_Y;                            /* Shape of y distortions */
-  int index_sd_M;                            /* Shape of mu distortions */
-  int index_sd_G;                            /* Shape of shifted power specrum */
-  int index_sd_S_vec;
-  int index_sd_DI;                           /* Shape of final distortions */
-  int sd_size;                               /* Size of the allocated space for distortions quantities */
+  /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all 
+     types of distortios */
+  double ** br_table; 
+  double * sd_parameter_table;
+  double ** distortions_table;
+  int index_type_g; 
+  int index_type_mu;
+  int index_type_y;
+  int index_type_r;
+  int index_type_PCA;
+  int type_size;
 
-  /* Output parameters */
-  double * z;                                /* z[index_z] = list of values */
-  double * dQrho_dz_tot;                     /* dQrho_dz_tot[index_z] = list of values */
-
-  double g;                                  /* g-parameter */
-  double mu;                                 /* mu-parameter */
-  double y;                                  /* y-parameter */
-  double r;                                  /* r-parameter */
-  double Drho_over_rho;                      /* Total emitted/injected heat */
-
-  double * x;                                /* x[index_x] = list of values */
+  /* ?? */
+  double Drho_over_rho;
   double * DI;                               /* DI[index_x] = list of values */
 
   /* Variables to read and allocate external file Greens_data.dat */
@@ -180,19 +169,17 @@ extern "C" {
   int distortions_branching_ratios(struct precision * ppr,
                                    struct distortions* psd);
 
-  int heating_at_z(struct precision * ppr,
-                   struct background* pba,
-                   struct perturbs * ppt,
-                   struct thermo * pth,
-                   struct primordial * ppm,
-                   struct distortions * psd,
-                   double z,
-                   double * pvecheat);
+  int distortions_heating_rate(struct precision * ppr,
+                               struct background* pba,
+                               struct perturbs * ppt,
+                               struct thermo * pth,
+                               struct primordial * ppm,
+                               struct distortions * psd);
 
-  int distortions_at_x(struct background* pba,
-                       struct distortions * psd,
-                       double x,
-                       double * pvecdist);
+  int distortions_amplitudes(struct distortions * psd);
+
+  int distortions_spectral_shapes(struct background* pba,
+                                  struct distortions * psd);
 
   /* Read, spline, interpolate and free external files */
   int distortions_read_Greens_data(struct precision * ppr,
@@ -208,7 +195,7 @@ extern "C" {
                                             double* f_y,
                                             double* f_mu,
                                             double* E,
-                                            int * index);
+                                            int * last_index);
   int distortions_free_BR_exact_data(struct distortions * psd);
 
   int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
