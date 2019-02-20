@@ -34,7 +34,7 @@ struct distortions
   //@}
 
 
-  /** @name - Internal parameter used only in distortions.c */
+  /** @name - Public tables and parameters */
 
   //@{
 
@@ -66,7 +66,7 @@ struct distortions
   int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
   int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
   int index_ht_dQrho_dz_tot;                 /* Total heating function */
-  int index_ht_dQrho_dz_tot_screened;        /* Total heating function * blackbody visibility function */
+  int index_ht_dQrho_dlnz_tot_screened;      /* Total heating function * blackbody visibility function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all 
@@ -178,7 +178,8 @@ extern "C" {
 
   int distortions_amplitudes(struct distortions * psd);
 
-  int distortions_spectral_shapes(struct background* pba,
+  int distortions_spectral_shapes(struct precision * ppr,
+                                  struct background * pba,
                                   struct distortions * psd);
 
   /* Read, spline, interpolate and free external files */
