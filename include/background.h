@@ -553,6 +553,12 @@ extern "C" {
 
 //@{
 
+#define _eV_over_K_ 8.6173303e-5 /**< Boltzmann constant in eV/Kelvin */
+
+#define _Mpc_over_cm_ 3.0856e24  /**< conversion factor from centimeters to megaparsecs */
+
+#define _invGeV_over_cm_ 1.9733e-14  /**< conversion factor from centimeters to GeV^-1 */
+
 #define _Mpc_over_m_ 3.085677581282e22  /**< conversion factor from meters to megaparsecs */
 /* remark: CAMB uses 3.085678e22: good to know if you want to compare  with high accuracy */
 

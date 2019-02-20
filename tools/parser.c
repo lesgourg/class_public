@@ -93,7 +93,9 @@ int parser_read_line(
   char * left;
   char * right;
 
-  /* check that there is an '=' */
+  /* check that there is an '=' (if you want the role of '=' to be
+     played by ':' you only need to substitute it in the next line and
+     recompile) */
 
   pequal=strchr(line,'=');
   if (pequal == NULL) {*is_data = _FALSE_; return _SUCCESS_;}
@@ -109,13 +111,24 @@ int parser_read_line(
   while (left[0]==' ') {
     left++;
   }
+  /* Ignore any of " ' */
+  if(left[0]=='\'' || left[0]=='\"'){
+    left++;
+  }
 
   right=pequal-1;
   while (right[0]==' ') {
     right--;
   }
+  if(right[0]=='\'' || right[0]=='\"'){
+    right--;
+  }
 
-  if (right-left < 0) {*is_data = _FALSE_; return _SUCCESS_;}
+  /* deal with missing variable names */
+
+  class_test(right-left < 0,
+             errmsg,
+             "Syntax error in the input line '%s': no name passed on the left of the '=' sign",line);
 
   class_test(right-left+1 >= _ARGUMENT_LENGTH_MAX_,
 	     errmsg,
@@ -184,7 +197,7 @@ int parser_read_int(
 
   class_test(sscanf(pfc->value[index],"%d",value) != 1,
 	     errmsg,
-	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
+	     "could not read value of parameter '%s' in file '%s'\n",name,pfc->filename);
 
   /* if parameter read correctly, set 'found' flag to true, as well as the flag
      associated with this parameter in the file_content structure */
@@ -198,7 +211,7 @@ int parser_read_int(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
 
   /* if everything proceeded normally, return with 'found' flag equal to true */
@@ -236,7 +249,7 @@ int parser_read_double(
 
   class_test(sscanf(pfc->value[index],"%lg",value) != 1,
 	     errmsg,
-	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
+	     "could not read value of parameter '%s' in file '%s'\n",name,pfc->filename);
 
   /* if parameter read correctly, set 'found' flag to true, as well as the flag
      associated with this parameter in the file_content structure */
@@ -250,7 +263,7 @@ int parser_read_double(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
 
   /* if everything proceeded normally, return with 'found' flag equal to true */
@@ -289,7 +302,7 @@ int parser_read_double_and_position(
 
   class_test(sscanf(pfc->value[index],"%lg",value) != 1,
 	     errmsg,
-	     "could not read value of parameter %s in file %s\n",name,pfc->filename);
+	     "could not read value of parameter '%s' in file '%s'\n",name,pfc->filename);
 
   /* if parameter read correctly, set 'found' flag to true, as well as the flag
      associated with this parameter in the file_content structure */
@@ -303,7 +316,7 @@ int parser_read_double_and_position(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
 
   /* if everything proceeded normally, return with 'found' flag equal to true */
@@ -355,7 +368,7 @@ int parser_read_string(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
 
   /* if everything proceeded normally, return with 'found' flag equal to true */
@@ -426,7 +439,7 @@ int parser_read_list_of_doubles(
     }
     class_test(sscanf(string_with_one_value,"%lg",&(list[i-1])) != 1,
 	       errmsg,
-	       "could not read %dth value of list of parameters %s in file %s\n",
+	       "could not read %dth value of list of parameters '%s' in file '%s'\n",
 	       i,
 	       name,
 	       pfc->filename);
@@ -445,7 +458,7 @@ int parser_read_list_of_doubles(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
 
   /* if everything proceeded normally, return with 'found' flag equal to true */
@@ -516,7 +529,7 @@ int parser_read_list_of_integers(
     }
     class_test(sscanf(string_with_one_value,"%d",&(list[i-1])) != 1,
 	       errmsg,
-	       "could not read %dth value of list of parameters %s in file %s\n",
+	       "could not read %dth value of list of parameters '%s' in file '%s'\n",
 	       i,
 	       name,
 	       pfc->filename);
@@ -535,7 +548,7 @@ int parser_read_list_of_integers(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
 
   /* if everything proceeded normally, return with 'found' flag equal to true */
@@ -619,7 +632,7 @@ int parser_read_list_of_strings(
   for (i=index+1; i < pfc->size; i++) {
     class_test(strcmp(pfc->name[i],name) == 0,
 	       errmsg,
-	       "multiple entry of parameter %s in file %s\n",name,pfc->filename);
+	       "multiple entry of parameter '%s' in file '%s'\n",name,pfc->filename);
   }
   /* if everything proceeded normally, return with 'found' flag equal to true */
   return _SUCCESS_;

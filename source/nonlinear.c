@@ -13,6 +13,16 @@
 
 #include "nonlinear.h"
 
+/**
+ * Return the value of the non-linearity wavenumber k_nl for a given redshift z
+ * @param pba Input: pointer to background structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param z Input: redshift
+ * @param k_nl Output: k_nl value
+ * @param k_nl_cb Ouput: k_nl value of the cdm+baryon part only, if there is ncdm
+ * @return the error status
+ */
+
 int nonlinear_k_nl_at_z(
                         struct background *pba,
                         struct nonlinear * pnl,
@@ -22,7 +32,8 @@ int nonlinear_k_nl_at_z(
                         ) {
 
   double tau;
-  int index_pk;
+
+  /** - convert input redshift into a conformal time */
 
   class_call(background_tau_of_z(pba,
                                  z,
@@ -30,25 +41,32 @@ int nonlinear_k_nl_at_z(
              pba->error_message,
              pnl->error_message);
 
-  if (pnl->tau_size == 1) {
-    *k_nl = pnl->k_nl[pnl->index_pk_m][0];
-  }
-  else {
-    class_call(array_interpolate_two(pnl->tau,
-                                     1,
-                                     0,
-                                     pnl->k_nl[pnl->index_pk_m],
-                                     1,
-                                     pnl->tau_size,
-                                     tau,
-                                     k_nl,
-                                     1,
-                                     pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
+  /** - interpolate the precomputed k_nl array at the needed valuetime */
+
+  if (pnl->has_pk_m == _TRUE_) {
+
+    if (pnl->tau_size == 1) {
+      *k_nl = pnl->k_nl[pnl->index_pk_m][0];
+    }
+    else {
+      class_call(array_interpolate_two(pnl->tau,
+                                       1,
+                                       0,
+                                       pnl->k_nl[pnl->index_pk_m],
+                                       1,
+                                       pnl->tau_size,
+                                       tau,
+                                       k_nl,
+                                       1,
+                                       pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
   }
 
-  if (pba->has_ncdm){
+  /** - if needed, do the same for the baryon part only */
+
+  if (pnl->has_pk_cb) {
 
     if (pnl->tau_size == 1) {
       *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
@@ -67,14 +85,29 @@ int nonlinear_k_nl_at_z(
                  pnl->error_message,
                  pnl->error_message);
     }
-
   }
+
+  /* otherwise, return the same for k_nl_cb as for k_nl */
+
   else{
     *k_nl_cb = *k_nl;
   }
 
   return _SUCCESS_;
 }
+
+/**
+ * Initialize the nonlinear structure, and in particular the
+ * nl_corr_density and k_nl interpolation tables.
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pth Input: pointer to therodynamics structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input/Output: pointer to initialized nonlinear structure
+ * @return the error status
+ */
 
 int nonlinear_init(
                    struct precision *ppr,
@@ -89,21 +122,33 @@ int nonlinear_init(
   int index_k;
   int index_tau;
   int index_pk;
-  double **pk_l;
-  double **pk_nl;
-  double **lnk_l;
-  double **lnpk_l;
-  double **ddlnpk_l;
+  double *pk_l;
+  double *pk_nl;
+  double *lnk_l;
+  double *lnpk_l;
+  double *ddlnpk_l;
   short print_warning=_FALSE_;
   double * pvecback;
   int last_index;
   double a,z;
   short halofit_found_k_max;
-  int pk_type;
 
-  /** Summary
-   *
-   * (a) First deal with the case where non non-linear corrections requested */
+  /** Define flags and indices (so few that no dedicated routine needed) */
+
+  pnl->has_pk_m = _TRUE_;
+  if (pba->has_ncdm == _TRUE_) {
+    pnl->has_pk_cb = _TRUE_;
+  }
+  else {
+    pnl->has_pk_cb = _FALSE_;
+  }
+
+  index_pk = 0;
+  class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
+  class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
+  pnl->pk_size = index_pk;
+
+  /** (a) First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
     if (pnl->nonlinear_verbose > 0)
@@ -122,12 +167,6 @@ int nonlinear_init(
           fprintf(stdout,"Warning: Halofit is proved to work for CDM, and also with a small HDM component thanks to Bird et al.'s update. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
     }
-
-    index_pk = 0;
-    class_define_index(pnl->index_pk_m,  _TRUE_, index_pk,1);
-    class_define_index(pnl->index_pk_cb,  pba->has_ncdm, index_pk,1);
-    pnl->pk_size = index_pk;
-    //printf("pk_size=%d, index_pk_m=%d, index_pk_cb=%d\n",pnl->pk_size,pnl->index_pk_m,pnl->index_pk_cb);
 
     /** - copy list of (k,tau) from perturbation module */
 
@@ -150,37 +189,28 @@ int nonlinear_init(
                 pnl->error_message);
 
     class_alloc(pk_l,
-                pnl->pk_size*sizeof(double *),
+                pnl->k_size*sizeof(double),
                 pnl->error_message);
 
     class_alloc(pk_nl,
-                pnl->pk_size*sizeof(double *),
+                pnl->k_size*sizeof(double),
                 pnl->error_message);
 
     class_alloc(lnk_l,
-                pnl->pk_size*sizeof(double *),
+                pnl->k_size*sizeof(double),
                 pnl->error_message);
 
     class_alloc(lnpk_l,
-                pnl->pk_size*sizeof(double *),
+                pnl->k_size*sizeof(double),
                 pnl->error_message);
 
     class_alloc(ddlnpk_l,
-                pnl->pk_size*sizeof(double *),
+                pnl->k_size*sizeof(double),
                 pnl->error_message);
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-
       class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
       class_alloc(pnl->k_nl[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-
-      class_alloc(pk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-      class_alloc(pk_nl[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-
-      class_alloc(lnk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);//this is not really necessary
-      class_alloc(lnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-      class_alloc(ddlnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-
     }
 
     print_warning=_FALSE_;
@@ -191,30 +221,10 @@ int nonlinear_init(
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
-      for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
-
-        if(pk_type == 0) {
-          if(pba->has_ncdm) {
-            index_pk=pnl->index_pk_cb;
-          }
-          else {
-            index_pk = pnl->index_pk_m;
-          }
-        }
-        else if(pk_type == 1) {
-          if(pba->has_ncdm){
-            index_pk = pnl->index_pk_m;
-          }
-          else {
-            class_stop(pnl->error_message,"looks like pk_size=2 even if you do not have any massive neutrinos");
-          }
-        }
-        else {
-          class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
-        }
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
 
         /* get P_L(k) at this time */
-        class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
+        class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l,lnk_l,lnpk_l,ddlnpk_l),
                    pnl->error_message,
                    pnl->error_message);
 
@@ -228,11 +238,11 @@ int nonlinear_init(
                                        pnl,
                                        index_pk,
                                        pnl->tau[index_tau],
-                                       pk_l[index_pk],
-                                       pk_nl[index_pk],
-                                       lnk_l[index_pk],
-                                       lnpk_l[index_pk],
-                                       ddlnpk_l[index_pk],
+                                       pk_l,
+                                       pk_nl,
+                                       lnk_l,
+                                       lnpk_l,
+                                       ddlnpk_l,
                                        &(pnl->k_nl[index_pk][index_tau]),
                                        &halofit_found_k_max),
                      pnl->error_message,
@@ -249,7 +259,7 @@ int nonlinear_init(
               }*/
 
             for (index_k=0; index_k<pnl->k_size; index_k++) {
-              pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
+              pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_k]/pk_l[index_k]);
             }
           }
           else {
@@ -287,19 +297,16 @@ int nonlinear_init(
       }//end loop over pk_type
 
     }//end loop over tau
-    for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-      free(pk_l[index_pk]);
-      free(pk_nl[index_pk]);
-      free(lnk_l[index_pk]);
-      free(lnpk_l[index_pk]);
-      free(ddlnpk_l[index_pk]);
-    }
+
+    /* free allocated arrays */
+
     free(pk_l);
     free(pk_nl);
     free(lnk_l);
     free(lnpk_l);
     free(ddlnpk_l);
-  }
+
+  } // end of Halofit part
 
   else {
     class_stop(pnl->error_message,
@@ -308,6 +315,14 @@ int nonlinear_init(
 
   return _SUCCESS_;
 }
+
+/**
+ * Free all memory space allocated by nonlinear_init().
+ *
+ *
+ * @param pnl Input: pointer to nonlineard structure (to be freed)
+ * @return the error status
+ */
 
 int nonlinear_free(
                    struct nonlinear *pnl
@@ -329,14 +344,34 @@ int nonlinear_free(
   }
 
   if (pnl->has_pk_eq == _TRUE_) {
-    free(pnl->eq_tau);
-    free(pnl->eq_w_and_Omega);
-    free(pnl->eq_ddw_and_ddOmega);
+    free(pnl->pk_eq_tau);
+    free(pnl->pk_eq_w_and_Omega);
+    free(pnl->pk_eq_ddw_and_ddOmega);
   }
 
   return _SUCCESS_;
 
 }
+
+/**
+ * Calculation of the linear matter power spectrum, used to get the
+ * nonlinear one.  This is partially redundent with a more elaborate
+ * version of this calculation performed later in the spectra
+ * module. At some point the organisation will change to avoid this
+ * redundency.
+ *
+ * @param pba       Input: pointer to background structure
+ * @param ppt       Input: pointer to perturbation structure
+ * @param ppm       Input: pointer to primordial structure
+ * @param pnl       Input: pointer to nonlinear structure
+ * @param index_pk  Input: index of component are we looking at (total matter or cdm+baryons?)
+ * @param index_tau Input: index of conformal time at which we want to do the calculation
+ * @param pk_l      Output: linear spectrum at the relevant time
+ * @param lnk       Output: array log(wavenumber)
+ * @param lnpk      Output: array of log(P(k)_linear)
+ * @param ddlnpk    Output: array of second derivative of log(P(k)_linear) wrt k, for spline interpolation
+ * @return the error status
+ */
 
 int nonlinear_pk_l(
                    struct background *pba,
@@ -359,16 +394,14 @@ int nonlinear_pk_l(
 
   index_md = ppt->index_md_scalars;
 
-  // Initialize first, then assign correct value
-  index_delta = ppt->index_tp_delta_m;
-  if(index_pk == pnl->index_pk_m){
+  if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
     index_delta = ppt->index_tp_delta_m;
   }
-  else if((pba->has_ncdm)&&(index_pk == pnl->index_pk_cb)){
+  else if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
     index_delta = ppt->index_tp_delta_cb;
   }
   else {
-    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons");
   }
 
   class_alloc(primordial_pk,ppm->ic_ic_size[index_md]*sizeof(double),pnl->error_message);
@@ -428,7 +461,7 @@ int nonlinear_pk_l(
     lnpk[index_k] = log(pk_l[index_k]);
 
   }
-  //??? this array_spline table columns has to be replaced with another function
+
   class_call(array_spline_table_columns(lnk,
                                         pnl->k_size,
                                         lnpk,
@@ -444,6 +477,33 @@ int nonlinear_pk_l(
   return _SUCCESS_;
 
 }
+
+/**
+ * Calculation of the nonlinear matter power spectrum with Halofit
+ * (includes Takahashi 2012 + Bird 2013 revisions).
+ *
+ * At high redshift it is possible that the non-linear corrections are
+ * so small that they can be computed only by going to very large
+ * wavenumbers. Thius, for some combination of (z, k_max), the
+ * calculation is not possible. In this case a _FALSE_ will be
+ * returned in the flag halofit_found_k_max.
+ *
+ * @param ppr         Input: pointer to precision structure
+ * @param pba         Input: pointer to background structure
+ * @param ppt         Input: pointer to perturbation structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pnl         Input/Output: pointer to nonlinear structure
+ * @param index_pk    Input: index of component are we looking at (total matter or cdm+baryons?)
+ * @param tau         Input: conformal time at which we want to do the calculation
+ * @param pk_l        Input: linear spectrum at the relevant time
+ * @param pk_nl       Output: non linear spectrum at the relevant time
+ * @param lnk_l       Input: array log(wavenumber)
+ * @param lnpk_l      Input: array of log(P(k)_linear)
+ * @param ddlnpk_l    Input: array of second derivative of log(P(k)_linear) wrt k, for spline interpolation
+ * @param k_nl        Output: non-linear wavenumber
+ * @param halofit_found_k_max Ouput: flag cocnerning the status of the calculation (_FALSE_ if not possible)
+ * @return the error status
+ */
 
 int nonlinear_halofit(
                       struct precision *ppr,
@@ -490,10 +550,10 @@ int nonlinear_halofit(
   int index_ia_sum;
   int index_ia_ddsum;
   /*
-    int index_ia_sum2;
-    int index_ia_ddsum2;
-    int index_ia_sum3;
-    int index_ia_ddsum3;
+  int index_ia_sum2;
+  int index_ia_ddsum2;
+  int index_ia_sum3;
+  int index_ia_ddsum3;
   */
   int ia_size;
   int index_ia;
@@ -507,18 +567,16 @@ int nonlinear_halofit(
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  Omega0_m = (pba->Omega0_idm + pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  Omega0_m = pba->Omega0_cdm + pba->Omega0_idm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm;
 
-  //Initialize first, then assign correct value
-  fnu = pba->Omega0_ncdm_tot/Omega0_m;
-  if (index_pk == pnl->index_pk_m){
+  if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
     fnu = pba->Omega0_ncdm_tot/Omega0_m;
   }
-  else if((pba->has_ncdm)&&(index_pk == pnl->index_pk_cb)){
+  else if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
     fnu = 0.;
   }
   else {
-    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, index_pk=%d \n",index_pk);
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons");
   }
 
   if (pnl->has_pk_eq == _FALSE_) {
@@ -538,33 +596,33 @@ int nonlinear_halofit(
   }
   else {
 
-    /* alternative method called PK-equal, described in 0810.0190 and
-      1601.0723, extending the range of validity of
-      HALOFIT from constant w to w0-wa models. In that
-  case, some effective values of w0(tau_i) and
-      Omega_m(tau_i) have been pre-computed in the input
-      module, and we just ned to interpolate within
-      tabulated arrays, to get them at the current tau
-      value. */
+    /* alternative method called Pk_equal, described in 0810.0190 and
+                      1601.07230, extending the range of validity of
+                      HALOFIT from constant w to (w0,wa) models. In that
+                      case, some effective values of w0(tau_i) and
+                      Omega_m(tau_i) have been pre-computed in the
+                      input module, and we just ned to interpolate
+                      within tabulated arrays, to get them at the
+                      current tau value. */
 
-    class_alloc(w_and_Omega,pnl->eq_size*sizeof(double),pnl->error_message);
+    class_alloc(w_and_Omega,pnl->pk_eq_size*sizeof(double),pnl->error_message);
 
     class_call(array_interpolate_spline(
-                                        pnl->eq_tau,
-                                        pnl->eq_tau_size,
-                                        pnl->eq_w_and_Omega,
-                                        pnl->eq_ddw_and_ddOmega,
-                                        pnl->eq_size,
+                                        pnl->pk_eq_tau,
+                                        pnl->pk_eq_tau_size,
+                                        pnl->pk_eq_w_and_Omega,
+                                        pnl->pk_eq_ddw_and_ddOmega,
+                                        pnl->pk_eq_size,
                                         tau,
                                         &last_index,
                                         w_and_Omega,
-                                        pnl->eq_size,
+                                        pnl->pk_eq_size,
                                         pnl->error_message),
                pnl->error_message,
                pnl->error_message);
 
-    w0 = w_and_Omega[pnl->index_eq_w];
-    Omega_m = w_and_Omega[pnl->index_eq_Omega_m];
+    w0 = w_and_Omega[pnl->index_pk_eq_w];
+    Omega_m = w_and_Omega[pnl->index_pk_eq_Omega_m];
     Omega_v = 1.-Omega_m;
 
     free(w_and_Omega);
@@ -575,11 +633,11 @@ int nonlinear_halofit(
   /*      Until the 17.02.2015 the values of k used for integrating sigma(R) quantities needed by Halofit where the same as in the perturbation module.
           Since then, we sample these integrals on more values, in order to get more precise integrals (thanks Matteo Zennaro for noticing the need for this).
 
-          We create a temporary integrand_array which columns will be:
-          - k in 1/Mpc
-          - just linear P(k) in Mpc**3
-          - 1/(2(pi**2)) P(k) k**2 exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 2 (kR) exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 4 (kR)(1-kR) exp(-(kR)**2)
-          - second derivative of previous line with spline
+     We create a temporary integrand_array which columns will be:
+     - k in 1/Mpc
+     - just linear P(k) in Mpc**3
+     - 1/(2(pi**2)) P(k) k**2 exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 2 (kR) exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 4 (kR)(1-kR) exp(-(kR)**2)
+     - second derivative of previous line with spline
   */
 
   index_ia=0;
@@ -644,7 +702,7 @@ int nonlinear_halofit(
      computations, at the expense of requiring a larger k_max; but
      this parameter is not relevant for the precision on P_nl(k,z) at
      other redshifts, so there is normally no need to change i
-  */
+   */
 
   R=sqrt(-log(ppr->halofit_sigma_precision))/integrand_array[(integrand_size-1)*ia_size + index_ia_k];
 
@@ -674,12 +732,12 @@ int nonlinear_halofit(
      not through a class_call) */
 
   /*
-    class_test_except(sigma < 1.,
-    pnl->error_message,
-    free(pvecback);free(integrand_array),
-    "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
-    pnl->k[pnl->k_size-1],
-    pba->a_today/pvecback[pba->index_bg_a]-1.);
+  class_test_except(sigma < 1.,
+                    pnl->error_message,
+                    free(pvecback);free(integrand_array),
+                    "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
+                    pnl->k[pnl->k_size-1],
+                    pba->a_today/pvecback[pba->index_bg_a]-1.);
   */
 
   if (sigma < 1.) {
@@ -749,8 +807,8 @@ int nonlinear_halofit(
                                            halofit_integral_one,
                                            &sum1
                                            ),
-               pnl->error_message,
-               pnl->error_message);
+             pnl->error_message,
+             pnl->error_message);
 
     sigma  = sqrt(sum1);
 
@@ -765,10 +823,10 @@ int nonlinear_halofit(
 
     /* The first version of this test woukld let the code continue: */
     /*
-      class_test_except(counter > _MAX_IT_,
-      pnl->error_message,
-      free(pvecback);free(integrand_array),
-      "could not converge within maximum allowed number of iterations");
+    class_test_except(counter > _MAX_IT_,
+                      pnl->error_message,
+                      free(pvecback);free(integrand_array),
+                      "could not converge within maximum allowed number of iterations");
     */
     /* ... but in this situation it sounds better to make it stop and return an error! */
     class_test(counter > _MAX_IT_,
@@ -889,7 +947,11 @@ int nonlinear_halofit(
   return _SUCCESS_;
 }
 
-/* in original halofit, this is equivalent to the function wint() */
+/**
+ * Internal routione of Halofit. In original Halofit, this is
+ * equivalent to the function wint()
+*/
+
 int nonlinear_halofit_integrate(
                                 struct nonlinear *pnl,
                                 double * integrand_array,
@@ -908,41 +970,41 @@ int nonlinear_halofit_integrate(
   int index_k;
   double anorm = 1./(2*pow(_PI_,2));
 
-  for (index_k=0; index_k < integrand_size; index_k++) {
-    k = integrand_array[index_k*ia_size + index_ia_k];
-    pk = integrand_array[index_k*ia_size + index_ia_pk];
-    x2 = k*k*R*R;
+    for (index_k=0; index_k < integrand_size; index_k++) {
+      k = integrand_array[index_k*ia_size + index_ia_k];
+      pk = integrand_array[index_k*ia_size + index_ia_pk];
+      x2 = k*k*R*R;
 
-    integrand = pk*k*k*anorm*exp(-x2);
-    if (type == halofit_integral_two) integrand *= 2.*x2;
-    if (type == halofit_integral_three) integrand *= 4.*x2*(1.-x2);
+      integrand = pk*k*k*anorm*exp(-x2);
+      if (type == halofit_integral_two) integrand *= 2.*x2;
+      if (type == halofit_integral_three) integrand *= 4.*x2*(1.-x2);
 
-    integrand_array[index_k*ia_size + index_ia_sum] = integrand;
-  }
+      integrand_array[index_k*ia_size + index_ia_sum] = integrand;
+    }
 
-  /* fill in second derivatives */
-  class_call(array_spline(integrand_array,
-                          ia_size,
-                          integrand_size,
-                          index_ia_k,
-                          index_ia_sum,
-                          index_ia_ddsum,
-                          _SPLINE_NATURAL_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
+    /* fill in second derivatives */
+    class_call(array_spline(integrand_array,
+                            ia_size,
+                            integrand_size,
+                            index_ia_k,
+                            index_ia_sum,
+                            index_ia_ddsum,
+                            _SPLINE_NATURAL_,
+                            pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
 
-  /* integrate */
-  class_call(array_integrate_all_spline(integrand_array,
-                                        ia_size,
-                                        integrand_size,
-                                        index_ia_k,
-                                        index_ia_sum,
-                                        index_ia_ddsum,
-                                        sum,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
+    /* integrate */
+    class_call(array_integrate_all_spline(integrand_array,
+                                          ia_size,
+                                          integrand_size,
+                                          index_ia_k,
+                                          index_ia_sum,
+                                          index_ia_ddsum,
+                                          sum,
+                                          pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
 
   return _SUCCESS_;
 }

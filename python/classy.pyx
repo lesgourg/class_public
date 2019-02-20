@@ -86,7 +86,8 @@ cdef class Class:
     cdef lensing le
     cdef file_content fc
 
-    cpdef int ready # Flag
+    cpdef int ready # Flag to see if classy can currently compute
+    cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
@@ -115,6 +116,7 @@ cdef class Class:
     def __cinit__(self, default=False):
         cpdef char* dumc
         self.ready = False
+        self.allocated = False
         self._pars = {}
         self.fc.size=0
         self.fc.filename = <char*>malloc(sizeof(char)*30)
@@ -191,6 +193,7 @@ cdef class Class:
         if "background" in self.ncp:
             background_free(&self.ba)
         self.ready = False
+        self.allocated = False
 
     def _check_task_dependency(self, level):
         """
@@ -285,6 +288,10 @@ cdef class Class:
         # the function.
         if self.ready and self.ncp.issuperset(level):
             return
+
+        # Check if already allocated to prevent memory leaks
+        if self.allocated:
+            self.struct_cleanup()
 
         # Otherwise, proceed with the normal computation.
         self.ready = False
@@ -381,6 +388,7 @@ cdef class Class:
             self.ncp.add("lensing")
 
         self.ready = True
+        self.allocated = True
 
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
@@ -992,6 +1000,9 @@ cdef class Class:
     def Omega_m(self):
         return self.ba.Omega0_b+self.ba.Omega0_idm+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
 
+    # This is commented because in the current form it only applies
+    # to minimal LambdaCDM.
+    # On would need to add contributions from ncdm, ddmdr, etc.
     #def Omega_r(self):
     #    return self.ba.Omega0_g+self.ba.Omega0_ur
 

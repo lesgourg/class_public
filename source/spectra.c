@@ -329,12 +329,14 @@ int spectra_cl_at_l(
  * spectra_init() has been called before, and spectra_free() has not
  * been called yet.
  *
- * @param pba        Input: pointer to background structure (used for converting z into tau)
- * @param psp        Input: pointer to spectra structure (containing pre-computed table)
- * @param mode       Input: linear or logarithmic
- * @param z          Input: redshift
- * @param output_tot Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
- * @param output_ic  Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @param pba           Input: pointer to background structure (used for converting z into tau)
+ * @param psp           Input: pointer to spectra structure (containing pre-computed table)
+ * @param mode          Input: linear or logarithmic
+ * @param z             Input: redshift
+ * @param output_tot    Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_ic     Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @param output_cb_tot Output: CDM+baryon power spectrum P_cb(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_cb_ic  Output: for each pair of initial conditions, CDM+baryon power spectra P_cb(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
  * @return the error status
  */
 
@@ -343,10 +345,10 @@ int spectra_pk_at_z(
                     struct spectra * psp,
                     enum linear_or_logarithmic mode,
                     double z,
-                    double * output_tot, /* array with argument output_tot[index_k] (must be already allocated) */
-                    double * output_ic,   /* array with argument output_tot[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
-                    double * output_cb_tot,
-                    double * output_cb_ic
+                    double * output_tot,    /* array with argument output_tot[index_k] (must be already allocated) */
+                    double * output_ic,     /* array with argument output_tot[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
+                    double * output_cb_tot, /* same as output_tot for the baryon+CDM only */
+                    double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
                     ) {
 
   /* JL 21.09.2017: TODO: now, P(k) total is already calculated and
@@ -617,6 +619,8 @@ int spectra_pk_at_z(
  * @param z          Input: redshift
  * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
  * @param pk_ic      Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3\f$
+ * @param pk_cb_tot  Output: b+CDM power spectrum P(k) in \f$ Mpc^3 \f$
+ * @param pk_cb_ic   Output: for each pair of initial conditions, b+CDM power spectra P(k) in \f$ Mpc^3\f$
  * @return the error status
  */
 
@@ -626,10 +630,10 @@ int spectra_pk_at_k_and_z(
                           struct spectra * psp,
                           double k,
                           double z,
-                          double * pk_tot, /* pointer to a single number (must be already allocated) */
-                          double * pk_ic,   /* array of argument pk_ic[index_ic1_ic2] (must be already allocated only if several initial conditions) */
-                          double * pk_cb_tot,
-                          double * pk_cb_ic
+                          double * pk_tot,    /* pointer to a single number (must be already allocated) */
+                          double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2] (must be already allocated only if several initial conditions) */
+                          double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
+                          double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
                           ) {
 
   /** Summary: */
@@ -650,7 +654,7 @@ int spectra_pk_at_k_and_z(
 
   double * spectrum_cb_at_z = NULL;
   double * spectrum_cb_at_z_ic = NULL;
-  double * spline_cb;
+  double * spline_cb = NULL;
 
   index_md = psp->index_md_scalars;
 
@@ -1021,11 +1025,12 @@ int spectra_pk_at_k_and_z(
  * spectra_init() has been called before, and spectra_free() has not
  * been called yet.
  *
- * @param pba        Input: pointer to background structure (used for converting z into tau)
- * @param psp        Input: pointer to spectra structure (containing pre-computed table)
- * @param mode       Input: linear or logarithmic
- * @param z          Input: redshift
- * @param output_tot Output: total matter power spectrum P(k) in \f$ Mpc^3\f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param pba           Input: pointer to background structure (used for converting z into tau)
+ * @param psp           Input: pointer to spectra structure (containing pre-computed table)
+ * @param mode          Input: linear or logarithmic
+ * @param z             Input: redshift
+ * @param output_tot    Output: total matter power spectrum P(k) in \f$ Mpc^3\f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_cb_tot Output: b+CDM power spectrum P(k) in \f$ Mpc^3\f$ (linear mode), or its logarithms (logarithmic mode)
  * @return the error status
  */
 
@@ -1034,8 +1039,8 @@ int spectra_pk_nl_at_z(
                        struct spectra * psp,
                        enum linear_or_logarithmic mode,
                        double z,
-                       double * output_tot, /* array with argument output_tot[index_k] (must be already allocated) */
-                       double * output_cb_tot
+                       double * output_tot,   /* array with argument output_tot[index_k] (must be already allocated) */
+                       double * output_cb_tot /* same as output_tot for baryon+CDM only */
                        ) {
 
   /** Summary: */
@@ -1181,6 +1186,7 @@ int spectra_pk_nl_at_z(
  * @param k          Input: wavenumber in 1/Mpc
  * @param z          Input: redshift
  * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3\f$
+ * @param pk_cb_tot  Output: b+CDM power spectrum P(k) in \f$ Mpc^3\f$
  * @return the error status
  */
 
@@ -1190,8 +1196,8 @@ int spectra_pk_nl_at_k_and_z(
                              struct spectra * psp,
                              double k,
                              double z,
-                             double * pk_tot, /* pointer to a single number (must be already allocated) */
-                             double * pk_cb_tot
+                             double * pk_tot,   /* pointer to a single number (must be already allocated) */
+                             double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
                              ) {
 
   /** Summary: */
@@ -1205,7 +1211,7 @@ int spectra_pk_nl_at_k_and_z(
   double * spline;
 
   double * spectrum_cb_at_z = NULL;
-  double * spline_cb;
+  double * spline_cb = NULL;
 
   index_md = psp->index_md_scalars;
 
@@ -2779,6 +2785,7 @@ int spectra_compute_cl(
  *
  * @param pba Input: pointer to background structure (for z to tau conversion)
  * @param ppt Input: pointer to perturbation structure (contain source functions)
+ * @param pnl Input: pointer to nonlinear structure (contain nonlinear corrections)
  * @param psp Input/Output: pointer to spectra structure
  * @return the error status
  */
@@ -2786,7 +2793,7 @@ int spectra_compute_cl(
 int spectra_k_and_tau(
                       struct background * pba,
                       struct perturbs * ppt,
-                      struct nonlinear *pnl,
+                      struct nonlinear * pnl,
                       struct spectra * psp
                       ) {
 
@@ -2796,7 +2803,7 @@ int spectra_k_and_tau(
 
   int index_k;
   int index_tau;
-  int index_tau_min_nl;//index_tau_min_nl_cb
+  int index_tau_min_nl;
   double tau_min;
 
   /** - check the presence of scalar modes */
@@ -2893,24 +2900,6 @@ int spectra_k_and_tau(
     for (index_tau=0; index_tau<psp->ln_tau_nl_size; index_tau++) {
       psp->ln_tau_nl[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_nl_size+ppt->tau_size]);
     }
-
-    /*if(pba->has_ncdm){
-
-      index_tau=ppt->tau_size-psp->ln_tau_size;
-      index_tau_min_nl_cb=pnl->index_tau_min_nl[pnl->index_pk_cb];
-      while (ppt->tau_sampling[index_tau] < pnl->tau[index_tau_min_nl_cb]) {
-      index_tau++;
-      }
-      psp->ln_tau_nl_size_cb=ppt->tau_size-index_tau;
-
-      class_alloc(psp->ln_tau_nl_cb,sizeof(double)*psp->ln_tau_nl_size_cb,psp->error_message);
-
-      for (index_tau=0; index_tau<psp->ln_tau_nl_size_cb; index_tau++) {
-      psp->ln_tau_nl_cb[index_tau]=log(ppt->tau_sampling[index_tau-psp->ln_tau_nl_size_cb+ppt->tau_size]);
-      }
-
-      }*/
-
   }
 
   return _SUCCESS_;
@@ -3012,7 +3001,8 @@ int spectra_pk(
       /* possible index shift between the first value of time used for
          the linear spectrum and that for the non-linear power
          spectrum (0 if no shift) */
-      //this is not really necessary, since m and cb share the same ln_tau_nl_size and ln_tau_nl
+      /* this is not really necessary, since m and cb share the same ln_tau_nl_size and ln_tau_nl */
+
       delta_index_nl_cb = psp->ln_tau_size-psp->ln_tau_nl_size;
       class_test(delta_index_nl_cb<0,
                  "This should never happen",
@@ -3253,7 +3243,6 @@ int spectra_pk(
               psp->sigma8_cb,
               exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
     }
-
   }
 
   /**- if interpolation of \f$ P_{NL}(k,\tau)\f$ will be needed (as a function of tau),
@@ -4402,6 +4391,7 @@ int spectra_output_tk_data(
           class_store_double(dataptr,tk[psp->index_tr_delta_fld],ppt->has_source_delta_fld,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_delta_ur],ppt->has_source_delta_ur,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_delta_idr],ppt->has_source_delta_idr,storeidx); //ethos
+
           if (pba->has_ncdm == _TRUE_){
             for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
               class_store_double(dataptr,tk[psp->index_tr_delta_ncdm1+n_ncdm],ppt->has_source_delta_ncdm,storeidx);
@@ -4428,6 +4418,7 @@ int spectra_output_tk_data(
           class_store_double(dataptr,tk[psp->index_tr_theta_fld],ppt->has_source_theta_fld,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_theta_ur],ppt->has_source_theta_ur,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_theta_idr],ppt->has_source_theta_idr,storeidx); //ethos
+
           if (pba->has_ncdm == _TRUE_){
             for (n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
               class_store_double(dataptr,tk[psp->index_tr_theta_ncdm1+n_ncdm],ppt->has_source_theta_ncdm,storeidx);
@@ -4452,7 +4443,6 @@ int spectra_output_tk_data(
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_idr]/k2,ppt->has_source_delta_idr,storeidx,0.0); //ethos
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ncdm1]/k2,ppt->has_source_delta_ncdm,storeidx,0.0);
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_tot]/k2,_TRUE_,storeidx,0.0);
-
       }
     }
   }
@@ -4519,10 +4509,8 @@ int spectra_fast_pk_at_kvec_and_zvec(
   int index_md;
   int index_k, index_knode, index_z;
   double *spline, *pk_at_k, *ln_kvec, *ln_pk_table;
-  double ln_pk_interp, ln_k_interp;
   double h, a, b;
   double *spline_cb, *pk_cb_at_k, *ln_pk_cb_table;
-  double ln_pk_cb_interp;
 
   index_md = psp->index_md_scalars;
   class_test(psp->ic_size[index_md] != 1,

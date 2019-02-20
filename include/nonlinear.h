@@ -35,34 +35,40 @@ struct nonlinear {
 
   //@{
 
-  int pk_size;     /**< k_size = total number of pk: 1 (P_m) if no massive neutrinos, 2 (P_m and P_cb) if massive neutrinos are present*/
-  int index_pk_m;
-  int index_pk_cb;
-  short has_pk_cb; /** calculate P(k) with only cold dark matter and baryons*/
+  short has_pk_m;  /**< do we want nonlinear corrections for total matter? */
+  short has_pk_cb; /**< do we want nonlinear corrections for cdm+baryons? */
+
+  int index_pk_m;  /**< index of pk for matter */
+  int index_pk_cb; /**< index of pk for cold dark matter plus baryons */
+  int pk_size;     /**< k_size = total number of pk */
+
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
+
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values */
 
   double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
-  double ** k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
-  int index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
-  //int index_tau_min_nl_cb;
+  double ** k_nl;              /**< wavenumber at which non-linear corrections become important,
+                                    defined differently by different non_linear_method's */
+  int index_tau_min_nl;        /**< index of smallest value of tau at which nonlinear corrections have been computed
+                                    (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
+
   //@}
 
   /** @name - parameters for the pk_eq method */
 
   short has_pk_eq;               /**< flag: will we use the pk_eq method? */
 
-  int index_eq_w;                /**< index of w in table eq_w_and_Omega */
-  int index_eq_Omega_m;          /**< index of Omega_m in table eq_w_and_Omega */
-  int eq_size;                   /**< number of indices in table eq_w_and_Omega */
+  int index_pk_eq_w;                /**< index of w in table pk_eq_w_and_Omega */
+  int index_pk_eq_Omega_m;          /**< index of Omega_m in table pk_eq_w_and_Omega */
+  int pk_eq_size;                   /**< number of indices in table pk_eq_w_and_Omega */
 
-  int eq_tau_size;               /**< number of times (and raws in table eq_w_and_Omega) */
+  int pk_eq_tau_size;               /**< number of times (and raws in table pk_eq_w_and_Omega) */
 
-  double * eq_tau;               /**< table of time values */
-  double * eq_w_and_Omega;       /**< table of background quantites */
-  double * eq_ddw_and_ddOmega;   /**< table of second derivatives */
+  double * pk_eq_tau;               /**< table of time values */
+  double * pk_eq_w_and_Omega;       /**< table of background quantites */
+  double * pk_eq_ddw_and_ddOmega;   /**< table of second derivatives */
 
   //@{
 
@@ -152,11 +158,10 @@ extern "C" {
                                   double * sum
                                   );
 
+
 #ifdef __cplusplus
 }
 #endif
-
-/**************************************************************/
 
 #endif
 /* @endcond */

@@ -7,6 +7,9 @@ class
 libclass.a
 *out
 python/classy.c
-python/*.pyc
+*.pyc
 python/build/
 *.dSYM
+RealSpaceInterface/cache/
+.DS_Store
+doc/manual/html

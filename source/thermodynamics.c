@@ -308,9 +308,10 @@ int thermodynamics_init(
   struct recombination * preco;
   struct reionization * preio;
 
-  double tau;
+  double tau,tau_ini;
   double g_max;
   int index_tau_max;
+  double dkappa_ini;
 
   double g_dark, z_idm, z_idr, tau_idm, tau_idr, Gamma_heat_dark, dTdz_idm, T_dark, dz, T_tmp, z_adiabat, z; //ethos
   double tau_dark_fs;
@@ -511,7 +512,8 @@ int thermodynamics_init(
              pth->error_message);
 
   /* the temporary quantities stored in columns ddkappa and dddkappa
-     will not be used anymore, they will be overwritten */
+     will not be used anymore, so they can be overwritten by other
+     intermediate steps of other computations */
 
   /*ethos*/
   if(pba->has_idm == _TRUE_){
@@ -576,13 +578,20 @@ int thermodynamics_init(
                pth->error_message);
   }
 
-  /** - --> compute r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') (R^2+4/5(1+R))/(1+R^2)/6 ]^1/2 (see e.g. Wayne Hu's thesis eq. (5.59) */
+  /** - --> compute damping scale:
+
+      r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2+16/15(1+R))/(1+R)^2]^1/2
+                    = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2/(1+R)+16/15)/(1+R)]^1/2
+
+                    which is like in CosmoTherm (CT), but slightly
+                    different from Wayne Hu (WH)'s thesis eq. (5.59):
+                    the factor 16/15 in CT is 4/5 in WH */
 
   if (pth->compute_damping_scale == _TRUE_) {
 
     class_alloc(tau_table_growing,pth->tt_size*sizeof(double),pth->error_message);
 
-    /* compute integrand 1/kappa' (R^2+4/5(1+R))/(1+R^2)/6 and store temporarily in column "ddkappa" */
+    /* compute integrand and store temporarily in column "ddkappa" */
     for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
       tau_table_growing[index_tau]=tau_table[pth->tt_size-1-index_tau];
@@ -599,12 +608,12 @@ int thermodynamics_init(
       R = 3./4.*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];
 
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
-        1./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
-        *(R*R+4./5.*(1.+R))/(1.+R*R)/6.;
+        1./6./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
+        *(R*R/(1+R)+16./15.)/(1.+R);
 
     }
 
-    /* compute second derivative of integrand 1/kappa' and store temporarily in column "dddkappa" */
+    /* compute second derivative of integrand, and store temporarily in column "dddkappa" */
     class_call(array_spline_table_line_to_line(tau_table_growing,
                                                pth->tt_size,
                                                pth->thermodynamics_table,
@@ -616,7 +625,8 @@ int thermodynamics_init(
                pth->error_message,
                pth->error_message);
 
-    /* compute integrated quantity r_d^2 and store temporarily in column "g" */
+
+    /* compute integral and store temporarily in column "g" */
     class_call(array_integrate_spline_table_line_to_line(tau_table_growing,
                                                          pth->tt_size,
                                                          pth->thermodynamics_table,
@@ -630,24 +640,24 @@ int thermodynamics_init(
 
     free(tau_table_growing);
 
-    /* an analytic calculation shows that in the early
-       radiation-dominated and ionized universe, when kappa' is
-       proportional to (1+z)^2 and tau is proportional to the scale
-       factor, the integral is equal to eta/(3 kappa')*2./15. So
-       [tau_ini/3/kappa'_ini*2./15.] should be added to the integral in
-       order to account for the integration between 0 and tau_ini */
+    /* we could now write the result as r_d = 2pi * sqrt(integral),
+       but we will first better acount for the contribution frokm the tau_ini boundary.
+       Close to this boundary, R=0 and the integrand is just 16/(15*6)/kappa'
+       Using kappa' propto 1/a^2 and tau propro a during RD, we get the analytic result:
+       int_0^{tau_ini} dtau / kappa' = tau_ini / 3 / kappa'_ini
+       Thus r_d = 2pi * sqrt( 16/(15*6*3) * (tau_ini/ kappa'_ini) * integral) */
 
-    /* compute r_d */
+    tau_ini = tau_table[pth->tt_size-1];
+    dkappa_ini = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa];
+
     for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_r_d] =
-        2.*_PI_*sqrt(tau_table[pth->tt_size-1]/3.
-                     /pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa]*2./15.
+        2.*_PI_*sqrt(16./(15.*6.*3.)*tau_ini/dkappa_ini
                      +pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_g]);
-
     }
 
-  }
+  } // end of damping scale calculation
 
   /** - --> second derivative with respect to tau of dkappa (in view of spline interpolation) */
   class_call(array_spline_table_line_to_line(tau_table,
