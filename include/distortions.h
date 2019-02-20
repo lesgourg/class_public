@@ -57,6 +57,7 @@ struct distortions
   /* Branching ratios called in distortions_branching_ratios() */
   double ** branching_ratios;                /* [index_br][index_z] [NS] */
   double * sd_parameter;
+  int index_br_bb_visibility;                /* blackbody visibility function */
   int index_br_f_g;                          /* Branching ratios */
   int index_br_f_mu;
   int index_br_f_y;
@@ -78,6 +79,7 @@ struct distortions
   int index_sd_Y;                            /* Shape of y distortions */
   int index_sd_M;                            /* Shape of mu distortions */
   int index_sd_G;                            /* Shape of shifted power specrum */
+  int index_sd_S_vec;
   int index_sd_DI;                           /* Shape of final distortions */
   int sd_size;                               /* Size of the allocated space for distortions quantities */
 
@@ -121,14 +123,18 @@ struct distortions
   int E_vec_size;
 
   /* Variable to read, allocate and interpolate external file PCA_distortions_schape.dat */
-  double * PCA_x;
-  int PCA_Nx;
+  double * PCA_nu;
+  int PCA_Nnu;
 
-  double * PCA_J_T;
-  double * PCA_J_y;
-  double * PCA_J_mu;
+  double * PCA_G_T;
+  double * ddG_T_PCA;
+  double * PCA_Y_SZ;
+  double * ddY_SZ_PCA;
+  double * PCA_M_mu;
+  double * ddM_mu_PCA;
 
   double * S_vec;                /* S_vec[index_s][index_x] with index_e=1-8 */
+  double * ddS_vec;
   int S_vec_size;
 
   //@}
@@ -188,7 +194,7 @@ extern "C" {
                        double x,
                        double * pvecdist);
 
-  /* Read external files */
+  /* Read, spline, interpolate and free external files */
   int distortions_read_Greens_data(struct precision * ppr,
                                    struct distortions * psd);
   int distortions_free_Greens_data(struct distortions * psd);
@@ -207,6 +213,14 @@ extern "C" {
 
   int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
                                             struct distortions * psd);
+  int distortions_spline_PCA_dist_shapes_data(struct distortions* psd);
+  int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
+                                                   double nu,
+                                                   double * G_T,
+                                                   double * Y_SZ,
+                                                   double * M_mu,
+                                                   double * S,
+                                                   int * index);
   int distortions_free_PCA_dist_shapes_data(struct distortions * psd);
 
   /* Output */
