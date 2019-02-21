@@ -551,7 +551,7 @@ int distortions_heating_rate(struct precision * ppr,
 
     /* Total heating rate */
     psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z] = 
-                                        psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
+                                        //psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] +
@@ -580,7 +580,7 @@ int distortions_heating_rate(struct precision * ppr,
 int distortions_amplitudes(struct distortions * psd){
 
   /** Define local variables */
-  int index_type,index_z;
+  int index_type, index_z, index_e;
   double * integrand;
 
   /** Allocate space for spectral distortion amplitude in table sd_parameter_table */
@@ -596,7 +596,7 @@ int distortions_amplitudes(struct distortions * psd){
   for(index_type=0; index_type<psd->type_size; ++index_type){
     for (index_z=0; index_z<psd->z_size; ++index_z){
       integrand[index_z] = psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z]*
-                         psd->br_table[index_type][index_z];
+                           psd->br_table[index_type][index_z];
     }
     class_call(simpson_integration(psd->z_size,
                                    integrand,
@@ -614,9 +614,9 @@ int distortions_amplitudes(struct distortions * psd){
   psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
 
   /** Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+  //psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  //psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
   /** Calculate total heating */
   psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
@@ -624,38 +624,50 @@ int distortions_amplitudes(struct distortions * psd){
                        psd->sd_parameter_table[psd->index_type_mu]/1.401+
                        psd->sd_parameter_table[psd->index_type_r];
 
+  if(psd->N_PCA != 0){
+    /** Calculate mu_k for PCA expansion */
+    psd->sd_parameter_table[psd->index_type_PCA+index_e] = 0.;
+    for(index_e=0; index_e<psd->N_PCA; ++index_e){
+      for(index_z=0; index_z<psd->z_size; ++index_z){
+        psd->sd_parameter_table[psd->index_type_PCA+index_e] += psd->br_table[psd->index_type_PCA+index_e][index_z]*
+                                                                psd->heating_table[psd->index_type_PCA+index_e][index_z];
+      }
+    }
+
+  }
+
+  psd->distortions_verbose = 2;
+
   /* Print found parameters */
-  if (psd->distortions_verbose > 1) {
+  if (psd->distortions_verbose > 1){
     printf("-> total injected/extracted heat = %g\n", psd->Drho_over_rho);
-    printf("SHOULD BE [NS] (soft_soft) : %g \n",8.11626e-06);
-  }
 
-  if (psd->distortions_verbose > 1) {
     if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
-      printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", 
-             psd->sd_parameter_table[psd->index_type_mu]);
+      printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
     }
     else{ 
-      printf("-> mu-parameter = %g\n", 
-             psd->sd_parameter_table[psd->index_type_mu]); }
-      printf("SHOULD BE [NS] (soft_soft) : %g \n",1.64687e-08);
-  }
+      printf("-> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
+      printf("Chluba 2016 (diss, exact): mu-parameter = %g\n",2.00e-08);
+    }
 
-  if (psd->distortions_verbose > 1) {
     if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
-      printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", 
-             psd->sd_parameter_table[psd->index_type_y]);
+      printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
     }
     else{ 
-      printf("-> y-parameter = %g\n", 
-             psd->sd_parameter_table[psd->index_type_y]); }
-      printf("SHOULD BE [NS] (soft_soft) : %g \n",2.02622e-06);
-  }
+      printf("-> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
+      printf("Chluba 2016 (diss, exact): y-parameter = %g\n",3.63e-9);
+    }
 
-  if (psd->distortions_verbose > 1) {
-    printf("-> r-parameter = %g\n", 
-           psd->sd_parameter_table[psd->index_type_r]);
-    printf("SHOULD BE [NS] (soft_soft) : %g \n",-1.26158e-09);
+    if(psd->N_PCA == 0){
+      printf("-> r-parameter = %g\n", psd->sd_parameter_table[psd->index_type_r]);
+    }
+    else{
+       for(index_e=0; index_e<psd->N_PCA; ++index_e){
+         printf("-> PCA multipole mu_%d = %g\n", index_e+1, psd->sd_parameter_table[psd->index_type_PCA+index_e]);
+       }
+       printf("Chluba 2016 (diss, exact): mu_1 = %g\n",3.81e-08);
+       printf("Chluba 2016 (diss, exact): mu_2 = %g\n",-1.19e-09);
+    }
   }
 
   return _SUCCESS_;
@@ -1119,6 +1131,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
   class_open(infile, ppr->br_exact_file, "r",
              psd->error_message);
 
+  /** Read header */
   psd->PCA_Nnu = 0;
   while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
     headlines++;
