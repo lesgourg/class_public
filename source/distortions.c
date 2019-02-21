@@ -141,7 +141,7 @@ int distortions_indices(struct distortions * psd) {
   class_define_index(psd->index_ht_dQrho_dz_eva_PBH,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_acc_PBH,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_tot,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dlnz_tot_screened,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_tot_screened,_TRUE_,index_ht,1);
 
   psd->ht_size = index_ht;
 
@@ -432,6 +432,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
   double alpha_h, tilde_rho_g, theta_g;
   double k_max, k_min, k_size, k_delta, k, pk_primordial_k, * int_dQrho_dz_diss_full, * int_dQrho_dz_diss_approx;
   double g_h;
+  double bb_vis;
 
   /** Allocate space for heating rates in heating_table */ 
   class_alloc(psd->heating_table,
@@ -454,6 +455,10 @@ int distortions_compute_heating_rate(struct precision * ppr,
 
   /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<psd->z_size; ++index_z){
+
+    /* Black body visibility function */
+    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+
     /* From z to tau */
     class_call(background_tau_of_z(pba,
                                    psd->z[index_z],
@@ -582,10 +587,8 @@ int distortions_compute_heating_rate(struct precision * ppr,
                                         psd->heating_table[psd->index_ht_dQrho_dz_dec][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_eva_PBH][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z];
-    psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z] = 
-                                        psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*
-                                        exp(-pow(psd->z[index_z]/psd->z_th,2.5))*
-                                        (1.+psd->z[index_z]);
+    psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z] = 
+                                        psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*bb_vis;
   }
 
   /* Free allocated space */
@@ -616,13 +619,9 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
               psd->type_size*sizeof(double),
               psd->error_message);
 
-  /** Compute distortion amplitude corresponding to each branching ratio (g, y, mu and r) */
-  class_alloc(integrand,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-
+  /** Compute distortion amplitude corresponding to each branching ratio (g, y, mu, r, and possibly PCA mu_k) */
   for(index_type=0; index_type<psd->type_size; ++index_type){
-    class_call(array_trapezoidal_convolution(psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened],
+    class_call(array_trapezoidal_convolution(psd->heating_table[psd->index_ht_dQrho_dz_tot_screened],
                                              psd->br_table[index_type],
                                              psd->z_size,
                                              psd->z_weights,
@@ -630,22 +629,7 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
                                              psd->error_message),
                psd->error_message,
                psd->error_message);
-    /*
-    for (index_z=0; index_z<psd->z_size; ++index_z){
-      integrand[index_z] = psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z]*
-                         psd->br_table[index_type][index_z];
-    }
-    class_call(simpson_integration(psd->z_size,
-                                   integrand,
-                                   psd->z_delta,
-                                   &psd->sd_parameter_table[index_type],
-                                   psd->error_message),
-               psd->error_message,
-               psd->error_message);
-    */
   }
-
-  free(integrand);
 
   psd->sd_parameter_table[psd->index_type_g] /= 4.;
   psd->sd_parameter_table[psd->index_type_y] /= 4.;
@@ -1233,13 +1217,13 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
 int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
 
   /** Allocate second derivatievs */
-  class_alloc(psd->ddG_T_PCA,
+  class_alloc(psd->ddPCA_G_T,
               psd->PCA_Nnu*sizeof(double),
               psd->error_message);
-  class_alloc(psd->ddY_SZ_PCA,
+  class_alloc(psd->ddPCA_Y_SZ,
               psd->PCA_Nnu*sizeof(double),
               psd->error_message);
-  class_alloc(psd->ddM_mu_PCA,
+  class_alloc(psd->ddPCA_M_mu,
               psd->PCA_Nnu*sizeof(double),
               psd->error_message);
   class_alloc(psd->ddS_vec,
@@ -1251,7 +1235,7 @@ int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
                                         psd->PCA_Nnu,
                                         psd->PCA_G_T,
                                         1,
-                                        psd->ddG_T_PCA,
+                                        psd->ddPCA_G_T,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
              psd->error_message,
@@ -1260,7 +1244,7 @@ int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
                                         psd->PCA_Nnu,
                                         psd->PCA_Y_SZ,
                                         1,
-                                        psd->ddY_SZ_PCA,
+                                        psd->ddPCA_Y_SZ,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
            psd->error_message,
@@ -1269,7 +1253,7 @@ int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
                                         psd->PCA_Nnu,
                                         psd->PCA_M_mu,
                                         1,
-                                        psd->ddM_mu_PCA,
+                                        psd->ddPCA_M_mu,
                                         _SPLINE_EST_DERIV_,
                                         psd->error_message),
            psd->error_message,
@@ -1328,17 +1312,17 @@ int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
 
   /** Evaluate corresponding values for the branching ratios */
   *G_T = array_interpolate_spline_hunt(psd->PCA_G_T,
-                                       psd->ddG_T_PCA,
+                                       psd->ddPCA_G_T,
                                        last_index,
                                        last_index+1,
                                        h,a,b);
   *Y_SZ = array_interpolate_spline_hunt(psd->PCA_Y_SZ,
-                                        psd->ddY_SZ_PCA,
+                                        psd->ddPCA_Y_SZ,
                                         last_index,
                                         last_index+1,
                                         h,a,b);
   *M_mu = array_interpolate_spline_hunt(psd->PCA_M_mu,
-                                        psd->ddM_mu_PCA,
+                                        psd->ddPCA_M_mu,
                                         last_index,
                                         last_index+1,
                                         h,a,b);
@@ -1368,11 +1352,11 @@ int distortions_free_PCA_dist_shapes_data(struct distortions * psd){
 
   free(psd->PCA_nu);
   free(psd->PCA_G_T);
-  free(psd->ddG_T_PCA);
+  free(psd->ddPCA_G_T);
   free(psd->PCA_Y_SZ);
-  free(psd->ddY_SZ_PCA);
+  free(psd->ddPCA_Y_SZ);
   free(psd->PCA_M_mu);
-  free(psd->ddM_mu_PCA);
+  free(psd->ddPCA_M_mu);
   free(psd->S_vec);
   free(psd->ddS_vec);
 
@@ -1384,8 +1368,9 @@ int distortions_free_PCA_dist_shapes_data(struct distortions * psd){
  * Outputs
  */
 int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]){
+
   class_store_columntitle(titles,"Redshift z",_TRUE_);
-  class_store_columntitle(titles,"Heating function f(z)*d(Q/rho)/dln(z) [-]",_TRUE_);
+  class_store_columntitle(titles,"Heating function f(z)*d(Q/rho)/dz [-]",_TRUE_);
 
   return _SUCCESS_;
 }
@@ -1399,14 +1384,15 @@ int heating_output_data(struct distortions * psd,
     dataptr = data + index_z*number_of_titles;
     storeidx = 0;
     class_store_double(dataptr, psd->z[index_z], _TRUE_, storeidx);
-    class_store_double(dataptr, psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z], _TRUE_, storeidx);
   }
 
   return _SUCCESS_;
 }
 
 int distortions_output_titles(char titles[_MAXTITLESTRINGLENGTH_]){
-  class_store_columntitle(titles,"Dimentionless frequency x",_TRUE_);
+
+  class_store_columntitle(titles,"Dimensionless frequency x",_TRUE_);
   class_store_columntitle(titles,"Spectral distortions DI [10^26 W m^-2 Hz^-1 sr^-1]",_TRUE_);
 
   return _SUCCESS_;

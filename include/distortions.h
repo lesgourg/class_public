@@ -66,7 +66,7 @@ struct distortions
   int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
   int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
   int index_ht_dQrho_dz_tot;                 /* Total heating function */
-  int index_ht_dQrho_dlnz_tot_screened;      /* Total heating function * blackbody visibility function */
+  int index_ht_dQrho_dz_tot_screened;        /* Total heating function times blackbody visibility function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all 
@@ -116,11 +116,11 @@ struct distortions
   int PCA_Nnu;
 
   double * PCA_G_T;
-  double * ddG_T_PCA;
+  double * ddPCA_G_T;
   double * PCA_Y_SZ;
-  double * ddY_SZ_PCA;
+  double * ddPCA_Y_SZ;
   double * PCA_M_mu;
-  double * ddM_mu_PCA;
+  double * ddPCA_M_mu;
 
   double * S_vec;                /* S_vec[index_s][index_x] with index_e=1-8 */
   double * ddS_vec;
