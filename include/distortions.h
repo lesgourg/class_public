@@ -38,6 +38,7 @@ struct distortions
 
   //@{
 
+  char ** distortion_names;               /* Names of the distortions */
   /* Precision parameters */
   double z_muy;
   double z_th;
@@ -56,6 +57,9 @@ struct distortions
   int x_size;                                /* Lenght of dimentionless frequency array */
   double * x;                                /* x[index_x] = list of values */
 
+  double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
+  double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
+
   /* Table storing heating rates */
   double ** heating_table;
   int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
@@ -73,11 +77,12 @@ struct distortions
      types of distortios */
   double ** br_table; 
   double * sd_parameter_table;
-  double ** distortions_table;
+  double ** sd_shape_table;
+  double ** sd_table;
+
   int index_type_g; 
   int index_type_mu;
   int index_type_y;
-  int index_type_r;
   int index_type_PCA;
   int type_size;
 
@@ -216,12 +221,12 @@ extern "C" {
   int distortions_free_PCA_dist_shapes_data(struct distortions * psd);
 
   /* Output */
-  int heating_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
+  int heating_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);
   int heating_output_data(struct distortions * psd,
                           int number_of_titles,
                           double * data);
 
-  int distortions_output_titles(char titles[_MAXTITLESTRINGLENGTH_]);
+  int distortions_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);
   int distortions_output_data(struct distortions * psd,
                               int number_of_titles,
                               double * data);

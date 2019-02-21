@@ -3186,7 +3186,7 @@ int input_default_params(
   pnl->has_pk_eq = _FALSE_;
 
   /** - distortions structure */
-  psd->N_PCA = 8; //[NS]
+  psd->N_PCA = 2; //[NS]
   psd->branching_approx = bra_exact; //[NS]
 
   /** - all verbose parameters */

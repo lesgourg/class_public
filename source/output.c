@@ -1532,19 +1532,30 @@ int output_distortions(
                        struct distortions * psd,
                        struct output * pop
                        ) {
-  FileName file_name_heat, file_name_diss;
-  FILE * out_heat, * out_diss;
-  char titles_heat[_MAXTITLESTRINGLENGTH_]={0}, titles_diss[_MAXTITLESTRINGLENGTH_]={0};
-  double * data_heat, * data_diss;
-  int size_data_heat, size_data_diss, number_of_titles_heat, number_of_titles_diss;
+
+  /** Local variables*/
+  FileName file_name_heat, file_name_distortion;
+  FILE * out_heat, * out_distortion;
+
+  char titles_heat[_MAXTITLESTRINGLENGTH_]={0};
+  char titles_distortion[_MAXTITLESTRINGLENGTH_]={0};
+  
+  double * data_heat, * data_distortion;
+  int size_data_heat, size_data_distortion;
+  int number_of_titles_heat, number_of_titles_distortion;
 
   if(pop->write_heating==_TRUE_){
+
+    /* File name */
     sprintf(file_name_heat,"%s%s",pop->root,"heating.dat");
 
-    class_call(heating_output_titles(titles_heat),
+    /* Titles */
+    class_call(heating_output_titles(psd,titles_heat),
                psd->error_message,
                pop->error_message);
     number_of_titles_heat = get_number_of_titles(titles_heat);
+
+    /* Data array */
     size_data_heat = number_of_titles_heat*psd->z_size;
     class_alloc(data_heat,
                 sizeof(double)*size_data_heat,
@@ -1554,10 +1565,21 @@ int output_distortions(
                                    data_heat),
                psd->error_message,
                pop->error_message);
+
+    /* File IO */
     class_open(out_heat,
                file_name_heat,
                "w",
                pop->error_message);
+
+    if(pop->write_header){
+      fprintf(out_heat,"# Heat is d(Q/rho)/dz\n");
+      fprintf(out_heat,"# LHeat is d(Q/rho)/dlnz\n");
+      fprintf(out_heat,"# EHeat is f_bb(z)*d(Q/rho)/dlnz\n");
+      fprintf(out_heat,"# Here f_bb(z) is the black-body visibility function\n");
+      fprintf(out_heat,"#\n");
+    }
+
     output_print_data(out_heat,
                       titles_heat,
                       data_heat,
@@ -1567,31 +1589,46 @@ int output_distortions(
   }
 
   if(pop->write_distortions==_TRUE_){
-    sprintf(file_name_diss,"%s%s",pop->root,"distortions.dat");
 
-    class_call(distortions_output_titles(titles_diss),
+    /* File name */
+    sprintf(file_name_distortion,"%s%s",pop->root,"distortions.dat");
+
+    /* Titles */
+    class_call(distortions_output_titles(psd,titles_distortion),
                psd->error_message,
                pop->error_message);
-    number_of_titles_diss = get_number_of_titles(titles_diss);
-    size_data_diss = number_of_titles_diss*psd->x_size;
-    class_alloc(data_diss,
-                sizeof(double)*size_data_diss,
+    number_of_titles_distortion = get_number_of_titles(titles_distortion);
+
+    /* Data array */
+    size_data_distortion = number_of_titles_distortion*psd->x_size;
+    class_alloc(data_distortion,
+                sizeof(double)*size_data_distortion,
                 pop->error_message);
     class_call(distortions_output_data(psd,
-                                       number_of_titles_diss,
-                                       data_diss),
+                                       number_of_titles_distortion,
+                                       data_distortion),
                psd->error_message,
                pop->error_message);
-    class_open(out_diss,
-               file_name_diss,
+
+    /* File IO */
+    class_open(out_distortion,
+               file_name_distortion,
                "w",
                pop->error_message);
-    output_print_data(out_diss,
-                      titles_diss,
-                      data_diss,
-                      size_data_diss);
-    free(data_diss);
-    fclose(out_diss);
+
+    if(pop->write_header){
+      fprintf(out_distortion,"# SD_tot is the amplitude of the overall spectral distortion (SD)\n");
+      fprintf(out_distortion,"# The SD[i] are the amplitudes of the individual SDs\n");
+      fprintf(out_distortion,"# The SDs are given in units [10^-26 W m^-2 Hz^-1 sr^-1] \n");
+      fprintf(out_heat,"#\n");
+    }
+
+    output_print_data(out_distortion,
+                      titles_distortion,
+                      data_distortion,
+                      size_data_distortion);
+    free(data_distortion);
+    fclose(out_distortion);
   }
 
   return _SUCCESS_;
