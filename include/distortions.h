@@ -160,33 +160,36 @@ extern "C" {
 
   int distortions_free(struct distortions * psd);
 
+  /* Indices and lists */
   int distortions_indices(struct distortions * psd);
 
   int distortions_get_xz_lists(struct background* pba, 
                                struct thermo* pth, 
                                struct distortions* psd);
 
-  int distortions_branching_ratios(struct precision * ppr,
-                                   struct distortions* psd);
+  /* The main computation methods */
+  int distortions_compute_branching_ratios(struct precision * ppr,
+                                           struct distortions* psd);
 
-  int distortions_heating_rate(struct precision * ppr,
-                               struct background* pba,
-                               struct perturbs * ppt,
-                               struct thermo * pth,
-                               struct primordial * ppm,
-                               struct distortions * psd);
+  int distortions_compute_heating_rate(struct precision * ppr,
+                                       struct background* pba,
+                                       struct perturbs * ppt,
+                                       struct thermo * pth,
+                                       struct primordial * ppm,
+                                       struct distortions * psd);
 
-  int distortions_amplitudes(struct distortions * psd);
+  int distortions_compute_spectral_amplitudes(struct distortions * psd);
 
-  int distortions_spectral_shapes(struct precision * ppr,
-                                  struct background * pba,
-                                  struct distortions * psd);
+  int distortions_compute_spectral_shapes(struct precision * ppr,
+                                          struct background * pba,
+                                          struct distortions * psd);
 
-  /* Read, spline, interpolate and free external files */
+  /* Greens file */
   int distortions_read_Greens_data(struct precision * ppr,
                                    struct distortions * psd);
   int distortions_free_Greens_data(struct distortions * psd);
 
+  /* Branching ratio file*/
   int distortions_read_BR_exact_data(struct precision * ppr,
                                      struct distortions * psd);
   int distortions_spline_BR_exact_data(struct distortions* psd);
@@ -199,6 +202,7 @@ extern "C" {
                                             int * last_index);
   int distortions_free_BR_exact_data(struct distortions * psd);
 
+  /* PCA shape file */
   int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
                                             struct distortions * psd);
   int distortions_spline_PCA_dist_shapes_data(struct distortions* psd);

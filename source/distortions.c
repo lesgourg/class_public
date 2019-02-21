@@ -50,22 +50,22 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /** Define branching ratios */
-  class_call(distortions_branching_ratios(ppr,psd),
+  class_call(distortions_compute_branching_ratios(ppr,psd),
              psd->error_message,
              psd->error_message);
 
   /** Define heating function */
-  class_call(distortions_heating_rate(ppr,pba,ppt,pth,ppm,psd),
+  class_call(distortions_compute_heating_rate(ppr,pba,ppt,pth,ppm,psd),
              psd->error_message,
              psd->error_message);
 
   /** Define spectral distortion amplitudes */
-  class_call(distortions_amplitudes(psd),
+  class_call(distortions_compute_spectral_amplitudes(psd),
              psd->error_message,
              psd->error_message);
 
   /** Define final spectral distortions */
-  class_call(distortions_spectral_shapes(ppr,pba,psd),
+  class_call(distortions_compute_spectral_shapes(ppr,pba,psd),
              psd->error_message,
              psd->error_message);
 
@@ -80,16 +80,39 @@ int distortions_init(struct precision * ppr,
  * @return the error status
  */
 int distortions_free(struct distortions * psd) {
+
+  /** Define local variables */
+  int index_type,index_ht;
+
+
   if(psd->has_distortions == _TRUE_){
+    /* Delete lists */
     free(psd->z);
     free(psd->x);
     free(psd->z_weights);
 
+
+    /* Delete branching ratios */
+    for(index_type=0;index_type<psd->type_size;++index_type){
+      free(psd->br_table[index_type]);
+    }
     free(psd->br_table);
+
+    /* Delete heating functions */
+    for(index_ht=0;index_ht<psd->ht_size;++index_ht){
+      free(psd->heating_table[index_ht]);
+    }
     free(psd->heating_table);
-    free(psd->sd_parameter_table);
+
+    /* Delete distortion shapes */
+    for(index_type=0;index_type<psd->type_size;++index_type){
+      free(psd->distortions_table[index_type]);
+    }
     free(psd->distortions_table);
 
+    /* Delete distortion amplitudes */
+    free(psd->sd_parameter_table);
+    /* Delete total distortion */
     free(psd->DI);
   }
 
@@ -223,8 +246,8 @@ int distortions_get_xz_lists(struct background * pba,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_branching_ratios(struct precision * ppr,
-                                 struct distortions* psd){
+int distortions_compute_branching_ratios(struct precision * ppr,
+                                         struct distortions* psd){
 
   /** Define local variables */
   int index_z,index_type,index_e;
@@ -392,17 +415,17 @@ int distortions_branching_ratios(struct precision * ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_heating_rate(struct precision * ppr,
-                             struct background* pba,
-                             struct perturbs * ppt,
-                             struct thermo * pth,
-                             struct primordial * ppm,
-                             struct distortions * psd){
+int distortions_compute_heating_rate(struct precision * ppr,
+                                     struct background* pba,
+                                     struct perturbs * ppt,
+                                     struct thermo * pth,
+                                     struct primordial * ppm,
+                                     struct distortions * psd){
 
   /** Define local variables */
   int index_z;
   double tau;
-  int last_index;
+  int last_index_back,last_index_thermo;
   double * pvecback, O_b, h, H, a, t, rho_g, R, T_g0;
   double * pvecthermo, dk, dz_kD, kD, N_e, X_e, Y_He;
   int index_ht;
@@ -420,6 +443,16 @@ int distortions_heating_rate(struct precision * ppr,
                 psd->error_message);
   }
 
+  last_index_back = 0;
+  last_index_thermo = 0;
+  class_alloc(pvecback,
+              pba->bg_size*sizeof(double),
+              psd->error_message);
+  class_alloc(pvecthermo,
+              pth->tt_size*sizeof(double),
+              psd->error_message);
+
+  /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<psd->z_size; ++index_z){
     /* From z to tau */
     class_call(background_tau_of_z(pba,
@@ -429,18 +462,15 @@ int distortions_heating_rate(struct precision * ppr,
                psd->error_message);
 
     /** Import quantities from background */
-    last_index = 0;
-    class_alloc(pvecback,
-                pba->bg_size*sizeof(double),
-                psd->error_message);
     class_call(background_at_tau(pba,
                                  tau,
                                  pba->long_info,
                                  pba->inter_closeby,
-                                 &last_index,
+                                 &last_index_back,
                                  pvecback),
                pba->error_message,
                psd->error_message);
+
     O_b = pba->Omega0_b;                                                              // [-]
     h = pba->h;                                                                       // [-]
     H = pvecback[pba->index_bg_H];                                                    // [1/Mpc]
@@ -453,28 +483,22 @@ int distortions_heating_rate(struct precision * ppr,
     T_g0 = pba->T_cmb;                                                                // [K]
 
     /** Import quantities from thermodynamics */
-    class_alloc(pvecthermo,
-                pth->tt_size*sizeof(double),
-                psd->error_message);
     class_call(thermodynamics_at_z(pba,
                                    pth,
                                    psd->z[index_z],
                                    pth->inter_normal,
-                                   &last_index,
+                                   &last_index_thermo,
                                    pvecback,
                                    pvecthermo),
                pth->error_message,
                psd->error_message);
+
     dk = pvecthermo[pth->index_th_dkappa];                                            // [1/Mpc]
     dz_kD = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                 // [Mpc^2]
     kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                       // [1/Mpc]
     N_e = pth->n_e;                                                                   // [1/m^3] (today)
     X_e = pvecthermo[pth->index_th_xe];                                               // [-]
     Y_He = pth->YHe;                                                                  // [-]
-
-    /* Free allocated space */
-    free(pvecback);
-    free(pvecthermo);
 
     /** Calculate heating rates */
 
@@ -564,6 +588,10 @@ int distortions_heating_rate(struct precision * ppr,
                                         (1.+psd->z[index_z]);
   }
 
+  /* Free allocated space */
+  free(pvecback);
+  free(pvecthermo);
+
   return _SUCCESS_;
 
 }
@@ -577,7 +605,7 @@ int distortions_heating_rate(struct precision * ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_amplitudes(struct distortions * psd){
+int distortions_compute_spectral_amplitudes(struct distortions * psd){
 
   /** Define local variables */
   int index_type,index_z;
@@ -594,6 +622,15 @@ int distortions_amplitudes(struct distortions * psd){
               psd->error_message);
 
   for(index_type=0; index_type<psd->type_size; ++index_type){
+    class_call(array_trapezoidal_convolution(psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened],
+                                             psd->br_table[index_type],
+                                             psd->z_size,
+                                             psd->z_weights,
+                                             &(psd->sd_parameter_table[index_type]),
+                                             psd->error_message),
+               psd->error_message,
+               psd->error_message);
+    /*
     for (index_z=0; index_z<psd->z_size; ++index_z){
       integrand[index_z] = psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z]*
                          psd->br_table[index_type][index_z];
@@ -605,6 +642,7 @@ int distortions_amplitudes(struct distortions * psd){
                                    psd->error_message),
                psd->error_message,
                psd->error_message);
+    */
   }
 
   free(integrand);
@@ -670,9 +708,9 @@ int distortions_amplitudes(struct distortions * psd){
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_spectral_shapes(struct precision * ppr,
-                                struct background * pba,
-                                struct distortions * psd){
+int distortions_compute_spectral_shapes(struct precision * ppr,
+                                        struct background * pba,
+                                        struct distortions * psd){
 
   /** Define local variables */
   double * S;
@@ -704,13 +742,13 @@ int distortions_spectral_shapes(struct precision * ppr,
                psd->error_message,
                psd->error_message);
 
+    /* Allocate local variable */
+    class_alloc(S,
+                psd->N_PCA*sizeof(double),
+                psd->error_message);
+
     /** Calculate spectral distortions */
     for(index_x=0; index_x<psd->x_size; ++index_x){
-      /* Allocate local variable */
-      class_alloc(S,
-                  psd->N_PCA*sizeof(double),
-                  psd->error_message);
-
       /* Interpolate over z */
       class_call(distortions_interpolate_PCA_dist_shapes_data(psd,
                                                               psd->x[index_x]*(_k_B_*pba->T_cmb/_h_P_),
@@ -726,12 +764,17 @@ int distortions_spectral_shapes(struct precision * ppr,
         psd->distortions_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
       }
 
-      /* Free allocated space */
-      class_call(distortions_free_PCA_dist_shapes_data(psd),
-                 psd->error_message,
-                 psd->error_message);
-      free(S);
+      psd->DI[index_x] = 0;
+      for(index_type=0;index_type<psd->type_size;++index_type){
+        psd->DI[index_x] += psd->sd_parameter_table[index_type]*psd->distortions_table[index_type][index_x];
+      }
     }
+
+    /* Free allocated space */
+    class_call(distortions_free_PCA_dist_shapes_data(psd),
+               psd->error_message,
+               psd->error_message);
+    free(S);
   }
   else{
 
@@ -745,14 +788,11 @@ int distortions_spectral_shapes(struct precision * ppr,
                                                            (1.-exp(-psd->x[index_x]))-4.);     // [10^-18 W/(m^2 Hz sr)]
       psd->distortions_table[psd->index_type_mu][index_x] = psd->distortions_table[psd->index_type_g][index_x]*
                                                             (1./2.19229-1./psd->x[index_x]);   // [10^-18 W/(m^2 Hz sr)]
+      psd->DI[index_x] = psd->sd_parameter_table[psd->index_type_g]*psd->distortions_table[psd->index_type_g][index_x]+
+                   psd->sd_parameter_table[psd->index_type_y]*psd->distortions_table[psd->index_type_y][index_x]+
+                   psd->sd_parameter_table[psd->index_type_mu]*psd->distortions_table[psd->index_type_mu][index_x];  // [10^-18 W/(m^2 Hz sr)]
     }
-  }
 
-  /** Calculate spectral distortions */
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    psd->DI[index_x] = psd->sd_parameter_table[psd->index_type_y]*psd->distortions_table[psd->index_type_g][index_x]+
-                       psd->sd_parameter_table[psd->index_type_mu]*psd->distortions_table[psd->index_type_y][index_x]+
-                       psd->sd_parameter_table[psd->index_type_g]*psd->distortions_table[psd->index_type_mu][index_x];  // [10^-18 W/(m^2 Hz sr)]
   }
 
   return _SUCCESS_;
