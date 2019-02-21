@@ -584,8 +584,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
                                         psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z];
     psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z] = 
                                         psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*
-                                        exp(-pow(psd->z[index_z]/psd->z_th,2.5))*
-                                        (1.+psd->z[index_z]);
+                                        exp(-pow(psd->z[index_z]/psd->z_th,2.5));
   }
 
   /* Free allocated space */
