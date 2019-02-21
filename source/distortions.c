@@ -22,9 +22,8 @@ int distortions_init(struct precision * ppr,
                      struct thermo * pth,
                      struct primordial * ppm,
                      struct distortions * psd) {
+
   /** Define local variables */
-  double * pvecheat;
-  double * pvecdist;
   int last_index = 0;
   int index_br;
   int index_x;
@@ -35,8 +34,6 @@ int distortions_init(struct precision * ppr,
   if (psd->distortions_verbose > 0) {
     printf("Computing spectral distortions \n");
   }
-
-  psd->distortions_verbose = 2; //TODO :: REMOVE
 
   class_test(pth->compute_damping_scale==_FALSE_,
              psd->error_message,
@@ -107,6 +104,7 @@ int distortions_free(struct distortions * psd) {
  * @return the error status
  */
 int distortions_indices(struct distortions * psd) {
+
   /** Define local variables */
   int index_ht = 0;
   int index_type = 0;
@@ -131,7 +129,7 @@ int distortions_indices(struct distortions * psd) {
   class_define_index(psd->index_type_y,_TRUE_,index_type,1);
   class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
   class_define_index(psd->index_type_r,_TRUE_,index_type,1);
-  class_define_index(psd->index_type_PCA,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_PCA,_TRUE_,index_type,psd->N_PCA);
 
   psd->type_size = index_type;
 
@@ -150,6 +148,7 @@ int distortions_indices(struct distortions * psd) {
 int distortions_get_xz_lists(struct background * pba, 
                              struct thermo * pth, 
                              struct distortions * psd){
+
   /** Define local variables */
   int index_z, index_x;
 
@@ -165,9 +164,11 @@ int distortions_get_xz_lists(struct background * pba,
   psd->z_max = 5.e6;
   psd->z_size = (int) 500;
   psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
+
   class_alloc(psd->z,
               psd->z_size*sizeof(double),
               psd->error_message);
+
   for (index_z = 0; index_z < psd->z_size; index_z++) {
     psd->z[index_z] = exp(log(psd->z_min)+psd->z_delta*index_z);
   }
@@ -189,6 +190,7 @@ int distortions_get_xz_lists(struct background * pba,
   psd->x_max = 5.e1;
   psd->x_size = (int) 500;
   psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+
   class_alloc(psd->x,
               psd->x_size*sizeof(double),
               psd->error_message);
@@ -223,10 +225,12 @@ int distortions_get_xz_lists(struct background * pba,
  */
 int distortions_branching_ratios(struct precision * ppr,
                                  struct distortions* psd){
+
   /** Define local variables */
   int index_z,index_type,index_e;
   double f_g, f_y, f_mu;
   double * f_E;
+  double bb_vis;
   int last_index = 0;
 
   /** Allocate space for branching ratios in br_table */ 
@@ -242,6 +246,7 @@ int distortions_branching_ratios(struct precision * ppr,
   /** Calulate branching ratios */
   if(psd->branching_approx != bra_exact){
     for(index_z=0; index_z<psd->z_size; ++index_z){
+      bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
       /* 1) Calculate branching ratios using sharp_sharp transition */
       if(psd->branching_approx == bra_sharp_sharp){
         if(psd->z[index_z]>psd->z_th){
@@ -263,10 +268,10 @@ int distortions_branching_ratios(struct precision * ppr,
 
       /* 2) Calculate branching ratios using sharp_soft transition */
       if(psd->branching_approx == bra_sharp_soft){
-        f_g = 1.-exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+        f_g = 1.-bb_vis;
         if(psd->z[index_z]>psd->z_muy){
           f_y = 0.;
-          f_mu = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+          f_mu = bb_vis;
         }
         if(psd->z[index_z]<psd->z_muy){
           f_y = 1.;
@@ -276,25 +281,22 @@ int distortions_branching_ratios(struct precision * ppr,
 
       /* 3) Calculate branching ratios unsing soft_soft transitions */
       if(psd->branching_approx == bra_soft_soft){
-        f_g = 1.-exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+        f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
-        f_mu = exp(-pow(psd->z[index_z]/psd->z_th,2.5))*(1.-exp(-pow((1.0+psd->z[index_z])/(5.8e4),1.88)));
+        f_mu = bb_vis*(1.-exp(-pow((1.0+psd->z[index_z])/(5.8e4),1.88)));
       }
 
       /* 4) Calculate branching ratios unsing soft_soft_cons transitions */
       if(psd->branching_approx == bra_soft_soft_cons){
-        f_g = 1.-exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+        f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
-        f_mu = exp(-pow(psd->z[index_z]/psd->z_th,2.5))*(1.-f_y);
+        f_mu = bb_vis*(1.-f_y);
       }
 
-    psd->br_table[psd->index_type_g][index_z] = f_g;
-    psd->br_table[psd->index_type_y][index_z] = f_y;
-    psd->br_table[psd->index_type_mu][index_z] = f_mu;
-    psd->br_table[psd->index_type_r][index_z] = 1.-
-                                                psd->br_table[psd->index_type_g][index_z]-
-                                                psd->br_table[psd->index_type_y][index_z]-
-                                                psd->br_table[psd->index_type_mu][index_z];
+      psd->br_table[psd->index_type_g][index_z] = f_g;
+      psd->br_table[psd->index_type_y][index_z] = f_y;
+      psd->br_table[psd->index_type_mu][index_z] = f_mu;
+      psd->br_table[psd->index_type_r][index_z] = 1.-f_g-f_y-f_mu;
 
     }
   }
@@ -311,35 +313,33 @@ int distortions_branching_ratios(struct precision * ppr,
     class_call(distortions_spline_BR_exact_data(psd),
                psd->error_message,
                psd->error_message);
-    /* Allocate loca variable */
+
+    /* Allocate local variable */
     class_alloc(f_E,
                 psd->N_PCA*sizeof(double),
                 psd->error_message);
+
     /* Interpolate over z */
     for(index_z=0; index_z<psd->z_size; ++index_z){
       class_call(distortions_interpolate_BR_exact_data(psd,
                                                        psd->z[index_z],
-                                                       &psd->br_table[psd->index_type_g][index_z],
-                                                       &psd->br_table[psd->index_type_y][index_z],
-                                                       &psd->br_table[psd->index_type_mu][index_z],
+                                                       &f_g,
+                                                       &f_y,
+                                                       &f_mu,
                                                        f_E,
                                                        &last_index),
                  psd->error_message,
                  psd->error_message);
 
-      psd->br_table[psd->index_type_r][index_z] = 1.-
-                                                  psd->br_table[psd->index_type_g][index_z]-
-                                                  psd->br_table[psd->index_type_y][index_z]-
-                                                  psd->br_table[psd->index_type_mu][index_z];
-
-    }
-    for(index_e=0; index_e<psd->N_PCA; ++index_e){
-      psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
-
-      if(psd->distortions_verbose > 2){
-        printf("[%i] = %.10e \n",index_e,
-                                 psd->br_table[psd->index_type_PCA+index_e][index_z]);
+      /* Store quantities in the table*/
+      psd->br_table[psd->index_type_g][index_z] = f_g;
+      psd->br_table[psd->index_type_y][index_z] = f_y;
+      psd->br_table[psd->index_type_mu][index_z] = f_mu;
+      psd->br_table[psd->index_type_r][index_z] = 1.-f_g-f_y-f_mu;
+      for(index_e=0; index_e<psd->N_PCA; ++index_e){
+        psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
       }
+
     }
 
     /* Free space allocated in distortions_read_BR_exact_data() */
@@ -398,6 +398,7 @@ int distortions_heating_rate(struct precision * ppr,
                              struct thermo * pth,
                              struct primordial * ppm,
                              struct distortions * psd){
+
   /** Define local variables */
   int index_z;
   double tau;
@@ -577,9 +578,10 @@ int distortions_heating_rate(struct precision * ppr,
  * @return the error status
  */
 int distortions_amplitudes(struct distortions * psd){
+
   /** Define local variables */
-  int index_type;
-  double * int_arg;
+  int index_type,index_z;
+  double * integrand;
 
   /** Allocate space for spectral distortion amplitude in table sd_parameter_table */
   class_alloc(psd->sd_parameter_table,
@@ -587,17 +589,17 @@ int distortions_amplitudes(struct distortions * psd){
               psd->error_message);
 
   /** Compute distortion amplitude corresponding to each branching ratio (g, y, mu and r) */
-  class_alloc(int_arg,
+  class_alloc(integrand,
               psd->z_size*sizeof(double),
               psd->error_message);
 
   for(index_type=0; index_type<psd->type_size; ++index_type){
-    for (int index_z=0; index_z<psd->z_size; ++index_z){
-      int_arg[index_z] = psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z]*
+    for (index_z=0; index_z<psd->z_size; ++index_z){
+      integrand[index_z] = psd->heating_table[psd->index_ht_dQrho_dlnz_tot_screened][index_z]*
                          psd->br_table[index_type][index_z];
     }
     class_call(simpson_integration(psd->z_size,
-                                   int_arg,
+                                   integrand,
                                    psd->z_delta,
                                    &psd->sd_parameter_table[index_type],
                                    psd->error_message),
@@ -605,7 +607,7 @@ int distortions_amplitudes(struct distortions * psd){
                psd->error_message);
   }
 
-  free(int_arg);
+  free(integrand);
 
   psd->sd_parameter_table[psd->index_type_g] /= 4.;
   psd->sd_parameter_table[psd->index_type_y] /= 4.;
@@ -671,6 +673,7 @@ int distortions_amplitudes(struct distortions * psd){
 int distortions_spectral_shapes(struct precision * ppr,
                                 struct background * pba,
                                 struct distortions * psd){
+
   /** Define local variables */
   double * S;
   int last_index = 0;
@@ -691,16 +694,16 @@ int distortions_spectral_shapes(struct precision * ppr,
               psd->x_size*sizeof(double),
               psd->error_message);
 
-  /** Calculate spectral distortions */
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    if(psd->N_PCA != 0){
-      /* Read and spline data from file branching_ratios_exact.dat */
-      class_call(distortions_read_PCA_dist_shapes_data(ppr,psd),
-                 psd->error_message,
-                 psd->error_message);
-      class_call(distortions_spline_PCA_dist_shapes_data(psd),
-                 psd->error_message,
-                 psd->error_message);
+  if(psd->N_PCA > 0){
+    /* Read and spline data from file branching_ratios_exact.dat */
+    class_call(distortions_read_PCA_dist_shapes_data(ppr,psd),
+               psd->error_message,
+               psd->error_message);
+    class_call(distortions_spline_PCA_dist_shapes_data(psd),
+               psd->error_message,
+               psd->error_message);
+    /** Calculate spectral distortions */
+    for(index_x=0; index_x<psd->x_size; ++index_x){
       /* Allocate loca variable */
       class_alloc(S,
                   psd->N_PCA*sizeof(double),
@@ -718,22 +721,19 @@ int distortions_spectral_shapes(struct precision * ppr,
 
       for(index_s=0; index_s<psd->N_PCA; ++index_s){
         psd->distortions_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
-
-        if(psd->distortions_verbose > 2){
-          printf("[%i] = %.10e \n",index_s,
-                                   psd->distortions_table[psd->index_type_PCA+index_s][index_x]);
-        }
       }
-    
-    /* Free allocated space */
-    class_call(distortions_free_PCA_dist_shapes_data(psd),
-               psd->error_message,
-               psd->error_message);
-    free(S);
 
+      /* Free allocated space */
+      class_call(distortions_free_PCA_dist_shapes_data(psd),
+                 psd->error_message,
+                 psd->error_message);
+      free(S);
     }
-    else{
+  }
+  else{
 
+    /** Calculate spectral distortions */
+    for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->distortions_table[psd->index_type_g][index_x] = 1.e-18*2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.)*
                                                            pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
                                                            pow(1.-exp(-psd->x[index_x]),2.);   // [10^-18 W/(m^2 Hz sr)]
@@ -743,7 +743,10 @@ int distortions_spectral_shapes(struct precision * ppr,
       psd->distortions_table[psd->index_type_mu][index_x] = psd->distortions_table[psd->index_type_g][index_x]*
                                                             (1./2.19229-1./psd->x[index_x]);   // [10^-18 W/(m^2 Hz sr)]
     }
+  }
 
+  /** Calculate spectral distortions */
+  for(index_x=0; index_x<psd->x_size; ++index_x){
     psd->DI[index_x] = psd->sd_parameter_table[psd->index_type_y]*psd->distortions_table[psd->index_type_g][index_x]+
                        psd->sd_parameter_table[psd->index_type_mu]*psd->distortions_table[psd->index_type_y][index_x]+
                        psd->sd_parameter_table[psd->index_type_g]*psd->distortions_table[psd->index_type_mu][index_x];  // [10^-18 W/(m^2 Hz sr)]
@@ -870,6 +873,7 @@ int distortions_free_Greens_data(struct distortions * psd){
  */
 int distortions_read_BR_exact_data(struct precision * ppr,
                                    struct distortions * psd){
+
   /** Define local variables */
   int index_e,index_z;
   FILE * infile;
@@ -881,6 +885,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
   class_open(infile, ppr->br_exact_file, "r",
              psd->error_message);
 
+  /** Read header */
   psd->br_exact_Nz = 0;
   while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
     headlines++;
@@ -906,6 +911,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
       break;
     }
   }
+
   /** Read parameters */
   for(index_z=0; index_z<psd->br_exact_Nz; ++index_z){
     class_test(fscanf(infile, "%le",
@@ -944,6 +950,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
  * @return the error status
  */
 int distortions_spline_BR_exact_data(struct distortions* psd){
+
   /** Allocate second derivatievs */
   class_alloc(psd->ddf_g_exact,
               psd->br_exact_Nz*sizeof(double),
@@ -1020,6 +1027,7 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
                                           double * f_mu,
                                           double * f_E,
                                           int * last_index){
+
   /** Define local variables */
   int index = *last_index;
   int index_e;
