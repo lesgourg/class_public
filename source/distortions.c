@@ -695,6 +695,7 @@ int distortions_spectral_shapes(struct precision * ppr,
               psd->error_message);
 
   if(psd->N_PCA > 0){
+
     /* Read and spline data from file branching_ratios_exact.dat */
     class_call(distortions_read_PCA_dist_shapes_data(ppr,psd),
                psd->error_message,
@@ -702,12 +703,14 @@ int distortions_spectral_shapes(struct precision * ppr,
     class_call(distortions_spline_PCA_dist_shapes_data(psd),
                psd->error_message,
                psd->error_message);
+
     /** Calculate spectral distortions */
     for(index_x=0; index_x<psd->x_size; ++index_x){
-      /* Allocate loca variable */
+      /* Allocate local variable */
       class_alloc(S,
                   psd->N_PCA*sizeof(double),
                   psd->error_message);
+
       /* Interpolate over z */
       class_call(distortions_interpolate_PCA_dist_shapes_data(psd,
                                                               psd->x[index_x]*(_k_B_*pba->T_cmb/_h_P_),
@@ -765,6 +768,7 @@ int distortions_spectral_shapes(struct precision * ppr,
  */
 int distortions_read_Greens_data(struct precision * ppr,
                                  struct distortions * psd){
+
   /** Define local variables */
   FILE * infile;
   char line[_LINE_LENGTH_MAX_];
@@ -849,6 +853,7 @@ int distortions_read_Greens_data(struct precision * ppr,
  * @return the error status
  */
 int distortions_free_Greens_data(struct distortions * psd){
+
   free(psd->Greens_z);
   free(psd->Greens_x);
   free(psd->Greens_T_ini);
@@ -1061,6 +1066,7 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
                                                  index,
                                                  index+1,
                                                  h,a,b);
+
   for(index_e=0;index_e<psd->N_PCA;++index_e){
     f_E[index_e] = array_interpolate_spline_hunt(psd->E_vec,
                                                  psd->ddE_vec,
@@ -1083,6 +1089,7 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
  * @return the error status
  */
 int distortions_free_BR_exact_data(struct distortions * psd){
+
   free(psd->br_exact_z);
   free(psd->f_g_exact);
   free(psd->ddf_g_exact);
@@ -1109,6 +1116,7 @@ int distortions_free_BR_exact_data(struct distortions * psd){
  */
 int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
                                           struct distortions * psd){
+
   /** Define local variables */
   FILE * infile;
   char line[_LINE_LENGTH_MAX_];
@@ -1116,7 +1124,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
   int headlines = 0;
 
   /** Open file */
-  class_open(infile, ppr->br_exact_file, "r",
+  class_open(infile, ppr->PCA_file, "r",
              psd->error_message);
 
   psd->PCA_Nnu = 0;
@@ -1144,6 +1152,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
       break;
     }
   }
+
   /** Read parameters */
   for(int i=0; i<psd->PCA_Nnu; ++i){
     class_test(fscanf(infile,"%le",
@@ -1182,6 +1191,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
  * @return the error status
  */
 int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
+
   /** Allocate second derivatievs */
   class_alloc(psd->ddG_T_PCA,
               psd->PCA_Nnu*sizeof(double),
@@ -1258,6 +1268,7 @@ int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
                                                  double * M_mu,
                                                  double * S,
                                                  int * index){
+
   /** Define local variables */
   int last_index = *index;
   int index_s;
@@ -1291,6 +1302,7 @@ int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
                                         last_index,
                                         last_index+1,
                                         h,a,b);
+
   for(index_s=0; index_s<psd->N_PCA; ++index_s){
     S[index_s] = array_interpolate_spline_hunt(psd->S_vec,
                                                psd->ddS_vec,
@@ -1313,6 +1325,7 @@ int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
  * @return the error status
  */
 int distortions_free_PCA_dist_shapes_data(struct distortions * psd){
+
   free(psd->PCA_nu);
   free(psd->PCA_G_T);
   free(psd->ddG_T_PCA);
