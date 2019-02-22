@@ -106,9 +106,11 @@ int distortions_free(struct distortions * psd) {
 
     /* Delete distortion shapes */
     for(index_type=0;index_type<psd->type_size;++index_type){
-      free(psd->distortions_table[index_type]);
+      free(psd->sd_shape_table[index_type]);
+      free(psd->sd_table[index_type]);
     }
-    free(psd->distortions_table);
+    free(psd->sd_shape_table);
+    free(psd->sd_table);
 
     /* Delete distortion amplitudes */
     free(psd->sd_parameter_table);
@@ -167,8 +169,8 @@ int distortions_indices(struct distortions * psd) {
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_get_xz_lists(struct background * pba, 
-                             struct thermo * pth, 
+int distortions_get_xz_lists(struct background * pba,
+                             struct thermo * pth,
                              struct distortions * psd){
 
   /** Define local variables */
@@ -196,7 +198,7 @@ int distortions_get_xz_lists(struct background * pba,
               psd->error_message);
 
   for (index_z = 0; index_z < psd->z_size; index_z++) {
-    psd->z[index_z] = exp(log(psd->z_min)+psd->z_delta*index_z);
+    psd->z[index_z] = exp(log(psd->z_min+1)+psd->z_delta*index_z);
   }
 
   /** Define and allocate integrating weights for z array */
@@ -239,7 +241,7 @@ int distortions_get_xz_lists(struct background * pba,
  *    1) Use a sharp transition at z_mu-y and no distortions before z_th ('branching approx'=sharp_sharp)
  *    2) Use a sharp transition at z_mu-y and a soft transition at z_th ('branching approx'=sharp_soft)
  *    3) Use a soft transition at a_mu-y and z_th as described in Chluba 2013 ('branching approx'=soft_soft)
- *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy 
+ *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy
  *       ('branching approx'=soft_soft_cons)
  *    5) Use a PCA method as described in Chluba & Jeong 2014 ('branching approx'=exact)
  *
@@ -259,7 +261,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   double bb_vis;
   int last_index = 0;
 
-  /** Allocate space for branching ratios in br_table */ 
+  /** Allocate space for branching ratios in br_table */
   class_alloc(psd->br_table,
               psd->type_size*sizeof(double*),
               psd->error_message);
@@ -333,7 +335,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
     /* 5) Calculate branching ratios according to Chluba & Jeong 2014
           In this case, read and interpolate precomputed functions (also the multipole expansion of the residual vectors E)
           from external file branching_ratios_exact.dat. The computation has been performed by J. Chluba according
-          to Chluba & Jeong 2014. */ 
+          to Chluba & Jeong 2014. */
 
     /* Read and spline data from file branching_ratios_exact.dat */
     class_call(distortions_read_BR_exact_data(ppr,psd),
@@ -439,7 +441,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
   double g_h;
   double bb_vis;
 
-  /** Allocate space for heating rates in heating_table */ 
+  /** Allocate space for heating rates in heating_table */
   class_alloc(psd->heating_table,
               psd->ht_size*sizeof(double*),
               psd->error_message);
@@ -526,7 +528,8 @@ int distortions_compute_heating_rate(struct precision * ppr,
 
     /* b) Approximated function */
     if (psd->dQrho_dz_diss_approx == _TRUE_){
-      k_max = 5.*kD;
+
+      k_max = 5.0*kD;
       k_min = 0.12;
       k_size = 500;        /* Found to be reasonable for this particular integral */
 
@@ -541,17 +544,18 @@ int distortions_compute_heating_rate(struct precision * ppr,
          * Note that the the heating caused by dissipation of acustic waves depends on the primordial
          * power spectrum and to analyse the its influence it is enough to change initial parameters. */
         class_call(primordial_spectrum_at_k(ppm,
-                                          ppt->index_md_scalars,
-                                          linear,
-                                          k,
-                                          &pk_primordial_k),
-                   ppm->error_message,
-                   psd->error_message);
+                                            ppt->index_md_scalars,
+                                            linear,
+                                            k,
+                                            &pk_primordial_k),
+                     ppm->error_message,
+                     psd->error_message);
         /* Define integrand for approximated function */
         int_dQrho_dz_diss_approx[index_k] = 4.*0.81*
                                             pow(k,2.)*
                                             pk_primordial_k*
-                                            dkD_dz*exp(-2.*pow(k/kD,2.));              // [-]
+                                            exp(-2.*pow(k/kD,2.))*              // [-]
+                                            dkD_dz;
       }
 
       /* Integrate approximate function */
@@ -584,7 +588,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
     psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z] = 0.;
 
     /* Total heating rate */
-    psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z] = 
+    psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z] =
                                         //psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] +
@@ -593,7 +597,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
                                         psd->heating_table[psd->index_ht_dQrho_dz_eva_PBH][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z];
 
-    psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z] = 
+    psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z] =
                                         psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*bb_vis;
   }
 
@@ -635,6 +639,11 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
                                              psd->error_message),
                psd->error_message,
                psd->error_message);
+
+    if(index_type>=psd->index_type_PCA){
+      /* The E_k are not properly normalized, we have to renormalize here*/
+      psd->sd_parameter_table[index_type]/=(log(1.+psd->z[1])-log(1.+psd->z[0]));
+    }
   }
 
   psd->sd_parameter_table[psd->index_type_g] /= 4.;
@@ -661,7 +670,7 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
     if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
       printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
     }
-    else{ 
+    else{
       printf("-> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
       printf("Chluba 2016 (diss, exact): mu-parameter = %g\n",2.00e-08);
     }
@@ -669,7 +678,7 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
     if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
       printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
     }
-    else{ 
+    else{
       printf("-> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
       printf("Chluba 2016 (diss, exact): y-parameter = %g\n",3.63e-9);
     }
@@ -690,6 +699,13 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
 
 /**
  * Calculate spectral distortions.
+ * We store both the shape of each distortion and the total
+ *  final intensity, which is usually just the multiplication with
+ *  the amplitude prefactor.
+ *
+ * The calculation has been done according to
+ * Chluba, J. and Jeong, D. 2014 (MNRAS 438, 2065-2082)
+ *  (arxiv:1306.5751)
  *
  * @param pba        Input: pointer to background structure
  * @param psd        Input: pointer to the distortions structure
@@ -704,17 +720,17 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   int last_index = 0;
   int index_type, index_x, index_s;
 
-  /** Allocate space for distortions shapes in distortions_table */ 
-  class_alloc(psd->distortions_table,
+  /** Allocate space for distortions shapes in distortions_table */
+  class_alloc(psd->sd_shape_table,
               psd->type_size*sizeof(double*),
               psd->error_message);
   for(index_type=0; index_type<psd->type_size; ++index_type){
-    class_alloc(psd->distortions_table[index_type],
+    class_alloc(psd->sd_shape_table[index_type],
                 psd->x_size*sizeof(double),
                 psd->error_message);
   }
 
-  /** Allocate space for final spactral distortion */ 
+  /** Allocate space for final spactral distortion */
   class_alloc(psd->DI,
               psd->x_size*sizeof(double),
               psd->error_message);
@@ -764,30 +780,44 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
                                                            pow(1.-exp(-psd->x[index_x]),2.);   // [-]
-      psd->sd_shape_table[psd->index_type_y][index_x] = psd->distortions_table[psd->index_type_g][index_x]*
+      psd->sd_shape_table[psd->index_type_y][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
                                                            (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
                                                            (1.-exp(-psd->x[index_x]))-4.);     // [-]
-      psd->sd_shape_table[psd->index_type_mu][index_x] = psd->distortions_table[psd->index_type_g][index_x]*
+      psd->sd_shape_table[psd->index_type_mu][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
                                                             (1./2.19229-1./psd->x[index_x]);   // [-]
 
-      
+
     }
+
   }
 
+  class_alloc(psd->sd_table,
+              psd->type_size*sizeof(double*),
+              psd->error_message);
+  for(index_type=0; index_type<psd->type_size; ++index_type){
+    class_alloc(psd->sd_table[index_type],
+                psd->x_size*sizeof(double),
+                psd->error_message);
+  }
+
+  /* Spectral distortions according to arxiv:1306.5751 equation (11) */
   for(index_x=0;index_x<psd->x_size;++index_x){
     psd->DI[index_x] = 0.;
+
     for(index_type=0;index_type<psd->type_size;++index_type){
       if(index_type==psd->index_type_g){
         double g = psd->sd_parameter_table[psd->index_type_g];
-        psd->sd_table[index_x] = (1.+g)*g*psd->distortions_table[psd->index_type_g][index_x]+
-            g*g*0.5*psd->distortions_table[psd->index_type_mu][index_x];
+        psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
+            g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
       }
       else{
-        psd->sd_table[index_x] = psd->sd_parameter_table[index_type]*psd->distortions_table[index_type][index_x];
+        psd->sd_table[index_type][index_x] = psd->sd_parameter_table[index_type]*psd->sd_shape_table[index_type][index_x];
       }
-      psd->DI[index_x]+=psd->sd_table[index_x];
+
+      psd->DI[index_x]+=psd->sd_table[index_type][index_x];
     }
   }
+
   return _SUCCESS_;
 }
 
@@ -1446,7 +1476,7 @@ int distortions_output_data(struct distortions * psd,
     class_store_double(dataptr, psd->x[index_x]*psd->x_to_nu, _TRUE_,storeidx);
     class_store_double(dataptr, psd->DI[index_x]*psd->DI_units, _TRUE_,storeidx);
     for(index_type=0;index_type<psd->type_size;++index_type){
-      class_store_double(dataptr, psd->sd_parameter_table[index_type]*psd->distortions_table[index_type][index_x]*psd->DI_units, _TRUE_,storeidx);
+      class_store_double(dataptr, psd->sd_table[index_type][index_x]*psd->DI_units, _TRUE_,storeidx);
     }
   }
 
