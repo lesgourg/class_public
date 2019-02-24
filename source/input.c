@@ -1470,7 +1470,7 @@ int input_read_parameters(
       ppt->has_perturbations = _TRUE_;
     }
 
-    /* [ML] */
+    // [ML]
     if ((strstr(string1,"Sd") != NULL) || (strstr(string1,"sd") != NULL) || (strstr(string1,"SD") != NULL)) {
       ppt->has_perturbations = _TRUE_;
       ppt->has_density_transfers=_TRUE_;
