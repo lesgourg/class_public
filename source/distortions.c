@@ -215,19 +215,26 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
-  if(psd->detector = "PIXIE"){
-    psd->x_min = ppr->distortions_nu_min_PIXIE/psd->x_to_nu;
-    psd->x_max = ppr->distortions_nu_max_PIXIE/psd->x_to_nu;
-    psd->x_size = ppr->distortions_nu_size_PIXIE;
+  if(psd->N_PCA == 0){
+    psd->x_min = ppr->distortions_x_min;
+    psd->x_max = ppr->distortions_x_max;
+    psd->x_size = ppr->distortions_x_size;
     psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
   }
   else{
-    psd->x_min = psd->nu_min_detector/psd->x_to_nu;
-    psd->x_max = psd->nu_max_detector/psd->x_to_nu;
-    psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
-    psd->x_size = (log(psd->x_max)-log(psd->x_min))/psd->x_delta;
+    if(psd->detector = "PIXIE"){
+      psd->x_min = ppr->distortions_nu_min_PIXIE/psd->x_to_nu;
+      psd->x_max = ppr->distortions_nu_max_PIXIE/psd->x_to_nu;
+      psd->x_size = ppr->distortions_nu_size_PIXIE;
+      psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+    }
+    else{
+      psd->x_min = psd->nu_min_detector/psd->x_to_nu;
+      psd->x_max = psd->nu_max_detector/psd->x_to_nu;
+      psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
+      psd->x_size = (log(psd->x_max)-log(psd->x_min))/psd->x_delta;
+    }
   }
-
 
   class_alloc(psd->x,
               psd->x_size*sizeof(double),
@@ -748,28 +755,19 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
               psd->x_size*sizeof(double),
               psd->error_message);
 
+  if(psd->N_PCA == 0){
+    /** Calculate spectral distortions */
+    for(index_x=0; index_x<psd->x_size; ++index_x){
+      psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
+                                                           pow(1.-exp(-psd->x[index_x]),2.);   // [-]
+      psd->sd_shape_table[psd->index_type_y][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
+                                                           (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
+                                                           (1.-exp(-psd->x[index_x]))-4.);     // [-]
+      psd->sd_shape_table[psd->index_type_mu][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
+                                                           (1./2.19229-1./psd->x[index_x]);    // [-]
 
-  /* BEGIN TEST 
-  double T_ini, T_last, rho, Greens_function, Greens_blackbody;
-
-  for(index_x=0; index_x<psd->){
-  class_call(distortions_interpolate_Greens_data(psd,
-                                                 z,
-                                                 x,
-                                                 &T_ini,
-                                                 &T_last,
-                                                 &rho,
-                                                 &Greens_function,
-                                                 &Greens_blackbody,
-                                                 &last_index,
-                                                 &last_index),
-             psd->error_message,
-             psd->error_message);
-
-
-  END TEST */
-
-  if(psd->N_PCA > 0){
+  }
+  else{
     if(psd->detector = "PIXIE"){
       /* Read and spline data from file branching_ratios_exact.dat */
       class_call(distortions_read_PIXIE_sd_data(ppr,psd),
@@ -812,19 +810,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
       // TODO
     }
   }
-  else{
-    /** Calculate spectral distortions */
-    for(index_x=0; index_x<psd->x_size; ++index_x){
-      psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
-                                                           pow(1.-exp(-psd->x[index_x]),2.);   // [-]
-      psd->sd_shape_table[psd->index_type_y][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
-                                                           (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
-                                                           (1.-exp(-psd->x[index_x]))-4.);     // [-]
-      psd->sd_shape_table[psd->index_type_mu][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
-                                                            (1./2.19229-1./psd->x[index_x]);   // [-]
-
-
-    }
 
   }
 

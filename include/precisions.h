@@ -426,6 +426,10 @@ class_precision_parameter(distortions_z_min,double,1.011e3)
 class_precision_parameter(distortions_z_max,double,5.e6)
 class_precision_parameter(distortions_z_size,int,500)
 
+class_precision_parameter(distortions_x_min,double,30.)
+class_precision_parameter(distortions_x_max,double,1000.)
+class_precision_parameter(distortions_x_size,int,500)
+
 class_precision_parameter(distortions_nu_min_PIXIE,double,30.)
 class_precision_parameter(distortions_nu_max_PIXIE,double,1000.)
 class_precision_parameter(distortions_nu_size_PIXIE,int,500)
