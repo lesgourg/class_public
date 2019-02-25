@@ -13,10 +13,9 @@ import pprint, pickle
 #import matplotlib.pyplot as plt
 #import time
 
-#Lyman alpha likelihood ALFA-BETA-DELTA VERSION
-#by M. Archidiacono, R. Murgia, D.C. Hooper, J. Lesgourgues, M. Viel
+#Lyman alpha likelihood by M. Archidiacono, R. Murgia, D.C. Hooper, J. Lesgourgues, M. Viel
 
-class Lya_ABD(Likelihood):
+class Lya(Likelihood):
 
     def __init__(self, path, data, command_line):
 
@@ -30,11 +29,12 @@ class Lya_ABD(Likelihood):
         self.need_cosmo_arguments(data, {'Lya_k_s_over_km':self.k_s_over_km})
         self.need_cosmo_arguments(data, {'Lya_z':self.z})
 
-        self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and delta)
+        #lcdm_points = 33    #number of grid points for the lcdm case (i.e. alpha=0, regardless of beta and gamma values)
+        self.params_numbers = 3  #number of non-astro params (i.e. alpha,beta and gamma)
 
         alphas = np.zeros(self.grid_size, 'float64')
         betas = np.zeros(self.grid_size, 'float64')
-        deltas = np.zeros(self.grid_size, 'float64')
+        gammas = np.zeros(self.grid_size, 'float64')
 
         self.bin_file_path = os.path.join(command_line.folder,self.bin_file_name)
         if not os.path.exists(self.bin_file_path):
@@ -44,6 +44,9 @@ class Lya_ABD(Likelihood):
                     name = re.sub('[$*&]', '', name)
                     bin_file.write(' %s\t' % name)
                 for name in data.get_mcmc_parameters(['derived']):
+                    name = re.sub('[$*&]', '', name)
+                    bin_file.write(' %s\t' % name)
+                for name in data.get_mcmc_parameters(['like']):
                     name = re.sub('[$*&]', '', name)
                     bin_file.write(' %s\t' % name)
                 bin_file.write('\n')
@@ -63,7 +66,7 @@ class Lya_ABD(Likelihood):
                 for index in xrange(self.grid_size):
                     alphas[index] = float(line.split()[0])
                     betas[index] = float(line.split()[1])
-                    deltas[index] = float(line.split()[2])
+                    gammas[index] = float(line.split()[2])
                     line = grid_file.readline()
                 grid_file.close()
         else:
@@ -73,18 +76,17 @@ class Lya_ABD(Likelihood):
         X_real = np.zeros((self.grid_size, self.params_numbers),'float64') #real params
 
         for k in range(self.grid_size):  #real params
-           #X_real[k][0] = self.khalf(alphas[k], betas[k], deltas[k])    #k_1/2
-           X_real[k][0] = alphas[k]    #k_1/2
+           X_real[k][0] = self.khalf(alphas[k], betas[k], gammas[k])    #k_1/2
            X_real[k][1] = betas[k]
-           X_real[k][2] = deltas[k]
+           X_real[k][2] = gammas[k]
 
         #for the normalization (see Alex's notes) #???
         self.a_min = min(X_real[:,0])
         self.b_min = min(X_real[:,1])
-        self.d_min = min(X_real[:,2])
+        self.g_min = min(X_real[:,2])
         self.a_max = max(X_real[:,0])
         self.b_max = max(X_real[:,1])
-        self.d_max = max(X_real[:,2])
+        self.g_max = max(X_real[:,2])
 
         #redshift independent parameters - params order: z_reio, sigma_8, n_eff, f_UV
         self.zind_param_size = [3, 5, 5, 3] #how many values I have for each param
@@ -141,45 +143,46 @@ class Lya_ABD(Likelihood):
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
            self.input_full_matrix_interpolated_ASTRO = pickle.load(pkl)
-           #print self.full_matrix_interpolated_ASTRO.shape
+           #print self.input_full_matrix_interpolated_ASTRO.shape
            pkl.close()
         else:
            raise io_mp.ConfigurationError('Error: astro spectra file is missing')
            exit()
 
-        file_path = os.path.join(self.data_directory, self.abd_spectra_file)
+        file_path = os.path.join(self.data_directory, self.abg_spectra_file)
         if os.path.exists(file_path):
            pkl = open(file_path, 'r')
-           self.input_full_matrix_interpolated_ABD = pickle.load(pkl)
+           self.input_full_matrix_interpolated_ABG = pickle.load(pkl)
+           #print self.input_full_matrix_interpolated_ABG.shape
            pkl.close()
         else:
-           raise io_mp.ConfigurationError('Error: abd spectra file is missing')
+           raise io_mp.ConfigurationError('Error: abg spectra file is missing')
            exit()
 
         ALL_zdep_params = len(flux_ref_old) + len(t0_ref_old) + len(slope_ref_old)
-        grid_length_ABD = len(self.input_full_matrix_interpolated_ABD[0,0,:])
+        grid_length_ABG = len(self.input_full_matrix_interpolated_ABG[0,0,:])
         grid_length_ASTRO = len(self.input_full_matrix_interpolated_ASTRO[0,0,:])
         astroparams_number_KRIG = len(self.zind_param_size) + ALL_zdep_params
 
-        #### --- ABD GRID --- {alpha, beta, delta} GRID
-        file_path = os.path.join(self.data_directory, self.abd_grid_file)
+        #### --- ABG GRID --- {alpha, beta, gamma} GRID
+        file_path = os.path.join(self.data_directory, self.abg_grid_file)
         if os.path.exists(file_path):
-           self.X_ABD = np.zeros((grid_length_ABD, self.params_numbers), 'float64')
+           self.X_ABG = np.zeros((grid_length_ABG, self.params_numbers), 'float64')
            for param_index in range(self.params_numbers):
-               self.X_ABD[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
+               self.X_ABG[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
         else:
-           raise io_mp.ConfigurationError('Error: abd grid file is missing')
+           raise io_mp.ConfigurationError('Error: abg grid file is missing')
            exit()
 
         #### --- ASTRO GRID --- ORDER OF THE COMPLETE LIST OF ASTRO PARAMS: z_reio, sigma_8, n_eff, f_UV, mean_f(z), t0(z), slope(z)
         #### HIGH REDSHIFT
-        file_path = os.path.join(self.data_directory, self.abd_astro_grid_file)
+        file_path = os.path.join(self.data_directory, self.abg_astro_grid_file)
         if os.path.exists(file_path):
            self.X = np.zeros((grid_length_ASTRO,astroparams_number_KRIG), 'float64')
            for param_index in range(astroparams_number_KRIG):
                self.X[:,param_index] = np.genfromtxt(file_path, usecols=[param_index], skip_header=1)
         else:
-           raise io_mp.ConfigurationError('Error: abd+astro grid file is missing')
+           raise io_mp.ConfigurationError('Error: abg+astro grid file is missing')
            exit()
 
         #  STUFF FOR INTERPOLATING IN THE ASTROPARAMS SPACE ####################################
@@ -236,7 +239,7 @@ class Lya_ABD(Likelihood):
            self.PF_noPRACE = pickle.load(pkl)
            pkl.close()
         else:
-           raise io_mp.ConfigurationError('Error: PF_noPRACE file (i.e. the reference flux power spectrum) is missing')
+           raise io_mp.ConfigurationError('Error: PF_noPRACE file is missing')
            exit()
 
         self.cov_MH_inverted = block_diag(cov_H_inverted,cov_M_inverted)
@@ -245,14 +248,22 @@ class Lya_ABD(Likelihood):
         print "Initialization of Lya likelihood done"
 
     #from alpha to 1./k_{1/2} in order to interpolate in a less sparse grid
-    #def khalf(self,alpha,beta,delta):
-        #return ((((((0.5)**(1./2.) - delta)/(1.-delta))**(-2./(3.*beta))-1.)**(1./beta))/alpha)**(-1.)       #1./k1half
+    def khalf(self,alpha,beta,gamma):
+        return ((((0.5)**(1/(2*gamma)) - 1)**(1/beta))/alpha)**(-1)       #1./k1half
 
 #### functions used later on in the code, moved here to avoid nested definitions #####
 
     #model function #T^2=P_model/P_ref
-    def T(self,k,alpha,beta,delta):
-        return (1. - delta)*(1. + (alpha*k)**(beta))**(-(3./2.)*beta) + delta
+    def T(self,k,alpha,beta,gamma):
+        return (1. + (alpha*k)**(beta))**(gamma)
+
+#    #define objective function: returns the array to be minimized # MArchi: moved fcn2min inside loglkl
+#    def fcn2min(self,params, k, Tk):
+#        alpha = params['alpha']
+#        beta = params['beta']
+#        gamma = params['gamma']
+#        model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
+#        return (model - Tk)      #standard residuals
 
     def z_dep_func(self,parA, parS, z):  #analytical function for the redshift dependence of t0 and slope
         return parA*(( (1.+z)/(1.+self.zp) )**parS)
@@ -279,24 +290,25 @@ class Lya_ABD(Likelihood):
         return (((par1 - var1)**2 + (par2 - var2)**2 + (par3 - var3)**2)**(0.5) + self.epsilon)**self.exponent
 
     def ordkrig_norm_3D(self,par1, par2, par3):
-        return np.sum(1./self.ordkrig_distance_3D(par1, par2, par3, self.X_ABD[:,0], self.X_ABD[:,1], self.X_ABD[:,2]))
+        return np.sum(1./self.ordkrig_distance_3D(par1, par2, par3, self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]))
 
     def ordkrig_lambda_3D(self,par1, par2, par3, var1, var2, var3):
         return (1./self.ordkrig_distance_3D(par1, par2, par3, var1, var2, var3))/self.ordkrig_norm_3D(par1,par2,par3)
 
     def ordkrig_estimator_3D(self,p21, z):
-        ABD_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
-        NEW_ABD_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_length, self.kappa_full_length), 'float64')
-        full_matrix_interpolated_ABD = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
+        ABG_matrix_new = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
+        NEW_ABG_matrix = np.zeros(( self.grid_size+self.num_sim_thermal, self.zeta_full_length, self.kappa_full_length), 'float64')
+        full_matrix_interpolated_ABG = np.zeros(( self.zeta_full_length, self.kappa_full_length, self.grid_size+self.num_sim_thermal), 'float64')
+        
         for i in range(self.zeta_full_length):
             for j in range(self.kappa_full_length):
-                NEW_ABD_matrix[:,i,j] = self.input_full_matrix_interpolated_ABD[i,j,:]
-        ABD_matrix_new = NEW_ABG_matrix + self.ordkrig_estimator(p21,z) - 1.
-        ABD_matrix_new = np.clip(ABD_matrix_new, 0. , None)
+                NEW_ABG_matrix[:,i,j] = self.input_full_matrix_interpolated_ABG[i,j,:]
+        ABG_matrix_new = NEW_ABG_matrix + self.ordkrig_estimator(p21,z) - 1.
+        ABG_matrix_new = np.clip(ABG_matrix_new, 0. , None)
         for i in range(self.zeta_full_length):
             for j in range(self.kappa_full_length):
-                full_matrix_interpolated_ABD[i,j,:] = ABD_matrix_new[:,i,j]
-        return np.sum(np.multiply(self.ordkrig_lambda_3D(p21[0]/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.d_max-self.d_min), self.X_ABD[:,0], self.X_ABD[:,1], self.X_ABD[:,2]), full_matrix_interpolated_ABD[:,:,:]),axis=2)
+                full_matrix_interpolated_ABG[i,j,:] = ABG_matrix_new[:,i,j]
+        return np.sum(np.multiply(self.ordkrig_lambda_3D((self.khalf(p21[0],p21[1],p21[2]))/(self.a_max-self.a_min), p21[1]/(self.b_max-self.b_min), p21[2]/(self.g_max-self.g_min), self.X_ABG[:,0], self.X_ABG[:,1], self.X_ABG[:,2]), full_matrix_interpolated_ABG[:,:,:]),axis=2)
 
 ### end of block ####
 
@@ -311,6 +323,9 @@ class Lya_ABD(Likelihood):
                     name = re.sub('[$*&]', '', name)
                     bin_file.write(' %s\t' % name)
                 for name in data.get_mcmc_parameters(['derived']):
+                    name = re.sub('[$*&]', '', name)
+                    bin_file.write(' %s\t' % name)
+                for name in data.get_mcmc_parameters(['like']):
                     name = re.sub('[$*&]', '', name)
                     bin_file.write(' %s\t' % name)
                 bin_file.write('\n')
@@ -353,15 +368,12 @@ class Lya_ABD(Likelihood):
             F_UV=data.mcmc_parameters['F_UV']['current']*data.mcmc_parameters['F_UV']['scale']
         else:
             F_UV=0.0
-        
-        #Temporarily store alpha beta and delta
-        if 'alpha' in self.use_nuisance:
-            data.mcmc_parameters['alpha']['current']=-1.e30
-        if 'beta' in self.use_nuisance:
-            data.mcmc_parameters['beta']['current']=-1.e30
-        if 'delta' in self.use_nuisance:
-            data.mcmc_parameters['delta']['current']=-1.e30
-        
+
+        #Temporarily store alpha beta and gamma
+        data.mcmc_parameters['alpha']['current']=-1.e30
+        data.mcmc_parameters['beta']['current']=-1.e30
+        data.mcmc_parameters['gamma']['current']=-1.e30
+
         h=cosmo.h()
         Plin = np.zeros(len(k), 'float64')
         for index_k in range(len(k)):
@@ -392,6 +404,7 @@ class Lya_ABD(Likelihood):
         #print 'z_reio = ',z_reio,'sigma8 = ',sigma8,' neff = ',neff
         #print '\n'
 
+
         #sanity check on the cosmological parameters #the one on z_reio can be removed
         if ((z_reio<self.zind_param_min[0] or z_reio>self.zind_param_max[0]) or (sigma8<self.zind_param_min[1] or sigma8>self.zind_param_max[1]) or (neff<self.zind_param_min[2] or neff>self.zind_param_max[2])):
            with open(self.bin_file_path, 'a') as bin_file:
@@ -402,6 +415,8 @@ class Lya_ABD(Likelihood):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 for elem in data.get_mcmc_parameters(['derived']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['like']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
            sys.stderr.write('#Error_cosmo\n')
@@ -409,6 +424,11 @@ class Lya_ABD(Likelihood):
            return data.boundary_loglike
 
         classNeff=cosmo.Neff()
+
+        #print '\n'
+        #print 'initial model'
+        #print data.cosmo_arguments
+        #print '\n'
 
         #param_lcdm_equiv = deepcopy(data.cosmo_arguments)
         param_backup = data.cosmo_arguments.copy()
@@ -527,6 +547,8 @@ class Lya_ABD(Likelihood):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 for elem in data.get_mcmc_parameters(['derived']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['like']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_equiv\n')
@@ -554,6 +576,8 @@ class Lya_ABD(Likelihood):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 for elem in data.get_mcmc_parameters(['derived']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['like']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
             sys.stderr.write('#Error_kneff\n')
@@ -565,21 +589,21 @@ class Lya_ABD(Likelihood):
         k_fit = k[:index_k_fit_max]
         Tk_fit = Tk[:index_k_fit_max]
 
-        # fitting the given linear P(k) with the {alpha,beta,delta}-formula
+        # fitting the given linear P(k) with the {alpha,beta,gamma}-formula
 
         #define objective function: returns the array to be minimized
         def fcn2min(params, k, Tk):
             alpha = params['alpha']
             beta = params['beta']
-            delta = params['delta']
-            model = self.T(k,alpha,beta,delta)
+            gamma = params['gamma']
+            model = self.T(k,alpha,beta,gamma) #(1. + (alpha*kappa_interp)**(beta))**(gamma)
             return (model - Tk)      #standard residuals
 
         # create a set of Parameters
         params = Parameters()
         params.add('alpha', value=0.001, min = self.alpha_min, max = self.alpha_max) #the min and max set here are not the ones of the tables
-        params.add('beta', value=2.3, min = self.beta_min, max = self.beta_max)
-        params.add('delta', value=0., min= self.delta_min, max=self.delta_max)
+        params.add('beta', value=3.4, min = self.beta_min, max = self.beta_max)
+        params.add('gamma', value=-9., min= self.gamma_min, max=self.gamma_max)
 
         # do fit, default is with least squares method
         #t0_fit = time.clock()
@@ -588,21 +612,43 @@ class Lya_ABD(Likelihood):
         result = minner.minimize(method = 'leastsq')
         best_alpha = result.params['alpha'].value
         best_beta  = result.params['beta'].value
-        best_delta = result.params['delta'].value
+        best_gamma = result.params['gamma'].value
 
-        #store alpha beta and delta
-        if 'alpha' in self.use_nuisance:
-            data.mcmc_parameters['alpha']['current']=best_alpha/data.mcmc_parameters['alpha']['scale']
-        if 'beta' in self.use_nuisance:
-            data.mcmc_parameters['beta']['current']=best_beta/data.mcmc_parameters['beta']['scale']
-        if 'delta' in self.use_nuisance:
-            data.mcmc_parameters['delta']['current']=best_delta/data.mcmc_parameters['delta']['scale']
+        #store alpha beta and gamma
+        data.mcmc_parameters['alpha']['current']=best_alpha/data.mcmc_parameters['alpha']['scale']
+        data.mcmc_parameters['beta']['current']=best_beta/data.mcmc_parameters['beta']['scale']
+        data.mcmc_parameters['gamma']['current']=best_gamma/data.mcmc_parameters['gamma']['scale']
 
-        Tk_abd=np.zeros(len(k_fit),'float64')
-        Tk_abd=self.T(k_fit, best_alpha, best_beta, best_delta)
+        #t1_fit = time.clock()
 
-        #sanity check on alpha beta delta
-        if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_delta<self.delta_min or best_delta>self.delta_max)):
+        Tk_abg=np.zeros(len(k_fit),'float64')
+        Tk_abg=self.T(k_fit, best_alpha, best_beta, best_gamma)
+
+        # write error report
+        #print '\n'
+        #print params
+        #print '\n'
+        #report_fit(result)
+        #print '\n'
+        #print best_alpha,best_beta,best_gamma
+        #print '\n'
+        #print result.chisqr, result.redchi
+
+##        plt.xlabel('k [h/Mpc]')
+##        plt.ylabel('$P_{nCDM}/P_{CDM}$')
+#        plt.ylim(0.01,1.01)
+#        plt.xlim(self.kmin,self.kmax)
+#        plt.xscale('log')
+##       plt.yscale('log')
+#        plt.grid(True)
+#        plt.plot(k, Tk**2, 'r')
+#        plt.plot(k, (self.T(k, best_alpha, best_beta, best_gamma))**2, 'b--')
+##       plt.plot(k_fit, abs(Tk_fit**2/Tk_abg**2-1.), 'k')
+##       plt.show()
+#        plt.savefig('grid_fit_plot.pdf')
+
+        #sanity check on alpha beta gamma
+        if ((best_alpha<self.alpha_min or best_alpha>self.alpha_max) or (best_beta<self.beta_min or best_beta>self.beta_max) or (best_gamma<self.gamma_min or best_gamma>self.gamma_max)):
            if(best_alpha<self.alpha_min or best_alpha>self.alpha_max):
                with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_a\t')
@@ -612,34 +658,41 @@ class Lya_ABD(Likelihood):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 for elem in data.get_mcmc_parameters(['derived']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['like']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
                sys.stderr.write('#Error_a\n')
                sys.stderr.flush()
            else:
                with open(self.bin_file_path, 'a') as bin_file:
-                bin_file.write('#Error_bd\t')
+                bin_file.write('#Error_bg\t')
                 #for name, value in data.mcmc_parameters.iteritems():
                     #bin_file.write(' %.6e' % (value['current']*value['scale']))
                 for elem in data.get_mcmc_parameters(['varying']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 for elem in data.get_mcmc_parameters(['derived']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['like']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
-               sys.stderr.write('#Error_bd\n')
+               sys.stderr.write('#Error_bg\n')
                sys.stderr.flush()
 
            return data.boundary_loglike
 
-        #sanity check on the alpha beta delta fit wrt the model
+        #sanity check on the alpha beta gamma fit wrt the model
+        #fit_error=abs(Tk_fit/Tk_abg-1.)
+        #if any(x>0.1 for x in fit_error):
+
         for ik in range(len(k_fit)):
             index_k_check_max = -1
             if Tk_fit[ik]<0.2:
                index_k_check_max = ik
                break
 
-        if any(abs(Tk_fit[:index_k_check_max]/Tk_abd[:index_k_check_max]-1.)>0.1):
+        if any(abs(Tk_fit[:index_k_check_max]/Tk_abg[:index_k_check_max]-1.)>0.1):
             with open(self.bin_file_path, 'a') as bin_file:
                 bin_file.write('#Error_fit\t')
                 #for name, value in data.mcmc_parameters.iteritems():
@@ -647,6 +700,8 @@ class Lya_ABD(Likelihood):
                 for elem in data.get_mcmc_parameters(['varying']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 for elem in data.get_mcmc_parameters(['derived']):
+                    bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
+                for elem in data.get_mcmc_parameters(['like']):
                     bin_file.write(' %.6e\t' % data.mcmc_parameters[elem]['current'])
                 bin_file.write('\n')
                 bin_file.close()
@@ -657,13 +712,12 @@ class Lya_ABD(Likelihood):
 
 
         chi2=0.
-        
         #theta=np.zeros(len(self.use_nuisance)+self.params_numbers+len(self.zind_param_size)-1, 'float64')
         model_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
         #y_H = np.zeros (( len(self.zeta_range_mh), len(self.k_mh) ), 'float64')
         model_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
         #y_M = np.zeros (( len(self.zeta_range_mh)-1, len(self.k_mh) ), 'float64')
-        theta=np.array([best_alpha,best_beta,best_delta,z_reio,sigma8,neff,F_UV,Fz1,Fz2,Fz3,Fz4,T0a,T0s,gamma_a,gamma_s])
+        theta=np.array([best_alpha,best_beta,best_gamma,z_reio,sigma8,neff,F_UV,Fz1,Fz2,Fz3,Fz4,T0a,T0s,gamma_a,gamma_s])
         model = self.PF_noPRACE*self.ordkrig_estimator_3D(theta, self.redshift_list)
         upper_block = np.vsplit(model, [7,11])[0]
         lower_block = np.vsplit(model, [7,11])[1]

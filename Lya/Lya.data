@@ -1,0 +1,49 @@
+# MontePython Lyman alpha likelihood 
+# be carefull there are a lot of hard coded parameters
+Lya.DATASET = "mike-hires"
+Lya.zp = 4.5
+Lya.num_sim_thermal = 8
+#the redshift array had first the XQ-100 z (low z) and then the MIKE HIRES z (high z)
+#so we need num_z_XQ to rescale the redshift array when using only MIKE HIRES
+Lya.num_z_XQ = 7
+#z with overlapping data of both XQ-100 and MIKE HIRES
+Lya.num_z_overlap = 1
+Lya.data_directory   = data.path['data']
+Lya.bin_file_name = "Lya_bin_file.txt"
+Lya.grid_file = "Lya_grid/ABG_fullgrid+LCDM.dat"
+Lya.grid_size = 142 
+Lya.astro_spectra_file = "Lya_grid/full_matrix_interpolated_ASTRO.pkl"
+Lya.abg_spectra_file = "Lya_grid/full_matrix_interpolated_ABG.pkl"
+Lya.abg_grid_file = "Lya_grid/kriging_GRID_2R_ABG+WDM.dat"
+Lya.abg_astro_grid_file = "Lya_grid/kriging_GRID_2R_astro_18p_HR_noPRACE.dat"
+Lya.MIKE_spectra_file = "Lya_grid/y_M_reshaped.pkl"
+Lya.HIRES_spectra_file = "Lya_grid/y_H_reshaped.pkl"
+Lya.MIKE_cov_file = "Lya_grid/cov_M_inverted.pkl"
+Lya.HIRES_cov_file = "Lya_grid/cov_H_inverted.pkl"
+Lya.PF_noPRACE_file = "Lya_grid/PF_noPRACE.pkl"
+Lya.epsilon = 1e-8
+Lya.exponent = 6.
+#important for the goodness of fit
+Lya.alpha_min = 0.
+Lya.alpha_max = 0.17
+Lya.beta_min = 1.5
+Lya.beta_max = 10.
+Lya.gamma_min = -10.
+Lya.gamma_max = -0.15
+#grid
+#Lya.alpha_min = 0.
+#Lya.alpha_max = 1.
+#Lya.beta_min = 0.
+#Lya.beta_max = 10.
+#Lya.gamma_min = -100.
+#Lya.gamma_max = 0.
+#below stuff that can be changed (with some grain of salt!)
+#k_neff is in s/km
+Lya.k_s_over_km = 0.009
+Lya.z = 3.
+#other k in h/Mpc
+Lya.kmax  = 200.
+Lya.kmin  = 0.01
+Lya.k_size = 10000
+Lya.use_nuisance = ['T0a','T0s','gamma_a','gamma_s','Fz1','Fz2','Fz3','Fz4','F_UV']
+
