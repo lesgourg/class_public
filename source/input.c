@@ -3486,8 +3486,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
   if (pfzw->required_computation_stage >= cs_thermodynamics){
    if (input_verbose>2)
      printf("Stage 2: thermodynamics\n");
-    pr.recfast_Nz_lin = 10000;
-    pr.recfast_Nz_log = 500;
+    pr.thermo_Nz_lin = 10000;
+    pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }

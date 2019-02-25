@@ -18,6 +18,8 @@
 
 int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII,
                                            double H, double TR, double nH, double* xH1s);
+int thermodynamics_hyrec_readrates(struct thermohyrec* phy);
+int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
 
 int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, struct thermohyrec* phy){
 
