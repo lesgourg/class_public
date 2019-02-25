@@ -81,13 +81,11 @@ extern "C" {
 
   int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, struct thermohyrec* phy);
 
-  int thermodynamics_hyrec_readrates(struct thermohyrec* phy);
-
-  int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
-
   int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
                                   double z, double H, double T_b, double T_gamma,
                                   double* x_e, double energy_injection);
+
+  int thermodynamics_hyrec_free(struct thermohyrec* phy);
 
 #ifdef __cplusplus
 }

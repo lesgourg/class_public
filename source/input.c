@@ -1228,7 +1228,7 @@ int input_read_parameters(
   if (flag1 == _TRUE_) {
 
     if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)) {
-      pth->YHe = _BBN_;
+      pth->YHe = _YHE_BBN_;
     }
     else {
       class_read_double("YHe",pth->YHe);
@@ -2960,7 +2960,7 @@ int input_default_params(
 
   /** - thermodynamics structure */
 
-  pth->YHe=_BBN_;
+  pth->YHe=_YHE_BBN_;
   pth->recombination=recfast;
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
