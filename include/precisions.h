@@ -290,7 +290,7 @@ class_precision_parameter(primordial_inflation_extra_efolds,double,2.0) /**< a s
 
 /*
  * Transfer function parameters
- * */
+ */
 
 
 class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
@@ -374,7 +374,7 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
 
 /*
  * Nonlinear module precision parameters
- * */
+ */
 
 
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
@@ -411,12 +411,27 @@ class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq m
 
 /*
  * Lensing precision parameters
- * */
+ */
 
 class_precision_parameter(accurate_lensing,int,_FALSE_) /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
 class_precision_parameter(num_mu_minus_lmax,int,70) /**< difference between num_mu and l_max, increase for more precision */
 class_precision_parameter(delta_l_max,int,500)/**< difference between l_max in unlensed and lensed spectra */
 class_precision_parameter(tol_gauss_legendre,double,ppr->smallest_allowed_variation) /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
+
+
+/*
+ * [ML] Spectral distortions precision parameters
+ */
+class_precision_parameter(distortions_z_min,double,1.011e3)
+class_precision_parameter(distortions_z_max,double,5.e6)
+class_precision_parameter(distortions_z_size,int,500)
+
+class_precision_parameter(distortions_nu_min,double,30.)
+class_precision_parameter(distortions_nu_max,double,1000.)
+class_precision_parameter(distortions_nu_size,int,500)
+
+
+
 
 #undef class_precision_parameter
 #undef class_string_parameter

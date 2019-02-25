@@ -44,8 +44,8 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  /** Define z and x arrays TODO :: convert to precision parameters the limits and N */
-  class_call(distortions_get_xz_lists(pba,pth,psd),
+  /** Define z and x arrays */
+  class_call(distortions_get_xz_lists(ppr,pba,pth,psd),
              psd->error_message,
              psd->error_message);
 
@@ -169,7 +169,8 @@ int distortions_indices(struct distortions * psd) {
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_get_xz_lists(struct background * pba,
+int distortions_get_xz_lists(struct precision * ppr,
+                             struct background * pba,
                              struct thermo * pth,
                              struct distortions * psd){
 
@@ -181,16 +182,16 @@ int distortions_get_xz_lists(struct background * pba,
   psd->DI_units = 1.e26*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
 
   /** Define transition redshifts z_muy and z_th */
-  psd->z_muy = 5.e4;
+  psd->z_muy = 5.e4;    // TODO: [ML] to [NS]: in precision?
   psd->z_th = 1.98e6*
          pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
          pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
          pow(pba->T_cmb/2.726,1./5.);
 
   /** Define and allocate z array */
-  psd->z_min = 1.011e3;
-  psd->z_max = 5.e6;
-  psd->z_size = (int) 500;
+  psd->z_min = ppr->distortions_z_min;
+  psd->z_max = ppr->distortions_z_max;
+  psd->z_size = ppr->distortions_z_size;
   psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
 
   class_alloc(psd->z,
@@ -214,9 +215,9 @@ int distortions_get_xz_lists(struct background * pba,
              psd->error_message);
 
   /** Define and allocate x array */
-  psd->x_min = 30./psd->x_to_nu;   //30GHz //1.e-2;
-  psd->x_max = 1000./psd->x_to_nu; //1000GHz //5.e1;
-  psd->x_size = (int) 500;
+  psd->x_min = ppr->distortions_nu_min/psd->x_to_nu;  // PIXIE value: 30 GHz
+  psd->x_max = ppr->distortions_nu_max/psd->x_to_nu;  // PIXIE value: 1000 GHz
+  psd->x_size = ppr->distortions_nu_size;
   psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
 
   class_alloc(psd->x,

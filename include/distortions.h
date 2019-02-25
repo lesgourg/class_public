@@ -168,7 +168,8 @@ extern "C" {
   /* Indices and lists */
   int distortions_indices(struct distortions * psd);
 
-  int distortions_get_xz_lists(struct background* pba, 
+  int distortions_get_xz_lists(struct precision * ppr,
+                               struct background* pba, 
                                struct thermo* pth, 
                                struct distortions* psd);
 
