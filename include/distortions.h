@@ -38,24 +38,30 @@ struct distortions
 
   //@{
 
-  char ** distortion_names;               /* Names of the distortions */
+  char ** distortion_names;                  /* Names of the distortions */
+
   /* Precision parameters */
   double z_muy;
   double z_th;
 
   double z_min;                              /* Minimum redshift */
   double z_max;                              /* Maximum redshift */
-  double z_delta;                            /* Redshift intervals */
   int z_size;                                /* Lenght of redshift array */
+  double z_delta;                            /* Redshift intervals */
   double * z;                                /* z[index_z] = list of values */
 
   double * z_weights;
 
   double x_min;                              /* Minimum dimentionless frequency */
   double x_max;                              /* Maximum dimentionless frequency */
-  double x_delta;                            /* dimentionless frequency intervals */
   int x_size;                                /* Lenght of dimentionless frequency array */
+  double x_delta;                            /* dimentionless frequency intervals */
   double * x;                                /* x[index_x] = list of values */
+
+  char * detector;                             /* Name of detector */
+  double nu_min_detector;                    /* Minimum frequency of chosen detector */
+  double nu_max_detector;                    /* Maximum frequency of chosen detector */
+  int nu_delta_detector;                     /* Bin size of chosen detector */
 
   double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
   double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
@@ -93,13 +99,22 @@ struct distortions
   /* Variables to read and allocate external file Greens_data.dat */
   int Greens_Nz;
   double * Greens_z;
+
+  double * Greens_T_ini;
+  double * ddGreens_T_ini;
+  double * Greens_T_last;
+  double * ddGreens_T_last;
+  double * Greens_rho;
+  double * ddGreens_rho;
+
   int Greens_Nx;
   double * Greens_x;
-  double * Greens_T_ini;
-  double * Greens_T_last;
-  double * Greens_rho;
-  double * Greens_blackbody;
+
   double * Greens_function;
+  double * ddGreens_function;
+
+  double * Greens_blackbody;
+  double * ddGreens_blackbody;
 
   /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
   double * br_exact_z;
@@ -193,6 +208,17 @@ extern "C" {
   /* Greens file */
   int distortions_read_Greens_data(struct precision * ppr,
                                    struct distortions * psd);
+  int distortions_spline_Greens_data(struct distortions* psd);
+  int distortions_interpolate_Greens_data(struct distortions* psd,
+                                          double z,
+                                          double x,
+                                          double * T_ini,
+                                          double * T_last,
+                                          double * rho,
+                                          double * Greens_function,
+                                          double * Greens_blackbody,
+                                          int * last_index_z,
+                                          int * last_index_x);
   int distortions_free_Greens_data(struct distortions * psd);
 
   /* Branching ratio file*/

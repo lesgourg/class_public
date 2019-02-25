@@ -215,10 +215,19 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
-  psd->x_min = ppr->distortions_nu_min/psd->x_to_nu;  // PIXIE value: 30 GHz
-  psd->x_max = ppr->distortions_nu_max/psd->x_to_nu;  // PIXIE value: 1000 GHz
-  psd->x_size = ppr->distortions_nu_size;
-  psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+  if(psd->detector = "PIXIE"){
+    psd->x_min = ppr->distortions_nu_min/psd->x_to_nu;  // PIXIE value: 30 GHz
+    psd->x_max = ppr->distortions_nu_max/psd->x_to_nu;  // PIXIE value: 1000 GHz
+    psd->x_size = ppr->distortions_nu_size;
+    psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+  }
+  else{
+    psd->x_min = psd->nu_min_detector/psd->x_to_nu;  // PIXIE value: 30 GHz
+    psd->x_max = psd->nu_max_detector/psd->x_to_nu;  // PIXIE value: 1000 GHz
+    psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
+    psd->x_size = (log(psd->x_max)-log(psd->x_min))/psd->x_delta;
+  }
+
 
   class_alloc(psd->x,
               psd->x_size*sizeof(double),
@@ -338,46 +347,52 @@ int distortions_compute_branching_ratios(struct precision * ppr,
           from external file branching_ratios_exact.dat. The computation has been performed by J. Chluba according
           to Chluba & Jeong 2014. */
 
-    /* Read and spline data from file branching_ratios_exact.dat */
-    class_call(distortions_read_BR_exact_data(ppr,psd),
-               psd->error_message,
-               psd->error_message);
-    class_call(distortions_spline_BR_exact_data(psd),
-               psd->error_message,
-               psd->error_message);
-
-    /* Allocate local variable */
-    class_alloc(f_E,
-                psd->N_PCA*sizeof(double),
-                psd->error_message);
-
-    /* Interpolate over z */
-    for(index_z=0; index_z<psd->z_size; ++index_z){
-      class_call(distortions_interpolate_BR_exact_data(psd,
-                                                       psd->z[index_z],
-                                                       &f_g,
-                                                       &f_y,
-                                                       &f_mu,
-                                                       f_E,
-                                                       &last_index),
+    if(psd->detector="PIXIE"){
+      /* Read and spline data from file branching_ratios_exact.dat */
+      class_call(distortions_read_BR_exact_data(ppr,psd),
+                 psd->error_message,
+                 psd->error_message);
+      class_call(distortions_spline_BR_exact_data(psd),
                  psd->error_message,
                  psd->error_message);
 
-      /* Store quantities in the table*/
-      psd->br_table[psd->index_type_g][index_z] = f_g;
-      psd->br_table[psd->index_type_y][index_z] = f_y;
-      psd->br_table[psd->index_type_mu][index_z] = f_mu;
-      for(index_e=0; index_e<psd->N_PCA; ++index_e){
-        psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
+      /* Allocate local variable */
+      class_alloc(f_E,
+                  psd->N_PCA*sizeof(double),
+                  psd->error_message);
+
+      /* Interpolate over z */
+      for(index_z=0; index_z<psd->z_size; ++index_z){
+        class_call(distortions_interpolate_BR_exact_data(psd,
+                                                         psd->z[index_z],
+                                                         &f_g,
+                                                         &f_y,
+                                                         &f_mu,  
+                                                         f_E,
+                                                         &last_index),
+                   psd->error_message,
+                   psd->error_message);
+
+        /* Store quantities in the table*/
+        psd->br_table[psd->index_type_g][index_z] = f_g;
+        psd->br_table[psd->index_type_y][index_z] = f_y;
+        psd->br_table[psd->index_type_mu][index_z] = f_mu;
+        for(index_e=0; index_e<psd->N_PCA; ++index_e){
+          psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
+        }
+
       }
 
-    }
+      /* Free space allocated in distortions_read_BR_exact_data() */
+      class_call(distortions_free_BR_exact_data(psd),
+                 psd->error_message,
+                 psd->error_message);
+      free(f_E);
 
-    /* Free space allocated in distortions_read_BR_exact_data() */
-    class_call(distortions_free_BR_exact_data(psd),
-               psd->error_message,
-               psd->error_message);
-    free(f_E);
+    }
+    else{
+      // TODO
+    }
   }
 
   return _SUCCESS_;
@@ -700,13 +715,10 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
 
 /**
  * Calculate spectral distortions.
- * We store both the shape of each distortion and the total
- *  final intensity, which is usually just the multiplication with
- *  the amplitude prefactor.
+ * We store both the shape of each distortion and the total final intensity, which is usually just the multiplication with
+ * the amplitude prefactor.
  *
- * The calculation has been done according to
- * Chluba, J. and Jeong, D. 2014 (MNRAS 438, 2065-2082)
- *  (arxiv:1306.5751)
+ * The calculation has been done according to Chluba & Jeong 2014 (arxiv:1306.5751)
  *
  * @param pba        Input: pointer to background structure
  * @param psd        Input: pointer to the distortions structure
@@ -736,47 +748,71 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
               psd->x_size*sizeof(double),
               psd->error_message);
 
+
+  /* BEGIN TEST 
+  double T_ini, T_last, rho, Greens_function, Greens_blackbody;
+
+  for(index_x=0; index_x<psd->){
+  class_call(distortions_interpolate_Greens_data(psd,
+                                                 z,
+                                                 x,
+                                                 &T_ini,
+                                                 &T_last,
+                                                 &rho,
+                                                 &Greens_function,
+                                                 &Greens_blackbody,
+                                                 &last_index,
+                                                 &last_index),
+             psd->error_message,
+             psd->error_message);
+
+
+  END TEST */
+
   if(psd->N_PCA > 0){
-
-    /* Read and spline data from file branching_ratios_exact.dat */
-    class_call(distortions_read_PCA_dist_shapes_data(ppr,psd),
-               psd->error_message,
-               psd->error_message);
-    class_call(distortions_spline_PCA_dist_shapes_data(psd),
-               psd->error_message,
-               psd->error_message);
-
-    /* Allocate local variable */
-    class_alloc(S,
-                psd->N_PCA*sizeof(double),
-                psd->error_message);
-
-    /** Calculate spectral distortions */
-    for(index_x=0; index_x<psd->x_size; ++index_x){
-      /* Interpolate over z */
-      class_call(distortions_interpolate_PCA_dist_shapes_data(psd,
-                                                              psd->x[index_x]*psd->x_to_nu,
-                                                              &psd->sd_shape_table[psd->index_type_g][index_x],
-                                                              &psd->sd_shape_table[psd->index_type_y][index_x],
-                                                              &psd->sd_shape_table[psd->index_type_mu][index_x],
-                                                              S,
-                                                              &last_index),
+    if(psd->detector = "PIXIE"){
+      /* Read and spline data from file branching_ratios_exact.dat */
+      class_call(distortions_read_PCA_dist_shapes_data(ppr,psd),
+                 psd->error_message,
+                 psd->error_message);
+      class_call(distortions_spline_PCA_dist_shapes_data(psd),
                  psd->error_message,
                  psd->error_message);
 
-      for(index_s=0; index_s<psd->N_PCA; ++index_s){
-        psd->sd_shape_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
-      }
-    }
+      /* Allocate local variable */
+      class_alloc(S,
+                  psd->N_PCA*sizeof(double),
+                  psd->error_message);
 
-    /* Free allocated space */
-    class_call(distortions_free_PCA_dist_shapes_data(psd),
-               psd->error_message,
-               psd->error_message);
-    free(S);
+      /** Calculate spectral distortions */
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        /* Interpolate over z */
+        class_call(distortions_interpolate_PCA_dist_shapes_data(psd,
+                                                                psd->x[index_x]*psd->x_to_nu,
+                                                                &psd->sd_shape_table[psd->index_type_g][index_x],
+                                                                &psd->sd_shape_table[psd->index_type_y][index_x],
+                                                                &psd->sd_shape_table[psd->index_type_mu][index_x],
+                                                                S,
+                                                                &last_index),
+                   psd->error_message,
+                   psd->error_message);
+
+        for(index_s=0; index_s<psd->N_PCA; ++index_s){
+          psd->sd_shape_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
+        }
+      }
+
+      /* Free allocated space */
+      class_call(distortions_free_PCA_dist_shapes_data(psd),
+                 psd->error_message,
+                 psd->error_message);
+      free(S);
+    }
+    else{
+      // TODO
+    }
   }
   else{
-
     /** Calculate spectral distortions */
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
@@ -801,7 +837,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                 psd->error_message);
   }
 
-  /* Spectral distortions according to arxiv:1306.5751 equation (11) */
+  /* Spectral distortions according to Chluba & Jeong 2014 (arxiv:1306.5751, Eq. (11)) */
   for(index_x=0;index_x<psd->x_size;++index_x){
     psd->DI[index_x] = 0.;
 
@@ -912,6 +948,215 @@ int distortions_read_Greens_data(struct precision * ppr,
 
 
 /**
+ * Spline the quantitites read in distortions_read_Greens_data()
+ *
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_spline_Greens_data(struct distortions* psd){
+  /** Allocate second derivatievs */
+  class_alloc(psd->ddGreens_T_ini,
+              psd->Greens_Nz*sizeof(double),
+              psd->error_message);
+  class_alloc(psd->ddGreens_T_last,
+              psd->Greens_Nz*sizeof(double),
+              psd->error_message);
+  class_alloc(psd->ddGreens_rho,
+              psd->Greens_Nz*sizeof(double),
+              psd->error_message);
+
+  class_alloc(psd->ddGreens_function,
+              psd->Greens_Nx*psd->Greens_Nz*sizeof(double),
+              psd->error_message);
+
+  class_alloc(psd->ddGreens_blackbody,
+              psd->Greens_Nx*sizeof(double),
+              psd->error_message);
+
+  /** Spline z-dependent quantities */
+  class_call(array_spline_table_columns(psd->Greens_z,
+                                        psd->Greens_Nz,
+                                        psd->Greens_T_ini,
+                                        1,
+                                        psd->ddGreens_T_ini,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+             psd->error_message,
+             psd->error_message);
+  class_call(array_spline_table_columns(psd->Greens_z,
+                                        psd->Greens_Nz,
+                                        psd->Greens_T_last,
+                                        1,
+                                        psd->ddGreens_T_last,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+             psd->error_message,
+             psd->error_message);
+  class_call(array_spline_table_columns(psd->Greens_z,
+                                        psd->Greens_Nz,
+                                        psd->Greens_rho,
+                                        1,
+                                        psd->ddGreens_rho,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
+  /** Spline x-dependent quantities */
+  class_call(array_spline_table_columns(psd->Greens_x,
+                                        psd->Greens_Nx,
+                                        psd->Greens_blackbody,
+                                        1,
+                                        psd->ddGreens_blackbody,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
+  /** Spline G_th in z and x dimension */
+  class_call(array_spline_table_columns(psd->Greens_z,
+                                        psd->Greens_Nz,
+                                        psd->Greens_function,
+                                        psd->Greens_Nx,
+                                        psd->ddGreens_function,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+           psd->error_message,
+           psd->error_message);
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Interpolate the quantitites splined in distortions_spline_BR_exact_data() 
+ * TODO: complete legend
+ *
+ * @param psd                Input: pointer to the distortions structure
+ * @param z                  Input: redshift
+ * @param x                  Input: dimentionless frequency
+ * @param T_ini              Output: Temperature of initial blackbody
+ * @param T_last             Output: Temperature of last blackbody shift around z=50000
+ * @param rho                Output: ?
+ * @param Greens_function    Output: Green's function, i.e. G_th(x,z)
+ * @param Greens_blackbody   Output: Blackbody function of T=?
+ * @param index_z            Output: ?
+ * @param index_x            Output: ?
+ * @return the error status
+ */
+int distortions_interpolate_Greens_data(struct distortions* psd,
+                                        double z,
+                                        double x,
+                                        double * T_ini,
+                                        double * T_last,
+                                        double * rho,
+                                        double * Greens_function,
+                                        double * Greens_blackbody,
+                                        int * last_index_z,
+                                        int * last_index_x){
+
+  /** Define local variables */
+  int index_z = *last_index_z;
+  double h_z, a_z, b_z;
+  int index_x = *last_index_x;
+  double h_x, a_x, b_x;
+  int j, i;
+  double * Greens_function_at_z, * ddGreens_function_at_z;
+
+  /** Find z position */
+  class_call(array_spline_hunt(psd->Greens_z,
+                               psd->Greens_Nz,
+                               z,
+                               &index_z,
+                               &h_z,
+                               &a_z,
+                               &b_z,
+                               psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
+  /** Interpolate z-dependent quantities */
+  *T_ini = array_interpolate_spline_hunt(psd->Greens_T_ini,
+                                         psd->ddGreens_T_ini,
+                                         index_z,
+                                         index_z+1,
+                                         h_z,a_z,b_z);
+
+  *T_last = array_interpolate_spline_hunt(psd->Greens_T_last,
+                                          psd->ddGreens_T_last,
+                                          index_z,
+                                          index_z+1,
+                                          h_z,a_z,b_z);
+
+  *rho = array_interpolate_spline_hunt(psd->Greens_rho,
+                                       psd->ddGreens_rho,
+                                       index_z,
+                                       index_z+1,
+                                       h_z,a_z,b_z);
+
+  /** Find x position */
+  class_call(array_spline_hunt(psd->Greens_x,
+                               psd->Greens_Nx,
+                               x,
+                               &index_x,
+                               &h_x,
+                               &a_x,
+                               &b_x,
+                               psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
+  /** Interpolate x-dependent quantities */
+  *Greens_blackbody = array_interpolate_spline_hunt(psd->Greens_blackbody,
+                                                    psd->ddGreens_blackbody,
+                                                    index_x,
+                                                    index_x+1,
+                                                    h_x,a_x,b_x);
+
+  /** Interpolate G_th(z,x) */
+  /* Allocate temporary variables */
+  class_alloc(Greens_function_at_z,
+              psd->Greens_Nx*sizeof(double),
+              psd->error_message);
+  class_alloc(ddGreens_function_at_z,
+              psd->Greens_Nx*sizeof(double),
+              psd->error_message);
+
+  /* Interpolate G_th in z dimension */
+  for(i=0; i<psd->Greens_Nx; ++i){
+    Greens_function_at_z[i] = array_interpolate_spline_hunt(psd->Greens_function+i*psd->Greens_Nz,
+                                                            psd->ddGreens_function+i*psd->Greens_Nz,
+                                                            index_z,
+                                                            index_z+1,
+                                                            h_z,a_z,b_z);
+  }
+  /* Interpolate G_th in x dimension */
+  class_call(array_spline_table_columns(psd->Greens_x,
+                                        psd->Greens_Nx,
+                                        Greens_function_at_z,
+                                        1,
+                                        ddGreens_function_at_z,
+                                        _SPLINE_EST_DERIV_,
+                                        psd->error_message),
+             psd->error_message,
+             psd->error_message);
+  *Greens_function = array_interpolate_spline_hunt(Greens_function_at_z,
+                                                   ddGreens_function_at_z,
+                                                   index_x,
+                                                   index_x+1,
+                                                   h_x,a_x,b_x);
+
+  /* Free allocated memory for temporary quantities */
+  free(Greens_function_at_z);
+  free(ddGreens_function_at_z);
+
+  return _SUCCESS_;
+
+}
+
+
+/**
  * Free from distortions_read_Greens_data()
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
@@ -920,12 +1165,19 @@ int distortions_read_Greens_data(struct precision * ppr,
 int distortions_free_Greens_data(struct distortions * psd){
 
   free(psd->Greens_z);
-  free(psd->Greens_x);
   free(psd->Greens_T_ini);
+  free(psd->ddGreens_T_ini);
   free(psd->Greens_T_last);
+  free(psd->ddGreens_T_last);
   free(psd->Greens_rho);
-  free(psd->Greens_blackbody);
+  free(psd->ddGreens_rho);
+
+  free(psd->Greens_x);
   free(psd->Greens_function);
+  free(psd->ddGreens_function);
+
+  free(psd->Greens_blackbody);
+  free(psd->ddGreens_blackbody);
 
   return _SUCCESS_;
 
@@ -1132,7 +1384,7 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
                                                  index+1,
                                                  h,a,b);
 
-  for(index_e=0;index_e<psd->N_PCA;++index_e){
+  for(index_e=0; index_e<psd->N_PCA; ++index_e){
     f_E[index_e] = array_interpolate_spline_hunt(psd->E_vec+index_e*psd->br_exact_Nz,
                                                  psd->ddE_vec+index_e*psd->br_exact_Nz,
                                                  index,
