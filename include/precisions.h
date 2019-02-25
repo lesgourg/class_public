@@ -85,11 +85,19 @@ class_string_parameter(PCA_file,"/external/distortions/PCA_distortions_shapes.da
 /**
  * The initial z for the recfast calculation of the recombination history
  */
-class_precision_parameter(recfast_z_initial,double,1.0e4)
+class_precision_parameter(recfast_z_initial,double,1.0e6)
 /**
- * Number of recfast integration steps
+ * The switch z for the recfast calculation towards linear sampling
  */
-class_precision_parameter(recfast_Nz0,int,20000)
+class_precision_parameter(recfast_z_linear,double,10000.0)
+/**
+ * Number of recfast integration steps (linear sampling)
+ */
+class_precision_parameter(recfast_Nz_lin,int,20000)
+/**
+ * Number of recfast integration steps (logarithmic sampling)
+ */
+class_precision_parameter(recfast_Nz_log,int,5000)
 /**
  * Tolerance of the relative value of integral during thermodynamical integration
  */

@@ -33,7 +33,7 @@ AR        = ar rv
 PYTHON ?= python
 
 # your optimization flag
-OPTFLAG = -O4 -ffast-math #-march=native
+OPTFLAG = -O0 -ffast-math #-march=native
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
@@ -48,7 +48,7 @@ LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../external/hyrec)
-HYREC = external/hyrec
+HYREC = external/HyRec2012
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -68,8 +68,8 @@ ifneq ($(HYREC),)
 vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
-INCLUDES += -I../external/hyrec
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
+INCLUDES += -I../external/HyRec2012
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
 endif
 
 %.o:  %.c .base

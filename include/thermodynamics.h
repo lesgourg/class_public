@@ -9,6 +9,7 @@
 //#include "hydrogen.h"
 #include "evolver_ndf15.h"
 #include "evolver_rkck.h"
+#include "wrap_hyrec.h"
 
 /**
  * List of possible recombination algorithms.
@@ -264,7 +265,9 @@ struct recombination {
 
   //@{
 
-  int Nz_reco; /**< number of redshitfs for recombination during the evolver loop */
+  int Nz_reco; /**< number of redshifts for recombination during the evolver loop */
+  int Nz_lin; /**< number of redshifts linearly sampled for recombination during the evolver loop */
+  int Nz_log; /**< number of redshifts logarithmically sampled for recombination during the evolver loop */
   int rt_size; /**< number of lines (redshift steps) in the table */
   double * recombination_table; /**< table recombination_table[index_z*preco->re_size+index_re] with all other quantities (array of size preco->rt_size*preco->re_size) */
 
@@ -424,6 +427,7 @@ struct thermo_vector {
 struct thermo_workspace {
 
   struct thermo_vector * tv; /**< pointer to vector of integrated quantities and their time-derivatives */
+  struct thermohyrec * phy;
 
   double x_H;  /**< Hydrogen ionization fraction */
   double x_He; /**< Helium ionization fraction */

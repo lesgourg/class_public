@@ -66,7 +66,13 @@
 #include "thermodynamics.h"
 
 #ifdef HYREC
-#include "hyrec.h"
+#include "history.h"
+#ifndef TWOG_FILE
+#include "hyrectools.h"
+#include "helium.h"
+#include "hydrogen.h"
+#include "hyrec_params.h"
+#endif
 #endif
 
 /**
@@ -1889,19 +1895,19 @@ int thermodynamics_recombination_with_hyrec(
   param.Nnueff = pba->Neff;
   param.nH0 = 11.223846333047*param.obh2*(1.-param.Y);  /* number density of hydrogen today in m-3 */
   param.fHe = param.Y/(1-param.Y)/3.97153;              /* abundance of helium by number */
-  param.zstart = ppr->recfast_z_initial; /* Redshift range */
-  param.zend = 0.;
-  param.dlna = 8.49e-5;
-  param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
-  param.annihilation = pth->annihilation;
-  param.has_on_the_spot = pth->has_on_the_spot;
-  param.decay = pth->decay;
-  param.annihilation_variation = pth->annihilation_variation;
-  param.annihilation_z = pth->annihilation_z;
-  param.annihilation_zmax = pth->annihilation_zmax;
-  param.annihilation_zmin = pth->annihilation_zmin;
-  param.annihilation_f_halo = pth->annihilation_f_halo;
-  param.annihilation_z_halo = pth->annihilation_z_halo;
+  //param.zstart = ppr->recfast_z_initial; /* Redshift range */ //Nils
+  //param.zend = 0.;
+  //param.dlna = 8.49e-5;
+  //param.nz = (long) floor(2+log((1.+param.zstart)/(1.+param.zend))/param.dlna);
+  //param.annihilation = pth->annihilation;
+  //param.has_on_the_spot = pth->has_on_the_spot;
+  //param.decay = pth->decay;
+  //param.annihilation_variation = pth->annihilation_variation;
+  //param.annihilation_z = pth->annihilation_z;
+  //param.annihilation_zmax = pth->annihilation_zmax;
+  //param.annihilation_zmin = pth->annihilation_zmin;
+  //param.annihilation_f_halo = pth->annihilation_f_halo;
+  //param.annihilation_z_halo = pth->annihilation_z_halo;
 
   /** - Build effective rate tables */
 
@@ -1993,16 +1999,18 @@ int thermodynamics_recombination_with_hyrec(
   /** - Compute the recombination history by calling a function in hyrec (no CLASS-like error management here) */
 
   if (pth->thermodynamics_verbose > 0)
-    printf(" -> calling HyRec version %s,\n",HYREC_VERSION);
+    printf(" -> calling HyRec version %s,\n","2012"); //Nils
 
-  rec_build_history(&param, &rate_table, &twog_params, xe_output, Tm_output);
+  double **Dfnu_hist = NULL;
+  double *Dfminus_Ly_hist[3] = {NULL,NULL,NULL}; //Nils
+  rec_build_history(&param, &rate_table, &twog_params, xe_output, Tm_output,Dfnu_hist,Dfminus_Ly_hist);
 
   if (pth->thermodynamics_verbose > 0)
     printf("    by Y. Ali-Haïmoud & C. Hirata\n");
 
   /** - fill a few parameters in preco and pth */
 
-  Nz=ppr->recfast_Nz0;
+  Nz=ppr->recfast_Nz_lin+ppr->recfast_Nz_log;
 
   preco->rt_size = Nz;
   preco->H0 = pba->H0 * _c_ / _Mpc_over_m_;
@@ -2029,24 +2037,25 @@ int thermodynamics_recombination_with_hyrec(
 
     /** - --> get redshift, corresponding results from hyrec, and background quantities */
 
-    z = param.zstart * (1. - (double)(i+1) / (double)Nz);
+    z = 8000.*(1. - (double)(i+1) / (double)Nz);//ppr->recfast_z_initial; //Nils
+    //z = param.zstart * (1. - (double)(i+1) / (double)Nz);
 
     /* get (xe,Tm) by interpolating in pre-computed tables */
 
-    class_call(array_interpolate_cubic_equal(-log(1.+param.zstart),
-                                             param.dlna,
+    class_call(array_interpolate_cubic_equal(-log(1.+8000.),//-log(1.+param.zstart), //Nils
+                                             8.49e-5,//param.dlna,
                                              xe_output,
-                                             param.nz,
+                                             0,//param.nz,
                                              -log(1.+z),
                                              &xe,
                                              pth->error_message),
                pth->error_message,
                pth->error_message);
 
-    class_call(array_interpolate_cubic_equal(-log(1.+param.zstart),
-                                             param.dlna,
+    class_call(array_interpolate_cubic_equal(-log(1.+8000.),//-log(1.+param.zstart),
+                                             8.49e-5,//param.dlna,
                                              Tm_output,
-                                             param.nz,
+                                             0,//param.nz,
                                              -log(1.+z),
                                              &Tm,
                                              pth->error_message),
@@ -2092,7 +2101,7 @@ int thermodynamics_recombination_with_hyrec(
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
+      = 0.;//_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -2185,7 +2194,7 @@ int thermodynamics_solve_with_recfast(
   double * interval_limit;
 
   /* other recfast variables */
-  double zinitial;
+  double zinitial,zlinear;
   int i,Nz;
 
   /* contains all fixed parameters which should be passed to thermodynamics_derivs_with_recfast */
@@ -2217,8 +2226,9 @@ int thermodynamics_solve_with_recfast(
 
 
 
-  /* z_initial */
+  /* z_initial and z_linear*/
   zinitial=ppr->recfast_z_initial;
+  zlinear=ppr->recfast_z_linear;
 
   /** - allocate memory for thermodynamics interpolation tables (size known in advance) */
   Nz = preco->Nz_reco + preio->Nz_reio;
@@ -2242,13 +2252,18 @@ int thermodynamics_solve_with_recfast(
   class_alloc(interval_limit,(ptw->ap_size+1)*sizeof(double),pth->error_message);
 
   /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
-  for(i=0; i <preco->Nz_reco; i++) {
-    mz_output[i] = -(zinitial-ppr->reionization_z_start_max) * (double)(preco->Nz_reco-1-i) / (double)(preco->Nz_reco-1) - ppr->reionization_z_start_max;
+  for(i=0; i <preco->Nz_log; i++) {
+    mz_output[i] = -exp((log(zinitial)-log(zlinear))*(double)(preco->Nz_log-1-i) / (double)(preco->Nz_log-1)+log(zlinear));
+  }
+  /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
+  for(i=0; i <preco->Nz_lin; i++) {
+    mz_output[i+preco->Nz_log] = -(zlinear-ppr->reionization_z_start_max) * (double)(preco->Nz_lin-1-i) / (double)(preco->Nz_lin) - ppr->reionization_z_start_max;
   }
   /* -> Between reionization_z_start_max and 0, we use the spacing of reionization sampling, leaving out the first point to not double-count it */
   for(i=0; i <preio->Nz_reio; i++) {
     mz_output[i+preco->Nz_reco] = -ppr->reionization_z_start_max * (double)(preio->Nz_reio-1-i) / (double)(preio->Nz_reio);
   }
+
 
   /* -> Set the switching z's for the approximations, including the switch from recombination to reionization */
 
@@ -2412,7 +2427,7 @@ int thermodynamics_derivs_with_recfast(
   /* define local variables */
 
   double z;
-  double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,Hz,dHdz,epsilon;
+  double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,dxdlna,Hz,dHdz,epsilon;
   double Rup,Rdown,K,K_He,Rup_He,Rdown_He,He_Boltz;
   double timeTh,timeH;
   double sq_0,sq_1;
@@ -2528,6 +2543,29 @@ int thermodynamics_derivs_with_recfast(
     dx_H = ptw->dx_H;
   }
 
+  if(ap_current >= ptw->index_ap_H){ //Nils
+    double x_e;
+    class_call(thermodynamics_hyrec_get_xe(ptw->phy,z,Hz,Tmat,Trad,&x_e,0.0),
+               ptw->phy->error_message,
+               pth->error_message);
+    //printf("%.10e => (%.10e) => %.10e \n",z,dxdlna,-dxdlna/(1+z));
+    printf("%.10e !!! \n",x_e);
+    printf("x_H = %.10e , x_HE = %.10e , x = %.10e \n",x_H,x_He,x);
+    if(ap_current == ptw->index_ap_H){
+      //dx_He = (-dxdlna/(1+z)-dx_H)/(preco->fHe);
+      //dy[ptw->tv->index_x_He] = dx_He;
+    }
+    else{
+      dx_He = 0.0;
+      dx_H = -dxdlna/(1+z);
+      //dy[ptw->tv->index_x_He] = dx_He;
+      dy[ptw->tv->index_x_H] = dx_H;
+    }
+  }
+  if(ptw->require_He && ! ptw->require_H){
+    printf("DX_HE = %.10e (%.10e expected) f=%.10e,dH = %.10e \n",(-dxdlna/(1+z)-dx_H)/(preco->fHe),dx_He,preco->fHe,dx_H);
+  }
+
   /* During reionization, recalculate x using the analytical formula */
   if(ap_current == ptw->index_ap_reio){
 
@@ -2617,15 +2655,19 @@ int thermodynamics_derivs_with_recfast(
 
     /* Obtain final evolution of hydrogen ionisation fraction: */
 
+    printf("H before =%10e\n",dy[ptw->tv->index_x_H]);
     // JL: test for debugginf reio_inter
+    
     //fprintf(stdout,"%e  %e  %e  %e\n",z,Tmat,K*_Lambda_*n,K*Rup*n);
-    dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z));      /* Peeble's equation with fudged factors */
+    dy[ptw->tv->index_x_H] = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-preco->CL/Tmat)) * C / (Hz*(1.+z));
+    // Peeble's equation with fudged factors
 
-    dy[ptw->tv->index_x_H]+= -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));  /* energy injection (neglect fraction going to helium) */
+    dy[ptw->tv->index_x_H]+= -energy_rate*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));
+     /* energy injection (neglect fraction going to helium) */
 
-    /* Store derivatives for temperature integration */
+    // Store derivatives for temperature integration*/
     dx_H = dy[ptw->tv->index_x_H];
-
+    printf("H=%10e\n",dx_H);
   }
 
   /** - Helium equations */
@@ -2690,6 +2732,7 @@ int thermodynamics_derivs_with_recfast(
       }
     }
 
+    printf("He before =%10e\n",dy[ptw->tv->index_x_He]);
     /* Final helium equations */
     if (x_He < 1.e-15){
       dy[ptw->tv->index_x_He]=0.;
@@ -2708,7 +2751,8 @@ int thermodynamics_derivs_with_recfast(
 
       dy[ptw->tv->index_x_He] = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-preco->CL_He/Tmat))
                *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
-        /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz)); /* in case of energy injection due to DM, we neglect the contribution to helium ionization */
+        /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
+      //in case of energy injection due to DM, we neglect the contribution to helium ionization 
 
       /* following is from recfast 1.4 (now reordered) */
       /* this correction is not self-consistent when there is energy injection  from dark matter, and leads to nan's  at small redshift (unimportant when reionization takes   over before that redshift) */
@@ -2723,6 +2767,7 @@ int thermodynamics_derivs_with_recfast(
     }
     /* Store derivatives for temperature integration */
     dx_He = dy[ptw->tv->index_x_He];
+    printf("He=%10e\n",dx_He);
   }
 
   /* Calculate dx depending on approximation scheme */
@@ -2737,6 +2782,11 @@ int thermodynamics_derivs_with_recfast(
   }
   else{
     dx = ptw->dx;
+  }
+  //printf("Evaluating derivs at z=%.10e \n",z);
+  //printf("%.10e,",z);
+  if(z>0){ //NS
+    printf("%.10e :: Compare %.10e to %.10e \n",1+z,dx,-dxdlna/(1+z));
   }
 
   /** - Matter temperature equations */
@@ -3205,6 +3255,15 @@ int thermo_workspace_init(
   /** - count number of approximations, initialize their indices */
   index_ap=0;
 
+  class_alloc(ptw->phy,
+              sizeof(struct thermohyrec),
+              pth->error_message);
+  double Nnow = 3.*pba->H0 * _c_ / _Mpc_over_m_*pba->H0 * _c_ / _Mpc_over_m_*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
+  double fHe = pth->YHe/(_not4_ *(1.-pth->YHe)); 
+  class_call(thermodynamics_hyrec_init(ppr,Nnow,pba->T_cmb,fHe,ptw->phy),
+             ptw->phy->error_message,
+             pth->error_message);
+
   /* With recombination computed by HyRec, the evolver only has to integrate reionization */
   if(pth->recombination == hyrec){
 
@@ -3339,9 +3398,13 @@ int thermodynamics_recombination_set_parameters(
 
   if(pth->recombination == hyrec){
     preco->Nz_reco = 0;
+    preco->Nz_lin = 0;
+    preco->Nz_log = 0;
   }
   else{
-    preco->Nz_reco = ppr->recfast_Nz0;
+    preco->Nz_reco = ppr->recfast_Nz_lin+ppr->recfast_Nz_log;
+    preco->Nz_lin = ppr->recfast_Nz_lin;
+    preco->Nz_log = ppr->recfast_Nz_log;
   }
 
   /* preco->H0 is H0 in inverse seconds (while pba->H0 is [H0/c] in inverse Mpcs) */

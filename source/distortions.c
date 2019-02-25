@@ -32,12 +32,12 @@ int distortions_init(struct precision * ppr,
     return _SUCCESS_;
   }
   if (psd->distortions_verbose > 0) {
-    printf("Computing spectral distortions \n");
+    printf("Computing spectral distortions\n");
   }
 
   class_test(pth->compute_damping_scale==_FALSE_,
              psd->error_message,
-             "Cannot compute spectral distortions without damping scale \n");
+             "Cannot compute spectral distortions without damping scale\n");
 
   /** Assign values to all indices in the distortions structure */
   class_call(distortions_indices(psd),
