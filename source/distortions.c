@@ -216,14 +216,14 @@ int distortions_get_xz_lists(struct precision * ppr,
 
   /** Define and allocate x array */
   if(psd->detector = "PIXIE"){
-    psd->x_min = ppr->distortions_nu_min/psd->x_to_nu;  // PIXIE value: 30 GHz
-    psd->x_max = ppr->distortions_nu_max/psd->x_to_nu;  // PIXIE value: 1000 GHz
-    psd->x_size = ppr->distortions_nu_size;
+    psd->x_min = ppr->distortions_nu_min_PIXIE/psd->x_to_nu;
+    psd->x_max = ppr->distortions_nu_max_PIXIE/psd->x_to_nu;
+    psd->x_size = ppr->distortions_nu_size_PIXIE;
     psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
   }
   else{
-    psd->x_min = psd->nu_min_detector/psd->x_to_nu;  // PIXIE value: 30 GHz
-    psd->x_max = psd->nu_max_detector/psd->x_to_nu;  // PIXIE value: 1000 GHz
+    psd->x_min = psd->nu_min_detector/psd->x_to_nu;
+    psd->x_max = psd->nu_max_detector/psd->x_to_nu;
     psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
     psd->x_size = (log(psd->x_max)-log(psd->x_min))/psd->x_delta;
   }
@@ -348,11 +348,11 @@ int distortions_compute_branching_ratios(struct precision * ppr,
           to Chluba & Jeong 2014. */
 
     if(psd->detector="PIXIE"){
-      /* Read and spline data from file branching_ratios_exact.dat */
-      class_call(distortions_read_BR_exact_data(ppr,psd),
+      /* Read and spline data from file PIXIE_branching_ratios.dat */
+      class_call(distortions_read_PIXIE_br_data(ppr,psd),
                  psd->error_message,
                  psd->error_message);
-      class_call(distortions_spline_BR_exact_data(psd),
+      class_call(distortions_spline_PIXIE_br_data(psd),
                  psd->error_message,
                  psd->error_message);
 
@@ -363,7 +363,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
       /* Interpolate over z */
       for(index_z=0; index_z<psd->z_size; ++index_z){
-        class_call(distortions_interpolate_BR_exact_data(psd,
+        class_call(distortions_interpolate_PIXIE_br_data(psd,
                                                          psd->z[index_z],
                                                          &f_g,
                                                          &f_y,
@@ -383,8 +383,8 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
       }
 
-      /* Free space allocated in distortions_read_BR_exact_data() */
-      class_call(distortions_free_BR_exact_data(psd),
+      /* Free space allocated in distortions_read_PIXIE_br_data() */
+      class_call(distortions_free_PIXIE_br_data(psd),
                  psd->error_message,
                  psd->error_message);
       free(f_E);
@@ -772,10 +772,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   if(psd->N_PCA > 0){
     if(psd->detector = "PIXIE"){
       /* Read and spline data from file branching_ratios_exact.dat */
-      class_call(distortions_read_PCA_dist_shapes_data(ppr,psd),
+      class_call(distortions_read_PIXIE_sd_data(ppr,psd),
                  psd->error_message,
                  psd->error_message);
-      class_call(distortions_spline_PCA_dist_shapes_data(psd),
+      class_call(distortions_spline_PIXIE_sd_data(psd),
                  psd->error_message,
                  psd->error_message);
 
@@ -787,13 +787,13 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
       /** Calculate spectral distortions */
       for(index_x=0; index_x<psd->x_size; ++index_x){
         /* Interpolate over z */
-        class_call(distortions_interpolate_PCA_dist_shapes_data(psd,
-                                                                psd->x[index_x]*psd->x_to_nu,
-                                                                &psd->sd_shape_table[psd->index_type_g][index_x],
-                                                                &psd->sd_shape_table[psd->index_type_y][index_x],
-                                                                &psd->sd_shape_table[psd->index_type_mu][index_x],
-                                                                S,
-                                                                &last_index),
+        class_call(distortions_interpolate_PIXIE_sd_data(psd,
+                                                         psd->x[index_x]*psd->x_to_nu,
+                                                         &psd->sd_shape_table[psd->index_type_g][index_x],
+                                                         &psd->sd_shape_table[psd->index_type_y][index_x],
+                                                         &psd->sd_shape_table[psd->index_type_mu][index_x],
+                                                         S,
+                                                         &last_index),
                    psd->error_message,
                    psd->error_message);
 
@@ -803,7 +803,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
       }
 
       /* Free allocated space */
-      class_call(distortions_free_PCA_dist_shapes_data(psd),
+      class_call(distortions_free_PIXIE_sd_data(psd),
                  psd->error_message,
                  psd->error_message);
       free(S);
@@ -1185,7 +1185,7 @@ int distortions_free_Greens_data(struct distortions * psd){
 
 
 /**
- * Reads the external file branching_ratios_exact calculated according to Chluba & Jeong 2014
+ * Reads the external file PIXIE_branching_ratios calculated according to Chluba & Jeong 2014
  * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz).
  * The file has been computed by J. Chluba.
  *
@@ -1193,7 +1193,7 @@ int distortions_free_Greens_data(struct distortions * psd){
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_read_BR_exact_data(struct precision * ppr,
+int distortions_read_PIXIE_br_data(struct precision * ppr,
                                    struct distortions * psd){
 
   /** Define local variables */
@@ -1204,7 +1204,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
   int headlines = 0;
 
   /** Open file */
-  class_open(infile, ppr->br_exact_file, "r",
+  class_open(infile, ppr->PIXIE_br_file, "r",
              psd->error_message);
 
   /** Read header */
@@ -1222,7 +1222,7 @@ int distortions_read_BR_exact_data(struct precision * ppr,
       /** Read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line,"%d %d", &psd->br_exact_Nz, &psd->E_vec_size) != 2,
                  psd->error_message,
-                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->br_exact_file);
+                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->PIXIE_br_file);
 
       class_alloc(psd->br_exact_z, psd->br_exact_Nz*sizeof(double), psd->error_message);
       class_alloc(psd->f_g_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
@@ -1239,24 +1239,24 @@ int distortions_read_BR_exact_data(struct precision * ppr,
     class_test(fscanf(infile, "%le",
                       &(psd->br_exact_z[index_z]))!=1,                                // [-]
                       psd->error_message,
-                      "Could not read z at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+                      "Could not read z at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
     class_test(fscanf(infile, "%le",
                       &(psd->f_g_exact[index_z]))!=1,                                 // [-]
                       psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+                      "Could not read f_g at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
     class_test(fscanf(infile, "%le",
                       &(psd->f_y_exact[index_z]))!=1,                                 // [-]
                       psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+                      "Could not read f_y at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
     class_test(fscanf(infile,"%le",
                       &(psd->f_mu_exact[index_z]))!=1,                                // [-]
                       psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+                      "Could not read f_mu at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
     for(index_e=0; index_e<psd->E_vec_size; ++index_e){
       class_test(fscanf(infile,"%le",
                         &(psd->E_vec[index_e*psd->br_exact_Nz+index_z]))!=1,           // [-]
                         psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",index_z+headlines,ppr->br_exact_file);
+                        "Could not read E vector at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
     }
   }
 
@@ -1266,12 +1266,12 @@ int distortions_read_BR_exact_data(struct precision * ppr,
 
 
 /**
- * Spline the quantitites read in distortions_read_BR_exact_data()
+ * Spline the quantitites read in distortions_read_PIXIE_br_data()
  *
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_spline_BR_exact_data(struct distortions* psd){
+int distortions_spline_PIXIE_br_data(struct distortions* psd){
 
   /** Allocate second derivatievs */
   class_alloc(psd->ddf_g_exact,
@@ -1331,7 +1331,7 @@ int distortions_spline_BR_exact_data(struct distortions* psd){
 
 
 /**
- * Interpolate the quantitites splined in distortions_spline_BR_exact_data()
+ * Interpolate the quantitites splined in distortions_spline_PIXIE_br_data()
  *
  * @param psd        Input: pointer to the distortions structure
  * @param z          Input: redshift
@@ -1342,7 +1342,7 @@ int distortions_spline_BR_exact_data(struct distortions* psd){
  * @param index      Output: multipole of PCA expansion for f_E
  * @return the error status
  */
-int distortions_interpolate_BR_exact_data(struct distortions* psd,
+int distortions_interpolate_PIXIE_br_data(struct distortions* psd,
                                           double z,
                                           double * f_g,
                                           double * f_y,
@@ -1400,12 +1400,12 @@ int distortions_interpolate_BR_exact_data(struct distortions* psd,
 
 
 /**
- * Free from distortions_read_BR_exact_data() and distortions_spline_BR_exact_data()
+ * Free from distortions_read_PIXIE_br_data() and distortions_spline_PIXIE_br_data()
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
  */
-int distortions_free_BR_exact_data(struct distortions * psd){
+int distortions_free_PIXIE_br_data(struct distortions * psd){
 
   free(psd->br_exact_z);
   free(psd->f_g_exact);
@@ -1423,7 +1423,7 @@ int distortions_free_BR_exact_data(struct distortions * psd){
 
 
 /**
- * Reads the external file PCA_distortions_shapes calculated according to Chluba & Jeong 2014
+ * Reads the external file PIXIE_distortions_shapes calculated according to Chluba & Jeong 2014
  * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz).
  * The file has been computed by J. Chluba.
  *
@@ -1431,8 +1431,8 @@ int distortions_free_BR_exact_data(struct distortions * psd){
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
-                                          struct distortions * psd){
+int distortions_read_PIXIE_sd_data(struct precision * ppr,
+                                   struct distortions * psd){
 
   /** Define local variables */
   FILE * infile;
@@ -1442,7 +1442,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
   int index_x,index_s;
 
   /** Open file */
-  class_open(infile, ppr->PCA_file, "r",
+  class_open(infile, ppr->PIXIE_sd_file, "r",
              psd->error_message);
 
   /** Read header */
@@ -1460,7 +1460,7 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
       /** Read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line, "%d %d", &psd->PCA_Nnu, &psd->S_vec_size) != 2,
                  psd->error_message,
-                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->br_exact_file);
+                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->PIXIE_sd_file);
 
       class_alloc(psd->PCA_nu, psd->PCA_Nnu*sizeof(double), psd->error_message);
       class_alloc(psd->PCA_G_T, psd->PCA_Nnu*sizeof(double), psd->error_message);
@@ -1477,24 +1477,24 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_nu[index_x]))!=1,                                          // [GHz]
                       psd->error_message,
-                      "Could not read z at line %i in file '%s'",index_x+headlines,ppr->br_exact_file);
+                      "Could not read z at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_G_T[index_x]))!=1,                                         // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",index_x+headlines,ppr->br_exact_file);
+                      "Could not read f_g at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_Y_SZ[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",index_x+headlines,ppr->br_exact_file);
+                      "Could not read f_y at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_M_mu[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",index_x+headlines,ppr->br_exact_file);
+                      "Could not read f_mu at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
     for(index_s=0; index_s<psd->S_vec_size; ++index_s){
       class_test(fscanf(infile,"%le",
                         &(psd->S_vec[index_s*psd->PCA_Nnu+index_x]))!=1,                       // [10^-18 W/(m^2 Hz sr)]
                         psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",index_x+headlines,ppr->br_exact_file);
+                        "Could not read E vector at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
     }
   }
 
@@ -1504,12 +1504,12 @@ int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
 
 
 /**
- * Spline the quantitites read in distortions_read_PCA_dist_shapes_data()
+ * Spline the quantitites read in distortions_read_PIXIE_sd_data()
  *
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
+int distortions_spline_PIXIE_sd_data(struct distortions* psd){
 
   /** Allocate second derivatievs */
   class_alloc(psd->ddPCA_G_T,
@@ -1569,7 +1569,7 @@ int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
 
 
 /**
- * Interpolate the quantitites splined in distortions_spline_PCA_dist_shapes_data()
+ * Interpolate the quantitites splined in distortions_spline_PIXIE_sd_data()
  *
  * @param psd        Input: pointer to the distortions structure
  * @param nu         Input: dimnetionless frequency
@@ -1580,13 +1580,13 @@ int distortions_spline_PCA_dist_shapes_data(struct distortions* psd){
  * @param index      Output: multipole of PCA expansion for S
  * @return the error status
  */
-int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
-                                                 double nu,
-                                                 double * G_T,
-                                                 double * Y_SZ,
-                                                 double * M_mu,
-                                                 double * S,
-                                                 int * index){
+int distortions_interpolate_PIXIE_sd_data(struct distortions* psd,
+                                          double nu,
+                                          double * G_T,
+                                          double * Y_SZ,
+                                          double * M_mu,
+                                          double * S,
+                                          int * index){
 
   /** Define local variables */
   int last_index = *index;
@@ -1638,12 +1638,12 @@ int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
 
 
 /**
- * Free from distortions_read_PCA_dist_shapes_data() and distortions_spline_PCA_dist_shapes_data()
+ * Free from distortions_read_PIXIE_sd_data() and distortions_spline_PIXIE_sd_data()
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
  */
-int distortions_free_PCA_dist_shapes_data(struct distortions * psd){
+int distortions_free_PIXIE_sd_data(struct distortions * psd){
 
   free(psd->PCA_nu);
   free(psd->PCA_G_T);

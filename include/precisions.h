@@ -74,8 +74,8 @@ class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [
  * [ML] Spectral Distortions file path.
  */
 class_string_parameter(Greens_file,"/external/distortions/Greens_data.dat","Greens file")
-class_string_parameter(br_exact_file,"/external/distortions/branching_ratios_exact.dat","BR exact file")
-class_string_parameter(PCA_file,"/external/distortions/PCA_distortions_shapes.dat","PCA file")
+class_string_parameter(PIXIE_br_file,"/external/distortions/PIXIE_branching_ratios.dat","PIXIE BR file")
+class_string_parameter(PIXIE_sd_file,"/external/distortions/PIXIE_distortions_shapes.dat","PIXIE SD file")
 
 /*
  *  Thermodynamical quantities
@@ -426,9 +426,9 @@ class_precision_parameter(distortions_z_min,double,1.011e3)
 class_precision_parameter(distortions_z_max,double,5.e6)
 class_precision_parameter(distortions_z_size,int,500)
 
-class_precision_parameter(distortions_nu_min,double,30.)
-class_precision_parameter(distortions_nu_max,double,1000.)
-class_precision_parameter(distortions_nu_size,int,500)
+class_precision_parameter(distortions_nu_min_PIXIE,double,30.)
+class_precision_parameter(distortions_nu_max_PIXIE,double,1000.)
+class_precision_parameter(distortions_nu_size_PIXIE,int,500)
 
 
 
