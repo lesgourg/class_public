@@ -181,8 +181,7 @@ int thermodynamics_at_z(
     if (((pth->reio_parametrization == reio_half_tanh) && (z < 2*pth->z_reio))
         || ((pth->reio_parametrization == reio_inter) && (z < 50.))) {
 
-      class_call(array_interpolate_linear(
-                                          pth->z_table,
+      class_call(array_interpolate_linear(pth->z_table,
                                           pth->tt_size,
                                           pth->thermodynamics_table,
                                           pth->th_size,
@@ -200,8 +199,7 @@ int thermodynamics_at_z(
 
       if (inter_mode == pth->inter_normal) {
 
-        class_call(array_interpolate_spline(
-                                            pth->z_table,
+        class_call(array_interpolate_spline(pth->z_table,
                                             pth->tt_size,
                                             pth->thermodynamics_table,
                                             pth->d2thermodynamics_dz2_table,
@@ -217,8 +215,7 @@ int thermodynamics_at_z(
 
       if (inter_mode == pth->inter_closeby) {
 
-        class_call(array_interpolate_spline_growing_closeby(
-                                                            pth->z_table,
+        class_call(array_interpolate_spline_growing_closeby(pth->z_table,
                                                             pth->tt_size,
                                                             pth->thermodynamics_table,
                                                             pth->d2thermodynamics_dz2_table,
@@ -233,7 +230,9 @@ int thermodynamics_at_z(
 
       }
     }
+
   }
+
   return _SUCCESS_;
 }
 
@@ -275,7 +274,7 @@ int thermodynamics_init(struct precision * ppr,
                pth->error_message,
                pth->error_message);
   }
-  if (pth->thermodynamics_verbose > 0){
+  if (pth->thermodynamics_verbose > 0) {
     printf(" -> with Y_He = %.4f\n",pth->YHe);
   }
 
@@ -286,7 +285,7 @@ int thermodynamics_init(struct precision * ppr,
              pth->error_message);
 
   /** - allocate and assign all temporary structures and indices */
-
+  class_alloc(ptw, sizeof(struct thermo_workspace), pth->error_message);
   class_call(thermodynamics_workspace_init(ppr,pba,pth,ptw),
              pth->error_message,
              pth->error_message);
@@ -295,23 +294,11 @@ int thermodynamics_init(struct precision * ppr,
              pth->error_message,
              pth->error_message);
 
-  /** - compute table of corresponding conformal times */
-  class_alloc(pth->tau_table,pth->tt_size*sizeof(double),pth->error_message);
-
-  for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
-    class_call(background_tau_of_z(pba,
-                                   pth->z_table[index_tau],
-                                   pth->tau_table+index_tau),
-               pba->error_message,
-               pth->error_message);
-  }
-
-  /** - store initial value of conformal time in the structure */
-  pth->tau_ini = pth->tau_table[pth->tt_size-1];
-
+  class_call(thermodynamics_lists(ppr,pba,pth,ptw),
+             pth->error_message,
+             pth->error_message);
 
   /** - solve recombination and reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_solve() */
-
   class_call(thermodynamics_solve(ppr,pba,pth,ptw,pvecback),
              pth->error_message,
              pth->error_message);
@@ -352,9 +339,6 @@ int thermodynamics_free(
 
   return _SUCCESS_;
 }
-
-
-
 
 /**
  * Test the thermo structure parameters for bounds and critical values.
@@ -567,6 +551,50 @@ int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
   return _SUCCESS_;
 }
 
+int thermodynamics_lists(struct precision * ppr, struct background* pba, struct thermo* pth, struct thermo_workspace* ptw){
+
+  /** Define local variables */
+  int index_tau, index_z;
+  double zinitial,zlinear;
+
+
+  pth->tt_size = ptw->Nz_tot;
+  /** - allocate tables*/
+  class_alloc(pth->tau_table,pth->tt_size*sizeof(double),pth->error_message);
+  class_alloc(pth->z_table,pth->tt_size*sizeof(double),pth->error_message);
+  class_alloc(pth->thermodynamics_table,pth->th_size*pth->tt_size*sizeof(double),pth->error_message);
+  class_alloc(pth->d2thermodynamics_dz2_table,pth->th_size*pth->tt_size*sizeof(double),pth->error_message);
+
+  /** - define time sampling */
+  /* Initial z, and the z at which we switch to linear sampling */
+  zinitial = ppr->thermo_z_initial;
+  zlinear  = ppr->thermo_z_linear;
+  /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
+  for(index_z=0; index_z <ptw->Nz_reco_log; index_z++) {
+    pth->z_table[(pth->tt_size-1) - index_z] = -(-exp((log(zinitial)-log(zlinear))*(double)(ptw->Nz_reco_log-1-index_z) / (double)(ptw->Nz_reco_log-1)+log(zlinear)));
+  }
+  /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
+  for(index_z=0; index_z <ptw->Nz_reco_lin; index_z++) {
+    pth->z_table[(pth->tt_size-1)-(index_z+ptw->Nz_reco_log)] = -(-(zlinear-ppr->reionization_z_start_max) * (double)(ptw->Nz_reco_lin-1-index_z) / (double)(ptw->Nz_reco_lin) - ppr->reionization_z_start_max);
+  }
+  /* -> Between reionization_z_start_max and 0, we use the spacing of reionization sampling, leaving out the first point to not double-count it */
+  for(index_z=0; index_z <ptw->Nz_reio; index_z++) {
+    pth->z_table[(pth->tt_size-1)-(index_z+ptw->Nz_reco)] = -(-ppr->reionization_z_start_max * (double)(ptw->Nz_reio-1-index_z) / (double)(ptw->Nz_reio));
+  }
+
+  for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
+    class_call(background_tau_of_z(pba,
+                                   pth->z_table[index_tau],
+                                   pth->tau_table+index_tau),
+               pba->error_message,
+               pth->error_message);
+  }
+
+  /** - store initial value of conformal time in the structure */
+  pth->tau_ini = pth->tau_table[pth->tt_size-1];
+
+  return _SUCCESS_;
+}
 /**
  * Infer the primordial helium fraction from standard BBN, as a
  * function of the baryon density and expansion rate during BBN.
@@ -874,7 +902,7 @@ int thermodynamics_calculate_conformal_drag_time(struct background* pba,
   int index_tau;
 
   /** - --> baryon drag interaction rate time minus one, -[1/R * kappa'], with R = 3 rho_b / 4 rho_gamma, stored temporarily in column ddkappa */
-  *last_index_back = pba->bg_size-1;
+  *last_index_back = 0;
 
   for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
@@ -1066,6 +1094,57 @@ int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth)
              pth->error_message,
              pth->error_message);
 
+  /** - --> compute visibility: \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
+
+  /* loop on z (decreasing z, increasing time) */
+  for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
+
+    dkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
+    ddkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa];
+    dddkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa];
+    expmkappa = exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
+
+    /** - ---> compute g */
+    g = dkappa * expmkappa;
+
+    /** - ---> compute exp(-kappa) */
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] = expmkappa;
+    //printf("exp(-k)[%i] = %.10e \n",index_tau,expmkappa); 
+
+    /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
+      (ddkappa + dkappa * dkappa) * expmkappa;
+
+    /** - ---> compute g''  */
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg] =
+      (dddkappa + dkappa * ddkappa * 3. + dkappa * dkappa * dkappa ) * expmkappa;
+
+    /** - ---> store g */
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
+    //printf("g[%i] = %.10e \n",index_tau,g); 
+    /** - ---> compute variation rate */
+    class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
+               pth->error_message,
+               "variation rate diverges");
+
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_rate] =
+      sqrt(pow(dkappa,2)+pow(ddkappa/dkappa,2)+fabs(dddkappa/dkappa));
+
+  }
+
+  /** - smooth the rate (details of smoothing unimportant: only the
+      order of magnitude of the rate matters) */
+  class_call(array_smooth(pth->thermodynamics_table,
+                          pth->th_size,
+                          pth->tt_size,
+                          pth->index_th_rate,
+                          ppr->thermo_rate_smoothing_radius,
+                          pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+
+
   /** - --> derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
   if (pth->compute_cb2_derivatives == _TRUE_) {
 
@@ -1094,54 +1173,6 @@ int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth)
                pth->error_message,
                pth->error_message);
   }
-
-  /** - --> compute visibility: \f$ g= (d \kappa/d \tau) e^{- \kappa} \f$ */
-
-  /* loop on z (decreasing z, increasing time) */
-  for (index_tau=pth->tt_size-1; index_tau>=0; index_tau--) {
-
-    dkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa];
-    ddkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa];
-    dddkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa];
-    expmkappa = exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
-
-    /** - ---> compute g */
-    g = dkappa * expmkappa;
-
-    /** - ---> compute exp(-kappa) */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] = expmkappa;
-
-    /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
-      (ddkappa + dkappa * dkappa) * expmkappa;
-
-    /** - ---> compute g''  */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg] =
-      (dddkappa + dkappa * ddkappa * 3. + dkappa * dkappa * dkappa ) * expmkappa;
-
-    /** - ---> store g */
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
-
-    /** - ---> compute variation rate */
-    class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
-               pth->error_message,
-               "variation rate diverges");
-
-    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_rate] =
-      sqrt(pow(dkappa,2)+pow(ddkappa/dkappa,2)+fabs(dddkappa/dkappa));
-
-  }
-
-  /** - smooth the rate (details of smoothing unimportant: only the
-      order of magnitude of the rate matters) */
-  class_call(array_smooth(pth->thermodynamics_table,
-                          pth->th_size,
-                          pth->tt_size,
-                          pth->index_th_rate,
-                          ppr->thermo_rate_smoothing_radius,
-                          pth->error_message),
-             pth->error_message,
-             pth->error_message);
 
   return _SUCCESS_;
 }
@@ -1263,8 +1294,9 @@ int thermodynamics_calculate_drag_quantities(struct precision* ppr,
       interpolation) and sound horizon at that time */
 
   index_tau=0;
-  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.) && (index_tau < pth->tt_size))
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.) && (index_tau < pth->tt_size)){
     index_tau++;
+  }
 
   pth->z_d = pth->z_table[index_tau-1]+
     (1.-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_tau_d])
@@ -1846,8 +1878,7 @@ int thermodynamics_solve(struct precision * ppr,
   double * interval_limit;
 
   /* other z sampling variables */
-  double zinitial,zlinear;
-  int i,Nz;
+  int i;
   double * mz_output;
 
   /* contains all fixed parameters which should be passed to thermodynamics_solve_derivs_with_recfast */
@@ -1884,22 +1915,25 @@ int thermodynamics_solve(struct precision * ppr,
 
   /** - define time sampling in minus z */
   /* -> Create mz_output array of minus z (from mz=-zinitial growing towards mz=0) */
-  class_alloc(mz_output,Nz*sizeof(double), pth->error_message);
+  class_alloc(mz_output,pth->tt_size*sizeof(double), pth->error_message);
+  for(i=0; i < pth->tt_size; ++i){
+    mz_output[i] = -pth->z_table[pth->tt_size-1-i];
+  }
   /* Initial z, and the z at which we switch to linear sampling */
-  zinitial=ppr->thermo_z_initial;
-  zlinear=ppr->thermo_z_linear;
+  //zinitial=ppr->thermo_z_initial;
+  //zlinear=ppr->thermo_z_linear;
   /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
-  for(i=0; i <ptw->Nz_reco_log; i++) {
-    mz_output[i] = -exp((log(zinitial)-log(zlinear))*(double)(ptw->Nz_reco_log-1-i) / (double)(ptw->Nz_reco_log-1)+log(zlinear));
-  }
+  //for(i=0; i <ptw->Nz_reco_log; i++) {
+  //  mz_output[i] = -exp((log(zinitial)-log(zlinear))*(double)(ptw->Nz_reco_log-1-i) / (double)(ptw->Nz_reco_log-1)+log(zlinear));
+  //}
   /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
-  for(i=0; i <ptw->Nz_reco_lin; i++) {
-    mz_output[i+ptw->Nz_reco_log] = -(zlinear-ppr->reionization_z_start_max) * (double)(ptw->Nz_reco_lin-1-i) / (double)(ptw->Nz_reco_lin) - ppr->reionization_z_start_max;
-  }
+  //for(i=0; i <ptw->Nz_reco_lin; i++) {
+  //  mz_output[i+ptw->Nz_reco_log] = -(zlinear-ppr->reionization_z_start_max) * (double)(ptw->Nz_reco_lin-1-i) / (double)(ptw->Nz_reco_lin) - ppr->reionization_z_start_max;
+  //}
   /* -> Between reionization_z_start_max and 0, we use the spacing of reionization sampling, leaving out the first point to not double-count it */
-  for(i=0; i <ptw->Nz_reio; i++) {
-    mz_output[i+ptw->Nz_reco] = -ppr->reionization_z_start_max * (double)(ptw->Nz_reio-1-i) / (double)(ptw->Nz_reio);
-  }
+  //for(i=0; i <ptw->Nz_reio; i++) {
+  //  mz_output[i+ptw->Nz_reco] = -ppr->reionization_z_start_max * (double)(ptw->Nz_reio-1-i) / (double)(ptw->Nz_reio);
+  //}
 
 
   /** - define switching intervals */
@@ -1958,7 +1992,7 @@ int thermodynamics_solve(struct precision * ppr,
                                                                interval_limit[index_interval],
                                                                interval_limit[index_interval+1],
                                                                mz_output,
-                                                               Nz),
+                                                               pth->tt_size),
                    pth->error_message,
                    pth->error_message);
     }
@@ -1975,7 +2009,7 @@ int thermodynamics_solve(struct precision * ppr,
                                  thermodynamics_solve_timescale,  // timescale
                                  1., // stepsize
                                  mz_output, // values of z for output
-                                 Nz, // size of previous array
+                                 pth->tt_size, // size of previous array
                                  thermodynamics_solve_store_sources, // function for output
                                  NULL, // print variables
                                  pth->error_message),
@@ -2169,23 +2203,23 @@ int thermodynamics_solve_derivs(double mz,
     dx_H = ptdw->dx_H;
   }
 
-  if(ap_current >= ptdw->index_ap_H){ //Nils
+  if(ap_current >= ptdw->index_ap_H && pth->recombination == hyrec){ //Nils
     double x_e;
     class_call(thermodynamics_hyrec_get_xe(phyrec,z,Hz,Tmat,Trad,&x_e,energy_rate),
                phyrec->error_message,
                pth->error_message);
     //printf("%.10e => (%.10e) => %.10e \n",z,dxdlna,-dxdlna/(1+z));
-    printf("%.10e !!! \n",x_e);
-    printf("x_H = %.10e , x_HE = %.10e , x = %.10e \n",x_H,x_He,x);
+    //printf("%.10e !!! \n",x_e);
+    //printf("x_H = %.10e , x_HE = %.10e , x = %.10e \n",x_H,x_He,x);
     if(ap_current == ptdw->index_ap_H){
       //dx_He = (-dxdlna/(1+z)-dx_H)/(preco->fHe);
       //dy[ptw->tv->index_x_He] = dx_He;
     }
     else{
-      dx_He = 0.0;
-      dx_H = -dxdlna/(1+z);
+      //dx_He = 0.0;
+      //dx_H = -dxdlna/(1+z);
       //dy[ptw->tv->index_x_He] = dx_He;
-      dy[ptv->index_x_H] = dx_H;
+      //dy[ptv->index_x_H] = dx_H;
     }
   }
 
@@ -2222,7 +2256,7 @@ int thermodynamics_solve_derivs(double mz,
     /* Peebles' coefficient (approximated as one when the Hydrogen
      * ionization fraction is very close to one) */
     if (x_H < ppr->recfast_x_H0_trigger2) {
-      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./precfast->fu+K*_Lambda_*n*(1.-x_H)/precfast->fu +K*Rup*n*(1.-x_H));
+      C = (1. + K*_Lambda_*n*(1.-x_H))/(1./precfast->fudge_H+K*_Lambda_*n*(1.-x_H)/precfast->fudge_H +K*Rup*n*(1.-x_H));
     }
     else {
       C = 1.;
@@ -2246,7 +2280,7 @@ int thermodynamics_solve_derivs(double mz,
 
     /* Obtain final evolution of hydrogen ionisation fraction: */
 
-    printf("H before =%10e\n",dy[ptv->index_x_H]);
+    //printf("H before =%10e\n",dy[ptv->index_x_H]);
     // JL: test for debugginf reio_inter
     
     //fprintf(stdout,"%e  %e  %e  %e\n",z,Tmat,K*_Lambda_*n,K*Rup*n);
@@ -2258,7 +2292,7 @@ int thermodynamics_solve_derivs(double mz,
 
     // Store derivatives for temperature integration*/
     dx_H = dy[ptv->index_x_H];
-    printf("H=%10e\n",dx_H);
+    //printf("H=%10e\n",dx_H);
   }
 
   /** - Helium equations */
@@ -2323,7 +2357,7 @@ int thermodynamics_solve_derivs(double mz,
       }
     }
 
-    printf("He before =%10e\n",dy[ptv->index_x_He]);
+    //printf("He before =%10e\n",dy[ptv->index_x_He]);
     /* Final helium equations */
     if (x_He < 1.e-15){
       dy[ptv->index_x_He]=0.;
@@ -2358,7 +2392,7 @@ int thermodynamics_solve_derivs(double mz,
     }
     /* Store derivatives for temperature integration */
     dx_He = dy[ptv->index_x_He];
-    printf("He=%10e\n",dx_He);
+    //printf("He=%10e\n",dx_He);
   }
 
   /* Calculate dx depending on approximation scheme */
@@ -2774,10 +2808,6 @@ int thermodynamics_workspace_init(struct precision * ppr,
   int index_ap;
 
   /** Allocate the workspace used henceforth to store all temporary quantities */
-  class_alloc(ptw,
-              sizeof(struct thermo_workspace),
-              pth->error_message);
-
   class_alloc(ptw->ptdw,
               sizeof(struct thermo_diffeq_workspace),
               pth->error_message);
@@ -2834,15 +2864,21 @@ int thermodynamics_workspace_init(struct precision * ppr,
                 sizeof(struct thermohyrec),
                 pth->error_message);
 
+    ptw->ptdw->phyrec->thermohyrec_verbose = 0;//5;//Nils
+
     class_call(thermodynamics_hyrec_init(ppr,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe,ptw->ptdw->phyrec),
                ptw->ptdw->phyrec->error_message,
                pth->error_message);
   }
-  else if(pth->recombination == recfast){
+  //else if(pth->recombination == recfast){ //Nils TODO 
     class_alloc(ptw->ptdw->precfast,
                 sizeof(struct thermorecfast),
                 pth->error_message);
-  }
+
+    class_call(thermodynamics_recfast_init(ppr,pba,pth,ptw->fHe,ptw->ptdw->precfast),
+               ptw->ptdw->precfast->error_message,
+               pth->error_message);
+  //}
 
   /**   - define approximations */
   /* Approximations have to appear in chronological order here! */
@@ -2867,7 +2903,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_reio] = 0.0;
 
   /**   - store smoothing deltas for transitions at the beginning of each aproximation */
-  class_alloc(ptw->ptdw->ap_z_limits_delta,ptw->ptdw->ap_size_loaded*sizeof(double),pth->error_message);
+  class_alloc(ptw->ptdw->ap_z_limits_delta,ptw->ptdw->ap_size*sizeof(double),pth->error_message);
 
   ptw->ptdw->ap_z_limits_delta[ptw->ptdw->index_ap_brec] = 0.;
   ptw->ptdw->ap_z_limits_delta[ptw->ptdw->index_ap_He1] = ppr->recfast_delta_z_He_1;
@@ -2936,7 +2972,7 @@ int thermodynamics_set_parameters_diffeq(struct precision * ppr,
 
   double OmegaB,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He;
 
-  struct thermorecfast * precfast= ptw->ptdw->precfast;
+  struct thermorecfast * precfast = ptw->ptdw->precfast;
   /** - read a few precision/cosmological parameters */
 
   /* Omega_b */
@@ -2949,9 +2985,9 @@ int thermodynamics_set_parameters_diffeq(struct precision * ppr,
   class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
              pth->error_message,
              "RECFAST error: unknown H fudging scheme");
-  precfast->fu = ppr->recfast_fudge_H;
+  precfast->fudge_H = ppr->recfast_fudge_H;
   if (ppr->recfast_Hswitch == _TRUE_){
-    precfast->fu += ppr->recfast_delta_fudge_H;
+    precfast->fudge_H += ppr->recfast_delta_fudge_H;
   }
 
   /* He fudging */
@@ -3627,7 +3663,7 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
 
   /** - --> spline \f$ d \tau / dz \f$ with respect to z in view of integrating for optical depth between 0 and the just found starting index */
   class_call(array_spline_table_line_to_line(pth->tau_table,
-                                             pth->tt_size,
+                                             integration_index,
                                              pth->thermodynamics_table,
                                              pth->th_size,
                                              pth->index_th_dkappa,
@@ -3639,7 +3675,7 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
 
   /** - --> integrate for optical depth */
   class_call(array_integrate_all_spline_table_line_to_line(pth->tau_table,
-                                                           pth->tt_size,
+                                                           integration_index,
                                                            pth->thermodynamics_table,
                                                            pth->th_size,
                                                            pth->index_th_dkappa,
@@ -3648,6 +3684,8 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
                                                            pth->error_message),
              pth->error_message,
              pth->error_message);
+
+  ptw->reionization_optical_depth *= -1; //The tau sampling is inverted, so we have to correct for that here
 
   return _SUCCESS_;
 
@@ -3800,7 +3838,7 @@ int thermodynamics_solve_store_sources(double mz,
   /** - --> store the results in the table */
   /* results are obtained in order of decreasing z, and stored in order of growing z */
 
-  /* redshift */
+  /* redshift */ //TODO :: check iff correct
   pth->z_table[Nz-index_z-1]=z;
 
   /* ionization fraction */

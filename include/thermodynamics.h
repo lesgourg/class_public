@@ -10,6 +10,7 @@
 #include "evolver_ndf15.h"
 #include "evolver_rkck.h"
 #include "wrap_hyrec.h"
+#include "wrap_recfast.h"
 
 /**
  * List of possible recombination algorithms.
@@ -241,28 +242,6 @@ struct thermo
 
 };
 
-struct thermorecfast {
-
-  double CDB;     /**< defined as in RECFAST */
-  double CR;      /**< defined as in RECFAST */
-  double CK;      /**< defined as in RECFAST */
-  double CL;      /**< defined as in RECFAST */
-  double CT;      /**< defined as in RECFAST */
-  double fHe;     /**< defined as in RECFAST */
-  double CDB_He;  /**< defined as in RECFAST */
-  double CK_He;   /**< defined as in RECFAST */
-  double CL_He;   /**< defined as in RECFAST */
-  double fu;      /**< defined as in RECFAST */
-  double H_frac;  /**< defined as in RECFAST */
-  double Tnow;    /**< defined as in RECFAST */
-  double Nnow;    /**< defined as in RECFAST */
-  double Bfact;   /**< defined as in RECFAST */
-  double CB1;     /**< defined as in RECFAST */
-  double CB1_He1; /**< defined as in RECFAST */
-  double CB1_He2; /**< defined as in RECFAST */
-
-};
-
 struct thermo_heating_parameters {
 
   double annihilation;           /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
@@ -429,6 +408,8 @@ extern "C" {
   int thermodynamics_init(struct precision * ppr,
                           struct background * pba,
                           struct thermo * pth);
+
+  int thermodynamics_lists(struct precision * ppr, struct background* pba, struct thermo* pth, struct thermo_workspace* ptw);
 
   int thermodynamics_test_parameters(struct precision * ppr,
                                      struct background* pba,
@@ -613,55 +594,14 @@ extern "C" {
 
 //@}
 
-/**
- * @name Some specific constants needed by RECFAST:
- */
-
-//@{
-
 #define _RECFAST_INTEG_SIZE_ 3
 
-#define _Lambda_ 8.2245809
-#define _Lambda_He_ 51.3
-#define _L_H_ion_ 1.096787737e7
-#define _L_H_alpha_ 8.225916453e6
-#define _L_He1_ion_ 1.98310772e7
-#define _L_He2_ion_ 4.389088863e7
-#define _L_He_2s_ 1.66277434e7
-#define _L_He_2p_ 1.71134891e7
-#define	_A2P_s_		1.798287e9     /*updated like in recfast 1.4*/
-#define	_A2P_t_		177.58e0       /*updated like in recfast 1.4*/
-#define	_L_He_2Pt_	1.690871466e7  /*updated like in recfast 1.4*/
-#define	_L_He_2St_	1.5985597526e7 /*updated like in recfast 1.4*/
-#define	_L_He2St_ion_	3.8454693845e6 /*updated like in recfast 1.4*/
-#define	_sigma_He_2Ps_	1.436289e-22   /*updated like in recfast 1.4*/
-#define	_sigma_He_2Pt_	1.484872e-22   /*updated like in recfast 1.4*/
 
-//@}
-
-/**
- * @name Some specific constants needed by recfast_derivs:
- */
-
-//@{
-
-#define _a_PPB_ 4.309
-#define _b_PPB_ -0.6166
-#define _c_PPB_ 0.6703
-#define _d_PPB_ 0.5300
-#define _T_0_ pow(10.,0.477121)   /* from recfast 1.4 */
-#define _a_VF_ pow(10.,-16.744)
-#define _b_VF_ 0.711
-#define _T_1_ pow(10.,5.114)
-#define	_a_trip_ pow(10.,-16.306) /* from recfast 1.4 */
-#define	_b_trip_ 0.761            /* from recfast 1.4 */
-
-//@}
-
+/* @endcond */
 /**
  * @name Some limits imposed on cosmological parameter values:
  */
-/* @endcond */
+
 //@{
 
 #define _YHE_BIG_ 0.5      /**< maximal \f$ Y_{He} \f$ */

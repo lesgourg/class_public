@@ -49,6 +49,7 @@ LDFLAG = -g -fPIC
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../external/hyrec)
 HYREC = external/HyRec2012
+RECFAST = external/RecfastCLASS
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -63,6 +64,11 @@ INCLUDES = -I../include
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
 
+
+vpath %.c $(RECFAST)
+CCFLAG += -DRECFAST
+INCLUDES += -I../external/RecfastCLASS
+EXTERNAL += wrap_recfast.o
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
 vpath %.c $(HYREC)
@@ -77,7 +83,7 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o
 
-# [ML] 
+# [ML]
 SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o distortions.o
 
 INPUT = input.o

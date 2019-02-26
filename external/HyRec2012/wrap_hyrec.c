@@ -83,11 +83,11 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   phy->Dfminus_Ly_hist[2] = create_1D_array(phy->nz);   /* Ly-gamma */
 
   /* Make sure the input spectrum is initialized at zero */
-  for (iz=0; iz<phy->nz; iz++){
+  /*for (iz=0; iz<phy->nz; iz++){
     phy->Dfminus_Ly_hist[0][iz] = 0;
     phy->Dfminus_Ly_hist[1][iz] = 0;
     phy->Dfminus_Ly_hist[2][iz] = 0;
-  }
+  }*/
 
 
   //Ratios of fine structure constant and electron mass at recombination compared to now
@@ -96,7 +96,8 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   phy->xHeIII = phy->fHe;   /* Delta_xe = xHeIII here */
   phy->xHeII = 0.; //Uninitialized
 
-  phy->izH0 = (long) floor(1 + log(_k_B_/_eV_*phy->T_cmb/phy->fsR/phy->fsR/phy->meR*(1.+phy->zstart)/TR_MAX)/phy->dlna);  //When T_gamma reaches TR_MAX (just approximately!)
+  phy->izH0 = (long) floor(1 + log(_k_B_/_eV_*phy->T_cmb/phy->fsR/phy->fsR/phy->meR*(1.+phy->zstart)/(TR_MAX*0.99))/phy->dlna);
+  //When T_gamma reaches TR_MAX (just approximately!), 1% error margin
   phy->zH0  = (1.+phy->zstart)*exp(-phy->izH0 * phy->dlna) - 1.;
 
   phy->stage = 0;
@@ -111,7 +112,9 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   }*/
 
 
-
+  phy->TR_prev = phy->T_cmb*(1+phy->zstart);
+  phy->TM_prev = phy->TR_prev;
+  phy->z_prev = (1+phy->zstart);
   phy->xHeIII_limit = 1e-8;
 
 
@@ -128,18 +131,19 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
     free(phy->Dfminus_hist[index_virt]);
     free(phy->Dfnu_hist[index_virt]);
   }
-  free(phy->Dfminus_Ly_hist);
   free(phy->Dfminus_hist);
   free(phy->Dfnu_hist);
+
   free(phy->rate_table);
   free(phy->twog_params);
+  free(phy->xe_output);
 
   return _SUCCESS_;
 }
 
 int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
                                 double z, double H, double T_b, double T_gamma,
-                                double* x_e, double energy_injection){
+                                double* x_e, double energy_injection) {
 
   /** Define local variables */
   int iz;
@@ -163,15 +167,13 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
   double nH,TR,TM,xe_in;
 
   /* Something related to switching off modes or not depending on pion */
-  double Pion_TR_rescaled = TR/phy->fsR/phy->fsR/phy->meR; // TR rescaled for alpha, me
-  double Pion_RLya        = LYA_FACT(phy->fsR, phy->meR) * H / nH;
-  double Pion_four_betaB  = SAHA_FACT(phy->fsR, phy->meR) *Pion_TR_rescaled*sqrt(Pion_TR_rescaled) *exp(-0.25*EI/Pion_TR_rescaled) * alphaB_PPB(Pion_TR_rescaled, phy->fsR, phy->meR);
-  double Pion             = Pion_four_betaB/(3.*Pion_RLya + L2s_rescaled(phy->fsR, phy->meR) + Pion_four_betaB);
-
+  double Pion_TR_rescaled,Pion_RLya,Pion_four_betaB,Pion;
 
   /** Calculate the quantities until which the table should be extended */
   iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
   z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
+  if(z_goal<0.){z_goal=0.;}
+
   /** Only add new indices if that is really required */
   if(iz_goal>phy->filled_until_index_z){
 
@@ -186,6 +188,10 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
       frac = ((1+z_in)-(1+phy->z_prev))/((1+z)-(1+phy->z_prev));
       TR = T_gamma * _k_B_/_eV_ * frac + (1.-frac)*phy->TR_prev;
       TM = T_b * _k_B_/_eV_ * frac + (1.-frac)*phy->TM_prev;
+
+
+
+
 
       if(phy->stage == 0){
         /**
@@ -316,14 +322,27 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
         }
 
       }
+
+      /** Check if pion is low enough if stage is 3 or 4 */
+      if(phy->stage == 3 || phy->stage==4){
+        Pion_TR_rescaled = TR/phy->fsR/phy->fsR/phy->meR; // TR rescaled for alpha, me
+        Pion_RLya        = LYA_FACT(phy->fsR, phy->meR) * H / nH;
+        Pion_four_betaB  = SAHA_FACT(phy->fsR, phy->meR) *Pion_TR_rescaled*sqrt(Pion_TR_rescaled) *exp(-0.25*EI/Pion_TR_rescaled) * alphaB_PPB(Pion_TR_rescaled, phy->fsR, phy->meR);
+        Pion             = Pion_four_betaB/(3.*Pion_RLya + L2s_rescaled(phy->fsR, phy->meR) + Pion_four_betaB);
+        if(phy->thermohyrec_verbose > 3){printf("Calculated pion value %.10e / %.10e ",Pion,PION_MAX);}
+      }
+
       if(phy->stage == 3){
         /** H recombination. Helium assumed entirely neutral.
                Tm fixed to steady-state until its relative difference from Tr is DLNT_MAX */
-        if(1.-T_b/T_gamma < DLNT_MAX){
+        if(1.-T_b/T_gamma < DLNT_MAX*0.99){ //1% error margin
           //rec_get_xe_next1_H
           ////////////////////////////
+
+
           /* Switch off radiative transfer calculation if needed (param->nzrt and izH0 are evaluated in rec_get_cosmoparam) */
-          int model = (iz_in-phy->izH0 < (Pion < PION_MAX) || MODEL != FULL) ? MODEL : EMLA2s2p;
+          int model = (Pion < PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
+          if(phy->thermohyrec_verbose > 3){printf("[%i,%i] : Model %i (%i)\n",iz_out,phy->stage,model,EMLA2s2p);}
 
           xe_in = phy->xe_output[iz_in];
           phy->dxHIIdlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, TM, TR, phy->rate_table, phy->twog_params,
@@ -361,9 +380,9 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
 
           //rec_get_xe_next2_HTm
           //////////////////////////////
-
           /* Switch off radiative transfer calculation if needed */
-          int model = (Pion < PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
+          int model = (Pion > PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
+          if(phy->thermohyrec_verbose > 3){printf("[%i,%i] : Model %i (%i)\n",iz_out,phy->stage,model,EMLA2s2p);}
 
           xe_in = phy->xe_output[iz_in];
           phy->dxHIIdlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, TM, TR, phy->rate_table, phy->twog_params,
