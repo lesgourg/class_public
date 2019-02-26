@@ -215,33 +215,46 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
+  class_alloc(psd->x,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
   if(psd->N_PCA == 0){
     psd->x_min = ppr->distortions_x_min;
     psd->x_max = ppr->distortions_x_max;
     psd->x_size = ppr->distortions_x_size;
     psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+    for (index_x = 0; index_x<psd->x_size; index_x++) {
+      psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
+    }
+
   }
   else{
-    if(psd->detector = "PIXIE"){
+    if(psd->detector == "PIXIE"){
       psd->x_min = ppr->distortions_nu_min_PIXIE/psd->x_to_nu;
       psd->x_max = ppr->distortions_nu_max_PIXIE/psd->x_to_nu;
       psd->x_size = ppr->distortions_nu_size_PIXIE;
       psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+      for (index_x = 0; index_x<psd->x_size; index_x++) {
+        psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
+      }
+
     }
     else{
       psd->x_min = psd->nu_min_detector/psd->x_to_nu;
       psd->x_max = psd->nu_max_detector/psd->x_to_nu;
       psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
-      psd->x_size = (log(psd->x_max)-log(psd->x_min))/psd->x_delta;
+      psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
+      for (index_x = 0; index_x<psd->x_size; index_x++) {
+        psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
+        printf("%g\n",psd->x[index_x]);
+      }
     }
   }
 
-  class_alloc(psd->x,
-              psd->x_size*sizeof(double),
-              psd->error_message);
 
   for (index_x = 0; index_x<psd->x_size; index_x++) {
-    psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
+    psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
   }
 
   return _SUCCESS_;
@@ -258,11 +271,21 @@ int distortions_get_xz_lists(struct precision * ppr,
  *    1) Use a sharp transition at z_mu-y and no distortions before z_th ('branching approx'=sharp_sharp)
  *    2) Use a sharp transition at z_mu-y and a soft transition at z_th ('branching approx'=sharp_soft)
  *    3) Use a soft transition at a_mu-y and z_th as described in Chluba 2013 ('branching approx'=soft_soft)
+ *       In this case, the user must be aware that energy conservation is violated and no residuals
+ *       are taken into consideration.
  *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy
  *       ('branching approx'=soft_soft_cons)
  *    5) Use a PCA method as described in Chluba & Jeong 2014 ('branching approx'=exact)
+ *       In this case, the definition of the BRs is detector dependent and the user has therefore to 
+ *       specify the detector type and corresponding characteristics. 
+ *       If the chosen detector is PIXIE, the all values have been precomputed. In this case, we read 
+ *       and interpolate precomputed functions (also the multipole expansion of the residual vectors E)
+ *       from external file PIXIE_branching_ratios.dat. This template has been computed by J. Chluba
+ *       assuming nu_min=30 GHz, nu_max=1000 GHz and nu_delta=1 GHz.
+ *       If the chosen detector is not PIXIE, please specify nu_min, nu_max and nu_delta in the input.
+ *       The corresponding BRs will be calculated according to Appendix A of Chluba & Jeong 2014.
  *
- * All quantities are stored in the table br_table
+ * All quantities are stored in the table br_table.
  *
  * @param ppr        Input: pointer to the precision structure
  * @param psd        Input: pointer to the distortions structure
@@ -325,10 +348,6 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       }
 
       /* 3) Calculate branching ratios unsing soft_soft transitions */
-      /* Here the energy conservation is NOT respected
-       *  be aware that the residuals are NOT taken into account
-       *  for the total injected heating
-       **/
       if(psd->branching_approx == bra_soft_soft){
         f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
@@ -349,12 +368,8 @@ int distortions_compute_branching_ratios(struct precision * ppr,
     }
   }
   else{
-    /* 5) Calculate branching ratios according to Chluba & Jeong 2014
-          In this case, read and interpolate precomputed functions (also the multipole expansion of the residual vectors E)
-          from external file branching_ratios_exact.dat. The computation has been performed by J. Chluba according
-          to Chluba & Jeong 2014. */
-
-    if(psd->detector="PIXIE"){
+    /* 5) Calculate branching ratios according to Chluba & Jeong 2014 */
+    if(psd->detector == "PIXIE"){
       /* Read and spline data from file PIXIE_branching_ratios.dat */
       class_call(distortions_read_PIXIE_br_data(ppr,psd),
                  psd->error_message,
@@ -398,7 +413,178 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
     }
     else{
-      // TODO
+      /* Define local variables */
+      int index_x;
+      int last_index_x = 0;
+      double x;
+      double T_ini, T_last, rho, **G_th, Greens_blackbody;
+      double *Y, *M, *G;
+      double *e_y, *e_mu, *e_g, M_y, G_y, G_mu, *M_per, *G_per, **R;
+      double mod_G_th_squared, mod_G_squared, mod_Y_squared, mod_M_squared, mod_M_per_squared, mod_G_per_squared;
+      double mod_G_th, mod_G, mod_Y, mod_M, mod_M_per, mod_G_per;
+      double delta_ln_z, **tilde_R;
+      double delta_I_c;
+
+      /* Read and spline data from file Greens_data.dat */
+      class_call(distortions_read_Greens_data(ppr,psd),
+                 psd->error_message,
+                 psd->error_message);
+      class_call(distortions_spline_Greens_data(psd),
+                 psd->error_message,
+                 psd->error_message);
+
+      /* Allocate local variable */
+      class_alloc(G_th,
+                  psd->x_size*psd->z_size*sizeof(double),
+                  psd->error_message);
+
+      class_alloc(Y,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+      class_alloc(M,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+      class_alloc(G,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+
+      class_alloc(e_y,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+      class_alloc(e_mu,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+      class_alloc(e_g,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+
+      class_alloc(M_per,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+      class_alloc(G_per,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+
+      class_alloc(R,
+                  psd->x_size*psd->z_size*sizeof(double),
+                  psd->error_message);
+      class_alloc(tilde_R,
+                  psd->x_size*psd->z_size*sizeof(double),
+                  psd->error_message);
+
+      for(index_z=0; index_z<psd->z_size; ++index_z){
+        /* Calculate vectors of spectral shapes with relative moduli */
+        mod_G_th_squared = 0.;
+        mod_G_squared = 0.;
+        mod_Y_squared = 0.; 
+        mod_M_squared = 0.;
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+           x = psd->x[index_x];
+          /* Interpolate over x to find G_th in external file */
+/*
+          class_call(distortions_interpolate_Greens_data(psd,
+                                                         psd->z[index_z],
+                                                         psd->x[index_x],
+                                                         &T_ini,
+                                                         &T_last,
+                                                         &rho,
+                                                         &G_th[index_x][index_z],
+                                                         &Greens_blackbody,
+                                                         &last_index,
+                                                         &last_index_x),
+                     psd->error_message,
+                     psd->error_message);
+          printf("%g  %g  %g\n",psd->z[index_z],psd->x[index_x],lol);
+*/
+
+          G[index_x] = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.)*psd->DI_units;
+          Y[index_x] = G[index_x]*(x*(1.+exp(-x))/(1.-exp(-x))-4.);
+          M[index_x] = G[index_x]*(1./2.19229-1./x); 
+
+          printf("%g  %g  %g\n",psd->z[index_z],psd->x[index_x],G[index_x]);
+
+          //mod_G_th_squared += pow(G_th[index_x][index_z],2.);
+          mod_G_squared += pow(G[index_x],2.);
+          mod_Y_squared += pow(Y[index_x],2.);
+          mod_M_squared += pow(M[index_x],2.);
+        }
+        mod_G_th = sqrt(mod_G_th_squared);
+        mod_G = sqrt(mod_G_squared);
+        mod_Y = sqrt(mod_Y_squared);
+        mod_M = sqrt(mod_M_squared);
+
+
+        /* Calculate unity vectors and relative dot products*/
+        M_y = 0.;
+        G_y = 0.;
+        G_mu = 0.;
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+          e_y[index_x] = Y[index_x]/mod_Y;
+          e_mu[index_x] = M[index_x]/mod_M;
+          e_g[index_x] = G[index_x]/mod_G;
+
+          M_y += e_y[index_x]*M[index_x];
+          G_y += e_y[index_x]*G[index_x];
+          G_mu += e_mu[index_x]*G[index_x];
+        }
+
+        /* Calculate perpendicular M and G with relative moduli */
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+          M_per[index_x] = M[index_x]-M_y*e_y[index_x];
+          G_per[index_x] = G[index_x]-G_y*e_y[index_x]-G_mu*e_mu[index_x];
+
+          mod_M_per_squared += pow(M_per[index_x],2.);
+          mod_G_per_squared += pow(G_per[index_x],2.);
+        }
+        mod_M_per = sqrt(mod_M_per_squared);
+        mod_G_per = sqrt(mod_G_per_squared);
+
+        printf("%g  %g   %g\n",mod_Y,mod_M_per,mod_G_per);
+        printf("%g  %g   %g\n",M_y,G_y,G_mu);
+      
+        /* Calculate branching ratios */
+        f_g = 0.;
+        f_mu = 0.;
+        f_y = 0.;
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+           f_g += 4.*e_g[index_x]*G_th[index_x][index_z]/mod_G_per;
+        }
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+           f_mu += (e_mu[index_x]*G_th[index_x][index_z]-G_mu*f_g/4.)/mod_M_per/1.401;
+        }
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+         f_y += 4.*(e_y[index_x]*G_th[index_x][index_z]-1.401*M_y*f_mu-G_y*f_g/4.)/mod_Y;  
+        }
+        psd->br_table[psd->index_type_g][index_z] = f_g;
+        psd->br_table[psd->index_type_y][index_z] = f_y;
+        psd->br_table[psd->index_type_mu][index_z] = f_mu;
+
+        /* Calculate residual shape */
+        delta_ln_z = 0.; //TODO
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+          R[index_x][index_z] = G_th[index_x][index_z]-G[index_x]*f_g/4.-Y[index_x]*f_y/4.-M[index_x]*f_mu/1.401;
+          tilde_R[index_x][index_z] = R[index_x][index_z]*delta_ln_z;
+        }
+      }
+
+      /* Calculate Fisher matrix */
+      delta_I_c = 5.e-26;                                                              // [W/(m^2 Hz sr)]
+
+      /* Free space allocated in distortions_read_Greens_data() */
+      class_call(distortions_free_Greens_data(psd),
+                 psd->error_message,
+                 psd->error_message);
+      free(G_th);
+      free(Y);
+      free(M);
+      free(G);
+      free(e_y);
+      free(e_mu);
+      free(e_g);
+      free(M_per);
+      free(G_per);
+      free(R);
+
     }
   }
 
@@ -529,7 +715,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
                psd->error_message);
 
     dk = pvecthermo[pth->index_th_dkappa];                                            // [1/Mpc]
-    dkD_dz = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                 // [Mpc^2]
+    dkD_dz = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                // [Mpc^2]
     kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                       // [1/Mpc]
     N_e = pth->n_e;                                                                   // [1/m^3] (today)
     X_e = pvecthermo[pth->index_th_xe];                                               // [-]
@@ -765,10 +951,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                                                            (1.-exp(-psd->x[index_x]))-4.);     // [-]
       psd->sd_shape_table[psd->index_type_mu][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
                                                            (1./2.19229-1./psd->x[index_x]);    // [-]
-
+    }
   }
   else{
-    if(psd->detector = "PIXIE"){
+    if(psd->detector == "PIXIE"){
       /* Read and spline data from file branching_ratios_exact.dat */
       class_call(distortions_read_PIXIE_sd_data(ppr,psd),
                  psd->error_message,
@@ -809,8 +995,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     else{
       // TODO
     }
-  }
-
   }
 
   class_alloc(psd->sd_table,

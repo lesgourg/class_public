@@ -2245,9 +2245,10 @@ int input_read_parameters(
 
   class_read_int("PCA size",psd->N_PCA);
 
-  class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+
   if ((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){ 
     psd->detector = "PIXIE";
     psd->nu_min_detector = 30.;
@@ -2260,7 +2261,6 @@ int input_read_parameters(
     class_read_double("detector nu max",psd->nu_max_detector);
     class_read_double("detector nu width",psd->nu_delta_detector);
   }
-
 
   /** (e) parameters for final spectra */
 
@@ -3205,10 +3205,10 @@ int input_default_params(
   /** - distortions structure */
   psd->N_PCA = 2; //[NS]
   psd->branching_approx = bra_exact; //[NS]
-  psd->detector = "PIXIE"; // [ML]
-  psd->nu_min_detector = 30.;
-  psd->nu_max_detector = 1000.;
-  psd->nu_delta_detector = 1.;
+  //psd->detector = "PIXIE"; // [ML]
+  //psd->nu_min_detector = 30.;
+  //psd->nu_max_detector = 1000.;
+  //psd->nu_delta_detector = 1.;
 
 
   /** - all verbose parameters */

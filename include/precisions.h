@@ -422,9 +422,9 @@ class_precision_parameter(tol_gauss_legendre,double,ppr->smallest_allowed_variat
 /*
  * [ML] Spectral distortions precision parameters
  */
-class_precision_parameter(distortions_z_min,double,1.011e3)
+class_precision_parameter(distortions_z_min,double,1.1e3)
 class_precision_parameter(distortions_z_max,double,5.e6)
-class_precision_parameter(distortions_z_size,int,500)
+class_precision_parameter(distortions_z_size,int,400)
 
 class_precision_parameter(distortions_x_min,double,30.)
 class_precision_parameter(distortions_x_max,double,1000.)
