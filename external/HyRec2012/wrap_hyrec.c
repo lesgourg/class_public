@@ -42,7 +42,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   phy->fHe = fHe;
 
   //At what values should the fminus and fplus histories be built?
-  phy->zstart = 8000.;
+  phy->zstart = 8060.; //Make sure hyrec filled some values before first call from class (at z=8050)
   phy->zend = 0.;
   phy->dlna = 8.49e-5;
   //phy->dlna = 1e-3;
@@ -143,7 +143,7 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
 
 int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
                                 double z, double H, double T_b, double T_gamma,
-                                double* x_e, double energy_injection) {
+                                double* x_e, double* dxe_dlna, double energy_injection) {
 
   /** Define local variables */
   int iz;
@@ -172,12 +172,14 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
   /** Calculate the quantities until which the table should be extended */
   iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
   z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
+  printf("%.10e = z, %i = goal \n",z,iz_goal);
   if(z_goal<0.){z_goal=0.;}
 
   /** Only add new indices if that is really required */
   if(iz_goal>phy->filled_until_index_z){
 
     if(phy->thermohyrec_verbose > 2){printf("Filling [%i,%i]\n",phy->filled_until_index_z+1,iz_goal);}
+    printf("Fill %i..%i \n",phy->filled_until_index_z+1,iz_goal);
     for(iz=phy->filled_until_index_z+1;iz<=iz_goal;++iz){
       iz_in = iz-1;
       iz_out = iz;
@@ -431,14 +433,18 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
   z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
   /**
    * If the table is filled already, or after filling it to the desired value
-   *  We want to take the values at iz_goal and iz_goal-1 to calculate
+   *
+   * We want to take the values at iz_goal and iz_goal-1 to calculate
    *  the free electron fraction x_e at this position
-   //delta_xe/delta_lna
-   //dxedlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
+   * Also obtain logarithmic derivative delta_xe/delta_lna
+   *  by numerical derivative
    **/
 
   frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
-  *x_e = frac*phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
+  printf("Read %i %i \n",iz_goal,iz_goal-1);
+  *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
+  *dxe_dlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
+
   if(phy->thermohyrec_verbose > 2){
     //printf("[%i] : %.10e , [%i] : %.10e -> %.10e \n",iz_goal,phy->xe_output[iz_goal],iz_goal-1,phy->xe_output[iz_goal-1],*dxedlna);
     printf("[%i,%.10e] : %.10e , [%i,%.10e] : %.10e -> [%.10e] : %.10e \n",iz_goal,z_goal,phy->xe_output[iz_goal],iz_goal-1,z_goalm1,phy->xe_output[iz_goal-1],z,*x_e);

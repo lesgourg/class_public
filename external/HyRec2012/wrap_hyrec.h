@@ -83,7 +83,7 @@ extern "C" {
 
   int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
                                   double z, double H, double T_b, double T_gamma,
-                                  double* x_e, double energy_injection);
+                                  double* x_e, double* dxe_dlna, double energy_injection);
 
   int thermodynamics_hyrec_free(struct thermohyrec* phy);
 
