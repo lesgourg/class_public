@@ -179,7 +179,7 @@ int distortions_get_xz_lists(struct precision * ppr,
 
   /** Define unit conventions */
   psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
-  psd->DI_units = 1.e26*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
+  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
 
   /** Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;    // TODO: [ML] to [NS]: in precision?
@@ -215,15 +215,16 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
-  class_alloc(psd->x,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-
   if(psd->N_PCA == 0){
     psd->x_min = ppr->distortions_x_min;
     psd->x_max = ppr->distortions_x_max;
     psd->x_size = ppr->distortions_x_size;
     psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+
+    class_alloc(psd->x,
+                psd->x_size*sizeof(double),
+                psd->error_message);
+
     for (index_x = 0; index_x<psd->x_size; index_x++) {
       psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
     }
@@ -235,6 +236,11 @@ int distortions_get_xz_lists(struct precision * ppr,
       psd->x_max = ppr->distortions_nu_max_PIXIE/psd->x_to_nu;
       psd->x_size = ppr->distortions_nu_size_PIXIE;
       psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+
+      class_alloc(psd->x,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+
       for (index_x = 0; index_x<psd->x_size; index_x++) {
         psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
       }
@@ -245,16 +251,15 @@ int distortions_get_xz_lists(struct precision * ppr,
       psd->x_max = psd->nu_max_detector/psd->x_to_nu;
       psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
       psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
+
+      class_alloc(psd->x,
+                  psd->x_size*sizeof(double),
+                  psd->error_message);
+
       for (index_x = 0; index_x<psd->x_size; index_x++) {
         psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
-        printf("%g\n",psd->x[index_x]);
       }
     }
-  }
-
-
-  for (index_x = 0; index_x<psd->x_size; index_x++) {
-    psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
   }
 
   return _SUCCESS_;
@@ -420,10 +425,11 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       double T_ini, T_last, rho, **G_th, Greens_blackbody;
       double *Y, *M, *G;
       double *e_y, *e_mu, *e_g, M_y, G_y, G_mu, *M_per, *G_per, **R;
-      double mod_G_th_squared, mod_G_squared, mod_Y_squared, mod_M_squared, mod_M_per_squared, mod_G_per_squared;
-      double mod_G_th, mod_G, mod_Y, mod_M, mod_M_per, mod_G_per;
+      double mod_G_squared, mod_Y_squared, mod_M_squared, mod_M_per_squared, mod_G_per_squared;
+      double mod_G, mod_Y, mod_M, mod_M_per, mod_G_per;
       double delta_ln_z, **tilde_R;
-      double delta_I_c;
+      double delta_I_c, **Fisher_matrix;
+      int index_za, index_zb;
 
       /* Read and spline data from file Greens_data.dat */
       class_call(distortions_read_Greens_data(ppr,psd),
@@ -435,8 +441,13 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
       /* Allocate local variable */
       class_alloc(G_th,
-                  psd->x_size*psd->z_size*sizeof(double),
+                  psd->z_size*sizeof(double),
                   psd->error_message);
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        class_alloc(G_th[index_x],
+                    psd->z_size*sizeof(double),
+                    psd->error_message);
+      }
 
       class_alloc(Y,
                   psd->x_size*sizeof(double),
@@ -466,109 +477,143 @@ int distortions_compute_branching_ratios(struct precision * ppr,
                   psd->error_message);
 
       class_alloc(R,
-                  psd->x_size*psd->z_size*sizeof(double),
+                  psd->z_size*sizeof(double),
                   psd->error_message);
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        class_alloc(R[index_x],
+                    psd->z_size*sizeof(double),
+                    psd->error_message);
+      }
       class_alloc(tilde_R,
-                  psd->x_size*psd->z_size*sizeof(double),
+                  psd->z_size*sizeof(double),
                   psd->error_message);
-
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        class_alloc(tilde_R[index_x],
+                    psd->z_size*sizeof(double),
+                    psd->error_message);
+      }
+      class_alloc(Fisher_matrix,
+                  psd->z_size*sizeof(double),
+                  psd->error_message);
       for(index_z=0; index_z<psd->z_size; ++index_z){
-        /* Calculate vectors of spectral shapes with relative moduli */
-        mod_G_th_squared = 0.;
-        mod_G_squared = 0.;
-        mod_Y_squared = 0.; 
-        mod_M_squared = 0.;
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-           x = psd->x[index_x];
-          /* Interpolate over x to find G_th in external file */
-/*
+        class_alloc(Fisher_matrix[index_z],
+                    psd->z_size*sizeof(double),
+                    psd->error_message);
+      }
+
+      /* Calculate vectors of spectral shapes with relative moduli */
+      mod_G_squared = 0.;
+      mod_Y_squared = 0.; 
+      mod_M_squared = 0.;
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        x = psd->x[index_x];
+
+        /* Interpolate over x to find G_th in external file */
+        for(index_z=0; index_z<psd->z_size; ++index_z){
           class_call(distortions_interpolate_Greens_data(psd,
                                                          psd->z[index_z],
                                                          psd->x[index_x],
                                                          &T_ini,
                                                          &T_last,
                                                          &rho,
-                                                         &G_th[index_x][index_z],
+                                                         &G_th[index_x][index_z],     // [10^-18 W/(m^2 Hz sr)]
                                                          &Greens_blackbody,
                                                          &last_index,
                                                          &last_index_x),
                      psd->error_message,
                      psd->error_message);
-          printf("%g  %g  %g\n",psd->z[index_z],psd->x[index_x],lol);
-*/
 
-          G[index_x] = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.)*psd->DI_units;
-          Y[index_x] = G[index_x]*(x*(1.+exp(-x))/(1.-exp(-x))-4.);
-          M[index_x] = G[index_x]*(1./2.19229-1./x); 
-
-          printf("%g  %g  %g\n",psd->z[index_z],psd->x[index_x],G[index_x]);
-
-          //mod_G_th_squared += pow(G_th[index_x][index_z],2.);
-          mod_G_squared += pow(G[index_x],2.);
-          mod_Y_squared += pow(Y[index_x],2.);
-          mod_M_squared += pow(M[index_x],2.);
+          G_th[index_x][index_z] *= 1.e-8;
         }
-        mod_G_th = sqrt(mod_G_th_squared);
-        mod_G = sqrt(mod_G_squared);
-        mod_Y = sqrt(mod_Y_squared);
-        mod_M = sqrt(mod_M_squared);
+        
+        /* Define other vectors */
+        G[index_x] = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.)*psd->DI_units*1.e18;        // [10^-18 W/(m^2 Hz sr)]
+        Y[index_x] = G[index_x]*(x*(1.+exp(-x))/(1.-exp(-x))-4.);                     // [10^-18 W/(m^2 Hz sr)]
+        M[index_x] = G[index_x]*(1./2.19229-1./x);                                    // [10^-18 W/(m^2 Hz sr)]
 
+        mod_G_squared += pow(G[index_x],2.);
+        mod_Y_squared += pow(Y[index_x],2.);
+        mod_M_squared += pow(M[index_x],2.);
+      }
 
-        /* Calculate unity vectors and relative dot products*/
-        M_y = 0.;
-        G_y = 0.;
-        G_mu = 0.;
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-          e_y[index_x] = Y[index_x]/mod_Y;
-          e_mu[index_x] = M[index_x]/mod_M;
-          e_g[index_x] = G[index_x]/mod_G;
+      mod_G = sqrt(mod_G_squared);
+      mod_Y = sqrt(mod_Y_squared);
+      mod_M = sqrt(mod_M_squared);
 
-          M_y += e_y[index_x]*M[index_x];
-          G_y += e_y[index_x]*G[index_x];
-          G_mu += e_mu[index_x]*G[index_x];
-        }
+      /* Calculate unity vectors and relative dot products*/
+      M_y = 0.;
+      G_y = 0.;
+      G_mu = 0.;
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        e_y[index_x] = Y[index_x]/mod_Y;
+        e_mu[index_x] = M[index_x]/mod_M;
+        e_g[index_x] = G[index_x]/mod_G;
 
-        /* Calculate perpendicular M and G with relative moduli */
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-          M_per[index_x] = M[index_x]-M_y*e_y[index_x];
-          G_per[index_x] = G[index_x]-G_y*e_y[index_x]-G_mu*e_mu[index_x];
+        M_y += e_y[index_x]*M[index_x];
+        G_y += e_y[index_x]*G[index_x];
+        G_mu += e_mu[index_x]*G[index_x];
+      }
 
-          mod_M_per_squared += pow(M_per[index_x],2.);
-          mod_G_per_squared += pow(G_per[index_x],2.);
-        }
-        mod_M_per = sqrt(mod_M_per_squared);
-        mod_G_per = sqrt(mod_G_per_squared);
+      /* Calculate perpendicular M and G with relative moduli */
+      mod_M_per_squared = 0.;
+      mod_G_per_squared = 0.;
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        M_per[index_x] = M[index_x]-M_y*e_y[index_x];
+        G_per[index_x] = G[index_x]+G_y*e_y[index_x]-G_mu*e_mu[index_x];  //TODO
 
-        printf("%g  %g   %g\n",mod_Y,mod_M_per,mod_G_per);
-        printf("%g  %g   %g\n",M_y,G_y,G_mu);
+        mod_M_per_squared += pow(M_per[index_x],2.);
+        mod_G_per_squared += pow(G_per[index_x],2.);
+      }
+      mod_M_per = sqrt(mod_M_per_squared);
+      mod_G_per = sqrt(mod_G_per_squared);
+
+      //printf("%g  %g  %g\n",mod_Y, mod_M_per, mod_G_per);
       
-        /* Calculate branching ratios */
+      /* Calculate branching ratios */
+      for(index_z=0; index_z<psd->z_size; ++index_z){
         f_g = 0.;
         f_mu = 0.;
         f_y = 0.;
         for(index_x=0; index_x<psd->x_size; ++index_x){
-           f_g += 4.*e_g[index_x]*G_th[index_x][index_z]/mod_G_per;
-        }
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-           f_mu += (e_mu[index_x]*G_th[index_x][index_z]-G_mu*f_g/4.)/mod_M_per/1.401;
-        }
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-         f_y += 4.*(e_y[index_x]*G_th[index_x][index_z]-1.401*M_y*f_mu-G_y*f_g/4.)/mod_Y;  
+          f_g += 4.*e_g[index_x]*G_th[index_x][index_z]/mod_G_per;
         }
         psd->br_table[psd->index_type_g][index_z] = f_g;
-        psd->br_table[psd->index_type_y][index_z] = f_y;
+
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+          f_mu += (e_mu[index_x]*G_th[index_x][index_z]-G_mu*f_g/4.)/mod_M_per/1.401;
+        }
         psd->br_table[psd->index_type_mu][index_z] = f_mu;
 
-        /* Calculate residual shape */
-        delta_ln_z = 0.; //TODO
+        for(index_x=0; index_x<psd->x_size; ++index_x){
+          f_y += 4.*(e_y[index_x]*G_th[index_x][index_z]-1.401*M_y*f_mu-G_y*f_g/4.)/mod_Y;  
+        }
+        psd->br_table[psd->index_type_y][index_z] = f_y;
+        //printf("%g  %g  %g\n",psd->br_table[psd->index_type_g][index_z], psd->br_table[psd->index_type_y][index_z], psd->br_table[psd->index_type_mu][index_z]);
+      }
+
+      /* Calculate residual shape */
+      delta_ln_z = log(psd->z[1])-log(psd->z[0]);
+      for(index_z=0; index_z<psd->z_size; ++index_z){
         for(index_x=0; index_x<psd->x_size; ++index_x){
           R[index_x][index_z] = G_th[index_x][index_z]-G[index_x]*f_g/4.-Y[index_x]*f_y/4.-M[index_x]*f_mu/1.401;
+          //printf("%g  %g  %g  %g  %g\n",R[index_x][index_z], G_th[index_x][index_z], G[index_x], Y[index_x], M[index_x]);
           tilde_R[index_x][index_z] = R[index_x][index_z]*delta_ln_z;
         }
       }
 
       /* Calculate Fisher matrix */
-      delta_I_c = 5.e-26;                                                              // [W/(m^2 Hz sr)]
+      delta_I_c = 5.e-8;                                                              // [10^-18 W/(m^2 Hz sr)]
+      for(index_za=0; index_za<psd->z_size; ++index_za){
+        for(index_zb=0; index_zb<psd->z_size; ++index_zb){
+
+          Fisher_matrix[index_za][index_zb] = 0.;
+          for(index_x=0; index_x<psd->x_size; ++index_x){
+            Fisher_matrix[index_za][index_zb] += tilde_R[index_x][index_za]*tilde_R[index_x][index_zb];
+          }
+          Fisher_matrix[index_za][index_zb] /= pow(delta_I_c,2.);
+
+        }
+      }
 
       /* Free space allocated in distortions_read_Greens_data() */
       class_call(distortions_free_Greens_data(psd),
@@ -584,6 +629,8 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       free(M_per);
       free(G_per);
       free(R);
+      free(tilde_R);
+      free(Fisher_matrix);
 
     }
   }
@@ -954,7 +1001,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
   }
   else{
-    if(psd->detector == "PIXIE"){
+    //if(psd->detector == "PIXIE"){
       /* Read and spline data from file branching_ratios_exact.dat */
       class_call(distortions_read_PIXIE_sd_data(ppr,psd),
                  psd->error_message,
@@ -991,10 +1038,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                  psd->error_message,
                  psd->error_message);
       free(S);
-    }
-    else{
+    //}
+    //else{
       // TODO
-    }
+    //}
   }
 
   class_alloc(psd->sd_table,
@@ -1020,7 +1067,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
         psd->sd_table[index_type][index_x] = psd->sd_parameter_table[index_type]*psd->sd_shape_table[index_type][index_x];
       }
 
-      psd->DI[index_x]+=psd->sd_table[index_type][index_x];
+      psd->DI[index_x] += psd->sd_table[index_type][index_x];
     }
   }
 
@@ -1896,9 +1943,9 @@ int distortions_output_data(struct distortions * psd,
 
     class_store_double(dataptr, psd->x[index_x], _TRUE_,storeidx);
     class_store_double(dataptr, psd->x[index_x]*psd->x_to_nu, _TRUE_,storeidx);
-    class_store_double(dataptr, psd->DI[index_x]*psd->DI_units, _TRUE_,storeidx);
+    class_store_double(dataptr, psd->DI[index_x]*1.e26*psd->DI_units, _TRUE_,storeidx);
     for(index_type=0;index_type<psd->type_size;++index_type){
-      class_store_double(dataptr, psd->sd_table[index_type][index_x]*psd->DI_units, _TRUE_,storeidx);
+      class_store_double(dataptr, psd->sd_table[index_type][index_x]*1.e26*psd->DI_units, _TRUE_,storeidx);
     }
   }
 
