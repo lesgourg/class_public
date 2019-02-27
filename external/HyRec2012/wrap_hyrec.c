@@ -24,7 +24,8 @@ int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
 int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, struct thermohyrec* phy){
 
   if(phy->thermohyrec_verbose > 0){
-    printf("Using the hyrec wrapper programmed by Nils Sch. (2019)");
+    printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Feb2019)\n");
+    printf("    implements HyRec version Oct2012 by Yacine Ali-Haimoud and Chris Hirata\n");
   }
 
   int index_virt,index_ly,iz;
@@ -172,14 +173,13 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
   /** Calculate the quantities until which the table should be extended */
   iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
   z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
-  printf("%.10e = z, %i = goal \n",z,iz_goal);
   if(z_goal<0.){z_goal=0.;}
 
   /** Only add new indices if that is really required */
   if(iz_goal>phy->filled_until_index_z){
 
     if(phy->thermohyrec_verbose > 2){printf("Filling [%i,%i]\n",phy->filled_until_index_z+1,iz_goal);}
-    printf("Fill %i..%i \n",phy->filled_until_index_z+1,iz_goal);
+
     for(iz=phy->filled_until_index_z+1;iz<=iz_goal;++iz){
       iz_in = iz-1;
       iz_out = iz;
@@ -441,7 +441,6 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
    **/
 
   frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
-  printf("Read %i %i \n",iz_goal,iz_goal-1);
   *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
   *dxe_dlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
 

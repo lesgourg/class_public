@@ -2088,9 +2088,12 @@ int thermodynamics_solve_derivs(double mz,
   /* define local variables */
 
   double z;
-  double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,dxdlna,Hz,dHdz,epsilon;
+  double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,dxdlna,Hz,dHdz;
+  double eps,dlneps_dz;
   double timeTh,timeH;
   int index_y;
+  /* Photon interaction rate*/
+  double R_g;
 
   struct thermodynamics_parameters_and_workspace * ptpaw;
   struct precision * ppr;
@@ -2183,7 +2186,7 @@ int thermodynamics_solve_derivs(double mz,
   }
 
   /** - RecfastCLASS */
-  else{
+  if(pth->recombination == recfast){
     //Else do it the analytical or hyrec way.
     //Checked :: The saha equations in hyrec and recfast are both the same
     /** Obtain the analytical value for x, x_H, x_He */
@@ -2267,17 +2270,50 @@ int thermodynamics_solve_derivs(double mz,
   /** - Matter temperature equations */
   /* Tmat is integrated always */
 
-  timeTh=(1./(precfast->CT*pow(Trad,4)))*(1.+x+ptw->fHe)/x;
-  timeH=2./(3.*ptw->SIunit_H0*pow(1.+z,1.5));
 
-  if (timeTh < precfast->H_frac*timeH) {
-    /*   dy[2]=Tmat/(1.+z); */
+  /**
+   * A short note on the 'early' time steady state expansion:
+   *
+   * Note: dTr/dz = Tr/(1+z) = Tcmb
+   *
+   * The early system of CMB and matter is very tightly coupled anyway,
+   *  so we can expand in the following way:
+   * The full equation is dTm/dz = (Tm-Tr)/e /(1+z) + 2 Tm/(1+z)
+   *  Here e = H*(1+x+f)/(cT*Tr^4*x) << 1 at early times
+   *
+   * Find the first order solution in e, by multiplying in (1+z)*e,
+   *  approximate e*(dTm/dz)*(1+z) ~ e*(dTr/dz)*(1+z) + O(e^2) ~ e * Tr
+   *
+   * You find e*Tr = (Tm-Tr) + 2 Tm * e
+   * Thus Tm = (1+2*e)/(1+e) * Tr = Tr/(1+e) + O(e^2)
+   *
+   * This is the steady state solution, which is the SAME as e.g. in HyRec
+   * In our notation, eps = e*Tr, so we get Tm = Tr - eps
+   *
+   * So, taking the derivative of the right hand side, we obtain
+   * dTm/dz = Tcmb - eps*(dln(eps)/dz)
+   *
+   * Now use the form of eps = Tr*e = H*(1+x+f)/(cT*Tr^3*x)
+   *  to derive the remaining terms in the below formula
+   * => dln(eps)/dz = dln(H)/dz  - (1+f)/(1+x+f)*dln(x)/dz + 3*dln(Tr)/dz
+   * If you plug this into the dTm/dz equation, you find the formulas below
+   **/
+
+  //Note :: Technically, the terms of R_g_factor*Trad^4 should be rho_gamma*4/3*sigma_Thompson
+  R_g = ptw->R_g_factor*pow(Trad,4);
+  timeTh=(1./R_g)*(1.+x+ptw->fHe)/x;
+  timeH=2./(3.*ptw->SIunit_H0*pow(1.+z,1.5));
+  /** Steady state at early times (early in the sense of some limiting electron fraction) */
+  if (timeTh < ptw->x_limit_T*timeH) {
     /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
     dHdz=-pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today* _c_ / _Mpc_over_m_;
-    epsilon = Hz * (1.+x+ptw->fHe) / (precfast->CT*pow(Trad,3)*x);
-    dy[ptv->index_Tmat] = ptw->Tcmb + epsilon*((1.+ptw->fHe)/(1.+ptw->fHe+x))*(dx/x)
-      - epsilon* dHdz/Hz + 3.*epsilon/(1.+z);
+    eps = Hz * (1.+x+ptw->fHe) / (R_g/Trad*x);
+    dlneps_dz = dHdz/Hz - ((1.+ptw->fHe)/(1.+ptw->fHe+x))*(dx/x) - 3./(1.+z);
+    dy[ptv->index_Tmat] = ptw->Tcmb - eps * dlneps_dz;
+    //Additional heating terms would be of the form eps*(1+z)*energy_rate/Trad * (dln(energy_rate)/dz + dlneps_dz)
+    //Currently they are not implemented, because they should be really small
   }
+  /** Full equation at later times */
   else {
     /* equations modified to take into account energy injection from dark matter */
 
@@ -2289,7 +2325,7 @@ int thermodynamics_solve_derivs(double mz,
     else
       chi_heat = 1.;
 
-    dy[ptv->index_Tmat]= precfast->CT * pow(Trad,4) * x / (1.+x+ptw->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
+    dy[ptv->index_Tmat]= R_g * x / (1.+x+ptw->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
       -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+ptw->fHe+x)/(Hz*(1.+z)); /* energy injection */
 
   }
@@ -2407,7 +2443,7 @@ int thermodynamics_x_analytic(double z,
   /** - --> sixth approximation: reionization */
   else if (current_ap == ptdw->index_ap_reio) {
 
-    /* set x from the workspace (which is only the contribution from recfast) as "xe_before" */
+    /* set x from the evolver (which is very low ~10^-4) as 'xe_before' */
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = ptdw->x;
 
     /* add the reionization function on top */
@@ -2487,15 +2523,15 @@ int thermodynamics_vector_init(struct precision * ppr,
     /* Nothing else to add */
   }
   else if(ptdw->ap_current == ptdw->index_ap_H){
-    class_define_index(ptv->index_x_He,pth->recombination == recfast,index_tv,1);
+    class_define_index(ptv->index_x_He,(pth->recombination == recfast),index_tv,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_frec){
-    class_define_index(ptv->index_x_He,pth->recombination == recfast,index_tv,1);
-    class_define_index(ptv->index_x_H,pth->recombination == recfast,index_tv,1);
+    class_define_index(ptv->index_x_He,(pth->recombination == recfast),index_tv,1);
+    class_define_index(ptv->index_x_H,(pth->recombination == recfast),index_tv,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_reio){
-    class_define_index(ptv->index_x_He,pth->recombination == recfast,index_tv,1);
-    class_define_index(ptv->index_x_H,pth->recombination == recfast,index_tv,1);
+    class_define_index(ptv->index_x_He,(pth->recombination == recfast),index_tv,1);
+    class_define_index(ptv->index_x_H,(pth->recombination == recfast),index_tv,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_reio){
     /* Nothing else to add */
@@ -2721,7 +2757,9 @@ int thermodynamics_workspace_init(struct precision * ppr,
   /* Number of hydrogen nuclei today in m**-3 */
   ptw->SIunit_nH0 = 3.*ptw->SIunit_H0*ptw->SIunit_H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-ptw->YHe);
   pth->n_e = ptw->SIunit_nH0;
-
+  ptw->R_g_factor = (8./3.) * (_sigma_/(_m_e_*_c_)) * //Factor between photon scattering and rho_gamma(T)
+    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3)); //Factor between rho_gamma(T) and T^4
+  ptw->x_limit_T =  ppr->recfast_H_frac;
 
   /* energy injection parameters */
   ptw->pthp->annihilation = pth->annihilation;
@@ -2821,10 +2859,11 @@ int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * 
   else if(pth->recombination == recfast){
     free(ptw->ptdw->precfast);
   }
+
+  free(ptw->ptrp->reionization_parameters);
   free(ptw->pthp);
   free(ptw->ptdw);
   free(ptw->ptrp);
-
 
   free(ptw);
 
@@ -2889,8 +2928,8 @@ int thermodynamics_set_parameters_diffeq(struct precision * ppr,
   precfast->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
   precfast->CL = _c_*_h_P_/(_k_B_*Lalpha);
   precfast->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
-  precfast->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) *
-    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3));
+  precfast->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) * //Factor between photon scattering and rho_gamma(T)
+    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3)); //Factor between rho_gamma(T) and T^4
 
   precfast->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
@@ -2920,7 +2959,6 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
   double xe_input,xe_actual,z_sup;
 
   /** - allocate the vector of parameters defining the function \f$ X_e(z) \f$ */
-
   class_alloc(preio->reionization_parameters,preio->reio_num_params*sizeof(double),pth->error_message);
 
 
@@ -3660,29 +3698,33 @@ int thermodynamics_solve_store_sources(double mz,
   ptdw->Tmat = y[ptv->index_Tmat];
   ptdw->dTmat = -dy[ptv->index_Tmat];
 
-  if(pth->recombination == hyrec && ap_current == ptdw->index_ap_brec){
-    x = 1. + 2.*ptw->fHe;
-  }
-  else{
-    double Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
-    double n = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
-    double Trad = ptw->Tcmb * (1.+z);
-    double Tmat = ptv->y[ptv->index_Tmat];
-    double dxdlna;
-    class_call(thermodynamics_hyrec_get_xe(ptw->ptdw->phyrec,z,Hz,Tmat,Trad,&x,&dxdlna,0.0),
-               ptw->ptdw->phyrec->error_message,
-               error_message);
-    /* During reionization, recalculate x using the analytical formula */
-    if(ap_current == ptdw->index_ap_reio){
-
-      ptdw->x = x;
-      class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ap_current),
-                 error_message,
+  if(pth->recombination == hyrec){
+    if(ap_current == ptdw->index_ap_brec){
+      x = 1. + 2.*ptw->fHe;
+    }
+    else{
+      double Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
+      double n = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
+      double Trad = ptw->Tcmb * (1.+z);
+      double Tmat = ptv->y[ptv->index_Tmat];
+      double dxdlna;
+      class_call(thermodynamics_hyrec_get_xe(ptw->ptdw->phyrec,z,Hz,Tmat,Trad,&x,&dxdlna,0.0),
+                 ptw->ptdw->phyrec->error_message,
                  error_message);
+      /* During reionization, recalculate x using the analytical formula */
+      if(ap_current == ptdw->index_ap_reio){
 
-      x = ptdw->x;
+        ptdw->x = x;
+        class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ap_current),
+                   error_message,
+                   error_message);
+
+        x = ptdw->x;
+      }
+
     }
   }
+
   if(pth->recombination == recfast){
 
     /* Depending on the current approximation scheme x has to be re-calculated for this specific z */

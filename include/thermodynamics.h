@@ -332,17 +332,21 @@ struct thermo_workspace {
   int index_re_d3kappadz3; /**< second derivative of previous quantity with respect to redshift */
   int re_size;             /**< size of this vector */
 
+  // Number of z values
   int Nz_reio;                 /**< number of redshift points of reionization during evolver loop*/
   int Nz_reco;                 /**< number of redshifts for recombination during the evolver loop */
   int Nz_reco_lin;             /**< number of redshifts linearly sampled for recombination during the evolver loop */
   int Nz_reco_log;             /**< number of redshifts logarithmically sampled for recombination during the evolver loop */
   int Nz_tot;
 
+  // Most important and useful parameters of evolution
   double YHe;     /**< defined as in RECFAST */
   double fHe;     /**< defined as in RECFAST */
   double SIunit_H0;      /**< defined as in RECFAST */
   double SIunit_nH0;     /**< defined as in RECFAST */
   double Tcmb;
+  double R_g_factor;
+  double x_limit_T;
 
   double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
 };

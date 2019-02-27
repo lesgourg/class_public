@@ -1620,7 +1620,7 @@ int output_distortions(
       fprintf(out_distortion,"# SD_tot is the amplitude of the overall spectral distortion (SD)\n");
       fprintf(out_distortion,"# The SD[i] are the amplitudes of the individual SDs\n");
       fprintf(out_distortion,"# The SDs are given in units [10^-26 W m^-2 Hz^-1 sr^-1] \n");
-      fprintf(out_heat,"#\n");
+      fprintf(out_distortion,"#\n");
     }
 
     output_print_data(out_distortion,

@@ -1,5 +1,6 @@
 #Some Makefile for CLASS.
 #Julien Lesgourgues, 28.11.2011
+#Nils Schöneberg, Matteo Lucca, 27.02.2019
 
 MDIR := $(shell pwd)
 WRKDIR = $(MDIR)/build
@@ -66,9 +67,10 @@ EXTERNAL =
 
 
 vpath %.c $(RECFAST)
-CCFLAG += -DRECFAST
+#CCFLAG += -DRECFAST
 INCLUDES += -I../external/RecfastCLASS
 EXTERNAL += wrap_recfast.o
+
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
 vpath %.c $(HYREC)
