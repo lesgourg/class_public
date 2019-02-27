@@ -2552,6 +2552,10 @@ int perturb_prepare_output(struct background * pba,
       /* Scalar field scf */
       class_store_columntitle(ppt->scalar_titles, "delta_scf", pba->has_scf);
       class_store_columntitle(ppt->scalar_titles, "theta_scf", pba->has_scf);
+      /** Fluid */
+      class_store_columntitle(ppt->scalar_titles, "delta_rho_fld", pba->has_fld);
+      class_store_columntitle(ppt->scalar_titles, "rho_plus_p_theta_fld", pba->has_fld);
+      class_store_columntitle(ppt->scalar_titles, "delta_p_fld", pba->has_fld);
 
       ppt->number_of_scalar_titles =
         get_number_of_titles(ppt->scalar_titles);
@@ -6793,7 +6797,10 @@ int perturb_print_variables(double tau,
     /* Scalar field scf*/
     class_store_double(dataptr, delta_scf, pba->has_scf, storeidx);
     class_store_double(dataptr, theta_scf, pba->has_scf, storeidx);
-
+    /** Fluid */
+    class_store_double(dataptr, ppw->delta_rho_fld, pba->has_fld, storeidx);
+    class_store_double(dataptr, ppw->rho_plus_p_theta_fld, pba->has_fld, storeidx);
+    class_store_double(dataptr, ppw->delta_p_fld, pba->has_fld, storeidx);
     //fprintf(ppw->perturb_output_file,"\n");
 
   }
