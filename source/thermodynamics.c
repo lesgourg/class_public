@@ -334,6 +334,7 @@ int thermodynamics_free(
                         ) {
 
   free(pth->z_table);
+  free(pth->tau_table);
   free(pth->thermodynamics_table);
   free(pth->d2thermodynamics_dz2_table);
 
@@ -824,7 +825,7 @@ int thermodynamics_helium_from_bbn(struct precision * ppr,
  *
  * @param pba Input: pointer to background structure
  * @param pth Input/Output: pointer to initialized thermo structure
- * @param pvecback Input: pointer to some allocated pvecback 
+ * @param pvecback Input: pointer to some allocated pvecback
  * @return the error status
  */
 int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
@@ -972,7 +973,7 @@ int thermodynamics_calculate_damping_scale(struct background* pba,
   double tau_ini,dkappa_ini;
   double* tau_table_growing;
   int index_tau;
-  
+
 
   if (pth->compute_damping_scale == _TRUE_) {
 
@@ -1109,7 +1110,7 @@ int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth)
 
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] = expmkappa;
-    //printf("exp(-k)[%i] = %.10e \n",index_tau,expmkappa); 
+    //printf("exp(-k)[%i] = %.10e \n",index_tau,expmkappa);
 
     /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
@@ -1121,7 +1122,7 @@ int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth)
 
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
-    //printf("g[%i] = %.10e \n",index_tau,g); 
+    //printf("g[%i] = %.10e \n",index_tau,g);
     /** - ---> compute variation rate */
     class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
                pth->error_message,
@@ -1267,7 +1268,7 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
 
   pth->tau_free_streaming = tau;
 
-  
+
   /** - find time above which visibility falls below a given fraction of its maximum */
 
   index_tau=index_tau_max;
@@ -1889,14 +1890,6 @@ int thermodynamics_solve(struct precision * ppr,
   extern int evolver_ndf15();
   int (*generic_evolver)();
 
-  /** - read a few precision/cosmological parameters */
-  class_call(thermodynamics_set_parameters_diffeq(ppr,
-                                                  pba,
-                                                  pth,
-                                                  ptw),
-             pth->error_message,
-             pth->error_message);
-
   class_call(thermodynamics_set_parameters_reionization(ppr,
                                                         pba,
                                                         pth,
@@ -1919,21 +1912,6 @@ int thermodynamics_solve(struct precision * ppr,
   for(i=0; i < pth->tt_size; ++i){
     mz_output[i] = -pth->z_table[pth->tt_size-1-i];
   }
-  /* Initial z, and the z at which we switch to linear sampling */
-  //zinitial=ppr->thermo_z_initial;
-  //zlinear=ppr->thermo_z_linear;
-  /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
-  //for(i=0; i <ptw->Nz_reco_log; i++) {
-  //  mz_output[i] = -exp((log(zinitial)-log(zlinear))*(double)(ptw->Nz_reco_log-1-i) / (double)(ptw->Nz_reco_log-1)+log(zlinear));
-  //}
-  /* -> Between zinitial and reionization_z_start_max, we use the spacing of recombination sampling */
-  //for(i=0; i <ptw->Nz_reco_lin; i++) {
-  //  mz_output[i+ptw->Nz_reco_log] = -(zlinear-ppr->reionization_z_start_max) * (double)(ptw->Nz_reco_lin-1-i) / (double)(ptw->Nz_reco_lin) - ppr->reionization_z_start_max;
-  //}
-  /* -> Between reionization_z_start_max and 0, we use the spacing of reionization sampling, leaving out the first point to not double-count it */
-  //for(i=0; i <ptw->Nz_reio; i++) {
-  //  mz_output[i+ptw->Nz_reco] = -ppr->reionization_z_start_max * (double)(ptw->Nz_reio-1-i) / (double)(ptw->Nz_reio);
-  //}
 
 
   /** - define switching intervals */
@@ -1981,12 +1959,12 @@ int thermodynamics_solve(struct precision * ppr,
 
     /*
      * If we have the optical depth tau_reio as input the last evolver step
-     * (reionization approximation) has to be done separately in a loop,
+     * (reionization approximation) is done separately in a loop,
      * to approximate the redshift of reionization through the input of tau_reio.
-     * This is commonly done using a bisection method
-     * Otherwise, we can just use the normal evolver
+     * This is done using a bisection method
+     *  It is similar to CLASS's shooting, just that we only re-do
+     *  this last approximation step of the thermodynamics calculation
      * */
-    //TODO :: change this to normal shooting !
     if(pth->reio_z_or_tau == reio_tau && index_interval == ptw->ptdw->index_ap_reio){
         class_call(thermodynamics_reionization_evolve_with_tau(&tpaw,
                                                                interval_limit[index_interval],
@@ -2497,6 +2475,8 @@ int thermodynamics_vector_init(struct precision * ppr,
   struct thermo_diffeq_workspace * ptdw = ptw->ptdw;
 
   double z,x,Tmat;
+  int evolves_xHe = (pth->recombination == recfast);
+  int evolves_xH = (pth->recombination == recfast);
 
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
 
@@ -2523,15 +2503,15 @@ int thermodynamics_vector_init(struct precision * ppr,
     /* Nothing else to add */
   }
   else if(ptdw->ap_current == ptdw->index_ap_H){
-    class_define_index(ptv->index_x_He,(pth->recombination == recfast),index_tv,1);
+    class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_frec){
-    class_define_index(ptv->index_x_He,(pth->recombination == recfast),index_tv,1);
-    class_define_index(ptv->index_x_H,(pth->recombination == recfast),index_tv,1);
+    class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
+    class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_reio){
-    class_define_index(ptv->index_x_He,(pth->recombination == recfast),index_tv,1);
-    class_define_index(ptv->index_x_H,(pth->recombination == recfast),index_tv,1);
+    class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
+    class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_reio){
     /* Nothing else to add */
@@ -2737,7 +2717,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
   /**   - count number of approximations, initialize their indices */
   index_ap=0;
 
-  
+
   ptw->Nz_reco_lin = ppr->thermo_Nz_lin;
   ptw->Nz_reco_log = ppr->thermo_Nz_log;
   ptw->Nz_reio = ppr->reionization_z_start_max / ppr->reionization_sampling;
@@ -2786,7 +2766,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
                ptw->ptdw->phyrec->error_message,
                pth->error_message);
   }
-  //else if(pth->recombination == recfast){ //Nils TODO 
+  else if(pth->recombination == recfast){ //Nils TODO
     class_alloc(ptw->ptdw->precfast,
                 sizeof(struct thermorecfast),
                 pth->error_message);
@@ -2794,7 +2774,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
     class_call(thermodynamics_recfast_init(ppr,pba,pth,ptw->fHe,ptw->ptdw->precfast),
                ptw->ptdw->precfast->error_message,
                pth->error_message);
-  //}
+  }
 
   /**   - define approximations */
   /* Approximations have to appear in chronological order here! */
@@ -2868,73 +2848,6 @@ int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * 
   free(ptw);
 
   return _SUCCESS_;
-}
-
-/**
- * This routine is called once in thermodynamics_solve_with_recfast
- * to initialize some constants used in thermodynamics_solve_derivs
- *
- * @param ppr        Input: pointer to precision structure
- * @param pba        Input: pointer to background structure
- * @param pth        Input: pointer to the thermodynamics structure
- * @param ptdw      Input/Output: pointer to the recombination structure
- *
- * @return the error status
- */
-
-int thermodynamics_set_parameters_diffeq(struct precision * ppr,
-                                         struct background * pba,
-                                         struct thermo * pth,
-                                         struct thermo_workspace * ptw) {
-
-  double OmegaB,mu_H,Lalpha,Lalpha_He,DeltaB,DeltaB_He;
-
-  struct thermorecfast * precfast = ptw->ptdw->precfast;
-  /** - read a few precision/cosmological parameters */
-
-  /* Omega_b */
-  OmegaB = pba->Omega0_b;
-
-  /* H_frac */
-  precfast->H_frac = ppr->recfast_H_frac;
-
-  /* H fudging */
-  class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
-             pth->error_message,
-             "RECFAST error: unknown H fudging scheme");
-  precfast->fudge_H = ppr->recfast_fudge_H;
-  if (ppr->recfast_Hswitch == _TRUE_){
-    precfast->fudge_H += ppr->recfast_delta_fudge_H;
-  }
-
-  /* He fudging */
-  class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
-             pth->error_message,
-             "RECFAST error: unknown He fudging scheme");
-
-  /* quantities related to constants defined in thermodynamics.h */
-  //n = preco->Nnow * pow((1.+z),3);
-  Lalpha = 1./_L_H_alpha_;
-  Lalpha_He = 1./_L_He_2p_;
-  DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
-  precfast->CDB = DeltaB/_k_B_;
-  DeltaB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_);
-  precfast->CDB_He = DeltaB_He/_k_B_;
-  precfast->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;
-  precfast->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;
-  precfast->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;
-  precfast->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
-  precfast->CK = pow(Lalpha,3)/(8.*_PI_);
-  precfast->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
-  precfast->CL = _c_*_h_P_/(_k_B_*Lalpha);
-  precfast->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
-  precfast->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) * //Factor between photon scattering and rho_gamma(T)
-    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3)); //Factor between rho_gamma(T) and T^4
-
-  precfast->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
-
-  return _SUCCESS_;
-
 }
 
 /**

@@ -481,11 +481,6 @@ extern "C" {
 
   int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * ptw);
 
-  int thermodynamics_set_parameters_diffeq(struct precision * ppr,
-                                           struct background * pba,
-                                           struct thermo * pth,
-                                           struct thermo_workspace * ptw);
-
   int thermodynamics_set_parameters_reionization(struct precision * ppr,
                                                  struct background * pba,
                                                  struct thermo * pth,

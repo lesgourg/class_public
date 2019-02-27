@@ -31,6 +31,8 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   int index_virt,index_ly,iz;
   phy->N_LY = 3;
   phy->N_VIRT = NVIRT;
+  phy->N_TM = NTM;
+  phy->N_TR = NTR;
 
   strcpy(phy->alpha_file,ppr->hyrec_Alpha_inf_file);
   strcpy(phy->rr_file,ppr->hyrec_R_inf_file);
@@ -59,10 +61,10 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
               sizeof(TWO_PHOTON_PARAMS),
               phy->error_message);
 
-  phy->rate_table->logTR_tab = create_1D_array(NTR);
-  phy->rate_table->TM_TR_tab = create_1D_array(NTM);
-  phy->rate_table->logAlpha_tab[0] = create_2D_array(NTM, NTR);
-  phy->rate_table->logAlpha_tab[1] = create_2D_array(NTM, NTR);
+  phy->rate_table->logTR_tab = create_1D_array(phy->N_TR);
+  phy->rate_table->TM_TR_tab = create_1D_array(phy->N_TM);
+  phy->rate_table->logAlpha_tab[0] = create_2D_array(phy->N_TM, phy->N_TR);
+  phy->rate_table->logAlpha_tab[1] = create_2D_array(phy->N_TM, phy->N_TR);
   phy->rate_table->logR2p2s_tab = create_1D_array(NTR);
 
   class_call(thermodynamics_hyrec_readrates(phy),
@@ -124,7 +126,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
 
 int thermodynamics_hyrec_free(struct thermohyrec* phy){
 
-  int index_ly,index_virt;
+  int index_ly,index_virt,index_tm;
   for(index_ly=0;index_ly<phy->N_LY;++index_ly){
     free(phy->Dfminus_Ly_hist[index_ly]);
   }
@@ -134,6 +136,17 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
   }
   free(phy->Dfminus_hist);
   free(phy->Dfnu_hist);
+
+  free(phy->rate_table->logTR_tab);
+  free(phy->rate_table->TM_TR_tab);
+  for(index_tm=0;index_tm<phy->N_TM;++index_tm){
+    free(phy->rate_table->logAlpha_tab[0][index_tm]);
+    free(phy->rate_table->logAlpha_tab[1][index_tm]);
+  }
+  free(phy->rate_table->logAlpha_tab[0]);
+  free(phy->rate_table->logAlpha_tab[1]);
+  free(phy->rate_table->logR2p2s_tab);
+
 
   free(phy->rate_table);
   free(phy->twog_params);

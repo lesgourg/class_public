@@ -20,6 +20,11 @@ struct thermohyrec{
   double ** Dfnu_hist;
   double ** Dfminus_hist;
   double *  Dfminus_Ly_hist[3];
+  int N_TR; //Number of T_radiation values in precomputed files
+  int N_TM; //Number of T_matter values in precomputed files
+  int N_LY;
+  int N_VIRT;
+  short stage;
 
   double n_H_now;
   double T_cmb;
@@ -31,9 +36,6 @@ struct thermohyrec{
   double dlna;
   long nz;
 
-  int N_LY;
-  int N_VIRT;
-  short stage;
 
   double fsR;
   double meR;
