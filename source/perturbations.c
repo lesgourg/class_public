@@ -5345,8 +5345,16 @@ int perturb_total_stress_energy(
   double rho_relativistic;
   double rho_dr_over_f;
   double delta_rho_scf, delta_p_scf, psi;
+  /** Variables used for FLD and PPF */
   double c_gamma_k_H_square;
-  double Gamma_prime_plus_a_prime_over_a_Gamma, alpha=0., s2sq=1.;
+  double Gamma_prime_plus_a_prime_over_a_Gamma, s2sq=1.;
+  double w_prime_fld, ca2_fld;
+  double alpha, alpha_prime, metric_euler;
+  double rho_t, p_t, rho_t_prime, p_t_prime;
+  double rho_fld, p_fld, rho_fld_prime, p_fld_prime; 
+  double X, Y, Z, X_prime, Y_prime, Z_prime;
+  double Gamma_fld, S, S_prime, theta_t, theta_t_prime, rho_plus_p_theta_fld_prime;
+  
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5602,33 +5610,89 @@ int perturb_total_stress_energy(
     if (pba->has_fld == _TRUE_) {
 
       class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
-
+      w_prime_fld = dw_over_da_fld * a_prime_over_a * a;
+      
       if (pba->use_ppf == _FALSE_) {
         ppw->delta_rho_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
         ppw->rho_plus_p_theta_fld = (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+	ca2_fld = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
+	/** We must gauge transform the pressure perturbation from the fluid rest-frame to the gauge we are working in */
+	ppw->delta_p_fld = pba->cs2_fld * ppw->delta_rho_fld + (pba->cs2_fld-ca2_fld)*(3*a_prime_over_a*ppw->rho_plus_p_theta_fld/k/k);
       }
       else {
         s2sq = ppw->s_l[2]*ppw->s_l[2];
-        if (ppt->gauge == synchronous)
-          alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+a_prime_over_a/k2*ppw->rho_plus_p_theta)-y[ppw->pv->index_pt_Gamma_fld])/a_prime_over_a;
-        else
+        c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
+	/** The equation is too stiff for Runge-Kutta when c_gamma_k_H_square is large.
+	    Use the asymptotic solution Gamma=Gamma'=0 in that case.
+	*/
+	if (c_gamma_k_H_square > ppr->c_gamma_k_H_square_max)
+	  Gamma_fld = 0.;
+	else
+	  Gamma_fld = y[ppw->pv->index_pt_Gamma_fld];
+
+	if (ppt->gauge == synchronous){
+          alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+3*a_prime_over_a/k2*ppw->rho_plus_p_theta)-Gamma_fld)/a_prime_over_a;
+	  alpha_prime = -2. * a_prime_over_a * alpha + y[ppw->pv->index_pt_eta] - 4.5 * (a2/k2) * ppw->rho_plus_p_shear;
+	  metric_euler = 0.;
+	}
+        else{
           alpha = 0.;
+	  alpha_prime = 0.;
+	  metric_euler = k2*y[ppw->pv->index_pt_phi] - 4.5*a2*ppw->rho_plus_p_shear;
+	}
         ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*1.5*a2/k2/a_prime_over_a*
           (ppw->rho_plus_p_theta/rho_plus_p_tot+k2*alpha);
         // note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
-        c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
-        ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*y[ppw->pv->index_pt_Gamma_fld]);
-        Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*y[ppw->pv->index_pt_Gamma_fld];
+	/** We must now check the stiffenss criterion again and set Gamma_prime_fld accordingly. */
+	if (c_gamma_k_H_square > ppr->c_gamma_k_H_square_max){
+	  ppw->Gamma_prime_fld = 0.;
+	}
+	else{
+	  ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*Gamma_fld);
+	}
+        Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*Gamma_fld;
         // delta and theta in both gauges gauge:
         ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*ppw->rho_plus_p_theta/rho_plus_p_tot-
           k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*rho_plus_p_tot)*
           (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
-        ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
+        ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*Gamma_fld-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
+
+	/** Now construct the pressure perturbation, see 1903.xxxxx. */
+	/** Construct energy density and pressure for DE (_fld) and the rest (_t).
+	    Also compute derivatives. */
+	rho_fld = ppw->pvecback[pba->index_bg_rho_fld];
+	p_fld = w_fld*rho_fld;
+	rho_fld_prime = -3*a_prime_over_a*(rho_fld+p_fld);
+	p_fld_prime = w_prime_fld*rho_fld-3*a_prime_over_a*(1+w_fld)*p_fld;
+	rho_t = ppw->pvecback[pba->index_bg_rho_tot] - rho_fld;
+	p_t = ppw->pvecback[pba->index_bg_p_tot] - p_fld;
+	rho_t_prime = -3*a_prime_over_a*(rho_t+p_t);
+	p_t_prime = ppw->pvecback[pba->index_bg_p_tot_prime]-p_fld_prime;
+	/** Compute background quantities X,Y,Z and their derivatives. */
+	X = c_gamma_k_H_square;
+	X_prime = -2*X*(a_prime_over_a + ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H]);
+	Y = 4.5*a2/k2/s2sq*(rho_t+p_t);
+	Y_prime = Y*(2.*a_prime_over_a+(rho_t_prime+p_t_prime)/(rho_t+p_t));
+	Z = 2./3.*k2*ppw->pvecback[pba->index_bg_H]/a;
+	Z_prime = Z*(ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H] - a_prime_over_a);
+	/** Construct theta_t and its derivative from the Euler equation */
+	theta_t = ppw->rho_plus_p_theta/rho_plus_p_tot;
+	theta_t_prime = -a_prime_over_a*theta_t-(p_t_prime*theta_t-k2*ppw->delta_p +k2*ppw->rho_plus_p_shear)/rho_plus_p_tot+metric_euler;
+	S = ppw->S_fld;
+	S_prime = -Z_prime/Z*S+1./Z*(rho_fld_prime+p_fld_prime)*(theta_t+k2*alpha)+1./Z*(rho_fld+p_fld)*(theta_t_prime+k2*alpha_prime);
+	/** Analytic derivative of the equation for ppw->rho_plus_p_theta_fld above. */
+	rho_plus_p_theta_fld_prime = Z_prime*(S-1./(1.+Y)*(S/(1.+1./X)+Gamma_fld*X)) +
+	  Z*(S_prime + Y_prime/(1.+Y*Y+2*Y)*(S/(1.+1./X)+Gamma_fld*X)-
+	     1./(1.+Y)*(S_prime/(1.+1./X)+S*X_prime/(1.+X*X+2*X)+ppw->Gamma_prime_fld*X+Gamma_fld*X_prime))-
+	  k2*alpha_prime*(rho_fld+p_fld)-k2*alpha*(rho_fld_prime+p_fld_prime);
+
+	/** We can finally compute the pressure perturbation using the Euler equation for theta_fld */
+	ppw->delta_p_fld = (rho_plus_p_theta_fld_prime+4*a_prime_over_a* ppw->rho_plus_p_theta_fld - (rho_fld+p_fld)*metric_euler)/k2;
       }
 
       ppw->delta_rho += ppw->delta_rho_fld;
       ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_fld;
-      ppw->delta_p += pba->cs2_fld * ppw->delta_rho_fld;
+      ppw->delta_p += ppw->delta_p_fld;
 
     }
 

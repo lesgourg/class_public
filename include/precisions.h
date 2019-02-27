@@ -204,6 +204,14 @@ class_precision_parameter(perturb_sampling_stepsize,double,0.1)
 class_precision_parameter(tol_perturb_integration,double,1.0e-5)
 
 /**
+ * cutoff relevant for controlling stiffness in the PPF scheme. It is
+ * neccessary for the Runge-Kutta evolver, but not for ndf15. However,
+ * the approximation is excellent for a cutoff value of 1000, so we
+ * leave it on for both evolvers. (CAMB uses a cutoff value of 30.)
+ */
+class_precision_parameter(c_gamma_k_H_square_max,double,1.0e3)
+
+/**
  * precision with which the code should determine (by bisection) the
  * times at which sources start being sampled, and at which
  * approximations must be switched on/off (units of Mpc)
