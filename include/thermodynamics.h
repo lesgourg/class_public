@@ -413,7 +413,10 @@ extern "C" {
                           struct background * pba,
                           struct thermo * pth);
 
-  int thermodynamics_lists(struct precision * ppr, struct background* pba, struct thermo* pth, struct thermo_workspace* ptw);
+  int thermodynamics_lists(struct precision * ppr,
+                           struct background* pba,
+                           struct thermo* pth,
+                           struct thermo_workspace* ptw);
 
   int thermodynamics_test_parameters(struct precision * ppr,
                                      struct background* pba,
@@ -514,18 +517,14 @@ extern "C" {
                                          void * thermo_parameters_and_workspace,
                                          ErrorMsg error_message);
 
-  int thermodynamics_output_titles(
-                                   struct background * pba,
+  int thermodynamics_output_titles(struct background * pba,
                                    struct thermo *pth,
-                                   char titles[_MAXTITLESTRINGLENGTH_]
-                                   );
+                                   char titles[_MAXTITLESTRINGLENGTH_]);
 
-  int thermodynamics_output_data(
-                                 struct background * pba,
+  int thermodynamics_output_data(struct background * pba,
                                  struct thermo *pth,
                                  int number_of_titles,
-                                 double *data
-                                 );
+                                 double *data);
 
   int thermodynamics_solve_timescale(double z,
                                      void * thermo_parameters_and_workspace,
