@@ -1,15 +1,27 @@
-/*************************** HYRECTOOLS.C ********************************
+/******************************* HYRECTOOLS.C ********************************
 Multidimensional array creation and freeing functions.
 Also, function to make linear arrays and interpolation routines.
-
-Version: January 2011 (unchanged from November 2010 version)
-**************************************************************************/
+Version: May 2012 (was "arrays.c" in earlier versions, contents unchanged)
+*****************************************************************************/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
       
 #include "hyrectools.h"
+
+
+/******************************************************************************************************
+Square and cube, often used
+******************************************************************************************************/
+
+double square(double x) {
+   return x*x;
+}
+
+double cube(double x) {
+   return x*x*x;
+}
 
 /************************************************************************** 
 Creates a [n1] array. 
@@ -19,7 +31,7 @@ double *create_1D_array(unsigned n1){
 
    double *matrix = (double *) calloc(n1, sizeof(double));
    if (matrix == NULL) {
-      fprintf(stderr, "memory issue in create_1D_array\n");
+      fprintf(stderr, "Error in create_1D_array: unable to allocate memory\n");
       exit(1);
     }
    return matrix;
@@ -34,7 +46,7 @@ double **create_2D_array(unsigned n1, unsigned n2){
  unsigned i;
    double **matrix = (double **) calloc(n1, sizeof(double *));
    if (matrix == NULL){
-      fprintf(stderr, "memory issue in create_2D_array\n");
+      fprintf(stderr, "Error in create_2D_array: unable to allocate memory\n");
       exit(1);
     }
    for (i = 0; i < n1; i++)  matrix[i] = create_1D_array(n2);
@@ -63,7 +75,7 @@ double ***create_3D_array(unsigned n1, unsigned n2, unsigned n3){
     unsigned i;
     double ***matrix = (double ***) calloc(n1, sizeof(double **));
     if (matrix == NULL) {
-      fprintf(stderr, "memory issue in create_3D_array\n");
+      fprintf(stderr, "Error in create_3D_array: unable to allocate memory\n");
       exit(1);
     }
     for (i = 0; i < n1; i++)  matrix[i] = create_2D_array(n2, n3);
@@ -99,6 +111,7 @@ void maketab(double xmin, double xmax, unsigned Nx, double *xtab){
 /************************************************************************************
  Interpolation routine for 1-D table.  Uses cubic interpolation assuming
  uniformly spaced x-values, x0 ... x0+(Nx-1)*dx.
+The table is assumed to have dimension Nx >= 4
 *************************************************************************************/
 
 double rec_interp1d(double x0, double dx, double *ytab, unsigned int Nx, double x) {
@@ -118,7 +131,7 @@ double rec_interp1d(double x0, double dx, double *ytab, unsigned int Nx, double 
 
   /* Identify location to interpolate */
   ix = (long)floor((x-x0)/dx);
-  if (ix<1) ix=1;
+  if (ix<1) ix=1; 
   if (ix>Nx-3) ix=Nx-3;
   frac = (x-x0)/dx-ix;
   ytab += ix-1;
@@ -128,7 +141,7 @@ double rec_interp1d(double x0, double dx, double *ytab, unsigned int Nx, double 
     -ytab[0]*frac*(1.-frac)*(2.-frac)/6.
     +ytab[1]*(1.+frac)*(1.-frac)*(2.-frac)/2.
     +ytab[2]*(1.+frac)*frac*(2.-frac)/2.
-    +ytab[3]*(1.+frac)*frac*(frac-1.)/6.
+    -ytab[3]*(1.+frac)*frac*(1.-frac)/6.
   );
 }
 
@@ -169,4 +182,8 @@ double rec_interp2d(double x10, double dx1, double x20, double dx2, double **yta
   );
 }
 
-/*********************************************************************************************/
+/********************************************************************************/
+
+   
+
+ 

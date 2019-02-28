@@ -1228,7 +1228,7 @@ int input_read_parameters(
   if (flag1 == _TRUE_) {
 
     if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)) {
-      pth->YHe = _BBN_;
+      pth->YHe = _YHE_BBN_;
     }
     else {
       class_read_double("YHe",pth->YHe);
@@ -2977,7 +2977,7 @@ int input_default_params(
 
   /** - thermodynamics structure */
 
-  pth->YHe=_BBN_;
+  pth->YHe=_YHE_BBN_;
   pth->recombination=recfast;
   pth->reio_parametrization=reio_camb;
   pth->reio_z_or_tau=reio_z;
@@ -3504,7 +3504,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
   if (pfzw->required_computation_stage >= cs_thermodynamics){
    if (input_verbose>2)
      printf("Stage 2: thermodynamics\n");
-    pr.recfast_Nz0 = 10000;
+    pr.thermo_Nz_lin = 10000;
+    pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
