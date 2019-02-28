@@ -33,7 +33,7 @@ struct distortions
   int dQrho_dz_diss_approx;                  /* Use full version of dQrho_dz_diss or its approximation? */
 
   int N_PCA;
-  char * detector;                           /* Name of detector */
+  char * distortions_detector;               /* Name of detector */
   double nu_min_detector;                    /* Minimum frequency of chosen detector */
   double nu_max_detector;                    /* Maximum frequency of chosen detector */
   int nu_delta_detector;                     /* Bin size of chosen detector */
@@ -223,30 +223,33 @@ extern "C" {
                                           int * last_index_x);
   int distortions_free_Greens_data(struct distortions * psd);
 
-  /* PCA decomposition (branching ratios and spectral shapes) for PIXIE */
-  int distortions_read_PIXIE_br_data(struct precision * ppr,
-                                     struct distortions * psd);
-  int distortions_spline_PIXIE_br_data(struct distortions* psd);
-  int distortions_interpolate_PIXIE_br_data(struct distortions* psd,
-                                            double z,
-                                            double* f_g,
-                                            double* f_y,
-                                            double* f_mu,
-                                            double* E,
-                                            int * last_index);
-  int distortions_free_PIXIE_br_data(struct distortions * psd);
+  int distortions_evaluate_PCA(struct precision * ppr,
+                               struct distortions * psd);
 
-  int distortions_read_PIXIE_sd_data(struct precision * ppr,
-                                     struct distortions * psd);
-  int distortions_spline_PIXIE_sd_data(struct distortions* psd);
-  int distortions_interpolate_PIXIE_sd_data(struct distortions* psd,
-                                            double nu,
-                                            double * G_T,
-                                            double * Y_SZ,
-                                            double * M_mu,
-                                            double * S,
-                                            int * index);
-  int distortions_free_PIXIE_sd_data(struct distortions * psd);
+  /* PCA decomposition (branching ratios and spectral shapes) for known detector */
+  int distortions_read_br_data(struct precision * ppr,
+                               struct distortions * psd);
+  int distortions_spline_br_data(struct distortions* psd);
+  int distortions_interpolate_br_data(struct distortions* psd,
+                                      double z,
+                                      double* f_g,
+                                      double* f_y,
+                                      double* f_mu,
+                                      double* E,
+                                      int * last_index);
+  int distortions_free_br_data(struct distortions * psd);
+
+  int distortions_read_sd_data(struct precision * ppr,
+                               struct distortions * psd);
+  int distortions_spline_sd_data(struct distortions* psd);
+  int distortions_interpolate_sd_data(struct distortions* psd,
+                                      double nu,
+                                      double * G_T,
+                                      double * Y_SZ,
+                                      double * M_mu,
+                                      double * S,
+                                      int * index);
+  int distortions_free_sd_data(struct distortions * psd);
 
   /* Output */
   int heating_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);

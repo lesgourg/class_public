@@ -2250,16 +2250,16 @@ int input_read_parameters(
              errmsg);
 
   if ((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){ 
-    psd->detector = "PIXIE";
+    psd->distortions_detector = "PIXIE";
     psd->nu_min_detector = 30.;
     psd->nu_max_detector = 1000.;
     psd->nu_delta_detector = 1.;
   }
   if ((flag1 == _TRUE_) && ((strstr(string1,"other") != NULL) )){ 
-    psd->detector = "other"; 
+    psd->distortions_detector = "other"; 
     class_read_double("detector nu min",psd->nu_min_detector);
     class_read_double("detector nu max",psd->nu_max_detector);
-    class_read_double("detector nu width",psd->nu_delta_detector);
+    class_read_double("detector nu delta",psd->nu_delta_detector);
   }
 
   /** (e) parameters for final spectra */
@@ -3205,11 +3205,7 @@ int input_default_params(
   /** - distortions structure */
   psd->N_PCA = 2; //[NS]
   psd->branching_approx = bra_exact; //[NS]
-  //psd->detector = "PIXIE"; // [ML]
-  //psd->nu_min_detector = 30.;
-  //psd->nu_max_detector = 1000.;
-  //psd->nu_delta_detector = 1.;
-
+  psd->distortions_detector = "PIXIE"; // [ML]
 
   /** - all verbose parameters */
 

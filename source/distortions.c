@@ -231,34 +231,17 @@ int distortions_get_xz_lists(struct precision * ppr,
 
   }
   else{
-    if(psd->detector == "PIXIE"){
-      psd->x_min = ppr->distortions_nu_min_PIXIE/psd->x_to_nu;
-      psd->x_max = ppr->distortions_nu_max_PIXIE/psd->x_to_nu;
-      psd->x_size = ppr->distortions_nu_size_PIXIE;
-      psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+    psd->x_min = psd->nu_min_detector/psd->x_to_nu;
+    psd->x_max = psd->nu_max_detector/psd->x_to_nu;
+    psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
+    psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
 
-      class_alloc(psd->x,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
+    class_alloc(psd->x,
+                psd->x_size*sizeof(double),
+                psd->error_message);
 
-      for (index_x = 0; index_x<psd->x_size; index_x++) {
-        psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
-      }
-
-    }
-    else{
-      psd->x_min = psd->nu_min_detector/psd->x_to_nu;
-      psd->x_max = psd->nu_max_detector/psd->x_to_nu;
-      psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
-      psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
-
-      class_alloc(psd->x,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-
-      for (index_x = 0; index_x<psd->x_size; index_x++) {
-        psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
-      }
+    for (index_x = 0; index_x<psd->x_size; index_x++) {
+      psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
     }
   }
 
@@ -302,7 +285,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   /** Define local variables */
   int index_z,index_type,index_e;
   double f_g, f_y, f_mu;
-  double * f_E;
+  double *f_E;
   double bb_vis;
   int last_index = 0;
 
@@ -320,6 +303,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   if(psd->branching_approx != bra_exact){
     for(index_z=0; index_z<psd->z_size; ++index_z){
       bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+
       /* 1) Calculate branching ratios using sharp_sharp transition */
       if(psd->branching_approx == bra_sharp_sharp){
         if(psd->z[index_z]>psd->z_th){
@@ -374,265 +358,48 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   }
   else{
     /* 5) Calculate branching ratios according to Chluba & Jeong 2014 */
-    if(psd->detector == "PIXIE"){
-      /* Read and spline data from file PIXIE_branching_ratios.dat */
-      class_call(distortions_read_PIXIE_br_data(ppr,psd),
+
+    /* Read and spline data from file branching_ratios.dat */
+    class_call(distortions_read_br_data(ppr,psd),
+               psd->error_message,
+               psd->error_message);
+    class_call(distortions_spline_br_data(psd),
+               psd->error_message,
+               psd->error_message);
+
+    /* Allocate local variable */
+    class_alloc(f_E,
+                psd->N_PCA*sizeof(double),
+                psd->error_message);
+
+    /* Interpolate over z */
+    for(index_z=0; index_z<psd->z_size; ++index_z){
+      class_call(distortions_interpolate_br_data(psd,
+                                                 psd->z[index_z],
+                                                 &f_g,
+                                                 &f_y,
+                                                 &f_mu,  
+                                                 f_E,
+                                                 &last_index),
                  psd->error_message,
                  psd->error_message);
-      class_call(distortions_spline_PIXIE_br_data(psd),
-                 psd->error_message,
-                 psd->error_message);
 
-      /* Allocate local variable */
-      class_alloc(f_E,
-                  psd->N_PCA*sizeof(double),
-                  psd->error_message);
-
-      /* Interpolate over z */
-      for(index_z=0; index_z<psd->z_size; ++index_z){
-        class_call(distortions_interpolate_PIXIE_br_data(psd,
-                                                         psd->z[index_z],
-                                                         &f_g,
-                                                         &f_y,
-                                                         &f_mu,  
-                                                         f_E,
-                                                         &last_index),
-                   psd->error_message,
-                   psd->error_message);
-
-        /* Store quantities in the table*/
-        psd->br_table[psd->index_type_g][index_z] = f_g;
-        psd->br_table[psd->index_type_y][index_z] = f_y;
-        psd->br_table[psd->index_type_mu][index_z] = f_mu;
-        for(index_e=0; index_e<psd->N_PCA; ++index_e){
-          psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
-        }
-
+      /* Store quantities in the table*/
+      psd->br_table[psd->index_type_g][index_z] = f_g;
+      psd->br_table[psd->index_type_y][index_z] = f_y;
+      psd->br_table[psd->index_type_mu][index_z] = f_mu;
+      for(index_e=0; index_e<psd->N_PCA; ++index_e){
+        psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
       }
-
-      /* Free space allocated in distortions_read_PIXIE_br_data() */
-      class_call(distortions_free_PIXIE_br_data(psd),
-                 psd->error_message,
-                 psd->error_message);
-      free(f_E);
 
     }
-    else{
-      /* Define local variables */
-      int index_x;
-      int last_index_x = 0;
-      double x;
-      double T_ini, T_last, rho, **G_th, Greens_blackbody;
-      double *Y, *M, *G;
-      double *e_y, *e_mu, *e_g, M_y, G_y, G_mu, *M_per, *G_per, **R;
-      double mod_G_squared, mod_Y_squared, mod_M_squared, mod_M_per_squared, mod_G_per_squared;
-      double mod_G, mod_Y, mod_M, mod_M_per, mod_G_per;
-      double delta_ln_z, **tilde_R;
-      double delta_I_c, **Fisher_matrix;
-      int index_za, index_zb;
 
-      /* Read and spline data from file Greens_data.dat */
-      class_call(distortions_read_Greens_data(ppr,psd),
-                 psd->error_message,
-                 psd->error_message);
-      class_call(distortions_spline_Greens_data(psd),
-                 psd->error_message,
-                 psd->error_message);
+    /* Free space allocated in distortions_read_br_data */
+    class_call(distortions_free_br_data(psd),
+               psd->error_message,
+               psd->error_message);
+    free(f_E);
 
-      /* Allocate local variable */
-      class_alloc(G_th,
-                  psd->z_size*sizeof(double),
-                  psd->error_message);
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        class_alloc(G_th[index_x],
-                    psd->z_size*sizeof(double),
-                    psd->error_message);
-      }
-
-      class_alloc(Y,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-      class_alloc(M,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-      class_alloc(G,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-
-      class_alloc(e_y,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-      class_alloc(e_mu,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-      class_alloc(e_g,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-
-      class_alloc(M_per,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-      class_alloc(G_per,
-                  psd->x_size*sizeof(double),
-                  psd->error_message);
-
-      class_alloc(R,
-                  psd->z_size*sizeof(double),
-                  psd->error_message);
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        class_alloc(R[index_x],
-                    psd->z_size*sizeof(double),
-                    psd->error_message);
-      }
-      class_alloc(tilde_R,
-                  psd->z_size*sizeof(double),
-                  psd->error_message);
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        class_alloc(tilde_R[index_x],
-                    psd->z_size*sizeof(double),
-                    psd->error_message);
-      }
-      class_alloc(Fisher_matrix,
-                  psd->z_size*sizeof(double),
-                  psd->error_message);
-      for(index_z=0; index_z<psd->z_size; ++index_z){
-        class_alloc(Fisher_matrix[index_z],
-                    psd->z_size*sizeof(double),
-                    psd->error_message);
-      }
-
-      /* Calculate vectors of spectral shapes with relative moduli */
-      mod_G_squared = 0.;
-      mod_Y_squared = 0.; 
-      mod_M_squared = 0.;
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        x = psd->x[index_x];
-
-        /* Interpolate over x to find G_th in external file */
-        for(index_z=0; index_z<psd->z_size; ++index_z){
-          class_call(distortions_interpolate_Greens_data(psd,
-                                                         psd->z[index_z],
-                                                         psd->x[index_x],
-                                                         &T_ini,
-                                                         &T_last,
-                                                         &rho,
-                                                         &G_th[index_x][index_z],     // [10^-18 W/(m^2 Hz sr)]
-                                                         &Greens_blackbody,
-                                                         &last_index,
-                                                         &last_index_x),
-                     psd->error_message,
-                     psd->error_message);
-
-          G_th[index_x][index_z] *= 1.e-8;
-        }
-        
-        /* Define other vectors */
-        G[index_x] = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.)*psd->DI_units*1.e18;        // [10^-18 W/(m^2 Hz sr)]
-        Y[index_x] = G[index_x]*(x*(1.+exp(-x))/(1.-exp(-x))-4.);                     // [10^-18 W/(m^2 Hz sr)]
-        M[index_x] = G[index_x]*(1./2.19229-1./x);                                    // [10^-18 W/(m^2 Hz sr)]
-
-        mod_G_squared += pow(G[index_x],2.);
-        mod_Y_squared += pow(Y[index_x],2.);
-        mod_M_squared += pow(M[index_x],2.);
-      }
-
-      mod_G = sqrt(mod_G_squared);
-      mod_Y = sqrt(mod_Y_squared);
-      mod_M = sqrt(mod_M_squared);
-
-      /* Calculate unity vectors and relative dot products*/
-      M_y = 0.;
-      G_y = 0.;
-      G_mu = 0.;
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        e_y[index_x] = Y[index_x]/mod_Y;
-        e_mu[index_x] = M[index_x]/mod_M;
-        e_g[index_x] = G[index_x]/mod_G;
-
-        M_y += e_y[index_x]*M[index_x];
-        G_y += e_y[index_x]*G[index_x];
-        G_mu += e_mu[index_x]*G[index_x];
-      }
-
-      /* Calculate perpendicular M and G with relative moduli */
-      mod_M_per_squared = 0.;
-      mod_G_per_squared = 0.;
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        M_per[index_x] = M[index_x]-M_y*e_y[index_x];
-        G_per[index_x] = G[index_x]+G_y*e_y[index_x]-G_mu*e_mu[index_x];  //TODO
-
-        mod_M_per_squared += pow(M_per[index_x],2.);
-        mod_G_per_squared += pow(G_per[index_x],2.);
-      }
-      mod_M_per = sqrt(mod_M_per_squared);
-      mod_G_per = sqrt(mod_G_per_squared);
-
-      //printf("%g  %g  %g\n",mod_Y, mod_M_per, mod_G_per);
-      
-      /* Calculate branching ratios */
-      for(index_z=0; index_z<psd->z_size; ++index_z){
-        f_g = 0.;
-        f_mu = 0.;
-        f_y = 0.;
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-          f_g += 4.*e_g[index_x]*G_th[index_x][index_z]/mod_G_per;
-        }
-        psd->br_table[psd->index_type_g][index_z] = f_g;
-
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-          f_mu += (e_mu[index_x]*G_th[index_x][index_z]-G_mu*f_g/4.)/mod_M_per/1.401;
-        }
-        psd->br_table[psd->index_type_mu][index_z] = f_mu;
-
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-          f_y += 4.*(e_y[index_x]*G_th[index_x][index_z]-1.401*M_y*f_mu-G_y*f_g/4.)/mod_Y;  
-        }
-        psd->br_table[psd->index_type_y][index_z] = f_y;
-        //printf("%g  %g  %g\n",psd->br_table[psd->index_type_g][index_z], psd->br_table[psd->index_type_y][index_z], psd->br_table[psd->index_type_mu][index_z]);
-      }
-
-      /* Calculate residual shape */
-      delta_ln_z = log(psd->z[1])-log(psd->z[0]);
-      for(index_z=0; index_z<psd->z_size; ++index_z){
-        for(index_x=0; index_x<psd->x_size; ++index_x){
-          R[index_x][index_z] = G_th[index_x][index_z]-G[index_x]*f_g/4.-Y[index_x]*f_y/4.-M[index_x]*f_mu/1.401;
-          //printf("%g  %g  %g  %g  %g\n",R[index_x][index_z], G_th[index_x][index_z], G[index_x], Y[index_x], M[index_x]);
-          tilde_R[index_x][index_z] = R[index_x][index_z]*delta_ln_z;
-        }
-      }
-
-      /* Calculate Fisher matrix */
-      delta_I_c = 5.e-8;                                                              // [10^-18 W/(m^2 Hz sr)]
-      for(index_za=0; index_za<psd->z_size; ++index_za){
-        for(index_zb=0; index_zb<psd->z_size; ++index_zb){
-
-          Fisher_matrix[index_za][index_zb] = 0.;
-          for(index_x=0; index_x<psd->x_size; ++index_x){
-            Fisher_matrix[index_za][index_zb] += tilde_R[index_x][index_za]*tilde_R[index_x][index_zb];
-          }
-          Fisher_matrix[index_za][index_zb] /= pow(delta_I_c,2.);
-
-        }
-      }
-
-      /* Free space allocated in distortions_read_Greens_data() */
-      class_call(distortions_free_Greens_data(psd),
-                 psd->error_message,
-                 psd->error_message);
-      free(G_th);
-      free(Y);
-      free(M);
-      free(G);
-      free(e_y);
-      free(e_mu);
-      free(e_g);
-      free(M_per);
-      free(G_per);
-      free(R);
-      free(tilde_R);
-      free(Fisher_matrix);
-
-    }
   }
 
   return _SUCCESS_;
@@ -1001,47 +768,42 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
   }
   else{
-    //if(psd->detector == "PIXIE"){
-      /* Read and spline data from file branching_ratios_exact.dat */
-      class_call(distortions_read_PIXIE_sd_data(ppr,psd),
+    /* Read and spline data from file spectral_shapes.dat */
+    class_call(distortions_read_sd_data(ppr,psd),
+               psd->error_message,
+               psd->error_message);
+    class_call(distortions_spline_sd_data(psd),
+               psd->error_message,
+               psd->error_message);
+
+    /* Allocate local variable */
+    class_alloc(S,
+                psd->N_PCA*sizeof(double),
+                psd->error_message);
+
+    /** Calculate spectral distortions */
+    for(index_x=0; index_x<psd->x_size; ++index_x){
+      /* Interpolate over z */
+      class_call(distortions_interpolate_sd_data(psd,
+                                                 psd->x[index_x]*psd->x_to_nu,
+                                                 &psd->sd_shape_table[psd->index_type_g][index_x],
+                                                 &psd->sd_shape_table[psd->index_type_y][index_x],
+                                                 &psd->sd_shape_table[psd->index_type_mu][index_x],
+                                                 S,
+                                                 &last_index),
                  psd->error_message,
                  psd->error_message);
-      class_call(distortions_spline_PIXIE_sd_data(psd),
-                 psd->error_message,
-                 psd->error_message);
 
-      /* Allocate local variable */
-      class_alloc(S,
-                  psd->N_PCA*sizeof(double),
-                  psd->error_message);
-
-      /** Calculate spectral distortions */
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        /* Interpolate over z */
-        class_call(distortions_interpolate_PIXIE_sd_data(psd,
-                                                         psd->x[index_x]*psd->x_to_nu,
-                                                         &psd->sd_shape_table[psd->index_type_g][index_x],
-                                                         &psd->sd_shape_table[psd->index_type_y][index_x],
-                                                         &psd->sd_shape_table[psd->index_type_mu][index_x],
-                                                         S,
-                                                         &last_index),
-                   psd->error_message,
-                   psd->error_message);
-
-        for(index_s=0; index_s<psd->N_PCA; ++index_s){
-          psd->sd_shape_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
-        }
+      for(index_s=0; index_s<psd->N_PCA; ++index_s){
+        psd->sd_shape_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
       }
+    }
 
-      /* Free allocated space */
-      class_call(distortions_free_PIXIE_sd_data(psd),
-                 psd->error_message,
-                 psd->error_message);
-      free(S);
-    //}
-    //else{
-      // TODO
-    //}
+    /* Free allocated space */
+    class_call(distortions_free_sd_data(psd),
+               psd->error_message,
+               psd->error_message);
+    free(S);
   }
 
   class_alloc(psd->sd_table,
@@ -1153,6 +915,8 @@ int distortions_read_Greens_data(struct precision * ppr,
                         psd->error_message,
                         "Could not read Greens function at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
     }
+//double x = psd->Greens_x[i];
+    //printf("%g %g %g\n",x,pow(x,4.)*exp(x)/pow(exp(x)-1,2.)*psd->DI_units*1.e18*1e8, psd->Greens_function[i*psd->Greens_Nz+(psd->Greens_Nz-1)]);
     class_test(fscanf(infile,"%le",&(psd->Greens_blackbody[i]))!=1,                    // [??]
                       psd->error_message,
                       "Could not read Greens blackbody at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
@@ -1164,8 +928,8 @@ int distortions_read_Greens_data(struct precision * ppr,
 
 
 /**
- * Spline the quantitites read in distortions_read_Greens_data()
- *
+ * Spline the quantitites read in distortions_read_Greens_data
+
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
@@ -1331,38 +1095,18 @@ int distortions_interpolate_Greens_data(struct distortions* psd,
                                                     h_x,a_x,b_x);
 
   /** Interpolate G_th(z,x) */
-  /* Allocate temporary variables */
-  class_alloc(Greens_function_at_z,
-              psd->Greens_Nx*sizeof(double),
-              psd->error_message);
-  class_alloc(ddGreens_function_at_z,
-              psd->Greens_Nx*sizeof(double),
-              psd->error_message);
-
-  /* Interpolate G_th in z dimension */
-  for(i=0; i<psd->Greens_Nx; ++i){
-    Greens_function_at_z[i] = array_interpolate_spline_hunt(psd->Greens_function+i*psd->Greens_Nz,
-                                                            psd->ddGreens_function+i*psd->Greens_Nz,
-                                                            index_z,
-                                                            index_z+1,
-                                                            h_z,a_z,b_z);
-  }
-  /* Interpolate G_th in x dimension */
-  class_call(array_spline_table_columns(psd->Greens_x,
-                                        psd->Greens_Nx,
-                                        Greens_function_at_z,
-                                        1,
-                                        ddGreens_function_at_z,
-                                        _SPLINE_EST_DERIV_,
-                                        psd->error_message),
-             psd->error_message,
-             psd->error_message);
-  *Greens_function = array_interpolate_spline_hunt(Greens_function_at_z,
-                                                   ddGreens_function_at_z,
-                                                   index_x,
-                                                   index_x+1,
-                                                   h_x,a_x,b_x);
-
+  double greens_at_index_x = array_interpolate_spline_hunt(psd->Greens_function+index_x*psd->Greens_Nz,
+                                                   psd->ddGreens_function+index_x*psd->Greens_Nz,
+                                                   index_z,
+                                                   index_z+1,
+                                                   h_z,a_z,b_z);
+  double greens_at_index_xp1 = array_interpolate_spline_hunt(psd->Greens_function+(index_x+1)*psd->Greens_Nz,
+                                                   psd->ddGreens_function+(index_x+1)*psd->Greens_Nz,
+                                                   index_z,
+                                                   index_z+1,
+                                                   h_z,a_z,b_z);
+  *Greens_function = a_x * greens_at_index_x + b_x * greens_at_index_xp1; //linear interpolation in x is much faster
+  
   /* Free allocated memory for temporary quantities */
   free(Greens_function_at_z);
   free(ddGreens_function_at_z);
@@ -1373,7 +1117,7 @@ int distortions_interpolate_Greens_data(struct distortions* psd,
 
 
 /**
- * Free from distortions_read_Greens_data()
+ * Free from distortions_read_Greens_data
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
@@ -1401,16 +1145,250 @@ int distortions_free_Greens_data(struct distortions * psd){
 
 
 /**
- * Reads the external file PIXIE_branching_ratios calculated according to Chluba & Jeong 2014
- * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz).
- * The file has been computed by J. Chluba.
+ * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector.
  *
  * @param ppr        Input: pointer to precision structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_read_PIXIE_br_data(struct precision * ppr,
-                                   struct distortions * psd){
+int distortions_evaluate_PCA(struct precision * ppr,
+                             struct distortions * psd){
+  /* Define local variables */
+  int index_x, index_z;
+  int last_index_x = 0, last_index_z = 0;
+  double x;
+  double bb_vis;
+  double T_ini, T_last, rho, **G_th, Greens_blackbody;
+  double *Y, *M, *G, *e_y, *e_mu, *e_g, M_y, G_y, G_mu, *M_per, *G_per, **R;
+  double mod_Y_squared, mod_M_per_squared, mod_G_per_squared, mod_Y, mod_M_per, mod_G_per;
+  double e_g_dot_G_th, e_y_dot_G_th, e_mu_dot_G_th, *f_g, *f_y, *f_mu;
+  double delta_ln_z, **tilde_R;
+  int index_za, index_zb;
+  double delta_I_c, **Fisher_matrix;
+
+  /* Read and spline data from file Greens_data.dat */
+  class_call(distortions_read_Greens_data(ppr,psd),
+             psd->error_message,
+             psd->error_message);
+  class_call(distortions_spline_Greens_data(psd),
+             psd->error_message,
+             psd->error_message);
+
+  /* Allocate local variable */
+  class_alloc(G_th,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+        class_alloc(G_th[index_x],
+                    psd->z_size*sizeof(double),
+                    psd->error_message);
+  }
+
+  class_alloc(Y,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  class_alloc(M,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  class_alloc(G,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
+  class_alloc(e_y,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  class_alloc(e_mu,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  class_alloc(e_g,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
+  class_alloc(M_per,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  class_alloc(G_per,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
+  class_alloc(f_y,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  class_alloc(f_mu,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  class_alloc(f_g,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+
+  class_alloc(R,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    class_alloc(R[index_x],
+                psd->z_size*sizeof(double),
+                psd->error_message);
+  }
+  class_alloc(tilde_R,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    class_alloc(tilde_R[index_x],
+                psd->z_size*sizeof(double),
+                psd->error_message);
+  }
+  class_alloc(Fisher_matrix,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  for(index_z=0; index_z<psd->z_size; ++index_z){
+    class_alloc(Fisher_matrix[index_z],
+                psd->z_size*sizeof(double),
+                psd->error_message);
+  }
+
+  /* Calculate vectors of spectral shapes */
+  mod_Y_squared = 0.; 
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    x = psd->x[index_x];
+
+    /* Interpolate over x to find G_th in external file */
+    for(index_z=0; index_z<psd->z_size; ++index_z){
+      bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+      class_call(distortions_interpolate_Greens_data(psd,
+                                                     psd->z[index_z],
+                                                     x,
+                                                     &T_ini,
+                                                     &T_last,
+                                                     &rho,
+                                                     &G_th[index_x][index_z],         // [10^-18 W/(m^2 Hz sr)]
+                                                     &Greens_blackbody,
+                                                     &last_index_z,
+                                                     &last_index_x),
+                 psd->error_message,
+                 psd->error_message);
+
+      G_th[index_x][index_z] *= 1.e-8*bb_vis;
+    }
+         
+        
+    /* Define other vectors */
+    G[index_x] = pow(x,4.)*exp(x)/pow(exp(x)-1,2.)*psd->DI_units*1.e18;               // [10^-18 W/(m^2 Hz sr)]
+    Y[index_x] = G[index_x]*(x/tanh(x/2.)-4.);                                        // [10^-18 W/(m^2 Hz sr)]
+    M[index_x] = G[index_x]*(1./2.19229-1./x);                                        // [10^-18 W/(m^2 Hz sr)]
+
+    mod_Y_squared += pow(Y[index_x],2.);
+  }
+  mod_Y = sqrt(mod_Y_squared);
+
+  /* Calculate unity vectors with relative dot products and moduli */
+  M_y = 0.;
+  G_y = 0.;
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    e_y[index_x] = Y[index_x]/mod_Y;
+    M_y += e_y[index_x]*M[index_x];
+    G_y += e_y[index_x]*G[index_x];
+  }
+
+  mod_M_per_squared = 0.;
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    M_per[index_x] = M[index_x]-M_y*e_y[index_x];
+    mod_M_per_squared += pow(M_per[index_x],2.);
+  }
+  mod_M_per = sqrt(mod_M_per_squared);
+
+  G_mu = 0.;
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    e_mu[index_x] = M_per[index_x]/mod_M_per;
+    G_mu += e_mu[index_x]*G[index_x];
+  }
+
+  mod_G_per_squared = 0.;
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    G_per[index_x] = G[index_x]-G_y*e_y[index_x]-G_mu*e_mu[index_x]; 
+    mod_G_per_squared += pow(G_per[index_x],2.);
+  }
+  mod_G_per = sqrt(mod_G_per_squared);
+
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    e_g[index_x] = G_per[index_x]/mod_G_per;
+  }
+      
+  /* Calculate branching ratios */
+  for(index_z=0; index_z<psd->z_size; ++index_z){
+    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+
+    e_g_dot_G_th = 0.;
+    e_mu_dot_G_th = 0.;
+    e_y_dot_G_th = 0.;
+    for(index_x=0; index_x<psd->x_size; ++index_x){
+      e_g_dot_G_th += e_g[index_x]*G_th[index_x][index_z];
+      e_mu_dot_G_th += e_mu[index_x]*G_th[index_x][index_z];
+      e_y_dot_G_th += e_y[index_x]*G_th[index_x][index_z]; 
+    }
+
+    f_g[index_z] = 4.*e_g_dot_G_th/mod_G_per;
+    f_mu[index_z] = (e_mu_dot_G_th-G_mu*f_g[index_z]/4.)/mod_M_per/1.401;
+    f_y[index_z] = (e_y_dot_G_th-1.401*M_y*f_mu[index_z]-G_y*f_g[index_z]/4.)*4./mod_Y;
+    f_g[index_z] += 1.-bb_vis;
+  }
+
+  /* Calculate residual shape */
+  delta_ln_z = log(psd->z[1])-log(psd->z[0]);
+  for(index_z=0; index_z<psd->z_size; ++index_z){
+    for(index_x=0; index_x<psd->x_size; ++index_x){
+      R[index_x][index_z] = G_th[index_x][index_z]-G[index_x]*f_g[index_z]/4.-Y[index_x]*f_y[index_z]/4.-M[index_x]*f_mu[index_z]/1.401;
+      tilde_R[index_x][index_z] = R[index_x][index_z]*delta_ln_z;
+    }
+  }
+
+  /* Calculate Fisher matrix */
+  delta_I_c = 5.e-8;                                                              // [10^-18 W/(m^2 Hz sr)]
+  for(index_za=0; index_za<psd->z_size; ++index_za){
+    for(index_zb=0; index_zb<psd->z_size; ++index_zb){
+
+      Fisher_matrix[index_za][index_zb] = 0.;
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        Fisher_matrix[index_za][index_zb] += tilde_R[index_x][index_za]*tilde_R[index_x][index_zb];
+      }
+      Fisher_matrix[index_za][index_zb] /= pow(delta_I_c,2.);
+
+    }
+  }
+
+  /* Free space allocated in distortions_read_Greens_data */
+  class_call(distortions_free_Greens_data(psd),
+             psd->error_message,
+             psd->error_message);
+  free(G_th);
+  free(Y);
+  free(M);
+  free(G);
+  free(e_y);
+  free(e_mu);
+  free(e_g);
+  free(M_per);
+  free(G_per);
+  free(f_y);
+  free(f_mu);
+  free(f_g);
+  free(R);
+  free(tilde_R);
+  free(Fisher_matrix);
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Reads the external file branching_ratios calculated according to Chluba & Jeong 2014
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_read_br_data(struct precision * ppr,
+                             struct distortions * psd){
 
   /** Define local variables */
   int index_e,index_z;
@@ -1482,12 +1460,12 @@ int distortions_read_PIXIE_br_data(struct precision * ppr,
 
 
 /**
- * Spline the quantitites read in distortions_read_PIXIE_br_data()
+ * Spline the quantitites read in distortions_read_br_data
  *
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_spline_PIXIE_br_data(struct distortions* psd){
+int distortions_spline_br_data(struct distortions* psd){
 
   /** Allocate second derivatievs */
   class_alloc(psd->ddf_g_exact,
@@ -1547,7 +1525,7 @@ int distortions_spline_PIXIE_br_data(struct distortions* psd){
 
 
 /**
- * Interpolate the quantitites splined in distortions_spline_PIXIE_br_data()
+ * Interpolate the quantitites splined in distortions_spline_br_data
  *
  * @param psd        Input: pointer to the distortions structure
  * @param z          Input: redshift
@@ -1558,13 +1536,13 @@ int distortions_spline_PIXIE_br_data(struct distortions* psd){
  * @param index      Output: multipole of PCA expansion for f_E
  * @return the error status
  */
-int distortions_interpolate_PIXIE_br_data(struct distortions* psd,
-                                          double z,
-                                          double * f_g,
-                                          double * f_y,
-                                          double * f_mu,
-                                          double * f_E,
-                                          int * last_index){
+int distortions_interpolate_br_data(struct distortions* psd,
+                                    double z,
+                                    double * f_g,
+                                    double * f_y,
+                                    double * f_mu,
+                                    double * f_E,
+                                    int * last_index){
 
   /** Define local variables */
   int index = *last_index;
@@ -1616,12 +1594,12 @@ int distortions_interpolate_PIXIE_br_data(struct distortions* psd,
 
 
 /**
- * Free from distortions_read_PIXIE_br_data() and distortions_spline_PIXIE_br_data()
+ * Free from distortions_read_br_data and distortions_spline_br_data
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
  */
-int distortions_free_PIXIE_br_data(struct distortions * psd){
+int distortions_free_br_data(struct distortions * psd){
 
   free(psd->br_exact_z);
   free(psd->f_g_exact);
@@ -1639,16 +1617,14 @@ int distortions_free_PIXIE_br_data(struct distortions * psd){
 
 
 /**
- * Reads the external file PIXIE_distortions_shapes calculated according to Chluba & Jeong 2014
- * for PIXIE like configuration (frequency in interval [30,1000] GHz and bin width of 1 GHz).
- * The file has been computed by J. Chluba.
+ * Reads the external file distortions_shapes calculated according to Chluba & Jeong 2014
  *
  * @param ppr        Input: pointer to precision structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_read_PIXIE_sd_data(struct precision * ppr,
-                                   struct distortions * psd){
+int distortions_read_sd_data(struct precision * ppr,
+                             struct distortions * psd){
 
   /** Define local variables */
   FILE * infile;
@@ -1720,12 +1696,12 @@ int distortions_read_PIXIE_sd_data(struct precision * ppr,
 
 
 /**
- * Spline the quantitites read in distortions_read_PIXIE_sd_data()
+ * Spline the quantitites read in distortions_read_sd_data
  *
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_spline_PIXIE_sd_data(struct distortions* psd){
+int distortions_spline_sd_data(struct distortions* psd){
 
   /** Allocate second derivatievs */
   class_alloc(psd->ddPCA_G_T,
@@ -1785,7 +1761,7 @@ int distortions_spline_PIXIE_sd_data(struct distortions* psd){
 
 
 /**
- * Interpolate the quantitites splined in distortions_spline_PIXIE_sd_data()
+ * Interpolate the quantitites splined in distortions_spline_sd_data
  *
  * @param psd        Input: pointer to the distortions structure
  * @param nu         Input: dimnetionless frequency
@@ -1796,13 +1772,13 @@ int distortions_spline_PIXIE_sd_data(struct distortions* psd){
  * @param index      Output: multipole of PCA expansion for S
  * @return the error status
  */
-int distortions_interpolate_PIXIE_sd_data(struct distortions* psd,
-                                          double nu,
-                                          double * G_T,
-                                          double * Y_SZ,
-                                          double * M_mu,
-                                          double * S,
-                                          int * index){
+int distortions_interpolate_sd_data(struct distortions* psd,
+                                    double nu,
+                                    double * G_T,
+                                    double * Y_SZ,
+                                    double * M_mu,
+                                    double * S,
+                                    int * index){
 
   /** Define local variables */
   int last_index = *index;
@@ -1854,12 +1830,12 @@ int distortions_interpolate_PIXIE_sd_data(struct distortions* psd,
 
 
 /**
- * Free from distortions_read_PIXIE_sd_data() and distortions_spline_PIXIE_sd_data()
+ * Free from distortions_read_sd_data and distortions_spline_sd_data
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
  */
-int distortions_free_PIXIE_sd_data(struct distortions * psd){
+int distortions_free_sd_data(struct distortions * psd){
 
   free(psd->PCA_nu);
   free(psd->PCA_G_T);
