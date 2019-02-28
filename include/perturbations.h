@@ -236,6 +236,7 @@ struct perturbs
 
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarization? */
+  short has_source_delta_tot;   /**< do we need source for delta total? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
   short has_source_delta_cb; /**< do we ALSO need source for delta of ONLY cdm and baryon? */
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
@@ -247,6 +248,7 @@ struct perturbs
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_theta_tot;    /**< do we need source for theta total? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_cb; /**< do we ALSO need source for theta of ONLY cdm and baryon? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
@@ -277,7 +279,8 @@ struct perturbs
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
-  int index_tp_delta_m; /**< index value for delta tot */
+  int index_tp_delta_tot; /**< index value for delta tot */
+  int index_tp_delta_m; /**< index value for delta matter tot */
   int index_tp_delta_cb; /**< index value for delta cb */
   int index_tp_delta_g;   /**< index value for delta of gammas */
   int index_tp_delta_b;   /**< index value for delta of baryons */
@@ -291,7 +294,8 @@ struct perturbs
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
-  int index_tp_theta_m;    /**< index value for theta tot */
+  int index_tp_theta_tot;    /**< index value for theta tot */
+  int index_tp_theta_m;    /**< index value for theta matter tot */
   int index_tp_theta_cb;   /**< index value for theta cb */
   int index_tp_theta_g;    /**< index value for theta of gammas */
   int index_tp_theta_b;    /**< index value for theta of baryons */

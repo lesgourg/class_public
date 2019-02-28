@@ -675,7 +675,8 @@ int perturb_indices_of_perturbs(
 
       if (ppt->has_density_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
-        ppt->has_source_delta_g = _TRUE_;
+	ppt->has_source_delta_tot = _TRUE_;
+	ppt->has_source_delta_g = _TRUE_;
         ppt->has_source_delta_b = _TRUE_;
         if (pba->has_cdm == _TRUE_)
           ppt->has_source_delta_cdm = _TRUE_;
@@ -701,6 +702,7 @@ int perturb_indices_of_perturbs(
 
       if (ppt->has_velocity_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
+	ppt->has_source_theta_tot = _TRUE_;
         ppt->has_source_theta_g = _TRUE_;
         ppt->has_source_theta_b = _TRUE_;
         if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
@@ -762,6 +764,7 @@ int perturb_indices_of_perturbs(
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
       class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
@@ -773,6 +776,7 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
       class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
+      class_define_index(ppt->index_tp_theta_tot,  ppt->has_source_theta_tot, index_type,1);
       class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
       class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_type,1);
       class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
@@ -5186,6 +5190,17 @@ int perturb_einstein(
                    ppt->error_message,
                    ppt->error_message);
 
+	/* update total delta and theta given rsa approximation results */
+	ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
+        ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
+
+        if (pba->has_ur == _TRUE_) {
+	  
+	  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
+          ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
+
+        }
+
       }
     }
 
@@ -5206,12 +5221,13 @@ int perturb_einstein(
                    ppt->error_message,
                    ppt->error_message);
 
-        /* update total theta given rsa approximation results */
-
+        /* update total delta and theta given rsa approximation results */
+	ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
         if (pba->has_ur == _TRUE_) {
-
+	  
+	  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
           ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
 
         }
@@ -6217,6 +6233,19 @@ int perturb_sources(
 
     }
 
+    /* total over density  */
+    if (ppt->has_source_delta_tot == _TRUE_) {
+      /** following strange CMBFAST/CAMB convention of not including rho_lambda in rho_tot */
+      double rho_tot;
+      if (pba->has_lambda == _TRUE_){
+	rho_tot = pvecback[pba->index_bg_rho_tot] - pvecback[pba->index_bg_rho_lambda];
+      }
+      else{
+	rho_tot = pvecback[pba->index_bg_rho_tot];
+      }
+      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/rho_tot;
+    }
+
     /* total matter over density (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_delta_m == _TRUE_) {
       _set_source_(ppt->index_tp_delta_m) = ppw->delta_m;
@@ -6289,7 +6318,12 @@ int perturb_sources(
       }
     }
 
-    /* total velocity (gauge-invariant, defined as in arXiv:1307.1459) */
+    /* total velocity  */
+    if (ppt->has_source_theta_tot == _TRUE_) {
+      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+    }
+
+    /* total matter velocity (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_theta_m == _TRUE_) {
       _set_source_(ppt->index_tp_theta_m) = ppw->theta_m;
     }
