@@ -2125,6 +2125,9 @@ int spectra_indices(
   class_define_index(psp->index_tr_h_prime,ppt->has_source_h_prime,index_tr,1);
   class_define_index(psp->index_tr_eta,ppt->has_source_eta,index_tr,1);
   class_define_index(psp->index_tr_eta_prime,ppt->has_source_eta_prime,index_tr,1);
+  class_define_index(psp->index_tr_H_T_Nb_prime,ppt->has_source_H_T_Nb_prime,index_tr,1);
+  class_define_index(psp->index_tr_H_T_Nb_prime_prime,ppt->has_source_k2gamma_Nb,index_tr,1);
+  class_define_index(psp->index_tr_k2gamma_Nb,ppt->has_source_k2gamma_Nb,index_tr,1);
 
   /* indices for species associated with a velocity transfer function in Fourier space */
 
@@ -3921,6 +3924,47 @@ int spectra_matter_transfers(
 
         }
 
+        if (ppt->has_source_H_T_Nb_prime == _TRUE_) {
+
+          psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_H_T_Nb_prime] = ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_H_T_Nb_prime]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+	}
+
+	if (ppt->has_source_k2gamma_Nb == _TRUE_) {
+	  /** We need to compute the derivative of H_T_Nb_prime numerically. */
+	  double *ytable, yl, yc, yr, hl, hr, dy;
+	  int index_center;
+	  ytable = ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + ppt->index_tp_H_T_Nb_prime];
+	  index_center = index_tau-psp->ln_tau_size+ppt->tau_size;
+
+	  yc = ytable[index_center* ppt->k_size[index_md] + index_k];
+	  if (index_center == 0){
+	    /** Left edge formula, probably never. */
+	    hr = ppt->tau_sampling[index_center+1]-ppt->tau_sampling[index_center];
+	    yr = ytable[(index_center+1)* ppt->k_size[index_md] + index_k];
+	    dy = (yr-yc)/hr;
+	  }
+	  else if (index_center == ppt->tau_size-1){
+	    /** Right edge, this is today. */
+	    hl = ppt->tau_sampling[index_center]-ppt->tau_sampling[index_center-1];
+	    yl = ytable[(index_center-1)* ppt->k_size[index_md] + index_k];
+	    dy = (yc-yl)/hl;
+	  }
+	  else{
+	    hl = ppt->tau_sampling[index_center]-ppt->tau_sampling[index_center-1];
+	    hr = ppt->tau_sampling[index_center+1]-ppt->tau_sampling[index_center];
+	    yl = ytable[(index_center-1)* ppt->k_size[index_md] + index_k];
+	    yr = ytable[(index_center+1)* ppt->k_size[index_md] + index_k];
+	    dy = -hr/hl/(hl+hr)*yl+hl/hr/(hl+hr)*yr+(1./hl-1./hr)*yc;
+	  }
+	  psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_H_T_Nb_prime_prime] = dy;
+	  psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_k2gamma_Nb] = -dy +
+	     ppt->sources[index_md]
+            [index_ic * ppt->tp_size[index_md] + ppt->index_tp_k2gamma_Nb]
+            [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+	}
         /* could include homogeneous component in rho_tot if uncommented (leave commented to match CMBFAST/CAMB definition) */
 
         /* 	if (pba->has_lambda == _TRUE_) { */
@@ -4005,6 +4049,9 @@ int spectra_output_tk_titles(struct background *pba,
       class_store_columntitle(titles,"h_prime",ppt->has_source_h_prime);
       class_store_columntitle(titles,"eta",ppt->has_source_eta);
       class_store_columntitle(titles,"eta_prime",ppt->has_source_eta_prime);
+      class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_H_T_Nb_prime);
+      class_store_columntitle(titles,"H_T_Nb_prime_prime",ppt->has_source_k2gamma_Nb);
+      class_store_columntitle(titles,"gamma_Nb",ppt->has_source_k2gamma_Nb);
     }
     if (ppt->has_velocity_transfers == _TRUE_) {
       class_store_columntitle(titles,"t_g",_TRUE_);
@@ -4138,6 +4185,9 @@ int spectra_output_tk_data(
           class_store_double(dataptr,tk[psp->index_tr_h_prime],ppt->has_source_h_prime,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_eta],ppt->has_source_eta,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_eta_prime],ppt->has_source_eta_prime,storeidx);
+          class_store_double(dataptr,tk[psp->index_tr_H_T_Nb_prime],ppt->has_source_H_T_Nb_prime,storeidx);
+          class_store_double(dataptr,tk[psp->index_tr_H_T_Nb_prime_prime],ppt->has_source_k2gamma_Nb,storeidx);
+          class_store_double(dataptr,tk[psp->index_tr_k2gamma_Nb]/k2,ppt->has_source_k2gamma_Nb,storeidx);
         }
         if (ppt->has_velocity_transfers == _TRUE_) {
 

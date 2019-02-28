@@ -609,6 +609,8 @@ int perturb_indices_of_perturbs(
   ppt->has_source_h_prime = _FALSE_;
   ppt->has_source_eta = _FALSE_;
   ppt->has_source_eta_prime = _FALSE_;
+  ppt->has_source_H_T_Nb_prime = _FALSE_;
+  ppt->has_source_k2gamma_Nb = _FALSE_;
 
   /** - source flags and indices, for sources that all modes have in
       common (temperature, polarization, ...). For temperature, the
@@ -753,6 +755,8 @@ int perturb_indices_of_perturbs(
           ppt->has_source_eta = _TRUE_;
           ppt->has_source_eta_prime = _TRUE_;
         }
+	ppt->has_source_H_T_Nb_prime = _TRUE_;
+	ppt->has_source_k2gamma_Nb = _TRUE_;
       }
 
       index_type = index_type_common;
@@ -788,6 +792,8 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,   index_type,1);
       class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_type,1);
       class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime, index_type,1);
+      class_define_index(ppt->index_tp_H_T_Nb_prime,  ppt->has_source_H_T_Nb_prime, index_type,1);
+      class_define_index(ppt->index_tp_k2gamma_Nb,  ppt->has_source_k2gamma_Nb, index_type,1);
       ppt->tp_size[index_md] = index_type;
 
       class_test(index_type == 0,
@@ -5958,6 +5964,8 @@ int perturb_sources(
 
   double a_rel, a2_rel, f_dr;
 
+  double rho_plus_p_tot, H_T_Nb_prime;
+
   /** - rename structure fields (just to avoid heavy notations) */
 
   pppaw = parameters_and_workspace;
@@ -6001,11 +6009,8 @@ int perturb_sources(
   a_rel = ppw->pvecback[pba->index_bg_a]/pba->a_today;
   a2_rel = a_rel * a_rel;
 
-  /* derived background quantities, useful only in synchronous gauge */
-  if (ppt->gauge == synchronous) {
-    a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
-    a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
-  }
+  a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
+  a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
 
   /** - for scalars */
   if (_scalars_) {
@@ -6127,6 +6132,24 @@ int perturb_sources(
     }
 
     /* now, non-CMB sources */
+
+    /* H_T_prime in N-body gauge. (H_T=3zeta where zeta is the comoving curvature perturbation.).
+       See equation A.5 in 1811.00904.*/
+    if (ppt->has_source_H_T_Nb_prime == _TRUE_) {
+      rho_plus_p_tot = (pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+      H_T_Nb_prime = 3*a_prime_over_a/rho_plus_p_tot*(-ppw->delta_p+
+						      pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/rho_plus_p_tot/k/k+
+						      ppw->rho_plus_p_shear);
+      _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
+      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. Note: term involving the second derivative H_T_Nb_prime_prime
+	  will be added in the spectra module. This is because we compute the derivative numerically since the analytic
+	  expression would contain the derivatives of pressure and shear which are cumbersome to compute and is only feasible
+	  in a simplified cosmology with no massive neutrino or DE perturbations. */
+      if (ppt->has_source_k2gamma_Nb == _TRUE_){
+	_set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
+      }
+
+    }
 
     /* Bardeen potential -PHI_H = phi in Newtonian gauge */
     if (ppt->has_source_phi == _TRUE_) {

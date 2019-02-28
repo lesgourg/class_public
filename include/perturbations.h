@@ -266,6 +266,8 @@ struct perturbs
   short has_source_h_prime;      /**< do we need source for metric fluctuation h'? */
   short has_source_eta;          /**< do we need source for metric fluctuation eta? */
   short has_source_eta_prime;    /**< do we need source for metric fluctuation eta'? */
+  short has_source_H_T_Nb_prime;    /**< do we need source for metric fluctuation H_T_Nb'? */
+  short has_source_k2gamma_Nb;    /**< do we need source for metric fluctuation gamma in Nbody gauge? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -309,6 +311,8 @@ struct perturbs
   int index_tp_h_prime;      /**< index value for metric fluctuation h' */
   int index_tp_eta;          /**< index value for metric fluctuation eta */
   int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
+  int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
+  int index_tp_k2gamma_Nb;     /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
