@@ -2513,12 +2513,11 @@ int array_interpolate_spline_growing_hunt(
 }
 
 
- /**
-  * Nils NS
-  *
-  * Get the index in the array, and the relative offset,
-  *  but do not yet actually interpolate
-  */
+// [NS]
+/**
+ * Get the index in the array, and the relative offset,
+ *  but do not yet actually interpolate
+ */
 int array_spline_hunt(double* x_array,
                        int x_size,
                        double x,

@@ -1470,7 +1470,7 @@ int input_read_parameters(
       ppt->has_perturbations = _TRUE_;
     }
 
-    /* [ML] */
+    // [ML]
     if ((strstr(string1,"Sd") != NULL) || (strstr(string1,"sd") != NULL) || (strstr(string1,"SD") != NULL)) {
       ppt->has_perturbations = _TRUE_;
       ppt->has_density_transfers=_TRUE_;
@@ -2244,6 +2244,23 @@ int input_read_parameters(
   if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) { psd->branching_approx = bra_exact; }
 
   class_read_int("PCA size",psd->N_PCA);
+
+  class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if ((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){ 
+    psd->detector = "PIXIE";
+    psd->nu_min_detector = 30.;
+    psd->nu_max_detector = 1000.;
+    psd->nu_delta_detector = 1.;
+  }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"other") != NULL) )){ 
+    psd->detector = "other"; 
+    class_read_double("detector nu min",psd->nu_min_detector);
+    class_read_double("detector nu max",psd->nu_max_detector);
+    class_read_double("detector nu width",psd->nu_delta_detector);
+  }
 
   /** (e) parameters for final spectra */
 
@@ -3188,6 +3205,11 @@ int input_default_params(
   /** - distortions structure */
   psd->N_PCA = 2; //[NS]
   psd->branching_approx = bra_exact; //[NS]
+  //psd->detector = "PIXIE"; // [ML]
+  //psd->nu_min_detector = 30.;
+  //psd->nu_max_detector = 1000.;
+  //psd->nu_delta_detector = 1.;
+
 
   /** - all verbose parameters */
 

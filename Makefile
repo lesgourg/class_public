@@ -48,7 +48,7 @@ CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
-# (with no slash at the end: e.g. hyrec or ../external/hyrec)
+# (with no slash at the end: e.g. hyrec or ../external/hyrec) [ML],[NS]
 HYREC = external/HyRec2012
 RECFAST = external/RecfastCLASS
 
@@ -76,8 +76,13 @@ ifneq ($(HYREC),)
 vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
+<<<<<<< HEAD
 INCLUDES += -I../external/HyRec2012
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
+=======
+INCLUDES += -I../external/hyrec #[ML]
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
+>>>>>>> 01c380729d50425fc340dc48354a9429c21026d9
 endif
 
 %.o:  %.c .base

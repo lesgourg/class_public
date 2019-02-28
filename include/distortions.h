@@ -27,9 +27,17 @@ struct distortions
   //@{
 
   int has_distortions;
+
   int branching_approx;                      /* Which approximation to use for the branching ratios? */
+
   int dQrho_dz_diss_approx;                  /* Use full version of dQrho_dz_diss or its approximation? */
+
   int N_PCA;
+  char * detector;                           /* Name of detector */
+  double nu_min_detector;                    /* Minimum frequency of chosen detector */
+  double nu_max_detector;                    /* Maximum frequency of chosen detector */
+  int nu_delta_detector;                     /* Bin size of chosen detector */
+
 
   //@}
 
@@ -38,23 +46,24 @@ struct distortions
 
   //@{
 
-  char ** distortion_names;               /* Names of the distortions */
+  char ** distortion_names;                  /* Names of the distortions */
+
   /* Precision parameters */
   double z_muy;
   double z_th;
 
   double z_min;                              /* Minimum redshift */
   double z_max;                              /* Maximum redshift */
-  double z_delta;                            /* Redshift intervals */
   int z_size;                                /* Lenght of redshift array */
+  double z_delta;                            /* Redshift intervals */
   double * z;                                /* z[index_z] = list of values */
 
   double * z_weights;
 
   double x_min;                              /* Minimum dimentionless frequency */
   double x_max;                              /* Maximum dimentionless frequency */
-  double x_delta;                            /* dimentionless frequency intervals */
   int x_size;                                /* Lenght of dimentionless frequency array */
+  double x_delta;                            /* dimentionless frequency intervals */
   double * x;                                /* x[index_x] = list of values */
 
   double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
@@ -73,8 +82,7 @@ struct distortions
   int index_ht_dQrho_dz_tot_screened;        /* Total heating function times blackbody visibility function */
   int ht_size;                               /* Size of the allocated space for heating quantities */
 
-  /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all 
-     types of distortios */
+  /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
   double ** br_table; 
   double * sd_parameter_table;
   double ** sd_shape_table;
@@ -86,20 +94,29 @@ struct distortions
   int index_type_PCA;
   int type_size;
 
-  /* ?? */
+  /* TODO ?? */
   double Drho_over_rho;
   double * DI;                               /* DI[index_x] = list of values */
 
   /* Variables to read and allocate external file Greens_data.dat */
   int Greens_Nz;
   double * Greens_z;
+
+  double * Greens_T_ini;
+  double * ddGreens_T_ini;
+  double * Greens_T_last;
+  double * ddGreens_T_last;
+  double * Greens_rho;
+  double * ddGreens_rho;
+
   int Greens_Nx;
   double * Greens_x;
-  double * Greens_T_ini;
-  double * Greens_T_last;
-  double * Greens_rho;
-  double * Greens_blackbody;
+
   double * Greens_function;
+  double * ddGreens_function;
+
+  double * Greens_blackbody;
+  double * ddGreens_blackbody;
 
   /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
   double * br_exact_z;
@@ -168,7 +185,8 @@ extern "C" {
   /* Indices and lists */
   int distortions_indices(struct distortions * psd);
 
-  int distortions_get_xz_lists(struct background* pba, 
+  int distortions_get_xz_lists(struct precision * ppr,
+                               struct background* pba, 
                                struct thermo* pth, 
                                struct distortions* psd);
 
@@ -189,36 +207,46 @@ extern "C" {
                                           struct background * pba,
                                           struct distortions * psd);
 
-  /* Greens file */
+  /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */
   int distortions_read_Greens_data(struct precision * ppr,
                                    struct distortions * psd);
+  int distortions_spline_Greens_data(struct distortions* psd);
+  int distortions_interpolate_Greens_data(struct distortions* psd,
+                                          double z,
+                                          double x,
+                                          double * T_ini,
+                                          double * T_last,
+                                          double * rho,
+                                          double * Greens_function,
+                                          double * Greens_blackbody,
+                                          int * last_index_z,
+                                          int * last_index_x);
   int distortions_free_Greens_data(struct distortions * psd);
 
-  /* Branching ratio file*/
-  int distortions_read_BR_exact_data(struct precision * ppr,
+  /* PCA decomposition (branching ratios and spectral shapes) for PIXIE */
+  int distortions_read_PIXIE_br_data(struct precision * ppr,
                                      struct distortions * psd);
-  int distortions_spline_BR_exact_data(struct distortions* psd);
-  int distortions_interpolate_BR_exact_data(struct distortions* psd,
+  int distortions_spline_PIXIE_br_data(struct distortions* psd);
+  int distortions_interpolate_PIXIE_br_data(struct distortions* psd,
                                             double z,
                                             double* f_g,
                                             double* f_y,
                                             double* f_mu,
                                             double* E,
                                             int * last_index);
-  int distortions_free_BR_exact_data(struct distortions * psd);
+  int distortions_free_PIXIE_br_data(struct distortions * psd);
 
-  /* PCA shape file */
-  int distortions_read_PCA_dist_shapes_data(struct precision * ppr,
-                                            struct distortions * psd);
-  int distortions_spline_PCA_dist_shapes_data(struct distortions* psd);
-  int distortions_interpolate_PCA_dist_shapes_data(struct distortions* psd,
-                                                   double nu,
-                                                   double * G_T,
-                                                   double * Y_SZ,
-                                                   double * M_mu,
-                                                   double * S,
-                                                   int * index);
-  int distortions_free_PCA_dist_shapes_data(struct distortions * psd);
+  int distortions_read_PIXIE_sd_data(struct precision * ppr,
+                                     struct distortions * psd);
+  int distortions_spline_PIXIE_sd_data(struct distortions* psd);
+  int distortions_interpolate_PIXIE_sd_data(struct distortions* psd,
+                                            double nu,
+                                            double * G_T,
+                                            double * Y_SZ,
+                                            double * M_mu,
+                                            double * S,
+                                            int * index);
+  int distortions_free_PIXIE_sd_data(struct distortions * psd);
 
   /* Output */
   int heating_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);

@@ -69,13 +69,13 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
-class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
+class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [ML]
 /**
  * [ML] Spectral Distortions file path.
  */
 class_string_parameter(Greens_file,"/external/distortions/Greens_data.dat","Greens file")
-class_string_parameter(br_exact_file,"/external/distortions/branching_ratios_exact.dat","BR exact file")
-class_string_parameter(PCA_file,"/external/distortions/PCA_distortions_shapes.dat","PCA file")
+class_string_parameter(PIXIE_br_file,"/external/distortions/PIXIE_branching_ratios.dat","PIXIE BR file")
+class_string_parameter(PIXIE_sd_file,"/external/distortions/PIXIE_distortions_shapes.dat","PIXIE SD file")
 
 /*
  *  Thermodynamical quantities
@@ -298,7 +298,7 @@ class_precision_parameter(primordial_inflation_extra_efolds,double,2.0) /**< a s
 
 /*
  * Transfer function parameters
- * */
+ */
 
 
 class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
@@ -382,7 +382,7 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
 
 /*
  * Nonlinear module precision parameters
- * */
+ */
 
 
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
@@ -419,12 +419,31 @@ class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq m
 
 /*
  * Lensing precision parameters
- * */
+ */
 
 class_precision_parameter(accurate_lensing,int,_FALSE_) /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
 class_precision_parameter(num_mu_minus_lmax,int,70) /**< difference between num_mu and l_max, increase for more precision */
 class_precision_parameter(delta_l_max,int,500)/**< difference between l_max in unlensed and lensed spectra */
 class_precision_parameter(tol_gauss_legendre,double,ppr->smallest_allowed_variation) /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
+
+
+/*
+ * [ML] Spectral distortions precision parameters
+ */
+class_precision_parameter(distortions_z_min,double,1.e3)
+class_precision_parameter(distortions_z_max,double,5.e6)
+class_precision_parameter(distortions_z_size,int,400)
+
+class_precision_parameter(distortions_x_min,double,30.)
+class_precision_parameter(distortions_x_max,double,1000.)
+class_precision_parameter(distortions_x_size,int,500)
+
+class_precision_parameter(distortions_nu_min_PIXIE,double,30.)
+class_precision_parameter(distortions_nu_max_PIXIE,double,1000.)
+class_precision_parameter(distortions_nu_size_PIXIE,int,500)
+
+
+
 
 #undef class_precision_parameter
 #undef class_string_parameter
