@@ -66,16 +66,15 @@
 
 /**
  * Thermodynamics quantities at given redshift z.
+ * Evaluates all thermodynamics quantities at a given value of the redshift by reading the pre-computed table and interpolating.
  *
- * Evaluates all thermodynamics quantities at a given value of
- * the redshift by reading the pre-computed table and interpolating.
- *
- * @param pba        Input: pointer to background structure
- * @param pth        Input: pointer to the thermodynamics structure (containing pre-computed table)
- * @param z          Input: redshift
- * @param inter_mode Input: interpolation mode (normal or growing_closeby)
- * @param last_index Input/Output: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
- * @param pvecback   Input: vector of background quantities (used only in case z>z_initial for getting ddkappa and dddkappa; in that case, should be already allocated and filled, with format short_info or larger; in other cases, will be ignored)
+ * @param pba          Input: pointer to background structure
+ * @param pth          Input: pointer to the thermodynamics structure (containing pre-computed table)
+ * @param z            Input: redshift
+ * @param inter_mode   Input: interpolation mode (normal or growing_closeby)
+ * @param last_index   Input/Output: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
+ * @param pvecback     Input: vector of background quantities (used only in case z>z_initial for getting ddkappa and dddkappa; in that case, 
+                            should be already allocated and filled, with format short_info or larger; in other cases, will be ignored)
  * @param pvecthermo Output: vector of thermodynamics quantities (assumed to be already allocated)
  * @return the error status
  */
@@ -93,13 +92,10 @@ int thermodynamics_at_z(
   /** Summary: */
 
   /** - define local variables */
-
   double x0;
 
-  /* - the fact that z is in the pre-computed range 0 <= z <= z_initial
-     will be checked in the interpolation routines below. Before
-     trying to interpolate, allow the routine to deal with the case z
-     > z_intial: then, all relevant quantities can be extrapolated
+  /* The fact that z is in the pre-computed range 0 <= z <= z_initial will be checked in the interpolation routines below. Before
+     trying to interpolate, allow the routine to deal with the case z > z_intial: then, all relevant quantities can be extrapolated
      using simple analytic approximations */
 
   if (z >= pth->z_table[pth->tt_size-1]) {
@@ -127,12 +123,9 @@ int thermodynamics_at_z(
     /* Calculate d3kappa/dtau3 given that [dkappa/dtau] proportional to (1+z)^2 */
     pvecthermo[pth->index_th_dddkappa] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
 
-    /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are
-       used only for computing the source functions in the
-       perturbation module; but source functions only need to be
-       sampled below z_initial (the condition that
-       z_start_sources<z_initial is checked in the perturbation
-       module) */
+    /* \f$ exp^{-\kappa}, g, g', g'' \f$ can be set to zero: they are used only for computing the source functions in the
+       perturbation module; but source functions only need to be sampled below z_initial (the condition that
+       z_start_sources<z_initial is checked in the perturbation module) */
     pvecthermo[pth->index_th_exp_m_kappa] = 0.;
     pvecthermo[pth->index_th_g]=0.;
     pvecthermo[pth->index_th_dg]=0.;
@@ -160,9 +153,7 @@ int thermodynamics_at_z(
 
   }
 
-  /** - interpolate in table with array_interpolate_spline() (normal
-      mode) or array_interpolate_spline_growing_closeby() (closeby
-      mode) */
+  /** - interpolate in table with array_interpolate_spline (normal mode) or array_interpolate_spline_growing_closeby (closeby mode) */
 
   else {
 
@@ -226,17 +217,16 @@ int thermodynamics_at_z(
 }
 
 /**
- * Initialize the thermo structure, and in particular the
- * thermodynamics interpolation table.
+ * Initialize the thermo structure, and in particular the thermodynamics interpolation table.
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
+ * @param ppr   Input: pointer to precision structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input/Output: pointer to initialized thermo structure
  * @return the error status
  */
 int thermodynamics_init(struct precision * ppr,
                         struct background * pba,
-                        struct thermo * pth) {
+                        struct thermo * pth){
 
   /** Summary: */
 
@@ -268,7 +258,6 @@ int thermodynamics_init(struct precision * ppr,
   }
 
   /** - test, whether all parameters are in the correct regime */
-
   class_call(thermodynamics_test_parameters(ppr,pba,pth),
              pth->error_message,
              pth->error_message);
@@ -309,7 +298,9 @@ int thermodynamics_init(struct precision * ppr,
   free(pvecback);
 
   return _SUCCESS_;
+
 }
+
 
 /**
  * Free all memory space allocated by thermodynamics_init.
@@ -317,10 +308,7 @@ int thermodynamics_init(struct precision * ppr,
  * @param pth Input/Output: pointer to thermo structure (to be freed)
  * @return the error status
  */
-
-int thermodynamics_free(
-                        struct thermo * pth
-                        ) {
+int thermodynamics_free(struct thermo * pth){
 
   free(pth->z_table);
   free(pth->tau_table);
@@ -328,22 +316,24 @@ int thermodynamics_free(
   free(pth->d2thermodynamics_dz2_table);
 
   return _SUCCESS_;
+
 }
+
 
 /**
  * Test the thermo structure parameters for bounds and critical values.
- * Tests BBN Y_He fraction, annihilation injection parameters,
- *   divisions by zero, differential equation solving
+ * Tests BBN Y_He fraction, annihilation injection parameters, divisions by zero, differential equation solving
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input: pointer to initialized thermo structure
+ * @param ppr   Input: pointer to precision structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input: pointer to initialized thermo structure
  * @return the error status
  */
-
 int thermodynamics_test_parameters(struct precision * ppr,
                                    struct background* pba,
-                                   struct thermo * pth) {
+                                   struct thermo * pth){
+
+  /** Summary: */
 
   /** - check BBN Y_He fracion */
   class_test((pth->YHe < _YHE_SMALL_)||(pth->YHe > _YHE_BIG_),
@@ -351,7 +341,6 @@ int thermodynamics_test_parameters(struct precision * ppr,
              "Y_He=%g out of bounds (%g<Y_He<%g)",pth->YHe,_YHE_SMALL_,_YHE_BIG_);
 
   /** - check energy injection parameters for annihilation */
-
   class_test((pth->annihilation<0),
              pth->error_message,
              "annihilation parameter cannot be negative");
@@ -376,7 +365,7 @@ int thermodynamics_test_parameters(struct precision * ppr,
              pth->error_message,
              "characteristic annihilation redshift cannot be negative");
 
-  class_test((pth->annihilation>0)&&(pba->has_cdm==_FALSE_),
+  class_test((pth->annihilation>0) && (pba->has_cdm==_FALSE_),
              pth->error_message,
              "CDM annihilation effects require the presence of CDM!");
 
@@ -414,26 +403,24 @@ int thermodynamics_test_parameters(struct precision * ppr,
              pth->error_message,
              "increase zinitial, as it is after HeliumIII recombination starts.");
 
-
   return _SUCCESS_;
+
 }
 
 
 /**
- * Assign value to each relevant index in vectors of thermodynamical quantities,
- *  and the reionization parameters
+ * Assign value to each relevant index in vectors of thermodynamical quantities, and the reionization parameters
  *
  * @param pth   Input/Output: pointer to thermo structure
  * @param ptw   Input/Output: pointer to thermo workspace
  * @return the error status
  */
-
-int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
+int thermodynamics_indices(struct thermo * pth, 
+                           struct thermo_workspace * ptw){
 
   /** Summary: */
 
   /** - define local variables */
-
   struct thermo_reionization_parameters* ptrp = ptw->ptrp;
   /* a running index for the vector of thermodynamics quantities */
   int index;
@@ -443,7 +430,7 @@ int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
 
   /* Free electron fraction */
   class_define_index(pth->index_th_xe,_TRUE_,index,1);
-  /* optical depth and related quantities */
+  /* Optical depth and related quantities */
   class_define_index(pth->index_th_dkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_ddkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_dddkappa,_TRUE_,index,1);
@@ -491,8 +478,7 @@ int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
   /* case where x_e(z) is binned */
   if (pth->reio_parametrization == reio_bins_tanh) {
 
-    /* the code will not only copy here the "bin centers" passed in
-       input. It will add an initial and final value for (z,xe). So
+    /* the code will not only copy here the "bin centers" passed in input. It will add an initial and final value for (z,xe). So
        this array has a dimension bigger than the bin center array */
 
     ptrp->reio_num_z=pth->binned_reio_num+2; /* add two values: beginning and end of reio */
@@ -505,10 +491,9 @@ int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
   }
 
   /* case where x_e(z) has many tanh jumps */
-  if (pth->reio_parametrization == reio_many_tanh) { //TODO :: is this the sam as above?!
+  if (pth->reio_parametrization == reio_many_tanh) { //TODO :: is this the same as above?!
 
-    /* the code will not only copy here the "jump centers" passed in
-       input. It will add an initial and final value for (z,xe). So
+    /* the code will not only copy here the "jump centers" passed in input. It will add an initial and final value for (z,xe). So
        this array has a dimension bigger than the jump center array */
 
     ptrp->reio_num_z=pth->many_tanh_num+2; /* add two values: beginning and end of reio */
@@ -520,7 +505,7 @@ int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
 
   }
 
-    /* case where x_e(z) must be interpolated */
+  /* case where x_e(z) must be interpolated */
   if (pth->reio_parametrization == reio_inter) {
 
     ptrp->reio_num_z=pth->reio_inter_num;
@@ -534,34 +519,36 @@ int thermodynamics_indices(struct thermo * pth, struct thermo_workspace * ptw) {
   ptrp->reio_num_params = index;
 
   /* flags for calling the interpolation routine */
-
   pth->inter_normal=0;
   pth->inter_closeby=1;
 
   return _SUCCESS_;
+
 }
+
 
 /**
  * Initialize the lists (of redshift, tau, etc.) of the thermodynamics struct
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to thermo structure
- * @param ptw Input: pointer to thermo workspace
+ * @param ppr   Input: pointer to precision structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input/Output: pointer to thermo structure
+ * @param ptw   Input: pointer to thermo workspace
  * @return the error status
  */
- 
 int thermodynamics_lists(struct precision * ppr,
                          struct background* pba,
                          struct thermo* pth,
-                         struct thermo_workspace* ptw) {
+                         struct thermo_workspace* ptw){
+
+  /** Summary: */
 
   /** Define local variables */
   int index_tau, index_z;
   double zinitial,zlinear;
 
-
   pth->tt_size = ptw->Nz_tot;
+
   /** - allocate tables*/
   class_alloc(pth->tau_table,pth->tt_size*sizeof(double),pth->error_message);
   class_alloc(pth->z_table,pth->tt_size*sizeof(double),pth->error_message);
@@ -597,25 +584,28 @@ int thermodynamics_lists(struct precision * ppr,
   pth->tau_ini = pth->tau_table[pth->tt_size-1];
 
   return _SUCCESS_;
+
 }
+
+
 /**
- * Infer the primordial helium fraction from standard BBN, as a
- * function of the baryon density and expansion rate during BBN.
+ * Infer the primordial helium fraction from standard BBN, as a function of the baryon density and expansion rate during BBN.
  *
- * This module is simpler then the one used in arXiv:0712.2826 because
- * it neglects the impact of a possible significant chemical
- * potentials for electron neutrinos. The full code with xi_nu_e could
- * be introduced here later.
+ * This module is simpler then the one used in arXiv:0712.2826 because it neglects the impact of a possible significant chemical
+ * potentials for electron neutrinos. The full code with xi_nu_e could be introduced here later.
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
+ * @param ppr   Input: pointer to precision structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input/Output: pointer to initialized thermo structure
  * @return the error status
  */
 int thermodynamics_helium_from_bbn(struct precision * ppr,
                                    struct background * pba,
-                                   struct thermo * pth) {
+                                   struct thermo * pth){
 
+  /** Summary: */
+
+  /** Define local variables */
   FILE * fA;
   char line[_LINE_LENGTH_MAX_];
   char * left;
@@ -636,7 +626,6 @@ int thermodynamics_helium_from_bbn(struct precision * ppr,
   int last_index;
   double Neff_bbn, z_bbn, tau_bbn, *pvecback;
 
-  /**Summary: */
   /** - Infer effective number of neutrinos at the time of BBN */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
@@ -685,24 +674,20 @@ int thermodynamics_helium_from_bbn(struct precision * ppr,
   class_open(fA,ppr->sBBN_file, "r",pth->error_message);
 
   /* go through each line */
-  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL){
 
     /* eliminate blank spaces at beginning of line */
     left=line;
-    while (left[0]==' ') {
+    while (left[0]==' '){
       left++;
     }
 
-    /* check that the line is neither blank neither a comment. In
-       ASCII, left[0]>39 means that first non-blank character might
-       be the beginning of some data (it is not a newline, a #, a %,
-       etc.) */
-    if (left[0] > 39) {
+    /* check that the line is neither blank neither a comment. In ASCII, left[0]>39 means that first non-blank character might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39){
 
-      /* if the line contains data, we must interpret it. If
-         (num_omegab, num_deltaN)=(0,0), the current line must contain
-         their values. Otherwise, it must contain (omegab, delatN,
-         YHe). */
+      /* if the line contains data, we must interpret it. If (num_omegab, num_deltaN)=(0,0), the current line must contain
+         their values. Otherwise, it must contain (omegab, delatN, YHe). */
       if ((num_omegab==0) && (num_deltaN==0)) {
 
         /* read (num_omegab, num_deltaN), infer size of arrays and allocate them */
@@ -719,13 +704,12 @@ int thermodynamics_helium_from_bbn(struct precision * ppr,
         array_line=0;
 
       }
-      else {
+      else{
 
         /* read (omegab, deltaN, YHe) */
-        class_test(sscanf(line,"%lg %lg %lg",
-                          &(omegab[array_line%num_omegab]),
-                          &(deltaN[array_line/num_omegab]),
-                          &(YHe[array_line])
+        class_test(sscanf(line,"%lg %lg %lg",&(omegab[array_line%num_omegab]),
+                                             &(deltaN[array_line/num_omegab]),
+                                             &(YHe[array_line])
                           ) != 3,
                    pth->error_message,
                    "could not read value of parameters (omegab,deltaN,YHe) in file %s\n",ppr->sBBN_file);
@@ -820,21 +804,23 @@ int thermodynamics_helium_from_bbn(struct precision * ppr,
 
 }
 
+
 /**
- * Calculate those thermodynamics quantities,
- *   which are not inside of the thermodynamics table already.
+ * Calculate those thermodynamics quantities, which are not inside of the thermodynamics table already.
  * Additionally, any other requested quantities
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
- * @param pvecback Input: pointer to some allocated pvecback
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input/Output: pointer to initialized thermo structure
+ * @param pvecback   Input: pointer to some allocated pvecback
  * @return the error status
  */
 int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
                                                   struct background * pba,
                                                   struct thermo* pth,
-                                                  double* pvecback) {
+                                                  double* pvecback){
+
+  /** Summary: */
 
   /** Define temporary variables */
   double tau_ini;
@@ -848,11 +834,8 @@ int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
   /* same ordered in growing time rather than growing redshift */
   double * tau_table_growing;
 
-  /**
-   * The temporary quantities stored in columns ddkappa and dddkappa
-   * will not be used anymore, so they can and WILL be overwritten by other
-   * intermediate steps of other computations
-   **/
+  /* The temporary quantities stored in columns ddkappa and dddkappa will not be used anymore, so they can and WILL be overwritten by other
+     intermediate steps of other computations */
 
   class_call(thermodynamics_calculate_conformal_drag_time(pba,pth,&last_index_back,pvecback),
              pth->error_message,
@@ -886,11 +869,12 @@ int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
              pth->error_message);
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * Compute the baryon drag conformal time
- *    tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau]
+ * Compute the baryon drag conformal time tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau]
  *
  * @param pba                Input: pointer to background structure
  * @param pth                Input/Output: pointer to initialized thermo structure
@@ -901,14 +885,16 @@ int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
 int thermodynamics_calculate_conformal_drag_time(struct background* pba,
                                                  struct thermo* pth,
                                                  int* last_index_back,
-                                                 double* pvecback) {
+                                                 double* pvecback){
+
+  /** Summary: */
 
   /** Define local variables */
-  /* R = (3./4.)*(rho_b/rho_g) */
   double R;
   int index_tau;
 
-  /** - --> baryon drag interaction rate time minus one, -[1/R * kappa'], with R = 3 rho_b / 4 rho_gamma, stored temporarily in column ddkappa */
+  /** - compute baryon drag interaction rate time minus one, -[1/R * kappa'], with R = 3 rho_b / 4 rho_gamma, 
+        stored temporarily in column ddkappa */
   *last_index_back = 0;
 
   for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
@@ -929,7 +915,7 @@ int thermodynamics_calculate_conformal_drag_time(struct background* pba,
 
   }
 
-  /** - --> second derivative of this rate, -[1/R * kappa']'', stored temporarily in column dddkappa */
+  /** - compute second derivative of this rate, -[1/R * kappa']'', stored temporarily in column dddkappa */
   class_call(array_spline_table_line_to_line(pth->tau_table,
                                              pth->tt_size,
                                              pth->thermodynamics_table,
@@ -941,7 +927,7 @@ int thermodynamics_calculate_conformal_drag_time(struct background* pba,
              pth->error_message,
              pth->error_message);
 
-  /** - --> compute tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau] */
+  /** - compute tau_d = [int_{tau_today}^{tau} dtau -dkappa_d/dtau] */
   class_call(array_integrate_spline_table_line_to_line(pth->tau_table,
                                                        pth->tt_size,
                                                        pth->thermodynamics_table,
@@ -954,7 +940,9 @@ int thermodynamics_calculate_conformal_drag_time(struct background* pba,
              pth->error_message);
 
   return _SUCCESS_;
+
 }
+
 
 /**
  * Compute the damping scale
@@ -973,16 +961,16 @@ int thermodynamics_calculate_conformal_drag_time(struct background* pba,
 int thermodynamics_calculate_damping_scale(struct background* pba,
                                            struct thermo* pth,
                                            int* last_index_back,
-                                           double* pvecback) {
+                                           double* pvecback){
+
+  /** Summary: */
 
   /** Define local variables */
-  /* R = (3./4.)*(rho_b/rho_g) */
   double R;
   /* Initial time and dkappa/dtau */
   double tau_ini,dkappa_ini;
   double* tau_table_growing;
   int index_tau;
-
 
   if (pth->compute_damping_scale == _TRUE_) {
 
@@ -1057,17 +1045,22 @@ int thermodynamics_calculate_damping_scale(struct background* pba,
   }
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * Calculate quantities relating to optical phenomena like kappa' and exp(-kappa)
- *  and the visibility function, optical depth, etc.
+ * Calculate quantities relating to optical phenomena like kappa' and exp(-kappa) and the visibility function,
+ * optical depth, etc.
  *
- * @param ppr Input: pointer to precision structure
- * @param pth Input/Output: pointer to thermo structure
+ * @param ppr   Input: pointer to precision structure
+ * @param pth   Input/Output: pointer to thermo structure
  * @return the error status
  */
-int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth){
+int thermodynamics_calculate_opticals(struct precision* ppr, 
+                                      struct thermo* pth){
+
+  /** Summary: */
 
   /** Define local quantities */
   /* Visibility function value */
@@ -1193,6 +1186,7 @@ int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth)
   }
 
   return _SUCCESS_;
+
 }
 
 
@@ -1200,18 +1194,20 @@ int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth)
  * Calculate those quantities at the time of recombination,
  * Additionally compute time of free streaming and negligable visibility (tau_cut)
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
+ * @param ppr                Input: pointer to precision structure
+ * @param pba                Input: pointer to background structure
+ * @param pth                Input/Output: pointer to initialized thermo structure
  * @param last_index_back    Input: temporary variable for storing index
- * @param pvecback Input: pointer to some allocated pvecback
+ * @param pvecback           Input: pointer to some allocated pvecback
  * @return the error status
  */
 int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
                                                       struct background * pba,
                                                       struct thermo* pth,
                                                       int* last_index_back,
-                                                      double* pvecback) {
+                                                      double* pvecback){
+
+  /** Summary: */
 
   /** Define local variables */
   double g_max;
@@ -1241,7 +1237,13 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
   index_tau_max = index_tau;
 
   /* approximation for maximum of g, using cubic interpolation, assuming equally spaced z's */
-  pth->z_rec=pth->z_table[index_tau+1]+0.5*(pth->z_table[index_tau+1]-pth->z_table[index_tau])*(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g])/(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]-2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g]+pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g]);
+  pth->z_rec=pth->z_table[index_tau+1]+0.5*(pth->z_table[index_tau+1]-pth->z_table[index_tau])
+                                          *(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]
+                                                   -pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g])
+                                           /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g]
+                                                   -2.*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g]
+                                                   +pth->thermodynamics_table[(index_tau+2)*pth->th_size+pth->index_th_g]
+                                            );
 
   class_test(pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_,
              pth->error_message,
@@ -1268,7 +1270,6 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
   pth->angular_rescaling=pth->ra_rec/(pba->conformal_age-pth->tau_rec);
 
   /** - find damping scale at recombination (using linear interpolation) */
-
   if (pth->compute_damping_scale == _TRUE_) {
 
     pth->rd_rec = (pth->z_table[index_tau+1]-pth->z_rec)/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_r_d]
@@ -1276,9 +1277,7 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
 
   }
 
-  /** - find time (always after recombination) at which tau_c/tau
-      falls below some threshold, defining tau_free_streaming */
-
+  /** - find time (always after recombination) at which tau_c/tau falls below some threshold, defining tau_free_streaming */
   class_call(background_tau_of_z(pba,pth->z_table[index_tau],&tau),
              pba->error_message,
              pth->error_message);
@@ -1298,7 +1297,6 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
 
 
   /** - find time above which visibility falls below a given fraction of its maximum */
-
   index_tau=index_tau_max;
   while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_g] >
           g_max * ppr->neglect_CMB_sources_below_visibility)
@@ -1310,29 +1308,32 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
              pth->error_message);
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * Calculate those quantities at the time of ending of baryon drag
- * ( It is precisely where tau_d crosses one)
+ * Calculate those quantities at the time of ending of baryon drag (It is precisely where tau_d crosses one)
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
+ * @param ppr                Input: pointer to precision structure
+ * @param pba                Input: pointer to background structure
+ * @param pth                Input/Output: pointer to initialized thermo structure
  * @param last_index_back    Input: temporary variable for storing index
- * @param pvecback Input: pointer to some allocated pvecback
+ * @param pvecback           Input: pointer to some allocated pvecback
  * @return the error status
  */
 int thermodynamics_calculate_drag_quantities(struct precision* ppr,
                                              struct background * pba,
                                              struct thermo* pth,
                                              int* last_index_back,
-                                             double* pvecback) {
+                                             double* pvecback){
+
+  /** Summary: */
+
   /** Define local variables */
   int index_tau;
-  /** - find baryon drag time (when tau_d crosses one, using linear
-      interpolation) and sound horizon at that time */
 
+  /** - find baryon drag time (when tau_d crosses one, using linear interpolation) and sound horizon at that time */
   index_tau=0;
   while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_tau_d] < 1.) && (index_tau < pth->tt_size)){
     index_tau++;
@@ -1355,20 +1356,23 @@ int thermodynamics_calculate_drag_quantities(struct precision* ppr,
   pth->ds_d=pth->rs_d*pba->a_today/(1.+pth->z_d);
 
   return _SUCCESS_;
+
 }
-
-
 
 
 /**
  * Print the output of the thermodynamics module
  *
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input/Output: pointer to initialized thermo structure
  * @return the error status
  */
-int thermodynamics_print_output(struct background* pba, struct thermo* pth){
+int thermodynamics_print_output(struct background* pba, 
+                                struct thermo* pth){
 
+  /** Summary: */
+
+  /** Define local variables */
   double tau_reio;
 
   /** - if verbose flag set to next-to-minimum value, print the main results */
@@ -1412,29 +1416,30 @@ int thermodynamics_print_output(struct background* pba, struct thermo* pth){
   }
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * In case of non-minimal cosmology, this function determines the
- * energy rate injected in the IGM at a given redshift z (= on-the-spot
- * annihilation). This energy injection may come e.g. from dark matter
- * annihilation or decay.
+ * In case of non-minimal cosmology, this function determines the energy rate injected in the IGM at a given redshift z 
+ * (= on-the-spot annihilation). This energy injection may come e.g. from dark matter annihilation or decay.
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param ptw Input: pointer to thermo_workspace structure
- * @param z Input: redshift
- * @param energy_rate Output: energy density injection rate
- * @param error_message Output: error message
+ * @param ppr            Input: pointer to precision structure
+ * @param pba            Input: pointer to background structure
+ * @param ptw            Input: pointer to thermo_workspace structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @param error_message  Output: error message
  * @return the error status
  */
-
 int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
                                                     struct background * pba,
                                                     struct thermo_workspace * ptw,
                                                     double z,
                                                     double * energy_rate,
-                                                    ErrorMsg error_message) {
+                                                    ErrorMsg error_message){
+
+  /** Summary: */
 
   /** Define local variables */
   struct thermo_heating_parameters* pthp = ptw->pthp;
@@ -1444,7 +1449,7 @@ int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
   double u_min;
   double erfc;
 
-  /*redshift-dependent annihilation parameter*/
+  /* redshift-dependent annihilation parameter */
 
   if (z>pthp->annihilation_zmax) {
 
@@ -1464,7 +1469,7 @@ int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
                                          +pow(log((pthp->annihilation_zmin+1.)/(pthp->annihilation_zmax+1.)),2)));
   }
 
-  rho_cdm_today = pow(ptw->SIunit_H0,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; /* energy density in J/m^3 */
+  rho_cdm_today = pow(ptw->SIunit_H0,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; // in J/m^3
 
   u_min = (1+z)/(1+pthp->annihilation_z_halo);
 
@@ -1472,34 +1477,33 @@ int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
 
   *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
     (pow((1.+z),3)*annihilation_at_z+pthp->annihilation_f_halo*erfc)
-    +rho_cdm_today*pow((1+z),3)*pthp->decay;
-  /* energy density rate in J/m^3/s (remember that annihilation_at_z is in m^3/s/Kg and decay in s^-1) */
+    +rho_cdm_today*pow((1+z),3)*pthp->decay;  // in J/m^3/s
 
   return _SUCCESS_;
 
 }
 
+
 /**
- * In case of non-minimal cosmology, this function determines the
- * effective energy rate absorbed by the IGM at a given redshift
- * (beyond the on-the-spot annihilation). This energy injection may
- * come e.g. from dark matter annihilation or decay.
+ * In case of non-minimal cosmology, this function determines the effective energy rate absorbed by the IGM at a given redshift
+ * (beyond the on-the-spot annihilation). This energy injection may come e.g. from dark matter annihilation or decay.
  *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param ptw Input: pointer to thermo_workspace structure
- * @param z Input: redshift
- * @param energy_rate Output: energy density injection rate
- * @param error_message Output: error message
+ * @param ppr            Input: pointer to precision structure
+ * @param pba            Input: pointer to background structure
+ * @param ptw            Input: pointer to thermo_workspace structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @param error_message  Output: error message
  * @return the error status
  */
-
 int thermodynamics_solve_energy_injection(struct precision * ppr,
                                           struct background * pba,
                                           struct thermo_workspace * ptw,
                                           double z,
                                           double * energy_rate,
-                                          ErrorMsg error_message) {
+                                          ErrorMsg error_message){
+
+  /** Summary: */
 
   /** Define local variables */
   struct thermo_heating_parameters* pthp = ptw->pthp;
@@ -1554,10 +1558,9 @@ int thermodynamics_solve_energy_injection(struct precision * ppr,
 
     /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
     /*
-      fprintf(stdout,"%e  %e  %e \n",
-      1.+z,
-      result/pow(1.+z,6),
-      onthespot/pow(1.+z,6));
+      fprintf(stdout,"%e  %e  %e \n", 1.+z,
+                                      result/pow(1.+z,6),
+                                      onthespot/pow(1.+z,6));
     */
 
     /* effective energy density rate in J/m^3/s  */
@@ -1572,9 +1575,9 @@ int thermodynamics_solve_energy_injection(struct precision * ppr,
 
 }
 
+
 /**
- * This subroutine contains the reionization function \f$ X_e(z) \f$
- * (one for each scheme) and gives x and dx for a given z.
+ * This subroutine contains the reionization function \f$ X_e(z) \f$ (one for each scheme) and gives x and dx for a given z.
  *
  * @param z     Input: redshift
  * @param pth   Input: pointer to thermo structure, to know which scheme is used
@@ -1582,12 +1585,11 @@ int thermodynamics_solve_energy_injection(struct precision * ppr,
  * @param x     Output: \f$ X_e(z) \f$
  * @param dx    Output: \f$ dX_e(z)/dz \f$
  */
-
 int thermodynamics_reionization_function(double z,
                                          struct thermo * pth,
                                          struct thermo_reionization_parameters * preio,
                                          double * x,
-                                         double * dx) {
+                                         double * dx){
 
   /** Summary: */
 
@@ -1617,7 +1619,6 @@ int thermodynamics_reionization_function(double z,
     else {
 
       /** - --> case z < z_reio_start: hydrogen contribution (tanh of complicated argument) */
-
       argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
                     preio->reionization_parameters[preio->index_reio_exponent])
                    -pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
@@ -1657,7 +1658,6 @@ int thermodynamics_reionization_function(double z,
       }
 
       /** - --> case z < z_reio_start: helium contribution (tanh of simpler argument) */
-
       if (pth->reio_parametrization == reio_camb) {
         argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
           /preio->reionization_parameters[preio->index_helium_fullreio_width];
@@ -1698,12 +1698,9 @@ int thermodynamics_reionization_function(double z,
       /* fix the final xe to xe_before*/
       preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1] = preio->reionization_parameters[preio->index_reio_xe_before];
 
-      /* This is the expression of the tanh-like jumps of the
-         reio_bins_tanh scheme until the 10.06.2015. It appeared to be
-         not robust enough. It could lead to a kink in xe(z) near the
-         maximum value of z at which reionisation is sampled. It has
-         been replaced by the simpler and more robust expression
-         below.
+      /* This is the expression of the tanh-like jumps of the reio_bins_tanh scheme until the 10.06.2015. It appeared to be
+         not robust enough. It could lead to a kink in xe(z) near the maximum value of z at which reionisation is sampled. It has
+         been replaced by the simpler and more robust expression below.
 
       *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
         +0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
@@ -1764,7 +1761,7 @@ int thermodynamics_reionization_function(double z,
 
         center = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1-jump];
 
-        // before and after are meant with respect to growing z, not growing time
+        /* before and after are meant with respect to growing z, not growing time */
         before = preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1-jump]
           -preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-jump];
         after = 0.;
@@ -1842,49 +1839,37 @@ int thermodynamics_reionization_function(double z,
   class_test(0 == 0,
              pth->error_message,
              "value of reio_parametrization=%d unclear",pth->reio_parametrization);
-}
 
+}
 
 
 /**
  * Integrate thermodynamics with RECFAST or HYREC.
  *
- * Integrate thermodynamics with RECFAST, allocate and fill the part
- * of the thermodynamics interpolation table (the rest is filled in
- * thermodynamics_init()). Called once by
- * thermodynamics_recombination, from thermodynamics_init().
+ * Integrate thermodynamics with RECFAST, allocate and fill the part of the thermodynamics interpolation table (the rest is filled in
+ * thermodynamics_init). Called once by thermodynamics_recombination, from thermodynamics_init.
  *
- * Version modified by Daniel Meinert and Nils Schoeneberg to use the
- * ndf15 evolver or any other evolver inherent to CLASS,
+ * Version modified by Daniel Meinert and Nils Schoeneberg to use the ndf15 evolver or any other evolver inherent to CLASS,
  * modified again by Nils Schoeneberg to use wrappers
  *
- *******************************************************************************
- * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium,
- * developed by Douglas Scott (dscott@astro.ubc.ca)
- * based on calculations in the paper Seager, Sasselov & Scott
- * (ApJ, 523, L1, 1999).
- * and "fudge" updates in Wong, Moss & Scott (2008).
+ *********************************************************************************************************************************
+ * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium, developed by Douglas Scott (dscott@astro.ubc.ca)
+ * based on calculations in the paper Seager, Sasselov & Scott (ApJ, 523, L1, 1999) and "fudge" updates in Wong, Moss & Scott (2008).
  *
- * Permission to use, copy, modify and distribute without fee or royalty at
- * any tier, this software and its documentation, for any purpose and without
- * fee or royalty is hereby granted, provided that you agree to comply with
- * the following copyright notice and statements, including the disclaimer,
- * and that the same appear on ALL copies of the software and documentation,
+ * Permission to use, copy, modify and distribute without fee or royalty at any tier, this software and its documentation, for any 
+ * purpose and without fee or royalty is hereby granted, provided that you agree to comply with the following copyright notice and
+ * statements, including the disclaimer, and that the same appear on ALL copies of the software and documentation,
  * including modifications that you make for internal use or for distribution:
  *
  * Copyright 1999-2010 by University of British Columbia.  All rights reserved.
  *
- * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO
- * REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
- * BY WAY OF EXAMPLE, BUT NOT LIMITATION,
- * U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF
- * MERCHANTABILITY OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT
- * THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE
+ * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
+ * BY WAY OF EXAMPLE, BUT NOT LIMITATION, U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY 
+ * OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE
  * ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
- *******************************************************************************
+ *********************************************************************************************************************************
  *
- * Version 1.5: includes extra fitting function from
- *              Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
+ * Version 1.5: includes extra fitting function from Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
  *
  * @param ppr      Input: pointer to precision structure
  * @param pba      Input: pointer to background structure
@@ -1893,30 +1878,24 @@ int thermodynamics_reionization_function(double z,
  * @param pvecback Input: pointer to an allocated (but empty) vector of background variables
  * @return the error status
  *
- * Integrate thermodynamics with your favorite recombination code.
- * The default options are HyRec and Recfast.
+ * Integrate thermodynamics with your favorite recombination code. The default options are HyRec and Recfast.
  */
 int thermodynamics_solve(struct precision * ppr,
                          struct background * pba,
                          struct thermo * pth,
                          struct thermo_workspace * ptw,
-                         double * pvecback) {
+                         double * pvecback){
   /** Summary: */
-
 
   /** - define local variables */
   /* Index of current approximation */
   int index_ap;
-
   /* number of time intervals of one approximation scheme*/
   int interval_number;
-
   /* index running over such time intervals */
   int index_interval;
-
   /* edge of intervals where approximation scheme is uniform: z_ini, z_switch_1, ..., z_end */
   double * interval_limit;
-
   /* other z sampling variables */
   int i;
   double * mz_output;
@@ -1943,15 +1922,12 @@ int thermodynamics_solve(struct precision * ppr,
   tpaw.pvecback = pvecback;
   tpaw.ptw = ptw;
 
-
-
   /** - define time sampling in minus z */
   /* -> Create mz_output array of minus z (from mz=-zinitial growing towards mz=0) */
   class_alloc(mz_output,pth->tt_size*sizeof(double), pth->error_message);
   for(i=0; i < pth->tt_size; ++i){
     mz_output[i] = -pth->z_table[pth->tt_size-1-i];
   }
-
 
   /** - define switching intervals */
   /* -> Create interval limits */
@@ -1966,20 +1942,15 @@ int thermodynamics_solve(struct precision * ppr,
     interval_limit[index_ap+1] = -ptw->ptdw->ap_z_limits[index_ap];
   }
 
-
-
   /** - loop over intervals over which approximation scheme is uniform. For each interval: */
   for (index_interval=0; index_interval<interval_number; index_interval++) {
 
     /** - --> (a) fix current approximation scheme. */
     ptw->ptdw->ap_current = index_interval;
 
-    /** - --> (b) define the vector of quantities to be integrated
-        over. If the current interval starts from the initial time
-        zinitial, fill the vector with initial conditions for. If
-        it starts from an approximation switching point,
-        redistribute correctly the values from the previous to
-        the new vector. */
+    /** - --> (b) define the vector of quantities to be integrated over. If the current interval starts from the initial time
+                  zinitial, fill the vector with initial conditions for. If it starts from an approximation switching point,
+                  redistribute correctly the values from the previous to the new vector. */
     class_call(thermodynamics_vector_init(ppr,
                                           pba,
                                           pth,
@@ -1996,14 +1967,9 @@ int thermodynamics_solve(struct precision * ppr,
       generic_evolver = evolver_ndf15;
     }
 
-    /*
-     * If we have the optical depth tau_reio as input the last evolver step
-     * (reionization approximation) is done separately in a loop,
-     * to approximate the redshift of reionization through the input of tau_reio.
-     * This is done using a bisection method
-     *  It is similar to CLASS's shooting, just that we only re-do
-     *  this last approximation step of the thermodynamics calculation
-     * */
+    /* If we have the optical depth tau_reio as input the last evolver step (reionization approximation) is done separately in a loop,
+       to approximate the redshift of reionization through the input of tau_reio. This is done using a bisection method
+       It is similar to CLASS's shooting, just that we only re-do this last approximation step of the thermodynamics calculation */
     if(pth->reio_z_or_tau == reio_tau && index_interval == ptw->ptdw->index_ap_reio){
         class_call(thermodynamics_reionization_evolve_with_tau(&tpaw,
                                                                interval_limit[index_interval],
@@ -2050,7 +2016,6 @@ int thermodynamics_solve(struct precision * ppr,
 
   }
 
-
   /** - free quantities allocated at the beginning of the routine */
   if(ptw->ptdw->ap_size != 0){
     class_call(thermodynamics_vector_free(ptw->ptdw->tv),
@@ -2065,28 +2030,22 @@ int thermodynamics_solve(struct precision * ppr,
 
 }
 
+
 /**
- * Subroutine evaluating the derivative with respect to negative redshift of
- * thermodynamical quantities (from RECFAST version 1.4, modified by
- * Daniel Meinert and Nils Schoeneberg)
+ * Subroutine evaluating the derivative with respect to negative redshift of thermodynamical quantities (from RECFAST version 1.4,
+ * modified by Daniel Meinert and Nils Schoeneberg)
  *
- * Automatically recognizes the current approximation interval and computes
- * the needed derivatives for this interval:
+ * Automatically recognizes the current approximation interval and computes the needed derivatives for this interval:
  * \f$ d T_{mat} / dz , d x_H / dz, d x_{He} / dz \f$.
  * Only the matter derivative is calculated for recfast
  *
- * This is one of the few functions in the code which are passed to
- * the generic_integrator() routine.  Since generic_integrator()
- * should work with functions passed from various modules, the format
- * of the arguments is a bit special:
+ * This is one of the few functions in the code which are passed to the generic_integrator routine.  Since generic_integrator
+ * should work with functions passed from various modules, the format of the arguments is a bit special:
  *
- * - fixed parameters and workspaces are passed through a generic
- *   pointer. Here, this pointer contains the precision, background
- *   and recombination structures, plus a background vector, but
- *   generic_integrator() doesn't know its precise structure.
+ * - fixed parameters and workspaces are passed through a generic pointer. Here, this pointer contains the precision, background
+ *   and recombination structures, plus a background vector, but generic_integrator doesn't know its precise structure.
  *
- * - the error management is a bit special: errors are not written as
- *   usual to pth->error_message, but to a generic error_message
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic error_message
  *   passed in the list of arguments.
  *
  * @param z                        Input: redshift
@@ -2095,15 +2054,15 @@ int thermodynamics_solve(struct precision * ppr,
  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices) and workspace (already allocated)
  * @param error_message            Output: error message
  */
-
 int thermodynamics_solve_derivs(double mz,
                                 double * y,
                                 double * dy,
                                 void * parameters_and_workspace,
-                                ErrorMsg error_message) {
+                                ErrorMsg error_message){
 
-  /* define local variables */
+  /** Summary: */
 
+  /** Define local variables */
   double z;
   double x,n,n_He,Trad,Tmat,x_H,x_He,dx_H,dx_He,dx,dxdlna,Hz,dHdz;
   double eps,dlneps_dz;
@@ -2167,26 +2126,17 @@ int thermodynamics_solve_derivs(double mz,
              error_message);
 
 
-  /**
-   * Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs)
-   * Modify these for some non-trivial background evolutions or CMB temperature changes
-   **/
+  /** Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs). Modify these for some non-trivial
+      background evolutions or CMB temperature changes */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
   n = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
   Trad = ptw->Tcmb * (1.+z);
 
-
-
-
   /** - Check for the approximation scheme */
   /* As long as there is no full recombination, x_H, x_He and x are evolved with analytic functions. */
-
   Tmat = ptv->y[ptv->index_Tmat];
   ptdw->Tmat = Tmat;
   ptdw->dTmat = -ptv->dy[ptv->index_Tmat];
-
-
-
 
   /** - HyRec */
   if(pth->recombination == hyrec){
@@ -2204,8 +2154,8 @@ int thermodynamics_solve_derivs(double mz,
 
   /** - RecfastCLASS */
   if(pth->recombination == recfast){
-    //Else do it the analytical or hyrec way.
-    //Checked :: The saha equations in hyrec and recfast are both the same
+    // Else do it the analytical or hyrec way.
+    // Checked :: The saha equations in hyrec and recfast are both the same
     /** Obtain the analytical value for x, x_H, x_He */
     class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ap_current),
                error_message,
@@ -2231,10 +2181,10 @@ int thermodynamics_solve_derivs(double mz,
     else{
       x_H = ptdw->x_H;
       dx_H = ptdw->dx_H;
-      //If require_H is fale, require_He already fills the x value correctly
+      // If require_H is fale, require_He already fills the x value correctly
     }
 
-    //REIO WAS HERE BEFORE //Nils
+    // REIO WAS HERE BEFORE [NS]
 
     /** - Hydrogen equations */
     if(ptdw->require_H){
@@ -2287,19 +2237,16 @@ int thermodynamics_solve_derivs(double mz,
   /** - Matter temperature equations */
   /* Tmat is integrated always */
 
-
   /**
    * A short note on the 'early' time steady state expansion:
    *
    * Note: dTr/dz = Tr/(1+z) = Tcmb
    *
-   * The early system of CMB and matter is very tightly coupled anyway,
-   *  so we can expand in the following way:
-   * The full equation is dTm/dz = (Tm-Tr)/e /(1+z) + 2 Tm/(1+z)
-   *  Here e = H*(1+x+f)/(cT*Tr^4*x) << 1 at early times
+   * The early system of CMB and matter is very tightly coupled anyway, so we can expand in the following way:
+   * The full equation is dTm/dz = (Tm-Tr)/e /(1+z) + 2 Tm/(1+z). Here e = H*(1+x+f)/(cT*Tr^4*x) << 1 at early times
    *
-   * Find the first order solution in e, by multiplying in (1+z)*e,
-   *  approximate e*(dTm/dz)*(1+z) ~ e*(dTr/dz)*(1+z) + O(e^2) ~ e * Tr
+   * Find the first order solution in e, by multiplying in (1+z)*e, approximate 
+   *  e*(dTm/dz)*(1+z) ~ e*(dTr/dz)*(1+z) + O(e^2) ~ e * Tr
    *
    * You find e*Tr = (Tm-Tr) + 2 Tm * e
    * Thus Tm = (1+2*e)/(1+e) * Tr = Tr/(1+e) + O(e^2)
@@ -2307,11 +2254,9 @@ int thermodynamics_solve_derivs(double mz,
    * This is the steady state solution, which is the SAME as e.g. in HyRec
    * In our notation, eps = e*Tr, so we get Tm = Tr - eps
    *
-   * So, taking the derivative of the right hand side, we obtain
-   * dTm/dz = Tcmb - eps*(dln(eps)/dz)
+   * So, taking the derivative of the right hand side, we obtain dTm/dz = Tcmb - eps*(dln(eps)/dz)
    *
-   * Now use the form of eps = Tr*e = H*(1+x+f)/(cT*Tr^3*x)
-   *  to derive the remaining terms in the below formula
+   * Now use the form of eps = Tr*e = H*(1+x+f)/(cT*Tr^3*x) to derive the remaining terms in the below formula
    * => dln(eps)/dz = dln(H)/dz  - (1+f)/(1+x+f)*dln(x)/dz + 3*dln(Tr)/dz
    * If you plug this into the dTm/dz equation, you find the formulas below
    **/
@@ -2327,14 +2272,14 @@ int thermodynamics_solve_derivs(double mz,
     eps = Hz * (1.+x+ptw->fHe) / (R_g/Trad*x);
     dlneps_dz = dHdz/Hz - ((1.+ptw->fHe)/(1.+ptw->fHe+x))*(dx/x) - 3./(1.+z);
     dy[ptv->index_Tmat] = ptw->Tcmb - eps * dlneps_dz;
-    //Additional heating terms would be of the form eps*(1+z)*energy_rate/Trad * (dln(energy_rate)/dz + dlneps_dz)
-    //Currently they are not implemented, because they should be really small
+    // Additional heating terms would be of the form eps*(1+z)*energy_rate/Trad * (dln(energy_rate)/dz + dlneps_dz)
+    // Currently they are not implemented, because they should be really small
   }
   /** Full equation at later times */
   else {
     /* equations modified to take into account energy injection from dark matter */
 
-    //chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
+    // chi_heat = (1.+2.*preio->reionization_table[i*preio->re_size+preio->index_re_xe])/3.; // old approximation from Chen and Kamionkowski
 
     /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013) */
     if (x < 1.)
@@ -2362,28 +2307,28 @@ int thermodynamics_solve_derivs(double mz,
   }
 
   return _SUCCESS_;
+
 }
 
 
 /**
- * This routine computes analytic values of x_H, x_He, x and redshift
- * derivatives dx_H, dx_He and dx (in positive redshift direction)
- * depending on the input approximation scheme current_ap. Because
- * some functions depend on the current Tmat, directly before calling
- * this routine the thermo_workspace should be updated with the current
- * Tmat at this z.
+ * This routine computes analytic values of x_H, x_He, x and redshift derivatives dx_H, dx_He and dx (in positive redshift direction)
+ * depending on the input approximation scheme current_ap. Because some functions depend on the current Tmat, directly before calling
+ * this routine the thermo_workspace should be updated with the current Tmat at this z.
  *
- * @param z   Input: redshift
- * @param pth Input: pointer to thermodynamics structure
- * @param ptw Input/Output: pointer to thermo workspace
- * @param current_ap Input: index of the wished approximation scheme
+ * @param z            Input: redshift
+ * @param pth          Input: pointer to thermodynamics structure
+ * @param ptw          Input/Output: pointer to thermo workspace
+ * @param current_ap   Input: index of the wished approximation scheme
  * @return the error status
  */
 int thermodynamics_x_analytic(double z,
                               struct precision * ppr,
                               struct thermo * pth,
                               struct thermo_workspace * ptw,
-                              int current_ap) {
+                              int current_ap){
+
+  /** Summary: */
 
   /** Define local variables */
   struct thermo_diffeq_workspace * ptdw = ptw->ptdw;
@@ -2391,7 +2336,7 @@ int thermodynamics_x_analytic(double z,
 
   double x_H, x_He, x, rhs,dx_H,dx_He,dx,sqrt_val,drhs,argument;
 
-  /** calculate Hydrogen and Helium fraction with analytical approximations specific for each current approximation interval.
+  /** calculate Hydrogen and Helium fraction with analytical approximations specific for each current approximation interval. */
   /** - --> first approximation: H and Helium fully ionized */
   if(current_ap == ptdw->index_ap_brec){
 
@@ -2478,20 +2423,17 @@ int thermodynamics_x_analytic(double z,
   ptdw->dx = dx;
 
   return _SUCCESS_;
+
 }
 
 
 /**
- * Initialize the field '->tv' of a thermo_diffeq_workspace structure,
- * which is a thermo_vector structure. This structure contains indices
- * and values of all quantities which need to be integrated with respect
- * to time (and only them: quantities fixed analytically or obeying
+ * Initialize the field '->tv' of a thermo_diffeq_workspace structure, which is a thermo_vector structure. This structure contains indices
+ * and values of all quantities which need to be integrated with respect to time (and only them: quantities fixed analytically or obeying
  * constraint equations are NOT included in this vector).
  *
- * The routine sets and allocates the vector y, dy and used_in_output
- * with the right size depending on the current approximation scheme
- * stored in the workspace. Moreover the initial conditions for each
- * approximation scheme are calculated and set correctly.
+ * The routine sets and allocates the vector y, dy and used_in_output with the right size depending on the current approximation scheme
+ * stored in the workspace. Moreover the initial conditions for each approximation scheme are calculated and set correctly.
  *
  *
  * @param ppr        Input: pointer to precision structure
@@ -2502,13 +2444,15 @@ int thermodynamics_x_analytic(double z,
  *
  * @return the error status
  */
-
 int thermodynamics_vector_init(struct precision * ppr,
                                struct background * pba,
                                struct thermo * pth,
                                double mz,
-                               struct thermo_workspace * ptw) {
-  /** Initialize variables */
+                               struct thermo_workspace * ptw){
+
+  /** Summary: */
+
+  /** Define local variables */
   int index_tv;
   /* ptdw->tv unallocated if ap_current == index_ap_brec, allocated and filled otherwise */
   struct thermo_vector * ptv;
@@ -2636,7 +2580,8 @@ int thermodynamics_vector_init(struct precision * ppr,
       ptdw->require_H = _FALSE_;
       ptdw->require_He = _TRUE_;
     }
-    /* - in the scheme of full recombination (=frec) we evolve all quantities and thus need to set their initial conditions. Tmat and x_He are solely taken from the previous scheme, x_H is set via the analytic function */
+    /* - in the scheme of full recombination (=frec) we evolve all quantities and thus need to set their initial conditions. 
+         Tmat and x_He are solely taken from the previous scheme, x_H is set via the analytic function */
     else if(ptdw->ap_current == ptdw->index_ap_frec){
       /* Store Tmat in workspace for later use */
       ptdw->Tmat = ptdw->tv->y[ptdw->tv->index_Tmat];
@@ -2714,16 +2659,17 @@ int thermodynamics_vector_init(struct precision * ppr,
   }
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * Free the thermo_vector structure, which is the '->tv' field of the
- * thermodynamics_differential_workspace ptdw structure
+ * Free the thermo_vector structure, which is the '->tv' field of the thermodynamics_differential_workspace ptdw structure
  *
  * @param tv        Input: pointer to thermo_vector structure to be freed
  * @return the error status
  */
-int thermodynamics_vector_free(struct thermo_vector * tv) {
+int thermodynamics_vector_free(struct thermo_vector * tv){
 
   free(tv->y);
   free(tv->dy);
@@ -2731,31 +2677,28 @@ int thermodynamics_vector_free(struct thermo_vector * tv) {
   free(tv);
 
   return _SUCCESS_;
+
 }
+
 
 /**
  * Initialize the thermodynamics workspace.
- * It contains the workspace for solving differential equations
- *  (dubbed thermo_diffeq_workspace)
- *  In there, all approximations are stored
- * It contains the reionization parameters struct
- *  In there, all parameters relating to analytical reionization are stored
- * It contains the heating parameters struct
- *  In there, all parameters related to heating are stored
- *
+ * It contains the workspace for solving differential equations (dubbed thermo_diffeq_workspace). In there, all approximations are stored
+ * It contains the reionization parameters struct In there, all parameters relating to analytical reionization are stored
+ * It contains the heating parameters struct  In there, all parameters related to heating are stored
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param ptw        Input/Output: pointer to thermodynamics workspace
- *
  * @return the error status
  */
-
 int thermodynamics_workspace_init(struct precision * ppr,
                                   struct background * pba,
                                   struct thermo * pth,
-                                  struct thermo_workspace * ptw) {
+                                  struct thermo_workspace * ptw){
+
+  /** Summary: */
 
   /** Define local variables */
   int index_ap;
@@ -2775,7 +2718,6 @@ int thermodynamics_workspace_init(struct precision * ppr,
 
   /**   - count number of approximations, initialize their indices */
   index_ap=0;
-
 
   ptw->Nz_reco_lin = ppr->thermo_Nz_lin;
   ptw->Nz_reco_log = ppr->thermo_Nz_log;
@@ -2811,8 +2753,6 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->pthp->annihilation_f_halo = pth->annihilation_f_halo;
   ptw->pthp->annihilation_z_halo = pth->annihilation_z_halo;
 
-
-
   /* With recombination computed by HyRec, we need to initialize the hyrec wrapper */
   if(pth->recombination == hyrec){
     class_alloc(ptw->ptdw->phyrec,
@@ -2835,7 +2775,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
                pth->error_message);
   }
 
-  /**   - define approximations */
+  /** - define approximations */
   /* Approximations have to appear in chronological order here! */
   class_define_index(ptw->ptdw->index_ap_brec,_TRUE_,index_ap,1);
   class_define_index(ptw->ptdw->index_ap_He1,_TRUE_,index_ap,1);
@@ -2846,7 +2786,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
   class_define_index(ptw->ptdw->index_ap_reio,_TRUE_,index_ap,1);
   ptw->ptdw->ap_size=index_ap;
 
-  /**   - store all ending redshifts for each approximation */
+  /** - store all ending redshifts for each approximation */
   class_alloc(ptw->ptdw->ap_z_limits,ptw->ptdw->ap_size*sizeof(double),pth->error_message);
 
   ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec] = ppr->recfast_z_He_1+ppr->recfast_delta_z_He_1;
@@ -2857,7 +2797,7 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_frec] = ppr->reionization_z_start_max;
   ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_reio] = 0.0;
 
-  /**   - store smoothing deltas for transitions at the beginning of each aproximation */
+  /** - store smoothing deltas for transitions at the beginning of each aproximation */
   class_alloc(ptw->ptdw->ap_z_limits_delta,ptw->ptdw->ap_size*sizeof(double),pth->error_message);
 
   ptw->ptdw->ap_z_limits_delta[ptw->ptdw->index_ap_brec] = 0.;
@@ -2872,17 +2812,19 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->ptdw->ap_current = ptw->ptdw->index_ap_brec;
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * Free the thermo_workspace structure (with the exception of the
- * thermo_vector '->tv' field, which is freed separately in
+ * Free the thermo_workspace structure (with the exception of the thermo_vector '->tv' field, which is freed separately in
  * thermo_vector_free).
  *
  * @param ptw        Input: pointer to perturb_workspace structure to be freed
  * @return the error status
  */
-int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * ptw) {
+int thermodynamics_workspace_free(struct thermo* pth, 
+                                  struct thermo_workspace * ptw) {
 
   free(ptw->ptdw->ap_z_limits);
   free(ptw->ptdw->ap_z_limits_delta);
@@ -2905,25 +2847,27 @@ int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * 
   free(ptw);
 
   return _SUCCESS_;
+
 }
 
+
 /**
- * This routine initializes reionization_parameters for the chosen scheme
- *  of reionization function.
+ * This routine initializes reionization_parameters for the chosen scheme of reionization function.
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param preio      Input/Output: pointer to the reionization parameters structure
- *
  * @return the error status
  */
-
 int thermodynamics_set_parameters_reionization(struct precision * ppr,
                                                struct background * pba,
                                                struct thermo * pth,
-                                               struct thermo_reionization_parameters * preio) {
+                                               struct thermo_reionization_parameters * preio){
 
+  /** Summary: */
+
+  /** Define local variables */
   int bin;
   int point;
   double xe_input,xe_actual,z_sup;
@@ -2943,7 +2887,8 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
     /** - --> set values of these parameters, excepted those depending on the reionization redshift */
 
     if (pth->reio_parametrization == reio_camb) {
-      preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
+      preio->reionization_parameters[preio->index_reio_xe_after] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));  /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, 
+                                                                                                             checked before that denominator is non-zero) */
     }
     if (pth->reio_parametrization == reio_half_tanh) {
       preio->reionization_parameters[preio->index_reio_xe_after] = 1.; /* xe_after_reio: neglect He ionization */
@@ -2952,7 +2897,8 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
 
     preio->reionization_parameters[preio->index_reio_exponent] = pth->reionization_exponent; /* reio_exponent */
     preio->reionization_parameters[preio->index_reio_width] = pth->reionization_width;    /* reio_width */
-    preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, checked before that denominator is non-zero) */
+    preio->reionization_parameters[preio->index_helium_fullreio_fraction] = pth->YHe/(_not4_*(1.-pth->YHe)); /* helium_fullreio_fraction (note: segmentation fault impossible, 
+                                                                                                                checked before that denominator is non-zero) */
     preio->reionization_parameters[preio->index_helium_fullreio_redshift] = pth->helium_fullreio_redshift; /* helium_fullreio_redshift */
     preio->reionization_parameters[preio->index_helium_fullreio_width] = pth->helium_fullreio_width;    /* helium_fullreio_width */
 
@@ -2979,10 +2925,10 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
 
       if (pth->reio_parametrization == reio_camb) {
 
-        preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
+        preio->reionization_parameters[preio->index_reio_start] = preio->reionization_parameters[preio->index_reio_redshift]+
+                                                                  ppr->reionization_start_factor*pth->reionization_width;
 
-        /* if starting redshift for helium is larger, take that one
-           (does not happen in realistic models) */
+        /* if starting redshift for helium is larger, take that one (does not happen in realistic models) */
         if (preio->reionization_parameters[preio->index_reio_start] <
             pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width)
 
@@ -3022,8 +2968,7 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
 
   else if (pth->reio_parametrization == reio_bins_tanh) {
 
-    /* this algorithm requires at least two bin centers (i.e. at least
-       4 values in the (z,xe) array, counting the edges). */
+    /* this algorithm requires at least two bin centers (i.e. at least 4 values in the (z,xe) array, counting the edges). */
     class_test(pth->binned_reio_num<2,
                pth->error_message,
                "current implementation of binned reio requires at least two bin centers");
@@ -3037,18 +2982,14 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
                  pth->binned_reio_z[bin]);
     }
 
-    /* the code will not only copy here the "bin centers" passed in
-       input. It will add an initial and final value for (z,xe).
+    /* the code will not only copy here the "bin centers" passed in input. It will add an initial and final value for (z,xe).
        First, fill all entries except the first and the last */
-
     for (bin=1; bin<preio->reio_num_z-1; bin++) {
       preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->binned_reio_z[bin-1];
       preio->reionization_parameters[preio->index_reio_first_xe+bin] = pth->binned_reio_xe[bin-1];
     }
 
-
-    /* find largest value of z in the array. We choose to define it as
-       z_(i_max) + 2*(the distance between z_(i_max) and z_(i_max-1)). E.g. if
+    /* find largest value of z in the array. We choose to define it as z_(i_max) + 2*(the distance between z_(i_max) and z_(i_max-1)). E.g. if
        the bins are in 10,12,14, the largest z will be 18. */
     preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
       preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
@@ -3065,10 +3006,8 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
                preio->reionization_parameters[preio->index_reio_start],
                ppr->reionization_z_start_max);
 
-    /* find smallest value of z in the array. We choose
-       to define it as z_0 - (the distance between z_1 and z_0). E.g. if
+    /* find smallest value of z in the array. We choose to define it as z_0 - (the distance between z_1 and z_0). E.g. if
        the bins are in 10,12,14, the stop redshift will be 8. */
-
     preio->reionization_parameters[preio->index_reio_first_z] =
       2.*preio->reionization_parameters[preio->index_reio_first_z+1]
       -preio->reionization_parameters[preio->index_reio_first_z+2];
@@ -3085,7 +3024,8 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
     }
 
     /* infer xe after reio */
-    preio->reionization_parameters[preio->index_reio_first_xe] = 1. + pth->YHe/(_not4_*(1.-pth->YHe));    /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, checked before that denominator is non-zero) */
+    preio->reionization_parameters[preio->index_reio_first_xe] = 1. + pth->YHe/(_not4_*(1.-pth->YHe)); /* xe_after_reio: H + singly ionized He (note: segmentation fault impossible, 
+                                                                                                          checked before that denominator is non-zero) */
 
     /* pass step sharpness parameter */
     preio->reionization_parameters[preio->index_reio_step_sharpness] = pth->binned_reio_step_sharpness;
@@ -3111,10 +3051,8 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
 
     }
 
-    /* the code will not only copy here the "jump centers" passed in
-       input. It will add an initial and final value for (z,xe).
+    /* the code will not only copy here the "jump centers" passed in input. It will add an initial and final value for (z,xe).
        First, fill all entries except the first and the last */
-
     for (bin=1; bin<preio->reio_num_z-1; bin++) {
 
       preio->reionization_parameters[preio->index_reio_first_z+bin] = pth->many_tanh_z[bin-1];
@@ -3142,8 +3080,7 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
       preio->reionization_parameters[preio->index_reio_first_xe+bin] = xe_actual;
     }
 
-    /* find largest value of z in the array. We choose to define it as
-       z_(i_max) + ppr->reionization_start_factor*step_sharpness. */
+    /* find largest value of z in the array. We choose to define it as z_(i_max) + ppr->reionization_start_factor*step_sharpness. */
     preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1] =
       preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-2]
       +ppr->reionization_start_factor*pth->many_tanh_width;
@@ -3158,9 +3095,7 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
                preio->reionization_parameters[preio->index_reio_start],
                ppr->reionization_z_start_max);
 
-    /* find smallest value of z in the array. We choose
-       to define it as z_0 - ppr->reionization_start_factor*step_sharpness, but at least zero. */
-
+    /* find smallest value of z in the array. We choose to define it as z_0 - ppr->reionization_start_factor*step_sharpness, but at least zero. */
     preio->reionization_parameters[preio->index_reio_first_z] =
       preio->reionization_parameters[preio->index_reio_first_z+1]
       -ppr->reionization_start_factor*pth->many_tanh_width;
@@ -3216,8 +3151,7 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
                  pth->reio_inter_z[point]);
     }
 
-    /* this parametrization requires that the last x_i value is zero
-       (the code will substitute it with the value that one would get in
+    /* this parametrization requires that the last x_i value is zero (the code will substitute it with the value that one would get in
        absence of reionization, as compute by the recombination code) */
     class_test(pth->reio_inter_xe[pth->reio_inter_num-1] != 0.,
                pth->error_message,
@@ -3275,13 +3209,11 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
 
 }
 
+
 /**
- * This function is called in the evolvers loop if the input for
- * reionization is tau_reio. Instead of the final evolution in the last
- * iteration, reionization is computed by this function instead.
- * Instead of computing for a fixed z_reio, we find z_reio by bisection.
- * First we make an initial guess for z_reio with reionization_z_start_max
- * and then find a z_reio which leads to the given tau_reio
+ * This function is called in the evolvers loop if the input for reionization is tau_reio. Instead of the final evolution in the last
+ * iteration, reionization is computed by this function instead. Instead of computing for a fixed z_reio, we find z_reio by bisection.
+ * First we make an initial guess for z_reio with reionization_z_start_max and then find a z_reio which leads to the given tau_reio
  * (in the range of tolerance reionization_optical_depth_tol).
  *
  * @param ptpaw      Input: pointer to parameters and workspace
@@ -3289,17 +3221,17 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
  * @param mz_end     Input: ending redshift
  * @param mz_output  Input: pointer to redshift array
  * @param Nz         Input: number of redshift values in array
- *
  * @return the error status
  */
-
 int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters_and_workspace * ptpaw,
                                                 double mz_ini,
                                                 double mz_end,
                                                 double * mz_output,
-                                                int Nz) {
+                                                int Nz){
 
-  /** - define local variables */
+  /** Summary: */
+
+  /** Define local variables */
   int counter;
   double z_sup,z_mid,z_inf;
   double tau_sup,tau_mid,tau_inf;
@@ -3316,20 +3248,16 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   extern int evolver_ndf15();
   int (*generic_evolver)();
 
-
   /** - Remame fields to avoid heavy notations */
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   pth = ptpaw->pth;
   ptw = ptpaw->ptw;
 
-
-
   /** - Initialize two thermo vectors, one to store initial conditions and one temporary vector for the calculations in the bisection */
   struct thermo_vector * ptv; // Temporary vector as workspace
   struct thermo_vector * ptvs; // Vector for storing the initial conditions
   ptvs = ptw->ptdw->tv;
-
 
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
 
@@ -3358,7 +3286,6 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
 
   ptw->ptdw->tv = ptv;
-
 
   /* upper value */
   z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
@@ -3445,9 +3372,7 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
                pth->error_message,
                "starting redshift for reionization > reionization_z_start_max = %e",ppr->reionization_z_start_max);
 
-
     /* Compute a new ionization history */
-
     class_call(generic_evolver(thermodynamics_solve_derivs,
                                mz_ini,
                                mz_end,
@@ -3485,7 +3410,6 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
     tau_mid=ptw->reionization_optical_depth;
 
     /* trial */
-
     if (tau_mid > pth->tau_reio) {
         z_sup=z_mid;
         tau_sup=tau_mid;
@@ -3494,7 +3418,6 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
         z_inf=z_mid;
         tau_inf=tau_mid;
     }
-
 
     counter++;
     class_test(counter > _MAX_IT_,
@@ -3516,6 +3439,7 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
 
 }
 
+
 /**
  * Routine to get the optical depth of reionization
  *
@@ -3523,13 +3447,14 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param ptw        Input: pointer to thermodynamics workspace
- *
  * @return the error status
  */
 int thermodynamics_reionization_get_tau(struct precision * ppr,
                                         struct background * pba,
                                         struct thermo * pth,
-                                        struct thermo_workspace * ptw) {
+                                        struct thermo_workspace * ptw){
+
+  /** Summary: */
 
   /** Define local variables */
   /* running index inside thermodynamics table */
@@ -3570,36 +3495,29 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
              pth->error_message,
              pth->error_message);
 
-  ptw->reionization_optical_depth *= -1; //The tau sampling is inverted, so we have to correct for that here
+  ptw->reionization_optical_depth *= -1; // The tau sampling is inverted, so we have to correct for that here
 
   return _SUCCESS_;
 
 }
 
+
 /**
- * This function is passed to the generic evolver and is called whenever
- * we want to store values for a given z that is passed in mz_output.
- * Depending on the current approximation scheme the ionization fraction
- * is either computed analytically, semi-analytically or from the
- * (interpolated) output values of y. Moreover there is an automatic
- * smoothing enabled which smoothes out the the ionization_fraction
+ * This function is passed to the generic evolver and is called whenever we want to store values for a given z that is passed in mz_output.
+ * Depending on the current approximation scheme the ionization fraction is either computed analytically, semi-analytically or from the
+ * (interpolated) output values of y. Moreover there is an automatic smoothing enabled which smoothes out the the ionization_fraction
  * after each approximation switch.
  *
- * This is one of the few functions in the code which is passed to
- * the generic_evolver() routine. Since generic_evolver()
- * should work with functions passed from various modules, the format
- * of the arguments is a bit special:
+ * This is one of the few functions in the code which is passed to the generic_evolver() routine. Since generic_evolver()
+ * should work with functions passed from various modules, the format of the arguments is a bit special:
  *
- * - fixed parameters and workspaces are passed through a generic
- * pointer.  generic_evolver() doesn't know the content of this
- * pointer.
+ * - fixed parameters and workspaces are passed through a generic pointer. generic_evolver() doesn't know the content of this
+ *   pointer.
  *
- * - the error management is a bit special: errors are not written as
- * usual to pth->error_message, but to a generic error_message passed
- * in the list of arguments.
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic error_message passed
+ *   in the list of arguments.
  *
- * All quantities are computed by a simple call to
- * thermodynamics_solve_derivs, which computes all necessary quantities
+ * All quantities are computed by a simple call to thermodynamics_solve_derivs, which computes all necessary quantities
  * and stores them in the ptdw thermo_diffeq_workspace structure
  *
  * @param mz                       Input: negative redshift
@@ -3610,13 +3528,14 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
  * @param error_message            Output: error message
  * @return the error status
  */
-
 int thermodynamics_solve_store_sources(double mz,
                                        double * y,
                                        double * dy,
                                        int index_z,
                                        void * thermo_parameters_and_workspace,
-                                       ErrorMsg error_message) {
+                                       ErrorMsg error_message){
+
+  /** Summary: */
 
   /** Define local variables */
   /* Redshift and ionization fraction */
@@ -3673,9 +3592,7 @@ int thermodynamics_solve_store_sources(double mz,
       // infer f2(x) = smooth function interpolating from 0 to 1 
       weight = f2(s);
 
-
       x = weight*x+(1.-weight)*x_previous;
-
     }
 
   }
@@ -3701,11 +3618,10 @@ int thermodynamics_solve_store_sources(double mz,
 
 }
 
+
 /**
- * This function is just for book-keeping of the evolvers.
- * The rkck needs an actual timescale of the evolved quantities,
- * but the ndf15 does not
- *
+ * This function is just for book-keeping of the evolvers. The rkck needs an actual timescale of the evolved quantities,
+ * but the ndf15 does not.
  *
  * @param z             Input: redshift
  * @param thermo_...    Input: pointer to parameters and workspace
@@ -3713,15 +3629,15 @@ int thermodynamics_solve_store_sources(double mz,
  * @param error_message Output: possible errors are written here
  * @return the error status
  */
-
 int thermodynamics_solve_timescale(double z,
                                    void * thermo_parameters_and_workspace,
                                    double * timescale,
-                                   ErrorMsg error_message) {
+                                   ErrorMsg error_message){
   *timescale = 1.;
   return _SUCCESS_;
 
 }
+
 
 /**
  * Function for formatting the titles to be output
@@ -3729,11 +3645,8 @@ int thermodynamics_solve_timescale(double z,
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param titles     Input: titles string containing all titles
- *
  * @return the error status
  */
-
-
 int thermodynamics_output_titles(struct background * pba,
                                  struct thermo *pth,
                                  char titles[_MAXTITLESTRINGLENGTH_]) {
@@ -3755,7 +3668,9 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"r_d",pth->compute_damping_scale);
 
   return _SUCCESS_;
+
 }
+
 
 /**
  * Output the data for the output into files
@@ -3764,22 +3679,19 @@ int thermodynamics_output_titles(struct background * pba,
  * @param pth                 Input: pointer to the thermodynamics structure
  * @param number_of_titles    Input: number of titles
  * @param data                Input: pointer to data file
- *
  * @return the error status
  */
-
 int thermodynamics_output_data(struct background * pba,
                                struct thermo *pth,
                                int number_of_titles,
-                               double *data) {
+                               double *data){
 
   int index_z, storeidx;
   double *dataptr, *pvecthermo;
   double z,tau;
 
-  //  pth->number_of_thermodynamics_titles = get_number_of_titles(pth->thermodynamics_titles);
-  //pth->size_thermodynamics_data = pth->number_of_thermodynamics_titles*pth->tt_size;
-
+  // pth->number_of_thermodynamics_titles = get_number_of_titles(pth->thermodynamics_titles);
+  // pth->size_thermodynamics_data = pth->number_of_thermodynamics_titles*pth->tt_size;
 
   /* Store quantities: */
   for (index_z=0; index_z<pth->tt_size; index_z++){
@@ -3815,5 +3727,6 @@ int thermodynamics_output_data(struct background * pba,
   }
 
   return _SUCCESS_;
+
 }
 

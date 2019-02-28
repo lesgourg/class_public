@@ -26,8 +26,8 @@ enum recombination_algorithm {
  */
 
 enum reionization_parametrization {
-  reio_none, /**< no reionization */
-  reio_camb,  /**< reionization parameterized like in CAMB */
+  reio_none,       /**< no reionization */
+  reio_camb,       /**< reionization parameterized like in CAMB */
   reio_bins_tanh,  /**< binned reionization history with tanh inteprolation between bins */
   reio_half_tanh,  /**< half a tanh, instead of the full tanh */
   reio_many_tanh,  /**< similar to reio_camb but with more than one tanh */
@@ -166,9 +166,9 @@ struct thermo
 
   //@{
 
-  int tt_size; /**< number of lines (redshift steps) in the tables */
-  double * z_table; /**< vector z_table[index_z] with values of redshift (vector of size tt_size) */
-  double * tau_table; /**< vector tau_table[index_tau] with values of conformal time (vector of size tt_size) */
+  int tt_size;                   /**< number of lines (redshift steps) in the tables */
+  double * z_table;              /**< vector z_table[index_z] with values of redshift (vector of size tt_size) */
+  double * tau_table;            /**< vector tau_table[index_tau] with values of conformal time (vector of size tt_size) */
   double * thermodynamics_table; /**< table thermodynamics_table[index_z*pth->tt_size+pba->index_th] with all other quantities (array of size th_size*tt_size) */
 
   //@}
@@ -340,10 +340,10 @@ struct thermo_workspace {
   int Nz_tot;
 
   // Most important and useful parameters of evolution
-  double YHe;     /**< defined as in RECFAST */
-  double fHe;     /**< defined as in RECFAST */
-  double SIunit_H0;      /**< defined as in RECFAST */
-  double SIunit_nH0;     /**< defined as in RECFAST */
+  double YHe;          /**< defined as in RECFAST */
+  double fHe;          /**< defined as in RECFAST */
+  double SIunit_H0;    /**< defined as in RECFAST */
+  double SIunit_nH0;   /**< defined as in RECFAST */
   double Tcmb;
   double R_g_factor;
   double x_limit_T;
@@ -500,7 +500,6 @@ extern "C" {
                                           struct thermo * pth,
                                           struct thermo_workspace * ptw);
 
-
   int thermodynamics_set_approximation_limits(struct precision * ppr,
                                               struct background * pba,
                                               struct thermo * pth,
@@ -536,7 +535,8 @@ extern "C" {
                                                     struct thermo* pth,
                                                     double* pvecback);
 
-  int thermodynamics_calculate_opticals(struct precision* ppr, struct thermo* pth);
+  int thermodynamics_calculate_opticals(struct precision* ppr, 
+                                        struct thermo* pth);
 
   int thermodynamics_calculate_conformal_drag_time(struct background* pba,
                                                    struct thermo* pth,
@@ -560,7 +560,8 @@ extern "C" {
                                                int* last_index_back,
                                                double* pvecback);
 
-  int thermodynamics_print_output(struct background* pba, struct thermo* pth);
+  int thermodynamics_print_output(struct background* pba, 
+                                  struct thermo* pth);
 
 #ifdef __cplusplus
 }
