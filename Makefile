@@ -76,13 +76,9 @@ ifneq ($(HYREC),)
 vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
-<<<<<<< HEAD
 INCLUDES += -I../external/HyRec2012
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
-=======
-INCLUDES += -I../external/hyrec #[ML]
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
->>>>>>> 01c380729d50425fc340dc48354a9429c21026d9
+
 endif
 
 %.o:  %.c .base
