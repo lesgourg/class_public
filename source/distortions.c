@@ -91,7 +91,6 @@ int distortions_free(struct distortions * psd) {
     free(psd->x);
     free(psd->z_weights);
 
-
     /* Delete branching ratios */
     for(index_type=0;index_type<psd->type_size;++index_type){
       free(psd->br_table[index_type]);
@@ -114,6 +113,7 @@ int distortions_free(struct distortions * psd) {
 
     /* Delete distortion amplitudes */
     free(psd->sd_parameter_table);
+
     /* Delete total distortion */
     free(psd->DI);
   }
@@ -134,7 +134,7 @@ int distortions_indices(struct distortions * psd) {
   int index_ht = 0;
   int index_type = 0;
 
-  /** Define indeces for table heating_table defined in distortions_heating_rate() */
+  /** Define indeces for table heating_table defined in distortions_heating_rate */
   class_define_index(psd->index_ht_dQrho_dz_cool,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_diss,_TRUE_,index_ht,1);
   class_define_index(psd->index_ht_dQrho_dz_CRR,_TRUE_,index_ht,1);
@@ -147,9 +147,9 @@ int distortions_indices(struct distortions * psd) {
 
   psd->ht_size = index_ht;
 
-  /** Define indeces for tables - br_table defined in distortions_branching_ratios(),
-                                - sd_parameter_table defined in distortions_amplitudes() and
-                                - distortions_table defined in distortions_at_x() */
+  /** Define indeces for tables - br_table defined in distortions_branching_ratios,
+                                - sd_parameter_table defined in distortions_amplitudes and
+                                - distortions_table defined in distortions_at_x */
   class_define_index(psd->index_type_g,_TRUE_,index_type,1);
   class_define_index(psd->index_type_y,_TRUE_,index_type,1);
   class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
@@ -454,15 +454,15 @@ int distortions_compute_heating_rate(struct precision * ppr,
 
   /** Define local variables */
   int index_z;
-  double tau;
-  int last_index_back,last_index_thermo;
+  double tau, bb_vis;
+  int last_index_back, last_index_thermo;
   double * pvecback, O_b, h, H, a, t, rho_g, R, T_g0;
   double * pvecthermo, dk, dkD_dz, kD, N_e, X_e, Y_He;
   int index_ht;
   double alpha_h, tilde_rho_g, theta_g;
   double k_max, k_min, k_size, k_delta, k, pk_primordial_k, * int_dQrho_dz_diss_full, * int_dQrho_dz_diss_approx;
   double g_h;
-  double bb_vis;
+
 
   /** Allocate space for heating rates in heating_table */
   class_alloc(psd->heating_table,
@@ -612,7 +612,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
 
     /* Total heating rate */
     psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z] =
-                                        //psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
+                                        psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] +
                                         psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] +
@@ -911,13 +911,12 @@ int distortions_read_Greens_data(struct precision * ppr,
                       psd->error_message,
                       "Could not read Greens x at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
     for(j=0;j<psd->Greens_Nz;++j){
-      class_test(fscanf(infile,"%le",&(psd->Greens_function[i*psd->Greens_Nz+j]))!=1,  // [??]
+      class_test(fscanf(infile,"%le",&(psd->Greens_function[i*psd->Greens_Nz+j]))!=1,  // [10^-26 W/(m^2 Hz sr)]
                         psd->error_message,
                         "Could not read Greens function at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
     }
-//double x = psd->Greens_x[i];
-    //printf("%g %g %g\n",x,pow(x,4.)*exp(x)/pow(exp(x)-1,2.)*psd->DI_units*1.e18*1e8, psd->Greens_function[i*psd->Greens_Nz+(psd->Greens_Nz-1)]);
-    class_test(fscanf(infile,"%le",&(psd->Greens_blackbody[i]))!=1,                    // [??]
+
+    class_test(fscanf(infile,"%le",&(psd->Greens_blackbody[i]))!=1,                    // [10^-26 W/(m^2 Hz sr)]
                       psd->error_message,
                       "Could not read Greens blackbody at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
   }
@@ -1041,8 +1040,7 @@ int distortions_interpolate_Greens_data(struct distortions* psd,
   double h_z, a_z, b_z;
   int index_x = *last_index_x;
   double h_x, a_x, b_x;
-  int j, i;
-  double * Greens_function_at_z, * ddGreens_function_at_z;
+  double greens_at_index_x, greens_at_index_xp1;
 
   /** Find z position */
   class_call(array_spline_hunt(psd->Greens_z,
@@ -1095,21 +1093,18 @@ int distortions_interpolate_Greens_data(struct distortions* psd,
                                                     h_x,a_x,b_x);
 
   /** Interpolate G_th(z,x) */
-  double greens_at_index_x = array_interpolate_spline_hunt(psd->Greens_function+index_x*psd->Greens_Nz,
-                                                   psd->ddGreens_function+index_x*psd->Greens_Nz,
-                                                   index_z,
-                                                   index_z+1,
-                                                   h_z,a_z,b_z);
-  double greens_at_index_xp1 = array_interpolate_spline_hunt(psd->Greens_function+(index_x+1)*psd->Greens_Nz,
-                                                   psd->ddGreens_function+(index_x+1)*psd->Greens_Nz,
-                                                   index_z,
-                                                   index_z+1,
-                                                   h_z,a_z,b_z);
-  *Greens_function = a_x * greens_at_index_x + b_x * greens_at_index_xp1; //linear interpolation in x is much faster
-  
-  /* Free allocated memory for temporary quantities */
-  free(Greens_function_at_z);
-  free(ddGreens_function_at_z);
+  /* Linear interpolation is much faster and yields same precision as more advanced options */
+  greens_at_index_x = array_interpolate_spline_hunt(psd->Greens_function+index_x*psd->Greens_Nz,
+                                                    psd->ddGreens_function+index_x*psd->Greens_Nz,
+                                                    index_z,
+                                                    index_z+1,
+                                                    h_z,a_z,b_z);
+  greens_at_index_xp1 = array_interpolate_spline_hunt(psd->Greens_function+(index_x+1)*psd->Greens_Nz,
+                                                      psd->ddGreens_function+(index_x+1)*psd->Greens_Nz,
+                                                      index_z,
+                                                      index_z+1,
+                                                      h_z,a_z,b_z);
+  *Greens_function = a_x * greens_at_index_x + b_x * greens_at_index_xp1;
 
   return _SUCCESS_;
 
@@ -1166,7 +1161,7 @@ int distortions_evaluate_PCA(struct precision * ppr,
   int index_za, index_zb;
   double delta_I_c, **Fisher_matrix;
 
-  /* Read and spline data from file Greens_data.dat */
+  /** Read and spline data from file Greens_data.dat */
   class_call(distortions_read_Greens_data(ppr,psd),
              psd->error_message,
              psd->error_message);
@@ -1246,7 +1241,7 @@ int distortions_evaluate_PCA(struct precision * ppr,
                 psd->error_message);
   }
 
-  /* Calculate vectors of spectral shapes */
+  /** Calculate vectors of spectral shapes */
   mod_Y_squared = 0.; 
   for(index_x=0; index_x<psd->x_size; ++index_x){
     x = psd->x[index_x];
@@ -1280,7 +1275,7 @@ int distortions_evaluate_PCA(struct precision * ppr,
   }
   mod_Y = sqrt(mod_Y_squared);
 
-  /* Calculate unity vectors with relative dot products and moduli */
+  /** Calculate unity vectors with relative dot products and moduli */
   M_y = 0.;
   G_y = 0.;
   for(index_x=0; index_x<psd->x_size; ++index_x){
@@ -1313,7 +1308,7 @@ int distortions_evaluate_PCA(struct precision * ppr,
     e_g[index_x] = G_per[index_x]/mod_G_per;
   }
       
-  /* Calculate branching ratios */
+  /** Calculate branching ratios */
   for(index_z=0; index_z<psd->z_size; ++index_z){
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
@@ -1332,7 +1327,7 @@ int distortions_evaluate_PCA(struct precision * ppr,
     f_g[index_z] += 1.-bb_vis;
   }
 
-  /* Calculate residual shape */
+  /** Calculate residual shape */
   delta_ln_z = log(psd->z[1])-log(psd->z[0]);
   for(index_z=0; index_z<psd->z_size; ++index_z){
     for(index_x=0; index_x<psd->x_size; ++index_x){
@@ -1341,8 +1336,8 @@ int distortions_evaluate_PCA(struct precision * ppr,
     }
   }
 
-  /* Calculate Fisher matrix */
-  delta_I_c = 5.e-8;                                                              // [10^-18 W/(m^2 Hz sr)]
+  /** Calculate Fisher matrix */
+  delta_I_c = 5.e-8;                                                                  // [10^-18 W/(m^2 Hz sr)]
   for(index_za=0; index_za<psd->z_size; ++index_za){
     for(index_zb=0; index_zb<psd->z_size; ++index_zb){
 

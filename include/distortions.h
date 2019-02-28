@@ -1,5 +1,6 @@
 /** @file distortions.h Documented module on spectral distortions
  * Matteo Lucca, 31.10.2018
+ * Nils Schoeneberg, 18.02.2019
  */
 
 #ifndef __DISTORTIONS__
@@ -129,7 +130,7 @@ struct distortions
   double * f_mu_exact;
   double * ddf_mu_exact;
 
-  double * E_vec;                /* E_vec[index_e][index_z] with index_e=1-8 */
+  double * E_vec;                            /* E_vec[index_e][index_z] with index_e=1-8 */
   double * ddE_vec;
   int E_vec_size;
 
@@ -144,7 +145,7 @@ struct distortions
   double * PCA_M_mu;
   double * ddPCA_M_mu;
 
-  double * S_vec;                /* S_vec[index_s][index_x] with index_e=1-8 */
+  double * S_vec;                            /* S_vec[index_s][index_x] with index_e=1-8 */
   double * ddS_vec;
   int S_vec_size;
 
