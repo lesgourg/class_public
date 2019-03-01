@@ -1,89 +1,113 @@
+#!/usr/bin/env python
+
 import numpy as np
 import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
 from numpy.linalg import norm as vector_norm
-from numpy.linalg import eig as eigen_vals_vecs #eigh is different from eig
+from numpy.linalg import eig as eigen_vals_vecs # eigh is different from eig
+
 def PCA_string_to_array(line,delimiter=" "):
   line = line.replace("\n","")
   if delimiter is not "\t":
     line = line.replace("\t","")
   return np.array([float(x) for x in line.split(delimiter) if (x is not "" and x is not " ")])
 
-def gen_PCA_files(readfile,xarray,zarray,zth,DI_units,delta_I_c,N_PCA):
+def gen_PCA_files(detector_name, nu_min, nu_max, delta_nu, delta_I_c, N_PCA):
+
+  readfile = "Greens_data.dat"
+
+  DI_units = 2.70062634e-18
+  x_to_nu = 56.7798
+
+  # Read external file Greens_data.dat
   with open(readfile) as f:
-    #Read the header first
+    # Read the header first
     header = True
     while(header):
       line = f.readline()
       if(line.startswith("#")):
         continue
-      #The first line of the header without the "#" is still part of the header
+      # The first line of the header without the "#" is still part of the header
       header=False
 
-    #Read the first line specifying z
-    greens_z = PCA_string_to_array(f.readline())
-    Nz = len(greens_z)
+    # Read the first line specifying z
+    Greens_z = PCA_string_to_array(f.readline())
+    Greens_Nz = len(Greens_z)
 
-    #Read (and ignore) T_ini,T_last and rho
-    T_ini = PCA_string_to_array(f.readline())
-    T_last = PCA_string_to_array(f.readline())
-    rho = PCA_string_to_array(f.readline())
+    # Read (and ignore) T_ini,T_last and rho
+    Greens_T_ini = PCA_string_to_array(f.readline())
+    Greens_T_last = PCA_string_to_array(f.readline())
+    Greens_rho = PCA_string_to_array(f.readline())
 
-    #Read the rest of the file
+    # Read the rest of the file
     done = False
-    greens_data_full = []
+    Greens_data_full = []
     while(not done):
       line = f.readline()
       if(not line):
         done = True
       else:
-        greens_data_full.append(PCA_string_to_array(line))
-    greens_data_full = np.array(greens_data_full).T
+        Greens_data_full.append(PCA_string_to_array(line))
+    Greens_data_full = np.array(Greens_data_full).T
 
-    #Seperate the rest of the data into x, Green(z,x) and the blackbody
-    greens_x = greens_data_full[0]
-    Nx = len(greens_x)
-    greens_Green = greens_data_full[1:Nz+1]
-    blackbody = greens_data_full[Nz+1]
+    # Seperate the rest of the data into x, Green(z,x) and the blackbody
+    Greens_x = Greens_data_full[0]
+    Greens_Nx = len(Greens_x)
+    Greens_G_th = Greens_data_full[1:Greens_Nz+1]
+    Greens_blackbody = Greens_data_full[Greens_Nz+1]
 
-    #Define visibility function
-    bb_vis = np.exp(-(zarray/zth)**2.5)
+    # Spline Greens function for interpolation
+    Greens_G_th_Spline = [None for index_x_old in range(Greens_Nx)]
+    for index_x_old in range(Greens_Nx):
+      Greens_G_th_Spline[index_x_old] = sciint.CubicSpline(Greens_z,Greens_G_th[:,index_x_old])
 
-    #Spline Greens function for interpolation
-    greens_GreenSpline = [None for ioldx in range(Nx)]
-    for ioldx in range(Nx):
-      greens_GreenSpline[ioldx] = sciint.CubicSpline(greens_z,greens_Green[:,ioldx])
+    # Define new z and x arrays
+    z_min = 1.02e3
+    z_max = 5.0e6
+    z_size = 1000
+    z_arr = np.logspace(np.log10(z_min),np.log10(z_max),z_size)
+    Nz_arr = len(z_arr)
 
-    #Define new arrays
-    Nxnew = len(xarray)
-    Nznew = len(zarray)
-    newGreen = np.zeros((Nxnew,Nznew))
-    Gdist = np.zeros(Nxnew)
-    Ydist = np.zeros(Nxnew)
-    Mdist = np.zeros(Nxnew)
+    x_size = (nu_max-nu_min)/delta_nu
+    x_arr = np.linspace(nu_min/x_to_nu,nu_max/x_to_nu,x_size)
+    Nx_arr = len(x_arr)
 
-    #Interpolate Greens function
-    ioldx = 0
-    for inewx,x in enumerate(xarray):
+    # Define visibility function
+    z_th = 1.98e6
+    bb_vis = np.exp(-(z_arr/z_th)**2.5)
+
+    # Initialize spectral shapes
+    G_th = np.zeros((Nx_arr,Nz_arr))
+    Gdist = np.zeros(Nx_arr)
+    Ydist = np.zeros(Nx_arr)
+    Mdist = np.zeros(Nx_arr)
+
+    # Interpolate Green's function
+    index_x_old = 0
+    for index_x_new,x in enumerate(x_arr):
       try:
-        #Find position in xarray
-        while(x<greens_x[ioldx]):
-          ioldx+=1
-        #Linear interpolation in x
-        frac = (x-greens_x[ioldx])/(greens_x[ioldx+1]-greens_x[ioldx])
-        #Cubic interpolation for all values of z
-        lowx_vals = greens_GreenSpline[ioldx](zarray)
-        highx_vals = greens_GreenSpline[ioldx+1](zarray)
-        newGreen[inewx,:] = (lowx_vals *(1.-frac) + highx_vals * frac)
-        newGreen[inewx,:] *= 1.0e-8*bb_vis # Units, and energy deposition
-      except:
-        raise ValueError("{} is not in the file range [{},{}] for file '{}'".format(x,greens_x[0],greens_x[-1],readfile))
-      #Define additional distortions
-      Gdist[inewx] = (x**4*np.exp(x)/(np.exp(x)-1)**2)*DI_units*1.0e18
-      Ydist[inewx] = Gdist[inewx]*(x/np.tanh(x/2.)-4.)
-      Mdist[inewx] = Gdist[inewx]*(1./2.19229-1./x)
+        # Find position in xarray
+        while(x>Greens_x[index_x_old]):
+          index_x_old += 1
+        # Linear interpolation in x
+        frac = (x-Greens_x[index_x_old])/(Greens_x[index_x_old+1]-Greens_x[index_x_old])
 
-    #Begin orthonormlization
+        # Cubic interpolation for all values of z
+        lowx_vals = Greens_G_th_Spline[index_x_old](z_arr)
+        highx_vals = Greens_G_th_Spline[index_x_old+1](z_arr)
+
+        G_th[index_x_new,:] = (lowx_vals*(1.-frac)+highx_vals*frac)
+        G_th[index_x_new,:] *= 1.0e-8*bb_vis # Units, and energy deposition
+	#print x, G_th[index_x_new,400], Greens_x[index_x_old]
+      except:
+        raise ValueError("{} is not in the file range [{},{}] for file '{}'".format(x,Greens_x[0],Greens_x[-1],readfile))
+
+      # Define spectral shapes
+      Gdist[index_x_new] = (x**4*np.exp(x)/(np.exp(x)-1)**2)*DI_units*1.0e18
+      Ydist[index_x_new] = Gdist[index_x_new]*(x/np.tanh(x/2.)-4.)
+      Mdist[index_x_new] = Gdist[index_x_new]*(1./2.19229-1./x)
+
+    # Begin orthonormlization
     # Y distortion
     e_Y = Ydist/vector_norm(Ydist)
     M_Y = np.dot(e_Y,Mdist)
@@ -96,130 +120,97 @@ def gen_PCA_files(readfile,xarray,zarray,zth,DI_units,delta_I_c,N_PCA):
     Gperp = Gdist-G_Y*e_Y-G_M*e_M
     e_G = Gperp/vector_norm(Gperp)
 
+    f_g = np.zeros(Nz_arr)
+    f_mu = np.zeros(Nz_arr)
+    f_y = np.zeros(Nz_arr)
+    # Now, factorize G into orthonormal subspace
+    for index_z in range(Nz_arr):
+      # Compute non-normalized components
+      f_g[index_z]  = (np.dot(G_th[:,index_z],e_G))/vector_norm(Gperp)
+      f_mu[index_z] = (np.dot(G_th[:,index_z],e_M)-G_M*f_g[index_z])/vector_norm(Mperp)
+      f_y[index_z]  = (np.dot(G_th[:,index_z],e_Y)-M_Y*f_mu[index_z]-G_Y*f_g[index_z])/vector_norm(Ydist)
+      # Normalize, and re-instate energy conservation at early times
+      f_g[index_z]  = 4.*f_g[index_z] + (1.-bb_vis[index_z])
+      f_mu[index_z] = f_mu[index_z]/1.401
+      f_y[index_z]  = 4.*f_y[index_z]
 
-    f_g = np.zeros(Nznew)
-    f_mu = np.zeros(Nznew)
-    f_y = np.zeros(Nznew)
-    #Now, factorize G into orthonormal subspace
-    for iz in range(Nznew):
-      #Compute non-normalized components
-      f_g[iz]  = (np.dot(newGreen[:,iz],e_G))/vector_norm(Gperp)
-      f_mu[iz] = (np.dot(newGreen[:,iz],e_M) - G_M*f_g[iz])/vector_norm(Mperp)
-      f_y[iz]  = (np.dot(newGreen[:,iz],e_Y) - M_Y*f_mu[iz] - G_Y*f_g[iz])/vector_norm(Ydist)
-      #Normalize, and re-instate energy conservation at early times
-      f_g[iz]  = 4.*f_g[iz] + (1.-bb_vis[iz])
-      f_mu[iz] = f_mu[iz]/1.401
-      f_y[iz]  = 4.*f_y[iz]
+    # Calculate non-normalized residual
+    Residual = np.zeros((Nz_arr,Nz_arr))
+    for index_x in range(Nx_arr):
+      for index_z in range(Nz_arr):
+        Residual[index_x,index_z] = G_th[index_x,index_z]-Gdist[index_x]*f_g[index_z]/4-Ydist[index_x]*f_y[index_z]/4-Mdist[index_x]*f_mu[index_z]*1.401
 
-    #Calculate non-normalized residual
-    Residual = np.zeros((Nxnew,Nznew))
-    for ix in range(Nxnew):
-      for iz in range(Nznew):
-        Residual[ix,iz] = newGreen[ix,iz]-Gdist[ix]*f_g[iz]/4-Ydist[ix]*f_y[iz]/4-Mdist[ix]*f_mu[iz]*1.401
+    # Calculate non-normalized fisher matrix
+    Fisher = np.zeros((Nz_arr,Nz_arr))
+    for index_za in range(Nz_arr):
+      for index_zb in range(Nz_arr):
+        Fisher[index_za,index_zb] = np.sum(Residual[:,index_za]*Residual[:,index_zb])
 
-    #Calculate non-normalized fisher matrix
-    Fisher = np.zeros((Nznew,Nznew))
-    for iza in range(Nznew):
-      for izb in range(Nznew):
-        Fisher[iza,izb] = np.sum(Residual[:,iza]*Residual[:,izb])
-
-    #Normalize fisher matrix
-    delta_ln_z = np.log(zarray[1])-np.log(zarray[0])
-    normalization = (delta_ln_z/delta_I_c)**2
+    # Normalize fisher matrix
+    delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
+    normalization = (delta_ln_z/(delta_I_c*1.e-18))**2
     Fisher/=normalization
 
-    #Solve eigenvalue problem
+    # Solve eigenvalue problem
     eigvals,eigvecs = eigen_vals_vecs(Fisher)
 
-    Evecs = np.real(eigvecs[:,:N_PCA]).T
-    Svecs = np.zeros((N_PCA,Nxnew))
-    for npca in range(N_PCA):
-      for ix in range(Nxnew):
-        Svecs[npca][ix] = np.dot(Evecs[npca],Residual[ix,:])
+    E_vecs = np.real(eigvecs[:,:N_PCA]).T
+    S_vecs = np.zeros((N_PCA,Nx_arr))
+    for index_pca in range(N_PCA):
+      for index_x in range(Nx_arr):
+        S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:])
 
+    # Create output files
     form = "%.10e" #Output formatting
 
-    #Write file for branching ratio (Evec)
-    with open("DET_branching_ratios.dat","w") as brfile:
+    # Write file for branching ratio (Evec)
+    with open(detector_name+"_branching_ratios.dat","w") as brfile:
       brfile.write("# In the file there is: z, J_T, J_y, J_mu, E_i (i=1-{})\n".format(N_PCA))
-      brfile.write("{} {}\n".format(Nznew,N_PCA))
-      for iz in range(Nznew):
-        brfile.write((form+" ") % zarray[iz])
-        brfile.write((form+" ") % f_g[iz])
-        brfile.write((form+" ") % f_y[iz])
-        brfile.write((form    ) % f_mu[iz])
-        for npca in range(N_PCA):
-          brfile.write((" "+form) % Evecs[npca][iz])
+      brfile.write("{} {}\n".format(Nz_arr,N_PCA))
+      for index_z in range(Nz_arr):
+        brfile.write((form+" ") % z_arr[index_z])
+        brfile.write((form+" ") % f_g[index_z])
+        brfile.write((form+" ") % f_y[index_z])
+        brfile.write((form    ) % f_mu[index_z])
+        for index_pca in range(N_PCA):
+          brfile.write((" "+form) % E_vecs[index_pca][index_z])
         brfile.write("\n")
 
-    #Write file for distortion shapes (Svec)
-    with open("DET_distortions_shapes.dat","w") as dsfile:
+    # Write file for distortion shapes (Svec)
+    with open(detector_name+"_distortions_shapes.dat","w") as dsfile:
       dsfile.write("# In the file there is: nu, G_T, Y_SZ, M_mu, S_i (i=1-{})\n".format(N_PCA))
-      dsfile.write("{} {}\n".format(Nxnew,N_PCA))
-      for ix in range(Nxnew):
-        dsfile.write((form+" ") % xarray[ix])
-        dsfile.write((form+" ") % Gdist[ix])
-        dsfile.write((form+" ") % Ydist[ix])
-        dsfile.write((form    ) % Mdist[ix])
-        for npca in range(N_PCA):
-          dsfile.write((" "+form) % Svecs[npca][ix])
+      dsfile.write("{} {}\n".format(Nx_arr,N_PCA))
+      for index_x in range(Nx_arr):
+        dsfile.write((form+" ") % x_arr[index_x])
+        dsfile.write((form+" ") % Gdist[index_x])
+        dsfile.write((form+" ") % Ydist[index_x])
+        dsfile.write((form    ) % Mdist[index_x])
+        for index_pca in range(N_PCA):
+          dsfile.write((" "+form) % S_vecs[index_pca][index_x])
         dsfile.write("\n")
 
-    print(Evecs)
-    print(Svecs)
-xnew = np.linspace(0.01,5.0,500)
-znew = np.logspace(np.log10(1.02e3),np.log10(5.0e6),1000)
-N_PCA = 4
-gen_PCA_files("Greens_data.dat",xnew,znew,1.98e6,2.70062634e-18,5.0e-8,N_PCA)
+    # Update list of detectors
+    # Open and read already present list
+#    with open("detector_list.dat") as detector_list:
+      # Read the header first
+#      header = True
+#      while(header):
+#        line = detector_list.readline()
+#        if(line.startswith("#")):
+#          continue
+        # The first line of the header without the "#" is still part of the header
+#        header=False
 
-"""
+#     done = False
+#     old_list = []
+#     while(not done):
+#      line = detector_list.readline()
+#      if(not line):
+#        done = True
+#      else:
+#        old_list.append(PCA_string_to_array(line))
+#     print old_list
 
-  /** Calculate unity vectors with relative dot products and moduli */
-  M_y = 0.;
-  G_y = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    e_y[index_x] = Y[index_x]/mod_Y;
-    M_y += e_y[index_x]*M[index_x];
-    G_y += e_y[index_x]*G[index_x];
-  }
 
-  mod_M_per_squared = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    M_per[index_x] = M[index_x]-M_y*e_y[index_x];
-    mod_M_per_squared += pow(M_per[index_x],2.);
-  }
-  mod_M_per = sqrt(mod_M_per_squared);
+gen_PCA_files("PIXIE_TEST", 30., 1000., 15., 5.0e-26, 8)
 
-  G_mu = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    e_mu[index_x] = M_per[index_x]/mod_M_per;
-    G_mu += e_mu[index_x]*G[index_x];
-  }
-  mod_G_per_squared = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    G_per[index_x] = G[index_x]-G_y*e_y[index_x]-G_mu*e_mu[index_x]; 
-    mod_G_per_squared += pow(G_per[index_x],2.);
-  }
-  mod_G_per = sqrt(mod_G_per_squared);
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    e_g[index_x] = G_per[index_x]/mod_G_per;
-  }
-  /** Calculate branching ratios */
-  for(index_z=0; index_z<psd->z_size; ++index_z){
-    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
-
-    e_g_dot_G_th = 0.;
-    e_mu_dot_G_th = 0.;
-    e_y_dot_G_th = 0.;
-    for(index_x=0; index_x<psd->x_size; ++index_x){
-      e_g_dot_G_th += e_g[index_x]*G_th[index_x][index_z];
-      e_mu_dot_G_th += e_mu[index_x]*G_th[index_x][index_z];
-      e_y_dot_G_th += e_y[index_x]*G_th[index_x][index_z]; 
-    }
-
-    f_g[index_z] = 4.*e_g_dot_G_th/mod_G_per;
-    f_mu[index_z] = (e_mu_dot_G_th-G_mu*f_g[index_z]/4.)/mod_M_per/1.401;
-    f_y[index_z] = (e_y_dot_G_th-1.401*M_y*f_mu[index_z]-G_y*f_g[index_z]/4.)*4./mod_Y;
-    f_g[index_z] += 1.-bb_vis;
-  }
-"""
