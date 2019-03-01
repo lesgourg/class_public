@@ -437,6 +437,10 @@ class_precision_parameter(distortions_z_size,int,500)
 class_precision_parameter(distortions_x_min,double,1.0e-2)
 class_precision_parameter(distortions_x_max,double,5.0e1)
 class_precision_parameter(distortions_x_size,int,500)
+/**
+ * Tolerance on the deviation of the distortions detector quality
+ */
+class_precision_parameter(tol_distortions_detector,double,1.e-6)
 
 
 

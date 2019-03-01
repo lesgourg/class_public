@@ -257,6 +257,25 @@ int distortions_get_xz_lists(struct precision * ppr,
  * Check wether the detector name and the detector properties
  * are a valid combination.
  *
+ * 
+ * There are four options for the user
+ *
+ * defined_name = true, defined_detector = true
+ * Meaning: The user requests a specific detector with specific settings
+ * --> Check that the detector exists and has the same settings
+ *
+ * defined_name = true, defined_detector = false
+ * Meaning: The user requests a specific detector
+ * --> Check that the detector exists and use the given settings
+ *
+ * defined_name = false, defined_detector = true
+ * Meaning: The user requests specific settings, but does not name their detector
+ * --> Check that the settings exists, or create them
+ *
+ * defined_name = false, defined_detector = false
+ * Meaning: The user just wants the default detector and settings
+ * --> Just use the default settings and skip this function
+ *
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
@@ -265,17 +284,30 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
   /** Local variables */
   FILE* det_list_file;
   char line[_LINE_LENGTH_MAX_];
-  char detector_name[_LINE_LENGTH_MAX_];
+  DetectorName detector_name;
   double nu_min,nu_max,nu_delta,delta_Ic;
   char * left;
   int headlines = 0;
   int i,j;
-  int found_detector = _FALSE_;
+  int found_detector;
+
+  if(psd->user_defined_name == _FALSE_){
+    /* The user wants the default */
+    if(psd->user_defined_detector == _FALSE_){
+      return _SUCCESS_; //Nothing more to do
+    }
+    /* The user wants a new detector with specified settings, but without name */
+    else{
+      /* Generate a custom name for this custom detector, so we can check if it has already been defined */
+      sprintf(psd->distortions_detector,"Custom__%.10e_%.10e_%.10e_%.10e__Detector",psd->nu_min_detector,psd->nu_max_detector,psd->nu_delta_detector,psd->delta_Ic_detector);
+    }
+  }
 
   /** Open file */
   class_open(det_list_file, "./external/distortions/detectors_list.dat", "r",
              psd->error_message);
 
+  found_detector = _FALSE_;
   while (fgets(line,_LINE_LENGTH_MAX_-1,det_list_file) != NULL) {
     headlines++;
 
@@ -287,32 +319,55 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
     if (left[0] > 39) {
       class_test(sscanf(line,"%s %lg %lg %lg %lg",detector_name,&nu_min,&nu_max,&nu_delta,&delta_Ic) != 5,
                  psd->error_message,
-                 "Could not read detector in file '%s'\n",
+                 "Could not read line %i in file '%s'\n",headlines,
                  "./external/distortions/known_detectors.dat");
+
       /* Detector has been found */
       if(strcmp(psd->distortions_detector,detector_name)==0){
+        printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         found_detector = _TRUE_;
-        class_test(fabs(psd->nu_min_detector-nu_min)<1e-10,
-                   psd->error_message,
-                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->nu_min_detector,nu_min);
-        class_test(fabs(psd->nu_max_detector-nu_max)<1e-10,
-                   psd->error_message,
-                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->nu_max_detector,nu_max);
-        class_test(fabs(psd->nu_delta_detector-nu_delta)<1e-10,
-                   psd->error_message,
-                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->nu_max_detector,nu_max);
-        class_test(fabs(psd->delta_Ic_detector-delta_Ic)<1e-10,
-                   psd->error_message,
-                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->delta_Ic_detector,delta_Ic);
+
+        printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    delta_Ic = %lg \n",nu_min,nu_max,nu_delta,delta_Ic);
+        /* If the user has defined the detector, check that their and our definitions agree */
+        if(psd->user_defined_detector){
+          class_test(fabs(psd->nu_min_detector-nu_min)>ppr->tol_distortions_detector,
+                     psd->error_message,
+                     "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->nu_min_detector,nu_min);
+          class_test(fabs(psd->nu_max_detector-nu_max)>ppr->tol_distortions_detector,
+                     psd->error_message,
+                     "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->nu_max_detector,nu_max);
+          class_test(fabs(psd->nu_delta_detector-nu_delta)>ppr->tol_distortions_detector,
+                     psd->error_message,
+                     "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->nu_max_detector,nu_max);
+          class_test(fabs(psd->delta_Ic_detector-delta_Ic)>ppr->tol_distortions_detector,
+                     psd->error_message,
+                     "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->delta_Ic_detector,delta_Ic);
+        }
+
+        /* In any case, just take the detector definition from the file */
+        psd->nu_min_detector = nu_min;
+        psd->nu_max_detector = nu_max;
+        psd->nu_delta_detector = nu_delta;
+        psd->delta_Ic_detector = delta_Ic;
       }
     }
   }
-  /* Either by now the detector has been found and everything is correct
-   * Or we need to define this new detector */
+
+  /* If the detector has not been found,
+   * either the user has specified the settings and we create a new one,
+   * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
-    class_call(distortions_evaluate_PCA(ppr,psd),
-               psd->error_message,
-               psd->error_message);
+    if(psd->user_defined_detector){
+      printf(" -> Generating detector '%s' \n",psd->distortions_detector);
+      //class_call(distortions_generate_detector(ppr,psd),
+      //           psd->error_message,
+      //           psd->error_message);
+    }
+    else{
+      class_stop(psd->error_message,
+                 "You asked for detector '%s', but it was not in the database '%s'.\nPlease check the name of your detector, or specify its properties if you want to create a new one",
+                 psd->distortions_detector,"./external/distortions/known_detectors.dat");
+    }
   }
   return _SUCCESS_;
 }
@@ -755,31 +810,31 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
 
   /* Print found parameters */
   if (psd->distortions_verbose > 1){
-    printf("-> total injected/extracted heat = %g\n", psd->Drho_over_rho);
+    printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
 
-    printf("-> g-parameter %g\n", psd->sd_parameter_table[psd->index_type_g]);
+    printf(" -> g-parameter %g\n", psd->sd_parameter_table[psd->index_type_g]);
     if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
-      printf("-> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
+      printf(" -> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
     }
     else{
-      printf("-> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
-      printf("Chluba 2016 (diss, exact): mu-parameter = %g\n",2.00e-08);
+      printf(" -> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
+      printf("    Chluba 2016 (diss, exact): mu-parameter = %g\n",2.00e-08);
     }
 
     if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
-      printf("-> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
+      printf(" -> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
     }
     else{
-      printf("-> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
-      printf("Chluba 2016 (diss, exact): y-parameter = %g\n",3.63e-9);
+      printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
+      printf("    Chluba 2016 (diss, exact): y-parameter = %g\n",3.63e-9);
     }
 
     if(psd->N_PCA > 0){
        for(index_e=0; index_e<psd->N_PCA; ++index_e){
-         printf("-> PCA multipole mu_%d = %g\n", index_e+1, psd->sd_parameter_table[psd->index_type_PCA+index_e]);
+         printf(" -> PCA multipole mu_%d = %g\n", index_e+1, psd->sd_parameter_table[psd->index_type_PCA+index_e]);
        }
-       printf("Chluba 2016 (diss, exact): mu_1 = %g\n",3.81e-08);
-       printf("Chluba 2016 (diss, exact): mu_2 = %g\n",-1.19e-09);
+       printf("    Chluba 2016 (diss, exact): mu_1 = %g\n",3.81e-08);
+       printf("    Chluba 2016 (diss, exact): mu_2 = %g\n",-1.19e-09);
     }
   }
   //8.11657e-06, 1.67681e-08, 2.02624e-06, -1.2776e-09 //soft_soft, cool + diss
@@ -1213,12 +1268,12 @@ int distortions_free_Greens_data(struct distortions * psd){
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_evaluate_PCA(struct precision * ppr,
-                             struct distortions * psd){
+int distortions_generate_detector(struct precision * ppr,
+                                  struct distortions * psd){
 
   /** Define local variables*/
   int is_success;
-  printf(" -> Running PCA generator externally\n -> Testing python\n");
+  printf(" -> Testing python\n");
   /* Test first whether or not python exists*/
   is_success = system("python --version");
   class_test(is_success == -1,

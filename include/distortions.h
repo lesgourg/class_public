@@ -12,7 +12,8 @@
 #include "perturbations.h"
 #include "primordial.h"
 
-
+#define _MAX_DETECTOR_NAME_LENGTH_ 100
+typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
 /**
  * All deistortions parameters and evolution that other modules need to know.
  */
@@ -34,11 +35,14 @@ struct distortions
   int dQrho_dz_diss_approx;                  /* Use full version of dQrho_dz_diss or its approximation? */
 
   int N_PCA;
-  char * distortions_detector;               /* Name of detector */
+  DetectorName distortions_detector;               /* Name of detector */
   double nu_min_detector;                    /* Minimum frequency of chosen detector */
   double nu_max_detector;                    /* Maximum frequency of chosen detector */
   double delta_Ic_detector;
-  int nu_delta_detector;                     /* Bin size of chosen detector */
+  double nu_delta_detector;                     /* Bin size of chosen detector */
+
+  int user_defined_detector;
+  int user_defined_name;
 
   //@}
 
@@ -224,8 +228,8 @@ extern "C" {
                                           int * last_index_x);
   int distortions_free_Greens_data(struct distortions * psd);
 
-  int distortions_evaluate_PCA(struct precision * ppr,
-                               struct distortions * psd);
+  int distortions_generate_detector(struct precision * ppr,
+                                    struct distortions * psd);
   int distortions_set_detector(struct precision * ppr,
                                struct distortions* psd);
 

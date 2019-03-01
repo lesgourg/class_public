@@ -2250,15 +2250,49 @@ int input_read_parameters(
   class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
-
-  if((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){
-    psd->distortions_detector = "PIXIE";
+  if(flag1 == _TRUE_){
+    strcpy(psd->distortions_detector,string1);
+    psd->user_defined_name = _TRUE_;
+  }
+  /* Then read detector properties */
+  class_call(parser_read_double(pfc,"detector nu min",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    psd->nu_min_detector = param1;
+    psd->user_defined_detector = _TRUE_;
+  }
+  class_call(parser_read_double(pfc,"detector nu max",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    psd->nu_max_detector = param1;
+    psd->user_defined_detector = _TRUE_;
+  }
+  class_call(parser_read_double(pfc,"detector nu delta",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    psd->nu_delta_detector = param1;
+    psd->user_defined_detector = _TRUE_;
+  }
+  class_call(parser_read_double(pfc,"detector accuracy",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if(flag1 == _TRUE_){
+    psd->delta_Ic_detector = param1;
+    psd->user_defined_detector = _TRUE_;
   }
 
-  /* Then read detector properties */
-  class_read_double("detector nu min",psd->nu_min_detector);
-  class_read_double("detector nu max",psd->nu_max_detector);
-  class_read_double("detector nu delta",psd->nu_delta_detector);
+  //class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
+  //           errmsg,
+  //           errmsg);
+  //psd->distortions_detector = string1;
+  //class_read_double("detector nu min",psd->nu_min_detector);
+  //class_read_double("detector nu max",psd->nu_max_detector);
+  //class_read_double("detector nu delta",psd->nu_delta_detector);
+  //class_read_double("detector accuracy",psd->delta_Ic_detector);
+
   /* Whether detector name and properties match will be checked later in distortions.c */
 
 
@@ -3205,7 +3239,13 @@ int input_default_params(
   /** - distortions structure */
   psd->N_PCA = 2; //[NS]
   psd->branching_approx = bra_exact; //[NS]
-  psd->distortions_detector = "PIXIE"; // [ML]
+  strcpy(psd->distortions_detector,"PIXIE"); // [ML]
+  psd->nu_min_detector = 30.;
+  psd->nu_max_detector = 1000.;
+  psd->nu_delta_detector = 1.;
+  psd->delta_Ic_detector = 5.0e-26;
+  psd->user_defined_detector = _FALSE_;
+  psd->user_defined_name = _FALSE_;
 
   /** - all verbose parameters */
 
