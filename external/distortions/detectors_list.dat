@@ -5,4 +5,4 @@
 #   4) the bin widthin in GHz and 
 #   5) the noise of the detector in W/(m^2 Hz sr)
 #
-PIXIE  30.0  1000.0   1.0   5.0e-26
+PIXIE  3.00e+01  1.00e+03  1.00e+00  5.00e-26
