@@ -2245,22 +2245,21 @@ int input_read_parameters(
 
   class_read_int("PCA size",psd->N_PCA);
 
+
+  /* First read the detector name */
   class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
-
-  if ((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){ 
+  if((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){
     psd->distortions_detector = "PIXIE";
-    psd->nu_min_detector = 30.;
-    psd->nu_max_detector = 1000.;
-    psd->nu_delta_detector = 1.;
   }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"other") != NULL) )){ 
-    psd->distortions_detector = "other"; 
-    class_read_double("detector nu min",psd->nu_min_detector);
-    class_read_double("detector nu max",psd->nu_max_detector);
-    class_read_double("detector nu delta",psd->nu_delta_detector);
-  }
+
+  /* Then read detector properties */
+  class_read_double("detector nu min",psd->nu_min_detector);
+  class_read_double("detector nu max",psd->nu_max_detector);
+  class_read_double("detector nu delta",psd->nu_delta_detector);
+  /* Whether detector name and properties match will be checked later in distortions.c */
+
 
   /** (e) parameters for final spectra */
 

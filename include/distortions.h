@@ -226,6 +226,7 @@ extern "C" {
 
   int distortions_evaluate_PCA(struct precision * ppr,
                                struct distortions * psd);
+  int distortions_set_detector(struct distortions* psd);
 
   /* PCA decomposition (branching ratios and spectral shapes) for known detector */
   int distortions_read_br_data(struct precision * ppr,

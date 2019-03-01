@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import scipy.interpolate as sciint
 from numpy.linalg import norm as vector_norm
 from numpy.linalg import eig as eigen_vals_vecs # eigh is different from eig
+import os 
 
 def PCA_string_to_array(line,delimiter=" "):
   line = line.replace("\n","")
@@ -13,6 +14,7 @@ def PCA_string_to_array(line,delimiter=" "):
   return np.array([float(x) for x in line.split(delimiter) if (x is not "" and x is not " ")])
 
 def gen_PCA_files(detector_name, nu_min, nu_max, delta_nu, delta_I_c, N_PCA):
+  dir_path = os.path.dirname(os.path.realpath(__file__))
 
   readfile = "Greens_data.dat"
 
@@ -20,7 +22,7 @@ def gen_PCA_files(detector_name, nu_min, nu_max, delta_nu, delta_I_c, N_PCA):
   x_to_nu = 56.7798
 
   # Read external file Greens_data.dat
-  with open(readfile) as f:
+  with open(os.path.join(dir_path,readfile)) as f:
     # Read the header first
     header = True
     while(header):
@@ -191,26 +193,8 @@ def gen_PCA_files(detector_name, nu_min, nu_max, delta_nu, delta_I_c, N_PCA):
 
     # Update list of detectors
     # Open and read already present list
-#    with open("detector_list.dat") as detector_list:
-      # Read the header first
-#      header = True
-#      while(header):
-#        line = detector_list.readline()
-#        if(line.startswith("#")):
-#          continue
-        # The first line of the header without the "#" is still part of the header
-#        header=False
-
-#     done = False
-#     old_list = []
-#     while(not done):
-#      line = detector_list.readline()
-#      if(not line):
-#        done = True
-#      else:
-#        old_list.append(PCA_string_to_array(line))
-#     print old_list
-
+#    with open("detector_list.dat","a") as detector_list:
+#      write stuff
 
 gen_PCA_files("PIXIE_TEST", 30., 1000., 15., 5.0e-26, 8)
 

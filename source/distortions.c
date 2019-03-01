@@ -39,6 +39,8 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              "Cannot compute spectral distortions without damping scale\n");
 
+  distortions_evaluate_PCA(ppr,psd);
+
   /** Assign values to all indices in the distortions structure */
   class_call(distortions_indices(psd),
              psd->error_message,
@@ -46,6 +48,10 @@ int distortions_init(struct precision * ppr,
 
   /** Define z and x arrays */
   class_call(distortions_get_xz_lists(ppr,pba,pth,psd),
+             psd->error_message,
+             psd->error_message);
+
+  class_call(distortions_set_detector(psd),
              psd->error_message,
              psd->error_message);
 
@@ -248,6 +254,40 @@ int distortions_get_xz_lists(struct precision * ppr,
   return _SUCCESS_;
 }
 
+/**
+ * Check wether the detector name and the detector properties
+ * are a valid combination.
+ *
+ * @param psd        Input/Output: pointer to initialized distortions structure
+ * @return the error status
+ */
+int distortions_set_detector(struct distortions* psd){
+
+  /** Local variables */
+  FILE* known_det_file;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines = 0;
+  int i,j;
+
+  /** Open file */
+  class_open(known_det_file, "./external/distortions/known_detectors.dat", "r",
+             psd->error_message);
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,known_det_file) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+        left++;
+    }
+    if (left[0] > 39) {
+      break;
+    }
+  }
+  return _SUCCESS_;
+}
 
 /**
  * Calculate branching ratios.
@@ -1138,7 +1178,6 @@ int distortions_free_Greens_data(struct distortions * psd){
 
 }
 
-
 /**
  * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector.
  *
@@ -1148,227 +1187,20 @@ int distortions_free_Greens_data(struct distortions * psd){
  */
 int distortions_evaluate_PCA(struct precision * ppr,
                              struct distortions * psd){
-  /* Define local variables */
-  int index_x, index_z;
-  int last_index_x = 0, last_index_z = 0;
-  double x;
-  double bb_vis;
-  double T_ini, T_last, rho, **G_th, Greens_blackbody;
-  double *Y, *M, *G, *e_y, *e_mu, *e_g, M_y, G_y, G_mu, *M_per, *G_per, **R;
-  double mod_Y_squared, mod_M_per_squared, mod_G_per_squared, mod_Y, mod_M_per, mod_G_per;
-  double e_g_dot_G_th, e_y_dot_G_th, e_mu_dot_G_th, *f_g, *f_y, *f_mu;
-  double delta_ln_z, **tilde_R;
-  int index_za, index_zb;
-  double delta_I_c, **Fisher_matrix;
 
-  /** Read and spline data from file Greens_data.dat */
-  class_call(distortions_read_Greens_data(ppr,psd),
+  /** Define local variables*/
+  int is_success;
+  printf(" -> Running PCA generator externally\n -> Testing python\n");
+  /* Test first whether or not python exists*/
+  is_success = system("python --version");
+  class_test(is_success == -1,
              psd->error_message,
-             psd->error_message);
-  class_call(distortions_spline_Greens_data(psd),
+             "The command 'python --version' failed.\nPlease install a valid version of python.");
+  printf(" -> Executing the PCA generator\n");
+  is_success = system("python ./external/distortions/generate_PCA_files.py");
+  class_test(is_success == -1,
              psd->error_message,
-             psd->error_message);
-
-  /* Allocate local variable */
-  class_alloc(G_th,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-        class_alloc(G_th[index_x],
-                    psd->z_size*sizeof(double),
-                    psd->error_message);
-  }
-
-  class_alloc(Y,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  class_alloc(M,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  class_alloc(G,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-
-  class_alloc(e_y,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  class_alloc(e_mu,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  class_alloc(e_g,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-
-  class_alloc(M_per,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-  class_alloc(G_per,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-
-  class_alloc(f_y,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  class_alloc(f_mu,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  class_alloc(f_g,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-
-  class_alloc(R,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    class_alloc(R[index_x],
-                psd->z_size*sizeof(double),
-                psd->error_message);
-  }
-  class_alloc(tilde_R,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    class_alloc(tilde_R[index_x],
-                psd->z_size*sizeof(double),
-                psd->error_message);
-  }
-  class_alloc(Fisher_matrix,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  for(index_z=0; index_z<psd->z_size; ++index_z){
-    class_alloc(Fisher_matrix[index_z],
-                psd->z_size*sizeof(double),
-                psd->error_message);
-  }
-
-  /** Calculate vectors of spectral shapes */
-  mod_Y_squared = 0.; 
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    x = psd->x[index_x];
-
-    /* Interpolate over x to find G_th in external file */
-    for(index_z=0; index_z<psd->z_size; ++index_z){
-      bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
-      class_call(distortions_interpolate_Greens_data(psd,
-                                                     psd->z[index_z],
-                                                     x,
-                                                     &T_ini,
-                                                     &T_last,
-                                                     &rho,
-                                                     &G_th[index_x][index_z],         // [10^-18 W/(m^2 Hz sr)]
-                                                     &Greens_blackbody,
-                                                     &last_index_z,
-                                                     &last_index_x),
-                 psd->error_message,
-                 psd->error_message);
-
-      G_th[index_x][index_z] *= 1.e-8*bb_vis;
-    }
-         
-        
-    /* Define other vectors */
-    G[index_x] = pow(x,4.)*exp(x)/pow(exp(x)-1,2.)*psd->DI_units*1.e18;               // [10^-18 W/(m^2 Hz sr)]
-    Y[index_x] = G[index_x]*(x/tanh(x/2.)-4.);                                        // [10^-18 W/(m^2 Hz sr)]
-    M[index_x] = G[index_x]*(1./2.19229-1./x);                                        // [10^-18 W/(m^2 Hz sr)]
-
-    mod_Y_squared += pow(Y[index_x],2.);
-  }
-  mod_Y = sqrt(mod_Y_squared);
-
-  /** Calculate unity vectors with relative dot products and moduli */
-  M_y = 0.;
-  G_y = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    e_y[index_x] = Y[index_x]/mod_Y;
-    M_y += e_y[index_x]*M[index_x];
-    G_y += e_y[index_x]*G[index_x];
-  }
-
-  mod_M_per_squared = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    M_per[index_x] = M[index_x]-M_y*e_y[index_x];
-    mod_M_per_squared += pow(M_per[index_x],2.);
-  }
-  mod_M_per = sqrt(mod_M_per_squared);
-
-  G_mu = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    e_mu[index_x] = M_per[index_x]/mod_M_per;
-    G_mu += e_mu[index_x]*G[index_x];
-  }
-
-  mod_G_per_squared = 0.;
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    G_per[index_x] = G[index_x]-G_y*e_y[index_x]-G_mu*e_mu[index_x]; 
-    mod_G_per_squared += pow(G_per[index_x],2.);
-  }
-  mod_G_per = sqrt(mod_G_per_squared);
-
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    e_g[index_x] = G_per[index_x]/mod_G_per;
-  }
-      
-  /** Calculate branching ratios */
-  for(index_z=0; index_z<psd->z_size; ++index_z){
-    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
-
-    e_g_dot_G_th = 0.;
-    e_mu_dot_G_th = 0.;
-    e_y_dot_G_th = 0.;
-    for(index_x=0; index_x<psd->x_size; ++index_x){
-      e_g_dot_G_th += e_g[index_x]*G_th[index_x][index_z];
-      e_mu_dot_G_th += e_mu[index_x]*G_th[index_x][index_z];
-      e_y_dot_G_th += e_y[index_x]*G_th[index_x][index_z]; 
-    }
-
-    f_g[index_z] = 4.*e_g_dot_G_th/mod_G_per;
-    f_mu[index_z] = (e_mu_dot_G_th-G_mu*f_g[index_z]/4.)/mod_M_per/1.401;
-    f_y[index_z] = (e_y_dot_G_th-1.401*M_y*f_mu[index_z]-G_y*f_g[index_z]/4.)*4./mod_Y;
-    f_g[index_z] += 1.-bb_vis;
-  }
-
-  /** Calculate residual shape */
-  delta_ln_z = log(psd->z[1])-log(psd->z[0]);
-  for(index_z=0; index_z<psd->z_size; ++index_z){
-    for(index_x=0; index_x<psd->x_size; ++index_x){
-      R[index_x][index_z] = G_th[index_x][index_z]-G[index_x]*f_g[index_z]/4.-Y[index_x]*f_y[index_z]/4.-M[index_x]*f_mu[index_z]/1.401;
-      tilde_R[index_x][index_z] = R[index_x][index_z]*delta_ln_z;
-    }
-  }
-
-  /** Calculate Fisher matrix */
-  delta_I_c = 5.e-8;                                                                  // [10^-18 W/(m^2 Hz sr)]
-  for(index_za=0; index_za<psd->z_size; ++index_za){
-    for(index_zb=0; index_zb<psd->z_size; ++index_zb){
-
-      Fisher_matrix[index_za][index_zb] = 0.;
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        Fisher_matrix[index_za][index_zb] += tilde_R[index_x][index_za]*tilde_R[index_x][index_zb];
-      }
-      Fisher_matrix[index_za][index_zb] /= pow(delta_I_c,2.);
-
-    }
-  }
-
-  /* Free space allocated in distortions_read_Greens_data */
-  class_call(distortions_free_Greens_data(psd),
-             psd->error_message,
-             psd->error_message);
-  free(G_th);
-  free(Y);
-  free(M);
-  free(G);
-  free(e_y);
-  free(e_mu);
-  free(e_g);
-  free(M_per);
-  free(G_per);
-  free(f_y);
-  free(f_mu);
-  free(f_g);
-  free(R);
-  free(tilde_R);
-  free(Fisher_matrix);
+             "The command 'python ./external/distortions/generate_PCA_files.py' failed.\nPlease make sure the file exists.");
 
   return _SUCCESS_;
 
