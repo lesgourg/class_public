@@ -2245,6 +2245,9 @@ int input_read_parameters(
 
   class_read_int("PCA size",psd->N_PCA);
 
+  if(psd->N_PCA < 0 || psd->N_PCA > 8){
+    psd->N_PCA = 8;
+  }
 
   /* First read the detector name */
   class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
@@ -2254,6 +2257,7 @@ int input_read_parameters(
     strcpy(psd->distortions_detector,string1);
     psd->user_defined_name = _TRUE_;
   }
+
   /* Then read detector properties */
   class_call(parser_read_double(pfc,"detector nu min",&param1,&flag1,errmsg),
              errmsg,
@@ -2283,15 +2287,6 @@ int input_read_parameters(
     psd->delta_Ic_detector = param1;
     psd->user_defined_detector = _TRUE_;
   }
-
-  //class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
-  //           errmsg,
-  //           errmsg);
-  //psd->distortions_detector = string1;
-  //class_read_double("detector nu min",psd->nu_min_detector);
-  //class_read_double("detector nu max",psd->nu_max_detector);
-  //class_read_double("detector nu delta",psd->nu_delta_detector);
-  //class_read_double("detector accuracy",psd->delta_Ic_detector);
 
   /* Whether detector name and properties match will be checked later in distortions.c */
 

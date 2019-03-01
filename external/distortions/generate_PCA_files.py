@@ -8,6 +8,7 @@ from numpy.linalg import eig as eigen_vals_vecs # eigh is different from eig
 import os 
 
 # Read inputs
+assert(len(sys.argv)==13)
 detector_name = sys.argv[1]
 nu_min = eval(sys.argv[2])
 nu_max = eval(sys.argv[3])
@@ -141,7 +142,7 @@ with open(os.path.join(dir_path,readfile)) as f:
     f_y[index_z]  = 4.*f_y[index_z]
 
   # Calculate non-normalized residual
-  Residual = np.zeros((Nz_arr,Nz_arr))
+  Residual = np.zeros((Nx_arr,Nz_arr))
   for index_x in range(Nx_arr):
     for index_z in range(Nz_arr):
       Residual[index_x,index_z] = G_th[index_x,index_z]-Gdist[index_x]*f_g[index_z]/4-Ydist[index_x]*f_y[index_z]/4-Mdist[index_x]*f_mu[index_z]*1.401
@@ -171,7 +172,7 @@ with open(os.path.join(dir_path,readfile)) as f:
   form = "%.10e" #Output formatting
 
   # Write file for branching ratio (Evec)
-  with open(detector_name+"_branching_ratios.dat","w") as brfile:
+  with open(os.path.join(dir_path,detector_name+"_branching_ratios.dat"),"w") as brfile:
     brfile.write("# In the file there is: z, J_T, J_y, J_mu, E_i (i=1-{})\n".format(N_PCA))
     brfile.write("{} {}\n".format(Nz_arr,N_PCA))
     for index_z in range(Nz_arr):
@@ -184,7 +185,7 @@ with open(os.path.join(dir_path,readfile)) as f:
       brfile.write("\n")
 
   # Write file for distortion shapes (Svec)
-  with open(detector_name+"_distortions_shapes.dat","w") as dsfile:
+  with open(os.path.join(dir_path,detector_name+"_distortions_shapes.dat"),"w") as dsfile:
     dsfile.write("# In the file there is: nu, G_T, Y_SZ, M_mu, S_i (i=1-{})\n".format(N_PCA))
     dsfile.write("{} {}\n".format(Nx_arr,N_PCA))
     for index_x in range(Nx_arr):
@@ -198,7 +199,7 @@ with open(os.path.join(dir_path,readfile)) as f:
 
   # Update list of detectors
   # Open and read already present list
-  with open("detectors_list.dat","a") as detector_file:
+  with open(os.path.join(dir_path,"detectors_list.dat"),"a") as detector_file:
     detector_file.write('%s  %7.2e  %7.2e  %7.2e  %7.2e\n' % (detector_name, nu_min, nu_max, nu_delta, delta_I_c))
 
 

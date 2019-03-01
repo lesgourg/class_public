@@ -359,9 +359,9 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
   if(found_detector == _FALSE_){
     if(psd->user_defined_detector){
       printf(" -> Generating detector '%s' \n",psd->distortions_detector);
-      //class_call(distortions_generate_detector(ppr,psd),
-      //           psd->error_message,
-      //           psd->error_message);
+      class_call(distortions_generate_detector(ppr,psd),
+                 psd->error_message,
+                 psd->error_message);
     }
     else{
       class_stop(psd->error_message,
@@ -1273,6 +1273,7 @@ int distortions_generate_detector(struct precision * ppr,
 
   /** Define local variables*/
   int is_success;
+  char temporary_string[500];
   printf(" -> Testing python\n");
   /* Test first whether or not python exists*/
   is_success = system("python --version");
@@ -1280,7 +1281,20 @@ int distortions_generate_detector(struct precision * ppr,
              psd->error_message,
              "The command 'python --version' failed.\nPlease install a valid version of python.");
   printf(" -> Executing the PCA generator\n");
-  is_success = system("python ./external/distortions/generate_PCA_files.py");
+  sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
+          psd->distortions_detector,
+          psd->nu_min_detector,
+          psd->nu_max_detector,
+          psd->nu_delta_detector,
+          psd->z_min,
+          psd->z_max,
+          psd->z_size,
+          psd->delta_Ic_detector,
+          8,
+          psd->z_th,
+          psd->DI_units,
+          psd->x_to_nu);
+  is_success = system(temporary_string);
   class_test(is_success == -1,
              psd->error_message,
              "The command 'python ./external/distortions/generate_PCA_files.py' failed.\nPlease make sure the file exists.");
