@@ -28,8 +28,8 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum tca_dark_flags {tca_dark_on, tca_dark_off};//ethos
-enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};//ethos
+enum tca_dark_flags {tca_dark_on, tca_dark_off}; /* for the idm-dr case */
+enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    /* for the idm-dr case */
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
@@ -43,8 +43,8 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};//ethos
-enum idr_method {idr_free_streaming,idr_fluid};//ethos
+enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};  /* for the idm-dr case */
+enum idr_method {idr_free_streaming,idr_fluid}; /* for the idm-dr case */
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
@@ -137,7 +137,8 @@ struct perturbs
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
-  short has_idm;                      //DCH !!!
+
+  short has_idm;                      /**< do we need interacting dark matter? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -189,10 +190,10 @@ struct perturbs
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
 
-  double * alpha_dark; /**<ethos Angular contribution to collisional term at l>=2 for DM-DR */
-  double * beta_dark;  /**<ethos Angular contribution to collisional term at l>=2 for DR-DR */
+  double * alpha_dark; /**< Angular contribution to collisional term at l>=2 for idm-dr */
+  double * beta_dark;  /**< Angular contribution to collisional term at l>=2 for idm-dr */
 
-  int idr_nature; /* ethos */
+  int idr_nature; /**< Nature of the interacting dark radiation (free streaming or fluid) */
 
   //@}
 
@@ -256,8 +257,8 @@ struct perturbs
   short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
   short has_source_delta_dr;   /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur;   /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
-  short has_source_delta_idr;  /**< do we need source for delta dark radiation? ethos*/
-  short has_source_delta_idm;  /**< do we need source for delta interacting dark matter ethos*/
+  short has_source_delta_idr;  /**< do we need source for delta of interacting dark radiation? */
+  short has_source_delta_idm;  /**< do we need source for delta of interacting dark matter? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_cb; /**< do we ALSO need source for theta of ONLY cdm and baryon? */
@@ -269,8 +270,8 @@ struct perturbs
   short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
   short has_source_theta_dr;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
   short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_idr;  /**< do we need source for theta dark radiation? ethos*/
-  short has_source_theta_idm;  /**< do we need source for theta interacting dark matter ethos*/
+  short has_source_theta_idr;  /**< do we need source for theta of interacting dark radiation? */
+  short has_source_theta_idm;  /**< do we need source for theta of interacting dark matter? */
   short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
   short has_source_phi;          /**< do we need source for metric fluctuation phi? */
   short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
@@ -299,8 +300,8 @@ struct perturbs
   int index_tp_delta_scf;  /**< index value for delta of scalar field */
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
-  int index_tp_delta_idr; /**< index value for delta of dark radiation ethos*/
-  int index_tp_delta_idm; /**< index value for delta of interacting dark matter ethos*/
+  int index_tp_delta_idr; /**< index value for delta of interacting dark radiation */
+  int index_tp_delta_idm; /**< index value for delta of interacting dark matter */
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
@@ -315,8 +316,8 @@ struct perturbs
   int index_tp_theta_scf;  /**< index value for theta of scalar field */
 
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
-  int index_tp_theta_idr; /**< index value for theta of dark radiation ethos*/
-  int index_tp_theta_idm; /**< index value for theta of interacting dark matter ethos*/
+  int index_tp_theta_idr; /**< index value for theta of interacting dark radiation */
+  int index_tp_theta_idm; /**< index value for theta of interacting dark */
   int index_tp_theta_dr; /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
@@ -424,8 +425,8 @@ struct perturb_vector
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
-  int index_pt_delta_idm; /**< idm density ethos*/
-  int index_pt_theta_idm; /**< idm velocity ethos*/
+  int index_pt_delta_idm; /**< idm density */
+  int index_pt_theta_idm; /**< idm velocity */
   int index_pt_delta_dcdm; /**< dcdm density */
   int index_pt_theta_dcdm; /**< dcdm velocity */
   int index_pt_delta_fld;  /**< dark energy density in true fluid case */
@@ -438,11 +439,12 @@ struct perturb_vector
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
-  int index_pt_delta_idr; /**< density of dark radiation ethos*/
-  int index_pt_theta_idr; /**< velocity of dark radiation ethos*/
-  int index_pt_shear_idr; /**< shear of dark radiation ethos*/
-  int index_pt_l3_idr;    /**< l=3 of dark radiation ethos*/
-  int l_max_idr;          /**< max momentum in Boltzmann hierarchy (at least 3) ethos*/
+  int index_pt_delta_idr; /**< density of dark radiation */
+  int index_pt_theta_idr; /**< velocity of dark radiation */
+  int index_pt_shear_idr; /**< shear of dark radiation */
+  int index_pt_l3_idr;    /**< l=3 of dark radiation */
+  int l_max_idr;          /**< max momentum in Boltzmann hierarchy (at least 3) for dark radiation */
+
 /* perturbed recombination */
   int index_pt_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_pt_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
@@ -529,13 +531,13 @@ struct perturb_workspace
 
   double tca_shear_g;  /**< photon shear in tight-coupling approximation */
   double tca_slip;     /**< photon-baryon slip in tight-coupling approximation */
-  double tca_shear_dark; /**< dark radiation shear in tight coupling appproximation */
+  double tca_shear_dark; /**< interacting dark radiation shear in tight coupling appproximation */
   double rsa_delta_g;  /**< photon density in radiation streaming approximation */
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
   double rsa_theta_ur; /**< photon velocity in radiation streaming approximation */
-  double rsa_delta_idr; /**< dark radiation (ethos) density in dark radiation streaming approximation */
-  double rsa_theta_idr; /**< dark radiation (ethos) velocity in dark radiation streaming approximation */
+  double rsa_delta_idr; /**< interacting dark radiation density in dark radiation streaming approximation */
+  double rsa_theta_idr; /**< interacting dark radiation velocity in dark radiation streaming approximation */
 
   double * delta_ncdm;	/**< relative density perturbation of each ncdm species */
   double * theta_ncdm;	/**< velocity divergence theta of each ncdm species */
@@ -574,8 +576,8 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_tca_dark; /**< index for dark tight-coupling approximation (ethos) */
-  int index_ap_rsa_idr; /**< index for dark radiation streaming approximation (ethos) */
+  int index_ap_tca_dark; /**< index for dark tight-coupling approximation (idm-dr) */
+  int index_ap_rsa_idr; /**< index for dark radiation streaming approximation */
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
   int ap_size;      /**< number of relevant approximations for a given mode */
@@ -832,7 +834,7 @@ extern "C" {
                                   double * pvecthermo,
                                   struct perturb_workspace * ppw
                                   );
-// MArchi ethos dark radiation streaming approximation
+
   int perturb_rsa_idr_delta_and_theta(
                                   struct precision * ppr,
                                   struct background * pba,
@@ -851,7 +853,7 @@ extern "C" {
                                   int index_ikout,
                                   int index_md);
 
-  int perturb_prepare_output(struct precision * ppr, //MArchi ethos
+  int perturb_prepare_output(struct precision * ppr,
                              struct background * pba,
                              struct perturbs * ppt);
 

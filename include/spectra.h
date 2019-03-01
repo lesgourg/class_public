@@ -186,10 +186,10 @@ struct spectra {
   double sigma8;    /**< sigma8 parameter */
 
 
-  double neff;//MArchi Lya
-  double Lya_k_s_over_km;//MArchi Lya
-  double Lya_z;//MArchi Lya
-  short compute_neff_Lya;//MArchi Lya
+  double neff;  /*<< slope of the Lya spectrum */
+  double Lya_k_s_over_km; /*<< Lya value in ks/km*/
+  double Lya_z;  /*<< redshift to evaluate Lya*/
+  short compute_neff_Lya;  /*<< do we want to compute the Lya slope? */
 
   double sigma8_cb; /**< if ncdm present: contribution to sigma8 from only baryons and cdm */
 
@@ -239,8 +239,8 @@ struct spectra {
   int index_tr_delta_scf;      /**< index of scalar field phi transfer function */
   int index_tr_delta_fld;      /**< index of dark energy fluid density transfer function */
   int index_tr_delta_ur;       /**< index of ultra-relativistic neutrinos/relics density transfer function */
-  int index_tr_delta_idr;      /**< index of dark radiation density transfer function ethos*/
-  int index_tr_delta_idm;      /**< index of interacting dark matter density transfer function ethos */
+  int index_tr_delta_idr;      /**< index of interacting dark radiation density transfer function */
+  int index_tr_delta_idm;      /**< index of interacting dark matter density transfer function  */
   int index_tr_delta_dr;       /**< index of decay radiation density transfer function */
   int index_tr_delta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) density transfer function */
   int index_tr_delta_tot;      /**< index of total matter density transfer function */
@@ -251,8 +251,8 @@ struct spectra {
   int index_tr_theta_scf;      /**< index of derivative of scalar field phi transfer function */
   int index_tr_theta_fld;      /**< index of dark energy fluid velocity transfer function */
   int index_tr_theta_ur;       /**< index of ultra-relativistic neutrinos/relics velocity transfer function */
-  int index_tr_theta_idr;      /**< index of dark radiation velocity transfer function ethos*/
-  int index_tr_theta_idm;      /**< index of interacting dark matter velocity transfer function ethos*/
+  int index_tr_theta_idr;      /**< index of interacting dark radiation velocity transfer function */
+  int index_tr_theta_idm;      /**< index of interacting dark matter velocity transfer function */
   int index_tr_theta_dr;       /**< index of decay radiation velocity transfer function */
   int index_tr_theta_ncdm1;    /**< index of first species of non-cold dark matter (massive neutrinos, ...) velocity transfer function */
   int index_tr_theta_tot;      /**< index of total matter velocity transfer function */
@@ -448,7 +448,7 @@ extern "C" {
                     struct spectra * psp,
                     double z,
                     double *neff
-                    );//MArchi Lya
+                    );
 
   int spectra_sigma_cb(
                     struct background * pba,

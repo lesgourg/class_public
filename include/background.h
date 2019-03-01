@@ -78,14 +78,14 @@ struct background
 
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
-  double Omega0_idr; /**< ethos dark radiation*/
-  double Omega0_idm; /**< ethos interacting daark matter*/
-  //double f_idm_dr;   /**< ethos fraction of idm */
+  double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
+  double Omega0_idm; /**< \f$ \Omega_{0 idm} \f$: interacting dark matter */
+  //double f_idm_dr;   /**< fraction of interacting dark matter */
 
-  double xi_idr; /**< Ethos interaction rate */
-  double stat_f_idr; /**< Dark radiation statistical facotr */
-  double N_dg; /**< nadm parameter for ethos comparisons */
-  double Gamma_0_nadm; /**< nadm parameter for ethos comparisons */
+  double xi_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: related to the amount of dark radiation */
+  double stat_f_idr; /**< Dark radiation statistical factor */
+  double N_dg;       /**< number of dark gluons, for the NADM case */
+  double Gamma_0_nadm; /**< \f$ \Gamma_0 \f$: interaction coefficient, for the NADM case */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
@@ -186,9 +186,9 @@ struct background
   int index_bg_rho_fld;       /**< fluid density */
   int index_bg_w_fld;         /**< fluid equation of state */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
-  int index_bg_rho_idr;       /**< ethos interacting dark radiation*/
+  int index_bg_rho_idr;       /**< interacting dark radiation density */
   int index_bg_rho_dcdm;      /**< dcdm density */
-  int index_bg_rho_idm;       /**< ethos interacting dark matter */
+  int index_bg_rho_idm;       /**< interacting dark matter density */
   int index_bg_rho_dr;        /**< dr density */
 
   int index_bg_phi_scf;       /**< scalar field value */
@@ -294,8 +294,8 @@ struct background
   short has_lambda;    /**< presence of cosmological constant? */
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
-  short has_idr;       /**< ethos presence of dark radiation? */
-  short has_idm;       /**< ethos presence of interacting dark matter? */
+  short has_idr;       /**< presence of interacting dark radiation? */
+  short has_idm;       /**< presence of interacting dark matter? */
   short has_curvature; /**< presence of global spatial curvature? */
 
   //@}
