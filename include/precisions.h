@@ -70,12 +70,7 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
 class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [ML]
-/**
- * [ML] Spectral Distortions file path.
- */
-class_string_parameter(Greens_file,"/external/distortions/Greens_data.dat","Greens file")
-class_string_parameter(PIXIE_br_file,"/external/distortions/PIXIE_branching_ratios.dat","PIXIE BR file")
-class_string_parameter(PIXIE_sd_file,"/external/distortions/PIXIE_distortions_shapes.dat","PIXIE SD file")
+
 
 /*
  *  Thermodynamical quantities

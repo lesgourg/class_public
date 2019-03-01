@@ -195,6 +195,12 @@ extern "C" {
                                struct thermo* pth, 
                                struct distortions* psd);
 
+  /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */
+  int distortions_generate_detector(struct precision * ppr,
+                                    struct distortions * psd);
+  int distortions_set_detector(struct precision * ppr,
+                               struct distortions* psd);
+
   /* The main computation methods */
   int distortions_compute_branching_ratios(struct precision * ppr,
                                            struct distortions* psd);
@@ -211,27 +217,6 @@ extern "C" {
   int distortions_compute_spectral_shapes(struct precision * ppr,
                                           struct background * pba,
                                           struct distortions * psd);
-
-  /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */
-  int distortions_read_Greens_data(struct precision * ppr,
-                                   struct distortions * psd);
-  int distortions_spline_Greens_data(struct distortions* psd);
-  int distortions_interpolate_Greens_data(struct distortions* psd,
-                                          double z,
-                                          double x,
-                                          double * T_ini,
-                                          double * T_last,
-                                          double * rho,
-                                          double * Greens_function,
-                                          double * Greens_blackbody,
-                                          int * last_index_z,
-                                          int * last_index_x);
-  int distortions_free_Greens_data(struct distortions * psd);
-
-  int distortions_generate_detector(struct precision * ppr,
-                                    struct distortions * psd);
-  int distortions_set_detector(struct precision * ppr,
-                               struct distortions* psd);
 
   /* PCA decomposition (branching ratios and spectral shapes) for known detector */
   int distortions_read_br_data(struct precision * ppr,

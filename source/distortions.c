@@ -257,7 +257,6 @@ int distortions_get_xz_lists(struct precision * ppr,
  * Check wether the detector name and the detector properties
  * are a valid combination.
  *
- * 
  * There are four options for the user
  *
  * defined_name = true, defined_detector = true
@@ -319,15 +318,14 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
     if (left[0] > 39) {
       class_test(sscanf(line,"%s %lg %lg %lg %lg",detector_name,&nu_min,&nu_max,&nu_delta,&delta_Ic) != 5,
                  psd->error_message,
-                 "Could not read line %i in file '%s'\n",headlines,
-                 "./external/distortions/known_detectors.dat");
+                 "Could not read line %i in file '%s'\n",headlines,"./external/distortions/known_detectors.dat");
 
       /* Detector has been found */
       if(strcmp(psd->distortions_detector,detector_name)==0){
         printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         found_detector = _TRUE_;
 
-        printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    delta_Ic = %lg \n",nu_min,nu_max,nu_delta,delta_Ic);
+        printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    delta_Ic = %lg \n",nu_min, nu_max, nu_delta, delta_Ic);
         /* If the user has defined the detector, check that their and our definitions agree */
         if(psd->user_defined_detector){
           class_test(fabs(psd->nu_min_detector-nu_min)>ppr->tol_distortions_detector,
@@ -353,8 +351,7 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
     }
   }
 
-  /* If the detector has not been found,
-   * either the user has specified the settings and we create a new one,
+  /* If the detector has not been found, either the user has specified the settings and we create a new one,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
     if(psd->user_defined_detector){
@@ -369,8 +366,54 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
                  psd->distortions_detector,"./external/distortions/known_detectors.dat");
     }
   }
+
   return _SUCCESS_;
+
 }
+
+
+/**
+ * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector.
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_generate_detector(struct precision * ppr,
+                                  struct distortions * psd){
+
+  /** Define local variables*/
+  int is_success;
+  char temporary_string[500];
+  printf(" -> Testing python\n");
+  /* Test first whether or not python exists*/
+  is_success = system("python --version");
+  class_test(is_success == -1,
+             psd->error_message,
+             "The command 'python --version' failed.\nPlease install a valid version of python.");
+  printf(" -> Executing the PCA generator\n");
+  sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
+          psd->distortions_detector,
+          psd->nu_min_detector,
+          psd->nu_max_detector,
+          psd->nu_delta_detector,
+          psd->z_min,
+          psd->z_max,
+          psd->z_size,
+          psd->delta_Ic_detector,
+          8,
+          psd->z_th,
+          psd->DI_units,
+          psd->x_to_nu);
+  is_success = system(temporary_string);
+  class_test(is_success == -1,
+             psd->error_message,
+             "The command 'python ./external/distortions/generate_PCA_files.py' failed.\nPlease make sure the file exists.");
+
+  return _SUCCESS_;
+
+}
+
 
 /**
  * Calculate branching ratios.
@@ -961,350 +1004,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
 
 /**
- * Reads the external file Greens_data copied from CosmoTherm by Jens Chluba
- *
- * @param ppr        Input: pointer to precision structure
- * @param psd        Input: pointer to the distortions structure
- * @return the error status
- */
-int distortions_read_Greens_data(struct precision * ppr,
-                                 struct distortions * psd){
-
-  /** Define local variables */
-  FILE * infile;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-  int headlines = 0;
-  int i,j;
-
-  /** Open file */
-  class_open(infile, ppr->Greens_file, "r",
-             psd->error_message);
-
-  psd->Greens_Nz = 0;
-  psd->Greens_Nx = 0;
-  while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
-    headlines++;
-
-    /* Eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-        left++;
-    }
-    if (left[0] > 39) {
-      /** Read number of lines, infer size of arrays and allocate them */
-      class_test(sscanf(line, "%d %d", &psd->Greens_Nz,&psd->Greens_Nx) != 2,
-                 psd->error_message,
-                 "could not header (number of columns, number of lines) at line %i in file '%s' \n",headlines,ppr->Greens_file);
-
-      class_alloc(psd->Greens_z, psd->Greens_Nz*sizeof(double), psd->error_message);
-      class_alloc(psd->Greens_T_ini, psd->Greens_Nz*sizeof(double), psd->error_message);
-      class_alloc(psd->Greens_T_last, psd->Greens_Nz*sizeof(double), psd->error_message);
-      class_alloc(psd->Greens_rho, psd->Greens_Nz*sizeof(double), psd->error_message);
-
-      class_alloc(psd->Greens_x, psd->Greens_Nx*sizeof(double), psd->error_message);
-      class_alloc(psd->Greens_blackbody, psd->Greens_Nx*sizeof(double), psd->error_message);
-      class_alloc(psd->Greens_function, psd->Greens_Nz*psd->Greens_Nx*sizeof(double), psd->error_message);
-      break;
-    }
-  }
-  /** Read parameters */
-  for(i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_z[i]))!=1,                           // [-]
-                      psd->error_message,
-                      "Could not read z values at line %i in file '%s'",headlines+1,ppr->Greens_file);
-  }
-  for(i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_T_ini[i]))!=1,                       // [K]
-                      psd->error_message,
-                      "Could not read T_ini values at line %i in file '%s'",headlines+2,ppr->Greens_file);
-  }
-  for(i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_T_last[i]))!=1,                      // [K]
-                      psd->error_message,
-                      "Could not read T_last values at line %i in file '%s'",headlines+3,ppr->Greens_file);
-  }
-  for(i=0;i<psd->Greens_Nz;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_rho[i]))!=1,                         // [??]
-                      psd->error_message,
-                      "Could not read rho values at line %i in file '%s'",headlines+4,ppr->Greens_file);
-  }
-  for(i=0;i<psd->Greens_Nx;++i){
-    class_test(fscanf(infile,"%le",&(psd->Greens_x[i]))!=1,                            // [-]
-                      psd->error_message,
-                      "Could not read Greens x at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
-    for(j=0;j<psd->Greens_Nz;++j){
-      class_test(fscanf(infile,"%le",&(psd->Greens_function[i*psd->Greens_Nz+j]))!=1,  // [10^-26 W/(m^2 Hz sr)]
-                        psd->error_message,
-                        "Could not read Greens function at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
-    }
-
-    class_test(fscanf(infile,"%le",&(psd->Greens_blackbody[i]))!=1,                    // [10^-26 W/(m^2 Hz sr)]
-                      psd->error_message,
-                      "Could not read Greens blackbody at line %i in file '%s'",i+headlines+5,ppr->Greens_file);
-  }
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Spline the quantitites read in distortions_read_Greens_data
-
- * @param psd        Input: pointer to the distortions structure
- * @return the error status
- */
-int distortions_spline_Greens_data(struct distortions* psd){
-  /** Allocate second derivatievs */
-  class_alloc(psd->ddGreens_T_ini,
-              psd->Greens_Nz*sizeof(double),
-              psd->error_message);
-  class_alloc(psd->ddGreens_T_last,
-              psd->Greens_Nz*sizeof(double),
-              psd->error_message);
-  class_alloc(psd->ddGreens_rho,
-              psd->Greens_Nz*sizeof(double),
-              psd->error_message);
-
-  class_alloc(psd->ddGreens_function,
-              psd->Greens_Nx*psd->Greens_Nz*sizeof(double),
-              psd->error_message);
-
-  class_alloc(psd->ddGreens_blackbody,
-              psd->Greens_Nx*sizeof(double),
-              psd->error_message);
-
-  /** Spline z-dependent quantities */
-  class_call(array_spline_table_columns(psd->Greens_z,
-                                        psd->Greens_Nz,
-                                        psd->Greens_T_ini,
-                                        1,
-                                        psd->ddGreens_T_ini,
-                                        _SPLINE_EST_DERIV_,
-                                        psd->error_message),
-             psd->error_message,
-             psd->error_message);
-  class_call(array_spline_table_columns(psd->Greens_z,
-                                        psd->Greens_Nz,
-                                        psd->Greens_T_last,
-                                        1,
-                                        psd->ddGreens_T_last,
-                                        _SPLINE_EST_DERIV_,
-                                        psd->error_message),
-             psd->error_message,
-             psd->error_message);
-  class_call(array_spline_table_columns(psd->Greens_z,
-                                        psd->Greens_Nz,
-                                        psd->Greens_rho,
-                                        1,
-                                        psd->ddGreens_rho,
-                                        _SPLINE_EST_DERIV_,
-                                        psd->error_message),
-             psd->error_message,
-             psd->error_message);
-
-  /** Spline x-dependent quantities */
-  class_call(array_spline_table_columns(psd->Greens_x,
-                                        psd->Greens_Nx,
-                                        psd->Greens_blackbody,
-                                        1,
-                                        psd->ddGreens_blackbody,
-                                        _SPLINE_EST_DERIV_,
-                                        psd->error_message),
-             psd->error_message,
-             psd->error_message);
-
-  /** Spline G_th in z and x dimension */
-  class_call(array_spline_table_columns(psd->Greens_z,
-                                        psd->Greens_Nz,
-                                        psd->Greens_function,
-                                        psd->Greens_Nx,
-                                        psd->ddGreens_function,
-                                        _SPLINE_EST_DERIV_,
-                                        psd->error_message),
-           psd->error_message,
-           psd->error_message);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Interpolate the quantitites splined in distortions_spline_BR_exact_data() 
- * TODO: complete legend
- *
- * @param psd                Input: pointer to the distortions structure
- * @param z                  Input: redshift
- * @param x                  Input: dimentionless frequency
- * @param T_ini              Output: Temperature of initial blackbody
- * @param T_last             Output: Temperature of last blackbody shift around z=50000
- * @param rho                Output: ?
- * @param Greens_function    Output: Green's function, i.e. G_th(x,z)
- * @param Greens_blackbody   Output: Blackbody function of T=?
- * @param index_z            Output: ?
- * @param index_x            Output: ?
- * @return the error status
- */
-int distortions_interpolate_Greens_data(struct distortions* psd,
-                                        double z,
-                                        double x,
-                                        double * T_ini,
-                                        double * T_last,
-                                        double * rho,
-                                        double * Greens_function,
-                                        double * Greens_blackbody,
-                                        int * last_index_z,
-                                        int * last_index_x){
-
-  /** Define local variables */
-  int index_z = *last_index_z;
-  double h_z, a_z, b_z;
-  int index_x = *last_index_x;
-  double h_x, a_x, b_x;
-  double greens_at_index_x, greens_at_index_xp1;
-
-  /** Find z position */
-  class_call(array_spline_hunt(psd->Greens_z,
-                               psd->Greens_Nz,
-                               z,
-                               &index_z,
-                               &h_z,
-                               &a_z,
-                               &b_z,
-                               psd->error_message),
-             psd->error_message,
-             psd->error_message);
-
-  /** Interpolate z-dependent quantities */
-  *T_ini = array_interpolate_spline_hunt(psd->Greens_T_ini,
-                                         psd->ddGreens_T_ini,
-                                         index_z,
-                                         index_z+1,
-                                         h_z,a_z,b_z);
-
-  *T_last = array_interpolate_spline_hunt(psd->Greens_T_last,
-                                          psd->ddGreens_T_last,
-                                          index_z,
-                                          index_z+1,
-                                          h_z,a_z,b_z);
-
-  *rho = array_interpolate_spline_hunt(psd->Greens_rho,
-                                       psd->ddGreens_rho,
-                                       index_z,
-                                       index_z+1,
-                                       h_z,a_z,b_z);
-
-  /** Find x position */
-  class_call(array_spline_hunt(psd->Greens_x,
-                               psd->Greens_Nx,
-                               x,
-                               &index_x,
-                               &h_x,
-                               &a_x,
-                               &b_x,
-                               psd->error_message),
-             psd->error_message,
-             psd->error_message);
-
-  /** Interpolate x-dependent quantities */
-  *Greens_blackbody = array_interpolate_spline_hunt(psd->Greens_blackbody,
-                                                    psd->ddGreens_blackbody,
-                                                    index_x,
-                                                    index_x+1,
-                                                    h_x,a_x,b_x);
-
-  /** Interpolate G_th(z,x) */
-  /* Linear interpolation is much faster and yields same precision as more advanced options */
-  greens_at_index_x = array_interpolate_spline_hunt(psd->Greens_function+index_x*psd->Greens_Nz,
-                                                    psd->ddGreens_function+index_x*psd->Greens_Nz,
-                                                    index_z,
-                                                    index_z+1,
-                                                    h_z,a_z,b_z);
-  greens_at_index_xp1 = array_interpolate_spline_hunt(psd->Greens_function+(index_x+1)*psd->Greens_Nz,
-                                                      psd->ddGreens_function+(index_x+1)*psd->Greens_Nz,
-                                                      index_z,
-                                                      index_z+1,
-                                                      h_z,a_z,b_z);
-  *Greens_function = a_x * greens_at_index_x + b_x * greens_at_index_xp1;
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Free from distortions_read_Greens_data
- *
- * @param psd     Input: pointer to distortions structure (to be freed)
- * @return the error status
- */
-int distortions_free_Greens_data(struct distortions * psd){
-
-  free(psd->Greens_z);
-  free(psd->Greens_T_ini);
-  free(psd->ddGreens_T_ini);
-  free(psd->Greens_T_last);
-  free(psd->ddGreens_T_last);
-  free(psd->Greens_rho);
-  free(psd->ddGreens_rho);
-
-  free(psd->Greens_x);
-  free(psd->Greens_function);
-  free(psd->ddGreens_function);
-
-  free(psd->Greens_blackbody);
-  free(psd->ddGreens_blackbody);
-
-  return _SUCCESS_;
-
-}
-
-/**
- * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector.
- *
- * @param ppr        Input: pointer to precision structure
- * @param psd        Input: pointer to the distortions structure
- * @return the error status
- */
-int distortions_generate_detector(struct precision * ppr,
-                                  struct distortions * psd){
-
-  /** Define local variables*/
-  int is_success;
-  char temporary_string[500];
-  printf(" -> Testing python\n");
-  /* Test first whether or not python exists*/
-  is_success = system("python --version");
-  class_test(is_success == -1,
-             psd->error_message,
-             "The command 'python --version' failed.\nPlease install a valid version of python.");
-  printf(" -> Executing the PCA generator\n");
-  sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
-          psd->distortions_detector,
-          psd->nu_min_detector,
-          psd->nu_max_detector,
-          psd->nu_delta_detector,
-          psd->z_min,
-          psd->z_max,
-          psd->z_size,
-          psd->delta_Ic_detector,
-          8,
-          psd->z_th,
-          psd->DI_units,
-          psd->x_to_nu);
-  is_success = system(temporary_string);
-  class_test(is_success == -1,
-             psd->error_message,
-             "The command 'python ./external/distortions/generate_PCA_files.py' failed.\nPlease make sure the file exists.");
-
-  return _SUCCESS_;
-
-}
-
-
-/**
  * Reads the external file branching_ratios calculated according to Chluba & Jeong 2014
  *
  * @param ppr        Input: pointer to precision structure
@@ -1317,13 +1016,14 @@ int distortions_read_br_data(struct precision * ppr,
   /** Define local variables */
   int index_e,index_z;
   FILE * infile;
+  char br_file[500];
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
 
   /** Open file */
-  class_open(infile, ppr->PIXIE_br_file, "r",
-             psd->error_message);
+  sprintf(br_file,"external/distortions/%s_branching_ratios.dat", psd->distortions_detector);
+  class_open(infile, br_file, "r", psd->error_message);
 
   /** Read header */
   psd->br_exact_Nz = 0;
@@ -1340,7 +1040,7 @@ int distortions_read_br_data(struct precision * ppr,
       /** Read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line,"%d %d", &psd->br_exact_Nz, &psd->E_vec_size) != 2,
                  psd->error_message,
-                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->PIXIE_br_file);
+                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,br_file);
 
       class_alloc(psd->br_exact_z, psd->br_exact_Nz*sizeof(double), psd->error_message);
       class_alloc(psd->f_g_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
@@ -1357,24 +1057,24 @@ int distortions_read_br_data(struct precision * ppr,
     class_test(fscanf(infile, "%le",
                       &(psd->br_exact_z[index_z]))!=1,                                // [-]
                       psd->error_message,
-                      "Could not read z at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
+                      "Could not read z at line %i in file '%s'",index_z+headlines,br_file);
     class_test(fscanf(infile, "%le",
                       &(psd->f_g_exact[index_z]))!=1,                                 // [-]
                       psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
+                      "Could not read f_g at line %i in file '%s'",index_z+headlines,br_file);
     class_test(fscanf(infile, "%le",
                       &(psd->f_y_exact[index_z]))!=1,                                 // [-]
                       psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
+                      "Could not read f_y at line %i in file '%s'",index_z+headlines,br_file);
     class_test(fscanf(infile,"%le",
                       &(psd->f_mu_exact[index_z]))!=1,                                // [-]
                       psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
+                      "Could not read f_mu at line %i in file '%s'",index_z+headlines,br_file);
     for(index_e=0; index_e<psd->E_vec_size; ++index_e){
       class_test(fscanf(infile,"%le",
                         &(psd->E_vec[index_e*psd->br_exact_Nz+index_z]))!=1,           // [-]
                         psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",index_z+headlines,ppr->PIXIE_br_file);
+                        "Could not read E vector at line %i in file '%s'",index_z+headlines,br_file);
     }
   }
 
@@ -1552,14 +1252,15 @@ int distortions_read_sd_data(struct precision * ppr,
 
   /** Define local variables */
   FILE * infile;
+  char sd_file[500];
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
   int index_x,index_s;
 
   /** Open file */
-  class_open(infile, ppr->PIXIE_sd_file, "r",
-             psd->error_message);
+  sprintf(sd_file,"external/distortions/%s_distortions_shapes.dat", psd->distortions_detector);
+  class_open(infile, sd_file, "r", psd->error_message);
 
   /** Read header */
   psd->PCA_Nnu = 0;
@@ -1576,7 +1277,7 @@ int distortions_read_sd_data(struct precision * ppr,
       /** Read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line, "%d %d", &psd->PCA_Nnu, &psd->S_vec_size) != 2,
                  psd->error_message,
-                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,ppr->PIXIE_sd_file);
+                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,sd_file);
 
       class_alloc(psd->PCA_nu, psd->PCA_Nnu*sizeof(double), psd->error_message);
       class_alloc(psd->PCA_G_T, psd->PCA_Nnu*sizeof(double), psd->error_message);
@@ -1593,24 +1294,24 @@ int distortions_read_sd_data(struct precision * ppr,
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_nu[index_x]))!=1,                                          // [GHz]
                       psd->error_message,
-                      "Could not read z at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
+                      "Could not read z at line %i in file '%s'",index_x+headlines,sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_G_T[index_x]))!=1,                                         // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
-                      "Could not read f_g at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
+                      "Could not read f_g at line %i in file '%s'",index_x+headlines,sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_Y_SZ[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
-                      "Could not read f_y at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
+                      "Could not read f_y at line %i in file '%s'",index_x+headlines,sd_file);
     class_test(fscanf(infile,"%le",
                       &(psd->PCA_M_mu[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
-                      "Could not read f_mu at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
+                      "Could not read f_mu at line %i in file '%s'",index_x+headlines,sd_file);
     for(index_s=0; index_s<psd->S_vec_size; ++index_s){
       class_test(fscanf(infile,"%le",
                         &(psd->S_vec[index_s*psd->PCA_Nnu+index_x]))!=1,                       // [10^-18 W/(m^2 Hz sr)]
                         psd->error_message,
-                        "Could not read E vector at line %i in file '%s'",index_x+headlines,ppr->PIXIE_sd_file);
+                        "Could not read E vector at line %i in file '%s'",index_x+headlines,sd_file);
     }
   }
 
