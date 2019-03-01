@@ -39,8 +39,6 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              "Cannot compute spectral distortions without damping scale\n");
 
-  distortions_evaluate_PCA(ppr,psd);
-
   /** Assign values to all indices in the distortions structure */
   class_call(distortions_indices(psd),
              psd->error_message,
@@ -51,7 +49,8 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  class_call(distortions_set_detector(psd),
+  /** Set/Check the distortions detector */
+  class_call(distortions_set_detector(ppr,psd),
              psd->error_message,
              psd->error_message);
 
@@ -261,20 +260,23 @@ int distortions_get_xz_lists(struct precision * ppr,
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_set_detector(struct distortions* psd){
+int distortions_set_detector(struct precision* ppr, struct distortions* psd){
 
   /** Local variables */
-  FILE* known_det_file;
+  FILE* det_list_file;
   char line[_LINE_LENGTH_MAX_];
+  char detector_name[_LINE_LENGTH_MAX_];
+  double nu_min,nu_max,nu_delta,delta_Ic;
   char * left;
   int headlines = 0;
   int i,j;
+  int found_detector = _FALSE_;
 
   /** Open file */
-  class_open(known_det_file, "./external/distortions/known_detectors.dat", "r",
+  class_open(det_list_file, "./external/distortions/detectors_list.dat", "r",
              psd->error_message);
 
-  while (fgets(line,_LINE_LENGTH_MAX_-1,known_det_file) != NULL) {
+  while (fgets(line,_LINE_LENGTH_MAX_-1,det_list_file) != NULL) {
     headlines++;
 
     /* Eliminate blank spaces at beginning of line */
@@ -283,8 +285,34 @@ int distortions_set_detector(struct distortions* psd){
         left++;
     }
     if (left[0] > 39) {
-      break;
+      class_test(sscanf(line,"%s %lg %lg %lg %lg",detector_name,&nu_min,&nu_max,&nu_delta,&delta_Ic) != 5,
+                 psd->error_message,
+                 "Could not read detector in file '%s'\n",
+                 "./external/distortions/known_detectors.dat");
+      /* Detector has been found */
+      if(strcmp(psd->distortions_detector,detector_name)==0){
+        found_detector = _TRUE_;
+        class_test(fabs(psd->nu_min_detector-nu_min)<1e-10,
+                   psd->error_message,
+                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->nu_min_detector,nu_min);
+        class_test(fabs(psd->nu_max_detector-nu_max)<1e-10,
+                   psd->error_message,
+                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->nu_max_detector,nu_max);
+        class_test(fabs(psd->nu_delta_detector-nu_delta)<1e-10,
+                   psd->error_message,
+                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->nu_max_detector,nu_max);
+        class_test(fabs(psd->delta_Ic_detector-delta_Ic)<1e-10,
+                   psd->error_message,
+                   "Minimal frequency (nu_min) disagrees between stored detector '%s' and input %.10e (stored) vs %.10e (input)",detector_name,psd->delta_Ic_detector,delta_Ic);
+      }
     }
+  }
+  /* Either by now the detector has been found and everything is correct
+   * Or we need to define this new detector */
+  if(found_detector == _FALSE_){
+    class_call(distortions_evaluate_PCA(ppr,psd),
+               psd->error_message,
+               psd->error_message);
   }
   return _SUCCESS_;
 }

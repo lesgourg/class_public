@@ -2250,6 +2250,7 @@ int input_read_parameters(
   class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+
   if((flag1 == _TRUE_) && ((strstr(string1,"PIXIE") != NULL) || (strstr(string1,"pixie") != NULL))){
     psd->distortions_detector = "PIXIE";
   }
