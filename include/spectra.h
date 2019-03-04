@@ -25,7 +25,6 @@ struct spectra {
 
   double z_max_pk;  /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
 
-
   int non_diag; /**< sets the number of cross-correlation spectra
                    that you want to calculate: 0 means only
                    auto-correlation, 1 means only adjacent bins,

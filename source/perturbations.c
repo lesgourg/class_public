@@ -761,6 +761,16 @@ int perturb_indices_of_perturbs(
 	ppt->has_source_k2gamma_Nb = _TRUE_;
       }
 
+      if (ppt->has_Nbody_gauge_transfers == _TRUE_){
+	if (ppt->gauge == synchronous) {
+	  ppt->has_source_h_prime = _TRUE_;
+	  ppt->has_source_eta_prime = _TRUE_;
+	}
+	ppt->has_source_H_T_Nb_prime = _TRUE_;
+	/** gamma is not neccessary for converting output to Nbody gauge but is included anyway. */
+	ppt->has_source_k2gamma_Nb = _TRUE_;
+      }
+
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);

@@ -2299,6 +2299,17 @@ int input_read_parameters(
     }
   }
 
+  /** Do we want density and velocity transfer functions in Nbody gauge? */
+  if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
+    class_call(parser_read_string(pfc,"Nbody gauge transfer functions",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
+      ppt->has_Nbody_gauge_transfers = _TRUE_;
+    }
+  }
+
   /* deal with selection functions */
   if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
@@ -2981,6 +2992,7 @@ int input_default_params(
 
   ppt->gauge=synchronous;
 
+  ppt->has_Nbody_gauge_transfers = _FALSE_;
   ppt->k_output_values_num=0;
   ppt->store_perturbations = _FALSE_;
   ppt->number_of_scalar_titles=0;
