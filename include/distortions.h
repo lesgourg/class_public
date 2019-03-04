@@ -99,29 +99,10 @@ struct distortions
   int index_type_PCA;
   int type_size;
 
-  /* TODO ?? */
+  /* Total distortion amplitude for residula distortions, total heating rate and total spectral distortion */
+  double epsilon;
   double Drho_over_rho;
   double * DI;                               /* DI[index_x] = list of values */
-
-  /* Variables to read and allocate external file Greens_data.dat */
-  int Greens_Nz;
-  double * Greens_z;
-
-  double * Greens_T_ini;
-  double * ddGreens_T_ini;
-  double * Greens_T_last;
-  double * ddGreens_T_last;
-  double * Greens_rho;
-  double * ddGreens_rho;
-
-  int Greens_Nx;
-  double * Greens_x;
-
-  double * Greens_function;
-  double * ddGreens_function;
-
-  double * Greens_blackbody;
-  double * ddGreens_blackbody;
 
   /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
   double * br_exact_z;
@@ -198,6 +179,7 @@ extern "C" {
   /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */
   int distortions_generate_detector(struct precision * ppr,
                                     struct distortions * psd);
+
   int distortions_set_detector(struct precision * ppr,
                                struct distortions* psd);
 
@@ -211,8 +193,6 @@ extern "C" {
                                        struct thermo * pth,
                                        struct primordial * ppm,
                                        struct distortions * psd);
-
-  int distortions_compute_spectral_amplitudes(struct distortions * psd);
 
   int distortions_compute_spectral_shapes(struct precision * ppr,
                                           struct background * pba,

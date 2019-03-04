@@ -28,6 +28,8 @@ int distortions_init(struct precision * ppr,
   int index_br;
   int index_x;
 
+  psd->distortions_verbose = 2; // TODO: remove
+
   if(psd->has_distortions == _FALSE_){
     return _SUCCESS_;
   }
@@ -64,17 +66,13 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  /** Define spectral distortion amplitudes */
-  class_call(distortions_compute_spectral_amplitudes(psd),
-             psd->error_message,
-             psd->error_message);
-
   /** Define final spectral distortions */
   class_call(distortions_compute_spectral_shapes(ppr,pba,psd),
              psd->error_message,
              psd->error_message);
 
   return _SUCCESS_;
+
 }
 
 
@@ -449,7 +447,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
                                          struct distortions* psd){
 
   /** Define local variables */
-  int index_z,index_type,index_e;
+  int index_z,index_type,index_k;
   double f_g, f_y, f_mu;
   double *f_E;
   double bb_vis;
@@ -554,8 +552,8 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       psd->br_table[psd->index_type_g][index_z] = f_g;
       psd->br_table[psd->index_type_y][index_z] = f_y;
       psd->br_table[psd->index_type_mu][index_z] = f_mu;
-      for(index_e=0; index_e<psd->N_PCA; ++index_e){
-        psd->br_table[psd->index_type_PCA+index_e][index_z] = f_E[index_e];
+      for(index_k=0; index_k<psd->N_PCA; ++index_k){
+        psd->br_table[psd->index_type_PCA+index_k][index_z] = f_E[index_k];
       }
 
     }
@@ -576,8 +574,8 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 /**
  * Calculate heating rates.
  *
- * There are many possible sources of heating (for all details see e.g. Chluba & Sunyaev 2012),
- * some are present even for the standard cosmological model like
+ * There are many possible sources of heating (for more details see e.g. Chluba & Sunyaev 2012
+ * and Chluba 2016), some are present even for the standard cosmological model like
  *    1) Adiabatically cooling electrons and barions as described in Chluba & Sunyaev 2012
  *        (see also Khatri, Sunyaev & Chluba 2012 for useful discussion)
  *    2) Dissipation of acoustic waves as described in Chluba, Khatri & Sunyaev 2012 (see also
@@ -601,7 +599,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
  *          b) Disk accretion as described in Poulin et al. 2017
  *       (see also Carr et al. 2010 for useful discussion)
  *
- * All quantities are stored in the table heating_table
+ * All quantities are stored in the table heating_table.
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
@@ -800,25 +798,36 @@ int distortions_compute_heating_rate(struct precision * ppr,
 
 
 /**
- * Calculate spectral distortions amplitudes.
+ * Calculate spectral amplitudes and corresponding distortions.
  *
- * All quantities are stored in the table heating_table
+ * The calculation has been done according to Chluba & Jeong 2014 (arxiv:1306.5751).
+ * All quantities are stored in the tables sd_parameter_table and sd_table.
  *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_compute_spectral_amplitudes(struct distortions * psd){
+int distortions_compute_spectral_shapes(struct precision * ppr,
+                                        struct background * pba,
+                                        struct distortions * psd){
 
   /** Define local variables */
-  int index_type, index_z, index_e;
+  double * S;
+  int last_index = 0;
+  int index_type, index_z, index_x, index_k;
   double * integrand;
+  double sum_S, sum_G;
+  double g;
 
   /** Allocate space for spectral distortion amplitude in table sd_parameter_table */
   class_alloc(psd->sd_parameter_table,
               psd->type_size*sizeof(double),
               psd->error_message);
 
-  /** Compute distortion amplitude corresponding to each branching ratio (g, y, mu, r, and possibly PCA mu_k) */
+  /** Compute distortion amplitudes corresponding to each branching ratio (g, y and mu) */
+
+  /* Define y, mu, g and mu_k from heating rates */
   for(index_type=0; index_type<psd->type_size; ++index_type){
     class_call(array_trapezoidal_convolution(psd->heating_table[psd->index_ht_dQrho_dz_tot_screened],
                                              psd->br_table[index_type],
@@ -830,7 +839,7 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
                psd->error_message);
 
     if(index_type>=psd->index_type_PCA){
-      /* The E_k are not properly normalized, we have to renormalize here*/
+      /* The E_k are not properly normalized, we have to renormalize here */
       psd->sd_parameter_table[index_type]/=(log(1.+psd->z[1])-log(1.+psd->z[0]));
     }
   }
@@ -844,16 +853,8 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
   //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
   //psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
-  /** Calculate total heating */
-  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
-                       psd->sd_parameter_table[psd->index_type_y]*4.+
-                       psd->sd_parameter_table[psd->index_type_mu]/1.401;
-
-  psd->distortions_verbose = 2;
-
   /* Print found parameters */
   if (psd->distortions_verbose > 1){
-    printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
 
     printf(" -> g-parameter %g\n", psd->sd_parameter_table[psd->index_type_g]);
     if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
@@ -871,40 +872,7 @@ int distortions_compute_spectral_amplitudes(struct distortions * psd){
       printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
       printf("    Chluba 2016 (diss, exact): y-parameter = %g\n",3.63e-9);
     }
-
-    if(psd->N_PCA > 0){
-       for(index_e=0; index_e<psd->N_PCA; ++index_e){
-         printf(" -> PCA multipole mu_%d = %g\n", index_e+1, psd->sd_parameter_table[psd->index_type_PCA+index_e]);
-       }
-       printf("    Chluba 2016 (diss, exact): mu_1 = %g\n",3.81e-08);
-       printf("    Chluba 2016 (diss, exact): mu_2 = %g\n",-1.19e-09);
-    }
   }
-  //8.11657e-06, 1.67681e-08, 2.02624e-06, -1.2776e-09 //soft_soft, cool + diss
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Calculate spectral distortions.
- * We store both the shape of each distortion and the total final intensity, which is usually just the multiplication with
- * the amplitude prefactor.
- *
- * The calculation has been done according to Chluba & Jeong 2014 (arxiv:1306.5751)
- *
- * @param pba        Input: pointer to background structure
- * @param psd        Input: pointer to the distortions structure
- * @return the error status
- */
-int distortions_compute_spectral_shapes(struct precision * ppr,
-                                        struct background * pba,
-                                        struct distortions * psd){
-
-  /** Define local variables */
-  double * S;
-  int last_index = 0;
-  int index_type, index_x, index_s;
 
   /** Allocate space for distortions shapes in distortions_table */
   class_alloc(psd->sd_shape_table,
@@ -916,13 +884,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                 psd->error_message);
   }
 
-  /** Allocate space for final spactral distortion */
-  class_alloc(psd->DI,
-              psd->x_size*sizeof(double),
-              psd->error_message);
-
+  /** Calculate spectral shapes */
   if(psd->N_PCA == 0){
-    /** Calculate spectral distortions */
+    /* If no PCA analysis is required, the shapes have simple analistical form */
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
                                                            pow(1.-exp(-psd->x[index_x]),2.);   // [-]
@@ -934,6 +898,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
   }
   else{
+    /* If PCA analysis is required, the shapes has to be vectorized. This is done in the external
+       file spectral_shapes.dat using generate_PCA_files.py */
+
     /* Read and spline data from file spectral_shapes.dat */
     class_call(distortions_read_sd_data(ppr,psd),
                psd->error_message,
@@ -947,9 +914,8 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                 psd->N_PCA*sizeof(double),
                 psd->error_message);
 
-    /** Calculate spectral distortions */
+    /* Interpolate over z */
     for(index_x=0; index_x<psd->x_size; ++index_x){
-      /* Interpolate over z */
       class_call(distortions_interpolate_sd_data(psd,
                                                  psd->x[index_x]*psd->x_to_nu,
                                                  &psd->sd_shape_table[psd->index_type_g][index_x],
@@ -960,8 +926,8 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                  psd->error_message,
                  psd->error_message);
 
-      for(index_s=0; index_s<psd->N_PCA; ++index_s){
-        psd->sd_shape_table[psd->index_type_PCA+index_s][index_x] = S[index_s];
+      for(index_k=0; index_k<psd->N_PCA; ++index_k){
+        psd->sd_shape_table[psd->index_type_PCA+index_k][index_x] = S[index_k];
       }
     }
 
@@ -972,6 +938,49 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     free(S);
   }
 
+  /** Compute distortion amplitude for residual parameter epsilon */
+  /* For the details of the calculation see Chluba & Jeong 2014, left column of page 6 */
+  psd->epsilon = 0.;
+
+  if(psd->N_PCA != 0){
+    for(index_k=0; index_k<psd->N_PCA; ++index_k){
+      sum_S = 0.;
+      sum_G = 0.;
+      for(index_x=0; index_x<psd->x_size; ++index_x){
+        sum_S += psd->sd_shape_table[psd->index_type_PCA+index_k][index_x];
+        sum_G += psd->sd_shape_table[psd->index_type_g][index_x];
+      }
+      psd->epsilon += (4.*sum_S/sum_G)*psd->sd_parameter_table[psd->index_type_PCA+index_k];
+    }
+
+    /* Print found parameters */
+    if (psd->distortions_verbose > 1){
+       for(index_k=0; index_k<psd->N_PCA; ++index_k){
+         printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
+       }
+       printf("    Chluba 2016 (diss, exact): mu_1 = %g\n",3.81e-08);
+       printf("    Chluba 2016 (diss, exact): mu_2 = %g\n",-1.19e-09);
+
+       printf(" -> epsilon-parameter = %g\n", psd->epsilon);
+    }
+  }
+
+  /** Compute total heating */
+  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
+                       psd->sd_parameter_table[psd->index_type_y]*4.+
+                       psd->sd_parameter_table[psd->index_type_mu]/1.401+
+                       psd->epsilon;
+
+  /* Print found parameter */
+  if (psd->distortions_verbose > 1){
+    printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
+  }
+
+  /** Allocate space for final spactral distortion */
+  class_alloc(psd->DI,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+
   class_alloc(psd->sd_table,
               psd->type_size*sizeof(double*),
               psd->error_message);
@@ -981,13 +990,13 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                 psd->error_message);
   }
 
-  /* Spectral distortions according to Chluba & Jeong 2014 (arxiv:1306.5751, Eq. (11)) */
+  /** Calculate spectral distortions according to Chluba & Jeong 2014 (arxiv:1306.5751, Eq. (11)) */
   for(index_x=0;index_x<psd->x_size;++index_x){
     psd->DI[index_x] = 0.;
 
     for(index_type=0;index_type<psd->type_size;++index_type){
       if(index_type==psd->index_type_g){
-        double g = psd->sd_parameter_table[psd->index_type_g];
+        g = psd->sd_parameter_table[psd->index_type_g];
         psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
             g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
       }
@@ -1014,7 +1023,7 @@ int distortions_read_br_data(struct precision * ppr,
                              struct distortions * psd){
 
   /** Define local variables */
-  int index_e,index_z;
+  int index_k,index_z;
   FILE * infile;
   char br_file[500];
   char line[_LINE_LENGTH_MAX_];
@@ -1070,9 +1079,9 @@ int distortions_read_br_data(struct precision * ppr,
                       &(psd->f_mu_exact[index_z]))!=1,                                // [-]
                       psd->error_message,
                       "Could not read f_mu at line %i in file '%s'",index_z+headlines,br_file);
-    for(index_e=0; index_e<psd->E_vec_size; ++index_e){
+    for(index_k=0; index_k<psd->E_vec_size; ++index_k){
       class_test(fscanf(infile,"%le",
-                        &(psd->E_vec[index_e*psd->br_exact_Nz+index_z]))!=1,           // [-]
+                        &(psd->E_vec[index_k*psd->br_exact_Nz+index_z]))!=1,           // [-]
                         psd->error_message,
                         "Could not read E vector at line %i in file '%s'",index_z+headlines,br_file);
     }
@@ -1170,7 +1179,7 @@ int distortions_interpolate_br_data(struct distortions* psd,
 
   /** Define local variables */
   int index = *last_index;
-  int index_e;
+  int index_k;
   double h,a,b;
 
   /** Find z position */
@@ -1202,9 +1211,9 @@ int distortions_interpolate_br_data(struct distortions* psd,
                                                  index+1,
                                                  h,a,b);
 
-  for(index_e=0; index_e<psd->N_PCA; ++index_e){
-    f_E[index_e] = array_interpolate_spline_hunt(psd->E_vec+index_e*psd->br_exact_Nz,
-                                                 psd->ddE_vec+index_e*psd->br_exact_Nz,
+  for(index_k=0; index_k<psd->N_PCA; ++index_k){
+    f_E[index_k] = array_interpolate_spline_hunt(psd->E_vec+index_k*psd->br_exact_Nz,
+                                                 psd->ddE_vec+index_k*psd->br_exact_Nz,
                                                  index,
                                                  index+1,
                                                  h,a,b);
@@ -1256,7 +1265,7 @@ int distortions_read_sd_data(struct precision * ppr,
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
-  int index_x,index_s;
+  int index_x,index_k;
 
   /** Open file */
   sprintf(sd_file,"external/distortions/%s_distortions_shapes.dat", psd->distortions_detector);
@@ -1307,9 +1316,9 @@ int distortions_read_sd_data(struct precision * ppr,
                       &(psd->PCA_M_mu[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
                       "Could not read f_mu at line %i in file '%s'",index_x+headlines,sd_file);
-    for(index_s=0; index_s<psd->S_vec_size; ++index_s){
+    for(index_k=0; index_k<psd->S_vec_size; ++index_k){
       class_test(fscanf(infile,"%le",
-                        &(psd->S_vec[index_s*psd->PCA_Nnu+index_x]))!=1,                       // [10^-18 W/(m^2 Hz sr)]
+                        &(psd->S_vec[index_k*psd->PCA_Nnu+index_x]))!=1,                       // [10^-18 W/(m^2 Hz sr)]
                         psd->error_message,
                         "Could not read E vector at line %i in file '%s'",index_x+headlines,sd_file);
     }
@@ -1407,7 +1416,7 @@ int distortions_interpolate_sd_data(struct distortions* psd,
 
   /** Define local variables */
   int last_index = *index;
-  int index_s;
+  int index_k;
   double h,a,b;
 
   /** Find z position */
@@ -1439,9 +1448,9 @@ int distortions_interpolate_sd_data(struct distortions* psd,
                                         last_index+1,
                                         h,a,b);
 
-  for(index_s=0; index_s<psd->N_PCA; ++index_s){
-    S[index_s] = array_interpolate_spline_hunt(psd->S_vec+index_s*psd->PCA_Nnu,
-                                               psd->ddS_vec+index_s*psd->PCA_Nnu,
+  for(index_k=0; index_k<psd->N_PCA; ++index_k){
+    S[index_k] = array_interpolate_spline_hunt(psd->S_vec+index_k*psd->PCA_Nnu,
+                                               psd->ddS_vec+index_k*psd->PCA_Nnu,
                                                last_index,
                                                last_index+1,
                                                h,a,b);
