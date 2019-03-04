@@ -269,7 +269,7 @@ int background_functions(
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
   /* scale factor */
-  double a, a_prime_over_a;
+  double a;
   /* scalar field quantities */
   double phi, phi_prime;
   /* Since we only know a_prime_over_a after we have rho_tot, 
