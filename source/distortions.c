@@ -296,7 +296,7 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
     /* The user wants a new detector with specified settings, but without name */
     else{
       /* Generate a custom name for this custom detector, so we can check if it has already been defined */
-      sprintf(psd->distortions_detector,"Custom__%.10e_%.10e_%.10e_%.10e__Detector",psd->nu_min_detector,psd->nu_max_detector,psd->nu_delta_detector,psd->delta_Ic_detector);
+      sprintf(psd->distortions_detector,"Custom__%7.2e_%7.2e_%7.2e_%7.2e__Detector",psd->nu_min_detector,psd->nu_max_detector,psd->nu_delta_detector,psd->delta_Ic_detector);
     }
   }
 
@@ -383,12 +383,16 @@ int distortions_generate_detector(struct precision * ppr,
   /** Define local variables*/
   int is_success;
   char temporary_string[500];
-  printf(" -> Testing python\n");
+
+
   /* Test first whether or not python exists*/
+  printf(" -> Testing python\n");
   is_success = system("python --version");
   class_test(is_success == -1,
              psd->error_message,
              "The command 'python --version' failed.\nPlease install a valid version of python.");
+
+  /* Then activate the PCA generator*/
   printf(" -> Executing the PCA generator\n");
   sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
           psd->distortions_detector,

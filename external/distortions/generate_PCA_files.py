@@ -5,7 +5,7 @@ import sys
 import scipy.interpolate as sciint
 from numpy.linalg import norm as vector_norm
 from numpy.linalg import eig as eigen_vals_vecs # eigh is different from eig
-import os 
+import os
 
 # Read inputs
 assert(len(sys.argv)==13)
@@ -46,10 +46,13 @@ with open(os.path.join(dir_path,readfile)) as f:
   Greens_z = PCA_string_to_array(f.readline())
   Greens_Nz = len(Greens_z)
 
-  # Read (and ignore) T_ini,T_last and rho
+  # Read T_ini,T_last and rho
   Greens_T_ini = PCA_string_to_array(f.readline())
   Greens_T_last = PCA_string_to_array(f.readline())
-  Greens_rho = PCA_string_to_array(f.readline())
+  Greens_drho = PCA_string_to_array(f.readline())
+
+  # Calculate the difference in Temperature
+  Greens_dT = (Greens_T_ini-Greens_T_last)/Greens_T_ini
 
   # Read the rest of the file
   done = False
@@ -72,6 +75,10 @@ with open(os.path.join(dir_path,readfile)) as f:
   Greens_G_th_Spline = [None for index_x_old in range(Greens_Nx)]
   for index_x_old in range(Greens_Nx):
     Greens_G_th_Spline[index_x_old] = sciint.CubicSpline(Greens_z,Greens_G_th[:,index_x_old])
+
+  # Spline Greens dT for interpolation
+  Greens_dT_Spline = sciint.CubicSpline(Greens_z,Greens_dT)
+  Greens_drho_Spline = sciint.CubicSpline(Greens_z,Greens_drho)
 
   # Define new z and x arrays
   z_arr = np.logspace(np.log10(z_min),np.log10(z_max),z_size)
@@ -105,7 +112,7 @@ with open(os.path.join(dir_path,readfile)) as f:
       highx_vals = Greens_G_th_Spline[index_x_old+1](z_arr)
 
       G_th[index_x_new,:] = (lowx_vals*(1.-frac)+highx_vals*frac)
-      G_th[index_x_new,:] *= 1.0e-8*bb_vis # Units, and energy deposition
+      G_th[index_x_new,:] *= 1.0e-8 # Units
     except:
       raise ValueError("{} is not in the file range [{},{}] for file '{}'".format(x,Greens_x[0],Greens_x[-1],readfile))
 
@@ -137,9 +144,15 @@ with open(os.path.join(dir_path,readfile)) as f:
     f_mu[index_z] = (np.dot(G_th[:,index_z],e_M)-G_M*f_g[index_z])/vector_norm(Mperp)
     f_y[index_z]  = (np.dot(G_th[:,index_z],e_Y)-M_Y*f_mu[index_z]-G_Y*f_g[index_z])/vector_norm(Ydist)
     # Normalize, and re-instate energy conservation at early times
-    f_g[index_z]  = 4.*f_g[index_z] + (1.-bb_vis[index_z])
-    f_mu[index_z] = f_mu[index_z]/1.401
-    f_y[index_z]  = 4.*f_y[index_z]
+
+  #The Gth file of Chluba subtracts away some part of the G_T distortion into a shift from T_ini to T_last
+  # Here we calculate backwards, and obtain the shift of f_g due to the internal dT
+  df_g = 4.*Greens_dT_Spline(z_arr)/Greens_drho_Spline(z_arr)
+
+  # Now we can re-normalize our functions and add the shift
+  f_g = 4.*f_g*(1.+df_g)-df_g
+  f_mu = f_mu*bb_vis/1.401
+  f_y  = 4.*f_y
 
   # Calculate non-normalized residual
   Residual = np.zeros((Nx_arr,Nz_arr))
