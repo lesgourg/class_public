@@ -28,8 +28,6 @@ int distortions_init(struct precision * ppr,
   int index_br;
   int index_x;
 
-  psd->distortions_verbose = 2; // TODO: remove
-
   if(psd->has_distortions == _FALSE_){
     return _SUCCESS_;
   }
@@ -46,13 +44,13 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  /** Define z and x arrays */
-  class_call(distortions_get_xz_lists(ppr,pba,pth,psd),
+  /** Set/Check the distortions detector */
+  class_call(distortions_set_detector(ppr,psd),
              psd->error_message,
              psd->error_message);
 
-  /** Set/Check the distortions detector */
-  class_call(distortions_set_detector(ppr,psd),
+  /** Define z and x arrays */
+  class_call(distortions_get_xz_lists(ppr,pba,pth,psd),
              psd->error_message,
              psd->error_message);
 
@@ -87,26 +85,25 @@ int distortions_free(struct distortions * psd) {
   /** Define local variables */
   int index_type,index_ht;
 
-
   if(psd->has_distortions == _TRUE_){
-    /* Delete lists */
+    /** Delete lists */
     free(psd->z);
     free(psd->x);
     free(psd->z_weights);
 
-    /* Delete branching ratios */
+    /** Delete branching ratios */
     for(index_type=0;index_type<psd->type_size;++index_type){
       free(psd->br_table[index_type]);
     }
     free(psd->br_table);
 
-    /* Delete heating functions */
+    /** Delete heating functions */
     for(index_ht=0;index_ht<psd->ht_size;++index_ht){
       free(psd->heating_table[index_ht]);
     }
     free(psd->heating_table);
 
-    /* Delete distortion shapes */
+    /** Delete distortion shapes */
     for(index_type=0;index_type<psd->type_size;++index_type){
       free(psd->sd_shape_table[index_type]);
       free(psd->sd_table[index_type]);
@@ -114,142 +111,16 @@ int distortions_free(struct distortions * psd) {
     free(psd->sd_shape_table);
     free(psd->sd_table);
 
-    /* Delete distortion amplitudes */
+    /** Delete distortion amplitudes */
     free(psd->sd_parameter_table);
 
-    /* Delete total distortion */
+    /** Delete total distortion */
     free(psd->DI);
   }
 
   return _SUCCESS_;
 }
 
-
-/**
- * Assign value to each relevant index in vectors of distortions quantities.
- *
- * @param psd     Input: pointer to distortions structure
- * @return the error status
- */
-int distortions_indices(struct distortions * psd) {
-
-  /** Define local variables */
-  int index_ht = 0;
-  int index_type = 0;
-
-  /** Define indeces for table heating_table defined in distortions_heating_rate */
-  class_define_index(psd->index_ht_dQrho_dz_cool,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_diss,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_CRR,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_ann,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_dec,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_eva_PBH,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_acc_PBH,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_tot,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_tot_screened,_TRUE_,index_ht,1);
-
-  psd->ht_size = index_ht;
-
-  /** Define indeces for tables - br_table defined in distortions_branching_ratios,
-                                - sd_parameter_table defined in distortions_amplitudes and
-                                - distortions_table defined in distortions_at_x */
-  class_define_index(psd->index_type_g,_TRUE_,index_type,1);
-  class_define_index(psd->index_type_y,_TRUE_,index_type,1);
-  class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
-  class_define_index(psd->index_type_PCA,_TRUE_,index_type,psd->N_PCA);
-
-  psd->type_size = index_type;
-
-  return _SUCCESS_;
-}
-
-
-/**
- * Calculate redshift and frequency vectors and weights for redshift integral.
- *
- * @param pba        Input: pointer to background structure
- * @param pth        Input: pointer to the thermodynamics structure
- * @param psd        Input/Output: pointer to initialized distortions structure
- * @return the error status
- */
-int distortions_get_xz_lists(struct precision * ppr,
-                             struct background * pba,
-                             struct thermo * pth,
-                             struct distortions * psd){
-
-  /** Define local variables */
-  int index_z, index_x;
-
-  /** Define unit conventions */
-  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
-  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
-
-  /** Define transition redshifts z_muy and z_th */
-  psd->z_muy = 5.e4;    // TODO: [ML] to [NS]: in precision?
-  psd->z_th = 1.98e6*
-         pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
-         pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
-         pow(pba->T_cmb/2.726,1./5.);
-
-  /** Define and allocate z array */
-  psd->z_min = ppr->distortions_z_min;
-  psd->z_max = ppr->distortions_z_max;
-  psd->z_size = ppr->distortions_z_size;
-  psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
-
-  class_alloc(psd->z,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-
-  for (index_z = 0; index_z < psd->z_size; index_z++) {
-    psd->z[index_z] = exp(log(psd->z_min+1)+psd->z_delta*index_z);
-  }
-
-  /** Define and allocate integrating weights for z array */
-  class_alloc(psd->z_weights,
-              psd->z_size*sizeof(double),
-              psd->error_message);
-  class_call(array_trapezoidal_weights(
-                    psd->z,
-                    psd->z_size,
-                    psd->z_weights,
-                    psd->error_message),
-             psd->error_message,
-             psd->error_message);
-
-  /** Define and allocate x array */
-  if(psd->N_PCA == 0){
-    psd->x_min = ppr->distortions_x_min;
-    psd->x_max = ppr->distortions_x_max;
-    psd->x_size = ppr->distortions_x_size;
-    psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
-
-    class_alloc(psd->x,
-                psd->x_size*sizeof(double),
-                psd->error_message);
-
-    for (index_x = 0; index_x<psd->x_size; index_x++) {
-      psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
-    }
-
-  }
-  else{
-    psd->x_min = psd->nu_min_detector/psd->x_to_nu;
-    psd->x_max = psd->nu_max_detector/psd->x_to_nu;
-    psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
-    psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
-
-    class_alloc(psd->x,
-                psd->x_size*sizeof(double),
-                psd->error_message);
-
-    for (index_x = 0; index_x<psd->x_size; index_x++) {
-      psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
-    }
-  }
-
-  return _SUCCESS_;
-}
 
 /**
  * Check wether the detector name and the detector properties
@@ -273,10 +144,12 @@ int distortions_get_xz_lists(struct precision * ppr,
  * Meaning: The user just wants the default detector and settings
  * --> Just use the default settings and skip this function
  *
+ * @param ppr        Input: pointer to precision structure
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_set_detector(struct precision* ppr, struct distortions* psd){
+int distortions_set_detector(struct precision* ppr, 
+                             struct distortions* psd){
 
   /** Local variables */
   FILE* det_list_file;
@@ -371,7 +244,8 @@ int distortions_set_detector(struct precision* ppr, struct distortions* psd){
 
 
 /**
- * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector.
+ * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector as
+ * described in external/distortions/README using generate_PCA_files.py.
  *
  * @param ppr        Input: pointer to precision structure
  * @param psd        Input: pointer to the distortions structure
@@ -418,6 +292,133 @@ int distortions_generate_detector(struct precision * ppr,
 
 
 /**
+ * Assign value to each relevant index in vectors of distortions quantities.
+ *
+ * @param psd     Input: pointer to distortions structure
+ * @return the error status
+ */
+int distortions_indices(struct distortions * psd) {
+
+  /** Define local variables */
+  int index_ht = 0;
+  int index_type = 0;
+
+  /** Define indeces for table heating_table defined in distortions_compute_heating_rate */
+  class_define_index(psd->index_ht_dQrho_dz_cool,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_diss,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_CRR,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_ann,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_dec,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_eva_PBH,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_acc_PBH,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_tot,_TRUE_,index_ht,1);
+  class_define_index(psd->index_ht_dQrho_dz_tot_screened,_TRUE_,index_ht,1);
+
+  psd->ht_size = index_ht;
+
+  /** Define indeces for tables - br_table defined in distortions_compute_branching_ratios,
+                                - sd_parameter_table and
+                                - sd_table defined in distortions_compute_spectral_shapes */
+  class_define_index(psd->index_type_g,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_y,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
+  class_define_index(psd->index_type_PCA,_TRUE_,index_type,psd->N_PCA);
+
+  psd->type_size = index_type;
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Calculate redshift and frequency vectors and weights for redshift integral.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to the thermodynamics structure
+ * @param psd        Input/Output: pointer to initialized distortions structure
+ * @return the error status
+ */
+int distortions_get_xz_lists(struct precision * ppr,
+                             struct background * pba,
+                             struct thermo * pth,
+                             struct distortions * psd){
+
+  /** Define local variables */
+  int index_z, index_x;
+
+  /** Define unit conventions */
+  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
+  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
+
+  /** Define transition redshifts z_muy and z_th */
+  psd->z_muy = 5.e4;
+  psd->z_th = 1.98e6*
+         pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
+         pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
+         pow(pba->T_cmb/2.726,1./5.);
+
+  /** Define and allocate z array */
+  psd->z_min = ppr->distortions_z_min;
+  psd->z_max = ppr->distortions_z_max;
+  psd->z_size = ppr->distortions_z_size;
+  psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
+
+  class_alloc(psd->z,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+
+  for (index_z = 0; index_z < psd->z_size; index_z++) {
+    psd->z[index_z] = exp(log(psd->z_min+1)+psd->z_delta*index_z);
+  }
+
+  /** Define and allocate integrating weights for z array */
+  class_alloc(psd->z_weights,
+              psd->z_size*sizeof(double),
+              psd->error_message);
+  class_call(array_trapezoidal_weights(
+                    psd->z,
+                    psd->z_size,
+                    psd->z_weights,
+                    psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
+  /** Define and allocate x array */
+  if(psd->N_PCA == 0){
+    psd->x_min = ppr->distortions_x_min;
+    psd->x_max = ppr->distortions_x_max;
+    psd->x_size = ppr->distortions_x_size;
+    psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
+
+    class_alloc(psd->x,
+                psd->x_size*sizeof(double),
+                psd->error_message);
+
+    for (index_x = 0; index_x<psd->x_size; index_x++) {
+      psd->x[index_x] = exp(log(psd->x_min)+psd->x_delta*index_x);
+    }
+
+  }
+  else{
+    psd->x_min = psd->nu_min_detector/psd->x_to_nu;
+    psd->x_max = psd->nu_max_detector/psd->x_to_nu;
+    psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
+    psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
+
+    class_alloc(psd->x,
+                psd->x_size*sizeof(double),
+                psd->error_message);
+
+    for (index_x = 0; index_x<psd->x_size; index_x++) {
+      psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
  * Calculate branching ratios.
  *
  * Computing the full evolution of the thermal history of the universe is rather time consuming
@@ -434,12 +435,6 @@ int distortions_generate_detector(struct precision * ppr,
  *    5) Use a PCA method as described in Chluba & Jeong 2014 ('branching approx'=exact)
  *       In this case, the definition of the BRs is detector dependent and the user has therefore to 
  *       specify the detector type and corresponding characteristics. 
- *       If the chosen detector is PIXIE, the all values have been precomputed. In this case, we read 
- *       and interpolate precomputed functions (also the multipole expansion of the residual vectors E)
- *       from external file PIXIE_branching_ratios.dat. This template has been computed by J. Chluba
- *       assuming nu_min=30 GHz, nu_max=1000 GHz and nu_delta=1 GHz.
- *       If the chosen detector is not PIXIE, please specify nu_min, nu_max and nu_delta in the input.
- *       The corresponding BRs will be calculated according to Appendix A of Chluba & Jeong 2014.
  *
  * All quantities are stored in the table br_table.
  *
@@ -853,9 +848,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
 
   /** Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  //psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  //psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+  psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
   /* Print found parameters */
   if (psd->distortions_verbose > 1){

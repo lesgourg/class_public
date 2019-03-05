@@ -168,19 +168,19 @@ extern "C" {
 
   int distortions_free(struct distortions * psd);
 
+  /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */
+  int distortions_generate_detector(struct precision * ppr,
+                                    struct distortions * psd);
+
+  int distortions_set_detector(struct precision * ppr,
+                               struct distortions* psd);
+
   /* Indices and lists */
   int distortions_indices(struct distortions * psd);
 
   int distortions_get_xz_lists(struct precision * ppr,
                                struct background* pba, 
                                struct thermo* pth, 
-                               struct distortions* psd);
-
-  /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */
-  int distortions_generate_detector(struct precision * ppr,
-                                    struct distortions * psd);
-
-  int distortions_set_detector(struct precision * ppr,
                                struct distortions* psd);
 
   /* The main computation methods */
