@@ -166,6 +166,10 @@ extern "C" {
                        struct primordial * ppm,
                        struct distortions * psd);
 
+  int distortions_constants(struct background * pba, 
+                            struct thermo * pth, 
+                            struct distortions * psd);
+
   int distortions_free(struct distortions * psd);
 
   /* PCA decomposition (branching ratios and spectral shapes) for unknown detector */

@@ -3236,8 +3236,8 @@ int input_default_params(
   psd->branching_approx = bra_exact; //[NS]
   strcpy(psd->distortions_detector,"PIXIE"); // [ML]
   psd->nu_min_detector = 30.;
-  psd->nu_max_detector = 950.;  //TODO: should be 1000
-  psd->nu_delta_detector = 1.;
+  psd->nu_max_detector = 990.;
+  psd->nu_delta_detector = 15.;
   psd->delta_Ic_detector = 5.0e-26;
   psd->user_defined_detector = _FALSE_;
   psd->user_defined_name = _FALSE_;

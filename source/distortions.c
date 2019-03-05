@@ -39,13 +39,18 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              "Cannot compute spectral distortions without damping scale\n");
 
-  /** Assign values to all indices in the distortions structure */
-  class_call(distortions_indices(psd),
+  /** Set physical constants */
+  class_call(distortions_constants(pba,pth,psd),
              psd->error_message,
              psd->error_message);
 
   /** Set/Check the distortions detector */
   class_call(distortions_set_detector(ppr,psd),
+             psd->error_message,
+             psd->error_message);
+
+  /** Assign values to all indices in the distortions structure */
+  class_call(distortions_indices(psd),
              psd->error_message,
              psd->error_message);
 
@@ -123,6 +128,32 @@ int distortions_free(struct distortions * psd) {
 
 
 /**
+ * Calculate physical constant.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to thermodynamics structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_constants(struct background * pba, 
+                          struct thermo * pth, 
+                          struct distortions * psd){
+
+  /** Define unit conventions */
+  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
+  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
+
+  /** Define transition redshifts z_muy and z_th */
+  psd->z_muy = 5.e4;
+  psd->z_th = 1.98e6*
+         pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
+         pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
+         pow(pba->T_cmb/2.726,1./5.);
+
+}
+
+
+/**
  * Check wether the detector name and the detector properties
  * are a valid combination.
  *
@@ -148,8 +179,8 @@ int distortions_free(struct distortions * psd) {
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_set_detector(struct precision* ppr, 
-                             struct distortions* psd){
+int distortions_set_detector(struct precision * ppr, 
+                             struct distortions * psd){
 
   /** Local variables */
   FILE* det_list_file;
@@ -196,7 +227,9 @@ int distortions_set_detector(struct precision* ppr,
         printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         found_detector = _TRUE_;
 
-        printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    delta_Ic = %lg \n",nu_min, nu_max, nu_delta, delta_Ic);
+        if (psd->distortions_verbose > 1){
+          printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    delta_Ic = %lg \n",nu_min, nu_max, nu_delta, delta_Ic);
+        }
         /* If the user has defined the detector, check that their and our definitions agree */
         if(psd->user_defined_detector){
           class_test(fabs(psd->nu_min_detector-nu_min)>ppr->tol_distortions_detector,
@@ -269,9 +302,9 @@ int distortions_generate_detector(struct precision * ppr,
           psd->nu_min_detector,
           psd->nu_max_detector,
           psd->nu_delta_detector,
-          psd->z_min,
-          psd->z_max,
-          psd->z_size,
+          ppr->distortions_z_min,
+          ppr->distortions_z_max,
+          ppr->distortions_z_size,
           psd->delta_Ic_detector,
           8,
           psd->z_th,
@@ -341,17 +374,6 @@ int distortions_get_xz_lists(struct precision * ppr,
 
   /** Define local variables */
   int index_z, index_x;
-
-  /** Define unit conventions */
-  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
-  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
-
-  /** Define transition redshifts z_muy and z_th */
-  psd->z_muy = 5.e4;
-  psd->z_th = 1.98e6*
-         pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
-         pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
-         pow(pba->T_cmb/2.726,1./5.);
 
   /** Define and allocate z array */
   psd->z_min = ppr->distortions_z_min;
@@ -579,19 +601,19 @@ int distortions_compute_branching_ratios(struct precision * ppr,
  *          a) Eq. 42 from Chluba, Khatri & Sunyaev 2012 (approximated to Y_SZ*S_ac) (TODO)
  *          b) Eq. 45 from Chluba, Khatri & Sunyaev 2012
  *       The user can select the preferred option with 'heating approx'=yes/no (default =yes)
- *    3) Cosmological recombination radiation as described in Chluba & Ali-Haimoud 2016  (TODO)
+ *    3) Cosmological recombination radiation as described in Chluba & Ali-Haimoud 2016 (TODO)
  * while some other are related to new possible physical processes like
  *    4) Annihilating particles (e.g. dark matter) as described in Chluba 2010 and Chluba
- *       & Sunyaev 2012. (see also Chluba 2013 for useful discussion)
+ *       & Sunyaev 2012. (see also Chluba 2013 for useful discussion) (TODO)
  *    5) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012
- *       (see also Chluba 2013 for useful discussion)
+ *       (see also Chluba 2013 for useful discussion) (TODO)
  *    6) Evaporation of primordial black holes as described in Poulin et al. 2017 (see also
- *       Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions)
+ *       Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions) (TODO)
  *    7) Acctretion of matter into primordial black holes both via
  *          a) Spherical accretion as described in Ali-Haimoud & Kamionkowski 2017 (note: "we
  *             find that CMB spectral distortion measurements, both current and upcoming,
- *             do not place any constraints on PBHs.") and
- *          b) Disk accretion as described in Poulin et al. 2017
+ *             do not place any constraints on PBHs.")  (TODO) and
+ *          b) Disk accretion as described in Poulin et al. 2017 (TODO)
  *       (see also Carr et al. 2010 for useful discussion)
  *
  * All quantities are stored in the table heating_table.
@@ -620,7 +642,6 @@ int distortions_compute_heating_rate(struct precision * ppr,
   int index_ht;
   double alpha_h, tilde_rho_g, theta_g;
   double k_max, k_min, k_size, k_delta, k, pk_primordial_k, * int_dQrho_dz_diss_full, * int_dQrho_dz_diss_approx;
-  double g_h;
 
 
   /** Allocate space for heating rates in heating_table */
@@ -757,7 +778,6 @@ int distortions_compute_heating_rate(struct precision * ppr,
     psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] = 0.;
 
     /* 4) Annihilating particles */
-    g_h = (1.+Y_He+2*(X_e))/(3.*(1+Y_He));                                            // [-] (TODO: INCOMPLETE)
     psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] = 0.;
 
     /* 5) Decaying relic particles */
@@ -857,7 +877,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
     else{
       printf(" -> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
-      printf("    Chluba 2016 (diss, exact): mu-parameter = %g\n",2.00e-08);
     }
 
     if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
@@ -865,7 +884,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
     else{
       printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
-      printf("    Chluba 2016 (diss, exact): y-parameter = %g\n",3.63e-9);
     }
   }
 
@@ -953,8 +971,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
        for(index_k=0; index_k<psd->N_PCA; ++index_k){
          printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
        }
-       printf("    Chluba 2016 (diss, exact): mu_1 = %g\n",3.81e-08);
-       printf("    Chluba 2016 (diss, exact): mu_2 = %g\n",-1.19e-09);
 
        printf(" -> epsilon-parameter = %g\n", psd->epsilon);
     }
