@@ -44,10 +44,12 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  /** Set/Check the distortions detector */
-  class_call(distortions_set_detector(ppr,psd),
-             psd->error_message,
-             psd->error_message);
+  if(psd->branching_approx == bra_exact){
+    /** Set/Check the distortions detector */
+    class_call(distortions_set_detector(ppr,psd),
+               psd->error_message,
+               psd->error_message);
+  }
 
   /** Assign values to all indices in the distortions structure */
   class_call(distortions_indices(psd),
@@ -310,7 +312,7 @@ int distortions_generate_detector(struct precision * ppr,
           ppr->distortions_z_max,
           ppr->distortions_z_size,
           psd->delta_Ic_detector,
-          8,
+          6,
           psd->z_th,
           psd->DI_units,
           psd->x_to_nu);
@@ -406,7 +408,7 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
-  if(psd->N_PCA == 0){
+  if(psd->branching_approx != bra_exact){
     psd->x_min = ppr->distortions_x_min;
     psd->x_max = ppr->distortions_x_max;
     psd->x_size = ppr->distortions_x_size;
@@ -902,7 +904,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   }
 
   /** Calculate spectral shapes */
-  if(psd->N_PCA == 0){
+  if(psd->branching_approx != bra_exact || psd->N_PCA == 0){
     /* If no PCA analysis is required, the shapes have simple analistical form */
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
@@ -959,7 +961,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /* For the details of the calculation see Chluba & Jeong 2014, left column of page 6 */
   psd->epsilon = 0.;
 
-  if(psd->N_PCA != 0){
+  if(psd->branching_approx == bra_exact && psd->N_PCA != 0){
     for(index_k=0; index_k<psd->N_PCA; ++index_k){
       sum_S = 0.;
       sum_G = 0.;

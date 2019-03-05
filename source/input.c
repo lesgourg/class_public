@@ -2237,17 +2237,33 @@ int input_read_parameters(
   class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL))) { psd->branching_approx = bra_sharp_sharp; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL))) { psd->branching_approx = bra_sharp_soft; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL))) { psd->branching_approx = bra_soft_soft; }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL))) { psd->branching_approx = bra_soft_soft_cons; }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL))) { 
+    psd->branching_approx = bra_sharp_sharp; 
+    psd->N_PCA = 0;
+  }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL))) { 
+    psd->branching_approx = bra_sharp_soft; 
+    psd->N_PCA = 0;
+  }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL))) { 
+    psd->branching_approx = bra_soft_soft; 
+    psd->N_PCA = 0;
+  }
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL))) { 
+    psd->branching_approx = bra_soft_soft_cons; 
+    psd->N_PCA = 0;
+  }
   if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) { psd->branching_approx = bra_exact; }
 
   class_read_int("PCA size",psd->N_PCA);
 
-  if(psd->N_PCA < 0 || psd->N_PCA > 8){
-    psd->N_PCA = 8;
+  if(psd->N_PCA < 0 || psd->N_PCA > 6){
+    psd->N_PCA = 6;
   }
+
+  class_test(psd->branching_approx != bra_exact && psd->N_PCA > 0,
+             errmsg,
+             "The PCA expansion is possible only for 'branching approx' = exact");
 
   /* First read the detector name */
   class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
@@ -3252,7 +3268,7 @@ int input_default_params(
   psp->spectra_verbose = 0;
   pnl->nonlinear_verbose = 0;
   ple->lensing_verbose = 0;
-  psd->distortions_verbose = 0; // [ML] 
+  psd->distortions_verbose = 0; // [ML]
   pop->output_verbose = 0;
 
   return _SUCCESS_;

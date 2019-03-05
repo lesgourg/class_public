@@ -4,7 +4,7 @@ import numpy as np
 import sys
 import scipy.interpolate as sciint
 from numpy.linalg import norm as vector_norm
-from numpy.linalg import eig as eigen_vals_vecs # eigh is different from eig
+from numpy.linalg import eigh as eigen_vals_vecs
 import os
 
 # Read inputs
@@ -52,7 +52,7 @@ with open(os.path.join(dir_path,readfile)) as f:
   Greens_drho = PCA_string_to_array(f.readline())
 
   # Calculate the difference in Temperature
-  Greens_dT = (Greens_T_ini-Greens_T_last)/Greens_T_ini
+  Greens_dT = (Greens_T_last-Greens_T_ini)/Greens_T_ini
 
   # Read the rest of the file
   done = False
@@ -84,12 +84,16 @@ with open(os.path.join(dir_path,readfile)) as f:
   z_arr = np.logspace(np.log10(z_min),np.log10(z_max),z_size)
   Nz_arr = len(z_arr)
 
-  x_size = (nu_max-nu_min)/nu_delta
+  x_size = np.ceil((nu_max-nu_min)/nu_delta)+1
   x_arr = np.linspace(nu_min/x_to_nu,nu_max/x_to_nu,x_size)
   Nx_arr = len(x_arr)
 
   # Define visibility function
-  bb_vis = np.exp(-(z_arr/z_th)**2.5)
+  bb_vis = np.exp(-(z_arr/2.0e6)**2.5)
+
+  # The Gth file of Chluba subtracts away some part of the G_T distortion into a shift from T_ini to T_last
+  # Here we calculate backwards, and obtain the shift of f_g due to the internal dT
+  df_g = Greens_dT_Spline(z_arr)/Greens_drho_Spline(z_arr)
 
   # Initialize spectral shapes
   G_th = np.zeros((Nx_arr,Nz_arr))
@@ -100,6 +104,11 @@ with open(os.path.join(dir_path,readfile)) as f:
   # Interpolate Green's function
   index_x_old = 0
   for index_x_new,x in enumerate(x_arr):
+    # Define spectral shapes
+    Gdist[index_x_new] = (x**4*np.exp(x)/(np.exp(x)-1)**2)*DI_units*1.0e18
+    Ydist[index_x_new] = Gdist[index_x_new]*(x/np.tanh(x/2.)-4.)
+    Mdist[index_x_new] = Gdist[index_x_new]*(1./2.19229-1./x)
+
     try:
       # Find position in xarray
       while(x>Greens_x[index_x_old]):
@@ -112,14 +121,10 @@ with open(os.path.join(dir_path,readfile)) as f:
       highx_vals = Greens_G_th_Spline[index_x_old+1](z_arr)
 
       G_th[index_x_new,:] = (lowx_vals*(1.-frac)+highx_vals*frac)
-      G_th[index_x_new,:] *= 1.0e-8 # Units
+      G_th[index_x_new,:] *= 1.0e-8*bb_vis # Units
+      G_th[index_x_new,:] += Gdist[index_x_new]*df_g
     except:
       raise ValueError("{} is not in the file range [{},{}] for file '{}'".format(x,Greens_x[0],Greens_x[-1],readfile))
-
-    # Define spectral shapes
-    Gdist[index_x_new] = (x**4*np.exp(x)/(np.exp(x)-1)**2)*DI_units*1.0e18
-    Ydist[index_x_new] = Gdist[index_x_new]*(x/np.tanh(x/2.)-4.)
-    Mdist[index_x_new] = Gdist[index_x_new]*(1./2.19229-1./x)
 
   # Begin orthonormlization
   # Y distortion
@@ -143,22 +148,17 @@ with open(os.path.join(dir_path,readfile)) as f:
     f_g[index_z]  = (np.dot(G_th[:,index_z],e_G))/vector_norm(Gperp)
     f_mu[index_z] = (np.dot(G_th[:,index_z],e_M)-G_M*f_g[index_z])/vector_norm(Mperp)
     f_y[index_z]  = (np.dot(G_th[:,index_z],e_Y)-M_Y*f_mu[index_z]-G_Y*f_g[index_z])/vector_norm(Ydist)
-    # Normalize, and re-instate energy conservation at early times
-
-  #The Gth file of Chluba subtracts away some part of the G_T distortion into a shift from T_ini to T_last
-  # Here we calculate backwards, and obtain the shift of f_g due to the internal dT
-  df_g = 4.*Greens_dT_Spline(z_arr)/Greens_drho_Spline(z_arr)
 
   # Now we can re-normalize our functions and add the shift
-  f_g = 4.*f_g*(1.+df_g)-df_g
-  f_mu = f_mu*bb_vis/1.401
-  f_y  = 4.*f_y
+  J_g = 4.*f_g
+  J_mu = f_mu/1.401
+  J_y  = 4.*f_y
 
   # Calculate non-normalized residual
   Residual = np.zeros((Nx_arr,Nz_arr))
   for index_x in range(Nx_arr):
     for index_z in range(Nz_arr):
-      Residual[index_x,index_z] = G_th[index_x,index_z]-Gdist[index_x]*f_g[index_z]/4-Ydist[index_x]*f_y[index_z]/4-Mdist[index_x]*f_mu[index_z]*1.401
+      Residual[index_x,index_z] = G_th[index_x,index_z]-Gdist[index_x]*f_g[index_z]-Ydist[index_x]*f_y[index_z]-Mdist[index_x]*f_mu[index_z]
 
   # Calculate non-normalized fisher matrix
   Fisher = np.zeros((Nz_arr,Nz_arr))
@@ -173,9 +173,11 @@ with open(os.path.join(dir_path,readfile)) as f:
 
   # Solve eigenvalue problem
   eigvals,eigvecs = eigen_vals_vecs(Fisher)
+  eigvals = eigvals[::-1]
+  eigvecs = eigvecs[:,::-1]
 
   E_vecs = np.real(eigvecs[:,:N_PCA]).T
-  E_vecs = -E_vecs
+  E_vecs = [(E_vecs[i] if np.mean(E_vecs[i])>0. else -E_vecs[i]) for i in range(len(E_vecs))]
   S_vecs = np.zeros((N_PCA,Nx_arr))
   for index_pca in range(N_PCA):
     for index_x in range(Nx_arr):
@@ -190,10 +192,10 @@ with open(os.path.join(dir_path,readfile)) as f:
     brfile.write("{} {}\n".format(Nz_arr,N_PCA))
     for index_z in range(Nz_arr):
       brfile.write((form+" ") % z_arr[index_z])
-      brfile.write((form+" ") % f_g[index_z])
-      brfile.write((form+" ") % f_y[index_z])
-      brfile.write((form    ) % f_mu[index_z])
-      for index_pca in range(1,N_PCA):
+      brfile.write((form+" ") % J_g[index_z])
+      brfile.write((form+" ") % J_y[index_z])
+      brfile.write((form    ) % J_mu[index_z])
+      for index_pca in range(N_PCA):
         brfile.write((" "+form) % E_vecs[index_pca][index_z])
       brfile.write("\n")
 
@@ -202,11 +204,11 @@ with open(os.path.join(dir_path,readfile)) as f:
     dsfile.write("# In the file there is: nu, G_T, Y_SZ, M_mu, S_i (i=1-{})\n".format(N_PCA))
     dsfile.write("{} {}\n".format(Nx_arr,N_PCA))
     for index_x in range(Nx_arr):
-      dsfile.write((form+" ") % x_arr[index_x])
+      dsfile.write((form+" ") % (x_arr[index_x]*x_to_nu))
       dsfile.write((form+" ") % Gdist[index_x])
       dsfile.write((form+" ") % Ydist[index_x])
       dsfile.write((form    ) % Mdist[index_x])
-      for index_pca in range(1,N_PCA):
+      for index_pca in range(N_PCA):
         dsfile.write((" "+form) % S_vecs[index_pca][index_x])
       dsfile.write("\n")
 
