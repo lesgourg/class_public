@@ -14,11 +14,11 @@
 
 #define _MAX_DETECTOR_NAME_LENGTH_ 100
 typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
+
 /**
  * All deistortions parameters and evolution that other modules need to know.
  */
 enum br_approx {bra_sharp_sharp,bra_sharp_soft,bra_soft_soft,bra_soft_soft_cons,bra_exact};
-
 
 struct distortions
 {
@@ -35,11 +35,11 @@ struct distortions
   int dQrho_dz_diss_approx;                  /* Use full version of dQrho_dz_diss or its approximation? */
 
   int N_PCA;
-  DetectorName distortions_detector;               /* Name of detector */
+  DetectorName distortions_detector;         /* Name of detector */
   double nu_min_detector;                    /* Minimum frequency of chosen detector */
   double nu_max_detector;                    /* Maximum frequency of chosen detector */
+  double nu_delta_detector;                  /* Bin size of chosen detector */
   double delta_Ic_detector;
-  double nu_delta_detector;                     /* Bin size of chosen detector */
 
   int user_defined_detector;
   int user_defined_name;
