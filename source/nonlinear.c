@@ -1044,7 +1044,6 @@ int nonlinear_free(
   if (pnl->method > nl_none) {
 
     if (pnl->method == nl_halofit) {
-      free(pnl->k);
       free(pnl->tau);
       for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
         free(pnl->nl_corr_density[index_pk]);
@@ -1060,7 +1059,6 @@ int nonlinear_free(
       }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
-      free(pnl->k);
       free(pnl->tau);
       free(pnl->k_extra);
     }
