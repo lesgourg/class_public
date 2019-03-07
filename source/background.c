@@ -418,7 +418,7 @@ int background_functions(
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
-  /* ethos interacting dark matter */
+  /* interacting dark matter */
   if (pba->has_idm == _TRUE_) {
     pvecback[pba->index_bg_rho_idm] = pba->Omega0_idm * pow(pba->H0,2) / pow(a_rel,3);
     rho_tot += pvecback[pba->index_bg_rho_idm];
@@ -426,7 +426,7 @@ int background_functions(
     rho_m += pvecback[pba->index_bg_rho_idm];
   }
 
-  /* ethos dark radiation */
+  /* interacting dark radiation */
   if (pba->has_idr == _TRUE_) {
     pvecback[pba->index_bg_rho_idr] = pba->Omega0_idr * pow(pba->H0,2) / pow(a_rel,4);
     rho_tot += pvecback[pba->index_bg_rho_idr];
@@ -596,12 +596,16 @@ int background_init(
     if ((pba->N_ncdm > 0)||(pba->xi_idr != 0.))  {
 
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-      if(pba->xi_idr != 0.){//MArchi ethos-new! well ok it is just to get some info
+
+      /* first we check for interacting dark radiation */
+      if(pba->xi_idr != 0.){
         N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
         Neff += N_dark;
         printf(" -> dark radiation Delta Neff %e\n",N_dark);
       }
-      if (pba->N_ncdm > 0){//MArchi ethos-new! add this to keep ncdm separate from dark radiation
+
+      /* now we check for other ncdm species */
+      if (pba->N_ncdm > 0){
         /* loop over ncdm species */
         for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
 
@@ -856,8 +860,8 @@ int background_indices(
   pba->has_lambda = _FALSE_;
   pba->has_fld = _FALSE_;
   pba->has_ur = _FALSE_;
-  pba->has_idr = _FALSE_; //ethos
-  pba->has_idm = _FALSE_; //ethos
+  pba->has_idr = _FALSE_;
+  pba->has_idm = _FALSE_;
   pba->has_curvature = _FALSE_;
 
   if (pba->Omega0_cdm != 0.)
@@ -885,9 +889,9 @@ int background_indices(
     pba->has_ur = _TRUE_;
 
   if (pba->Omega0_idr != 0.)
-    pba->has_idr = _TRUE_; //ethos idr
+    pba->has_idr = _TRUE_;
 
-  if (pba->Omega0_idm != 0.) //ethos idm
+  if (pba->Omega0_idm != 0.)
     pba->has_idm = _TRUE_;
 
   if (pba->sgnK != 0)
@@ -957,10 +961,10 @@ int background_indices(
   /*    */
   /*    */
 
-  /* - index interacting for dark radiation ethos */
+  /* - index interacting for dark radiation */
   class_define_index(pba->index_bg_rho_idr,pba->has_idr,index_bg,1);
 
-  /* - index for interacting dark matter ethos */
+  /* - index for interacting dark matter */
   class_define_index(pba->index_bg_rho_idm,pba->has_idm,index_bg,1);
 
   /* - end of indices in the normal vector of background values */
@@ -1979,7 +1983,7 @@ int background_initial_conditions(
   if (pba->has_ur == _TRUE_)
     Omega_rad += pba->Omega0_ur;
   if (pba->has_idr == _TRUE_)
-    Omega_rad += pba->Omega0_idr; //ethos
+    Omega_rad += pba->Omega0_idr;
   rho_rad = Omega_rad*pow(pba->H0,2)/pow(a/pba->a_today,4);
   if (pba->has_ncdm == _TRUE_){
     /** - We must add the relativistic contribution from NCDM species */
@@ -2219,8 +2223,8 @@ int background_output_titles(struct background * pba,
   class_store_columntitle(titles,"(.)rho_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)w_fld",pba->has_fld);
   class_store_columntitle(titles,"(.)rho_ur",pba->has_ur);
-  class_store_columntitle(titles,"(.)rho_idr",pba->has_idr); //ethos
-  class_store_columntitle(titles,"(.)rho_idm",pba->has_idm); //ethos
+  class_store_columntitle(titles,"(.)rho_idr",pba->has_idr);
+  class_store_columntitle(titles,"(.)rho_idm",pba->has_idm);
   class_store_columntitle(titles,"(.)rho_crit",_TRUE_);
   class_store_columntitle(titles,"(.)rho_dcdm",pba->has_dcdm);
   class_store_columntitle(titles,"(.)rho_dr",pba->has_dr);
@@ -2273,8 +2277,8 @@ int background_output_data(
     class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_w_fld],pba->has_fld,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_idr],pba->has_idr,storeidx); //ethos
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_idm],pba->has_idm,storeidx); //ethos
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_idr],pba->has_idr,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_idm],pba->has_idm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);
