@@ -3,8 +3,58 @@
  * Developed by Vivian Poulin (added functions for energy repartition from DM annihilations or decays and f_eff),
  *              Patrick Stöcker (20.02.17: added external script to calculate the annihilation coefficients on the fly) and
  *              Matteo Lucca (11.02.19: rewrote section in CLASS style)
+ *              Nils Schoeneberg (6.03.19: Added struct and module handling)
  */
+int heating_init(struct thermo* pth, struct heating* phe){
 
+  phe->z_size = pth->tt_size;
+  memcpy(phe->z_table,pth->z_table,pth->tt_size*sizeof(double));
+
+  class_call(heating_indices(pth,phe),
+             phe->error_message,
+             phe->error_message);
+
+  return _SUCCESS_;
+}
+
+int heating_indices(struct thermo* pth, struct heating* phe){
+
+  int index_ht;
+
+  index_ht=0;
+  class_define_index(phe->index_ht_CRR,_TRUE_,index_ht,1);
+  phe->ht_size = index_ht;
+
+  return _SUCCESS_;
+}
+
+/*
+ * At some point, distortions.c will call this function,
+ * and the acoustic dissipation contributions will be added to the table of heatings
+ * */
+int heating_add_second_order_terms(struct thermo* pth, struct perturbs* ppt, struct heating* phe){
+
+  class_define_index(phe->index_ht_BAO,_TRUE_,phe->ht_size,1);
+  return _SUCCESS_;
+}
+
+/* Check if table extends to given z
+ *  If yes)
+ *   Interpolate from table all types that are known
+ *   (i.e. including acous. diss. if already added)
+ *  If no)
+ *   Calculate heating as required
+ **/
+int heating_at_z(struct background* pba, struct thermo* pth, struct heating* phe){
+
+  return _SUCCESS_;
+}
+
+int heating_free(struct heating* phe){
+
+  free(phe->z_table);
+  return _SUCCESS_;
+}
 /**
  * Read and interpolate energy injection coefficients from external file
  *
@@ -13,9 +63,9 @@
  * @param pth Input/Output: pointer to initialized thermo structure
  * @return the error status
  */
-int thermodynamics_annihilation_coefficients_init(struct precision * ppr,
-                                                  struct background * pba,
-                                                  struct thermo * pth) {
+int heating_annihilation_coefficients_init(struct precision * ppr,
+                                           struct background * pba,
+                                           struct thermo * pth) {
 
   FILE * fA = NULL;
   char line[_LINE_LENGTH_MAX_];
@@ -44,7 +94,7 @@ int thermodynamics_annihilation_coefficients_init(struct precision * ppr,
     /* Write the command */
     sprintf(command_with_arguments, "%s", ppr->command_fz);
 
-    if (pth->thermodynamics_verbose > 0) {
+    if (pth->heating_verbose > 0) {
       printf(" -> running: %s\n", command_with_arguments);
     }
 
@@ -193,7 +243,7 @@ int thermodynamics_annihilation_coefficients_init(struct precision * ppr,
  * @param pth Input/Output: pointer to initialized thermo structure
  * @return the error status
  */
-int thermodynamics_annihilation_coefficients_interpolate(struct precision * ppr,
+int heating_annihilation_coefficients_interpolate(struct precision * ppr,
                                                          struct background * pba,
                                                          struct thermo * pth,
                                                          double xe_or_z) {
@@ -267,12 +317,12 @@ int thermodynamics_annihilation_coefficients_interpolate(struct precision * ppr,
 
 
 /**
- * Free all memory space allocated by thermodynamics_annihilation_coefficients_interpolate().
+ * Free all memory space allocated by heating_annihilation_coefficients_interpolate().
  *
  * @param pth Input/Output: pointer to thermo structure
  * @return the error status
  */
-int thermodynamics_annihilation_coefficients_free(struct thermo * pth) {
+int heating_annihilation_coefficients_free(struct thermo * pth) {
 
   free(pth->annihil_coef_xe);
   free(pth->annihil_coef_heat);
@@ -300,7 +350,7 @@ int thermodynamics_annihilation_coefficients_free(struct thermo * pth) {
  * @param pth   Input/Output: pointer to initialized thermodynamics structure
  * @return the error status
  */
-int thermodynamics_annihilation_f_eff_init(struct precision * ppr,
+int heating_annihilation_f_eff_init(struct precision * ppr,
                                            struct background * pba,
                                            struct thermo * pth) {
 
@@ -385,7 +435,7 @@ int thermodynamics_annihilation_f_eff_init(struct precision * ppr,
  * @param z        Input: redshift
  * @return the error status
  */
-int thermodynamics_annihilation_f_eff_interpolate(struct precision * ppr,
+int heating_annihilation_f_eff_interpolate(struct precision * ppr,
                                                   struct background * pba,
                                                   struct thermo * pth,
                                                   double z) {
@@ -410,12 +460,12 @@ int thermodynamics_annihilation_f_eff_interpolate(struct precision * ppr,
 
 
 /**
- * Free all memory space allocated by thermodynamics_annihilation_f_eff_interpolate().
+ * Free all memory space allocated by heating_annihilation_f_eff_interpolate().
  *
  * @param pth Input/Output: pointer to thermodynamics structure
  * @return the error status
  */
-int thermodynamics_annihilation_f_eff_free(struct thermo * pth) {
+int heating_annihilation_f_eff_free(struct thermo * pth) {
 
   free(pth->annihil_z);
   free(pth->annihil_f_eff);
@@ -438,7 +488,7 @@ int thermodynamics_annihilation_f_eff_free(struct thermo * pth) {
  * @param error_message  Output: error message
  * @return the error status
  */
-int thermodynamics_DM_annihilation_energy_injection(struct precision * ppr,
+int heating_DM_annihilation_energy_injection(struct precision * ppr,
                                                     struct background * pba,
                                                     struct thermo * pth,
                                                     double z,
@@ -471,7 +521,7 @@ int thermodynamics_DM_annihilation_energy_injection(struct precision * ppr,
  * @param error_message  Output: error message
  * @return the error status
  */
-int thermodynamics_DM_decay_energy_injection(struct precision * ppr,
+int heating_DM_decay_energy_injection(struct precision * ppr,
                                              struct background * pba,
                                              struct thermo * pth,
                                              double z,
@@ -669,7 +719,7 @@ int PBH_evaporating_mass_time_evolution(struct precision * ppr,
  * @param error_message  Output: error message
  * @return the error status
  */
-int thermodynamics_evaporating_pbh_energy_injection(struct precision * ppr,
+int heating_evaporating_pbh_energy_injection(struct precision * ppr,
                                                     struct background * pba,
                                                     struct thermo * pth,
                                                     double z,
@@ -748,7 +798,7 @@ int thermodynamics_evaporating_pbh_energy_injection(struct precision * ppr,
  * @param error_message  Output: error message
  * @return the error status
  */
-int thermodynamics_accreting_pbh_energy_injection(struct precision * ppr,
+int heating_accreting_pbh_energy_injection(struct precision * ppr,
                                                   struct background * pba,
                                                   struct thermo * pth,
                                                   double z,
@@ -942,7 +992,7 @@ int thermodynamics_accreting_pbh_energy_injection(struct precision * ppr,
  * @param error_message  Output: error message
  * @return the error status
  */
-int thermodynamics_onthespot_energy_injection(
+int heating_onthespot_energy_injection(
                                               struct precision * ppr,
                                               struct background * pba,
                                               struct thermo * pth,
@@ -952,16 +1002,16 @@ int thermodynamics_onthespot_energy_injection(
                                               ) {
 
   if(pth->annihilation > 0){
-    thermodynamics_DM_annihilation_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
+    heating_DM_annihilation_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
   }
   if(pth->decay_fraction > 0.){
-    thermodynamics_DM_decay_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
+    heating_DM_decay_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
   }
   if(pth->PBH_accreting_mass > 0.){
-    thermodynamics_accreting_pbh_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
+    heating_accreting_pbh_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
   }
   if(pth->PBH_evaporating_mass > 0.){
-    thermodynamics_evaporating_pbh_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
+    heating_evaporating_pbh_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
   }
 
   /* energy density rate in J/(m^3 s) */
@@ -982,7 +1032,7 @@ int thermodynamics_onthespot_energy_injection(
  * @param error_message   Output: error message
  * @return the error status
  */
-int thermodynamics_energy_injection(
+int heating_energy_injection(
                                     struct precision * ppr,
                                     struct background * pba,
                                     struct thermo * pth,
@@ -1023,7 +1073,7 @@ int thermodynamics_energy_injection(
 
         /* first point in trapezoidal integral */
         zp = z;
-        class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
+        class_call(heating_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
                    error_message,
                    error_message);
         first_integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
@@ -1033,7 +1083,7 @@ int thermodynamics_energy_injection(
         /* other points in trapezoidal integral */
         do{
           zp += dz;
-          class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
+          class_call(heating_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
                      error_message,
                      error_message);
           integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
@@ -1046,7 +1096,7 @@ int thermodynamics_energy_injection(
 
       else if(pth->energy_deposition_function == function_from_file){
         if(pth->energy_repart_coefficient!=no_factorization){
-          class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,pth,z),
+          class_call(heating_annihilation_f_eff_interpolate(ppr,pba,pth,z),
                      pth->error_message,
                      pth->error_message);
           pth->f_eff=MAX(pth->f_eff,0.);
@@ -1055,21 +1105,21 @@ int thermodynamics_energy_injection(
           pth->f_eff=1.;
         }
 
-        class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
+        class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
                    error_message,
                    error_message);
         result =  result*pth->f_eff;
       }
 
       else if(pth->energy_deposition_function == DarkAges){
-        class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
+        class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
                    error_message,
                    error_message);
       }
 
       // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
       /*
-      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,z,&onthespot,error_message),
+      class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&onthespot,error_message),
                  error_message,
                  error_message);
       fprintf(stdout,"%e  %e  %e  %e\n", 1.+z,
@@ -1078,7 +1128,7 @@ int thermodynamics_energy_injection(
       */
     }
     else {
-      class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
+      class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
                  error_message,
                  error_message);
       if(pth->f_eff>0){
