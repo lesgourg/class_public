@@ -152,8 +152,8 @@ struct thermo
   double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
 
 
-  double a_dark; /**< stregth of the coupling between interacting dark matter and dark radiation (idm-idr) */
-  double b_dark; /**< stregth of the self coupling for dark radiation (idr-idr) */
+  double a_dark; /**< stregth of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
+  double b_dark; /**< stregth of the self coupling for interacting dark radiation (idr-idr) */
   double nindex_dark; /**< temperature dependence of the interaction between dark matter and dark radiation \f$ \tau_{DR}^{-1} \f$ */
   double m_dm; /**< interacting dark matter mass */
 
@@ -173,12 +173,12 @@ struct thermo
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_dmu_dark;      /**< scattering rate between idm and idr (units 1/Mpc) */
-  int index_th_ddmu_dark;     /**< derivative of idm-dr scattering rate */
-  int index_th_dddmu_dark;    /**< second derivative of idm-dr scattering rate */
+  int index_th_ddmu_dark;     /**< derivative of idm-idr scattering rate */
+  int index_th_dddmu_dark;    /**< second derivative of idm-idr scattering rate */
   int index_th_dmu_drdr;      /**< idr self-interaction rate */
-  int index_th_tau_idm;       /**< time of decoupling of interacting dark matter (idm-dr) */
-  int index_th_tau_idr;       /**< time of decoupling of interacting dark radiation (idm-dr) */
-  int index_th_g_dark;        /**< dark visibility function for idm-dr */
+  int index_th_tau_idm;       /**< time of decoupling of interacting dark matter (idm-idr) */
+  int index_th_tau_idr;       /**< time of decoupling of interacting dark radiation (idm-idr) */
+  int index_th_g_dark;        /**< dark visibility function for idm-idr */
   int index_th_cidm2;         /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
   int index_th_Tdm;           /**< interacting dark matter temperature \f$ T_{dm} \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
@@ -229,7 +229,7 @@ struct thermo
   double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
   double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
 
-  double tau_idr_free_streaming; /**< trigger for dark radiation free streaming approximation (idm-dr) */
+  double tau_idr_free_streaming; /**< trigger for dark radiation free streaming approximation (idm-idr) */
 
   //@}
 

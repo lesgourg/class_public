@@ -82,8 +82,8 @@ struct background
   double Omega0_idm; /**< \f$ \Omega_{0 idm} \f$: interacting dark matter */
   //double f_idm_dr;   /**< fraction of interacting dark matter */
 
-  double xi_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: related to the amount of dark radiation */
-  double stat_f_idr; /**< Dark radiation statistical factor */
+  double xi_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: related to the amount of interacting dark radiation */
+  double stat_f_idr; /**< Interacting dark radiation statistical factor */
   double N_dg;       /**< number of dark gluons, for the NADM case */
   double Gamma_0_nadm; /**< \f$ \Gamma_0 \f$: interaction coefficient, for the NADM case */
 

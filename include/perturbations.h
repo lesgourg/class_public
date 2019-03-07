@@ -28,8 +28,8 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum tca_dark_flags {tca_dark_on, tca_dark_off}; /* for the idm-dr case */
-enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    /* for the idm-dr case */
+enum tca_dark_flags {tca_dark_on, tca_dark_off}; /* for the idm-idr case */
+enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    /* for the idm-idr case */
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
@@ -43,8 +43,8 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};  /* for the idm-dr case */
-enum idr_method {idr_free_streaming,idr_fluid}; /* for the idm-dr case */
+enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};  /* for the idm-idr case */
+enum idr_method {idr_free_streaming,idr_fluid}; /* for the idm-idr case */
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
@@ -190,8 +190,8 @@ struct perturbs
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
 
-  double * alpha_dark; /**< Angular contribution to collisional term at l>=2 for idm-dr */
-  double * beta_dark;  /**< Angular contribution to collisional term at l>=2 for idm-dr */
+  double * alpha_dark; /**< Angular contribution to collisional term at l>=2 for idm-idr */
+  double * beta_dark;  /**< Angular contribution to collisional term at l>=2 for idm-idr */
 
   int idr_nature; /**< Nature of the interacting dark radiation (free streaming or fluid) */
 
@@ -317,7 +317,7 @@ struct perturbs
 
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_idr; /**< index value for theta of interacting dark radiation */
-  int index_tp_theta_idm; /**< index value for theta of interacting dark */
+  int index_tp_theta_idm; /**< index value for theta of interacting dark matter */
   int index_tp_theta_dr; /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
@@ -439,11 +439,11 @@ struct perturb_vector
   int index_pt_shear_ur; /**< shear of ultra-relativistic neutrinos/relics */
   int index_pt_l3_ur;    /**< l=3 of ultra-relativistic neutrinos/relics */
   int l_max_ur;          /**< max momentum in Boltzmann hierarchy (at least 3) */
-  int index_pt_delta_idr; /**< density of dark radiation */
-  int index_pt_theta_idr; /**< velocity of dark radiation */
-  int index_pt_shear_idr; /**< shear of dark radiation */
-  int index_pt_l3_idr;    /**< l=3 of dark radiation */
-  int l_max_idr;          /**< max momentum in Boltzmann hierarchy (at least 3) for dark radiation */
+  int index_pt_delta_idr; /**< density of interacting dark radiation */
+  int index_pt_theta_idr; /**< velocity of interacting dark radiation */
+  int index_pt_shear_idr; /**< shear of interacting dark radiation */
+  int index_pt_l3_idr;    /**< l=3 of interacting dark radiation */
+  int l_max_idr;          /**< max momentum in Boltzmann hierarchy (at least 3) for interacting dark radiation */
 
 /* perturbed recombination */
   int index_pt_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
@@ -576,7 +576,7 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_tca_dark; /**< index for dark tight-coupling approximation (idm-dr) */
+  int index_ap_tca_dark; /**< index for dark tight-coupling approximation (idm-idr) */
   int index_ap_rsa_idr; /**< index for dark radiation streaming approximation */
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */
