@@ -63,28 +63,27 @@
       destination = param2;						\
   } while(0);
 
-#define class_at_least_two_of_three(a,b,c)		\
-  ((a == _TRUE_) && (b == _TRUE_)) ||		\
-  ((a == _TRUE_) && (c == _TRUE_)) ||		\
+#define class_at_least_two_of_three(a,b,c)		                \
+  ((a == _TRUE_) && (b == _TRUE_)) ||		                        \
+  ((a == _TRUE_) && (c == _TRUE_)) ||		                        \
   ((b == _TRUE_) && (c == _TRUE_))
 
-#define class_none_of_three(a,b,c)				\
+#define class_none_of_three(a,b,c)				        \
   (a == _FALSE_) && (b == _FALSE_) && (c == _FALSE_)
 
-/* macro for reading parameter values with routines from the parser */
-#define class_read_list_of_doubles_or_default(name,destination,default,siz)	\
+#define class_read_list_of_doubles_or_default(name,destination,default,siz) \
   do {									\
     class_call(parser_read_list_of_doubles(pfc,name,			\
 	&entries_read,&(destination),&flag1,errmsg),			\
 	       errmsg,							\
 	       errmsg);							\
     if (flag1 == _TRUE_){						\
-        class_test(entries_read != siz,errmsg,			\
+        class_test(entries_read != siz,errmsg,			        \
              "Number of entries in %s, %d, does not match expected number, %d.", \
-		name,entries_read,siz);				\
+		name,entries_read,siz);				        \
     }else{								\
 	class_alloc(destination,siz*sizeof(double),errmsg);		\
-	for(n=0; n<siz; n++) destination[n] = default;		\
+	for(n=0; n<siz; n++) destination[n] = default;		        \
     }									\
   } while(0);
 
@@ -95,16 +94,16 @@
 	       errmsg,							\
 	       errmsg);							\
     if (flag1 == _TRUE_){						\
-        class_test(entries_read != siz,errmsg,			\
+        class_test(entries_read != siz,errmsg,			        \
              "Number of entries in %s, %d, does not match expected number, %d.", \
-		name,entries_read,siz);				\
+		name,entries_read,siz);				        \
     }else{								\
 	class_alloc(destination,siz*sizeof(int),errmsg);		\
-	for(n=0; n<siz; n++) destination[n] = default;		\
+	for(n=0; n<siz; n++) destination[n] = default;		        \
     }									\
   } while(0);
 
-#define class_read_list_of_doubles(name,destination,siz)			\
+#define class_read_list_of_doubles(name,destination,siz)		\
   do {									\
     class_call(parser_read_list_of_doubles(pfc,name,			\
 	&entries_read,&(destination),&flag1,errmsg),			\
@@ -112,12 +111,12 @@
 	       errmsg);							\
     class_test(flag1 == _FALSE_,errmsg,					\
 	"Entry %s is required but not found!",name)			\
-        class_test(entries_read != siz,errmsg,			\
+        class_test(entries_read != siz,errmsg,				\
              "Number of entries in %s, %d, does not match expected number, %d.", \
-		name,entries_read,siz);				\
+		name,entries_read,siz);					\
   } while(0);
 
-#define class_read_list_of_integers(name,destination,siz)			\
+#define class_read_list_of_integers(name,destination,siz)		\
   do {									\
     class_call(parser_read_list_of_integers(pfc,name,			\
 	&entries_read,&(destination),&flag1,errmsg),			\
@@ -125,21 +124,21 @@
 	       errmsg);							\
     class_test(flag1 == _FALSE_,errmsg,					\
 	"Entry %s is required but not found!",name)			\
-        class_test(entries_read != siz,errmsg,			\
+        class_test(entries_read != siz,errmsg,				\
              "Number of entries in %s, %d, does not match expected number, %d.", \
-		name,entries_read,siz);				\
+		name,entries_read,siz);					\
   } while(0);
+
 
 /**
  * temporary parameters for background fzero function
  */
 
 enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
-enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations,
-                        cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
+enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations, cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
 #define _NUM_TARGETS_ 7 //Keep this number as number of target_names
 
-struct input_pprpba {
+struct input_pprpba{
   struct precision * ppr;
   struct background * pba;
 };
@@ -163,8 +162,8 @@ struct fzerofun_workspace {
 extern "C" {
 #endif
 
-  int input_init_from_arguments(
-		 int argc,
+  /* Main functions */
+  int input_init(int argc,
 		 char **argv,
 		 struct precision * ppr,
 		 struct background *pba,
@@ -176,41 +175,10 @@ extern "C" {
 		 struct nonlinear *pnl,
 		 struct lensing *ple,
 		 struct output *pop,
-		 ErrorMsg errmsg
-		 );
+		 ErrorMsg errmsg);
 
-  int input_init(
-		 struct file_content * pfc,
-		 struct precision * ppr,
-		 struct background *pba,
-		 struct thermo *pth,
-		 struct perturbs *ppt,
-		 struct transfers *ptr,
-		 struct primordial *ppm,
-		 struct spectra *psp,
-		 struct nonlinear *pnl,
-		 struct lensing *ple,
-		 struct output *pop,
-		 ErrorMsg errmsg
-		 );
-
-  int input_read_parameters(
-                            struct file_content * pfc,
-                            struct precision * ppr,
-                            struct background *pba,
-                            struct thermo *pth,
-                            struct perturbs *ppt,
-                            struct transfers *ptr,
-                            struct primordial *ppm,
-                            struct spectra *psp,
-                            struct nonlinear *pnl,
-                            struct lensing *ple,
-                            struct output *pop,
-                            ErrorMsg errmsg
-                            );
-
-  int input_read_precisions(
-                            struct file_content * pfc,
+  /* Read from precision.h */
+  int input_read_precisions(struct file_content * pfc,
                             struct precision * ppr,
                             struct background * pba,
                             struct thermo *pth,
@@ -221,11 +189,40 @@ extern "C" {
                             struct nonlinear *pnl,
                             struct lensing *ple,
                             struct output *pop,
-                            ErrorMsg errmsg
-                            );
+                            ErrorMsg errmsg);
 
-  int input_default_params(
-			   struct background *pba,
+  int get_machine_precision(double * smallest_allowed_variation);
+
+  /* Read from .ini file */
+  int input_read_parameters(struct file_content * pfc,
+                            struct precision * ppr,
+                            struct background *pba,
+                            struct thermo *pth,
+                            struct perturbs *ppt,
+                            struct transfers *ptr,
+                            struct primordial *ppm,
+                            struct spectra *psp,
+                            struct nonlinear *pnl,
+                            struct lensing *ple,
+                            struct output *pop,
+                            ErrorMsg errmsg);
+
+  int input_read_parameters_gauge(struct file_content * pfc,
+                                  struct perturbs *ppt,
+                                  ErrorMsg errmsg);
+
+  int input_read_parameters_from_background(struct file_content * pfc,
+                                            struct precision * ppr,
+                                            struct background *pba,
+                                            struct perturbs *ppt,
+                                            ErrorMsg errmsg);
+
+  int input_read_parameters_from_heating(struct file_content * pfc,
+                                         struct background *pba,
+                                         ErrorMsg errmsg);
+
+  /* Set default parameters */
+  int input_default_params(struct background *pba,
 			   struct thermo *pth,
 			   struct perturbs *ppt,
 			   struct transfers *ptr,
@@ -233,15 +230,9 @@ extern "C" {
 			   struct spectra *psp,
 			   struct nonlinear *pnl,
 			   struct lensing *ple,
-			   struct output *pop
-			   );
+			   struct output *pop);
 
-  int input_default_precision(
-			      struct precision * ppp
-			      );
-
-  int get_machine_precision(double * smallest_allowed_variation);
-
+  /* Unclear */
   int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
 			 double x1,
 			 double x2,
@@ -287,18 +278,18 @@ extern "C" {
                                         int * aux_flag,
                                         ErrorMsg error_message);
 
-  int compare_integers (const void * elem1, const void * elem2);
+  int compare_integers(const void * elem1, 
+                       const void * elem2);
 
-  int compare_doubles(const void *a,const void *b);
+  int compare_doubles(const void *a,
+                      const void *b);
 
-  int input_prepare_pk_eq(
-                          struct precision * ppr,
+  int input_prepare_pk_eq(struct precision * ppr,
                           struct background *pba,
                           struct thermo *pth,
                           struct nonlinear *pnl,
                           int input_verbose,
-                          ErrorMsg errmsg
-                          );
+                          ErrorMsg errmsg);
 
 
 #ifdef __cplusplus
