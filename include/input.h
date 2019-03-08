@@ -163,8 +163,21 @@ extern "C" {
 #endif
 
   /* Main functions */
-  int input_init(int argc,
-		 char **argv,
+  int input_init_from_arguments(int argc,
+		                char **argv,
+		                struct precision * ppr,
+		                struct background *pba,
+		                struct thermo *pth,
+		                struct perturbs *ppt,
+		                struct transfers *ptr,
+		                struct primordial *ppm,
+		                struct spectra *psp,
+		                struct nonlinear *pnl,
+		                struct lensing *ple,
+		                struct output *pop,
+		                ErrorMsg errmsg);
+
+  int input_init(struct file_content * pfc,
 		 struct precision * ppr,
 		 struct background *pba,
 		 struct thermo *pth,
@@ -181,14 +194,14 @@ extern "C" {
   int input_read_precisions(struct file_content * pfc,
                             struct precision * ppr,
                             struct background * pba,
-                            struct thermo *pth,
-                            struct perturbs *ppt,
-                            struct transfers *ptr,
-                            struct primordial *ppm,
-                            struct spectra *psp,
-                            struct nonlinear *pnl,
-                            struct lensing *ple,
-                            struct output *pop,
+                            struct thermo * pth,
+                            struct perturbs * ppt,
+                            struct transfers * ptr,
+                            struct primordial * ppm,
+                            struct spectra * psp,
+                            struct nonlinear * pnl,
+                            struct lensing * ple,
+                            struct output * pop,
                             ErrorMsg errmsg);
 
   int get_machine_precision(double * smallest_allowed_variation);
@@ -196,30 +209,76 @@ extern "C" {
   /* Read from .ini file */
   int input_read_parameters(struct file_content * pfc,
                             struct precision * ppr,
-                            struct background *pba,
-                            struct thermo *pth,
-                            struct perturbs *ppt,
-                            struct transfers *ptr,
-                            struct primordial *ppm,
-                            struct spectra *psp,
-                            struct nonlinear *pnl,
-                            struct lensing *ple,
-                            struct output *pop,
+                            struct background * pba,
+                            struct thermo * pth,
+                            struct perturbs * ppt,
+                            struct transfers * ptr,
+                            struct primordial * ppm,
+                            struct spectra * psp,
+                            struct nonlinear * pnl,
+                            struct lensing * ple,
+                            struct output * pop,
                             ErrorMsg errmsg);
 
   int input_read_parameters_gauge(struct file_content * pfc,
-                                  struct perturbs *ppt,
+                                  struct perturbs * ppt,
                                   ErrorMsg errmsg);
 
-  int input_read_parameters_from_background(struct file_content * pfc,
-                                            struct precision * ppr,
-                                            struct background *pba,
-                                            struct perturbs *ppt,
-                                            ErrorMsg errmsg);
+  int input_read_parameters_background(struct file_content * pfc,
+                                       struct precision * ppr,
+                                       struct background * pba,
+                                       struct perturbs * ppt,
+                                       int input_verbose,
+                                       ErrorMsg errmsg);
 
-  int input_read_parameters_from_heating(struct file_content * pfc,
-                                         struct background *pba,
-                                         ErrorMsg errmsg);
+  int input_read_parameters_thermo(struct file_content * pfc,
+                                   struct thermo * pth,
+                                   ErrorMsg errmsg);
+
+  int input_read_parameters_heating(struct file_content * pfc,
+                                    struct thermo * pth,
+                                    ErrorMsg errmsg);
+
+  int input_read_parameters_perturbs(struct file_content * pfc,
+                                     struct precision * ppr,
+                                     struct background * pba,
+                                     struct thermo * pth,
+                                     struct perturbs * ppt,
+                                     struct nonlinear * pnl,
+                                     int input_verbose,
+                                     ErrorMsg errmsg);
+
+  int input_read_parameters_primordial(struct file_content * pfc,
+                                       struct perturbs * ppt,
+                                       struct primordial * ppm,
+                                       ErrorMsg errmsg);
+
+  int input_read_parameters_spectra(struct file_content * pfc,
+                                    struct precision * ppr,
+                                    struct background * pba,
+                                    struct perturbs * ppt,
+                                    struct transfers * ptr,
+                                    struct spectra *psp,
+                                    struct output * pop,
+                                    ErrorMsg errmsg);
+
+  int input_read_parameters_lensing(struct file_content * pfc,
+                                    struct precision * ppr,
+                                    struct perturbs * ppt,
+                                    struct lensing *ple,
+                                    ErrorMsg errmsg);
+
+  int input_read_parameters_output(struct file_content * pfc,
+                                   struct background *pba,
+                                   struct thermo *pth,
+                                   struct perturbs *ppt,
+                                   struct transfers *ptr,
+                                   struct primordial *ppm,
+                                   struct spectra *psp,
+                                   struct nonlinear * pnl,
+                                   struct lensing *ple,
+                                   struct output *pop,
+                                   ErrorMsg errmsg);
 
   /* Set default parameters */
   int input_default_params(struct background *pba,
