@@ -1,3 +1,4 @@
+#include "heating.h"
 /** ENERGY INJECTION FUNCTIONS
  *
  * Developed by Vivian Poulin (added functions for energy repartition from DM annihilations or decays and f_eff),
@@ -5,25 +6,119 @@
  *              Matteo Lucca (11.02.19: rewrote section in CLASS style)
  *              Nils Schoeneberg (6.03.19: Added struct and module handling)
  */
-int heating_init(struct thermo* pth, struct heating* phe){
+#define deposit_on_the_spot 0
+#define deposit_feff_from_file 1
+#define deposit_from_dark_ages 2
+#define deposit_analytical_integral 3
 
+int heating_init(struct precision * ppr, struct background* pba, struct thermo* pth){
+
+  struct heating* phe = &(pth->he);
+  phe->H0 = pba->H0*_c_/_Mpc_over_m_;
+  phe->Omega0_cdm = pba->Omega0_cdm;
+  phe->rho_crit0 = phe->H0*phe->H0*3/8./_PI_/_G_*_c_*_c_;
+  phe->last_index_bg = 0;
+  phe->Gamma_dcdm = pba->Gamma_dcdm;
+
+  phe->deposit_energy_as = 0; //TODO :: set in input
+  /** - check energy injection parameters for annihilation */
+  class_test((phe->annihilation_efficiency<0),
+             phe->error_message,
+             "annihilation parameter cannot be negative");
+
+  class_test((phe->annihilation_efficiency>1.e-4),
+             phe->error_message,
+             "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",phe->annihilation_efficiency);
+
+  class_test((phe->annihilation_variation>0),
+             phe->error_message,
+             "annihilation variation parameter must be negative (decreasing annihilation rate)");
+
+  class_test((phe->annihilation_z<0),
+             phe->error_message,
+             "characteristic annihilation redshift cannot be negative");
+
+  class_test((phe->annihilation_zmin<0),
+             phe->error_message,
+             "characteristic annihilation redshift cannot be negative");
+
+  class_test((phe->annihilation_zmax<0),
+             phe->error_message,
+             "characteristic annihilation redshift cannot be negative");
+
+  class_test((phe->annihilation_efficiency>0) && (pba->has_cdm==_FALSE_),
+             phe->error_message,
+             "CDM annihilation effects require the presence of CDM!");
+
+  class_test((phe->annihilation_f_halo<0),
+             phe->error_message,
+             "Parameter for DM annihilation in halos cannot be negative");
+
+  class_test((phe->annihilation_z_halo<0),
+             phe->error_message,
+             "Parameter for DM annihilation in halos cannot be negative");
+
+  if (phe->heating_verbose > 0){
+    if ((phe->annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
+      printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
+  } //TODO :: check if still occurs !!!
+
+  class_test((phe->decay<0),
+             phe->error_message,
+             "decay parameter cannot be negative");
+
+  class_test((phe->decay>0)&&(pba->has_cdm==_FALSE_),
+             phe->error_message,
+             "CDM decay effects require the presence of CDM!");
+
+  //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->PBH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
+  phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0;
+
+  printf("Known things : \n");
+  printf("%.10e , %.10e , %.10e , %.10e , %.10e \n",phe->annihilation_f_halo,phe->annihilation_z_halo,phe->annihilation_efficiency,-1.,-1.);
   phe->z_size = pth->tt_size;
-  memcpy(phe->z_table,pth->z_table,pth->tt_size*sizeof(double));
+  class_alloc(phe->z_table,
+              phe->z_size*sizeof(double),
+              phe->error_message);
 
-  class_call(heating_indices(pth,phe),
+  memcpy(phe->z_table,pth->z_table,phe->z_size*sizeof(double));
+
+  class_call(heating_indices(pth),
              phe->error_message,
              phe->error_message);
 
+
+  phe->decay_fraction *= _c_/_Mpc_over_m_; //TODO :: units
   return _SUCCESS_;
 }
 
-int heating_indices(struct thermo* pth, struct heating* phe){
+int heating_indices(struct thermo* pth){
 
-  int index_ht;
+  struct heating* phe = &(pth->he);
 
-  index_ht=0;
-  class_define_index(phe->index_ht_CRR,_TRUE_,index_ht,1);
-  phe->ht_size = index_ht;
+
+  /* For injection table */
+  int index_inj;
+  class_define_index(phe->index_inj_BAO      ,_TRUE_            , index_inj, 1);
+  class_define_index(phe->index_inj_CRR      ,_TRUE_            , index_inj, 1);
+  class_define_index(phe->index_inj_DM_ann   ,phe->has_DM_ann   , index_inj, 1);
+  class_define_index(phe->index_inj_DM_dec   ,phe->has_DM_dec   , index_inj, 1);
+  class_define_index(phe->index_inj_BH_acc   ,phe->has_BH_acc   , index_inj, 1);
+  class_define_index(phe->index_inj_BH_evap  ,phe->has_BH_evap  , index_inj, 1);
+  class_define_index(phe->index_inj_tot      ,_TRUE_            , index_inj, 1);
+  phe->inj_size = index_inj;
+
+
+  /* For deposition (and chi) table */
+  int index_dep;
+  class_define_index(phe->index_dep_heat  ,_TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_ionH  ,_TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_ionHe ,_TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_lya   ,_TRUE_, index_dep, 1);
+
+  phe->dep_size = index_dep;
+
+
 
   return _SUCCESS_;
 }
@@ -32,11 +127,65 @@ int heating_indices(struct thermo* pth, struct heating* phe){
  * At some point, distortions.c will call this function,
  * and the acoustic dissipation contributions will be added to the table of heatings
  * */
-int heating_add_second_order_terms(struct thermo* pth, struct perturbs* ppt, struct heating* phe){
+int heating_add_second_order_terms(struct thermo* pth, struct perturbs* ppt){
 
+  struct heating* phe = &(pth->he);
   class_define_index(phe->index_ht_BAO,_TRUE_,phe->ht_size,1);
+
   return _SUCCESS_;
 }
+
+
+int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_inj){
+
+  /** Define local variable */
+  double dEdz, rate;
+
+  /* Initialize local variables */
+  dEdz = 0.;
+
+  /* Check if already in table */
+  //IF TABLE
+  // return_table = interpolate(phe->inj_table);
+  // return _SUCCESS_; (TODO :: code this)
+
+  /* Non-exotic energies ...  */
+
+  // dEdz += non-exotic-stuff (TODO :: put here non-exotic stuff)
+
+  /** exotic energy injection mechanisms´ǘp+ */
+  if(phe->has_exotic_injection){
+
+    /* Annihilating Dark Matter */
+    if(phe->has_DM_ann){
+      class_call(heating_DM_annihilation(phe,z,&rate),
+                 phe->error_message,
+                 phe->error_message);
+      phe->injection_table[index_z*phe->inj_size+index_inj_DM_ann] = rate;
+      phe->injection_table[index_z*phe->inj_size+index_inj_tot] += rate; 
+    }
+
+    /* Decaying Dark Matter */
+    if(phe->has_DM_dec){
+      class_call(heating_DM_decay(phe,z,&rate),
+                 phe->error_message,
+                 phe->error_message);
+      phe->injection_table[index_z*phe->inj_size+index_inj_DM_dec] = rate;
+      phe->injection_table[index_z*phe->inj_size+index_inj_tot] += rate; 
+    }
+
+    // dEdz += exotic-stuff (TODO :: put here exotic stuff)
+
+  }
+
+
+  return _SUCCESS_;
+}
+
+
+
+
+
 
 /* Check if table extends to given z
  *  If yes)
@@ -45,16 +194,280 @@ int heating_add_second_order_terms(struct thermo* pth, struct perturbs* ppt, str
  *  If no)
  *   Calculate heating as required
  **/
-int heating_at_z(struct background* pba, struct thermo* pth, struct heating* phe){
+int heating_at_z(struct background* pba, struct thermo* pth, double x, double z, double* dQdz, double* dxdz, double* pvecback){
+
+  /** Define local variables */
+  double tau;
+  struct heating* phe = &(pth->he);
+
+
+  // [J/m^3] //TODO :: fix this
+  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*
+  //_GeVcm3_over_Mpc4_*_eV_*1e9*1e6;   
+  _Mpc_over_m_*_Mpc_over_m_*3/8./_PI_/_G_*_c_*_c_;
+
+  phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*
+  //_GeVcm3_over_Mpc4_*_eV_*1e9*1e6;   
+  _Mpc_over_m_*_Mpc_over_m_*3/8./_PI_/_G_*_c_*_c_;
+
+  phe->t = pvecback[pba->index_bg_time];
+
+
+  /* Check if already in table */
+  //IF TABLE
+  // return_table = interpolate(phe->dep_table);
+  // return _SUCCESS_; (TODO :: code this)
+  /** Step 1 - get the injected energy that needs to be deposited */
+  class_call(heating_energy_injection_at_z(phe,z,&dEdz_inj),
+             phe->error_message,
+             phe->error_message);
+
+  //Original ExoCLASS piece::
+  //preco->xe_tmp=x;
+  //preco->Tm_tmp=Tmat;
+  //if( z > 2){//sometimes problem with interpolation //TODO :: why like this in ExoCLASS
+
+  /* In the case of the analytical integral, the energy injection is somewhat special */
+  if(phe->deposit_energy_as == deposit_analytical_integral){
+    class_call(heating_deposit_analytical_integral(pba,pth,phe,z,&dEdz_inj),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  /** Step 2 - Now deposit the energy we have injected */
+  class_call(heating_deposition_function(phe,x,z),
+             phe->error_message,
+             phe->error_message);
+
+  /** Step 3 - Put result into deposition table*/
+  for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+    phe->deposition_table[index_z*phe->dep_size+index_dep] = phe->chi_table[index_dep] * dEdz_inj;
+  }
+
+  /** The output is now successfully stored in the deposition table */
+  // return_table = phe->dep_table (TODO :: code this)
+
+  //Original ExoCLASS piece ::
+  //}
+  //else energy_rate = 0;
+  //preco->z_tmp=z;
 
   return _SUCCESS_;
 }
 
-int heating_free(struct heating* phe){
+
+int heating_deposition_function(){
+
+  double f_eff;
+
+  f_eff = 1.; //Default value
+
+  /** Step 1 - Read the deposition factors for each channel */
+  if (x < 1.){ //TODO :: why is this a good condition ???!?
+
+    /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
+    /* Read file in ionization fraction */
+    if(phe->chi_type == chi_from_GSVI || phe->chi_type == chi_from_x_file){
+      class_call(heating_chi_from_x(phe,x),
+                 phe->error_message,
+                 phe->error_message);
+    }
+    /* Read file in redshift */
+    if(phe->chi_type == chi_from_DarkAges || phe->chi_type == chi_from_z_file){
+      class_call(heating_chi_from_z(phe,z),
+                 phe->error_message,
+                 phe->error_message);
+    }
+    /* old approximation from Chen and Kamionkowski */
+    if(phe->chi_type == chi_from_SSCK){
+      phe->chi_table[phe->index_dep_heat]  = (1.+2.*x)/3.;
+      phe->chi_table[phe->index_dep_ionH]  = (1.-x)/3.;
+      phe->chi_table[phe->index_dep_ionHe] = 0.;
+      phe->chi_table[phe->index_dep_lya]   = (1.-x)/3.;
+    }
+
+  }
+  else{
+    phe->chi_table[phe->index_dep_heat]  = 1.;
+    phe->chi_table[phe->index_dep_ionH]  = 0.;
+    phe->chi_table[phe->index_dep_ionHe] = 0.;
+    phe->chi_table[phe->index_dep_lya]   = 0.;
+  }
+
+  //chi_heat = MIN(chi_heat,1.);
+  //chi_heat = MAX(chi_heat,0.);
+
+
+
+
+  /** Step 2 - Read the correction factor f_eff */
+
+  /* For the analytical integral, we already integrated the deposition */
+  if(phe->deposit_energy_as == deposit_analytical_integral){
+    f_eff = 1.;
+  }
+  /* For the file, read in f_eff from file and multiply */
+  else if(phe->deposit_energy_as == deposit_feff_from_file){
+    class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,pth,z,&f_eff),
+               pth->error_message,
+               pth->error_message);
+    f_eff = MAX(f_eff,0.);
+  }
+  /* For the DarkAges, the chi already contain everything */
+  else if(phe->deposit_energy_as == deposit_from_Dark_Ages){
+    f_eff = 1.;
+  }
+  /* For the on the spot, ... */ //TODO :: correct commenting
+  else if(phe->deposit_energy_as == deposit_on_the_spot){
+    if(pth->f_eff>0){ //DAFUQ IS THIS? ?? ?? ? TODO :: remove this crap
+      f_eff = pth->f_eff; // If pth->f_eff is defined, here we multiply by f_eff.
+    }
+  }
+  /* Otherwise, something must have gone wrong */
+  else{
+    class_stop(phe->error_message,
+               "Unknown energy deposition mechanism");
+  }
+
+
+
+
+  /** Step 3 - Multiply both to get the desired result */
+
+  /* Multiply deposition factors with overall correction factor */
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    phe->chi_table[index_dep] *= f_eff;
+  }
+
+  return _SUCCESS_;
+}
+
+int heating_free(struct thermo* pth){
+
+  struct heating* phe = &(pth->he);
 
   free(phe->z_table);
+  free(phe->chi_table);
+
   return _SUCCESS_;
 }
+
+
+
+
+
+
+
+
+#pragma INCOMPLETE
+int heating_DM_annihilation(struct heating * phe,
+                            double z,
+                            double * energy_rate){
+  double boost_factor;
+
+  if(phe->annihilation_z_halo > 0.){
+    boost_factor = phe->annihilation_f_halo * erfc((1+z)/(1+phe->annihilation_z_halo)) / pow(1.+z,3);
+  }
+  else{
+    boost_factor = 0;
+  }
+
+  *energy_rate = phe->rho_cdm*phe->rho_cdm/_c_/_c_ * phe->annihilation_efficiency * (1.+boost_factor);  // [J/(m^3 s)]
+
+  return _SUCCESS_;
+}
+
+int heating_DM_decay(struct heating * phe,
+                     double z,
+                     double * energy_rate){
+  double rho_cdm_today, rho_dcdm,decay_factor;
+
+  /* Define energy density of decaying DM, rho_dcdm */
+  if(pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
+    rho_dcdm = phe->rho_dcdm;
+  }
+
+  else{
+    /* If Omega_dcdm is not given, rho_dcdm = rho_cdm*decay factor */
+    if(phe->has_on_the_spot == _FALSE_){
+      /* The exponential decay factor is already in the deposition functions */
+      decay_factor=1;
+    }
+    else{
+      /* Add the exponential decay factor*/
+      decay_factor = exp(-phe->Gamma_dcdm*phe->t);
+    }
+
+    /* Surviving rho dcdm*/
+    rho_dcdm = phe->rho_cdm*decay_factor;
+  }
+
+  *energy_rate = rho_dcdm*phe->decay_fraction*phe->Gamma_dcdm; //[J/m^3 * ? * Mpc^(-1)]
+
+  return _SUCCESS_;
+}
+
+
+
+
+
+
+#pragma NOT_YET_PROPERLY_DONE
+
+int heating_energy_integrated(struct background* pba, struct thermo* pth, double z, double* energy_rate){
+
+  double zp,dz;
+  double integrand,first_integrand;
+  double factor,result;
+  double nH0;
+  double onthespot;
+  double exponent_z,exponent_zp;
+
+  nH0 = 3.*pba->H0*pba->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-pth->YHe); // number of hydrogen nuclei today in m^-3
+
+  /* Value from Poulin et al. 1508.01370 */
+  /* 
+  factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless)
+  factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+  exponent_z = 8;
+  exponent_zp = 7.5;
+  */
+
+  /* Value from Ali-Haimoud & Kamionkowski 1612.05644 */
+  factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+  exponent_z = 7;
+  exponent_zp = 6.5;
+
+  /* integral over z'(=zp) with step dz */
+  dz=1.;
+
+  /* first point in trapezoidal integral */
+  zp = z;
+  class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
+             error_message,
+             error_message);
+  first_integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
+  // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
+  result = 0.5*dz*first_integrand;
+
+  /* other points in trapezoidal integral */
+  do{
+    zp += dz;
+    class_call(thermodynamics_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
+               error_message,
+               error_message);
+    integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
+    // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
+    result += dz*integrand;
+
+  } while (integrand/first_integrand > 0.02);
+  if(result < 1e-100) result=0.;
+
+  return _SUCCESS_;
+}
+
+#ifdef NOTDEFINED_DEFINITELY_LUL
+
 /**
  * Read and interpolate energy injection coefficients from external file
  *
@@ -475,117 +888,6 @@ int heating_annihilation_f_eff_free(struct thermo * pth) {
 
 }
 
-
-/**
- * In case of non-minimal cosmology, this function determines the energy rate injected in the IGM at a given redshift z (= on-the-spot
- * annihilation) by DM annihilation.
- *
- * @param ppr            Input: pointer to precision structure
- * @param pba            Input: pointer to background structure
- * @param pth            Input: pointer to thermodynamics structure
- * @param z              Input: redshift
- * @param energy_rate    Output: energy density injection rate
- * @param error_message  Output: error message
- * @return the error status
- */
-int heating_DM_annihilation_energy_injection(struct precision * ppr,
-                                                    struct background * pba,
-                                                    struct thermo * pth,
-                                                    double z,
-                                                    double * energy_rate,
-                                                    ErrorMsg error_message){
-  double rho_cdm_today;
-  double Boost_factor;
-
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_;         // [J/m^3]
-
-  if(pth->annihilation_z_halo>0.){
-  Boost_factor = pth->annihilation_f_halo*erfc((1+z)/(1+pth->annihilation_z_halo))/pow(1+z,3);
-  }
-  else Boost_factor = 0;
-
-  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*(pow((1.+z),6)*pth->annihilation)*(1+Boost_factor);  // [J/m^3]
-
-}
-
-
-/**
- * In case of non-minimal cosmology, this function determines the energy rate injected in the IGM at a given redshift z (= on-the-spot
- * annihilation) by DM decay.
- *
- * @param ppr            Input: pointer to precision structure
- * @param pba            Input: pointer to background structure
- * @param pth            Input: pointer to thermodynamics structure
- * @param z              Input: redshift
- * @param energy_rate    Output: energy density injection rate
- * @param error_message  Output: error message
- * @return the error status
- */
-int heating_DM_decay_energy_injection(struct precision * ppr,
-                                             struct background * pba,
-                                             struct thermo * pth,
-                                             double z,
-                                             double * energy_rate,
-                                             ErrorMsg error_message){
-  double rho_cdm_today, rho_dcdm,decay_factor;
-  double tau;
-  int last_index_back;
-  double * pvecback;
-
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-
-  /* Define energy density of decaying DM, rho_dcdm */
-  if(pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
-    /* If Omega_dcdm is given, use it to calculate rho_dcdm */
-    class_call(background_tau_of_z(pba,
-                                   z,
-                                   &tau),
-               pba->error_message,
-               ppr->error_message);
-    class_call(background_at_tau(pba,
-                                 tau,
-                                 pba->long_info,
-                                 pba->inter_normal,
-                                 &last_index_back,
-                                 pvecback),
-               pba->error_message,
-               ppr->error_message);
-    rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_;         // [J/m^3]
-  }
-  else{
-    /* If Omega_dcdm is not given, rho_dcdm = rho_cdm*decay factor */
-
-    rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_;       // [J/m^3]
-
-    if(pth->has_on_the_spot == _FALSE_){
-      decay_factor=1;   /* The effect of the exponential decay is already incorporated within the f_z functions. */
-    }
-    else{
-      class_call(background_tau_of_z(pba,
-                                     z,
-                                     &tau),
-                 pba->error_message,
-                 ppr->error_message);
-      class_call(background_at_tau(pba,
-                                   tau,
-                                   pba->long_info,
-                                   pba->inter_normal,
-                                   &last_index_back,
-                                   pvecback),
-                 pba->error_message,
-                 ppr->error_message);
-      decay_factor = exp(-pba->Gamma_dcdm*pvecback[pba->index_bg_time]);
-    }
-
-    rho_dcdm = rho_cdm_today*pow((1+z),3)*decay_factor;
-
-  }
-
-  *energy_rate = rho_dcdm*pth->decay_fraction*(pba->Gamma_dcdm*_c_/_Mpc_over_m_);
-
-  free(pvecback);
-
-}
 
 
 /**
@@ -1147,3 +1449,161 @@ int heating_energy_injection(
 
 }
 
+
+
+/**
+ * In case of non-minimal cosmology, this function determines the energy rate injected in the IGM at a given redshift z
+ * (= on-the-spot annihilation). This energy injection may come e.g. from dark matter annihilation or decay.
+ *
+ * @param ppr            Input: pointer to precision structure
+ * @param pba            Input: pointer to background structure
+ * @param ptw            Input: pointer to thermo_workspace structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @param error_message  Output: error message
+ * @return the error status
+ */
+int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct thermo_workspace * ptw,
+                                                    double z,
+                                                    double * energy_rate,
+                                                    ErrorMsg error_message){
+
+  /** Summary: */
+
+  /** Define local variables */
+  struct thermo_heating_parameters* pthp = ptw->pthp;
+
+  double annihilation_at_z;
+  double rho_cdm_today;
+  double u_min;
+  double erfc;
+
+  /* redshift-dependent annihilation parameter */
+
+  if (z>pthp->annihilation_zmax) {
+
+    annihilation_at_z = pthp->annihilation*
+      exp(-pthp->annihilation_variation*pow(log((pthp->annihilation_z+1.)/(pthp->annihilation_zmax+1.)),2));
+  }
+  else if (z>pthp->annihilation_zmin) {
+
+    annihilation_at_z = pthp->annihilation*
+      exp(pthp->annihilation_variation*(-pow(log((pthp->annihilation_z+1.)/(pthp->annihilation_zmax+1.)),2)
+                                         +pow(log((z+1.)/(pthp->annihilation_zmax+1.)),2)));
+  }
+  else {
+
+    annihilation_at_z = pthp->annihilation*
+      exp(pthp->annihilation_variation*(-pow(log((pthp->annihilation_z+1.)/(pthp->annihilation_zmax+1.)),2)
+                                         +pow(log((pthp->annihilation_zmin+1.)/(pthp->annihilation_zmax+1.)),2)));
+  }
+
+  rho_cdm_today = pow(ptw->SIunit_H0,2)*3/8./_PI_/_G_*pba->Omega0_cdm*_c_*_c_; // in J/m^3
+
+  u_min = (1+z)/(1+pthp->annihilation_z_halo);
+
+  erfc = pow(1.+0.278393*u_min+0.230389*u_min*u_min+0.000972*u_min*u_min*u_min+0.078108*u_min*u_min*u_min*u_min,-4);
+
+  *energy_rate = pow(rho_cdm_today,2)/_c_/_c_*pow((1+z),3)*
+    (pow((1.+z),3)*annihilation_at_z+pthp->annihilation_f_halo*erfc)
+    +rho_cdm_today*pow((1+z),3)*pthp->decay;  // in J/m^3/s
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * In case of non-minimal cosmology, this function determines the effective energy rate absorbed by the IGM at a given redshift
+ * (beyond the on-the-spot annihilation). This energy injection may come e.g. from dark matter annihilation or decay.
+ *
+ * @param ppr            Input: pointer to precision structure
+ * @param pba            Input: pointer to background structure
+ * @param ptw            Input: pointer to thermo_workspace structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @param error_message  Output: error message
+ * @return the error status
+ */
+int thermodynamics_solve_energy_injection(struct precision * ppr,
+                                          struct background * pba,
+                                          struct thermo_workspace * ptw,
+                                          double z,
+                                          double * energy_rate,
+                                          ErrorMsg error_message){
+
+  /** Summary: */
+
+  /** Define local variables */
+  struct thermo_heating_parameters* pthp = ptw->pthp;
+
+  double zp,dz;
+  double integrand,first_integrand;
+  double factor,result;
+  double nH0 = ptw->SIunit_nH0;
+  double onthespot;
+
+  if (pthp->annihilation > 0) {
+
+    if (pthp->has_on_the_spot == _FALSE_) {
+
+      /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */ //TODO :: generalize !!
+      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
+
+      /* integral over z'(=zp) with step dz */
+      dz=1.;
+
+      /* first point in trapezoidal integral */
+      zp = z;
+      class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,zp,&onthespot,error_message),
+                 error_message,
+                 error_message);
+      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
+      result = 0.5*dz*first_integrand;
+
+      /* other points in trapezoidal integral */
+      do {
+
+        zp += dz;
+        class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,zp,&onthespot,error_message),
+                   error_message,
+                   error_message);
+        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
+        result += dz*integrand;
+
+      } while (integrand/first_integrand > 0.02);
+
+      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
+      class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,z,&onthespot,error_message),
+                 error_message,
+                 error_message);
+
+    }
+    else {
+      class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,z,&result,error_message),
+                 error_message,
+                 error_message);
+    }
+
+    /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
+    /*
+      fprintf(stdout,"%e  %e  %e \n", 1.+z,
+                                      result/pow(1.+z,6),
+                                      onthespot/pow(1.+z,6));
+    */
+
+    /* effective energy density rate in J/m^3/s  */
+    *energy_rate = result;
+
+  }
+  else {
+    *energy_rate = 0.;
+  }
+
+  return _SUCCESS_;
+
+}
+
+#endif

@@ -77,7 +77,9 @@ int thermodynamics_recfast_dx_H_dz(struct thermorecfast * pre, double x_H, doubl
 
   /** - Get necessary coefficients */
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
-  Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
+  //Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
+  Rup = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB/Trad);
+
   K = pre->CK/Hz;
 
   /* following is from recfast 1.5 */
@@ -138,7 +140,9 @@ int thermodynamics_recfast_dx_He_dz(struct thermorecfast * pre, double x_He, dou
   sq_0 = sqrt(Tmat/_T_0_);
   sq_1 = sqrt(Tmat/_T_1_);
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
-  Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
+  //Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
+  Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_)))
+      * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
   n_He = pre->fHe * n;
 
   /** - The K_He is calculated up to the required accuracy  */
@@ -172,7 +176,9 @@ int thermodynamics_recfast_dx_He_dz(struct thermorecfast * pre, double x_He, dou
     /* Do we want to also calculate the additional correction of CfHe_t ? */
     if (Heflag >= 3) {
       Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
-      Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
+      //Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
+      Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_)))
+        *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
 
       tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;

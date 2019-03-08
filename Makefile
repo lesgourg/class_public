@@ -51,6 +51,7 @@ LDFLAG = -g -fPIC
 # (with no slash at the end: e.g. hyrec or ../external/hyrec) [ML],[NS]
 HYREC = external/HyRec2012
 RECFAST = external/RecfastCLASS
+HEATING = external/heating
 
 ########################################################
 ###### IN PRINCIPLE THE REST SHOULD BE LEFT UNCHANGED ##
@@ -70,6 +71,11 @@ vpath %.c $(RECFAST)
 #CCFLAG += -DRECFAST
 INCLUDES += -I../external/RecfastCLASS
 EXTERNAL += wrap_recfast.o
+
+vpath %.c $(HEATING)
+#CCFLAG += -DRECFAST
+INCLUDES += -I../external/heating
+EXTERNAL += heating.o
 
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)

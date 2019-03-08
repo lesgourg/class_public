@@ -11,6 +11,7 @@
 #include "evolver_rkck.h"
 #include "wrap_hyrec.h"
 #include "wrap_recfast.h"
+#include "heating.h"
 
 /**
  * List of possible recombination algorithms.
@@ -59,6 +60,15 @@ enum reionization_z_or_tau {
 
 struct thermo
 {
+  /**
+   * @name - pointers to other structs
+   * */
+  //@{
+
+  struct heating he;
+
+  //@}
+
   /** @name - input parameters initialized by user in input module (all other quantities are computed in this module, given these parameters
    *   and the content of the 'precision' and 'background' structures) */
 
@@ -117,23 +127,6 @@ struct thermo
   double * reio_inter_z; /**< discrete z values */
 
   double * reio_inter_xe; /**< discrete \f$ X_e(z)\f$ values */
-
-  /** parameters for energy injection */
-
-  double annihilation;           /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  double annihilation_variation; /**< if this parameter is non-zero, the function F(z)=(f <sigma*v>/m_cdm)(z) will be a parabola in
-				      log-log scale between zmin and zmax, with a curvature given by annihlation_variation (must be
-				      negative), and with a maximum in zmax; it will be constant outside this range */
-  double annihilation_z;         /**< if annihilation_variation is non-zero, this is the value of z at which the parameter annihilation is defined, i.e.
-			              F(annihilation_z)=annihilation */
-  double annihilation_zmax;      /**< if annihilation_variation is non-zero, redshift above which annihilation rate is maximal */
-  double annihilation_zmin;      /**< if annihilation_variation is non-zero, redshift below which annihilation rate is constant */
-  double annihilation_f_halo;    /**< takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo;    /**< characteristic redshift for DM annihilation in halos*/
-
-  short has_on_the_spot;         /**< flag to specify if we want to use the on-the-spot approximation **/
-
-  double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   //@}
 
@@ -591,9 +584,23 @@ extern "C" {
 #define _not4_ 3.9715         /**< Helium to Hydrogen mass ratio */
 #define _sigma_ 6.6524616e-29 /**< Thomson cross-section in m^2 */
 
+#define _RECFAST_INTEG_SIZE_ 3
+
 //@}
 
-#define _RECFAST_INTEG_SIZE_ 3
+/**
+ * @name Some physical constants
+ */
+
+//@{
+
+#define _s_over_Mpc_ 9.71561189e-15  /**< conversion factor from s to megaparsecs (1 s= const*Mpc) */
+#define _Mpc_over_GeV_ 1.56373832e38  /**< conversion factor from GeV to megaparsecs (1 GeV= const/Mpc) */
+#define _GeV_over_kg_ 1.78266191e-27  /**< conversion factor from GeV to kg  (1 GeV= const*kg) */
+#define _GeVcm3_over_Mpc4_ 0.01056  /**< conversion factor from GeV/cm^3 to 1/Mpc^4 (GeV/cm^3=const/Mpc^4) */
+
+//@}
+
 
 
 /* @endcond */

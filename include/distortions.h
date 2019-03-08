@@ -244,19 +244,6 @@ extern "C" {
 
 /**************************************************************/
 
-/**
- * @name Some conversion factors needed by distortions module:
- */
-
-//@{
-
-#define _s_over_Mpc_ 9.7157e-15  /**< conversion factor from s to megaparsecs (1 s= const*Mpc) */
-#define _Mpc_over_GeV_ 1.5637e38  /**< conversion factor from GeV to megaparsecs (1 GeV= const/Mpc) */
-#define _GeV_over_kg_ 1.7827e-27  /**< conversion factor from GeV to kg  (1 GeV= const*kg) */
-#define _GeVcm3_over_Mpc4_ 0.01056  /**< conversion factor from GeV/cm^3 to 1/Mpc^4 (GeV/cm^3=const/Mpc^4) */
-
-//@}
-
 
 #endif
 /* @endcond */

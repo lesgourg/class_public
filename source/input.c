@@ -660,6 +660,8 @@ int input_read_parameters(
   int bin;
   int input_verbose=0;
 
+  struct heating* phe = &(pth->he);
+
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /** - set all input parameters to default values */
@@ -1218,6 +1220,48 @@ int input_read_parameters(
     }
   }
 
+  /** - energy injection parameters from CDM annihilation/decay */
+
+  /* Now read the heating parameters*/
+  class_read_double("annihilation",phe->annihilation_efficiency);
+
+  if (phe->annihilation_efficiency > 0.) {
+
+    class_read_double("annihilation_variation",phe->annihilation_variation);
+    class_read_double("annihilation_z",phe->annihilation_z);
+    class_read_double("annihilation_zmax",phe->annihilation_zmax);
+    class_read_double("annihilation_zmin",phe->annihilation_zmin);
+    class_read_double("annihilation_f_halo",phe->annihilation_f_halo);
+    class_read_double("annihilation_z_halo",phe->annihilation_z_halo);
+
+    class_call(parser_read_string(pfc,
+                                  "on the spot",
+                                  &(string1),
+                                  &(flag1),
+                                  errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        phe->has_on_the_spot = _TRUE_;
+      }
+      else {
+        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+          phe->has_on_the_spot = _FALSE_;
+        }
+        else {
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+        }
+      }
+    }
+  }
+
+  class_read_double("decay",phe->decay);
+
+
+
+
   /** (b) assign values to thermodynamics cosmological parameters */
 
   /** - primordial helium fraction */
@@ -1336,44 +1380,6 @@ int input_read_parameters(
     class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
   }
 
-  /** - energy injection parameters from CDM annihilation/decay */
-
-  class_read_double("annihilation",pth->annihilation);
-
-  if (pth->annihilation > 0.) {
-
-    class_read_double("annihilation_variation",pth->annihilation_variation);
-    class_read_double("annihilation_z",pth->annihilation_z);
-    class_read_double("annihilation_zmax",pth->annihilation_zmax);
-    class_read_double("annihilation_zmin",pth->annihilation_zmin);
-    class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
-    class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
-
-    class_call(parser_read_string(pfc,
-                                  "on the spot",
-                                  &(string1),
-                                  &(flag1),
-                                  errmsg),
-               errmsg,
-               errmsg);
-
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        pth->has_on_the_spot = _TRUE_;
-      }
-      else {
-        if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-          pth->has_on_the_spot = _FALSE_;
-        }
-        else {
-          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
-        }
-      }
-    }
-  }
-
-  class_read_double("decay",pth->decay);
-
   class_call(parser_read_string(pfc,
                                 "compute damping scale",
                                 &(string1),
@@ -1476,7 +1482,7 @@ int input_read_parameters(
       ppt->has_density_transfers=_TRUE_;
       ppt->has_velocity_transfers=_TRUE_;
       psd->has_distortions=_TRUE_;
-      pth->compute_damping_scale=_TRUE_; // [NL] 
+      pth->compute_damping_scale=_TRUE_; // [NL]
     }
 
   }
@@ -2237,20 +2243,20 @@ int input_read_parameters(
   class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL))) { 
-    psd->branching_approx = bra_sharp_sharp; 
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL))) {
+    psd->branching_approx = bra_sharp_sharp;
     psd->N_PCA = 0;
   }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL))) { 
-    psd->branching_approx = bra_sharp_soft; 
+  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL))) {
+    psd->branching_approx = bra_sharp_soft;
     psd->N_PCA = 0;
   }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL))) { 
-    psd->branching_approx = bra_soft_soft; 
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL))) {
+    psd->branching_approx = bra_soft_soft;
     psd->N_PCA = 0;
   }
-  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL))) { 
-    psd->branching_approx = bra_soft_soft_cons; 
+  if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL))) {
+    psd->branching_approx = bra_soft_soft_cons;
     psd->N_PCA = 0;
   }
   if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) { psd->branching_approx = bra_exact; }
@@ -2718,6 +2724,9 @@ int input_read_parameters(
   class_read_int("thermodynamics_verbose",
                  pth->thermodynamics_verbose);
 
+  class_read_int("heating_verbose",
+                 phe->heating_verbose);
+
   class_read_int("perturbations_verbose",
                  ppt->perturbations_verbose);
 
@@ -2736,7 +2745,7 @@ int input_read_parameters(
   class_read_int("lensing_verbose",
                  ple->lensing_verbose);
 
-  class_read_int("distortions_verbose",      // [ML] 
+  class_read_int("distortions_verbose",      // [ML]
                  psd->distortions_verbose);
 
   class_read_int("output_verbose",
@@ -2953,6 +2962,7 @@ int input_default_params(
 
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
   int filenum;
+  struct heating* phe = &(pth->he);
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -3038,20 +3048,23 @@ int input_default_params(
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
 
-  pth->annihilation = 0.;
-  pth->decay = 0.;
-
-  pth->annihilation_variation = 0.;
-  pth->annihilation_z = 1000.;
-  pth->annihilation_zmax = 2500.;
-  pth->annihilation_zmin = 30.;
-  pth->annihilation_f_halo = 0.;
-  pth->annihilation_z_halo = 30.;
-  pth->has_on_the_spot = _TRUE_;
-
   pth->compute_cb2_derivatives=_FALSE_;
 
   pth->compute_damping_scale = _FALSE_;
+
+  /* Heating parameters */
+
+  phe->annihilation_efficiency = 0.;
+  phe->decay = 0.;
+
+  phe->annihilation_variation = 0.;
+  phe->annihilation_z = 1000.;
+  phe->annihilation_zmax = 2500.;
+  phe->annihilation_zmin = 30.;
+  phe->annihilation_f_halo = 0.;
+  phe->annihilation_z_halo = 30.;
+  phe->has_on_the_spot = _TRUE_;
+
 
   /** - perturbation structure */
 
@@ -3262,6 +3275,7 @@ int input_default_params(
 
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
+  phe->heating_verbose = 0;
   ppt->perturbations_verbose = 0;
   ptr->transfer_verbose = 0;
   ppm->primordial_verbose = 0;
@@ -3472,6 +3486,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   short compute_sigma8 = _FALSE_;
 
   pfzw = (struct fzerofun_workspace *) voidpfzw;
+
   /** - Read input parameters */
   for (i=0; i < unknown_parameters_size; i++) {
     sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],
@@ -3558,6 +3573,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.thermo_Nz_lin = 10000;
     pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
+    th.he.heating_verbose = 0;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
