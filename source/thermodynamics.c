@@ -1928,6 +1928,15 @@ int thermodynamics_solve_derivs(double mz,
 
 
 
+  x = ptdw->x;
+  class_call(heating_at_z(pba,pth,x,z,pvecback),
+             (pth->he).error_message,
+             error_message);
+  energy_rate = pth->he.deposition_table[0];
+  printf("Energy rate[z=%.10e] = %.10e \n",z,energy_rate);
+
+
+
 
   /** Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs). Modify these for some non-trivial
       background evolutions or CMB temperature changes */
@@ -2108,12 +2117,6 @@ int thermodynamics_solve_derivs(double mz,
   drho_dt+=fheat*b_heat*dE_dt/Tg;
 
   */
-
-  class_call(heating_energy_at_z(pba,pth,z,&energy_rate,pvecback),
-             (pth->he).error_message,
-             error_message);
-
-  printf("Energy rate[z=%.10e] = %.10e \n",z,energy_rate);
 
   /* Store ionization fraction to workspace without smoothing for x*/
   ptdw->x = x;
@@ -2561,6 +2564,10 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->R_g_factor = (8./3.) * (_sigma_/(_m_e_*_c_)) * //Factor between photon scattering and rho_gamma(T)
     (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3)); //Factor between rho_gamma(T) and T^4
   ptw->x_limit_T =  ppr->recfast_H_frac;
+
+
+  //TODO :: is this necessary?
+  ptw->ptdw->x = 1.+2.*ptw->fHe;
 
   /* With recombination computed by HyRec, we need to initialize the hyrec wrapper */
   if(pth->recombination == hyrec){

@@ -6,7 +6,8 @@ struct heating{
 
   /* Flags */
   int deposit_energy_as;
-
+  int has_exotic_injection;
+  int has_dcdm;
 
   double* z_table;
   int z_size;
@@ -17,8 +18,8 @@ struct heating{
 
   int has_DM_ann;
   int has_DM_dec;
-  int has_pbh_evap;
-  int has_pbh_acc;
+  int has_BH_evap;
+  int has_BH_acc;
 
   double* injection_table;
   int index_inj_BH_evap;
@@ -33,6 +34,7 @@ struct heating{
 
   /* Deposition table */
   double* chi_table;
+  int chi_type;
   double* deposition_table;
   int index_dep_heat;
   int index_dep_ionH;
@@ -51,6 +53,9 @@ struct heating{
   double t;
   double Gamma_dcdm;
   int last_index_bg;
+
+
+  double f_eff;
 
   /* Parameters */
   double annihilation_efficiency;/**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
@@ -96,7 +101,7 @@ extern "C" {
   /* Outward functions */
   int heating_init(struct precision * ppr, struct background* pba, struct thermo* pth);
 
-  int heating_at_z(struct background* pba, struct thermo* pth, double z, double* dQdz, double* dxdz, double* pvecback);
+  int heating_at_z(struct background* pba, struct thermo* pth, double x, double z, double* pvecback);
 
   int heating_free(struct thermo* pth);
 
@@ -104,12 +109,20 @@ extern "C" {
   /* Own functions */
   int heating_indices(struct thermo* pth);
 
+  int heating_deposition_function(struct heating* phe, double x, double z);
+
+  int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_inj);
+
+  int heating_deposit_analytical_integral(struct background* pba, struct thermo* pth, double z, double* energy_rate);
 
   /* DM annihilation */
   int heating_DM_annihilation(struct heating * phe,
-                            double z,
-                            double * energy_rate);
+                              double z,
+                              double * energy_rate);
 
+  int heating_DM_decay(struct heating * phe,
+                       double z,
+                       double * energy_rate);
 #ifdef __cplusplus
 }
 #endif
