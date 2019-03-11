@@ -597,7 +597,7 @@ extern "C" {
 #define _s_over_Mpc_ 9.71561189e-15  /**< conversion factor from s to megaparsecs (1 s= const*Mpc) */
 #define _Mpc_over_GeV_ 1.56373832e38  /**< conversion factor from GeV to megaparsecs (1 GeV= const/Mpc) */
 #define _GeV_over_kg_ 1.78266191e-27  /**< conversion factor from GeV to kg  (1 GeV= const*kg) */
-#define _GeVcm3_over_Mpc4_ 0.01056  /**< conversion factor from GeV/cm^3 to 1/Mpc^4 (GeV/cm^3=const/Mpc^4) */
+#define _GeVcm3_over_Mpc2_ 94.7024726  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in GeV/cm^3 (rho in GeV/cm^3=const*CLASS_rho) */
 
 //@}
 

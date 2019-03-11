@@ -699,7 +699,7 @@ int distortions_compute_heating_rate(struct precision * ppr,
     t = pvecback[pba->index_bg_time];                                                 // [Mpc]
     t /= _s_over_Mpc_;                                                                // [s]
     rho_g = pvecback[pba->index_bg_rho_g];                                            // [1/Mpc^4]
-    rho_g /= _GeVcm3_over_Mpc4_;                                                      // [GeV/cm^3]
+    rho_g *= _GeVcm3_over_Mpc2_;                                                      // [GeV/cm^3]
     R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];          // [-]
     T_g0 = pba->T_cmb;                                                                // [K]
 

@@ -48,7 +48,7 @@ CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
-# (with no slash at the end: e.g. hyrec or ../external/hyrec) [ML],[NS]
+# (with no slash at the end: e.g. "external/HyRec2012") [ML],[NS]
 HYREC = external/HyRec2012
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
@@ -62,6 +62,7 @@ CCFLAG += -D__CLASSDIR__='"$(MDIR)"'
 
 # where to find include files *.h
 INCLUDES = -I../include
+HEADERFILES = $(wildcard ./include/*.h)
 
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
@@ -69,25 +70,28 @@ EXTERNAL =
 
 vpath %.c $(RECFAST)
 #CCFLAG += -DRECFAST
-INCLUDES += -I../external/RecfastCLASS
+INCLUDES += -I../$(RECFAST)
 EXTERNAL += wrap_recfast.o
+HEADERFILES += $(wildcard ./$(RECFAST)/*.h)
 
 vpath %.c $(HEATING)
-#CCFLAG += -DRECFAST
-INCLUDES += -I../external/heating
+#CCFLAG += -DHEATING
+INCLUDES += -I../$(HEATING)
 EXTERNAL += heating.o
+HEADERFILES += $(wildcard ./$(HEATING)/*.h)
 
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
 vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
-INCLUDES += -I../external/HyRec2012
+INCLUDES += -I../$(HYREC)
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
+HEADERFILES += $(wildcard ./external/Hyrec2012/*.h)
 
 endif
 
-%.o:  %.c .base
+%.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o

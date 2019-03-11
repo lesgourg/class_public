@@ -1926,23 +1926,22 @@ int thermodynamics_solve_derivs(double mz,
              pba->error_message,
              error_message);
 
-
-
-  x = ptdw->x;
-  class_call(heating_at_z(pba,pth,x,z,pvecback),
-             (pth->he).error_message,
-             error_message);
-  energy_rate = pth->he.deposition_table[0];
-  printf("Energy rate[z=%.10e] = %.10e \n",z,energy_rate);
-
-
-
-
   /** Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs). Modify these for some non-trivial
       background evolutions or CMB temperature changes */
   Hz=pvecback[pba->index_bg_H]* _c_ / _Mpc_over_m_;
   n = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
   Trad = ptw->Tcmb * (1.+z);
+
+  x = ptdw->x;
+  class_call(heating_at_z(pba,pth,x,z,pvecback),
+             (pth->he).error_message,
+             error_message);
+  energy_rate = pth->he.pvecdeposition[pth->he.index_dep_heat];
+  //energy_rate/=(Hz*(1.+z));
+  //printf("dQ/dz/rho[z=%.10e]  = %.10e \n",z,energy_rate/(Hz*pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_));
+
+
+
 
   /** - Check for the approximation scheme */
   /* As long as there is no full recombination, x_H, x_He and x are evolved with analytic functions. */
@@ -2099,9 +2098,9 @@ int thermodynamics_solve_derivs(double mz,
     else
       chi_heat = 1.;
 
-    dy[ptv->index_Tmat]= R_g * x / (1.+x+ptw->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z)
-      -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+ptw->fHe+x)/(Hz*(1.+z)); /* energy injection */
-
+    dy[ptv->index_Tmat]= R_g * x / (1.+x+ptw->fHe) * (Tmat-Trad) / (Hz*(1.+z)) + 2.*Tmat/(1.+z);
+    //  -2./(3.*_k_B_)*energy_rate*chi_heat/n/(1.+ptw->fHe+x)/(Hz*(1.+z)); /* energy injection */
+    //printf("\n\n\n Energy factor = %.10e \n",1./_k_B_*energy_rate*chi_heat/n/(Hz*(1.+z)));
   }
 
 
@@ -3379,10 +3378,14 @@ int thermodynamics_solve_store_sources(double mz,
   ptv = ptdw->tv;
   z = -mz;
 
+  /* Tell heating it should store the heating at this z in its internal table */
+  (pth->he).to_store = _TRUE_;
+
   /* Recalculate all quantities at this current redshift (they are all stored in ptdw) */
   class_call(thermodynamics_solve_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
              error_message,
              error_message);
+
   x = ptdw->x;
 
   /** - In the recfast case, we manually smooth the results a bit */
@@ -3412,7 +3415,7 @@ int thermodynamics_solve_store_sources(double mz,
 
   }
 
-  /** - --> store the results in the table */
+  /** - Store the results in the table */
   /* results are obtained in order of decreasing z, and stored in order of growing z */
 
   /* ionization fraction */
@@ -3428,6 +3431,7 @@ int thermodynamics_solve_store_sources(double mz,
   /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
     = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x * _sigma_ * _Mpc_over_m_;
+
 
   return _SUCCESS_;
 

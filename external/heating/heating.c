@@ -25,7 +25,7 @@ int heating_init(struct precision * ppr, struct background* pba, struct thermo* 
   phe->rho_crit0 = phe->H0*phe->H0*3/8./_PI_/_G_*_c_*_c_;
   phe->last_index_bg = 0;
   phe->Gamma_dcdm = pba->Gamma_dcdm;
-  phe->has_dcdm = pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0;
+  phe->has_dcdm = _FALSE_; //pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0;
   phe->chi_type = chi_from_GSVI;
   phe->f_eff = 1.;
   phe->has_BH_acc = _FALSE_;
@@ -87,21 +87,31 @@ int heating_init(struct precision * ppr, struct background* pba, struct thermo* 
   phe->has_DM_ann = phe->annihilation_efficiency!=0;
   phe->has_DM_dec = phe->decay != 0;
 
-  printf("Known things : \n");
-  printf("%.10e , %.10e , %.10e , %.10e , %.10e \n",phe->annihilation_f_halo,phe->annihilation_z_halo,phe->annihilation_efficiency,-1.,-1.);
   phe->z_size = pth->tt_size;
   class_alloc(phe->z_table,
               phe->z_size*sizeof(double),
               phe->error_message);
 
   memcpy(phe->z_table,pth->z_table,phe->z_size*sizeof(double));
+  phe->tol_z_table = 1e-10;
+  phe->filled_until_index_z_inj = phe->z_size-1;
+  phe->filled_until_z_inj = phe->z_table[phe->filled_until_index_z_inj];
+  phe->filled_until_index_z_dep = phe->z_size-1;
+  phe->filled_until_z_dep = phe->z_table[phe->filled_until_index_z_dep];
+  phe->last_index_z_inj = 0;
+  phe->last_index_z_dep = 0;
 
+
+  phe->to_store = _FALSE_;
   class_call(heating_indices(pth),
              phe->error_message,
              phe->error_message);
 
   class_alloc(phe->deposition_table,
               phe->z_size*phe->dep_size*sizeof(double),
+              phe->error_message);
+  class_alloc(phe->pvecdeposition,
+              phe->dep_size*sizeof(double),
               phe->error_message);
   class_alloc(phe->chi_table,
               phe->dep_size*sizeof(double),
@@ -142,9 +152,6 @@ int heating_indices(struct thermo* pth){
 
   phe->dep_size = index_dep;
 
-  printf("%i and %i \n",phe->inj_size,phe->dep_size);
-
-
   return _SUCCESS_;
 }
 
@@ -165,22 +172,50 @@ int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_in
 
   /** Define local variable */
   double dEdz, rate;
-  int index_z;
+  double h,a,b;
+  int index_inj, iz_store;
 
-  index_z = 0;
   /* Initialize local variables */
   dEdz = 0.;
 
-  /* Check if already in table */
-  //IF TABLE
-  // return_table = interpolate(phe->inj_table);
-  // return _SUCCESS_; (TODO :: code this)
+  /* Hunt within the table for the given index of injection */
+  class_call(array_spline_hunt(phe->z_table,phe->z_size,z,&(phe->last_index_z_inj),&h,&a,&b,phe->error_message),
+             phe->error_message,
+             phe->error_message);
 
-  /* Non-exotic energies ...  */
+  /** Test if and where the new values should be stored in the injection table */
+  /* If this value is important, store it */
+  if(phe->to_store){
+    /* Calculate where to store the value*/
+    if(fabs(b-1) < phe->tol_z_table){
+      iz_store = phe->last_index_z_inj+1;
+    }
+    else if(fabs(b) < phe->tol_z_table){
+      iz_store = phe->last_index_z_inj;
+    }
+    /* Could not find a matching index in the z table for this z */
+    else{
+      class_stop(phe->error_message,
+                 "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
+                 phe->z_table[phe->last_index_z_inj],phe->z_table[phe->last_index_z_inj+1]);
+    }
+  }
+
+  /** Test if the values are already within the table */
+  else if( z > phe->filled_until_z_inj ){
+    /* (Linearly) Interpolate within the table */
+    for(index_inj=0;index_inj<phe->inj_size;++index_inj){
+      dEdz += phe->injection_table[phe->last_index_z_inj*phe->inj_size+index_inj] * a + phe->injection_table[(phe->last_index_z_inj+1)*phe->inj_size+index_inj] * b;
+    }
+    *dEdz_inj = dEdz;
+    return _SUCCESS_;
+  }
+
+  /** Non-exotic energy injection mechanisms */
 
   // dEdz += non-exotic-stuff (TODO :: put here non-exotic stuff)
 
-  /** exotic energy injection mechanisms´ǘp+ */
+  /** exotic energy injection mechanisms */
   if(phe->has_exotic_injection){
 
     /* Annihilating Dark Matter */
@@ -188,8 +223,8 @@ int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_in
       class_call(heating_DM_annihilation(phe,z,&rate),
                  phe->error_message,
                  phe->error_message);
-      phe->injection_table[index_z*phe->inj_size+phe->index_inj_DM_ann] = rate;
-      phe->injection_table[index_z*phe->inj_size+phe->index_inj_tot] += rate; 
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_ann] = rate;}
+      dEdz += rate;
     }
 
     /* Decaying Dark Matter */
@@ -197,19 +232,26 @@ int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_in
       class_call(heating_DM_decay(phe,z,&rate),
                  phe->error_message,
                  phe->error_message);
-      phe->injection_table[index_z*phe->inj_size+phe->index_inj_DM_dec] = rate;
-      phe->injection_table[index_z*phe->inj_size+phe->index_inj_tot] += rate; 
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;}
+      dEdz += rate;
     }
 
     // dEdz += exotic-stuff (TODO :: put here exotic stuff)
-
   }
 
+  if(phe->to_store){
+    phe->injection_table[iz_store*phe->inj_size+phe->index_inj_tot] = dEdz;
+    class_test(iz_store < phe->filled_until_index_z_inj-1,
+               phe->error_message,
+               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
+    phe->filled_until_index_z_inj = iz_store;
+    phe->filled_until_z_inj = phe->z_table[iz_store];
+  }
+
+  *dEdz_inj = dEdz;
 
   return _SUCCESS_;
 }
-
-
 
 
 
@@ -226,7 +268,8 @@ int heating_at_z(struct background* pba, struct thermo* pth, double x, double z,
   /** Define local variables */
   double tau;
   struct heating* phe = &(pth->he);
-  int index_z, index_dep;
+  int index_z, index_dep, iz_store;
+  double h,a,b;
   double dEdz_inj;
 
 
@@ -234,14 +277,10 @@ int heating_at_z(struct background* pba, struct thermo* pth, double x, double z,
   dEdz_inj = 0.0;
 
   // [J/m^3] //TODO :: fix this
-  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*
-  //_GeVcm3_over_Mpc4_*_eV_*1e9*1e6;   
-  _Mpc_over_m_*_Mpc_over_m_*3/8./_PI_/_G_*_c_*_c_;
+  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;
 
   if(phe->has_dcdm){
-    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*
-    //_GeVcm3_over_Mpc4_*_eV_*1e9*1e6;   
-    _Mpc_over_m_*_Mpc_over_m_*3/8./_PI_/_G_*_c_*_c_;
+    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;
   }
   else{
     phe->rho_dcdm = 0.0;
@@ -250,23 +289,48 @@ int heating_at_z(struct background* pba, struct thermo* pth, double x, double z,
   phe->t = pvecback[pba->index_bg_time];
 
 
-  /* Check if already in table */
-  //IF TABLE
-  // return_table = interpolate(phe->dep_table);
-  // return _SUCCESS_; (TODO :: code this)
-  /** Step 1 - get the injected energy that needs to be deposited */
-  class_call(heating_energy_injection_at_z(phe,z,&dEdz_inj),
+
+  /* Hunt within the table for the given index of deposition */
+  class_call(array_spline_hunt(phe->z_table,phe->z_size,z,&(phe->last_index_z_dep),&h,&a,&b,phe->error_message),
              phe->error_message,
              phe->error_message);
 
-  //Original ExoCLASS piece::
-  //preco->xe_tmp=x;
-  //preco->Tm_tmp=Tmat;
-  //if( z > 2){//sometimes problem with interpolation //TODO :: why like this in ExoCLASS
+  /** Test if and where the new values should be stored in the injection table */
+  /* If this value is important, store it */
+  if(phe->to_store){
+    /* Calculate where to store the value*/
+    if(fabs(b-1) < phe->tol_z_table){
+      iz_store = phe->last_index_z_dep+1;
+    }
+    else if(fabs(b) < phe->tol_z_table){
+      iz_store = phe->last_index_z_dep;
+    }
+    /* Could not find a matching index in the z table for this z */
+    else{
+      class_stop(phe->error_message,
+                 "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
+                 phe->z_table[phe->last_index_z_dep],phe->z_table[phe->last_index_z_dep+1]);
+    }
+  }
+  /** Test if the values are already within the table */
+  else if( z > phe->filled_until_z_dep ){
+    /* (Linearly) Interpolate within the table */
+    for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+      phe->pvecdeposition[index_dep] = phe->deposition_table[phe->last_index_z_dep*phe->inj_size+index_dep] * a + phe->injection_table[(phe->last_index_z_dep+1)*phe->inj_size+index_dep] * b;
+    }
+    return _SUCCESS_;
+  }
 
+  /** Step 1 - get the injected energy that needs to be deposited */
   /* In the case of the analytical integral, the energy injection is somewhat special */
   if(phe->deposit_energy_as == deposit_analytical_integral){
     class_call(heating_deposit_analytical_integral(pba,pth,z,&dEdz_inj),
+               phe->error_message,
+               phe->error_message);
+  }
+  /* Otherwise get the current injection */
+  else{
+    class_call(heating_energy_injection_at_z(phe,z,&dEdz_inj),
                phe->error_message,
                phe->error_message);
   }
@@ -276,18 +340,24 @@ int heating_at_z(struct background* pba, struct thermo* pth, double x, double z,
              phe->error_message,
              phe->error_message);
 
-  /** Step 3 - Put result into deposition table*/
+  /** Step 3 - Put result into deposition vector */
   for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-    phe->deposition_table[index_z*phe->dep_size+index_dep] = phe->chi_table[index_dep] * dEdz_inj;
+    phe->pvecdeposition[index_dep] = phe->chi_table[index_dep] * dEdz_inj;
   }
 
   /** The output is now successfully stored in the deposition table */
-  // return_table = phe->dep_table (TODO :: code this)
+  if(phe->to_store){
+    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+      phe->deposition_table[iz_store*phe->dep_size+index_dep] = phe->pvecdeposition[index_dep];
+    }
+    class_test(iz_store < phe->filled_until_index_z_dep-1,
+               phe->error_message,
+               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
+    phe->filled_until_index_z_dep = iz_store;
+    phe->filled_until_z_dep = phe->z_table[iz_store];
+  }
 
-  //Original ExoCLASS piece ::
-  //}
-  //else energy_rate = 0;
-  //preco->z_tmp=z;
+  phe->to_store = _FALSE_;
 
   return _SUCCESS_;
 }
@@ -300,6 +370,7 @@ int heating_deposition_function(struct heating* phe, double x, double z){
 
   f_eff = 1.; //Default value
 
+  x = 1.0;
   /** Step 1 - Read the deposition factors for each channel */
   if (x < 1.){ //TODO :: why is this a good condition ???!?
 
@@ -389,6 +460,8 @@ int heating_free(struct thermo* pth){
 
   free(phe->deposition_table);
   free(phe->injection_table);
+
+  free(phe->pvecdeposition);
 
   return _SUCCESS_;
 }

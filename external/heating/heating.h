@@ -11,6 +11,18 @@ struct heating{
 
   double* z_table;
   int z_size;
+  int last_index_z_dep;
+  int last_index_z_inj;
+
+  int filled_until_index_z_dep;
+  double filled_until_z_dep;
+  int filled_until_index_z_inj;
+  double filled_until_z_inj;
+
+  double* pvecdeposition;
+  double tol_z_table;
+
+  int to_store;
 
   int index_ht_CRR;
   int index_ht_BAO;
@@ -104,7 +116,6 @@ extern "C" {
   int heating_at_z(struct background* pba, struct thermo* pth, double x, double z, double* pvecback);
 
   int heating_free(struct thermo* pth);
-
 
   /* Own functions */
   int heating_indices(struct thermo* pth);
