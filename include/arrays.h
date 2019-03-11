@@ -265,6 +265,17 @@ int array_integrate_all_trapzd_or_spline(
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
 
+  int array_interpolate_spline_transposed(double * array,
+                                          int x_size,
+                                          int y_size,
+                                          int index_x,
+                                          int index_y,
+                                          int index_ddy,
+                                          double x,
+                                          int * last_index,
+                                          double * result,
+                                          ErrorMsg errmsg);
+
   int array_interpolate_growing_closeby(
 					double * array,
 					int n_columns,

@@ -65,6 +65,7 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * Currently unused parameter.
  */
 //class_precision_parameter(safe_phi_scf,double,0.0)
+
 /**
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
@@ -97,15 +98,21 @@ class_precision_parameter(thermo_Nz_log,int,5000)
  * Tolerance of the relative value of integral during thermodynamical integration
  */
 class_precision_parameter(tol_thermo_integration,double,1.0e-6)
+/**
+ * Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards
+ */
+class_precision_parameter(thermo_rate_smoothing_radius,int,50)
+
+
+class_string_parameter(energy_deposition_feff_file,"/external/heating/feff_file.dat","Energy Deposition heating file") /**< File containing the f_eff parameter as function of z */
+class_string_parameter(energy_deposition_chi_z_file,"/external/heating/chiz_file.dat","Energy Deposition chi(z) file") /**< File containing the branching ratio as function of z */
+class_string_parameter(energy_deposition_chi_x_file,"/external/heating/chix_file.dat","Energy Deposition chi(x) file") /**< File containing the branching ratio as function of x */
+
 /*
- * Recfast 1.4 switch parameters
+ * Recfast 1.4/1.5 parameters
  */
 class_precision_parameter(recfast_Heswitch,int,6)       /**< from recfast 1.4, specifies how accurate the Helium recombination should be handled */
 class_precision_parameter(recfast_fudge_He,double,0.86) /**< from recfast 1.4, fugde factor for Peeble's equation coefficient of Helium */
-
-/*
- * Recfast 1.5 parameters
- */
 class_precision_parameter(recfast_Hswitch,int,_TRUE_)   /**< from recfast 1.5, specifies how accurate the Hydrogen recombination should be handled */
 class_precision_parameter(recfast_fudge_H,double,1.14)  /**< from recfast 1.4, fudge factor for Peeble's equation coeffient of Hydrogen */
 class_precision_parameter(recfast_delta_fudge_H,double,-0.015) /**< from recfast 1.5.2, increasing Hydrogen fudge factor if Hswitch is enabled */
@@ -131,16 +138,26 @@ class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< Smoothin
 
 class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation */
 
+/*
+ * Hyrec Parameters
+ */
+class_string_parameter(hyrec_Alpha_inf_file,"/external/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
+class_string_parameter(hyrec_R_inf_file,"/external/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
+class_string_parameter(hyrec_two_photon_tables_file,"/external/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
+
+
+/*
+ * Reionization parameters
+ */
 class_precision_parameter(reionization_z_start_max,double,50.0) /**< Maximum starting value in z for reionization */
 class_precision_parameter(reionization_sampling,double,0.1)  /**< Minimum sampling density in z during reionization */
 class_precision_parameter(reionization_optical_depth_tol,double,1.0e-4) /**< Relative tolerance on finding the user-given optical depth of reionization given a certain redshift of reionization */
 class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching optical depth corresponding to the redshift is started from an initial offset beyond z_reionization_start, multiplied by reionization_width */
 
-class_precision_parameter(thermo_rate_smoothing_radius,int,50) /**< Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards */
+/*
+ * Perturbation parameters
+ */
 
-class_string_parameter(hyrec_Alpha_inf_file,"/external/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/external/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/external/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
 
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
@@ -269,7 +286,7 @@ class_type_parameter(evolver,int,enum evolver_type,ndf15)
 
 /*
  * Primordial parameters
- * */
+ */
 
 
 class_precision_parameter(k_per_decade_primordial,double,10.0) /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */

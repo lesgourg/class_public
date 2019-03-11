@@ -13,6 +13,9 @@ struct heating{
   int z_size;
   int last_index_z_dep;
   int last_index_z_inj;
+  int last_index_z_feff;
+  int last_index_chix;
+  int last_index_chiz;
 
   int filled_until_index_z_dep;
   double filled_until_z_dep;
@@ -21,6 +24,14 @@ struct heating{
 
   double* pvecdeposition;
   double tol_z_table;
+
+  double* chiz_table;
+  int chiz_size;
+  double* chix_table;
+  int chix_size;
+
+  int feff_z_size;
+  double* feff_table;
 
   int to_store;
 
@@ -125,6 +136,8 @@ extern "C" {
   int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_inj);
 
   int heating_deposit_analytical_integral(struct background* pba, struct thermo* pth, double z, double* energy_rate);
+
+  int heating_read_feff_from_file(struct precision* ppr, struct heating* phe);
 
   /* DM annihilation */
   int heating_DM_annihilation(struct heating * phe,

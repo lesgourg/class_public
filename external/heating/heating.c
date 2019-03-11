@@ -11,12 +11,12 @@
 #define deposit_from_DarkAges        2
 #define deposit_analytical_integral  3
 
-#define chi_from_GSVI      0
-#define chi_from_SSCK      1
-#define chi_from_x_file    2
-#define chi_from_z_file    3
-#define chi_from_DarkAges  4
+#define chi_from_SSCK      0
+#define chi_from_x_file    1
+#define chi_from_z_file    2
+#define chi_from_DarkAges  3
 
+//TODO :: disable branching ratios before z > 2000, and replace with only heating
 int heating_init(struct precision * ppr, struct background* pba, struct thermo* pth){
 
   struct heating* phe = &(pth->he);
@@ -27,9 +27,13 @@ int heating_init(struct precision * ppr, struct background* pba, struct thermo* 
   phe->Gamma_dcdm = pba->Gamma_dcdm;
   phe->has_dcdm = _FALSE_; //pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0;
   phe->chi_type = chi_from_GSVI;
-  phe->f_eff = 1.;
+  phe->f_eff = 1.; //TODO :: read from user instead
   phe->has_BH_acc = _FALSE_;
   phe->has_BH_evap = _FALSE_;
+
+  phe->last_index_z_feff = 0;
+  phe->last_index_chix = 0;
+  phe->last_index_chiz = 0;
 
   phe->deposit_energy_as = 0; //TODO :: set in input
   /** - check energy injection parameters for annihilation */
@@ -101,6 +105,21 @@ int heating_init(struct precision * ppr, struct background* pba, struct thermo* 
   phe->last_index_z_inj = 0;
   phe->last_index_z_dep = 0;
 
+  if(phe->deposit_energy_as == deposit_feff_from_file){
+    class_call(heating_read_feff_from_file(ppr,phe),
+               phe->error_message,
+               phe->error_message);
+  }
+  if(phe->chi_type == chi_from_DarkAges || phe->chi_type == chi_from_z_file){
+    class_call(heating_read_chi_z(ppr,phe),
+               phe->error_message,
+               phe->error_message);
+  }
+  if(phe->chi_type == chi_from_x_file){
+    class_call(heating_read_chi_x(ppr,phe),
+               phe->error_message,
+               phe->error_message);
+  }
 
   phe->to_store = _FALSE_;
   class_call(heating_indices(pth),
@@ -149,6 +168,7 @@ int heating_indices(struct thermo* pth){
   class_define_index(phe->index_dep_ionH  ,_TRUE_, index_dep, 1);
   class_define_index(phe->index_dep_ionHe ,_TRUE_, index_dep, 1);
   class_define_index(phe->index_dep_lya   ,_TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_lowE  ,_TRUE_, index_dep, 1);
 
   phe->dep_size = index_dep;
 
@@ -162,7 +182,7 @@ int heating_indices(struct thermo* pth){
 int heating_add_second_order_terms(struct thermo* pth, struct perturbs* ppt){
 
   struct heating* phe = &(pth->he);
-  class_define_index(phe->index_ht_BAO,_TRUE_,phe->ht_size,1);
+  //class_define_index(phe->index_inj_BAO,_TRUE_,phe->ht_size,1);
 
   return _SUCCESS_;
 }
@@ -236,7 +256,26 @@ int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_in
       dEdz += rate;
     }
 
-    // dEdz += exotic-stuff (TODO :: put here exotic stuff)
+    /* Decaying Dark Matter */
+    if(phe->has_BH_acc){
+      //class_call(heating_BH_accretion(phe,z,&rate),
+      //           phe->error_message,
+      //           phe->error_message);
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_BH_acc] = rate;}
+      dEdz += rate;
+    }
+
+    
+    /* Decaying Dark Matter */
+    if(phe->has_BH_evap){
+      //class_call(heating_BH_evaporation(phe,z,&rate),
+      //           phe->error_message,
+      //           phe->error_message);
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_BH_evap] = rate;}
+      dEdz += rate;
+    }
+
+    // dEdz += exotic-stuff (TODO :: put here more exotic stuff)
   }
 
   if(phe->to_store){
@@ -369,23 +408,27 @@ int heating_deposition_function(struct heating* phe, double x, double z){
   double f_eff;
 
   f_eff = 1.; //Default value
-
-  x = 1.0;
+  //TODO :: x is uninitialized for first point
+  x = 1.0; //TODO :: remove
   /** Step 1 - Read the deposition factors for each channel */
   if (x < 1.){ //TODO :: why is this a good condition ???!?
 
     /* coefficient as revised by Galli et al. 2013 (in fact it is an interpolation by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
     /* Read file in ionization fraction */
-    if(phe->chi_type == chi_from_GSVI || phe->chi_type == chi_from_x_file){
-      //class_call(heating_chi_from_x(phe,x),
-      //           phe->error_message,
-      //           phe->error_message);
+    if(phe->chi_type == chi_from_x_file){
+      for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+        class_call(array_interpolate_spline_transposed(phe->chix_table,phe->chix_size,
+                                                       2*phe->dep_size+1,0,index_dep+1,index_dep+phe->dep_size+1,
+                                                       x,&(phe->last_index_chix),phe->chi_table[index_dep],phe->error_message);
+      }
     }
     /* Read file in redshift */
     if(phe->chi_type == chi_from_DarkAges || phe->chi_type == chi_from_z_file){
-      //class_call(heating_chi_from_z(phe,z),
-      //           phe->error_message,
-      //           phe->error_message);
+      for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+        class_call(array_interpolate_spline_transposed(phe->chiz_table,phe->chiz_size,
+                                                       2*phe->dep_size+1,0,index_dep+1,index_dep+phe->dep_size+1,
+                                                       z,&(phe->last_index_chiz),phe->chi_table[index_dep],phe->error_message);
+      }
     }
     /* old approximation from Chen and Kamionkowski */
     if(phe->chi_type == chi_from_SSCK){
@@ -393,6 +436,7 @@ int heating_deposition_function(struct heating* phe, double x, double z){
       phe->chi_table[phe->index_dep_ionH]  = (1.-x)/3.;
       phe->chi_table[phe->index_dep_ionHe] = 0.;
       phe->chi_table[phe->index_dep_lya]   = (1.-x)/3.;
+      phe->chi_table[phe->index_dep_lowE]  = 0.;
     }
 
   }
@@ -401,11 +445,8 @@ int heating_deposition_function(struct heating* phe, double x, double z){
     phe->chi_table[phe->index_dep_ionH]  = 0.;
     phe->chi_table[phe->index_dep_ionHe] = 0.;
     phe->chi_table[phe->index_dep_lya]   = 0.;
+    phe->chi_table[phe->index_dep_lowE]  = 0.;
   }
-
-  //chi_heat = MIN(chi_heat,1.);
-  //chi_heat = MAX(chi_heat,0.);
-
 
 
 
@@ -417,20 +458,19 @@ int heating_deposition_function(struct heating* phe, double x, double z){
   }
   /* For the file, read in f_eff from file and multiply */
   else if(phe->deposit_energy_as == deposit_feff_from_file){
-    //class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,pth,z,&f_eff),
-    //           pth->error_message,
-    //           pth->error_message);
-    f_eff = MAX(f_eff,0.);
+    class_call(array_interpolate_spline_transposed(phe->feff_table,phe->feff_z_size,
+                                                   3,0,1,2,z,&(phe->last_index_z_feff),
+                                                   &(f_eff),phe->error_message),
+           phe->error_message,
+           phe->error_message);
   }
   /* For the DarkAges, the chi already contain everything */
   else if(phe->deposit_energy_as == deposit_from_DarkAges){
     f_eff = 1.;
   }
-  /* For the on the spot, ... */ //TODO :: correct commenting
+  /* For the on the spot, we take the user input */
   else if(phe->deposit_energy_as == deposit_on_the_spot){
-    if(phe->f_eff>0){ //DAFUQ IS THIS? ?? ?? ? TODO :: remove this crap
-      f_eff = phe->f_eff; // If pth->f_eff is defined, here we multiply by f_eff.
-    }
+    f_eff = phe->f_eff;
   }
   /* Otherwise, something must have gone wrong */
   else{
@@ -463,6 +503,16 @@ int heating_free(struct thermo* pth){
 
   free(phe->pvecdeposition);
 
+  if(phe->deposit_energy_as == deposit_feff_from_file){
+    free(phe->feff_table);
+  }
+  if(phe->chi_type == chi_from_DarkAges || phe->chi_type == chi_from_z_file){
+    free(phe->chiz_table);
+  }
+  if(phe->chi_type == chi_from_x_file){
+    free(phe->chix_table);
+  }
+
   return _SUCCESS_;
 }
 
@@ -473,12 +523,12 @@ int heating_free(struct thermo* pth){
 
 
 
-#pragma INCOMPLETE
 int heating_DM_annihilation(struct heating * phe,
                             double z,
                             double * energy_rate){
   double boost_factor;
 
+  /* Calculate boost factor due to annihilation in halos */
   if(phe->annihilation_z_halo > 0.){
     boost_factor = phe->annihilation_f_halo * erfc((1+z)/(1+phe->annihilation_z_halo)) / pow(1.+z,3);
   }
@@ -486,6 +536,7 @@ int heating_DM_annihilation(struct heating * phe,
     boost_factor = 0;
   }
 
+  /* Standard formula for annihilating energy injection */
   *energy_rate = phe->rho_cdm*phe->rho_cdm/_c_/_c_ * phe->annihilation_efficiency * (1.+boost_factor);  // [J/(m^3 s)]
 
   return _SUCCESS_;
@@ -500,7 +551,7 @@ int heating_DM_decay(struct heating * phe,
   if(phe->has_dcdm){
     rho_dcdm = phe->rho_dcdm;
   }
-
+  //TODO :: why does this make sense?
   else{
     /* If Omega_dcdm is not given, rho_dcdm = rho_cdm*decay factor */
     if(phe->has_on_the_spot == _FALSE_){
@@ -516,15 +567,289 @@ int heating_DM_decay(struct heating * phe,
     rho_dcdm = phe->rho_cdm*decay_factor;
   }
 
+  /* Standard formula for decaying dark matter*/
   *energy_rate = rho_dcdm*phe->decay_fraction*phe->Gamma_dcdm; //[J/m^3 * ? * Mpc^(-1)]
+  //TODO :: figure out units of everything
 
   return _SUCCESS_;
 }
 
 
+int heating_read_feff_from_file(struct precision* ppr, struct heating* phe){
+
+  /** Define local variables */
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines;
+  int index_z;
+
+  phe->feff_z_size = 0;
+
+  /* *
+   * The file is assumed to contain:
+   * - The number of lines of the file
+   * - The columns ( z, f(z) ) where f(z) represents the "effective" fraction of energy deposited into the medium 
+   *   at redshift z, in presence of halo formation.
+   * */
+  class_open(fA,ppr->energy_deposition_feff_file, "r",phe->error_message);
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    headlines++;
+
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (phe->feff_z_size == 0) {
+
+        /* read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&(phe->feff_z_size)) != 1,
+                   phe->error_message,
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",headlines,ppr->energy_deposition_feff_file);
+
+        /* (z, f, ddf)*/
+        class_alloc(phe->feff_table,
+                    3*phe->feff_z_size*sizeof(double),
+                    phe->error_message);
+      }
+      else {
+        /* read coefficients */
+        class_test(sscanf(line,"%lg %lg",
+                          &(phe->feff_table[index_z*3+0]),
+                          &(phe->feff_table[index_z*3+1]))!= 2,
+                   phe->error_message,
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",headlines,ppr->energy_deposition_feff_file);
+        index_z++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* spline in one dimension */
+  class_call(array_spline(phe->feff_table,
+                          3,
+                          phe->feff_z_size,
+                          0,
+                          1,
+                          2,
+                          _SPLINE_NATURAL_,
+                          phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  return _SUCCESS_;
+}
 
 
+#pragma INCOMPLETE
 
+int heating_read_chi_z(struct precision* ppr, struct heating* phe){
+
+  /** Define local variables */
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines;
+  int index_z,index_dep;
+
+  /* variables related to the use of DarkAges calculate the annihilation coefficients */
+  char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
+  int status;
+
+  phe->chiz_size = 0;
+
+  /* *
+   * The file is assumed to contain:
+   * - The number of lines of the file
+   * - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the branching ratio
+   *   at redshift z into different heating/ionization channels i
+   * */
+  class_test(phe->dep_size != 5,
+             phe->error_message,
+             "Invalid number of heating/ionization channels for chi(z) file");
+
+  if (phe->chi_type == chi_from_z_file) {
+    class_open(fA, ppr->energy_deposition_chi_z_file, "r", phe->error_message);
+  } 
+  else if(phe->chi_type == chi_from_DarkAges){
+    /* Write the command */
+    sprintf(command_with_arguments, "%s", phe->command_DarkAges);
+
+    if (phe->heating_verbose > 0) {
+      printf(" -> Running DarkAges: %s\n", command_with_arguments);
+    }
+
+    /* Launch the process and retrieve the output */
+    fflush(fA);
+    fA = popen(command_with_arguments, "r");
+    class_test(fA == NULL, phe->error_message, "The program failed to set the environment for the external command.");
+  }
+  else{
+    class_stop(phe->error_message,
+               "Unknown chi type option");
+  }
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    headlines++;
+
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (phe->chiz_size == 0) {
+
+        /* read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&(phe->chiz_size)) != 1,
+                   phe->error_message,
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",headlines,ppr->energy_deposition_feff_file);
+
+        /* (z, chi_i)*/
+        class_alloc(phe->chiz_table,
+                    (2*phe->dep_size+1)*phe->chiz_size*sizeof(double),
+                    phe->error_message);
+      }
+      else {
+        /* read coefficients */
+        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+0]), //z
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1]), //heat
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+2]), //lya
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+3]), //ionH
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+4]), //ionHe
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
+                         )!= 6,
+                   phe->error_message,
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",headlines,ppr->energy_deposition_chi_z_file);
+        index_z++;
+      }
+    }
+  }
+
+  if(phe->chi_type == chi_from_z_file){
+    fclose(fA);
+  }
+
+  /* spline in one dimension */
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    class_call(array_spline(phe->chiz_table,
+                            2*phe->dep_size+1,
+                            phe->chiz_size,
+                            0,
+                            1+index_dep,
+                            1+index_dep+phe->dep_size,
+                            _SPLINE_NATURAL_,
+                            phe->error_message),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+int heating_read_chi_x(struct precision* ppr, struct heating* phe){
+
+  /** Define local variables */
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines;
+  int index_x,index_dep;
+
+  phe->chix_size = 0;
+
+  /* *
+   * The file is assumed to contain:
+   * - The number of lines of the file
+   * - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the branching ratio
+   *   at redshift z into different heating/ionization channels i
+   * */
+  class_test(phe->dep_size != 5,
+             phe->error_message,
+             "Invalid number of heating/ionization channels for chi(x) file");
+
+  class_open(fA, ppr->energy_deposition_chi_x_file, "r", phe->error_message);
+
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    headlines++;
+
+    /* eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39) {
+
+      /* if the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (phe->chix_size == 0) {
+
+        /* read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&(phe->chix_size)) != 1,
+                   phe->error_message,
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",headlines,ppr->energy_deposition_feff_file);
+
+        /* (z, chi_i)*/
+        class_alloc(phe->chix_table,
+                    (2*phe->dep_size+1)*phe->chix_size*sizeof(double),
+                    phe->error_message);
+      }
+      else {
+        /* read coefficients */
+        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
+                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+0]), //x
+                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+1]), //heat
+                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+2]), //lya
+                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+3]), //ionH
+                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+4]), //ionHe
+                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+5])  //lowE
+                         )!= 6,
+                   phe->error_message,
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",headlines,ppr->energy_deposition_chi_x_file);
+        index_x++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* spline in one dimension */
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    class_call(array_spline(phe->chix_table,
+                            2*phe->dep_size+1,
+                            phe->chix_size,
+                            0,
+                            1+index_dep,
+                            1+index_dep+phe->dep_size,
+                            _SPLINE_NATURAL_,
+                            phe->error_message),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  return _SUCCESS_;
+}
 
 #pragma NOT_YET_PROPERLY_DONE
 
@@ -585,428 +910,6 @@ int heating_deposit_analytical_integral(struct background* pba, struct thermo* p
 
 
 #ifdef NOTDEFINED_DEFINITELY_LUL
-
-/**
- * Read and interpolate energy injection coefficients from external file
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
- * @return the error status
- */
-int heating_annihilation_coefficients_init(struct precision * ppr,
-                                           struct background * pba,
-                                           struct thermo * pth) {
-
-  FILE * fA = NULL;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-
-  /* variables related to the use of an external code to calculate the annihilation coefficients */
-  char command_with_arguments[2*_ARGUMENT_LENGTH_MAX_];
-  int status;
-
-  int num_lines=0;
-  int array_line=0;
-
-  /** Find file containing injection coefficients */
-
-  /* the following file is assumed to contain (apart from comments and blank lines):
-     - One number (num_lines) = number of lines of the file
-     - six columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where each chi represents the fraction 
-       of energy going respectively into heat, excitation of lyman-alpha level, Hydrogen ionisation, Helium ionisation,
-       photons below 10.2 eV unseeable by the IGM. */
-  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_coefficient == GSVI || 
-      pth->energy_repart_coefficient == chi_from_file) {
-
-    class_open(fA, ppr->energy_injec_coeff_file, "r", pth->error_message);
-  } 
-  else {
-    /* Write the command */
-    sprintf(command_with_arguments, "%s", ppr->command_fz);
-
-    if (pth->heating_verbose > 0) {
-      printf(" -> running: %s\n", command_with_arguments);
-    }
-
-    /* Launch the process and retrieve the output */
-    fflush(fA);
-    fA = popen(command_with_arguments, "r");
-    class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
-  }
-
-  /** Read injection coefficients from file */
-
-  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-    /* eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-      left++;
-    }
-
-    /* check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
-       be the beginning of some data (it is not a newline, a #, a %, etc.) */
-    if (left[0] > 39) {
-
-      /* if the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
-         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (num_lines == 0) {
-
-        /* read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&num_lines) != 1,
-                   pth->error_message,
-                   "could not read value of parameters num_lines in file %s\n",ppr->energy_injec_coeff_file);
-        class_alloc(pth->annihil_coef_xe,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_heat,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_lya,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_ionH,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_ionHe,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_lowE,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_dd_heat,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_dd_lya,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_dd_ionH,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_dd_ionHe,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_coef_dd_lowE,num_lines*sizeof(double),pth->error_message);
-        pth->annihil_coef_num_lines = num_lines;
-
-        array_line=0;
-
-      }
-      else {
-        /* read coefficients */
-        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
-                          &(pth->annihil_coef_xe[array_line]),
-                          &(pth->annihil_coef_heat[array_line]),
-                          &(pth->annihil_coef_lya[array_line]),
-                          &(pth->annihil_coef_ionH[array_line]),
-                          &(pth->annihil_coef_ionHe[array_line]),
-                          &(pth->annihil_coef_lowE[array_line])) != 6,
-                   pth->error_message,
-                   "could not read value of parameters coeeficients in file %s\n",ppr->energy_injec_coeff_file);
-        if(pth->print_energy_deposition_function){
-          if(array_line == 0){
-                fprintf(stdout,"##################################################\n### This is the standardized output to be read by CLASS.\n### For the correct usage ensure that all other\n###'print'-commands in your script are silenced.\n##################################################\n#z_dep	f_heat	f_lya	f_ionH	f_ionHe	f_lowE\n");
-          }
-          printf("%e %e %e %e %e %e \n",
-          (pth->annihil_coef_xe[array_line]),
-          (pth->annihil_coef_heat[array_line]),
-          (pth->annihil_coef_lya[array_line]),
-          (pth->annihil_coef_ionH[array_line]),
-          (pth->annihil_coef_ionHe[array_line]),
-          (pth->annihil_coef_lowE[array_line]));
-        }
-        array_line ++;
-      }
-    }
-  }
-
-  /** Close file containing injection coefficients */
-
-  if (pth->energy_deposition_function == function_from_file || pth->energy_repart_coefficient == GSVI || 
-      pth->energy_repart_coefficient == chi_from_file) {
-    fclose(fA);
-  } 
-  else {
-    status = pclose(fA);
-    class_test(status != 0., pth->error_message, "The attempt to launch the external command was not successful. Maybe the output of the external command is not in the right format.");
-  }
-
-  /** Interpolate injection coefficients */
-
-  class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
-                                      pth->annihil_coef_heat,
-                                      1,
-                                      pth->annihil_coef_dd_heat,
-                                      _SPLINE_NATURAL_,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-  class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
-                                      pth->annihil_coef_lya,
-                                      1,
-                                      pth->annihil_coef_dd_lya,
-                                      _SPLINE_NATURAL_,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-  class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
-                                      pth->annihil_coef_ionH,
-                                      1,
-                                      pth->annihil_coef_dd_ionH,
-                                      _SPLINE_NATURAL_,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-  class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                     num_lines,
-                                     pth->annihil_coef_ionHe,
-                                     1,
-                                     pth->annihil_coef_dd_ionHe,
-                                     _SPLINE_NATURAL_,
-                                     pth->error_message),
-              pth->error_message,
-              pth->error_message);
-  class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
-                                      pth->annihil_coef_lowE,
-                                      1,
-                                      pth->annihil_coef_dd_lowE,
-                                      _SPLINE_NATURAL_,
-                                      pth->error_message),
-               pth->error_message,
-               pth->error_message);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * This function is used by the energy injection module for two different interpolations:
- * Either to directly interpolate the f(z) functions per channels or to interpolate
- * the chi(x_e) functions per channels when the factorisation approximation is assumed.
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pth Input/Output: pointer to initialized thermo structure
- * @return the error status
- */
-int heating_annihilation_coefficients_interpolate(struct precision * ppr,
-                                                         struct background * pba,
-                                                         struct thermo * pth,
-                                                         double xe_or_z) {
-
-  int last_index;
-
-  class_call(array_interpolate_spline(pth->annihil_coef_xe,
-                                      pth->annihil_coef_num_lines,
-                                      pth->annihil_coef_heat,
-                                      pth->annihil_coef_dd_heat,
-                                      1,
-                                      xe_or_z,
-                                      &last_index,
-                                      &(pth->chi_heat),
-                                      1,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-  class_call(array_interpolate_spline(pth->annihil_coef_xe,
-                                      pth->annihil_coef_num_lines,
-                                      pth->annihil_coef_lya,
-                                      pth->annihil_coef_dd_lya,
-                                      1,
-                                      xe_or_z,
-                                      &last_index,
-                                      &(pth->chi_lya),
-                                      1,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-  class_call(array_interpolate_spline(pth->annihil_coef_xe,
-                                      pth->annihil_coef_num_lines,
-                                      pth->annihil_coef_ionH,
-                                      pth->annihil_coef_dd_ionH,
-                                      1,
-                                      xe_or_z,
-                                      &last_index,
-                                      &(pth->chi_ionH),
-                                      1,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-    class_call(array_interpolate_spline(pth->annihil_coef_xe,
-                                        pth->annihil_coef_num_lines,
-                                        pth->annihil_coef_ionHe,
-                                        pth->annihil_coef_dd_ionHe,
-                                        1,
-                                        xe_or_z,
-                                        &last_index,
-                                        &(pth->chi_ionHe),
-                                        1,
-                                        pth->error_message),
-               pth->error_message,
-               pth->error_message);
-    class_call(array_interpolate_spline(pth->annihil_coef_xe,
-                                        pth->annihil_coef_num_lines,
-                                        pth->annihil_coef_lowE,
-                                        pth->annihil_coef_dd_lowE,
-                                        1,
-                                        xe_or_z,
-                                        &last_index,
-                                        &(pth->chi_lowE),
-                                        1,
-                                        pth->error_message),
-               pth->error_message,
-               pth->error_message);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Free all memory space allocated by heating_annihilation_coefficients_interpolate().
- *
- * @param pth Input/Output: pointer to thermo structure
- * @return the error status
- */
-int heating_annihilation_coefficients_free(struct thermo * pth) {
-
-  free(pth->annihil_coef_xe);
-  free(pth->annihil_coef_heat);
-  free(pth->annihil_coef_lya);
-  free(pth->annihil_coef_ionH);
-  free(pth->annihil_coef_ionHe);
-  free(pth->annihil_coef_lowE);
-
-  free(pth->annihil_coef_dd_heat);
-  free(pth->annihil_coef_dd_lya);
-  free(pth->annihil_coef_dd_ionH);
-  free(pth->annihil_coef_dd_ionHe);
-  free(pth->annihil_coef_dd_lowE);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Read and interpolate f_eff from external file
- *
- * @param ppr   Input: pointer to precision structure
- * @param pba   Input: pointer to background structure
- * @param pth   Input/Output: pointer to initialized thermodynamics structure
- * @return the error status
- */
-int heating_annihilation_f_eff_init(struct precision * ppr,
-                                           struct background * pba,
-                                           struct thermo * pth) {
-
-  FILE * fA;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-
-  int num_lines=0;
-  int array_line=0;
-
-  /* the following file is assumed to contain (apart from comments and blank lines):
-     - One number (num_lines) = number of lines of the file
-     - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium 
-       at redshift z, in presence of halo formation. */
-  class_open(fA,ppr->energy_injec_f_eff_file, "r",pth->error_message);
-
-  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-    /* eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-      left++;
-    }
-
-    /* check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
-       be the beginning of some data (it is not a newline, a #, a %, etc.) */
-    if (left[0] > 39) {
-
-      /* if the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
-         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (num_lines == 0) {
-
-        /* read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&num_lines) != 1,
-                   pth->error_message,
-                   "could not read value of parameters num_lines in file %s\n",ppr->energy_injec_f_eff_file);
-        class_alloc(pth->annihil_z,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_f_eff,num_lines*sizeof(double),pth->error_message);
-        class_alloc(pth->annihil_dd_f_eff,num_lines*sizeof(double),pth->error_message);
-
-        pth->annihil_f_eff_num_lines = num_lines;
-
-        array_line=0;
-
-      }
-      else {
-
-        /* read coefficients */
-        class_test(sscanf(line,"%lg %lg",
-                          &(pth->annihil_z[array_line]),
-                          &(pth->annihil_f_eff[array_line]))!= 2,
-                   pth->error_message,
-                   "could not read value of parameters coefficients in file %s\n",ppr->energy_injec_f_eff_file);
-        array_line ++;
-      }
-    }
-  }
-
-  fclose(fA);
-
-  /* spline in one dimension */
-  class_call(array_spline_table_lines(pth->annihil_z,
-                                      num_lines,
-                                      pth->annihil_f_eff,
-                                      1,
-                                      pth->annihil_dd_f_eff,
-                                      _SPLINE_NATURAL_,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * (TODO)
- *
- * @param ppr      Input: pointer to precision structure
- * @param pba      Input: pointer to background structure
- * @param pth      Input/Output: pointer to initialized thermodynamics structure
- * @param z        Input: redshift
- * @return the error status
- */
-int heating_annihilation_f_eff_interpolate(struct precision * ppr,
-                                                  struct background * pba,
-                                                  struct thermo * pth,
-                                                  double z) {
-
-  int last_index;
-  class_call(array_interpolate_spline(pth->annihil_z,
-                                      pth->annihil_f_eff_num_lines,
-                                      pth->annihil_f_eff,
-                                      pth->annihil_dd_f_eff,
-                                      1,
-                                      z,
-                                      &last_index,
-                                      &(pth->f_eff),
-                                      1,
-                                      pth->error_message),
-             pth->error_message,
-             pth->error_message);
-
-  return _SUCCESS_;
-
-}
-
-
-/**
- * Free all memory space allocated by heating_annihilation_f_eff_interpolate().
- *
- * @param pth Input/Output: pointer to thermodynamics structure
- * @return the error status
- */
-int heating_annihilation_f_eff_free(struct thermo * pth) {
-
-  free(pth->annihil_z);
-  free(pth->annihil_f_eff);
-  free(pth->annihil_dd_f_eff);
-
-  return _SUCCESS_;
-
-}
-
-
 
 /**
  * In case of non-minimal cosmology, this function determines time evolution of the primordial black hole (PBH) mass.
@@ -1400,173 +1303,6 @@ int heating_accreting_pbh_energy_injection(struct precision * ppr,
 }
 
 
-/**
- * In case of non-minimal cosmology, this function determines the total energy rate injected in the IGM at a given redshift z (= on-the-spot
- * annihilation).
- *
- * @param ppr            Input: pointer to precision structure
- * @param pba            Input: pointer to background structure
- * @param pth            Input: pointer to thermodynamics structure
- * @param z              Input: redshift
- * @param energy_rate    Output: energy density injection rate
- * @param error_message  Output: error message
- * @return the error status
- */
-int heating_onthespot_energy_injection(
-                                              struct precision * ppr,
-                                              struct background * pba,
-                                              struct thermo * pth,
-                                              double z,
-                                              double * energy_rate,
-                                              ErrorMsg error_message
-                                              ) {
-
-  if(pth->annihilation > 0){
-    heating_DM_annihilation_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
-  }
-  if(pth->decay_fraction > 0.){
-    heating_DM_decay_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
-  }
-  if(pth->PBH_accreting_mass > 0.){
-    heating_accreting_pbh_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
-  }
-  if(pth->PBH_evaporating_mass > 0.){
-    heating_evaporating_pbh_energy_injection(ppr,pba,pth,z,energy_rate,error_message);
-  }
-
-  /* energy density rate in J/(m^3 s) */
-  return _SUCCESS_;
-
-}
-
-
-/**
- * In case of non-minimal cosmology, this function determines the effective energy rate absorbed by the IGM at a given redshift
- * (beyond the on-the-spot annihilation). This energy injection may come e.g. from dark matter annihilation or decay.
- *
- * @param ppr             Input: pointer to precision structure
- * @param pba             Input: pointer to background structure
- * @param pth             Input: pointer to thermodynamics structure
- * @param z               Input: redshift
- * @param energy_rate     Output: energy density injection rate
- * @param error_message   Output: error message
- * @return the error status
- */
-int heating_energy_injection(
-                                    struct precision * ppr,
-                                    struct background * pba,
-                                    struct thermo * pth,
-                                    double z,
-                                    double * energy_rate,
-                                    ErrorMsg error_message
-                                    ) {
-
-  double zp,dz;
-  double integrand,first_integrand;
-  double factor,result;
-  double nH0;
-  double onthespot;
-  double exponent_z,exponent_zp;
-
-  if (pth->annihilation > 0 || pth->decay_fraction > 0 || pth->PBH_accreting_mass > 0 || pth->PBH_evaporating_mass > 0 ){
-
-    if (pth->has_on_the_spot == _FALSE_) {
-
-      if(pth->energy_deposition_function == Analytical_approximation){ 
-        nH0 = 3.*pba->H0*pba->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-pth->YHe); // number of hydrogen nuclei today in m^-3
-
-        /* Value from Poulin et al. 1508.01370 */
-        /* 
-        factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless)
-        factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        exponent_z = 8;
-        exponent_zp = 7.5;
-        */
-
-        /* Value from Ali-Haimoud & Kamionkowski 1612.05644 */
-        factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-        exponent_z = 7;
-        exponent_zp = 6.5;
-
-        /* integral over z'(=zp) with step dz */
-        dz=1.;
-
-        /* first point in trapezoidal integral */
-        zp = z;
-        class_call(heating_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
-                   error_message,
-                   error_message);
-        first_integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
-        // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
-        result = 0.5*dz*first_integrand;
-
-        /* other points in trapezoidal integral */
-        do{
-          zp += dz;
-          class_call(heating_onthespot_energy_injection(ppr,pba,pth,zp,&onthespot,error_message),
-                     error_message,
-                     error_message);
-          integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
-          // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
-          result += dz*integrand;
-
-        } while (integrand/first_integrand > 0.02);
-        if(result < 1e-100) result=0.;
-      }
-
-      else if(pth->energy_deposition_function == function_from_file){
-        if(pth->energy_repart_coefficient!=no_factorization){
-          class_call(heating_annihilation_f_eff_interpolate(ppr,pba,pth,z),
-                     pth->error_message,
-                     pth->error_message);
-          pth->f_eff=MAX(pth->f_eff,0.);
-        }
-        else{
-          pth->f_eff=1.;
-        }
-
-        class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
-                   error_message,
-                   error_message);
-        result =  result*pth->f_eff;
-      }
-
-      else if(pth->energy_deposition_function == DarkAges){
-        class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
-                   error_message,
-                   error_message);
-      }
-
-      // /* uncomment these lines if you also want to compute the on-the-spot for comparison */
-      /*
-      class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&onthespot,error_message),
-                 error_message,
-                 error_message);
-      fprintf(stdout,"%e  %e  %e  %e\n", 1.+z,
-                                         result/pow(1.+z,6),
-                                         onthespot/pow(1.+z,6),result/onthespot);
-      */
-    }
-    else {
-      class_call(heating_onthespot_energy_injection(ppr,pba,pth,z,&result,error_message),
-                 error_message,
-                 error_message);
-      if(pth->f_eff>0){
-        result *= pth->f_eff; // If pth->f_eff is defined, here we multiply by f_eff.
-      }
-    }
-
-    *energy_rate = result; // in J/m^3/s
-  }
-  else {
-
-    *energy_rate = 0.;
-  }
-
-  return _SUCCESS_;
-
-}
-
 
 
 /**
@@ -1632,96 +1368,5 @@ int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
 
 }
 
-
-/**
- * In case of non-minimal cosmology, this function determines the effective energy rate absorbed by the IGM at a given redshift
- * (beyond the on-the-spot annihilation). This energy injection may come e.g. from dark matter annihilation or decay.
- *
- * @param ppr            Input: pointer to precision structure
- * @param pba            Input: pointer to background structure
- * @param ptw            Input: pointer to thermo_workspace structure
- * @param z              Input: redshift
- * @param energy_rate    Output: energy density injection rate
- * @param error_message  Output: error message
- * @return the error status
- */
-int thermodynamics_solve_energy_injection(struct precision * ppr,
-                                          struct background * pba,
-                                          struct thermo_workspace * ptw,
-                                          double z,
-                                          double * energy_rate,
-                                          ErrorMsg error_message){
-
-  /** Summary: */
-
-  /** Define local variables */
-  struct thermo_heating_parameters* pthp = ptw->pthp;
-
-  double zp,dz;
-  double integrand,first_integrand;
-  double factor,result;
-  double nH0 = ptw->SIunit_nH0;
-  double onthespot;
-
-  if (pthp->annihilation > 0) {
-
-    if (pthp->has_on_the_spot == _FALSE_) {
-
-      /* factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless) */ //TODO :: generalize !!
-      factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-
-      /* integral over z'(=zp) with step dz */
-      dz=1.;
-
-      /* first point in trapezoidal integral */
-      zp = z;
-      class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,zp,&onthespot,error_message),
-                 error_message,
-                 error_message);
-      first_integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
-      result = 0.5*dz*first_integrand;
-
-      /* other points in trapezoidal integral */
-      do {
-
-        zp += dz;
-        class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,zp,&onthespot,error_message),
-                   error_message,
-                   error_message);
-        integrand = factor*pow(1+z,8)/pow(1+zp,7.5)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; // beware: versions before 2.4.3, there were wrong exponents: 6 and 5.5 instead of 8 and 7.5
-        result += dz*integrand;
-
-      } while (integrand/first_integrand > 0.02);
-
-      /* uncomment these lines if you also want to compute the on-the-spot for comparison */
-      class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,z,&onthespot,error_message),
-                 error_message,
-                 error_message);
-
-    }
-    else {
-      class_call(thermodynamics_solve_onthespot_energy_injection(ppr,pba,ptw,z,&result,error_message),
-                 error_message,
-                 error_message);
-    }
-
-    /* these test lines print the energy rate rescaled by (1+z)^6 in J/m^3/s, with or without the on-the-spot approximation */
-    /*
-      fprintf(stdout,"%e  %e  %e \n", 1.+z,
-                                      result/pow(1.+z,6),
-                                      onthespot/pow(1.+z,6));
-    */
-
-    /* effective energy density rate in J/m^3/s  */
-    *energy_rate = result;
-
-  }
-  else {
-    *energy_rate = 0.;
-  }
-
-  return _SUCCESS_;
-
-}
 
 #endif

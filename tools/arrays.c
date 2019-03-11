@@ -1707,6 +1707,86 @@ int array_interpolate(
   return _SUCCESS_;
 }
 
+
+ /**
+  * interpolate to get y(x), when x_i,y_i and ddy_i are all columns of the same array
+  *
+  * Called by background_at_eta(); background_eta_of_z(); background_solve(); thermodynamics_at_z().
+  */
+int array_interpolate_spline_transposed(double * array,
+                                        int x_size,
+                                        int y_size,
+                                        int index_x,
+                                        int index_y,
+                                        int index_ddy,
+                                        double x,
+                                        int * last_index,
+                                        double * result,
+                                        ErrorMsg errmsg) {
+
+  int inf,sup,mid,i;
+  double weight;
+  double h,a,b;
+
+  inf=0;
+  sup=x_size-1;
+
+  if (array[inf*y_size+index_x] < array[sup*y_size+index_x]){
+
+    if (x < array[inf*y_size+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,array[inf*y_size+index_x]);
+      return _FAILURE_;
+    }
+
+    if (x > array[sup*y_size+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,array[sup*y_size+index_x]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x < array[mid*y_size+index_x]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  else {
+
+    if (x < array[sup*y_size+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,x,array[sup*y_size+index_x]);
+      return _FAILURE_;
+    }
+
+    if (x > array[inf*y_size+index_x]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,x,array[inf*y_size+index_x]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (x > array[mid*y_size+index_x]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  *last_index = inf;
+
+  h = array[sup*y_size+index_x]-array[inf*y_size+index_x];
+  b = (x - array[inf*y_size+index_x])/h;
+  a = 1.0 - b;
+
+  *result= (a*array[inf*y_size+index_y]+b*array[sup*y_size+index_y]
+            + ((a*a*a-a)* array[inf*y_size+index_ddy] + (b*b*b-b)* array[sup*y_size+index_ddy])*h*h/6.);
+
+  return _SUCCESS_;
+}
+
  /**
   * interpolate to get y_i(x), when x and y_i are in different arrays
   *
