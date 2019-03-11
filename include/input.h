@@ -314,10 +314,6 @@ extern "C" {
                                    double * output,
                                    ErrorMsg errmsg);
 
-  int input_fzerofun_1d(double input,
-                        void* fzerofun_workspace,
-                        double *output,
-                        ErrorMsg error_message);
 
   int input_get_guess(double *xguess,
                       double *dxdy,
@@ -328,6 +324,11 @@ extern "C" {
                       int *fevals,
                       struct fzerofun_workspace *pfzw,
                       ErrorMsg errmsg);
+  int input_fzerofun_1d(double input,
+                        void* fzerofun_workspace,
+                        double *output,
+                        ErrorMsg error_message);
+
 
   int file_exists(const char *fname);
 

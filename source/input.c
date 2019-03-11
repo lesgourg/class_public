@@ -1521,7 +1521,7 @@ int input_read_parameters_thermo(struct file_content * pfc,
     class_read_int("many_tanh_num",pth->many_tanh_num);
     class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
     class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
-    class_read_double("many_tanh_width",pth->many_tanh_width);
+    class_read_double("many_tanh_width",pth->many_tanh_width);         // TODO: default value not set
   }
 
   if (pth->reio_parametrization == reio_inter){
@@ -1718,7 +1718,7 @@ int input_read_parameters_perturbs(struct file_content * pfc,
   /** 1.a) Terms contributing to the temperature spectrum */
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
     /* Read */
-    class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),   // TODO: no default value set
                errmsg,
                errmsg);
     /* Complete set of parameters */
@@ -2177,8 +2177,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
       /** 1.c.1) Type of potential */
       /* Read */
-      class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),       // only polynomial coded so far: no need to interpret string1
-                 errmsg,
+      class_call(parser_read_string(pfc,"potential",&string1,&flag1,errmsg),    // only polynomial coded so far:
+                 errmsg,                                                        // no need to interpret string1
                  errmsg);
 
       /** 1.c.2) Coefficients of the Taylor expansion */
@@ -2742,7 +2742,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                    psp->non_diag,ppt->selection_num-1);
     }
 
-    /** 3.b) Selection function */
+    /** 2.b) Selection function */
     /* Read */
     class_call(parser_read_string(pfc,"dNdz_selection",&string1,&flag1,errmsg),
                errmsg,
@@ -2758,7 +2758,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
       }
     }
 
-    /** 3.c) Source number counts evolution */
+    /** 2.c) Source number counts evolution */
     class_call(parser_read_string(pfc,"dNdz_evolution",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -3098,7 +3098,7 @@ int input_read_parameters_output(struct file_content * pfc,
   }
 
 
-  /** 2) Amount of information sent to standard output */
+  /** 2) Verbosity */
   /* Read */
   class_read_int("background_verbose",pba->background_verbose);
   class_read_int("thermodynamics_verbose",pth->thermodynamics_verbose);
@@ -3144,8 +3144,15 @@ int input_default_params(struct background *pba,
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
+  /**
+   * Default to input_read_parameters_gauge
+   */
+
+  /** 1) Gauge */
+  ppt->gauge=synchronous;
+
   /** 
-   * Background structure
+   * Default to input_read_parameters_background
    */
 
   /* 5.10.2014: default parameters matched to Planck 2013 + WP best-fitting
@@ -3208,40 +3215,54 @@ int input_default_params(struct background *pba,
 
   /** 7) Curvature density */
   pba->Omega0_k = 0.;
-
-  /** 8) Dark energy contributions */
-  pba->Omega0_scf = 0.; /* Scalar field defaults */
-  pba->attractor_ic_scf = _TRUE_;
-  pba->scf_parameters = NULL;
-  pba->scf_parameters_size = 0;
-  pba->scf_tuning_index = 0;
-  //MZ: initial conditions are as multiplicative factors of the radiation attractor values
-  pba->phi_ini_scf = 1;
-  pba->phi_prime_ini_scf = 1;
-
-
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
+
+  /** 8) Dark energy contributions */
   pba->Omega0_fld = 0.;
-  pba->a_today = 1.;
+  pba->Omega0_scf = 0.;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
+  /** 8.a) Omega fluid */
+  /** 8.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;
+  /** 8.a.2) Equation of state */
   pba->fluid_equation_of_state = CLP;
   pba->w0_fld = -1.;
-  pba->wa_fld = 0.;
-  pba->Omega_EDE = 0.;
   pba->cs2_fld = 1.;
-
+  /** 8.a.2.1) 'CLP' case */
+  pba->wa_fld = 0.;
+  /** 8.a.2.2) 'EDE' case */
+  pba->Omega_EDE = 0.;
+  /** 8.b) Omega scalar field */
+  /** 8.b.1) Potential parameters and initial conditions */
+  pba->scf_parameters = NULL;
+  pba->scf_parameters_size = 0;
+  /** 8.b.2) Initial conditions from attractor solution */
+  pba->attractor_ic_scf = _TRUE_;
+  pba->phi_ini_scf = 1;                // MZ: initial conditions are as multiplicative
+  pba->phi_prime_ini_scf = 1;          //     factors of the radiation attractor values
+  /** 8.b.3) Tuning parameter */
+  pba->scf_tuning_index = 0;
+  /** 8.b.4) Shooting parameter */
   pba->shooting_failed = _FALSE_;
 
+  /** 9) Scale factor today */
+  pba->a_today = 1.;
+
   /** 
-   * thermodynamics structure
+   * Default to input_read_parameters_thermo
    */
 
+  /** 1) Primordial Helium fraction */
   pth->YHe=_BBN_;
+
+  /** 2) Recombination algorithm */
   pth->recombination=recfast;
+
+  /** 3) Parametrization of reionization */
   pth->reio_parametrization=reio_camb;
+  /** 3.a) 'reio_camb' or 'reio_half_tanh' case */
   pth->reio_z_or_tau=reio_z;
   pth->z_reio=11.357;
   pth->tau_reio=0.0925;
@@ -3249,29 +3270,43 @@ int input_default_params(struct background *pba,
   pth->reionization_width=0.5;
   pth->helium_fullreio_redshift=3.5;
   pth->helium_fullreio_width=0.5;
-
+  /** 3.b) 'reio_bins_tanh' case */
   pth->binned_reio_num=0;
   pth->binned_reio_z=NULL;
   pth->binned_reio_xe=NULL;
   pth->binned_reio_step_sharpness = 0.3;
+  /** 3.c) 'reio_many_tanh' case */
 
+  /** 4) Damping scale */
+  pth->compute_damping_scale = _FALSE_;   // TODO: _TRUE_?
+
+  /** 
+   * Deafult to input_read_parameters_heating
+   */
+
+  /** 1) On-the-spot approximation */
+  pth->has_on_the_spot = _TRUE_;
+
+  /** 2) DM annihilation */
+  /** 2.a) Energy fraction absorbed by the gas */
   pth->annihilation = 0.;
-  pth->decay = 0.;
-
+  /** 2.b) Redshift dependence */
   pth->annihilation_variation = 0.;
   pth->annihilation_z = 1000.;
   pth->annihilation_zmax = 2500.;
   pth->annihilation_zmin = 30.;
   pth->annihilation_f_halo = 0.;
   pth->annihilation_z_halo = 30.;
-  pth->has_on_the_spot = _TRUE_;
 
-  pth->compute_cb2_derivatives=_FALSE_;
+  /** 3) DM deacy */
+  /** 3.a) Energy fraction absorbed by the gas */
+  pth->decay = 0.;
 
-  pth->compute_damping_scale = _FALSE_;
+  /**
+   * Default to input_read_parameters_perturbs
+   */
 
-  /** - perturbation structure */
-
+  /** 1) Output spectra */
   ppt->has_cl_cmb_temperature = _FALSE_;
   ppt->has_cl_cmb_polarization = _FALSE_;
   ppt->has_cl_cmb_lensing_potential = _FALSE_;
@@ -3280,75 +3315,60 @@ int input_default_params(struct background *pba,
   ppt->has_pk_matter = _FALSE_;
   ppt->has_density_transfers = _FALSE_;
   ppt->has_velocity_transfers = _FALSE_;
-  ppt->has_metricpotential_transfers = _FALSE_;
-
-  ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
-
-  ppt->has_nc_density = _FALSE_;
-  ppt->has_nc_rsd = _FALSE_;
-  ppt->has_nc_lens = _FALSE_;
-  ppt->has_nc_gr = _FALSE_;
-
-  //ppt->pk_only_cdm_bar=_FALSE_;
-
+  /** 1.a) 'tCl' case */
   ppt->switch_sw = 1;
   ppt->switch_eisw = 1;
   ppt->switch_lisw = 1;
   ppt->switch_dop = 1;
   ppt->switch_pol = 1;
+  /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
   ppt->eisw_lisw_split_z = 120;
+  /** 1.b) 'nCl' (or 'dCl') case */
+  ppt->has_nc_density = _FALSE_;
+  ppt->has_nc_rsd = _FALSE_;
+  ppt->has_nc_lens = _FALSE_;
+  ppt->has_nc_gr = _FALSE_;
+  /** 1.c) 'dTk' (or 'mTk') case */
+  ppt->has_metricpotential_transfers = _FALSE_;
 
+  /** 2) Non-linearity */
+  ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
+  pnl->method = nl_none;
+  pnl->has_pk_eq = _FALSE_;
+
+  /** 3) Perturbed recombination */
+  ppt->has_perturbed_recombination=_FALSE_;
+  /** 3.a) Modes */
+  ppt->has_scalars=_TRUE_;
+  ppt->has_vectors=_FALSE_;
+  ppt->has_tensors=_FALSE_;
+  /** 3.a.1) Initial conditions for scalars */
   ppt->has_ad=_TRUE_;
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
-
-  ppt->has_perturbed_recombination=_FALSE_;
+  /** 3.a.2) Initial conditions for tensors */
   ppt->tensor_method = tm_massless_approximation;
   ppt->evolve_tensor_ur = _FALSE_;
   ppt->evolve_tensor_ncdm = _FALSE_;
 
-  ppt->has_scalars=_TRUE_;
-  ppt->has_vectors=_FALSE_;
-  ppt->has_tensors=_FALSE_;
+  /**
+   * Default to input_read_parameters_primordial
+   */
 
-  ppt->l_scalar_max=2500;
-  ppt->l_vector_max=500;
-  ppt->l_tensor_max=500;
-  ppt->l_lss_max=300;
-  ppt->k_max_for_pk=1.;
-
-  ppt->gauge=synchronous;
-
-  ppt->has_Nbody_gauge_transfers = _FALSE_;
-  ppt->k_output_values_num=0;
-  ppt->store_perturbations = _FALSE_;
-  ppt->number_of_scalar_titles=0;
-  ppt->number_of_vector_titles=0;
-  ppt->number_of_tensor_titles=0;
-  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
-    ppt->scalar_perturbations_data[filenum] = NULL;
-    ppt->vector_perturbations_data[filenum] = NULL;
-    ppt->tensor_perturbations_data[filenum] = NULL;
-  }
-  ppt->index_k_output_values=NULL;
-
-
-  ppt->z_max_pk=0.;
-
-  ppt->selection_num=1;
-  ppt->selection=gaussian;
-  ppt->selection_mean[0]=1.;
-  ppt->selection_width[0]=0.1;
-
-  /** - primordial structure */
-
+  /** 1) Primordial spectrum type */
   ppm->primordial_spec_type = analytic_Pk;
+  /** 1.a) Pivot scale in Mpc-1 */
   ppm->k_pivot = 0.05;
+
+  /** 1.b) For type 'analytic_Pk' */
+  /** 1.b.1) For scalar perturbations */
   ppm->A_s = 2.215e-9;
+  /** 1.b.1.1) Adiabatic perturbations */
   ppm->n_s = 0.9619;
   ppm->alpha_s = 0.;
+  /** 1.b.1.2) Isocurvature/entropy perturbations */
   ppm->f_bi = 1.;
   ppm->n_bi = 1.;
   ppm->alpha_bi = 0.;
@@ -3361,6 +3381,7 @@ int input_default_params(struct background *pba,
   ppm->f_niv = 1.;
   ppm->n_niv = 1.;
   ppm->alpha_niv = 0.;
+  /** 1.b.1.3) Cross-correlation between different adiabatic/entropy mode */
   ppm->c_ad_bi = 0.;
   ppm->n_ad_bi = 0.;
   ppm->alpha_ad_bi = 0.;
@@ -3391,25 +3412,38 @@ int input_default_params(struct background *pba,
   ppm->c_nid_niv = 0.;
   ppm->n_nid_niv = 0.;
   ppm->alpha_nid_niv = 0.;
+  /** 1.b.2) For tensor perturbations */
   ppm->r = 1.;
   ppm->n_t = -ppm->r/8.*(2.-ppm->r/8.-ppm->n_s);
   ppm->alpha_t = ppm->r/8.*(ppm->r/8.+ppm->n_s-1.);
-  ppm->potential=polynomial;
-  ppm->phi_end=0.;
-  ppm->phi_pivot_method = N_star;
-  ppm->phi_pivot_target = 60;
+  /** 1.c) For type 'inflation_V' */
+  /** 1.c.2) Coefficients of the Taylor expansion */
   ppm->V0=1.25e-13;
   ppm->V1=-1.12e-14;
   ppm->V2=-6.95e-14;
   ppm->V3=0.;
   ppm->V4=0.;
+  /** 1.d) For type 'inflation_H' */
   ppm->H0=3.69e-6;
   ppm->H1=-5.84e-7;
   ppm->H2=0.;
   ppm->H3=0.;
   ppm->H4=0.;
+  /** 1.e) For type 'inflation_V_end' */
+  /** 1.e.1) Value of the field at the minimum of the potential */
+  ppm->phi_end=0.;
+  /** 1.e.2) Shape of the potential */
+  ppm->potential=polynomial;
+  /** 1.e.4) Increase of scale factor or (aH) between Hubble crossing at pivot
+             scale and end of inflation */
+  ppm->phi_pivot_method = N_star;
+  ppm->phi_pivot_target = 60;
+  /** 1.e.5) Nomral numerical integration or analytical slow-roll formulas? */
   ppm->behavior=numerical;
+  /** 1.g) For type 'external_Pk' */
+  /** 1.g.1) Command generating the table */
   ppm->command="write here your command for the external Pk";
+  /** 1.g.2) Parameters to be passed to the command */
   ppm->custom1=0.;
   ppm->custom2=0.;
   ppm->custom3=0.;
@@ -3421,48 +3455,71 @@ int input_default_params(struct background *pba,
   ppm->custom9=0.;
   ppm->custom10=0.;
 
-  /** - transfer structure */
+  /**
+   * Default to input_read_parameters_spectra
+   */
 
+  /** 1) Maximum l for CLs */
+  ppt->l_scalar_max=2500;
+  ppt->l_vector_max=500;
+  ppt->l_tensor_max=500;
+  ppt->l_lss_max=300;
+
+  /** 2) Parameters for the the matter density number count */
+  /** 2.a) Selection functions W(z) of each redshift bin */
+  ppt->selection=gaussian;
+  ppt->selection_num=1;
+  ppt->selection_mean[0]=1.;
+  ppt->selection_width[0]=0.1;
   ptr->selection_bias[0]=1.;
   ptr->selection_magnification_bias[0]=0.;
-  ptr->lcmb_rescale=1.;
-  ptr->lcmb_pivot=0.1;
-  ptr->lcmb_tilt=0.;
-  ptr->initialise_HIS_cache=_FALSE_;
+  psp->non_diag=0;
+  /** 2.b) Selection function */
   ptr->has_nz_analytic = _FALSE_;
   ptr->has_nz_file = _FALSE_;
+  /** 2.c) Source number counts evolution */
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
-  /** - output structure */
 
+  /** 3) Power spectrum P(k) */
+  /** 3.a) Maximum k in P(k) */
+  ppt->k_max_for_pk=1.;
+  /** 3.b) Redshift values */
   pop->z_pk_num = 1;
   pop->z_pk[0] = 0.;
-  sprintf(pop->root,"output/");
-  pop->write_header = _TRUE_;
-  pop->output_format = class_format;
-  pop->write_background = _FALSE_;
-  pop->write_thermodynamics = _FALSE_;
-  pop->write_perturbations = _FALSE_;
-  pop->write_primordial = _FALSE_;
+  /** 3.c) Maximum redshift */
+  ppt->z_max_pk=0.;
 
-  /** - spectra structure */
+  /** 
+   * Default to input_read_parameters_lensing
+   */
 
-  psp->z_max_pk = pop->z_pk[0];
-  psp->non_diag=0;
-
-  /** - nonlinear structure */
-
-  /** - lensing structure */
-
+  /** 1) Lensing */
   ple->has_lensed_cls = _FALSE_;
 
-  /** - nonlinear structure */
+  /** 
+   * Default to input_read_parameters_output
+   */
 
-  pnl->method = nl_none;
-  pnl->has_pk_eq = _FALSE_;
+  /** 1) Output for external files */
+  /** 1.a) File name */
+  sprintf(pop->root,"output/");
+  /** 1.b) Headers */
+  pop->write_header = _TRUE_;
+  /** 1.c) Format */
+  pop->output_format = class_format;
+  /** 1.d) Background quantities */
+  pop->write_background = _FALSE_;
+  /** 1.e) Thermodynamics quantities */
+  pop->write_thermodynamics = _FALSE_;
+  /** 1.f) Table of perturbations for certain wavenumbers k */
+  ppt->k_output_values_num=0;
+  pop->write_perturbations = _FALSE_;
+  ppt->store_perturbations = _FALSE_;
+  /** 1.g) Primordial spectra */
+  pop->write_primordial = _FALSE_;
 
-  /** - all verbose parameters */
-
+  /** 2) Verbosity */
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;
@@ -3473,35 +3530,38 @@ int input_default_params(struct background *pba,
   ple->lensing_verbose = 0;
   pop->output_verbose = 0;
 
+  /** 
+   * UNDEFINED TODO
+   */
+  pth->compute_cb2_derivatives=_FALSE_;
+
+  ppt->has_Nbody_gauge_transfers = _FALSE_;
+
+  ppt->number_of_scalar_titles=0;
+  ppt->number_of_vector_titles=0;
+  ppt->number_of_tensor_titles=0;
+  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
+    ppt->scalar_perturbations_data[filenum] = NULL;
+    ppt->vector_perturbations_data[filenum] = NULL;
+    ppt->tensor_perturbations_data[filenum] = NULL;
+  }
+  ppt->index_k_output_values=NULL;
+
+  ptr->lcmb_rescale=1.;
+  ptr->lcmb_pivot=0.1;
+  ptr->lcmb_tilt=0.;
+
+  ptr->initialise_HIS_cache=_FALSE_;
+
   return _SUCCESS_;
 
 }
 
 
-int class_version(
-                  char * version
-                  ) {
-
-  sprintf(version,"%s",_VERSION_);
-  return _SUCCESS_;
-}
-
-
-int input_fzerofun_1d(double input,
-                      void* pfzw,
-                      double *output,
-                      ErrorMsg error_message){
-
-  class_call(input_try_unknown_parameters(&input,
-                                          1,
-                                          pfzw,
-                                          output,
-                                          error_message),
-             error_message,
-             error_message);
-
-  return _SUCCESS_;
-}
+/** Using Ridders' method, return the root of a function func known to
+     lie between x1 and x2. The root, returned as zriddr, will be found to
+     an approximate accuracy xtol.
+  */
 
 int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
                        double x1,
@@ -3513,10 +3573,7 @@ int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg er
                        double *xzero,
                        int *fevals,
                        ErrorMsg error_message){
-  /**Using Ridders' method, return the root of a function func known to
-     lie between x1 and x2. The root, returned as zriddr, will be found to
-     an approximate accuracy xtol.
-  */
+
   int j,MAXIT=1000;
   double ans,fh,fl,fm,fnew,s,xh,xl,xm,xnew;
   if ((Fx1!=NULL)&&(Fx2!=NULL)){
@@ -4051,6 +4108,23 @@ int input_find_root(double *xzero,
 
   return _SUCCESS_;
 }
+
+int input_fzerofun_1d(double input,
+                      void* pfzw,
+                      double *output,
+                      ErrorMsg error_message){
+
+  class_call(input_try_unknown_parameters(&input,
+                                          1,
+                                          pfzw,
+                                          output,
+                                          error_message),
+             error_message,
+             error_message);
+
+  return _SUCCESS_;
+}
+
 
 int file_exists(const char *fname){
   FILE *file = fopen(fname, "r");
