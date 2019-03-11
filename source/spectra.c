@@ -3525,14 +3525,14 @@ int spectra_neff(
   //double * pvecback_short; /* array with argument pvecback_sp_long[pba->index_bg] */
 
   /*class_call(background_tau_of_z(pba,z,&tau),
-             pba->error_message,
-             psp->error_message);
+    pba->error_message,
+    psp->error_message);
 
-  class_alloc(pvecback_short,pba->bg_size*sizeof(double),psp->error_message);
+    class_alloc(pvecback_short,pba->bg_size*sizeof(double),psp->error_message);
 
-  class_call(background_at_tau(pba,tau,pba->short_info,pba->inter_normal,&last_index_back,pvecback_short),
-             pba->error_message,
-             psp->error_message);*/
+    class_call(background_at_tau(pba,tau,pba->short_info,pba->inter_normal,&last_index_back,pvecback_short),
+    pba->error_message,
+    psp->error_message);*/
 
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm);
 

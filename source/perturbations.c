@@ -754,7 +754,7 @@ int perturb_indices_of_perturbs(
             /* we may not need theta_cb at all, rsd always defined for
                the total matter, but at least this is made
                available */
-              ppt->has_source_theta_cb = _TRUE_;
+            ppt->has_source_theta_cb = _TRUE_;
         }
         if (ppt->has_nc_lens == _TRUE_) {
           ppt->has_source_phi_plus_psi = _TRUE_;
@@ -4061,7 +4061,7 @@ int perturb_vector_init(
 
       if (pba->has_idm == _TRUE_) {
 
-       /* Case of switching off interacting dark radiation tight coupling approximation */
+        /* Case of switching off interacting dark radiation tight coupling approximation */
 
         if ((pa_old[ppw->index_ap_tca_dark] == (int)tca_dark_on) && (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off)) {
 
@@ -5818,9 +5818,9 @@ int perturb_einstein(
 
       if ((pba->has_idm == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
 
-         shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
+        shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
 
-         ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
+        ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
       }
 
       /* fourth equation involving total shear */
@@ -6033,18 +6033,18 @@ int perturb_total_stress_energy(
         delta_idr = y[ppw->pv->index_pt_delta_idr];
         theta_idr = y[ppw->pv->index_pt_theta_idr];
         if (ppt->idr_nature == idr_fluid){
-            shear_idr = 0.;
+          shear_idr = 0.;
         }
         else{
-         if((pba->has_idm == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
-          if(ppt->gauge == newtonian)
-           shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]));
-          else
-            shear_idr = 0.; /* this is set in perturb_einstein, so here it's set to 0 */
-        }
-         else{
-          shear_idr = y[ppw->pv->index_pt_shear_idr];
-         }
+          if((pba->has_idm == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
+            if(ppt->gauge == newtonian)
+              shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]));
+            else
+              shear_idr = 0.; /* this is set in perturb_einstein, so here it's set to 0 */
+          }
+          else{
+            shear_idr = y[ppw->pv->index_pt_shear_idr];
+          }
         }
       }
       else{

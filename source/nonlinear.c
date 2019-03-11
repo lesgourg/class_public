@@ -550,10 +550,10 @@ int nonlinear_halofit(
   int index_ia_sum;
   int index_ia_ddsum;
   /*
-  int index_ia_sum2;
-  int index_ia_ddsum2;
-  int index_ia_sum3;
-  int index_ia_ddsum3;
+    int index_ia_sum2;
+    int index_ia_ddsum2;
+    int index_ia_sum3;
+    int index_ia_ddsum3;
   */
   int ia_size;
   int index_ia;
@@ -597,13 +597,13 @@ int nonlinear_halofit(
   else {
 
     /* alternative method called Pk_equal, described in 0810.0190 and
-                      1601.07230, extending the range of validity of
-                      HALOFIT from constant w to (w0,wa) models. In that
-                      case, some effective values of w0(tau_i) and
-                      Omega_m(tau_i) have been pre-computed in the
-                      input module, and we just ned to interpolate
-                      within tabulated arrays, to get them at the
-                      current tau value. */
+       1601.07230, extending the range of validity of
+       HALOFIT from constant w to (w0,wa) models. In that
+       case, some effective values of w0(tau_i) and
+       Omega_m(tau_i) have been pre-computed in the
+       input module, and we just ned to interpolate
+       within tabulated arrays, to get them at the
+       current tau value. */
 
     class_alloc(w_and_Omega,pnl->pk_eq_size*sizeof(double),pnl->error_message);
 
@@ -633,11 +633,11 @@ int nonlinear_halofit(
   /*      Until the 17.02.2015 the values of k used for integrating sigma(R) quantities needed by Halofit where the same as in the perturbation module.
           Since then, we sample these integrals on more values, in order to get more precise integrals (thanks Matteo Zennaro for noticing the need for this).
 
-     We create a temporary integrand_array which columns will be:
-     - k in 1/Mpc
-     - just linear P(k) in Mpc**3
-     - 1/(2(pi**2)) P(k) k**2 exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 2 (kR) exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 4 (kR)(1-kR) exp(-(kR)**2)
-     - second derivative of previous line with spline
+          We create a temporary integrand_array which columns will be:
+          - k in 1/Mpc
+          - just linear P(k) in Mpc**3
+          - 1/(2(pi**2)) P(k) k**2 exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 2 (kR) exp(-(kR)**2) or 1/(2(pi**2)) P(k) k**2 4 (kR)(1-kR) exp(-(kR)**2)
+          - second derivative of previous line with spline
   */
 
   index_ia=0;
@@ -702,7 +702,7 @@ int nonlinear_halofit(
      computations, at the expense of requiring a larger k_max; but
      this parameter is not relevant for the precision on P_nl(k,z) at
      other redshifts, so there is normally no need to change i
-   */
+  */
 
   R=sqrt(-log(ppr->halofit_sigma_precision))/integrand_array[(integrand_size-1)*ia_size + index_ia_k];
 
@@ -732,12 +732,12 @@ int nonlinear_halofit(
      not through a class_call) */
 
   /*
-  class_test_except(sigma < 1.,
-                    pnl->error_message,
-                    free(pvecback);free(integrand_array),
-                    "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
-                    pnl->k[pnl->k_size-1],
-                    pba->a_today/pvecback[pba->index_bg_a]-1.);
+    class_test_except(sigma < 1.,
+    pnl->error_message,
+    free(pvecback);free(integrand_array),
+    "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
+    pnl->k[pnl->k_size-1],
+    pba->a_today/pvecback[pba->index_bg_a]-1.);
   */
 
   if (sigma < 1.) {
@@ -807,8 +807,8 @@ int nonlinear_halofit(
                                            halofit_integral_one,
                                            &sum1
                                            ),
-             pnl->error_message,
-             pnl->error_message);
+               pnl->error_message,
+               pnl->error_message);
 
     sigma  = sqrt(sum1);
 
@@ -823,10 +823,10 @@ int nonlinear_halofit(
 
     /* The first version of this test woukld let the code continue: */
     /*
-    class_test_except(counter > _MAX_IT_,
-                      pnl->error_message,
-                      free(pvecback);free(integrand_array),
-                      "could not converge within maximum allowed number of iterations");
+      class_test_except(counter > _MAX_IT_,
+      pnl->error_message,
+      free(pvecback);free(integrand_array),
+      "could not converge within maximum allowed number of iterations");
     */
     /* ... but in this situation it sounds better to make it stop and return an error! */
     class_test(counter > _MAX_IT_,
@@ -950,7 +950,7 @@ int nonlinear_halofit(
 /**
  * Internal routione of Halofit. In original Halofit, this is
  * equivalent to the function wint()
-*/
+ */
 
 int nonlinear_halofit_integrate(
                                 struct nonlinear *pnl,
@@ -970,41 +970,41 @@ int nonlinear_halofit_integrate(
   int index_k;
   double anorm = 1./(2*pow(_PI_,2));
 
-    for (index_k=0; index_k < integrand_size; index_k++) {
-      k = integrand_array[index_k*ia_size + index_ia_k];
-      pk = integrand_array[index_k*ia_size + index_ia_pk];
-      x2 = k*k*R*R;
+  for (index_k=0; index_k < integrand_size; index_k++) {
+    k = integrand_array[index_k*ia_size + index_ia_k];
+    pk = integrand_array[index_k*ia_size + index_ia_pk];
+    x2 = k*k*R*R;
 
-      integrand = pk*k*k*anorm*exp(-x2);
-      if (type == halofit_integral_two) integrand *= 2.*x2;
-      if (type == halofit_integral_three) integrand *= 4.*x2*(1.-x2);
+    integrand = pk*k*k*anorm*exp(-x2);
+    if (type == halofit_integral_two) integrand *= 2.*x2;
+    if (type == halofit_integral_three) integrand *= 4.*x2*(1.-x2);
 
-      integrand_array[index_k*ia_size + index_ia_sum] = integrand;
-    }
+    integrand_array[index_k*ia_size + index_ia_sum] = integrand;
+  }
 
-    /* fill in second derivatives */
-    class_call(array_spline(integrand_array,
-                            ia_size,
-                            integrand_size,
-                            index_ia_k,
-                            index_ia_sum,
-                            index_ia_ddsum,
-                            _SPLINE_NATURAL_,
-                            pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
+  /* fill in second derivatives */
+  class_call(array_spline(integrand_array,
+                          ia_size,
+                          integrand_size,
+                          index_ia_k,
+                          index_ia_sum,
+                          index_ia_ddsum,
+                          _SPLINE_NATURAL_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
 
-    /* integrate */
-    class_call(array_integrate_all_spline(integrand_array,
-                                          ia_size,
-                                          integrand_size,
-                                          index_ia_k,
-                                          index_ia_sum,
-                                          index_ia_ddsum,
-                                          sum,
-                                          pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
+  /* integrate */
+  class_call(array_integrate_all_spline(integrand_array,
+                                        ia_size,
+                                        integrand_size,
+                                        index_ia_k,
+                                        index_ia_sum,
+                                        index_ia_ddsum,
+                                        sum,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
 
   return _SUCCESS_;
 }

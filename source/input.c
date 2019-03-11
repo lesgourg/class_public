@@ -379,7 +379,7 @@ int input_init(
                 "Computing unknown input parameter '%s' using input parameter '%s'\n",
                 fzw.fc.name[fzw.unknown_parameters_index[0]],
                 target_namestrings[fzw.target_name[0]]
-               );
+                );
       }
       /* We can do 1 dimensional root finding */
       /* If shooting fails, postpone error to background module to play nice with MontePython. */
@@ -578,8 +578,8 @@ int input_read_precisions(
    * Declare initial params to read into
    * */
   class_call(input_default_precision(ppr),
-            errmsg,
-            errmsg);
+             errmsg,
+             errmsg);
 
   int int1;
   int flag1;
@@ -590,9 +590,9 @@ int input_read_precisions(
    * Parse all precision parameters
    * */
 
-  #define __PARSE_PRECISION_PARAMETER__
-  #include "precisions.h"
-  #undef __PARSE_PRECISION_PARAMETER__
+#define __PARSE_PRECISION_PARAMETER__
+#include "precisions.h"
+#undef __PARSE_PRECISION_PARAMETER__
 
   return _SUCCESS_;
 }
@@ -2955,7 +2955,7 @@ int input_read_parameters(
   }
 
   /** - (i.5) special steps if we want Halofit with wa_fld non-zero:
-        so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
+      so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
 
   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.))
     pnl->has_pk_eq = _TRUE_;
@@ -3353,9 +3353,9 @@ int input_default_precision ( struct precision * ppr ) {
              "smallest_allowed_variation = %e < 0",ppr->smallest_allowed_variation);
 
 
-  #define __ASSIGN_DEFAULT_PRECISION__
-  #include "precisions.h"
-  #undef __ASSIGN_DEFAULT_PRECISION__
+#define __ASSIGN_DEFAULT_PRECISION__
+#include "precisions.h"
+#undef __ASSIGN_DEFAULT_PRECISION__
 
   return _SUCCESS_;
 
@@ -4101,15 +4101,15 @@ int input_prepare_pk_eq(
   class_call(background_free_noinput(pba), pba->error_message, errmsg);
 
   /** - loop over z_i values. For each of them, we will call the
-     background and thermodynamics module for fake models. The goal is
-     to find, for each z_i, and effective w0_eff[z_i] and
-     Omega_m_eff{z_i], such that: the true model with (w0,wa) and the
-     equivalent model with (w0_eff[z_i],0) have the same conformal
-     distance between z_i and z_recombination, namely chi = tau[z_i] -
-     tau_rec. It is thus necessary to call both the background and
-     thermodynamics module for each fake model and to re-compute
-     tau_rec for each of them. Once the eqauivalent model is found we
-     compute and store Omega_m_effa(z_i) of the equivalent model */
+      background and thermodynamics module for fake models. The goal is
+      to find, for each z_i, and effective w0_eff[z_i] and
+      Omega_m_eff{z_i], such that: the true model with (w0,wa) and the
+      equivalent model with (w0_eff[z_i],0) have the same conformal
+      distance between z_i and z_recombination, namely chi = tau[z_i] -
+      tau_rec. It is thus necessary to call both the background and
+      thermodynamics module for each fake model and to re-compute
+      tau_rec for each of them. Once the eqauivalent model is found we
+      compute and store Omega_m_effa(z_i) of the equivalent model */
 
   for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
 
