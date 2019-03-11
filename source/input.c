@@ -887,25 +887,28 @@ int input_read_parameters(
   class_call(parser_read_double(pfc,"a_dark",&param4,&flag4,errmsg),
              errmsg,
              errmsg);
-  class_call(parser_read_double(pfc,"invtau0_from_nadm",&param5,&flag5,errmsg),
+  class_call(parser_read_double(pfc,"Gamma_0_nadm",&param5,&flag5,errmsg),
              errmsg,
              errmsg);
 
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
-             errmsg,
-             "You requested a fraction of interacting dark matter. In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute this");
   class_test(((flag4 == _TRUE_) && (flag5 == _TRUE_)),
              errmsg,
-             "In input file, you can only enter one of a_dark or invtau0_from_nadm, choose one");
+             "In input file, you can only enter one of a_dark or Gamma_0_nadm, choose one");
+  class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
+             errmsg,
+             "You requested a fraction of interacting dark matter. In input file, you have to set one of Omega_cdm or omega_cdm in order to compute omega_idm");
   class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_) && (flag5 == _FALSE_))),
              errmsg,
-             "In input file, you have requested a fraction of interacting dark matter. Please set either a_dark or invtau0_from_nadm.");
+             "In input file, you have requested a fraction of interacting dark matter. Please set either a_dark or Gamma_0_nadm");
   class_test(((flag3 == _TRUE_) && (pba->Omega0_idr==0.0)),
              errmsg,
              "In input file, you have requested interacting dark matter, this requires interacting dark radiation. Please set either N_dg or xi_idr");
+  class_test(((param3 > 1.) || (param3 < 0.)),
+             errmsg,
+             "The fraction of DM interacting with DR has to be between 0 and 1, you asked for f_idm_dr = %e", param3);
 
   if (flag3 == _FALSE_){
     if (flag1 == _TRUE_)
@@ -920,7 +923,7 @@ int input_read_parameters(
       pth->a_dark = param5*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
       pba->Gamma_0_nadm = param5;
       if (input_verbose > 1)
-        printf("You passed invtau0_from_nadm = %e, this is equivalent to a_dark = %e \n", pba->Gamma_0_nadm, pth->a_dark);
+        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_dark = %e \n", pba->Gamma_0_nadm, pth->a_dark);
     }
     else if(flag4 == _TRUE_){
       pth->a_dark = param4;
@@ -935,6 +938,7 @@ int input_read_parameters(
       pba->Omega0_idm = param3*(param2/pba->h/pba->h);
       pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
     }
+    pba->f_idm_dr = param3;
   }
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
@@ -3028,6 +3032,7 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0;
   pba->Omega0_idm = 0.0;
+  pba->f_idm_dr = 0.0;
   pba->stat_f_idr = 7./8.;
   pba->xi_idr = 0;
   pba->Omega0_b = 0.022032/pow(pba->h,2);

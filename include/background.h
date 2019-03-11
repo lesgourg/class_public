@@ -80,7 +80,7 @@ struct background
 
   double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
   double Omega0_idm; /**< \f$ \Omega_{0 idm} \f$: interacting dark matter */
-  //double f_idm_dr;   /**< fraction of interacting dark matter */
+  double f_idm_dr;   /**< fraction of interacting dark matter */
 
   double xi_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: related to the amount of interacting dark radiation */
   double stat_f_idr; /**< Interacting dark radiation statistical factor */
