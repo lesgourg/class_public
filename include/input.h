@@ -177,6 +177,8 @@ extern "C" {
 		                struct output *pop,
 		                ErrorMsg errmsg);
 
+  int file_exists(const char *fname);
+
   int input_init(struct file_content * pfc,
 		 struct precision * ppr,
 		 struct background *pba,
@@ -189,6 +191,63 @@ extern "C" {
 		 struct lensing *ple,
 		 struct output *pop,
 		 ErrorMsg errmsg);
+
+  /* Shooting */
+  int input_shooting(struct file_content * pfc,
+                     struct precision * ppr,
+                     struct background *pba,
+                     struct thermo *pth,
+                     struct perturbs *ppt,
+                     struct transfers *ptr,
+                     struct primordial *ppm,
+                     struct spectra *psp,
+                     struct nonlinear * pnl,
+                     struct lensing *ple,
+                     struct output *pop,
+                     int input_verbose,
+                     int * has_shooting,
+                     ErrorMsg errmsg);
+
+  int input_auxillary_target_conditions(struct file_content * pfc,
+                                        enum target_names target_name,
+                                        double target_value,
+                                        int * aux_flag,
+                                        ErrorMsg error_message);
+
+  int input_find_root(double *xzero,
+                      int *fevals,
+                      struct fzerofun_workspace *pfzw,
+                      ErrorMsg errmsg);
+
+  int input_fzerofun_1d(double input,
+                        void* fzerofun_workspace,
+                        double *output,
+                        ErrorMsg error_message);
+
+  int class_fzero_ridder(int (*func)(double x,
+                                     void *param,
+                                     double *y,
+                                     ErrorMsg error_message),
+			 double x1,
+			 double x2,
+			 double xtol,
+			 void *param,
+			 double *Fx1,
+			 double *Fx2,
+			 double *xzero,
+			 int *fevals,
+			 ErrorMsg error_message);
+
+  int input_get_guess(double *xguess,
+                      double *dxdy,
+                      struct fzerofun_workspace * pfzw,
+                      ErrorMsg errmsg);
+
+  int input_try_unknown_parameters(double * unknown_parameter,
+                                   int unknown_parameters_size,
+                                   void * pfzw,
+                                   double * output,
+                                   ErrorMsg errmsg);
 
   /* Read from precision.h */
   int input_read_precisions(struct file_content * pfc,
@@ -248,6 +307,13 @@ extern "C" {
                                      int input_verbose,
                                      ErrorMsg errmsg);
 
+  int input_prepare_pk_eq(struct precision * ppr,
+                          struct background *pba,
+                          struct thermo *pth,
+                          struct nonlinear *pnl,
+                          int input_verbose,
+                          ErrorMsg errmsg);
+
   int input_read_parameters_primordial(struct file_content * pfc,
                                        struct perturbs * ppt,
                                        struct primordial * ppm,
@@ -280,6 +346,9 @@ extern "C" {
                                    struct output *pop,
                                    ErrorMsg errmsg);
 
+  int compare_doubles(const void *a,
+                      const void *b);
+
   /* Set default parameters */
   int input_default_params(struct background *pba,
 			   struct thermo *pth,
@@ -291,65 +360,6 @@ extern "C" {
 			   struct lensing *ple,
 			   struct output *pop);
 
-  /* Unclear */
-  int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
-			 double x1,
-			 double x2,
-			 double xtol,
-			 void *param,
-			 double *Fx1,
-			 double *Fx2,
-			 double *xzero,
-			 int *fevals,
-			 ErrorMsg error_message);
-
-  int input_fzerofun_for_background(double Omega_ini_dcdm,
-				    void* container,
-				    double *valout,
-				    ErrorMsg error_message);
-
-  int input_try_unknown_parameters(double * unknown_parameter,
-                                   int unknown_parameters_size,
-                                   void * pfzw,
-                                   double * output,
-                                   ErrorMsg errmsg);
-
-
-  int input_get_guess(double *xguess,
-                      double *dxdy,
-                      struct fzerofun_workspace * pfzw,
-                      ErrorMsg errmsg);
-
-  int input_find_root(double *xzero,
-                      int *fevals,
-                      struct fzerofun_workspace *pfzw,
-                      ErrorMsg errmsg);
-  int input_fzerofun_1d(double input,
-                        void* fzerofun_workspace,
-                        double *output,
-                        ErrorMsg error_message);
-
-
-  int file_exists(const char *fname);
-
-  int input_auxillary_target_conditions(struct file_content * pfc,
-                                        enum target_names target_name,
-                                        double target_value,
-                                        int * aux_flag,
-                                        ErrorMsg error_message);
-
-  int compare_integers(const void * elem1, 
-                       const void * elem2);
-
-  int compare_doubles(const void *a,
-                      const void *b);
-
-  int input_prepare_pk_eq(struct precision * ppr,
-                          struct background *pba,
-                          struct thermo *pth,
-                          struct nonlinear *pnl,
-                          int input_verbose,
-                          ErrorMsg errmsg);
 
 
 #ifdef __cplusplus
