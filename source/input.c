@@ -839,8 +839,9 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_ur;
 
-  //ethos:Check for presence of dark radiation
-  //!!!adapted for nadm
+  /** - Omega_0_idr (interacting dark radiation) */
+  /* Can take both the ethos parameters, and the NADM parameters */
+
   class_read_double("stat_f_idr",pba->stat_f_idr);
 
   class_call(parser_read_double(pfc,"N_dg",&param1,&flag1,errmsg),
@@ -858,9 +859,8 @@ int input_read_parameters(
     pba->xi_idr = pow( param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
     pba->N_dg = param1;
 
-    if (input_verbose > 2)
-      printf("xi_idr equiv = %e \n", pba->xi_idr);
-
+    if (input_verbose > 1)
+      printf("You passed N_dg = %e, this is equivalent to xi_idr = %e \n", pba->N_dg, pba->xi_idr);
   }
 
   else if (flag2 == _TRUE_) {
@@ -872,11 +872,9 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_idr;
 
-  class_read_int("l_max_idr",ppr->l_max_idr);
+  /** - Omega_0_cdm (CDM) and Omega0_idm (interacting dark matter) */
+  /* Can take both the Ethos parameters, and the NADM parameters */
 
-  //DCH
-
-  /** - Omega_0_cdm (CDM) and Omega0_idm (ethos interacting dark matter) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
@@ -898,21 +896,18 @@ int input_read_parameters(
              "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
   class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
              errmsg,
-             "In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute the fraction of interacting dark matter");
+             "You requested a fraction of interacting dark matter. In input file, you have to set one of Omega_cdm or omega_cdm, in order to compute this");
   class_test(((flag4 == _TRUE_) && (flag5 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of a_dark or invtau0_from_nadm, choose one");
-
-  //class_read_double("a_dark",pth->a_dark);
   class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_) && (flag5 == _FALSE_))),
              errmsg,
-             "In input file, you have f_idm_dr but no a_dark");//the other way around is not a problem
-  //class_test((param3!=0.0) && ((param4==0.0) && (param5==0.0)),
-  //           errmsg,
-  //           "In input file, you have f_idm_dr!=0. but a_dark=0.");
+             "In input file, you have requested a fraction of interacting dark matter. Please set either a_dark or invtau0_from_nadm.");
+  class_test(((flag3 == _TRUE_) && (pba->Omega0_idr==0.0)),
+             errmsg,
+             "In input file, you have requested interacting dark matter, this requires interacting dark radiation. Please set either N_dg or xi_idr");
 
-  //this is the standard CDM case
-  if ((flag3 == _FALSE_)||(pba->Omega0_idr==0.0)){
+  if (flag3 == _FALSE_){
     if (flag1 == _TRUE_)
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
@@ -920,14 +915,12 @@ int input_read_parameters(
     pba->Omega0_idm = 0;
   }
 
-  //in the presence of interacting dark matter, we take a fraction of CDM
   else {
-
     if (flag5 == _TRUE_){
-      pth->a_dark = param5*(3./4.)/(pba->h*pba->h*pba->Omega0_idr); //DCH conversion from nadm to ethos
+      pth->a_dark = param5*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
       pba->Gamma_0_nadm = param5;
-      if (input_verbose > 2)
-        printf("adark equiv = %e \n", pth->a_dark);
+      if (input_verbose > 1)
+        printf("You passed invtau0_from_nadm = %e, this is equivalent to a_dark = %e \n", pba->Gamma_0_nadm, pth->a_dark);
     }
     else if(flag4 == _TRUE_){
       pth->a_dark = param4;
@@ -946,17 +939,18 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
 
-  if (input_verbose > 2)
-   printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
+  if (input_verbose > 1)
+    printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
 
-  //if (pba->Omega0_idm!=0.0){
-  //Read the rest of the ethos parameters
+  /** - Load the rest of the parameters for idm and idr */
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
+  class_read_int("l_max_idr",ppr->l_max_idr);
 
   class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
-              errmsg,
-              errmsg);
+             errmsg,
+             errmsg);
+
   if (flag1 == _TRUE_) {
     if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
       ppt->idr_nature = idr_free_streaming;
@@ -969,11 +963,10 @@ int input_read_parameters(
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
              errmsg);
+
   if(flag1 == _TRUE_){
     if(entries_read != (ppr->l_max_idr-1)){
       class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      //free(ppt->alpha_dark);
-      //class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
       for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
     }
   }
@@ -987,11 +980,10 @@ int input_read_parameters(
   class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
              errmsg,
              errmsg);
+
   if(flag1 == _TRUE_){
     if(entries_read != (ppr->l_max_idr-1)){
       class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      //free(ppt->beta_dark);
-      //class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
       for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
     }
   }
@@ -999,8 +991,6 @@ int input_read_parameters(
     class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
     for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
   }
-  //}
-  //end of ethos
 
   /** - Omega_0_dcdmdr (DCDM) */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
@@ -2665,7 +2655,6 @@ int input_read_parameters(
                errmsg,
                errmsg);
 
-    /*MArchi Lya*/
     class_call(parser_read_string(pfc,"compute_neff_Lya",&string2,&flag2,errmsg),
                errmsg,
                errmsg);
@@ -2699,19 +2688,19 @@ int input_read_parameters(
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
-      /*MArchi Lya*/
+
       if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))) {
         psp->compute_neff_Lya=_TRUE_;
         class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
         class_read_double("Lya_z",psp->Lya_z);
         ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
-      }/*end Lya*/
+      }
     }
     psp->z_max_pk = ppt->z_max_pk;
   }
   /* end of z_max section */
 
-  /* Lya calculation*/
+  /* Lya calculation */
   class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
@@ -2844,7 +2833,6 @@ int input_read_parameters(
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
 
   }
-  //ethos
   if (pba->Omega0_idr != 0.){
     class_test(ppr->dark_radiation_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
                errmsg,
@@ -2861,7 +2849,7 @@ int input_read_parameters(
 
   /**
    * Here we can place all obsolete (deprecated) names for the precision parameters,
-   *  so they will still get read.
+   * so they will still get read.
    * The new parameter names should be used preferrably
    * */
   class_read_double("k_scalar_min_tau0",ppr->k_min_tau0); // obsolete precision parameter: read for compatibility with old precision files
@@ -3038,10 +3026,10 @@ int input_default_params(
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-  pba->Omega0_idr = 0.0; //ethos
-  pba->Omega0_idm = 0.0; //ethos
-  pba->stat_f_idr = 7./8.; //ethos
-  pba->xi_idr = 0;//ethos
+  pba->Omega0_idr = 0.0;
+  pba->Omega0_idm = 0.0;
+  pba->stat_f_idr = 7./8.;
+  pba->xi_idr = 0;
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
@@ -3116,7 +3104,6 @@ int input_default_params(
 
   pth->compute_damping_scale = _FALSE_;
 
-  //ethos
   pth->a_dark = 0.;
   pth->b_dark = 0.;
   pth->nindex_dark = 4.;
@@ -3173,7 +3160,7 @@ int input_default_params(
 
   ppt->gauge=synchronous;
 
-  ppt->idr_nature=idr_free_streaming; /* ethos */
+  ppt->idr_nature=idr_free_streaming;
 
   ppt->k_output_values_num=0;
   ppt->store_perturbations = _FALSE_;
@@ -3305,9 +3292,9 @@ int input_default_params(
   psp->z_max_pk = pop->z_pk[0];
   psp->non_diag=0;
 
-  psp->compute_neff_Lya=_FALSE_;//MArchi Lya
-  psp->Lya_k_s_over_km=0.009;//MArchi Lya
-  psp->Lya_z=3.0;//MArchi Lya
+  psp->compute_neff_Lya=_FALSE_;
+  psp->Lya_k_s_over_km=0.009;
+  psp->Lya_z=3.0;
 
   /** - nonlinear structure */
 
