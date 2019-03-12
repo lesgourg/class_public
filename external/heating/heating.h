@@ -66,7 +66,6 @@ struct heating{
   //int index_dep_lowE;
   int dep_size;
 
-
   /* Background stuff etc. */
   double H0;
   double rho_crit0;
@@ -76,7 +75,6 @@ struct heating{
   double t;
   double Gamma_dcdm;
   int last_index_bg;
-
 
   double f_eff;
 
@@ -100,6 +98,7 @@ struct heating{
   /* Book-keeping */
   int heating_verbose;
   ErrorMsg error_message;
+
 };
 
 
@@ -122,24 +121,38 @@ extern "C" {
 #endif
 
   /* Outward functions */
-  int heating_init(struct precision * ppr, struct background* pba, struct thermo* pth);
+  int heating_init(struct precision * ppr,
+                   struct background* pba,
+                   struct thermo* pth);
 
-  int heating_at_z(struct background* pba, struct thermo* pth, double x, double z, double* pvecback);
+  int heating_at_z(struct background* pba,
+                   struct thermo* pth,
+                   double x,
+                   double z,
+                   double* pvecback);
 
   int heating_free(struct thermo* pth);
 
   /* Own functions */
   int heating_indices(struct thermo* pth);
 
-  int heating_deposition_function(struct heating* phe, double x, double z);
+  int heating_deposition_function_at_z(struct heating* phe,
+                                       double x,
+                                       double z);
 
-  int heating_energy_injection_at_z(struct heating* phe, double z, double* dEdz_inj);
+  int heating_energy_injection_at_z(struct heating* phe,
+                                    double z,
+                                    double* dEdz_inj);
 
-  int heating_deposit_analytical_integral(struct background* pba, struct thermo* pth, double z, double* energy_rate);
+  int heating_deposit_analytical_integral(struct background* pba,
+                                          struct thermo* pth,
+                                          double z,
+                                          double* energy_rate);  // TODO by [ML]: dEdz_inj=energy_rate?
 
-  int heating_read_feff_from_file(struct precision* ppr, struct heating* phe);
+  int heating_read_feff_from_file(struct precision* ppr,
+                                  struct heating* phe);
 
-  /* DM annihilation */
+  /* Heating functions */
   int heating_DM_annihilation(struct heating * phe,
                               double z,
                               double * energy_rate);
@@ -147,6 +160,11 @@ extern "C" {
   int heating_DM_decay(struct heating * phe,
                        double z,
                        double * energy_rate);
+
+  int heating_add_second_order_terms(struct background* pba,
+                                     struct thermo* pth,
+                                     struct perturbs* ppt);
+
 #ifdef __cplusplus
 }
 #endif
