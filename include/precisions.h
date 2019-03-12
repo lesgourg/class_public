@@ -242,8 +242,8 @@ class_precision_parameter(radiation_streaming_trigger_tau_c_over_tau,double,5.0)
 
 
 class_precision_parameter(dark_radiation_streaming_approximation,int,rsa_idr_none) /**< method for dark radiation free-streaming approximation */
-class_precision_parameter(dark_radiation_streaming_trigger_tau_over_tau_k,double,50.0) /**< when to switch on dark radiation free-streaming approximation, first condition */
-class_precision_parameter(dark_radiation_streaming_trigger_tau_c_over_tau,double,10.0) /**< when to switch on dark radiation free-streaming approximation, second condition */
+class_precision_parameter(dark_radiation_streaming_trigger_tau_over_tau_k,double,50.0) /**< when to switch on dark radiation (idr) free-streaming approximation, first condition */
+class_precision_parameter(dark_radiation_streaming_trigger_tau_c_over_tau,double,10.0) /**< when to switch on dark radiation (idr) free-streaming approximation, second condition */
 
 
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */

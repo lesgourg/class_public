@@ -906,7 +906,7 @@ int input_read_parameters(
   class_test(((flag3 == _TRUE_) && (pba->Omega0_idr==0.0)),
              errmsg,
              "In input file, you have requested interacting dark matter, this requires interacting dark radiation. Please set either N_dg or xi_idr");
-  class_test(((param3 > 1.) || (param3 < 0.)),
+  class_test(((flag3 == _TRUE_) && ((param3 > 1.) || (param3 < 0.))),
              errmsg,
              "The fraction of DM interacting with DR has to be between 0 and 1, you asked for f_idm_dr = %e", param3);
 
@@ -949,7 +949,6 @@ int input_read_parameters(
   /** - Load the rest of the parameters for idm and idr */
   class_read_double("m_dm",pth->m_dm);
   class_read_double("nindex_dark",pth->nindex_dark);
-  class_read_int("l_max_idr",ppr->l_max_idr);
 
   class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
              errmsg,
@@ -3034,7 +3033,9 @@ int input_default_params(
   pba->Omega0_idm = 0.0;
   pba->f_idm_dr = 0.0;
   pba->stat_f_idr = 7./8.;
-  pba->xi_idr = 0;
+  pba->xi_idr = 0.0;
+  pba->N_dg = 0.0;
+  pba->Gamma_0_nadm = 0.0;
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
