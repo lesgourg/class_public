@@ -1382,7 +1382,7 @@ int background_ncdm_init(
     /** - in verbose mode, inform user of number of sampled momenta
         for background quantities */
       if (pba->background_verbose > 0)
-	printf("ncdm species i=%d sampled with %d points for purpose of background andperturbation integration using the manual method\n",
+	printf("ncdm species i=%d sampled with %d points for purpose of background and perturbation integration using the manual method\n",
 	       k+1,
 	       pba->q_size_ncdm[k]);
     }

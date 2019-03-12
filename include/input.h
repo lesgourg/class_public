@@ -185,17 +185,17 @@ extern "C" {
   int file_exists(const char *fname);
 
   int input_read_from_file(struct file_content * pfc,
-		           struct precision * ppr,
-		           struct background *pba,
-		           struct thermo *pth,
-		           struct perturbs *ppt,
-		           struct transfers *ptr,
-		           struct primordial *ppm,
-		           struct spectra *psp,
-		           struct nonlinear *pnl,
-		           struct lensing *ple,
-		           struct output *pop,
-		           ErrorMsg errmsg);
+                           struct precision * ppr,
+                           struct background *pba,
+                           struct thermo *pth,
+                           struct perturbs *ppt,
+                           struct transfers *ptr,
+                           struct primordial *ppm,
+                           struct spectra *psp,
+                           struct nonlinear *pnl,
+                           struct lensing *ple,
+                           struct output *pop,
+                           ErrorMsg errmsg);
 
   /* Shooting */
   int input_shooting(struct file_content * pfc,
@@ -213,11 +213,11 @@ extern "C" {
                      int * has_shooting,
                      ErrorMsg errmsg);
 
-  int input_auxillary_target_conditions(struct file_content * pfc,
-                                        enum target_names target_name,
-                                        double target_value,
-                                        int * aux_flag,
-                                        ErrorMsg error_message);
+  int input_needs_shooting_for_target(struct file_content * pfc,
+                                      enum target_names target_name,
+                                      double target_value,
+                                      int * aux_flag,
+                                      ErrorMsg errmsg);
 
   int input_find_root(double *xzero,
                       int *fevals,
@@ -233,15 +233,15 @@ extern "C" {
                                      void *param,
                                      double *y,
                                      ErrorMsg error_message),
-			 double x1,
-			 double x2,
-			 double xtol,
-			 void *param,
-			 double *Fx1,
-			 double *Fx2,
-			 double *xzero,
-			 int *fevals,
-			 ErrorMsg error_message);
+                         double x1,
+                         double x2,
+                         double xtol,
+                         void *param,
+                         double *Fx1,
+                         double *Fx2,
+                         double *xzero,
+                         int *fevals,
+                         ErrorMsg error_message);
 
   int input_get_guess(double *xguess,
                       double *dxdy,
@@ -267,8 +267,6 @@ extern "C" {
                             struct lensing * ple,
                             struct output * pop,
                             ErrorMsg errmsg);
-
-  int get_machine_precision(double * smallest_allowed_variation);
 
   /* Read from .ini file */
   int input_read_parameters(struct file_content * pfc,
@@ -336,8 +334,15 @@ extern "C" {
   int input_read_parameters_lensing(struct file_content * pfc,
                                     struct precision * ppr,
                                     struct perturbs * ppt,
+                                    struct transfers * ptr,
                                     struct lensing *ple,
                                     ErrorMsg errmsg);
+
+  int input_read_parameters_additional(struct file_content* pfc,
+                                       struct precision* ppr,
+                                       struct background* pba,
+                                       struct thermo* pth,
+                                       ErrorMsg errmsg);
 
   int input_read_parameters_output(struct file_content * pfc,
                                    struct background *pba,
@@ -356,14 +361,14 @@ extern "C" {
 
   /* Set default parameters */
   int input_default_params(struct background *pba,
-			   struct thermo *pth,
-			   struct perturbs *ppt,
-			   struct transfers *ptr,
-			   struct primordial *ppm,
-			   struct spectra *psp,
-			   struct nonlinear *pnl,
-			   struct lensing *ple,
-			   struct output *pop);
+                           struct thermo *pth,
+                           struct perturbs *ppt,
+                           struct transfers *ptr,
+                           struct primordial *ppm,
+                           struct spectra *psp,
+                           struct nonlinear *pnl,
+                           struct lensing *ple,
+                           struct output *pop);
 
 
 

@@ -288,7 +288,7 @@ int perturb_init(
              ppt->error_message,
              ppt->error_message);
 
-  /** - if we want to store perturbations, write titles and allocate storage */
+  /** - if we want to store perturbations, write titles and allocate storage, should be called after perturb_indices_of_perturbs */
   class_call(perturb_prepare_output(pba,ppt),
              ppt->error_message,
              ppt->error_message);
@@ -504,7 +504,7 @@ int perturb_free(
     /** Stuff related to perturbations output: */
 
     /** - Free non-NULL pointers */
-    if (ppt->index_k_output_values != NULL)
+    if (ppt->k_output_values_num > 0 )
       free(ppt->index_k_output_values);
 
     for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
@@ -548,6 +548,8 @@ int perturb_indices_of_perturbs(
   int index_ic;
   int index_type_common;
 
+  int filenum;
+
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
   index_md = 0;
@@ -590,6 +592,7 @@ int perturb_indices_of_perturbs(
   ppt->has_source_delta_dr = _FALSE_;
   ppt->has_source_delta_ur = _FALSE_;
   ppt->has_source_delta_ncdm = _FALSE_;
+  ppt->has_source_delta_tot = _FALSE_;
   ppt->has_source_theta_m = _FALSE_;
   ppt->has_source_theta_cb = _FALSE_;
   ppt->has_source_theta_g = _FALSE_;
@@ -601,6 +604,7 @@ int perturb_indices_of_perturbs(
   ppt->has_source_theta_dr = _FALSE_;
   ppt->has_source_theta_ur = _FALSE_;
   ppt->has_source_theta_ncdm = _FALSE_;
+  ppt->has_source_theta_tot = _FALSE_;
   ppt->has_source_phi = _FALSE_;
   ppt->has_source_phi_prime = _FALSE_;
   ppt->has_source_phi_plus_psi = _FALSE_;
@@ -883,6 +887,16 @@ int perturb_indices_of_perturbs(
                 ppt->ic_size[index_md] * ppt->tp_size[index_md] * sizeof(double *),
                 ppt->error_message);
 
+  }
+
+  /* Allocate the titles and data sections for the output file */
+  ppt->number_of_scalar_titles=0;
+  ppt->number_of_vector_titles=0;
+  ppt->number_of_tensor_titles=0;
+  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
+    ppt->scalar_perturbations_data[filenum] = NULL;
+    ppt->vector_perturbations_data[filenum] = NULL;
+    ppt->tensor_perturbations_data[filenum] = NULL;
   }
 
   return _SUCCESS_;
@@ -1788,6 +1802,9 @@ int perturb_get_k_list(
                   ppt->k_size[ppt->index_md_tensors]*sizeof(double),
                   ppt->error_message);
   }
+
+  /* Set default of the array (do NOT remove) */
+  //ppt->index_k_output_values = NULL;
 
   /** - If user asked for k_output_values, add those to all k lists: */
   if (ppt->k_output_values_num>0){
