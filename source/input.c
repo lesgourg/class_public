@@ -6,56 +6,114 @@
 #include "input.h"
 
 
-int input_init_from_arguments(int argc,
-                              char **argv,
-                              struct precision * ppr,
-                              struct background *pba,
-                              struct thermo *pth,
-                              struct perturbs *ppt,
-                              struct transfers *ptr,
-                              struct primordial *ppm,
-                              struct spectra *psp,
-                              struct nonlinear * pnl,
-                              struct lensing *ple,
-                              struct output *pop,
-                              ErrorMsg errmsg) {
+/**
+ * Initialize input parameters from external file. 
+ *
+ * @param argc    Input: TODO
+ * @param argv    Input: TODO
+ * @param pfc     Input: pointer to local structure
+ * @param ppr     Input: pointer to precision structure
+ * @param pba     Input: pointer to background structure
+ * @param pth     Input: pointer to thermodynamics structure
+ * @param ppt     Input: pointer to perturbation structure
+ * @param ptr     Input: pointer to transfer structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param psp     Input: pointer to spectra structure
+ * @param pnl     Input: pointer to nonlinear structure
+ * @param ple     Input: pointer to lensing structure
+ * @param pop     Input: pointer to output structure
+ * @param errmsg  Input: Error message
+ */
+int input_init(int argc,
+               char **argv,
+               struct precision * ppr,
+               struct background *pba,
+               struct thermo *pth,
+               struct perturbs *ppt,
+               struct transfers *ptr,
+               struct primordial *ppm,
+               struct spectra *psp,
+               struct nonlinear * pnl,
+               struct lensing *ple,
+               struct output *pop,
+               ErrorMsg errmsg){
 
   /** Summary: */
 
-  /** - define local variables */
+  /** Define local variables */
+  struct file_content fc;        // Structure with all parameters
 
-  struct file_content fc;             /** - --> the final structure with all parameters */
-  struct file_content fc_input;       /** - --> a temporary structure with all input parameters */
-  struct file_content fc_precision;   /** - --> a temporary structure with all precision parameters */
-  struct file_content fc_root;        /** - --> a temporary structure with only the root name */
-  struct file_content fc_inputroot;   /** - --> sum of fc_inoput and fc_root */
-  struct file_content * pfc_input;    /** - --> a pointer to either fc_root or fc_inputroot */
+  /** Find and read input file */
+  class_call(input_find_file(argc,
+                             argv,
+                             &fc,
+                             errmsg),
+             errmsg,
+             errmsg);
 
-  char input_file[_ARGUMENT_LENGTH_MAX_];
-  char precision_file[_ARGUMENT_LENGTH_MAX_];
-  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the characters "output/[...]%02d_parameters.ini" (as done below)
+  /** Initialize all parameters given the input 'file_content' structure.
+      If its size is null, all parameters take their default values. */
+  class_call(input_read_from_file(&fc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
+                                  errmsg),
+             errmsg,
+             errmsg);
+
+  /** Free local struture */
+  class_call(parser_free(&fc),
+             errmsg,
+             errmsg);
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Find and read external file (xxx.ini or xxx.pre) containing the input
+ * parameters. All data is stored in the local structure 'file_content'.
+ *
+ * @param argc    Input: TODO
+ * @param argv    Input: TODO
+ * @param pfc     Output: pointer to local file_content structure
+ * @param errmsg  Input: Error message
+ */
+int input_find_file(int argc,
+                    char **argv,
+                    struct file_content * fc,
+                    ErrorMsg errmsg){
+
+  /** Summary: */
+
+  /** Define local variables */
+  struct file_content fc_input;       // Temporary structure with all input parameters
+  struct file_content fc_precision;   // Temporary structure with all precision parameters
+  struct file_content fc_root;        // Temporary structure with only the root name
+  struct file_content fc_inputroot;   // Sum of fc_inoput and fc_root
+  struct file_content * pfc_input;    // Pointer to either fc_root or fc_inputroot
 
   int i;
   char extension[5];
   FileArg stringoutput, inifilename;
   int flag1, filenum;
+  char input_file[_ARGUMENT_LENGTH_MAX_];
+  char precision_file[_ARGUMENT_LENGTH_MAX_];
+  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the 
+                                           // characters "output/[...]%02d_parameters.ini" (as done below)
 
   pfc_input = &fc_input;
 
-  /** - Initialize the two file_content structures (for input
-      parameters and precision parameters) to some null content. If no
-      arguments are passed, they will remain null and inform
-      init_params() that all parameters take default values. */
-
-  fc.size = 0;
+  /** Initialize the two file_content structures (for input parameters and
+      precision parameters) to some null content. If no arguments are passed,
+      they will remain null and inform input_init that all parameters take
+      default values. */
+  fc->size = 0;
   fc_input.size = 0;
   fc_precision.size = 0;
   input_file[0]='\0';
   precision_file[0]='\0';
 
-  /** - If some arguments are passed, identify eventually some 'xxx.ini'
-      and 'xxx.pre' files, and store their name. */
-
+  /** If some arguments are passed, identify eventually some 'xxx.ini' and 
+      'xxx.pre' files, and store their name. */
   if (argc > 1) {
     for (i=1; i<argc; i++) {
       strncpy(extension,(argv[i]+strlen(argv[i])-4),4);
@@ -78,23 +136,16 @@ int input_init_from_arguments(int argc,
     }
   }
 
-  /** - if there is an 'xxx.ini' file, read it and store its content. */
-
+  /** If there is an 'xxx.ini' file, read it and store its content. */
   if (input_file[0] != '\0'){
-
     class_call(parser_read_file(input_file,&fc_input,errmsg),
                errmsg,
                errmsg);
-
-    /** - check whether a root name has been set */
-
+    /** Check whether a root name has been set */
     class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
                errmsg, errmsg);
-
-    /** - if root has not been set, use root=output/inputfilennameN_ */
-
+    /** If root has not been set, use root=output/inputfilennameN_ */
     if (flag1 == _FALSE_){
-      //printf("strlen-4 = %zu\n",strlen(input_file)-4);
       strncpy(inifilename, input_file, strlen(input_file)-4);
       inifilename[strlen(input_file)-4] = '\0';
       for (filenum = 0; filenum < 100; filenum++){
@@ -120,43 +171,45 @@ int input_init_from_arguments(int argc,
       sprintf(fc_root.name[0],"root");
       sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
       fc_root.read[0] = _FALSE_;
-      class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
+      class_call(parser_cat(&fc_input,
+                            &fc_root,
+                            &fc_inputroot,
+                            errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_free(&fc_input),errmsg,errmsg);
-      class_call(parser_free(&fc_root),errmsg,errmsg);
+      class_call(parser_free(&fc_input),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(&fc_root),
+                 errmsg,
+                 errmsg);
       pfc_input = &fc_inputroot;
     }
   }
 
-  /** - if there is an 'xxx.pre' file, read it and store its content. */
-
-  if (precision_file[0] != '\0')
-
+  /** If there is an 'xxx.pre' file, read it and store its content. */
+  if (precision_file[0] != '\0'){
     class_call(parser_read_file(precision_file,&fc_precision,errmsg),
                errmsg,
                errmsg);
+  }
 
-  /** - if one or two files were read, merge their contents in a
-      single 'file_content' structure. */
-
-  if ((input_file[0]!='\0') || (precision_file[0]!='\0'))
-
-    class_call(parser_cat(pfc_input,&fc_precision,&fc,errmsg),
+  /** If one or two files were read, merge their contents in a single 'file_content'
+      structure. */
+  if ((input_file[0]!='\0') || (precision_file[0]!='\0')){
+    class_call(parser_cat(pfc_input,
+                          &fc_precision,
+                          fc,
+                          errmsg),
                errmsg,
                errmsg);
+  }
 
-  class_call(parser_free(pfc_input),errmsg,errmsg);
-  class_call(parser_free(&fc_precision),errmsg,errmsg);
-
-  /** Finally, initialize all parameters given the input 'file_content' structure.
-      If its size is null, all parameters take their default values. */
-  class_call(input_init(&fc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
-                        errmsg),
+  /** Free local strutures */
+  class_call(parser_free(pfc_input),
              errmsg,
              errmsg);
-
-  class_call(parser_free(&fc),
+  class_call(parser_free(&fc_precision),
              errmsg,
              errmsg);
 
@@ -164,17 +217,20 @@ int input_init_from_arguments(int argc,
 
 }
 
-
+/**
+ * Defines wether or not a file exists.
+ *
+ * @param fname  Input: File name
+ */
 int file_exists(const char *fname){
-
   FILE *file = fopen(fname, "r");
   if (file != NULL){
     fclose(file);
-
     return _TRUE_;
   }
 
   return _FALSE_;
+
 }
 
 
@@ -183,19 +239,32 @@ int file_exists(const char *fname){
  * from what can be interpreted from the values passed in the input
  * 'file_content' structure. If its size is null, all parameters keep
  * their default values.
+ *
+ * @param pfc     Input: pointer to local structure
+ * @param ppr     Input: pointer to precision structure
+ * @param pba     Input: pointer to background structure
+ * @param pth     Input: pointer to thermodynamics structure
+ * @param ppt     Input: pointer to perturbation structure
+ * @param ptr     Input: pointer to transfer structure
+ * @param ppm     Input: pointer to primordial structure
+ * @param psp     Input: pointer to spectra structure
+ * @param pnl     Input: pointer to nonlinear structure
+ * @param ple     Input: pointer to lensing structure
+ * @param pop     Input: pointer to output structure
+ * @param errmsg  Input: Error message
  */
-int input_init(struct file_content * pfc,
-               struct precision * ppr,
-               struct background *pba,
-               struct thermo *pth,
-               struct perturbs *ppt,
-               struct transfers *ptr,
-               struct primordial *ppm,
-               struct spectra *psp,
-               struct nonlinear * pnl,
-               struct lensing *ple,
-               struct output *pop,
-               ErrorMsg errmsg) {
+int input_read_from_file(struct file_content * pfc,
+                         struct precision * ppr,
+                         struct background *pba,
+                         struct thermo *pth,
+                         struct perturbs *ppt,
+                         struct transfers *ptr,
+                         struct primordial *ppm,
+                         struct spectra *psp,
+                         struct nonlinear * pnl,
+                         struct lensing *ple,
+                         struct output *pop,
+                         ErrorMsg errmsg) {
 
   /** Summary: */
 
@@ -216,13 +285,15 @@ int input_init(struct file_content * pfc,
   class_read_int("input_verbose",input_verbose);
   if (input_verbose >0) printf("Reading input parameters\n");
 
-  /** Find out if shooting necessary and, eventually, shoot + read */
+  /** Find out if shooting necessary and, eventually, shoot and initialize
+      read parameters */
   class_call(input_shooting(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
                             input_verbose,
                             &has_shooting,
                             errmsg),
              errmsg,
              errmsg);
+  /** If no shooting is necessary, initialize read parameters without it */
   if(has_shooting == _FALSE_){
     class_call(input_read_parameters(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,
                                      errmsg),
@@ -253,6 +324,21 @@ int input_init(struct file_content * pfc,
  * which the old parameter is calculated.
  *
  * See input_try_unknown_parameters for the actual shooting.
+ *
+ * @param pfc               Input: pointer to local structure
+ * @param ppr               Input: pointer to precision structure
+ * @param pba               Input: pointer to background structure
+ * @param pth               Input: pointer to thermodynamics structure
+ * @param ppt               Input: pointer to perturbation structure
+ * @param ptr               Input: pointer to transfer structure
+ * @param ppm               Input: pointer to primordial structure
+ * @param psp               Input: pointer to spectra structure
+ * @param pnl               Input: pointer to nonlinear structure
+ * @param ple               Input: pointer to lensing structure
+ * @param pop               Input: pointer to output structure
+ * @param input_verbose     Input: Verbosity of input
+ * @param has_shooting      Output: Presence or absence of shooting
+ * @param errmsg            Input: Error message
  */
 int input_shooting(struct file_content * pfc,
                    struct precision * ppr,
@@ -303,8 +389,8 @@ int input_shooting(struct file_content * pfc,
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
-      /* input_auxillary_target_conditions takes care of the case where for
-         instance Omega_dcdmdr is set to 0.0. */
+      /* input_auxillary_target_conditions takes care of the case where, for
+         instance, Omega_dcdmdr is set to 0.0. */
       class_call(input_auxillary_target_conditions(pfc,
                                                    index_target,
                                                    param1,
@@ -468,6 +554,15 @@ int input_shooting(struct file_content * pfc,
 }
 
 
+/**
+ * Checking ot auxillary conditions.
+ *
+ * @param pfc             Input: pointer to local structure
+ * @param target_names    Input: list of possible target names
+ * @param target_value    Input: list of possible target values
+ * @param aux_flag        Output: Presence or absence of flags
+ * @param errmsg          Input: Error message
+ */
 int input_auxillary_target_conditions(struct file_content * pfc,
                                       enum target_names target_name,
                                       double target_value,
@@ -475,7 +570,7 @@ int input_auxillary_target_conditions(struct file_content * pfc,
                                       ErrorMsg errmsg){
 
   *aux_flag = _TRUE_;
-  switch (target_name){
+  switch (target_name){  // TODO: spacing?
   case Omega_dcdmdr:
   case omega_dcdmdr:
   case Omega_scf:

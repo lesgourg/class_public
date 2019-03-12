@@ -163,34 +163,39 @@ extern "C" {
 #endif
 
   /* Main functions */
-  int input_init_from_arguments(int argc,
-		                char **argv,
-		                struct precision * ppr,
-		                struct background *pba,
-		                struct thermo *pth,
-		                struct perturbs *ppt,
-		                struct transfers *ptr,
-		                struct primordial *ppm,
-		                struct spectra *psp,
-		                struct nonlinear *pnl,
-		                struct lensing *ple,
-		                struct output *pop,
-		                ErrorMsg errmsg);
+  int input_init(int argc,
+                 char **argv,
+                 struct precision * ppr,
+                 struct background *pba,
+                 struct thermo *pth,
+                 struct perturbs *ppt,
+                 struct transfers *ptr,
+                 struct primordial *ppm,
+                 struct spectra *psp,
+                 struct nonlinear * pnl,
+                 struct lensing *ple,
+                 struct output *pop,
+                 ErrorMsg errmsg);
+
+  int input_find_file(int argc,
+                      char **argv,
+                      struct file_content * fc,
+                      ErrorMsg errmsg);
 
   int file_exists(const char *fname);
 
-  int input_init(struct file_content * pfc,
-		 struct precision * ppr,
-		 struct background *pba,
-		 struct thermo *pth,
-		 struct perturbs *ppt,
-		 struct transfers *ptr,
-		 struct primordial *ppm,
-		 struct spectra *psp,
-		 struct nonlinear *pnl,
-		 struct lensing *ple,
-		 struct output *pop,
-		 ErrorMsg errmsg);
+  int input_read_from_file(struct file_content * pfc,
+		           struct precision * ppr,
+		           struct background *pba,
+		           struct thermo *pth,
+		           struct perturbs *ppt,
+		           struct transfers *ptr,
+		           struct primordial *ppm,
+		           struct spectra *psp,
+		           struct nonlinear *pnl,
+		           struct lensing *ple,
+		           struct output *pop,
+		           ErrorMsg errmsg);
 
   /* Shooting */
   int input_shooting(struct file_content * pfc,
