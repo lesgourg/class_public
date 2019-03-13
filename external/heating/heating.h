@@ -5,8 +5,6 @@
 
 struct heating{
 
-  char* command_DarkAges;
-
   /* Flags */
   int deposit_energy_as;
   int has_exotic_injection;
@@ -14,9 +12,7 @@ struct heating{
   
   int has_DM_ann;
   int has_DM_dec;
-  int has_BH_evap;
-  int has_BH_acc;
-  
+ 
   int to_store;
 
   /* Redshift tables */
@@ -50,22 +46,13 @@ struct heating{
   /* Parameters from background structure */
   int to_store;
 
-  int index_ht_CRR;
-  int index_ht_BAO;
-  int ht_size;
-
   int has_DM_ann;
   int has_DM_dec;
-  int has_BH_evap;
-  int has_BH_acc;
-
+  
   double* injection_table;
-  int index_inj_BH_evap;
-  int index_inj_BH_acc;
   int index_inj_DM_ann;
   int index_inj_DM_dec;
   int index_inj_BAO;
-  int index_inj_CRR;
   int index_inj_tot;
   //int index_dep_lowE;
   int inj_size;       //All contributions + total
@@ -81,12 +68,13 @@ struct heating{
   int index_dep_lowE;
   int dep_size;
 
-  /* Background stuff etc. */
+  /* Parameters from background structure */
   double H0;
   double rho_crit0;
   double nH0;
   double Omega0_b;
   double Omega0_cdm;
+  double Omega0_dcdmdr
   double rho_cdm;
   double rho_dcdm;
   double t;
@@ -114,18 +102,11 @@ struct heating{
   double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double decay_fraction;
   
-  int BH_accretion_recipe;
-  double BH_accreting_mass;
-
-  
   /* Heat injection table */
   double* injection_table;
-  int index_inj_BH_evap;
-  int index_inj_BH_acc;
   int index_inj_DM_ann;
   int index_inj_DM_dec;
   int index_inj_BAO;
-  int index_inj_CRR;
   int index_inj_tot;
   //int index_dep_lowE;
   int inj_size;                  /** All contributions + total */
@@ -195,9 +176,11 @@ extern "C" {
                                        double z);
 
   /* Branching ratios into the different channels */
-  int heating_read_chi_z(struct precision* ppr, struct heating* phe);
+  int heating_read_chi_z_from_file(struct precision* ppr,
+                                   struct heating* phe);
 
-  int heating_read_chi_x(struct precision* ppr, struct heating* phe);
+  int heating_read_chi_x_from_file(struct precision* ppr,
+                                   struct heating* phe);
   
   /* Efficiency of energy deposition */
   int heating_read_feff_from_file(struct precision* ppr,
@@ -211,10 +194,6 @@ extern "C" {
   int heating_DM_decay(struct heating * phe,
                        double z,
                        double * energy_rate);
-
-  int heating_BH_accretion(struct heating* phe,
-                           double z,
-                           double * energy_rate);
 
   int heating_add_second_order_terms(struct background* pba,
                                      struct thermo* pth,
