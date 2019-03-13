@@ -1934,9 +1934,9 @@ int thermodynamics_solve_derivs(double mz,
 
   /** - Check for the approximation scheme */
   /* As long as there is no full recombination, x_H, x_He and x are evolved with analytic functions. */
-  Tmat = ptv->y[ptv->index_Tmat];
+  Tmat = y[ptv->index_Tmat];
   ptdw->Tmat = Tmat;
-  ptdw->dTmat = -ptv->dy[ptv->index_Tmat];
+  ptdw->dTmat = -dy[ptv->index_Tmat];
 
 
   x = ptdw->x;
