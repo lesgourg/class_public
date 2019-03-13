@@ -13,6 +13,10 @@
 #define chi_from_x_file    1
 #define chi_from_z_file    2
 
+
+#define disk_accretion 0
+#define spherical_accretion 1
+
 //TODO :: disable branching ratios before z > 2000, and replace with only heating
 
 /**
@@ -42,10 +46,14 @@ int heating_init(struct precision * ppr,
 
   phe->Gamma_dcdm = pba->Gamma_dcdm;
   phe->has_dcdm = _FALSE_; //pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0;
+<<<<<<< HEAD
   phe->decay_fraction *= _c_/_Mpc_over_m_; //TODO :: units
   phe->chi_type = chi_from_GSVI;
+=======
+  phe->chi_type = chi_from_SSCK;
+>>>>>>> 905cf6d95e5cf475a7f10167f924132e00db32d7
   phe->f_eff = 1.; //TODO :: read from user instead
-  phe->has_BH_acc = _FALSE_;
+  phe->has_BH_acc = _TRUE_;
   phe->has_BH_evap = _FALSE_;
 
   /** Initialize indeces */
@@ -57,7 +65,17 @@ int heating_init(struct precision * ppr,
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
   //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->PBH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
 
+<<<<<<< HEAD
   /** Check energy injection parameters for DM annihilation */
+=======
+  phe->BH_accretion_recipe = 0;
+  phe->BH_accreting_mass = 0;
+
+  phe->command_DarkAges = "";
+
+  phe->deposit_energy_as = 0; //TODO :: set in input
+  /** - check energy injection parameters for annihilation */
+>>>>>>> 905cf6d95e5cf475a7f10167f924132e00db32d7
   class_test((phe->annihilation_efficiency<0),
              phe->error_message,
              "annihilation parameter cannot be negative");
@@ -110,6 +128,12 @@ int heating_init(struct precision * ppr,
              phe->error_message,
              "CDM decay effects require the presence of CDM!");
 
+<<<<<<< HEAD
+=======
+  //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->BH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
+  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
+  phe->has_DM_ann = phe->annihilation_efficiency!=0;
+>>>>>>> 905cf6d95e5cf475a7f10167f924132e00db32d7
   phe->has_DM_dec = phe->decay != 0;
 
   /** Define redshift tables */
@@ -282,6 +306,8 @@ int heating_at_z(struct background* pba,
   }
 
   phe->t = pvecback[pba->index_bg_time];
+  phe->T_b = Tmat;
+  phe->x_e = x;
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -671,6 +697,176 @@ int heating_DM_decay(struct heating * phe,
   return _SUCCESS_;
 }
 
+/**
+ * In case of non-minimal cosmology, this function determines the energy rate injected in the IGM at a given redshift z (= on-the-spot
+ * annihilation) by accretion of matter into primordial black holes.
+ *
+ * @param phe            Input: pointer to heating structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @return the error status
+ */
+int heating_BH_accretion(struct heating* phe,
+                         double z,
+                         double * energy_rate){
+
+  double rho_cdm_today;
+  //Parameters related to PBH
+  double c_s, v_eff,v_eff_2,v_l, r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
+  double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2,M_crit;
+  double rho, m_p = 938, m_e = 0.511, T_infinity = 0, rho_infinity = 0, x_e_infinity = 0, P_infinity = 0, rho_cmb = 0, t_B = 0, v_B = 0;
+  double lambda_1,lambda_2,lambda_ad,lambda_iso,gamma_cooling,beta_compton_drag, T_s, T_ion, Y_s, J,tau_cooling;
+  double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1;
+
+  double L_eddington;
+  c_s = 5.7e3*pow(phe->T_b/2730.0,0.5);          // [m]
+  M_sun = _Sun_mass_;                            // [kg]
+  n_gas = 200*1e6*pow((1.0+z)/1000.0,3);         // [1/m^3]
+  m_H = _m_H_;                                   // [kg]
+  x_e = phe->x_e;
+  T_infinity = phe->T_b*_k_B_/_eV_*1e-6;         // [MeV]
+
+  printf("%.10e vs %.10e \n",m_p*1e6*_eV_,_m_p_*_c_*_c_);
+
+  L_eddington = 4*_PI_*_G_*phe->BH_accreting_mass*M_sun*_m_p_*_c_*_c_/(_sigma_*_c_);  //[Watts]
+  #ifdef NONSENSE
+  /** Disk accretion from Poulin et al. 1707.04206 */
+  if(phe->BH_accretion_recipe == disk_accretion){
+    L_ed = L_eddington;
+    M_ed_dot= 10*L_ed/(_c_*_c_);  //[kg/s]
+    M_crit = 0.01*M_ed_dot;
+    v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
+
+    if(pth->PBH_relative_velocities < 0.){
+      v_l = 30*MIN(1,z/1000)*1e3; // [m/s]
+      if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+      else v_eff = v_B;
+    }
+    else{
+      v_l = pth->PBH_relative_velocities*1e3; // [m/s]
+      v_eff = pow(v_l*v_l+v_B*v_B,0.5);
+    }
+
+    lambda = pth->PBH_accretion_eigenvalue;
+    rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; // [kg/m^3]
+    M_b_dot = 4*_PI_*lambda*pow(_G_*pth->PBH_accreting_mass*M_sun,2)*rho*pow(v_eff,-3.);
+
+    if(pth->PBH_ADAF_delta == 1e-3){
+      Value_min = 7.6e-5;
+      Value_med = 4.5e-3;
+      Value_max = 7.1e-3;
+      if(M_b_dot/M_ed_dot <= Value_min){
+        epsilon_0 = 0.065;
+        a = 0.71;
+      }
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+        epsilon_0 = 0.020;
+        a = 0.47;
+      }
+      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+        epsilon_0 = 0.26;
+        a = 3.67;
+      }
+      else{
+        epsilon_0 = 0.1;
+        a = 0.;
+      }
+      epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+    }
+    else if(pth->PBH_ADAF_delta == 0.1){
+      Value_min = 9.4e-5;
+      Value_med = 5.0e-3;
+      Value_max = 6.6e-3;
+      if(M_b_dot/M_ed_dot <= Value_min){
+        epsilon_0 = 0.12;
+        a = 0.59;
+      }
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+        epsilon_0 = 0.026;
+        a = 0.27;
+      }
+      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+        epsilon_0 = 0.50;
+        a = 4.53;
+      }
+      else{
+        epsilon_0 = 0.1;
+        a = 0.;
+      }
+      epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+    }
+    else if (pth->PBH_ADAF_delta == 0.5){
+      Value_min = 2.9e-5;
+      Value_med = 3.3e-3;
+      Value_max = 5.3e-3;
+      if(M_b_dot/M_ed_dot <= Value_min){
+        epsilon_0 = 1.58;
+        a = 0.65;
+      }
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
+        epsilon_0 = 0.055;
+        a = 0.076;
+      }
+      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+        epsilon_0 = 0.17;
+        a = 1.12;
+      }
+      else{
+        epsilon_0 = 0.1;
+        a = 0.;
+      }
+      epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
+    }
+
+    L_acc = epsilon*M_b_dot*_c_*_c_;
+
+  }
+
+  /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
+
+  else if(phe->BH_accretion_recipe == spherical_accretion){
+    rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*pow(_c_,4.)* 6.241509e12; // [MeV/m^3]
+    // x_e_infinity = 1; // change to 1 for the strong-feedback case
+    x_e_infinity = x_e; // change to x_e for the no-feedback case
+    v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_; //sound speed.
+    if(pth->PBH_relative_velocities < 0.){
+            v_l = 30*MIN(1,z/1000)*1e3; // [m/s]
+            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
+            else v_eff = v_B;
+    }
+    else{
+            v_l = pth->PBH_relative_velocities*1e3; // [m/s]
+            v_eff = pow(v_l*v_l+v_B*v_B,0.5);
+    }
+    r_B = _G_*pth->PBH_accreting_mass*M_sun*pow(v_eff,-2); // [m]
+    t_B = _G_*pth->PBH_accreting_mass*M_sun/pow(v_eff,3); // [s]
+    beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_;
+    gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
+    lambda_iso = 0.25*exp(1.5);
+    lambda_ad = 0.25*pow(3./5,1.5);
+    lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
+    lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*1/(pow(pow(1+beta_compton_drag,0.5)+1,2));
+    lambda = lambda_1*lambda_2/lambda_iso;
+    rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; // [kg/m^3]
+    M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; // [kg/s]
+    T_ion = 1.5e4*_k_B_/_eV_;
+    tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
+    Y_s = pow((1+x_e_infinity)/2,2./3*13.6/T_ion)*tau_cooling/4*pow(1-5./2*tau_cooling,1./3)*m_p/m_e;
+    T_s = m_e * Y_s*pow(1+Y_s/0.27,-1./3); // [MeV]
+    if(T_s/m_e > 1){
+      J = 27/(2*_PI_)*(log(2*T_s/(m_e)*exp(-0.577)+0.08)+4./3);
+    }
+    else{
+      J = 4/_PI_*sqrt(2/_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
+    }
+    L_ed = L_eddington;
+    L_acc = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
+  }
+
+  *energy_rate =  (phe->rho_cdm/(pth->PBH_accreting_mass*M_sun*_c_*_c_))*L_acc*pth->PBH_fraction;
+
+  #endif
+}
 
 /**
  * Calculate heating for second order contributions, e.g. dissipation
@@ -1190,198 +1386,6 @@ int heating_evaporating_pbh_energy_injection(struct precision * ppr,
 }
 
 
-/**
- * In case of non-minimal cosmology, this function determines the energy rate injected in the IGM at a given redshift z (= on-the-spot
- * annihilation) by accetion of matter into primordial black holes.
- *
- * @param ppr            Input: pointer to precision structure
- * @param pba            Input: pointer to background structure
- * @param pth            Input: pointer to thermodynamics structure
- * @param z              Input: redshift
- * @param energy_rate    Output: energy density injection rate
- * @param error_message  Output: error message
- * @return the error status
- */
-int heating_accreting_pbh_energy_injection(struct precision * ppr,
-                                                  struct background * pba,
-                                                  struct thermo * pth,
-                                                  double z,
-                                                  double * energy_rate,
-                                                  ErrorMsg error_message){
-
-  double rho_cdm_today;
-  double tau;
-  int last_index_back;
-  double * pvecback;
-  //Parameters related to PBH
-  double c_s, v_eff,v_eff_2,v_l, r_B,x_e,beta,beta_eff,beta_hat,x_cr,lambda,n_gas,M_b_dot,M_sun,M_ed_dot,epsilon,L_acc,Integrale,Normalization;
-  double m_H, m_dot, m_dot_2, L_acc_2,L_ed,l,l2,M_crit;
-  double rho, m_p = 938, m_e = 0.511, T_infinity = 0, rho_infinity = 0, x_e_infinity = 0, P_infinity = 0, rho_cmb = 0, t_B = 0, v_B = 0;
-  double lambda_1,lambda_2,lambda_ad,lambda_iso,gamma_cooling,beta_compton_drag, T_s, T_ion, Y_s, J,tau_cooling;
-  double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1;
-  rho_cdm_today = pow(pba->H0*_c_/_Mpc_over_m_,2)*3/8./_PI_/_G_*(pba->Omega0_cdm)*_c_*_c_;         // [J/m^3]
-
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-  class_call(background_tau_of_z(pba,
-                                 z,
-                                 &tau),
-             pba->error_message,
-             pth->error_message);
-  class_call(background_at_tau(pba,
-                               tau,
-                               pba->long_info,
-                               pba->inter_normal,
-                               &last_index_back,
-                               pvecback),
-             pba->error_message,
-             pth->error_message);
-
-  c_s = 5.7e3*pow(pth->Tm_tmp/2730,0.5);          // [m]
-  M_sun = 2e30;                                   // [kg]
-  n_gas = 200*1e6*pow((1+z)/1000,3);              // [1/m^3]
-  m_H= 1.67e-27;                                  // [kg]
-  x_e = pth->xe_tmp;
-  T_infinity = pth->Tm_tmp*_eV_over_Kelvin_*1e-6; // [MeV]
-
-  /** Disk accretion from Poulin et al. 1707.04206 */
-
-  if(pth->PBH_accretion_recipe == disk_accretion){
-    L_ed = 4*_PI_*_G_*pth->PBH_accreting_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-    M_ed_dot= 10*L_ed/(_c_*_c_);
-    M_crit = 0.01*M_ed_dot;
-    v_B = sqrt((1+x_e)*T_infinity/m_p)*_c_;
-
-    if(pth->PBH_relative_velocities < 0.){
-      v_l = 30*MIN(1,z/1000)*1e3; // [m/s]
-      if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-      else v_eff = v_B;
-    }
-    else{
-      v_l = pth->PBH_relative_velocities*1e3; // [m/s]
-      v_eff = pow(v_l*v_l+v_B*v_B,0.5);
-    }
-
-    lambda = pth->PBH_accretion_eigenvalue;
-    rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; // [kg/m^3]
-    M_b_dot = 4*_PI_*lambda*pow(_G_*pth->PBH_accreting_mass*M_sun,2)*rho*pow(v_eff,-3.);
-
-    if(pth->PBH_ADAF_delta == 1e-3){
-      Value_min = 7.6e-5;
-      Value_med = 4.5e-3;
-      Value_max = 7.1e-3;
-      if(M_b_dot/M_ed_dot <= Value_min){
-        epsilon_0 = 0.065;
-        a = 0.71;
-      }
-      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
-        epsilon_0 = 0.020;
-        a = 0.47;
-      }
-      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
-        epsilon_0 = 0.26;
-        a = 3.67;
-      }
-      else{
-        epsilon_0 = 0.1;
-        a = 0.;
-      }
-      epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
-    }
-    else if(pth->PBH_ADAF_delta == 0.1){
-      Value_min = 9.4e-5;
-      Value_med = 5e-3;
-      Value_max = 6.6e-3;
-      if(M_b_dot/M_ed_dot <= Value_min){
-        epsilon_0 = 0.12;
-        a = 0.59;
-      }
-      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
-        epsilon_0 = 0.026;
-        a = 0.27;
-      }
-      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
-        epsilon_0 = 0.50;
-        a = 4.53;
-      }
-      else{
-        epsilon_0 = 0.1;
-        a = 0.;
-      }
-      epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
-    }
-    else if (pth->PBH_ADAF_delta == 0.5){
-      Value_min = 2.9e-5;
-      Value_med = 3.3e-3;
-      Value_max = 5.3e-3;
-      if(M_b_dot/M_ed_dot <= Value_min){
-        epsilon_0 = 1.58;
-        a = 0.65;
-      }
-      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
-        epsilon_0 = 0.055;
-        a = 0.076;
-      }
-      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
-        epsilon_0 = 0.17;
-        a = 1.12;
-      }
-      else{
-        epsilon_0 = 0.1;
-        a = 0.;
-      }
-      epsilon = epsilon_0 * pow(M_b_dot / M_crit,a);
-    }
-
-    L_acc = epsilon*M_b_dot*_c_*_c_;
-
-  }
-
-  /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
-
-  else if(pth->PBH_accretion_recipe == spherical_accretion){
-    rho_cmb = pvecback[pba->index_bg_rho_g]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*pow(_c_,4.)* 6.241509e12; // [MeV/m^3]
-    // x_e_infinity = 1; // change to 1 for the strong-feedback case
-    x_e_infinity = x_e; // change to x_e for the no-feedback case
-    v_B = sqrt((1+x_e_infinity)*T_infinity/m_p)*_c_; //sound speed.
-    if(pth->PBH_relative_velocities < 0.){
-            v_l = 30*MIN(1,z/1000)*1e3; // [m/s]
-            if(v_B < v_l) v_eff = sqrt(v_B*v_l);
-            else v_eff = v_B;
-    }
-    else{
-            v_l = pth->PBH_relative_velocities*1e3; // [m/s]
-            v_eff = pow(v_l*v_l+v_B*v_B,0.5);
-    }
-    r_B = _G_*pth->PBH_accreting_mass*M_sun*pow(v_eff,-2); // [m]
-    t_B = _G_*pth->PBH_accreting_mass*M_sun/pow(v_eff,3); // [s]
-    beta_compton_drag = 4./3*x_e_infinity*_sigma_*rho_cmb*t_B/(m_p)*_c_;
-    gamma_cooling = 2*m_p/(m_e*(1+x_e_infinity))*beta_compton_drag;
-    lambda_iso = 0.25*exp(1.5);
-    lambda_ad = 0.25*pow(3./5,1.5);
-    lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88+gamma_cooling*gamma_cooling),0.22);
-    lambda_2 = exp(4.5/(3+pow(beta_compton_drag,0.75)))*1/(pow(pow(1+beta_compton_drag,0.5)+1,2));
-    lambda = lambda_1*lambda_2/lambda_iso;
-    rho = pvecback[pba->index_bg_rho_b]/pow(_Mpc_over_m_,2)*3/8./_PI_/_G_*_c_*_c_; // [kg/m^3]
-    M_b_dot = 4*_PI_*lambda*rho*r_B*r_B*v_eff; // [kg/s]
-    T_ion = 1.5e4*_eV_over_Kelvin_;
-    tau_cooling = 1.5/(5+pow(gamma_cooling,2./3));
-    Y_s = pow((1+x_e_infinity)/2,2./3*13.6/T_ion)*tau_cooling/4*pow(1-5./2*tau_cooling,1./3)*m_p/m_e;
-    T_s = m_e * Y_s*pow(1+Y_s/0.27,-1./3); // [MeV]
-    if(T_s/m_e > 1){
-      J = 27/(2*_PI_)*(log(2*T_s/(m_e)*exp(-0.577)+0.08)+4./3);
-    }
-    else{
-      J = 4/_PI_*sqrt(2/_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
-    }
-    L_ed = 4*_PI_*_G_*pth->PBH_accreting_mass*M_sun*m_p*1e6/_eV_over_joules_/(_sigma_*_c_);
-    L_acc = 1./137*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2)/L_ed;
-  }
-
-  *energy_rate =  (rho_cdm_today/(pth->PBH_accreting_mass*M_sun*_c_*_c_))*pow(1+z,3)*L_acc*pth->PBH_fraction;
-
-  free(pvecback);
-
-}
 
 
 
