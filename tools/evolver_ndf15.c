@@ -243,7 +243,7 @@ int evolver_ndf15(
   stepstat[2] += nfenj;
   Jcurrent = _TRUE_; /* True */
 
-  hmin = 16.0*eps*fabs(t);
+  hmin = 16.0*eps*MAX(fabs(t),fabs(tfinal));
   /*Calculate initial step */
   rh = 0.0;
 
@@ -304,7 +304,6 @@ int evolver_ndf15(
     /**class_test(stepstat[2] > 1e5, error_message,
 	       "Too many steps in evolver! Current stepsize:%g, in interval: [%g:%g]\n",
 	       absh,t0,tfinal);*/
-    hmin = minimum_variation;
     maxtmp = MAX(hmin,absh);
     absh = MIN(hmax, maxtmp);
     if (fabs(absh-hmin)<100*eps){

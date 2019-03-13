@@ -1998,8 +1998,6 @@ int thermodynamics_solve_derivs(double mz,
       // If require_H is fale, require_He already fills the x value correctly
     }
 
-    // REIO WAS HERE BEFORE [NS]
-
     /** - Hydrogen equations */
     if(ptdw->require_H){
       class_call(thermodynamics_recfast_dx_H_dz(precfast,x_H,x,n,z,Hz,Tmat,Trad,&(dy[ptv->index_x_H]),energy_rate),
