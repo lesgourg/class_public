@@ -13,7 +13,6 @@
 #define chi_from_x_file    1
 #define chi_from_z_file    2
 
-
 #define disk_accretion 0
 #define spherical_accretion 1
 
@@ -46,15 +45,19 @@ int heating_init(struct precision * ppr,
 
   phe->Gamma_dcdm = pba->Gamma_dcdm;
   phe->has_dcdm = _FALSE_; //pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0;
-<<<<<<< HEAD
   phe->decay_fraction *= _c_/_Mpc_over_m_; //TODO :: units
-  phe->chi_type = chi_from_GSVI;
-=======
   phe->chi_type = chi_from_SSCK;
->>>>>>> 905cf6d95e5cf475a7f10167f924132e00db32d7
+  
   phe->f_eff = 1.; //TODO :: read from user instead
   phe->has_BH_acc = _TRUE_;
   phe->has_BH_evap = _FALSE_;
+  
+  phe->BH_accretion_recipe = 0;
+  phe->BH_accreting_mass = 0;
+  
+  phe->command_DarkAges = "";
+
+  phe->deposit_energy_as = 0; //TODO :: set in input
 
   /** Initialize indeces */
   phe->last_index_chix = 0;
@@ -65,17 +68,7 @@ int heating_init(struct precision * ppr,
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
   //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->PBH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
 
-<<<<<<< HEAD
   /** Check energy injection parameters for DM annihilation */
-=======
-  phe->BH_accretion_recipe = 0;
-  phe->BH_accreting_mass = 0;
-
-  phe->command_DarkAges = "";
-
-  phe->deposit_energy_as = 0; //TODO :: set in input
-  /** - check energy injection parameters for annihilation */
->>>>>>> 905cf6d95e5cf475a7f10167f924132e00db32d7
   class_test((phe->annihilation_efficiency<0),
              phe->error_message,
              "annihilation parameter cannot be negative");
@@ -128,12 +121,6 @@ int heating_init(struct precision * ppr,
              phe->error_message,
              "CDM decay effects require the presence of CDM!");
 
-<<<<<<< HEAD
-=======
-  //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->BH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
-  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
-  phe->has_DM_ann = phe->annihilation_efficiency!=0;
->>>>>>> 905cf6d95e5cf475a7f10167f924132e00db32d7
   phe->has_DM_dec = phe->decay != 0;
 
   /** Define redshift tables */
