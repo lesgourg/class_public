@@ -8,13 +8,10 @@
  */
 #define deposit_on_the_spot          0
 #define deposit_feff_from_file       1
-#define deposit_from_DarkAges        2
-#define deposit_analytical_integral  3
 
 #define chi_from_SSCK      0
 #define chi_from_x_file    1
 #define chi_from_z_file    2
-#define chi_from_DarkAges  3
 
 //TODO :: disable branching ratios before z > 2000, and replace with only heating
 
@@ -33,23 +30,34 @@ int heating_init(struct precision * ppr,
   /** Define local variable */
   struct heating* phe = &(pth->he);
 
-  phe->H0 = pba->H0*_c_/_Mpc_over_m_;
-  phe->Omega0_cdm = pba->Omega0_cdm;
-  phe->rho_crit0 = phe->H0*phe->H0*3/8./_PI_/_G_*_c_*_c_;
+  phe->deposit_energy_as = 0; //TODO :: set in input
+
+  /** Import quantities from background structure */
+  phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
+  phe->Omega0_b = pba->Omega0_b;                                                                    // [-]
+  phe->Omega0_cdm = pba->Omega0_cdm;                                                                // [-]
+  phe->rho_crit0 = phe->H0*phe->H0*3/8./_PI_/_G_*_c_*_c_;                                           // [J/m^3]
   phe->last_index_bg = 0;
+  phe->nH0 = 3.*pba->H0*pba->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-pth->YHe);                    // [1/m^3]
+
   phe->Gamma_dcdm = pba->Gamma_dcdm;
   phe->has_dcdm = _FALSE_; //pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0;
+  phe->decay_fraction *= _c_/_Mpc_over_m_; //TODO :: units
   phe->chi_type = chi_from_GSVI;
   phe->f_eff = 1.; //TODO :: read from user instead
   phe->has_BH_acc = _FALSE_;
   phe->has_BH_evap = _FALSE_;
 
-  phe->last_index_z_feff = 0;
+  /** Initialize indeces */
   phe->last_index_chix = 0;
-  phe->last_index_chiz = 0;
+  phe->last_index_z_chi = 0;
+  phe->last_index_z_feff = 0;
+  
+  /** Check energy injection */
+  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
+  //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->PBH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
 
-  phe->deposit_energy_as = 0; //TODO :: set in input
-  /** - check energy injection parameters for annihilation */
+  /** Check energy injection parameters for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
              phe->error_message,
              "annihilation parameter cannot be negative");
@@ -90,7 +98,10 @@ int heating_init(struct precision * ppr,
     if ((phe->annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
       printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
   } //TODO :: check if still occurs !!!
+  
+  phe->has_DM_ann = phe->annihilation_efficiency!=0;
 
+  /** Check energy injection parameters for DM deacy */
   class_test((phe->decay<0),
              phe->error_message,
              "decay parameter cannot be negative");
@@ -99,17 +110,17 @@ int heating_init(struct precision * ppr,
              phe->error_message,
              "CDM decay effects require the presence of CDM!");
 
-  //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->PBH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
-  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
-  phe->has_DM_ann = phe->annihilation_efficiency!=0;
   phe->has_DM_dec = phe->decay != 0;
 
+  /** Define redshift tables */
   phe->z_size = pth->tt_size;
   class_alloc(phe->z_table,
               phe->z_size*sizeof(double),
               phe->error_message);
 
-  memcpy(phe->z_table,pth->z_table,phe->z_size*sizeof(double));
+  memcpy(phe->z_table,
+         pth->z_table,
+         phe->z_size*sizeof(double));
   phe->tol_z_table = 1e-10;
   phe->filled_until_index_z_inj = phe->z_size-1;
   phe->filled_until_z_inj = phe->z_table[phe->filled_until_index_z_inj];
@@ -118,11 +129,14 @@ int heating_init(struct precision * ppr,
   phe->last_index_z_inj = 0;
   phe->last_index_z_dep = 0;
 
+  /** Calculate deposition function */
   if(phe->deposit_energy_as == deposit_feff_from_file){
     class_call(heating_read_feff_from_file(ppr,phe),
                phe->error_message,
                phe->error_message);
   }
+  
+  /** Calculate chi */
   if(phe->chi_type == chi_from_DarkAges || phe->chi_type == chi_from_z_file){
     class_call(heating_read_chi_z(ppr,phe),
                phe->error_message,
@@ -134,11 +148,13 @@ int heating_init(struct precision * ppr,
                phe->error_message);
   }
 
+  /** Define indeces */
   phe->to_store = _FALSE_;
   class_call(heating_indices(pth),
              phe->error_message,
              phe->error_message);
 
+  /** Allocate tables and pvecs */
   class_alloc(phe->deposition_table,
               phe->z_size*phe->dep_size*sizeof(double),
               phe->error_message);
@@ -148,138 +164,46 @@ int heating_init(struct precision * ppr,
   class_alloc(phe->chi_table,
               phe->dep_size*sizeof(double),
               phe->error_message);
-
   class_alloc(phe->injection_table,
               phe->z_size*phe->inj_size*sizeof(double),
               phe->error_message);
 
-  phe->decay_fraction *= _c_/_Mpc_over_m_; //TODO :: units
   return _SUCCESS_;
 }
 
 
 /**
- * Check if table extends to given z
- *    - If yes: Interpolate from table all types that are known (i.e. including
- *      acous. diss. if already added)
- *    - If no: Calculate heating as required
+ * Initialize indeces of heating table.
  *
- * @param pba         Input: pointer to background structure
- * @param pth         Input: pointer to thermodynamics structure
- * @param x           Input: TODO
- * @param z           Input: redshift
- * @param pvecback    Output: vector of background quantities
+ * @param pth   Input: pointer to thermodynamics structure
  * @return the error status
  */
-int heating_at_z(struct background* pba,
-                 struct thermo* pth,
-                 double x,
-                 double z,
-                 double* pvecback){
+int heating_indices(struct thermo* pth){
 
-  /** Define local variables */
-  double tau;
+  /** Define local variable */
   struct heating* phe = &(pth->he);
-  int index_z, index_dep, iz_store;
-  double h,a,b;
-  double dEdz_inj;
+  int index_dep,index_inj;
 
-  index_z = 0;
-  dEdz_inj = 0.0;
+  /** Indeces for injection table */
+  index_inj = 0;
+  class_define_index(phe->index_inj_BAO    , _TRUE_          , index_inj, 1);
+  class_define_index(phe->index_inj_CRR    , _TRUE_          , index_inj, 1);  // TODO by ML: to early for this.. maybe remove?
+  class_define_index(phe->index_inj_DM_ann , phe->has_DM_ann , index_inj, 1);
+  class_define_index(phe->index_inj_DM_dec , phe->has_DM_dec , index_inj, 1);
+  class_define_index(phe->index_inj_BH_acc , phe->has_BH_acc , index_inj, 1);
+  class_define_index(phe->index_inj_BH_evap, phe->has_BH_evap, index_inj, 1);
+  class_define_index(phe->index_inj_tot    , _TRUE_          , index_inj, 1);
+  phe->inj_size = index_inj;
 
-  // [J/m^3] //TODO :: fix this
-  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;
+  /** Indeces for deposition (and chi) table */
+  index_dep = 0;
+  class_define_index(phe->index_dep_heat , _TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_ionH , _TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_ionHe, _TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_lya  , _TRUE_, index_dep, 1);
+  class_define_index(phe->index_dep_lowE , _TRUE_, index_dep, 1);
 
-  if(phe->has_dcdm){
-    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;
-  }
-  else{
-    phe->rho_dcdm = 0.0;
-  }
-
-  phe->t = pvecback[pba->index_bg_time];
-
-  /* Hunt within the table for the given index of deposition */
-  class_call(array_spline_hunt(phe->z_table,
-                               phe->z_size,z,
-                               &(phe->last_index_z_dep),
-                               &h,&a,&b,
-                               phe->error_message),
-             phe->error_message,
-             phe->error_message);
-
-  /** Test if and where the new values should be stored in the injection table */
-  /* If this value is important, store it */
-  if(phe->to_store){
-    /* Calculate where to store the value*/
-    if(fabs(b-1) < phe->tol_z_table){
-      iz_store = phe->last_index_z_dep+1;
-    }
-    else if(fabs(b) < phe->tol_z_table){
-      iz_store = phe->last_index_z_dep;
-    }
-    /* Could not find a matching index in the z table for this z */
-    else{
-      class_stop(phe->error_message,
-                 "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
-                 phe->z_table[phe->last_index_z_dep],phe->z_table[phe->last_index_z_dep+1]);
-    }
-  }
-  /** Test if the values are already within the table */
-  else if( z > phe->filled_until_z_dep ){
-    /* (Linearly) Interpolate within the table */
-    for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-      phe->pvecdeposition[index_dep] = phe->deposition_table[phe->last_index_z_dep*phe->inj_size+index_dep] * a 
-                                       + phe->injection_table[(phe->last_index_z_dep+1)*phe->inj_size+index_dep] * b;
-    }
-
-    return _SUCCESS_;
-  }
-
-  /** Step 1 - get the injected energy that needs to be deposited */
-  /* In the case of the analytical integral, the energy injection is somewhat special */
-  if(phe->deposit_energy_as == deposit_analytical_integral){
-    class_call(heating_deposit_analytical_integral(pba,pth,
-                                                   z,
-                                                   &dEdz_inj),
-               phe->error_message,
-               phe->error_message);
-  }
-  /* Otherwise get the current injection */
-  else{
-    class_call(heating_energy_injection_at_z(phe,
-                                             z,
-                                             &dEdz_inj),
-               phe->error_message,
-               phe->error_message);
-  }
-
-  /** Step 2 - Now deposit the energy we have injected */
-  class_call(heating_deposition_function_at_z(phe,
-                                              x,
-                                              z),
-             phe->error_message,
-             phe->error_message);
-
-  /** Step 3 - Put result into deposition vector */
-  for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-    phe->pvecdeposition[index_dep] = phe->chi_table[index_dep] * dEdz_inj;
-  }
-
-  /** The output is now successfully stored in the deposition table */
-  if(phe->to_store){
-    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-      phe->deposition_table[iz_store*phe->dep_size+index_dep] = phe->pvecdeposition[index_dep];
-    }
-    class_test(iz_store < phe->filled_until_index_z_dep-1,
-               phe->error_message,
-               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
-
-    phe->filled_until_index_z_dep = iz_store;
-    phe->filled_until_z_dep = phe->z_table[iz_store];
-  }
-
-  phe->to_store = _FALSE_;
+  phe->dep_size = index_dep;
 
   return _SUCCESS_;
 }
@@ -318,46 +242,245 @@ int heating_free(struct thermo* pth){
 }
 
 
-
 /**
- * Initialize indeces of heating table.
+ * Check if table extends to given z
+ *    - If yes: Interpolate from table all types that are known (i.e. including
+ *      acous. diss. if already added)
+ *    - If no: Calculate heating as required
  *
- * @param pth   Input: pointer to thermodynamics structure
+ * @param pba         Input: pointer to background structure
+ * @param pth         Input: pointer to thermodynamics structure
+ * @param x           Input: TODO
+ * @param z           Input: redshift
+ * @param pvecback    Output: vector of background quantities
  * @return the error status
  */
-int heating_indices(struct thermo* pth){
+int heating_at_z(struct background* pba,
+                 struct thermo* pth,
+                 double x,
+                 double z,
+                 double* pvecback){
 
-  /** Define local variable */
+  /** Define local variables */
+  double tau;
   struct heating* phe = &(pth->he);
-  int index_dep,index_inj;
+  int index_z, index_dep, iz_store;
+  double h,a,b;
+  double dEdz_inj;
 
-  /** Indeces for injection table */
-  index_inj = 0;
-  class_define_index(phe->index_inj_BAO      ,_TRUE_            , index_inj, 1);
-  class_define_index(phe->index_inj_CRR      ,_TRUE_            , index_inj, 1);
-  class_define_index(phe->index_inj_DM_ann   ,phe->has_DM_ann   , index_inj, 1);
-  class_define_index(phe->index_inj_DM_dec   ,phe->has_DM_dec   , index_inj, 1);
-  class_define_index(phe->index_inj_BH_acc   ,phe->has_BH_acc   , index_inj, 1);
-  class_define_index(phe->index_inj_BH_evap  ,phe->has_BH_evap  , index_inj, 1);
-  class_define_index(phe->index_inj_tot      ,_TRUE_            , index_inj, 1);
-  phe->inj_size = index_inj;
+  index_z = 0;
+  dEdz_inj = 0.0;
 
-  /** Indeces for deposition (and chi) table */
-  index_dep = 0;
-  class_define_index(phe->index_dep_heat  ,_TRUE_, index_dep, 1);
-  class_define_index(phe->index_dep_ionH  ,_TRUE_, index_dep, 1);
-  class_define_index(phe->index_dep_ionHe ,_TRUE_, index_dep, 1);
-  class_define_index(phe->index_dep_lya   ,_TRUE_, index_dep, 1);
-  class_define_index(phe->index_dep_lowE  ,_TRUE_, index_dep, 1);
+  /** Import quantities from background structure */
+  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;  // [J/m^3] //TODO :: fix this
+  
+  if(phe->has_dcdm){
+    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;
+  }
+  else{
+    phe->rho_dcdm = 0.0;
+  }
 
-  phe->dep_size = index_dep;
+  phe->t = pvecback[pba->index_bg_time];
+
+  /** Hunt within the redshift table for the given index of deposition */
+  class_call(array_spline_hunt(phe->z_table,
+                               phe->z_size,z,
+                               &(phe->last_index_z_dep),
+                               &h,&a,&b,
+                               phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  /** Test if and where the new values should be stored in the injection table */
+  /* If this value is important, store it */
+  if(phe->to_store){
+    /* Calculate where to store the value */
+    if(fabs(b-1) < phe->tol_z_table){
+      iz_store = phe->last_index_z_dep+1;
+    }
+    else if(fabs(b) < phe->tol_z_table){
+      iz_store = phe->last_index_z_dep;
+    }
+    /* Could not find a matching index in the z table for this z */
+    else{
+      class_stop(phe->error_message,
+                 "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
+                 phe->z_table[phe->last_index_z_dep],phe->z_table[phe->last_index_z_dep+1]);
+    }
+  }
+
+  /** Test if the values are already within the table */
+  else if(z > phe->filled_until_z_dep){
+    /* (Linearly) Interpolate within the table */
+    for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+      phe->pvecdeposition[index_dep] = phe->deposition_table[phe->last_index_z_dep*phe->inj_size+index_dep] * a 
+                                       + phe->injection_table[(phe->last_index_z_dep+1)*phe->inj_size+index_dep] * b;
+    }
+
+    return _SUCCESS_;
+  }
+
+  /** Step 1 - get the injected energy that needs to be deposited */
+  class_call(heating_energy_injection_at_z(phe,
+                                           z,
+                                           &dEdz_inj),
+             phe->error_message,
+             phe->error_message);
+
+  /** Step 2 - Now deposit the energy we have injected */
+  class_call(heating_deposition_function_at_z(phe,
+                                              x,
+                                              z),
+             phe->error_message,
+             phe->error_message);
+
+  /** Step 3 - Put result into deposition vector */
+  for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+    phe->pvecdeposition[index_dep] = phe->chi_table[index_dep]*dEdz_inj;
+  }
+
+  /** The output is now successfully stored in the deposition table */
+  if(phe->to_store){
+    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+      phe->deposition_table[iz_store*phe->dep_size+index_dep] = phe->pvecdeposition[index_dep];
+    }
+    class_test(iz_store < phe->filled_until_index_z_dep-1,
+               phe->error_message,
+               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
+
+    phe->filled_until_index_z_dep = iz_store;
+    phe->filled_until_z_dep = phe->z_table[iz_store];
+  }
+
+  phe->to_store = _FALSE_;
 
   return _SUCCESS_;
 }
 
 
 /**
- * Calculate deposition functions as function of redshift.
+ * Calculate energy injection at given redshift.
+ *
+ * @param phe         Input: pointer to heating structure
+ * @param z           Input: redshift
+ * @param dEdz_inj    Output: injected energy
+ * @return the error status
+ */
+int heating_energy_injection_at_z(struct heating* phe,
+                                  double z,
+                                  double* dEdz_inj){
+
+  /** Define local variable */
+  double dEdz, rate;
+  double h,a,b;
+  int index_inj, iz_store;
+
+  /* Initialize local variables */
+  dEdz = 0.;
+
+  /* Hunt within the table for the given index of injection */
+  class_call(array_spline_hunt(phe->z_table,
+                               phe->z_size,z,
+                               &(phe->last_index_z_inj),
+                               &h,&a,&b,
+                               phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  /** Test if and where the new values should be stored in the injection table */
+  /* If this value is important, store it */
+  if(phe->to_store){
+    /* Calculate where to store the value*/
+    if(fabs(b-1) < phe->tol_z_table){
+      iz_store = phe->last_index_z_inj+1;
+    }
+    else if(fabs(b) < phe->tol_z_table){
+      iz_store = phe->last_index_z_inj;
+    }
+    /* Could not find a matching index in the z table for this z */
+    else{
+      class_stop(phe->error_message,
+                 "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
+                 phe->z_table[phe->last_index_z_inj],phe->z_table[phe->last_index_z_inj+1]);
+    }
+  }
+
+  /** Test if the values are already within the table */
+  else if(z > phe->filled_until_z_inj){
+    /* (Linearly) Interpolate within the table */
+    for(index_inj=0; index_inj<phe->inj_size; ++index_inj){
+      dEdz += phe->injection_table[phe->last_index_z_inj*phe->inj_size+index_inj] * a 
+              + phe->injection_table[(phe->last_index_z_inj+1)*phe->inj_size+index_inj] * b;
+    }
+
+    *dEdz_inj = dEdz;
+
+    return _SUCCESS_;
+  }
+
+  /** Non-exotic energy injection mechanisms */
+
+  /** Exotic energy injection mechanisms */
+  if(phe->has_exotic_injection){
+
+    /* Annihilating Dark Matter */
+    if(phe->has_DM_ann){
+      class_call(heating_DM_annihilation(phe,z,&rate),
+                 phe->error_message,
+                 phe->error_message);
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_ann] = rate;}
+      dEdz += rate;
+    }
+
+    /* Decaying Dark Matter */
+    if(phe->has_DM_dec){
+      class_call(heating_DM_decay(phe,z,&rate),
+                 phe->error_message,
+                 phe->error_message);
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;}
+      dEdz += rate;
+    }
+
+    /* Accretion of matter into PBHs */
+    if(phe->has_BH_acc){
+      //class_call(heating_BH_accretion(phe,z,&rate),
+      //           phe->error_message,
+      //           phe->error_message);
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_BH_acc] = rate;}
+      dEdz += rate;
+    }
+
+    /* Evaporation of PBHs */
+    if(phe->has_BH_evap){
+      //class_call(heating_BH_evaporation(phe,z,&rate),
+      //           phe->error_message,
+      //           phe->error_message);
+      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_BH_evap] = rate;}
+      dEdz += rate;
+    }
+
+  }
+
+  if(phe->to_store){
+    phe->injection_table[iz_store*phe->inj_size+phe->index_inj_tot] = dEdz;
+
+    class_test(iz_store < phe->filled_until_index_z_inj-1,
+               phe->error_message,
+               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
+
+    phe->filled_until_index_z_inj = iz_store;
+    phe->filled_until_z_inj = phe->z_table[iz_store];
+  }
+
+  *dEdz_inj = dEdz;
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Calculate deposition function at given redshift.
  *
  * @param phe         Input: pointer to heating structure
  * @param x           Input: TODO
@@ -406,7 +529,7 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                        index_dep+1,
                                                        index_dep+phe->dep_size+1,
                                                        z,
-                                                       &(phe->last_index_chiz),
+                                                       &(phe->last_index_z_chi),
                    phe->chi_table[index_dep],
                    phe->error_message);
       }
@@ -419,7 +542,6 @@ int heating_deposition_function_at_z(struct heating* phe,
       phe->chi_table[phe->index_dep_lya]   = (1.-x)/3.;
       phe->chi_table[phe->index_dep_lowE]  = 0.;
     }
-
   }
   else{
     phe->chi_table[phe->index_dep_heat]  = 1.;
@@ -430,16 +552,22 @@ int heating_deposition_function_at_z(struct heating* phe,
   }
 
   /** Step 2 - Read the correction factor f_eff */
-
   /* For the analytical integral, we already integrated the deposition */
   if(phe->deposit_energy_as == deposit_analytical_integral){
     f_eff = 1.;
   }
   /* For the file, read in f_eff from file and multiply */
   else if(phe->deposit_energy_as == deposit_feff_from_file){
-    class_call(array_interpolate_spline_transposed(phe->feff_table,phe->feff_z_size,
-                                                   3,0,1,2,z,&(phe->last_index_z_feff),
-                                                   &(f_eff),phe->error_message),
+    class_call(array_interpolate_spline_transposed(phe->feff_table,
+                                                   phe->feff_z_size,
+                                                   3,
+                                                   0,
+                                                   1,
+                                                   2,
+                                                   z,
+                                                   &(phe->last_index_z_feff),
+                                                   &(f_eff),
+                                                   phe->error_message),
            phe->error_message,
            phe->error_message);
   }
@@ -458,126 +586,10 @@ int heating_deposition_function_at_z(struct heating* phe,
   }
 
   /** Step 3 - Multiply both to get the desired result */
-
   /* Multiply deposition factors with overall correction factor */
   for(index_dep=0;index_dep<phe->dep_size;++index_dep){
     phe->chi_table[index_dep] *= f_eff;
   }
-
-  return _SUCCESS_;
-}
-
-
-int heating_energy_injection_at_z(struct heating* phe,
-                                  double z,
-                                  double* dEdz_inj){
-
-  /** Define local variable */
-  double dEdz, rate;
-  double h,a,b;
-  int index_inj, iz_store;
-
-  /* Initialize local variables */
-  dEdz = 0.;
-
-  /* Hunt within the table for the given index of injection */
-  class_call(array_spline_hunt(phe->z_table,
-                               phe->z_size,z,
-                               &(phe->last_index_z_inj),
-                               &h,&a,&b,
-                               phe->error_message),
-             phe->error_message,
-             phe->error_message);
-
-  /** Test if and where the new values should be stored in the injection table */
-  /* If this value is important, store it */
-  if(phe->to_store){
-    /* Calculate where to store the value*/
-    if(fabs(b-1) < phe->tol_z_table){
-      iz_store = phe->last_index_z_inj+1;
-    }
-    else if(fabs(b) < phe->tol_z_table){
-      iz_store = phe->last_index_z_inj;
-    }
-    /* Could not find a matching index in the z table for this z */
-    else{
-      class_stop(phe->error_message,
-                 "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
-                 phe->z_table[phe->last_index_z_inj],phe->z_table[phe->last_index_z_inj+1]);
-    }
-  }
-
-  /** Test if the values are already within the table */
-  else if(z > phe->filled_until_z_inj){
-    /* (Linearly) Interpolate within the table */
-    for(index_inj=0;index_inj<phe->inj_size;++index_inj){
-      dEdz += phe->injection_table[phe->last_index_z_inj*phe->inj_size+index_inj] * a + phe->injection_table[(phe->last_index_z_inj+1)*phe->inj_size+index_inj] * b;
-    }
-
-    *dEdz_inj = dEdz;
-
-    return _SUCCESS_;
-  }
-
-  /** Non-exotic energy injection mechanisms */
-
-  // dEdz += non-exotic-stuff (TODO :: put here non-exotic stuff)
-
-  /** exotic energy injection mechanisms */
-  if(phe->has_exotic_injection){
-
-    /* Annihilating Dark Matter */
-    if(phe->has_DM_ann){
-      class_call(heating_DM_annihilation(phe,z,&rate),
-                 phe->error_message,
-                 phe->error_message);
-      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_ann] = rate;}
-      dEdz += rate;
-    }
-
-    /* Decaying Dark Matter */
-    if(phe->has_DM_dec){
-      class_call(heating_DM_decay(phe,z,&rate),
-                 phe->error_message,
-                 phe->error_message);
-      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;}
-      dEdz += rate;
-    }
-
-    /* Accretion of matter into PBHs */
-    if(phe->has_BH_acc){
-      //class_call(heating_BH_accretion(phe,z,&rate),
-      //           phe->error_message,
-      //           phe->error_message);
-      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_BH_acc] = rate;}
-      dEdz += rate;
-    }
-
-    
-    /* Evaporation of PBHs */
-    if(phe->has_BH_evap){
-      //class_call(heating_BH_evaporation(phe,z,&rate),
-      //           phe->error_message,
-      //           phe->error_message);
-      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_BH_evap] = rate;}
-      dEdz += rate;
-    }
-
-    // dEdz += exotic-stuff (TODO :: put here more exotic stuff)
-  }
-
-  if(phe->to_store){
-    phe->injection_table[iz_store*phe->inj_size+phe->index_inj_tot] = dEdz;
-
-    class_test(iz_store < phe->filled_until_index_z_inj-1,
-               phe->error_message,
-               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
-
-    phe->filled_until_index_z_inj = iz_store;
-    phe->filled_until_z_inj = phe->z_table[iz_store];
-  }
-
-  *dEdz_inj = dEdz;
 
   return _SUCCESS_;
 }
@@ -644,23 +656,23 @@ int heating_DM_decay(struct heating * phe,
       decay_factor=1;
     }
     else{
-      /* Add the exponential decay factor*/
+      /* Add the exponential decay factor */
       decay_factor = exp(-phe->Gamma_dcdm*phe->t);
     }
 
-    /* Surviving rho dcdm*/
+    /* Surviving rho dcdm */
     rho_dcdm = phe->rho_cdm*decay_factor;
   }
 
-  /* Standard formula for decaying dark matter*/
-  *energy_rate = rho_dcdm*phe->decay_fraction*phe->Gamma_dcdm; //[J/m^3 * ? * Mpc^(-1)]
+  /* Standard formula for decaying dark matter */
+  *energy_rate = rho_dcdm*phe->decay_fraction*phe->Gamma_dcdm;                                      // [J/m^3 * ? * Mpc^(-1)]
   //TODO :: figure out units of everything
 
   return _SUCCESS_;
 }
 
 
-/*
+/**
  * Calculate heating for second order contributions, e.g. dissipation
  * of acustic waves and adiabatic cooling of electrons and baryons.
  *
@@ -681,8 +693,6 @@ int heating_add_second_order_terms(struct background* pba,
 
   return _SUCCESS_;
 }
-
-
 
 
 
@@ -775,8 +785,8 @@ int heating_read_feff_from_file(struct precision* ppr,
 
 #pragma INCOMPLETE
 
-int heating_read_chi_z(struct precision* ppr,
-                       struct heating* phe){
+int heating_read_chi_z_from_file(struct precision* ppr,
+                                 struct heating* phe){
 
   /** Define local variables */
   FILE * fA;
@@ -888,8 +898,8 @@ int heating_read_chi_z(struct precision* ppr,
 }
 
 
-int heating_read_chi_x(struct precision* ppr,
-                       struct heating* phe){
+int heating_read_chi_x_from_file(struct precision* ppr,
+                                 struct heating* phe){
 
   /** Define local variables */
   FILE * fA;
@@ -976,60 +986,6 @@ int heating_read_chi_x(struct precision* ppr,
   return _SUCCESS_;
 }
 
-#pragma NOT_YET_PROPERLY_DONE
-
-int heating_deposit_analytical_integral(struct background* pba, struct thermo* pth, double z, double* energy_rate){
-
-  struct heating* phe = &(pth->he);
-  double zp,dz;
-  double integrand,first_integrand;
-  double factor,result;
-  double nH0;
-  double onthespot;
-  double exponent_z,exponent_zp;
-
-  nH0 = 3.*pba->H0*pba->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-pth->YHe); // number of hydrogen nuclei today in m^-3
-
-  /* Value from Poulin et al. 1508.01370 */
-  /* 
-  factor = c sigma_T n_H(0) / (H(0) \sqrt(Omega_m)) (dimensionless)
-  factor = _sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-  exponent_z = 8;
-  exponent_zp = 7.5;
-  */
-
-  /* Value from Ali-Haimoud & Kamionkowski 1612.05644 */
-  factor = 0.1*_sigma_ * nH0 / pba->H0 * _Mpc_over_m_ / sqrt(pba->Omega0_b+pba->Omega0_cdm);
-  exponent_z = 7;
-  exponent_zp = 6.5;
-
-  /* integral over z'(=zp) with step dz */
-  dz=1.;
-
-  /* first point in trapezoidal integral */
-  zp = z;
-  class_call(heating_energy_injection_at_z(phe,z,&onthespot),
-             phe->error_message,
-             phe->error_message);
-  first_integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
-  // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
-  result = 0.5*dz*first_integrand;
-
-  /* other points in trapezoidal integral */
-  do{
-    zp += dz;
-    class_call(heating_energy_injection_at_z(phe,z,&onthespot),
-               phe->error_message,
-               phe->error_message);
-    integrand = factor*pow(1+z,exponent_z)/pow(1+zp,exponent_zp)*exp(2./3.*factor*(pow(1+z,1.5)-pow(1+zp,1.5)))*onthespot; 
-    // beware: versions before 2.4.3, there were rwrong exponents: 6 and 5.5 instead of 7 and 7.5
-    result += dz*integrand;
-
-  } while (integrand/first_integrand > 0.02);
-  if(result < 1e-100) result=0.;
-
-  return _SUCCESS_;
-}
 
 
 
