@@ -1932,8 +1932,15 @@ int thermodynamics_solve_derivs(double mz,
   n = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
   Trad = ptw->Tcmb * (1.+z);
 
+  /** - Check for the approximation scheme */
+  /* As long as there is no full recombination, x_H, x_He and x are evolved with analytic functions. */
+  Tmat = ptv->y[ptv->index_Tmat];
+  ptdw->Tmat = Tmat;
+  ptdw->dTmat = -ptv->dy[ptv->index_Tmat];
+
+
   x = ptdw->x;
-  class_call(heating_at_z(pba,pth,x,z,pvecback),
+  class_call(heating_at_z(pba,pth,x,z,Tmat,pvecback),
              (pth->he).error_message,
              error_message);
   energy_rate = pth->he.pvecdeposition[pth->he.index_dep_heat];
@@ -1943,11 +1950,7 @@ int thermodynamics_solve_derivs(double mz,
 
 
 
-  /** - Check for the approximation scheme */
-  /* As long as there is no full recombination, x_H, x_He and x are evolved with analytic functions. */
-  Tmat = ptv->y[ptv->index_Tmat];
-  ptdw->Tmat = Tmat;
-  ptdw->dTmat = -ptv->dy[ptv->index_Tmat];
+
 
   /** - HyRec */
   if(pth->recombination == hyrec){

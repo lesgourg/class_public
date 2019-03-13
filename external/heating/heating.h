@@ -9,6 +9,8 @@ struct heating{
   int has_exotic_injection;
   int has_dcdm;
 
+  char* command_DarkAges;
+
   double* z_table;
   int z_size;
   int last_index_z_dep;
@@ -63,7 +65,7 @@ struct heating{
   int index_dep_ionH;
   int index_dep_ionHe;
   int index_dep_lya;
-  //int index_dep_lowE;
+  int index_dep_lowE;
   int dep_size;
 
   /* Background stuff etc. */
@@ -74,6 +76,9 @@ struct heating{
   double rho_dcdm;
   double t;
   double Gamma_dcdm;
+  double T_b;
+  double x_e;
+
   int last_index_bg;
 
   double f_eff;
@@ -94,6 +99,11 @@ struct heating{
 
   double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double decay_fraction;
+
+
+
+  int BH_accretion_recipe;
+  double BH_accreting_mass;
 
   /* Book-keeping */
   int heating_verbose;
@@ -129,6 +139,7 @@ extern "C" {
                    struct thermo* pth,
                    double x,
                    double z,
+                   double Tmat,
                    double* pvecback);
 
   int heating_free(struct thermo* pth);
@@ -152,7 +163,12 @@ extern "C" {
   int heating_read_feff_from_file(struct precision* ppr,
                                   struct heating* phe);
 
-  /* Heating functions */
+  /* Branching ratios into the different channels */
+  int heating_read_chi_z(struct precision* ppr, struct heating* phe);
+
+  int heating_read_chi_x(struct precision* ppr, struct heating* phe);
+
+  /* DM annihilation */
   int heating_DM_annihilation(struct heating * phe,
                               double z,
                               double * energy_rate);
@@ -161,9 +177,15 @@ extern "C" {
                        double z,
                        double * energy_rate);
 
+
   int heating_add_second_order_terms(struct background* pba,
                                      struct thermo* pth,
                                      struct perturbs* ppt);
+
+
+  int heating_BH_accretion(struct heating* phe,
+                           double z,
+                           double * energy_rate);
 
 #ifdef __cplusplus
 }
