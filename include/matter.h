@@ -3,11 +3,11 @@
  * Nils Schöneberg, 18.10.2017
  *
  */
- #ifndef __MATTER__
- #define __MATTER__
- #include "nonlinear.h"
- #include "fft.h"
- #include "extrapolate_source.h"
+#ifndef __MATTER__
+#define __MATTER__
+#include "nonlinear.h"
+#include "fft.h"
+#include "extrapolate_source.h"
 enum matter_integration_method {matter_integrate_tw_t,matter_integrate_tw_logt};
 enum matter_k_weight_method {matter_k_weights_gaussian,matter_k_weights_step};
 struct matters{
@@ -151,6 +151,7 @@ struct matters{
   int size_fft_input;
   int size_fft_result;
   int size_fft_cutoff;
+  struct FFT_plan** FFT_plan;
 
   /**
    * Relative factors
@@ -823,4 +824,4 @@ else{                                                               \
     }                                                                                                            \
   }                                                                                                              \
 }
- #endif
+#endif

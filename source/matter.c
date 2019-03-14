@@ -458,7 +458,7 @@ int matter_init(
                pma->error_message,
                pma->error_message);
 
-    class_call(matter_free_perturbation_sources(ppt,pnl,pma,sources),
+    class_call(matter_free_perturbation_sources(pma,sources),
               pma->error_message,
               pma->error_message);
     /*
@@ -492,7 +492,7 @@ int matter_init(
   /**
    *  - Now free those sources that are not required anymore
    * */
-  class_call(matter_free_perturbation_sources(ppt,pnl,pma,sources),
+  class_call(matter_free_perturbation_sources(pma,sources),
              pma->error_message,
              pma->error_message);
   if(pma->allow_extrapolation){
@@ -4071,7 +4071,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS ){
     printf("Method :: Obtain bessel integrals from recursion \n");
   }
-  clock_t start_bessel = clock();
+
   //long long TOTAL_ALLOC;
 #ifdef _OPENMP
   double start_bessel_omp = omp_get_wtime();
@@ -4297,9 +4297,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
            * */
 
           int l_max_cur = bessel_recursion_l_max;
-          clock_t TOT = 0;
-          clock_t COPY = 0;
-          clock_t T = clock();
           /**
            * This flag keeps track of overflows happening during the summation
            * of the hypergeometric functions. If no more overflows occur
@@ -4364,7 +4361,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 
             double backward_simple_lfactor = MAX(1.5-nu_imag/15,0.0);
             if(t<T_MIN_TAYLOR){
-              clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
 #else
@@ -4376,7 +4372,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 #else
               taylor_time +=0.0;
 #endif
-              TOT += clock()-func_start;
             }
             /**
              * We want the hypergeometric series to have only very vew terms
@@ -4391,7 +4386,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
              * */
             else if(l_max_self_inverse_taylor >l_max_cur && t>1.-T_MIN_INVERSE_TAYLOR){
 
-              clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
 #else
@@ -4403,14 +4397,12 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 #else
               inverse_time += 0.0;
 #endif
-              TOT += clock()-func_start;
             }
             else if(
               ( nu_imag>NU_IMAG_BI_RECURSION_SWITCH &&
               l_max_forward_simple > l_max_cur )
               || (nu_real>nu_min_forward_real && l_max_cur<l_max_forward_real)
             ){
-              clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
 #else
@@ -4433,14 +4425,12 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 #else
               for_simple_time += 0.0;
 #endif
-              TOT += clock()-func_start;
             }
             else if(
               (nu_imag>NU_IMAG_BI_RECURSION_SWITCH &&
               l_max_backward_simple > l_max_cur) ||
               (l_max_cur<l_max_backward_real)
             ){
-              clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
 #else
@@ -4460,7 +4450,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                                                        pma->error_message),
                          pma->error_message,
                          pma->error_message);
-              TOT += clock()-func_start;
 #ifdef _OPENMP
               back_simple_time += omp_get_wtime()-func_start_t;
 #else
@@ -4468,7 +4457,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 #endif
             }
             else{
-                clock_t func_start = clock();
 #ifdef _OPENMP
                 double func_start_t = omp_get_wtime();
 #else
@@ -4487,7 +4475,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                                                                  pma->error_message),
                            pma->error_message,
                            pma->error_message);
-              TOT += clock()-func_start;
 #ifdef _OPENMP
               complex_time += omp_get_wtime()-func_start_t;
 #else
@@ -4499,7 +4486,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
              *  for this particular value for t,
              *  we need to store them within the storage arrays
              * */
-            clock_t copy_start = clock();
             for(index_l=0;index_l<pma->l_size_recursion;++index_l){
               index_l_eval = (pma->uses_bessel_storeall?index_l:(int)pma->l_sampling[index_l]);
               if(index_l_eval>l_max_cur){continue;}
@@ -4535,7 +4521,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
               }
               //Ifend exit
             }
-            COPY += clock()-copy_start;
             //End l
             /**
              * If a mode has 'exited',
@@ -4549,7 +4534,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
             }
           }
           //End t
-          T = clock()-T;
 
           /**
            * The analytic solutions at l=0 and l=1
@@ -4582,14 +4566,12 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   /**
    * Delete temporary arrays
    * */
-  clock_t end_bessel = clock();
 #ifdef _OPENMP
   double end_bessel_omp = omp_get_wtime();
 #else
   double end_bessel_omp = 0.0;
 #endif
   if(pma->matter_verbose > MATTER_VERBOSITY_TIMING) {
-    printf(" -> Obtaining (recursion) Bessel Integrals took %f seconds \n",((double)(end_bessel-start_bessel))/CLOCKS_PER_SEC);
     printf(" -> Obtaining (recursion) Bessel Integrals took %f REAL seconds \n",end_bessel_omp-start_bessel_omp);
   }
   return _SUCCESS_;
@@ -5117,7 +5099,6 @@ int matter_spline_bessel_integrals_recursion(
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
     printf("Method :: Spline (recursion) bessel integrals\n");
   }
-  clock_t spline_start = clock();
 #ifdef _OPENMP
   double spline_start_omp = omp_get_wtime();
 #else
@@ -5188,14 +5169,12 @@ int matter_spline_bessel_integrals_recursion(
     //End tilt2
   }
   //End tilt1
-  clock_t spline_end = clock();
 #ifdef _OPENMP
   double spline_end_omp = omp_get_wtime();
 #else
   double spline_end_omp = 0.0;
 #endif
   if(pma->matter_verbose > MATTER_VERBOSITY_TIMING ){
-    printf(" -> Splining bessel integrals (recursion) took %f CPU  seconds \n",((double)(spline_end-spline_start))/CLOCKS_PER_SEC);
     printf(" -> Splining bessel integrals (recursion) took %f REAL seconds \n",spline_end_omp-spline_start_omp);
   }
   return _SUCCESS_;
@@ -5351,6 +5330,8 @@ int matter_FFTlog_perturbation_sources_parallel(
   N_threads = 1;
 #endif
   int n_thread;
+
+
   double** integrand1;
   double** integrand2;
   class_alloc(integrand1,
@@ -5359,7 +5340,11 @@ int matter_FFTlog_perturbation_sources_parallel(
   class_alloc(integrand2,
               N_threads*sizeof(double*),
               pma->error_message);
+  class_alloc(pma->FFT_plan,
+              N_threads*sizeof(struct FFT_plan*),
+              pma->error_message);
   for(n_thread=0;n_thread<N_threads;++n_thread){
+    FFT_planner_init(pma->size_fft_input,&(pma->FFT_plan[n_thread]));
     class_alloc(integrand1[n_thread],
                 pma->size_fft_input*sizeof(double),
                 pma->error_message);
@@ -5428,13 +5413,13 @@ int matter_FFTlog_perturbation_sources_parallel(
             for(index_coeff=0;index_coeff<pma->size_fft_input;++index_coeff){
               integrand2[tid][index_coeff] = 0.0;
             }
-            FFT_real_short(integrand1[tid],
-                           integrand2[tid],
-                           fft_coeff_real[index_ic1_ic2*pma->stp_size+index_stp1_stp2],
-                           fft_coeff_imag[index_ic1_ic2*pma->stp_size+index_stp1_stp2],
-                           fft_coeff_real[index_ic1_ic2*pma->stp_size+index_stp1_stp2]+1*pma->size_fft_input,
-                           fft_coeff_imag[index_ic1_ic2*pma->stp_size+index_stp1_stp2]+1*pma->size_fft_input,
-                           pma->size_fft_input);
+            FFT_real_short_planned(integrand1[tid],
+                                   integrand2[tid],
+                                   fft_coeff_real[index_ic1_ic2*pma->stp_size+index_stp1_stp2],
+                                   fft_coeff_imag[index_ic1_ic2*pma->stp_size+index_stp1_stp2],
+                                   fft_coeff_real[index_ic1_ic2*pma->stp_size+index_stp1_stp2]+1*pma->size_fft_input,
+                                   fft_coeff_imag[index_ic1_ic2*pma->stp_size+index_stp1_stp2]+1*pma->size_fft_input,
+                                   pma->FFT_plan[tid]);
             /**
              * The coefficients we have calculated are not yet the final coefficients
              *  For these, we have to multiply with k0^(nu_imag)
@@ -5531,13 +5516,13 @@ int matter_FFTlog_perturbation_sources_parallel(
                                             *prim_spec[index_ic1_ic2][index_coeff]
                                             *pow(pma->k_sampling[index_coeff]/pma->k_sampling[0],-pma->bias);
                 }
-                FFT_real_short(integrand1[tid],
-                               integrand2[tid],
-                               fft_coeff_real[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+index_tau1_tau2*pma->size_fft_input,
-                               fft_coeff_imag[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+index_tau1_tau2*pma->size_fft_input,
-                               fft_coeff_real[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+(index_tau1_tau2+1)*pma->size_fft_input,
-                               fft_coeff_imag[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+(index_tau1_tau2+1)*pma->size_fft_input,
-                               pma->size_fft_input);
+                FFT_real_short_planned(integrand1[tid],
+                                       integrand2[tid],
+                                       fft_coeff_real[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+index_tau1_tau2*pma->size_fft_input,
+                                       fft_coeff_imag[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+index_tau1_tau2*pma->size_fft_input,
+                                       fft_coeff_real[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+(index_tau1_tau2+1)*pma->size_fft_input,
+                                       fft_coeff_imag[index_ic1_ic2*pma->stp_grid_size+index_stp1_stp2]+(index_tau1_tau2+1)*pma->size_fft_input,
+                                       pma->FFT_plan[tid]);
                 /**
                  * The coefficients we have calculated are not yet the final coefficients
                  *  For these, we have to multiply with k0^(nu_imag)
@@ -5581,12 +5566,14 @@ int matter_FFTlog_perturbation_sources_parallel(
 
   }
   for(n_thread=0;n_thread<N_threads;++n_thread){
+    FFT_planner_free(&(pma->FFT_plan[n_thread]));
     free(integrand1[n_thread]);
     free(integrand2[n_thread]);
   }
   free(integrand1);
   free(integrand2);
 
+  free(pma->FFT_plan);
   return _SUCCESS_;
 }
 
