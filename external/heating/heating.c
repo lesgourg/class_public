@@ -38,7 +38,9 @@ int heating_init(struct precision * ppr,
   /** Import quantities from background structure */
   phe->last_index_bg = 0;
   phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
-  phe->nH0 = 3.*pba->H0*pba->H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-pth->YHe);                    // [1/m^3]
+  phe->h = pba->h;                                                                                  // [-]
+  phe->T_g0 = pba->T_cmb;                                                                           // [K]
+
   phe->rho_crit0 = phe->H0*phe->H0*3/8./_PI_/_G_*_c_*_c_;                                           // [J/m^3]
   phe->Omega0_b = pba->Omega0_b;                                                                    // [-]
   phe->Omega0_cdm = pba->Omega0_cdm;                                                                // [-]
@@ -51,16 +53,17 @@ int heating_init(struct precision * ppr,
     phe->has_dcdm = _TRUE_;
   }
 
+  /** Import quantities from thermodynamics structure */
+  phe->Y_He = pth->YHe;                                                                             // [-]
+  phe->N_e = pth->n_e;                                                                              // [1/m^3] (today)
+
+  /** Compute basis quantities from background and thermodynamics parameters */
+  phe->nH0 = 3.*pba->H0*pba->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);                   // [1/m^3]
+
   /** Initialize branching ratios and deposition functions */
   phe->chi_type = chi_from_SSCK;
   phe->deposit_energy_as = 0;                // TODO :: set in input
   phe->f_eff = 1.;                           // TODO :: read from user instead
-
-  /** Initialize heating quantities */
-  phe->has_BH_acc = _TRUE_;
-  phe->has_BH_evap = _FALSE_;
-  phe->BH_accretion_recipe = 0;
-  phe->BH_accreting_mass = 0;
   
   /** Initialize indeces */
   phe->last_index_chix = 0;
@@ -69,7 +72,6 @@ int heating_init(struct precision * ppr,
   
   /** Check energy injection */
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
-  //phe->has_exotic_injection = phe->annihilation!=0 || phe->decay!=0 || phe->PBH_accreting_mass!=0 || phe->PBH_evaporating_mass != 0;
 
   /** Check energy injection parameters for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
@@ -200,11 +202,10 @@ int heating_indices(struct thermo* pth){
 
   /** Indeces for injection table */
   index_inj = 0;
-  class_define_index(phe->index_inj_BAO    , _TRUE_          , index_inj, 1);
+  class_define_index(phe->index_inj_cool   , _TRUE_          , index_inj, 1);
+  class_define_index(phe->index_inj_diss   , _TRUE_          , index_inj, 1);
   class_define_index(phe->index_inj_DM_ann , phe->has_DM_ann , index_inj, 1);
   class_define_index(phe->index_inj_DM_dec , phe->has_DM_dec , index_inj, 1);
-  class_define_index(phe->index_inj_BH_acc , phe->has_BH_acc , index_inj, 1);
-  class_define_index(phe->index_inj_BH_evap, phe->has_BH_evap, index_inj, 1);
   class_define_index(phe->index_inj_tot    , _TRUE_          , index_inj, 1);
   phe->inj_size = index_inj;
 
@@ -283,20 +284,24 @@ int heating_at_z(struct background* pba,
   double dEdz_inj;
 
   /** Redefine input parameters */
-  phe->T_b = Tmat;
-  phe->x_e = x;
+  phe->T_b = Tmat;                                                                                  // [K]
+  phe->x_e = x;                                                                                     // [-]
   index_z = 0;
   dEdz_inj = 0.0;
 
   /** Import quantities from background structure */
-  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;  // [J/m^3] //TODO :: fix this
+  phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
+  phe->a = pvecback[pba->index_bg_a];                                                               // [-]
+  phe->t = pvecback[pba->index_bg_time]/_s_over_Mpc_;                                               // [s]
+
+  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;                   // [J/m^3] //TODO :: fix this
   if(phe->has_dcdm){
     phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;
   }
   else{
     phe->rho_dcdm = 0.0;
   }
-  phe->t = pvecback[pba->index_bg_time];
+  phe->R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                     // [-]
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -434,26 +439,37 @@ int heating_energy_injection_at_z(struct heating* phe,
     return _SUCCESS_;
   }
 
-  /** Non-exotic energy injection mechanisms */
+  /** Standard energy injection mechanisms */
+  class_call(heating_rate_adiabatic_cooling(phe,z,&rate),
+             phe->error_message,
+             phe->error_message);
+   if(phe->to_store){
+      phe->injection_table[iz_store*phe->inj_size+phe->index_inj_cool] = rate;
+    }
+    dEdz += rate;
 
   /** Exotic energy injection mechanisms */
   if(phe->has_exotic_injection){
 
     /* Annihilating Dark Matter */
     if(phe->has_DM_ann){
-      class_call(heating_DM_annihilation(phe,z,&rate),
+      class_call(heating_rate_DM_annihilation(phe,z,&rate),
                  phe->error_message,
                  phe->error_message);
-      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_ann] = rate;}
+      if(phe->to_store){
+        phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_ann] = rate;
+      }
       dEdz += rate;
     }
 
     /* Decaying Dark Matter */
     if(phe->has_DM_dec){
-      class_call(heating_DM_decay(phe,z,&rate),
+      class_call(heating_rate_DM_decay(phe,z,&rate),
                  phe->error_message,
                  phe->error_message);
-      if(phe->to_store){phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;}
+      if(phe->to_store){
+        phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;
+      }
       dEdz += rate;
     }
   }
@@ -479,7 +495,7 @@ int heating_energy_injection_at_z(struct heating* phe,
  * Calculate deposition function at given redshift.
  *
  * @param phe         Input: pointer to heating structure
- * @param x           Input: TODO
+ * @param x           Input: fraction of free electrons
  * @param z           Input: redshift
  * @return the error status
  */
@@ -491,9 +507,6 @@ int heating_deposition_function_at_z(struct heating* phe,
   int index_dep;
   double f_eff;
 
-  /** Set local default values */
-  f_eff = 1.; // Default value
-                                      // TODO :: x is uninitialized for first point
   x = 1.0;                            // TODO :: remove
 
   /** Step 1 - Read the deposition factors for each channel */
@@ -502,7 +515,7 @@ int heating_deposition_function_at_z(struct heating* phe,
        by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
     /* Read file in ionization fraction */
     if(phe->chi_type == chi_from_x_file){
-      for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+      for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
         class_call(array_interpolate_spline_transposed(phe->chix_table,
                                                        phe->chix_size,
                                                        2*phe->dep_size+1,
@@ -510,8 +523,10 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                        index_dep+1,
                                                        index_dep+phe->dep_size+1,
                                                        x,
-                                                       &(phe->last_index_chix),
-                   phe->chi_table[index_dep],
+                                                       &phe->last_index_chix,
+                                                       &phe->chi_table[index_dep],
+                                                       phe->error_message),
+                   phe->error_message,
                    phe->error_message);
       }
     }
@@ -525,8 +540,10 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                        index_dep+1,
                                                        index_dep+phe->dep_size+1,
                                                        z,
-                                                       &(phe->last_index_z_chi),
-                   phe->chi_table[index_dep],
+                                                       &phe->last_index_z_chi,
+                                                       &phe->chi_table[index_dep],
+                                                       phe->error_message),
+                   phe->error_message,
                    phe->error_message);
       }
     }
@@ -558,14 +575,14 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                    2,
                                                    z,
                                                    &(phe->last_index_z_feff),
-                                                   &(f_eff),
+                                                   &(phe->f_eff),
                                                    phe->error_message),
            phe->error_message,
            phe->error_message);
   }
   /* For the on the spot, we take the user input */
   else if(phe->deposit_energy_as == deposit_on_the_spot){
-    f_eff = phe->f_eff;
+    phe->f_eff = 1.;
   }
   /* Otherwise, something must have gone wrong */
   else{
@@ -863,6 +880,51 @@ int heating_read_feff_from_file(struct precision* ppr,
 
 
 /**
+ * Calculate heating from adiabatic cooling of electrons and baryons.
+ *
+ * @param phe        Input: pointer to heating structure
+ * @param ppt        Input: pointer to the perturbations structure
+ * @param ppm        Input: pointer to the primordial structure
+ * @return the error status
+ */
+int heating_rate_adiabatic_cooling(struct heating * phe,
+                                   double z,
+                                   double * energy_rate){
+
+  /** Define local variables */
+  double alpha_h;
+
+  /** Calculate heating rates */
+  alpha_h = (3./2.)*phe->N_e*1.e-6*pow(1.+z,3.)*(1.+phe->Y_He+phe->x_e);                            // [1/cm^3]
+
+  *energy_rate = -phe->H*alpha_h*_k_B_*phe->T_g0*(1.+z);                                            // [J/(m^3 s)]
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Calculate heating from dissipation of acoustic waves.
+ *
+ * @param phe            Input: pointer to heating structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @return the error status
+  */
+int heating_rate_acoustic_diss(struct heating * phe,
+                               double z,
+                               double * energy_rate){
+
+  /** Define local variables */
+
+
+  return _SUCCESS_;
+
+}
+
+
+/**
  * In case of non-minimal cosmology, this function determines the energy rate
  * injected in the IGM at a given redshift z (= on-the-spot annihilation) by
  * DM annihilation.
@@ -872,9 +934,9 @@ int heating_read_feff_from_file(struct precision* ppr,
  * @param energy_rate    Output: energy density injection rate
  * @return the error status
  */
-int heating_DM_annihilation(struct heating * phe,
-                            double z,
-                            double * energy_rate){
+int heating_rate_DM_annihilation(struct heating * phe,
+                                 double z,
+                                 double * energy_rate){
 
   /** Define local variables */
   double annihilation_at_z, boost_factor;
@@ -922,9 +984,9 @@ int heating_DM_annihilation(struct heating * phe,
  * @param energy_rate    Output: energy density injection rate
  * @return the error status
  */
-int heating_DM_decay(struct heating * phe,
-                     double z,
-                     double * energy_rate){
+int heating_rate_DM_decay(struct heating * phe,
+                          double z,
+                          double * energy_rate){
 
   /** Define local variables */
 
@@ -934,27 +996,5 @@ int heating_DM_decay(struct heating * phe,
   return _SUCCESS_;
 }
 
-
-/**
- * Calculate heating for second order contributions, e.g. dissipation of acustic waves and
- * adiabatic cooling of electrons and baryons.
- *
- * At some point, distortions.c will call this function, and the acoustic dissipation
- * contributions will be added to the table of heatings
- *
- * @param pba   Input: pointer to background structure
- * @param pth   Input: pointer to thermodynamics structure
- * @param ppt   Input: pointer to perturbations structure
- */
-int heating_add_second_order_terms(struct background* pba,
-                                   struct thermo* pth,
-                                   struct perturbs* ppt){
-
-  /** Define local variable */
-  struct heating* phe = &(pth->he);
-  //class_define_index(phe->index_inj_BAO,_TRUE_,phe->ht_size,1);
-
-  return _SUCCESS_;
-}
 
 

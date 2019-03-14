@@ -42,47 +42,34 @@ struct heating{
   /* f_eff table */
   int feff_z_size;
   double* feff_table;
-    
-  /* Parameters from background structure */
-  int to_store;
-
-  int has_DM_ann;
-  int has_DM_dec;
-  
-  double* injection_table;
-  int index_inj_DM_ann;
-  int index_inj_DM_dec;
-  int index_inj_BAO;
-  int index_inj_tot;
-  //int index_dep_lowE;
-  int inj_size;       //All contributions + total
-
-  /* Deposition table */
-  double* chi_table;
-  int chi_type;
-  double* deposition_table;
-  int index_dep_heat;
-  int index_dep_ionH;
-  int index_dep_ionHe;
-  int index_dep_lya;
-  int index_dep_lowE;
-  int dep_size;
 
   /* Parameters from background structure */
   double H0;
-  double rho_crit0;
-  double nH0;
+  double H;
+  double h;
+  double a;
+  double t;
   double Omega0_b;
   double Omega0_cdm;
-  double Omega0_dcdmdr
+  double Omega0_dcdmdr;
+  double Omega_ini_dcdm;
+  double rho_crit0;
+  double R;
   double rho_cdm;
   double rho_dcdm;
-  double t;
   double Gamma_dcdm;
   double T_b;
+  double T_g0;
   double x_e;
 
   int last_index_bg;
+
+  /* Parameters from thermodynamics structure */
+  double Y_He;
+  double N_e;
+
+  /* Other basis parameters */
+  double nH0;
 
   /* Heating parameters */
   short has_on_the_spot;         /**< flag to specify if we want to use the on-the-spot approximation **/
@@ -104,14 +91,15 @@ struct heating{
   
   /* Heat injection table */
   double* injection_table;
+  int index_inj_cool;
+  int index_inj_diss;
   int index_inj_DM_ann;
   int index_inj_DM_dec;
-  int index_inj_BAO;
   int index_inj_tot;
   //int index_dep_lowE;
   int inj_size;                  /** All contributions + total */
-
-  /* Energy deposition table */
+  
+  /* Deposition table */
   double* chi_table;
   int chi_type;
 
@@ -122,11 +110,12 @@ struct heating{
   int index_dep_ionH;
   int index_dep_ionHe;
   int index_dep_lya;
-  //int index_dep_lowE;
+  int index_dep_lowE;
   int dep_size;
 
   /* Book-keeping */
   int heating_verbose;
+
   ErrorMsg error_message;
 
 };
@@ -187,17 +176,21 @@ extern "C" {
                                   struct heating* phe);
  
   /* Heating functions */
-  int heating_DM_annihilation(struct heating * phe,
-                              double z,
-                              double * energy_rate);
+  int heating_rate_adiabatic_cooling(struct heating * phe,
+                                     double z,
+                                     double * energy_rate);
+                                     
+  int heating_rate_acoustic_diss(struct heating * phe,
+                                 double z,
+                                 double * energy_rate);
 
-  int heating_DM_decay(struct heating * phe,
-                       double z,
-                       double * energy_rate);
+  int heating_rate_DM_annihilation(struct heating * phe,
+                                   double z,
+                                   double * energy_rate);
 
-  int heating_add_second_order_terms(struct background* pba,
-                                     struct thermo* pth,
-                                     struct perturbs* ppt);
+  int heating_rate_DM_decay(struct heating * phe,
+                            double z,
+                            double * energy_rate);
 
 #ifdef __cplusplus
 }
