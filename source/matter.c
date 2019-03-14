@@ -6,71 +6,7 @@
 
 #include "matter.h"
 #include "hypergeom.h"
-#include <time.h>
 
-#define CHUNK_SIZE 4
-#define MATTER_REWRITE_PRINTING _FALSE_
-
-#define MATTER_VERBOSITY_TIMING 1
-#define MATTER_VERBOSITY_INDICES 5
-#define MATTER_VERBOSITY_FUNCTIONS 3
-#define MATTER_VERBOSITY_PARAMETERS 2
-#define MATTER_VERBOSITY_RANGES 5
-#define MATTER_VERBOSITY_BESSEL 5
-#define MATTER_VERBOSITY_CLCALCULATION 4
-#define MATTER_VERBOSITY_CLCALCULATION_PARTIAL 5
-#define MATTER_VERBOSITY_CLRESULTS 2
-
-#define matter_is_index(index_from,index_to,condition)              \
-((condition) && ((index_from)==(index_to)))
-
-#define matter_is_integrated(index_radtp)                           \
-((pma->has_lensing_terms && index_radtp == pma->radtp_nclens)       \
-|| (pma->has_gravitational_terms &&                                 \
-(index_radtp == pma->radtp_g4 || index_radtp == pma->radtp_g5) )    \
-|| (pma->has_cl_shear && index_radtp == pma->radtp_shlens)          \
-)
-
-#define matter_get_t(index_t)                                       \
-if(integrate_logarithmically && !pma->uses_limber_approximation){   \
-  double y = pma->t_spline_sampling[(index_t)]*(y_max-y_min)+y_min; \
-  t = 1.0-exp(-y);                                                  \
-}else if(!pma->uses_limber_approximation){                          \
-  t = pma->t_spline_sampling[(index_t)]*(t_max-t_min)+t_min;        \
-}                                                                   \
-else{                                                               \
-  t = 1.0;                                                          \
-}
-#define matter_get_t_orig(index_t)                                  \
-if(integrate_logarithmically){                                      \
-  double y = pma->t_sampling[index_t]*(y_max-y_min)+y_min;          \
-  t = 1.0-exp(-y);                                                  \
-}else{                                                              \
-  t = pma->t_sampling[index_t]*(t_max-t_min)+t_min;                 \
-}
-#define matter_get_tij_limits(index_wd1,index_wd2)                    \
-t_min = MAX((pma->tau0-pma->tw_max[index_wd1])/(pma->tau0-pma->tw_min[index_wd2]),0.0+pma->bi_maximal_t_offset);\
-t_max = MIN((pma->tau0-pma->tw_min[index_wd1])/(pma->tau0-pma->tw_max[index_wd2]),1.0-pma->bi_maximal_t_offset);
-#define matter_get_t_limits(index_wd1,index_wd2)                    \
-matter_get_tij_limits(index_wd2,index_wd1)                          \
-if(t_min>t_max){matter_get_tij_limits(index_wd1,index_wd2);}        \
-else{                                                               \
-  double temp_t_min = t_min; double temp_t_max=t_max;               \
-  matter_get_tij_limits(index_wd1,index_wd2);                       \
-  t_min = MIN(temp_t_min,t_min); t_max = MAX(temp_t_max,t_max);     \
-}
-/* macro for re-allocating memory, returning error if it failed */
-#define class_realloc_parallel(pointer, newname, size, error_message_output)  {                                  \
-  if(abort==_FALSE_){                                                                                            \
-    pointer=realloc(newname,size);                                                                               \
-    if (pointer == NULL) {                                                                                       \
-      int size_int;                                                                                              \
-      size_int = size;                                                                                           \
-      class_alloc_message(error_message_output,#pointer, size_int);                                              \
-      abort=_TRUE_;                                                                                              \
-    }                                                                                                            \
-  }                                                                                                              \
-}
 /**
  * Anisotropy matter power spectra \f$ C_l\f$'s for all types, windows and initial conditions.
  * The mode is always scalar.
@@ -89,7 +25,6 @@ else{                                                               \
  * @param cl_ic      Output: \f$C_l\f$'s for all types (d_n d_m, L_n L_m) decomposed by pairs of initial conditions (adiabatic, isocurvatures) when relevant
  * @return the error status
  */
-
 int matter_cl_at_l(
                   struct matters* pma,
                   double l,
@@ -381,8 +316,6 @@ int matter_init(
    *  - Test wether the defined combinations would give a valid caclulation
    * */
   //TODO :: class_test if parameters are all correct (i.e. >0 )
-
-
   //class_test(ppt->selection == dirac,
   //           pma->error_message,
   //           "Dirac Windows currently not yet implemented -- You can use a very thin gaussian instead.");
@@ -474,29 +407,17 @@ int matter_init(
   class_alloc(k_weights,
               pma->k_size*sizeof(double),
               pma->error_message);
-  class_call(matter_obtain_growth_factor_k_weights(
-                                                   pma,
-                                                   ppt,
-                                                   k_weights
-                                                   ),
+  class_call(matter_obtain_growth_factor_k_weights(ppt,pma,k_weights),
              pma->error_message,
              pma->error_message);
   class_alloc(pma->growth_factor_tau,
               pma->ic_size*pma->stp_size*sizeof(double*),
               pma->error_message);
-  class_call(matter_obtain_growth_factor(
-                                         pma,
-                                         sources,
-                                         k_weights
-                                         ),
+  class_call(matter_obtain_growth_factor(pma,sources,k_weights),
             pma->error_message,
             pma->error_message);
   if(pma->uses_relative_factors){
-    class_call(matter_obtain_relative_factor(
-                                             pma,
-                                             sources,
-                                             k_weights
-                                             ),
+    class_call(matter_obtain_relative_factor(pma,sources,k_weights),
               pma->error_message,
               pma->error_message);
   }
@@ -504,9 +425,7 @@ int matter_init(
   class_alloc(pma->ddgrowth_factor_tau,
               pma->ic_size*pma->stp_size*sizeof(double*),
               pma->error_message);
-  class_call(matter_spline_growth_factor(
-                                         pma
-                                        ),
+  class_call(matter_spline_growth_factor(pma),
             pma->error_message,
             pma->error_message);
   /* Done getting and splining growth factor */
@@ -629,10 +548,10 @@ int matter_init(
    *    the information is now carried by the coefficients
    *    ( and/or growth factors )
    * */
-  class_call(matter_free_perturbation_sources(ppt,pnl,pma,sampled_sources),
+  class_call(matter_free_perturbation_sources(pma,sampled_sources),
              pma->error_message,
              pma->error_message);
-  class_call(matter_free_primordial(ppm,pma,prim_spec),
+  class_call(matter_free_primordial(pma,prim_spec),
              pma->error_message,
              pma->error_message);
   /* Done getting FFTlog coefficients */
@@ -646,7 +565,7 @@ int matter_init(
 
 
 
-  class_call(matter_obtain_l_sampling(ppr,ppt,pth,pma),
+  class_call(matter_obtain_l_sampling(ppr,pth,ppt,pma),
              pma->error_message,
              pma->error_message);
   /**
@@ -715,10 +634,10 @@ int matter_init(
    *    and then the window functions multiplied with factors corresponding
    *    to the specific types, and integrating
    * */
-  class_call(matter_obtain_time_sampling(ppr,ppt,pba,pma),
+  class_call(matter_obtain_time_sampling(ppr,pba,ppt,pma),
              pma->error_message,
              pma->error_message);
-  class_call(matter_obtain_prepare_windows_parallel(ppr,ppt,pba,pma),
+  class_call(matter_obtain_prepare_windows_parallel(ppr,pba,ppt,pma),
              pma->error_message,
              pma->error_message);
   /* Done getting Window functions */
@@ -916,24 +835,29 @@ int matter_init(
 
 
 
-
+/**
+ * Free all memory occupied by the matter module
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_free(
                 struct matters * pma
               ) {
   int i,j;
   if(pma->has_cls){
-    if(pma->matter_verbose>2){
-      printf("Matter starts to free \n");
+    if(pma->matter_verbose>MATTER_VERBOSITY_FUNCTIONS){
+      printf("Method :: Free \n");
     }
-    if(pma->matter_verbose>2){
-      printf("Deleting fft stuff \n");
+    if(pma->matter_verbose>MATTER_VERBOSITY_DELETE){
+      printf("Freeing fft-related quantities \n");
     }
     free(pma->logk_sampling);
     free(pma->k_sampling);
     free(pma->tau_sampling);
 
-    if(pma->matter_verbose>2){
-      printf("Deleting window stuff \n");
+    if(pma->matter_verbose>MATTER_VERBOSITY_DELETE){
+      printf("Freeing up window-related quantities \n");
     }
     free(pma->tw_sampling);
     free(pma->tw_weights);
@@ -960,13 +884,8 @@ int matter_free(
     free(pma->ddgrowth_factor_tau);
 
 
-    if(pma->matter_verbose>2){
-      printf("Deleting stuff of method %s \n",(pma->uses_integration==matter_integrate_tw_t?"tw t":"tw logt"));
-    }
-
-
-    if(pma->matter_verbose>2){
-      printf("Deleting bessel stuff \n");
+    if(pma->matter_verbose>MATTER_VERBOSITY_DELETE){
+      printf("Freeing up bessel memory \n");
     }
     free(pma->nu_real);
     free(pma->nu_imag);
@@ -997,8 +916,8 @@ int matter_free(
       free(pma->bi_max);
     }
 
-    if(pma->matter_verbose>2){
-      printf("Deleting general stuff \n");
+    if(pma->matter_verbose>MATTER_VERBOSITY_DELETE){
+      printf("Freeing up general memory \n");
     }
     free(pma->l_sampling);
     free(pma->short_pvecback);
@@ -1044,13 +963,21 @@ int matter_free(
   }
   return _SUCCESS_;
 }
+
+
+/**
+ * Free the primordial spectrum
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param prim_spec  Input: pointer to primordial spectrum array
+ * @return the error status
+ */
 int matter_free_primordial(
-                           struct primordial* ppm,
                            struct matters * pma,
                            double ** prim_spec
                            ) {
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS) {
-    printf("Method :: Deleting primordial \n");
+    printf("Method :: Freeing primordial spectrum\n");
   }
   int index_ic1_ic2;
   for (index_ic1_ic2 = 0; index_ic1_ic2 < pma->ic_ic_size; index_ic1_ic2++) {
@@ -1059,6 +986,16 @@ int matter_free_primordial(
   free(prim_spec);
   return _SUCCESS_;
 }
+
+
+/**
+ * Free fft-related quantities
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param fft_real   Input: pointer to real part of fft
+ * @param fft_imag   Input: pointer to imaginary part of fft
+ * @return the error status
+ */
 int matter_free_fft(
                    struct matters * pma,
                    double ** fft_real,
@@ -1079,9 +1016,15 @@ int matter_free_fft(
   free(fft_imag);
   return _SUCCESS_;
 }
+
+/**
+ * Free source functions
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param sources    Input: pointer to source array
+ * @return the error status
+ */
 int matter_free_perturbation_sources(
-                                     struct perturbs * ppt,
-                                     struct nonlinear * pnl,
                                      struct matters * pma,
                                      double ** sources
                                      ) {
@@ -1098,6 +1041,13 @@ int matter_free_perturbation_sources(
   free(sources);
   return _SUCCESS_;
 }
+
+/**
+ * Free window functions
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_free_prepare_window(
                                struct matters* pma
                               ){
@@ -1122,6 +1072,15 @@ int matter_free_prepare_window(
   free(pma->ptw_integrated_weights);
   return _SUCCESS_;
 }
+
+
+/**
+ * Free workspace
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param pmw        Input: pointer to matter workspace structure
+ * @return the error status
+ */
 int matter_workspace_free(struct matters* pma,
                           struct matters_workspace* pmw){
   int index_radtp1_radtp2,index_l,index_tilt_grid,index_coeff;
@@ -1172,6 +1131,14 @@ int matter_workspace_free(struct matters* pma,
 
   return _SUCCESS_;
 }
+
+/**
+ * Allocate workspace
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param pmw        Input: pointer to matter workspace structure
+ * @return the error status
+ */
 int matter_workspace_alloc(struct matters* pma,
                            struct matters_workspace* pmw){
   int index_radtp1_radtp2,index_l,index_tilt_grid,index_coeff;
@@ -1293,6 +1260,15 @@ int matter_workspace_alloc(struct matters* pma,
   //End l
   return _SUCCESS_;
 }
+
+
+/**
+ * Allocate the matter vector within the workspace
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param pmw        Input: pointer to matter workspace structure
+ * @return the error status
+ */
 int matter_vector_alloc(struct matters* pma,
                         struct matters_workspace* pmw){
   int n_thread,index_tw;
@@ -1353,6 +1329,15 @@ int matter_vector_alloc(struct matters* pma,
   }
   return _SUCCESS_;
 }
+
+
+/**
+ * Free matter vector within the matter workspace
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param pmw        Input: pointer to matter workspace structure
+ * @return the error status
+ */
 int matter_vector_free(struct matters* pma,
                        struct matters_workspace* pmw){
   int n_thread,index_tw;
@@ -1381,6 +1366,13 @@ int matter_vector_free(struct matters* pma,
 
 
 
+
+/**
+ * Spline the final Cl's
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_spline_cls(
                       struct matters* pma
                       ){
@@ -1422,7 +1414,12 @@ int matter_spline_cls(
 
 
 
-
+/**
+ * Obtain sampling for the fft coefficients
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_coeff_sampling(
                                struct matters * pma
                               ){
@@ -1513,6 +1510,17 @@ int matter_obtain_coeff_sampling(
   //End coeff
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain sampling for the tau values
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param ppt        Input: pointer to perturbation structure
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_tau_sampling(
                                struct precision* ppr,
                                struct background* pba,
@@ -1611,6 +1619,15 @@ int matter_obtain_tau_sampling(
 
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain sampling for the k values
+ *
+ * @param ppt        Input: pointer to perturbation structure
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_k_sampling(
                                struct perturbs* ppt,
                                struct matters * pma
@@ -1677,10 +1694,21 @@ int matter_obtain_k_sampling(
   }
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain sampling for the l values
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pth        Input: pointer to thermo structure
+ * @param ppt        Input: pointer to perturbation structure
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_l_sampling(
                             struct precision* ppr,
-                            struct perturbs* ppt,
                             struct thermo* pth,
+                            struct perturbs* ppt,
                             struct matters * pma
                             ){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
@@ -1779,11 +1807,12 @@ int matter_obtain_l_sampling(
 }
 
 
-
-
-
-
-
+/**
+ * Obtain sampling for the t values (the values of relative distance along line of sight)
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_t_sampling(struct matters* pma){
 /**
    * We want to do a normal integration,
@@ -1861,10 +1890,21 @@ int matter_obtain_t_sampling(struct matters* pma){
   //Ifend xi interpolation
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain sampling for the window function time values
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param ppt        Input: pointer to perturbs structure
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_time_sampling(
                           struct precision* ppr,
-                          struct perturbs* ppt,
                           struct background* pba,
+                          struct perturbs* ppt,
                           struct matters* pma){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
     printf("Method :: Obtaining time sampling \n");
@@ -2124,10 +2164,19 @@ int matter_obtain_time_sampling(
 }
 
 
+/**
+ * Prepare the arrays of the window functions
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param pba        Input: pointer to background structure
+ * @param ppt        Input: pointer to perturbs structure
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_prepare_windows_parallel(
                           struct precision* ppr,
-                          struct perturbs* ppt,
                           struct background* pba,
+                          struct perturbs* ppt,
                           struct matters* pma
                           ){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS){
@@ -2181,7 +2230,6 @@ int matter_obtain_prepare_windows_parallel(
        * If we want to integrate the window function,
        *  we have to use the integrated size
        * */
-       //???
       if(matter_is_integrated(index_radtp)){
         size_local = MAX(size_local,pma->ptw_integrated_size);
       }
@@ -3073,6 +3121,21 @@ int matter_obtain_prepare_windows_parallel(
   free(pvecback);
   return _SUCCESS_;
 }
+
+
+/**
+ * Interpolate a prepared window
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param tau        Input: value of conformal time
+ * @param index_ic   Input: index of initial condition
+ * @param index_radtp Input: index of radial type
+ * @param index_wd   Input: index of window type
+ * @param last       Input/Output: last succesful interpolation
+ * @param derivative_type Input: type of bessel derivative
+ * @param win_val    Output: value of window function
+ * @return the error status
+ */
 int matter_get_prepared_window_at(
                           struct matters* pma,
                           double tau,
@@ -3166,6 +3229,17 @@ int matter_get_prepared_window_at(
 }
 
 
+/**
+ * The window function
+ *
+ * @param ppr        Input: pointer to precision structure
+ * @param ppt        Input: pointer to perturbation structure
+ * @param pma        Input: pointer to matter structure
+ * @param bin        Input: index of redshift-bin
+ * @param z          Input: value of redshift
+ * @param window_at_z Output: value of the window function
+ * @return the error status
+ */
 int matter_window_function(
                           struct precision * ppr,
                           struct perturbs * ppt,
@@ -3295,6 +3369,17 @@ int matter_window_function(
 
   return _SUCCESS_;
 }
+
+
+/**
+ * Analytical formula for dNdz
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param z          Input: value of redshift
+ * @param dNdz       Output: value of dNdz
+ * @param dln_dNdz_dz Output: value of dln_dNdz_dz
+ * @return the error status
+ */
 int matter_dNdz_analytic(
                            struct matters * pma,
                            double z,
@@ -3330,6 +3415,17 @@ int matter_dNdz_analytic(
   return _SUCCESS_;
 
 }
+
+
+/**
+ * Obtain the primordial power spectrum
+ *
+ * @param ppt        Input: pointer to perturbs structure
+ * @param ppm        Input: pointer to primordial structure
+ * @param pma        Input: pointer to matter structure
+ * @param prim_spec  Output: array of primordial spectrum
+ * @return the error status
+ */
 int matter_obtain_primordial_spectrum(
                                       struct perturbs * ppt,
                                       struct primordial * ppm,
@@ -3377,6 +3473,16 @@ int matter_obtain_primordial_spectrum(
   free(temp);
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain the indices
+ *
+ * @param ppm        Input: pointer to primordial structure
+ * @param ppt        Input: pointer to perturbs structure
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_indices(
                           struct primordial* ppm,
                           struct perturbs* ppt,
@@ -3636,6 +3742,14 @@ int matter_obtain_indices(
   }
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain the indices for the bessel integrals
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_bi_indices(
                               struct matters* pma
                               ){
@@ -3945,7 +4059,14 @@ int matter_obtain_bi_indices(
   }
   return _SUCCESS_;
 }
-//TODO :: add final one with t=0, => Il = 0
+
+
+/**
+ * Obtain the bessel functions using recursion
+ *
+ * @param pma        Input: pointer to matter structure
+ * @return the error status
+ */
 int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS ){
     printf("Method :: Obtain bessel integrals from recursion \n");
@@ -4052,8 +4173,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
    * Allocate the arrays in which we want to store the final bessel integrals
    *  (Bessel Integrals are shortened to BI)
    * */
-  //printf("Allocating %lu \n",3*pma->tilt_grid_size*sizeof(double**)+pma->tilt_grid_size*sizeof(int*)+pma->tilt_grid_size*sizeof(double*));
-  //TOTAL_ALLOC+=3*pma->tilt_grid_size*sizeof(double**)+pma->tilt_grid_size*sizeof(int*)+pma->tilt_grid_size*sizeof(double*);
   class_alloc(pma->bi_real,
               pma->tilt_grid_size*sizeof(double**),
               pma->error_message);
@@ -4076,8 +4195,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   for(index_tilt1=0;index_tilt1<pma->tilt_size;++index_tilt1){
     for(index_tilt2=index_tilt1;index_tilt2<pma->tilt_size;++index_tilt2){
       index_tilt1_tilt2 = index_symmetric_matrix(index_tilt1,index_tilt2,pma->tilt_size);
-      //printf("Allocating %lu \n",3*l_size_current*pma->size_fft_result*sizeof(double*)+l_size_current*pma->size_fft_result*sizeof(int)+l_size_current*pma->size_fft_result*sizeof(double));
-      //TOTAL_ALLOC+=3*l_size_current*pma->size_fft_result*sizeof(double*)+l_size_current*pma->size_fft_result*sizeof(int)+l_size_current*pma->size_fft_result*sizeof(double);
       class_alloc(pma->bi_real[index_tilt1_tilt2],
                   pma->l_size_recursion*pma->size_fft_result*sizeof(double*),
                   pma->error_message);
@@ -4094,12 +4211,8 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
        * Allocate the real and imaginary arrays
        * Also allocate the sampling array
        * */
-      //printf("Going to allocate %lu \n",3*bi_recursion_t_size*sizeof(double)*l_size_current*pma->size_fft_cutoff);
-      //printf("%i %i %i \n",3*bi_recursion_t_size,l_size_current,pma->size_fft_cutoff);
       for(index_l=0;index_l<pma->l_size_recursion;++index_l){
         for(index_coeff=0;index_coeff<pma->size_fft_cutoff;++index_coeff){
-          //printf("Allocating %lu \n",3*bi_recursion_t_size*sizeof(double));
-          //TOTAL_ALLOC+=3*bi_recursion_t_size*sizeof(double);
           class_alloc(pma->bi_real[index_tilt1_tilt2][index_l*pma->size_fft_result+index_coeff],
                       bi_recursion_t_size*sizeof(double),
                       pma->error_message);
@@ -4108,7 +4221,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
                       pma->error_message);
         }
       }
-      //printf("Total alloc so far %lld \n",TOTAL_ALLOC);
+
       if(pma->matter_verbose > MATTER_VERBOSITY_BESSEL){
         printf(" -> Obtaining recursion starting bessel integrals for tilt %f \n",pma->bias-pma->nu_real[index_tilt1_tilt2]);
       }
@@ -4131,8 +4244,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
         class_alloc_parallel(initial_abs,
                     bessel_recursion_l_size*sizeof(double),
                     pma->error_message);
-        //printf("Thread %i allocs %lu \n",omp_get_thread_num(),2*bessel_recursion_l_size*sizeof(double)+2*(bessel_recursion_l_size+back_complicated_max_size)*sizeof(double));
-        //TOTAL_ALLOC+=2*bessel_recursion_l_size*sizeof(double)+2*(bessel_recursion_l_size+back_complicated_max_size)*sizeof(double);
+
         double back_simple_time = 0;
         double for_simple_time = 0;
         double complex_time = 0;
@@ -4252,7 +4364,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 
             double backward_simple_lfactor = MAX(1.5-nu_imag/15,0.0);
             if(t<T_MIN_TAYLOR){
-              //printf("USING TAYLOR \n\n");
               clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
@@ -4279,7 +4390,7 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
              * ( l < l_max , alpha = T_MIN_INVERSE_TAYLOR)
              * */
             else if(l_max_self_inverse_taylor >l_max_cur && t>1.-T_MIN_INVERSE_TAYLOR){
-              //printf("USING SELF \n\n");
+
               clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
@@ -4299,7 +4410,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
               l_max_forward_simple > l_max_cur )
               || (nu_real>nu_min_forward_real && l_max_cur<l_max_forward_real)
             ){
-              //printf("USING FORWARD SIMPLE \n\n");
               clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
@@ -4330,7 +4440,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
               l_max_backward_simple > l_max_cur) ||
               (l_max_cur<l_max_backward_real)
             ){
-              //printf("USING BACKWARD SIMPLE \n\n");
               clock_t func_start = clock();
 #ifdef _OPENMP
               double func_start_t = omp_get_wtime();
@@ -4359,7 +4468,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
 #endif
             }
             else{
-                //printf("USING COMPLICATED \n\n");
                 clock_t func_start = clock();
 #ifdef _OPENMP
                 double func_start_t = omp_get_wtime();
@@ -4460,15 +4568,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
         if(MATTER_REWRITE_PRINTING){
           printf("\r                                                                             \n");
         }
-        /*
-        printf("FORWARD = %.10e, (per coeff = %.10e) \n",for_simple_time,for_simple_time/(pma->size_fft_cutoff));
-        printf("BACKWARD = %.10e, (per coeff = %.10e) \n",back_simple_time,back_simple_time/(pma->size_fft_cutoff));
-        printf("COMPLEX = %.10e, (per coeff = %.10e) \n",complex_time,complex_time/(pma->size_fft_cutoff));
-        printf("INVERSE = %.10e, (per coeff = %.10e) \n",inverse_time,inverse_time/(pma->size_fft_cutoff));
-        printf("TAYLOR = %.10e, (per coeff = %.10e) \n",taylor_time,taylor_time/(pma->size_fft_cutoff));
-        */
-
-        //printf("TIME AVG = %.10e secs \n",(double)(timecount)/CLOCKS_PER_SEC/pma->size_fft_cutoff);
         free(initial_abs);
         free(max_t);
         free(abi_real);
@@ -4480,7 +4579,6 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
     //End tilt2
   }
   //End tilt1
-  //printf("TOTAL TOTAL TOTAL ALLOC : %lld \n",TOTAL_ALLOC);
   /**
    * Delete temporary arrays
    * */
@@ -4496,9 +4594,18 @@ int matter_obtain_bessel_recursion_parallel(struct matters* pma){
   }
   return _SUCCESS_;
 }
+
+/**
+ * Obtain the growth factor weights in k
+ *
+ * @param ppt        Input: pointer to perturbs structure
+ * @param pma        Input: pointer to matter structure
+ * @param k_weights  Output: pointer to weights
+ * @return the error status
+ */
 int matter_obtain_growth_factor_k_weights(
-                                struct matters* pma,
                                 struct perturbs* ppt,
+                                struct matters* pma,
                                 double* k_weights
                                 ){
   if(pma->matter_verbose > MATTER_VERBOSITY_FUNCTIONS) {
@@ -4568,6 +4675,16 @@ int matter_obtain_growth_factor_k_weights(
   }
   return _SUCCESS_;
 }
+
+
+/**
+ * Obtain the growth factor
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param sources    Input: pointer to source array
+ * @param k_weights  Output: pointer to weights
+ * @return the error status
+ */
 int matter_obtain_growth_factor(
                                 struct matters* pma,
                                 double ** sources,
@@ -4607,6 +4724,15 @@ int matter_obtain_growth_factor(
   //End ic
   return _SUCCESS_;
 }
+
+/**
+ * Obtain the relative factor
+ *
+ * @param pma        Input: pointer to matter structure
+ * @param soruces    Input: pointer to the source array
+ * @param k_weights  Output: pointer to weights
+ * @return the error status
+ */
 int matter_obtain_relative_factor(
                                   struct matters* pma,
                                   double** sources,
@@ -4649,6 +4775,8 @@ int matter_obtain_relative_factor(
   //End ic
   return _SUCCESS_;
 }
+
+
 /**
  * Obtain the nonlinearity factor, replacing the values of
  * fft_coeff_real, and fft_coeff_imag
@@ -4721,6 +4849,7 @@ int matter_obtain_nonseparability(
   free(fft_coeff_factor_imag);
   return _SUCCESS_;
 }
+
 
 /**
  * Obtain the desired sources from preturbation struct
@@ -4889,6 +5018,7 @@ int matter_obtain_perturbation_sources(
   return _SUCCESS_;
 }
 
+
 /**
  * Extrapolate the desired sources
  *
@@ -4973,6 +5103,8 @@ int matter_extrapolate_sources(
   pma->k_size = k_size_extr;
   return _SUCCESS_;
 }
+
+
 /**
  * Spline the bessel integrals after having recursively found them
  *
@@ -5068,6 +5200,8 @@ int matter_spline_bessel_integrals_recursion(
   }
   return _SUCCESS_;
 }
+
+
 /**
  * Cubic hermite spline interpolation
  *
@@ -5108,6 +5242,8 @@ int matter_interpolate_spline_growing_hunt(
   }
   return _SUCCESS_;
 }
+
+
 /**
  * Sample the desired sources
  *
@@ -5182,6 +5318,8 @@ int matter_sample_sources(
   free(ddsource);
   return _SUCCESS_;
 }
+
+
 /**
  * FFTlog the perturbation sources in a parallelized fashion
  *
@@ -5451,6 +5589,8 @@ int matter_FFTlog_perturbation_sources_parallel(
 
   return _SUCCESS_;
 }
+
+
 /**
  * Integrate the Cl's
  *
@@ -5863,6 +6003,7 @@ int matter_integrate_window_function(struct background* pba,
   return _SUCCESS_;
 }
 
+
 /**
  * Get the integrand of the cosmological function in t and tau
  * for the the t range where 1>2, and the whole tau range
@@ -6079,6 +6220,8 @@ int matter_get_half_integrand(struct background* pba,
   //End tw
   return _SUCCESS_;
 }
+
+
 /**
  * Get the integrand of the cosmological function in t and tau
  * for the whole t and tau ranges
@@ -6413,6 +6556,8 @@ int matter_get_ttau_integrand(struct background* pba,
   free(sin_val);
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function specifying the cosmological function
  * asymptote as a function of t for two windows in non-integrated
@@ -6436,6 +6581,8 @@ int matter_asymptote(struct precision* ppr, struct matters* pma,double t, int in
   *result = exp(-0.5*(x1*t-x2)*(x1*t-x2)/(sigma1*sigma1*t*t+sigma2*sigma2))+exp(-0.5*(x2*t-x1)*(x2*t-x1)/(sigma2*sigma2*t*t+sigma1*sigma1));
   return _SUCCESS_;
 }
+
+
 /**
  * Precompute chi^(1-nu) or chi^(2-nu) for normal and logarithmic
  * chi integration respectively
@@ -6486,6 +6633,8 @@ int matter_precompute_chit_factors(struct matters* pma,
   }
   return _SUCCESS_;
 }
+
+
 /**
  * Integrate the cosmological function f_n^ij(t)
  *
@@ -6874,6 +7023,8 @@ int matter_integrate_cosmo(
   //Ifend interpolation
   return _SUCCESS_;
 }
+
+
 /**
  * Integrate each bin combination of Cl's
  *
@@ -7165,6 +7316,8 @@ int matter_integrate_each(struct precision* ppr,
   free(sum_l);
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function to get bessel integrals for every value of t
  * in the limber approximation
@@ -7206,6 +7359,8 @@ int matter_get_bessel_limber(
   //End tilt grid
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function to get the type of derivative acting
  * on the window function depending on the radial type
@@ -7274,6 +7429,8 @@ int matter_get_derivative_type(
   }
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function to get bessel integrals for every value of t
  * in a parrallelized code for non-integrated contributions
@@ -7359,6 +7516,8 @@ int matter_get_bessel_fort_parallel(
   //End iff
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function to get bessel integrals for every value of t
  * in a parrallelized code for integrated contributions
@@ -7446,6 +7605,7 @@ int matter_get_bessel_fort_parallel_integrated(
   return _SUCCESS_;
 }
 
+
 /**
  * Small helper function for preparing an interpolation hunt,
  * searching with binary search for the starting position of the hunt.
@@ -7515,6 +7675,8 @@ int matter_spline_prepare_hunt(
   *last = inf;
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function for doing the interpolation hunt without
  * returning the final array
@@ -7615,6 +7777,8 @@ int matter_spline_hunt(
   *a = 1.0-(*b);
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function for resampling growth factor at desired k,tau
  *
@@ -7658,6 +7822,8 @@ int matter_resample_growth_factor(
   //End ic
   return _SUCCESS_;
 }
+
+
 /**
  * Small helper function for splining the growth factor
  *
@@ -7689,6 +7855,7 @@ int matter_spline_growth_factor(
   //End ic
   return _SUCCESS_;
 }
+
 
 /**
  * Small helper function for calculating the derivatives of an array
@@ -7749,6 +7916,7 @@ int matter_derive(
   return _SUCCESS_;
 }
 
+
 /**
  * Small helper function for swapping around the indices in the matter_workspace
  *
@@ -7771,6 +7939,7 @@ int matter_swap_workspace(struct matters_workspace* pmw){
   pmw->index_cltp2 = temp;
   return _SUCCESS_;
 }
+
 
 /**
  * Write the bessel integral file, including the header,
@@ -7795,7 +7964,9 @@ int matter_write_bessel_integrals(struct matters* pma){
    * Open file to write
    * */
   write_file = fopen(pma->bessel_file_name,"wb");
-
+  class_test(!write_file,
+             pma->error_message,
+             "Could not create file %s \n",pma->bessel_file_name);
 
   /**
    * Write header
@@ -7833,6 +8004,7 @@ int matter_write_bessel_integrals(struct matters* pma){
   fclose(write_file);
   return _SUCCESS_;
 }
+
 
 /**
  * Read the contents of the bessel file. Gives error if header
@@ -8010,6 +8182,8 @@ int matter_read_bessel_integrals(struct matters* pma){
   }
   return _SUCCESS_;
 }
+
+
 /**
  * Read the usability of the bessel integral binary file.
  * Checks for existence of file. If file exists, and it
@@ -8071,6 +8245,7 @@ int matter_read_bessel_file_correct(struct matters* pma,short* is_correct_file){
   fclose(read_file);
   return _SUCCESS_;
 }
+
 
 /**
  * Set the indices relevant to handling the different window functions,

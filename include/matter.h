@@ -413,8 +413,8 @@ extern "C" {
                   );
   int matter_obtain_l_sampling(
                   struct precision* ppr,
-                  struct perturbs* ppt,
                   struct thermo* pth,
+                  struct perturbs* ppt,
                   struct matters * pma
                   );
   int matter_obtain_indices(
@@ -452,15 +452,9 @@ extern "C" {
                   double * k_weights
                   );
   int matter_obtain_growth_factor_k_weights(
+                  struct perturbs* ppt,
                   struct matters* pma,
-                  struct perturbs* ppt,
                   double * k_weights
-                  );
-  int matter_obtain_prepare_windows(
-                  struct precision* ppr,
-                  struct perturbs* ppt,
-                  struct background* pba,
-                  struct matters* pma
                   );
   int matter_get_prepared_window_at(
                   struct matters* pma,
@@ -487,13 +481,10 @@ extern "C" {
                   struct matters* pma
                   );
   int matter_free_perturbation_sources(
-                  struct perturbs * ppt,
-                  struct nonlinear * pnl,
                   struct matters * pma,
                   double ** sources
                   );
   int matter_free_primordial(
-                  struct primordial * ppm,
                   struct matters * pma,
                   double ** prim_spec
                   );
@@ -680,8 +671,8 @@ extern "C" {
                   );
   int matter_obtain_time_sampling(
                   struct precision* ppr,
-                  struct perturbs* ppt,
                   struct background* pba,
+                  struct perturbs* ppt,
                   struct matters* pma);
   int matter_integrate_cosmo(
                   struct precision* ppr,
@@ -738,8 +729,8 @@ extern "C" {
                   );
   int matter_obtain_prepare_windows_parallel(
                   struct precision* ppr,
-                  struct perturbs* ppt,
                   struct background* pba,
+                  struct perturbs* ppt,
                   struct matters* pma
                   );
   int matter_FFTlog_perturbation_sources_parallel(
@@ -766,4 +757,70 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+
+#define CHUNK_SIZE 4
+#define MATTER_REWRITE_PRINTING _FALSE_
+
+#define MATTER_VERBOSITY_TIMING 1
+#define MATTER_VERBOSITY_INDICES 5
+#define MATTER_VERBOSITY_FUNCTIONS 3
+#define MATTER_VERBOSITY_PARAMETERS 2
+#define MATTER_VERBOSITY_RANGES 5
+#define MATTER_VERBOSITY_BESSEL 5
+#define MATTER_VERBOSITY_CLCALCULATION 4
+#define MATTER_VERBOSITY_CLCALCULATION_PARTIAL 5
+#define MATTER_VERBOSITY_CLRESULTS 2
+#define MATTER_VERBOSITY_DELETE 5
+
+#define matter_is_index(index_from,index_to,condition)              \
+((condition) && ((index_from)==(index_to)))
+
+#define matter_is_integrated(index_radtp)                           \
+((pma->has_lensing_terms && index_radtp == pma->radtp_nclens)       \
+|| (pma->has_gravitational_terms &&                                 \
+(index_radtp == pma->radtp_g4 || index_radtp == pma->radtp_g5) )    \
+|| (pma->has_cl_shear && index_radtp == pma->radtp_shlens)          \
+)
+
+#define matter_get_t(index_t)                                       \
+if(integrate_logarithmically && !pma->uses_limber_approximation){   \
+  double y = pma->t_spline_sampling[(index_t)]*(y_max-y_min)+y_min; \
+  t = 1.0-exp(-y);                                                  \
+}else if(!pma->uses_limber_approximation){                          \
+  t = pma->t_spline_sampling[(index_t)]*(t_max-t_min)+t_min;        \
+}                                                                   \
+else{                                                               \
+  t = 1.0;                                                          \
+}
+#define matter_get_t_orig(index_t)                                  \
+if(integrate_logarithmically){                                      \
+  double y = pma->t_sampling[index_t]*(y_max-y_min)+y_min;          \
+  t = 1.0-exp(-y);                                                  \
+}else{                                                              \
+  t = pma->t_sampling[index_t]*(t_max-t_min)+t_min;                 \
+}
+#define matter_get_tij_limits(index_wd1,index_wd2)                    \
+t_min = MAX((pma->tau0-pma->tw_max[index_wd1])/(pma->tau0-pma->tw_min[index_wd2]),0.0+pma->bi_maximal_t_offset);\
+t_max = MIN((pma->tau0-pma->tw_min[index_wd1])/(pma->tau0-pma->tw_max[index_wd2]),1.0-pma->bi_maximal_t_offset);
+#define matter_get_t_limits(index_wd1,index_wd2)                    \
+matter_get_tij_limits(index_wd2,index_wd1)                          \
+if(t_min>t_max){matter_get_tij_limits(index_wd1,index_wd2);}        \
+else{                                                               \
+  double temp_t_min = t_min; double temp_t_max=t_max;               \
+  matter_get_tij_limits(index_wd1,index_wd2);                       \
+  t_min = MIN(temp_t_min,t_min); t_max = MAX(temp_t_max,t_max);     \
+}
+/* macro for re-allocating memory, returning error if it failed */
+#define class_realloc_parallel(pointer, newname, size, error_message_output)  {                                  \
+  if(abort==_FALSE_){                                                                                            \
+    pointer=realloc(newname,size);                                                                               \
+    if (pointer == NULL) {                                                                                       \
+      int size_int;                                                                                              \
+      size_int = size;                                                                                           \
+      class_alloc_message(error_message_output,#pointer, size_int);                                              \
+      abort=_TRUE_;                                                                                              \
+    }                                                                                                            \
+  }                                                                                                              \
+}
  #endif
