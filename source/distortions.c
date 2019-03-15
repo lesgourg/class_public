@@ -137,8 +137,8 @@ int distortions_free(struct distortions * psd) {
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_constants(struct background * pba, 
-                          struct thermo * pth, 
+int distortions_constants(struct background * pba,
+                          struct thermo * pth,
                           struct distortions * psd){
 
   /** Define unit conventions */
@@ -181,7 +181,7 @@ int distortions_constants(struct background * pba,
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
-int distortions_set_detector(struct precision * ppr, 
+int distortions_set_detector(struct precision * ppr,
                              struct distortions * psd){
 
   /** Local variables */
@@ -443,8 +443,8 @@ int distortions_get_xz_lists(struct precision * ppr,
  *    4) Use a soft transition at a_mu-y and z_th imposing conservation of energy
  *       ('branching approx'=soft_soft_cons)
  *    5) Use a PCA method as described in Chluba & Jeong 2014 ('branching approx'=exact)
- *       In this case, the definition of the BRs is detector dependent and the user has therefore to 
- *       specify the detector type and corresponding characteristics. 
+ *       In this case, the definition of the BRs is detector dependent and the user has therefore to
+ *       specify the detector type and corresponding characteristics.
  *
  * All quantities are stored in the table br_table.
  *
@@ -551,7 +551,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
                                                  psd->z[index_z],
                                                  &f_g,
                                                  &f_y,
-                                                 &f_mu,  
+                                                 &f_mu,
                                                  f_E,
                                                  &last_index),
                  psd->error_message,
@@ -600,6 +600,10 @@ int distortions_compute_heating_rate(struct background* pba,
 
   /** Define local variables */
   int index_z;
+  int last_index_back, last_index_thermo;
+  double *pvecback, *pvecthermo;
+  double tau;
+  double x_e, T_b;
   double bb_vis;
 
   /** Update heating table with second order contributions */
@@ -610,7 +614,17 @@ int distortions_compute_heating_rate(struct background* pba,
              phe->error_message,
              psd->error_message);
 
-  /** Allocate space total heating function */
+  /** Allocate space for background vector */
+  last_index_back = 0;
+  last_index_thermo = 0;
+  class_alloc(pvecback,
+              pba->bg_size*sizeof(double),
+              psd->error_message);
+  class_alloc(pvecthermo,
+              pba->bg_size*sizeof(double),
+              psd->error_message);
+
+  /** Allocate space for total heating function */
   class_alloc(psd->dQrho_dz_tot,
               psd->z_size*sizeof(double*),
               psd->error_message);
@@ -621,17 +635,57 @@ int distortions_compute_heating_rate(struct background* pba,
   /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<psd->z_size; ++index_z){
 
+    /** Import quantities from background structure */
+    class_call(background_tau_of_z(pba,
+                                   psd->z[index_z],
+                                   &tau),
+               pba->error_message,
+               psd->error_message);
+
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->long_info,
+                                 pba->inter_closeby,
+                                 &last_index_back,
+                                 pvecback),
+               pba->error_message,
+               psd->error_message);
+
+    /** Import quantities from thermodynamics structure */
+    class_call(thermodynamics_at_z(pba,
+                                   pth,
+                                   psd->z[index_z],
+                                   pth->inter_normal,
+                                   &last_index_thermo,
+                                   pvecback,
+                                   pvecthermo),
+               pth->error_message,
+               psd->error_message);
+
+    x_e = pvecthermo[pth->index_th_xe];                                                             // [-]
+    T_b = pvecthermo[pth->index_th_Tb];                                                             // [-]
+
     /* Black body visibility function */
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
     /* Total heating rate */
-    class_call(heating_rate_acoustic_diss(phe,
-                                          psd->z[index_z],
-                                          &psd->dQrho_dz_tot[index_z]),
+    /*
+    class_call(heating_at_z(pba,pth,
+                            x_e,
+                            psd->z[index_z],
+                            T_b,
+                            pvecback),
                phe->error_message,
                psd->error_message);
 
-    psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;
+     psd->dQrho_dz_tot[index_z] = phe->deposition_table[index_z*phe->dep_size+index_dep_heat]*
+                                  pvecback[pba->index_bg_a]/
+                                  (pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_)/
+                                  (pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6); // [-]
+     printf("%g  %g\n", psd->z[index_z],psd->dQrho_dz_tot[index_z]*(1.+psd->z[index_z]));*/
+    psd->dQrho_dz_tot[index_z] = 0.;
+
+    psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
 
   return _SUCCESS_;

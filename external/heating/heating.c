@@ -73,7 +73,7 @@ int heating_init(struct precision * ppr,
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
 
   /** Import quantities from background structure */
-  phe->H0 = pba->H0*_c_/(_Mpc_over_m_*1.e2);                                                        // [1/s]
+  phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
   phe->T_g0 = pba->T_cmb;                                                                           // [K]
   phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
   phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
@@ -309,10 +309,9 @@ int heating_at_z(struct background* pba,
   dEdz_inj = 0.0;
 
   /** Import quantities from background structure */
-  phe->H = pvecback[pba->index_bg_H]*_c_/(_Mpc_over_m_*1.e2);                                       // [1/s]
+  phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
 
-  phe->rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                      // [J/m^3]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                  // [J/m^3]
   if(phe->has_dcdm){
     phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;
@@ -320,7 +319,6 @@ int heating_at_z(struct background* pba,
   else{
     phe->rho_dcdm = 0.0;
   }
-  phe->R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                     // [-]
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -465,8 +463,7 @@ int heating_energy_injection_at_z(struct heating* phe,
              phe->error_message);
    if(phe->to_store){
       phe->injection_table[iz_store*phe->inj_size+phe->index_inj_cool] = rate;
-      //printf("%g   %g\n", z,phe->injection_table[iz_store*phe->inj_size+phe->index_inj_cool]/phe->H/phe->rho_g*phe->a*(1.+z));
-    }
+   }
     dEdz += rate;
 
   /** Exotic energy injection mechanisms */
@@ -490,7 +487,6 @@ int heating_energy_injection_at_z(struct heating* phe,
                  phe->error_message);
       if(phe->to_store){
         phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;
-        //printf("%g   %g\n", z,phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec]/phe->H/phe->rho_g*phe->a*(1.+z));
       }
       dEdz += rate;
     }
@@ -658,14 +654,13 @@ int heating_add_second_order(struct background* pba,
   /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<phe->z_size; ++index_z){
 
-    /* From z to tau */
+    /** Import quantities from background structure */
     class_call(background_tau_of_z(pba,
                                    phe->z_table[index_z],
                                    &tau),
                pba->error_message,
                phe->error_message);
 
-    /** Import quantities from background */
     class_call(background_at_tau(pba,
                                  tau,
                                  pba->long_info,
@@ -678,8 +673,9 @@ int heating_add_second_order(struct background* pba,
     phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                            // [1/s]
     phe->a = pvecback[pba->index_bg_a];                                                             // [-]
     phe->rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;                     // [J/m^3]
+    phe->R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                   // [-]
 
-    /** Import quantities from thermodynamics */
+    /** Import quantities from thermodynamics structure */
     class_call(thermodynamics_at_z(pba,
                                    pth,
                                    phe->z_table[index_z],
@@ -691,12 +687,12 @@ int heating_add_second_order(struct background* pba,
                phe->error_message);
 
     phe->dkappa = pvecthermo[pth->index_th_dkappa];                                                 // [1/Mpc]
-    phe->dkD_dz = (1./(phe->H*phe->dkappa))*
-                  (16.0/15.0+pow(phe->R,2.0)/(1.0+phe->R))/(6.0*(1.0+phe->R));                      // [Mpc^2]
+    phe->dkD_dz = 1./(pvecback[pba->index_bg_H]*phe->dkappa)*
+                  (16./15.+pow(phe->R,2.)/(1.+phe->R))/(6.*(1.0+phe->R));                           // [Mpc^2]
     phe->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
 
     /** Import quantities from primordial structure */
-    phe->k_max = 5.0*phe->kD;
+    phe->k_max = 5.*phe->kD;
     phe->k_min = 0.12;
     phe->k_size = 500;        /* Found to be reasonable for this particular integral */
 
@@ -722,12 +718,13 @@ int heating_add_second_order(struct background* pba,
     /** Update injection table with second order energy injection mechanisms */
     class_call(heating_rate_acoustic_diss(phe,
                                           phe->z_table[index_z],
-                                          &phe->injection_table[phe->inj_size+phe->index_inj_diss]),
+                                          &phe->injection_table[index_z*phe->inj_size+phe->index_inj_diss]),
                phe->error_message,
                phe->error_message);
 
-    //printf("%g   %g  %g\n", phe->z_table[index_z],phe->injection_table[iz_store*phe->inj_size+phe->index_inj_cool]/phe->H/phe->rho_g*phe->a*(1.+z),phe->x_e);
-
+    //printf("%g   %g  %g\n", phe->z_table[index_z],
+    //   phe->injection_table[index_z*phe->inj_size+phe->index_inj_cool]/phe->H/phe->rho_g*phe->a*(1.+phe->z_table[index_z]),
+    //   phe->injection_table[index_z*phe->inj_size+phe->index_inj_diss]/phe->H/phe->rho_g*phe->a*(1.+phe->z_table[index_z]));
 
     /* Free allocated space */
     free(phe->k);

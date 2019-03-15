@@ -6,7 +6,7 @@
 struct heating{
 
   /** @name - input parameters initialized by user in input module (all other quantities are computed in this module,
-   *   given these parameters and the content of the 'precision', 'background', 'thermodynamics' and 
+   *   given these parameters and the content of the 'precision', 'background', 'thermodynamics' and
    *  'primordial' structures) */
 
   //@{
@@ -90,7 +90,7 @@ struct heating{
   double filled_until_z_dep;
   int filled_until_index_z_inj;
   double filled_until_z_inj;
-  
+
   int last_index_z_dep;
   int last_index_z_inj;
   int last_index_z_feff;
@@ -108,7 +108,7 @@ struct heating{
   int index_inj_tot;
   //int index_dep_lowE;
   int inj_size;                  /** All contributions + total */
-  
+
   /* chi tables */
   double* chiz_table;
   int chiz_size;
@@ -140,10 +140,10 @@ struct heating{
   /* Flags */
   int has_exotic_injection;
   int has_dcdm;
-  
+
   int has_DM_ann;
   int has_DM_dec;
- 
+
   int to_store;
 
   /* Book-keeping */
@@ -195,11 +195,11 @@ extern "C" {
   int heating_energy_injection_at_z(struct heating* phe,
                                     double z,
                                     double* dEdz_inj);
-                                    
+
   int heating_deposition_function_at_z(struct heating* phe,
                                        double x,
                                        double z);
-                                       
+
   int heating_add_second_order(struct background* pba,
                                struct thermo* pth,
                                struct perturbs* ppt,
@@ -211,16 +211,16 @@ extern "C" {
 
   int heating_read_chi_x_from_file(struct precision* ppr,
                                    struct heating* phe);
-  
+
   /* Efficiency of energy deposition */
   int heating_read_feff_from_file(struct precision* ppr,
                                   struct heating* phe);
- 
+
   /* Heating functions */
   int heating_rate_adiabatic_cooling(struct heating * phe,
                                      double z,
                                      double * energy_rate);
-                                     
+
   int heating_rate_acoustic_diss(struct heating * phe,
                                  double z,
                                  double * energy_rate);
