@@ -28,21 +28,15 @@ struct distortions
 
   //@{
 
-  int has_distortions;
-
   int branching_approx;                      /* Which approximation to use for the branching ratios? */
 
-  int dQrho_dz_diss_approx;                  /* Use full version of dQrho_dz_diss or its approximation? */
-
   int N_PCA;
+
   DetectorName distortions_detector;         /* Name of detector */
   double nu_min_detector;                    /* Minimum frequency of chosen detector */
   double nu_max_detector;                    /* Maximum frequency of chosen detector */
   double nu_delta_detector;                  /* Bin size of chosen detector */
   double delta_Ic_detector;
-
-  int user_defined_detector;
-  int user_defined_name;
 
   //@}
 
@@ -74,19 +68,6 @@ struct distortions
   double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
   double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
 
-  /* Table storing heating rates */
-  double ** heating_table;
-  int index_ht_dQrho_dz_cool;                /* Heating function from cooling of electron and baryions */
-  int index_ht_dQrho_dz_diss;                /* Heating function from Silk damping */
-  int index_ht_dQrho_dz_CRR;                 /* Heating function from cosmological recombination radiation */
-  int index_ht_dQrho_dz_ann;                 /* Heating function from particle annihilation */
-  int index_ht_dQrho_dz_dec;                 /* Heating function from particle decay */
-  int index_ht_dQrho_dz_eva_PBH;             /* Heating function from evaporation of primordial black holes */
-  int index_ht_dQrho_dz_acc_PBH;             /* Heating function from accretion of matter into primordial black holes */
-  int index_ht_dQrho_dz_tot;                 /* Total heating function */
-  int index_ht_dQrho_dz_tot_screened;        /* Total heating function times blackbody visibility function */
-  int ht_size;                               /* Size of the allocated space for heating quantities */
-
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
   double ** br_table; 
   double * sd_parameter_table;
@@ -99,9 +80,17 @@ struct distortions
   int index_type_PCA;
   int type_size;
 
-  /* Total distortion amplitude for residula distortions, total heating rate and total spectral distortion */
+  /* Total distortion amplitude for residual distortions */
   double epsilon;
+
+  /* Total heating function */
+  double * dQrho_dz_tot;
+  double * dQrho_dz_tot_screened;
+
+  /* Total heating rate */
   double Drho_over_rho;
+
+  /* Total spectral distortion */
   double * DI;                               /* DI[index_x] = list of values */
 
   /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
@@ -137,9 +126,14 @@ struct distortions
   //@}
 
 
-  /** @name - technical parameters */
+  /** @name - Flags and technical parameters */
 
   //@{
+
+  int has_distortions;
+
+  int user_defined_detector;
+  int user_defined_name;
 
   short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
@@ -161,8 +155,8 @@ extern "C" {
   /* Main functions */
   int distortions_init(struct precision * ppr,
                        struct background * pba,
-                       struct perturbs * ppt,
                        struct thermo * pth,
+                       struct perturbs * ppt,
                        struct primordial * ppm,
                        struct distortions * psd);
 
@@ -191,10 +185,10 @@ extern "C" {
   int distortions_compute_branching_ratios(struct precision * ppr,
                                            struct distortions* psd);
 
-  int distortions_compute_heating_rate(struct precision * ppr,
-                                       struct background* pba,
-                                       struct perturbs * ppt,
+  int distortions_compute_heating_rate(struct background* pba,
                                        struct thermo * pth,
+                                       struct heating * phe,
+                                       struct perturbs * ppt,
                                        struct primordial * ppm,
                                        struct distortions * psd);
 

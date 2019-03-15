@@ -18,8 +18,8 @@
  */
 int distortions_init(struct precision * ppr,
                      struct background * pba,
-                     struct perturbs * ppt,
                      struct thermo * pth,
+                     struct perturbs * ppt,
                      struct primordial * ppm,
                      struct distortions * psd) {
 
@@ -27,6 +27,8 @@ int distortions_init(struct precision * ppr,
   int last_index = 0;
   int index_br;
   int index_x;
+
+  struct heating* phe = &(pth->he);
 
   if(psd->has_distortions == _FALSE_){
     return _SUCCESS_;
@@ -67,7 +69,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /** Define heating function */
-  class_call(distortions_compute_heating_rate(ppr,pba,ppt,pth,ppm,psd),
+  class_call(distortions_compute_heating_rate(pba,pth,phe,ppt,ppm,psd),
              psd->error_message,
              psd->error_message);
 
@@ -105,10 +107,8 @@ int distortions_free(struct distortions * psd) {
     free(psd->br_table);
 
     /** Delete heating functions */
-    for(index_ht=0;index_ht<psd->ht_size;++index_ht){
-      free(psd->heating_table[index_ht]);
-    }
-    free(psd->heating_table);
+    free(psd->dQrho_dz_tot);
+    free(psd->dQrho_dz_tot_screened);
 
     /** Delete distortion shapes */
     for(index_type=0;index_type<psd->type_size;++index_type){
@@ -335,21 +335,7 @@ int distortions_generate_detector(struct precision * ppr,
 int distortions_indices(struct distortions * psd) {
 
   /** Define local variables */
-  int index_ht = 0;
   int index_type = 0;
-
-  /** Define indeces for table heating_table defined in distortions_compute_heating_rate */
-  class_define_index(psd->index_ht_dQrho_dz_cool,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_diss,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_CRR,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_ann,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_dec,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_eva_PBH,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_acc_PBH,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_tot,_TRUE_,index_ht,1);
-  class_define_index(psd->index_ht_dQrho_dz_tot_screened,_TRUE_,index_ht,1);
-
-  psd->ht_size = index_ht;
 
   /** Define indeces for tables - br_table defined in distortions_compute_branching_ratios,
                                 - sd_parameter_table and
@@ -595,34 +581,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
 
 /**
- * Calculate heating rates.
- *
- * There are many possible sources of heating (for more details see e.g. Chluba & Sunyaev 2012
- * and Chluba 2016), some are present even for the standard cosmological model like
- *    1) Adiabatically cooling electrons and barions as described in Chluba & Sunyaev 2012
- *        (see also Khatri, Sunyaev & Chluba 2012 for useful discussion)
- *    2) Dissipation of acoustic waves as described in Chluba, Khatri & Sunyaev 2012 (see also
- *       Chluba 2013 and Diacoumis & Wong 2017 for useful discussion) with two possible
- *       approximations
- *          a) Eq. 42 from Chluba, Khatri & Sunyaev 2012 (approximated to Y_SZ*S_ac) (TODO)
- *          b) Eq. 45 from Chluba, Khatri & Sunyaev 2012
- *       The user can select the preferred option with 'heating approx'=yes/no (default =yes)
- *    3) Cosmological recombination radiation as described in Chluba & Ali-Haimoud 2016 (TODO)
- * while some other are related to new possible physical processes like
- *    4) Annihilating particles (e.g. dark matter) as described in Chluba 2010 and Chluba
- *       & Sunyaev 2012. (see also Chluba 2013 for useful discussion) (TODO)
- *    5) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012
- *       (see also Chluba 2013 for useful discussion) (TODO)
- *    6) Evaporation of primordial black holes as described in Poulin et al. 2017 (see also
- *       Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions) (TODO)
- *    7) Acctretion of matter into primordial black holes both via
- *          a) Spherical accretion as described in Ali-Haimoud & Kamionkowski 2017 (note: "we
- *             find that CMB spectral distortion measurements, both current and upcoming,
- *             do not place any constraints on PBHs.")  (TODO) and
- *          b) Disk accretion as described in Poulin et al. 2017 (TODO)
- *       (see also Carr et al. 2010 for useful discussion)
- *
- * All quantities are stored in the table heating_table.
+ * Import heating rates from heating structure.
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
@@ -632,41 +591,31 @@ int distortions_compute_branching_ratios(struct precision * ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_compute_heating_rate(struct precision * ppr,
-                                     struct background* pba,
-                                     struct perturbs * ppt,
+int distortions_compute_heating_rate(struct background* pba,
                                      struct thermo * pth,
+                                     struct heating * phe,
+                                     struct perturbs * ppt,
                                      struct primordial * ppm,
                                      struct distortions * psd){
 
   /** Define local variables */
   int index_z;
-  double tau, bb_vis;
-  int last_index_back, last_index_thermo;
-  double * pvecback, O_b, h, H, a, t, rho_g, R, T_g0;
-  double * pvecthermo, dk, dkD_dz, kD, N_e, X_e, Y_He;
-  int index_ht;
-  double alpha_h, tilde_rho_g, theta_g;
-  double k_max, k_min, k_size, k_delta, k, pk_primordial_k, * int_dQrho_dz_diss_full, * int_dQrho_dz_diss_approx;
+  double bb_vis;
 
+  /** Update heating table with second order contributions */
+  class_call(heating_add_second_order(pba,
+                                      pth,
+                                      ppt,
+                                      ppm),
+             phe->error_message,
+             psd->error_message);
 
-  /** Allocate space for heating rates in heating_table */
-  class_alloc(psd->heating_table,
-              psd->ht_size*sizeof(double*),
+  /** Allocate space total heating function */
+  class_alloc(psd->dQrho_dz_tot,
+              psd->z_size*sizeof(double*),
               psd->error_message);
-  for(index_ht=0; index_ht<psd->ht_size; ++index_ht){
-    class_alloc(psd->heating_table[index_ht],
-                psd->z_size*sizeof(double),
-                psd->error_message);
-  }
-
-  last_index_back = 0;
-  last_index_thermo = 0;
-  class_alloc(pvecback,
-              pba->bg_size*sizeof(double),
-              psd->error_message);
-  class_alloc(pvecthermo,
-              pth->tt_size*sizeof(double),
+  class_alloc(psd->dQrho_dz_tot_screened,
+              psd->z_size*sizeof(double*),
               psd->error_message);
 
   /* Loop over z and calculate the heating at each point */
@@ -675,143 +624,15 @@ int distortions_compute_heating_rate(struct precision * ppr,
     /* Black body visibility function */
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
-    /* From z to tau */
-    class_call(background_tau_of_z(pba,
-                                   psd->z[index_z],
-                                   &tau),
-               pba->error_message,
-               psd->error_message);
-
-    /** Import quantities from background */
-    class_call(background_at_tau(pba,
-                                 tau,
-                                 pba->long_info,
-                                 pba->inter_closeby,
-                                 &last_index_back,
-                                 pvecback),
-               pba->error_message,
-               psd->error_message);
-
-    O_b = pba->Omega0_b;                                                              // [-]
-    h = pba->h;                                                                       // [-]
-    H = pvecback[pba->index_bg_H];                                                    // [1/Mpc]
-    a = pvecback[pba->index_bg_a];                                                    // [-]
-    t = pvecback[pba->index_bg_time];                                                 // [Mpc]
-    t /= _s_over_Mpc_;                                                                // [s]
-    rho_g = pvecback[pba->index_bg_rho_g];                                            // [1/Mpc^4]
-    rho_g *= _GeVcm3_over_Mpc2_;                                                      // [GeV/cm^3]
-    R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];          // [-]
-    T_g0 = pba->T_cmb;                                                                // [K]
-
-    /** Import quantities from thermodynamics */
-    class_call(thermodynamics_at_z(pba,
-                                   pth,
-                                   psd->z[index_z],
-                                   pth->inter_normal,
-                                   &last_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
-               psd->error_message);
-
-    dk = pvecthermo[pth->index_th_dkappa];                                            // [1/Mpc]
-    dkD_dz = (1./(H*dk))*(16.0/15.0+pow(R,2.0)/(1.0+R))/(6.0*(1.0+R));                // [Mpc^2]
-    kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                       // [1/Mpc]
-    N_e = pth->n_e;                                                                   // [1/m^3] (today)
-    X_e = pvecthermo[pth->index_th_xe];                                               // [-]
-    Y_He = pth->YHe;                                                                  // [-]
-
-    /** Calculate heating rates */
-
-    /* 1) Adiabatically cooling electrons and barions */
-    tilde_rho_g = rho_g/(_m_e_/_GeV_over_kg_);                                        // [1/cm^3]
-    theta_g = (_k_B_*T_g0*(1.+psd->z[index_z]))/(_m_e_*pow(_c_,2.));                  // [-]
-    alpha_h = (3./2.)*N_e*1.e-6*pow(1.+psd->z[index_z],3.)*(1.+Y_He+X_e);             // [1/cm^3]
-    psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] = -a*alpha_h/
-                                                               tilde_rho_g*theta_g;   // [-]
-
-    /* 2) dissipation of acoustic waves */
-    /* a) Full function */
-    if (psd->dQrho_dz_diss_approx == _FALSE_){
-    }
-
-    /* b) Approximated function */
-    if (psd->dQrho_dz_diss_approx == _TRUE_){
-
-      k_max = 5.0*kD;
-      k_min = 0.12;
-      k_size = 500;        /* Found to be reasonable for this particular integral */
-
-      class_alloc(int_dQrho_dz_diss_approx,
-                  k_size*sizeof(double),
-                  psd->error_message);
-
-      for (int index_k=0; index_k<k_size; index_k++) {
-        k = exp(log(k_min)+(log(k_max)-log(k_min))/(k_size)*index_k);
-
-        /* Import quantities from primordial
-         * Note that the the heating caused by dissipation of acustic waves depends on the primordial
-         * power spectrum and to analyse the its influence it is enough to change initial parameters. */
-        class_call(primordial_spectrum_at_k(ppm,
-                                            ppt->index_md_scalars,
-                                            linear,
-                                            k,
-                                            &pk_primordial_k),
-                     ppm->error_message,
-                     psd->error_message);
-        /* Define integrand for approximated function */
-        int_dQrho_dz_diss_approx[index_k] = 4.*0.81*
-                                            pow(k,2.)*
-                                            pk_primordial_k*
-                                            exp(-2.*pow(k/kD,2.))*              // [-]
-                                            dkD_dz;
-      }
-
-      /* Integrate approximate function */
-      class_call(simpson_integration(k_size,
-                                     int_dQrho_dz_diss_approx,
-                                     (log(k_max)-log(k_min))/(k_size),
-                                     &psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z],
-                                     psd->error_message),
-                 psd->error_message,
-                 psd->error_message);
-
-      /* Free space */
-      free(int_dQrho_dz_diss_approx);
-    }
-
-    /* 3) Cosmological recombination */
-    psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] = 0.;
-
-    /* 4) Annihilating particles */
-    psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] = 0.;
-
-    /* 5) Decaying relic particles */
-    psd->heating_table[psd->index_ht_dQrho_dz_dec][index_z] = 0.;
-
-    /* 6) Evaporation of primordial black holes */
-    psd->heating_table[psd->index_ht_dQrho_dz_eva_PBH][index_z] = 0.;
-
-    /* 7) Accretion of matter into primordial black holes */
-    psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z] = 0.;
-
     /* Total heating rate */
-    psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z] =
-                                        psd->heating_table[psd->index_ht_dQrho_dz_cool][index_z] +
-                                        psd->heating_table[psd->index_ht_dQrho_dz_diss][index_z] +
-                                        psd->heating_table[psd->index_ht_dQrho_dz_CRR][index_z] +
-                                        psd->heating_table[psd->index_ht_dQrho_dz_ann][index_z] +
-                                        psd->heating_table[psd->index_ht_dQrho_dz_dec][index_z] +
-                                        psd->heating_table[psd->index_ht_dQrho_dz_eva_PBH][index_z] +
-                                        psd->heating_table[psd->index_ht_dQrho_dz_acc_PBH][index_z];
+    class_call(heating_rate_acoustic_diss(phe,
+                                          psd->z[index_z],
+                                          &psd->dQrho_dz_tot[index_z]),
+               phe->error_message,
+               psd->error_message);
 
-    psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z] =
-                                        psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*bb_vis;
+    psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;
   }
-
-  /* Free allocated space */
-  free(pvecback);
-  free(pvecthermo);
 
   return _SUCCESS_;
 
@@ -850,7 +671,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
   /* Define y, mu, g and mu_k from heating rates */
   for(index_type=0; index_type<psd->type_size; ++index_type){
-    class_call(array_trapezoidal_convolution(psd->heating_table[psd->index_ht_dQrho_dz_tot_screened],
+    class_call(array_trapezoidal_convolution(psd->dQrho_dz_tot_screened,
                                              psd->br_table[index_type],
                                              psd->z_size,
                                              psd->z_weights,
@@ -1524,9 +1345,9 @@ int heating_output_data(struct distortions * psd,
     dataptr = data + index_z*number_of_titles;
     storeidx = 0;
     class_store_double(dataptr, psd->z[index_z], _TRUE_, storeidx);
-    class_store_double(dataptr, psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z], _TRUE_, storeidx);
-    class_store_double(dataptr, psd->heating_table[psd->index_ht_dQrho_dz_tot][index_z]*(1.+psd->z[index_z]), _TRUE_, storeidx);
-    class_store_double(dataptr, psd->heating_table[psd->index_ht_dQrho_dz_tot_screened][index_z]*(1.+psd->z[index_z]), _TRUE_, storeidx);
+    class_store_double(dataptr, psd->dQrho_dz_tot[index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, psd->dQrho_dz_tot[index_z]*(1.+psd->z[index_z]), _TRUE_, storeidx);
+    class_store_double(dataptr, psd->dQrho_dz_tot_screened[index_z]*(1.+psd->z[index_z]), _TRUE_, storeidx);
   }
 
   return _SUCCESS_;

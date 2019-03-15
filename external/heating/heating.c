@@ -1,20 +1,53 @@
 #include "heating.h"
-/** ENERGY INJECTION FUNCTIONS
+
+/**
+ * The main goal of this module is to calculate deposited energy in form of heating, ionization
+ * and Lyman alpha processes. 
+ * 
+ * To achieve this goal, we first calculate the injected energy rate for different physical
+ * effects. There are many possible sources of energy injection/extraction (for more details
+ * see e.g. Chluba & Sunyaev 2012 and Chluba 2016), some are present even for the standard 
+ * cosmological model like
+ *    1) Adiabatically cooling electrons and barions as described in Chluba & Sunyaev 2012
+ *       (see also Khatri, Sunyaev & Chluba 2012 for useful discussion)
+ *    2) Dissipation of acoustic waves as described in Chluba, Khatri & Sunyaev 2012 (see also
+ *       Chluba 2013 and Diacoumis & Wong 2017 for useful discussion) with two possible
+ *       approximations
+ *          a) Eq. 42 from Chluba, Khatri & Sunyaev 2012 (approximated to Y_SZ*S_ac) (TODO)
+ *          b) Eq. 45 from Chluba, Khatri & Sunyaev 2012
+ *       The user can select the preferred option with 'heating approx'=yes/no (default =yes)
+ *    3) Cosmological recombination radiation as described in Chluba & Ali-Haimoud 2016 (TODO)
+ * while some other are related to new possible physical processes like
+ *    4) Annihilating particles (e.g. dark matter) as described in Chluba 2010 and Chluba
+ *       & Sunyaev 2012. (see also Chluba 2013 for useful discussion)
+ *    5) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012
+ *       (see also Chluba 2013 for useful discussion)
+ *    6) Evaporation of primordial black holes as described in Poulin et al. 2017 (see also
+ *       Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions) (TODO)
+ *    7) Acctretion of matter into primordial black holes both via
+ *          a) Spherical accretion as described in Ali-Haimoud & Kamionkowski 2017 (TODO) and
+ *          b) Disk accretion as described in Poulin et al. 2017 (TODO)
+ *       (see also Carr et al. 2010 for useful discussion)
+ * Note furthermore that the dissipation of acoustic waves is entrinsically a second order process, i.e.
+ * it contribution can be derived by expanding at second order the both the dissipation problem and the 
+ * energy transfer by Compton scattering (see e.g. Chluba, Khatri & Sunyaev 2012). As such, this process
+ * is handled as a second order contribution, separated form the oders.
  *
- * Developed by Vivian Poulin (added functions for energy repartition from DM annihilations or decays and f_eff),
- *              Patrick Stöcker (20.02.17: added external script to calculate the annihilation coefficients on the fly) and
- *              Matteo Lucca (11.02.19: rewrote section in CLASS style)
- *              Nils Schoeneberg (6.03.19: Added struct and module handling)
+ * Once the rate of energy injection is known, the program evaluates a so-called deposition function 
+ * which determines the amount of energy effectively deposited into the different forms, i.e. heating,
+ * ionization and Lyman alpha.
+ *
+ * The module is in part based on ExoCLASS (see Stoecker et al. 2018) which has been mainly developed
+ * by Vivian Poulin and Patrick Stöcker. The CLASS implementation has been done by Nils Schoeneberg 
+ * and Matteo Lucca.
  */
+ 
 #define deposit_on_the_spot          0
 #define deposit_feff_from_file       1
 
 #define chi_from_SSCK      0
 #define chi_from_x_file    1
 #define chi_from_z_file    2
-
-#define disk_accretion 0
-#define spherical_accretion 1
 
 //TODO :: disable branching ratios before z > 2000, and replace with only heating
 
@@ -33,10 +66,12 @@ int heating_init(struct precision * ppr,
   /** Define local variable */
   struct heating* phe = &(pth->he);
 
-  phe->deposit_energy_as = 0;                 // TODO :: set in input
+  // TODO :: set in input
+  phe->deposit_energy_as = 0; 
+  phe->chi_type = chi_from_SSCK;
+  phe->heating_rate_acoustic_diss_approx = _TRUE_;
 
   /** Import quantities from background structure */
-  phe->last_index_bg = 0;
   phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
   phe->h = pba->h;                                                                                  // [-]
   phe->T_g0 = pba->T_cmb;                                                                           // [K]
@@ -59,17 +94,13 @@ int heating_init(struct precision * ppr,
 
   /** Compute basis quantities from background and thermodynamics parameters */
   phe->nH0 = 3.*pba->H0*pba->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);                   // [1/m^3]
-
-  /** Initialize branching ratios and deposition functions */
-  phe->chi_type = chi_from_SSCK;
-  phe->deposit_energy_as = 0;                // TODO :: set in input
-  phe->f_eff = 1.;                           // TODO :: read from user instead
   
-  /** Initialize indeces */
+  /** Initialize indeces and parameters */
   phe->last_index_chix = 0;
   phe->last_index_z_chi = 0;
   phe->last_index_z_feff = 0;
-  
+  phe->f_eff = 1.;
+
   /** Check energy injection */
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
 
@@ -257,14 +288,10 @@ int heating_free(struct thermo* pth){
 
 
 /**
- * Check if table extends to given z
- *    - If yes: Interpolate from table all types that are known (i.e. including
- *      acous. diss. if already added)
- *    - If no: Calculate heating as required
  *
  * @param pba         Input: pointer to background structure
  * @param pth         Input: pointer to thermodynamics structure
- * @param x           Input: TODO
+ * @param x           Input: freaction of free electrons
  * @param z           Input: redshift
  * @param pvecback    Output: vector of background quantities
  * @return the error status
@@ -277,7 +304,6 @@ int heating_at_z(struct background* pba,
                  double* pvecback){
 
   /** Define local variables */
-  double tau;
   struct heating* phe = &(pth->he);
   int index_z, index_dep, iz_store;
   double h,a,b;
@@ -333,7 +359,7 @@ int heating_at_z(struct background* pba,
   /** Test if the values are already within the table */
   else if(z > phe->filled_until_z_dep){
     /* (Linearly) interpolate within the table */
-    for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
       phe->pvecdeposition[index_dep] = phe->deposition_table[phe->last_index_z_dep*phe->inj_size+index_dep] * a 
                                        + phe->injection_table[(phe->last_index_z_dep+1)*phe->inj_size+index_dep] * b;
     }
@@ -595,6 +621,124 @@ int heating_deposition_function_at_z(struct heating* phe,
   for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
     phe->chi_table[index_dep] *= f_eff;
   }
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Update heating table with second order energy injection mechanisms.
+ *
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input: pointer to thermodynamics structure
+ * @param ppt   Input: pointer to perturbation structure
+ * @param ppm   Input: pointer to primordial structure
+ * @return the error status
+ */
+int heating_add_second_order(struct background* pba,
+                             struct thermo* pth,
+                             struct perturbs* ppt,
+                             struct primordial* ppm){
+
+  /** Define local variables */
+  struct heating* phe = &(pth->he);
+  int index_z;
+  double tau;
+  int last_index_back, last_index_thermo;
+  double *pvecback, *pvecthermo;
+  int index_k;
+  double rate;
+
+  /** Allocate backgorund and thermodynamcis vectors */
+  last_index_back = 0;
+  last_index_thermo = 0;
+  class_alloc(pvecback,
+              pba->bg_size*sizeof(double),
+              phe->error_message);
+  class_alloc(pvecthermo,
+              pth->tt_size*sizeof(double),
+              phe->error_message);
+
+  /* Loop over z and calculate the heating at each point */
+  for(index_z=0; index_z<phe->z_size; ++index_z){
+
+    /* From z to tau */
+    class_call(background_tau_of_z(pba,
+                                   phe->z_table[index_z],
+                                   &tau),
+               pba->error_message,
+               phe->error_message);
+
+    /** Import quantities from background */
+    class_call(background_at_tau(pba,
+                                 tau,
+                                 pba->long_info,
+                                 pba->inter_closeby,
+                                 &last_index_back,
+                                 pvecback),
+               pba->error_message,
+               phe->error_message);
+  
+    phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                            // [1/s]
+    phe->a = pvecback[pba->index_bg_a];                                                             // [-]
+    phe->rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;                     // [J/m^3]
+    
+    /** Import quantities from thermodynamics */
+    class_call(thermodynamics_at_z(pba,
+                                   pth,
+                                   phe->z_table[index_z],
+                                   pth->inter_normal,
+                                   &last_index_thermo,
+                                   pvecback,
+                                   pvecthermo),
+               pth->error_message,
+               phe->error_message);
+
+    phe->dkappa = pvecthermo[pth->index_th_dkappa];                                                 // [1/Mpc]
+    phe->dkD_dz = (1./(phe->H*phe->dkappa))*
+                  (16.0/15.0+pow(phe->R,2.0)/(1.0+phe->R))/(6.0*(1.0+phe->R));                      // [Mpc^2]
+    phe->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
+
+    /** Import quantities from primordial structure */
+    phe->k_max = 5.0*phe->kD;
+    phe->k_min = 0.12;
+    phe->k_size = 500;        /* Found to be reasonable for this particular integral */
+
+    class_alloc(phe->k,
+                phe->k_size*sizeof(double),
+                phe->error_message);
+
+    class_alloc(phe->pk_primordial_k,
+                phe->k_size*sizeof(double),
+                phe->error_message);
+
+    for (index_k=0; index_k<phe->k_size; index_k++) {
+      phe->k[index_k] = exp(log(phe->k_min)+(log(phe->k_max)-log(phe->k_min))/(phe->k_size)*index_k);
+      class_call(primordial_spectrum_at_k(ppm,
+                                          ppt->index_md_scalars,
+                                          linear,
+                                          phe->k[index_k],
+                                          &phe->pk_primordial_k[index_k]),
+                 ppm->error_message,
+                 phe->error_message);
+    }
+
+    /** Update injection table with second order energy injection mechanisms */
+    class_call(heating_rate_acoustic_diss(phe,
+                                          phe->z_table[index_z],
+                                          &phe->injection_table[index_z*phe->inj_size+phe->index_inj_diss]),
+               phe->error_message,
+               phe->error_message);
+
+    /* Free allocated space */
+    free(phe->k);
+    free(phe->pk_primordial_k);
+
+  }
+
+  /* Free allocated space */
+  free(pvecback);
+  free(pvecthermo);
 
   return _SUCCESS_;
 }
@@ -917,7 +1061,43 @@ int heating_rate_acoustic_diss(struct heating * phe,
                                double * energy_rate){
 
   /** Define local variables */
+  int index_k;
+  double * integrand_full, * integrand_approx;
+  double dQrho_dz;
 
+  /** a) Calculate full function */
+  if (phe->heating_rate_acoustic_diss_approx == _FALSE_){
+  }
+
+  /** b) Calculate approximated function */
+  if (phe->heating_rate_acoustic_diss_approx == _TRUE_){
+
+    class_alloc(integrand_approx,
+                phe->k_size*sizeof(double),
+                phe->error_message);
+
+    /* Define integrand for approximated function */
+    for (index_k=0; index_k<phe->k_size; index_k++) {                 
+      integrand_approx[index_k] = 4.*0.81*pow(phe->k[index_k],2.)*
+                                  phe->pk_primordial_k[index_k]*
+                                  exp(-2.*pow(phe->k[index_k]/phe->kD,2.))*
+                                  phe->dkD_dz;                                                      // [-]
+    }
+
+    /* Integrate approximate function */
+    class_call(simpson_integration(phe->k_size,
+                                   integrand_approx,
+                                   (log(phe->k_max)-log(phe->k_min))/(phe->k_size),
+                                   &dQrho_dz,                                                       // [-]
+                                   phe->error_message),
+               phe->error_message,
+               phe->error_message);
+
+    /* Free space */
+    free(integrand_approx);
+  }
+  
+  *energy_rate = dQrho_dz*phe->H*phe->rho_g/phe->a;                                                 // [J/(m^3 s)]
 
   return _SUCCESS_;
 

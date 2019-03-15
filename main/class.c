@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
   }
 
   /* [ML] */
-  if (distortions_init(&pr,&ba,&pt,&th,&pm,&sd) == _FAILURE_) {
+  if (distortions_init(&pr,&ba,&th,&pt,&pm,&sd) == _FAILURE_) {
     printf("\n\nError in distortions_init \n=>%s\n",sd.error_message);
     return _FAILURE_;
   }

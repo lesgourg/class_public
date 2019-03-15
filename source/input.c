@@ -1220,7 +1220,15 @@ int input_read_parameters(
     }
   }
 
-  /** - energy injection parameters from CDM annihilation/decay */
+  /** - energy injection parameters */
+  
+  phe->heating_rate_acoustic_diss_approx = _TRUE_;
+  class_call(parser_read_string(pfc,"heating approx",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))){ 
+    phe->heating_rate_acoustic_diss_approx = _FALSE_;
+  }
 
   /* Now read the heating parameters*/
   class_read_double("annihilation",phe->annihilation_efficiency);
@@ -2232,13 +2240,7 @@ int input_read_parameters(
                "inflationary module cannot work if you ask for isocurvature modes");
   }
 
-  /** (?) parameters for spectral distortions [ML] */
-
-  psd->dQrho_dz_diss_approx = _TRUE_;
-  class_call(parser_read_string(pfc,"heating approx",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))) { psd->dQrho_dz_diss_approx = _FALSE_; }
+  /** (?) parameters for spectral distortions */
 
   class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
              errmsg,
