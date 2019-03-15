@@ -1,5 +1,5 @@
 #include "wrap_recfast.h"
-
+#include "thermodynamics.h"
 int thermodynamics_recfast_init(struct precision* ppr,
                                 struct background* pba,
                                 struct thermo* pth,
@@ -56,11 +56,11 @@ int thermodynamics_recfast_init(struct precision* ppr,
   /** - Test schemes */
   /* He fudging */
   class_test((ppr->recfast_Heswitch < 0) || (ppr->recfast_Heswitch > 6),
-             pth->error_message,
+             pre->error_message,
              "RECFAST error: unknown He fudging scheme");
   /* H fudging */
   class_test((ppr->recfast_Hswitch != _TRUE_) && (ppr->recfast_Hswitch != _FALSE_),
-             pth->error_message,
+             pre->error_message,
              "RECFAST error: unknown H fudging scheme");
 
   return _SUCCESS_;
@@ -70,6 +70,7 @@ int thermodynamics_recfast_dx_H_dz(struct thermorecfast * pre, double x_H, doubl
                                    double z, double Hz, double Tmat, double Trad,
                                    double* dxH_dz, double energy_injection) {
 
+  printf("x(z) = %.10e(%.10e)\n",x,z);
   /** Define local variables */
   /* new in recfast 1.4: */
   double Rup,Rdown,K,C;

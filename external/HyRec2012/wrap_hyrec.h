@@ -10,7 +10,7 @@
 #include "hyrec_params.h"
 #endif
 
-#include "common.h"
+#include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 
 struct thermohyrec{
 

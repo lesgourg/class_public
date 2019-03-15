@@ -1943,7 +1943,8 @@ int thermodynamics_solve_derivs(double mz,
   class_call(heating_at_z(pba,pth,x,z,Tmat,pvecback),
              (pth->he).error_message,
              error_message);
-  energy_rate = pth->he.pvecdeposition[pth->he.index_dep_heat];
+  energy_rate = 0.0;
+  //energy_rate = pth->he.pvecdeposition[pth->he.index_dep_heat];
   //energy_rate/=(Hz*(1.+z));
   //printf("dQ/dz/rho[z=%.10e]  = %.10e \n",z,energy_rate/(Hz*pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_));
 
@@ -1995,7 +1996,7 @@ int thermodynamics_solve_derivs(double mz,
     else{
       x_H = ptdw->x_H;
       dx_H = ptdw->dx_H;
-      // If require_H is fale, require_He already fills the x value correctly
+      // If require_H is false, require_He already fills the x value correctly
     }
 
     /** - Hydrogen equations */

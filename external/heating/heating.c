@@ -1,4 +1,5 @@
 #include "heating.h"
+#include "primordial.h"
 
 /**
  * The main goal of this module is to calculate deposited energy in form of heating, ionization
@@ -84,7 +85,7 @@ int heating_init(struct precision * ppr,
   phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
   phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
   phe->has_dcdm = _FALSE_;
-  if (pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
+  if(_FALSE_){//if (pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
     phe->has_dcdm = _TRUE_;
   }
 

@@ -1,9 +1,8 @@
 #ifndef __RECFAST_CLASS__
 #define __RECFAST_CLASS__
 
-#include "thermodynamics.h"
+#include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 
-struct thermo;
 
 struct thermorecfast {
 
@@ -47,6 +46,19 @@ struct thermorecfast {
   ErrorMsg error_message;
 
 };
+
+
+/**************************************************************/
+
+/* *
+ * Putting this down here is important, because of the special nature of this module.
+ * This allows the struct heating to already be defined and thus be a normal member
+ * (as opposed to a pointer member) of the struct thermo in thermodynamics.h
+ * */
+struct thermo;
+struct background;
+struct precision;
+//#include "thermodynamics.h"
 
 /* Boilerplate for C++ */
 #ifdef __cplusplus

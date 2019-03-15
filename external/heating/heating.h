@@ -1,9 +1,7 @@
 #ifndef __HEATING__
 #define __HEATING__
 
-#include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h)
-#include "perturbations.h"
-#include "primordial.h"
+#include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 
 struct heating{
 
@@ -172,7 +170,10 @@ struct heating{
  * This allows the struct heating to already be defined and thus be a normal member
  * (as opposed to a pointer member) of the struct thermo in thermodynamics.h
  * */
-#include "perturbations.h"
+struct background;
+struct thermo;
+struct perturbs;
+struct primordial;
 
 /* @cond INCLUDE_WITH_DOXYGEN */
 /*
