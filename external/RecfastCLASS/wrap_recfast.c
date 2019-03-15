@@ -70,7 +70,6 @@ int thermodynamics_recfast_dx_H_dz(struct thermorecfast * pre, double x_H, doubl
                                    double z, double Hz, double Tmat, double Trad,
                                    double* dxH_dz, double energy_injection) {
 
-  printf("x(z) = %.10e(%.10e)\n",x,z);
   /** Define local variables */
   /* new in recfast 1.4: */
   double Rup,Rdown,K,C;
