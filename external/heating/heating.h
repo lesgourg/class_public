@@ -43,7 +43,6 @@ struct heating{
 
   /* Parameters from background structure */
   /* Redshift independent, i.e. defined in heating_init */
-  double H0;
   double T_g0;
   double Omega0_dcdmdr;
   double Omega_ini_dcdm;

@@ -72,17 +72,6 @@ int heating_init(struct precision * ppr,
   phe->chi_type = chi_from_SSCK;
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
 
-  /** Import quantities from background structure */
-  phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
-  phe->T_g0 = pba->T_cmb;                                                                           // [K]
-  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
-  phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
-  phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
-
-  /** Import quantities from thermodynamics structure */
-  phe->Y_He = pth->YHe;                                                                             // [-]
-  phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
-
   /** Initialize indeces and parameters */
   phe->last_index_chix = 0;
   phe->last_index_z_chi = 0;
@@ -309,9 +298,13 @@ int heating_at_z(struct background* pba,
   dEdz_inj = 0.0;
 
   /** Import quantities from background structure */
+  phe->T_g0 = pba->T_cmb;                                                                           // [K]
+  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
+  phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
+  phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
+
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
-
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                  // [J/m^3]
   if(phe->has_dcdm){
     phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;
@@ -319,6 +312,10 @@ int heating_at_z(struct background* pba,
   else{
     phe->rho_dcdm = 0.0;
   }
+
+  /** Import quantities from thermodynamics structure */
+  phe->Y_He = pth->YHe;                                                                             // [-]
+  phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -721,10 +718,6 @@ int heating_add_second_order(struct background* pba,
                                           &phe->injection_table[index_z*phe->inj_size+phe->index_inj_diss]),
                phe->error_message,
                phe->error_message);
-
-    //printf("%g   %g  %g\n", phe->z_table[index_z],
-    //   phe->injection_table[index_z*phe->inj_size+phe->index_inj_cool]/phe->H/phe->rho_g*phe->a*(1.+phe->z_table[index_z]),
-    //   phe->injection_table[index_z*phe->inj_size+phe->index_inj_diss]/phe->H/phe->rho_g*phe->a*(1.+phe->z_table[index_z]));
 
     /* Free allocated space */
     free(phe->k);
