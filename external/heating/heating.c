@@ -79,6 +79,16 @@ int heating_init(struct precision * ppr,
   phe->last_index_z_chi = 0;
   phe->last_index_z_feff = 0;
 
+  /** Import constant quantities from background structure */
+  phe->T_g0 = pba->T_cmb;                                                                           // [K]
+  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
+  phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
+  phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
+
+  /** Import constant quantities from thermodynamics structure */
+  phe->Y_He = pth->YHe;                                                                             // [-]
+  phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
+
   /** Check energy injection */
   phe->has_dcdm = _FALSE_;
   if(_FALSE_){//if (pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
@@ -151,6 +161,8 @@ int heating_init(struct precision * ppr,
   memcpy(phe->z_table,
          pth->z_table,
          phe->z_size*sizeof(double));
+
+  /** Define additional book-keeping variables for the z table */
   phe->tol_z_table = 1e-10;
   phe->filled_until_index_z_inj = phe->z_size-1;
   phe->filled_until_z_inj = phe->z_table[phe->filled_until_index_z_inj];
@@ -232,7 +244,7 @@ int heating_indices(struct thermo* pth){
   struct heating* phe = &(pth->he);
   int index_dep,index_inj;
 
-  /** Indeces for injection table */
+  /** Indices for injection table */
   index_inj = 0;
   class_define_index(phe->index_inj_cool   , _TRUE_          , index_inj, 1);
   class_define_index(phe->index_inj_diss   , _TRUE_          , index_inj, 1);
@@ -241,7 +253,7 @@ int heating_indices(struct thermo* pth){
   class_define_index(phe->index_inj_tot    , _TRUE_          , index_inj, 1);
   phe->inj_size = index_inj;
 
-  /** Indeces for deposition (and chi) table */
+  /** Indices for deposition (and chi) table */
   index_dep = 0;
   class_define_index(phe->index_dep_heat , _TRUE_, index_dep, 1);
   class_define_index(phe->index_dep_ionH , _TRUE_, index_dep, 1);
@@ -306,12 +318,12 @@ int heating_free(struct thermo* pth){
  * @param pvecback    Output: vector of background quantities
  * @return the error status
  */
-int heating_at_z(struct background* pba,
-                 struct thermo* pth,
-                 double x,
-                 double z,
-                 double Tmat,
-                 double* pvecback){
+int heating_calculate_at_z(struct background* pba,
+                           struct thermo* pth,
+                           double x,
+                           double z,
+                           double Tmat,
+                           double* pvecback){
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
@@ -325,12 +337,7 @@ int heating_at_z(struct background* pba,
   index_z = 0;
   dEdz_inj = 0.0;
 
-  /** Import quantities from background structure */
-  phe->T_g0 = pba->T_cmb;                                                                           // [K]
-  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
-  phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
-  phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
-
+  /** Import varying quantities from background structure */
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                  // [J/m^3]
@@ -340,10 +347,6 @@ int heating_at_z(struct background* pba,
   else{
     phe->rho_dcdm = 0.0;
   }
-
-  /** Import quantities from thermodynamics structure */
-  phe->Y_He = pth->YHe;                                                                             // [-]
-  phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -377,7 +380,7 @@ int heating_at_z(struct background* pba,
   else if(z > phe->filled_until_z_dep){
     /* (Linearly) interpolate within the table */
     for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-      phe->pvecdeposition[index_dep] = phe->deposition_table[index_dep][phe->last_index_z_dep]*a+phe->injection_table[index_dep][phe->last_index_z_dep+1]*b;
+      phe->pvecdeposition[index_dep] = phe->deposition_table[index_dep][phe->last_index_z_dep]*a+phe->deposition_table[index_dep][phe->last_index_z_dep+1]*b;
     }
 
     return _SUCCESS_;
@@ -567,7 +570,7 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                      index_dep+phe->dep_size+1,
                                                      x,
                                                      &phe->last_index_chix,
-                                                     &phe->chi_table[index_dep][phe->last_index_z_dep],
+                                                     &(phe->chi_table[index_dep][phe->last_index_z_dep]),
                                                      phe->error_message),
                  phe->error_message,
                  phe->error_message);
@@ -584,7 +587,7 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                      index_dep+phe->dep_size+1,
                                                      z,
                                                      &phe->last_index_z_chi,
-                                                     &phe->chi_table[index_dep][phe->last_index_z_dep],
+                                                     &(phe->chi_table[index_dep][phe->last_index_z_dep]),
                                                      phe->error_message),
                  phe->error_message,
                  phe->error_message);
@@ -1111,6 +1114,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
     }
 
     /* Integrate approximate function */
+    //TODO :: replace with array_integrate_something_something
     class_call(simpson_integration(phe->k_size,
                                    integrand_approx,
                                    (log(phe->k_max)-log(phe->k_min))/(phe->k_size),

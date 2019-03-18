@@ -1939,7 +1939,7 @@ int thermodynamics_solve_derivs(double mz,
   ptdw->dTmat = -ptv->dy[ptv->index_Tmat];
   
   x = ptdw->x;
-  class_call(heating_at_z(pba,pth,x,z,Tmat,pvecback),
+  class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
              (pth->he).error_message,
              error_message);
   energy_rate = 0.0;

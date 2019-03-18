@@ -184,12 +184,12 @@ extern "C" {
   int heating_free(struct thermo* pth);
 
   /* Main functions */
-  int heating_at_z(struct background* pba,
-                   struct thermo* pth,
-                   double x,
-                   double z,
-                   double Tmat,
-                   double* pvecback);
+  int heating_calculate_at_z(struct background* pba,
+                             struct thermo* pth,
+                             double x,
+                             double z,
+                             double Tmat,
+                             double* pvecback);
 
   int heating_energy_injection_at_z(struct heating* phe,
                                     double z,
