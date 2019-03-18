@@ -200,7 +200,9 @@ int distortions_set_detector(struct precision * ppr,
     /* The user wants a new detector with specified settings, but without name */
     else{
       /* Generate a custom name for this custom detector, so we can check if it has already been defined */
-      sprintf(psd->distortions_detector,"Custom__%7.2e_%7.2e_%7.2e_%7.2e__Detector",psd->nu_min_detector,psd->nu_max_detector,psd->nu_delta_detector,psd->delta_Ic_detector);
+      sprintf(psd->distortions_detector,
+              "Custom__%7.2e_%7.2e_%7.2e_%7.2e__Detector",
+              psd->nu_min_detector,psd->nu_max_detector,psd->nu_delta_detector,psd->delta_Ic_detector);
     }
   }
 
@@ -234,16 +236,20 @@ int distortions_set_detector(struct precision * ppr,
         if(psd->user_defined_detector){
           class_test(fabs(psd->nu_min_detector-nu_min)>ppr->tol_distortions_detector,
                      psd->error_message,
-                     "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->nu_min_detector,nu_min);
+                     "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                     detector_name,psd->nu_min_detector,nu_min);
           class_test(fabs(psd->nu_max_detector-nu_max)>ppr->tol_distortions_detector,
                      psd->error_message,
-                     "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->nu_max_detector,nu_max);
+                     "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                     detector_name,psd->nu_max_detector,nu_max);
           class_test(fabs(psd->nu_delta_detector-nu_delta)>ppr->tol_distortions_detector,
                      psd->error_message,
-                     "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->nu_max_detector,nu_max);
+                     "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                     detector_name,psd->nu_max_detector,nu_max);
           class_test(fabs(psd->delta_Ic_detector-delta_Ic)>ppr->tol_distortions_detector,
                      psd->error_message,
-                     "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",detector_name,psd->delta_Ic_detector,delta_Ic);
+                     "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                     detector_name,psd->delta_Ic_detector,delta_Ic);
         }
 
         /* In any case, just take the detector definition from the file */
@@ -267,7 +273,8 @@ int distortions_set_detector(struct precision * ppr,
     else{
       class_stop(psd->error_message,
                  "You asked for detector '%s', but it was not in the database '%s'.\nPlease check the name of your detector, or specify its properties if you want to create a new one",
-                 psd->distortions_detector,"./external/distortions/known_detectors.dat");
+                 psd->distortions_detector,
+                 "./external/distortions/known_detectors.dat");
     }
   }
 
@@ -605,7 +612,6 @@ int distortions_compute_heating_rate(struct background* pba,
   double bb_vis;
   int last_index_z;
   double min, max, h;
-  double *dd_dep_heat;
 
   /** Update heating table with second order contributions */
   class_call(heating_add_second_order(pba,pth,ppt,ppm),
@@ -619,9 +625,6 @@ int distortions_compute_heating_rate(struct background* pba,
               psd->error_message);
 
   /** Allocate space for total heating function */
-  /*class_alloc(dd_dep_heat,
-              phe->z_size*sizeof(double*),
-              psd->error_message);*/
   class_alloc(psd->dQrho_dz_tot,
               psd->z_size*sizeof(double*),
               psd->error_message);
@@ -658,43 +661,9 @@ int distortions_compute_heating_rate(struct background* pba,
                                 psd->z[index_z]),
                phe->error_message,
                psd->error_message);
-    psd->dQrho_dz_tot[index_z] = phe->pvecdeposition[phe->index_dep_heat];
-    /* Find z position */
-    /*
-    last_index_z = 0;
-    class_call(array_spline_hunt(phe->z_table,
-                                 phe->z_size,
-                                 psd->z[index_z],
-                                 &last_index_z,
-                                 &h,&min,&max,
-                                 psd->error_message),
-               psd->error_message,
-               psd->error_message);*/
-    /* Spline in z */
-    /*
-    class_call(array_spline_table_columns(phe->z_table,
-                                          phe->z_size,
-                                          phe->deposition_table[phe->index_dep_heat],
-                                          1,
-                                          dd_dep_heat,
-                                          _SPLINE_EST_DERIV_,
-                                          psd->error_message),
-               psd->error_message,
-               psd->error_message);*/
-    /* Interpolate in z */
-    /*
-    psd->dQrho_dz_tot[index_z] = array_interpolate_spline_hunt(phe->deposition_table[phe->index_dep_heat],  // [J/(m^3 s)]
-                                                               dd_dep_heat,
-                                                               last_index_z,
-                                                               last_index_z+1,
-                                                               h,min,max);*/
-
-    psd->dQrho_dz_tot[index_z] *= a/(H*rho_g);                                                      // [-]
+    psd->dQrho_dz_tot[index_z] = phe->pvecdeposition[phe->index_dep_heat] *= a/(H*rho_g);           // [-]
     psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
-
-  /*free(dd_dep_heat);*/
-
 
   return _SUCCESS_;
 

@@ -191,9 +191,6 @@ extern "C" {
                              double Tmat,
                              double* pvecback);
 
-  int heating_get_at_z(struct thermo* pth,
-                       double z);
-
   int heating_energy_injection_at_z(struct heating* phe,
                                     double z,
                                     double* dEdz_inj);
@@ -201,6 +198,9 @@ extern "C" {
   int heating_deposition_function_at_z(struct heating* phe,
                                        double x,
                                        double z);
+
+  int heating_get_at_z(struct thermo* pth,
+                       double z);
 
   int heating_add_second_order(struct background* pba,
                                struct thermo* pth,

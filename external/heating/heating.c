@@ -90,14 +90,9 @@ int heating_init(struct precision * ppr,
   phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
   /** Check energy injection */
-  phe->has_dcdm = _FALSE_;
-  if(_FALSE_){//if (pba->Omega_ini_dcdm!=0 || pba->Omega0_dcdmdr !=0){
-    phe->has_dcdm = _TRUE_;
-  }
-
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
 
-  /** Check energy injection parameters for DM annihilation */
+  /** Check energy injection for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
              phe->error_message,
              "annihilation parameter cannot be negative");
@@ -141,7 +136,7 @@ int heating_init(struct precision * ppr,
 
   phe->has_DM_ann = phe->annihilation_efficiency!=0;
 
-  /** Check energy injection parameters for DM deacy */
+  /** Check energy injection for DM deacy */
   class_test((phe->decay<0),
              phe->error_message,
              "decay parameter cannot be negative");
@@ -306,7 +301,7 @@ int heating_free(struct thermo* pth){
 /**
  * Calculate the heating (first order only) at the given redshift.
  * If phe->to_store is set to true, also store the value in
- * a table of heatings, which can later be used to interpolate
+ * a table of heatings, which can later be used to interpolate.
  *
  * @param pba         Input: pointer to background structure
  * @param pth         Input: pointer to thermodynamics structure
@@ -410,32 +405,6 @@ int heating_calculate_at_z(struct background* pba,
   return _SUCCESS_;
 }
 
-int heating_get_at_z(struct thermo* pth, double z){
-
-  /** Define local variables */
-  struct heating* phe = &(pth->he);
-  int index_dep;
-  double h,a,b;
-
-  /** Interpolate at required z in the table */
-  class_test(z < phe->filled_until_z,
-             phe->error_message,
-             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
-
-  class_call(array_spline_hunt(phe->z_table,
-                               phe->z_size,
-                               z,
-                               &(phe->last_index_z),
-                               &h,&a,&b,
-                               phe->error_message),
-           phe->error_message,
-           phe->error_message);
-  for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-    phe->pvecdeposition[index_dep] = (a*phe->chi_table[index_dep][phe->last_index_z]+b*phe->chi_table[index_dep][phe->last_index_z+1])*phe->injection_table[phe->index_inj_tot][phe->last_index_z];
-  }
-
-  return _SUCCESS_;
-}
 
 /**
  * Calculate energy injection at given redshift.
@@ -641,6 +610,45 @@ int heating_deposition_function_at_z(struct heating* phe,
 
 
 /**
+ * Interpolates heating from precomputed table at a given value of z.
+ *
+ * @param pth         Input: pointer to thermodynamics structure
+ * @param z           Input: redshift
+ * @return the error status
+ */
+int heating_get_at_z(struct thermo* pth,
+                     double z){
+
+  /** Define local variables */
+  struct heating* phe = &(pth->he);
+  int index_dep;
+  double h,a,b;
+
+  /** Interpolate at required z in the table */
+  class_test(z < phe->filled_until_z,
+             phe->error_message,
+             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
+
+  class_call(array_spline_hunt(phe->z_table,
+                               phe->z_size,
+                               z,
+                               &(phe->last_index_z),
+                               &h,&a,&b,
+                               phe->error_message),
+           phe->error_message,
+           phe->error_message);
+
+  for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+    phe->pvecdeposition[index_dep] = (a*phe->chi_table[index_dep][phe->last_index_z]+
+                                          b*phe->chi_table[index_dep][phe->last_index_z+1])*
+                                      phe->injection_table[phe->index_inj_tot][phe->last_index_z];
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
  * Update heating table with second order energy injection mechanisms.
  *
  * @param pba   Input: pointer to background structure
@@ -674,8 +682,8 @@ int heating_add_second_order(struct background* pba,
               pth->tt_size*sizeof(double),
               phe->error_message);
 
+  /** Allocate qunatities from primordial structure */
   phe->k_size = 500;        /* Found to be reasonable for the integral of acoustic dissipation */
-
   class_alloc(phe->k,
               phe->k_size*sizeof(double),
               phe->error_message);
@@ -1100,6 +1108,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
                                   phe->dkD_dz;                                                      // [-]
     }
 
+    /** Calculate heating rates */
     /* Integrate approximate function */
     //TODO :: replace with array_integrate_something_something
     class_call(simpson_integration(phe->k_size,
@@ -1122,9 +1131,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
 
 /**
- * In case of non-minimal cosmology, this function determines the energy rate
- * injected in the IGM at a given redshift z (= on-the-spot annihilation) by
- * DM annihilation.
+ * Calculate heating from DM annihilation.
  *
  * @param phe            Input: pointer to heating structure
  * @param z              Input: redshift
@@ -1138,21 +1145,16 @@ int heating_rate_DM_annihilation(struct heating * phe,
   /** Define local variables */
   double annihilation_at_z, boost_factor;
 
+  /** Calculate chamge in the annihilation efficiency */
   if (z>phe->annihilation_zmax) {
-
-    annihilation_at_z = phe->annihilation_efficiency*
-      exp(-phe->annihilation_variation*pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2));
+    phe->annihilation_efficiency *= exp(-phe->annihilation_variation*pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2));
   }
   else if (z>phe->annihilation_zmin) {
-
-    annihilation_at_z = phe->annihilation_efficiency*
-      exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
+    phe->annihilation_efficiency *= exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
                                          +pow(log((z+1.)/(phe->annihilation_zmax+1.)),2)));
   }
   else {
-
-    annihilation_at_z = phe->annihilation_efficiency*
-      exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
+    phe->annihilation_efficiency *= exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
                                          +pow(log((phe->annihilation_zmin+1.)/(phe->annihilation_zmax+1.)),2)));
   }
 
@@ -1164,17 +1166,15 @@ int heating_rate_DM_annihilation(struct heating * phe,
     boost_factor = 0;
   }
 
-  /** Standard formula for annihilating energy injection */
-  *energy_rate = phe->rho_cdm*phe->rho_cdm/_c_/_c_*annihilation_at_z*(1.+boost_factor);  // [J/(m^3 s)]
+  /** Calculate heating rates */
+  *energy_rate = pow(phe->rho_cdm/_c_,2.)*phe->annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
 
   return _SUCCESS_;
 }
 
 
 /**
- * In case of non-minimal cosmology, this function determines the energy rate
- * injected in the IGM at a given redshift z (= on-the-spot annihilation) by
- * DM decay.
+ * Calculate heating from DM annihilation.
  *
  * @param phe            Input: pointer to heating structure
  * @param z              Input: redshift
@@ -1187,7 +1187,7 @@ int heating_rate_DM_decay(struct heating * phe,
 
   /** Define local variables */
 
-  /* Standard formula for decaying dark matter */
+  /** Calculate heating rates */
   *energy_rate = phe->rho_dcdm*phe->Gamma_dcdm;                                                     // [J/m^3 * ? * Mpc^(-1)]
 
   return _SUCCESS_;
