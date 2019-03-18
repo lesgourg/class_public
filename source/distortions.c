@@ -694,7 +694,7 @@ int distortions_compute_heating_rate(struct background* pba,
   }
 
   /*free(dd_dep_heat);*/
-
+  free(pvecback);
 
   return _SUCCESS_;
 

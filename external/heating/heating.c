@@ -170,6 +170,7 @@ int heating_init(struct precision * ppr,
   phe->last_index_z_feff = 0;
   phe->last_index_z_inj = 0;
   phe->last_index_z = 0;
+  phe->index_z_store = 0;
 
   /** Read file for deposition function */
   if(phe->deposit_energy_as == deposit_feff_from_file){
