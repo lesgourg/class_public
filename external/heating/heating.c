@@ -36,7 +36,21 @@
  *
  * Once the rate of energy injection is known, the program evaluates a so-called deposition function
  * which determines the amount of energy effectively deposited into the different forms, i.e. heating,
- * ionization and Lyman alpha.
+ * ionization and Lyman alpha. Also in this case, there are several options
+ *    1) by setting 'deposit_energy_as' to 'chi_full_heating', the whole injected energy is going to be
+ *       deposited into heat,
+ *    2) by setting 'deposit_energy_as' to 'chi_from_SSCK', the SSCK approximation is employed,
+ *    3) by setting 'deposit_energy_as' to 'chi_from_x_file' or 'chi_from_z_file', the user can define own
+ *       deposition functions with respect to the free electron fraction x_e or to redshift, respectively.
+ *       The two files 'example_chix_file.dat' and 'example_chiz_file.dat' are given as example. Note that
+ *       'example_chix_file.dat' has been computed according to the approximations of Galli et al. 2013.
+ *
+ * Furthermore, it is also possible to define a so-called injection efficiency, i.e. a factor determining
+ * how much of the heating is deposited at all, regardless of the form. There are two options to define this
+ * function
+ *    1) the on-the-spot approximation, where the whole injected energy is transformed into deposited energy,
+ *       i.e. f_eff=1, and
+ *    2) reading a precomputed function from an external file.
  *
  * The module is in part based on ExoCLASS (see Stoecker et al. 2018) which has been mainly developed
  * by Vivian Poulin and Patrick Stöcker. The CLASS implementation has been done by Nils Schoeneberg
@@ -73,6 +87,9 @@ int heating_init(struct precision * ppr,
   phe->deposit_energy_as = deposit_on_the_spot;
   phe->chi_type = chi_full_heating;
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
+  phe->chi_z_file = "/external/heating/example_chiz_file.dat";
+  phe->chi_x_file = "/external/heating/example_chix_file.dat";
+  phe->f_eff_file = "/external/heating/example_feff_file.dat";
 
   /** Initialize indeces and parameters */
   phe->last_index_chix = 0;
@@ -798,7 +815,7 @@ int heating_read_chi_z_from_file(struct precision* ppr,
              "Invalid number of heating/ionization channels for chi(z) file");
 
   if (phe->chi_type == chi_from_z_file) {
-    class_open(fA, ppr->energy_deposition_chi_z_file, "r", phe->error_message);
+    class_open(fA, phe->chi_z_file, "r", phe->error_message);
   }
   else{
     class_stop(phe->error_message,
@@ -825,7 +842,8 @@ int heating_read_chi_z_from_file(struct precision* ppr,
         /* Read num_lines, infer size of arrays and allocate them */
         class_test(sscanf(line,"%d",&(phe->chiz_size)) != 1,
                    phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",headlines,ppr->energy_deposition_feff_file);
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                   headlines,phe->chi_z_file);
 
         /* (z, chi_i)*/
         class_alloc(phe->chiz_table,
@@ -843,7 +861,8 @@ int heating_read_chi_z_from_file(struct precision* ppr,
                           &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
                          )!= 6,
                    phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",headlines,ppr->energy_deposition_chi_z_file);
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",
+                   headlines,phe->chi_z_file);
         index_z++;
       }
     }
@@ -899,7 +918,7 @@ int heating_read_chi_x_from_file(struct precision* ppr,
              phe->error_message,
              "Invalid number of heating/ionization channels for chi(x) file");
 
-  class_open(fA, ppr->energy_deposition_chi_x_file, "r", phe->error_message);
+  class_open(fA, phe->chi_x_file, "r", phe->error_message);
 
 
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
@@ -922,7 +941,8 @@ int heating_read_chi_x_from_file(struct precision* ppr,
         /* Read num_lines, infer size of arrays and allocate them */
         class_test(sscanf(line,"%d",&(phe->chix_size)) != 1,
                    phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",headlines,ppr->energy_deposition_feff_file);
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                   headlines,phe->chi_x_file);
 
         /* (z, chi_i)*/
         class_alloc(phe->chix_table,
@@ -940,7 +960,8 @@ int heating_read_chi_x_from_file(struct precision* ppr,
                           &(phe->chiz_table[index_x*(2*phe->dep_size+1)+5])  //lowE
                          )!= 6,
                    phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",headlines,ppr->energy_deposition_chi_x_file);
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",
+                   headlines,phe->chi_x_file);
         index_x++;
       }
     }
@@ -989,7 +1010,7 @@ int heating_read_feff_from_file(struct precision* ppr,
    *    - The number of lines of the file
    *    - The columns ( z, f(z) ) where f(z) represents the "effective" fraction of energy deposited
    *      into the medium  at redshift z, in presence of halo formation. */
-  class_open(fA,ppr->energy_deposition_feff_file, "r",phe->error_message);
+  class_open(fA,phe->f_eff_file, "r",phe->error_message);
 
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
     headlines++;
@@ -1011,7 +1032,8 @@ int heating_read_feff_from_file(struct precision* ppr,
         /* Read num_lines, infer size of arrays and allocate them */
         class_test(sscanf(line,"%d",&(phe->feff_z_size)) != 1,
                    phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",headlines,ppr->energy_deposition_feff_file);
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                   headlines,phe->f_eff_file);
 
         /* (z, f, ddf)*/
         class_alloc(phe->feff_table,
@@ -1024,7 +1046,8 @@ int heating_read_feff_from_file(struct precision* ppr,
                           &(phe->feff_table[index_z*3+0]),
                           &(phe->feff_table[index_z*3+1]))!= 2,
                    phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",headlines,ppr->energy_deposition_feff_file);
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",
+                   headlines,phe->f_eff_file);
         index_z++;
       }
     }

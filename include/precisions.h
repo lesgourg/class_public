@@ -102,11 +102,6 @@ class_precision_parameter(tol_thermo_integration,double,1.0e-6)
  */
 class_precision_parameter(thermo_rate_smoothing_radius,int,50)
 
-
-class_string_parameter(energy_deposition_feff_file,"/external/heating/feff_file.dat","Energy Deposition heating file") /**< File containing the f_eff parameter as function of z */
-class_string_parameter(energy_deposition_chi_z_file,"/external/heating/chiz_file.dat","Energy Deposition chi(z) file") /**< File containing the branching ratio as function of z */
-class_string_parameter(energy_deposition_chi_x_file,"/external/heating/chix_file.dat","Energy Deposition chi(x) file") /**< File containing the branching ratio as function of x */
-
 /*
  * Recfast 1.4/1.5 parameters
  */
