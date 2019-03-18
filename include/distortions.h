@@ -185,7 +185,6 @@ extern "C" {
 
   int distortions_compute_heating_rate(struct background* pba,
                                        struct thermo * pth,
-                                       struct heating * phe,
                                        struct perturbs * ppt,
                                        struct primordial * ppm,
                                        struct distortions * psd);

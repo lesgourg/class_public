@@ -85,15 +85,15 @@ struct heating{
   int z_size;
 
   double tol_z_table;
-  int filled_until_index_z_dep;
-  double filled_until_z_dep;
-  int filled_until_index_z_inj;
-  double filled_until_z_inj;
+  int filled_until_index_z;
+  double filled_until_z;
 
-  int last_index_z_dep;
-  int last_index_z_inj;
   int last_index_z_feff;
   int last_index_z_chi;
+  int last_index_z_inj;
+  int last_index_z;
+
+  int index_z_store;
 
   /* TODO */
   int last_index_chix;
@@ -115,6 +115,7 @@ struct heating{
   int chix_size;
 
   double** chi_table;
+  double* chi;
   int index_dep_heat;
   int index_dep_ionH;
   int index_dep_ionHe;
@@ -124,7 +125,6 @@ struct heating{
 
   /* Energy deposition vector and table */
   double* pvecdeposition;
-  double** deposition_table;
 
   /* f_eff table */
   int feff_z_size;
@@ -190,6 +190,9 @@ extern "C" {
                              double z,
                              double Tmat,
                              double* pvecback);
+
+  int heating_get_at_z(struct thermo* pth,
+                       double z);
 
   int heating_energy_injection_at_z(struct heating* phe,
                                     double z,

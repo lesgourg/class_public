@@ -28,8 +28,6 @@ int distortions_init(struct precision * ppr,
   int index_br;
   int index_x;
 
-  struct heating* phe = &(pth->he);
-
   if(psd->has_distortions == _FALSE_){
     return _SUCCESS_;
   }
@@ -69,7 +67,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /** Define heating function */
-  class_call(distortions_compute_heating_rate(pba,pth,phe,ppt,ppm,psd),
+  class_call(distortions_compute_heating_rate(pba,pth,ppt,ppm,psd),
              psd->error_message,
              psd->error_message);
 
@@ -593,12 +591,12 @@ int distortions_compute_branching_ratios(struct precision * ppr,
  */
 int distortions_compute_heating_rate(struct background* pba,
                                      struct thermo * pth,
-                                     struct heating * phe,
                                      struct perturbs * ppt,
                                      struct primordial * ppm,
                                      struct distortions * psd){
 
   /** Define local variables */
+  struct heating* phe = &(pth->he);
   int index_z;
   double tau;
   int last_index_back;
@@ -621,9 +619,9 @@ int distortions_compute_heating_rate(struct background* pba,
               psd->error_message);
 
   /** Allocate space for total heating function */
-  class_alloc(dd_dep_heat,
+  /*class_alloc(dd_dep_heat,
               phe->z_size*sizeof(double*),
-              psd->error_message);
+              psd->error_message);*/
   class_alloc(psd->dQrho_dz_tot,
               psd->z_size*sizeof(double*),
               psd->error_message);
@@ -656,7 +654,13 @@ int distortions_compute_heating_rate(struct background* pba,
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));                                              // [-]
 
     /** Calculate total heating rate */
+    class_call(heating_get_at_z(pth,
+                                psd->z[index_z]),
+               phe->error_message,
+               psd->error_message);
+    psd->dQrho_dz_tot[index_z] = phe->pvecdeposition[phe->index_dep_heat];
     /* Find z position */
+    /*
     last_index_z = 0;
     class_call(array_spline_hunt(phe->z_table,
                                  phe->z_size,
@@ -665,8 +669,9 @@ int distortions_compute_heating_rate(struct background* pba,
                                  &h,&min,&max,
                                  psd->error_message),
                psd->error_message,
-               psd->error_message);
+               psd->error_message);*/
     /* Spline in z */
+    /*
     class_call(array_spline_table_columns(phe->z_table,
                                           phe->z_size,
                                           phe->deposition_table[phe->index_dep_heat],
@@ -675,19 +680,20 @@ int distortions_compute_heating_rate(struct background* pba,
                                           _SPLINE_EST_DERIV_,
                                           psd->error_message),
                psd->error_message,
-               psd->error_message);
+               psd->error_message);*/
     /* Interpolate in z */
+    /*
     psd->dQrho_dz_tot[index_z] = array_interpolate_spline_hunt(phe->deposition_table[phe->index_dep_heat],  // [J/(m^3 s)]
                                                                dd_dep_heat,
                                                                last_index_z,
                                                                last_index_z+1,
-                                                               h,min,max);
+                                                               h,min,max);*/
 
     psd->dQrho_dz_tot[index_z] *= a/(H*rho_g);                                                      // [-]
     psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
 
-  free(dd_dep_heat);
+  /*free(dd_dep_heat);*/
 
 
   return _SUCCESS_;
