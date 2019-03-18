@@ -665,6 +665,8 @@ int distortions_compute_heating_rate(struct background* pba,
     psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
 
+  free(pvecback);
+
   return _SUCCESS_;
 
 }
