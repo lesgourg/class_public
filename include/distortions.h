@@ -23,7 +23,7 @@ enum br_approx {bra_sharp_sharp,bra_sharp_soft,bra_soft_soft,bra_soft_soft_cons,
 struct distortions
 {
   /** @name - input parameters initialized by user in input module (all other quantities are computed in this module,
-   *   given these parameters and the content of the 'precision', 'background', 'thermodynamics' and 
+   *   given these parameters and the content of the 'precision', 'background', 'thermodynamics' and
    *  'primordial' structures) */
 
   //@{
@@ -44,8 +44,6 @@ struct distortions
   /** @name - Public tables and parameters */
 
   //@{
-
-  char ** distortion_names;                  /* Names of the distortions */
 
   /* Precision parameters */
   double z_muy;
@@ -69,12 +67,12 @@ struct distortions
   double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
-  double ** br_table; 
+  double ** br_table;
   double * sd_parameter_table;
   double ** sd_shape_table;
   double ** sd_table;
 
-  int index_type_g; 
+  int index_type_g;
   int index_type_mu;
   int index_type_y;
   int index_type_PCA;
@@ -160,8 +158,8 @@ extern "C" {
                        struct primordial * ppm,
                        struct distortions * psd);
 
-  int distortions_constants(struct background * pba, 
-                            struct thermo * pth, 
+  int distortions_constants(struct background * pba,
+                            struct thermo * pth,
                             struct distortions * psd);
 
   int distortions_free(struct distortions * psd);
@@ -177,8 +175,8 @@ extern "C" {
   int distortions_indices(struct distortions * psd);
 
   int distortions_get_xz_lists(struct precision * ppr,
-                               struct background* pba, 
-                               struct thermo* pth, 
+                               struct background* pba,
+                               struct thermo* pth,
                                struct distortions* psd);
 
   /* The main computation methods */

@@ -600,31 +600,30 @@ int distortions_compute_heating_rate(struct background* pba,
 
   /** Define local variables */
   int index_z;
-  int last_index_back, last_index_thermo;
-  double *pvecback, *pvecthermo;
   double tau;
-  double x_e, T_b;
+  int last_index_back;
+  double *pvecback;
+  double H, a, rho_g;
   double bb_vis;
+  int last_index_z;
+  double min, max, h;
+  double *dd_dep_heat;
 
   /** Update heating table with second order contributions */
-  class_call(heating_add_second_order(pba,
-                                      pth,
-                                      ppt,
-                                      ppm),
+  class_call(heating_add_second_order(pba,pth,ppt,ppm),
              phe->error_message,
              psd->error_message);
 
   /** Allocate space for background vector */
   last_index_back = 0;
-  last_index_thermo = 0;
   class_alloc(pvecback,
-              pba->bg_size*sizeof(double),
-              psd->error_message);
-  class_alloc(pvecthermo,
               pba->bg_size*sizeof(double),
               psd->error_message);
 
   /** Allocate space for total heating function */
+  class_alloc(dd_dep_heat,
+              phe->z_size*sizeof(double*),
+              psd->error_message);
   class_alloc(psd->dQrho_dz_tot,
               psd->z_size*sizeof(double*),
               psd->error_message);
@@ -641,7 +640,6 @@ int distortions_compute_heating_rate(struct background* pba,
                                    &tau),
                pba->error_message,
                psd->error_message);
-
     class_call(background_at_tau(pba,
                                  tau,
                                  pba->long_info,
@@ -650,43 +648,47 @@ int distortions_compute_heating_rate(struct background* pba,
                                  pvecback),
                pba->error_message,
                psd->error_message);
-
-    /** Import quantities from thermodynamics structure */
-    class_call(thermodynamics_at_z(pba,
-                                   pth,
-                                   psd->z[index_z],
-                                   pth->inter_normal,
-                                   &last_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
-               psd->error_message);
-
-    x_e = pvecthermo[pth->index_th_xe];                                                             // [-]
-    T_b = pvecthermo[pth->index_th_Tb];                                                             // [-]
+    H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                                 // [1/s]
+    a = pvecback[pba->index_bg_a];                                                                  // [-]
+    rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                         // [J/m^3]
 
     /* Black body visibility function */
-    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
+    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));                                              // [-]
 
-    /* Total heating rate */
-    /*
-    class_call(heating_at_z(pba,pth,
-                            x_e,
-                            psd->z[index_z],
-                            T_b,
-                            pvecback),
-               phe->error_message,
+    /** Calculate total heating rate */
+    /* Find z position */
+    last_index_z = 0;
+    class_call(array_spline_hunt(phe->z_table,
+                                 phe->z_size,
+                                 psd->z[index_z],
+                                 &last_index_z,
+                                 &h,&min,&max,
+                                 psd->error_message),
+               psd->error_message,
                psd->error_message);
+    /* Spline in z */
+    class_call(array_spline_table_columns(phe->z_table,
+                                          phe->z_size,
+                                          phe->deposition_table[phe->index_dep_heat],
+                                          1,
+                                          dd_dep_heat,
+                                          _SPLINE_EST_DERIV_,
+                                          psd->error_message),
+               psd->error_message,
+               psd->error_message);
+    /* Interpolate in z */
+    psd->dQrho_dz_tot[index_z] = array_interpolate_spline_hunt(phe->deposition_table[phe->index_dep_heat],  // [J/(m^3 s)]
+                                                               dd_dep_heat,
+                                                               last_index_z,
+                                                               last_index_z+1,
+                                                               h,min,max);
 
-     psd->dQrho_dz_tot[index_z] = phe->deposition_table[index_z*phe->dep_size+index_dep_heat]*
-                                  pvecback[pba->index_bg_a]/
-                                  (pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_)/
-                                  (pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6); // [-]
-     printf("%g  %g\n", psd->z[index_z],psd->dQrho_dz_tot[index_z]*(1.+psd->z[index_z]));*/
-    psd->dQrho_dz_tot[index_z] = 0.;
-
+    psd->dQrho_dz_tot[index_z] *= a/(H*rho_g);                                                      // [-]
     psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
+
+  free(dd_dep_heat);
+
 
   return _SUCCESS_;
 
@@ -1079,9 +1081,7 @@ int distortions_interpolate_br_data(struct distortions* psd,
                                psd->br_exact_Nz,
                                z,
                                &index,
-                               &h,
-                               &a,
-                               &b,
+                               &h,&a,&b,
                                psd->error_message),
              psd->error_message,
              psd->error_message);
@@ -1316,9 +1316,7 @@ int distortions_interpolate_sd_data(struct distortions* psd,
                                psd->PCA_Nnu,
                                nu,
                                &last_index,
-                               &h,
-                               &a,
-                               &b,
+                               &h,&a,&b,
                                psd->error_message),
              psd->error_message,
              psd->error_message);

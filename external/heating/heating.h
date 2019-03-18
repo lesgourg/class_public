@@ -99,7 +99,7 @@ struct heating{
   int last_index_chix;
 
   /* Energy injection table */
-  double* injection_table;
+  double** injection_table;
   int index_inj_cool;
   int index_inj_diss;
   int index_inj_DM_ann;
@@ -114,7 +114,7 @@ struct heating{
   double* chix_table;
   int chix_size;
 
-  double* chi_table;
+  double** chi_table;
   int index_dep_heat;
   int index_dep_ionH;
   int index_dep_ionHe;
@@ -124,7 +124,7 @@ struct heating{
 
   /* Energy deposition vector and table */
   double* pvecdeposition;
-  double* deposition_table;
+  double** deposition_table;
 
   /* f_eff table */
   int feff_z_size;

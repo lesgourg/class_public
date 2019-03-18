@@ -77,11 +77,10 @@ class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [
  *  Thermodynamical quantities
  * */
 
-
 /**
  * The initial z for the recfast calculation of the recombination history
  */
-class_precision_parameter(thermo_z_initial,double,1.0e6)
+class_precision_parameter(thermo_z_initial,double,5.0e6)
 /**
  * The switch z for the recfast calculation towards linear sampling
  */

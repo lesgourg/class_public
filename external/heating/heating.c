@@ -46,9 +46,10 @@
 #define deposit_on_the_spot          0
 #define deposit_feff_from_file       1
 
-#define chi_from_SSCK      0
-#define chi_from_x_file    1
-#define chi_from_z_file    2
+#define chi_full_heating   0
+#define chi_from_SSCK      1
+#define chi_from_x_file    2
+#define chi_from_z_file    3
 
 //TODO :: disable branching ratios before z > 2000, and replace with only heating
 
@@ -66,17 +67,17 @@ int heating_init(struct precision * ppr,
 
   /** Define local variable */
   struct heating* phe = &(pth->he);
+  int index_inj, index_dep;
 
   // TODO :: set in input
-  phe->deposit_energy_as = 0;
-  phe->chi_type = chi_from_SSCK;
+  phe->deposit_energy_as = deposit_on_the_spot;
+  phe->chi_type = chi_full_heating;
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
 
   /** Initialize indeces and parameters */
   phe->last_index_chix = 0;
   phe->last_index_z_chi = 0;
   phe->last_index_z_feff = 0;
-  phe->f_eff = 1.;
 
   /** Check energy injection */
   phe->has_dcdm = _FALSE_;
@@ -184,18 +185,36 @@ int heating_init(struct precision * ppr,
              phe->error_message);
 
   /** Allocate tables and pvecs */
-  class_alloc(phe->deposition_table,
-              phe->z_size*phe->dep_size*sizeof(double),
+  class_alloc(phe->injection_table,
+              phe->inj_size*sizeof(double*),
               phe->error_message);
+  for(index_inj=0; index_inj<phe->inj_size; ++index_inj){
+    class_alloc(phe->injection_table[index_inj],
+                phe->z_size*sizeof(double),
+                phe->error_message);
+  }
+
+  class_alloc(phe->chi_table,
+              phe->dep_size*sizeof(double*),
+              phe->error_message);
+  for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+    class_alloc(phe->chi_table[index_dep],
+                phe->z_size*sizeof(double),
+                phe->error_message);
+  }
+
   class_alloc(phe->pvecdeposition,
               phe->dep_size*sizeof(double),
               phe->error_message);
-  class_alloc(phe->chi_table,
-              phe->dep_size*sizeof(double),
+
+  class_alloc(phe->deposition_table,
+              phe->dep_size*sizeof(double*),
               phe->error_message);
-  class_alloc(phe->injection_table,
-              phe->z_size*phe->inj_size*sizeof(double),
-              phe->error_message);
+  for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+    class_alloc(phe->deposition_table[index_dep],
+                phe->z_size*sizeof(double),
+                phe->error_message);
+  }
 
   return _SUCCESS_;
 }
@@ -246,12 +265,21 @@ int heating_free(struct thermo* pth){
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
+  int index_inj, index_dep;
 
   free(phe->z_table);
-  free(phe->chi_table);
 
-  free(phe->deposition_table);
+  for(index_inj=0;index_inj<phe->inj_size;++index_inj){
+    free(phe->injection_table[index_inj]);
+  }
   free(phe->injection_table);
+
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    free(phe->chi_table[index_dep]);
+    free(phe->deposition_table[index_dep]);
+  }
+  free(phe->chi_table);
+  free(phe->deposition_table);
 
   free(phe->pvecdeposition);
 
@@ -349,8 +377,7 @@ int heating_at_z(struct background* pba,
   else if(z > phe->filled_until_z_dep){
     /* (Linearly) interpolate within the table */
     for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-      phe->pvecdeposition[index_dep] = phe->deposition_table[phe->last_index_z_dep*phe->inj_size+index_dep] * a
-                                       + phe->injection_table[(phe->last_index_z_dep+1)*phe->inj_size+index_dep] * b;
+      phe->pvecdeposition[index_dep] = phe->deposition_table[index_dep][phe->last_index_z_dep]*a+phe->injection_table[index_dep][phe->last_index_z_dep+1]*b;
     }
 
     return _SUCCESS_;
@@ -372,13 +399,13 @@ int heating_at_z(struct background* pba,
 
   /** Step 3 - Put result into deposition vector */
   for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-    phe->pvecdeposition[index_dep] = phe->chi_table[index_dep]*dEdz_inj;
+    phe->pvecdeposition[index_dep] = phe->chi_table[index_dep][phe->last_index_z_dep]*dEdz_inj;
   }
 
   /** The output is now successfully stored in the deposition table */
   if(phe->to_store){
     for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-      phe->deposition_table[iz_store*phe->dep_size+index_dep] = phe->pvecdeposition[index_dep];
+      phe->deposition_table[index_dep][iz_store] = phe->pvecdeposition[index_dep];
     }
     class_test(iz_store < phe->filled_until_index_z_dep-1,
                phe->error_message,
@@ -445,8 +472,7 @@ int heating_energy_injection_at_z(struct heating* phe,
   else if(z > phe->filled_until_z_inj){
     /* (Linearly) interpolate within the table */
     for(index_inj=0; index_inj<phe->inj_size; ++index_inj){
-      dEdz += phe->injection_table[phe->last_index_z_inj*phe->inj_size+index_inj] * a
-              + phe->injection_table[(phe->last_index_z_inj+1)*phe->inj_size+index_inj] * b;
+      dEdz += phe->injection_table[index_inj][phe->last_index_z_inj]*a+phe->injection_table[index_inj][phe->last_index_z_inj+1]*b;
     }
 
     *dEdz_inj = dEdz;
@@ -455,12 +481,14 @@ int heating_energy_injection_at_z(struct heating* phe,
   }
 
   /** Standard energy injection mechanisms */
-  class_call(heating_rate_adiabatic_cooling(phe,z,&rate),
+  class_call(heating_rate_adiabatic_cooling(phe,
+                                            z,
+                                            &rate),
              phe->error_message,
              phe->error_message);
-   if(phe->to_store){
-      phe->injection_table[iz_store*phe->inj_size+phe->index_inj_cool] = rate;
-   }
+    if(phe->to_store){
+      phe->injection_table[phe->index_inj_cool][iz_store] = rate;
+    }
     dEdz += rate;
 
   /** Exotic energy injection mechanisms */
@@ -468,29 +496,33 @@ int heating_energy_injection_at_z(struct heating* phe,
 
     /* Annihilating Dark Matter */
     if(phe->has_DM_ann){
-      class_call(heating_rate_DM_annihilation(phe,z,&rate),
+      class_call(heating_rate_DM_annihilation(phe,
+                                              z,
+                                              &rate),
                  phe->error_message,
                  phe->error_message);
       if(phe->to_store){
-        phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_ann] = rate;
+        phe->injection_table[phe->index_inj_DM_ann][iz_store] = rate;
       }
       dEdz += rate;
     }
 
     /* Decaying Dark Matter */
     if(phe->has_DM_dec){
-      class_call(heating_rate_DM_decay(phe,z,&rate),
+      class_call(heating_rate_DM_decay(phe,
+                                       z,
+                                       &rate),
                  phe->error_message,
                  phe->error_message);
       if(phe->to_store){
-        phe->injection_table[iz_store*phe->inj_size+phe->index_inj_DM_dec] = rate;
+        phe->injection_table[phe->index_inj_DM_dec][iz_store] = rate;
       }
       dEdz += rate;
     }
   }
 
   if(phe->to_store){
-    phe->injection_table[iz_store*phe->inj_size+phe->index_inj_tot] = dEdz;
+    phe->injection_table[phe->index_inj_tot][iz_store] = dEdz;
 
     class_test(iz_store < phe->filled_until_index_z_inj-1,
                phe->error_message,
@@ -507,7 +539,7 @@ int heating_energy_injection_at_z(struct heating* phe,
 
 
 /**
- * Calculate deposition function at given redshift.
+ * Calculate deposition function chi and injection efficiency f_eff at given redshift.
  *
  * @param phe         Input: pointer to heating structure
  * @param x           Input: fraction of free electrons
@@ -520,63 +552,61 @@ int heating_deposition_function_at_z(struct heating* phe,
 
   /** Define local variables */
   int index_dep;
-  double f_eff;
-
-  x = 1.0;                            // TODO :: remove
 
   /** Step 1 - Read the deposition factors for each channel */
-  if (x < 1.){                        // TODO :: why is this a good condition ???!?
-    /* Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation
-       by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-    /* Read file in ionization fraction */
-    if(phe->chi_type == chi_from_x_file){
-      for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-        class_call(array_interpolate_spline_transposed(phe->chix_table,
-                                                       phe->chix_size,
-                                                       2*phe->dep_size+1,
-                                                       0,
-                                                       index_dep+1,
-                                                       index_dep+phe->dep_size+1,
-                                                       x,
-                                                       &phe->last_index_chix,
-                                                       &phe->chi_table[index_dep],
-                                                       phe->error_message),
-                   phe->error_message,
-                   phe->error_message);
-      }
-    }
-    /* Read file in redshift */
-    if(phe->chi_type == chi_from_z_file){
-      for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-        class_call(array_interpolate_spline_transposed(phe->chiz_table,
-                                                       phe->chiz_size,
-                                                       2*phe->dep_size+1,
-                                                       0,
-                                                       index_dep+1,
-                                                       index_dep+phe->dep_size+1,
-                                                       z,
-                                                       &phe->last_index_z_chi,
-                                                       &phe->chi_table[index_dep],
-                                                       phe->error_message),
-                   phe->error_message,
-                   phe->error_message);
-      }
-    }
-    /* Old approximation from Chen and Kamionkowski */
-    if(phe->chi_type == chi_from_SSCK){
-      phe->chi_table[phe->index_dep_heat]  = (1.+2.*x)/3.;
-      phe->chi_table[phe->index_dep_ionH]  = (1.-x)/3.;
-      phe->chi_table[phe->index_dep_ionHe] = 0.;
-      phe->chi_table[phe->index_dep_lya]   = (1.-x)/3.;
-      phe->chi_table[phe->index_dep_lowE]  = 0.;
+  /* Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation
+     by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
+  /* Read file in ionization fraction */
+  if(phe->chi_type == chi_from_x_file){
+    for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+      class_call(array_interpolate_spline_transposed(phe->chix_table,
+                                                     phe->chix_size,
+                                                     2*phe->dep_size+1,
+                                                     0,
+                                                     index_dep+1,
+                                                     index_dep+phe->dep_size+1,
+                                                     x,
+                                                     &phe->last_index_chix,
+                                                     &phe->chi_table[index_dep][phe->last_index_z_dep],
+                                                     phe->error_message),
+                 phe->error_message,
+                 phe->error_message);
     }
   }
+  /* Read file in redshift */
+  else if(phe->chi_type == chi_from_z_file){
+    for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+      class_call(array_interpolate_spline_transposed(phe->chiz_table,
+                                                     phe->chiz_size,
+                                                     2*phe->dep_size+1,
+                                                     0,
+                                                     index_dep+1,
+                                                     index_dep+phe->dep_size+1,
+                                                     z,
+                                                     &phe->last_index_z_chi,
+                                                     &phe->chi_table[index_dep][phe->last_index_z_dep],
+                                                     phe->error_message),
+                 phe->error_message,
+                 phe->error_message);
+    }
+  }
+  /* Old approximation from Chen and Kamionkowski */
+  else if(phe->chi_type == chi_from_SSCK){
+      phe->chi_table[phe->index_dep_heat][phe->last_index_z_dep]  = (1.+2.*x)/3.;
+      phe->chi_table[phe->index_dep_ionH][phe->last_index_z_dep]  = (1.-x)/3.;
+      phe->chi_table[phe->index_dep_ionHe][phe->last_index_z_dep] = 0.;
+      phe->chi_table[phe->index_dep_lya][phe->last_index_z_dep]   = (1.-x)/3.;
+      phe->chi_table[phe->index_dep_lowE][phe->last_index_z_dep]  = 0.;
+  }
+  else if(phe->chi_type == chi_full_heating){
+    phe->chi_table[phe->index_dep_heat][phe->last_index_z_dep]  = 1.;
+    phe->chi_table[phe->index_dep_ionH][phe->last_index_z_dep]  = 0.;
+    phe->chi_table[phe->index_dep_ionHe][phe->last_index_z_dep] = 0.;
+    phe->chi_table[phe->index_dep_lya][phe->last_index_z_dep]   = 0.;
+    phe->chi_table[phe->index_dep_lowE][phe->last_index_z_dep]  = 0.;
+  }
   else{
-    phe->chi_table[phe->index_dep_heat]  = 1.;
-    phe->chi_table[phe->index_dep_ionH]  = 0.;
-    phe->chi_table[phe->index_dep_ionHe] = 0.;
-    phe->chi_table[phe->index_dep_lya]   = 0.;
-    phe->chi_table[phe->index_dep_lowE]  = 0.;
+    class_stop(phe->error_message,"No valid deposition function has been found found.");
   }
 
   /** Step 2 - Read the correction factor f_eff */
@@ -592,8 +622,8 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                    &(phe->last_index_z_feff),
                                                    &(phe->f_eff),
                                                    phe->error_message),
-           phe->error_message,
-           phe->error_message);
+               phe->error_message,
+               phe->error_message);
   }
   /* For the on the spot, we take the user input */
   else if(phe->deposit_energy_as == deposit_on_the_spot){
@@ -608,7 +638,7 @@ int heating_deposition_function_at_z(struct heating* phe,
   /** Step 3 - Multiply both to get the desired result */
   /* Multiply deposition factors with overall correction factor */
   for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-    phe->chi_table[index_dep] *= f_eff;
+    phe->chi_table[index_dep][phe->last_index_z_dep] *= phe->f_eff;
   }
 
   return _SUCCESS_;
@@ -636,7 +666,8 @@ int heating_add_second_order(struct background* pba,
   int last_index_back, last_index_thermo;
   double *pvecback, *pvecthermo;
   int index_k;
-  double rate;
+  double dEdt;
+  int index_dep;
 
   /** Allocate backgorund and thermodynamcis vectors */
   last_index_back = 0;
@@ -696,7 +727,6 @@ int heating_add_second_order(struct background* pba,
     class_alloc(phe->k,
                 phe->k_size*sizeof(double),
                 phe->error_message);
-
     class_alloc(phe->pk_primordial_k,
                 phe->k_size*sizeof(double),
                 phe->error_message);
@@ -715,14 +745,21 @@ int heating_add_second_order(struct background* pba,
     /** Update injection table with second order energy injection mechanisms */
     class_call(heating_rate_acoustic_diss(phe,
                                           phe->z_table[index_z],
-                                          &phe->injection_table[index_z*phe->inj_size+phe->index_inj_diss]),
+                                          &dEdt),
                phe->error_message,
                phe->error_message);
+    phe->injection_table[phe->index_inj_diss][index_z] = dEdt;
+
+    phe->injection_table[phe->index_inj_tot][index_z] += dEdt;
+
+    /** Update deposition table with second order energy injection mechanisms */
+    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+      phe->deposition_table[index_dep][index_z] = phe->chi_table[index_dep][index_z]*phe->injection_table[phe->index_inj_tot][index_z];
+    }
 
     /* Free allocated space */
     free(phe->k);
     free(phe->pk_primordial_k);
-
   }
 
   /* Free allocated space */
