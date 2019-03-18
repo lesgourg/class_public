@@ -1937,38 +1937,8 @@ int thermodynamics_solve_derivs(double mz,
   Tmat = y[ptv->index_Tmat];
   ptdw->Tmat = Tmat;
   ptdw->dTmat = -ptv->dy[ptv->index_Tmat];
-
-  /** Obtain the values for x, x_H, x_He */
-  if(pth->recombination == recfast){
-    class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ap_current),
-               error_message,
-               error_message);
-
-    /** Calculate either from analytical or numerical the current values */
-    if(ptdw->require_He){
-      x_He = y[ptv->index_x_He];
-      dx_He = -dy[ptv->index_x_He];
-      x = ptdw->x_H + ptw->fHe * x_He;
-    }
-    else{
-      x_He = ptdw->x_He;
-      dx_He = ptdw->dx_He;
-      x = ptdw->x;
-    }
-
-    if(ptdw->require_H){
-      x_H = y[ptv->index_x_H];
-      dx_H = -dy[ptv->index_x_H];
-      x = x_H + ptw->fHe * x_He;
-    }
-    else{
-      x_H = ptdw->x_H;
-      dx_H = ptdw->dx_H;
-      // If require_H is false, require_He already fills the x value correctly
-    }
-  }
-
-  //class_test(ptdw->x>1.5,pth->error_message,"should not occur");
+  
+  x = ptdw->x;
   class_call(heating_at_z(pba,pth,x,z,Tmat,pvecback),
              (pth->he).error_message,
              error_message);
@@ -1998,6 +1968,33 @@ int thermodynamics_solve_derivs(double mz,
 
   /** - RecfastCLASS */
   if(pth->recombination == recfast){
+    /** Obtain the values for x, x_H, x_He */
+    class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ap_current),
+               error_message,
+               error_message);
+
+    /** Calculate either from analytical or numerical the current values */
+    if(ptdw->require_He){
+      x_He = y[ptv->index_x_He];
+      dx_He = -dy[ptv->index_x_He];
+      x = ptdw->x_H + ptw->fHe * x_He;
+    }
+    else{
+      x_He = ptdw->x_He;
+      dx_He = ptdw->dx_He;
+      x = ptdw->x;
+    }
+
+    if(ptdw->require_H){
+      x_H = y[ptv->index_x_H];
+      dx_H = -dy[ptv->index_x_H];
+      x = x_H + ptw->fHe * x_He;
+    }
+    else{
+      x_H = ptdw->x_H;
+      dx_H = ptdw->dx_H;
+      // If require_H is false, require_He already fills the x value correctly
+    }
 
     /** - Hydrogen equations */
     if(ptdw->require_H){
@@ -2242,12 +2239,18 @@ int thermodynamics_x_analytic(double z,
   }
 
   /** Save x_H, x_He and x and their derivatives into workspace */
-  ptdw->x_H = x_H;
-  ptdw->x_He = x_He;
-  ptdw->x = x;
-  ptdw->dx_H = dx_H;
-  ptdw->dx_He = dx_He;
-  ptdw->dx = dx;
+  if(!ptdw->require_H){
+    ptdw->x_H = x_H;
+    ptdw->dx_H = dx_H;
+  }
+  if(!ptdw->require_He){
+    ptdw->x_He = x_He;
+    ptdw->dx_He = dx_He;
+  }
+  if(!ptdw->require_He && !ptdw->require_H || current_ap == ptdw->index_ap_reio){
+    ptdw->x = x;
+    ptdw->dx = dx;
+  }
 
   return _SUCCESS_;
 

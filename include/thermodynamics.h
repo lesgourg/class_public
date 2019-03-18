@@ -295,7 +295,6 @@ struct thermo_diffeq_workspace {
   int index_ap_H;    /**< index for start of H-recombination (HI) */
   int index_ap_frec; /**< index for full recombination */
   int index_ap_reio; /**< index for reionization */
-  int index_ap_reio_hyrec; /**< index for reionization with HyRec*/
 
   int ap_current;     /** current fixed approximation scheme index */
   int ap_size;        /**< number of approximation intervals used during evolver loop */
