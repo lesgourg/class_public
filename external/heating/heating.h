@@ -3,6 +3,12 @@
 
 #include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 
+/**
+ * All heating parameters and evolution that other modules need to know.
+ */
+enum f_eff_approx {deposit_on_the_spot, deposit_feff_from_file};
+enum chi_approx {chi_full_heating, chi_from_SSCK, chi_from_x_file, chi_from_z_file};
+
 struct heating{
 
   /** @name - input parameters initialized by user in input module (all other quantities are computed in this module,

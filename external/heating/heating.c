@@ -57,14 +57,6 @@
  * and Matteo Lucca.
  */
 
-#define deposit_on_the_spot          0
-#define deposit_feff_from_file       1
-
-#define chi_full_heating   0
-#define chi_from_SSCK      1
-#define chi_from_x_file    2
-#define chi_from_z_file    3
-
 //TODO :: disable branching ratios before z > 2000, and replace with only heating
 
 /**
@@ -351,7 +343,7 @@ int heating_calculate_at_z(struct background* pba,
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                  // [J/m^3]
   if(phe->has_dcdm){
-    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;
+    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;              // [J/m^3]
   }
   else{
     phe->rho_dcdm = 0.0;
