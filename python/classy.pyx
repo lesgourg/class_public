@@ -311,9 +311,9 @@ cdef class Class:
         # non-understood parameters asked to the wrapper is a problematic
         # situation.
         if "input" in level:
-            if input_init(&self.fc, &self.pr, &self.ba, &self.th,
-                          &self.pt, &self.tr, &self.pm, &self.sp,
-                          &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
+            if input_read_from_file(&self.fc, &self.pr, &self.ba, &self.th,
+                                    &self.pt, &self.tr, &self.pm, &self.sp,
+                                    &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
             self.ncp.add("input")
             # This part is done to list all the unread parameters, for debugging
