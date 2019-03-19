@@ -2115,35 +2115,14 @@ int input_read_parameters_heating(struct file_content * pfc,
   double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
-  /** 1) On-the-spot approximation */
-  /* Read */
-  class_call(parser_read_string(pfc,"on the spot",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      phe->has_on_the_spot = _TRUE_;
-    }
-    else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        phe->has_on_the_spot = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
-      }
-    }
-  }
+  /** 1) DM annihilation */
 
-
-  /** 2) DM annihilation */
-
-  /** 2.a) Energy fraction absorbed by the gas */
+  /** 1.a) Energy fraction absorbed by the gas */
   /* Read */
   class_read_double("annihilation",phe->annihilation_efficiency);
 
   if (phe->annihilation_efficiency > 0.) {
-    /** 2.a.1) Model energy fraction absorbed by the gas as a function of redhsift */
+    /** 1.a.1) Model energy fraction absorbed by the gas as a function of redhsift */
     /* Read */
     class_read_double("annihilation_variation",phe->annihilation_variation);
     class_read_double("annihilation_z",phe->annihilation_z);
@@ -2154,15 +2133,89 @@ int input_read_parameters_heating(struct file_content * pfc,
   }
 
 
-  /** 3) DM decay */
+  /** 2) DM decay */
 
-  /** 3.a) Energy fraction absorbed by the gas divided by the lifetime of the
-           particle */
+  /** 2.a) Energy fraction absorbed by the gas divided by the lifetime of the particle */
   /* Read */
   class_read_double("decay",phe->decay);
 
 
-  /** 4) Dissipation of acoustic waves */
+  /** 3) Injection efficiency */
+  /* Read */
+  class_call(parser_read_string(pfc,"f_eff_type",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    flag2 = _FALSE_;
+    if (strcmp(string1,"on_the_spot") == 0){
+      phe->f_eff_type = f_eff_on_the_spot;
+      flag2 = _TRUE_;
+    }
+    if (strcmp(string1,"from_file") == 0){
+      phe->f_eff_type = f_eff_from_file;
+      flag2 = _TRUE_;
+    }
+    /* Test */
+    class_test(flag2==_FALSE_,
+               errmsg,
+               "could not identify f_eff type value, check that it is one of 'on_the_spot' or 'from_file'");
+  }
+
+  if(phe->f_eff_type == f_eff_from_file){
+    /** 3.1) External file */
+    /* Read */
+    class_call(parser_read_string(pfc,"f_eff_file",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    phe->f_eff_file=string1;
+  }
+
+
+  /** 4) deposition function */
+  /* Read */
+  class_call(parser_read_string(pfc,"chi_type",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    flag2 = _FALSE_;
+    if (strcmp(string1,"heat") == 0){
+      phe->chi_type = chi_full_heating;
+      flag2 = _TRUE_;
+    }
+    if (strcmp(string1,"SSCK") == 0){
+      phe->chi_type = chi_from_SSCK;
+      flag2 = _TRUE_;
+    }
+    if (strcmp(string1,"from_x_file") == 0){
+      phe->chi_type = chi_from_x_file;
+      flag2 = _TRUE_;
+    }
+    if (strcmp(string1,"from_z_file") == 0){
+      phe->chi_type = chi_from_z_file;
+      flag2 = _TRUE_;
+    }
+    /* Test */
+    class_test(flag2==_FALSE_,
+               errmsg,
+               "could not identify f_eff type value, check that it is one of 'heat', 'SSCK', 'from_x_file' or 'from_z_file'");
+  }
+
+  if(phe->chi_type == chi_from_x_file || phe->chi_type == chi_from_z_file){
+    /** 3.1) External file */
+    /* Read */
+    class_call(parser_read_string(pfc,"chi_file",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    phe->chi_z_file=string1;
+    phe->chi_x_file=string1;
+  }
+
+
+  /** 5) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
   class_call(parser_read_string(pfc,"heating approx",&string1,&flag1,errmsg),
              errmsg,
@@ -2170,6 +2223,10 @@ int input_read_parameters_heating(struct file_content * pfc,
   if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))){
     phe->heating_rate_acoustic_diss_approx = _FALSE_;
   }
+
+
+
+
 
   return _SUCCESS_;
 
@@ -4229,12 +4286,10 @@ int input_default_params(struct background *pba,
    * Deafult to input_read_parameters_heating
    */
 
-  /** 1) On-the-spot approximation */
-
-  /** 2) DM annihilation */
-  /** 2.a) Energy fraction absorbed by the gas */
+  /** 1) DM annihilation */
+  /** 1.a) Energy fraction absorbed by the gas */
   phe->annihilation_efficiency = 0.;
-  /** 2.b) Redshift dependence */
+  /** 1.a.1) Redshift dependence */
   phe->annihilation_variation = 0.;
   phe->annihilation_z = 1000.;
   phe->annihilation_zmax = 2500.;
@@ -4242,11 +4297,22 @@ int input_default_params(struct background *pba,
   phe->annihilation_f_halo = 0.;
   phe->annihilation_z_halo = 30.;
 
-  /** 3) DM deacy */
-  /** 3.a) Energy fraction absorbed by the gas */
+  /** 2) DM deacy */
+  /** 2.a) Energy fraction absorbed by the gas */
   phe->decay = 0.;
 
-  /** 4) Dissipation of acoustic waves */
+  /** 3) Injection efficiency */
+  phe->f_eff_type = f_eff_on_the_spot;
+  /** 3.1) External file */
+  phe->f_eff_file = "/external/heating/example_f_eff_file.dat";
+
+  /** 4) Deposition function */
+  phe->chi_type = chi_from_SSCK;
+  /** 4.1) External file */
+  phe->chi_z_file = "/external/heating/example_chiz_file.dat";
+  phe->chi_x_file = "/external/heating/example_chix_file.dat";
+
+  /** 5) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
 
   /**

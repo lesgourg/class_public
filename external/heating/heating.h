@@ -6,7 +6,7 @@
 /**
  * All heating parameters and evolution that other modules need to know.
  */
-enum f_eff_approx {deposit_on_the_spot, deposit_feff_from_file};
+enum f_eff_approx {f_eff_on_the_spot, f_eff_from_file};
 enum chi_approx {chi_full_heating, chi_from_SSCK, chi_from_x_file, chi_from_z_file};
 
 struct heating{
@@ -17,14 +17,7 @@ struct heating{
 
   //@{
 
-  /* Approximation for energy injection of acoustic waves dissipation */
-  int heating_rate_acoustic_diss_approx;
-
   /* Exotic energy injection parameters */
-  int deposit_energy_as;
-
-  short has_on_the_spot;         /**< flag to specify if we want to use the on-the-spot approximation **/
-
   double annihilation_efficiency;/**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
   double annihilation_variation;
   double annihilation_z;
@@ -36,11 +29,17 @@ struct heating{
   double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
   double decay_fraction;
 
+  /* Injection efficiency */
+  int f_eff_type;
+  char *f_eff_file;
+
   /* Deposition function and injection efficiency */
   int chi_type;
   char *chi_z_file;
   char *chi_x_file;
-  char *f_eff_file;
+
+  /* Approximation for energy injection of acoustic waves dissipation */
+  int heating_rate_acoustic_diss_approx;
 
   //@}
 

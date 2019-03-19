@@ -37,10 +37,10 @@
  * Once the rate of energy injection is known, the program evaluates a so-called deposition function
  * which determines the amount of energy effectively deposited into the different forms, i.e. heating,
  * ionization and Lyman alpha. Also in this case, there are several options
- *    1) by setting 'deposit_energy_as' to 'chi_full_heating', the whole injected energy is going to be
+ *    1) by setting 'chi_type' to 'chi_full_heating', the whole injected energy is going to be
  *       deposited into heat,
- *    2) by setting 'deposit_energy_as' to 'chi_from_SSCK', the SSCK approximation is employed,
- *    3) by setting 'deposit_energy_as' to 'chi_from_x_file' or 'chi_from_z_file', the user can define own
+ *    2) by setting 'chi_type' to 'chi_from_SSCK', the SSCK approximation is employed,
+ *    3) by setting 'chi_type' to 'chi_from_x_file' or 'chi_from_z_file', the user can define own
  *       deposition functions with respect to the free electron fraction x_e or to redshift, respectively.
  *       The two files 'example_chix_file.dat' and 'example_chiz_file.dat' are given as example. Note that
  *       'example_chix_file.dat' has been computed according to the approximations of Galli et al. 2013.
@@ -74,14 +74,6 @@ int heating_init(struct precision * ppr,
   /** Define local variable */
   struct heating* phe = &(pth->he);
   int index_inj, index_dep;
-
-  // TODO :: set in input
-  phe->deposit_energy_as = deposit_on_the_spot;
-  phe->chi_type = chi_full_heating;
-  phe->heating_rate_acoustic_diss_approx = _TRUE_;
-  phe->chi_z_file = "/external/heating/example_chiz_file.dat";
-  phe->chi_x_file = "/external/heating/example_chix_file.dat";
-  phe->f_eff_file = "/external/heating/example_feff_file.dat";
 
   /** Initialize indeces and parameters */
   phe->last_index_chix = 0;
@@ -177,7 +169,7 @@ int heating_init(struct precision * ppr,
   phe->index_z_store = 0;
 
   /** Read file for deposition function */
-  if(phe->deposit_energy_as == deposit_feff_from_file){
+  if(phe->f_eff_type == f_eff_from_file){
     class_call(heating_read_feff_from_file(ppr,phe),
                phe->error_message,
                phe->error_message);
@@ -294,7 +286,7 @@ int heating_free(struct thermo* pth){
 
   free(phe->pvecdeposition);
 
-  if(phe->deposit_energy_as == deposit_feff_from_file){
+  if(phe->f_eff_type == f_eff_from_file){
     free(phe->feff_table);
   }
   if(phe->chi_type == chi_from_z_file){
@@ -578,7 +570,7 @@ int heating_deposition_function_at_z(struct heating* phe,
 
   /** Read the correction factor f_eff */
   /* For the file, read in f_eff from file and multiply */
-  if(phe->deposit_energy_as == deposit_feff_from_file){
+  if(phe->f_eff_type == f_eff_from_file){
     class_call(array_interpolate_spline_transposed(phe->feff_table,
                                                    phe->feff_z_size,
                                                    3,
@@ -593,7 +585,7 @@ int heating_deposition_function_at_z(struct heating* phe,
                phe->error_message);
   }
   /* For the on the spot, we take the user input */
-  else if(phe->deposit_energy_as == deposit_on_the_spot){
+  else if(phe->f_eff_type == f_eff_on_the_spot){
     phe->f_eff = 1.;
   }
   /* Otherwise, something must have gone wrong */
