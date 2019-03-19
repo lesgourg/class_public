@@ -337,15 +337,14 @@ int heating_calculate_at_z(struct background* pba,
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
-  int index_z, index_dep, iz_store;
+  int index_dep, iz_store;
   double h,a,b;
   double dEdz_inj;
 
   /** Redefine input parameters */
   phe->T_b = Tmat;                                                                                  // [K]
   phe->x_e = x;                                                                                     // [-]
-  index_z = 0;
-  dEdz_inj = 0.0;
+  dEdz_inj = 0.;
 
   /** Import varying quantities from background structure */
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
@@ -386,34 +385,27 @@ int heating_calculate_at_z(struct background* pba,
     }
   }
 
-  /** Step 1 - get the injected energy that needs to be deposited */
+  /** Get the injected energy that needs to be deposited */
   class_call(heating_energy_injection_at_z(phe,
                                            z,
                                            &dEdz_inj),
              phe->error_message,
              phe->error_message);
 
-  /** Step 2 - Now deposit the energy we have injected */
+  /** Get the deposition and the efficiency functions */
   class_call(heating_deposition_function_at_z(phe,
                                               x,
                                               z),
              phe->error_message,
              phe->error_message);
 
-  /** Step 3 - Put result into deposition vector */
+  /** Put result into deposition vector */
   for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
     phe->pvecdeposition[index_dep] = phe->chi[index_dep]*dEdz_inj;
   }
 
-  /** The output is now successfully stored in the chi table */
+  /** Store z values in table */
   if(phe->to_store){
-    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-      phe->chi_table[index_dep][phe->index_z_store] = phe->chi[index_dep];
-    }
-    class_test(phe->index_z_store < phe->filled_until_index_z-1,
-               phe->error_message,
-               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
-
     phe->filled_until_index_z = phe->index_z_store;
     phe->filled_until_z = phe->z_table[phe->index_z_store];
   }
@@ -506,6 +498,7 @@ int heating_energy_injection_at_z(struct heating* phe,
     }
   }
 
+  /** Total energy injection */
   if(phe->to_store){
     phe->injection_table[phe->index_inj_tot][phe->index_z_store] = dEdz;
 
@@ -535,7 +528,7 @@ int heating_deposition_function_at_z(struct heating* phe,
   /** Define local variables */
   int index_dep;
 
-  /** Step 1 - Read the deposition factors for each channel */
+  /** Read the deposition factors for each channel */
   /* Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation
      by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
   /* Read file in ionization fraction */
@@ -591,7 +584,7 @@ int heating_deposition_function_at_z(struct heating* phe,
     class_stop(phe->error_message,"No valid deposition function has been found found.");
   }
 
-  /** Step 2 - Read the correction factor f_eff */
+  /** Read the correction factor f_eff */
   /* For the file, read in f_eff from file and multiply */
   if(phe->deposit_energy_as == deposit_feff_from_file){
     class_call(array_interpolate_spline_transposed(phe->feff_table,
@@ -617,10 +610,19 @@ int heating_deposition_function_at_z(struct heating* phe,
                "Unknown energy deposition mechanism");
   }
 
-  /** Step 3 - Multiply both to get the desired result */
-  /* Multiply deposition factors with overall correction factor */
+  /** Multiply deposition factors with overall correction factor */
   for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
     phe->chi[index_dep] *= phe->f_eff;
+  }
+
+  /** Store in the chi table, when needed */
+  if(phe->to_store){
+    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+      phe->chi_table[index_dep][phe->index_z_store] = phe->chi[index_dep];
+    }
+    class_test(phe->index_z_store < phe->filled_until_index_z-1,
+               phe->error_message,
+               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
   }
 
   return _SUCCESS_;
@@ -634,8 +636,8 @@ int heating_deposition_function_at_z(struct heating* phe,
  * @param z           Input: redshift
  * @return the error status
  */
-int heating_get_at_z(struct thermo* pth,
-                     double z){
+int heating_at_z(struct thermo* pth,
+                 double z){
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
@@ -1171,14 +1173,17 @@ int heating_rate_DM_annihilation(struct heating * phe,
 
   /** Calculate chamge in the annihilation efficiency */
   if (z>phe->annihilation_zmax) {
-    phe->annihilation_efficiency *= exp(-phe->annihilation_variation*pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2));
+    annihilation_at_z = phe->annihilation_efficiency*
+                        exp(-phe->annihilation_variation*pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2));
   }
   else if (z>phe->annihilation_zmin) {
-    phe->annihilation_efficiency *= exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
+    annihilation_at_z = phe->annihilation_efficiency*
+                        exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
                                          +pow(log((z+1.)/(phe->annihilation_zmax+1.)),2)));
   }
   else {
-    phe->annihilation_efficiency *= exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
+    annihilation_at_z = phe->annihilation_efficiency*
+                        exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
                                          +pow(log((phe->annihilation_zmin+1.)/(phe->annihilation_zmax+1.)),2)));
   }
 

@@ -202,8 +202,8 @@ extern "C" {
                                        double x,
                                        double z);
 
-  int heating_get_at_z(struct thermo* pth,
-                       double z);
+  int heating_at_z(struct thermo* pth,
+                   double z);
 
   int heating_add_second_order(struct background* pba,
                                struct thermo* pth,
