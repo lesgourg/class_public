@@ -19,6 +19,8 @@ struct heating{
 
   /* Exotic energy injection parameters */
   double annihilation_efficiency;/**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation_cross_section;
+  double DM_mass;
   double annihilation_variation;
   double annihilation_z;
   double annihilation_zmax;

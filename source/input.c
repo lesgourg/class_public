@@ -1575,12 +1575,36 @@ int input_read_parameters_background(struct file_content * pfc,
     if (flag2 == _TRUE_)
       pba->Omega_ini_dcdm = param2/pba->h/pba->h;
 
-    /** 5.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
+    /** 5.c) Gamma_dcdm */
     /* Read */
-    class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
-    /* Convert to Mpc */
-    pba->Gamma_dcdm *= (1.e3 / _c_);
+    class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),                            // [s]
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      pba->Gamma_dcdm = param1*(1.e3/_c_);                                                          // [Mpc]
+      pba->tau_dcdm = 1/(param1*1.02e-3)*(1e9*365*24*3600);                                         // [s]
+    }
+    if (flag2 == _TRUE_){
+      pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_);                          // [Mpc]
+      pba->tau_dcdm = param2;                                                                       // [s]
+    }
+    /* Test */
+    class_test(pba->tau_dcdm<0.,
+               errmsg,
+               "You need to enter a lifetime for the decaying DM 'tau_dcdm > 0.'");
+    class_test(pba->Gamma_dcdm<0.,
+               errmsg,
+               "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
   }
+
 
   /** 6) Non-cold relics (ncdm) */
   /** 6.a) Number of non-cold relics (ncdm) */
@@ -2120,6 +2144,20 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 1.a) Energy fraction absorbed by the gas */
   /* Read */
   class_read_double("annihilation",phe->annihilation_efficiency);
+  class_read_double("annihilation_cross_section",pth->annihilation_cross_section);
+  class_read_double("DM_mass",pth->DM_mass);
+  /* Test */
+  class_test(pth->DM_mass<0.,
+             errmsg,
+             "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
+  class_test(pth->DM_mass <=0 && pth->annihilation_cross_section >0,
+             errmsg,
+             "you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
+  /* Complete set of parameters */
+  if(pth->DM_mass > 0 && pth->annihilation_cross_section > 0.){
+    pth->annihilation = pth->annihilation_cross_section/(pth->DM_mass*1.78e-21);
+  }
+
 
   if (phe->annihilation_efficiency > 0.) {
     /** 1.a.1) Model energy fraction absorbed by the gas as a function of redhsift */
@@ -2162,12 +2200,16 @@ int input_read_parameters_heating(struct file_content * pfc,
                "could not identify f_eff type value, check that it is one of 'on_the_spot' or 'from_file'");
   }
 
+  /** 3.1) External file */
   if(phe->f_eff_type == f_eff_from_file){
-    /** 3.1) External file */
     /* Read */
     class_call(parser_read_string(pfc,"f_eff_file",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Test */
+   class_test(flag1==_FALSE_,
+               errmsg,
+               "you have forgotten to specify the file to the injection coefficient.");
     /* Complete set of parameters */
     phe->f_eff_file=string1;
   }
@@ -2209,6 +2251,10 @@ int input_read_parameters_heating(struct file_content * pfc,
     class_call(parser_read_string(pfc,"chi_file",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Test */
+    class_test(flag1==_FALSE_,
+               errmsg,
+               "you have forgotten to specify the file to the energy deposition function.");
     /* Complete set of parameters */
     phe->chi_z_file=string1;
     phe->chi_x_file=string1;
@@ -2223,10 +2269,6 @@ int input_read_parameters_heating(struct file_content * pfc,
   if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))){
     phe->heating_rate_acoustic_diss_approx = _FALSE_;
   }
-
-
-
-
 
   return _SUCCESS_;
 
@@ -4186,6 +4228,7 @@ int input_default_params(struct background *pba,
   pba->Omega0_dcdm = 0.0;
   /** 5.c) Decay constant */
   pba->Gamma_dcdm = 0.0;
+  pba->tau_dcdm = 0.0;
 
   /** 6) ncdm sector */
   /** 6.a) Number of distinct species */
@@ -4289,6 +4332,8 @@ int input_default_params(struct background *pba,
   /** 1) DM annihilation */
   /** 1.a) Energy fraction absorbed by the gas */
   phe->annihilation_efficiency = 0.;
+  phe->annihilation_cross_section = 0.;
+  phe->DM_mass = 0.;
   /** 1.a.1) Redshift dependence */
   phe->annihilation_variation = 0.;
   phe->annihilation_z = 1000.;
