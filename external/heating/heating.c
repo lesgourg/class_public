@@ -672,6 +672,7 @@ int heating_add_second_order(struct background* pba,
   double tau;
   int last_index_back, last_index_thermo;
   double *pvecback, *pvecthermo;
+  double R, dkappa;
   int index_k;
   double dEdt;
   int index_dep;
@@ -687,6 +688,8 @@ int heating_add_second_order(struct background* pba,
               phe->error_message);
 
   /** Allocate qunatities from primordial structure */
+  phe->k_max = 1.e6;
+  phe->k_min = 0.12;
   phe->k_size = 500;        /* Found to be reasonable for the integral of acoustic dissipation */
   class_alloc(phe->k,
               phe->k_size*sizeof(double),
@@ -695,10 +698,20 @@ int heating_add_second_order(struct background* pba,
               phe->k_size*sizeof(double),
               phe->error_message);
 
-  /* Loop over z and calculate the heating at each point */
-  for(index_z=0; index_z<phe->z_size; ++index_z){
+  /** Import primordial spectrum */
+  for (index_k=0; index_k<phe->k_size; index_k++) {
+    phe->k[index_k] = exp(log(phe->k_min)+(log(phe->k_max)-log(phe->k_min))/(phe->k_size)*index_k);
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_scalars,
+                                        linear,
+                                        phe->k[index_k],
+                                        &phe->pk_primordial_k[index_k]),
+               ppm->error_message,
+               phe->error_message);
+  }
 
-    /** Import quantities from background structure */
+  /** Import quantities from background and thermodynamics structure */
+  for(index_z=0; index_z<phe->z_size; ++index_z){
     class_call(background_tau_of_z(pba,
                                    phe->z_table[index_z],
                                    &tau),
@@ -717,9 +730,8 @@ int heating_add_second_order(struct background* pba,
     phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                            // [1/s]
     phe->a = pvecback[pba->index_bg_a];                                                             // [-]
     phe->rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;                     // [J/m^3]
-    phe->R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                   // [-]
+    R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                        // [-]
 
-    /** Import quantities from thermodynamics structure */
     class_call(thermodynamics_at_z(pba,
                                    pth,
                                    phe->z_table[index_z],
@@ -730,26 +742,11 @@ int heating_add_second_order(struct background* pba,
                pth->error_message,
                phe->error_message);
 
-    phe->dkappa = pvecthermo[pth->index_th_dkappa];                                                 // [1/Mpc]
-    phe->dkD_dz = 1./(pvecback[pba->index_bg_H]*phe->dkappa)*
-                  (16./15.+pow(phe->R,2.)/(1.+phe->R))/(6.*(1.0+phe->R));                           // [Mpc^2]
+    dkappa = pvecthermo[pth->index_th_dkappa];                                                      // [1/Mpc]
+    phe->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));    // [Mpc^2]
     phe->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
 
-    /** Import primordial spectrum */
-    phe->k_max = 5.*phe->kD;
-    phe->k_min = 0.12;
-    for (index_k=0; index_k<phe->k_size; index_k++) {
-      phe->k[index_k] = exp(log(phe->k_min)+(log(phe->k_max)-log(phe->k_min))/(phe->k_size)*index_k);
-      class_call(primordial_spectrum_at_k(ppm,
-                                          ppt->index_md_scalars,
-                                          linear,
-                                          phe->k[index_k],
-                                          &phe->pk_primordial_k[index_k]),
-                 ppm->error_message,
-                 phe->error_message);
-    }
-
-    /** Update injection table with second order energy injection mechanisms */
+   /** Update injection table with second order energy injection mechanisms */
     class_call(heating_rate_acoustic_diss(phe,
                                           phe->z_table[index_z],
                                           &dEdt),
@@ -757,16 +754,15 @@ int heating_add_second_order(struct background* pba,
                phe->error_message);
 
     phe->injection_table[phe->index_inj_diss][index_z] = dEdt;
-
     phe->injection_table[phe->index_inj_tot][index_z] += dEdt;
 
   }
 
   /* Free allocated space */
-  free(phe->k);
-  free(phe->pk_primordial_k);
   free(pvecback);
   free(pvecthermo);
+  free(phe->k);
+  free(phe->pk_primordial_k);
 
   return _SUCCESS_;
 }
@@ -1120,7 +1116,6 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
     /** Calculate heating rates */
     /* Integrate approximate function */
-    //TODO :: replace with array_integrate_something_something
     class_call(simpson_integration(phe->k_size,
                                    integrand_approx,
                                    (log(phe->k_max)-log(phe->k_min))/(phe->k_size),

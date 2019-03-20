@@ -2144,18 +2144,18 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 1.a) Energy fraction absorbed by the gas */
   /* Read */
   class_read_double("annihilation",phe->annihilation_efficiency);
-  class_read_double("annihilation_cross_section",pth->annihilation_cross_section);
-  class_read_double("DM_mass",pth->DM_mass);
+  class_read_double("annihilation_cross_section",phe->annihilation_cross_section);
+  class_read_double("DM_mass",phe->DM_mass);
   /* Test */
-  class_test(pth->DM_mass<0.,
+  class_test(phe->DM_mass<0.,
              errmsg,
              "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
-  class_test(pth->DM_mass <=0 && pth->annihilation_cross_section >0,
+  class_test(phe->DM_mass <=0 && phe->annihilation_cross_section >0,
              errmsg,
              "you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
   /* Complete set of parameters */
-  if(pth->DM_mass > 0 && pth->annihilation_cross_section > 0.){
-    pth->annihilation = pth->annihilation_cross_section/(pth->DM_mass*1.78e-21);
+  if(phe->DM_mass > 0 && phe->annihilation_cross_section > 0.){
+    phe->annihilation_efficiency = phe->annihilation_cross_section/(phe->DM_mass*1.78e-21);
   }
 
 
