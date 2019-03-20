@@ -284,6 +284,7 @@ struct thermo_diffeq_workspace {
   double dx_H;
   double dx_He;
   double dx;
+  double x_before_reio;
 
   double Tmat;
   double dTmat;

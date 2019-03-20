@@ -3,8 +3,8 @@
 int thermodynamics_recfast_init(struct precision* ppr,
                                 struct background* pba,
                                 struct thermo* pth,
-                                double fHe,
-                                struct thermorecfast * pre) {
+                                struct thermorecfast * pre,
+                                double fHe) {
 
   /** Define local quantities */
   double Lalpha,Lalpha_He,DeltaB,DeltaB_He;
@@ -66,14 +66,15 @@ int thermodynamics_recfast_init(struct precision* ppr,
   return _SUCCESS_;
 
 }
-int thermodynamics_recfast_dx_H_dz(struct thermorecfast * pre, double x_H, double x, double n,
+int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, double x, double n,
                                    double z, double Hz, double Tmat, double Trad,
-                                   double* dxH_dz, double energy_injection) {
+                                   double* dxH_dz) {
 
   /** Define local variables */
+  struct heating* phe = &(pth->he);
   /* new in recfast 1.4: */
   double Rup,Rdown,K,C;
-  double chi_ion_H;
+  double ion_H,ion_He,ion_lya;
 
   /** - Get necessary coefficients */
   Rdown=1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
@@ -101,30 +102,21 @@ int thermodynamics_recfast_dx_H_dz(struct thermorecfast * pre, double x_H, doubl
     C = 1.;
   }
 
-  /* - old approximation from Chen and Kamionkowski: */
-  //chi_ion_H = (1.-x)/3.;
-
-  /** - Calculate chi_ion */
-  /* coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013): */
-  if (x < 1.){
-    chi_ion_H = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-  }
-  else{
-    chi_ion_H = 0.;
-  }
-
   /** - Evolve system by fudged Peebles' equation, use fudged Peebles' coefficient C */
   *dxH_dz = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-pre->CL/Tmat)) * C / (Hz*(1.+z));
 
   /** - Energy injection */
-  *dxH_dz += -energy_injection*chi_ion_H/n*(1./_L_H_ion_+(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));
+  ion_H = phe->pvecdeposition[phe->index_dep_ionH];
+  ion_He = phe->pvecdeposition[phe->index_dep_ionHe];
+  ion_lya = phe->pvecdeposition[phe->index_dep_lya];
+  //*dxH_dz += -1./n*((ion_H+ion_He)/_L_H_ion_+ion_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));
 
   return _SUCCESS_;
 }
 
-int thermodynamics_recfast_dx_He_dz(struct thermorecfast * pre, double x_He, double x, double x_H, double n,
+int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He, double x, double x_H, double n,
                                     double z, double Hz, double Tmat, double Trad,
-                                    double* dxHe_dz, double energy_injection) {
+                                    double* dxHe_dz) {
 
   /** Define local variables */
   double Rdown_trip,Rup_trip,tauHe_s,pHe_s,tauHe_t,pHe_t,CL_PSt;

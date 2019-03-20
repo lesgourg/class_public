@@ -90,8 +90,9 @@ int heating_init(struct precision * ppr,
   phe->Y_He = pth->YHe;                                                                             // [-]
   phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
-  /** Check energy injection */
+  /** Check energy injection */ //TODO :: do properly
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
+  phe->has_dcdm = _FALSE_;
 
   /** Check energy injection for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
@@ -333,9 +334,9 @@ int heating_calculate_at_z(struct background* pba,
   /** Import varying quantities from background structure */
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
-  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                  // [J/m^3]
+  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1.0e9*1.0e6;               // [J/m^3]
   if(phe->has_dcdm){
-    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;              // [J/m^3]
+    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1.0e9*1.0e6;           // [J/m^3]
   }
   else{
     phe->rho_dcdm = 0.0;
@@ -551,11 +552,49 @@ int heating_deposition_function_at_z(struct heating* phe,
   }
   /* Old approximation from Chen and Kamionkowski */
   else if(phe->chi_type == chi_from_SSCK){
+    if(x<1.){
       phe->chi[phe->index_dep_heat]  = (1.+2.*x)/3.;
       phe->chi[phe->index_dep_ionH]  = (1.-x)/3.;
       phe->chi[phe->index_dep_ionHe] = 0.;
       phe->chi[phe->index_dep_lya]   = (1.-x)/3.;
       phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+    else{
+      phe->chi[phe->index_dep_heat]  = 1.;
+      phe->chi[phe->index_dep_ionH]  = 0.;
+      phe->chi[phe->index_dep_ionHe] = 0.;
+      phe->chi[phe->index_dep_lya]   = 0.;
+      phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+    /*
+      // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+      if (x < 1.){
+        phe->chi[phe->index_dep_ionH] = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+      }
+      else{
+        phe->chi[phe->index_dep_ionH] = 0.;
+      }
+      // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
+      if (x < 1.)
+        chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
+      else
+        chi_heat = 1.;
+    */
+
+    /*
+     * Recfast :: 
+
+      double bHe_ion=branching_ratio_ions_Chen(XHeII/fHe);
+      double bHI_ion=branching_ratio_ions_Chen(XHII);
+      double b_heat =branching_ratio_heat_Chen(XHII, XHeII/fHe, fHe);
+      //
+      double fheat=2.0/3.0*const_e/const_kB/(1.0+fHe+XHII+XHeII);
+
+      dXHI_1s_dt+=-bHI_ion/13.6/(1.0+fHe)*dE_dt;
+      if(XHeII>0.0) dXHeI_1s_dt+=-bHe_ion/24.6*fHe/(1.0+fHe)*dE_dt;
+      drho_dt+=fheat*b_heat*dE_dt/Tg;
+
+     * */
   }
   else if(phe->chi_type == chi_full_heating){
     phe->chi[phe->index_dep_heat]  = 1.;
@@ -691,7 +730,7 @@ int heating_add_second_order(struct background* pba,
   phe->k_max = 1.e6;
   phe->k_min = 0.12;
   phe->k_size = 500;        /* Found to be reasonable for the integral of acoustic dissipation */
-  class_alloc(phe->k,
+  class_alloc(phe->k, //TODO :: make these not part of the struct anymore
               phe->k_size*sizeof(double),
               phe->error_message);
   class_alloc(phe->pk_primordial_k,
@@ -710,8 +749,10 @@ int heating_add_second_order(struct background* pba,
                phe->error_message);
   }
 
-  /** Import quantities from background and thermodynamics structure */
+  /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<phe->z_size; ++index_z){
+
+    /** Import quantities from background and thermodynamics structure */
     class_call(background_tau_of_z(pba,
                                    phe->z_table[index_z],
                                    &tau),

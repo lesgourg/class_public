@@ -51,14 +51,11 @@ struct thermorecfast {
 /**************************************************************/
 
 /* *
- * Putting this down here is important, because of the special nature of this module.
- * This allows the struct heating to already be defined and thus be a normal member
- * (as opposed to a pointer member) of the struct thermo in thermodynamics.h
+ * Putting this down here is important, because of the special nature of this wrapper
  * */
 struct thermo;
 struct background;
 struct precision;
-//#include "thermodynamics.h"
 
 /* Boilerplate for C++ */
 #ifdef __cplusplus
@@ -68,16 +65,18 @@ extern "C" {
   int thermodynamics_recfast_init(struct precision* ppr,
                                   struct background* pba,
                                   struct thermo * pth,
-                                  double fHe,
-                                  struct thermorecfast * precfast);
+                                  struct thermorecfast * precfast,
+                                  double fHe);
 
-  int thermodynamics_recfast_dx_H_dz(struct thermorecfast * pre, double x_H, double x, double n,
+  int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,
+                                     double x_H, double x, double n,
                                      double z, double Hz, double Tmat, double Trad,
-                                     double* dxH_dz, double energy_injection);
+                                     double* dxH_dz);
 
-  int thermodynamics_recfast_dx_He_dz(struct thermorecfast * pre, double x_He, double x, double x_H, double n,
+  int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre,
+                                      double x_He, double x, double x_H, double n,
                                       double z, double Hz, double Tmat, double Trad,
-                                      double* dxHe_dz, double energy_injection);
+                                      double* dxHe_dz);
 #ifdef __cplusplus
 }
 #endif

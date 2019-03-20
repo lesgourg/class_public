@@ -3956,6 +3956,7 @@ int input_read_parameters_output(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
+  struct heating* phe = &(pth->he);
   int flag1, flag2, flag3;
   double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
@@ -4080,6 +4081,7 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_int("background_verbose",pba->background_verbose);
   class_read_int("thermodynamics_verbose",pth->thermodynamics_verbose);
+  class_read_int("heating_verbose",phe->heating_verbose);
   class_read_int("perturbations_verbose",ppt->perturbations_verbose);
   class_read_int("transfer_verbose",ptr->transfer_verbose);
   class_read_int("primordial_verbose",ppm->primordial_verbose);
@@ -4613,6 +4615,7 @@ int input_default_params(struct background *pba,
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
   ppt->perturbations_verbose = 0;
+  phe->heating_verbose = 0;
   ptr->transfer_verbose = 0;
   ppm->primordial_verbose = 0;
   psp->spectra_verbose = 0;

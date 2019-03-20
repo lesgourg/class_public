@@ -76,6 +76,14 @@ struct thermohyrec{
   int thermohyrec_verbose;
 };
 
+/**************************************************************/
+
+/* *
+ * Putting this down here is important, because of the special nature of this wrapper
+ * */
+
+struct thermo* pth;
+
 /* Boilerplate for C++ */
 #ifdef __cplusplus
 extern "C" {
@@ -83,9 +91,9 @@ extern "C" {
 
   int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, struct thermohyrec* phy);
 
-  int thermodynamics_hyrec_get_xe(struct thermohyrec * phy,
+  int thermodynamics_hyrec_get_xe(struct thermo * pth, struct thermohyrec * phy,
                                   double z, double H, double T_b, double T_gamma,
-                                  double* x_e, double* dxe_dlna, double energy_injection);
+                                  double* x_e, double* dxe_dlna);
 
   int thermodynamics_hyrec_free(struct thermohyrec* phy);
 
