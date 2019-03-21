@@ -17,7 +17,7 @@
 
 
 /**
- * Initialize input parameters from external file. 
+ * Initialize input parameters from external file.
  *
  * @param argc    Input: Number of command line arguments
  * @param argv    Input: Command line argument strings
@@ -107,7 +107,7 @@ int input_find_file(int argc,
   int flag1, filenum;
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
-  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the 
+  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the
                                            // characters "output/[...]%02d_parameters.ini" (as done below)
 
   pfc_input = &fc_input;
@@ -122,7 +122,7 @@ int input_find_file(int argc,
   input_file[0]='\0';
   precision_file[0]='\0';
 
-  /** If some arguments are passed, identify eventually some 'xxx.ini' and 
+  /** If some arguments are passed, identify eventually some 'xxx.ini' and
       'xxx.pre' files, and store their name. */
   if (argc > 1) {
     for (i=1; i<argc; i++) {
@@ -530,7 +530,7 @@ int input_shooting(struct file_content * pfc,
                                   &fzw,
                                   &fevals,
                                   errmsg),
-                     errmsg, 
+                     errmsg,
                      pba->shooting_error,
                      shooting_failed=_TRUE_);
 
@@ -712,7 +712,7 @@ int input_fzerofun_1d(double input,
 }
 
 
-/** 
+/**
  * Using Ridders' method, return the root of a function func known to
  * lie between x1 and x2. The root, returned as zriddr, will be found to
  * an approximate accuracy xtol.
@@ -783,7 +783,7 @@ int class_fzero_ridder(int (*func)(double x,
         fl=fm;
         xh=ans;
         fh=fnew;
-      } 
+      }
       else if (NRSIGN(fl,fnew) != fl) {
         xh=ans;
         fh=fnew;
@@ -866,8 +866,8 @@ int input_get_guess(double *xguess,
       Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* *
        * This formula is exact in a Matter + Lambda Universe, but only for Omega_dcdm,
-       * not the combined. 
-       * sqrt_one_minus_M = sqrt(1.0 - Omega_M); 
+       * not the combined.
+       * sqrt_one_minus_M = sqrt(1.0 - Omega_M);
        * xguess[index_guess] = pfzw->target_value[index_guess]*
        *                       exp(2./3.*ba.Gamma_dcdm/ba.H0*
        *                       atanh(sqrt_one_minus_M)/sqrt_one_minus_M);
@@ -1145,7 +1145,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
 }
 
 
-/** 
+/**
  * Initialize the precision parameter structure.
  *
  * All precision parameters used in the other modules are listed here
@@ -1195,7 +1195,7 @@ int input_read_precisions(struct file_content * pfc,
 }
 
 
-/** 
+/**
  * If entries are passed in file_content structure, carefully read and
  * interpret each of them, and tune the relevant input parameters
  * accordingly
@@ -1384,7 +1384,12 @@ int input_read_parameters_background(struct file_content * pfc,
   double sigma_B; // Stefan-Boltzmann constant in [W/(m^2 K^4) = Kg/(K^4 s^3)]
   sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);
 
-  /** 1) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
+  /** 1) Scale factor today (arbitrary) */
+  /* Read */
+  class_read_double("a_today", pba->a_today);
+
+
+  /** 2) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
   /* Read */
   class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
              errmsg,
@@ -1407,7 +1412,7 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
 
-  /** 2) Omega_0_g (photons) and T_cmb */
+  /** 3) Omega_0_g (photons) and T_cmb */
   /* Read */
   class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
              errmsg,
@@ -1444,7 +1449,7 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
 
-  /** 3) Omega_0_b (baryons) */
+  /** 4) Omega_0_b (baryons) */
   /* Read */
   class_call(parser_read_double(pfc,"Omega_b",&param1,&flag1,errmsg),
              errmsg,
@@ -1464,12 +1469,13 @@ int input_read_parameters_background(struct file_content * pfc,
     pba->Omega0_b = param2/pba->h/pba->h;
   }
 
+
+  /** 5) Omega_0_ur (ultra-relativistic species / massless neutrino) */
   /**
    * We want to keep compatibility with old input files,
    * and as such 'N_eff' is still an allowed parameter name,
    * although it is deprecated and its use is discouraged.
    * */
-  /** 4) Omega_0_ur (ultra-relativistic species / massless neutrino) */
   /* Read */
   class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
              errmsg,
@@ -1512,7 +1518,7 @@ int input_read_parameters_background(struct file_content * pfc,
     }
   }
 
-  /** 4.a) Case of non-standard properties */
+  /** 5.a) Case of non-standard properties */
   /* Read */
   class_call(parser_read_double(pfc,"ceff2_ur",&param1,&flag1,errmsg),
              errmsg,
@@ -1529,7 +1535,7 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
 
-  /** 5) Omega_0_cdm (CDM) */
+  /** 6) Omega_0_cdm (CDM) */
   /* Read */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -1549,7 +1555,7 @@ int input_read_parameters_background(struct file_content * pfc,
     pba->Omega0_cdm = param2/pba->h/pba->h;
   }
 
-  /** 5.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
+  /** 6.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
   /* Read */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
              errmsg,
@@ -1570,7 +1576,7 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
   if (pba->Omega0_dcdmdr > 0) {
-    /** 5.b) Omega_ini_dcdm or omega_ini_dcdm */
+    /** 6.b) Omega_ini_dcdm or omega_ini_dcdm */
     /* Read */
     class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
                errmsg,
@@ -1590,7 +1596,7 @@ int input_read_parameters_background(struct file_content * pfc,
       pba->Omega_ini_dcdm = param2/pba->h/pba->h;
     }
 
-    /** 5.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
+    /** 6.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
     /* Read */
     class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
     /* Convert to Mpc */
@@ -1598,8 +1604,8 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
 
-  /** 6) Non-cold relics (ncdm) */
-  /** 6.a) Number of non-cold relics (ncdm) */
+  /** 7) Non-cold relics (ncdm) */
+  /** 7.a) Number of non-cold relics (ncdm) */
   /* Read */
   class_read_int("N_ncdm",N_ncdm);
   /* Complete set of parameters */
@@ -1612,7 +1618,7 @@ int input_read_parameters_background(struct file_content * pfc,
       ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
     }
 
-    /** 6.b) Check if filenames for interpolation tables are given */
+    /** 7.b) Check if filenames for interpolation tables are given */
     /* Read */
     class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
     /* Complete set of parameters */
@@ -1624,7 +1630,7 @@ int input_read_parameters_background(struct file_content * pfc,
       }
       if (fileentries > 0) {
 
-        /** 6.b.1) Check if filenames for interpolation tables are given */
+        /** 7.b.1) Check if filenames for interpolation tables are given */
         /* Read */
         class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",&entries_read,&(pba->ncdm_psd_files),&flag2,errmsg),
                    errmsg,
@@ -1638,11 +1644,11 @@ int input_read_parameters_background(struct file_content * pfc,
       }
     }
 
-    /** 6.c) (optional) p.s.d.-parameters */
+    /** 7.c) (optional) p.s.d.-parameters */
     /* Read */
     parser_read_list_of_doubles(pfc,"ncdm_psd_parameters",&entries_read,&(pba->ncdm_psd_parameters),&flag2,errmsg);
 
-    /** 6.d) Mass or Omega of each ncdm species */
+    /** 7.d) Mass or Omega of each ncdm species */
     /* Read */
     class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
     class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
@@ -1656,7 +1662,7 @@ int input_read_parameters_background(struct file_content * pfc,
         pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
       }
       /* Set default value
-         this is the right place for passing the default value of the mass 
+         this is the right place for passing the default value of the mass
          (all parameters must have a default value; most of them are defined
          in input_default_params, but the ncdm mass is a bit special and
          there is no better place for setting its default value). We put an
@@ -1666,35 +1672,35 @@ int input_read_parameters_background(struct file_content * pfc,
       }
     }
 
-    /** 6.e) Temperatures */
+    /** 7.e) Temperatures */
     /* Read */
     class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
 
-    /** 6.f) Chemical potentials */
+    /** 7.f) Chemical potentials */
     /* Read */
     class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default,N_ncdm);
 
-    /** 6.g) Degeneracy of each ncdm species */
+    /** 7.g) Degeneracy of each ncdm species */
     /* Read */
     class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default,N_ncdm);
 
-    /** 6.h) Quadrature modes, 0 is qm_auto */
+    /** 7.h) Quadrature modes, 0 is qm_auto */
     /* Read */
     class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
 
-    /** 6.h.1) qmax, if relevant */
+    /** 7.h.1) qmax, if relevant */
     /* Read */
     class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm);
 
-    /** 6.h.2) Number of momentum bins */
+    /** 7.h.2) Number of momentum bins */
     class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,150,N_ncdm);
 
 
-    /** Last step of 6) (i.e. NCDM) -- Calculate the masses and momenta */
+    /** Last step of 7) (i.e. NCDM) -- Calculate the masses and momenta */
     class_call(background_ncdm_init(ppr,pba),
                pba->error_message,
                errmsg);
-    /* Complete set of parameters 
+    /* Complete set of parameters
      We must calculate M from omega or vice versa if one of them is missing.
      If both are present, we must update the degeneracy parameter to
      reflect the implicit normalization of the distribution function. */
@@ -1740,7 +1746,7 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
 
-  /** 7) Omega_0_k (effective fractional density of curvature) */
+  /** 8) Omega_0_k (effective fractional density of curvature) */
   /* Read */
   class_read_double("Omega_k",pba->Omega0_k);
   /* Complete set of parameters */
@@ -1753,7 +1759,7 @@ int input_read_parameters_background(struct file_content * pfc,
   }
 
 
-  /** 8) Dark energy
+  /** 9) Dark energy
          Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
          fluid), Omega0_scf (scalar field) */
   /* Read */
@@ -1826,9 +1832,9 @@ int input_read_parameters_background(struct file_content * pfc,
     }
   }
 
-  /** 8.a) If Omega fluid is different from 0 */
+  /** 9.a) If Omega fluid is different from 0 */
   if (pba->Omega0_fld != 0.) {
-    /** 8.a.1) PPF approximation */
+    /** 9.a.1) PPF approximation */
     /* Read */
     class_call(parser_read_string(pfc,"use_ppf",&string1,&flag1,errmsg),
                errmsg,
@@ -1843,7 +1849,7 @@ int input_read_parameters_background(struct file_content * pfc,
       }
     }
 
-    /** 8.a.2) Equation of state */
+    /** 9.a.2) Equation of state */
     /* Read */
     class_call(parser_read_string(pfc,"fluid_equation_of_state",&string1,&flag1,errmsg),
                errmsg,
@@ -1862,7 +1868,7 @@ int input_read_parameters_background(struct file_content * pfc,
     }
 
     if (pba->fluid_equation_of_state == CLP) {
-      /** 8.a.2.2) Equation of state of the fluid in 'CLP' case */
+      /** 9.a.2.2) Equation of state of the fluid in 'CLP' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("wa_fld",pba->wa_fld);
@@ -1870,7 +1876,7 @@ int input_read_parameters_background(struct file_content * pfc,
     }
 
     if (pba->fluid_equation_of_state == EDE) {
-      /** 8.c.2) Equation of state of the fluid in 'EDE' case */
+      /** 9.c.2) Equation of state of the fluid in 'EDE' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("Omega_EDE",pba->Omega_EDE);
@@ -1878,10 +1884,10 @@ int input_read_parameters_background(struct file_content * pfc,
     }
   }
 
-  /** 8.b) If Omega scalar field (SCF) is different from 0 */
+  /** 9.b) If Omega scalar field (SCF) is different from 0 */
   if (pba->Omega0_scf != 0.){
 
-    /** 8.b.1) Additional SCF parameters */
+    /** 9.b.1) Additional SCF parameters */
     /* Read */
     class_call(parser_read_list_of_doubles(pfc,
                                            "scf_parameters",
@@ -1891,7 +1897,7 @@ int input_read_parameters_background(struct file_content * pfc,
                                            errmsg),
                errmsg,errmsg);
 
-    /** 8.b.2) SCF initial conditions from attractor solution */
+    /** 9.b.2) SCF initial conditions from attractor solution */
     /* Read */
     class_call(parser_read_string(pfc,
                                   "attractor_ic_scf",
@@ -1911,12 +1917,12 @@ int input_read_parameters_background(struct file_content * pfc,
         class_test(pba->scf_parameters_size<2,
                    errmsg,
                    "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
-        pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];      
+        pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
         pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
       }
     }
 
-    /** 8.b.3) SCF tuning parameter */
+    /** 9.b.3) SCF tuning parameter */
     /* Read */
     class_read_int("scf_tuning_index",pba->scf_tuning_index);
     /* Test */
@@ -1925,7 +1931,7 @@ int input_read_parameters_background(struct file_content * pfc,
                "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",
                pba->scf_tuning_index,pba->scf_parameters_size);
 
-    /** 8.b.4) Shooting parameter */
+    /** 9.b.4) Shooting parameter */
     /* Read */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
     /* Complete set of parameters */
@@ -1934,11 +1940,6 @@ int input_read_parameters_background(struct file_content * pfc,
       printf("lambda = %e < 3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
     }
   }
-
-
-  /** 9) scale factor today (arbitrary) */
-  /* Read */
-  class_read_double("a_today", pba->a_today);//TODO :: move up again
 
   return _SUCCESS_;
 
@@ -3970,7 +3971,7 @@ int input_default_params(struct background *pba,
   /** 1) Gauge */
   ppt->gauge=synchronous;
 
-  /** 
+  /**
    * Default to input_read_parameters_background
    */
 
@@ -4069,7 +4070,7 @@ int input_default_params(struct background *pba,
   /** 9) Scale factor today */
   pba->a_today = 1.;
 
-  /** 
+  /**
    * Default to input_read_parameters_thermo
    */
 
@@ -4107,7 +4108,7 @@ int input_default_params(struct background *pba,
   /** 4) Damping scale */
   pth->compute_damping_scale = _FALSE_;
 
-  /** 
+  /**
    * Deafult to input_read_parameters_heating
    */
 
@@ -4320,7 +4321,7 @@ int input_default_params(struct background *pba,
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
 
-  /** 
+  /**
    * Default to input_read_parameters_lensing
    */
 
@@ -4332,7 +4333,7 @@ int input_default_params(struct background *pba,
   ptr->lcmb_tilt=0.;
   ptr->lcmb_pivot=0.1;
 
-  /** 
+  /**
    * Default to input_read_parameters_output
    */
 
@@ -4365,7 +4366,7 @@ int input_default_params(struct background *pba,
   ple->lensing_verbose = 0;
   pop->output_verbose = 0;
 
-  /** 
+  /**
    * Default to input_read_additional
    */
   pth->compute_cb2_derivatives=_FALSE_;
