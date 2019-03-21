@@ -26,34 +26,35 @@ struct file_content {
 extern "C" {
 #endif
 
-int parser_read_file(char * filename,
-                     struct file_content * pfc,
-                     ErrorMsg errmsg);
+  int parser_init(struct file_content * pfc,
+                  int size,
+                  char * filename,
+                  ErrorMsg errmsg);
 
-int parser_init(struct file_content * pfc,
-                int size,
-                char * filename,
-                ErrorMsg errmsg);
+  int parser_free(struct file_content * pfc);
 
-int parser_free(struct file_content * pfc);
 
-int parser_read_line(char * line,
-                     int * is_data,
-                     char * name,
-                     char * value,
-                     ErrorMsg errmsg);
-
-int parser_read_int(struct file_content * pfc,
-                    char * name,
-                    int * value,
-                    int * found,
-                    ErrorMsg errmsg);
-
-int parser_read_double(struct file_content * pfc,
-                       char * name,
-                       double * value,
-                       int * found,
+  int parser_read_file(char * filename,
+                       struct file_content * pfc,
                        ErrorMsg errmsg);
+
+  int parser_read_line(char * line,
+                       int * is_data,
+                       char * name,
+                       char * value,
+                       ErrorMsg errmsg);
+
+  int parser_read_int(struct file_content * pfc,
+                      char * name,
+                      int * value,
+                      int * found,
+                      ErrorMsg errmsg);
+
+  int parser_read_double(struct file_content * pfc,
+                         char * name,
+                         double * value,
+                         int * found,
+                         ErrorMsg errmsg);
 
   int parser_read_double_and_position(struct file_content * pfc,
                                       char * name,
@@ -62,39 +63,43 @@ int parser_read_double(struct file_content * pfc,
                                       int * found,
                                       ErrorMsg errmsg);
 
-int parser_read_string(struct file_content * pfc,
-                       char * name,
-                       FileArg * value,
-                       int * found,
-                       ErrorMsg errmsg);
+  int parser_read_string(struct file_content * pfc,
+                         char * name,
+                         FileArg * value,
+                         int * found,
+                         ErrorMsg errmsg);
 
-int parser_read_list_of_doubles(struct file_content * pfc,
-                                char * name,
-                                int * size,
-                                double ** pointer_to_list,
-                                int * found,
-                                ErrorMsg errmsg);
+  int parser_read_list_of_doubles(struct file_content * pfc,
+                                  char * name,
+                                  int * size,
+                                  double ** pointer_to_list,
+                                  int * found,
+                                  ErrorMsg errmsg);
 
-int parser_read_list_of_integers(struct file_content * pfc,
-                                 char * name,
-                                 int * size,
-                                 int ** pointer_to_list,
-                                 int * found,
-                                 ErrorMsg errmsg);
+  int parser_read_list_of_integers(struct file_content * pfc,
+                                   char * name,
+                                   int * size,
+                                   int ** pointer_to_list,
+                                   int * found,
+                                   ErrorMsg errmsg);
 
-int parser_read_list_of_strings(struct file_content * pfc,
-                                char * name,
-                                int * size,
-                                char ** pointer_to_list,
-                                int * found,
-                                ErrorMsg errmsg);
+  int parser_read_list_of_strings(struct file_content * pfc,
+                                  char * name,
+                                  int * size,
+                                  char ** pointer_to_list,
+                                  int * found,
+                                  ErrorMsg errmsg);
 
-int parser_cat(struct file_content * pfc1,
-               struct file_content * pfc2,
-               struct file_content * pfc3,
-               ErrorMsg errmsg);
+  int parser_cat(struct file_content * pfc1,
+                 struct file_content * pfc2,
+                 struct file_content * pfc3,
+                 ErrorMsg errmsg);
 
-int parser_check_options(char * strinput, char ** options, int N_options, int* valid);
+  int parser_check_options(char * strinput,
+                           char ** options,
+                           int N_options,
+                           int* valid);
+
 #ifdef __cplusplus
 }
 #endif
