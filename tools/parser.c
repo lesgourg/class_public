@@ -700,7 +700,7 @@ int parser_check_options(char * strinput, char ** options, int N_options, int* v
       }
 
       /* If it is not seperated by anything afterwards, it is not its own word */
-      if(str[i+j] != ',' && str[i+j] != ' ' && str[i+j] != '\t' && str[i+j] != '\n' && str[i+j] != '\0' && str[i+j] != '.'  && str[i-1] != '&'){
+      if(str[i+j] != ',' && str[i+j] != ' ' && str[i+j] != '\t' && str[i+j] != '\n' && str[i+j] != '\0' && str[i+j] != '.'  && str[i+j] != '&'){
         found = _FALSE_;
       }
 
@@ -731,7 +731,7 @@ int parser_check_options(char * strinput, char ** options, int N_options, int* v
   string_length = strlen(str);
   /* Check that the remaining characters are exclusively seperators */
   for(i=0;i<string_length;i++){
-    if( str[i] != ',' && str[i] != ' ' && str[i] != '\t' && str[i] != '\n' && str[i] != '\0' && str[i] != '.'  && str[i-1] != '&'){
+    if( str[i] != ',' && str[i] != ' ' && str[i] != '\t' && str[i] != '\n' && str[i] != '\0' && str[i] != '.'  && str[i] != '&'){
       *valid = _FALSE_;
     }
   }
