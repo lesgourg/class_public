@@ -4,6 +4,16 @@
  */
 
 #include "input.h"
+#include "quadrature.h"
+#include "background.h"
+#include "thermodynamics.h"
+#include "perturbations.h"
+#include "transfer.h"
+#include "primordial.h"
+#include "spectra.h"
+#include "nonlinear.h"
+#include "lensing.h"
+#include "output.h"
 
 
 /**
@@ -1447,17 +1457,35 @@ int input_read_parameters_background(struct file_content * pfc,
              errmsg,
              "In input file, you can only enter one of Omega_b or omega_b, choose one");
   /* Complete set of parameters */
-  if (flag1 == _TRUE_)
+  if (flag1 == _TRUE_){
     pba->Omega0_b = param1;
-  if (flag2 == _TRUE_)
+  }
+  if (flag2 == _TRUE_){
     pba->Omega0_b = param2/pba->h/pba->h;
+  }
 
-
+  /**
+   * We want to keep compatibility with old input files,
+   * and as such 'N_eff' is still an allowed parameter name,
+   * although it is deprecated and its use is discouraged.
+   * */
   /** 4) Omega_0_ur (ultra-relativistic species / massless neutrino) */
   /* Read */
   class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compability code BEGIN */
+  class_call(parser_read_double(pfc,"N_eff",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+             errmsg,
+             "You added both N_eff (deprecated) and N_ur. Please use solely N_ur.");
+  if(flag2 == _TRUE_){
+    param1 = param2;
+    flag1 = _TRUE_;
+  }
+  /* Compability code END */
   class_call(parser_read_double(pfc,"Omega_ur",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
@@ -1467,7 +1495,7 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
-             "In input file, you can only enter one of N_eff, Omega_ur or omega_ur, choose one");
+             "In input file, you can only enter one of N_ur, Omega_ur or omega_ur, choose one");
   /* Complete set of parameters */
   if (class_none_of_three(flag1,flag2,flag3)) {
     pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
@@ -1534,10 +1562,12 @@ int input_read_parameters_background(struct file_content * pfc,
              errmsg,
              "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
   /* Complete set of parameters */
-  if (flag1 == _TRUE_)
+  if (flag1 == _TRUE_){
     pba->Omega0_dcdmdr = param1;
-  if (flag2 == _TRUE_)
+  }
+  if (flag2 == _TRUE_){
     pba->Omega0_dcdmdr = param2/pba->h/pba->h;
+  }
 
   if (pba->Omega0_dcdmdr > 0) {
     /** 5.b) Omega_ini_dcdm or omega_ini_dcdm */
@@ -1553,10 +1583,12 @@ int input_read_parameters_background(struct file_content * pfc,
                errmsg,
                "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
     /* Complete set of parameters */
-    if (flag1 == _TRUE_)
+    if (flag1 == _TRUE_){
       pba->Omega_ini_dcdm = param1;
-    if (flag2 == _TRUE_)
+    }
+    if (flag2 == _TRUE_){
       pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+    }
 
     /** 5.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
     /* Read */
@@ -1573,10 +1605,12 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Complete set of parameters */
   if ((flag1 == _TRUE_) && (N_ncdm > 0)){
     pba->N_ncdm = N_ncdm;
-    if (ppt->gauge == synchronous)
+    if (ppt->gauge == synchronous){
       ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
-    if (ppt->gauge == newtonian)
+    }
+    if (ppt->gauge == newtonian){
       ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
+    }
 
     /** 6.b) Check if filenames for interpolation tables are given */
     /* Read */
@@ -1904,7 +1938,7 @@ int input_read_parameters_background(struct file_content * pfc,
 
   /** 9) scale factor today (arbitrary) */
   /* Read */
-  class_read_double("a_today", pba->a_today);
+  class_read_double("a_today", pba->a_today);//TODO :: move up again
 
   return _SUCCESS_;
 
