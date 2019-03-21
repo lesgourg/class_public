@@ -2393,14 +2393,16 @@ int input_read_parameters_perturbs(struct file_content * pfc,
     }
     /* Compatibility code END */
     /* Complete set of parameters */
-    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
-      ppt->has_metricpotential_transfers = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      ppt->has_metricpotential_transfers = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'extra_metric_transfer_functions'",string1);
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        ppt->has_metricpotential_transfers = _TRUE_;
+      }
+      else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        ppt->has_metricpotential_transfers = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'extra_metric_transfer_functions'",string1);
+      }
     }
   }
 
@@ -2460,14 +2462,16 @@ int input_read_parameters_perturbs(struct file_content * pfc,
     }
     /* Compatibility code END */
     /* Complete set of parameters */
-    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-      ppt->has_perturbed_recombination = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      ppt->has_perturbed_recombination = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'perturbed_recombination'",string1);
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        ppt->has_perturbed_recombination = _TRUE_;
+      }
+      else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        ppt->has_perturbed_recombination = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'perturbed_recombination'",string1);
+      }
     }
 
     /** 3.a) Modes */
@@ -2604,14 +2608,16 @@ int input_read_parameters_perturbs(struct file_content * pfc,
     }
     /* Compatibility code END */
     /* Complete set of parameters */
-    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
-      ppt->has_Nbody_gauge_transfers = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      ppt->has_Nbody_gauge_transfers = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'nbody_gauge_transfer_functions'",string1);
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+        ppt->has_Nbody_gauge_transfers = _TRUE_;
+      }
+      else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        ppt->has_Nbody_gauge_transfers = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'nbody_gauge_transfer_functions'",string1);
+      }
     }
   }
 
