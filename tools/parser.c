@@ -688,3 +688,78 @@ int parser_cat(
   return _SUCCESS_;
 
 }
+
+
+
+int parser_check_options(char * strinput, char ** options, int N_options, int* valid){
+
+  int i, j, n_option, string_length, option_length;
+  int found;
+  char str[_ARGUMENT_LENGTH_MAX_];
+  strcpy(str,strinput);
+
+  *valid = _TRUE_;
+
+  for(n_option = 0; n_option < N_options; ++n_option){
+
+    string_length = strlen(str);                // Length of string
+    option_length = strlen(options[n_option]);  // Length of option to remove from string
+
+    for(i=0; i <= string_length - option_length; i++){
+
+      /* Match first character */
+      if(str[i] == options[n_option][0]){
+        found = _TRUE_;
+      }
+      else{
+        found = _FALSE_;
+        continue;
+      }
+
+      /* Only if first character fits, try all the others */
+      for(j=0; j<option_length; j++){
+        if(str[i + j] != options[n_option][j]){
+          found = _FALSE_;
+          break;
+        }
+      }
+
+      /* If it is not seperated by anything afterwards, it is not its own word */
+      if(str[i+j] != ' ' && str[i+j] != '\t' && str[i+j] != '\n' && str[i+j] != '\0' && str[i+j] != ',' && str[i+j] != '.'){
+        found = _FALSE_;
+      }
+
+      /* If it is not seperated by anything before, it is not its own word */
+      if(i>0 && str[i-1] != ' ' && str[i-1] != '\t' && str[i-1] != '\n' && str[i-1] != '\0' && str[i-1] != ',' && str[i-1] != '.'){
+        found = _FALSE_;
+      }
+
+      /* *
+       * If word is found then shift all characters to left
+       * and decrement the string length
+       * */
+      if(found == _TRUE_){
+
+        for(j=i; j<=string_length - option_length; j++){
+            str[j] = str[j+option_length];
+        }
+
+        string_length = string_length - option_length;
+
+        // We will match the next occurrence of the word from the current index.
+        i--;
+
+      }
+    }
+  }
+
+  string_length = strlen(str);
+  /* Check that the remaining characters are exclusively seperators */
+  for(i=0;i<string_length;i++){
+    if(str[i] != ' ' && str[i] != '\t' && str[i] != '\n' && str[i] != '\0' && str[i] != ',' && str[i] != '.'){
+      *valid = _FALSE_;
+    }
+  }
+
+  return _SUCCESS_;
+}

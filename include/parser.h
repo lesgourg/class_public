@@ -94,6 +94,7 @@ int parser_cat(struct file_content * pfc1,
                struct file_content * pfc3,
                ErrorMsg errmsg);
 
+int parser_check_options(char * strinput, char ** options, int N_options, int* valid);
 #ifdef __cplusplus
 }
 #endif

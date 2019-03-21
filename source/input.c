@@ -1341,8 +1341,12 @@ int input_read_parameters_gauge(struct file_content * pfc,
     if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
       ppt->gauge = newtonian;
     }
-    if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
+    else if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
       ppt->gauge = synchronous;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified the gauge as '%s'. It has to be one of {'newtonian','synchronous'}.");
     }
   }
 
@@ -1400,7 +1404,7 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
              errmsg,
-             "In input file, you cannot enter both h and H0, choose one");
+             "You can only enter one of 'h' or 'H0'.");
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->H0 = param1*1.e3/_c_;
@@ -1425,7 +1429,7 @@ int input_read_parameters_background(struct file_content * pfc,
              errmsg);
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
-             "In input file, you can only enter one of T_cmb, Omega_g or omega_g, choose one");
+             "You can only enter one of 'T_cmb', 'Omega_g' or 'omega_g'.");
   /* Complete set of parameters
      Note:  Omega0_g = rho_g/rho_c0, each of them expressed in [Kg/(m s^2)]
             rho_g = (4 sigma_B/c) T^4
@@ -1460,7 +1464,7 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
-             "In input file, you can only enter one of Omega_b or omega_b, choose one");
+             "You can only enter one of 'Omega_b' or 'omega_b'.");
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->Omega0_b = param1;
@@ -1486,7 +1490,7 @@ int input_read_parameters_background(struct file_content * pfc,
                errmsg);
   class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
              errmsg,
-             "You added both N_eff (deprecated) and N_ur. Please use solely N_ur.");
+             "You added both 'N_eff' (deprecated) and 'N_ur'. Please use solely 'N_ur'.");
   if(flag2 == _TRUE_){
     param1 = param2;
     flag1 = _TRUE_;
@@ -1501,7 +1505,7 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
-             "In input file, you can only enter one of N_ur, Omega_ur or omega_ur, choose one");
+             "You can only enter one of 'N_ur', 'Omega_ur' or 'omega_ur'.");
   /* Complete set of parameters */
   if (class_none_of_three(flag1,flag2,flag3)) {
     pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
@@ -1546,7 +1550,7 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
-             "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
+             "You can only enter one of 'Omega_cdm' or 'omega_cdm'.");
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->Omega0_cdm = param1;
@@ -1566,7 +1570,7 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
-             "In input file, you can only enter one of Omega_dcdmdr or omega_dcdmdr, choose one");
+             "You can only enter one of 'Omega_dcdmdr' or 'omega_dcdmdr'.");
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     pba->Omega0_dcdmdr = param1;
@@ -1587,7 +1591,7 @@ int input_read_parameters_background(struct file_content * pfc,
     /* Test */
     class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
                errmsg,
-               "In input file, you can only enter one of Omega_ini_dcdm or omega_ini_dcdm, choose one");
+               "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
       pba->Omega_ini_dcdm = param1;
@@ -1622,31 +1626,29 @@ int input_read_parameters_background(struct file_content * pfc,
     /* Read */
     class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
     /* Complete set of parameters */
-    if (flag1==_TRUE_){
-      for(n=0,fileentries=0; n<N_ncdm; n++){
-        if (pba->got_files[n] == _TRUE_){
-          fileentries++;
-        }
+    for(n=0,fileentries=0; n<N_ncdm; n++){
+      if (pba->got_files[n] == _TRUE_){
+        fileentries++;
       }
-      if (fileentries > 0) {
+    }
+    if (fileentries > 0) {
 
-        /** 7.b.1) Check if filenames for interpolation tables are given */
-        /* Read */
-        class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",&entries_read,&(pba->ncdm_psd_files),&flag2,errmsg),
-                   errmsg,
-                   errmsg);
-        /* Test */
-        class_test(flag2 == _FALSE_,errmsg,
-                   "Input use_ncdm_files is found, but no filenames found!");
-        class_test(entries_read != fileentries,errmsg,
-                   "Number of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
-                   entries_read,fileentries);
-      }
+      /** 7.b.1) Check if filenames for interpolation tables are given */
+      /* Read */
+      class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",&entries_read,&(pba->ncdm_psd_files),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test(flag1 == _FALSE_,errmsg,
+                 "Entry 'use_ncdm_files' is found, but no corresponding 'ncdm_psd_filenames' were found.");
+      class_test(entries_read != fileentries,errmsg,
+                 "Number of filenames found (%d) does not match number of _TRUE_ values in use_ncdm_files (%d).",
+                 entries_read,fileentries);
     }
 
     /** 7.c) (optional) p.s.d.-parameters */
     /* Read */
-    parser_read_list_of_doubles(pfc,"ncdm_psd_parameters",&entries_read,&(pba->ncdm_psd_parameters),&flag2,errmsg);
+    parser_read_list_of_doubles(pfc,"ncdm_psd_parameters",&entries_read,&(pba->ncdm_psd_parameters),&flag1,errmsg);
 
     /** 7.d) Mass or Omega of each ncdm species */
     /* Read */
@@ -1657,7 +1659,7 @@ int input_read_parameters_background(struct file_content * pfc,
       if (pba->M_ncdm[n]!=0.0){
         /* Test */
         class_test(pba->Omega0_ncdm[n]!=0,errmsg,
-                   "Nonzero values for both Omega and omega for ncdm species %d are specified!",n);
+                   "You can only enter one of 'Omega_ncdm' or 'omega_ncdm' for ncdm species %d.",n);
         /* Complete set of parameters */
         pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
       }
@@ -1686,15 +1688,17 @@ int input_read_parameters_background(struct file_content * pfc,
 
     /** 7.h) Quadrature modes, 0 is qm_auto */
     /* Read */
-    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
+    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm); //Deprecated parameter, still read to keep compatibility
+    class_read_list_of_integers_or_default("ncdm_quadrature_strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
 
     /** 7.h.1) qmax, if relevant */
     /* Read */
-    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm);
+    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm); //Deprecated parameter, still read to keep compatibility
+    class_read_list_of_doubles_or_default("ncdm_maximum_q",pba->ncdm_qmax,15,N_ncdm);
 
     /** 7.h.2) Number of momentum bins */
-    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,150,N_ncdm);
-
+    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,150,N_ncdm); //Deprecated parameter, still read to keep compatibility
+    class_read_list_of_integers_or_default("ncdm_N_momentum_bins",pba->ncdm_input_q_size,150,N_ncdm);
 
     /** Last step of 7) (i.e. NCDM) -- Calculate the masses and momenta */
     class_call(background_ncdm_init(ppr,pba),
@@ -1775,10 +1779,10 @@ int input_read_parameters_background(struct file_content * pfc,
   /* Test */
   class_test((flag1 == _TRUE_) && (flag2 == _TRUE_) && ((flag3 == _FALSE_) || (param3 >= 0.)),
              errmsg,
-             "In input file, either Omega_Lambda or Omega_fld must be left unspecified, except if Omega_scf is set and <0.0, in which case the contribution from the scalar field will be the free parameter.");
+             "'Omega_Lambda' or 'Omega_fld' must be left unspecified, except if 'Omega_scf' is set and < 0.");
   class_test(((flag1 == _FALSE_)||(flag2 == _FALSE_)) && ((flag3 == _TRUE_) && (param3 < 0.)),
              errmsg,
-             "It looks like you want to fulfil the closure relation sum Omega = 1 using the scalar field, so you have to specify both Omega_lambda and Omega_fld in the .ini file");
+             "You have entered 'Omega_scf' < 0 , so you have to specify both 'Omega_lambda' and 'Omega_fld'.");
   /* Complete set of parameters
      Case of (flag3 == _FALSE_) || (param3 >= 0.) means that either we have not
      read Omega_scf so we are ignoring it (unlike lambda and fld!) OR we have
@@ -1814,21 +1818,21 @@ int input_read_parameters_background(struct file_content * pfc,
     /* Fill with Lambda */
     pba->Omega0_lambda= 1. - pba->Omega0_k - Omega_tot;
     if (input_verbose > 0){
-      printf(" -> matched budget equations by adjusting Omega_Lambda = %e\n",pba->Omega0_lambda);
+      printf(" -> matched budget equations by adjusting Omega_Lambda = %g\n",pba->Omega0_lambda);
     }
   }
   else if (flag2 == _FALSE_) {
     /* Fill up with fluid */
     pba->Omega0_fld = 1. - pba->Omega0_k - Omega_tot;
     if (input_verbose > 0){
-      printf(" -> matched budget equations by adjusting Omega_fld = %e\n",pba->Omega0_fld);
+      printf(" -> matched budget equations by adjusting Omega_fld = %g\n",pba->Omega0_fld);
     }
   }
   else if ((flag3 == _TRUE_) && (param3 < 0.)){
     /* Fill up with scalar field */
     pba->Omega0_scf = 1. - pba->Omega0_k - Omega_tot;
     if (input_verbose > 0){
-      printf(" -> matched budget equations by adjusting Omega_scf = %e\n",pba->Omega0_scf);
+      printf(" -> matched budget equations by adjusting Omega_scf = %g\n",pba->Omega0_scf);
     }
   }
 
@@ -1928,7 +1932,7 @@ int input_read_parameters_background(struct file_content * pfc,
     /* Test */
     class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
                errmsg,
-               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",
+               "Tuning index 'scf_tuning_index' (%d) is larger than the number of entries (%d) in 'scf_parameters'.",
                pba->scf_tuning_index,pba->scf_parameters_size);
 
     /** 9.b.4) Shooting parameter */
@@ -1937,7 +1941,7 @@ int input_read_parameters_background(struct file_content * pfc,
     /* Complete set of parameters */
     scf_lambda = pba->scf_parameters[0];
     if ((fabs(scf_lambda) < 3.)&&(pba->background_verbose>1)){
-      printf("lambda = %e < 3 won't be tracking (for exp quint) unless overwritten by tuning function\n",scf_lambda);
+      printf("'scf_lambda' = %e < 3 won't be tracking (for exp quint) unless overwritten by tuning function.",scf_lambda);
     }
   }
 
@@ -1992,8 +1996,12 @@ int input_read_parameters_thermo(struct file_content * pfc,
     if ((strstr(string1,"RECFAST") != NULL) || (strstr(string1,"recfast") != NULL) || (strstr(string1,"Recfast") != NULL)){
       pth->recombination = recfast;
     }
-    if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)){
+    else if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)){
       pth->recombination = hyrec;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'recombination' as '%s'. It has to be one of {'recfast','hyrec'}.",string1);
     }
   }
 
@@ -2005,35 +2013,28 @@ int input_read_parameters_thermo(struct file_content * pfc,
              errmsg);
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
-    flag2 = _FALSE_;
     if (strcmp(string1,"reio_none") == 0){
       pth->reio_parametrization = reio_none;
-      flag2 = _TRUE_;
     }
-    if (strcmp(string1,"reio_camb") == 0){
+    else if (strcmp(string1,"reio_camb") == 0){
       pth->reio_parametrization = reio_camb;
-      flag2 = _TRUE_;
     }
-    if (strcmp(string1,"reio_bins_tanh") == 0){
+    else if (strcmp(string1,"reio_bins_tanh") == 0){
       pth->reio_parametrization = reio_bins_tanh;
-      flag2 = _TRUE_;
     }
-    if (strcmp(string1,"reio_half_tanh") == 0){
+    else if (strcmp(string1,"reio_half_tanh") == 0){
       pth->reio_parametrization = reio_half_tanh;
-      flag2 = _TRUE_;
     }
-    if (strcmp(string1,"reio_many_tanh") == 0){
+    else if (strcmp(string1,"reio_many_tanh") == 0){
       pth->reio_parametrization = reio_many_tanh;
-      flag2 = _TRUE_;
     }
-    if (strcmp(string1,"reio_inter") == 0){
+    else if (strcmp(string1,"reio_inter") == 0){
       pth->reio_parametrization = reio_inter;
-      flag2 = _TRUE_;
     }
-    /* Test */
-    class_test(flag2==_FALSE_,
-               errmsg,
-               "could not identify reionization_parametrization value, check that it is one of 'reio_none', 'reio_camb', 'reio_bins_tanh', 'reio_half_tanh', 'reio_many_tanh', 'reio_inter'...");
+    else{
+      class_stop(errmsg,
+                 "You specified 'reio_parametrization' as '%s'. It has to be one of {'reio_none','reio_camb','reio_bins_tanh','reio_half_tanh','reio_many_tanh','reio_inter'}.",string1);
+    }
   }
 
   /** 3.a) Reionization parameters if reio_parametrization=reio_camb */
@@ -2052,7 +2053,7 @@ int input_read_parameters_thermo(struct file_content * pfc,
     /* Test */
     class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
                errmsg,
-               "In input file, you can only enter one of z_reio or tau_reio, choose one");
+               "You can only enter one of 'z_reio' or 'tau_reio'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
       pth->z_reio=param1;
@@ -2093,21 +2094,26 @@ int input_read_parameters_thermo(struct file_content * pfc,
 
   /** 4) Damping scale */
   /* Read */
-  class_call(parser_read_string(pfc,"compute damping scale",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"compute_damping_scale",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"compute damping scale",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  }
+  /* Compatibility code END */
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
       pth->compute_damping_scale = _TRUE_;
     }
-    else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)){
-        pth->compute_damping_scale = _FALSE_;
-      }
-      else{
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'compute damping scale'",string1);
-      }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)){
+      pth->compute_damping_scale = _FALSE_;
+    }
+    else{
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'compute_damping_scale'",string1);
     }
   }
 
@@ -2136,21 +2142,26 @@ int input_read_parameters_heating(struct file_content * pfc,
 
   /** 1) On-the-spot approximation */
   /* Read */
-  class_call(parser_read_string(pfc,"on the spot",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
+  class_call(parser_read_string(pfc,"on_the_spot",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"on the spot",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+  }
+  /* Compatibility code END */
   /* Complete set of parameters */
   if (flag1 == _TRUE_) {
     if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
       pth->has_on_the_spot = _TRUE_;
     }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      pth->has_on_the_spot = _FALSE_;
+    }
     else {
-      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        pth->has_on_the_spot = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
-      }
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'on_the_spot'",string1);
     }
   }
 
@@ -2207,6 +2218,13 @@ int input_read_parameters_perturbs(struct file_content * pfc,
   int flag1, flag2, flag3;
   double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
+  char * options_output[30] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk",
+                                "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk",
+                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK"};
+  char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
+  char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
+  char * options_modes[6] = {"s","v","t","S","V","T"};
+  char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
 
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
@@ -2258,14 +2276,27 @@ int input_read_parameters_perturbs(struct file_content * pfc,
       ppt->has_velocity_transfers=_TRUE_;
       ppt->has_perturbations = _TRUE_;
     }
+    /* Test */
+    class_call(parser_check_options(string1, options_output, 30, &flag1),
+               errmsg,
+               errmsg);
+    class_test(flag1==_FALSE_,
+               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk'}, you entered '%s'",string1);
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
   if (ppt->has_cl_cmb_temperature == _TRUE_) {
     /* Read */
-    class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"temperature_contributions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Compatibility code BEGIN */
+    if(flag1 == _FALSE_){
+      class_call(parser_read_string(pfc,"temperature contributions",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    /* Compatibility code END */
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
       ppt->switch_sw = 0;
@@ -2289,40 +2320,58 @@ int input_read_parameters_perturbs(struct file_content * pfc,
         ppt->switch_pol = 1;
       }
       /* Test */
+      class_call(parser_check_options(string1, options_temp_contributions, 10, &flag1),
+                 errmsg,
+                 errmsg);
+      class_test(flag1==_FALSE_,
+                 errmsg, "The options for 'temperature_contributions' are {'tsw','eisw','lisw','dop','pol'}, you entered '%s'",string1);
       class_test((ppt->switch_sw == 0) && (ppt->switch_eisw == 0) && (ppt->switch_lisw == 0) && (ppt->switch_dop == 0) && (ppt->switch_pol == 0),
                  errmsg,
-                 "In the field 'output', you selected CMB temperature, but in the field 'temperature contributions', you removed all contributions");
+                 "You specified 'temperature_contributions' as '%s'. It has to contain some of {'tsw','eisw','lisw','dop','pol'}.",string1);
 
       /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
       /* Read */
-      class_read_double("early/late isw redshift",ppt->eisw_lisw_split_z);
+      class_read_double("early/late isw redshift",ppt->eisw_lisw_split_z); //Deprecated parameter
+      class_read_double("early_late_isw_redshift",ppt->eisw_lisw_split_z);
     }
   }
 
   /** 1.b) Obsevable number count fluctuation spectrum */
   if (ppt->has_cl_number_count == _TRUE_){
     /* Read */
-    class_call(parser_read_string(pfc,"number count contributions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"number_count_contributions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Compatibility code BEGIN */
+    if(flag1 == _FALSE_){
+      class_call(parser_read_string(pfc,"number count contributions",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    /* Compatibility code END */
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
-      if (strstr(string1,"density") != NULL){
+      if (strstr(string1,"density") != NULL || strstr(string1,"dens") != NULL){
         ppt->has_nc_density = _TRUE_;
       }
-      if (strstr(string1,"rsd") != NULL){
+      if (strstr(string1,"rsd") != NULL || strstr(string1,"RSD") != NULL){
         ppt->has_nc_rsd = _TRUE_;
       }
-      if (strstr(string1,"lensing") != NULL){
+      if (strstr(string1,"lensing") != NULL || strstr(string1,"lens") != NULL){
         ppt->has_nc_lens = _TRUE_;
       }
-      if (strstr(string1,"gr") != NULL){
+      if (strstr(string1,"gr") != NULL || strstr(string1,"GR") != NULL){
         ppt->has_nc_gr = _TRUE_;
       }
       /* Test */
+      class_call(parser_check_options(string1, options_number_count, 8, &flag1),
+                 errmsg,
+                 errmsg);
+      class_test(flag1==_FALSE_,
+                 errmsg, "The options for 'number_count_contributions' are {'density','rsd','lensing','gr'}, you entered '%s'",string1);
       class_test((ppt->has_nc_density == _FALSE_) && (ppt->has_nc_rsd == _FALSE_) && (ppt->has_nc_lens == _FALSE_) && (ppt->has_nc_gr == _FALSE_),
                  errmsg,
-                 "In the field 'output', you selected number count Cl's, but in the field 'number count contributions', you removed all contributions");
+                 "You specified 'number_count_contributions' as '%s'. It has to contain some of {'density','rsd','lensing','gr'}.",string1);
     }
     else {
       /* Set default value */
@@ -2333,32 +2382,59 @@ int input_read_parameters_perturbs(struct file_content * pfc,
   /** 1.c) Transfer function of additional metric fluctuations */
   if (ppt->has_density_transfers == _TRUE_) {
     /* Read */
-    class_call(parser_read_string(pfc,"extra metric transfer functions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"extra_metric_transfer_functions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Compatibility code BEGIN */
+    if(flag1 == _FALSE_){
+      class_call(parser_read_string(pfc,"extra metric transfer functions",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    /* Compatibility code END */
     /* Complete set of parameters */
     if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
       ppt->has_metricpotential_transfers = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      ppt->has_metricpotential_transfers = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'extra_metric_transfer_functions'",string1);
     }
   }
 
 
   /** 2) Non-linearity */
   /* Read */
-  class_call(parser_read_string(pfc,"non linear",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"non_linear",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"non linear",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  }
+  /* Compatibility code END */
   if (flag1 == _TRUE_) {
     /* Test */
-    class_test(ppt->has_perturbations == _FALSE_, errmsg, "You requested non linear computation but no linear computation. You must set output to tCl or similar.");
+    class_test(ppt->has_perturbations == _FALSE_,
+               errmsg,
+               "You requested non-linear computation but no perturbations. You must set the 'output' field.");
     /* Complete set of parameters */
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
+    else{
+      class_stop(errmsg,
+                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit'}.");
+    }
   }
-  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.))
+  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
     pnl->has_pk_eq = _TRUE_;
+  }
   if (pnl->has_pk_eq == _TRUE_) {
     if (input_verbose > 0) {
       printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
@@ -2373,12 +2449,25 @@ int input_read_parameters_perturbs(struct file_content * pfc,
   /** 3) Perturbed recombination */
   if (ppt->has_perturbations == _TRUE_) {
     /* Read */
-    class_call(parser_read_string(pfc,"perturbed recombination",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"perturbed_recombination",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Compatibility code BEGIN */
+    if(flag1 == _FALSE_){
+      class_call(parser_read_string(pfc,"perturbed recombination",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    /* Compatibility code END */
     /* Complete set of parameters */
     if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
       ppt->has_perturbed_recombination = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      ppt->has_perturbed_recombination = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'perturbed_recombination'",string1);
     }
 
     /** 3.a) Modes */
@@ -2401,9 +2490,14 @@ int input_read_parameters_perturbs(struct file_content * pfc,
         ppt->has_tensors=_TRUE_;
       }
       /* Test */
+      class_call(parser_check_options(string1, options_modes, 6, &flag1),
+                 errmsg,
+                 errmsg);
+      class_test(flag1==_FALSE_,
+                 errmsg, "The options for 'modes' are {'s','v','t'}, you entered '%s'",string1);
       class_test(class_none_of_three(ppt->has_scalars,ppt->has_vectors,ppt->has_tensors),
                  errmsg,
-                 "You wrote: modes='%s'. Could not identify any of the modes ('s', 'v', 't') in such input",string1);
+                 "You specified 'modes' as '%s'. It has to contain some of {'s','v','t'}.",string1);
     }
     /* Test */
     if (ppt->has_vectors == _TRUE_){
@@ -2428,24 +2522,30 @@ int input_read_parameters_perturbs(struct file_content * pfc,
         /* if no initial conditions are specified, the default is has_ad=_TRUE_;
            but if they are specified we should reset has_ad to _FALSE_ before reading */
         ppt->has_ad=_FALSE_;
-        if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL))
+        if ((strstr(string1,"ad") != NULL) || (strstr(string1,"AD") != NULL)){
           ppt->has_ad=_TRUE_;
-
-        if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL))
+        }
+        if ((strstr(string1,"bi") != NULL) || (strstr(string1,"BI") != NULL)){
           ppt->has_bi=_TRUE_;
-
-        if ((strstr(string1,"cdi") != NULL) || (strstr(string1,"CDI") != NULL))
+        }
+        if ((strstr(string1,"cdi") != NULL) || (strstr(string1,"CDI") != NULL)){
           ppt->has_cdi=_TRUE_;
-
-        if ((strstr(string1,"nid") != NULL) || (strstr(string1,"NID") != NULL))
+        }
+        if ((strstr(string1,"nid") != NULL) || (strstr(string1,"NID") != NULL)){
           ppt->has_nid=_TRUE_;
-
-        if ((strstr(string1,"niv") != NULL) || (strstr(string1,"NIV") != NULL))
+        }
+        if ((strstr(string1,"niv") != NULL) || (strstr(string1,"NIV") != NULL)){
           ppt->has_niv=_TRUE_;
+        }
         /* Test */
+        class_call(parser_check_options(string1, options_ics, 10, &flag1),
+                   errmsg,
+                   errmsg);
+        class_test(flag1==_FALSE_,
+                   errmsg, "The options for 'ic' are {'ad','bi','cdi','nid','niv'}, you entered '%s'",string1);
         class_test(ppt->has_ad==_FALSE_ && ppt->has_bi ==_FALSE_ && ppt->has_cdi ==_FALSE_ && ppt->has_nid ==_FALSE_ && ppt->has_niv ==_FALSE_,
                    errmsg,
-                   "You wrote: ic='%s'. Could not identify any of the initial conditions ('ad', 'bi', 'cdi', 'nid', 'niv') in such input",string1);
+                   "You specified 'ic' as '%s'. It has to contain some of {'ad','bi','cdi','nid','niv'}.",string1);
       }
     }
     else {
@@ -2461,19 +2561,29 @@ int input_read_parameters_perturbs(struct file_content * pfc,
     /** 3.a.1) List of initial conditions for scalars */
     if (ppt->has_tensors == _TRUE_) {
       /* Read */
-      class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
+      class_call(parser_read_string(pfc,"tensor_method",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
+      /* Compatibility code BEGIN */
+      if(flag1 == _FALSE_){
+        class_call(parser_read_string(pfc,"tensor method",&string1,&flag1,errmsg),
+                   errmsg,
+                   errmsg);
+      }
+      /* Compatibility code END */
       /* Complete set of parameters */
       if (flag1 == _TRUE_) {
         if (strstr(string1,"photons") != NULL){
           ppt->tensor_method = tm_photons_only;
         }
-        if (strstr(string1,"massless") != NULL){
+        else if (strstr(string1,"massless") != NULL){
           ppt->tensor_method = tm_massless_approximation;
         }
-        if (strstr(string1,"exact") != NULL){
+        else if (strstr(string1,"exact") != NULL){
           ppt->tensor_method = tm_exact;
+        }
+        else{
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'tensor_method'",string1);
         }
       }
     }
@@ -2483,12 +2593,25 @@ int input_read_parameters_perturbs(struct file_content * pfc,
   /** 4) Do we want density and velocity transfer functions in Nbody gauge? */
   /* Read */
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
-    class_call(parser_read_string(pfc,"Nbody gauge transfer functions",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"nbody_gauge_transfer_functions",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+    /* Compatibility code BEGIN */
+    if(flag1 == _FALSE_){
+      class_call(parser_read_string(pfc,"Nbody gauge transfer functions",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+    /* Compatibility code END */
     /* Complete set of parameters */
     if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
       ppt->has_Nbody_gauge_transfers = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      ppt->has_Nbody_gauge_transfers = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'nbody_gauge_transfer_functions'",string1);
     }
   }
 
@@ -2707,40 +2830,40 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
   /** 1) Primordial spectrum type */
   /* Read */
-  class_call(parser_read_string(pfc,"P_k_ini type",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"P_k_ini_type",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"P_k_ini type",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  }
+  /* Compatibility code END */
   /* Complete set of parameters */
   if (flag1 == _TRUE_) {
-    flag2=_FALSE_;
     if (strcmp(string1,"analytic_Pk") == 0){
       ppm->primordial_spec_type = analytic_Pk;
-      flag2=_TRUE_;
     }
-    if (strcmp(string1,"inflation_V") == 0){
+    else if (strcmp(string1,"inflation_V") == 0){
       ppm->primordial_spec_type = inflation_V;
-      flag2=_TRUE_;
     }
-    if (strcmp(string1,"inflation_H") == 0){
+    else if (strcmp(string1,"inflation_H") == 0){
       ppm->primordial_spec_type = inflation_H;
-      flag2=_TRUE_;
     }
-    if (strcmp(string1,"inflation_V_end") == 0){
+    else if (strcmp(string1,"inflation_V_end") == 0){
       ppm->primordial_spec_type = inflation_V_end;
-      flag2=_TRUE_;
     }
-    if (strcmp(string1,"two_scales") == 0){
+    else if (strcmp(string1,"two_scales") == 0){
       ppm->primordial_spec_type = two_scales;
-      flag2=_TRUE_;
     }
-    if (strcmp(string1,"external_Pk") == 0){
+    else if (strcmp(string1,"external_Pk") == 0){
       ppm->primordial_spec_type = external_Pk;
-      flag2=_TRUE_;
     }
-    /* Test */
-    class_test(flag2==_FALSE_,
-               errmsg,
-               "could not identify primordial spectrum type, check that it is one of 'analytic_pk', 'two_scales', 'inflation_V', 'inflation_H', 'external_Pk'...");
+    else{
+      class_stop(errmsg,
+                 "You specified 'P_k_ini_type' as '%s'. It has to be one of {'analytic_Pk','inflation_V','inflation_V_end','two_scales','external_Pk'}.",string1);
+    }
   }
 
   /** 1.a) Pivot scale in Mpc-1 */
@@ -2762,12 +2885,14 @@ int input_read_parameters_primordial(struct file_content * pfc,
       /* Test */
       class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
                  errmsg,
-                 "In input file, you cannot enter both A_s and ln10^{10}A_s, choose one");
+                 "You can only enter one of 'A_s' or 'ln10^{10}A_s'.");
       /* Complete set of parameters */
-      if (flag1 == _TRUE_)
+      if (flag1 == _TRUE_){
         ppm->A_s = param1;
-      else if (flag2 == _TRUE_)
+      }
+      else if (flag2 == _TRUE_){
         ppm->A_s = exp(param2)*1.e-10;
+      }
 
       /** 1.b.1.1) Adiabatic perturbations */
       if (ppt->has_ad == _TRUE_) {
@@ -3035,7 +3160,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
         ppm->potential = higgs_inflation;
       }
       else{
-        class_stop(errmsg,"did not recognize input parameter 'potential': should be one of 'polynomial' or 'higgs_inflation'");
+        class_stop(errmsg,"You specified 'full_potential' as '%s'. It has to be one of {'polynomial','higgs_inflation'}.",string1);
       }
     }
 
@@ -3060,7 +3185,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
     /* Test */
     class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
                errmsg,
-               "In input file, you can only enter one of ln_aH_ratio or N_star, the two are not compatible");
+               "You can only enter one of 'ln_aH_ratio' or 'N_star'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_) {
       if ((strstr(string1,"auto") != NULL) || (strstr(string1,"AUTO") != NULL)){
@@ -3093,7 +3218,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
         ppm->behavior = analytical;
       }
       else{
-        class_stop(errmsg,"Your entry for 'inflation behavior' could not be understood");
+        class_stop(errmsg,"You specified 'inflation_behavior' as '%s'. It has to be one of {'numerical','analytical'}.",string1);
       }
     }
   }
@@ -3337,7 +3462,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         ppt->selection=dirac;
       }
       else {
-        class_stop(errmsg,"In selection function input: type '%s' is unclear",string1);
+        class_stop(errmsg,"You specified 'selection' as '%s'. It has to be one of {'gaussian','tophat','dirac'}.",string1);
       }
     }
 
@@ -3348,13 +3473,13 @@ int input_read_parameters_spectra(struct file_content * pfc,
     if ((flag1 == _TRUE_) && (int1>0)) {
       /* Test */
       class_test(int1 > _SELECTION_NUM_MAX_,errmsg,
-                 "you want to compute density Cl's for %d different bins, hence you should increase _SELECTION_NUM_MAX_ in include/perturbations.h to at least this number",int1);
+                 "you want to compute density Cl's for %d different bins, hence you should increase _SELECTION_NUM_MAX_ in include/perturbations.h to at least this number.",int1);
       /* Complete set of parameters */
       ppt->selection_num = int1;
       for (i=0; i<int1; i++) {
         /* Test */
         class_test((pointer1[i] < 0.) || (pointer1[i] > 1000.),errmsg,
-                   "input of selection functions: you asked for a mean redshift equal to %e, sounds odd",pointer1[i]);
+                   "input of selection functions: you asked for a mean redshift equal to %e, is this a mistake?",pointer1[i]);
         /* Complete set of parameters */
         ppt->selection_mean[i] = pointer1[i];
       }
@@ -3363,7 +3488,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         /* Test */
         class_test(ppt->selection_mean[i]<=ppt->selection_mean[i-1],
                    errmsg,
-                   "input of selection functions: the list of mean redshifts must be passed in growing order; you entered %e before %e",ppt->selection_mean[i-1],ppt->selection_mean[i]);
+                   "input of selection functions: the list of mean redshifts must be passed in growing order; you entered %e before %e.",ppt->selection_mean[i-1],ppt->selection_mean[i]);
         /* Complete set of parameters */
         ppt->selection_width[i] = ppt->selection_width[0];
         ptr->selection_bias[i] = ptr->selection_bias[0];
@@ -3388,7 +3513,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         }
         else {
           class_stop(errmsg,
-                     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin widths",ppt->selection_num,int1,ppt->selection_num);
+                     "In input for selection function, you asked for %d bin centers and %d bin widths; number of bins unclear; you should pass either one bin width (common to all bins) or %d bin widths.",ppt->selection_num,int1,ppt->selection_num);
         }
         free(pointer1);
       }
@@ -3411,7 +3536,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         }
         else {
           class_stop(errmsg,
-                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases",
+                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
                      ppt->selection_num,int1,ppt->selection_num);
         }
         free(pointer1);
@@ -3435,7 +3560,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
         }
         else {
           class_stop(errmsg,
-                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases",
+                     "In input for selection function, you asked for %d bin centers and %d bin biases; number of bins unclear; you should pass either one bin bias (common to all bins) or %d bin biases.",
                      ppt->selection_num,int1,ppt->selection_num);
         }
         free(pointer1);
@@ -3443,7 +3568,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
     }
 
     /* Read */
-    if (ppt->selection_num>1) {
+    if (ppt->selection_num > 1) {
       class_read_int("non_diagonal",psp->non_diag);
       if ((psp->non_diag<0) || (psp->non_diag>=ppt->selection_num))
         class_stop(errmsg,"Input for non_diagonal is %d, while it is expected to be between 0 and %d\n",
@@ -3498,7 +3623,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
     /* Test */
     class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
                errmsg,
-               "In input file, you cannot enter both P_k_max_h/Mpc and P_k_max_1/Mpc, choose one");
+               "You can only enter one of 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc'.");
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
       ppt->k_max_for_pk=param1*pba->h;
@@ -3614,7 +3739,7 @@ int input_read_parameters_lensing(struct file_content * pfc,
       ppt->l_scalar_max += ppr->delta_l_max;
     }
     else {
-      class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCL', and also, importantly, 'lCl', the CMB lensing potential spectrum. You forgot one of those in your input.");
+      class_stop(errmsg,"you asked for lensed CMB Cls, but this requires a minimal number of options: 'modes' should include 's', 'output' should include 'tCl' and/or 'pCl', and also, importantly, 'lCl', the CMB lensing potential spectrum.");
     }
   }
 
@@ -3776,8 +3901,16 @@ int input_read_parameters_output(struct file_content * pfc,
              errmsg,
              errmsg);
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") == NULL) && (strstr(string1,"Y") == NULL))) {
-    pop->write_header = _FALSE_;
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pop->write_header = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      pop->write_header = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'headers'",string1);
+    }
   }
 
   /** 1.c) Format */
@@ -3790,34 +3923,62 @@ int input_read_parameters_output(struct file_content * pfc,
     if ((strstr(string1,"class") != NULL) || (strstr(string1,"CLASS") != NULL)){
       pop->output_format = class_format;
     }
+    else if ((strstr(string1,"camb") != NULL) || (strstr(string1,"CAMB") != NULL)){
+      pop->output_format = camb_format;
+    }
     else{
-      if ((strstr(string1,"camb") != NULL) || (strstr(string1,"CAMB") != NULL)){
-        pop->output_format = camb_format;
-      }
-      else{
-        class_stop(errmsg,"You wrote: format='%s'. Could not identify any of the possible formats ('class', 'CLASS', 'camb', 'CAMB')",string1);
-      }
+      class_stop(errmsg,"You specified 'format' as '%s'. It has to be one of {'class','camb'}.",string1);
     }
   }
 
   /** 1.d) Background quantities */
   /* Read */
-  class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"write_background",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+  }
+  /* Compatibility code END */
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))){
-    pop->write_background = _TRUE_;
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pop->write_background = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      pop->write_background = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_background'",string1);
+    }
   }
 
   /** 1.e) Thermodynamics quantities */
   /* Read */
-  class_call(parser_read_string(pfc,"write thermodynamics",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"write_thermodynamics",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"write thermodynamics",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+  }
+  /* Compatibility code END */
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))){
-    pop->write_thermodynamics = _TRUE_;
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pop->write_thermodynamics = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      pop->write_thermodynamics = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_thermodynamics'",string1);
+    }
   }
 
   /** 1.f) Table of perturbations for certain wavenumbers k */
@@ -3844,25 +4005,78 @@ int input_read_parameters_output(struct file_content * pfc,
 
   /** 1.g) Primordial spectra */
   /* Read */
-  class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"write_primordial",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+  }
+  /* Compatibility code END */
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))){
-    pop->write_primordial = _TRUE_;
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pop->write_primordial = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      pop->write_primordial = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_primordial'",string1);
+    }
   }
 
   /** 1.h) Input/precision parameters */
   /* Read */
-  class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"write_parameters",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+  }
+  /* Compatibility code END */
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      flag1 = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+      flag1 = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_parameters'",string1);
+    }
+  }
 
   /** 1.i) Warnings */
   /* Read */
-  class_call(parser_read_string(pfc,"write warnings",&string2,&flag2,errmsg),
+  class_call(parser_read_string(pfc,"write_warnings",&string2,&flag2,errmsg),
              errmsg,
              errmsg);
+  /* Compatibility code BEGIN */
+  if(flag2 == _FALSE_){
+    class_call(parser_read_string(pfc,"write warnings",&string2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+  }
+  /* Compatibility code END */
+  /* Complete set of parameters */
+  if (flag2 == _TRUE_) {
+    if ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL)) {
+      flag2 = _TRUE_;
+    }
+    else if ((strstr(string2,"n") != NULL) || (strstr(string2,"N") != NULL)) {
+      flag2 = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_warnings'",string2);
+    }
+  }
 
 
   /** 2) Verbosity */
@@ -3883,7 +4097,7 @@ int input_read_parameters_output(struct file_content * pfc,
    * since it relies on the pfc->read flags being set to _TRUE_ or _FALSE_
    * */
   /* Set the parameters.ini and unused_parameters files */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+  if (flag1 == _TRUE_) {
     sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
     class_open(param_output,param_output_name,"w",errmsg);
     fprintf(param_output,"# List of input/precision parameters actually read\n");
@@ -3900,11 +4114,14 @@ int input_read_parameters_output(struct file_content * pfc,
     fprintf(param_unused,"#\n");
 
     for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _TRUE_)
+      if (pfc->read[i] == _TRUE_){
         fprintf(param_output,"%s = %s\n",pfc->name[i],pfc->value[i]);
-      else
+      }
+      else{
         fprintf(param_unused,"%s = %s\n",pfc->name[i],pfc->value[i]);
+      }
     }
+
     fprintf(param_output,"#\n");
 
     fclose(param_output);
@@ -3912,10 +4129,11 @@ int input_read_parameters_output(struct file_content * pfc,
   }
 
   /* Print warnings for unread parameters */
-  if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))){
+  if (flag2 == _TRUE_){
     for (i=0; i<pfc->size; i++) {
-      if (pfc->read[i] == _FALSE_)
-        fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+      if (pfc->read[i] == _FALSE_){
+        fprintf(stdout,"[WARNING: input line not used: '%s=%s']\n",pfc->name[i],pfc->value[i]);
+      }
     }
   }
 

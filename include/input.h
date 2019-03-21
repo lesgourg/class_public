@@ -65,7 +65,7 @@ struct output * pop;
                errmsg);                                                         \
     class_test((flag_temp1 == _TRUE_) && (flag_temp2 == _TRUE_),                \
                errmsg,                                                          \
-               "In the input file, you can only enter one of '%s' or '%s'.",    \
+               "You can only enter one of '%s' or '%s'.",                       \
                name1,name2);                                                    \
     if (flag_temp1 == _TRUE_){                                                  \
       destination = param_temp1;                                                \
