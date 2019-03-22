@@ -1340,203 +1340,6 @@ int input_read_parameters_general(struct file_content * pfc,
   char * options_modes[6] = {"s","v","t","S","V","T"};
   char * options_ics[10] = {"ad","bi","cdi","nid","niv","AD","BI","CDI","NID","NIV"};
 
-  /** 1) Gauge */
-  /* Read */
-  class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
-      ppt->gauge = newtonian;
-    }
-    else if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
-      ppt->gauge = synchronous;
-    }
-    else{
-      class_stop(errmsg,
-                 "You specified the gauge as '%s'. It has to be one of {'newtonian','synchronous'}.");
-    }
-  }
-
-  /** 2) Scale factor today (arbitrary) */
-  /* Read */
-  class_read_double("a_today", pba->a_today);
-
-  /** 3) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
-  /* Read */
-  class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"h",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-             errmsg,
-             "You can only enter one of 'h' or 'H0'.");
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    pba->H0 = param1*1.e3/_c_;
-    pba->h = param1/100.;
-  }
-  if (flag2 == _TRUE_){
-    pba->H0 = param2*1.e5/_c_;
-    pba->h = param2;
-  }
-
-
-
-
-  /** 1) Primordial helium fraction */
-  /* Read */
-  class_call(parser_read_string(pfc,"YHe",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)){
-      pth->YHe = _BBN_;
-    }
-    else {
-      class_read_double("YHe",pth->YHe);
-    }
-  }
-
-
-  /** 2) Recombination parameters */
-  /* Read */
-  class_call(parser_read_string(pfc,"recombination",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    if ((strstr(string1,"RECFAST") != NULL) || (strstr(string1,"recfast") != NULL) || (strstr(string1,"Recfast") != NULL)){
-      pth->recombination = recfast;
-    }
-    else if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)){
-      pth->recombination = hyrec;
-    }
-    else{
-      class_stop(errmsg,
-                 "You specified 'recombination' as '%s'. It has to be one of {'recfast','hyrec'}.",string1);
-    }
-  }
-
-
-  /** 3) Reionization parametrization */
-  /* Read */
-  class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    if (strcmp(string1,"reio_none") == 0){
-      pth->reio_parametrization = reio_none;
-    }
-    else if (strcmp(string1,"reio_camb") == 0){
-      pth->reio_parametrization = reio_camb;
-    }
-    else if (strcmp(string1,"reio_bins_tanh") == 0){
-      pth->reio_parametrization = reio_bins_tanh;
-    }
-    else if (strcmp(string1,"reio_half_tanh") == 0){
-      pth->reio_parametrization = reio_half_tanh;
-    }
-    else if (strcmp(string1,"reio_many_tanh") == 0){
-      pth->reio_parametrization = reio_many_tanh;
-    }
-    else if (strcmp(string1,"reio_inter") == 0){
-      pth->reio_parametrization = reio_inter;
-    }
-    else{
-      class_stop(errmsg,
-                 "You specified 'reio_parametrization' as '%s'. It has to be one of {'reio_none','reio_camb','reio_bins_tanh','reio_half_tanh','reio_many_tanh','reio_inter'}.",string1);
-    }
-  }
-
-  /** 3.a) Reionization parameters if reio_parametrization=reio_camb */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
-    /* Read */
-    class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    class_call(parser_read_double(pfc,"tau_reio",&param2,&flag2,errmsg),
-               errmsg,
-               errmsg);
-    class_read_double("reionization_exponent",pth->reionization_exponent);
-    class_read_double("reionization_width",pth->reionization_width);
-    class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
-    class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
-    /* Test */
-    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-               errmsg,
-               "You can only enter one of 'z_reio' or 'tau_reio'.");
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_){
-      pth->z_reio=param1;
-      pth->reio_z_or_tau=reio_z;
-    }
-    if (flag2 == _TRUE_){
-      pth->tau_reio=param2;
-      pth->reio_z_or_tau=reio_tau;
-    }
-  }
-
-  if (pth->reio_parametrization == reio_bins_tanh){
-    /** 3.b) Reionization parameters if reio_parametrization=reio_bins_tanh */
-    /* Read */
-    class_read_int("binned_reio_num",pth->binned_reio_num);
-    class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
-    class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);
-    class_read_double("binned_reio_step_sharpness",pth->binned_reio_step_sharpness);
-  }
-
-  if (pth->reio_parametrization == reio_many_tanh){
-    /** 3.c) reionization parameters if reio_parametrization=reio_many_tanh */
-    /* Read */
-    class_read_int("many_tanh_num",pth->many_tanh_num);
-    class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
-    class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
-    class_read_double("many_tanh_width",pth->many_tanh_width);
-  }
-
-  if (pth->reio_parametrization == reio_inter){
-    /** 3.d) reionization parameters if reio_parametrization=reio_many_tanh */
-    /* Read */
-    class_read_int("reio_inter_num",pth->reio_inter_num);
-    class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
-    class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
-  }
-
-
-  /** 4) Damping scale */
-  /* Read */
-  class_call(parser_read_string(pfc,"compute_damping_scale",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"compute damping scale",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
-      pth->compute_damping_scale = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)){
-      pth->compute_damping_scale = _FALSE_;
-    }
-    else{
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'compute_damping_scale'",string1);
-    }
-  }
-
-
-
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
   ppt->has_cls = _FALSE_;
@@ -1862,8 +1665,6 @@ int input_read_parameters_general(struct file_content * pfc,
       }
     }
   }
-
-
   /** 4) Do we want density and velocity transfer functions in Nbody gauge? */
   /* Read */
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
@@ -1890,6 +1691,202 @@ int input_read_parameters_general(struct file_content * pfc,
       }
     }
   }
+
+
+
+  /** 1) Gauge */
+  /* Read */
+  class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"newtonian") != NULL) || (strstr(string1,"Newtonian") != NULL) || (strstr(string1,"new") != NULL)) {
+      ppt->gauge = newtonian;
+    }
+    else if ((strstr(string1,"synchronous") != NULL) || (strstr(string1,"sync") != NULL) || (strstr(string1,"Synchronous") != NULL)) {
+      ppt->gauge = synchronous;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified the gauge as '%s'. It has to be one of {'newtonian','synchronous'}.");
+    }
+  }
+
+  /** 2) Scale factor today (arbitrary) */
+  /* Read */
+  class_read_double("a_today", pba->a_today);
+
+  /** 3) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
+  /* Read */
+  class_call(parser_read_double(pfc,"H0",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"h",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  /* Test */
+  class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+             errmsg,
+             "You can only enter one of 'h' or 'H0'.");
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    pba->H0 = param1*1.e3/_c_;
+    pba->h = param1/100.;
+  }
+  if (flag2 == _TRUE_){
+    pba->H0 = param2*1.e5/_c_;
+    pba->h = param2;
+  }
+
+  /** 1) Primordial helium fraction */
+  /* Read */
+  class_call(parser_read_string(pfc,"YHe",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"BBN") != NULL) || (strstr(string1,"bbn") != NULL)){
+      pth->YHe = _BBN_;
+    }
+    else {
+      class_read_double("YHe",pth->YHe);
+    }
+  }
+
+
+  /** 2) Recombination parameters */
+  /* Read */
+  class_call(parser_read_string(pfc,"recombination",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if ((strstr(string1,"RECFAST") != NULL) || (strstr(string1,"recfast") != NULL) || (strstr(string1,"Recfast") != NULL)){
+      pth->recombination = recfast;
+    }
+    else if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)){
+      pth->recombination = hyrec;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'recombination' as '%s'. It has to be one of {'recfast','hyrec'}.",string1);
+    }
+  }
+
+
+  /** 3) Reionization parametrization */
+  /* Read */
+  class_call(parser_read_string(pfc,"reio_parametrization",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if (strcmp(string1,"reio_none") == 0){
+      pth->reio_parametrization = reio_none;
+    }
+    else if (strcmp(string1,"reio_camb") == 0){
+      pth->reio_parametrization = reio_camb;
+    }
+    else if (strcmp(string1,"reio_bins_tanh") == 0){
+      pth->reio_parametrization = reio_bins_tanh;
+    }
+    else if (strcmp(string1,"reio_half_tanh") == 0){
+      pth->reio_parametrization = reio_half_tanh;
+    }
+    else if (strcmp(string1,"reio_many_tanh") == 0){
+      pth->reio_parametrization = reio_many_tanh;
+    }
+    else if (strcmp(string1,"reio_inter") == 0){
+      pth->reio_parametrization = reio_inter;
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'reio_parametrization' as '%s'. It has to be one of {'reio_none','reio_camb','reio_bins_tanh','reio_half_tanh','reio_many_tanh','reio_inter'}.",string1);
+    }
+  }
+
+  /** 3.a) Reionization parameters if reio_parametrization=reio_camb */
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
+    /* Read */
+    class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"tau_reio",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_read_double("reionization_exponent",pth->reionization_exponent);
+    class_read_double("reionization_width",pth->reionization_width);
+    class_read_double("helium_fullreio_redshift",pth->helium_fullreio_redshift);
+    class_read_double("helium_fullreio_width",pth->helium_fullreio_width);
+    /* Test */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "You can only enter one of 'z_reio' or 'tau_reio'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      pth->z_reio=param1;
+      pth->reio_z_or_tau=reio_z;
+    }
+    if (flag2 == _TRUE_){
+      pth->tau_reio=param2;
+      pth->reio_z_or_tau=reio_tau;
+    }
+  }
+
+  if (pth->reio_parametrization == reio_bins_tanh){
+    /** 3.b) Reionization parameters if reio_parametrization=reio_bins_tanh */
+    /* Read */
+    class_read_int("binned_reio_num",pth->binned_reio_num);
+    class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
+    class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);
+    class_read_double("binned_reio_step_sharpness",pth->binned_reio_step_sharpness);
+  }
+
+  if (pth->reio_parametrization == reio_many_tanh){
+    /** 3.c) reionization parameters if reio_parametrization=reio_many_tanh */
+    /* Read */
+    class_read_int("many_tanh_num",pth->many_tanh_num);
+    class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
+    class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
+    class_read_double("many_tanh_width",pth->many_tanh_width);
+  }
+
+  if (pth->reio_parametrization == reio_inter){
+    /** 3.d) reionization parameters if reio_parametrization=reio_many_tanh */
+    /* Read */
+    class_read_int("reio_inter_num",pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
+    class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
+  }
+
+
+  /** 4) Damping scale */
+  /* Read */
+  class_call(parser_read_string(pfc,"compute_damping_scale",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Compatibility code BEGIN */
+  if(flag1 == _FALSE_){
+    class_call(parser_read_string(pfc,"compute damping scale",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+  }
+  /* Compatibility code END */
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+      pth->compute_damping_scale = _TRUE_;
+    }
+    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)){
+      pth->compute_damping_scale = _FALSE_;
+    }
+    else{
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'compute_damping_scale'",string1);
+    }
+  }
+
+
 
   return _SUCCESS_;
 
