@@ -308,33 +308,30 @@ extern "C" {
                             struct output * pop,
                             ErrorMsg errmsg);
 
-  int input_read_parameters_gauge(struct file_content * pfc,
-                                  struct perturbs * ppt,
-                                  ErrorMsg errmsg);
+  int input_read_parameters_general(struct file_content * pfc,
+                                    struct background * pba,
+                                    struct thermo * pth,
+                                    struct perturbs * ppt,
+                                    ErrorMsg errmsg);
 
-  int input_read_parameters_background(struct file_content * pfc,
-                                       struct precision * ppr,
-                                       struct background * pba,
-                                       struct perturbs * ppt,
-                                       int input_verbose,
-                                       ErrorMsg errmsg);
-
-  int input_read_parameters_thermo(struct file_content * pfc,
-                                   struct thermo * pth,
-                                   ErrorMsg errmsg);
+  int input_read_parameters_species(struct file_content * pfc,
+                                    struct precision * ppr,
+                                    struct background * pba,
+                                    struct thermo * pth,
+                                    struct perturbs * ppt,
+                                    int input_verbose,
+                                    ErrorMsg errmsg);
 
   int input_read_parameters_heating(struct file_content * pfc,
                                     struct thermo * pth,
                                     ErrorMsg errmsg);
 
-  int input_read_parameters_perturbs(struct file_content * pfc,
-                                     struct precision * ppr,
-                                     struct background * pba,
-                                     struct thermo * pth,
-                                     struct perturbs * ppt,
-                                     struct nonlinear * pnl,
-                                     int input_verbose,
-                                     ErrorMsg errmsg);
+  int input_read_parameters_nonlinear(struct file_content * pfc,
+                                      struct precision * ppr,
+                                      struct perturbs * ppt,
+                                      struct nonlinear * pnl,
+                                      int input_verbose,
+                                      ErrorMsg errmsg);
 
   int input_prepare_pk_eq(struct precision * ppr,
                           struct background * pba,
