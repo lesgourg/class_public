@@ -2088,73 +2088,8 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
 
-  /** 5) Omega_0_k (effective fractional density of curvature) */
-  /* Read */
-  class_read_double("Omega_k",pba->Omega0_k);
-  /* Complete set of parameters */
-  pba->K = -pba->Omega0_k*pow(pba->a_today*pba->H0,2);
-  if (pba->K > 0.){
-    pba->sgnK = 1;
-  }
-  else if (pba->K < 0.){
-    pba->sgnK = -1;
-  }
-
-
-  /* ** ADDITIONAL SPECIES ** -> Add your species here */
-
-  /** 6) Decaying DM */
-  /** 6.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
-  /* Read */
-  class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"omega_dcdmdr",&param2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Test */
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-             errmsg,
-             "You can only enter one of 'Omega_dcdmdr' or 'omega_dcdmdr'.");
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    pba->Omega0_dcdmdr = param1;
-  }
-  if (flag2 == _TRUE_){
-    pba->Omega0_dcdmdr = param2/pba->h/pba->h;
-  }
-
-  if (pba->Omega0_dcdmdr > 0) {
-    /** 6.b) Omega_ini_dcdm or omega_ini_dcdm */
-    /* Read */
-    class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
-               errmsg,
-               errmsg);
-    /* Test */
-    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-               errmsg,
-               "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_){
-      pba->Omega_ini_dcdm = param1;
-    }
-    if (flag2 == _TRUE_){
-      pba->Omega_ini_dcdm = param2/pba->h/pba->h;
-    }
-
-    /** 6.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
-    /* Read */
-    class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
-    /* Convert to Mpc */
-    pba->Gamma_dcdm *= (1.e3 / _c_);
-  }
-
-
-  /** 7) Non-cold relics (ncdm) */
-  /** 7.a) Number of non-cold relics */
+  /** 5) Non-cold relics (ncdm) */
+  /** 5.a) Number of non-cold relics */
   /* Read */
   class_read_int("N_ncdm",N_ncdm);
   /* Complete set of parameters */
@@ -2167,7 +2102,7 @@ int input_read_parameters_species(struct file_content * pfc,
       ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
     }
 
-    /** 7.b) Check if filenames for interpolation tables are given */
+    /** 5.b) Check if filenames for interpolation tables are given */
     /* Read */
     class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
     /* Complete set of parameters */
@@ -2178,7 +2113,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
     if (fileentries > 0) {
 
-      /** 7.b.1) Check if filenames for interpolation tables are given */
+      /** 5.b.1) Check if filenames for interpolation tables are given */
       /* Read */
       class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",&entries_read,&(pba->ncdm_psd_files),&flag1,errmsg),
                  errmsg,
@@ -2191,11 +2126,11 @@ int input_read_parameters_species(struct file_content * pfc,
                  entries_read,fileentries);
     }
 
-    /** 7.c) (optional) p.s.d.-parameters */
+    /** 5.c) (optional) p.s.d.-parameters */
     /* Read */
     parser_read_list_of_doubles(pfc,"ncdm_psd_parameters",&entries_read,&(pba->ncdm_psd_parameters),&flag1,errmsg);
 
-    /** 7.d) Mass or Omega of each ncdm species */
+    /** 5.d) Mass or Omega of each ncdm species */
     /* Read */
     class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
     class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
@@ -2219,33 +2154,33 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
 
-    /** 7.e) Temperatures */
+    /** 5.e) Temperatures */
     /* Read */
     class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
 
-    /** 7.f) Chemical potentials */
+    /** 5.f) Chemical potentials */
     /* Read */
     class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default,N_ncdm);
 
-    /** 7.g) Degeneracy of each ncdm species */
+    /** 5.g) Degeneracy of each ncdm species */
     /* Read */
     class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default,N_ncdm);
 
-    /** 7.h) Quadrature modes, 0 is qm_auto */
+    /** 5.h) Quadrature modes, 0 is qm_auto */
     /* Read */
     class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm); //Deprecated parameter, still read to keep compatibility
     class_read_list_of_integers_or_default("ncdm_quadrature_strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
 
-    /** 7.h.1) qmax, if relevant */
+    /** 5.h.1) qmax, if relevant */
     /* Read */
     class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm); //Deprecated parameter, still read to keep compatibility
     class_read_list_of_doubles_or_default("ncdm_maximum_q",pba->ncdm_qmax,15,N_ncdm);
 
-    /** 7.h.2) Number of momentum bins */
+    /** 5.h.2) Number of momentum bins */
     class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,150,N_ncdm); //Deprecated parameter, still read to keep compatibility
     class_read_list_of_integers_or_default("ncdm_N_momentum_bins",pba->ncdm_input_q_size,150,N_ncdm);
 
-    /** Last step of 7) (i.e. NCDM) -- Calculate the masses and momenta */
+    /** Last step of 5) (i.e. NCDM) -- Calculate the masses and momenta */
     class_call(background_ncdm_init(ppr,pba),
                pba->error_message,
                errmsg);
@@ -2292,6 +2227,71 @@ int input_read_parameters_species(struct file_content * pfc,
       pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
     }
 
+  }
+
+
+  /** 6) Omega_0_k (effective fractional density of curvature) */
+  /* Read */
+  class_read_double("Omega_k",pba->Omega0_k);
+  /* Complete set of parameters */
+  pba->K = -pba->Omega0_k*pow(pba->a_today*pba->H0,2);
+  if (pba->K > 0.){
+    pba->sgnK = 1;
+  }
+  else if (pba->K < 0.){
+    pba->sgnK = -1;
+  }
+
+
+  /* ** ADDITIONAL SPECIES ** -> Add your species here */
+
+  /** 7) Decaying DM */
+  /** 7.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
+  /* Read */
+  class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_dcdmdr",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  /* Test */
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "You can only enter one of 'Omega_dcdmdr' or 'omega_dcdmdr'.");
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    pba->Omega0_dcdmdr = param1;
+  }
+  if (flag2 == _TRUE_){
+    pba->Omega0_dcdmdr = param2/pba->h/pba->h;
+  }
+
+  if (pba->Omega0_dcdmdr > 0) {
+    /** 7.b) Omega_ini_dcdm or omega_ini_dcdm */
+    /* Read */
+    class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"omega_ini_dcdm",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+               errmsg,
+               "You can only enter one of 'Omega_ini_dcdm' or 'omega_ini_dcdm'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      pba->Omega_ini_dcdm = param1;
+    }
+    if (flag2 == _TRUE_){
+      pba->Omega_ini_dcdm = param2/pba->h/pba->h;
+    }
+
+    /** 7.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
+    /* Read */
+    class_read_double("Gamma_dcdm",pba->Gamma_dcdm);
+    /* Convert to Mpc */
+    pba->Gamma_dcdm *= (1.e3 / _c_);
   }
 
   /* ** END OF ADDITIONAL SPECIES ** */
