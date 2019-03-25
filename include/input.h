@@ -55,6 +55,53 @@ struct output * pop;
     }                                                                           \
   } while(0);
 
+#define class_read_flag(name,destination)                                       \
+  do {                                                                          \
+    char string_temp[_ARGUMENT_LENGTH_MAX_]; int flag_temp;                     \
+    class_call(parser_read_string(pfc,name,&string_temp,&flag_temp,errmsg),     \
+               errmsg,                                                          \
+               errmsg);                                                         \
+    if (flag_temp == _TRUE_){                                                   \
+      if( (string_temp[0]=='y') || (string_temp[0]=='Y') ){                     \
+        destination = _TRUE_;                                                   \
+      }                                                                         \
+      else if( (string_temp[0]=='n') || (string_temp[0]=='N') ){                \
+        destination = _FALSE_;                                                  \
+      }                                                                         \
+      else {                                                                    \
+        class_stop(errmsg,"incomprehensible input '%s' for the field '%s'.",    \
+                   string_temp, name);                                          \
+      }                                                                         \
+    }                                                                           \
+  } while(0);
+
+#define class_read_flag_or_deprecated(name,oldname,destination)                 \
+  do {                                                                          \
+    char string_temp[_ARGUMENT_LENGTH_MAX_]; int flag_temp;                     \
+    class_call(parser_read_string(pfc,name,&string_temp,&flag_temp,errmsg),     \
+               errmsg,                                                          \
+               errmsg);                                                         \
+    /* Compatibility code BEGIN */                                              \
+    if(flag_temp == _FALSE_){                                                   \
+      class_call(parser_read_string(pfc,oldname,&string_temp,&flag_temp,errmsg),\
+                 errmsg,                                                        \
+                 errmsg);                                                       \
+    }                                                                           \
+    /* Compatibility code END */                                                \
+    if (flag_temp == _TRUE_){                                                   \
+      if( (string_temp[0]=='y') || (string_temp[0]=='Y') ){                     \
+        destination = _TRUE_;                                                   \
+      }                                                                         \
+      else if( (string_temp[0]=='n') || (string_temp[0]=='N') ){                \
+        destination = _FALSE_;                                                  \
+      }                                                                         \
+      else {                                                                    \
+        class_stop(errmsg,"incomprehensible input '%s' for the field '%s'.",    \
+                   string_temp, name);                                          \
+      }                                                                         \
+    }                                                                           \
+  } while(0);
+
 #define class_read_double_one_of_two(name1,name2,destination)                   \
   do {                                                                          \
     int flag_temp1,flag_temp2;                                                  \

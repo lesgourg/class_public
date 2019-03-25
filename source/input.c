@@ -236,30 +236,16 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
   char* output_extensions[7] = {"cl.dat","pk.dat","tk.dat","parameters.ini","background.dat","thermodynamics.dat","perturbations_k0.dat"};
 
   /* Shorthand notation */
-  struct file_content * pfc_input = *ppfc_input;
+  struct file_content * pfc = *ppfc_input;
 
 
   /** Check whether a root name has been set, and wether overwrite_root is true */
-  class_call(parser_read_string(pfc_input,"root",&string1,&flag1,errmsg),
-             errmsg, errmsg);
-  class_call(parser_read_string(pfc_input,"overwrite_root",&string2,&flag2,errmsg),
+  class_call(parser_read_string(pfc,"root",&string1,&flag1,errmsg),
              errmsg, errmsg);
 
   /* Set overwrite_root */
-  if(flag2 == _TRUE_){
-    if ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL)) {
-      overwrite_root = _TRUE_;
-    }
-    else if ((strstr(string2,"n") != NULL) || (strstr(string2,"N") != NULL)) {
-      overwrite_root = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'overwrite_root'",string2);
-    }
-  }
-  else{
-    overwrite_root = _FALSE_;
-  }
+  overwrite_root = _FALSE_;
+  class_read_flag("overwrite_root",overwrite_root);
 
   /** If root has not been set, use the default of 'output/<thisfilename>' */
   if (flag1 == _FALSE_){
@@ -269,9 +255,9 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
   }
   /* Check here for the index of the 'root' field in case it was set in fc_input */
   else{
-    for(index_root_in_fc_input=0;index_root_in_fc_input<pfc_input->size;++index_root_in_fc_input){
-      if(strcmp(pfc_input->name[index_root_in_fc_input],"root")==0){
-        strcpy(outfname,pfc_input->value[index_root_in_fc_input]);
+    for(index_root_in_fc_input=0;index_root_in_fc_input<pfc->size;++index_root_in_fc_input){
+      if(strcmp(pfc->name[index_root_in_fc_input],"root") == 0){
+        strcpy(outfname,pfc->value[index_root_in_fc_input]);
         break;
       }
     }
@@ -293,26 +279,28 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
           found_filenum = _TRUE_;
         }
       }
+      /* Didn't find a file. This is the correct number. Break the loop. */
+      if(found_filenum == _FALSE_){
+        break;
+      }
     }
-    /* The last iteration is the one where nothing has been found, so we need to go one step back */
-    filenum--;
     /* If no root was found, add root through the parser routine */
     if(flag1 == _FALSE_){
       class_call(parser_init(&fc_root,
                              1,
-                             pfc_input->filename,
+                             pfc->filename,
                              errmsg),
                  errmsg,errmsg);
       sprintf(fc_root.name[0],"root");
       sprintf(fc_root.value[0],"%s%02d_",outfname,filenum);
       fc_root.read[0] = _FALSE_;
-      class_call(parser_cat(pfc_input,
+      class_call(parser_cat(pfc,
                             &fc_root,
                             &fc_inputroot,
                             errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_free(pfc_input),
+      class_call(parser_free(pfc),
                  errmsg,
                  errmsg);
       class_call(parser_free(&fc_root),
@@ -322,8 +310,8 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
     }
     /* If root was found, set the index in the fc_input struct */
     else{
-      sprintf(pfc_input->value[index_root_in_fc_input],"%s%02d_",outfname,filenum);
-      (*ppfc_input) = pfc_input;
+      sprintf(pfc->value[index_root_in_fc_input],"%s%02d_",outfname,filenum);
+      (*ppfc_input) = pfc;
     }
   }
 
@@ -333,19 +321,19 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
     if(flag1 == _FALSE_){
       class_call(parser_init(&fc_root,
                              1,
-                             pfc_input->filename,
+                             pfc->filename,
                              errmsg),
                  errmsg,errmsg);
       sprintf(fc_root.name[0],"root");
       sprintf(fc_root.value[0],"%s_",outfname);
       fc_root.read[0] = _FALSE_;
-      class_call(parser_cat(pfc_input,
+      class_call(parser_cat(pfc,
                             &fc_root,
                             &fc_inputroot,
                             errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_free(pfc_input),
+      class_call(parser_free(pfc),
                  errmsg,
                  errmsg);
       class_call(parser_free(&fc_root),
@@ -355,8 +343,8 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
     }
     /* If root was found, set the index in the fc_input struct */
     else{
-      sprintf(pfc_input->value[index_root_in_fc_input],"%s_",outfname);
-      (*ppfc_input) = pfc_input;
+      sprintf(pfc->value[index_root_in_fc_input],"%s_",outfname);
+      (*ppfc_input) = pfc;
     }
   }
 
@@ -1630,56 +1618,14 @@ int input_read_parameters_general(struct file_content * pfc,
   /** 1.c) Transfer function of additional metric fluctuations */
   if (ppt->has_density_transfers == _TRUE_) {
     /* Read */
-    class_call(parser_read_string(pfc,"extra_metric_transfer_functions",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Compatibility code BEGIN */
-    if(flag1 == _FALSE_){
-      class_call(parser_read_string(pfc,"extra metric transfer functions",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-    }
-    /* Compatibility code END */
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        ppt->has_metricpotential_transfers = _TRUE_;
-      }
-      else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        ppt->has_metricpotential_transfers = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'extra_metric_transfer_functions'",string1);
-      }
-    }
+    class_read_flag_or_deprecated("extra_metric_transfer_functions","extra metric transfer functions",ppt->has_metricpotential_transfers);
   }
 
 
   /** 2) Perturbed recombination */
   if (ppt->has_perturbations == _TRUE_) {
     /* Read */
-    class_call(parser_read_string(pfc,"perturbed_recombination",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Compatibility code BEGIN */
-    if(flag1 == _FALSE_){
-      class_call(parser_read_string(pfc,"perturbed recombination",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-    }
-    /* Compatibility code END */
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        ppt->has_perturbed_recombination = _TRUE_;
-      }
-      else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        ppt->has_perturbed_recombination = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'perturbed_recombination'",string1);
-      }
-    }
+    class_read_flag_or_deprecated("perturbed_recombination","perturbed recombination",ppt->has_perturbed_recombination);
 
     /** 2.a) Modes */
     /* Read */
@@ -1822,30 +1768,11 @@ int input_read_parameters_general(struct file_content * pfc,
   }
 
   /** 3.a) Do we want density and velocity transfer functions in Nbody gauge? */
-  /* Read */
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
-    class_call(parser_read_string(pfc,"nbody_gauge_transfer_functions",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Compatibility code BEGIN */
-    if(flag1 == _FALSE_){
-      class_call(parser_read_string(pfc,"Nbody gauge transfer functions",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-    }
-    /* Compatibility code END */
-    /* Complete set of parameters */
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        ppt->has_Nbody_gauge_transfers = _TRUE_;
-      }
-      else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-        ppt->has_Nbody_gauge_transfers = _FALSE_;
-      }
-      else {
-        class_stop(errmsg,"incomprehensible input '%s' for the field 'nbody_gauge_transfer_functions'",string1);
-      }
-    }
+
+    /* Read */
+    class_read_flag_or_deprecated("nbody_gauge_transfer_functions","Nbody gauge transfer functions",ppt->has_Nbody_gauge_transfers);
+
   }
 
 
@@ -2001,28 +1928,7 @@ int input_read_parameters_general(struct file_content * pfc,
 
   /** 9) Damping scale */
   /* Read */
-  class_call(parser_read_string(pfc,"compute_damping_scale",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"compute damping scale",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_){
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
-      pth->compute_damping_scale = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)){
-      pth->compute_damping_scale = _FALSE_;
-    }
-    else{
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'compute_damping_scale'",string1);
-    }
-  }
+  class_read_flag_or_deprecated("compute_damping_scale","compute damping scale",pth->compute_damping_scale);
 
   return _SUCCESS_;
 
@@ -2503,7 +2409,7 @@ int input_read_parameters_species(struct file_content * pfc,
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
-      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+      if((string1[0] == 'y') || (string1[0] == 'Y')){
         pba->use_ppf = _TRUE_;
         class_read_double("c_gamma_over_c_fld",pba->c_gamma_over_c_fld);
       }
@@ -2571,7 +2477,7 @@ int input_read_parameters_species(struct file_content * pfc,
                 errmsg);
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
-      if((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)){
+      if((string1[0] == 'y') || (string1[0] == 'Y')){
         pba->attractor_ic_scf = _TRUE_;
       }
       else{
@@ -2628,29 +2534,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) On-the-spot approximation */
-  /* Read */
-  class_call(parser_read_string(pfc,"on_the_spot",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"on the spot",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pth->has_on_the_spot = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      pth->has_on_the_spot = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'on_the_spot'",string1);
-    }
-  }
+  class_read_flag_or_deprecated("on_the_spot","on the spot",pth->has_on_the_spot);
 
 
   /** 2) DM annihilation */
@@ -3893,7 +3777,7 @@ int input_read_parameters_lensing(struct file_content * pfc,
              errmsg,
              errmsg);
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))){
+  if ((flag1 == _TRUE_) && ((string1[0] == 'y') || (string1[0] == 'Y'))){
     if ((ppt->has_scalars == _TRUE_) && ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)){
       ple->has_lensed_cls = _TRUE_;
       /* Slightly increase precision by delta_l_max for more precise lensed Cl's*/
@@ -4064,21 +3948,7 @@ int input_read_parameters_output(struct file_content * pfc,
 
   /** 1.b) Headers */
   /* Read */
-  class_call(parser_read_string(pfc,"headers",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pop->write_header = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      pop->write_header = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'headers'",string1);
-    }
-  }
+  class_read_flag("headers",pop->write_header);
 
   /** 1.c) Format */
   /* Read */
@@ -4100,53 +3970,12 @@ int input_read_parameters_output(struct file_content * pfc,
 
   /** 1.d) Background quantities */
   /* Read */
-  class_call(parser_read_string(pfc,"write_background",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"write background",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pop->write_background = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      pop->write_background = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_background'",string1);
-    }
-  }
+  class_read_flag_or_deprecated("write_background","write background",pop->write_background);
+
 
   /** 1.e) Thermodynamics quantities */
   /* Read */
-  class_call(parser_read_string(pfc,"write_thermodynamics",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"write thermodynamics",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pop->write_thermodynamics = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      pop->write_thermodynamics = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_thermodynamics'",string1);
-    }
-  }
+  class_read_flag_or_deprecated("write_thermodynamics","write thermodynamics",pop->write_thermodynamics);
 
   /** 1.f) Table of perturbations for certain wavenumbers k */
   /* Read */
@@ -4172,78 +4001,15 @@ int input_read_parameters_output(struct file_content * pfc,
 
   /** 1.g) Primordial spectra */
   /* Read */
-  class_call(parser_read_string(pfc,"write_primordial",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"write primordial",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      pop->write_primordial = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      pop->write_primordial = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_primordial'",string1);
-    }
-  }
+  class_read_flag_or_deprecated("write_primordial","write primordial",pop->write_primordial);
 
   /** 1.h) Input/precision parameters */
   /* Read */
-  class_call(parser_read_string(pfc,"write_parameters",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"write parameters",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-      flag1 = _TRUE_;
-    }
-    else if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-      flag1 = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_parameters'",string1);
-    }
-  }
+  class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
 
   /** 1.i) Warnings */
   /* Read */
-  class_call(parser_read_string(pfc,"write_warnings",&string2,&flag2,errmsg),
-             errmsg,
-             errmsg);
-  /* Compatibility code BEGIN */
-  if(flag2 == _FALSE_){
-    class_call(parser_read_string(pfc,"write warnings",&string2,&flag2,errmsg),
-                 errmsg,
-                 errmsg);
-  }
-  /* Compatibility code END */
-  /* Complete set of parameters */
-  if (flag2 == _TRUE_) {
-    if ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL)) {
-      flag2 = _TRUE_;
-    }
-    else if ((strstr(string2,"n") != NULL) || (strstr(string2,"N") != NULL)) {
-      flag2 = _FALSE_;
-    }
-    else {
-      class_stop(errmsg,"incomprehensible input '%s' for the field 'write_warnings'",string2);
-    }
-  }
+  class_read_flag_or_deprecated("write_warnings","write warnings",flag2);
 
 
   /** 2) Verbosity */
