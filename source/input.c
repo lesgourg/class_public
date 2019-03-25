@@ -4200,14 +4200,99 @@ int input_default_params(struct background *pba,
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
   /**
-   * Default to input_read_parameters_gauge
+   * Default to input_read_parameters_general
    */
 
-  /** 1) Gauge */
+  /** 1) Output spectra */
+  ppt->has_cl_cmb_temperature = _FALSE_;
+  ppt->has_cl_cmb_polarization = _FALSE_;
+  ppt->has_cl_cmb_lensing_potential = _FALSE_;
+  ppt->has_cl_number_count = _FALSE_;
+  ppt->has_cl_lensing_potential = _FALSE_;
+  ppt->has_pk_matter = _FALSE_;
+  ppt->has_density_transfers = _FALSE_;
+  ppt->has_velocity_transfers = _FALSE_;
+  /** 1.a) 'tCl' case */
+  ppt->switch_sw = 1;
+  ppt->switch_eisw = 1;
+  ppt->switch_lisw = 1;
+  ppt->switch_dop = 1;
+  ppt->switch_pol = 1;
+  /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
+  ppt->eisw_lisw_split_z = 120;
+  /** 1.b) 'nCl' (or 'dCl') case */
+  ppt->has_nc_density = _FALSE_;
+  ppt->has_nc_rsd = _FALSE_;
+  ppt->has_nc_lens = _FALSE_;
+  ppt->has_nc_gr = _FALSE_;
+  /** 1.c) 'dTk' (or 'mTk') case */
+  ppt->has_metricpotential_transfers = _FALSE_;
+
+  /** 2) Perturbed recombination */
+  ppt->has_perturbed_recombination=_FALSE_;
+  /** 2.a) Modes */
+  ppt->has_scalars=_TRUE_;
+  ppt->has_vectors=_FALSE_;
+  ppt->has_tensors=_FALSE_;
+  /** 2.a.1) Initial conditions for scalars */
+  ppt->has_ad=_TRUE_;
+  ppt->has_bi=_FALSE_;
+  ppt->has_cdi=_FALSE_;
+  ppt->has_nid=_FALSE_;
+  ppt->has_niv=_FALSE_;
+  /** 2.a.2) Initial conditions for tensors */
+  ppt->tensor_method = tm_massless_approximation;
+  ppt->evolve_tensor_ur = _FALSE_;
+  ppt->evolve_tensor_ncdm = _FALSE_;
+
+  /** 3.a) Gauge */
   ppt->gauge=synchronous;
+  /** 3.b) N-body gauge */
+  ppt->has_Nbody_gauge_transfers = _FALSE_;
+
+  /** 4) Scale factor today */
+  pba->a_today = 1.;
+
+  /** 5) Hubble parameter */
+  pba->h = 0.67556;
+  pba->H0 = pba->h*1.e5/_c_;
+
+  /** 6) Primordial Helium fraction */
+  pth->YHe=_BBN_;
+
+  /** 7) Recombination algorithm */
+  pth->recombination=recfast;
+
+  /** 8) Parametrization of reionization */
+  pth->reio_parametrization=reio_camb;
+  /** 8.a) 'reio_camb' or 'reio_half_tanh' case */
+  pth->reio_z_or_tau=reio_z;
+  pth->z_reio=11.357;
+  pth->tau_reio=0.0925;
+  pth->reionization_exponent=1.5;
+  pth->reionization_width=0.5;
+  pth->helium_fullreio_redshift=3.5;
+  pth->helium_fullreio_width=0.5;
+  /** 8.b) 'reio_bins_tanh' case */
+  pth->binned_reio_num=0;
+  pth->binned_reio_z=NULL;
+  pth->binned_reio_xe=NULL;
+  pth->binned_reio_step_sharpness = 0.3;
+  /** 8.c) 'reio_many_tanh' case */
+  pth->many_tanh_num=0;
+  pth->many_tanh_z=NULL;
+  pth->many_tanh_xe=NULL;
+  pth->many_tanh_width = 0.5;
+  /** 8.d) 'reio_inter' case */
+  pth->reio_inter_num = 0;
+  pth->reio_inter_z = NULL;
+  pth->reio_inter_xe = NULL;
+
+  /** 9) Damping scale */
+  pth->compute_damping_scale = _FALSE_;
 
   /**
-   * Default to input_read_parameters_background
+   * Default to input_read_parameters_species
    */
 
   /* 5.10.2014: default parameters matched to Planck 2013 + WP best-fitting
@@ -4222,56 +4307,56 @@ int input_default_params(struct background *pba,
      increased to 0.67556. Hence, we take h=0.67556, N_ur=3.046, N_ncdm=0, and
      all other parameters from the Planck2013 Cosmological Parameter paper. */
 
-  /** 1) Hubble parameter */
-  pba->h = 0.67556;
-  pba->H0 = pba->h*1.e5/_c_;
-
-  /** 2) Photon density */
+  /** 1) Photon density */
   pba->T_cmb = 2.7255;
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
 
-  /** 3) Baryon density */
+  /** 2) Baryon density */
   pba->Omega0_b = 0.022032/pow(pba->h,2);
 
-  /** 4) Ultra-relativistic species / massless neutrino density */
+  /** 3) Ultra-relativistic species / massless neutrino density */
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
-
-  /** 4.a) Effective squared sound speed and viscosity parameter */
+  /** 3.a) Effective squared sound speed and viscosity parameter */
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
 
-  /** 5) CDM density */
+  /** 4) CDM density */
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
-  /** 5.a) Fractional density of dcdm+dr */
-  pba->Omega0_dcdmdr = 0.0;
-  pba->Omega0_dcdm = 0.0;
-  /** 5.c) Decay constant */
-  pba->Gamma_dcdm = 0.0;
 
-  /** 6) ncdm sector */
-  /** 6.a) Number of distinct species */
+  /** 5) ncdm sector */
+  /** 5.a) Number of distinct species */
   pba->N_ncdm = 0;
-  /** 6.b) List of names of psd files */
+  /** 5.b) List of names of psd files */
   pba->ncdm_psd_files = NULL;
-  /** 6.c) Analytic distribution function */
+  /** 5.c) Analytic distribution function */
   pba->ncdm_psd_parameters = NULL;
   pba->Omega0_ncdm_tot = 0.;
-  /** 6.d) --> See read_parameters_background */
-  /** 6.e) ncdm temperature */
+  /** 5.d) --> See read_parameters_background */
+  /** 5.e) ncdm temperature */
   pba->T_ncdm_default = 0.71611; /* this value gives m/omega = 93.14 eV b*/
   pba->T_ncdm = NULL;
-  /** 6.f) ncdm chemical potential */
+  /** 5.f) ncdm chemical potential */
   pba->ksi_ncdm_default = 0.;
   pba->ksi_ncdm = NULL;
-  /** 6.g) ncdm degeneracy parameter */
+  /** 5.g) ncdm degeneracy parameter */
   pba->deg_ncdm_default = 1.;
   pba->deg_ncdm = NULL;
-  /** 6.h) --> See read_parameters_background */
+  /** 5.h) --> See read_parameters_background */
 
-  /** 7) Curvature density */
+  /** 6) Curvature density */
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
+
+  /* Begin of ADDITIONAL SPECIES --> Add your species here */
+
+  /** 7.a) Fractional density of dcdm+dr */
+  pba->Omega0_dcdmdr = 0.0;
+  pba->Omega0_dcdm = 0.0;
+  /** 7.c) Decay constant */
+  pba->Gamma_dcdm = 0.0;
+
+  /* End of ADDITIONAL SPECIES --> Add your species here */
 
   /** 8) Dark energy contributions */
   pba->Omega0_fld = 0.;
@@ -4302,47 +4387,6 @@ int input_default_params(struct background *pba,
   /** 8.b.4) Shooting parameter */
   pba->shooting_failed = _FALSE_;
 
-  /** 9) Scale factor today */
-  pba->a_today = 1.;
-
-  /**
-   * Default to input_read_parameters_thermo
-   */
-
-  /** 1) Primordial Helium fraction */
-  pth->YHe=_BBN_;
-
-  /** 2) Recombination algorithm */
-  pth->recombination=recfast;
-
-  /** 3) Parametrization of reionization */
-  pth->reio_parametrization=reio_camb;
-  /** 3.a) 'reio_camb' or 'reio_half_tanh' case */
-  pth->reio_z_or_tau=reio_z;
-  pth->z_reio=11.357;
-  pth->tau_reio=0.0925;
-  pth->reionization_exponent=1.5;
-  pth->reionization_width=0.5;
-  pth->helium_fullreio_redshift=3.5;
-  pth->helium_fullreio_width=0.5;
-  /** 3.b) 'reio_bins_tanh' case */
-  pth->binned_reio_num=0;
-  pth->binned_reio_z=NULL;
-  pth->binned_reio_xe=NULL;
-  pth->binned_reio_step_sharpness = 0.3;
-  /** 3.c) 'reio_many_tanh' case */
-  pth->many_tanh_num=0;
-  pth->many_tanh_z=NULL;
-  pth->many_tanh_xe=NULL;
-  pth->many_tanh_width = 0.5;
-  /** 3.d) 'reio_inter' case */
-  pth->reio_inter_num = 0;
-  pth->reio_inter_z = NULL;
-  pth->reio_inter_xe = NULL;
-
-  /** 4) Damping scale */
-  pth->compute_damping_scale = _FALSE_;
-
   /**
    * Deafult to input_read_parameters_heating
    */
@@ -4366,58 +4410,13 @@ int input_default_params(struct background *pba,
   pth->decay = 0.;
 
   /**
-   * Default to input_read_parameters_perturbs
+   * Default to input_read_parameters_nonlinear
    */
 
-  /** 1) Output spectra */
-  ppt->has_cl_cmb_temperature = _FALSE_;
-  ppt->has_cl_cmb_polarization = _FALSE_;
-  ppt->has_cl_cmb_lensing_potential = _FALSE_;
-  ppt->has_cl_number_count = _FALSE_;
-  ppt->has_cl_lensing_potential = _FALSE_;
-  ppt->has_pk_matter = _FALSE_;
-  ppt->has_density_transfers = _FALSE_;
-  ppt->has_velocity_transfers = _FALSE_;
-  /** 1.a) 'tCl' case */
-  ppt->switch_sw = 1;
-  ppt->switch_eisw = 1;
-  ppt->switch_lisw = 1;
-  ppt->switch_dop = 1;
-  ppt->switch_pol = 1;
-  /** 1.a.1) Split value of redshift z at which the isw is considered as late or early */
-  ppt->eisw_lisw_split_z = 120;
-  /** 1.b) 'nCl' (or 'dCl') case */
-  ppt->has_nc_density = _FALSE_;
-  ppt->has_nc_rsd = _FALSE_;
-  ppt->has_nc_lens = _FALSE_;
-  ppt->has_nc_gr = _FALSE_;
-  /** 1.c) 'dTk' (or 'mTk') case */
-  ppt->has_metricpotential_transfers = _FALSE_;
-
-  /** 2) Non-linearity */
+  /** 1) Non-linearity */
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
-
-  /** 3) Perturbed recombination */
-  ppt->has_perturbed_recombination=_FALSE_;
-  /** 3.a) Modes */
-  ppt->has_scalars=_TRUE_;
-  ppt->has_vectors=_FALSE_;
-  ppt->has_tensors=_FALSE_;
-  /** 3.a.1) Initial conditions for scalars */
-  ppt->has_ad=_TRUE_;
-  ppt->has_bi=_FALSE_;
-  ppt->has_cdi=_FALSE_;
-  ppt->has_nid=_FALSE_;
-  ppt->has_niv=_FALSE_;
-  /** 3.a.2) Initial conditions for tensors */
-  ppt->tensor_method = tm_massless_approximation;
-  ppt->evolve_tensor_ur = _FALSE_;
-  ppt->evolve_tensor_ncdm = _FALSE_;
-
-  /** 4) N-body gauge */
-  ppt->has_Nbody_gauge_transfers = _FALSE_;
 
   /**
    * Default to input_read_parameters_primordial
@@ -4569,6 +4568,12 @@ int input_default_params(struct background *pba,
   ptr->lcmb_pivot=0.1;
 
   /**
+   * Default to input_read_additional
+   */
+
+  pth->compute_cb2_derivatives=_FALSE_;
+
+  /**
    * Default to input_read_parameters_output
    */
 
@@ -4600,11 +4605,6 @@ int input_default_params(struct background *pba,
   pnl->nonlinear_verbose = 0;
   ple->lensing_verbose = 0;
   pop->output_verbose = 0;
-
-  /**
-   * Default to input_read_additional
-   */
-  pth->compute_cb2_derivatives=_FALSE_;
 
   return _SUCCESS_;
 
