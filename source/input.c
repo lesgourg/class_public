@@ -215,9 +215,10 @@ int file_exists(const char *fname){
 int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg errmsg){
 
   /** Define local variables */
-  int flag1, flag2, filenum;
+  int flag1, flag2, filenum, iextens;
   int index_root_in_fc_input;
   int overwrite_root;
+  int found_filenum;
 
   /* The filename of the output root INCLUDING 'output/' */
   FileArg outfname;
@@ -230,6 +231,9 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
 
   FileArg string1;                         //Is ignored
   char string2[_ARGUMENT_LENGTH_MAX_];
+
+  int n_extensions = 7;                    //Keep this as the length of the below list
+  char* output_extensions[7] = {"cl.dat","pk.dat","tk.dat","parameters.ini","background.dat","thermodynamics.dat","perturbations_k0.dat"};
 
   /* Shorthand notation */
   struct file_content * pfc_input = *ppfc_input;
@@ -275,25 +279,23 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
 
   /** If we don't want to overwrite the root name, check now for the existence of output for the given root name + N */
   if(overwrite_root == _FALSE_){
-    for (filenum = 0; filenum < _N_FILEROOT_; filenum++){
-      sprintf(tmp_file,"%s%02d_cl.dat", outfname, filenum);
-      if (file_exists(tmp_file) == _TRUE_){
-        continue;
+
+    /* Assume files exist, until proven otherwise */
+    found_filenum = _TRUE_;
+    /** For each 'filenum', test if it exists. Only stop if it has not been found. */
+    for (filenum = 0; filenum < _N_FILEROOT_ && found_filenum; filenum++){
+      /* No file has been found yet */
+      found_filenum = _FALSE_;
+      for(iextens = 0; iextens < n_extensions; ++iextens){
+        sprintf(tmp_file,"%s%02d_%s", outfname, filenum, output_extensions[iextens]);
+        if (file_exists(tmp_file) == _TRUE_){
+          /* Found a file, the outer loop is forced to keep searching */
+          found_filenum = _TRUE_;
+        }
       }
-      sprintf(tmp_file,"%s%02d_pk.dat", outfname, filenum);
-      if (file_exists(tmp_file) == _TRUE_){
-        continue;
-      }
-      sprintf(tmp_file,"%s%02d_tk.dat", outfname, filenum);
-      if (file_exists(tmp_file) == _TRUE_){
-        continue;
-      }
-      sprintf(tmp_file,"%s%02d_parameters.ini", outfname, filenum);
-      if (file_exists(tmp_file) == _TRUE_){
-        continue;
-      }
-      break;
     }
+    /* The last iteration is the one where nothing has been found, so we need to go one step back */
+    filenum--;
     /* If no root was found, add root through the parser routine */
     if(flag1 == _FALSE_){
       class_call(parser_init(&fc_root,
