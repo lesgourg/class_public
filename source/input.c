@@ -1279,7 +1279,8 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for nonlinear quantities */
-  class_call(input_read_parameters_nonlinear(pfc,ppr,ppt,pnl,input_verbose,
+  class_call(input_read_parameters_nonlinear(pfc,ppr,ppt,pnl,
+                                             input_verbose,
                                              errmsg),
              errmsg,
              errmsg);
@@ -1680,7 +1681,6 @@ int input_read_parameters_general(struct file_content * pfc,
 
 
   /** 3) Gauge */
-
   /** 3.a) Set gauge */
   /* Read */
   class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
@@ -1939,10 +1939,9 @@ int input_read_parameters_species(struct file_content * pfc,
   double scf_lambda;
   double fnu_factor;
   double Omega_tot;
+  double sigma_B; // Stefan-Boltzmann constant
 
-
-  double sigma_B; // Stefan-Boltzmann constant in [W/(m^2 K^4) = Kg/(K^4 s^3)]
-  sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);
+  sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
 
   /** 1) Omega_0_g (photons) and T_cmb */
   /* Read */
@@ -2004,9 +2003,8 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /** 3) Omega_0_ur (ultra-relativistic species / massless neutrino) */
   /**
-   * We want to keep compatibility with old input files,
-   * and as such 'N_eff' is still an allowed parameter name,
-   * although it is deprecated and its use is discouraged.
+   * We want to keep compatibility with old input files, and as such 'N_eff' is still
+   * an allowed parameter name, although it is deprecated and its use is discouraged.
    * */
   /* Read */
   class_call(parser_read_double(pfc,"N_ur",&param1,&flag1,errmsg),
@@ -2243,7 +2241,7 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
 
-  /* ** ADDITIONAL SPECIES ** -> Add your species here */
+  /* ** ADDITIONAL SPECIES ** --> Add your species here */
 
   /** 7) Decaying DM */
   /** 7.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
@@ -2294,7 +2292,7 @@ int input_read_parameters_species(struct file_content * pfc,
     pba->Gamma_dcdm *= (1.e3 / _c_);
   }
 
-  /* ** END OF ADDITIONAL SPECIES ** */
+  /* ** ADDITIONAL SPECIES ** */
 
 
   /* At this point all the species should be set, and used for the budget equation below */
@@ -2677,33 +2675,43 @@ int input_prepare_pk_eq(struct precision * ppr,
   true_wa_fld = pba->wa_fld;
 
   /** The fake calls of the background and thermodynamics module will be done in non-verbose mode */
-
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
 
   /** Allocate indices and arrays for storing the results */
-
   pnl->pk_eq_tau_size = 10;
-  class_alloc(pnl->pk_eq_tau,pnl->pk_eq_tau_size*sizeof(double),errmsg);
-  class_alloc(z,pnl->pk_eq_tau_size*sizeof(double),errmsg);
+  class_alloc(pnl->pk_eq_tau,
+              pnl->pk_eq_tau_size*sizeof(double),
+              errmsg);
+  class_alloc(z,
+              pnl->pk_eq_tau_size*sizeof(double),
+              errmsg);
 
   index_eq = 0;
   class_define_index(pnl->index_pk_eq_w,_TRUE_,index_eq,1);
   class_define_index(pnl->index_pk_eq_Omega_m,_TRUE_,index_eq,1);
   pnl->pk_eq_size = index_eq;
-  class_alloc(pnl->pk_eq_w_and_Omega,pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),errmsg);
-  class_alloc(pnl->pk_eq_ddw_and_ddOmega,pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),errmsg);
+  class_alloc(pnl->pk_eq_w_and_Omega,
+              pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),
+              errmsg);
+  class_alloc(pnl->pk_eq_ddw_and_ddOmega,
+              pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),
+              errmsg);
 
   /** Call the background module in order to fill a table of tau_i[z_i] */
-
   class_call(background_init(ppr,pba), pba->error_message, errmsg);
   for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
     z[index_pk_eq_z] = exp(log(1.+ppr->pk_eq_z_max)/(pnl->pk_eq_tau_size-1)*index_pk_eq_z)-1.;
-    class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z),
-               pba->error_message, errmsg);
+    class_call(background_tau_of_z(pba,
+                                   z[index_pk_eq_z],
+                                   &tau_of_z),
+               pba->error_message,
+               errmsg);
     pnl->pk_eq_tau[index_pk_eq_z] = tau_of_z;
   }
-  class_call(background_free_noinput(pba), pba->error_message, errmsg);
+  class_call(background_free_noinput(pba),
+             pba->error_message,
+             errmsg);
 
   /** Loop over z_i values. For each of them, we will call the
      background and thermodynamics module for fake models. The goal is
@@ -2715,7 +2723,6 @@ int input_prepare_pk_eq(struct precision * ppr,
      thermodynamics module for each fake model and to re-compute
      tau_rec for each of them. Once the eqauivalent model is found we
      compute and store Omega_m_effa(z_i) of the equivalent model */
-
   for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
 
     if (input_verbose > 2)
@@ -2723,19 +2730,35 @@ int input_prepare_pk_eq(struct precision * ppr,
     /* get chi = (tau[z_i] - tau_rec) in true model */
     pba->w0_fld = true_w0_fld;
     pba->wa_fld = true_wa_fld;
-    class_call(background_init(ppr,pba), pba->error_message, errmsg);
-    class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+    class_call(background_init(ppr,pba),
+               pba->error_message,
+               errmsg);
+    class_call(thermodynamics_init(ppr,pba,pth),
+               pth->error_message,
+               errmsg);
     delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - pth->tau_rec;
     /* launch iterations in order to coverge to effective model with wa=0 but the same chi = (tau[z_i] - tau_rec) */
     pba->wa_fld=0.;
 
     do {
-      class_call(background_free_noinput(pba), pba->error_message, errmsg);
-      class_call(thermodynamics_free(pth), pth->error_message, errmsg);
+      class_call(background_free_noinput(pba),
+                 pba->error_message,
+                 errmsg);
+      class_call(thermodynamics_free(pth),
+                 pth->error_message,
+                 errmsg);
 
-      class_call(background_init(ppr,pba), pba->error_message, errmsg);
-      class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z), pba->error_message, errmsg);
-      class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+      class_call(background_init(ppr,pba),
+                 pba->error_message,
+                 errmsg);
+      class_call(background_tau_of_z(pba,
+                                     z[index_pk_eq_z],
+                                     &tau_of_z),
+                 pba->error_message,
+                 errmsg);
+      class_call(thermodynamics_init(ppr,pba,pth),
+                 pth->error_message,
+                 errmsg);
 
       delta_tau_eq = tau_of_z - pth->tau_rec;
 
@@ -2747,7 +2770,9 @@ int input_prepare_pk_eq(struct precision * ppr,
 
     /* Equivalent model found. Store w0(z) in that model. Find Omega_m(z) in that model and store it. */
     pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w] = pba->w0_fld;
-    class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+    class_alloc(pvecback,
+                pba->bg_size*sizeof(double),
+                pba->error_message);
     class_call(background_at_tau(pba,
                                  tau_of_z,
                                  pba->long_info,
@@ -2758,11 +2783,15 @@ int input_prepare_pk_eq(struct precision * ppr,
     pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
     free(pvecback);
 
-    class_call(background_free_noinput(pba), pba->error_message, errmsg);
-    class_call(thermodynamics_free(pth), pth->error_message, errmsg);
+    class_call(background_free_noinput(pba),
+               pba->error_message,
+               errmsg);
+    class_call(thermodynamics_free(pth),
+               pth->error_message,
+               errmsg);
   }
 
-  /** - restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules */
+  /** Restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules */
   pba->background_verbose = true_background_verbose;
   pth->thermodynamics_verbose = true_thermodynamics_verbose;
   pba->w0_fld = true_w0_fld;
@@ -2791,7 +2820,8 @@ int input_prepare_pk_eq(struct precision * ppr,
                                       pnl->pk_eq_ddw_and_ddOmega,
                                       _SPLINE_NATURAL_,
                                       errmsg),
-             errmsg, errmsg);
+             errmsg,
+             errmsg);
 
   return _SUCCESS_;
 
@@ -4348,7 +4378,7 @@ int input_default_params(struct background *pba,
   pba->K = 0.;
   pba->sgnK = 0;
 
-  /* Begin of ADDITIONAL SPECIES --> Add your species here */
+  /* ** ADDITIONAL SPECIES ** --> Add your species here */
 
   /** 7.a) Fractional density of dcdm+dr */
   pba->Omega0_dcdmdr = 0.0;
@@ -4356,7 +4386,7 @@ int input_default_params(struct background *pba,
   /** 7.c) Decay constant */
   pba->Gamma_dcdm = 0.0;
 
-  /* End of ADDITIONAL SPECIES --> Add your species here */
+  /* ** ADDITIONAL SPECIES ** */
 
   /** 8) Dark energy contributions */
   pba->Omega0_fld = 0.;
