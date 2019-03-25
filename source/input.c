@@ -97,18 +97,13 @@ int input_find_file(int argc,
   /** Define local variables */
   struct file_content fc_input;       // Temporary structure with all input parameters
   struct file_content fc_precision;   // Temporary structure with all precision parameters
-  struct file_content fc_root;        // Temporary structure with only the root name
-  struct file_content fc_inputroot;   // Sum of fc_inoput and fc_root
   struct file_content * pfc_input;    // Pointer to either fc_root or fc_inputroot
 
   int i;
   char extension[5];
-  FileArg stringoutput, inifilename;
-  int flag1, filenum;
+  int flag1;
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
-  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the
-                                           // characters "output/[...]%02d_parameters.ini" (as done below)
 
   pfc_input = &fc_input;
 
@@ -151,50 +146,17 @@ int input_find_file(int argc,
     class_call(parser_read_file(input_file,&fc_input,errmsg),
                errmsg,
                errmsg);
-    /** Check whether a root name has been set */
-    class_call(parser_read_string(&fc_input,"root",&stringoutput,&flag1,errmsg),
-               errmsg, errmsg);
-    /** If root has not been set, use root=output/inputfilennameN_ */
-    if (flag1 == _FALSE_){
-      strncpy(inifilename, input_file, strlen(input_file)-4);
-      inifilename[strlen(input_file)-4] = '\0';
-      for (filenum = 0; filenum < 100; filenum++){
-        sprintf(tmp_file,"output/%s%02d_cl.dat", inifilename, filenum);
-        if (file_exists(tmp_file) == _TRUE_)
-          continue;
-        sprintf(tmp_file,"output/%s%02d_pk.dat", inifilename, filenum);
-        if (file_exists(tmp_file) == _TRUE_)
-          continue;
-        sprintf(tmp_file,"output/%s%02d_tk.dat", inifilename, filenum);
-        if (file_exists(tmp_file) == _TRUE_)
-          continue;
-        sprintf(tmp_file,"output/%s%02d_parameters.ini", inifilename, filenum);
-        if (file_exists(tmp_file) == _TRUE_)
-          continue;
-        break;
-      }
-      class_call(parser_init(&fc_root,
-                             1,
-                             fc_input.filename,
-                             errmsg),
-                 errmsg,errmsg);
-      sprintf(fc_root.name[0],"root");
-      sprintf(fc_root.value[0],"output/%s%02d_",inifilename,filenum);
-      fc_root.read[0] = _FALSE_;
-      class_call(parser_cat(&fc_input,
-                            &fc_root,
-                            &fc_inputroot,
-                            errmsg),
-                 errmsg,
-                 errmsg);
-      class_call(parser_free(&fc_input),
-                 errmsg,
-                 errmsg);
-      class_call(parser_free(&fc_root),
-                 errmsg,
-                 errmsg);
-      pfc_input = &fc_inputroot;
-    }
+
+    /* *
+     * Set correctly the pfc_input within the set_root function,
+     * including the adjusted 'root' field.
+     * It is either set to a pointer to fc_input,
+     * or when a new filecontent is created with root appended,
+     * it is set as the pointer to fc_inputroot.
+     * */
+    class_call(input_set_root(input_file,&pfc_input,errmsg),
+               errmsg,
+               errmsg);
   }
 
   /** If there is an 'xxx.pre' file, read it and store its content. */
@@ -242,6 +204,163 @@ int file_exists(const char *fname){
   return _FALSE_;
 
 }
+
+/**
+ * Sets the 'root' variable in the input file content
+ *
+ * @param input_file      Input: filename of the input file
+ * @param ppfc_input      Input/Output: pointer to (pointer to input file structure)
+ * @param errmsg          Input/Output: the error message
+ * */
+int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg errmsg){
+
+  /** Define local variables */
+  int flag1, flag2, filenum;
+  int index_root_in_fc_input;
+  int overwrite_root;
+
+  /* The filename of the output root INCLUDING 'output/' */
+  FileArg outfname;
+
+  /* Temporary variables for parser reading etc. */
+  char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the
+                                           // characters "output/[...]%02d_parameters.ini" (as done below)
+  struct file_content fc_root;             // Temporary structure with only the root name
+  struct file_content fc_inputroot;        // Sum of fc_input and fc_root
+
+  FileArg string1;                         //Is ignored
+  char string2[_ARGUMENT_LENGTH_MAX_];
+
+  /* Shorthand notation */
+  struct file_content * pfc_input = *ppfc_input;
+
+
+  /** Check whether a root name has been set, and wether overwrite_root is true */
+  class_call(parser_read_string(pfc_input,"root",&string1,&flag1,errmsg),
+             errmsg, errmsg);
+  class_call(parser_read_string(pfc_input,"overwrite_root",&string2,&flag2,errmsg),
+             errmsg, errmsg);
+
+  /* Set overwrite_root */
+  if(flag2 == _TRUE_){
+    if ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL)) {
+      overwrite_root = _TRUE_;
+    }
+    else if ((strstr(string2,"n") != NULL) || (strstr(string2,"N") != NULL)) {
+      overwrite_root = _FALSE_;
+    }
+    else {
+      class_stop(errmsg,"incomprehensible input '%s' for the field 'overwrite_root'",string2);
+    }
+  }
+  else{
+    overwrite_root = _FALSE_;
+  }
+
+  /** If root has not been set, use the default of 'output/<thisfilename>' */
+  if (flag1 == _FALSE_){
+    strncpy(outfname, "output/", 7);
+    strncpy(outfname+7, input_file, strlen(input_file)-4);
+    outfname[7+strlen(input_file)-4] = '\0';
+  }
+  /* Check here for the index of the 'root' field in case it was set in fc_input */
+  else{
+    for(index_root_in_fc_input=0;index_root_in_fc_input<pfc_input->size;++index_root_in_fc_input){
+      if(strcmp(pfc_input->name[index_root_in_fc_input],"root")==0){
+        strcpy(outfname,pfc_input->value[index_root_in_fc_input]);
+        break;
+      }
+    }
+  }
+
+  /** If we don't want to overwrite the root name, check now for the existence of output for the given root name + N */
+  if(overwrite_root == _FALSE_){
+    for (filenum = 0; filenum < _N_FILEROOT_; filenum++){
+      sprintf(tmp_file,"%s%02d_cl.dat", outfname, filenum);
+      if (file_exists(tmp_file) == _TRUE_){
+        continue;
+      }
+      sprintf(tmp_file,"%s%02d_pk.dat", outfname, filenum);
+      if (file_exists(tmp_file) == _TRUE_){
+        continue;
+      }
+      sprintf(tmp_file,"%s%02d_tk.dat", outfname, filenum);
+      if (file_exists(tmp_file) == _TRUE_){
+        continue;
+      }
+      sprintf(tmp_file,"%s%02d_parameters.ini", outfname, filenum);
+      if (file_exists(tmp_file) == _TRUE_){
+        continue;
+      }
+      break;
+    }
+    /* If no root was found, add root through the parser routine */
+    if(flag1 == _FALSE_){
+      class_call(parser_init(&fc_root,
+                             1,
+                             pfc_input->filename,
+                             errmsg),
+                 errmsg,errmsg);
+      sprintf(fc_root.name[0],"root");
+      sprintf(fc_root.value[0],"%s%02d_",outfname,filenum);
+      fc_root.read[0] = _FALSE_;
+      class_call(parser_cat(pfc_input,
+                            &fc_root,
+                            &fc_inputroot,
+                            errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(pfc_input),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(&fc_root),
+                 errmsg,
+                 errmsg);
+      (*ppfc_input) = &fc_inputroot;
+    }
+    /* If root was found, set the index in the fc_input struct */
+    else{
+      sprintf(pfc_input->value[index_root_in_fc_input],"%s%02d_",outfname,filenum);
+      (*ppfc_input) = pfc_input;
+    }
+  }
+
+  /** If we do want to overwrite, just take the given root name */
+  else{
+    /* If no root was found, add root through the parser routine */
+    if(flag1 == _FALSE_){
+      class_call(parser_init(&fc_root,
+                             1,
+                             pfc_input->filename,
+                             errmsg),
+                 errmsg,errmsg);
+      sprintf(fc_root.name[0],"root");
+      sprintf(fc_root.value[0],"%s_",outfname);
+      fc_root.read[0] = _FALSE_;
+      class_call(parser_cat(pfc_input,
+                            &fc_root,
+                            &fc_inputroot,
+                            errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(pfc_input),
+                 errmsg,
+                 errmsg);
+      class_call(parser_free(&fc_root),
+                 errmsg,
+                 errmsg);
+      (*ppfc_input) = &fc_inputroot;
+    }
+    /* If root was found, set the index in the fc_input struct */
+    else{
+      sprintf(pfc_input->value[index_root_in_fc_input],"%s_",outfname);
+      (*ppfc_input) = pfc_input;
+    }
+  }
+
+  return _SUCCESS_;
+}
+
 
 
 /**

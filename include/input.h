@@ -18,6 +18,8 @@ struct nonlinear * pnl;
 struct lensing * ple;
 struct output * pop;
 
+#define _N_FILEROOT_ 100 /* Number of files that will be not overwritten for a given root */
+
 /* macro for reading parameter values with routines from the parser */
 #define class_read_double(name,destination)                                     \
   do {                                                                          \
@@ -207,6 +209,10 @@ extern "C" {
                       char ** argv,
                       struct file_content * fc,
                       ErrorMsg errmsg);
+
+  int input_set_root(char* input_file,
+                     struct file_content** ppfc_input,
+                     ErrorMsg errmsg);
 
   int file_exists(const char *fname);
 
