@@ -261,6 +261,7 @@ extern "C" {
 
   int input_set_root(char* input_file,
                      struct file_content** ppfc_input,
+                     struct file_content* pfc_setroot,
                      ErrorMsg errmsg);
 
   int file_exists(const char *fname);
