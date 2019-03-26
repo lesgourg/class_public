@@ -769,6 +769,8 @@ int input_read_parameters(
   else if (flag2 == _TRUE_) {
     pba->xi_idr = param2;
     pba->N_dg = pba->stat_f_idr*pow(param2,4.)/(7./8.)*pow(11./4.,(4./3.));
+    if (input_verbose > 2)
+      printf("N_dg equiv = %e \n", pba->N_dg);
   }
 
   pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
@@ -835,6 +837,8 @@ int input_read_parameters(
     else if(flag4 == _TRUE_){
       pth->a_dark = param4;
       pba->Gamma_0_nadm = param4*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
+      if (input_verbose > 2)
+        printf("Gamma_0_nadm equiv = %e \n", pba->Gamma_0_nadm);
     }
 
     if (flag1 == _TRUE_){

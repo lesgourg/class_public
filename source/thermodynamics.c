@@ -1138,7 +1138,7 @@ int thermodynamics_init(
       printf(" -> free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
              pth->tau_free_streaming);
     }
-    if (pth->thermodynamics_verbose > 1) {
+    if ((pba->has_idr)&&(pth->thermodynamics_verbose > 1)) {
       printf(" -> dark free-streaming approximation can be turned on as soon as tau=%g Mpc\n",
              tau_dark_fs);
     }
