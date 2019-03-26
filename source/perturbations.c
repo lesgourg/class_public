@@ -6952,12 +6952,6 @@ int perturb_sources(
         _set_source_(ppt->index_tp_theta_idr) = ppw->rsa_theta_idr;
     }
 
-    /*FILE *blah;
-    blah = fopen("blah.txt","a");
-    if(k=1.127271e+01) 
-     fprintf(blah,"%e %e %e %e %e\n",tau,y[ppw->pv->index_pt_delta_idr],y[ppw->pv->index_pt_theta_idr],y[ppw->pv->index_pt_delta_idm],y[ppw->pv->index_pt_theta_idm]);
-    fclose(blah);*/
-
     /* theta_ncdm1 */
     if (ppt->has_source_theta_ncdm == _TRUE_) {
       for (index_type = ppt->index_tp_theta_ncdm1; index_type < ppt->index_tp_theta_ncdm1+pba->N_ncdm; index_type++) {
@@ -8030,14 +8024,7 @@ int perturb_derivs(double tau,
       if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off) {
 
         dy[pv->index_pt_theta_idm] = - a_prime_over_a*y[pv->index_pt_theta_idm] + metric_euler; /* idm velocity */
-        dy[pv->index_pt_theta_idm] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr)); //MArchi questa è la versione che bisogna usare nel caso n=0 con xi piccolissimo e a_dark grandissimo!
-        //dy[pv->index_pt_theta_idm] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]);
-        /*FILE *blah2;
-        if(k=1.127271e+01){
-           blah2 = fopen("blah2.txt","a");
-           fprintf(blah2,"%e %e %e %e %e %e %e %e %e %e %e\n",k,tau,a,Sinv,dmu_dark,pvecthermo[pth->index_th_cidm2],y[pv->index_pt_delta_idm],y[pv->index_pt_theta_idm],theta_idr,dy[pv->index_pt_delta_idm],dy[pv->index_pt_theta_idm]);
-           fclose(blah2);
-        }*/
+        dy[pv->index_pt_theta_idm] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]);
         // an extra factor *(4./3.) should be here according to ethos, added to Sinv
       }
       else{
@@ -8053,12 +8040,6 @@ int perturb_derivs(double tau,
         //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
                                                    y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
-        /*FILE *blah;
-        if(k==1.0){
-           blah = fopen("blah_1.txt","a");
-           fprintf(blah,"%e %e\n",tau,a);
-           fclose(blah);
-        }*/
 
       }
     }
