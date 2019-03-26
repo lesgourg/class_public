@@ -371,6 +371,7 @@ extern "C" {
                                     struct background * pba,
                                     struct thermo * pth,
                                     struct perturbs * ppt,
+                                    struct distortions * psd,
                                     ErrorMsg errmsg);
 
   int input_read_parameters_species(struct file_content * pfc,

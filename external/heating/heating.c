@@ -81,14 +81,17 @@ int heating_init(struct precision * ppr,
   phe->last_index_z_feff = 0;
 
   /** Import constant quantities from background structure */
+  phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
   phe->T_g0 = pba->T_cmb;                                                                           // [K]
-  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
+  phe->Omega0_b = pba->Omega0_b;                                                                    // [-]
   phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
+  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
   phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
 
   /** Import constant quantities from thermodynamics structure */
   phe->Y_He = pth->YHe;                                                                             // [-]
-  phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
+  phe->f_He = phe->Y_He/(_not4_*(1.-phe->Y_He));                                                    // [-]
+  phe->N_e0 = 3.*phe->H0*phe->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);                  // [1/m^3]
 
   /** Check energy injection */ //TODO :: do properly
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
@@ -342,6 +345,9 @@ int heating_calculate_at_z(struct background* pba,
     phe->rho_dcdm = 0.0;
   }
 
+  /** Import varying quantities from thermodynamics structure */
+
+
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
                                phe->z_size,
@@ -582,7 +588,7 @@ int heating_deposition_function_at_z(struct heating* phe,
     */
 
     /*
-     * Recfast :: 
+     * Recfast ::
 
       double bHe_ion=branching_ratio_ions_Chen(XHeII/fHe);
       double bHI_ion=branching_ratio_ions_Chen(XHII);
@@ -1107,13 +1113,12 @@ int heating_rate_adiabatic_cooling(struct heating * phe,
                                    double * energy_rate){
 
   /** Define local variables */
-  double alpha_h;
+  double T_g;
+
+  T_g = phe->T_g0*(1.+z);                                                                          // [K]
 
   /** Calculate heating rates */
-  alpha_h = (3./2.)*phe->N_e0*pow(1.+z,3.)*(1.+phe->Y_He+phe->x_e);                                 // [1/m^3]
-
-  *energy_rate = -phe->H*alpha_h*_k_B_*phe->T_g0*(1.+z);                                            // [J/(m^3 s)]
-
+  *energy_rate = -(3./2.)*phe->N_e0*pow(1.+z,3.)*(1.+phe->f_He+phe->x_e)*phe->H*_k_B_*T_g;          // [J/(m^3 s)]
   return _SUCCESS_;
 
 }

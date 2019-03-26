@@ -1381,7 +1381,7 @@ int input_read_parameters(struct file_content * pfc,
    * This function is exclusively for those parameters, NOT
    *  related to any physical species
    * */
-  class_call(input_read_parameters_general(pfc,pba,pth,ppt,
+  class_call(input_read_parameters_general(pfc,pba,pth,ppt,psd,
                                            errmsg),
              errmsg,
              errmsg);
@@ -1465,6 +1465,7 @@ int input_read_parameters_general(struct file_content * pfc,
                                   struct background * pba,
                                   struct thermo * pth,
                                   struct perturbs * ppt,
+                                  struct distortions * psd,
                                   ErrorMsg errmsg){
 
   /** Summary: */
@@ -1473,9 +1474,9 @@ int input_read_parameters_general(struct file_content * pfc,
   int flag1,flag2,flag3;
   double param1,param2,param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  char * options_output[30] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk",
-                                "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk",
-                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK"};
+  char * options_output[33] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd",
+                                "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd",
+                                "TCL","PCL","LCL","NCL","DCL","SCL","MPK","MTK","DTK","VTK","SD"};
   char * options_temp_contributions[10] = {"tsw","eisw","lisw","dop","pol","TSW","EISW","LISW","Dop","Pol"};
   char * options_number_count[8] = {"density","dens","rsd","RSD","lensing","lens","gr","GR"};
   char * options_modes[6] = {"s","v","t","S","V","T"};
@@ -1484,6 +1485,7 @@ int input_read_parameters_general(struct file_content * pfc,
   /* Set local default values */
   ppt->has_perturbations = _FALSE_;
   ppt->has_cls = _FALSE_;
+  psd->has_distortions = _FALSE_;
 
   /** 1) List of output spectra requested */
   /* Read */
@@ -1531,12 +1533,19 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_velocity_transfers=_TRUE_;
       ppt->has_perturbations = _TRUE_;
     }
+    if ((strstr(string1,"Sd") != NULL) || (strstr(string1,"sd") != NULL) || (strstr(string1,"SD") != NULL)) {
+      ppt->has_perturbations = _TRUE_;
+      ppt->has_density_transfers=_TRUE_;
+      ppt->has_velocity_transfers=_TRUE_;
+      psd->has_distortions=_TRUE_;
+    }
+
     /* Test */
-    class_call(parser_check_options(string1, options_output, 30, &flag1),
+    class_call(parser_check_options(string1, options_output, 33, &flag1),
                errmsg,
                errmsg);
     class_test(flag1==_FALSE_,
-               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk'}, you entered '%s'",string1);
+               errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk','Sd'}, you entered '%s'",string1);
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -2578,7 +2587,6 @@ int input_read_parameters_heating(struct file_content * pfc,
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) DM annihilation */
-
   /** 1.a) Energy fraction absorbed by the gas */
   /* Read */
   class_read_double("annihilation",phe->annihilation_efficiency);
@@ -2610,7 +2618,6 @@ int input_read_parameters_heating(struct file_content * pfc,
 
 
   /** 2) DM decay */
-
   /** 2.a) Energy fraction absorbed by the gas divided by the lifetime of the particle */
   /* Read */
   class_read_double("decay",phe->decay);
@@ -2649,6 +2656,7 @@ int input_read_parameters_heating(struct file_content * pfc,
     phe->f_eff_file=string1;
   }
 
+
   /** 4) deposition function */
   /* Read */
   class_call(parser_read_string(pfc,"chi_type",&string1,&flag1,errmsg),
@@ -2675,7 +2683,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   }
 
   if(phe->chi_type == chi_from_x_file || phe->chi_type == chi_from_z_file){
-    /** 3.1) External file */
+    /** 4.1) External file */
     /* Read */
     class_call(parser_read_string(pfc,"chi_file",&string1,&flag1,errmsg),
                errmsg,
@@ -2688,6 +2696,7 @@ int input_read_parameters_heating(struct file_content * pfc,
     phe->chi_z_file=string1;
     phe->chi_x_file=string1;
   }
+
 
   /** 5) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;

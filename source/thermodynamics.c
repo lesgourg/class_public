@@ -1442,8 +1442,8 @@ int thermodynamics_reionization_function(double z,
 
 
       if (pth->reio_parametrization == reio_camb) {
-        printf("At z=%.10e , arg=%.10e , bef =%.10e , af = %.10e \n",
-                z, argument, preio->reionization_parameters[preio->index_reio_xe_before], preio->reionization_parameters[preio->index_reio_xe_after]);
+        /*printf("At z=%.10e , arg=%.10e , bef =%.10e , af = %.10e \n",
+                z, argument, preio->reionization_parameters[preio->index_reio_xe_before], preio->reionization_parameters[preio->index_reio_xe_after]);*/
         *x = (preio->reionization_parameters[preio->index_reio_xe_after]
                -preio->reionization_parameters[preio->index_reio_xe_before])
              *(tanh(argument)+1.)/2.

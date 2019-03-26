@@ -52,7 +52,9 @@ struct heating{
 
   /* Parameters from background structure */
   /* Redshift independent, i.e. defined in heating_init */
+  double H0;
   double T_g0;
+  double Omega0_b;
   double Omega0_dcdmdr;
   double Omega_ini_dcdm;
   double Gamma_dcdm;
@@ -69,6 +71,7 @@ struct heating{
   /* Parameters from thermodynamics structure */
   /* Redshift independent, i.e. defined in heating_init */
   double Y_He;
+  double f_He;
   double N_e0;
   /* Redshift dependent, i.e. defined in heating_at_z or heating_at_z_second_order */
   double dkappa;

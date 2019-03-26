@@ -572,6 +572,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
     }
 
+
     /* Free space allocated in distortions_read_br_data */
     class_call(distortions_free_br_data(psd),
                psd->error_message,
