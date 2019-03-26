@@ -100,6 +100,7 @@ int input_find_file(int argc,
   struct file_content fc_input;       // Temporary structure with all input parameters
   struct file_content fc_precision;   // Temporary structure with all precision parameters
   struct file_content * pfc_input;    // Pointer to either fc_root or fc_inputroot
+  struct file_content fc_setroot;     // Temporary structure for setroot
 
   int i;
   char extension[5];
@@ -156,7 +157,7 @@ int input_find_file(int argc,
      * or when a new filecontent is created with root appended,
      * it is set as the pointer to fc_inputroot.
      * */
-    class_call(input_set_root(input_file,&pfc_input,errmsg),
+    class_call(input_set_root(input_file,&pfc_input,&fc_setroot,errmsg),
                errmsg,
                errmsg);
   }
@@ -215,7 +216,7 @@ int file_exists(const char *fname){
  * @param ppfc_input      Input/Output: pointer to (pointer to input file structure)
  * @param errmsg          Input/Output: the error message
  * */
-int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg errmsg){
+int input_set_root(char* input_file, struct file_content** ppfc_input, struct file_content * pfc_setroot, ErrorMsg errmsg){
 
   /** Define local variables */
   int flag1, flag2, filenum, iextens;
@@ -230,7 +231,6 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
   char tmp_file[_ARGUMENT_LENGTH_MAX_+26]; // 26 is enough to extend the file name [...] with the
                                            // characters "output/[...]%02d_parameters.ini" (as done below)
   struct file_content fc_root;             // Temporary structure with only the root name
-  struct file_content fc_inputroot;        // Sum of fc_input and fc_root
 
   FileArg string1;                         //Is ignored
   char string2[_ARGUMENT_LENGTH_MAX_];
@@ -299,7 +299,7 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
       fc_root.read[0] = _FALSE_;
       class_call(parser_cat(pfc,
                             &fc_root,
-                            &fc_inputroot,
+                            pfc_setroot,
                             errmsg),
                  errmsg,
                  errmsg);
@@ -309,7 +309,7 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
       class_call(parser_free(&fc_root),
                  errmsg,
                  errmsg);
-      (*ppfc_input) = &fc_inputroot;
+      (*ppfc_input) = pfc_setroot;
     }
     /* If root was found, set the index in the fc_input struct */
     else{
@@ -332,7 +332,7 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
       fc_root.read[0] = _FALSE_;
       class_call(parser_cat(pfc,
                             &fc_root,
-                            &fc_inputroot,
+                            pfc_setroot,
                             errmsg),
                  errmsg,
                  errmsg);
@@ -342,7 +342,7 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, ErrorMsg 
       class_call(parser_free(&fc_root),
                  errmsg,
                  errmsg);
-      (*ppfc_input) = &fc_inputroot;
+      (*ppfc_input) = pfc_setroot;
     }
     /* If root was found, set the index in the fc_input struct */
     else{
