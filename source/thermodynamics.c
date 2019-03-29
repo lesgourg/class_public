@@ -748,8 +748,8 @@ int thermodynamics_init(
              pba->error_message,
              pth->error_message);
 
-  while (1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa]/tau
-         < ppr->radiation_streaming_trigger_tau_c_over_tau) {
+  while ((1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa]/tau < ppr->radiation_streaming_trigger_tau_c_over_tau)
+         && (index_tau>0)) {
 
     index_tau--;
 
