@@ -41,16 +41,14 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   strcpy(phy->twog_file,ppr->hyrec_two_photon_tables_file);
 
   phy->n_H_now = Nnow;
-  phy->nH0 = phy->n_H_now; //TODO :: units?
+  phy->nH0 = phy->n_H_now;
   phy->T_cmb = T_cmb;
-  phy->T0 = phy->T_cmb; //TODO :: units?
+  phy->T0 = phy->T_cmb;
   phy->fHe = fHe;
 
-  //At what values should the fminus and fplus histories be built?
   phy->zstart = 8060.; //Make sure hyrec filled some values before first call from class (at z=8050)
   phy->zend = 0.;
   phy->dlna = 8.49e-5;
-  //phy->dlna = 1e-3;
 
   phy->nz = (long) floor(2.+log((1.+phy->zstart)/(1.+phy->zend))/phy->dlna);
 
@@ -77,22 +75,15 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
              phy->error_message,
              phy->error_message);
 
-  /* history of x_e and T_mat ( these are totally not needed, but convenience variables :D )*/
+  /* history of x_e */
   phy->xe_output    = create_1D_array(phy->nz);
-  //Tm_output         = create_1D_array(phy->nz);
+
   /* history of photon occupation numbers */
   phy->Dfnu_hist    = create_2D_array(NVIRT, phy->nz);
   phy->Dfminus_hist = create_2D_array(NVIRT, phy->nz);
   phy->Dfminus_Ly_hist[0] = create_1D_array(phy->nz);   /* Ly-alpha */
   phy->Dfminus_Ly_hist[1] = create_1D_array(phy->nz);   /* Ly-beta  */
   phy->Dfminus_Ly_hist[2] = create_1D_array(phy->nz);   /* Ly-gamma */
-
-  /* Make sure the input spectrum is initialized at zero */
-  /*for (iz=0; iz<phy->nz; iz++){
-    phy->Dfminus_Ly_hist[0][iz] = 0;
-    phy->Dfminus_Ly_hist[1][iz] = 0;
-    phy->Dfminus_Ly_hist[2][iz] = 0;
-  }*/
 
 
   //Ratios of fine structure constant and electron mass at recombination compared to now
@@ -109,13 +100,6 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   phy->saha_flag = _TRUE_;
 
   phy->filled_until_index_z = 0;
-  /*for(index_virt=0;index_virt<phy->N_VIRT;++index_virt){
-    phy->logfminus_hist[index_virt][0] = 0.0;
-  }
-  for(index_ly=0;index_ly<phy->N_LY;++index_ly){
-    phy->logfminus_Ly_hist[index_ly][0] = 0.0;
-  }*/
-
 
   phy->TR_prev = phy->T_cmb*(1+phy->zstart);
   phy->TM_prev = phy->TR_prev;
@@ -157,9 +141,9 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_get_xe(struct thermo* pth, struct thermohyrec * phy,
-                                double z, double H, double T_b, double T_gamma,
-                                double* x_e, double* dxe_dlna) {
+int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
+                                      double z, double H, double T_b, double T_gamma,
+                                      double* x_e, double* dxe_dlna) {
 
   /** Define local variables */
   int iz;
@@ -466,6 +450,34 @@ int thermodynamics_hyrec_get_xe(struct thermo* pth, struct thermohyrec * phy,
     //printf("[%i] : %.10e , [%i] : %.10e -> %.10e \n",iz_goal,phy->xe_output[iz_goal],iz_goal-1,phy->xe_output[iz_goal-1],*dxedlna);
     printf("[%i,%.10e] : %.10e , [%i,%.10e] : %.10e -> [%.10e] : %.10e \n",iz_goal,z_goal,phy->xe_output[iz_goal],iz_goal-1,z_goalm1,phy->xe_output[iz_goal-1],z,*x_e);
   }
+
+  return _SUCCESS_;
+}
+
+int thermodynamics_hyrec_interpolate_xe(struct thermohyrec * phy, double z, double* x_e){
+
+  int iz_goal;
+  double z_goal,z_goalm1,frac;
+
+  /* If we are at early enough times, skip everything */
+  if( z <= phy->zstart){
+    *x_e = 1. + 2. * phy->fHe;
+    return _SUCCESS_;
+  }
+
+  /* Otherwise interpolate in the already computed table */
+  iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
+  z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
+
+  class_test(iz_goal>phy->filled_until_index_z,
+             phy->error_message,
+             "HyRec needs extrapolating beyond the filled range ( at %i, even though filled until %i) (%.10e < %.10e)",
+             iz_goal,phy->filled_until_index_z,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,z);
+
+  z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
+  frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
+
+  *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
 
   return _SUCCESS_;
 }
