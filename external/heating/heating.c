@@ -446,7 +446,7 @@ int heating_energy_injection_at_z(struct heating* phe,
   }
 
   /** Standard energy injection mechanisms */
-  /*class_call(heating_rate_adiabatic_cooling(phe,
+  class_call(heating_rate_adiabatic_cooling(phe,
                                             z,
                                             &rate),
              phe->error_message,
@@ -454,7 +454,7 @@ int heating_energy_injection_at_z(struct heating* phe,
     if(phe->to_store){
       phe->injection_table[phe->index_inj_cool][phe->index_z_store] = rate;
     }
-    dEdz += rate;*/
+    dEdz += rate;
 
   /** Exotic energy injection mechanisms */
   if(phe->has_exotic_injection){
