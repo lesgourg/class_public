@@ -3969,95 +3969,97 @@ int input_read_parameters_distortions(struct file_content * pfc,
 
   /** 1) Branching ratio approximation */
   /* Read */
-  class_call(parser_read_string(pfc,"branching approx",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"branching_approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL))) {
-    psd->branching_approx = bra_sharp_sharp;
-    psd->N_PCA = 0;
-  }
-  else if ((flag1 == _TRUE_) && ((strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL))) {
-    psd->branching_approx = bra_sharp_soft;
-    psd->N_PCA = 0;
-  }
-  else if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL))) {
-    psd->branching_approx = bra_soft_soft;
-    psd->N_PCA = 0;
-  }
-  else if ((flag1 == _TRUE_) && ((strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL))) {
-    psd->branching_approx = bra_soft_soft_cons;
-    psd->N_PCA = 0;
-  }
-  else if ((flag1 == _TRUE_) && ((strstr(string1,"exact") != NULL))) {
-    psd->branching_approx = bra_exact;
 
-    /** 2.1.a) Number of multipoles in PCA expansion */
-    /* Read */
-    class_read_int("PCA size",psd->N_PCA);
-    /* Test */
-    if(psd->N_PCA < 0 || psd->N_PCA > 6){
-      psd->N_PCA = 6;
+  if(flag1 == _TRUE_){
+    if ( (strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL) ) {
+      psd->branching_approx = bra_sharp_sharp;
+      psd->N_PCA = 0;
+    }
+    else if ( (strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL) ) {
+      psd->branching_approx = bra_sharp_soft;
+      psd->N_PCA = 0;
+    }
+    else if ( (strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL) ) {
+      psd->branching_approx = bra_soft_soft;
+      psd->N_PCA = 0;
+    }
+    else if ( (strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL) ) {
+      psd->branching_approx = bra_soft_soft_cons;
+      psd->N_PCA = 0;
+    }
+    else if ( (strstr(string1,"exact") != NULL) ) {
+      psd->branching_approx = bra_exact;
+
+      /** 2.1.a) Number of multipoles in PCA expansion */
+      /* Read */
+      class_read_int("PCA_size",psd->N_PCA);
+      /* Test */
+      if(psd->N_PCA < 0 || psd->N_PCA > 6){
+        psd->N_PCA = 6;
+      }
+
+      /** 2.1.b) Detector name */
+      /* Read */
+      class_call(parser_read_string(pfc,"distortions_detector",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if(flag1 == _TRUE_){
+        strcpy(psd->distortions_detector,string1);
+        psd->user_defined_name = _TRUE_;
+      }
+
+      /** 2.1.c) Detector properties */
+      /* Read */
+      class_call(parser_read_double(pfc,"detector_nu_min",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if(flag1 == _TRUE_){
+        psd->nu_min_detector = param1;
+        psd->user_defined_detector = _TRUE_;
+      }
+      /* Read */
+      class_call(parser_read_double(pfc,"detector_nu_max",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if(flag1 == _TRUE_){
+        psd->nu_max_detector = param1;
+        psd->user_defined_detector = _TRUE_;
+      }
+      /* Read */
+      class_call(parser_read_double(pfc,"detector_nu_delta",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if(flag1 == _TRUE_){
+        psd->nu_delta_detector = param1;
+        psd->user_defined_detector = _TRUE_;
+      }
+      /* Read */
+      class_call(parser_read_double(pfc,"detector_accuracy",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Complete set of parameters */
+      if(flag1 == _TRUE_){
+        psd->delta_Ic_detector = param1;
+        psd->user_defined_detector = _TRUE_;
+      }
+    }
+    else{
+      class_stop(errmsg,"You specified 'branching_approx' as '%s'. It has to be one of {'sharp_sharp','sharp_soft','soft_soft','soft_soft_cons','exact'}.",string1);
     }
 
-    /** 2.1.b) Detector name */
-    /* Read */
-    class_call(parser_read_string(pfc,"distortions detector",&string1,&flag1,errmsg),
+    /* Final tests */
+    class_test(psd->branching_approx != bra_exact && psd->N_PCA > 0,
                errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if(flag1 == _TRUE_){
-      strcpy(psd->distortions_detector,string1);
-      psd->user_defined_name = _TRUE_;
-    }
-
-    /** 2.1.c) Detector properties */
-    /* Read */
-    class_call(parser_read_double(pfc,"detector nu min",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if(flag1 == _TRUE_){
-      psd->nu_min_detector = param1;
-      psd->user_defined_detector = _TRUE_;
-    }
-    /* Read */
-    class_call(parser_read_double(pfc,"detector nu max",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if(flag1 == _TRUE_){
-      psd->nu_max_detector = param1;
-      psd->user_defined_detector = _TRUE_;
-    }
-    /* Read */
-    class_call(parser_read_double(pfc,"detector nu delta",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if(flag1 == _TRUE_){
-      psd->nu_delta_detector = param1;
-      psd->user_defined_detector = _TRUE_;
-    }
-    /* Read */
-    class_call(parser_read_double(pfc,"detector accuracy",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Complete set of parameters */
-    if(flag1 == _TRUE_){
-      psd->delta_Ic_detector = param1;
-      psd->user_defined_detector = _TRUE_;
-    }
+               "The PCA expansion is possible only for 'branching_approx = exact'");
   }
-  else{
-    class_stop(errmsg,"You specified 'branching_approx' as '%s'. It has to be one of {'sharp_sharp','sharp_soft','soft_soft','soft_soft_cons','exact'}.",string1);
-  }
-
-  /* Final tests */
-  class_test(psd->branching_approx != bra_exact && psd->N_PCA > 0,
-             errmsg,
-             "The PCA expansion is possible only for 'branching approx = exact'");
-
 
   return _SUCCESS_;
 

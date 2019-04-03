@@ -69,6 +69,8 @@ struct heating{
   /* Redshift independent, i.e. defined in heating_init */
   double Y_He;
   double f_He;
+  double fHe;
+
   double N_e0;
   /* Redshift dependent, i.e. defined in heating_at_z or heating_at_z_second_order */
   double dkappa;

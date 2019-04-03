@@ -87,9 +87,9 @@ int heating_init(struct precision * ppr,
   phe->rho0_cdm = pba->Omega0_cdm*pow(phe->H0,2)*3/8./_PI_/_G_*_c_*_c_;                             // [J/m^3]
 
   /** Import constant quantities from thermodynamics structure */
-  phe->Y_He = pth->YHe;                                                                             // [-]
-  phe->f_He = phe->Y_He/(_not4_*(1.-phe->Y_He));                                                    // [-]
-  phe->N_e0 = 3.*phe->H0*phe->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);                  // [1/m^3]
+  phe->fHe = pth->fHe;
+  //phe->N_e0 = 3.*phe->H0*phe->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);
+  phe->N_e0 = pth->n_e;
 
   /** Check energy injection */ //TODO :: do properly
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay_efficiency!=0;
@@ -1112,7 +1112,7 @@ int heating_rate_adiabatic_cooling(struct heating * phe,
   /** Define local variables */
   double T_g;
 
-  T_g = phe->T_g0*(1.+z);                                                                          // [K]
+  T_g = phe->T_g0*(1.+z);
 
   /** Calculate heating rates */
   *energy_rate = -(3./2.)*phe->N_e0*pow(1.+z,3.)*(1.+phe->f_He+phe->x_e)*phe->H*_k_B_*T_g;          // [J/(m^3 s)]

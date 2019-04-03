@@ -76,6 +76,8 @@ struct thermo
 
   double YHe;  /**< \f$ Y_{He} \f$: primordial helium fraction */
 
+  double fHe;  /**< \f$ f_{He} \f$: transformed primordial helium fraction */
+
   enum recombination_algorithm recombination; /**< recombination code */
 
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
@@ -456,11 +458,11 @@ extern "C" {
                                   void * parameters_and_workspace,
                                   ErrorMsg error_message);
 
-  int thermodynamics_x_analytic(double z,
-                                struct precision * ppr,
-                                struct thermo * pth,
-                                struct thermo_workspace * ptw,
-                                int current_ap);
+  int thermodynamics_solve_current_quantities(double z,
+                                              double * y,
+                                              struct thermo * pth,
+                                              struct thermo_workspace * ptw,
+                                              int current_ap);
 
   int thermodynamics_vector_init(struct precision * ppr,
                                  struct background * pba,
