@@ -2589,7 +2589,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 1) DM annihilation */
   /** 1.a) Energy fraction absorbed by the gas */
   /* Read */
-  class_read_double("annihilation",phe->annihilation_efficiency);
+  class_read_double("annihilation_efficiency",phe->annihilation_efficiency);
   class_read_double("annihilation_cross_section",phe->annihilation_cross_section);
   class_read_double("DM_mass",phe->DM_mass);
   /* Test */
@@ -2620,7 +2620,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 2) DM decay */
   /** 2.a) Energy fraction absorbed by the gas divided by the lifetime of the particle */
   /* Read */
-  class_read_double("decay",phe->decay);
+  class_read_double("decay_efficiency",phe->decay_efficiency);
 
 
   /** 3) Injection efficiency */
@@ -2700,7 +2700,7 @@ int input_read_parameters_heating(struct file_content * pfc,
 
   /** 5) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
-  class_call(parser_read_string(pfc,"heating approx",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"heating_approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
   if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))){
@@ -4267,11 +4267,19 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("write_primordial","write primordial",pop->write_primordial);
 
-  /** 1.h) Input/precision parameters */
+  /** 1.h) Primordial spectra */
+  /* Read */
+  class_read_flag_or_deprecated("write_heating","write heating",pop->write_heating);
+
+  /** 1.i) Primordial spectra */
+  /* Read */
+  class_read_flag_or_deprecated("write_distortions","write distortions",pop->write_distortions);
+
+  /** 1.l) Input/precision parameters */
   /* Read */
   class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
 
-  /** 1.i) Warnings */
+  /** 1.m) Warnings */
   /* Read */
   class_read_flag_or_deprecated("write_warnings","write warnings",flag2);
 
@@ -4594,7 +4602,7 @@ int input_default_params(struct background *pba,
 
   /** 2) DM deacy */
   /** 2.a) Energy fraction absorbed by the gas */
-  phe->decay = 0.;
+  phe->decay_efficiency = 0.;
 
   /** 3) Injection efficiency */
   phe->f_eff_type = f_eff_on_the_spot;

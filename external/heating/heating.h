@@ -28,8 +28,7 @@ struct heating{
   double annihilation_f_halo;
   double annihilation_z_halo;
 
-  double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double decay_fraction;
+  double decay_efficiency;       /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
   /* Injection efficiency */
   int f_eff_type;
@@ -55,9 +54,7 @@ struct heating{
   double H0;
   double T_g0;
   double Omega0_b;
-  double Omega0_dcdmdr;
-  double Omega_ini_dcdm;
-  double Gamma_dcdm;
+  double rho0_cdm;
   /* Redshift dependent, i.e. defined in heating_at_z or heating_at_z_second_order */
   double H;
   double a;
@@ -151,7 +148,6 @@ struct heating{
 
   /* Flags */
   int has_exotic_injection;
-  int has_dcdm;
 
   int has_DM_ann;
   int has_DM_dec;

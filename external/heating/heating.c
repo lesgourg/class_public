@@ -84,9 +84,7 @@ int heating_init(struct precision * ppr,
   phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
   phe->T_g0 = pba->T_cmb;                                                                           // [K]
   phe->Omega0_b = pba->Omega0_b;                                                                    // [-]
-  phe->Omega0_dcdmdr = pba->Omega0_dcdmdr;                                                          // [-]
-  phe->Omega_ini_dcdm = pba->Omega_ini_dcdm;                                                        // [-]
-  phe->Gamma_dcdm = pba->Gamma_dcdm;                                                                // [1/s]
+  phe->rho0_cdm = pba->Omega0_cdm*pow(phe->H0,2)*3/8./_PI_/_G_*_c_*_c_;                             // [J/m^3]
 
   /** Import constant quantities from thermodynamics structure */
   phe->Y_He = pth->YHe;                                                                             // [-]
@@ -94,8 +92,7 @@ int heating_init(struct precision * ppr,
   phe->N_e0 = 3.*phe->H0*phe->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);                  // [1/m^3]
 
   /** Check energy injection */ //TODO :: do properly
-  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay!=0;
-  phe->has_dcdm = _FALSE_;
+  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay_efficiency!=0;
 
   /** Check energy injection for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
@@ -142,15 +139,15 @@ int heating_init(struct precision * ppr,
   phe->has_DM_ann = phe->annihilation_efficiency!=0;
 
   /** Check energy injection for DM deacy */
-  class_test((phe->decay<0),
+  class_test((phe->decay_efficiency<0),
              phe->error_message,
              "decay parameter cannot be negative");
 
-  class_test((phe->decay>0)&&(pba->has_cdm==_FALSE_),
+  class_test((phe->decay_efficiency>0)&&(pba->has_cdm==_FALSE_),
              phe->error_message,
              "CDM decay effects require the presence of CDM!");
 
-  phe->has_DM_dec = phe->decay != 0;
+  phe->has_DM_dec = phe->decay_efficiency != 0;
 
   /** Define redshift tables */
   phe->z_size = pth->tt_size;
@@ -338,7 +335,7 @@ int heating_calculate_at_z(struct background* pba,
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1.0e9*1.0e6;               // [J/m^3]
-  if(phe->has_dcdm){
+  if(phe->has_DM_dec){
     phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1.0e9*1.0e6;           // [J/m^3]
   }
   else{
@@ -449,7 +446,7 @@ int heating_energy_injection_at_z(struct heating* phe,
   }
 
   /** Standard energy injection mechanisms */
-  class_call(heating_rate_adiabatic_cooling(phe,
+  /*class_call(heating_rate_adiabatic_cooling(phe,
                                             z,
                                             &rate),
              phe->error_message,
@@ -457,7 +454,7 @@ int heating_energy_injection_at_z(struct heating* phe,
     if(phe->to_store){
       phe->injection_table[phe->index_inj_cool][phe->index_z_store] = rate;
     }
-    dEdz += rate;
+    dEdz += rate;*/
 
   /** Exotic energy injection mechanisms */
   if(phe->has_exotic_injection){
@@ -1242,7 +1239,7 @@ int heating_rate_DM_decay(struct heating * phe,
   /** Define local variables */
 
   /** Calculate heating rates */
-  *energy_rate = phe->rho_dcdm*phe->Gamma_dcdm;                                                     // [J/m^3 * ? * Mpc^(-1)]
+  *energy_rate = phe->rho0_cdm*pow((1.+z),3.)*phe->decay_efficiency;                                // [J/(m^3 s)]
 
   return _SUCCESS_;
 }
