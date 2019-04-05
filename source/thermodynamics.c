@@ -1964,14 +1964,9 @@ int thermodynamics_solve_derivs(double mz,
   /* Solve the equations with x before reio */
   /** - HyRec */
   if(pth->recombination == hyrec){
-    if(ap_current == ptdw->index_ap_brec){
-      x = 1. + 2.*ptw->fHe;
-    }
-    else{
-      class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
-                 phyrec->error_message,
-                 error_message);
-    }
+    class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
+               phyrec->error_message,
+               error_message);
   }
 
   /** - RecfastCLASS */
@@ -2172,7 +2167,7 @@ int thermodynamics_solve_current_quantities(double z,
       x = 1. + 2.*ptw->fHe;
     }
     else{
-      class_call(thermodynamics_hyrec_interpolate_xe(phyrec,z,&x),
+      class_call(thermodynamics_hyrec_get_xe(phyrec,z,&x),
                  phyrec->error_message,
                  pth->error_message);
     }
@@ -2523,28 +2518,6 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->ptdw->x_reio = 1.+2.*ptw->fHe;
   ptw->ptdw->x_noreio = 1.+2.*ptw->fHe;
 
-  /* With recombination computed by HyRec, we need to initialize the hyrec wrapper */
-  if(pth->recombination == hyrec){
-    class_alloc(ptw->ptdw->phyrec,
-                sizeof(struct thermohyrec),
-                pth->error_message);
-
-    ptw->ptdw->phyrec->thermohyrec_verbose = 1;//5;//Nils
-
-    class_call(thermodynamics_hyrec_init(ppr,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe,ptw->ptdw->phyrec),
-               ptw->ptdw->phyrec->error_message,
-               pth->error_message);
-  }
-  else if(pth->recombination == recfast){ //Nils TODO
-    class_alloc(ptw->ptdw->precfast,
-                sizeof(struct thermorecfast),
-                pth->error_message);
-
-    class_call(thermodynamics_recfast_init(ppr,pba,pth,ptw->ptdw->precfast,ptw->fHe),
-               ptw->ptdw->precfast->error_message,
-               pth->error_message);
-  }
-
   /** - define approximations */
   /* Approximations have to appear in chronological order here! */
   class_define_index(ptw->ptdw->index_ap_brec,_TRUE_,index_ap,1);
@@ -2580,6 +2553,28 @@ int thermodynamics_workspace_init(struct precision * ppr,
 
   /*fix current approximation scheme to before recombination */
   ptw->ptdw->ap_current = ptw->ptdw->index_ap_brec;
+
+  /* With recombination computed by HyRec or Recfast, we need to initialize the wrappers */
+  if(pth->recombination == hyrec){
+    class_alloc(ptw->ptdw->phyrec,
+                sizeof(struct thermohyrec),
+                pth->error_message);
+
+    ptw->ptdw->phyrec->thermohyrec_verbose = pth->hyrec_verbose;
+
+    class_call(thermodynamics_hyrec_init(ppr,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
+               ptw->ptdw->phyrec->error_message,
+               pth->error_message);
+  }
+  else if(pth->recombination == recfast){
+    class_alloc(ptw->ptdw->precfast,
+                sizeof(struct thermorecfast),
+                pth->error_message);
+
+    class_call(thermodynamics_recfast_init(ppr,pba,pth,ptw->ptdw->precfast,ptw->fHe),
+               ptw->ptdw->precfast->error_message,
+               pth->error_message);
+  }
 
   return _SUCCESS_;
 

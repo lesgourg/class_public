@@ -466,6 +466,12 @@ int array_integrate_all_trapzd_or_spline(
                                     double * __restrict__ I,
                                     ErrorMsg errmsg);
 
+  int array_extrapolate_quadratic(double* x,
+                                  double* y,
+                                  double xnew,
+                                  int x_size,
+                                  double* ynew,
+                                  ErrorMsg errmsg);
   // [ML]
   int simpson_integration(
                           int nptz,

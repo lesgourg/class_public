@@ -227,6 +227,7 @@ struct thermo
   //@{
 
   short thermodynamics_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
+  short hyrec_verbose; /**< flag regulating the amount of information sent to standard output from hyrec (none if set to zero) */
 
   ErrorMsg error_message; /**< zone for writing error messages */
 

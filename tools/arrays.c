@@ -3341,6 +3341,61 @@ int array_trapezoidal_convolution(
 }
 
 /**
+ * In general, to obtain a least-squared fit to N data points,
+ * the matrix average(x^(i+j)) * a_i = average(x^j y) has to be solved,
+ * where i,j are the individual matrix indices as powers, and
+ * the averages are over all N data points.
+ * Here we implement the case for 3 coefficients a_i explicitly,
+ * using matrix calculations according to Cramer's rule.
+ * (Instead of a full LU decomposition)
+ *
+ **/
+int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, double* ynew, ErrorMsg errmsg){
+
+  double * xarr = x;
+  double * yarr = y;
+
+  double av1=x_size;
+  double avx=0.0, avxx=0.0, avxxx=0.0, avxxxx=0.0;
+  double avy=0.0, avyx=0.0, avyxx=0.0;
+
+  double div,a,b,c,xval,yval;
+
+  /*
+   * We pivot around the zero-th element
+   * This removes natural offsets and scales
+   * (i.e. transforms it to around unity for x and y)
+   * This usually prevents numerical cancelation (offsets) and over/underflow (scales)
+   */
+  for(int i=0;i<x_size;++i){
+    xval = (xarr[i]-xarr[0])/xarr[0];
+    yval = (yarr[i]-yarr[0])/yarr[0];
+    avx += xval;
+    avxx += xval*xval;
+    avxxx += xval*xval*xval;
+    avxxxx += xval*xval*xval*xval;
+    avy += yval;
+    avyx += yval*xval;
+    avyxx += yval*xval*xval;
+  }
+
+  div = avxxxx*(avxx*av1-avx*avx) + avxxx*(avxx*avx-avxxx*av1) + avxx*(avxxx*avx-avxx*avxx);
+  class_test(div == 0.0,
+             errmsg,
+             "Cannot extrapolate at x = %g for the given data set",xnew);
+  a = avyxx*(avxx*av1-avx*avx) + avyx*(avxx*avx-avxxx*av1) + avy*(avxxx*avx-avxx*avxx);
+  b = avyxx*(avxx*avx-avxxx*av1) + avyx*(avxxxx*av1-avxx*avxx) + avy*(avxxx*avxx-avx*avxxxx);
+  c = avyxx*(avxxx*avx-avxx*avxx) + avyx*(avxxx*avxx-avxxxx*avx) + avy*(avxxxx*avxx-avxxx*avxxx);
+
+  a/=div; b/=div; c/=div;
+
+  xval = (xnew-xarr[0])/xarr[0];
+  *ynew = yarr[0]+yarr[0]*(a*xval*xval + b*xval + c);
+
+  return _SUCCESS_;
+}
+
+/**
  * [ML]
  * Compute integral using Simpson's rule
  *

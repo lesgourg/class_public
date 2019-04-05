@@ -135,9 +135,9 @@ class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, 
 /*
  * Hyrec Parameters
  */
-class_string_parameter(hyrec_Alpha_inf_file,"/external/hyrec/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/external/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/external/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
+class_string_parameter(hyrec_Alpha_inf_file,"/external/HyRec2012/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
+class_string_parameter(hyrec_R_inf_file,"/external/HyRec2012/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
+class_string_parameter(hyrec_two_photon_tables_file,"/external/HyRec2012/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
 
 
 /*

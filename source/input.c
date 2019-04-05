@@ -1153,6 +1153,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.thermo_Nz_log = 500;
     th.thermodynamics_verbose = 0;
     th.he.heating_verbose = 0;
+    th.hyrec_verbose = 0;
     class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
   }
 
@@ -2808,6 +2809,7 @@ int input_prepare_pk_eq(struct precision * ppr,
   /** Summary: */
 
   /** Define local variables */
+  struct heating* phe = &(pth->he);
   double tau_of_z;
   double delta_tau;
   double error;
@@ -2818,6 +2820,8 @@ int input_prepare_pk_eq(struct precision * ppr,
   int index_eq;
   int true_background_verbose;
   int true_thermodynamics_verbose;
+  int true_hyrec_verbose;
+  int true_heating_verbose;
   double true_w0_fld;
   double true_wa_fld;
   double * z;
@@ -2825,12 +2829,16 @@ int input_prepare_pk_eq(struct precision * ppr,
   /** Store the true cosmological parameters (w0, wa) somwhere before using temporarily some fake ones in this function */
   true_background_verbose = pba->background_verbose;
   true_thermodynamics_verbose = pth->thermodynamics_verbose;
+  true_hyrec_verbose = pth->hyrec_verbose;
+  true_heating_verbose = phe->heating_verbose;
   true_w0_fld = pba->w0_fld;
   true_wa_fld = pba->wa_fld;
 
   /** The fake calls of the background and thermodynamics module will be done in non-verbose mode */
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
+  pth->hyrec_verbose = 0;
+  phe->heating_verbose = 0;
 
   /** Allocate indices and arrays for storing the results */
   pnl->pk_eq_tau_size = 10;
@@ -2948,6 +2956,9 @@ int input_prepare_pk_eq(struct precision * ppr,
   /** Restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules */
   pba->background_verbose = true_background_verbose;
   pth->thermodynamics_verbose = true_thermodynamics_verbose;
+  pth->hyrec_verbose = true_hyrec_verbose;
+  phe->heating_verbose = true_heating_verbose;
+
   pba->w0_fld = true_w0_fld;
   pba->wa_fld = true_wa_fld;
 
@@ -4292,6 +4303,7 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_int("background_verbose",pba->background_verbose);
   class_read_int("thermodynamics_verbose",pth->thermodynamics_verbose);
+  class_read_int("hyrec_verbose",pth->hyrec_verbose);
   class_read_int("heating_verbose",phe->heating_verbose);
   class_read_int("perturbations_verbose",ppt->perturbations_verbose);
   class_read_int("transfer_verbose",ptr->transfer_verbose);
@@ -4816,6 +4828,7 @@ int input_default_params(struct background *pba,
   /** 2) Verbosity */
   pba->background_verbose = 0;
   pth->thermodynamics_verbose = 0;
+  pth->hyrec_verbose = 0;
   ppt->perturbations_verbose = 0;
   phe->heating_verbose = 0;
   ptr->transfer_verbose = 0;

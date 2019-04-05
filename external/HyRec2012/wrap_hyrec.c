@@ -23,7 +23,8 @@ int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
 
 
 
-int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, struct thermohyrec* phy){
+#define _HYREC_N_EXTRAPOLATION_ 10
+int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
 
   if(phy->thermohyrec_verbose > 0){
     printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Feb2019)\n");
@@ -31,6 +32,8 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   }
 
   int index_virt,index_ly,iz;
+  double dN_safety;
+
   phy->N_LY = 3;
   phy->N_VIRT = NVIRT;
   phy->N_TM = NTM;
@@ -45,11 +48,17 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   phy->T0 = phy->T_cmb;
   phy->fHe = fHe;
 
-  phy->zstart = 8060.; //Make sure hyrec filled some values before first call from class (at z=8050)
   phy->zend = 0.;
   phy->dlna = 8.49e-5;
+  dN_safety = 2*_HYREC_N_EXTRAPOLATION_; //Has to be >= _HYREC_N_EXTRAPOLATION_
+  phy->zstart = (1.+zstart_hyrec)*exp(phy->dlna*dN_safety)-1.; //Make sure hyrec filled some values before first call from class (at z=8050)
 
   phy->nz = (long) floor(2.+log((1.+phy->zstart)/(1.+phy->zend))/phy->dlna);
+
+  if(phy->thermohyrec_verbose > 1){
+    printf("    Starting HyRec at z = %.10e until z = %.10e with %ld points\n",phy->zstart, phy->zend, phy->nz);
+  }
+
 
 
 
@@ -180,7 +189,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   /** Only add new indices if that is really required */
   if(iz_goal>phy->filled_until_index_z){
 
-    if(phy->thermohyrec_verbose > 2){printf("Filling [%i,%i]\n",phy->filled_until_index_z+1,iz_goal);}
+    if(phy->thermohyrec_verbose > 1){printf("Filling [%i,%i] (%.10e to %.10e) \n",phy->filled_until_index_z+1,iz_goal,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,z_goal);}
 
     for(iz=phy->filled_until_index_z+1;iz<=iz_goal;++iz){
       iz_in = iz-1;
@@ -449,7 +458,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
   *dxe_dlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
 
-  if(phy->thermohyrec_verbose > 2){
+  if(phy->thermohyrec_verbose > 3){
     //printf("[%i] : %.10e , [%i] : %.10e -> %.10e \n",iz_goal,phy->xe_output[iz_goal],iz_goal-1,phy->xe_output[iz_goal-1],*dxedlna);
     printf("[%i,%.10e] : %.10e , [%i,%.10e] : %.10e -> [%.10e] : %.10e \n",iz_goal,z_goal,phy->xe_output[iz_goal],iz_goal-1,z_goalm1,phy->xe_output[iz_goal-1],z,*x_e);
   }
@@ -457,14 +466,33 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_interpolate_xe(struct thermohyrec * phy, double z, double* x_e){
+int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e){
 
   int iz_goal;
-  double z_goal,z_goalm1,frac;
+  double z_goal,z_goalm1,frac,z_filled;
+  double x[_HYREC_N_EXTRAPOLATION_];
+  double y[_HYREC_N_EXTRAPOLATION_];
+  int i;
 
   /* If we are at early enough times, skip everything */
-  if( z <= phy->zstart){
+  if( z >= phy->zstart ){
     *x_e = 1. + 2. * phy->fHe;
+    return _SUCCESS_;
+  }
+
+  /* If we are outside of the range, TRY to extrapolate */
+  z_filled = (1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z)) - 1.;
+  if( z < z_filled ){
+    class_test(phy->filled_until_index_z > phy->nz-1-_HYREC_N_EXTRAPOLATION_,
+               phy->error_message,
+               "Not enough points calculated to extrapolate from (Increase z_start of the hyrec wrapper)");
+    for(i=0;i<_HYREC_N_EXTRAPOLATION_;++i){
+      x[i] = (1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z-i)) - 1.;
+      y[i] = phy->xe_output[phy->filled_until_index_z-i];
+    }
+    class_call(array_extrapolate_quadratic(x,y,z,_HYREC_N_EXTRAPOLATION_,x_e,phy->error_message),
+               phy->error_message,
+               phy->error_message);
     return _SUCCESS_;
   }
 
@@ -474,7 +502,7 @@ int thermodynamics_hyrec_interpolate_xe(struct thermohyrec * phy, double z, doub
 
   class_test(iz_goal>phy->filled_until_index_z,
              phy->error_message,
-             "HyRec needs extrapolating beyond the filled range ( at %i, even though filled until %i) (%.10e < %.10e)",
+             "HyRec needs extrapolating beyond the filled range ( at %i, even though filled until %i) (%.10e > %.10e)",
              iz_goal,phy->filled_until_index_z,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,z);
 
   z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
