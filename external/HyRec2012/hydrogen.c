@@ -77,10 +77,12 @@ Changes (May 2012):
 - Analytically subtract nearly-cancelling terms at high-z
 - Explicit dependence on alpha_fs and m_e now accounted for
 - Added explicit dependence on xHII, which is not necessarily equal to xe if Helium has not entirely recombined
+Changes (April 2019, Nils Sch):
+- Added ionization and lya excitations as in ExoCLASS
 ***************************************************************************************************/
 
 double rec_TLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR, double Fudge, 
-                         double fsR, double meR) {
+                         double fsR, double meR, double ion, double exclya) {
 
    double RLya, alphaB_TM, alphaB_TR, four_betaB, C, s, Dxe2, DalphaB;
   
@@ -98,7 +100,7 @@ double rec_TLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM,
    Dxe2       = xe*xHII - s*(1.-xHII);    /* xe xp - xe xp[Saha eq with 1s] -- gives more compact expressions */
    DalphaB    = alphaB_TM - alphaB_TR; 
 
-   return -nH*(s*(1.-xHII)*DalphaB + Dxe2*alphaB_TM)*C/H; 
+   return -nH*(s*(1.-xHII)*DalphaB + Dxe2*alphaB_TM)*C/H + (ion + (1.-C)*exclya)/H;
 
 }
 
@@ -231,10 +233,12 @@ Changes May 2012:
 - Also explicitly subtract nearly cancelling terms at early times. 
 - Account for explicit dependence on alpha_fs and m_e
 - Added explicit dependence on xHII, which is not necessarily equal to xe if Helium has not entirely recombined
+Changes (April 2019, Nils Sch):
+- Added ionization and lya excitations as in ExoCLASS
 ************************************************************************************************/
 
 double rec_HMLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR, 
-                          HRATEEFF *rate_table, double fsR, double meR){
+                          HRATEEFF *rate_table, double fsR, double meR, double ion, double exclya){
 
    double Alpha[2], DAlpha[2], Beta[2], R2p2s, RLya;   
    double Gamma_2s, Gamma_2p, C2s, C2p, s, Dxe2;
@@ -259,7 +263,8 @@ double rec_HMLA_dxHIIdlna(double xe, double xHII, double nH, double H, double TM
    s    = SAHA_FACT(fsR, meR) *TR*sqrt(TR) *exp(-EI/TR)/nH;
    Dxe2 = xe*xHII - s*(1.-xHII); /* xe^2 - xe^2[Saha eq with 1s] -- gives more compact expressions */
 
-   return -nH/H *( (s*(1.-xHII)*DAlpha[0] + Alpha[0]*Dxe2)*C2s + (s*(1.-xHII)*DAlpha[1] + Alpha[1]*Dxe2)*C2p );
+   return -nH/H *( (s*(1.-xHII)*DAlpha[0] + Alpha[0]*Dxe2)*C2s + (s*(1.-xHII)*DAlpha[1] + Alpha[1]*Dxe2)*C2p )
+          + (ion + (0.25*(1.-C2s) + 0.75*(1.-C2p))*exclya)/H;
     
 }
 
@@ -408,13 +413,16 @@ instead of absolute photon occupation number.
 - Accounts for explicit dependence on alpha_fs and m_e 
 INPUT TEMPERATURE ASSUMED TO BE ALREADY RESCALED FOR VALUES OF alpha_fs and me
 - Added explicit dependence on xHII, which is not necessarily equal to xe if Helium has not entirely recombined
+Changes (April 2019, Nils Sch):
+- Added ionization and lya excitations as in ExoCLASS
 **********************************************************************************************************/
 
 void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double *Tvv[3], 
                         double sr[2], double sv[NVIRT], double Dtau[NVIRT],
                         double xe, double xHII, double TM, double TR, double nH, double H, HRATEEFF *rate_table,
                         TWO_PHOTON_PARAMS *twog, double Dfplus[NVIRT], double Dfplus_Ly[], 
-                        double Alpha[2], double DAlpha[2], double Beta[2], double fsR, double meR) {
+                        double Alpha[2], double DAlpha[2], double Beta[2], double fsR, double meR,
+                        double exclya) {
 
    double R2p2s;
    unsigned b;
@@ -451,6 +459,7 @@ void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double
 			                  
    Trr[0][1] = -R2p2s;
    sr[0]     = nH * (s*x1s*DAlpha[0] + Alpha[0]*Dxe2) + 3.* RLya * x1s * 1.664786871919931 *Dfplus_Ly[1]; 
+   sr[0]    += 0.25 * exclya;
                           
    #if (EFFECT_A == 0) /* Standard treatment of 2s-->1s two-photon decays */
        Trr[0][0] += L2s1s*rescale2g;  /* rescaled for alpha, me */
@@ -462,6 +471,7 @@ void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double
    Trr[1][1] = Beta[1] + R2p2s + RLya;			   
    Trr[1][0] = -3.*R2p2s;
    sr[1]     = nH * (s*x1s*DAlpha[1] + Alpha[1]*Dxe2) + 3.*RLya * x1s * Dfplus_Ly[0]; 
+   sr[1]    += 0.75 * exclya;
                                          
     
    /***** Two-photon transitions: populating Trv, Tvr and updating Trr ******/
@@ -730,7 +740,7 @@ Modified May 2012:
 double rec_HMLA_2photon_dxHIIdlna(double xe, double xHII, double nH, double H, double TM, double TR, 
                                   HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,  
                                   double **Dfminus_hist, double *Dfminus_Ly_hist[], double **Dfnu_hist,
-                                  double zstart, unsigned iz, double z, double fsR, double meR){
+                                  double zstart, unsigned iz, double z, double fsR, double meR, double ion, double exclya){
    
    double xr[2], xv[NVIRT], Dfplus[NVIRT], Dfplus_Ly[2]; /* Assume incoming radiation blueward of Ly-gamma is Blackbody */
    double dxedlna, one_minus_Pib, one_minus_exptau, Dfeq, s, x1s, Dxe2;
@@ -760,7 +770,7 @@ double rec_HMLA_2photon_dxHIIdlna(double xe, double xHII, double nH, double H, d
   
    /* Compute real-real, real-virtual and virtual-virtual transition rates */
    populateTS_2photon(Trr, Trv, Tvr, Tvv, sr, sv, Dtau, xe, xHII, TM, TR, nH, H, rate_table, 
-                      twog, Dfplus, Dfplus_Ly, Alpha, DAlpha, Beta, fsR, meR);
+                      twog, Dfplus, Dfplus_Ly, Alpha, DAlpha, Beta, fsR, meR, exclya);
     
    /* Solve for the population of the real and virtual states 
       (in fact, for the difference xi - xi[eq with 1s]) */   
@@ -772,7 +782,8 @@ double rec_HMLA_2photon_dxHIIdlna(double xe, double xHII, double nH, double H, d
    Dxe2 = xe*xHII - s*x1s; 
 
    dxedlna = -(nH *(s*x1s*DAlpha[0] + Alpha[0]*Dxe2) - xr[0]*Beta[0] 
-              +nH *(s*x1s*DAlpha[1] + Alpha[1]*Dxe2) - xr[1]*Beta[1])/H; 
+              +nH *(s*x1s*DAlpha[1] + Alpha[1]*Dxe2) - xr[1]*Beta[1])/H
+             +ion/H;
     
    /* Update fminuses */
  
@@ -815,13 +826,13 @@ use full radiative transfer equations, otherwise just use the simple EMLA.
 
 double rec_dxHIIdlna(int model, double xe, double xHII, double nH, double H, double TM, double TR, 
                      HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog, double **Dfminus_hist, double *Dfminus_Ly_hist[], 
-                     double **Dfnu_hist, double zstart, unsigned iz, double z, double fsR, double meR){
+                     double **Dfnu_hist, double zstart, unsigned iz, double z, double fsR, double meR, double ion, double exclya){
    
-    if      (model == PEEBLES)  return rec_TLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, 1.00, fsR, meR);
-    else if (model == RECFAST)  return rec_TLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, 1.14, fsR, meR);
-    else if (model == EMLA2s2p) return rec_HMLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, rate_table, fsR, meR);
+    if      (model == PEEBLES)  return rec_TLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, 1.00, fsR, meR, ion, exclya);
+    else if (model == RECFAST)  return rec_TLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, 1.14, fsR, meR, ion, exclya);
+    else if (model == EMLA2s2p) return rec_HMLA_dxHIIdlna(xe, xHII, nH, H, TM, TR, rate_table, fsR, meR, ion, exclya);
     else if (model == FULL)     return rec_HMLA_2photon_dxHIIdlna(xe, xHII, nH, H, TM, TR, rate_table, twog, Dfminus_hist,  
-                                                                  Dfminus_Ly_hist, Dfnu_hist, zstart, iz, z, fsR, meR);
+                                                                  Dfminus_Ly_hist, Dfnu_hist, zstart, iz, z, fsR, meR, ion, exclya);
     else {
       fprintf(stderr, "Error in rec_dxedlna: model = %i is undefined.\n", model);
       exit(1);

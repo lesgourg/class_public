@@ -4,9 +4,6 @@
 #define __THERMODYNAMICS__
 
 #include "background.h"
-//#include "arrays.h"
-//#include "helium.h"
-//#include "hydrogen.h"
 #include "evolver_ndf15.h"
 #include "evolver_rkck.h"
 #include "wrap_hyrec.h"
@@ -282,11 +279,12 @@ struct thermo_diffeq_workspace {
 
   double x_H;  /**< Hydrogen ionization fraction */
   double x_He; /**< Helium ionization fraction */
-  double x;    /**< Electron ionization fraction */
+  double x_noreio; /**< Electron ionization fraction, not taking into account reionization */
+  double x_reio; /**< Electron ionization fraction, taking into account reionization */
+
   double dx_H;
   double dx_He;
   double dx;
-  double x_before_reio;
 
   double Tmat;
   double dTmat;
@@ -340,7 +338,6 @@ struct thermo_workspace {
   double SIunit_H0;    /**< defined as in RECFAST */
   double SIunit_nH0;   /**< defined as in RECFAST */
   double Tcmb;
-  double R_g_factor;
   double x_limit_T;
 
   double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
@@ -600,6 +597,7 @@ extern "C" {
 #define _Mpc_over_GeV_ 1.56373832e38  /**< conversion factor from GeV to megaparsecs (1 GeV= const/Mpc) */
 #define _GeV_over_kg_ 1.78266191e-27  /**< conversion factor from GeV to kg  (1 GeV= const*kg) */
 #define _GeVcm3_over_Mpc2_ 94.7024726  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in GeV/cm^3 (rho in GeV/cm^3=const*CLASS_rho) */
+#define _Jm3_over_Mpc2_ 0.0151730087  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in Joule/m^3 (rho in Joule/m^3=const*CLASS_rho) */
 #define _Sun_mass_ 1.98855e30 /**< sun mass in kg */
 
 //@}

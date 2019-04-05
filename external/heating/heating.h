@@ -70,8 +70,10 @@ struct heating{
   double Y_He;
   double f_He;
   double fHe;
+  double heat_capacity;
 
   double N_e0;
+  double nH;
   /* Redshift dependent, i.e. defined in heating_at_z or heating_at_z_second_order */
   double dkappa;
   double dkD_dz;
@@ -125,7 +127,8 @@ struct heating{
   double* chix_table;
   int chix_size;
 
-  double** chi_table;
+  double** deposition_table; /* The table of energy depositions into the IGM of different deposition types */
+  double* photon_dep_table;  /* The table of energy depositions into the photon fluid */
   double* chi;
   int index_dep_heat;
   int index_dep_ionH;
@@ -210,13 +213,17 @@ extern "C" {
                                        double x,
                                        double z);
 
-  int heating_at_z(struct thermo* pth,
-                   double z);
+  int heating_photon_at_z(struct thermo* pth,
+                          double z,
+                          double* heat);
 
-  int heating_add_second_order(struct background* pba,
-                               struct thermo* pth,
-                               struct perturbs* ppt,
-                               struct primordial* ppm);
+  int heating_baryon_at_z(struct thermo* pth,
+                          double z);
+
+  int heating_add_noninjected(struct background* pba,
+                              struct thermo* pth,
+                              struct perturbs* ppt,
+                              struct primordial* ppm);
 
   /* Branching ratios into the different channels */
   int heating_read_chi_z_from_file(struct precision* ppr,

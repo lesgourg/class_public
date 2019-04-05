@@ -245,7 +245,7 @@ int distortions_set_detector(struct precision * ppr,
           class_test(fabs(psd->nu_delta_detector-nu_delta)>ppr->tol_distortions_detector,
                      psd->error_message,
                      "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->nu_max_detector,nu_max);
+                     detector_name,psd->nu_delta_detector,nu_delta);
           class_test(fabs(psd->delta_Ic_detector-delta_Ic)>ppr->tol_distortions_detector,
                      psd->error_message,
                      "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
@@ -609,11 +609,12 @@ int distortions_compute_heating_rate(struct background* pba,
   double tau;
   int last_index_back;
   double *pvecback;
+  double heat;
   double H, a, rho_g;
   double bb_vis;
 
   /** Update heating table with second order contributions */
-  class_call(heating_add_second_order(pba,pth,ppt,ppm),
+  class_call(heating_add_noninjected(pba,pth,ppt,ppm),
              phe->error_message,
              psd->error_message);
 
@@ -656,13 +657,14 @@ int distortions_compute_heating_rate(struct background* pba,
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));                                              // [-]
 
     /** Import quantities from heating structure */
-    class_call(heating_at_z(pth,
-                            psd->z[index_z]),
+    class_call(heating_photon_at_z(pth,
+                                   psd->z[index_z],
+                                   &heat),
                phe->error_message,
                psd->error_message);
 
     /** Calculate total heating rate */
-    psd->dQrho_dz_tot[index_z] = phe->pvecdeposition[phe->index_dep_heat] * a/(H*rho_g);            // [-]
+    psd->dQrho_dz_tot[index_z] = heat * a/(H*rho_g);                                                // [-]
     psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
 

@@ -17,7 +17,7 @@
 #define NTM 40
 
 /* Forward-declare these just for convenience, so they are not in the .h file */
-int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII, double H, double TR, double nH, double* xH1s);
+int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII, double H, double TR, double nH, double* xH1s, double ion, double exclya);
 int thermodynamics_hyrec_readrates(struct thermohyrec* phy);
 int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
 
@@ -40,8 +40,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   strcpy(phy->rr_file,ppr->hyrec_R_inf_file);
   strcpy(phy->twog_file,ppr->hyrec_two_photon_tables_file);
 
-  phy->n_H_now = Nnow;
-  phy->nH0 = phy->n_H_now;
+  phy->nH0 = Nnow;
   phy->T_cmb = T_cmb;
   phy->T0 = phy->T_cmb;
   phy->fHe = fHe;
@@ -156,6 +155,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   /* For the final interpolation */
   double z_goalm1;
 
+
   /* Intermediate quantities that are used at some points locally */
   double xHeIISaha,dxHeIISaha_dlna,xH1s_p,xH1s_m,Dxe,DdxHeIIdlna_Dxe;
   double xH1s_in, xHeII_in;
@@ -164,7 +164,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   double frac;
 
   /* Interpolated and exact quantities at EACH step */
-  double nH,TR,TM,xe_in;
+  double nH,TR,TM,xe_in, ion,exclya;
 
   /* Something related to switching off modes or not depending on pion */
   double Pion_TR_rescaled,Pion_RLya,Pion_four_betaB,Pion;
@@ -192,7 +192,8 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
       frac = ((1+z_in)-(1+phy->z_prev))/((1+z)-(1+phy->z_prev));
       TR = T_gamma * _k_B_/_eV_ * frac + (1.-frac)*phy->TR_prev;
       TM = T_b * _k_B_/_eV_ * frac + (1.-frac)*phy->TM_prev;
-
+      ion = phe->pvecdeposition[phe->index_dep_ionH]/nH/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
+      exclya = phe->pvecdeposition[phe->index_dep_lya]/nH/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
 
 
 
@@ -296,11 +297,11 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           /* Compute Hydrogen derivative at input time. Even if using the post-Saha expansion, needed for getting the correct radiation field at z_in */
           phy->dxHIIdlna = rec_dxHIIdlna(MODEL, xe_in, (1.-xH1s_in), nH, H, TM, TR, phy->rate_table, phy->twog_params,
-                                    phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_in-phy->izH0, z_in, phy->fsR, phy->meR);
+                                    phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_in-phy->izH0, z_in, phy->fsR, phy->meR, ion, exclya);
 
           /* If Hydrogen is still close to Saha equilibrium do a post-Saha expansion for Hydrogen */
           if(phy->saha_flag == _TRUE_){
-            class_call(thermodynamics_hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, phy->xHeII, H, TR, nH, &(phy->xH1s)),
+            class_call(thermodynamics_hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, phy->xHeII, H, TR, nH, &(phy->xH1s), ion, exclya),
                        phy->error_message,
                        phy->error_message);
           }
@@ -350,11 +351,11 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           xe_in = phy->xe_output[iz_in];
           phy->dxHIIdlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, TM, TR, phy->rate_table, phy->twog_params,
-                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_in-phy->izH0, z_in, phy->fsR, phy->meR);
+                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_in-phy->izH0, z_in, phy->fsR, phy->meR, ion, exclya);
 
           /* If close to Saha equilibrium (with xHeII = 0), do a post-Saha expansion */
           if (phy->saha_flag == _TRUE_) {
-            class_call(thermodynamics_hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, 0., H, TR, nH, &(phy->xH1s)),
+            class_call(thermodynamics_hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, 0., H, TR, nH, &(phy->xH1s), ion, exclya),
                        phy->error_message,
                        phy->error_message);
             phy->xe_output[iz_out] = 1.-phy->xH1s;
@@ -390,7 +391,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           xe_in = phy->xe_output[iz_in];
           phy->dxHIIdlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, TM, TR, phy->rate_table, phy->twog_params,
-                             phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_in-phy->izH0, z_in, phy->fsR, phy->meR);
+                             phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_in-phy->izH0, z_in, phy->fsR, phy->meR, ion, exclya);
 
           phy->xe_output[iz_out] = xe_in + phy->dlna * (1.25 * phy->dxHIIdlna - 0.25 * phy->dxHIIdlna_prev2);
 
@@ -415,7 +416,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
         //////////////////////////////
         xe_in = phy->xe_output[iz_in];
         phy->dxHIIdlna = rec_dxHIIdlna(PEEBLES, xe_in, xe_in, nH, H, TM, TR, phy->rate_table, phy->twog_params,
-                           phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz-phy->izH0, z_in, phy->fsR, phy->meR);
+                           phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz-phy->izH0, z_in, phy->fsR, phy->meR, ion, exclya);
 
         phy->xe_output[iz_out] = xe_in + phy->dlna * (1.25 * phy->dxHIIdlna - 0.25 * phy->dxHIIdlna_prev2);
 
@@ -431,6 +432,8 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
     phy->TM_prev = TM;
     phy->TR_prev = TR;
     phy->z_prev = z;
+    phy->ion_prev = ion;
+    phy->exclya_prev = exclya;
   }
   z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
   /**
@@ -483,7 +486,7 @@ int thermodynamics_hyrec_interpolate_xe(struct thermohyrec * phy, double z, doub
 }
 
 int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII,
-                                           double H, double TR, double nH, double* xH1s){
+                                           double H, double TR, double nH, double* xH1s, double ion, double exclya){
 
   double xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, Dxe;
 
@@ -503,12 +506,12 @@ int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, 
   }
 
   dxH1sdlna_Saha = -rec_dxHIIdlna(MODEL, xHIISaha + xHeII, xHIISaha, nH, H, TR, TR, phy->rate_table, phy->twog_params,
-                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR);
+                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya);
   Dxe            = 0.01*xH1sSaha;
   DdxH1sdlna_DxH1s = (rec_dxHIIdlna(MODEL, xHIISaha+Dxe + xHeII, xHIISaha+Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
-                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR)
+                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya)
                     -rec_dxHIIdlna(MODEL, xHIISaha-Dxe + xHeII, xHIISaha-Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
-                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR))/(2.*Dxe);
+                                  phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya))/(2.*Dxe);
 
   *xH1s = xH1sSaha + (dxH1sSaha_dlna - dxH1sdlna_Saha)/DdxH1sdlna_DxH1s;
 

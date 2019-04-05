@@ -14,7 +14,9 @@
 /*                            changed temperature range for effective rates                             */
 /*            - May 2012:   - Using the photon distortion instead of absolute value of radiation field  */
 /*                          - Accounting for explicit dependence on alpha and m_e                       */
-/*                          - Some definitions moved to header file history.h                           */                   
+/*                          - Some definitions moved to header file history.h                           */  
+/*            - April 2019, Nils Sch:                                                                   */
+/*                          - Added ionization and lya excitations as in ExoCLASS                       */
 /********************************************************************************************************/ 
 
 #include "hyrec_params.h"  /* Needed for definition of switches for derivatives, and numerical integration parameters */
@@ -108,7 +110,8 @@ void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double
                         double sr[2], double sv[NVIRT], double Dtau[NVIRT],
                         double xe, double xHII, double TM, double TR, double nH, double H, HRATEEFF *rate_table,
                         TWO_PHOTON_PARAMS *twog, double Dfplus[NVIRT], double Dfplus_Ly[], 
-                        double Alpha[2], double DAlpha[2], double Beta[2], double fsR, double meR);
+                        double Alpha[2], double DAlpha[2], double Beta[2], double fsR, double meR,
+                        double exclya);
 void solveTXeqB(double *diag, double *updiag, double *dndiag, double *X, double *B, unsigned N);
 void solve_real_virt(double xr[2], double xv[NVIRT], double Trr[2][2], double *Trv[2], double *Tvr[2], 
                      double *Tvv[3], double sr[2], double sv[NVIRT]);
@@ -118,7 +121,7 @@ void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **Dfminus_
 double rec_HMLA_2photon_dxedlna(double xe, double nH, double H, double TM, double TR,
                                 HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog,
                                 double **Dfminus_hist, double *Dfminus_Ly_hist[], double **Dfnu_hist,
-                                double zstart, unsigned iz, double z, double fsR, double meR);
+                                double zstart, unsigned iz, double z, double fsR, double meR, double ion, double exclya);
 double rec_dxHIIdlna(int model, double xe, double xHII, double nH, double H, double TM, double TR, 
                      HRATEEFF *rate_table, TWO_PHOTON_PARAMS *twog, double **Dfminus_hist, double *Dfminus_Ly_hist[], 
-                     double **Dfnu_hist, double zstart, unsigned iz, double z, double fsR, double meR);
+                     double **Dfnu_hist, double zstart, unsigned iz, double z, double fsR, double meR, double ion, double exclya);

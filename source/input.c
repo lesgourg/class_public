@@ -1,6 +1,7 @@
 /** @file input.c Documented input module.
  *
  * Julien Lesgourgues, 27.08.2010
+ *
  */
 
 #include "input.h"
@@ -1538,6 +1539,7 @@ int input_read_parameters_general(struct file_content * pfc,
       ppt->has_density_transfers=_TRUE_;
       ppt->has_velocity_transfers=_TRUE_;
       psd->has_distortions=_TRUE_;
+      pth->compute_damping_scale=_TRUE_;
     }
 
     /* Test */

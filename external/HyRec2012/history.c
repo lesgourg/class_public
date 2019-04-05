@@ -346,12 +346,12 @@ double rec_xH1s_postSaha(REC_COSMOPARAMS *param, unsigned iz_out, double z_out, 
                          /* (partial xHII)/(partial xHeII).dxHeII/dlna */
      }
      dxH1sdlna_Saha = -rec_dxHIIdlna(MODEL, xHIISaha + xHeII_out, xHIISaha, nH, H, T, T, rate_table, twog_params, 
-                                     Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_out-param->izH0, z_out, param->fsR, param->meR);
+                                     Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_out-param->izH0, z_out, param->fsR, param->meR,0.0,0.0);
      Dxe            = 0.01*xH1sSaha;
      DdxH1sdlna_DxH1s = (rec_dxHIIdlna(MODEL, xHIISaha+Dxe + xHeII_out, xHIISaha+Dxe, nH, H, T, T, rate_table, twog_params, 
-                                     Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_out-param->izH0, z_out, param->fsR, param->meR)
+                                     Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_out-param->izH0, z_out, param->fsR, param->meR,0.0,0.0)
                        -rec_dxHIIdlna(MODEL, xHIISaha-Dxe + xHeII_out, xHIISaha-Dxe, nH, H, T, T, rate_table, twog_params, 
-                                     Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_out-param->izH0, z_out, param->fsR, param->meR))/2./Dxe; 
+                                     Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_out-param->izH0, z_out, param->fsR, param->meR,0.0,0.0))/2./Dxe; 
 
      xH1s = xH1sSaha + (dxH1sSaha_dlna - dxH1sdlna_Saha)/DdxH1sdlna_DxH1s;
 
@@ -389,7 +389,7 @@ void get_rec_next2_HHe(REC_COSMOPARAMS *param, unsigned iz_in, double z_in, doub
       TM        = kBoltz*Tm_in; 
       nH        = 1e-6*param->nH0 * ainv*ainv*ainv;
       dxHIIdlna = rec_dxHIIdlna(MODEL, xe_in, (1.-xH1s_in), nH, H, TM, TR, rate_table, twog_params, 
-                                Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_in-param->izH0, z_in, param->fsR, param->meR);
+                                Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz_in-param->izH0, z_in, param->fsR, param->meR,0.0,0.0);
 
       /* If Hydrogen is still close to Saha equilibrium do a post-Saha expansion for Hydrogen */  
       if(*post_saha == 1){
@@ -431,7 +431,7 @@ void rec_get_xe_next1_H(REC_COSMOPARAMS *param, double z_in, double xe_in, doubl
     model = (iz-param->izH0 < param->nzrt || MODEL != FULL) ? MODEL : EMLA2s2p;   
 
     dxedlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, TM, TR, rate_table, twog_params, 
-                            Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz-param->izH0, z_in, param->fsR, param->meR);    
+                            Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz-param->izH0, z_in, param->fsR, param->meR,0.0,0.0);    
       
     /* If close to Saha equilibrium (with xHeII = 0), do a post-Saha expansion */
     if (*post_saha == 1) {
@@ -471,7 +471,7 @@ void rec_get_xe_next2_HTm(int func_select, REC_COSMOPARAMS *param, double z_in, 
     model = (iz-param->izH0 < param->nzrt || func_select != FULL) ? func_select : EMLA2s2p;   
 
     dxedlna = rec_dxHIIdlna(model, xe_in, xe_in, nH, H, TM, TR, rate_table, twog_params, 
-                            Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz-param->izH0, z_in, param->fsR, param->meR);    
+                            Dfminus_hist, Dfminus_Ly_hist, Dfnu_hist, param->zH0, iz-param->izH0, z_in, param->fsR, param->meR,0.0,0.0);    
 
     dTmdlna = rec_dTmdlna(xe_in, Tm_in, TR/kBoltz, H, param->fHe, param->fsR, param->meR);
                                           

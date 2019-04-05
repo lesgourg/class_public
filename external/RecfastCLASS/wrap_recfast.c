@@ -35,23 +35,26 @@ int thermodynamics_recfast_init(struct precision* ppr,
 
 
   /** - Assign quantities that have to be calculated first */
-  Lalpha = 1./_L_H_alpha_;
-  Lalpha_He = 1./_L_He_2p_;
-  DeltaB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_);
-  pre->CDB = DeltaB/_k_B_;
-  DeltaB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_);
-  pre->CDB_He = DeltaB_He/_k_B_;
-  pre->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;
-  pre->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;
-  pre->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;
+  /* Lyman alpha wavelengths */
+  Lalpha = _h_P_*_c_/(_E_H_lya_*_eV_);
+  Lalpha_He = _h_P_*_c_/(_E_He_2p_*_eV_);
+  /* Ionization-lya temperature differences */
+  pre->CDB = (_E_H_ion_-_E_H_lya_)*_eV_/_k_B_;
+  pre->CDB_He = (_E_He1_ion_-_E_He_2s_)*_eV_/_k_B_;
+  /* Ionization temperatures */
+  pre->CB1 = _E_H_ion_*_eV_/_k_B_;
+  pre->CB1_He1 = _E_He1_ion_*_eV_/_k_B_;
+  pre->CB1_He2 = _E_He2_ion_*_eV_/_k_B_;
+  /* Constants defined for the Peeble's factors  */
   pre->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
   pre->CK = pow(Lalpha,3)/(8.*_PI_);
   pre->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
-  pre->CL = _c_*_h_P_/(_k_B_*Lalpha);
-  pre->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
-  pre->CT = (8./3.) * (_sigma_/(_m_e_*_c_)) *
-    (8.*pow(_PI_,5)*pow(_k_B_,4)/ 15./ pow(_h_P_,3)/pow(_c_,3));
-  pre->Bfact = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
+  /* Lyman alpha temperature */
+  pre->CL = _E_H_lya_*_eV_/_k_B_;
+  pre->CL_He = _E_He_2s_*_eV_/_k_B_;
+  pre->CL_Het = _h_P_*_c_*_L_He_2St_/_k_B_;
+  /* Helium 2s->2p transition temperature*/
+  pre->CDB_He2s2p = (_E_He_2p_-_E_He_2s_)*_eV_/_k_B_;
 
   /** - Test schemes */
   /* He fudging */
@@ -66,7 +69,13 @@ int thermodynamics_recfast_init(struct precision* ppr,
   return _SUCCESS_;
 
 }
-int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, double x, double n,
+
+/**
+ * The hydrogen switches are
+ * - 0 => Only take normal K_H
+ * - 1 => Add simple corections to K_H from gaussian fit
+ * */
+int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, double x, double nH,
                                    double z, double Hz, double Tmat, double Trad,
                                    double* dxH_dz) {
 
@@ -96,25 +105,35 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
   /* Peebles' coefficient (approximated as one when the Hydrogen
    * ionization fraction is very close to one) */
   if (x_H < pre->x_H0_trigger2) {
-    C = (1. + K*_Lambda_*n*(1.-x_H))/(1./pre->fudge_H+K*_Lambda_*n*(1.-x_H)/pre->fudge_H +K*Rup*n*(1.-x_H));
+    C = (1. + K*_Lambda_*nH*(1.-x_H))/(1./pre->fudge_H+K*_Lambda_*nH*(1.-x_H)/pre->fudge_H +K*Rup*nH*(1.-x_H));
   }
   else {
     C = 1.;
   }
 
   /** - Evolve system by fudged Peebles' equation, use fudged Peebles' coefficient C */
-  *dxH_dz = (x*x_H*n*Rdown - Rup*(1.-x_H)*exp(-pre->CL/Tmat)) * C / (Hz*(1.+z));
+  *dxH_dz = (x*x_H*nH*Rdown - Rup*(1.-x_H)*exp(-pre->CL/Tmat)) * C / (Hz*(1.+z));
 
   /** - Energy injection */
   ion_H = phe->pvecdeposition[phe->index_dep_ionH];
   ion_He = phe->pvecdeposition[phe->index_dep_ionHe];
   ion_lya = phe->pvecdeposition[phe->index_dep_lya];
-  //*dxH_dz += -1./n*((ion_H+ion_He)/_L_H_ion_+ion_lya*(1.-C)/_L_H_alpha_)/(_h_P_*_c_*Hz*(1.+z));
+  *dxH_dz += -1./nH*((ion_H+ion_He)/(_E_H_ion_*_eV_)+ion_lya*(1.-C)/(_E_H_lya_*_eV_))/(Hz*(1.+z));
 
   return _SUCCESS_;
 }
 
-int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He, double x, double x_H, double n,
+/**
+ * The helium switches are
+ * - 0 => Only take normal K_He
+ * - 1 => Add simple corections to K_He
+ * - 2 => Add simple + doppler corrections to K_He
+ * - 3 => Add simple + triple corrections to K_He, but not doppler
+ * - 4 => Add simple + triple + triple doppler corrections to K_He, but not normal doppler
+ * - 5 => Add simple + triple + doppler corrections to K_He, but not triple doppler
+ * - 6 => Add simple + triple + doppler + triple doppler corrections to K_He
+ * */
+int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He, double x, double x_H, double nH,
                                     double z, double Hz, double Tmat, double Trad,
                                     double* dxHe_dz) {
 
@@ -124,48 +143,54 @@ int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * p
   double sq_0,sq_1;
   double K_He,Rup_He,Rdown_He,He_Boltz;
   double CfHe_t=0.;
+  double C_He;
   double n_He;
   int Heflag;
 
-
-  /** - Get necessary coefficients */
+  /** - Local variables and coefficients */
+  n_He = pre->fHe * nH;
   sq_0 = sqrt(Tmat/_T_0_);
   sq_1 = sqrt(Tmat/_T_1_);
+
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
   //Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
   Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_)))
       * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
-  n_He = pre->fHe * n;
+
 
   /** - The K_He is calculated up to the required accuracy  */
-  if ((x_He < 5.e-9) || (x_He > pre->x_He0_trigger2)){
+  if ((x_He < pre->x_He_trigger_small) || (x_He > pre->x_He0_trigger2)){
     Heflag = 0;
   }
   else{
     Heflag = pre->Heswitch;
   }
+
+  /* Simplest case : as defined in the equation */
   if (Heflag == 0){
     K_He = pre->CK_He/Hz;
   }
+  /* More difficult cases : Take into account additional contributions */
   else {
     tauHe_s = _A2P_s_*pre->CK_He*3.*n_He*(1.-x_He)/Hz;
     pHe_s = (1.-exp(-tauHe_s))/tauHe_s;
     K_He = 1./(_A2P_s_*pHe_s*3.*n_He*(1.-x_He));
 
+    /* In doppler mode (2) or in all mode (>=5), take doppler corrections */
     if (((Heflag == 2) || (Heflag >= 5)) && (x_H < pre->x_H_limit_KHe)) {
 
       Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
-      Doppler = _c_*_L_He_2p_*sqrt(Doppler);
+      Doppler = (_E_He_2p_*_eV_/_h_P_)*sqrt(Doppler);
       gamma_2Ps = 3.*_A2P_s_*pre->fHe*(1.-x_He)*_c_*_c_
         /(sqrt(_PI_)*_sigma_He_2Ps_*8.*_PI_*Doppler*(1.-x_H))
-        /pow(_c_*_L_He_2p_,2);
+        /pow(_E_He_2p_*_eV_/_h_P_,2);
       pb = 0.36;
       qb = pre->fudge_He;
       AHcon = _A2P_s_/(1.+pb*pow(gamma_2Ps,qb));
       K_He=1./((_A2P_s_*pHe_s+AHcon)*3.*n_He*(1.-x_He));
     }
 
-    /* Do we want to also calculate the additional correction of CfHe_t ? */
+    /* In modes where triple He is added (>=3), calculate the triple He */
     if (Heflag >= 3) {
       Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
       //Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
@@ -175,10 +200,12 @@ int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * p
       tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;
       CL_PSt = _h_P_*_c_*(_L_He_2Pt_ - _L_He_2St_)/_k_B_;
+      /* In triple He default mode, or mode 5, take simple term */
       if ((Heflag == 3) || (Heflag == 5) || (x_H >= pre->x_H_limit_CfHe_t)) {
         CfHe_t = _A2P_t_*pHe_t*exp(-CL_PSt/Tmat);
         CfHe_t = CfHe_t/(Rup_trip+CfHe_t);
       }
+      /* In triple He doppler mode (4) or all mode (>=6), take doppler corrections */
       else {
         Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
         Doppler = _c_*_L_He_2Pt_*sqrt(Doppler);
@@ -201,34 +228,29 @@ int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * p
   else {
 
     /* Calculate first the boltzmann factor (limited for numerical reasons) */
-    if (pre->Bfact/Tmat < pre->max_exp_boltz){
-      He_Boltz=exp(pre->Bfact/Tmat);
+    if (pre->CDB_He2s2p/Tmat < pre->max_exp_boltz){
+      He_Boltz=exp(pre->CDB_He2s2p/Tmat);
     }
     else{
       He_Boltz=exp(pre->max_exp_boltz);
     }
 
-    /* equations modified to take into account energy injection from dark matter */
-    //C_He=(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz);
+    C_He = (1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz)/(1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz);
 
     /** Final He quations by Peebles with K_He*/
-    *dxHe_dz = ((x*x_He*n*Rdown_He - Rup_He*(1.-x_He)*exp(-pre->CL_He/Tmat))
-             *(1. + K_He*_Lambda_He_*n_He*(1.-x_He)*He_Boltz))
-      /(Hz*(1+z)* (1. + K_He*(_Lambda_He_+Rup_He)*n_He*(1.-x_He)*He_Boltz));
-    /* in case of energy injection due to DM, we neglect the contribution to helium ionization ! */
+    *dxHe_dz = (x*x_He*nH*Rdown_He - Rup_He*(1.-x_He)*exp(-pre->CL_He/Tmat)) * C_He / (Hz*(1+z));
 
     /* following is from recfast 1.4 (now reordered) */
     /* this correction is not self-consistent when there is energy injection from dark matter, and leads to nan's at small redshift (unimportant when reionization takes over before that redshift) */
+    /* Corrections due to triple helium, only when Heflag >=3 */
     if (Heflag >= 3){
       /** CfHe_t correction */
-      *dxHe_dz +=
-          (x*x_He*n*Rdown_trip
-         - (1.-x_He)*3.*Rup_trip*exp(-_h_P_*_c_*_L_He_2St_/(_k_B_*Tmat)))
-        *CfHe_t/(Hz*(1.+z));
+      *dxHe_dz += (x*x_He*nH*Rdown_trip - (1.-x_He)*3.*Rup_trip*exp(-pre->CL_Het/Tmat)) *CfHe_t/(Hz*(1.+z));
     }
     /* end of new recfast 1.4 piece */
   }
 
   /** - No He Energy injection */
+
   return _SUCCESS_;
 }

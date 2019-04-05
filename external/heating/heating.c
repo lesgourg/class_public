@@ -1,11 +1,61 @@
-#include "heating.h"
-#include "primordial.h"
-
-/**
- * The main goal of this module is to calculate deposited energy in form of heating, ionization
+/** @file heating.c Documented heating module
+ *
+ * Initially written by:
+ * Matteo Lucca, 27.02.2019
+ * Nils Schoeneberg, 27.02.2019
+ *
+ * The module is in based on ExoCLASS (see Stoecker et al. 2018) which has been mainly developed
+ * by Vivian Poulin and Patrick Stöcker.
+ *
+ * The main goal of this module is to calculate the deposited energy in form of heating, ionization
  * and Lyman alpha processes.
  *
- * To achieve this goal, we first calculate the injected energy rate for different physical
+ * There are two different kinds of heating that are interesting here:
+ * The heating of the baryons and the heating of the photons
+ *
+ *  - For photons, we do not actually calculate any changes in their temperature or density etc.
+ *    Instead, we simply model any energy that modifies the photon spectrum as a small
+ *    distortion to the blackbody spectrum. This either manifests in tiny temperature shifts
+ *    (g-distortion, or dT distortion), or as a change in the spectral shape
+ *    (mainly y and mu distortions, depending on the effectivity of energy-redistribution mechanisms)
+ *
+ *  - For baryons, this treatment is not enough. While compared to the huge photon energy budget
+ *    all injection mechanisms must be small, for baryons this is not true. The baryon temperature
+ *    might strongly react to injected energy. Sometimes the energy will be used to heat the baryons,
+ *    but it can also ionize them, or excite the lyman-alpha level of hydrogen.
+ *    The minimal energy to have an effect on baryons is around 10.2 eV, which is derived from the
+ *    1s->2p transition in HI, which is the smallest transition a 1s electron in neutral hydrogen can make.
+ *    It's energy is roughly 13.6eV * (1/1^2 - 1/2^2) ~= 10.2eV
+ *
+ *    We thus group together photons with enough energy to completely ionize HeI, to completely ionize HI,
+ *    photons with enough energy to excite the lyman-alpha line, photons with too little energy to excite anything,
+ *    and finally the effective heating of the baryons due to the injected energy.
+ *    The deposition names are correspondingly 'ion_He', 'ion_H', 'lya', 'lowE', and 'heat'.
+ *
+ *    Of course, many injections could lead to not only heating the baryons (or exciting and ionizing them), but also
+ *    create spectral distortions of the baryon blackbody. However, due to the very strong galactic influences,
+ *    we do not expect the spectrum to be anywhere close to blackbody anyway.
+ *    We thus do not model the spectral distortions of baryons
+ *
+ * In the above discussion, we have seen that baryons and photons both do receive heating, but react differently to it.
+ * In addition, there are some sources of spectral distortions that do not come from injected (and deposited) energy,
+ * usually related to the interactions of baryons and photons. This includes the adiabatic heating/cooling during the
+ * thermal history as photons and baryons are coupled due to compton scattering etc.
+ * It also includes, however, second order contributions, which are evaluated only after the perturbations have been found.
+ * All of these additional term, which are not injected and deposited into the IGM in the usual sense,
+ * are grouped within the function 'heating_add_noninjected'.
+ *
+ * We thus decided to split the tables into one which is the 'baryonic' table, the 'deposition_table'.
+ * It lists all of the contributions of energy deposition in the IGM to the state of the baryons,
+ * and is split among the different types of effects the energy deposition can have (dep_type).
+ *
+ * In addition, there is the 'photon_dep_table', which lists the energy deposition into the photon fluid.
+ * Of course, the only thing the energy deposition does there is create spectral distortions (including g / dT distortions).
+ * Thus, we do not to split it into different effect types as we do for the baryons.
+ *
+ *
+ *
+ * To calculate the deposited energy, we first calculate the injected energy rate for different physical
  * effects. There are many possible sources of energy injection/extraction (for more details
  * see e.g. Chluba & Sunyaev 2012 and Chluba 2016), some are present even for the standard
  * cosmological model like
@@ -31,12 +81,12 @@
  *       (see also Carr et al. 2010 for useful discussion)
  * Note furthermore that the dissipation of acoustic waves is entrinsically a second order process, i.e.
  * it contribution can be derived by expanding at second order the both the dissipation problem and the
- * energy transfer by Compton scattering (see e.g. Chluba, Khatri & Sunyaev 2012). As such, this process
- * is handled as a second order contribution, separated form the oders.
+ * energy transfer by Compton scattering (see e.g. Chluba, Khatri & Sunyaev 2012).
+ * This fills a table of injected energy mechanisms.
  *
- * Once the rate of energy injection is known, the program evaluates a so-called deposition function
- * which determines the amount of energy effectively deposited into the different forms, i.e. heating,
- * ionization and Lyman alpha. Also in this case, there are several options
+ * Once the rate of energy injection is known, a so-called deposition function is evaluated,
+ * which determines the amount of energy effectively deposited into the different effects, i.e. heating,
+ * ionization of H, He, Lyman alpha, and low energy for baryons. Also in this case, there are several options
  *    1) by setting 'chi_type' to 'chi_full_heating', the whole injected energy is going to be
  *       deposited into heat,
  *    2) by setting 'chi_type' to 'chi_from_SSCK', the SSCK approximation is employed,
@@ -52,10 +102,12 @@
  *       i.e. f_eff=1, and
  *    2) reading a precomputed function from an external file.
  *
- * The module is in part based on ExoCLASS (see Stoecker et al. 2018) which has been mainly developed
- * by Vivian Poulin and Patrick Stöcker. The CLASS implementation has been done by Nils Schoeneberg
- * and Matteo Lucca.
+ * This fills a table of deposited energy in baryons split by the different effects.
+ * Additionally, a table of deposited energy in photons is created, mostly similar to the baryon column 'heat',
+ * except for the additional effects of non-injected terms.
  */
+#include "heating.h"
+#include "primordial.h"
 
 //TODO :: disable branching ratios before z > 2000, and replace with only heating
 
@@ -204,14 +256,17 @@ int heating_init(struct precision * ppr,
                 phe->error_message);
   }
 
-  class_alloc(phe->chi_table,
+  class_alloc(phe->deposition_table,
               phe->dep_size*sizeof(double*),
               phe->error_message);
   for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-    class_alloc(phe->chi_table[index_dep],
+    class_alloc(phe->deposition_table[index_dep],
                 phe->z_size*sizeof(double),
                 phe->error_message);
   }
+  class_alloc(phe->photon_dep_table,
+              phe->z_size*sizeof(double),
+              phe->error_message);
 
   class_alloc(phe->chi,
               phe->dep_size*sizeof(double),
@@ -280,9 +335,10 @@ int heating_free(struct thermo* pth){
   free(phe->injection_table);
 
   for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-    free(phe->chi_table[index_dep]);
+    free(phe->deposition_table[index_dep]);
   }
-  free(phe->chi_table);
+  free(phe->deposition_table);
+  free(phe->photon_dep_table);
   free(phe->chi);
 
   free(phe->pvecdeposition);
@@ -329,18 +385,22 @@ int heating_calculate_at_z(struct background* pba,
   /** Redefine input parameters */
   phe->T_b = Tmat;                                                                                  // [K]
   phe->x_e = x;                                                                                     // [-]
+  phe->nH = phe->N_e0 * pow(1.+ z , 3);
+  phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->f_He+x);
   dEdz_inj = 0.;
 
   /** Import varying quantities from background structure */
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
-  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_GeVcm3_over_Mpc2_*_eV_*1.0e9*1.0e6;               // [J/m^3]
+  phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_Jm3_over_Mpc2_;                                   // [J/m^3]
   if(phe->has_DM_dec){
-    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_GeVcm3_over_Mpc2_*_eV_*1.0e9*1.0e6;           // [J/m^3]
+    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_Jm3_over_Mpc2_;                               // [J/m^3]
   }
   else{
     phe->rho_dcdm = 0.0;
   }
+
+  phe->rho_g = pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_;
 
   /** Import varying quantities from thermodynamics structure */
 
@@ -369,11 +429,11 @@ int heating_calculate_at_z(struct background* pba,
     else{
       class_stop(phe->error_message,
                  "Should store z = %.10e, but it was not in the z table (next lower = %.10e , next higher = %.10e )",
-                 phe->z_table[phe->index_z_store],phe->z_table[phe->index_z_store+1]);
+                 phe->z_table[phe->index_z_store], phe->z_table[phe->index_z_store+1]);
     }
   }
 
-  /** Get the injected energy that needs to be deposited */
+  /** Get the injected energy that needs to be deposited (i.e. excluding adiabatic terms) */
   class_call(heating_energy_injection_at_z(phe,
                                            z,
                                            &dEdz_inj),
@@ -394,6 +454,14 @@ int heating_calculate_at_z(struct background* pba,
 
   /** Store z values in table */
   if(phe->to_store){
+    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
+      phe->deposition_table[index_dep][phe->index_z_store] = phe->pvecdeposition[index_dep];
+    }
+    phe->photon_dep_table[phe->index_z_store] = phe->pvecdeposition[phe->index_dep_heat]; /* All of the heating deposited into baryons also heats the photons */
+
+    class_test(phe->index_z_store < phe->filled_until_index_z-1,
+               phe->error_message,
+               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
     phe->filled_until_index_z = phe->index_z_store;
     phe->filled_until_z = phe->z_table[phe->index_z_store];
   }
@@ -444,17 +512,6 @@ int heating_energy_injection_at_z(struct heating* phe,
 
     return _SUCCESS_;
   }
-
-  /** Standard energy injection mechanisms */
-  class_call(heating_rate_adiabatic_cooling(phe,
-                                            z,
-                                            &rate),
-             phe->error_message,
-             phe->error_message);
-    if(phe->to_store){
-      phe->injection_table[phe->index_inj_cool][phe->index_z_store] = rate;
-    }
-    dEdz += rate;
 
   /** Exotic energy injection mechanisms */
   if(phe->has_exotic_injection){
@@ -641,16 +698,6 @@ int heating_deposition_function_at_z(struct heating* phe,
     phe->chi[index_dep] *= phe->f_eff;
   }
 
-  /** Store in the chi table, when needed */
-  if(phe->to_store){
-    for(index_dep = 0; index_dep < phe->dep_size; ++index_dep){
-      phe->chi_table[index_dep][phe->index_z_store] = phe->chi[index_dep];
-    }
-    class_test(phe->index_z_store < phe->filled_until_index_z-1,
-               phe->error_message,
-               "Skipping too far ahead in z_table. Check that the heating and thermodynamics module agree in their z sampling.");
-  }
-
   return _SUCCESS_;
 }
 
@@ -662,8 +709,43 @@ int heating_deposition_function_at_z(struct heating* phe,
  * @param z           Input: redshift
  * @return the error status
  */
-int heating_at_z(struct thermo* pth,
-                 double z){
+int heating_photon_at_z(struct thermo* pth,
+                        double z,
+                        double* heat){
+
+  /** Define local variables */
+  struct heating* phe = &(pth->he);
+  int index_dep;
+  double h,a,b;
+
+  /** Interpolate at required z in the table */
+  class_test(z < phe->filled_until_z,
+             phe->error_message,
+             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
+
+  class_call(array_spline_hunt(phe->z_table,
+                               phe->z_size,
+                               z,
+                               &(phe->last_index_z),
+                               &h,&a,&b,
+                               phe->error_message),
+           phe->error_message,
+           phe->error_message);
+
+  * heat = ( a*phe->photon_dep_table[phe->last_index_z] + b*phe->photon_dep_table[phe->last_index_z+1] );
+
+  return _SUCCESS_;
+}
+
+/**
+ * Interpolates heating from precomputed table at a given value of z.
+ *
+ * @param pth         Input: pointer to thermodynamics structure
+ * @param z           Input: redshift
+ * @return the error status
+ */
+int heating_baryon_at_z(struct thermo* pth,
+                        double z){
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
@@ -685,9 +767,8 @@ int heating_at_z(struct thermo* pth,
            phe->error_message);
 
   for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-    phe->pvecdeposition[index_dep] = (a*phe->chi_table[index_dep][phe->last_index_z]+
-                                          b*phe->chi_table[index_dep][phe->last_index_z+1])*
-                                      phe->injection_table[phe->index_inj_tot][phe->last_index_z];
+    phe->pvecdeposition[index_dep] = ( a*phe->deposition_table[index_dep][phe->last_index_z]+
+                                        b*phe->deposition_table[index_dep][phe->last_index_z+1] );
   }
 
   return _SUCCESS_;
@@ -695,7 +776,9 @@ int heating_at_z(struct thermo* pth,
 
 
 /**
- * Update heating table with second order energy injection mechanisms.
+ * Update heating table with energy injection mechanisms,
+ * which do not result from an energy injection which would be redistributed
+ * in the primordial plasma
  *
  * @param pba   Input: pointer to background structure
  * @param pth   Input: pointer to thermodynamics structure
@@ -703,10 +786,10 @@ int heating_at_z(struct thermo* pth,
  * @param ppm   Input: pointer to primordial structure
  * @return the error status
  */
-int heating_add_second_order(struct background* pba,
-                             struct thermo* pth,
-                             struct perturbs* ppt,
-                             struct primordial* ppm){
+int heating_add_noninjected(struct background* pba,
+                            struct thermo* pth,
+                            struct perturbs* ppt,
+                            struct primordial* ppm){
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
@@ -773,8 +856,9 @@ int heating_add_second_order(struct background* pba,
 
     phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                            // [1/s]
     phe->a = pvecback[pba->index_bg_a];                                                             // [-]
-    phe->rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1e6;                     // [J/m^3]
+    phe->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                     // [J/m^3]
     R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                        // [-]
+    phe->nH = phe->N_e0 * pow(phe->a, -3);
 
     class_call(thermodynamics_at_z(pba,
                                    pth,
@@ -789,17 +873,25 @@ int heating_add_second_order(struct background* pba,
     dkappa = pvecthermo[pth->index_th_dkappa];                                                      // [1/Mpc]
     phe->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));    // [Mpc^2]
     phe->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
+    phe->T_b = pvecthermo[pth->index_th_Tb];                                                        // [K]
+    phe->x_e = pvecthermo[pth->index_th_xe];                                                        // [-]
 
-   /** Update injection table with second order energy injection mechanisms */
+    /** Injected energy that does not need to be deposited (i.e. adiabatic terms) */
+    /* First order cooling of photons due to adiabatic interaction with baryons */
+    class_call(heating_rate_adiabatic_cooling(phe,
+                                              phe->z_table[index_z],
+                                              &dEdt),
+               phe->error_message,
+               phe->error_message);
+    phe->photon_dep_table[index_z] += dEdt;
+
+    /* Second order acoustic dissipation of BAO */
     class_call(heating_rate_acoustic_diss(phe,
                                           phe->z_table[index_z],
                                           &dEdt),
                phe->error_message,
                phe->error_message);
-
-    phe->injection_table[phe->index_inj_diss][index_z] = dEdt;
-    phe->injection_table[phe->index_inj_tot][index_z] += dEdt;
-
+    //phe->photon_dep_table[index_z] += dEdt;
   }
 
   /* Free allocated space */
@@ -1110,12 +1202,15 @@ int heating_rate_adiabatic_cooling(struct heating * phe,
                                    double * energy_rate){
 
   /** Define local variables */
-  double T_g;
+  double T_g, R_g;
 
   T_g = phe->T_g0*(1.+z);
 
   /** Calculate heating rates */
-  *energy_rate = -(3./2.)*phe->N_e0*pow(1.+z,3.)*(1.+phe->f_He+phe->x_e)*phe->H*_k_B_*T_g;          // [J/(m^3 s)]
+  R_g = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * phe->rho_g );
+  double heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);
+  *energy_rate = R_g * phe->x_e / (1.+phe->x_e+phe->fHe) * (phe->T_b - T_g) * heat_capacity ;
+
   return _SUCCESS_;
 
 }
@@ -1239,7 +1334,7 @@ int heating_rate_DM_decay(struct heating * phe,
   /** Define local variables */
 
   /** Calculate heating rates */
-  *energy_rate = phe->rho0_cdm*pow((1.+z),3.)*phe->decay_efficiency;                                // [J/(m^3 s)]
+  *energy_rate = phe->rho_cdm*phe->decay_efficiency;                                // [J/(m^3 s)]
 
   return _SUCCESS_;
 }

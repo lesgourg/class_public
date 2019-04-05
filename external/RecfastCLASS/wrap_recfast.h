@@ -10,16 +10,16 @@ struct thermorecfast {
   double CR;      /**< defined as in RECFAST */
   double CK;      /**< defined as in RECFAST */
   double CL;      /**< defined as in RECFAST */
-  double CT;      /**< defined as in RECFAST */
   double fHe;     /**< defined as in RECFAST */
   double YHe;
   double CDB_He;  /**< defined as in RECFAST */
   double CK_He;   /**< defined as in RECFAST */
   double CL_He;   /**< defined as in RECFAST */
+  double CL_Het;
   double H_frac;  /**< defined as in RECFAST */
   double Tnow;    /**< defined as in RECFAST */
   double Nnow;    /**< defined as in RECFAST */
-  double Bfact;   /**< defined as in RECFAST */
+  double CDB_He2s2p;   /**< Bfact in RECFAST */
   double CB1;     /**< defined as in RECFAST */
   double CB1_He1; /**< defined as in RECFAST */
   double CB1_He2; /**< defined as in RECFAST */
@@ -36,12 +36,17 @@ struct thermorecfast {
   int Hswitch;
   double x_H0_trigger2;
   double x_He0_trigger2;
+
+  double x_He_trigger_small;
   double fudge_He;
   double fudge_H;
   double x_H_limit_KHe;
   double x_H_limit_CfHe_t;
 
   double max_exp_boltz;
+
+  double Bfact;
+  double CT;
 
   ErrorMsg error_message;
 
@@ -103,6 +108,18 @@ extern "C" {
 #define _sigma_He_2Ps_      1.436289e-22   /*updated like in recfast 1.4*/
 #define _sigma_He_2Pt_      1.484872e-22   /*updated like in recfast 1.4*/
 
+/* Ionization energy of hydrogen HI in eV */
+#define _E_H_ion_          13.5984336478
+/* Lyman-Alpha transition energy of hydrogen in eV, approximately 3/4 of the ionization energy because (1s->2p transition and E~1/n^2) */
+#define _E_H_lya_          10.1988356821
+/* Ionization energy of helium HeI in eV */
+#define _E_He1_ion_        24.5873999472
+/* Ionization energy of helium HeII in eV */
+#define _E_He2_ion_        54.4177616729
+/* Energy of 1s->2s of helium HeI in eV */
+#define _E_He_2s_          20.6157725611
+/* Energy of 1s->2p of helium HeI in eV */
+#define _E_He_2p_          21.2180204207
 //@}
 
 /**

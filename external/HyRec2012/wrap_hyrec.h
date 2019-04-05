@@ -26,7 +26,6 @@ struct thermohyrec{
   int N_VIRT;
   short stage;
 
-  double n_H_now;
   double T_cmb;
   double nH0;
   double T0;
@@ -52,6 +51,8 @@ struct thermohyrec{
   double z_prev;
   double TR_prev;
   double TM_prev;
+  double ion_prev;
+  double exclya_prev;
 
   double xHeIII;
   double xHeIII_limit;
@@ -102,4 +103,10 @@ extern "C" {
 #ifdef __cplusplus
 }
 #endif
+
+/* Ionization energy of hydrogen HI */
+#define _E_H_ion_   13.5984336478
+/* Lyman-Alpha transition energy of hydrogen , approximately 3/4 of the ionization energy because (1s->2p transition and E~1/n^2) */
+#define _E_H_lya_   10.1988356821
+
 #endif
