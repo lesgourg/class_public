@@ -1991,31 +1991,6 @@ int thermodynamics_solve_derivs(double mz,
 
   /** - Matter temperature equations */
   /* Tmat is always integrated */
-
-  /**
-   * A note on the 'early' time steady state expansion:
-   *
-   * Note: dTr/dz = Tr/(1+z) = Tcmb
-   *
-   * The early system of CMB and matter is very tightly coupled anyway, so we can expand in the following way:
-   * The full equation is dTm/dz = (Tm-Tr)/e /(1+z) + 2 Tm/(1+z). Here e = H*(1+x+f)/(cT*Tr^4*x) << 1 at early times
-   *
-   * Find the first order solution in e, by multiplying in (1+z)*e, approximate
-   *  e*(dTm/dz)*(1+z) ~ e*(dTr/dz)*(1+z) + O(e^2) ~ e * Tr
-   *
-   * You find e*Tr = (Tm-Tr) + 2 Tm * e
-   * Thus Tm = (1+2*e)/(1+e) * Tr = Tr/(1+e) + O(e^2)
-   *
-   * This is the steady state solution, which is the SAME as e.g. in HyRec
-   * In our notation, eps = e*Tr, so we get Tm = Tr - eps
-   *
-   * So, taking the derivative of the right hand side, we obtain dTm/dz = Tcmb - eps*(dln(eps)/dz)
-   *
-   * Now use the form of eps = Tr*e = H*(1+x+f)/(cT*Tr^3*x) to derive the remaining terms in the below formula
-   * => dln(eps)/dz = dln(H)/dz  - (1+f)/(1+x+f)*dln(x)/dz + 3*dln(Tr)/dz
-   * If you plug this into the dTm/dz equation, you find the formulas below
-   **/
-
   R_g = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_ );
   heat_capacity = (3./2.)*_k_B_*nH*(1.+ptw->fHe+x);
 

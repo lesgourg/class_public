@@ -891,7 +891,7 @@ int heating_add_noninjected(struct background* pba,
                                           &dEdt),
                phe->error_message,
                phe->error_message);
-    //phe->photon_dep_table[index_z] += dEdt;
+    phe->photon_dep_table[index_z] += dEdt;
   }
 
   /* Free allocated space */
