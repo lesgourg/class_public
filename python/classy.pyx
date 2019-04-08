@@ -84,6 +84,7 @@ cdef class Class:
     cdef spectra sp
     cdef output op
     cdef lensing le
+    cdef distortions sd
     cdef file_content fc
 
     cpdef int ready # Flag to see if classy can currently compute
@@ -176,6 +177,8 @@ cdef class Class:
     def struct_cleanup(self):
         if self.ready == _FALSE_:
              return
+        if "distortions" in self.ncp:
+            distortions_free(&self.sd)
         if "lensing" in self.ncp:
             lensing_free(&self.le)
         if "spectra" in self.ncp:
@@ -214,6 +217,8 @@ cdef class Class:
             ['lensing']
 
         """
+        if "distortions" in level:
+            level.append("lensing")
         if "lensing" in level:
             level.append("spectra")
         if "spectra" in level:
@@ -254,9 +259,9 @@ cdef class Class:
             return True
         return False
 
-    def compute(self, level=["lensing"]):
+    def compute(self, level=["distortions"]):
         """
-        compute(level=["lensing"])
+        compute(level=["distortions"])
 
         Main function, execute all the _init methods for all desired modules.
         This is called in MontePython, and this ensures that the Class instance
@@ -313,7 +318,7 @@ cdef class Class:
         if "input" in level:
             if input_read_from_file(&self.fc, &self.pr, &self.ba, &self.th,
                                     &self.pt, &self.tr, &self.pm, &self.sp,
-                                    &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
+                                    &self.nl, &self.le, &self.sd, &self.op, errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
             self.ncp.add("input")
             # This part is done to list all the unread parameters, for debugging
@@ -386,6 +391,13 @@ cdef class Class:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
+
+        if "distortions" in level:
+            if distortions_init(&(self.pr), &(self.ba), &(self.th), 
+                                &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
+                self.struct_cleanup()
+                raise CosmoComputationError(self.sd.error_message)
+            self.ncp.add("distortions")
 
         self.ready = True
         self.allocated = True
@@ -1777,3 +1789,11 @@ cdef class Class:
 
     def Omega0_cdm(self):
         return self.ba.Omega0_cdm
+
+    def spectral_distortions(self):
+        if self.sd.type_size == 0:
+          raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
+        cdef np.ndarray[DTYPE_t, ndim=1] sd_type_amps = np.zeros(self.sd.type_size,'float64')
+        for i in range(self.sd.type_size):
+          sd_type_amps[i] = self.sd.sd_parameter_table[i]
+        return sd_type_amps

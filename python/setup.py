@@ -24,6 +24,9 @@ if b"mvec" not in MVEC_STRING:
 root_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
 include_folder = os.path.join(root_folder, "include")
 classy_folder = os.path.join(root_folder, "python")
+heat_folder = os.path.join(os.path.join(root_folder, "external"),"heating")
+recfast_folder = os.path.join(os.path.join(root_folder, "external"),"RecfastCLASS")
+hyrec_folder = os.path.join(os.path.join(root_folder, "external"),"HyRec2012")
 
 # Recover the CLASS version
 with open(os.path.join(include_folder, 'common.h'), 'r') as v_file:
@@ -40,7 +43,7 @@ setup(
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
     ext_modules=[Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
-                           include_dirs=[nm.get_include(), include_folder],
+                           include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
                            libraries=liblist,
                            library_dirs=[root_folder, GCCPATH],
                            extra_link_args=['-lgomp'],

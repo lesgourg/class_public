@@ -245,6 +245,15 @@ cdef extern from "class.h":
         int method
         ErrorMsg error_message
 
+    cdef struct distortions:
+        double * sd_parameter_table
+        int index_type_g
+        int index_type_mu
+        int index_type_y
+        int index_type_PCA
+        int type_size
+        ErrorMsg error_message
+
     cdef struct file_content:
         char * filename
         int size
@@ -260,13 +269,14 @@ cdef extern from "class.h":
     void thermodynamics_free(void*)
     void background_free(void*)
     void nonlinear_free(void*)
+    void distortions_free(void*)
 
     cdef int _FAILURE_
     cdef int _FALSE_
     cdef int _TRUE_
 
     int input_read_from_file(void*, void*, void*, void*, void*, void*, void*, void*, void*,
-        void*, void*, char*)
+        void*, void*, void*, char*)
     int background_init(void*,void*)
     int thermodynamics_init(void*,void*,void*)
     int perturb_init(void*,void*,void*,void*)
@@ -275,6 +285,7 @@ cdef extern from "class.h":
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int spectra_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
+    int distortions_init(void*,void*,void*,void*,void*,void*)
 
     int background_tau_of_z(void* pba, double z,double* tau)
     int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
