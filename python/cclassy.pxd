@@ -252,6 +252,11 @@ cdef extern from "class.h":
         int index_type_y
         int index_type_PCA
         int type_size
+        double * DI
+        double * x
+        double DI_units
+        double x_to_nu
+        int x_size
         ErrorMsg error_message
 
     cdef struct file_content:

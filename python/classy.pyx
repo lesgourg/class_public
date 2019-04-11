@@ -1790,10 +1790,20 @@ cdef class Class:
     def Omega0_cdm(self):
         return self.ba.Omega0_cdm
 
-    def spectral_distortions(self):
+    def spectral_distortion_amplitudes(self):
         if self.sd.type_size == 0:
           raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
         cdef np.ndarray[DTYPE_t, ndim=1] sd_type_amps = np.zeros(self.sd.type_size,'float64')
         for i in range(self.sd.type_size):
           sd_type_amps[i] = self.sd.sd_parameter_table[i]
         return sd_type_amps
+
+    def spectral_distortion(self):
+        if self.sd.x_size == 0:
+          raise CosmoSevereError("No spectral distortions have been calculated. Check that the output contains 'Sd' and the compute level is at least 'distortions'.")
+        cdef np.ndarray[DTYPE_t, ndim=1] sd_amp = np.zeros(self.sd.x_size,'float64')
+        cdef np.ndarray[DTYPE_t, ndim=1] sd_nu = np.zeros(self.sd.x_size,'float64')
+        for i in range(self.sd.x_size):
+          sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
+          sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
+        return sd_nu,sd_amp
