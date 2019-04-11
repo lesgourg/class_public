@@ -1,0 +1,19 @@
+<map id="spectra.c" name="spectra.c">
+<area shape="rect" id="node2" href="$spectra_8h.html" title="spectra.h" alt="" coords="682,79,758,104"/>
+<area shape="rect" id="node3" href="$transfer_8h.html" title="transfer.h" alt="" coords="682,152,759,177"/>
+<area shape="rect" id="node4" href="$nonlinear_8h.html" title="nonlinear.h" alt="" coords="506,225,593,251"/>
+<area shape="rect" id="node25" href="$hyperspherical_8h_source.html" title="hyperspherical.h" alt="" coords="641,299,760,324"/>
+<area shape="rect" id="node5" href="$primordial_8h.html" title="primordial.h" alt="" coords="480,299,571,324"/>
+<area shape="rect" id="node6" href="$perturbations_8h.html" title="perturbations.h" alt="" coords="457,372,567,397"/>
+<area shape="rect" id="node7" href="$thermodynamics_8h.html" title="thermodynamics.h" alt="" coords="254,445,384,471"/>
+<area shape="rect" id="node22" href="$evolver__ndf15_8h_source.html" title="evolver_ndf15.h" alt="" coords="526,519,642,544"/>
+<area shape="rect" id="node24" href="$evolver__rkck_8h_source.html" title="evolver_rkck.h" alt="" coords="436,445,543,471"/>
+<area shape="rect" id="node8" href="$background_8h.html" title="background.h" alt="" coords="244,519,346,544"/>
+<area shape="rect" id="node9" href="$common_8h.html" title="common.h" alt="" coords="396,665,479,691"/>
+<area shape="rect" id="node17" href="$quadrature_8h_source.html" title="quadrature.h" alt="" coords="22,592,119,617"/>
+<area shape="rect" id="node19" href="$arrays_8h_source.html" title="arrays.h" alt="" coords="260,592,330,617"/>
+<area shape="rect" id="node20" href="$dei__rkck_8h_source.html" title="dei_rkck.h" alt="" coords="447,592,529,617"/>
+<area shape="rect" id="node21" href="$parser_8h_source.html" title="parser.h" alt="" coords="353,592,423,617"/>
+<area shape="rect" id="node15" href="$svnversion_8h_source.html" title="svnversion.h" alt="" coords="576,739,672,764"/>
+<area shape="rect" id="node23" href="$sparse_8h_source.html" title="sparse.h" alt="" coords="604,592,676,617"/>
+</map>
