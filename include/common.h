@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.7.1"
+#define _VERSION_ "v2.7.2"
 /* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
