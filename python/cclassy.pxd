@@ -36,6 +36,7 @@ cdef extern from "class.h":
         int index_bg_ang_distance
         int index_bg_lum_distance
         int index_bg_conf_distance
+        int index_bg_a
         int index_bg_H
         int index_bg_D
         int index_bg_f
@@ -169,6 +170,8 @@ cdef extern from "class.h":
         int l_max_tot
         int ** l_max_ct
         int ln_k_size
+        int ln_tau_size
+        int ln_tau_nl_size
         int ct_size
         int * ic_size
         int * ic_ic_size
@@ -190,6 +193,8 @@ cdef extern from "class.h":
         int * l_size
         int index_md_scalars
         double* ln_k
+        double* ln_tau
+        double* ln_tau_nl
         double sigma8
         double sigma8_cb
         double alpha_II_2_20
