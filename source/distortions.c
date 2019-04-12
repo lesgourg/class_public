@@ -614,9 +614,9 @@ int distortions_compute_heating_rate(struct background* pba,
   double bb_vis;
 
   /** Update heating table with second order contributions */
-  class_call(heating_add_noninjected(pba,pth,ppt,ppm),
+  /*class_call(heating_add_noninjected(pba,pth,ppt,ppm),
              phe->error_message,
-             psd->error_message);
+             psd->error_message);*/
 
   /** Allocate space for background vector */
   last_index_back = 0;
@@ -727,9 +727,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
 
   /** Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+  //psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  //psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
   /* Print found parameters */
   if (psd->distortions_verbose > 1){

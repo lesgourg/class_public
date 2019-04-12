@@ -2623,7 +2623,8 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 2) DM decay */
   /** 2.a) Energy fraction absorbed by the gas divided by the lifetime of the particle */
   /* Read */
-  class_read_double("decay_efficiency",phe->decay_efficiency);
+  class_read_double("decay_fraction",phe->decay_fraction);
+  class_read_double("decay_Gamma",phe->decay_Gamma);
 
 
   /** 3) Injection efficiency */
@@ -4618,7 +4619,8 @@ int input_default_params(struct background *pba,
 
   /** 2) DM deacy */
   /** 2.a) Energy fraction absorbed by the gas */
-  phe->decay_efficiency = 0.;
+  phe->decay_fraction = 0.;
+  phe->decay_Gamma = 0.;
 
   /** 3) Injection efficiency */
   phe->f_eff_type = f_eff_on_the_spot;

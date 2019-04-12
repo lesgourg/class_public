@@ -144,7 +144,7 @@ int heating_init(struct precision * ppr,
   phe->N_e0 = pth->n_e;
 
   /** Check energy injection */ //TODO :: do properly
-  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay_efficiency!=0;
+  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay_fraction!=0;
 
   /** Check energy injection for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
@@ -191,15 +191,15 @@ int heating_init(struct precision * ppr,
   phe->has_DM_ann = phe->annihilation_efficiency!=0;
 
   /** Check energy injection for DM deacy */
-  class_test((phe->decay_efficiency<0),
+  class_test((phe->decay_fraction<0),
              phe->error_message,
              "decay parameter cannot be negative");
 
-  class_test((phe->decay_efficiency>0)&&(pba->has_cdm==_FALSE_),
+  class_test((phe->decay_fraction>0)&&(pba->has_cdm==_FALSE_),
              phe->error_message,
              "CDM decay effects require the presence of CDM!");
 
-  phe->has_DM_dec = phe->decay_efficiency != 0;
+  phe->has_DM_dec = phe->decay_fraction != 0;
 
   /** Define redshift tables */
   phe->z_size = pth->tt_size;
@@ -392,18 +392,9 @@ int heating_calculate_at_z(struct background* pba,
   /** Import varying quantities from background structure */
   phe->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
+  phe->t = pvecback[pba->index_bg_time]/_s_over_Mpc_;                                               // [s]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_Jm3_over_Mpc2_;                                   // [J/m^3]
-  if(phe->has_DM_dec){
-    phe->rho_dcdm = pvecback[pba->index_bg_rho_dcdm]*_Jm3_over_Mpc2_;                               // [J/m^3]
-  }
-  else{
-    phe->rho_dcdm = 0.0;
-  }
-
-  phe->rho_g = pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_;
-
-  /** Import varying quantities from thermodynamics structure */
-
+  phe->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -1210,6 +1201,7 @@ int heating_rate_adiabatic_cooling(struct heating * phe,
   R_g = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * phe->rho_g );
   double heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);
   *energy_rate = R_g * phe->x_e / (1.+phe->x_e+phe->fHe) * (phe->T_b - T_g) * heat_capacity ;
+  //*energy_rate = -(3./2.)*phe->N_e0*pow(1.+z,3.)*(1.+phe->f_He+phe->x_e)*phe->H*_k_B_*T_g;          // [J/(m^3 s)]
 
   return _SUCCESS_;
 
@@ -1334,7 +1326,9 @@ int heating_rate_DM_decay(struct heating * phe,
   /** Define local variables */
 
   /** Calculate heating rates */
-  *energy_rate = phe->rho_cdm*phe->decay_efficiency;                                // [J/(m^3 s)]
+  *energy_rate = phe->rho_cdm*phe->decay_fraction*phe->decay_Gamma*
+                 exp(-phe->decay_Gamma*phe->t);                                // [J/(m^3 s)]
+  printf("%g  %g  %g\n",z, *energy_rate, phe->decay_Gamma*phe->t);
 
   return _SUCCESS_;
 }
