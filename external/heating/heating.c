@@ -1230,7 +1230,6 @@ int heating_rate_DM_decay(struct heating * phe,
   /** Calculate heating rates */
   *energy_rate = phe->rho_cdm*phe->decay_fraction*phe->decay_Gamma*
                  exp(-phe->decay_Gamma*phe->t);                                // [J/(m^3 s)]
-  printf("%g  %g  %g\n",z, *energy_rate, phe->decay_Gamma*phe->t);
 
   return _SUCCESS_;
 }

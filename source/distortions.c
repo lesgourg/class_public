@@ -141,7 +141,7 @@ int distortions_constants(struct background * pba,
 
   /** Define unit conventions */
   psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
-  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);
+  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_*1.e2,2.);   // TODO: factor 1.e2??
 
   /** Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;
@@ -572,7 +572,6 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
     }
 
-
     /* Free space allocated in distortions_read_br_data */
     class_call(distortions_free_br_data(psd),
                psd->error_message,
@@ -651,7 +650,7 @@ int distortions_compute_heating_rate(struct background* pba,
                psd->error_message);
     H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                                 // [1/s]
     a = pvecback[pba->index_bg_a];                                                                  // [-]
-    rho_g = pvecback[pba->index_bg_rho_g]*_GeVcm3_over_Mpc2_*_eV_*1e9*1.e6;                         // [J/m^3]
+    rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                          // [J/m^3]
 
     /* Black body visibility function */
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));                                              // [-]
@@ -765,12 +764,12 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     /* If no PCA analysis is required, the shapes have simple analistical form */
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
-                                                           pow(1.-exp(-psd->x[index_x]),2.);   // [-]
+                                                           pow(1.-exp(-psd->x[index_x]),2.);        // [-]
       psd->sd_shape_table[psd->index_type_y][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
                                                            (psd->x[index_x]*(1.+exp(-psd->x[index_x]))/
-                                                           (1.-exp(-psd->x[index_x]))-4.);     // [-]
+                                                           (1.-exp(-psd->x[index_x]))-4.);          // [-]
       psd->sd_shape_table[psd->index_type_mu][index_x] = psd->sd_shape_table[psd->index_type_g][index_x]*
-                                                           (1./2.19229-1./psd->x[index_x]);    // [-]
+                                                           (1./2.19229-1./psd->x[index_x]);         // [-]
     }
   }
   else{
