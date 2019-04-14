@@ -140,8 +140,8 @@ int distortions_constants(struct background * pba,
                           struct distortions * psd){
 
   /** Define unit conventions */
-  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;
-  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_*1.e2,2.);   // TODO: factor 1.e2??
+  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;                                                      // [GHz]
+  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);                                    // [W/(m^2 Hz sr)]
 
   /** Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;
@@ -613,9 +613,9 @@ int distortions_compute_heating_rate(struct background* pba,
   double bb_vis;
 
   /** Update heating table with second order contributions */
-  /*class_call(heating_add_noninjected(pba,pth,ppt,ppm),
+  class_call(heating_add_noninjected(pba,pth,ppt,ppm),
              phe->error_message,
-             psd->error_message);*/
+             psd->error_message);
 
   /** Allocate space for background vector */
   last_index_back = 0;
@@ -703,7 +703,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
               psd->error_message);
 
   /** Compute distortion amplitudes corresponding to each branching ratio (g, y and mu) */
-
   /* Define y, mu, g and mu_k from heating rates */
   for(index_type=0; index_type<psd->type_size; ++index_type){
     class_call(array_trapezoidal_convolution(psd->dQrho_dz_tot_screened,
@@ -726,9 +725,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
 
   /** Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  //psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  //psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
+  psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+  psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
 
   /* Print found parameters */
   if (psd->distortions_verbose > 1){
@@ -849,7 +848,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
   }
 
-  /** Allocate space for final spactral distortion */
+  /** Allocate space for final spectral distortion */
   class_alloc(psd->DI,
               psd->x_size*sizeof(double),
               psd->error_message);
@@ -1172,27 +1171,32 @@ int distortions_read_sd_data(struct precision * ppr,
   /** Read parameters */
   for(index_x=0; index_x<psd->PCA_Nnu; ++index_x){
     class_test(fscanf(infile,"%le",
-                      &(psd->PCA_nu[index_x]))!=1,                                          // [GHz]
+                      &(psd->PCA_nu[index_x]))!=1,                                                  // [GHz]
                       psd->error_message,
                       "Could not read z at line %i in file '%s'",index_x+headlines,sd_file);
     class_test(fscanf(infile,"%le",
-                      &(psd->PCA_G_T[index_x]))!=1,                                         // [10^-18 W/(m^2 Hz sr)]
+                      &(psd->PCA_G_T[index_x]))!=1,                                                 // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
                       "Could not read f_g at line %i in file '%s'",index_x+headlines,sd_file);
+    psd->PCA_G_T[index_x] /= (psd->DI_units*1.e18);                                                 // [-]
     class_test(fscanf(infile,"%le",
-                      &(psd->PCA_Y_SZ[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
+                      &(psd->PCA_Y_SZ[index_x]))!=1,                                                // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
                       "Could not read f_y at line %i in file '%s'",index_x+headlines,sd_file);
+    psd->PCA_Y_SZ[index_x] /= (psd->DI_units*1.e18);                                                // [-]
     class_test(fscanf(infile,"%le",
-                      &(psd->PCA_M_mu[index_x]))!=1,                                        // [10^-18 W/(m^2 Hz sr)]
+                      &(psd->PCA_M_mu[index_x]))!=1,                                                // [10^-18 W/(m^2 Hz sr)]
                       psd->error_message,
                       "Could not read f_mu at line %i in file '%s'",index_x+headlines,sd_file);
+    psd->PCA_M_mu[index_x] /= (psd->DI_units*1.e18);                                                // [-]
     for(index_k=0; index_k<psd->S_vec_size; ++index_k){
       class_test(fscanf(infile,"%le",
-                        &(psd->S_vec[index_k*psd->PCA_Nnu+index_x]))!=1,                       // [10^-18 W/(m^2 Hz sr)]
+                        &(psd->S_vec[index_k*psd->PCA_Nnu+index_x]))!=1,                            // [10^-18 W/(m^2 Hz sr)]
                         psd->error_message,
                         "Could not read E vector at line %i in file '%s'",index_x+headlines,sd_file);
+      psd->S_vec[index_k*psd->PCA_Nnu+index_x] /= (psd->DI_units*1.e18);                            // [-]
     }
+
   }
 
   return _SUCCESS_;

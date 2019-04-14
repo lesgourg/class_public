@@ -1432,7 +1432,6 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
-
   /** Read obsolete parameters */
   class_call(input_read_parameters_additional(pfc,ppr,pba,pth,
                                               errmsg),
@@ -4011,7 +4010,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     else if ( (strstr(string1,"exact") != NULL) ) {
       psd->branching_approx = bra_exact;
 
-      /** 2.1.a) Number of multipoles in PCA expansion */
+      /** 1.a.1) Number of multipoles in PCA expansion */
       /* Read */
       class_read_int("PCA_size",psd->N_PCA);
       /* Test */
@@ -4019,7 +4018,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
         psd->N_PCA = 6;
       }
 
-      /** 2.1.b) Detector name */
+      /** 1.a.2) Detector name */
       /* Read */
       class_call(parser_read_string(pfc,"distortions_detector",&string1,&flag1,errmsg),
                  errmsg,
@@ -4030,7 +4029,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
         psd->user_defined_name = _TRUE_;
       }
 
-      /** 2.1.c) Detector properties */
+      /** 1.a.3) Detector properties */
       /* Read */
       class_call(parser_read_double(pfc,"detector_nu_min",&param1,&flag1,errmsg),
                  errmsg,
@@ -4797,6 +4796,18 @@ int input_default_params(struct background *pba,
   ptr->lcmb_rescale=1.;
   ptr->lcmb_tilt=0.;
   ptr->lcmb_pivot=0.1;
+
+  /**
+   * Default to input_read_parameters_distortions
+   */
+
+  /** 1) Branching ratio approximation */
+  psd->branching_approx = bra_exact;
+  /** 1.a.1) Number of multipoles in PCA expansion */
+  psd->N_PCA=2;
+  /** 1.a.2) Detector name */
+  psd->user_defined_name = _TRUE_;
+  sprintf(psd->distortions_detector,"PIXIE");
 
   /**
    * Default to input_read_additional
