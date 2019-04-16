@@ -41,9 +41,8 @@ int heating_init(struct precision * ppr,
   phe->rho0_cdm = pba->Omega0_cdm*pow(phe->H0,2)*3/8./_PI_/_G_*_c_*_c_;                             // [J/m^3]
 
   /** Import constant quantities from thermodynamics structure */
-  phe->fHe = pth->fHe;
-  //phe->N_e0 = 3.*phe->H0*phe->H0*phe->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-phe->Y_He);
-  phe->N_e0 = pth->n_e;
+  phe->fHe = pth->fHe;                                                                              // [-]
+  phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
   /** Check energy injection */ //TODO :: do properly
   phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay_fraction!=0;
@@ -287,8 +286,8 @@ int heating_calculate_at_z(struct background* pba,
   /** Redefine input parameters */
   phe->T_b = Tmat;                                                                                  // [K]
   phe->x_e = x;                                                                                     // [-]
-  phe->nH = phe->N_e0 * pow(1.+ z , 3);
-  phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->f_He+x);
+  phe->nH = phe->N_e0*pow(1.+z,3);                                                                  // [1/m^3]
+  phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->f_He+phe->x_e);                               // [J/(K m^3)]
   dEdz_inj = 0.;
 
   /** Import varying quantities from background structure */
@@ -296,7 +295,7 @@ int heating_calculate_at_z(struct background* pba,
   phe->a = pvecback[pba->index_bg_a];                                                               // [-]
   phe->t = pvecback[pba->index_bg_time]/_s_over_Mpc_;                                               // [s]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_Jm3_over_Mpc2_;                                   // [J/m^3]
-  phe->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;
+  phe->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                       // [J/m^3]
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -751,7 +750,7 @@ int heating_add_noninjected(struct background* pba,
     phe->a = pvecback[pba->index_bg_a];                                                             // [-]
     phe->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                     // [J/m^3]
     R = (3./4.)*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];                        // [-]
-    phe->nH = phe->N_e0 * pow(phe->a, -3);
+    phe->nH = phe->N_e0*pow(phe->a,-3);
 
     class_call(thermodynamics_at_z(pba,
                                    pth,
@@ -767,7 +766,9 @@ int heating_add_noninjected(struct background* pba,
     phe->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));    // [Mpc^2]
     phe->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
     phe->T_b = pvecthermo[pth->index_th_Tb];                                                        // [K]
+    phe->T_g = phe->T_g0*pow(phe->a,-1);                                                            // [K]
     phe->x_e = pvecthermo[pth->index_th_xe];                                                        // [-]
+    phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->f_He+phe->x_e);                             // [J/(K m^3)]
 
     /** Injected energy that does not need to be deposited (i.e. adiabatic terms) */
     /* First order cooling of photons due to adiabatic interaction with baryons */
@@ -1095,15 +1096,15 @@ int heating_rate_adiabatic_cooling(struct heating * phe,
                                    double * energy_rate){
 
   /** Define local variables */
-  double T_g, R_g;
-
-  T_g = phe->T_g0*(1.+z);
+  double R_g;
 
   /** Calculate heating rates */
-  R_g = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * phe->rho_g );
-  double heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);
-  *energy_rate = R_g * phe->x_e / (1.+phe->x_e+phe->fHe) * (phe->T_b - T_g) * heat_capacity ;
-  //*energy_rate = -(3./2.)*phe->N_e0*pow(1.+z,3.)*(1.+phe->f_He+phe->x_e)*phe->H*_k_B_*T_g;          // [J/(m^3 s)]
+  R_g = (2.*_sigma_/_m_e_/_c_)*(4./3.*phe->rho_g);
+
+  //*energy_rate = R_g*phe->x_e/(1.+phe->x_e+phe->fHe)*(phe->T_b-phe->T_g)*phe->heat_capacity;      // [J/(m^3 s)]
+  *energy_rate = -phe->heat_capacity*phe->H*phe->T_g;                                               // [J/(m^3 s)]
+
+  //printf("%g    %g\n",z,phe->H*phe->T_g);
 
   return _SUCCESS_;
 
@@ -1207,7 +1208,7 @@ int heating_rate_DM_annihilation(struct heating * phe,
   }
 
   /** Calculate heating rates */
-  *energy_rate = pow(phe->rho_cdm/_c_,2.)*phe->annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
+  *energy_rate = pow(phe->rho_cdm,2.)*phe->annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
 
   return _SUCCESS_;
 }

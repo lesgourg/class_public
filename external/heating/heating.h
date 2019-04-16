@@ -65,6 +65,7 @@ struct heating{
   double rho_cdm;
   double rho_dcdm;
   double T_b;
+  double T_g;
   double x_e;
 
   /* Parameters from thermodynamics structure */

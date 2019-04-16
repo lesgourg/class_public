@@ -658,12 +658,12 @@ int distortions_compute_heating_rate(struct background* pba,
     /** Import quantities from heating structure */
     class_call(heating_photon_at_z(pth,
                                    psd->z[index_z],
-                                   &heat),
+                                   &heat),                                                          // [J/(m^3 s)]
                phe->error_message,
                psd->error_message);
 
     /** Calculate total heating rate */
-    psd->dQrho_dz_tot[index_z] = heat * a/(H*rho_g);                                                // [-]
+    psd->dQrho_dz_tot[index_z] = heat*a/(H*rho_g);                                                  // [-]
     psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
 
