@@ -30,7 +30,7 @@ int heating_init(struct precision * ppr,
   int index_inj, index_dep;
 
   /** Initialize indeces and parameters */
-  phe->last_index_chix = 0;
+  phe->last_index_x_chi = 0;
   phe->last_index_z_chi = 0;
   phe->last_index_z_feff = 0;
 
@@ -122,30 +122,35 @@ int heating_init(struct precision * ppr,
   phe->last_index_z = 0;
   phe->index_z_store = 0;
 
-  /** Read file for deposition function */
-  if(phe->f_eff_type == f_eff_from_file){
-    class_call(heating_read_feff_from_file(ppr,phe),
-               phe->error_message,
-               phe->error_message);
-  }
-
-  /** Read file for branching ratios */
-  if(phe->chi_type == chi_from_x_file){
-    class_call(heating_read_chi_x_from_file(ppr,phe),
-               phe->error_message,
-               phe->error_message);
-  }
-  else  if(phe->chi_type == chi_from_z_file){
-    class_call(heating_read_chi_z_from_file(ppr,phe),
-               phe->error_message,
-               phe->error_message);
-  }
-
   /** Define indeces of tables */
   phe->to_store = _FALSE_;
   class_call(heating_indices(pth),
              phe->error_message,
              phe->error_message);
+
+  /** Read file for deposition function */
+  if(phe->f_eff_type == f_eff_from_file){
+    class_call(heating_read_feff_from_file(ppr,phe,phe->f_eff_file),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  /** Read file for branching ratios */
+  if(phe->chi_type == chi_Galli){
+    class_call(heating_read_chi_x_from_file(ppr,phe,ppr->chi_z_Galli),
+               phe->error_message,
+               phe->error_message);
+  }
+  else if(phe->chi_type == chi_from_x_file){
+    class_call(heating_read_chi_x_from_file(ppr,phe,phe->chi_x_file),
+               phe->error_message,
+               phe->error_message);
+  }
+  else if(phe->chi_type == chi_from_z_file){
+    class_call(heating_read_chi_z_from_file(ppr,phe,phe->chi_z_file),
+               phe->error_message,
+               phe->error_message);
+  }
 
   /** Allocate tables and pvecs */
   class_alloc(phe->injection_table,
@@ -209,7 +214,6 @@ int heating_indices(struct thermo* pth){
   class_define_index(phe->index_dep_ionHe, _TRUE_, index_dep, 1);
   class_define_index(phe->index_dep_lya  , _TRUE_, index_dep, 1);
   class_define_index(phe->index_dep_lowE , _TRUE_, index_dep, 1);
-
   phe->dep_size = index_dep;
 
   return _SUCCESS_;
@@ -466,10 +470,25 @@ int heating_deposition_function_at_z(struct heating* phe,
   int index_dep;
 
   /** Read the deposition factors for each channel */
-  /* Coefficient as revised by Galli et al. 2013 (in fact it is an interpolation
-     by Vivian Poulin of columns 1 and 2 in Table V of Galli et al. 2013) */
-  /* Read file in ionization fraction */
-  if(phe->chi_type == chi_from_x_file){
+  /* Old approximation from Chen and Kamionkowski */
+  if(phe->chi_type == chi_CK){
+    if(x<1.){
+      phe->chi[phe->index_dep_heat]  = (1.+2.*x)/3.;
+      phe->chi[phe->index_dep_ionH]  = (1.-x)/3.;
+      phe->chi[phe->index_dep_ionHe] = 0.;
+      phe->chi[phe->index_dep_lya]   = (1.-x)/3.;
+      phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+    else{
+      phe->chi[phe->index_dep_heat]  = 1.;
+      phe->chi[phe->index_dep_ionH]  = 0.;
+      phe->chi[phe->index_dep_ionHe] = 0.;
+      phe->chi[phe->index_dep_lya]   = 0.;
+      phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+  }
+  /* Coefficient as revised by Galli et al. 2013 */
+  else if(phe->chi_type == chi_Galli){
     for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
       class_call(array_interpolate_spline_transposed(phe->chix_table,
                                                      phe->chix_size,
@@ -478,7 +497,48 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                      index_dep+1,
                                                      index_dep+phe->dep_size+1,
                                                      x,
-                                                     &phe->last_index_chix,
+                                                     &phe->last_index_x_chi,
+                                                     &(phe->chi[index_dep]),
+                                                     phe->error_message),
+                 phe->error_message,
+                 phe->error_message);
+    }
+  }
+  /* coefficient as revised by Slatyer 2013 */
+  else if(phe->chi_type == chi_Slatyer){
+    if(x<1.){
+      phe->chi[phe->index_dep_heat]  = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
+      phe->chi[phe->index_dep_ionH]  = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+      phe->chi[phe->index_dep_ionHe] = 0.;
+      phe->chi[phe->index_dep_lya]   = 0.;
+      phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+    else{
+      phe->chi[phe->index_dep_heat]  = 1.;
+      phe->chi[phe->index_dep_ionH]  = 0.;
+      phe->chi[phe->index_dep_ionHe] = 0.;
+      phe->chi[phe->index_dep_lya]   = 0.;
+      phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+  }
+  else if(phe->chi_type == chi_full_heating){
+    phe->chi[phe->index_dep_heat]  = 1.;
+    phe->chi[phe->index_dep_ionH]  = 0.;
+    phe->chi[phe->index_dep_ionHe] = 0.;
+    phe->chi[phe->index_dep_lya]   = 0.;
+    phe->chi[phe->index_dep_lowE]  = 0.;
+  }
+  /* Read file in ionization fraction */
+  else if(phe->chi_type == chi_from_x_file){
+    for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+      class_call(array_interpolate_spline_transposed(phe->chix_table,
+                                                     phe->chix_size,
+                                                     2*phe->dep_size+1,
+                                                     0,
+                                                     index_dep+1,
+                                                     index_dep+phe->dep_size+1,
+                                                     x,
+                                                     &phe->last_index_x_chi,
                                                      &(phe->chi[index_dep]),
                                                      phe->error_message),
                  phe->error_message,
@@ -502,66 +562,17 @@ int heating_deposition_function_at_z(struct heating* phe,
                  phe->error_message);
     }
   }
-  /* Old approximation from Chen and Kamionkowski */
-  else if(phe->chi_type == chi_from_SSCK){
-    if(x<1.){
-      phe->chi[phe->index_dep_heat]  = (1.+2.*x)/3.;
-      phe->chi[phe->index_dep_ionH]  = (1.-x)/3.;
-      phe->chi[phe->index_dep_ionHe] = 0.;
-      phe->chi[phe->index_dep_lya]   = (1.-x)/3.;
-      phe->chi[phe->index_dep_lowE]  = 0.;
-    }
-    else{
-      phe->chi[phe->index_dep_heat]  = 1.;
-      phe->chi[phe->index_dep_ionH]  = 0.;
-      phe->chi[phe->index_dep_ionHe] = 0.;
-      phe->chi[phe->index_dep_lya]   = 0.;
-      phe->chi[phe->index_dep_lowE]  = 0.;
-    }
-    /*
-      // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
-      if (x < 1.){
-        phe->chi[phe->index_dep_ionH] = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-      }
-      else{
-        phe->chi[phe->index_dep_ionH] = 0.;
-      }
-      // coefficient as revised by Slatyer et al. 2013 (in fact it is a fit by Vivian Poulin of columns 1 and 2 in Table V of Slatyer et al. 2013)
-      if (x < 1.)
-        chi_heat = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
-      else
-        chi_heat = 1.;
-    */
-
-    /*
-     * Recfast ::
-
-      double bHe_ion=branching_ratio_ions_Chen(XHeII/fHe);
-      double bHI_ion=branching_ratio_ions_Chen(XHII);
-      double b_heat =branching_ratio_heat_Chen(XHII, XHeII/fHe, fHe);
-      //
-      double fheat=2.0/3.0*const_e/const_kB/(1.0+fHe+XHII+XHeII);
-
-      dXHI_1s_dt+=-bHI_ion/13.6/(1.0+fHe)*dE_dt;
-      if(XHeII>0.0) dXHeI_1s_dt+=-bHe_ion/24.6*fHe/(1.0+fHe)*dE_dt;
-      drho_dt+=fheat*b_heat*dE_dt/Tg;
-
-     * */
-  }
-  else if(phe->chi_type == chi_full_heating){
-    phe->chi[phe->index_dep_heat]  = 1.;
-    phe->chi[phe->index_dep_ionH]  = 0.;
-    phe->chi[phe->index_dep_ionHe] = 0.;
-    phe->chi[phe->index_dep_lya]   = 0.;
-    phe->chi[phe->index_dep_lowE]  = 0.;
-  }
   else{
     class_stop(phe->error_message,"No valid deposition function has been found found.");
   }
 
   /** Read the correction factor f_eff */
+  /* For the on the spot, we take the user input */
+  if(phe->f_eff_type == f_eff_on_the_spot){
+    phe->f_eff = 1.;
+  }
   /* For the file, read in f_eff from file and multiply */
-  if(phe->f_eff_type == f_eff_from_file){
+  else if(phe->f_eff_type == f_eff_from_file){
     class_call(array_interpolate_spline_transposed(phe->feff_table,
                                                    phe->feff_z_size,
                                                    3,
@@ -574,10 +585,6 @@ int heating_deposition_function_at_z(struct heating* phe,
                                                    phe->error_message),
                phe->error_message,
                phe->error_message);
-  }
-  /* For the on the spot, we take the user input */
-  else if(phe->f_eff_type == f_eff_on_the_spot){
-    phe->f_eff = 1.;
   }
   /* Otherwise, something must have gone wrong */
   else{
@@ -628,6 +635,7 @@ int heating_photon_at_z(struct thermo* pth,
 
   return _SUCCESS_;
 }
+
 
 /**
  * Interpolates heating from precomputed table at a given value of z.
@@ -799,291 +807,6 @@ int heating_add_noninjected(struct background* pba,
 
 
 /**
- * Read and interpolate the branching ratio from external file, if the function
- * in the file is given with respect to redshift.
- *
- * @param ppr   Input: pointer to precision structure
- * @param phe   Input/Output: pointer to heating structure
- * @return the error status
- */
-int heating_read_chi_z_from_file(struct precision* ppr,
-                                 struct heating* phe){
-
-  /** Define local variables */
-  FILE * fA;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-  int headlines;
-  int index_z,index_dep;
-
-  phe->chiz_size = 0;
-
-  /* The file is assumed to contain:
-   *    - The number of lines of the file
-   *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
-   *      branching ratio at redshift z into different heating/ionization channels i */
-  class_test(phe->dep_size != 5,
-             phe->error_message,
-             "Invalid number of heating/ionization channels for chi(z) file");
-
-  if (phe->chi_type == chi_from_z_file) {
-    class_open(fA, phe->chi_z_file, "r", phe->error_message);
-  }
-  else{
-    class_stop(phe->error_message,
-               "Unknown chi type option");
-  }
-
-  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-    headlines++;
-
-    /* Eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-      left++;
-    }
-
-    /* Check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
-       be the beginning of some data (it is not a newline, a #, a %, etc.) */
-    if (left[0] > 39) {
-
-      /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
-         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (phe->chiz_size == 0) {
-
-        /* Read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&(phe->chiz_size)) != 1,
-                   phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
-                   headlines,phe->chi_z_file);
-
-        /* (z, chi_i)*/
-        class_alloc(phe->chiz_table,
-                    (2*phe->dep_size+1)*phe->chiz_size*sizeof(double),
-                    phe->error_message);
-      }
-      else {
-        /* Read coefficients */
-        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+0]), //z
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1]), //heat
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+2]), //lya
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+3]), //ionH
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+4]), //ionHe
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
-                         )!= 6,
-                   phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",
-                   headlines,phe->chi_z_file);
-        index_z++;
-      }
-    }
-  }
-
-  if(phe->chi_type == chi_from_z_file){
-    fclose(fA);
-  }
-
-  /* Spline in one dimension */
-  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-    class_call(array_spline(phe->chiz_table,
-                            2*phe->dep_size+1,
-                            phe->chiz_size,
-                            0,
-                            1+index_dep,
-                            1+index_dep+phe->dep_size,
-                            _SPLINE_NATURAL_,
-                            phe->error_message),
-               phe->error_message,
-               phe->error_message);
-  }
-
-  return _SUCCESS_;
-}
-
-
-/**
- * Read and interpolate the branching ratio from external file, if the function
- * in the file is given with respect to the fraction of free electrons X_e.
- *
- * @param ppr   Input: pointer to precision structure
- * @param phe   Input/Output: pointer to heating structure
- * @return the error status
- */
-int heating_read_chi_x_from_file(struct precision* ppr,
-                                 struct heating* phe){
-
-  /** Define local variables */
-  FILE * fA;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-  int headlines;
-  int index_x,index_dep;
-
-  phe->chix_size = 0;
-
-  /* The file is assumed to contain:
-   *    - The number of lines of the file
-   *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
-   *      branching ratio at redshift z into different heating/ionization channels i */
-  class_test(phe->dep_size != 5,
-             phe->error_message,
-             "Invalid number of heating/ionization channels for chi(x) file");
-
-  class_open(fA, phe->chi_x_file, "r", phe->error_message);
-
-
-  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-    headlines++;
-
-    /* Eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-      left++;
-    }
-
-    /* Check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
-       be the beginning of some data (it is not a newline, a #, a %, etc.) */
-    if (left[0] > 39) {
-
-      /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
-         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (phe->chix_size == 0) {
-
-        /* Read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&(phe->chix_size)) != 1,
-                   phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
-                   headlines,phe->chi_x_file);
-
-        /* (z, chi_i)*/
-        class_alloc(phe->chix_table,
-                    (2*phe->dep_size+1)*phe->chix_size*sizeof(double),
-                    phe->error_message);
-      }
-      else {
-        /* Read coefficients */
-        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
-                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+0]), //x
-                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+1]), //heat
-                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+2]), //lya
-                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+3]), //ionH
-                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+4]), //ionHe
-                          &(phe->chiz_table[index_x*(2*phe->dep_size+1)+5])  //lowE
-                         )!= 6,
-                   phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",
-                   headlines,phe->chi_x_file);
-        index_x++;
-      }
-    }
-  }
-
-  fclose(fA);
-
-  /* Spline in one dimension */
-  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-    class_call(array_spline(phe->chix_table,
-                            2*phe->dep_size+1,
-                            phe->chix_size,
-                            0,
-                            1+index_dep,
-                            1+index_dep+phe->dep_size,
-                            _SPLINE_NATURAL_,
-                            phe->error_message),
-               phe->error_message,
-               phe->error_message);
-  }
-
-  return _SUCCESS_;
-}
-
-
-/**
- * Read and interpolate the deposition function from external file.
- *
- * @param ppr   Input: pointer to precision structure
- * @param phe   Input/Output: pointer to heating structure
- * @return the error status
- */
-int heating_read_feff_from_file(struct precision* ppr,
-                                struct heating* phe){
-
-  /** Define local variables */
-  FILE * fA;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-  int headlines;
-  int index_z;
-
-  phe->feff_z_size = 0;
-
-  /* The file is assumed to contain:
-   *    - The number of lines of the file
-   *    - The columns ( z, f(z) ) where f(z) represents the "effective" fraction of energy deposited
-   *      into the medium  at redshift z, in presence of halo formation. */
-  class_open(fA,phe->f_eff_file, "r",phe->error_message);
-
-  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
-    headlines++;
-
-    /* Eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-      left++;
-    }
-
-    /* Check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
-       be the beginning of some data (it is not a newline, a #, a %, etc.) */
-    if (left[0] > 39) {
-
-      /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
-         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (phe->feff_z_size == 0) {
-
-        /* Read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&(phe->feff_z_size)) != 1,
-                   phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
-                   headlines,phe->f_eff_file);
-
-        /* (z, f, ddf)*/
-        class_alloc(phe->feff_table,
-                    3*phe->feff_z_size*sizeof(double),
-                    phe->error_message);
-      }
-      else {
-        /* Read coefficients */
-        class_test(sscanf(line,"%lg %lg",
-                          &(phe->feff_table[index_z*3+0]),
-                          &(phe->feff_table[index_z*3+1]))!= 2,
-                   phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",
-                   headlines,phe->f_eff_file);
-        index_z++;
-      }
-    }
-  }
-
-  fclose(fA);
-
-  /* Spline in one dimension */
-  class_call(array_spline(phe->feff_table,
-                          3,
-                          phe->feff_z_size,
-                          0,
-                          1,
-                          2,
-                          _SPLINE_NATURAL_,
-                          phe->error_message),
-             phe->error_message,
-             phe->error_message);
-
-  return _SUCCESS_;
-}
-
-
-/**
  * Calculate heating from adiabatic cooling of electrons and baryons.
  *
  * @param phe        Input: pointer to heating structure
@@ -1103,8 +826,6 @@ int heating_rate_adiabatic_cooling(struct heating * phe,
 
   //*energy_rate = R_g*phe->x_e/(1.+phe->x_e+phe->fHe)*(phe->T_b-phe->T_g)*phe->heat_capacity;      // [J/(m^3 s)]
   *energy_rate = -phe->heat_capacity*phe->H*phe->T_g;                                               // [J/(m^3 s)]
-
-  //printf("%g    %g\n",z,phe->H*phe->T_g);
 
   return _SUCCESS_;
 
@@ -1231,6 +952,282 @@ int heating_rate_DM_decay(struct heating * phe,
   /** Calculate heating rates */
   *energy_rate = phe->rho_cdm*phe->decay_fraction*phe->decay_Gamma*
                  exp(-phe->decay_Gamma*phe->t);                                // [J/(m^3 s)]
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Read and interpolate the deposition function from external file.
+ *
+ * @param ppr   Input: pointer to precision structure
+ * @param phe   Input/Output: pointer to heating structure
+ * @return the error status
+ */
+int heating_read_feff_from_file(struct precision* ppr,
+                                struct heating* phe,
+                                char* f_eff_file){
+
+  /** Define local variables */
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines;
+  int index_z;
+
+  phe->feff_z_size = 0;
+
+  /* The file is assumed to contain:
+   *    - The number of lines of the file
+   *    - The columns ( z, f(z) ) where f(z) represents the "effective" fraction of energy deposited
+   *      into the medium  at redshift z, in presence of halo formation. */
+  class_open(fA, f_eff_file, "r", phe->error_message);
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* Check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39) {
+
+      /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (phe->feff_z_size == 0) {
+
+        /* Read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&(phe->feff_z_size)) != 1,
+                   phe->error_message,
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                   headlines,f_eff_file);
+
+        /* (z, f, ddf)*/
+        class_alloc(phe->feff_table,
+                    3*phe->feff_z_size*sizeof(double),
+                    phe->error_message);
+      }
+      else {
+        /* Read coefficients */
+        class_test(sscanf(line,"%lg %lg",
+                          &(phe->feff_table[index_z*3+0]),  // z
+                          &(phe->feff_table[index_z*3+1])   // f_eff(z)
+                         ) != 2,
+                   phe->error_message,
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",
+                   headlines,f_eff_file);
+        index_z++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* Spline in one dimension */
+  class_call(array_spline(phe->feff_table,
+                          3,
+                          phe->feff_z_size,
+                          0,
+                          1,
+                          2,
+                          _SPLINE_NATURAL_,
+                          phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Read and interpolate the branching ratio from external file, if the function
+ * in the file is given with respect to redshift.
+ *
+ * @param ppr   Input: pointer to precision structure
+ * @param phe   Input/Output: pointer to heating structure
+ * @return the error status
+ */
+int heating_read_chi_z_from_file(struct precision* ppr,
+                                 struct heating* phe,
+                                 char* chi_z_file){
+
+  /** Define local variables */
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines;
+  int index_z,index_dep;
+
+  phe->chiz_size = 0;
+
+  /* The file is assumed to contain:
+   *    - The number of lines of the file
+   *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
+   *      branching ratio at redshift z into different heating/ionization channels i */
+
+  class_open(fA, chi_z_file, "r", phe->error_message);
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* Check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39) {
+
+      /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (phe->chiz_size == 0) {
+
+        /* Read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&(phe->chiz_size)) != 1,
+                   phe->error_message,
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                   headlines,chi_z_file);
+
+        /* (z, chi_i)*/
+        class_alloc(phe->chiz_table,
+                    (2*phe->dep_size+1)*phe->chiz_size*sizeof(double),
+                    phe->error_message);
+      }
+      else {
+        /* Read coefficients */
+        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+0]), //z
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1]), //heat
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+2]), //lya
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+3]), //ionH
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+4]), //ionHe
+                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
+                         )!= 6,
+                   phe->error_message,
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",
+                   headlines,chi_z_file);
+        index_z++;
+      }
+    }
+  }
+
+  if(phe->chi_type == chi_from_z_file){
+    fclose(fA);
+  }
+
+  /* Spline in one dimension */
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    class_call(array_spline(phe->chiz_table,
+                            2*phe->dep_size+1,
+                            phe->chiz_size,
+                            0,
+                            1+index_dep,
+                            1+index_dep+phe->dep_size,
+                            _SPLINE_NATURAL_,
+                            phe->error_message),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Read and interpolate the branching ratio from external file, if the function
+ * in the file is given with respect to the fraction of free electrons X_e.
+ *
+ * @param ppr   Input: pointer to precision structure
+ * @param phe   Input/Output: pointer to heating structure
+ * @return the error status
+ */
+int heating_read_chi_x_from_file(struct precision* ppr,
+                                 struct heating* phe,
+                                 char* chi_x_file){
+
+  /** Define local variables */
+  FILE * fA;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines;
+  int index_x,index_dep;
+
+  phe->chix_size = 0;
+
+  /* The file is assumed to contain:
+   *    - The number of lines of the file
+   *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
+   *      branching ratio at redshift z into different heating/ionization channels i */
+
+  class_open(fA, chi_x_file, "r", phe->error_message);
+
+  while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+      left++;
+    }
+
+    /* Check that the line is neither blank nor a comment. In ASCII, left[0]>39 means that first non-blank charachter might
+       be the beginning of some data (it is not a newline, a #, a %, etc.) */
+    if (left[0] > 39) {
+
+      /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
+         its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
+      if (phe->chix_size == 0) {
+
+        /* Read num_lines, infer size of arrays and allocate them */
+        class_test(sscanf(line,"%d",&(phe->chix_size)) != 1,
+                   phe->error_message,
+                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                   headlines, chi_x_file);
+
+        /* (z, chi_i)*/
+        class_alloc(phe->chix_table,
+                    (2*phe->dep_size+1)*phe->chix_size*sizeof(double),
+                    phe->error_message);
+      }
+      else {
+        /* Read coefficients */
+        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
+                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+0]), //x
+                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+1]), //heat
+                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+2]), //lya
+                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+3]), //ionH
+                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+4]), //ionHe
+                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+5])  //lowE
+                         )!= 6,
+                   phe->error_message,
+                   "could not read value of parameters coefficients in line %i in file '%s'\n",
+                   headlines,chi_x_file);
+        index_x++;
+      }
+    }
+  }
+
+  fclose(fA);
+
+  /* Spline in one dimension */
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    class_call(array_spline(phe->chix_table,
+                            2*phe->dep_size+1,
+                            phe->chix_size,
+                            0,
+                            1+index_dep,
+                            1+index_dep+phe->dep_size,
+                            _SPLINE_NATURAL_,
+                            phe->error_message),
+               phe->error_message,
+               phe->error_message);
+  }
 
   return _SUCCESS_;
 }

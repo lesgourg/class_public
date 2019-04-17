@@ -2655,12 +2655,14 @@ int input_read_parameters_heating(struct file_content * pfc,
                errmsg,
                errmsg);
     /* Test */
-   class_test(flag1==_FALSE_,
+   class_test(flag1 == _FALSE_,
                errmsg,
                "for the option 'from_file' for 'f_eff_type' the option 'f_eff_file' is required.");
     /* Complete set of parameters */
-    phe->f_eff_file=string1;
+    phe->f_eff_file = (char *) malloc(strlen(string1) + 1);
+    strcpy(phe->f_eff_file, string1);
   }
+  printf("%s\n", phe->f_eff_file);
 
 
   /** 4) deposition function */
@@ -2670,11 +2672,17 @@ int input_read_parameters_heating(struct file_content * pfc,
                errmsg);
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
-    if (strcmp(string1,"heat") == 0){
-      phe->chi_type = chi_full_heating;
+    if (strcmp(string1,"CK_2004") == 0){
+      phe->chi_type = chi_CK;
     }
-    else if (strcmp(string1,"SSCK") == 0){
-      phe->chi_type = chi_from_SSCK;
+    else if (strcmp(string1,"Galli_2013") == 0){
+      phe->chi_type = chi_Galli;
+    }
+    else if (strcmp(string1,"Slatyer_2013") == 0){
+      phe->chi_type = chi_Slatyer;
+    }
+    else if (strcmp(string1,"heat") == 0){
+      phe->chi_type = chi_full_heating;
     }
     else if (strcmp(string1,"from_x_file") == 0){
       phe->chi_type = chi_from_x_file;
@@ -2684,7 +2692,7 @@ int input_read_parameters_heating(struct file_content * pfc,
     }
     else{
       class_stop(errmsg,
-                   "You specified 'chi_type' as '%s'. It has to be one of {'heat','SSCK','from_x_file','from_z_file'}.",string1);
+                   "You specified 'chi_type' as '%s'. It has to be one of {'CK_2004','Galli_2013','Slatyer_2013','heat','from_x_file','from_z_file'}.",string1);
     }
   }
 
@@ -2695,12 +2703,14 @@ int input_read_parameters_heating(struct file_content * pfc,
                errmsg,
                errmsg);
     /* Test */
-    class_test(flag1==_FALSE_,
+    class_test(flag1 == _FALSE_,
                errmsg,
                "for the option 'from_x_file' or 'from_z_file' for 'chi_type' the option 'chi_file' is required.");
     /* Complete set of parameters */
-    phe->chi_z_file=string1;
-    phe->chi_x_file=string1;
+    phe->chi_z_file = (char *) malloc(strlen(string1) + 1);
+    strcpy(phe->chi_z_file, string1);
+    phe->chi_x_file = (char *) malloc(strlen(string1) + 1);
+    strcpy(phe->chi_x_file, string1);
   }
 
 
@@ -4631,7 +4641,7 @@ int input_default_params(struct background *pba,
   phe->f_eff_file = "/external/heating/example_f_eff_file.dat";
 
   /** 4) Deposition function */
-  phe->chi_type = chi_from_SSCK;
+  phe->chi_type = chi_CK;
   /** 4.1) External file */
   phe->chi_z_file = "/external/heating/example_chiz_file.dat";
   phe->chi_x_file = "/external/heating/example_chix_file.dat";

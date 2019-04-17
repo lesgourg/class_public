@@ -1,4 +1,4 @@
-# Example file: in this file chi(xe) is given.
+# Energy fractions from DM annihilation or decays, calculated in arXiv:1306.0563 by Galli et al. 2013
 # format: first line must contain the number of lines
 # other lines must contain (xe, chi_heat, chi_lya, chi_ionH, chi_ionHe, chi_lowE (E < 10.2eV))
 # blank lines and lines starting with # neglected

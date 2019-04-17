@@ -7,7 +7,7 @@
  * All heating parameters and evolution that other modules need to know.
  */
 enum f_eff_approx {f_eff_on_the_spot, f_eff_from_file};
-enum chi_approx {chi_full_heating, chi_from_SSCK, chi_from_x_file, chi_from_z_file};
+enum chi_approx {chi_CK, chi_Galli, chi_Slatyer, chi_full_heating, chi_from_x_file, chi_from_z_file};
 
 struct heating{
 
@@ -91,7 +91,6 @@ struct heating{
 
   //@}
 
-
   /** @name - Public tables and parameters */
 
   //@{
@@ -111,8 +110,8 @@ struct heating{
 
   int index_z_store;
 
-  /* TODO */
-  int last_index_chix;
+  /* X_e table */
+  int last_index_x_chi;
 
   /* Energy injection table */
   double** injection_table;
@@ -121,8 +120,12 @@ struct heating{
   int index_inj_DM_ann;
   int index_inj_DM_dec;
   int index_inj_tot;
-  //int index_dep_lowE;
   int inj_size;                  /** All contributions + total */
+
+  /* Injection efficiency table */
+  double f_eff;
+  int feff_z_size;
+  double* feff_table;
 
   /* Deposition function tables */
   double* chiz_table;
@@ -142,11 +145,6 @@ struct heating{
 
   /* Energy deposition vector */
   double* pvecdeposition;
-
-  /* Injection efficiency table */
-  double f_eff;
-  int feff_z_size;
-  double* feff_table;
 
    //@}
 
@@ -228,17 +226,6 @@ extern "C" {
                               struct perturbs* ppt,
                               struct primordial* ppm);
 
-  /* Branching ratios into the different channels */
-  int heating_read_chi_z_from_file(struct precision* ppr,
-                                   struct heating* phe);
-
-  int heating_read_chi_x_from_file(struct precision* ppr,
-                                   struct heating* phe);
-
-  /* Efficiency of energy deposition */
-  int heating_read_feff_from_file(struct precision* ppr,
-                                  struct heating* phe);
-
   /* Heating functions */
   int heating_rate_adiabatic_cooling(struct heating * phe,
                                      double z,
@@ -255,6 +242,21 @@ extern "C" {
   int heating_rate_DM_decay(struct heating * phe,
                             double z,
                             double * energy_rate);
+
+  /* Injection efficiency */
+  int heating_read_feff_from_file(struct precision* ppr,
+                                   struct heating* phe,
+                                   char* f_eff_file);
+
+  /* Deposition function */
+  int heating_read_chi_z_from_file(struct precision* ppr,
+                                   struct heating* phe,
+                                   char* chi_z_file);
+
+  int heating_read_chi_x_from_file(struct precision* ppr,
+                                   struct heating* phe,
+                                   char* chi_x_file);
+
 
 #ifdef __cplusplus
 }

@@ -2,8 +2,7 @@
 
 /*
  * Background Quantities
- * */
-
+ */
 
 /**
  * Default initial value of scale factor used in the integration of background quantities.
@@ -61,21 +60,21 @@ class_precision_parameter(tol_ncdm_initial_w,double,1.e-3)
  * Tolerance on the deviation of the conformal time of equality from the true value in 1/Mpc.
  */
 class_precision_parameter(tol_tau_eq,double,1.e-6)
+
 /*
  * Currently unused parameter.
  */
-//class_precision_parameter(safe_phi_scf,double,0.0)
 
+//class_precision_parameter(safe_phi_scf,double,0.0)
 /**
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
 class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [ML]
 
-
 /*
  *  Thermodynamical quantities
- * */
+ */
 
 /**
  * The initial z for the recfast calculation of the recombination history
@@ -105,6 +104,7 @@ class_precision_parameter(thermo_rate_smoothing_radius,int,50)
 /*
  * Recfast 1.4/1.5 parameters
  */
+
 class_precision_parameter(recfast_Heswitch,int,6)       /**< from recfast 1.4, specifies how accurate the Helium recombination should be handled */
 class_precision_parameter(recfast_fudge_He,double,0.86) /**< from recfast 1.4, fugde factor for Peeble's equation coefficient of Helium */
 class_precision_parameter(recfast_Hswitch,int,_TRUE_)   /**< from recfast 1.5, specifies how accurate the Hydrogen recombination should be handled */
@@ -135,23 +135,29 @@ class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, 
 /*
  * Hyrec Parameters
  */
+
 class_string_parameter(hyrec_Alpha_inf_file,"/external/HyRec2012/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
 class_string_parameter(hyrec_R_inf_file,"/external/HyRec2012/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
 class_string_parameter(hyrec_two_photon_tables_file,"/external/HyRec2012/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
 
-
 /*
  * Reionization parameters
  */
+
 class_precision_parameter(reionization_z_start_max,double,50.0) /**< Maximum starting value in z for reionization */
 class_precision_parameter(reionization_sampling,double,1.5e-2)  /**< Minimum sampling density in z during reionization */
 class_precision_parameter(reionization_optical_depth_tol,double,1.0e-4) /**< Relative tolerance on finding the user-given optical depth of reionization given a certain redshift of reionization */
 class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching optical depth corresponding to the redshift is started from an initial offset beyond z_reionization_start, multiplied by reionization_width */
 
 /*
- * Perturbation parameters
+ * Heating parameters
  */
 
+class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli et al chi approx file") /**< File containing the chi approximation according to Galli et al 2013 */
+
+/*
+ * Perturbation parameters
+ */
 
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
@@ -211,18 +217,15 @@ class_precision_parameter(gw_ini,double,1.0)      /**< initial condition for ten
  * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usually, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
  */
 class_precision_parameter(perturb_integration_stepsize,double,0.5)
-
 /**
  * default step \f$ d \tau \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
  */
 class_precision_parameter(perturb_sampling_stepsize,double,0.1)
-
 /**
  * control parameter for the precision of the perturbation integration,
  * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15
  */
 class_precision_parameter(tol_perturb_integration,double,1.0e-5)
-
 /**
  * cutoff relevant for controlling stiffness in the PPF scheme. It is
  * neccessary for the Runge-Kutta evolver, but not for ndf15. However,
@@ -230,19 +233,16 @@ class_precision_parameter(tol_perturb_integration,double,1.0e-5)
  * leave it on for both evolvers. (CAMB uses a cutoff value of 30.)
  */
 class_precision_parameter(c_gamma_k_H_square_max,double,1.0e3)
-
 /**
  * precision with which the code should determine (by bisection) the
  * times at which sources start being sampled, and at which
  * approximations must be switched on/off (units of Mpc)
  */
 class_precision_parameter(tol_tau_approx,double,1.0e-10)
-
 /**
  * method for switching off photon perturbations
  */
 class_precision_parameter(radiation_streaming_approximation,int,rsa_MD_with_reio)
-
 /**
  * when to switch off photon perturbations, ie when to switch
  * on photon free-streaming approximation (keep density and thtau, set
@@ -250,7 +250,6 @@ class_precision_parameter(radiation_streaming_approximation,int,rsa_MD_with_reio
  * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
  */
 class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0)
-
 /**
  * when to switch off photon perturbations, ie when to switch
  * on photon free-streaming approximation (keep density and theta, set
@@ -258,29 +257,23 @@ class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0
  * second condition:
  */
 class_precision_parameter(radiation_streaming_trigger_tau_c_over_tau,double,5.0)
-
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
-
 /**
  * when to switch off ur (massless neutrinos / ultra-relativistic
  * relics) fluid approximation
  */
 class_precision_parameter(ur_fluid_trigger_tau_over_tau_k,double,30.0)
-
 class_precision_parameter(ncdm_fluid_approximation,int,ncdmfa_CLASS) /**< method for non-cold dark matter fluid approximation */
-
 /**
  * when to switch off ncdm (massive neutrinos / non-cold
  * relics) fluid approximation
  */
 class_precision_parameter(ncdm_fluid_trigger_tau_over_tau_k,double,31.0)
-
 /**
  * whether CMB source functions can be approximated as zero when
  * visibility function g(tau) is tiny
  */
 class_precision_parameter(neglect_CMB_sources_below_visibility,double,1.0e-3)
-
 /**
  * The type of evolver to use: options are ndf15 or rk
  */
@@ -289,7 +282,6 @@ class_type_parameter(evolver,int,enum evolver_type,ndf15)
 /*
  * Primordial parameters
  */
-
 
 class_precision_parameter(k_per_decade_primordial,double,10.0) /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
@@ -313,7 +305,6 @@ class_precision_parameter(primordial_inflation_extra_efolds,double,2.0) /**< a s
 /*
  * Transfer function parameters
  */
-
 
 class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
 
@@ -398,7 +389,6 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
  * Nonlinear module precision parameters
  */
 
-
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
 
 class_precision_parameter(halofit_min_k_max,double,5.0) /**< when halofit is used, k_max must be
@@ -440,10 +430,10 @@ class_precision_parameter(num_mu_minus_lmax,int,70) /**< difference between num_
 class_precision_parameter(delta_l_max,int,500)/**< difference between l_max in unlensed and lensed spectra */
 class_precision_parameter(tol_gauss_legendre,double,ppr->smallest_allowed_variation) /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
 
-
 /*
- * [ML] Spectral distortions precision parameters
+ * Spectral distortions precision parameters
  */
+
 class_precision_parameter(distortions_z_min,double,1.02e3)
 class_precision_parameter(distortions_z_max,double,5.0e6)
 class_precision_parameter(distortions_z_size,int,400)
