@@ -3350,7 +3350,7 @@ int array_trapezoidal_convolution(
  * (Instead of a full LU decomposition)
  *
  **/
-int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, double* ynew, ErrorMsg errmsg){
+int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, double* ynew, double* dynew, ErrorMsg errmsg){
 
   double * xarr = x;
   double * yarr = y;
@@ -3390,7 +3390,9 @@ int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, d
   a/=div; b/=div; c/=div;
 
   xval = (xnew-xarr[0])/xarr[0];
+
   *ynew = yarr[0]+yarr[0]*(a*xval*xval + b*xval + c);
+  *dynew = yarr[0]*(2.*a/xarr[0]*xval + b/xarr[0]);
 
   return _SUCCESS_;
 }

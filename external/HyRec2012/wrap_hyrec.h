@@ -96,7 +96,7 @@ extern "C" {
                                         double z, double H, double T_b, double T_gamma,
                                         double* x_e, double* dxe_dlna);
 
-  int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e);
+  int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e, double* dxdlna);
 
   int thermodynamics_hyrec_free(struct thermohyrec* phy);
 

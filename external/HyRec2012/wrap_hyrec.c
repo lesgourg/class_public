@@ -23,7 +23,7 @@ int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
 
 
 
-#define _HYREC_N_EXTRAPOLATION_ 10
+#define _HYREC_N_EXTRAPOLATION_ 20
 int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
 
   if(phy->thermohyrec_verbose > 0){
@@ -466,10 +466,11 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e){
+int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e, double* dxdlna){
 
   int iz_goal;
   double z_goal,z_goalm1,frac,z_filled;
+  double dx_e_dz;
   double x[_HYREC_N_EXTRAPOLATION_];
   double y[_HYREC_N_EXTRAPOLATION_];
   int i;
@@ -477,6 +478,7 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e)
   /* If we are at early enough times, skip everything */
   if( z >= phy->zstart ){
     *x_e = 1. + 2. * phy->fHe;
+    *dxdlna = 0.;
     return _SUCCESS_;
   }
 
@@ -490,9 +492,10 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e)
       x[i] = (1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z-i)) - 1.;
       y[i] = phy->xe_output[phy->filled_until_index_z-i];
     }
-    class_call(array_extrapolate_quadratic(x,y,z,_HYREC_N_EXTRAPOLATION_,x_e,phy->error_message),
+    class_call(array_extrapolate_quadratic(x,y,z,_HYREC_N_EXTRAPOLATION_,x_e,&(dx_e_dz),phy->error_message),
                phy->error_message,
                phy->error_message);
+    *dxdlna = -(1.+z)*dx_e_dz;
     return _SUCCESS_;
   }
 
@@ -509,6 +512,7 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e)
   frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
 
   *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
+  *dxdlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
 
   return _SUCCESS_;
 }

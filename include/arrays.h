@@ -471,6 +471,7 @@ int array_integrate_all_trapzd_or_spline(
                                   double xnew,
                                   int x_size,
                                   double* ynew,
+                                  double* dynew,
                                   ErrorMsg errmsg);
   // [ML]
   int simpson_integration(

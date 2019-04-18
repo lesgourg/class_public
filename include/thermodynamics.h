@@ -263,7 +263,8 @@ struct thermo_vector {
 
   int index_x_H;        /**< index for hydrogen fraction in y */
   int index_x_He;       /**< index for helium fraction in y */
-  int index_Tmat;       /**< index for matter temperature fraction in y */
+  //int index_Tmat;       /**< index for matter temperature fraction in y */
+  int index_D_Tmat;
 
   double * y;           /**< vector of quantities to be integrated */
   double * dy;          /**< time-derivative of the same vector */
@@ -286,6 +287,9 @@ struct thermo_diffeq_workspace {
   double dx_H;
   double dx_He;
   double dx;
+  double dxdlna;
+
+  double x;
 
   double Tmat;
   double dTmat;
@@ -462,6 +466,13 @@ extern "C" {
                                               struct thermo_workspace * ptw,
                                               int current_ap);
 
+  int thermodynamics_solve_current_dxdlna(double z,
+                                          double * y,
+                                          double * dy,
+                                          struct thermo * pth,
+                                          struct thermo_workspace * ptw,
+                                          int current_ap);
+
   int thermodynamics_vector_init(struct precision * ppr,
                                  struct background * pba,
                                  struct thermo * pth,
@@ -556,6 +567,11 @@ extern "C" {
   int thermodynamics_print_output(struct background* pba, 
                                   struct thermo* pth);
 
+  int thermodynamics_x_analytic(double z,
+                              struct precision * ppr,
+                              struct thermo * pth,
+                              struct thermo_workspace * ptw,
+                              int current_ap);
 #ifdef __cplusplus
 }
 #endif
