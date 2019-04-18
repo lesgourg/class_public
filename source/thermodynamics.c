@@ -2020,8 +2020,8 @@ int thermodynamics_solve_derivs_new(double mz,
         - phe->pvecdeposition[phe->index_dep_heat]/heat_capacity / (Hz*(1.+z)) /* Heating from energy injection */
         - ptw->Tcmb;
   }
-  printf("Steady state z = %.30e => dlnepsdlna = %.30e , dT = %.30e \n",z,dlnepsdlna,ptw->Tcmb - eps*dlnepsdlna);
-  printf("z=%.30e => eps = %.30e (dT = %.30e, T = %.30e)\n",z,eps,dy[ptv->index_D_Tmat]+ ptw->Tcmb*(1.+z),Tmat);
+  //printf("Steady state z = %.30e => dlnepsdlna = %.30e , dT = %.30e \n",z,dlnepsdlna,ptw->Tcmb - eps*dlnepsdlna);
+  //printf("z=%.30e => eps = %.30e (dT = %.30e, T = %.30e)\n",z,eps,dy[ptv->index_D_Tmat]+ ptw->Tcmb*(1.+z),Tmat);
 
   /** time-invert derivatives (As the evolver evolves with -z, not with +z) */
   for(index_y=0;index_y<ptv->tv_size;index_y++){
@@ -2193,7 +2193,7 @@ int thermodynamics_solve_derivs(double mz,
 
   }
 
-  class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
+  class_call(heating_calculate_at_z(ppr,pba,pth,x,z,Tmat,pvecback),
              phe->error_message,
              error_message);
 
