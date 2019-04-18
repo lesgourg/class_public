@@ -154,6 +154,7 @@ class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching o
  */
 
 class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli et al chi approx file") /**< File containing the chi approximation according to Galli et al 2013 */
+class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshift from full heating to chosen approx for deposition function */
 
 /*
  * Perturbation parameters

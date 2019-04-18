@@ -1955,7 +1955,7 @@ int thermodynamics_solve_derivs(double mz,
   /** - Calculate heating */
   /* in case of energy injection, we currently neglect the contribution to helium ionization ! */
   /* Calculate the energy injection INCLUDING reionization ! */
-  class_call(heating_calculate_at_z(pba,pth,ptdw->x_reio,z,Tmat,pvecback),
+  class_call(heating_calculate_at_z(ppr,pba,pth,ptdw->x_reio,z,Tmat,pvecback),
              phe->error_message,
              error_message);
 

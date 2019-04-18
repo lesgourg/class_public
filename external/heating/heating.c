@@ -6,12 +6,12 @@
  *
  * The main goal of this module is to calculate the deposited energy in form of heating, ionization
  * and Lyman alpha processes. For more details see the description in the README file.
- *
  */
+
+
 #include "heating.h"
 #include "primordial.h"
 
-//TODO :: disable branching ratios before z > 2000, and replace with only heating
 
 /**
  * Initialize heating table.
@@ -44,70 +44,65 @@ int heating_init(struct precision * ppr,
   phe->fHe = pth->fHe;                                                                              // [-]
   phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
-  /** Check energy injection */ //TODO :: do properly
-  phe->has_exotic_injection = phe->annihilation_efficiency!=0 || phe->decay_fraction!=0;
+  /** Check energy injection */
+  if(phe->annihilation_efficiency!=0 || phe->decay_fraction!=0){
+    phe->has_exotic_injection = _TRUE_;
+  }
 
   /** Check energy injection for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
              phe->error_message,
              "annihilation parameter cannot be negative");
-
   class_test((phe->annihilation_efficiency>1.e-4),
              phe->error_message,
              "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",phe->annihilation_efficiency);
-
   class_test((phe->annihilation_variation>0),
              phe->error_message,
              "annihilation variation parameter must be negative (decreasing annihilation rate)");
-
   class_test((phe->annihilation_z<0),
              phe->error_message,
              "characteristic annihilation redshift cannot be negative");
-
   class_test((phe->annihilation_zmin<0),
              phe->error_message,
              "characteristic annihilation redshift cannot be negative");
-
   class_test((phe->annihilation_zmax<0),
              phe->error_message,
              "characteristic annihilation redshift cannot be negative");
-
   class_test((phe->annihilation_efficiency>0) && (pba->has_cdm==_FALSE_),
              phe->error_message,
              "CDM annihilation effects require the presence of CDM!");
-
   class_test((phe->annihilation_f_halo<0),
              phe->error_message,
              "Parameter for DM annihilation in halos cannot be negative");
-
   class_test((phe->annihilation_z_halo<0),
              phe->error_message,
              "Parameter for DM annihilation in halos cannot be negative");
-
   if (phe->heating_verbose > 0){
     if ((phe->annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
       printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
   } //TODO :: check if still occurs !!!
 
-  phe->has_DM_ann = phe->annihilation_efficiency!=0;
+  if(phe->annihilation_efficiency!=0){
+    phe->has_DM_ann = _TRUE_;
+  }
 
   /** Check energy injection for DM deacy */
   class_test((phe->decay_fraction<0),
              phe->error_message,
              "decay parameter cannot be negative");
-
   class_test((phe->decay_fraction>0)&&(pba->has_cdm==_FALSE_),
              phe->error_message,
              "CDM decay effects require the presence of CDM!");
 
-  phe->has_DM_dec = phe->decay_fraction != 0;
+  if(phe->decay_fraction!=0){
+    phe->has_DM_dec = _TRUE_;
+  }
 
   /** Define redshift tables */
   phe->z_size = pth->tt_size;
   class_alloc(phe->z_table,
               phe->z_size*sizeof(double),
               phe->error_message);
-
   memcpy(phe->z_table,
          pth->z_table,
          phe->z_size*sizeof(double));
@@ -274,7 +269,8 @@ int heating_free(struct thermo* pth){
  * @param pvecback    Output: vector of background quantities
  * @return the error status
  */
-int heating_calculate_at_z(struct background* pba,
+int heating_calculate_at_z(struct precision * ppr,
+                           struct background* pba,
                            struct thermo* pth,
                            double x,
                            double z,
@@ -337,7 +333,7 @@ int heating_calculate_at_z(struct background* pba,
              phe->error_message);
 
   /** Get the deposition and the efficiency functions */
-  class_call(heating_deposition_function_at_z(phe,
+  class_call(heating_deposition_function_at_z(ppr,phe,
                                               x,
                                               z),
              phe->error_message,
@@ -462,108 +458,119 @@ int heating_energy_injection_at_z(struct heating* phe,
  * @param z           Input: redshift
  * @return the error status
  */
-int heating_deposition_function_at_z(struct heating* phe,
+int heating_deposition_function_at_z(struct precision * ppr,
+                                     struct heating* phe,
                                      double x,
                                      double z){
 
   /** Define local variables */
   int index_dep;
 
-  /** Read the deposition factors for each channel */
-  /* Old approximation from Chen and Kamionkowski */
-  if(phe->chi_type == chi_CK){
-    if(x<1.){
-      phe->chi[phe->index_dep_heat]  = (1.+2.*x)/3.;
-      phe->chi[phe->index_dep_ionH]  = (1.-x)/3.;
-      phe->chi[phe->index_dep_ionHe] = 0.;
-      phe->chi[phe->index_dep_lya]   = (1.-x)/3.;
-      phe->chi[phe->index_dep_lowE]  = 0.;
-    }
-    else{
-      phe->chi[phe->index_dep_heat]  = 1.;
-      phe->chi[phe->index_dep_ionH]  = 0.;
-      phe->chi[phe->index_dep_ionHe] = 0.;
-      phe->chi[phe->index_dep_lya]   = 0.;
-      phe->chi[phe->index_dep_lowE]  = 0.;
-    }
-  }
-  /* Coefficient as revised by Galli et al. 2013 */
-  else if(phe->chi_type == chi_Galli){
-    for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-      class_call(array_interpolate_spline_transposed(phe->chix_table,
-                                                     phe->chix_size,
-                                                     2*phe->dep_size+1,
-                                                     0,
-                                                     index_dep+1,
-                                                     index_dep+phe->dep_size+1,
-                                                     x,
-                                                     &phe->last_index_x_chi,
-                                                     &(phe->chi[index_dep]),
-                                                     phe->error_message),
-                 phe->error_message,
-                 phe->error_message);
-    }
-  }
-  /* coefficient as revised by Slatyer 2013 */
-  else if(phe->chi_type == chi_Slatyer){
-    if(x<1.){
-      phe->chi[phe->index_dep_heat]  = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
-      phe->chi[phe->index_dep_ionH]  = 0.369202*pow(1.-pow(x,0.463929),1.70237);
-      phe->chi[phe->index_dep_ionHe] = 0.;
-      phe->chi[phe->index_dep_lya]   = 0.;
-      phe->chi[phe->index_dep_lowE]  = 0.;
-    }
-    else{
-      phe->chi[phe->index_dep_heat]  = 1.;
-      phe->chi[phe->index_dep_ionH]  = 0.;
-      phe->chi[phe->index_dep_ionHe] = 0.;
-      phe->chi[phe->index_dep_lya]   = 0.;
-      phe->chi[phe->index_dep_lowE]  = 0.;
-    }
-  }
-  else if(phe->chi_type == chi_full_heating){
+  if(z > ppr->z_start_chi_approx){
+    /** In the verz early universe, whole energy goes into heating */
     phe->chi[phe->index_dep_heat]  = 1.;
     phe->chi[phe->index_dep_ionH]  = 0.;
     phe->chi[phe->index_dep_ionHe] = 0.;
     phe->chi[phe->index_dep_lya]   = 0.;
     phe->chi[phe->index_dep_lowE]  = 0.;
   }
-  /* Read file in ionization fraction */
-  else if(phe->chi_type == chi_from_x_file){
-    for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-      class_call(array_interpolate_spline_transposed(phe->chix_table,
-                                                     phe->chix_size,
-                                                     2*phe->dep_size+1,
-                                                     0,
-                                                     index_dep+1,
-                                                     index_dep+phe->dep_size+1,
-                                                     x,
-                                                     &phe->last_index_x_chi,
-                                                     &(phe->chi[index_dep]),
-                                                     phe->error_message),
-                 phe->error_message,
-                 phe->error_message);
-    }
-  }
-  /* Read file in redshift */
-  else if(phe->chi_type == chi_from_z_file){
-    for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-      class_call(array_interpolate_spline_transposed(phe->chiz_table,
-                                                     phe->chiz_size,
-                                                     2*phe->dep_size+1,
-                                                     0,
-                                                     index_dep+1,
-                                                     index_dep+phe->dep_size+1,
-                                                     z,
-                                                     &phe->last_index_z_chi,
-                                                     &(phe->chi[index_dep]),
-                                                     phe->error_message),
-                 phe->error_message,
-                 phe->error_message);
-    }
-  }
   else{
-    class_stop(phe->error_message,"No valid deposition function has been found found.");
+    /** Read the deposition factors for each channel */
+    /* Old approximation from Chen and Kamionkowski */
+    if(phe->chi_type == chi_CK){
+      if(x<1.){
+        phe->chi[phe->index_dep_heat]  = (1.+2.*x)/3.;
+        phe->chi[phe->index_dep_ionH]  = (1.-x)/3.;
+        phe->chi[phe->index_dep_ionHe] = 0.;
+        phe->chi[phe->index_dep_lya]   = (1.-x)/3.;
+        phe->chi[phe->index_dep_lowE]  = 0.;
+      }
+      else{
+        phe->chi[phe->index_dep_heat]  = 1.;
+        phe->chi[phe->index_dep_ionH]  = 0.;
+        phe->chi[phe->index_dep_ionHe] = 0.;
+        phe->chi[phe->index_dep_lya]   = 0.;
+        phe->chi[phe->index_dep_lowE]  = 0.;
+      }
+    }
+    /* Coefficient as revised by Galli et al. 2013 */
+    else if(phe->chi_type == chi_Galli){
+      for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+        class_call(array_interpolate_spline_transposed(phe->chix_table,
+                                                       phe->chix_size,
+                                                       2*phe->dep_size+1,
+                                                       0,
+                                                       index_dep+1,
+                                                       index_dep+phe->dep_size+1,
+                                                       x,
+                                                       &phe->last_index_x_chi,
+                                                       &(phe->chi[index_dep]),
+                                                       phe->error_message),
+                   phe->error_message,
+                   phe->error_message);
+      }
+    }
+    /* coefficient as revised by Slatyer 2013 */
+    else if(phe->chi_type == chi_Slatyer){
+      if(x<1.){
+        phe->chi[phe->index_dep_heat]  = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
+        phe->chi[phe->index_dep_ionH]  = 0.369202*pow(1.-pow(x,0.463929),1.70237);
+        phe->chi[phe->index_dep_ionHe] = 0.;
+        phe->chi[phe->index_dep_lya]   = 0.;
+        phe->chi[phe->index_dep_lowE]  = 0.;
+      }
+      else{
+        phe->chi[phe->index_dep_heat]  = 1.;
+        phe->chi[phe->index_dep_ionH]  = 0.;
+        phe->chi[phe->index_dep_ionHe] = 0.;
+        phe->chi[phe->index_dep_lya]   = 0.;
+        phe->chi[phe->index_dep_lowE]  = 0.;
+      }
+    }
+    else if(phe->chi_type == chi_full_heating){
+      phe->chi[phe->index_dep_heat]  = 1.;
+      phe->chi[phe->index_dep_ionH]  = 0.;
+      phe->chi[phe->index_dep_ionHe] = 0.;
+      phe->chi[phe->index_dep_lya]   = 0.;
+      phe->chi[phe->index_dep_lowE]  = 0.;
+    }
+    /* Read file in ionization fraction */
+    else if(phe->chi_type == chi_from_x_file){
+      for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+        class_call(array_interpolate_spline_transposed(phe->chix_table,
+                                                       phe->chix_size,
+                                                       2*phe->dep_size+1,
+                                                       0,
+                                                       index_dep+1,
+                                                       index_dep+phe->dep_size+1,
+                                                       x,
+                                                       &phe->last_index_x_chi,
+                                                       &(phe->chi[index_dep]),
+                                                       phe->error_message),
+                   phe->error_message,
+                   phe->error_message);
+      }
+    }
+    /* Read file in redshift */
+    else if(phe->chi_type == chi_from_z_file){
+      for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+        class_call(array_interpolate_spline_transposed(phe->chiz_table,
+                                                       phe->chiz_size,
+                                                       2*phe->dep_size+1,
+                                                       0,
+                                                       index_dep+1,
+                                                       index_dep+phe->dep_size+1,
+                                                       z,
+                                                       &phe->last_index_z_chi,
+                                                       &(phe->chi[index_dep]),
+                                                       phe->error_message),
+                   phe->error_message,
+                   phe->error_message);
+      }
+    }
+    else{
+      class_stop(phe->error_message,"No valid deposition function has been found found.");
+    }
   }
 
   /** Read the correction factor f_eff */
@@ -595,80 +602,6 @@ int heating_deposition_function_at_z(struct heating* phe,
   /** Multiply deposition factors with overall correction factor */
   for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
     phe->chi[index_dep] *= phe->f_eff;
-  }
-
-  return _SUCCESS_;
-}
-
-
-/**
- * Interpolates heating from precomputed table at a given value of z.
- *
- * @param pth         Input: pointer to thermodynamics structure
- * @param z           Input: redshift
- * @return the error status
- */
-int heating_photon_at_z(struct thermo* pth,
-                        double z,
-                        double* heat){
-
-  /** Define local variables */
-  struct heating* phe = &(pth->he);
-  int index_dep;
-  double h,a,b;
-
-  /** Interpolate at required z in the table */
-  class_test(z < phe->filled_until_z,
-             phe->error_message,
-             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
-
-  class_call(array_spline_hunt(phe->z_table,
-                               phe->z_size,
-                               z,
-                               &(phe->last_index_z),
-                               &h,&a,&b,
-                               phe->error_message),
-           phe->error_message,
-           phe->error_message);
-
-  * heat = ( a*phe->photon_dep_table[phe->last_index_z] + b*phe->photon_dep_table[phe->last_index_z+1] );
-
-  return _SUCCESS_;
-}
-
-
-/**
- * Interpolates heating from precomputed table at a given value of z.
- *
- * @param pth         Input: pointer to thermodynamics structure
- * @param z           Input: redshift
- * @return the error status
- */
-int heating_baryon_at_z(struct thermo* pth,
-                        double z){
-
-  /** Define local variables */
-  struct heating* phe = &(pth->he);
-  int index_dep;
-  double h,a,b;
-
-  /** Interpolate at required z in the table */
-  class_test(z < phe->filled_until_z,
-             phe->error_message,
-             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
-
-  class_call(array_spline_hunt(phe->z_table,
-                               phe->z_size,
-                               z,
-                               &(phe->last_index_z),
-                               &h,&a,&b,
-                               phe->error_message),
-           phe->error_message,
-           phe->error_message);
-
-  for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
-    phe->pvecdeposition[index_dep] = ( a*phe->deposition_table[index_dep][phe->last_index_z]+
-                                        b*phe->deposition_table[index_dep][phe->last_index_z+1] );
   }
 
   return _SUCCESS_;
@@ -801,6 +734,80 @@ int heating_add_noninjected(struct background* pba,
   free(pvecthermo);
   free(phe->k);
   free(phe->pk_primordial_k);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Interpolates heating from precomputed table at a given value of z.
+ *
+ * @param pth         Input: pointer to thermodynamics structure
+ * @param z           Input: redshift
+ * @return the error status
+ */
+int heating_photon_at_z(struct thermo* pth,
+                        double z,
+                        double* heat){
+
+  /** Define local variables */
+  struct heating* phe = &(pth->he);
+  int index_dep;
+  double h,a,b;
+
+  /** Interpolate at required z in the table */
+  class_test(z < phe->filled_until_z,
+             phe->error_message,
+             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
+
+  class_call(array_spline_hunt(phe->z_table,
+                               phe->z_size,
+                               z,
+                               &(phe->last_index_z),
+                               &h,&a,&b,
+                               phe->error_message),
+           phe->error_message,
+           phe->error_message);
+
+  * heat = ( a*phe->photon_dep_table[phe->last_index_z] + b*phe->photon_dep_table[phe->last_index_z+1] );
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Interpolates heating from precomputed table at a given value of z.
+ *
+ * @param pth         Input: pointer to thermodynamics structure
+ * @param z           Input: redshift
+ * @return the error status
+ */
+int heating_baryon_at_z(struct thermo* pth,
+                        double z){
+
+  /** Define local variables */
+  struct heating* phe = &(pth->he);
+  int index_dep;
+  double h,a,b;
+
+  /** Interpolate at required z in the table */
+  class_test(z < phe->filled_until_z,
+             phe->error_message,
+             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",phe->filled_until_z,z);
+
+  class_call(array_spline_hunt(phe->z_table,
+                               phe->z_size,
+                               z,
+                               &(phe->last_index_z),
+                               &h,&a,&b,
+                               phe->error_message),
+           phe->error_message,
+           phe->error_message);
+
+  for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
+    phe->pvecdeposition[index_dep] = ( a*phe->deposition_table[index_dep][phe->last_index_z]+
+                                        b*phe->deposition_table[index_dep][phe->last_index_z+1] );
+  }
 
   return _SUCCESS_;
 }
@@ -946,8 +953,6 @@ int heating_rate_DM_annihilation(struct heating * phe,
 int heating_rate_DM_decay(struct heating * phe,
                           double z,
                           double * energy_rate){
-
-  /** Define local variables */
 
   /** Calculate heating rates */
   *energy_rate = phe->rho_cdm*phe->decay_fraction*phe->decay_Gamma*

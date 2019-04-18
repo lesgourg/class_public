@@ -77,7 +77,6 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   return _SUCCESS_;
-
 }
 
 
@@ -195,7 +194,7 @@ int distortions_set_detector(struct precision * ppr,
   if(psd->user_defined_name == _FALSE_){
     /* The user wants the default */
     if(psd->user_defined_detector == _FALSE_){
-      return _SUCCESS_; //Nothing more to do
+      return _SUCCESS_; // Nothing more to do
     }
     /* The user wants a new detector with specified settings, but without name */
     else{
@@ -279,7 +278,6 @@ int distortions_set_detector(struct precision * ppr,
   }
 
   return _SUCCESS_;
-
 }
 
 
@@ -327,7 +325,6 @@ int distortions_generate_detector(struct precision * ppr,
              "The command 'python ./external/distortions/generate_PCA_files.py' failed.\nPlease make sure the file exists.");
 
   return _SUCCESS_;
-
 }
 
 
@@ -581,7 +578,6 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   }
 
   return _SUCCESS_;
-
 }
 
 
@@ -670,7 +666,6 @@ int distortions_compute_heating_rate(struct background* pba,
   free(pvecback);
 
   return _SUCCESS_;
-
 }
 
 
@@ -960,7 +955,6 @@ int distortions_read_br_data(struct precision * ppr,
   }
 
   return _SUCCESS_;
-
 }
 
 
@@ -1025,7 +1019,6 @@ int distortions_spline_br_data(struct distortions* psd){
            psd->error_message);
 
   return _SUCCESS_;
-
 }
 
 
@@ -1092,7 +1085,6 @@ int distortions_interpolate_br_data(struct distortions* psd,
   *last_index = index;
 
   return _SUCCESS_;
-
 }
 
 
@@ -1115,7 +1107,6 @@ int distortions_free_br_data(struct distortions * psd){
   free(psd->ddE_vec);
 
   return _SUCCESS_;
-
 }
 
 
@@ -1200,7 +1191,6 @@ int distortions_read_sd_data(struct precision * ppr,
   }
 
   return _SUCCESS_;
-
 }
 
 
@@ -1265,7 +1255,6 @@ int distortions_spline_sd_data(struct distortions* psd){
            psd->error_message);
 
   return _SUCCESS_;
-
 }
 
 
@@ -1332,7 +1321,6 @@ int distortions_interpolate_sd_data(struct distortions* psd,
   *index = last_index;
 
   return _SUCCESS_;
-
 }
 
 
@@ -1434,6 +1422,3 @@ int distortions_output_data(struct distortions * psd,
 
   return _SUCCESS_;
 }
-
-
-

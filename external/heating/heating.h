@@ -199,7 +199,8 @@ extern "C" {
   int heating_free(struct thermo* pth);
 
   /* Main functions */
-  int heating_calculate_at_z(struct background* pba,
+  int heating_calculate_at_z(struct precision * ppr,
+                             struct background* pba,
                              struct thermo* pth,
                              double x,
                              double z,
@@ -210,9 +211,15 @@ extern "C" {
                                     double z,
                                     double* dEdz_inj);
 
-  int heating_deposition_function_at_z(struct heating* phe,
+  int heating_deposition_function_at_z(struct precision * ppr,
+                                       struct heating* phe,
                                        double x,
                                        double z);
+
+  int heating_add_noninjected(struct background* pba,
+                              struct thermo* pth,
+                              struct perturbs* ppt,
+                              struct primordial* ppm);
 
   int heating_photon_at_z(struct thermo* pth,
                           double z,
@@ -220,11 +227,6 @@ extern "C" {
 
   int heating_baryon_at_z(struct thermo* pth,
                           double z);
-
-  int heating_add_noninjected(struct background* pba,
-                              struct thermo* pth,
-                              struct perturbs* ppt,
-                              struct primordial* ppm);
 
   /* Heating functions */
   int heating_rate_adiabatic_cooling(struct heating * phe,
