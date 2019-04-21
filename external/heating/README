@@ -21,7 +21,7 @@ There are two different kinds of heating that are interesting here: the heating 
    influences, we do not expect the spectrum to be anywhere close to blackbody anyway. We thus do not
    model the spectral distortions of baryons.
 
-We thus decided to split the tables into 
+We thus decided to split the tables into
  - one which is the baryonic table, the 'deposition_table', that lists all of the
    contributions of energy deposition in the IGM to the state of the baryons, and
    is split among the different types of effects the energy deposition can have
@@ -44,13 +44,12 @@ To calculate the deposited energy, we first calculate the injected energy rate f
     (see also Carr et al. 2010 for useful discussion)
 
 Once the rate of energy injection is known, a so-called deposition function is evaluated, which determines the amount of energy effectively deposited into the different effects, i.e. heating, ionization of H, He, Lyman alpha, and low energy for baryons. Also in this case, there are several options
- 1) by setting 'chi_type' to 'chi_full_heating', the whole injected energy is going to be
-    deposited into heat,
- 2) by setting 'chi_type' to 'chi_from_SSCK', the SSCK approximation is employed,
- 3) by setting 'chi_type' to 'chi_from_x_file' or 'chi_from_z_file', the user can define own
-    deposition functions with respect to the free electron fraction x_e or to redshift, respectively.
-    The two files 'example_chix_file.dat' and 'example_chiz_file.dat' are given as example. Note that
-    'example_chix_file.dat' has been computed according to the approximations of Galli et al. 2013.
+ 1) by setting 'chi_type' to 'CK_2004', the approximation by Chen & Kamionkowski 2004 is employed,
+ 2) by setting 'chi_type' to 'Galli_2013', the approximation by Galli et al. 2013 is employed,
+ 3) by setting 'chi_type' to 'Slatyer_2013', the approximation by Slatyer 2013 is employed,
+ 4) by setting 'chi_type' to 'heat', the whole injected energy is going to be deposited into heat,
+ 5) by setting 'chi_type' to 'from_x_file' or 'from_z_file', the user can define own deposition
+    functions with respect to the free electron fraction x_e or to redshift, respectively.
 
 Furthermore, it is also possible to define a so-called injection efficiency, i.e. a factor determining how much of the heating is deposited at all, regardless of the form. There are two options to define this function
  1) the on-the-spot approximation, where the whole injected energy is transformed into deposited energy,
@@ -59,8 +58,8 @@ Furthermore, it is also possible to define a so-called injection efficiency, i.e
 
 However, in the above discussion, we have seen that baryons and photons both do receive heating, but react differently to it. In addition, there are some sources of spectral distortions that do not come from injected (and deposited) energy, usually related to the interactions of baryons and photons. This includes
  1) Adiabatically cooling electrons and barions during the thermal history as
-    photons and baryons are coupled due to Compton scattering (see Chluba & 
-    Sunyaev 2012, Khatri, Sunyaev & Chluba 2012 for useful discussions) 
+    photons and baryons are coupled due to Compton scattering (see Chluba &
+    Sunyaev 2012, Khatri, Sunyaev & Chluba 2012 for useful discussions)
  2) Dissipation of acoustic waves, a second order contribution evaluated only
     after the perturbations have been found, with two possible
     approximations

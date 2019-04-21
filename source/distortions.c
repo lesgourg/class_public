@@ -72,7 +72,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /** Define final spectral distortions */
-  class_call(distortions_compute_spectral_shapes(ppr,pba,psd),
+  class_call(distortions_compute_spectral_shapes(ppr,pba,pth,psd),
              psd->error_message,
              psd->error_message);
 
@@ -677,11 +677,13 @@ int distortions_compute_heating_rate(struct background* pba,
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to thermodynamics structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
 int distortions_compute_spectral_shapes(struct precision * ppr,
                                         struct background * pba,
+                                        struct thermo * pth,
                                         struct distortions * psd){
 
   /** Define local variables */
@@ -691,6 +693,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   double * integrand;
   double sum_S, sum_G;
   double g;
+  double y_reio, DI_reio;
 
   /** Allocate space for spectral distortion amplitude in table sd_parameter_table */
   class_alloc(psd->sd_parameter_table,
@@ -718,30 +721,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   psd->sd_parameter_table[psd->index_type_g] /= 4.;
   psd->sd_parameter_table[psd->index_type_y] /= 4.;
   psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
-
-  /** Include additional sources of distortions (see also Chluba 2016 for useful discussion) */
-  psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
-  psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
-  psd->sd_parameter_table[psd->index_type_y] += 1.77e-6;    // Reionization and structure formation (Hill et al. 2015)
-
-  /* Print found parameters */
-  if (psd->distortions_verbose > 1){
-
-    printf(" -> g-parameter %g\n", psd->sd_parameter_table[psd->index_type_g]);
-    if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
-      printf(" -> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
-    }
-    else{
-      printf(" -> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
-    }
-
-    if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
-      printf(" -> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
-    }
-    else{
-      printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
-    }
-  }
 
   /** Allocate space for distortions shapes in distortions_table */
   class_alloc(psd->sd_shape_table,
@@ -821,26 +800,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
       }
       psd->epsilon += (4.*sum_S/sum_G)*psd->sd_parameter_table[psd->index_type_PCA+index_k];
     }
-
-    /* Print found parameters */
-    if (psd->distortions_verbose > 1){
-       for(index_k=0; index_k<psd->N_PCA; ++index_k){
-         printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
-       }
-
-       printf(" -> epsilon-parameter = %g\n", psd->epsilon);
-    }
-  }
-
-  /** Compute total heating */
-  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
-                       psd->sd_parameter_table[psd->index_type_y]*4.+
-                       psd->sd_parameter_table[psd->index_type_mu]/1.401+
-                       psd->epsilon;
-
-  /* Print found parameter */
-  if (psd->distortions_verbose > 1){
-    printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
   }
 
   /** Allocate space for final spectral distortion */
@@ -874,6 +833,234 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
       psd->DI[index_x] += psd->sd_table[index_type][index_x];
     }
   }
+
+  /** Include additional sources of distortions */
+  /* Superposition of blackbodies */
+  //psd->sd_parameter_table[psd->index_type_y] += 2.525e-7;   // CMB Dipole (Chluba & Sunyaev 2004)
+  //psd->sd_parameter_table[psd->index_type_y] += 4.59e-13;   // CMB Quadrupole (Chluba & Sunyaev 2004)
+
+  /* Reionization */
+  if(psd->has_SZ_effect == _TRUE_){
+    for(index_x=0;index_x<psd->x_size;++index_x){
+      class_call(distortions_add_effects_reio(pba,pth,psd,
+                                              1.e1,
+                                              1.e-4,
+                                              1.e-2,
+                                              1.e-2,
+                                              psd->x[index_x],
+                                              &y_reio,
+                                              &DI_reio),
+                 psd->error_message,
+                 psd->error_message);
+      psd->DI[index_x] += DI_reio;
+    }
+
+    psd->sd_parameter_table[psd->index_type_y] += y_reio;
+  }
+
+  /** Compute total heating */
+  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
+                       psd->sd_parameter_table[psd->index_type_y]*4.+
+                       psd->sd_parameter_table[psd->index_type_mu]/1.401+
+                       psd->epsilon;
+
+  /** Print found parameters */
+  if (psd->distortions_verbose > 1){
+
+    printf(" -> g-parameter %g\n", psd->sd_parameter_table[psd->index_type_g]);
+
+    if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
+      printf(" -> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);
+    }
+    else{
+      printf(" -> mu-parameter = %g\n", psd->sd_parameter_table[psd->index_type_mu]);
+    }
+
+    if (psd->sd_parameter_table[psd->index_type_y]>1.5e-5) {
+      printf(" -> y-parameter = %g. WARNING: The value of your y-parameter is larger than the FIRAS constraint y<1.5e-5.\n", psd->sd_parameter_table[psd->index_type_y]);
+    }
+    else{
+      printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
+    }
+
+    if(psd->branching_approx == bra_exact && psd->N_PCA != 0){
+       for(index_k=0; index_k<psd->N_PCA; ++index_k){
+         printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
+       }
+       printf(" -> epsilon-parameter = %g\n", psd->epsilon);
+    }
+
+    printf(" -> total injected/extracted heat = %g\n", psd->Drho_over_rho);
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Compute relativistic contribution from reionization and structure
+ * formation according to Nozawa et al. 2006 (up to order 3 in theta_e).
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pth        Input: pointer to thermodynamics structure
+ * @param psd        Input: pointer to the distortions structure
+ * @param T_e        Input: electron temperature in keV
+ * @param Dtau       Input: optical depth
+ * @param beta       Input: peculiar velocity of the cluster
+ * @param beta_z     Input: peculiar velocity of the cluster with respect to the line-of-sight
+ * @param x          Input: dimensionless frequency
+ * @param y_reio     Output: y-parameter
+ * @param DI_reio    Output: spectral distortion
+ * @return the error status
+ */
+int distortions_add_effects_reio(struct background * pba,
+                                 struct thermo * pth,
+                                 struct distortions * psd,
+                                 double T_e,
+                                 double Dtau,
+                                 double beta,
+                                 double beta_z,
+                                 double x,
+                                 double * y_reio,
+                                 double * DI_reio){
+
+  /** Define local variables */
+  double theta_e, cos_theta, P_1, P_2, x_tilde, S_tilde;
+  double G_T, Y_SZ;
+  double Y_0, Y_1, Y_2;
+  double DI_TSZ_non_rel, DI_TSZ_rel, DI_TSZ;
+  double B_0, B_1, B_2, B_3;
+  double C_0, C_1, C_2, C_3;
+  double D_0, D_1, D_2, D_3;
+  double DI_kSZ;
+
+  /* Compute related quantities */
+  theta_e = T_e*1.e3/(_m_e_/_GeV_over_kg_*1.e9);
+  cos_theta = beta_z/beta;
+  P_1 = cos_theta;
+  P_2 = (3.*pow(cos_theta,2.)-1.)/2.;
+  x_tilde = x/tanh(x/2.);  // coth=1/tanh
+  S_tilde = x/sinh(x/2.);
+
+  G_T = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.);
+  Y_SZ = G_T*(x_tilde-4.);
+
+  /** Thermal SZ effect (TSZ) */
+  Y_0 = -4.
+        +x_tilde;
+  Y_1 = -10.
+        +47.*x_tilde/2.
+        -42.*pow(x_tilde,2.)/5.
+        +7.*pow(x_tilde,3.)/10.
+        +pow(S_tilde,2.)*(-21./5.
+                          +7.*x_tilde/5.);
+  Y_2 = -15./2.
+        +1023.*x_tilde/8.
+        -868.*pow(x_tilde,2.)/5.
+        +329.*pow(x_tilde,3.)/5.
+        -44.*pow(x_tilde,4.)/5.
+        +11.*pow(x_tilde,5.)/30.
+        +pow(S_tilde,2.)*(-434./5.
+                          +658.*x_tilde/5.
+                          -242.*pow(x_tilde,2.)/5.
+                          +143.*pow(x_tilde,3.)/30.)
+        +pow(S_tilde,4.)*(-44./5.
+                          +187.*x_tilde/60.);
+
+  DI_TSZ_non_rel = theta_e*Dtau*Y_SZ;
+  DI_TSZ_rel = theta_e*Dtau*Y_SZ*(theta_e*Y_1+pow(theta_e,2.)*Y_2)/Y_0;
+  DI_TSZ = DI_TSZ_non_rel+DI_TSZ_rel;
+
+  /** Kinematic SZ effect (kSZ) */
+  B_0 = 1.*Y_0/3.;
+  B_1 = 5.*Y_0/6.
+        +2.*Y_1/3.;
+  B_2 = 5.*Y_0/8.
+        +3.*Y_1/2.
+        +Y_2;
+  B_3 = -5.*Y_0/8.
+        +5.*Y_1/4.
+        +5.*Y_2/2.;
+
+  C_0 = 1.;
+  C_1 = 10.
+        -47.*x_tilde/5.
+        +7.*pow(x_tilde,2.)/5.
+        +7.*pow(S_tilde,2.)/10.;
+  C_2 = 25.
+        -1117.*x_tilde/10.
+        +847.*pow(x_tilde,2.)/10.
+        -183.*pow(x_tilde,3.)/10.
+        +11.*pow(x_tilde,4.)/10.
+        +pow(S_tilde,2.)*(847./20.
+                          -183.*x_tilde/5.
+                          +121.*pow(x_tilde,2.)/20.)
+        +11.*pow(S_tilde,4.)/10.;
+  C_3 = 75./4.
+        -21873.*x_tilde/40.
+        +49161.*pow(x_tilde,2.)/40.
+        -27519.*pow(x_tilde,3.)/35.
+        +6684.*pow(x_tilde,4.)/35.
+        -3917.*pow(x_tilde,5.)/210.
+        +64.*pow(x_tilde,6.)/105.
+        +pow(S_tilde,2.)*(49161./80.
+                          -55038.*x_tilde/35.
+                          +36762.*pow(x_tilde,2.)/35.
+                          -50921.*pow(x_tilde,3.)/210.
+                          +608.*pow(x_tilde,4.)/35.)
+        +pow(S_tilde,4.)*(6684./35.
+                          -66589.*x_tilde/420.
+                          +192.*pow(x_tilde,2.)/7.)
+        +272.*pow(S_tilde,6.)/105.;
+
+  D_0 = -2./3.
+        +11.*x_tilde/30.;
+  D_1 = -4.
+        +12.*x_tilde
+        -6.*pow(x_tilde,2.)
+        +19.*pow(S_tilde,2.)/30.;
+        +pow(S_tilde,2.)*(-3.
+                          +19.*x_tilde/15.);
+ D_2 = -10.
+        +542.*x_tilde/5.
+        -843.*pow(x_tilde,2.)/5.
+        +10603.*pow(x_tilde,3.)/140.
+        -409.*pow(x_tilde,4.)/35.
+        +23.*pow(x_tilde,4.)/42.
+        +pow(S_tilde,2.)*(-843./10.
+                          +10603.*x_tilde/70.
+                          -4499.*pow(x_tilde,2.)/70.
+                          +299.*pow(x_tilde,3.)/42.)
+        +pow(S_tilde,4.)*(-409./35.
+                          +391.*x_tilde/84.);
+  D_3 = -15./2.
+        +4929.*x_tilde/40.
+        -39777.*pow(x_tilde,2.)/20.
+        +1199897.*pow(x_tilde,3.)/560.
+        -4392.*pow(x_tilde,4.)/5.
+        +16364.*pow(x_tilde,5.)/105.
+        -3764.*pow(x_tilde,6.)/315.
+        +101.*pow(x_tilde,7.)/315.
+        +pow(S_tilde,2.)*(-39777./40.
+                          +1199897.*x_tilde/280.
+                          -24156.*pow(x_tilde,2.)/5.
+                          +212732.*pow(x_tilde,3.)/105.
+                          -35758.*pow(x_tilde,4.)/105.
+                          +404.*pow(x_tilde,5.)/21.)
+        +pow(S_tilde,4.)*(-4392./5.
+                          +139094.*x_tilde/105.
+                          -3764.*pow(x_tilde,2.)/7.
+                          +6464.*pow(x_tilde,3.)/105.)
+        +pow(S_tilde,6.)*(-15997./315.
+                          +6262.*x_tilde/315.);
+
+  DI_kSZ = Dtau*G_T*(pow(beta,2.)*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3)+
+                     beta*P_1*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3)+
+                     pow(beta,2.)*P_2*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3)
+                    );
+
+  *y_reio = theta_e*Dtau;
+  *DI_reio = DI_TSZ+DI_kSZ;
 
   return _SUCCESS_;
 }

@@ -4087,6 +4087,15 @@ int input_read_parameters_distortions(struct file_content * pfc,
                "The PCA expansion is possible only for 'branching_approx = exact'");
   }
 
+
+  /** 2) Include SZ effect from reionization? */
+  class_call(parser_read_string(pfc,"include_SZ_effect",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))){
+    psd->has_SZ_effect = _TRUE_;
+  }
+
   return _SUCCESS_;
 
 }
@@ -4818,6 +4827,9 @@ int input_default_params(struct background *pba,
   /** 1.a.2) Detector name */
   psd->user_defined_name = _TRUE_;
   sprintf(psd->distortions_detector,"PIXIE");
+
+  /** 2) Include SZ effect from reionization? */
+  psd->has_SZ_effect = _FALSE_;
 
   /**
    * Default to input_read_additional

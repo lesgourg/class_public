@@ -133,6 +133,8 @@ struct distortions
   int user_defined_detector;
   int user_defined_name;
 
+  int has_SZ_effect;
+
   short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message;    /**< zone for writing error messages */
@@ -191,7 +193,20 @@ extern "C" {
 
   int distortions_compute_spectral_shapes(struct precision * ppr,
                                           struct background * pba,
+                                          struct thermo * pth,
                                           struct distortions * psd);
+
+  /* Additional sources of distortions due to recombination and LSS formation */
+  int distortions_add_effects_reio(struct background * pba,
+                                   struct thermo * pth,
+                                   struct distortions * psd,
+                                   double T_e,
+                                   double Dtau,
+                                   double beta,
+                                   double beta_z,
+                                   double x,
+                                   double * y_reio,
+                                   double * DI);
 
   /* PCA decomposition (branching ratios and spectral shapes) for known detector */
   int distortions_read_br_data(struct precision * ppr,
