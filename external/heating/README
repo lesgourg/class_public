@@ -1,6 +1,8 @@
-The main goal of this module is to calculate the deposited energy in form of heating, ionization and Lyman alpha processes.
+The main goal of this module is to calculate the deposited energy in form of heating, ionization
+and Lyman alpha processes.
 
-There are two different kinds of heating that are interesting here: the heating of the baryons and the heating of the photons.
+There are two different kinds of heating that are interesting here: the heating of the baryons and
+the heating of the photons.
  - For photons, we do not actually calculate any changes in their temperature or density etc.
    Instead, we simply model any energy that modifies the photon spectrum as a small
    distortion to the blackbody spectrum. This either manifests in tiny temperature shifts
@@ -22,20 +24,19 @@ There are two different kinds of heating that are interesting here: the heating 
    model the spectral distortions of baryons.
 
 We thus decided to split the tables into
- - one which is the baryonic table, the 'deposition_table', that lists all of the
-   contributions of energy deposition in the IGM to the state of the baryons, and
-   is split among the different types of effects the energy deposition can have
-   (dep_type), and
- - one, the 'photon_dep_table', which lists the energy deposition into the photon
-   fluid. Of course, the only thing the energy deposition does there is create
-   spectral distortions (including g / dT distortions). Thus, we do not to split
-   it into different effect types as we do for the baryons.
+ - one which is the baryonic table, the 'deposition_table', that lists all of the contributions of energy
+   deposition in the IGM to the state of the baryons, and is split among the different types of effects
+   the energy deposition can have (dep_type), and
+ - one, the 'photon_dep_table', which lists the energy deposition into the photon fluid. Of course, the
+   only thing the energy deposition does there is create spectral distortions (including g / dT distortions).
+   Thus, we do not to split it into different effect types as we do for the baryons.
 
-To calculate the deposited energy, we first calculate the injected energy rate for different physical effects, e.g.
- 1) Annihilating particles (e.g. dark matter) as described in Chluba 2010 and Chluba
-    & Sunyaev 2012. (see also Chluba 2013 for useful discussion)
- 2) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012
+To calculate the deposited energy, we first calculate the injected energy rate for different physical
+effects, e.g.
+ 1) Annihilating particles (e.g. dark matter) as described in Chluba 2010 and Chluba & Sunyaev 2012.
     (see also Chluba 2013 for useful discussion)
+ 2) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012 (see also
+    Chluba 2013 for useful discussion)
  3) Evaporation of primordial black holes as described in Poulin et al. 2017 (see also
     Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions) (TODO)
  4) Acctretion of matter into primordial black holes both via
@@ -43,7 +44,9 @@ To calculate the deposited energy, we first calculate the injected energy rate f
      b) Disk accretion as described in Poulin et al. 2017 (TODO)
     (see also Carr et al. 2010 for useful discussion)
 
-Once the rate of energy injection is known, a so-called deposition function is evaluated, which determines the amount of energy effectively deposited into the different effects, i.e. heating, ionization of H, He, Lyman alpha, and low energy for baryons. Also in this case, there are several options
+Once the rate of energy injection is known, a so-called deposition function is evaluated, which
+determines the amount of energy effectively deposited into the different effects, i.e. heating,
+ionization of H, He, Lyman alpha, and low energy for baryons. Also in this case, there are several options
  1) by setting 'chi_type' to 'CK_2004', the approximation by Chen & Kamionkowski 2004 is employed,
  2) by setting 'chi_type' to 'Galli_2013', the approximation by Galli et al. 2013 is employed,
  3) by setting 'chi_type' to 'Slatyer_2013', the approximation by Slatyer 2013 is employed,
@@ -51,26 +54,36 @@ Once the rate of energy injection is known, a so-called deposition function is e
  5) by setting 'chi_type' to 'from_x_file' or 'from_z_file', the user can define own deposition
     functions with respect to the free electron fraction x_e or to redshift, respectively.
 
-Furthermore, it is also possible to define a so-called injection efficiency, i.e. a factor determining how much of the heating is deposited at all, regardless of the form. There are two options to define this function
+Furthermore, it is also possible to define a so-called injection efficiency, i.e. a factor
+determining how much of the heating is deposited at all, regardless of the form. There are two
+options to define this function
  1) the on-the-spot approximation, where the whole injected energy is transformed into deposited energy,
     i.e. f_eff=1, and
  2) reading a precomputed function from an external file.
 
-However, in the above discussion, we have seen that baryons and photons both do receive heating, but react differently to it. In addition, there are some sources of spectral distortions that do not come from injected (and deposited) energy, usually related to the interactions of baryons and photons. This includes
- 1) Adiabatically cooling electrons and barions during the thermal history as
-    photons and baryons are coupled due to Compton scattering (see Chluba &
-    Sunyaev 2012, Khatri, Sunyaev & Chluba 2012 for useful discussions)
- 2) Dissipation of acoustic waves, a second order contribution evaluated only
-    after the perturbations have been found, with two possible
-    approximations
+However, in the above discussion, we have seen that baryons and photons both do receive heating,
+but react differently to it. In addition, there are some sources of spectral distortions that do not
+come from injected (and deposited) energy, usually related to the interactions of baryons and
+photons. This includes
+ 1) Adiabatically cooling electrons and barions during the thermal history as photons and baryons are
+    coupled due to Compton scattering (see Chluba & Sunyaev 2012, Khatri, Sunyaev & Chluba 2012 for
+    useful discussions)
+ 2) Dissipation of acoustic waves, a second order contribution evaluated only after the perturbations
+    have been found, with two possible approximations
      a) Eq. 42 from Chluba, Khatri & Sunyaev 2012 (approximated to Y_SZ*S_ac) (TODO)
      b) Eq. 45 from Chluba, Khatri & Sunyaev 2012
     (The user can select the preferred option with 'heating approx'=yes/no)
-    (see Chluba, Khatri & Sunyaev 2012  Chluba 2013 and Diacoumis & Wong 2017
-    for useful discussions)
+    (see Chluba, Khatri & Sunyaev 2012  Chluba 2013 and Diacoumis & Wong 2017 for useful discussions)
  3) Cosmological recombination radiation as described in Chluba & Ali-Haimoud 2016 (TODO)
-All of these additional term, which are not injected and deposited into the IGM in the usual sense, are grouped within the function 'heating_add_noninjected'.
+ 4) Kinetic and thermal SZ effect due to reionization and LSS formation (see Nozawa et al. 2006 and
+    Hill et al. 2015 for useful discussions)
+ 5) Superposition of blackbodies, e.g. in the case of CMB multipoles
+All of these additional term, which are not injected and deposited into the IGM in the usual sense,
+are grouped within the function 'heating_add_noninjected'.
 
-This fills a table of deposited energy in baryons split by the different effects. Additionally, a table of deposited energy in photons is created, mostly similar to the baryon column 'heat', except for the additional effects of non-injected terms.
+This fills a table of deposited energy in baryons split by the different effects. Additionally, a
+table of deposited energy in photons is created, mostly similar to the baryon column 'heat', except
+for the additional effects of non-injected terms.
 
-In conclusion, note that this module is in based on the public version of ExoCLASS (see Stoecker et al. 2018) which has been mainly developed by Vivian Poulin and Patrick Stöcker.
+In conclusion, note that this module is in based on the public version of ExoCLASS (see
+Stoecker et al. 2018) which has been mainly developed by Vivian Poulin and Patrick Stöcker.
