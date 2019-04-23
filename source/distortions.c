@@ -843,10 +843,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   if(psd->has_SZ_effect == _TRUE_){
     for(index_x=0;index_x<psd->x_size;++index_x){
       class_call(distortions_add_effects_reio(pba,pth,psd,
-                                              1.e1,
-                                              1.e-4,
-                                              1.e-2,
-                                              1.e-2,
+                                              5.e0,
+                                              2.e-4,
+                                              1./300.,
+                                              1./300.,
                                               psd->x[index_x],
                                               &y_reio,
                                               &DI_reio),
@@ -928,7 +928,7 @@ int distortions_add_effects_reio(struct background * pba,
   double theta_e, cos_theta, P_1, P_2, x_tilde, S_tilde;
   double G_T, Y_SZ;
   double Y_0, Y_1, Y_2;
-  double DI_TSZ_non_rel, DI_TSZ_rel, DI_TSZ;
+  double DI_tSZ_non_rel, DI_tSZ_rel, DI_tSZ;
   double B_0, B_1, B_2, B_3;
   double C_0, C_1, C_2, C_3;
   double D_0, D_1, D_2, D_3;
@@ -967,9 +967,9 @@ int distortions_add_effects_reio(struct background * pba,
         +pow(S_tilde,4.)*(-44./5.
                           +187.*x_tilde/60.);
 
-  DI_TSZ_non_rel = theta_e*Dtau*Y_SZ;
-  DI_TSZ_rel = theta_e*Dtau*Y_SZ*(theta_e*Y_1+pow(theta_e,2.)*Y_2)/Y_0;
-  DI_TSZ = DI_TSZ_non_rel+DI_TSZ_rel;
+  DI_tSZ_non_rel = theta_e*Dtau*Y_SZ;
+  DI_tSZ_rel = theta_e*Dtau*Y_SZ*(theta_e*Y_1+pow(theta_e,2.)*Y_2)/Y_0;
+  DI_tSZ = DI_tSZ_non_rel+DI_tSZ_rel;
 
   /** Kinematic SZ effect (kSZ) */
   B_0 = 1.*Y_0/3.;
@@ -1060,7 +1060,7 @@ int distortions_add_effects_reio(struct background * pba,
                     );
 
   *y_reio = theta_e*Dtau;
-  *DI_reio = DI_TSZ+DI_kSZ;
+  *DI_reio = DI_tSZ+DI_kSZ;
 
   return _SUCCESS_;
 }
