@@ -2593,19 +2593,22 @@ int input_read_parameters_heating(struct file_content * pfc,
   /* Read */
   class_read_double("annihilation_efficiency",phe->annihilation_efficiency);
   class_read_double("annihilation_cross_section",phe->annihilation_cross_section);
-  class_read_double("DM_mass",phe->DM_mass);
+  class_read_double("annihilation_mass",phe->DM_mass);
   /* Test */
-  class_test(phe->DM_mass<0.,
+  class_test(phe->DM_mass<0. || phe->annihilation_cross_section <0,
              errmsg,
-             "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
-  class_test(phe->DM_mass <=0 && phe->annihilation_cross_section >0,
+             "Both mass and cross section for your dark matter particle must be positive.");
+  class_test(phe->DM_mass ==0 && phe->annihilation_cross_section >0,
              errmsg,
              "you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
+  class_test(phe->DM_mass !=0 && phe->annihilation_efficiency != 0,
+             errmsg,
+             "You can only enter one of 'm_DM' or 'annihilation_efficiency'.");
+
   /* Complete set of parameters */
   if(phe->DM_mass > 0 && phe->annihilation_cross_section > 0.){
-    phe->annihilation_efficiency = phe->annihilation_cross_section/(phe->DM_mass*1.78e-21);
+    phe->annihilation_efficiency = phe->annihilation_cross_section*1.e-6/(phe->DM_mass*_eV_*1.e9);
   }
-
 
   if (phe->annihilation_efficiency > 0.) {
     /** 1.a.1) Model energy fraction absorbed by the gas as a function of redhsift */
@@ -2662,7 +2665,6 @@ int input_read_parameters_heating(struct file_content * pfc,
     phe->f_eff_file = (char *) malloc(strlen(string1) + 1);
     strcpy(phe->f_eff_file, string1);
   }
-  printf("%s\n", phe->f_eff_file);
 
 
   /** 4) deposition function */
@@ -2716,12 +2718,12 @@ int input_read_parameters_heating(struct file_content * pfc,
 
   /** 5) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
-  class_call(parser_read_string(pfc,"heating_approx",&string1,&flag1,errmsg),
+  /*class_call(parser_read_string(pfc,"heating_approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
   if ((flag1 == _TRUE_) && ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL))){
     phe->heating_rate_acoustic_diss_approx = _FALSE_;
-  }
+  }*/
 
   return _SUCCESS_;
 
