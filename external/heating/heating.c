@@ -48,6 +48,9 @@ int heating_init(struct precision * ppr,
   if(phe->annihilation_efficiency!=0 || phe->decay_fraction!=0){
     phe->has_exotic_injection = _TRUE_;
   }
+  else{
+    phe->has_exotic_injection = _FALSE_;
+  }
 
   /** Check energy injection for DM annihilation */
   class_test((phe->annihilation_efficiency<0),
@@ -85,6 +88,9 @@ int heating_init(struct precision * ppr,
   if(phe->annihilation_efficiency!=0){
     phe->has_DM_ann = _TRUE_;
   }
+  else{
+    phe->has_DM_ann = _FALSE_;
+  }
 
   /** Check energy injection for DM deacy */
   class_test((phe->decay_fraction<0),
@@ -96,6 +102,9 @@ int heating_init(struct precision * ppr,
 
   if(phe->decay_fraction!=0){
     phe->has_DM_dec = _TRUE_;
+  }
+  else{
+    phe->has_DM_dec = _FALSE_;
   }
 
   /** Define redshift tables */
