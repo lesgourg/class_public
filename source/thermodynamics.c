@@ -1949,7 +1949,7 @@ int thermodynamics_solve_derivs(double mz,
              pth->error_message);
 
   /* Save the output in local variables */
-  x = ptdw->x_noreio;
+  x = ptdw->x_reio;
   x_H = ptdw->x_H;
   x_He = ptdw->x_He;
   Tmat = ptdw->Tmat;
@@ -1958,10 +1958,9 @@ int thermodynamics_solve_derivs(double mz,
   /** - Calculate heating */
   /* in case of energy injection, we currently neglect the contribution to helium ionization ! */
   /* Calculate the energy injection INCLUDING reionization ! */
-  class_call(heating_calculate_at_z(ppr,pba,pth,ptdw->x_reio,z,Tmat,pvecback),
+  class_call(heating_calculate_at_z(ppr,pba,pth,x,z,Tmat,pvecback),
              phe->error_message,
              error_message);
-
 
   /** - HyRec */
   if(pth->recombination == hyrec){
@@ -1992,10 +1991,6 @@ int thermodynamics_solve_derivs(double mz,
              pth->error_message,
              pth->error_message);
   dxdlna = ptdw->dxdlna;
-
-
-  /* From now on work with xreio */
-  x = ptdw->x_reio;
 
 
 
@@ -2062,119 +2057,6 @@ int thermodynamics_solve_derivs(double mz,
   return _SUCCESS_;
 
 }
-
-int thermodynamics_x_analytic(double z,
-                              struct precision * ppr,
-                              struct thermo * pth,
-                              struct thermo_workspace * ptw,
-                              int current_ap) {
-
-  /** Define local variables */
-  struct thermo_diffeq_workspace * ptdw = ptw->ptdw;
-  struct thermorecfast * precfast = ptw->ptdw->precfast;
-  struct thermohyrec * phyrec = ptw->ptdw->phyrec;
-  struct thermo_vector * ptv = ptdw->tv;
-
-  double x_H, x_He, x, rhs,dx_H,dx_He,dx,sqrt_val,drhs,argument;
-//printf("Going in with T = %.30e , dT = %.30e \n",ptdw->Tmat/(1.+z)/ptw->Tcmb-1.,ptdw->dTmat/ptw->Tcmb-1.);
-
-  /** calculate Hydrogen and Helium fraction with analytical approximations specific for each current approximation interval.
-  /** - --> first approximation: H and Helium fully ionized */
-  if(current_ap == ptdw->index_ap_brec){
-
-    x_H = 1.;
-    x_He = 1.;
-    //x = 1. + 2.*ptw->fHe;
-    rhs = pth->n_e/exp( 1.5*log(precfast->CR*ptdw->Tmat/(1.+z)/(1.+z)) - precfast->CB1_He2/ptdw->Tmat );
-    sqrt_val = sqrt(pow(1.-rhs*(1.+ptw->fHe),2) + 4.*rhs*(1.+2*ptw->fHe));
-    //drhs = -rhs*((precfast->CB1_He2*ptdw->dTmat/ptdw->Tmat/ptdw->Tmat)+1.5*(ptdw->dTmat/ptdw->Tmat-2./(1.+z)) );
-    x = 2.*(1+2.*ptw->fHe)/(1.-rhs*(1.+ptw->fHe) + sqrt_val);
-    //x = ( 1. + 2.*ptw->fHe ) * (1. - ptw->fHe * pth->n_e*(1.+z)*(1.+z)*(1.+z)/pow(precfast->CR*ptdw->Tmat,1.5)*(1.-precfast->CB1_He2/ptdw->Tmat));
-    dx = 0.;
-    //dx = -x*(-drhs*(1.+ptw->fHe)+0.5/sqrt_val*(2.*(1-rhs*(1+ptw->fHe)))*(-drhs*(1.+ptw->fHe)))/(1.-rhs*(1.+ptw->fHe) + sqrt_val);
-    dx_H=0.;
-    dx_He=0.;
-
-  }
-  /** - --> second approximation: first Helium recombination (analytic approximation) */
-  else if (current_ap == ptdw->index_ap_He1) {
-
-    /* analytic approximations */
-    x_H = 1.;
-    x_He = 1.;
-    rhs = exp( 1.5*log(precfast->CR*ptdw->Tmat/(1.+z)/(1.+z)) - precfast->CB1_He2/ptdw->Tmat ) / pth->n_e;
-    sqrt_val = sqrt(pow((rhs-1.-ptw->fHe),2) + 4.*(1.+2.*ptw->fHe)*rhs);
-    drhs = rhs*((precfast->CB1_He2*ptdw->dTmat/ptdw->Tmat/ptdw->Tmat)+1.5*(ptdw->dTmat/ptdw->Tmat-2./(1.+z)) );
-    x = 0.5*(sqrt_val - (rhs-1.-ptw->fHe));
-    //printf("%.10e , %.10e , %.10e , %.10e , %.10e , %.10e\n",x,sqrt_val,rhs,precfast->CB1_He2/ptdw->Tmat,log(precfast->CR*ptdw->Tmat/(1.+z)/(1.+z)),precfast->CR*ptdw->Tmat/(1.+z)/(1.+z));
-    dx_H=0.;
-    dx_He=0.;
-    dx = 0.5*(  ((rhs-1.-ptw->fHe) + 2.*(1.+2.*ptw->fHe))/sqrt_val   -   1.  )*drhs;
-  }
-  /** - --> third approximation: first Helium recombination finished */
-  else if (current_ap == ptdw->index_ap_He1f) {
-
-    /* analytic approximations */
-    x_H = 1.;
-    x_He = 1.;
-    //x = 1.+ptw->fHe;
-    rhs = 0.25*pth->n_e/exp( 1.5*log(precfast->CR*ptdw->Tmat/(1.+z)/(1.+z)) - precfast->CB1_He1/ptdw->Tmat );
-    sqrt_val = sqrt(pow(1.-rhs,2) + 4.*rhs*(1.+ptw->fHe));
-    x = 2.*(1+ptw->fHe)/(1.-rhs + sqrt_val);
-    dx_H=0.;
-    dx_He=0.;
-    dx = 0.;
-  }
-  /** - --> fourth approximation: second Helium recombination starts */
-  else if (current_ap == ptdw->index_ap_He2) {
-
-    /* analytic approximations */
-    x_H = 1.;
-
-    rhs = 4.*exp(1.5*log(precfast->CR*ptdw->Tmat/(1.+z)/(1.+z)) - precfast->CB1_He1/ptdw->Tmat )/pth->n_e;
-    sqrt_val = sqrt(pow((rhs-1.),2) + 4.*(1.+ptw->fHe)*rhs );
-    drhs = rhs*((precfast->CB1_He1*ptdw->dTmat/ptdw->Tmat/ptdw->Tmat)+1.5*(ptdw->dTmat/ptdw->Tmat-2./(1.+z)) );
-
-    x = 0.5*(sqrt_val - (rhs-1.));
-    x_He = (x-1.)/ptw->fHe;
-    dx_H=0.;
-    dx = 0.5*(  ((rhs-1.) + 2.*(1.+ ptw->fHe))/sqrt_val   -   1.  )*drhs;
-    dx_He = (dx/ptw->fHe);
-  }
-  /** - --> fifth approximation: Hydrogen recombination starts */
-  else if (current_ap == ptdw->index_ap_H) {
-
-    /* analytic approximations */
-    rhs = exp(1.5*log(precfast->CR*ptdw->Tmat/(1.+z)/(1.+z)) - precfast->CB1/ptdw->Tmat)/pth->n_e;
-
-    sqrt_val = sqrt(pow(rhs,2)+4.*rhs);
-    drhs = rhs*((precfast->CB1*ptdw->dTmat/ptdw->Tmat/ptdw->Tmat)+1.5*(ptdw->dTmat/ptdw->Tmat-2./(1.+z)) );
-    x_H = 0.5*(sqrt_val - rhs);
-    dx_H = 0.5*(  (rhs + 2.)/sqrt_val   -   1.  )*drhs;
-  }
-  /** - --> sixth approximation: reionization */
-  else if (current_ap == ptdw->index_ap_reio) {
-
-    /* set x from the workspace (which is only the contribution from recfast) as "xe_before" */
-    ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = ptdw->x;
-
-    /* add the reionization function on top */
-    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x,&dx),
-               pth->error_message,
-               pth->error_message);
-  }
-
-  /** Save x_H, x_He and x and their derivatives into workspace */
-  ptdw->x_H = x_H;
-  ptdw->x_He = x_He;
-  ptdw->x = x;
-  ptdw->dx_H = dx_H;
-  ptdw->dx_He = dx_He;
-  ptdw->dx = dx;
-
-  return _SUCCESS_;
-}
-
 
 /**
  * This routine computes for the different codes and approximations
@@ -2403,7 +2285,7 @@ int thermodynamics_solve_current_dxdlna(double z,
 
   /* Note, dxdlna is always calculated from a steady-state solution of Tmat in 0th order,
    * i.e. approximating dlnTmat_dlna = dlnTrad_dlna = -1. */
-  double dlnTmat_dlna = -1.; /* Steady state approximation to 0th order */
+  double dlnTmat_dlna = -(1.+z)*(ptv->dy[ptv->index_D_Tmat] + ptw->Tcmb)/Tmat;//-1.; /* Steady state approximation to 0th order */
 
   /** Case RecfastCLASS :: */
   if(pth->recombination == recfast){
@@ -2574,10 +2456,7 @@ int thermodynamics_vector_init(struct precision * ppr,
       ptdw->dTmat = -ptdw->tv->dy[ptdw->tv->index_D_Tmat] + ptw->Tcmb;
 
       /* Obtain initial contents of new vector analytically, especially x_He */
-      //class_call(thermodynamics_solve_current_quantities(z,ptdw->tv->y,pth,ptw,ptdw->ap_current-1),
-      //           pth->error_message,
-      //           pth->error_message);
-      class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ptdw->ap_current-1),
+      class_call(thermodynamics_solve_current_quantities(z,ptdw->tv->y,pth,ptw,ptdw->ap_current-1),
                  pth->error_message,
                  pth->error_message);
 
@@ -2606,12 +2485,12 @@ int thermodynamics_vector_init(struct precision * ppr,
       ptdw->dTmat = -ptdw->tv->dy[ptdw->tv->index_D_Tmat] + ptw->Tcmb;
 
       /* Obtain initial contents of new vector analytically, especially x_H */
-      //class_call(thermodynamics_solve_current_quantities(z,ptdw->tv->y,pth,ptw,ptdw->ap_current-1),
-      //           pth->error_message,
-      //           pth->error_message);
-      class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ptdw->ap_current-1),
+      class_call(thermodynamics_solve_current_quantities(z,ptdw->tv->y,pth,ptw,ptdw->ap_current-1),
                  pth->error_message,
                  pth->error_message);
+      //class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ptdw->ap_current-1),
+      //           pth->error_message,
+      //           pth->error_message);
 
       /* Set the new vector and its indices */
       ptv->y[ptv->index_D_Tmat] = ptdw->tv->y[ptdw->tv->index_D_Tmat];
@@ -3535,19 +3414,19 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
  * @param error_message            Output: error message
  * @return the error status
  */
-int thermodynamics_solve_store_sources_new(double mz,
+int thermodynamics_solve_store_sources(double mz,
                                        double * y,
                                        double * dy,
                                        int index_z,
                                        void * thermo_parameters_and_workspace,
-                                       ErrorMsg error_message){
+                                       ErrorMsg error_message) {
 
   /** Summary: */
 
   /** Define local variables */
-  /* Redshift and ionization fraction */
+  /* Redshift and ionization fraction/temperature */
   double z;
-  double x;
+  double x,Tmat;
   /* Recfast smoothing */
   double x_previous, weight,s;
   /* Structures as shorthand_notation */
@@ -3578,8 +3457,14 @@ int thermodynamics_solve_store_sources_new(double mz,
   class_call(thermodynamics_solve_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
              error_message,
              error_message);
+  Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
 
+  /* Make super sure that our x is correct and uses the current derivative (see current_quantities for further comments) */
+  class_call(thermodynamics_solve_current_quantities(z,y,pth,ptw,ap_current),
+             pth->error_message,
+             pth->error_message);
   x = ptdw->x_reio;
+
 
   /** - In the recfast case, we manually smooth the results a bit */
   if(pth->recombination == recfast){
@@ -3608,171 +3493,11 @@ int thermodynamics_solve_store_sources_new(double mz,
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe] = x;
 
   /* Tb */
-  double Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_Tb] = Tmat;
 
   /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1 - 1/3 (1+z) dlnTb/d(-z)) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_cb2]
     = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. - (1.+z) * (dy[ptv->index_D_Tmat]+ptw->Tcmb) / Tmat / 3.);
-
-  /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
-    = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x * _sigma_ * _Mpc_over_m_;
-
-  return _SUCCESS_;
-
-}
-
-int thermodynamics_solve_store_sources(double mz,
-                                       double * y,
-                                       double * dy,
-                                       int index_z,
-                                       void * thermo_parameters_and_workspace,
-                                       ErrorMsg error_message) {
-
-  /** Summary: */
-
-  /** Define local variables */
-  /* Redshift and ionization fraction */
-  double z;
-  double x;
-  /* Recfast smoothing */
-  double x_previous, weight,s;
-  /* Structures as shorthand_notation */
-  struct thermodynamics_parameters_and_workspace * ptpaw;
-  struct precision * ppr;
-  struct background * pba;
-  struct thermo * pth;
-  struct thermo_workspace * ptw;
-  struct thermo_diffeq_workspace * ptdw;
-  struct thermo_vector * ptv;
-  int ap_current;
-
-  /** - rename structure fields (just to avoid heavy notations) */
-  ptpaw = thermo_parameters_and_workspace;
-  ppr = ptpaw->ppr;
-  pba = ptpaw->pba;
-  pth = ptpaw->pth;
-  ptw = ptpaw->ptw;
-  ptdw = ptw->ptdw;
-  ap_current = ptdw->ap_current;
-  double* pvecback = ptpaw->pvecback;
-  ptv = ptdw->tv;
-  z = -mz;
-
-  double tau;
-  int last_index_back;
-
-
-  class_call(background_tau_of_z(pba,
-                                 z,
-                                 &tau),
-             pba->error_message,
-             pth->error_message);
-
-  class_call(background_at_tau(pba,
-                               tau,
-                               pba->short_info,
-                               pba->inter_normal,
-                               &last_index_back,
-                               pvecback),
-             pba->error_message,
-             pth->error_message);
-
-  class_test(pvecback[pba->index_bg_H] == 0.,
-             pth->error_message,
-             "stop to avoid division by zero");
-
-  /* Tell heating it should store the heating at this z in its internal table */
-  (pth->he).to_store = _TRUE_;
-
-  /* Recalculate all quantities at this current redshift (they are all stored in ptdw) */
-  class_call(thermodynamics_solve_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
-             error_message,
-             error_message);
-
-  ptdw->Tmat = y[ptdw->tv->index_D_Tmat] + ptw->Tcmb*(1.+z);
-  ptdw->dTmat = -dy[ptdw->tv->index_D_Tmat] + ptw->Tcmb;
-
-  /* Depending on the current approximation scheme x has to be calculated for this specific z */
-  if(ap_current == ptdw->index_ap_H){
-    class_call(thermodynamics_x_analytic(z,
-                                         ppr,
-                                         pth,
-                                         ptw,
-                                         ap_current),
-               error_message,
-               error_message);
-
-    x = ptdw->x_H+ptw->fHe*y[ptdw->tv->index_x_He];
-  }
-  else if(ap_current == ptdw->index_ap_frec){
-    x = y[ptdw->tv->index_x_H]+ptw->fHe*y[ptdw->tv->index_x_He];
-  }
-  else if(ap_current == ptdw->index_ap_reio){
-    ptdw->x = y[ptdw->tv->index_x_H]+ptw->fHe*y[ptdw->tv->index_x_He];
-
-    class_call(thermodynamics_x_analytic(z,
-                                         ppr,
-                                         pth,
-                                         ptw,
-                                         ap_current),
-               error_message,
-               error_message);
-
-    x = ptdw->x;
-  }
-  else{
-    class_call(thermodynamics_x_analytic(z,
-                                         ppr,
-                                         pth,
-                                         ptw,
-                                         ap_current),
-               error_message,
-               error_message);
-
-    x = ptdw->x;
-  }
-
-  /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch */
-  if(ap_current != 0 && z > ptdw->ap_z_limits[ap_current-1]-2*ptdw->ap_z_limits_delta[ap_current]){
-
-    class_call(thermodynamics_x_analytic(z,
-                                         ppr,
-                                         pth,
-                                         ptw,
-                                         ap_current-1),
-               error_message,
-               error_message);
-    if(ap_current-1 == ptdw->index_ap_H){
-      x_previous = ptdw->x_H+ptw->fHe*y[ptdw->tv->index_x_He];
-    }
-    else if(ap_current-1 == ptdw->index_ap_frec){
-      x_previous = y[ptdw->tv->index_x_H]+ptw->fHe*y[ptdw->tv->index_x_He];
-    }
-    else{
-      x_previous = ptdw->x;
-    }
-    // get s from 0 to 1
-    s = (ptdw->ap_z_limits[ap_current-1]-z)/(2*ptdw->ap_z_limits_delta[ap_current]);
-    // infer f2(x) = smooth function interpolating from 0 to 1
-    weight = f2(s);
-
-
-    x = weight*x+(1.-weight)*x_previous;
-
-  }
-
-  //printf("%.10e %.10e %.10e %.10e \n",z,ptw->Tcmb*(1.+z),y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z),x);
-  /* ionization fraction */
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe] = x;
-
-  /* Tb */
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_Tb] = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
-
-  /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1 - 1/3 (1+z) dlnTb/d(-z)) */
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_cb2]
-    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * (y[ptv->index_D_Tmat]+ ptw->Tcmb*(1.+z)) * (1. - (1.+z) * (dy[ptv->index_D_Tmat]+ ptw->Tcmb) / (y[ptv->index_D_Tmat]+ ptw->Tcmb*(1.+z)) / 3.);
 
   /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
