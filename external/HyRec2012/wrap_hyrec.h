@@ -45,7 +45,7 @@ struct thermohyrec{
 
   // Purely for my own convenience
   double* xe_output;
-
+  double to_store;
 
   int filled_until_index_z;
   double z_prev;

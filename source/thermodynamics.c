@@ -1963,10 +1963,11 @@ int thermodynamics_solve_derivs(double mz,
              error_message);
 
   /** - HyRec */
-  if(pth->recombination == hyrec){
+  if(pth->recombination == hyrec && phyrec->to_store == _TRUE_){
     class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
                phyrec->error_message,
                error_message);
+    x = ptdw->x_reio;
   }
 
   /** - RecfastCLASS */
@@ -3438,20 +3439,31 @@ int thermodynamics_solve_store_sources(double mz,
   struct thermo_diffeq_workspace * ptdw;
   struct thermo_vector * ptv;
   int ap_current;
+  struct thermorecfast * precfast;
+  struct thermohyrec * phyrec;
+
+  /* Redshift */
+  z = -mz;
 
   /** - rename structure fields (just to avoid heavy notations) */
+  /* Structs */
   ptpaw = thermo_parameters_and_workspace;
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   pth = ptpaw->pth;
+  /* Thermo workspace & vector */
   ptw = ptpaw->ptw;
   ptdw = ptw->ptdw;
-  ap_current = ptdw->ap_current;
   ptv = ptdw->tv;
-  z = -mz;
+  /* Recfast/HyRec */
+  precfast = ptdw->precfast;
+  phyrec = ptdw->phyrec;
+  /* Approximation flag */
+  ap_current = ptdw->ap_current;
 
   /* Tell heating it should store the heating at this z in its internal table */
   (pth->he).to_store = _TRUE_;
+  phyrec->to_store = _TRUE_;
 
   /* Recalculate all quantities at this current redshift (they are all stored in ptdw) */
   class_call(thermodynamics_solve_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),

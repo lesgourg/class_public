@@ -186,6 +186,8 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
   if(z_goal<0.){z_goal=0.;}
 
+  if( z > phy->zstart ){*x_e = 1.+2.*phy->fHe; *dxe_dlna = 0.; return _SUCCESS_;}
+
   /** Only add new indices if that is really required */
   if(iz_goal>phy->filled_until_index_z){
 
@@ -205,8 +207,6 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
       exclya = phe->pvecdeposition[phe->index_dep_lya]/nH/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
 
 
-
-
       if(phy->stage == 0){
         /**
          * Stage 0 : He III -> II
@@ -216,12 +216,12 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
         if(phy->xHeIII > phy->xHeIII_limit){
           phy->xe_output[iz_out] = rec_xesaha_HeII_III(phy->nH0, phy->T0, phy->fHe, z_out, &(phy->xHeIII), phy->fsR, phy->meR);
-          if(phy->thermohyrec_verbose > 2){printf("[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
+          if(phy->thermohyrec_verbose > 2){printf("x_e[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
         }
         else{
           /* Switch to next stage, and initialize its variables. */
           phy->stage++;
-          if(phy->thermohyrec_verbose > 2){printf("Next stage %i \n",phy->stage);}
+          if(phy->thermohyrec_verbose > 1){printf("Next stage %i (at z = %.10e)\n",phy->stage,z_out);}
           phy->dxHeIIdlna_prev2 = (phy->xe_output[iz_out-2] - phy->xe_output[iz_out-4])/(2.*phy->dlna);
           phy->dxHeIIdlna_prev  = (phy->xe_output[iz_out-1] - phy->xe_output[iz_out-3])/(2.*phy->dlna);
           phy->xHeII = rec_saha_xHeII(phy->nH0, phy->T0, phy->fHe, z_in, phy->fsR, phy->meR);
@@ -274,12 +274,12 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           phy->xH1s = rec_saha_xH1s(phy->xHeII, phy->nH0, phy->T0, z_out, phy->fsR, phy->meR);
           phy->xe_output[iz_out] = (1.-phy->xH1s) + phy->xHeII;
-          if(phy->thermohyrec_verbose > 2){printf("[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
+          if(phy->thermohyrec_verbose > 2){printf("x_e[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
         }
         else{
           /* Switch to next stage, and initialize its variables. */
           phy->stage++;
-          if(phy->thermohyrec_verbose > 2){printf("Next stage %i \n",phy->stage);}
+          if(phy->thermohyrec_verbose > 1){printf("Next stage %i (at z = %.10e)\n",phy->stage,z_out);}
 
           phy->dxHIIdlna_prev2 = (phy->xe_output[iz_out-2] - phy->xe_output[iz_out-4])/(2.*phy->dlna) - phy->dxHeIIdlna_prev2;
           phy->dxHIIdlna_prev  = (phy->xe_output[iz_out-1] - phy->xe_output[iz_out-3])/(2.*phy->dlna) - phy->dxHeIIdlna_prev;
@@ -327,12 +327,12 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           //////////////////////////////
           phy->xe_output[iz_out] = (1.-phy->xH1s) + phy->xHeII;
-          if(phy->thermohyrec_verbose > 2){printf("[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
+          if(phy->thermohyrec_verbose > 2){printf("x_e[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
         }
         else{
           /* Switch to next stage, and initialize its variables. */
           phy->stage++;
-          if(phy->thermohyrec_verbose > 2){printf("Next stage %i \n",phy->stage);}
+          if(phy->thermohyrec_verbose > 1){printf("Next stage %i (at z = %.10e)\n",phy->stage,z_out);}
         }
 
       }
@@ -377,12 +377,12 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
           phy->dxHIIdlna_prev2 = phy->dxHIIdlna_prev;
           phy->dxHIIdlna_prev  = phy->dxHIIdlna;
           ////////////////////////////
-          if(phy->thermohyrec_verbose > 2){printf("[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
+          if(phy->thermohyrec_verbose > 2){printf("x_e[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
         }
         else{
           /* Switch to next stage, and initialize its variables. */
           phy->stage++;
-          if(phy->thermohyrec_verbose > 2){printf("Next stage %i \n",phy->stage);}
+          if(phy->thermohyrec_verbose > 1){printf("Next stage %i (at z = %.10e)\n",phy->stage,z_out);}
         }
 
       }
@@ -407,12 +407,12 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
           phy->dxHIIdlna_prev2 = phy->dxHIIdlna_prev;
           phy->dxHIIdlna_prev  = phy->dxHIIdlna;
           /////////////////////////////////////
-          if(phy->thermohyrec_verbose > 2){printf("[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
+          if(phy->thermohyrec_verbose > 2){printf("x_e[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
         }
         else{
           /* Switch to next stage, and initialize its variables. */
           phy->stage++;
-          if(phy->thermohyrec_verbose > 2){printf("Next stage %i \n",phy->stage);}
+          if(phy->thermohyrec_verbose > 1){printf("Next stage %i (at z = %.10e)\n",phy->stage,z_out);}
         }
 
       }
@@ -432,7 +432,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
         phy->dxHIIdlna_prev2 = phy->dxHIIdlna_prev;
         phy->dxHIIdlna_prev  = phy->dxHIIdlna;
         /////////////////////////////////////
-        if(phy->thermohyrec_verbose > 2){printf("[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
+        if(phy->thermohyrec_verbose > 2){printf("x_e[%i] : %.10e \n",iz_out,phy->xe_output[iz_out]);}
       }
 
     }//End for iz not filled
@@ -460,8 +460,10 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
   if(phy->thermohyrec_verbose > 3){
     //printf("[%i] : %.10e , [%i] : %.10e -> %.10e \n",iz_goal,phy->xe_output[iz_goal],iz_goal-1,phy->xe_output[iz_goal-1],*dxedlna);
-    printf("[%i,%.10e] : %.10e , [%i,%.10e] : %.10e -> [%.10e] : %.10e \n",iz_goal,z_goal,phy->xe_output[iz_goal],iz_goal-1,z_goalm1,phy->xe_output[iz_goal-1],z,*x_e);
+    printf("x_e[%i,%.10e] : %.10e , x_e[%i,%.10e] : %.10e -> x_e[%.10e] : %.10e \n",iz_goal,z_goal,phy->xe_output[iz_goal],iz_goal-1,z_goalm1,phy->xe_output[iz_goal-1],z,*x_e);
   }
+
+  phy->to_store = _FALSE_;
 
   return _SUCCESS_;
 }
