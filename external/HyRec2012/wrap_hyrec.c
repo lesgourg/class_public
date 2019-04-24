@@ -23,7 +23,7 @@ int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
 
 
 
-#define _HYREC_N_EXTRAPOLATION_ 20
+#define _HYREC_N_EXTRAPOLATION_ 30
 int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
 
   if(phy->thermohyrec_verbose > 0){
@@ -150,7 +150,7 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
 }
 
 int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
-                                      double z, double H, double T_b, double T_gamma,
+                                      double z, double H_in, double T_b, double T_gamma,
                                       double* x_e, double* dxe_dlna) {
 
   /** Define local variables */
@@ -173,7 +173,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   double frac;
 
   /* Interpolated and exact quantities at EACH step */
-  double nH,TR,TM,xe_in, ion,exclya;
+  double nH,TR,TM,H,xe_in, ion,exclya;
 
   /* Something related to switching off modes or not depending on pion */
   double Pion_TR_rescaled,Pion_RLya,Pion_four_betaB,Pion;
@@ -203,8 +203,10 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
       frac = ((1+z_in)-(1+phy->z_prev))/((1+z)-(1+phy->z_prev));
       TR = T_gamma * _k_B_/_eV_ * frac + (1.-frac)*phy->TR_prev;
       TM = T_b * _k_B_/_eV_ * frac + (1.-frac)*phy->TM_prev;
-      ion = phe->pvecdeposition[phe->index_dep_ionH]/nH/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
-      exclya = phe->pvecdeposition[phe->index_dep_lya]/nH/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
+      H = H_in * frac + (1.-frac)*phy->H_prev;
+
+      ion = phe->pvecdeposition[phe->index_dep_ionH]/(nH*1e6)/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
+      exclya = phe->pvecdeposition[phe->index_dep_lya]/(nH*1e6)/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
 
 
       if(phy->stage == 0){
@@ -438,9 +440,10 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
     }//End for iz not filled
 
     phy->filled_until_index_z = iz_goal;
+    phy->z_prev = z;
     phy->TM_prev = TM;
     phy->TR_prev = TR;
-    phy->z_prev = z;
+    phy->H_prev = H;
     phy->ion_prev = ion;
     phy->exclya_prev = exclya;
   }
@@ -494,6 +497,11 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e,
       x[i] = (1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z-i)) - 1.;
       y[i] = phy->xe_output[phy->filled_until_index_z-i];
     }
+    /* Check extrapolation range
+    double dZ = (z-x[0])/(x[_HYREC_N_EXTRAPOLATION_-1]-x[0]);
+    printf("Relative delta = %.10e \n",dZ);
+    if(fabs(dZ)>5.0){printf("Extrapolating from %.10e to %.10e at %.10e \n",x[0],x[_HYREC_N_EXTRAPOLATION_-1],z);}
+    */
     class_call(array_extrapolate_quadratic(x,y,z,_HYREC_N_EXTRAPOLATION_,x_e,&(dx_e_dz),phy->error_message),
                phy->error_message,
                phy->error_message);

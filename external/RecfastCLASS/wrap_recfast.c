@@ -134,6 +134,7 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
   ion_H = phe->pvecdeposition[phe->index_dep_ionH];
   ion_He = phe->pvecdeposition[phe->index_dep_ionHe];
   ion_lya = phe->pvecdeposition[phe->index_dep_lya];
+
   *dxH_dz += -1./nH*((ion_H+ion_He)/(_E_H_ion_*_eV_)+ion_lya*(1.-C)/(_E_H_lya_*_eV_))/(Hz*(1.+z));
 
   return _SUCCESS_;

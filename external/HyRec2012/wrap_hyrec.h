@@ -49,6 +49,7 @@ struct thermohyrec{
 
   int filled_until_index_z;
   double z_prev;
+  double H_prev;
   double TR_prev;
   double TM_prev;
   double ion_prev;
@@ -93,7 +94,7 @@ extern "C" {
   int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy);
 
   int thermodynamics_hyrec_calculate_xe(struct thermo * pth, struct thermohyrec * phy,
-                                        double z, double H, double T_b, double T_gamma,
+                                        double z, double H_in, double T_b, double T_gamma,
                                         double* x_e, double* dxe_dlna);
 
   int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e, double* dxdlna);
