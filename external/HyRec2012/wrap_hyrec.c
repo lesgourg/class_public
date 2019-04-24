@@ -208,7 +208,6 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
       ion = phe->pvecdeposition[phe->index_dep_ionH]/(nH*1e6)/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
       exclya = phe->pvecdeposition[phe->index_dep_lya]/(nH*1e6)/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
 
-
       if(phy->stage == 0){
         /**
          * Stage 0 : He III -> II
@@ -289,6 +288,18 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
         }
 
       }
+
+      if(phy->stage >= 2 && phy->stage <=4){
+        class_test(TM/TR < TM_TR_MIN || TM/TR > TM_TR_MAX,
+                   phy->error_message,
+                   "Error in Hyrec: TM/TR = %.10e is out of interpolation range for the Hyrec Table",TM/TR);
+      }
+      if(phy->stage >= 2 && phy->stage <=3){
+        class_test(TR < TR_MIN || TR > TR_MAX,
+                   phy->error_message,
+                   "Error in Hyrec: TR = %.10e is out of interpolation range for the Hyrec Table",TR);
+      }
+
       if(phy->stage == 2){
         /** H II -> I and He II -> I simultaneous recombination (rarely needed but just in case)
               Tm fixed to steady state.
