@@ -2668,23 +2668,23 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 3) PBH evaporation */
   /** 3.a) Fraction */
   /* Read */
-  class_read_double("PBH_evaporating_fraction",phe->PBH_evaporating_fraction);
+  class_read_double("PBH_evaporation_fraction",phe->PBH_evaporation_fraction);
   /* Test */
-  class_test(phe->PBH_evaporating_fraction <0.,
+  class_test(phe->PBH_evaporation_fraction <0.,
              errmsg,
              "You need to enter a positive fraction of evaporating PBH. Please adjust your param file.");
 
   /** 3.b) Mass */
   /* Read */
-  class_read_double("PBH_evaporating_mass",phe->PBH_evaporating_mass);
+  class_read_double("PBH_evaporation_mass",phe->PBH_evaporation_mass);
   /* Test */
-  class_test(phe->PBH_evaporating_mass<0.,
+  class_test(phe->PBH_evaporation_mass<0.,
              errmsg,
              "You need to enter a positive mass for your PBH.");
-  class_test(phe->PBH_evaporating_mass>0. && phe->PBH_evaporating_fraction == 0,
+  class_test(phe->PBH_evaporation_mass>0. && phe->PBH_evaporation_fraction == 0,
              errmsg,
-            "You have 'PBH_evaporating_mass > 0.' but 'PBH_evaporating_fraction = 0'. Please adjust your param file.");
-  class_test(phe->PBH_evaporating_fraction>0. && phe->PBH_evaporating_mass == 0.,
+            "You have 'PBH_evaporation_mass > 0.' but 'PBH_evaporation_fraction = 0'. Please adjust your param file.");
+  class_test(phe->PBH_evaporation_fraction>0. && phe->PBH_evaporation_mass == 0.,
              errmsg,
              "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
 
@@ -4750,9 +4750,9 @@ int input_default_params(struct background *pba,
 
   /** 3) PBH evaporation */
   /** 3.a) Fraction */
-  phe->PBH_evaporating_fraction = 0.;
+  phe->PBH_evaporation_fraction = 0.;
   /** 3.b) Mass */
-  phe->PBH_evaporating_mass = 0.;
+  phe->PBH_evaporation_mass = 0.;
 
   /** 4) PBH accretion */
   /** 4.a) Recipe */

@@ -92,7 +92,7 @@ int heating_init(struct precision * ppr,
   }
 
   /* Check energy injection */
-  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporating_fraction!=0 || phe->PBH_accreting_fraction!=0){
+  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporation_fraction!=0 || phe->PBH_accreting_fraction!=0){
     phe->has_exotic_injection = _TRUE_;
   }
   if(phe->DM_annihilation_efficiency!=0){
@@ -101,7 +101,7 @@ int heating_init(struct precision * ppr,
   if(phe->DM_decay_fraction!=0){
     phe->has_DM_dec = _TRUE_;
   }
-  if(phe->PBH_evaporating_fraction!=0){
+  if(phe->PBH_evaporation_fraction!=0){
     phe->has_PBH_eva = _TRUE_;
   }
   if(phe->PBH_accreting_fraction!=0){
@@ -110,7 +110,7 @@ int heating_init(struct precision * ppr,
 
   /* Calculate the PBH mass evolution, if needed */
   if(phe->has_PBH_eva == _TRUE_ ){
-    class_call(heating_rate_PBH_evaporating_mass_evolution(pba,phe),
+    class_call(heating_rate_PBH_evaporation_mass_evolution(pba,phe),
                phe->error_message,
                phe->error_message);
   }
@@ -230,9 +230,11 @@ int heating_free(struct thermo* pth){
   free(phe->injection_table);
 
   if(phe->has_PBH_eva=_TRUE_){
-    class_call(heating_rate_PBH_free_evaporating_mass_evolution(phe),
-               phe->error_message,
-               phe->error_message);
+    free(phe->PBH_table_z);
+    free(phe->PBH_table_mass);
+    free(phe->PBH_table_mass_dd);
+    free(phe->PBH_table_F);
+    free(phe->PBH_table_F_dd);
   }
 
   /* Injection efficiency */
@@ -998,7 +1000,7 @@ int heating_rate_DM_decay(struct heating * phe,
  * @param phe            Input: pointer to thermodynamics structure
  * @return the error status
  */
-int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
+int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
                                                 struct heating * phe){
 
   /** Define local variables */
@@ -1010,8 +1012,8 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
   double time_now, time_prev, dt, dz;
 
   /** Set initial parameters */
-  current_mass = phe->PBH_evaporating_mass;
-  phe->PBH_z = 0;
+  current_mass = phe->PBH_evaporation_mass;
+  phe->PBH_z_evaporation = 0;
   dz = phe->z_initial/(phe->Nz_size);
   loop_z = phe->z_initial+dz;
   time_prev = 0.;
@@ -1023,19 +1025,19 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
 
   /** Alloate variables for PBH mass evolution */
   class_alloc(phe->PBH_table_z,
-              phe->Nz_size*sizeof(double),
+              (phe->Nz_size+2)*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_mass,
-              phe->Nz_size*sizeof(double),
+              (phe->Nz_size+2)*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_mass_dd,
-              phe->Nz_size*sizeof(double),
+              (phe->Nz_size+2)*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_F,
-              phe->Nz_size*sizeof(double),
+              (phe->Nz_size+2)*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_F_dd,
-              phe->Nz_size*sizeof(double),
+              (phe->Nz_size+2)*sizeof(double),
               phe->error_message);
 
   /** Fill tables with PBH mass evolution */
@@ -1049,7 +1051,7 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
    * given energy. The order of the particles in the following definition
    * of f: photon, neutrino, electron, muon, tau, up, down, charm, strange,
    * top, bottom, W, Z, gluon, Higgs, neutral Pion and charged pion */
-  for(i_step = 0; i_step<phe->Nz_size; i_step++) {
+  for(i_step = 0; i_step<phe->Nz_size+2; i_step++) {
 
     /** Find value of f(M) */
     current_pbh_temperature = 1.06e13/current_mass;
@@ -1091,11 +1093,13 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
     time_prev = time_now;
 
     if (i_step > 0) {
-      if (current_mass > 0.5*phe->PBH_evaporating_mass) {
-        current_mass = current_mass-5.34e-5*f*pow(current_mass/1e10,-2)*1e10*dt;
+      if (current_mass > 0.5*phe->PBH_evaporation_mass){
+        current_mass = current_mass-5.34e-5*f*pow(current_mass/1e10,-2)*1.e10*dt;
       }
       else {
-        if(phe->PBH_z == 0) phe->PBH_z = loop_z;
+        if(phe->PBH_z_evaporation == 0){
+          phe->PBH_z_evaporation = loop_z;
+        }
         current_mass = 0.;
         f = 0.;
       }
@@ -1113,7 +1117,7 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
 
   /** Spline mass and F(M) evolution in z */
   class_call(array_spline_table_lines(phe->PBH_table_z,
-                                      phe->Nz_size,
+                                      phe->Nz_size+2,
                                       phe->PBH_table_mass,
                                       1,
                                       phe->PBH_table_mass_dd,
@@ -1122,7 +1126,7 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
              phe->error_message,
              phe->error_message);
   class_call(array_spline_table_lines(phe->PBH_table_z,
-                                      phe->Nz_size,
+                                      phe->Nz_size+2,
                                       phe->PBH_table_F,
                                       1,
                                       phe->PBH_table_F_dd,
@@ -1130,24 +1134,6 @@ int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
                                       phe->error_message),
              phe->error_message,
              phe->error_message);
-
-  return _SUCCESS_;
-}
-
-
-/**
- * Free quantities allocated in heating_rate_PBH_evaporating_mass_evolution
- *
- * @param phe            Input: pointer to thermodynamics structure
- * @return the error status
- */
-int heating_rate_PBH_free_evaporating_mass_evolution(struct heating * phe){
-
-  free(phe->PBH_table_z);
-  free(phe->PBH_table_mass);
-  free(phe->PBH_table_mass_dd);
-  free(phe->PBH_table_F);
-  free(phe->PBH_table_F_dd);
 
   return _SUCCESS_;
 }
@@ -1173,7 +1159,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
 
   /** Interpolate the PBH mass evolution */
   class_call(array_interpolate_spline(phe->PBH_table_z,
-                                      phe->Nz_size,
+                                      phe->Nz_size+2,
                                       phe->PBH_table_mass,
                                       phe->PBH_table_mass_dd,
                                       1,
@@ -1186,7 +1172,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
              phe->error_message);
 
   class_call(array_interpolate_spline(phe->PBH_table_z,
-                                      phe->Nz_size,
+                                      phe->Nz_size+2,
                                       phe->PBH_table_F,
                                       phe->PBH_table_F_dd,
                                       1,
@@ -1198,11 +1184,17 @@ int heating_rate_PBH_evaporation(struct heating * phe,
              phe->error_message,
              phe->error_message);
 
-  dMdt=5.34e-5*f*pow(mass/1.e10,-2.)*1.e10;
+  if(mass <= 0.0001*phe->PBH_evaporation_mass || f <= 0 || z < phe->PBH_z_evaporation){
+    mass = 0;
+    dMdt = 0;
+    f = 0.;
+  }
+  else {
+    dMdt=5.34e-5*f*pow(mass/1.e10,-2.)*1.e10;
+  }
 
   /** Calculate heating rates */
-  *energy_rate = phe->rho_cdm*phe->PBH_evaporating_fraction*dMdt/phe->PBH_evaporating_mass;
-  printf("%g   %g\n", z,*energy_rate*phe->a/phe->H/phe->rho_g);
+  *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*dMdt/phe->PBH_evaporation_mass;
 
   return _SUCCESS_;
 }

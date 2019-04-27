@@ -32,8 +32,8 @@ struct heating{
   double DM_decay_fraction;
   double DM_decay_Gamma;
 
-  double PBH_evaporating_fraction;
-  double PBH_evaporating_mass;
+  double PBH_evaporation_fraction;
+  double PBH_evaporation_mass;
 
   double PBH_accretion_recipe;
   double PBH_accreting_fraction;
@@ -126,7 +126,7 @@ struct heating{
   int last_index_x_chi;
 
   /* PBH mass evolution table and PBH free parameters */
-  double PBH_z;
+  double PBH_z_evaporation;
   double * PBH_table_z;
   double * PBH_table_mass;
   double * PBH_table_mass_dd;
@@ -277,10 +277,8 @@ extern "C" {
                             double z,
                             double * energy_rate);
 
-  int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
+  int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
                                                   struct heating * phe);
-
-  int heating_rate_PBH_free_evaporating_mass_evolution(struct heating * phe);
 
   int heating_rate_PBH_evaporation(struct heating * phe,
                                    double z,
