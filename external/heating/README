@@ -38,10 +38,10 @@ effects, e.g.
  2) Decaying relic particles as described in Chluba 2010 and Chluba & Sunyaev 2012 (see also
     Chluba 2013 for useful discussion)
  3) Evaporation of primordial black holes as described in Poulin et al. 2017 (see also
-    Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions) (TODO)
+    Tashiro & Sugiyama 2008, Carr et al. 2010 and Carr et al. 2016 for useful discussions)
  4) Acctretion of matter into primordial black holes both via
-     a) Spherical accretion as described in Ali-Haimoud & Kamionkowski 2017 (TODO) and
-     b) Disk accretion as described in Poulin et al. 2017 (TODO)
+     a) Spherical accretion as described in Ali-Haimoud & Kamionkowski 2017 and
+     b) Disk accretion as described in Poulin et al. 2017
     (see also Carr et al. 2010 for useful discussion)
 
 Once the rate of energy injection is known, a so-called deposition function is evaluated, which

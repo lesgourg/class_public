@@ -2589,54 +2589,156 @@ int input_read_parameters_heating(struct file_content * pfc,
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) DM annihilation */
-  /** 1.a) Energy fraction absorbed by the gas */
+  /** 1.a) Annihilation efficiency */
   /* Read */
-  class_read_double("annihilation_efficiency",phe->annihilation_efficiency);
-  class_read_double("annihilation_cross_section",phe->annihilation_cross_section);
-  class_read_double("annihilation_mass",phe->DM_mass);
+  class_read_double("DM_annihilation_efficiency",phe->DM_annihilation_efficiency);
+  printf("%g\n",phe->DM_annihilation_efficiency);
+  class_read_double("DM_annihilation_cross_section",phe->DM_annihilation_cross_section);
+  class_read_double("DM_annihilation_mass",phe->DM_annihilation_mass);
   /* Test */
-  class_test(phe->DM_mass<0. || phe->annihilation_cross_section <0,
+  class_test(phe->DM_annihilation_efficiency<0,
+             errmsg,
+             "annihilation efficiency cannot be negative");
+  class_test(phe->DM_annihilation_efficiency>1.e-4,
+             errmsg,
+             "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",phe->DM_annihilation_efficiency);
+  class_test(phe->DM_annihilation_mass<0. || phe->DM_annihilation_cross_section <0,
              errmsg,
              "Both mass and cross section for your dark matter particle must be positive.");
-  class_test(phe->DM_mass ==0 && phe->annihilation_cross_section >0,
+  class_test(phe->DM_annihilation_mass ==0 && phe->DM_annihilation_cross_section >0,
              errmsg,
              "you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
-  class_test(phe->DM_mass !=0 && phe->annihilation_efficiency != 0,
+  class_test(phe->DM_annihilation_mass !=0 && phe->DM_annihilation_efficiency != 0,
              errmsg,
              "You can only enter one of 'm_DM' or 'annihilation_efficiency'.");
-
+  if (phe->heating_verbose > 0){
+    if ((phe->DM_annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
+      printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
+  } //TODO :: check if still occurs !!!
   /* Complete set of parameters */
-  if(phe->DM_mass > 0 && phe->annihilation_cross_section > 0.){
-    phe->annihilation_efficiency = phe->annihilation_cross_section*1.e-6/(phe->DM_mass*_eV_*1.e9);
+  if(phe->DM_annihilation_mass > 0 && phe->DM_annihilation_cross_section > 0.){
+    phe->DM_annihilation_efficiency = phe->DM_annihilation_cross_section*1.e-6/(phe->DM_annihilation_mass*_eV_*1.e9);
   }
 
-  if (phe->annihilation_efficiency > 0.) {
+  if (phe->DM_annihilation_efficiency > 0.) {
     /** 1.a.1) Model energy fraction absorbed by the gas as a function of redhsift */
     /* Read */
-    class_read_double("annihilation_variation",phe->annihilation_variation);
-    class_read_double("annihilation_z",phe->annihilation_z);
-    class_read_double("annihilation_zmax",phe->annihilation_zmax);
-    class_read_double("annihilation_zmin",phe->annihilation_zmin);
-    class_read_double("annihilation_f_halo",phe->annihilation_f_halo);
-    class_read_double("annihilation_z_halo",phe->annihilation_z_halo);
+    class_read_double("DM_annihilation_variation",phe->DM_annihilation_variation);
+    class_read_double("DM_annihilation_z",phe->DM_annihilation_z);
+    class_read_double("DM_annihilation_zmax",phe->DM_annihilation_zmax);
+    class_read_double("DM_annihilation_zmin",phe->DM_annihilation_zmin);
+    class_read_double("DM_annihilation_f_halo",phe->DM_annihilation_f_halo);
+    class_read_double("DM_annihilation_z_halo",phe->DM_annihilation_z_halo);
+    /* Test */
+    class_test(phe->DM_annihilation_variation>0,
+               errmsg,
+               "annihilation variation parameter must be negative (decreasing annihilation rate)");
+    class_test(phe->DM_annihilation_z<0,
+               errmsg,
+               "characteristic annihilation redshift cannot be negative");
+    class_test(phe->DM_annihilation_zmin<0,
+               errmsg,
+               "characteristic annihilation redshift cannot be negative");
+    class_test(phe->DM_annihilation_zmax<0,
+               errmsg,
+               "characteristic annihilation redshift cannot be negative");
+    class_test(phe->DM_annihilation_f_halo<0,
+               errmsg,
+               "Parameter for DM annihilation in halos cannot be negative");
+    class_test(phe->DM_annihilation_z_halo<0,
+               errmsg,
+               "Parameter for DM annihilation in halos cannot be negative");
   }
 
 
   /** 2) DM decay */
   /** 2.a) Fraction */
   /* Read */
-  class_read_double("decay_fraction",phe->decay_fraction);
+  class_read_double("DM_decay_fraction",phe->DM_decay_fraction);
+  /* Test */
+  class_test(phe->DM_decay_fraction<0,
+             errmsg,
+             "You need to enter a positive fraction of decaying DM. Please adjust your param file.");
 
   /** 2.b) Decay width */
   /* Read */
-  class_read_double("decay_Gamma",phe->decay_Gamma);
+  class_read_double("DM_decay_Gamma",phe->DM_decay_Gamma);
 
 
-  /** 3) Injection efficiency */
+  /** 3) PBH evaporation */
+  /** 3.a) Fraction */
+  /* Read */
+  class_read_double("PBH_evaporating_fraction",phe->PBH_evaporating_fraction);
+  /* Test */
+  class_test(phe->PBH_evaporating_fraction <0.,
+             errmsg,
+             "You need to enter a positive fraction of evaporating PBH. Please adjust your param file.");
+
+  /** 3.b) Mass */
+  /* Read */
+  class_read_double("PBH_evaporating_mass",phe->PBH_evaporating_mass);
+  /* Test */
+  class_test(phe->PBH_evaporating_mass<0.,
+             errmsg,
+             "You need to enter a positive mass for your PBH.");
+  class_test(phe->PBH_evaporating_mass>0. && phe->PBH_evaporating_fraction == 0,
+             errmsg,
+            "You have 'PBH_evaporating_mass > 0.' but 'PBH_evaporating_fraction = 0'. Please adjust your param file.");
+  class_test(phe->PBH_evaporating_fraction>0. && phe->PBH_evaporating_mass == 0.,
+             errmsg,
+             "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
+
+
+  /** 4) PBH matter accretion */
+  /** 4.b) Recipe */
+  /* Read */
+  class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Complete set of parameters */
+  if (flag1 == _TRUE_){
+    if (strcmp(string1,"spherical_accretion") == 0) {
+      phe->PBH_accretion_recipe=spherical_accretion;
+      //class_read_int("coll_ion_pbh",pth->coll_ion_pbh); //A parameter that can be specified to HyRec when computing the effect of spherical accreting PBH.
+    }
+    else if (strcmp(string1,"disk_accretion") == 0) {
+      phe->PBH_accretion_recipe=disk_accretion;
+      //class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
+    }
+    else{
+      class_stop(errmsg,
+                 "You specified 'PBH_accretion_recipe' as '%s'. It has to be one of {'spherical_accretion','disk_accretion'}.",string1);
+    }
+  }
+
+  /** 4.b) Fraction */
+  /* Read */
+  class_read_double("PBH_accreting_fraction",phe->PBH_accreting_fraction);
+  /* Test */
+  class_test(phe->PBH_accreting_fraction <0.,
+             errmsg,
+             "You need to enter a positive fraction of accreting PBH. Please adjust your param file.");
+
+  /** 4.c) Mass */
+  /* Read */
+  class_read_double("PBH_accreting_mass",phe->PBH_accreting_mass);
+  /* Test */
+  class_test(phe->PBH_accreting_mass<0.,
+             errmsg,
+             "You need to enter a positive mass for your PBH.");
+  class_test(phe->PBH_accreting_mass>0. && phe->PBH_accreting_fraction == 0,
+             errmsg,
+            "You have 'PBH_accreting_mass > 0.' but 'PBH_accreting_fraction = 0'. Please adjust your param file.");
+  class_test(phe->PBH_accreting_fraction>0. && phe->PBH_accreting_mass == 0.,
+             errmsg,
+             "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
+
+
+  /** 5) Injection efficiency */
   /* Read */
   class_call(parser_read_string(pfc,"f_eff_type",&string1,&flag1,errmsg),
-               errmsg,
-               errmsg);
+             errmsg,
+             errmsg);
   /* Complete set of parameters */
   if (flag1 == _TRUE_){
     if (strcmp(string1,"on_the_spot") == 0){
@@ -2651,14 +2753,14 @@ int input_read_parameters_heating(struct file_content * pfc,
     }
   }
 
-  /** 3.1) External file */
+  /** 5.a) External file */
   if(phe->f_eff_type == f_eff_from_file){
     /* Read */
     class_call(parser_read_string(pfc,"f_eff_file",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     /* Test */
-   class_test(flag1 == _FALSE_,
+    class_test(flag1 == _FALSE_,
                errmsg,
                "for the option 'from_file' for 'f_eff_type' the option 'f_eff_file' is required.");
     /* Complete set of parameters */
@@ -2667,7 +2769,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   }
 
 
-  /** 4) deposition function */
+  /** 6) deposition function */
   /* Read */
   class_call(parser_read_string(pfc,"chi_type",&string1,&flag1,errmsg),
                errmsg,
@@ -2699,7 +2801,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   }
 
   if(phe->chi_type == chi_from_x_file || phe->chi_type == chi_from_z_file){
-    /** 4.1) External file */
+    /** 6.a) External file */
     /* Read */
     class_call(parser_read_string(pfc,"chi_file",&string1,&flag1,errmsg),
                errmsg,
@@ -2716,7 +2818,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   }
 
 
-  /** 5) Dissipation of acoustic waves */
+  /** 7) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
   /*class_call(parser_read_string(pfc,"heating_approx",&string1,&flag1,errmsg),
              errmsg,
@@ -4629,22 +4731,36 @@ int input_default_params(struct background *pba,
 
   /** 1) DM annihilation */
   /** 1.a) Energy fraction absorbed by the gas */
-  phe->annihilation_efficiency = 0.;
-  phe->annihilation_cross_section = 0.;
-  phe->DM_mass = 0.;
+  phe->DM_annihilation_efficiency = 0.;
+  phe->DM_annihilation_cross_section = 0.;
+  phe->DM_annihilation_mass = 0.;
   /** 1.a.1) Redshift dependence */
-  phe->annihilation_variation = 0.;
-  phe->annihilation_z = 1000.;
-  phe->annihilation_zmax = 2500.;
-  phe->annihilation_zmin = 30.;
-  phe->annihilation_f_halo = 0.;
-  phe->annihilation_z_halo = 30.;
+  phe->DM_annihilation_variation = 0.;
+  phe->DM_annihilation_z = 1000.;
+  phe->DM_annihilation_zmax = 2500.;
+  phe->DM_annihilation_zmin = 30.;
+  phe->DM_annihilation_f_halo = 0.;
+  phe->DM_annihilation_z_halo = 30.;
 
   /** 2) DM deacy */
   /** 2.a) Fraction */
-  phe->decay_fraction = 0.;
+  phe->DM_decay_fraction = 0.;
   /** 2.b) Decay width */
-  phe->decay_Gamma = 0.;
+  phe->DM_decay_Gamma = 0.;
+
+  /** 3) PBH evaporation */
+  /** 3.a) Fraction */
+  phe->PBH_evaporating_fraction = 0.;
+  /** 3.b) Mass */
+  phe->PBH_evaporating_mass = 0.;
+
+  /** 4) PBH accretion */
+  /** 4.a) Recipe */
+  phe->PBH_accretion_recipe = disk_accretion;
+  /** 4.b) Fraction */
+  phe->PBH_accreting_fraction = 0.;
+  /** 4.c) Mass */
+  phe->PBH_accreting_mass = 0.;
 
   /** 3) Injection efficiency */
   phe->f_eff_type = f_eff_on_the_spot;

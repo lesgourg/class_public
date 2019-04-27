@@ -6,6 +6,7 @@
 /**
  * All heating parameters and evolution that other modules need to know.
  */
+enum PBH_accretion_approx {spherical_accretion, disk_accretion};
 enum f_eff_approx {f_eff_on_the_spot, f_eff_from_file};
 enum chi_approx {chi_CK, chi_Galli, chi_Slatyer, chi_full_heating, chi_from_x_file, chi_from_z_file};
 
@@ -18,18 +19,25 @@ struct heating{
   //@{
 
   /* Exotic energy injection parameters */
-  double annihilation_efficiency;/**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  double annihilation_cross_section;
-  double DM_mass;
-  double annihilation_variation;
-  double annihilation_z;
-  double annihilation_zmax;
-  double annihilation_zmin;
-  double annihilation_f_halo;
-  double annihilation_z_halo;
+  double DM_annihilation_efficiency;
+  double DM_annihilation_cross_section;
+  double DM_annihilation_mass;
+  double DM_annihilation_variation;
+  double DM_annihilation_z;
+  double DM_annihilation_zmax;
+  double DM_annihilation_zmin;
+  double DM_annihilation_f_halo;
+  double DM_annihilation_z_halo;
 
-  double decay_fraction;       /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-  double decay_Gamma;
+  double DM_decay_fraction;
+  double DM_decay_Gamma;
+
+  double PBH_evaporating_fraction;
+  double PBH_evaporating_mass;
+
+  double PBH_accretion_recipe;
+  double PBH_accreting_fraction;
+  double PBH_accreting_mass;
 
   /* Injection efficiency */
   int f_eff_type;
@@ -51,12 +59,17 @@ struct heating{
   //@{
 
   /* Parameters from background structure */
+  int Nz_size;
+  double z_initial;
+  double z_start_chi_approx;
+
+  /* Parameters from background structure */
   /* Redshift independent, i.e. defined in heating_init */
   double H0;
   double T_g0;
   double Omega0_b;
   double rho0_cdm;
-  /* Redshift dependent, i.e. defined in heating_at_z or heating_at_z_second_order */
+  /* Redshift dependent, i.e. defined in heating_calculate_at_z or heating_at_z_second_order */
   double H;
   double a;
   double t;
@@ -64,9 +77,6 @@ struct heating{
   double rho_g;
   double rho_cdm;
   double rho_dcdm;
-  double T_b;
-  double T_g;
-  double x_e;
 
   /* Parameters from thermodynamics structure */
   /* Redshift independent, i.e. defined in heating_init */
@@ -74,10 +84,12 @@ struct heating{
   double f_He;
   double fHe;
   double heat_capacity;
-
   double N_e0;
   double nH;
-  /* Redshift dependent, i.e. defined in heating_at_z or heating_at_z_second_order */
+  /* Redshift dependent, i.e. defined in heating_calculate_at_z or heating_at_z_second_order */
+  double T_b;
+  double T_g;
+  double x_e;
   double dkappa;
   double dkD_dz;
   double kD;
@@ -113,12 +125,32 @@ struct heating{
   /* X_e table */
   int last_index_x_chi;
 
+  /* PBH mass evolution table and PBH free parameters */
+  double PBH_z;
+  double * PBH_table_z;
+  double * PBH_table_mass;
+  double * PBH_table_mass_dd;
+  double * PBH_table_F;
+  double * PBH_table_F_dd;
+
+  int coll_ion_pbh;                /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most
+                                        conservative). if 0: photoionization by PBH radiation  */
+  double PBH_ADAF_delta;           /**< Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in
+                                        the disk, influencing the emissivity.
+                                        Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
+  double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g.
+                                        Ali-Haimoud & Kamionkowski 2016) */
+  double PBH_relative_velocities;  /**< The relative velocities between PBH and baryons in km/s. If negative, the linear result
+                                        is chosen by the code. */
+
   /* Energy injection table */
   double** injection_table;
   int index_inj_cool;
   int index_inj_diss;
   int index_inj_DM_ann;
   int index_inj_DM_dec;
+  int index_inj_PBH_eva;
+  int index_inj_PBH_acc;
   int index_inj_tot;
   int inj_size;                  /** All contributions + total */
 
@@ -157,6 +189,8 @@ struct heating{
 
   int has_DM_ann;
   int has_DM_dec;
+  int has_PBH_eva;
+  int has_PBH_acc;
 
   int to_store;
 
@@ -199,8 +233,7 @@ extern "C" {
   int heating_free(struct thermo* pth);
 
   /* Main functions */
-  int heating_calculate_at_z(struct precision * ppr,
-                             struct background* pba,
+  int heating_calculate_at_z(struct background* pba,
                              struct thermo* pth,
                              double x,
                              double z,
@@ -211,8 +244,7 @@ extern "C" {
                                     double z,
                                     double* dEdz_inj);
 
-  int heating_deposition_function_at_z(struct precision * ppr,
-                                       struct heating* phe,
+  int heating_deposition_function_at_z(struct heating* phe,
                                        double x,
                                        double z);
 
@@ -244,6 +276,19 @@ extern "C" {
   int heating_rate_DM_decay(struct heating * phe,
                             double z,
                             double * energy_rate);
+
+  int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
+                                                  struct heating * phe);
+
+  int heating_rate_PBH_free_evaporating_mass_evolution(struct heating * phe);
+
+  int heating_rate_PBH_evaporation(struct heating * phe,
+                                   double z,
+                                   double * energy_rate);
+
+  int heating_rate_PBH_accretion(struct heating * phe,
+                                 double z,
+                                 double * energy_rate);
 
   /* Injection efficiency */
   int heating_read_feff_from_file(struct precision* ppr,

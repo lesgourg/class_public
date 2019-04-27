@@ -144,9 +144,9 @@ struct thermo
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal 
+  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal
                                    tight-coupling schemes is requested) */
-  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some 
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some
                                    non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
@@ -349,7 +349,7 @@ struct thermo_workspace {
 };
 
 struct thermo_reionization_parameters{
-  
+
   /* parameters used by reio_camb */
 
   int index_reio_redshift;  /**< hydrogen reionization redshift */
@@ -539,7 +539,7 @@ extern "C" {
                                                     struct thermo* pth,
                                                     double* pvecback);
 
-  int thermodynamics_calculate_opticals(struct precision* ppr, 
+  int thermodynamics_calculate_opticals(struct precision* ppr,
                                         struct thermo* pth);
 
   int thermodynamics_calculate_conformal_drag_time(struct background* pba,
@@ -564,7 +564,7 @@ extern "C" {
                                                int* last_index_back,
                                                double* pvecback);
 
-  int thermodynamics_print_output(struct background* pba, 
+  int thermodynamics_print_output(struct background* pba,
                                   struct thermo* pth);
 
   int thermodynamics_x_analytic(double z,
@@ -616,6 +616,9 @@ extern "C" {
 #define _GeVcm3_over_Mpc2_ 94.7024726  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in GeV/cm^3 (rho in GeV/cm^3=const*CLASS_rho) */
 #define _Jm3_over_Mpc2_ 0.0151730087  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in Joule/m^3 (rho in Joule/m^3=const*CLASS_rho) */
 #define _Sun_mass_ 1.98855e30 /**< sun mass in kg */
+#define _eV_over_Kelvin_ 8.626e-5   /**< kB in eV/K */
+#define _eV_over_joules_ 6.24150647996e+18 /**< eV/J */
+
 
 //@}
 

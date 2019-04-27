@@ -416,6 +416,7 @@ int thermodynamics_indices(struct thermo * pth,
   class_define_index(pth->index_th_r_d,pth->compute_damping_scale,index,1);
 
   /* end of thermodynamics indices */
+
   pth->th_size = index;
 
   /** - initialization of all indicies of parameters of reionization function */
@@ -436,7 +437,6 @@ int thermodynamics_indices(struct thermo * pth,
     class_define_index(ptrp->index_helium_fullreio_fraction,_TRUE_,index,1);
     class_define_index(ptrp->index_helium_fullreio_redshift,_TRUE_,index,1);
     class_define_index(ptrp->index_helium_fullreio_width,_TRUE_,index,1);
-
   }
 
   /* case where x_e(z) is binned */
@@ -451,7 +451,6 @@ int thermodynamics_indices(struct thermo * pth,
     class_define_index(ptrp->index_reio_first_xe,_TRUE_,index,ptrp->reio_num_z);
     class_define_index(ptrp->index_reio_step_sharpness,_TRUE_,index,1);
     class_define_index(ptrp->index_reio_xe_before,_TRUE_,index,1);
-
   }
 
   /* case where x_e(z) has many tanh jumps */
@@ -466,7 +465,6 @@ int thermodynamics_indices(struct thermo * pth,
     class_define_index(ptrp->index_reio_first_xe,_TRUE_,index,ptrp->reio_num_z);
     class_define_index(ptrp->index_reio_step_sharpness,_TRUE_,index,1);
     class_define_index(ptrp->index_reio_xe_before,_TRUE_,index,1);
-
   }
 
   /* case where x_e(z) must be interpolated */
@@ -477,7 +475,6 @@ int thermodynamics_indices(struct thermo * pth,
     class_define_index(ptrp->index_reio_first_z,_TRUE_,index,ptrp->reio_num_z);
     class_define_index(ptrp->index_reio_first_xe,_TRUE_,index,ptrp->reio_num_z);
     class_define_index(ptrp->index_reio_xe_before,_TRUE_,index,1);
-
   }
 
   ptrp->reio_num_params = index;
@@ -1096,7 +1093,7 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
 
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
-    //printf("g[%i] = %.10e \n",index_tau,g);
+
     /** - ---> compute variation rate */
     class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
                pth->error_message,
@@ -1118,8 +1115,6 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
              pth->error_message,
              pth->error_message);
 
-
-
   /** - --> derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
   if (pth->compute_cb2_derivatives == _TRUE_) {
 
@@ -1135,7 +1130,6 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
                pth->error_message,
                pth->error_message);
 
-
     /** - ---> first derivative with respect to tau of cb2 (using spline interpolation) */
     class_call(array_derive_spline_table_line_to_line(pth->tau_table,
                                                       pth->tt_size,
@@ -1150,7 +1144,6 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
   }
 
   return _SUCCESS_;
-
 }
 
 
@@ -1258,7 +1251,6 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
   }
 
   pth->tau_free_streaming = tau;
-
 
   /** - find time above which visibility falls below a given fraction of its maximum */
   index_tau=index_tau_max;
@@ -1413,20 +1405,14 @@ int thermodynamics_reionization_function(double z,
 
 
   /** - implementation of ionization function similar to the one in CAMB */
-
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
 
     /** - --> case z > z_reio_start */
-
     if (z > preio->reionization_parameters[preio->index_reio_start]) {
-
       *x = preio->reionization_parameters[preio->index_reio_xe_before];
       *dx = 0.0;
-
     }
-
     else {
-
       /** - --> case z < z_reio_start: hydrogen contribution (tanh of complicated argument) */
       argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
                     preio->reionization_parameters[preio->index_reio_exponent])
@@ -1443,7 +1429,6 @@ int thermodynamics_reionization_function(double z,
                  /pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
                    (preio->reionization_parameters[preio->index_reio_exponent]-1.))
                  /preio->reionization_parameters[preio->index_reio_width];
-
 
       if (pth->reio_parametrization == reio_camb) {
         *x = (preio->reionization_parameters[preio->index_reio_xe_after]
@@ -1478,7 +1463,6 @@ int thermodynamics_reionization_function(double z,
 
         *dx += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
                *(1-tanh(argument)*tanh(argument))/2.*dargument;
-
       }
     }
 
@@ -1487,7 +1471,6 @@ int thermodynamics_reionization_function(double z,
   }
 
   /** - implementation of binned ionization function similar to astro-ph/0606552 */
-
   if (pth->reio_parametrization == reio_bins_tanh) {
 
     /** - --> case z > z_reio_start */
@@ -1897,7 +1880,6 @@ int thermodynamics_solve_derivs(double mz,
   struct heating* phe;
   int ap_current;
 
-
   /* Redshift */
   z = -mz;
 
@@ -1942,7 +1924,6 @@ int thermodynamics_solve_derivs(double mz,
   nH = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
   Trad = ptw->Tcmb * (1.+z);
 
-
   /** - Matter temperature and ionization fraction */
   class_call(thermodynamics_solve_current_quantities(z,y,pth,ptw,ap_current),
              pth->error_message,
@@ -1954,11 +1935,10 @@ int thermodynamics_solve_derivs(double mz,
   x_He = ptdw->x_He;
   Tmat = ptdw->Tmat;
 
-
   /** - Calculate heating */
   /* in case of energy injection, we currently neglect the contribution to helium ionization ! */
   /* Calculate the energy injection INCLUDING reionization ! */
-  class_call(heating_calculate_at_z(ppr,pba,pth,x,z,Tmat,pvecback),
+  class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
              phe->error_message,
              error_message);
 
@@ -1992,8 +1972,6 @@ int thermodynamics_solve_derivs(double mz,
              pth->error_message,
              pth->error_message);
   dxdlna = ptdw->dxdlna;
-
-
 
   /** - Matter temperature equations */
   /* Tmat is always integrated */
@@ -2049,7 +2027,6 @@ int thermodynamics_solve_derivs(double mz,
         - ptw->Tcmb;                                                              /* dTrad/dz */
   }
 
-
   /* time-invert derivatives (As the evolver evolves with -z, not with +z) */
   for(index_y=0;index_y<ptdw->tv->tv_size;index_y++){
     dy[index_y]=-dy[index_y];
@@ -2090,7 +2067,6 @@ int thermodynamics_solve_current_quantities(double z,
   double rhs, sqrt_val, drhs_dlna;
   /* Temporary quantities */
   double dx;
-
 
   /** Set Tmat from the evolver (it is always evolved). */
   Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
@@ -2222,7 +2198,6 @@ int thermodynamics_solve_current_quantities(double z,
     }
   }
 
-
   ptdw->x_noreio = x;
   ptdw->Tmat = Tmat;
 
@@ -2245,6 +2220,7 @@ int thermodynamics_solve_current_quantities(double z,
   return _SUCCESS_;
 
 }
+
 
 /**
  * This routine completes for the different codes and approximations
@@ -2279,7 +2255,6 @@ int thermodynamics_solve_current_dxdlna(double z,
   double rhs, sqrt_val, drhs_dlna;
   /* Temporary quantities */
   double dx, dx_H_dlna;
-
 
   /** Set Tmat from the evolver (it is always evolved). */
   Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
@@ -2557,7 +2532,6 @@ int thermodynamics_vector_init(struct precision * ppr,
       ptdw->require_He = _FALSE_;
     }
   }
-  //printf("Setting t = %.10e  at z = %.10e \n",(ptdw->tv->y[ptdw->tv->index_Tmat]/(1.+z)-ptw->Tcmb),z);
 
   return _SUCCESS_;
 
@@ -2637,7 +2611,6 @@ int thermodynamics_workspace_init(struct precision * ppr,
   ptw->SIunit_nH0 = 3.*ptw->SIunit_H0*ptw->SIunit_H0*pba->Omega0_b/(8.*_PI_*_G_*_m_H_)*(1.-ptw->YHe);
   pth->n_e = ptw->SIunit_nH0;
   ptw->x_limit_T =  ppr->recfast_H_frac;
-
 
   //TODO :: is this necessary?
   ptw->ptdw->x_reio = 1.+2.*ptw->fHe;
@@ -2837,7 +2810,6 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
     }
 
     /** - --> if reionization optical depth given as an input, find reionization redshift by dichotomy and initialize the remaining values */
-
     if (pth->reio_z_or_tau == reio_tau) {
            z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
       class_test(z_sup < 0.,
@@ -2920,7 +2892,6 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
   }
 
   /** - (c) if reionization implemented with reio_many_tanh scheme */
-
   else if (pth->reio_parametrization == reio_many_tanh) {
 
     /* this algorithm requires at least one jump centers */
@@ -2992,7 +2963,6 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
     }
 
     /* infer xe after reio */
-
     preio->reionization_parameters[preio->index_reio_first_xe] = preio->reionization_parameters[preio->index_reio_first_xe+1];
 
     /* if we want to model only hydrogen reionization and neglect both helium reionization */
@@ -3015,7 +2985,6 @@ int thermodynamics_set_parameters_reionization(struct precision * ppr,
   }
 
   /** - (d) if reionization implemented with reio_inter scheme */
-
   else if (pth->reio_parametrization == reio_inter) {
 
     /* this parametrization requires at least one point (z,xe) */
@@ -3240,7 +3209,6 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
 
   /** - try intermediate values by bisection */
-
   counter=0;
   while ((tau_sup-tau_inf) > pth->tau_reio * ppr->reionization_optical_depth_tol) {
     z_mid=0.5*(z_sup+z_inf);
@@ -3320,7 +3288,6 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
              pth->error_message);
 
   ptw->ptdw->tv = ptvs;
-
 
  return _SUCCESS_;
 
@@ -3476,7 +3443,6 @@ int thermodynamics_solve_store_sources(double mz,
              pth->error_message,
              pth->error_message);
   x = ptdw->x_reio;
-
 
   /** - In the recfast case, we manually smooth the results a bit */
   if(pth->recombination == recfast){

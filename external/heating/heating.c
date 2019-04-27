@@ -29,83 +29,31 @@ int heating_init(struct precision * ppr,
   struct heating* phe = &(pth->he);
   int index_inj, index_dep;
 
-  /** Initialize indeces and parameters */
+  /** Initialize flags, indeces and parameters */
+  phe->has_exotic_injection = _FALSE_;
+  phe->has_DM_ann = _FALSE_;
+  phe->has_DM_dec = _FALSE_;
+  phe->has_PBH_eva = _FALSE_;
+  phe->has_PBH_acc = _FALSE_;
   phe->last_index_x_chi = 0;
   phe->last_index_z_chi = 0;
   phe->last_index_z_feff = 0;
 
-  /** Import constant quantities from background structure */
+  /** Import qunatities from other structures */
+  /* Precision structure */
+  phe->Nz_size = ppr->thermo_Nz_lin;
+  phe->z_initial = ppr->thermo_z_initial;
+  phe->z_start_chi_approx = ppr->z_start_chi_approx;
+
+  /* Background structure */
   phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
   phe->T_g0 = pba->T_cmb;                                                                           // [K]
   phe->Omega0_b = pba->Omega0_b;                                                                    // [-]
   phe->rho0_cdm = pba->Omega0_cdm*pow(phe->H0,2)*3/8./_PI_/_G_*_c_*_c_;                             // [J/m^3]
 
-  /** Import constant quantities from thermodynamics structure */
+  /* Thermodynamics structure */
   phe->fHe = pth->fHe;                                                                              // [-]
   phe->N_e0 = pth->n_e;                                                                             // [1/m^3]
-
-  /** Check energy injection */
-  if(phe->annihilation_efficiency!=0 || phe->decay_fraction!=0){
-    phe->has_exotic_injection = _TRUE_;
-  }
-  else{
-    phe->has_exotic_injection = _FALSE_;
-  }
-
-  /** Check energy injection for DM annihilation */
-  class_test((phe->annihilation_efficiency<0),
-             phe->error_message,
-             "annihilation parameter cannot be negative");
-  class_test((phe->annihilation_efficiency>1.e-4),
-             phe->error_message,
-             "annihilation parameter suspiciously large (%e, while typical bounds are in the range of 1e-7 to 1e-6)",phe->annihilation_efficiency);
-  class_test((phe->annihilation_variation>0),
-             phe->error_message,
-             "annihilation variation parameter must be negative (decreasing annihilation rate)");
-  class_test((phe->annihilation_z<0),
-             phe->error_message,
-             "characteristic annihilation redshift cannot be negative");
-  class_test((phe->annihilation_zmin<0),
-             phe->error_message,
-             "characteristic annihilation redshift cannot be negative");
-  class_test((phe->annihilation_zmax<0),
-             phe->error_message,
-             "characteristic annihilation redshift cannot be negative");
-  class_test((phe->annihilation_efficiency>0) && (pba->has_cdm==_FALSE_),
-             phe->error_message,
-             "CDM annihilation effects require the presence of CDM!");
-  class_test((phe->annihilation_f_halo<0),
-             phe->error_message,
-             "Parameter for DM annihilation in halos cannot be negative");
-  class_test((phe->annihilation_z_halo<0),
-             phe->error_message,
-             "Parameter for DM annihilation in halos cannot be negative");
-  if (phe->heating_verbose > 0){
-    if ((phe->annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
-      printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
-  } //TODO :: check if still occurs !!!
-
-  if(phe->annihilation_efficiency!=0){
-    phe->has_DM_ann = _TRUE_;
-  }
-  else{
-    phe->has_DM_ann = _FALSE_;
-  }
-
-  /** Check energy injection for DM deacy */
-  class_test((phe->decay_fraction<0),
-             phe->error_message,
-             "decay parameter cannot be negative");
-  class_test((phe->decay_fraction>0)&&(pba->has_cdm==_FALSE_),
-             phe->error_message,
-             "CDM decay effects require the presence of CDM!");
-
-  if(phe->decay_fraction!=0){
-    phe->has_DM_dec = _TRUE_;
-  }
-  else{
-    phe->has_DM_dec = _FALSE_;
-  }
 
   /** Define redshift tables */
   phe->z_size = pth->tt_size;
@@ -132,31 +80,8 @@ int heating_init(struct precision * ppr,
              phe->error_message,
              phe->error_message);
 
-  /** Read file for deposition function */
-  if(phe->f_eff_type == f_eff_from_file){
-    class_call(heating_read_feff_from_file(ppr,phe,phe->f_eff_file),
-               phe->error_message,
-               phe->error_message);
-  }
-
-  /** Read file for branching ratios */
-  if(phe->chi_type == chi_Galli){
-    class_call(heating_read_chi_x_from_file(ppr,phe,ppr->chi_z_Galli),
-               phe->error_message,
-               phe->error_message);
-  }
-  else if(phe->chi_type == chi_from_x_file){
-    class_call(heating_read_chi_x_from_file(ppr,phe,phe->chi_x_file),
-               phe->error_message,
-               phe->error_message);
-  }
-  else if(phe->chi_type == chi_from_z_file){
-    class_call(heating_read_chi_z_from_file(ppr,phe,phe->chi_z_file),
-               phe->error_message,
-               phe->error_message);
-  }
-
-  /** Allocate tables and pvecs */
+  /** Initialize energy injection table */
+  /* Allocate space */
   class_alloc(phe->injection_table,
               phe->inj_size*sizeof(double*),
               phe->error_message);
@@ -166,6 +91,67 @@ int heating_init(struct precision * ppr,
                 phe->error_message);
   }
 
+  /* Check energy injection */
+  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporating_fraction!=0 || phe->PBH_accreting_fraction!=0){
+    phe->has_exotic_injection = _TRUE_;
+  }
+  if(phe->DM_annihilation_efficiency!=0){
+    phe->has_DM_ann = _TRUE_;
+  }
+  if(phe->DM_decay_fraction!=0){
+    phe->has_DM_dec = _TRUE_;
+  }
+  if(phe->PBH_evaporating_fraction!=0){
+    phe->has_PBH_eva = _TRUE_;
+  }
+  if(phe->PBH_accreting_fraction!=0){
+    phe->has_PBH_acc = _TRUE_;
+  }
+
+  /* Calculate the PBH mass evolution, if needed */
+  if(phe->has_PBH_eva == _TRUE_ ){
+    class_call(heating_rate_PBH_evaporating_mass_evolution(pba,phe),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  /** Initialize injection efficiency */
+  /* Read from external file, if needed */
+  if(phe->f_eff_type == f_eff_from_file){
+    class_call(heating_read_feff_from_file(ppr,phe,
+                                           phe->f_eff_file),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  /** Initialize deposition function */
+  /* Allocate space */
+  class_alloc(phe->chi,
+              phe->dep_size*sizeof(double),
+              phe->error_message);
+
+  /* Read from external file, if needed */
+  if(phe->chi_type == chi_Galli){
+    class_call(heating_read_chi_x_from_file(ppr,phe,
+                                            ppr->chi_z_Galli),
+               phe->error_message,
+               phe->error_message);
+  }
+  else if(phe->chi_type == chi_from_x_file){
+    class_call(heating_read_chi_x_from_file(ppr,phe,
+                                            phe->chi_x_file),
+               phe->error_message,
+               phe->error_message);
+  }
+  else if(phe->chi_type == chi_from_z_file){
+    class_call(heating_read_chi_z_from_file(ppr,phe,
+                                            phe->chi_z_file),
+               phe->error_message,
+               phe->error_message);
+  }
+
+  /** Initialize energy deposition table */
+  /* Allocate space */
   class_alloc(phe->deposition_table,
               phe->dep_size*sizeof(double*),
               phe->error_message);
@@ -176,10 +162,6 @@ int heating_init(struct precision * ppr,
   }
   class_alloc(phe->photon_dep_table,
               phe->z_size*sizeof(double),
-              phe->error_message);
-
-  class_alloc(phe->chi,
-              phe->dep_size*sizeof(double),
               phe->error_message);
 
   class_alloc(phe->pvecdeposition,
@@ -204,11 +186,13 @@ int heating_indices(struct thermo* pth){
 
   /** Indices for injection table */
   index_inj = 0;
-  class_define_index(phe->index_inj_cool   , _TRUE_          , index_inj, 1);
-  class_define_index(phe->index_inj_diss   , _TRUE_          , index_inj, 1);
-  class_define_index(phe->index_inj_DM_ann , phe->has_DM_ann , index_inj, 1);
-  class_define_index(phe->index_inj_DM_dec , phe->has_DM_dec , index_inj, 1);
-  class_define_index(phe->index_inj_tot    , _TRUE_          , index_inj, 1);
+  class_define_index(phe->index_inj_cool    , _TRUE_           , index_inj, 1);
+  class_define_index(phe->index_inj_diss    , _TRUE_           , index_inj, 1);
+  class_define_index(phe->index_inj_DM_ann  , phe->has_DM_ann  , index_inj, 1);
+  class_define_index(phe->index_inj_DM_dec  , phe->has_DM_dec  , index_inj, 1);
+  class_define_index(phe->index_inj_PBH_eva , phe->has_PBH_eva , index_inj, 1);
+  class_define_index(phe->index_inj_PBH_acc , phe->has_PBH_acc , index_inj, 1);
+  class_define_index(phe->index_inj_tot     , _TRUE_           , index_inj, 1);
   phe->inj_size = index_inj;
 
   /** Indices for deposition (and chi) table */
@@ -236,22 +220,22 @@ int heating_free(struct thermo* pth){
   struct heating* phe = &(pth->he);
   int index_inj, index_dep;
 
+  /* Redshift */
   free(phe->z_table);
 
+  /* Energy injection */
   for(index_inj=0;index_inj<phe->inj_size;++index_inj){
     free(phe->injection_table[index_inj]);
   }
   free(phe->injection_table);
 
-  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
-    free(phe->deposition_table[index_dep]);
+  if(phe->has_PBH_eva=_TRUE_){
+    class_call(heating_rate_PBH_free_evaporating_mass_evolution(phe),
+               phe->error_message,
+               phe->error_message);
   }
-  free(phe->deposition_table);
-  free(phe->photon_dep_table);
-  free(phe->chi);
 
-  free(phe->pvecdeposition);
-
+  /* Injection efficiency */
   if(phe->f_eff_type == f_eff_from_file){
     free(phe->feff_table);
   }
@@ -261,6 +245,17 @@ int heating_free(struct thermo* pth){
   if(phe->chi_type == chi_from_x_file){
     free(phe->chix_table);
   }
+
+  /* Deposition function */
+  free(phe->chi);
+
+  /* Energy deposition */
+  for(index_dep=0;index_dep<phe->dep_size;++index_dep){
+    free(phe->deposition_table[index_dep]);
+  }
+  free(phe->deposition_table);
+  free(phe->photon_dep_table);
+  free(phe->pvecdeposition);
 
   return _SUCCESS_;
 }
@@ -278,8 +273,7 @@ int heating_free(struct thermo* pth){
  * @param pvecback    Output: vector of background quantities
  * @return the error status
  */
-int heating_calculate_at_z(struct precision * ppr,
-                           struct background* pba,
+int heating_calculate_at_z(struct background* pba,
                            struct thermo* pth,
                            double x,
                            double z,
@@ -342,7 +336,7 @@ int heating_calculate_at_z(struct precision * ppr,
              phe->error_message);
 
   /** Get the deposition and the efficiency functions */
-  class_call(heating_deposition_function_at_z(ppr,phe,
+  class_call(heating_deposition_function_at_z(phe,
                                               x,
                                               z),
              phe->error_message,
@@ -394,7 +388,7 @@ int heating_energy_injection_at_z(struct heating* phe,
   dEdz = 0.;
 
   /** Test if the values are already within the table */
-  if(z > phe->filled_until_z){
+  if(z > phe->filled_until_z == _TRUE_){
     /* If the value is already within the table, just interpolate */
     class_call(array_spline_hunt(phe->z_table,
                                  phe->z_size,
@@ -415,37 +409,64 @@ int heating_energy_injection_at_z(struct heating* phe,
   }
 
   /** Exotic energy injection mechanisms */
-  if(phe->has_exotic_injection){
+  if(phe->has_exotic_injection == _TRUE_){
 
-    /* Annihilating Dark Matter */
-    if(phe->has_DM_ann){
+    /* DM annihilation */
+    if(phe->has_DM_ann == _TRUE_){
       class_call(heating_rate_DM_annihilation(phe,
                                               z,
                                               &rate),
                  phe->error_message,
                  phe->error_message);
-      if(phe->to_store){
+      if(phe->to_store == _TRUE_){
         phe->injection_table[phe->index_inj_DM_ann][phe->index_z_store] = rate;
       }
       dEdz += rate;
     }
 
-    /* Decaying Dark Matter */
-    if(phe->has_DM_dec){
+    /* DM decay */
+    if(phe->has_DM_dec == _TRUE_){
       class_call(heating_rate_DM_decay(phe,
                                        z,
                                        &rate),
                  phe->error_message,
                  phe->error_message);
-      if(phe->to_store){
+      if(phe->to_store == _TRUE_){
         phe->injection_table[phe->index_inj_DM_dec][phe->index_z_store] = rate;
+      }
+      dEdz += rate;
+    }
+
+    /* PBH evaporation */
+    if(phe->has_PBH_eva == _TRUE_){
+
+      class_call(heating_rate_PBH_evaporation(phe,
+                                              z,
+                                              &rate),
+                 phe->error_message,
+                 phe->error_message);
+      if(phe->to_store == _TRUE_){
+        phe->injection_table[phe->index_inj_PBH_eva][phe->index_z_store] = rate;
+      }
+      dEdz += rate;
+    }
+
+    /* PBH matter acctretion */
+    if(phe->has_PBH_acc == _TRUE_){
+      class_call(heating_rate_PBH_accretion(phe,
+                                            z,
+                                            &rate),
+                 phe->error_message,
+                 phe->error_message);
+      if(phe->to_store == _TRUE_){
+        phe->injection_table[phe->index_inj_PBH_acc][phe->index_z_store] = rate;
       }
       dEdz += rate;
     }
   }
 
   /** Total energy injection */
-  if(phe->to_store){
+  if(phe->to_store == _TRUE_){
     phe->injection_table[phe->index_inj_tot][phe->index_z_store] = dEdz;
 
     class_test(phe->index_z_store < phe->filled_until_index_z-1,
@@ -467,15 +488,14 @@ int heating_energy_injection_at_z(struct heating* phe,
  * @param z           Input: redshift
  * @return the error status
  */
-int heating_deposition_function_at_z(struct precision * ppr,
-                                     struct heating* phe,
+int heating_deposition_function_at_z(struct heating* phe,
                                      double x,
                                      double z){
 
   /** Define local variables */
   int index_dep;
 
-  if(z > ppr->z_start_chi_approx){
+  if(z > phe->z_start_chi_approx){
     /** In the verz early universe, whole energy goes into heating */
     phe->chi[phe->index_dep_heat]  = 1.;
     phe->chi[phe->index_dep_ionH]  = 0.;
@@ -921,31 +941,31 @@ int heating_rate_DM_annihilation(struct heating * phe,
   double annihilation_at_z, boost_factor;
 
   /** Calculate chamge in the annihilation efficiency */
-  if (z>phe->annihilation_zmax) {
-    annihilation_at_z = phe->annihilation_efficiency*
-                        exp(-phe->annihilation_variation*pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2));
+  if (z>phe->DM_annihilation_zmax) {
+    annihilation_at_z = phe->DM_annihilation_efficiency*
+                        exp(-phe->DM_annihilation_variation*pow(log((phe->DM_annihilation_z+1.)/(phe->DM_annihilation_zmax+1.)),2));
   }
-  else if (z>phe->annihilation_zmin) {
-    annihilation_at_z = phe->annihilation_efficiency*
-                        exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
-                                         +pow(log((z+1.)/(phe->annihilation_zmax+1.)),2)));
+  else if (z>phe->DM_annihilation_zmin) {
+    annihilation_at_z = phe->DM_annihilation_efficiency*
+                        exp(phe->DM_annihilation_variation*(-pow(log((phe->DM_annihilation_z+1.)/(phe->DM_annihilation_zmax+1.)),2)
+                                         +pow(log((z+1.)/(phe->DM_annihilation_zmax+1.)),2)));
   }
   else {
-    annihilation_at_z = phe->annihilation_efficiency*
-                        exp(phe->annihilation_variation*(-pow(log((phe->annihilation_z+1.)/(phe->annihilation_zmax+1.)),2)
-                                         +pow(log((phe->annihilation_zmin+1.)/(phe->annihilation_zmax+1.)),2)));
+    annihilation_at_z = phe->DM_annihilation_efficiency*
+                        exp(phe->DM_annihilation_variation*(-pow(log((phe->DM_annihilation_z+1.)/(phe->DM_annihilation_zmax+1.)),2)
+                                         +pow(log((phe->DM_annihilation_zmin+1.)/(phe->DM_annihilation_zmax+1.)),2)));
   }
 
   /** Calculate boost factor due to annihilation in halos */
-  if(phe->annihilation_z_halo > 0.){
-    boost_factor = phe->annihilation_f_halo * erfc((1+z)/(1+phe->annihilation_z_halo)) / pow(1.+z,3);
+  if(phe->DM_annihilation_z_halo > 0.){
+    boost_factor = phe->DM_annihilation_f_halo * erfc((1+z)/(1+phe->DM_annihilation_z_halo)) / pow(1.+z,3);
   }
   else{
     boost_factor = 0;
   }
 
   /** Calculate heating rates */
-  *energy_rate = pow(phe->rho_cdm,2.)*phe->annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
+  *energy_rate = pow(phe->rho_cdm,2.)*phe->DM_annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
 
   return _SUCCESS_;
 }
@@ -964,8 +984,386 @@ int heating_rate_DM_decay(struct heating * phe,
                           double * energy_rate){
 
   /** Calculate heating rates */
-  *energy_rate = phe->rho_cdm*phe->decay_fraction*phe->decay_Gamma*
-                 exp(-phe->decay_Gamma*phe->t);                                // [J/(m^3 s)]
+  *energy_rate = phe->rho_cdm*phe->DM_decay_fraction*phe->DM_decay_Gamma*
+                 exp(-phe->DM_decay_Gamma*phe->t);                                                  // [J/(m^3 s)]
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Determines time evolution of the primordial black hole (PBH) mass.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param phe            Input: pointer to thermodynamics structure
+ * @return the error status
+ */
+int heating_rate_PBH_evaporating_mass_evolution(struct background * pba,
+                                                struct heating * phe){
+
+  /** Define local variables */
+  double * pvecback_loop;
+  int last_index_back_loop;
+  int i_step;
+  double current_mass, current_pbh_temperature, QCD_activation, f;
+  double loop_z, loop_tau;
+  double time_now, time_prev, dt, dz;
+
+  /** Set initial parameters */
+  current_mass = phe->PBH_evaporating_mass;
+  phe->PBH_z = 0;
+  dz = phe->z_initial/(phe->Nz_size);
+  loop_z = phe->z_initial+dz;
+  time_prev = 0.;
+
+  /** Alloate local variables */
+  class_alloc(pvecback_loop,
+              pba->bg_size*sizeof(double),
+              phe->error_message);
+
+  /** Alloate variables for PBH mass evolution */
+  class_alloc(phe->PBH_table_z,
+              phe->Nz_size*sizeof(double),
+              phe->error_message);
+  class_alloc(phe->PBH_table_mass,
+              phe->Nz_size*sizeof(double),
+              phe->error_message);
+  class_alloc(phe->PBH_table_mass_dd,
+              phe->Nz_size*sizeof(double),
+              phe->error_message);
+  class_alloc(phe->PBH_table_F,
+              phe->Nz_size*sizeof(double),
+              phe->error_message);
+  class_alloc(phe->PBH_table_F_dd,
+              phe->Nz_size*sizeof(double),
+              phe->error_message);
+
+  /** Fill tables with PBH mass evolution */
+  /* For the parametrization of F(M) we follow PRD44 (1991) 376 with
+   * the additional modification that we dress the "free QCD-particles"
+   * (gluons and quarks) with an sigmoid-activation function (in log10-space:
+   * Mean at 0.3 GeV and a with of 0.1*"order of magnitude") and the hadrons
+   * with 1 - activation to take the QCD-phase transition into account
+   * and to be in agreement with PRD41 (1990) 3052, where the Ansatz is taken
+   * that a black hole emmits those particles which appear elementary at the
+   * given energy. The order of the particles in the following definition
+   * of f: photon, neutrino, electron, muon, tau, up, down, charm, strange,
+   * top, bottom, W, Z, gluon, Higgs, neutral Pion and charged pion */
+  for(i_step = 0; i_step<phe->Nz_size; i_step++) {
+
+    /** Find value of f(M) */
+    current_pbh_temperature = 1.06e13/current_mass;
+    QCD_activation = 1./(1.-exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1)));
+    f = 2.*0.060
+        +6.*0.147
+        +4.*0.142*exp(-(current_mass*5.11e-4)/(4.53*1.06e13))
+        +4.*0.142*exp(-(current_mass*0.1037)/(4.53*1.06e13))
+        +4.*0.142*exp(-(current_mass*1.777)/(4.53*1.06e13))
+        +12.*0.142*exp(-(current_mass*2.2e-3)/(4.53*1.06e13))*QCD_activation
+        +12.*0.142*exp(-(current_mass*4.7e-3)/(4.53*1.06e13))*QCD_activation
+        +12.*0.142*exp(-(current_mass*1.82)/(4.53*1.06e13))*QCD_activation
+        +12.*0.142*exp(-(current_mass*9.6e-2)/(4.53*1.06e13))*QCD_activation
+        +12.*0.142*exp(-(current_mass*173.1)/(4.53*1.06e13))*QCD_activation
+        +12.*0.142*exp(-(current_mass*4.18)/(4.53*1.06e13))*QCD_activation
+        +6.*0.060*exp(-(current_mass*80.39)/(6.04*1.06e13))
+        +3.*0.060*exp(-(current_mass*91.19)/(6.04*1.06e13))
+        +16.*0.060*exp(-(current_mass*6e-1)/(6.04*1.06e13))*QCD_activation
+        +1.*0.267*exp(-(current_mass*125.06)/(2.66*1.06e13))
+        +1.*0.267*exp(-(current_mass*1.350e-1)/(2.66*1.06e13))*(1-QCD_activation)
+        +2.*0.267*exp(-(current_mass*1.396e-1)/(2.66*1.06e13))*(1-QCD_activation);
+
+    /** Find current time value */
+    class_call(background_tau_of_z(pba,
+                                   loop_z,
+                                   &loop_tau),
+               pba->error_message,
+               phe->error_message);
+    class_call(background_at_tau(pba,
+                                 loop_tau,
+                                 pba->long_info,
+                                 pba->inter_normal,
+                                 &last_index_back_loop,
+                                 pvecback_loop),
+               pba->error_message,
+               phe->error_message);
+    time_now = pvecback_loop[pba->index_bg_time]/(_c_/_Mpc_over_m_);
+    dt = time_now-time_prev;
+    time_prev = time_now;
+
+    if (i_step > 0) {
+      if (current_mass > 0.5*phe->PBH_evaporating_mass) {
+        current_mass = current_mass-5.34e-5*f*pow(current_mass/1e10,-2)*1e10*dt;
+      }
+      else {
+        if(phe->PBH_z == 0) phe->PBH_z = loop_z;
+        current_mass = 0.;
+        f = 0.;
+      }
+    }
+
+    /** Fill tables */
+    phe->PBH_table_z[i_step] = loop_z;
+    phe->PBH_table_mass[i_step] = current_mass;
+    phe->PBH_table_F[i_step] = f;
+    loop_z = MAX(0.,loop_z-dz);
+  }
+
+  /** Free allocated space */
+  free(pvecback_loop);
+
+  /** Spline mass and F(M) evolution in z */
+  class_call(array_spline_table_lines(phe->PBH_table_z,
+                                      phe->Nz_size,
+                                      phe->PBH_table_mass,
+                                      1,
+                                      phe->PBH_table_mass_dd,
+                                      _SPLINE_NATURAL_,
+                                      phe->error_message),
+             phe->error_message,
+             phe->error_message);
+  class_call(array_spline_table_lines(phe->PBH_table_z,
+                                      phe->Nz_size,
+                                      phe->PBH_table_F,
+                                      1,
+                                      phe->PBH_table_F_dd,
+                                      _SPLINE_NATURAL_,
+                                      phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Free quantities allocated in heating_rate_PBH_evaporating_mass_evolution
+ *
+ * @param phe            Input: pointer to thermodynamics structure
+ * @return the error status
+ */
+int heating_rate_PBH_free_evaporating_mass_evolution(struct heating * phe){
+
+  free(phe->PBH_table_z);
+  free(phe->PBH_table_mass);
+  free(phe->PBH_table_mass_dd);
+  free(phe->PBH_table_F);
+  free(phe->PBH_table_F_dd);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Calculate heating from PBH evaporation
+ *
+ * @param pba            Input: pointer to background structure
+ * @param pth            Input: pointer to thermodynamics structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @return the error status
+ */
+int heating_rate_PBH_evaporation(struct heating * phe,
+                                 double z,
+                                 double * energy_rate){
+
+  /** Define local variables */
+  int last_index_back;
+  double mass, f;
+  double dMdt;
+
+  /** Interpolate the PBH mass evolution */
+  class_call(array_interpolate_spline(phe->PBH_table_z,
+                                      phe->Nz_size,
+                                      phe->PBH_table_mass,
+                                      phe->PBH_table_mass_dd,
+                                      1,
+                                      z,
+                                      &last_index_back,
+                                      &mass,
+                                      1,
+                                      phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  class_call(array_interpolate_spline(phe->PBH_table_z,
+                                      phe->Nz_size,
+                                      phe->PBH_table_F,
+                                      phe->PBH_table_F_dd,
+                                      1,
+                                      z,
+                                      &last_index_back,
+                                      &f,
+                                      1,
+                                      phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  dMdt=5.34e-5*f*pow(mass/1.e10,-2.)*1.e10;
+
+  /** Calculate heating rates */
+  *energy_rate = phe->rho_cdm*phe->PBH_evaporating_fraction*dMdt/phe->PBH_evaporating_mass;
+  printf("%g   %g\n", z,*energy_rate*phe->a/phe->H/phe->rho_g);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Calculate heating from PBH matter accretion
+ *
+ * @param phe            Input: pointer to heating structure
+ * @param z              Input: redshift
+ * @param energy_rate    Output: energy density injection rate
+ * @return the error status
+ */
+int heating_rate_PBH_accretion(struct heating * phe,
+                               double z,
+                               double * energy_rate){
+
+  /** Define local variables */
+  double tau, * pvecback;
+  int last_index_back;
+  double c_s, n_gas, T_infinity, m_p, m_e;
+  double L_ed, M_ed_dot, M_crit;
+  double v_B, v_l, v_eff, r_B, t_B;
+  double lambda, M_b_dot;
+  double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1, epsilon;
+  double L_acc;
+  double T_ion, beta_compton_drag, gamma_cooling, tau_cooling, T_s, Y_s;
+  double lambda_1,lambda_2,lambda_ad,lambda_iso, J;
+
+  /** Initialize local variables */
+  c_s = 5.7e3*pow(phe->T_b/2.73e3,0.5);                                                             // [m]
+  n_gas = 2.e2*1.e6*pow((1.+z)/1.e3,3.);                                                            // [1/m^3]
+  T_infinity = phe->T_b*_eV_over_Kelvin_*1e-6;                                                      // [MeV]
+  m_p = _m_p_/_GeV_over_kg_*1.e-3;                                                                  // [MeV]
+  m_e = _m_e_/_GeV_over_kg_*1.e-3;                                                                  // [MeV]
+
+  /* Eddington definitions */
+  L_ed = 4.*_PI_*_G_*phe->PBH_accreting_mass*_Sun_mass_*m_p*1.e6/_eV_over_joules_/(_sigma_*_c_);
+  M_ed_dot= 10.*L_ed/pow(_c_,2.);
+  M_crit = 0.01*M_ed_dot;
+
+  /* Boldi definitions */
+  v_B = sqrt((1.+phe->x_e)*T_infinity/m_p)*_c_;                                                     // [m/s]
+  if(phe->PBH_relative_velocities < 0.){
+    v_l = 30.*MIN(1.,(1.+z)/1.e3)*1.e3;                                                             // [m/s]
+    if(v_B < v_l){
+      v_eff = sqrt(v_B*v_l);                                                                        // [m/s]
+    }
+    else{
+      v_eff = v_B;                                                                                  // [m/s]
+    }
+  }
+  else{
+    v_l = phe->PBH_relative_velocities*1.e3;                                                        // [m/s]
+    v_eff = pow(v_l*v_l+v_B*v_B,0.5);                                                               // [m/s]
+  }
+  r_B = _G_*phe->PBH_accreting_mass*_Sun_mass_*pow(v_eff,-2.);                                           // [m]
+  t_B = _G_*phe->PBH_accreting_mass*_Sun_mass_/pow(v_eff,3.);                                            // [s]
+
+  /** Disk accretion from Poulin et al. 1707.04206 */
+  if(phe->PBH_accretion_recipe == disk_accretion){
+
+    lambda = phe->PBH_accretion_eigenvalue;
+    M_b_dot = 4.*_PI_*lambda*pow(_G_*phe->PBH_accreting_mass*_Sun_mass_,2.)*phe->rho_g*pow(v_eff,-3.);
+
+    if(phe->PBH_ADAF_delta == 1.e-3){
+      Value_min = 7.6e-5;
+      Value_med = 4.5e-3;
+      Value_max = 7.1e-3;
+      if(M_b_dot/M_ed_dot <= Value_min){
+        epsilon_0 = 0.065;
+        a = 0.71;
+      }
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_med){
+        epsilon_0 = 0.020;
+        a = 0.47;
+      }
+      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+        epsilon_0 = 0.26;
+        a = 3.67;
+      }
+      else{
+        epsilon_0 = 0.1;
+        a = 0.;
+      }
+    }
+    else if(phe->PBH_ADAF_delta == 0.1){
+      Value_min = 9.4e-5;
+      Value_med = 5e-3;
+      Value_max = 6.6e-3;
+      if(M_b_dot/M_ed_dot <= Value_min){
+        epsilon_0 = 0.12;
+        a = 0.59;
+      }
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_med){
+        epsilon_0 = 0.026;
+        a = 0.27;
+      }
+      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+        epsilon_0 = 0.50;
+        a = 4.53;
+      }
+      else{
+        epsilon_0 = 0.1;
+        a = 0.;
+      }
+    }
+    else if(phe->PBH_ADAF_delta == 0.5){
+      Value_min = 2.9e-5;
+      Value_med = 3.3e-3;
+      Value_max = 5.3e-3;
+      if(M_b_dot/M_ed_dot <= Value_min){
+        epsilon_0 = 1.58;
+        a = 0.65;
+      }
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_med){
+        epsilon_0 = 0.055;
+        a = 0.076;
+      }
+      else if(Value_med < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_max){
+        epsilon_0 = 0.17;
+        a = 1.12;
+      }
+      else{
+        epsilon_0 = 0.1;
+        a = 0.;
+      }
+    }
+    epsilon = epsilon_0*pow(M_b_dot/M_crit,a);
+
+    L_acc = epsilon*M_b_dot*pow(_c_,2.);
+
+  }
+
+  /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
+  else if(phe->PBH_accretion_recipe == spherical_accretion){
+    T_ion = 1.5e4*_eV_over_Kelvin_;
+    beta_compton_drag = 4./3.*phe->x_e*_sigma_*phe->rho_g*t_B/m_p*_c_;
+    gamma_cooling = 2.*(m_p/m_e)/(1+phe->x_e)*beta_compton_drag;
+    tau_cooling = 1.5/(5.+pow(gamma_cooling,2./3.));
+    Y_s = pow((1.+phe->x_e)/2.,2./3.*13.6/T_ion)*tau_cooling/4.*pow(1.-5./2.*tau_cooling,1./3.)*(m_p/m_e);
+    T_s = m_e*Y_s*pow(1.+Y_s/0.27,-1./3.);                                                          // [MeV]
+
+    lambda_iso = 0.25*exp(1.5);
+    lambda_ad = 0.25*pow(3./5.,1.5);
+    lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88.+gamma_cooling*gamma_cooling),0.22);
+    lambda_2 = exp(4.5/(3.+pow(beta_compton_drag,0.75)))*1./(pow(pow(1.+beta_compton_drag,0.5)+1.,2.));
+    lambda = lambda_1*lambda_2/lambda_iso;
+    M_b_dot = 4.*_PI_*lambda*phe->rho_g*r_B*r_B*v_eff;                                                     // [kg/s]
+
+    if(T_s/m_e > 1.){
+      J = 27./(2.*_PI_)*(log(2.*T_s/m_e*exp(-0.577)+0.08)+4./3.);
+    }
+    else{
+      J = 4./_PI_*sqrt(2./_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
+    }
+
+    L_acc = 1./137.*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2.)/L_ed;
+  }
+
+  *energy_rate = phe->rho_cdm/(phe->PBH_accreting_mass*_Sun_mass_*pow(_c_,2.))*L_acc*phe->PBH_accreting_fraction;
 
   return _SUCCESS_;
 }
