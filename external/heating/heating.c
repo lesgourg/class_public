@@ -995,6 +995,7 @@ int heating_rate_DM_decay(struct heating * phe,
 
 /**
  * Determines time evolution of the primordial black hole (PBH) mass.
+ * The conventions adopted here are the same as in Stoecker et al. 2018.
  *
  * @param pba            Input: pointer to background structure
  * @param phe            Input: pointer to thermodynamics structure
@@ -1012,11 +1013,11 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
   double time_now, time_prev, dt, dz;
 
   /** Set initial parameters */
-  current_mass = phe->PBH_evaporation_mass;
+  current_mass = phe->PBH_evaporation_mass;                                                         // [g]
   phe->PBH_z_evaporation = 0;
   dz = phe->z_initial/(phe->Nz_size);
   loop_z = phe->z_initial+dz;
-  time_prev = 0.;
+  time_prev = 0.;                                                                                   // [s]
 
   /** Alloate local variables */
   class_alloc(pvecback_loop,
@@ -1054,8 +1055,8 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
   for(i_step = 0; i_step<phe->Nz_size+2; i_step++) {
 
     /** Find value of f(M) */
-    current_pbh_temperature = 1.06e13/current_mass;
-    QCD_activation = 1./(1.-exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1)));
+    current_pbh_temperature = 1.06e13/current_mass;                                                 // [GeV]
+    QCD_activation = 1./(1.-exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1)));          // [-]
     f = 2.*0.060
         +6.*0.147
         +4.*0.142*exp(-(current_mass*5.11e-4)/(4.53*1.06e13))
@@ -1072,7 +1073,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
         +16.*0.060*exp(-(current_mass*6e-1)/(6.04*1.06e13))*QCD_activation
         +1.*0.267*exp(-(current_mass*125.06)/(2.66*1.06e13))
         +1.*0.267*exp(-(current_mass*1.350e-1)/(2.66*1.06e13))*(1-QCD_activation)
-        +2.*0.267*exp(-(current_mass*1.396e-1)/(2.66*1.06e13))*(1-QCD_activation);
+        +2.*0.267*exp(-(current_mass*1.396e-1)/(2.66*1.06e13))*(1-QCD_activation);                  // [-]
 
     /** Find current time value */
     class_call(background_tau_of_z(pba,
@@ -1088,13 +1089,13 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
                                  pvecback_loop),
                pba->error_message,
                phe->error_message);
-    time_now = pvecback_loop[pba->index_bg_time]/(_c_/_Mpc_over_m_);
+    time_now = pvecback_loop[pba->index_bg_time]/(_c_/_Mpc_over_m_);                                // [s]
     dt = time_now-time_prev;
     time_prev = time_now;
 
     if (i_step > 0) {
       if (current_mass > 0.5*phe->PBH_evaporation_mass){
-        current_mass = current_mass-5.34e-5*f*pow(current_mass/1e10,-2)*1.e10*dt;
+        current_mass = current_mass-5.34e25*f*pow(current_mass,-2)*dt;                              // [g]
       }
       else {
         if(phe->PBH_z_evaporation == 0){
@@ -1107,8 +1108,8 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
 
     /** Fill tables */
     phe->PBH_table_z[i_step] = loop_z;
-    phe->PBH_table_mass[i_step] = current_mass;
-    phe->PBH_table_F[i_step] = f;
+    phe->PBH_table_mass[i_step] = current_mass;                                                     // [g]
+    phe->PBH_table_F[i_step] = f;                                                                   // [-]
     loop_z = MAX(0.,loop_z-dz);
   }
 
@@ -1141,6 +1142,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
 
 /**
  * Calculate heating from PBH evaporation
+ * The conventions adopted here are the same as in Stoecker et al. 2018.
  *
  * @param pba            Input: pointer to background structure
  * @param pth            Input: pointer to thermodynamics structure
@@ -1165,7 +1167,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
                                       1,
                                       z,
                                       &last_index_back,
-                                      &mass,
+                                      &mass,                                                        // [g]
                                       1,
                                       phe->error_message),
              phe->error_message,
@@ -1178,23 +1180,16 @@ int heating_rate_PBH_evaporation(struct heating * phe,
                                       1,
                                       z,
                                       &last_index_back,
-                                      &f,
+                                      &f,                                                           // [-]
                                       1,
                                       phe->error_message),
              phe->error_message,
              phe->error_message);
 
-  if(mass <= 0.0001*phe->PBH_evaporation_mass || f <= 0 || z < phe->PBH_z_evaporation){
-    mass = 0;
-    dMdt = 0;
-    f = 0.;
-  }
-  else {
-    dMdt=5.34e-5*f*pow(mass/1.e10,-2.)*1.e10;
-  }
+  dMdt=5.34e25*f*pow(mass,-2.);                                                                     // [g/s]
 
   /** Calculate heating rates */
-  *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*dMdt/phe->PBH_evaporation_mass;
+  *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*dMdt/phe->PBH_evaporation_mass;         // [J/(m^3 s)]
 
   return _SUCCESS_;
 }
