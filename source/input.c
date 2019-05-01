@@ -2592,7 +2592,6 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 1.a) Annihilation efficiency */
   /* Read */
   class_read_double("DM_annihilation_efficiency",phe->DM_annihilation_efficiency);
-  printf("%g\n",phe->DM_annihilation_efficiency);
   class_read_double("DM_annihilation_cross_section",phe->DM_annihilation_cross_section);
   class_read_double("DM_annihilation_mass",phe->DM_annihilation_mass);
   /* Test */

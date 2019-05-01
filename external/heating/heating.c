@@ -1008,9 +1008,9 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
   double * pvecback_loop;
   int last_index_back_loop;
   int i_step;
-  double current_mass, current_pbh_temperature, QCD_activation, f;
-  double loop_z, loop_tau;
-  double time_now, time_prev, dt, dz;
+  double current_mass, current_pbh_temperature;
+  double f_EM, f_nu, f_q, f_pi, f_bos, f;
+  double loop_z, loop_tau, time_now, time_prev, dt, dz;
 
   /** Set initial parameters */
   current_mass = phe->PBH_evaporation_mass;                                                         // [g]
@@ -1045,35 +1045,38 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
   /* For the parametrization of F(M) we follow PRD44 (1991) 376 with
    * the additional modification that we dress the "free QCD-particles"
    * (gluons and quarks) with an sigmoid-activation function (in log10-space:
-   * Mean at 0.3 GeV and a with of 0.1*"order of magnitude") and the hadrons
-   * with 1 - activation to take the QCD-phase transition into account
+   * Mean at 0.3 GeV and a width of 0.1*"order of magnitude") and the hadrons
+   * with (1 - activation) to take the QCD-phase transition into account
    * and to be in agreement with PRD41 (1990) 3052, where the Ansatz is taken
    * that a black hole emmits those particles which appear elementary at the
-   * given energy. The order of the particles in the following definition
-   * of f: photon, neutrino, electron, muon, tau, up, down, charm, strange,
-   * top, bottom, W, Z, gluon, Higgs, neutral Pion and charged pion */
+   * given energy. */
   for(i_step = 0; i_step<phe->Nz_size+2; i_step++) {
 
     /** Find value of f(M) */
     current_pbh_temperature = 1.06e13/current_mass;                                                 // [GeV]
-    QCD_activation = 1./(1.-exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1)));          // [-]
-    f = 2.*0.060
-        +6.*0.147
-        +4.*0.142*exp(-(current_mass*5.11e-4)/(4.53*1.06e13))
-        +4.*0.142*exp(-(current_mass*0.1037)/(4.53*1.06e13))
-        +4.*0.142*exp(-(current_mass*1.777)/(4.53*1.06e13))
-        +12.*0.142*exp(-(current_mass*2.2e-3)/(4.53*1.06e13))*QCD_activation
-        +12.*0.142*exp(-(current_mass*4.7e-3)/(4.53*1.06e13))*QCD_activation
-        +12.*0.142*exp(-(current_mass*1.82)/(4.53*1.06e13))*QCD_activation
-        +12.*0.142*exp(-(current_mass*9.6e-2)/(4.53*1.06e13))*QCD_activation
-        +12.*0.142*exp(-(current_mass*173.1)/(4.53*1.06e13))*QCD_activation
-        +12.*0.142*exp(-(current_mass*4.18)/(4.53*1.06e13))*QCD_activation
-        +6.*0.060*exp(-(current_mass*80.39)/(6.04*1.06e13))
-        +3.*0.060*exp(-(current_mass*91.19)/(6.04*1.06e13))
-        +16.*0.060*exp(-(current_mass*6e-1)/(6.04*1.06e13))*QCD_activation
-        +1.*0.267*exp(-(current_mass*125.06)/(2.66*1.06e13))
-        +1.*0.267*exp(-(current_mass*1.350e-1)/(2.66*1.06e13))*(1-QCD_activation)
-        +2.*0.267*exp(-(current_mass*1.396e-1)/(2.66*1.06e13))*(1-QCD_activation);                  // [-]
+    phe->PBH_QCD_activation = 1./(1.+exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1))); // [-] see Eq. (4.6) of Stoecker et al. 2018
+
+    f_EM = 2.*0.060                                                                                 // gamma
+           +4.*0.146*exp(-(current_mass*5.11e-4)/(4.53*1.06e13))                                    // electron
+           +4.*0.146*exp(-(current_mass*0.1037)/(4.53*1.06e13))                                     // muon
+           +4.*0.146*exp(-(current_mass*1.777)/(4.53*1.06e13));                                     // tau
+    f_nu = 6.*0.142;                                                                                // neutrino
+    f_q = (12.*0.146*(exp(-(current_mass*2.2e-3)/(4.53*1.06e13))                                    // u
+                      +exp(-(current_mass*4.7e-3)/(4.53*1.06e13))                                   // d
+                      +exp(-(current_mass*1.82)/(4.53*1.06e13))                                     // c
+                      +exp(-(current_mass*9.6e-2)/(4.53*1.06e13))                                   // s
+                      +exp(-(current_mass*173.1)/(4.53*1.06e13))                                    // t
+                      +exp(-(current_mass*4.18)/(4.53*1.06e13))                                     // b
+                     )
+           +16.*0.060*exp(-(current_mass*6e-1)/(6.04*1.06e13))                                      // g
+          )*phe->PBH_QCD_activation;
+    f_pi = (1.*0.267*exp(-(current_mass*1.350e-1)/(2.66*1.06e13))                                   // pi^0
+            +2.*0.267*exp(-(current_mass*1.396e-1)/(2.66*1.06e13))                                  // pi^+
+           )*(1-phe->PBH_QCD_activation);
+    f_bos = 6.*0.060*exp(-(current_mass*80.39)/(6.04*1.06e13))                                      // W
+            +3.*0.060*exp(-(current_mass*91.19)/(6.04*1.06e13))                                     // Z
+            +1.*0.267*exp(-(current_mass*125.06)/(2.66*1.06e13));                                   // h
+    f = f_EM+f_nu+f_q+f_pi+f_bos;
 
     /** Find current time value */
     class_call(background_tau_of_z(pba,
@@ -1111,6 +1114,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
     phe->PBH_table_mass[i_step] = current_mass;                                                     // [g]
     phe->PBH_table_F[i_step] = f;                                                                   // [-]
     loop_z = MAX(0.,loop_z-dz);
+
   }
 
   /** Free allocated space */
@@ -1157,7 +1161,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
   /** Define local variables */
   int last_index_back;
   double mass, f;
-  double dMdt;
+  double dMdt, f_em;
 
   /** Interpolate the PBH mass evolution */
   class_call(array_interpolate_spline(phe->PBH_table_z,
@@ -1186,10 +1190,15 @@ int heating_rate_PBH_evaporation(struct heating * phe,
              phe->error_message,
              phe->error_message);
 
-  dMdt=5.34e25*f*pow(mass,-2.);                                                                     // [g/s]
-
   /** Calculate heating rates */
-  *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*dMdt/phe->PBH_evaporation_mass;         // [J/(m^3 s)]
+  if(mass <= 0.0001*phe->PBH_evaporation_mass || f <= 0 || z < phe->PBH_z_evaporation){
+    *energy_rate = 0.;                                                                                // [J/(m^3 s)]
+  }
+  else {
+    dMdt=5.34e25*f*pow(mass,-2.);                                                                     // [g/s]
+    f_em = (1-0.45*phe->PBH_QCD_activation)*(f-6.*0.142)/f;                                           // [-]
+    *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*f_em*dMdt/phe->PBH_evaporation_mass;    // [J/(m^3 s)]
+  }
 
   return _SUCCESS_;
 }
@@ -1217,7 +1226,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
   double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1, epsilon;
   double L_acc;
   double T_ion, beta_compton_drag, gamma_cooling, tau_cooling, T_s, Y_s;
-  double lambda_1,lambda_2,lambda_ad,lambda_iso, J;
+  double lambda_1, lambda_2, lambda_ad, lambda_iso, J;
 
   /** Initialize local variables */
   c_s = 5.7e3*pow(phe->T_b/2.73e3,0.5);                                                             // [m]
@@ -1246,8 +1255,8 @@ int heating_rate_PBH_accretion(struct heating * phe,
     v_l = phe->PBH_relative_velocities*1.e3;                                                        // [m/s]
     v_eff = pow(v_l*v_l+v_B*v_B,0.5);                                                               // [m/s]
   }
-  r_B = _G_*phe->PBH_accreting_mass*_Sun_mass_*pow(v_eff,-2.);                                           // [m]
-  t_B = _G_*phe->PBH_accreting_mass*_Sun_mass_/pow(v_eff,3.);                                            // [s]
+  r_B = _G_*phe->PBH_accreting_mass*_Sun_mass_*pow(v_eff,-2.);                                      // [m]
+  t_B = _G_*phe->PBH_accreting_mass*_Sun_mass_/pow(v_eff,3.);                                       // [s]
 
   /** Disk accretion from Poulin et al. 1707.04206 */
   if(phe->PBH_accretion_recipe == disk_accretion){

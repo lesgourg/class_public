@@ -884,8 +884,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
     }
 
     if(psd->branching_approx == bra_exact && psd->N_PCA != 0){
-       for(index_k=0; index_k<psd->N_PCA; ++index_k){
-         printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
+       if(psd->distortions_verbose > 2){
+         for(index_k=0; index_k<psd->N_PCA; ++index_k){
+           printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
+         }
        }
        printf(" -> epsilon-parameter = %g\n", psd->epsilon);
     }

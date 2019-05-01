@@ -127,6 +127,7 @@ struct heating{
 
   /* PBH mass evolution table and PBH free parameters */
   double PBH_z_evaporation;
+  double PBH_QCD_activation;
   double * PBH_table_z;
   double * PBH_table_mass;
   double * PBH_table_mass_dd;
