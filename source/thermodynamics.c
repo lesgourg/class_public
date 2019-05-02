@@ -3430,7 +3430,9 @@ int thermodynamics_solve_store_sources(double mz,
 
   /* Tell heating it should store the heating at this z in its internal table */
   (pth->he).to_store = _TRUE_;
-  phyrec->to_store = _TRUE_;
+  if(pth->recombination == hyrec){
+    phyrec->to_store = _TRUE_;
+  }
 
   /* Recalculate all quantities at this current redshift (they are all stored in ptdw) */
   class_call(thermodynamics_solve_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
