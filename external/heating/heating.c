@@ -49,6 +49,7 @@ int heating_init(struct precision * ppr,
   phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
   phe->T_g0 = pba->T_cmb;                                                                           // [K]
   phe->Omega0_b = pba->Omega0_b;                                                                    // [-]
+  phe->Omega0_cdm = pba->Omega0_cdm;                                                                // [-]
   phe->rho0_cdm = pba->Omega0_cdm*pow(phe->H0,2)*3/8./_PI_/_G_*_c_*_c_;                             // [J/m^3]
 
   /* Thermodynamics structure */
@@ -92,7 +93,7 @@ int heating_init(struct precision * ppr,
   }
 
   /* Check energy injection */
-  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporation_fraction!=0 || phe->PBH_accreting_fraction!=0){
+  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporation_fraction!=0 || phe->PBH_accretion_fraction!=0){
     phe->has_exotic_injection = _TRUE_;
   }
   if(phe->DM_annihilation_efficiency!=0){
@@ -104,7 +105,7 @@ int heating_init(struct precision * ppr,
   if(phe->PBH_evaporation_fraction!=0){
     phe->has_PBH_eva = _TRUE_;
   }
-  if(phe->PBH_accreting_fraction!=0){
+  if(phe->PBH_accretion_fraction!=0){
     phe->has_PBH_acc = _TRUE_;
   }
 
@@ -301,6 +302,7 @@ int heating_calculate_at_z(struct background* pba,
   phe->t = pvecback[pba->index_bg_time]/_s_over_Mpc_;                                               // [s]
   phe->rho_cdm = pvecback[pba->index_bg_rho_cdm]*_Jm3_over_Mpc2_;                                   // [J/m^3]
   phe->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                       // [J/m^3]
+  phe->rho_b = pvecback[pba->index_bg_rho_b]*_Jm3_over_Mpc2_;                                       // [J/m^3]
 
   /** Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(phe->z_table,
@@ -441,7 +443,6 @@ int heating_energy_injection_at_z(struct heating* phe,
 
     /* PBH evaporation */
     if(phe->has_PBH_eva == _TRUE_){
-
       class_call(heating_rate_PBH_evaporation(phe,
                                               z,
                                               &rate),
@@ -1216,33 +1217,27 @@ int heating_rate_PBH_accretion(struct heating * phe,
                                double z,
                                double * energy_rate){
 
+
   /** Define local variables */
   double tau, * pvecback;
   int last_index_back;
-  double c_s, n_gas, T_infinity, m_p, m_e;
-  double L_ed, M_ed_dot, M_crit;
-  double v_B, v_l, v_eff, r_B, t_B;
+  double L_ed, M_ed_dot, M_crit, v_B, v_l, v_eff, r_B, t_B;
   double lambda, M_b_dot;
   double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1, epsilon;
   double L_acc;
-  double T_ion, beta_compton_drag, gamma_cooling, tau_cooling, T_s, Y_s;
+  double beta_compton_drag, gamma_cooling, tau_cooling;
+  double T_ion, T_s, Y_s, theta_s;
   double lambda_1, lambda_2, lambda_ad, lambda_iso, J;
 
   /** Initialize local variables */
-  c_s = 5.7e3*pow(phe->T_b/2.73e3,0.5);                                                             // [m]
-  n_gas = 2.e2*1.e6*pow((1.+z)/1.e3,3.);                                                            // [1/m^3]
-  T_infinity = phe->T_b*_eV_over_Kelvin_*1e-6;                                                      // [MeV]
-  m_p = _m_p_/_GeV_over_kg_*1.e-3;                                                                  // [MeV]
-  m_e = _m_e_/_GeV_over_kg_*1.e-3;                                                                  // [MeV]
-
-  /* Eddington definitions */
-  L_ed = 4.*_PI_*_G_*phe->PBH_accreting_mass*_Sun_mass_*m_p*1.e6/_eV_over_joules_/(_sigma_*_c_);
-  M_ed_dot= 10.*L_ed/pow(_c_,2.);
-  M_crit = 0.01*M_ed_dot;
+  /* Eddington luminosity */
+  L_ed = 4.*_PI_*_G_*(phe->PBH_accretion_mass*_Sun_mass_)*_m_p_/_sigma_*_c_;                        // [W = kg m^2/s^3]
+  M_ed_dot= 10*L_ed/(_c_*_c_);                                                                      // [kg/s]
+  M_crit = 0.01*M_ed_dot;                                                                           // [kg/s]
 
   /* Boldi definitions */
-  v_B = sqrt((1.+phe->x_e)*T_infinity/m_p)*_c_;                                                     // [m/s]
-  if(phe->PBH_relative_velocities < 0.){
+  v_B = sqrt((1.+phe->x_e)*(phe->T_b*_k_B_)/(_m_p_*pow(_c_,2.)))*_c_;                               // [m/s]
+  if(phe->PBH_accretion_relative_velocities < 0.){
     v_l = 30.*MIN(1.,(1.+z)/1.e3)*1.e3;                                                             // [m/s]
     if(v_B < v_l){
       v_eff = sqrt(v_B*v_l);                                                                        // [m/s]
@@ -1252,19 +1247,19 @@ int heating_rate_PBH_accretion(struct heating * phe,
     }
   }
   else{
-    v_l = phe->PBH_relative_velocities*1.e3;                                                        // [m/s]
+    v_l = phe->PBH_accretion_relative_velocities*1.e3;                                                        // [m/s]
     v_eff = pow(v_l*v_l+v_B*v_B,0.5);                                                               // [m/s]
   }
-  r_B = _G_*phe->PBH_accreting_mass*_Sun_mass_*pow(v_eff,-2.);                                      // [m]
-  t_B = _G_*phe->PBH_accreting_mass*_Sun_mass_/pow(v_eff,3.);                                       // [s]
+  r_B = _G_*(phe->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,2.);                                     // [m]
+  t_B = _G_*(phe->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,3.);                                     // [s]
 
   /** Disk accretion from Poulin et al. 1707.04206 */
   if(phe->PBH_accretion_recipe == disk_accretion){
 
-    lambda = phe->PBH_accretion_eigenvalue;
-    M_b_dot = 4.*_PI_*lambda*pow(_G_*phe->PBH_accreting_mass*_Sun_mass_,2.)*phe->rho_g*pow(v_eff,-3.);
+    lambda = phe->PBH_accretion_eigenvalue;                                                         // [-]
+    M_b_dot = 4.*_PI_*lambda*(phe->rho_b/pow(_c_,2.))*pow(r_B,2.)*v_eff;                            // [kg/s] Eq. (6)
 
-    if(phe->PBH_ADAF_delta == 1.e-3){
+    if(phe->PBH_accretion_ADAF_delta == 1e-3){
       Value_min = 7.6e-5;
       Value_med = 4.5e-3;
       Value_max = 7.1e-3;
@@ -1272,7 +1267,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
         epsilon_0 = 0.065;
         a = 0.71;
       }
-      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_med){
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
         epsilon_0 = 0.020;
         a = 0.47;
       }
@@ -1285,7 +1280,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
         a = 0.;
       }
     }
-    else if(phe->PBH_ADAF_delta == 0.1){
+    else if(phe->PBH_accretion_ADAF_delta == 0.1){
       Value_min = 9.4e-5;
       Value_med = 5e-3;
       Value_max = 6.6e-3;
@@ -1293,7 +1288,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
         epsilon_0 = 0.12;
         a = 0.59;
       }
-      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_med){
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
         epsilon_0 = 0.026;
         a = 0.27;
       }
@@ -1306,7 +1301,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
         a = 0.;
       }
     }
-    else if(phe->PBH_ADAF_delta == 0.5){
+    else if (phe->PBH_accretion_ADAF_delta == 0.5){
       Value_min = 2.9e-5;
       Value_med = 3.3e-3;
       Value_max = 5.3e-3;
@@ -1314,7 +1309,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
         epsilon_0 = 1.58;
         a = 0.65;
       }
-      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot <= Value_med){
+      else if(Value_min < M_b_dot/M_ed_dot && M_b_dot/M_ed_dot  <= Value_med){
         epsilon_0 = 0.055;
         a = 0.076;
       }
@@ -1327,39 +1322,45 @@ int heating_rate_PBH_accretion(struct heating * phe,
         a = 0.;
       }
     }
-    epsilon = epsilon_0*pow(M_b_dot/M_crit,a);
 
-    L_acc = epsilon*M_b_dot*pow(_c_,2.);
-
+    epsilon = epsilon_0*pow(M_b_dot/M_crit,a);                                                      // [-]
+    L_acc = epsilon*M_b_dot*pow(_c_,2.);                                                            // [W]
   }
 
   /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
-  else if(phe->PBH_accretion_recipe == spherical_accretion){
-    T_ion = 1.5e4*_eV_over_Kelvin_;
-    beta_compton_drag = 4./3.*phe->x_e*_sigma_*phe->rho_g*t_B/m_p*_c_;
-    gamma_cooling = 2.*(m_p/m_e)/(1+phe->x_e)*beta_compton_drag;
-    tau_cooling = 1.5/(5.+pow(gamma_cooling,2./3.));
-    Y_s = pow((1.+phe->x_e)/2.,2./3.*13.6/T_ion)*tau_cooling/4.*pow(1.-5./2.*tau_cooling,1./3.)*(m_p/m_e);
-    T_s = m_e*Y_s*pow(1.+Y_s/0.27,-1./3.);                                                          // [MeV]
+  if(phe->PBH_accretion_recipe == spherical_accretion){
 
-    lambda_iso = 0.25*exp(1.5);
-    lambda_ad = 0.25*pow(3./5.,1.5);
-    lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*pow(gamma_cooling*gamma_cooling/(88.+gamma_cooling*gamma_cooling),0.22);
-    lambda_2 = exp(4.5/(3.+pow(beta_compton_drag,0.75)))*1./(pow(pow(1.+beta_compton_drag,0.5)+1.,2.));
-    lambda = lambda_1*lambda_2/lambda_iso;
-    M_b_dot = 4.*_PI_*lambda*phe->rho_g*r_B*r_B*v_eff;                                                     // [kg/s]
+    beta_compton_drag = 4./3.*phe->x_e*_sigma_*phe->rho_g*t_B/_m_p_/_c_;                            // [-] Eq. (7)
+    gamma_cooling = 2.*(_m_p_/_m_e_)/(1+phe->x_e)*beta_compton_drag;                                // [-] Eq. (8)
+    tau_cooling = 1.5/(5.+pow(gamma_cooling,2./3.));                                                // [-] Eq. (28)
 
-    if(T_s/m_e > 1.){
-      J = 27./(2.*_PI_)*(log(2.*T_s/m_e*exp(-0.577)+0.08)+4./3.);
+    lambda_ad = 0.25*pow(3./5.,1.5);                                                                // [-] Eq. (15)
+    lambda_iso = 0.25*exp(1.5);                                                                     // [-] Eq. (20)
+    lambda_1 = lambda_ad+(lambda_iso-lambda_ad)*
+                                pow(pow(gamma_cooling,2.)/(88.+pow(gamma_cooling,2.)),0.22);        // [-] Eq. (27)
+    lambda_2 = exp(4.5/(3.+pow(beta_compton_drag,0.75)))/(pow(pow(1.+beta_compton_drag,0.5)+1.,2.));// [-] Eq. (32)
+    lambda = lambda_1*lambda_2/lambda_iso;                                                          // [-] Eq. (33)
+
+    T_ion = 1.5e4*_eV_over_Kelvin_;                                                                 // [eV] see line below Eq. (39)
+    Y_s = pow((1.+phe->x_e)/2.,2./3.*13.6/T_ion)*
+                  tau_cooling/4.*pow(1.-5./2.*tau_cooling,1./3.)*(_m_p_/_m_e_);                     // [-] Eq. (51)
+    T_s = _m_e_*pow(_c_,2.)/_k_B_*Y_s*pow(1.+Y_s/0.27,-1./3.);                                      // [K] Eqs. (50) and (47)
+    theta_s = (T_s*_k_B_)/(_m_e_*pow(_c_,2.));
+
+    M_b_dot = 4.*_PI_*lambda*(phe->rho_b/pow(_c_,2.))*pow(r_B,2.)*v_eff;                            // [kg/s] Eq. (6)
+
+    if(theta_s > 1.){                                                                               // Eq. (55)
+      J = 27./(2.*_PI_)*(log(2.*theta_s*exp(-0.577)+0.08)+4./3.);                                   // [-]
     }
     else{
-      J = 4./_PI_*sqrt(2./_PI_)*pow(T_s/m_e,-0.5)*(1+5.5*pow(T_s/m_e,1.25));
+      J = 4./_PI_*sqrt(2./_PI_)*pow(theta_s,-0.5)*(1+5.5*pow(theta_s,1.25));                        // [-]
     }
 
-    L_acc = 1./137.*T_s/(m_p)*J*pow(M_b_dot*_c_*_c_,2.)/L_ed;
+    L_acc = 1./137.*(T_s*_k_B_)/(_m_p_*pow(_c_,2.))*J*pow(M_b_dot*_c_*_c_,2.)/L_ed;                 // [W] Eq. (57)
   }
 
-  *energy_rate = phe->rho_cdm/(phe->PBH_accreting_mass*_Sun_mass_*pow(_c_,2.))*L_acc*phe->PBH_accreting_fraction;
+  *energy_rate = phe->rho_cdm*phe->PBH_accretion_fraction/
+                      (phe->PBH_accretion_mass*_Sun_mass_)*L_acc/pow(_c_,2.);                       // [J/(m^3 s)]
 
   return _SUCCESS_;
 }

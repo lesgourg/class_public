@@ -35,9 +35,12 @@ struct heating{
   double PBH_evaporation_fraction;
   double PBH_evaporation_mass;
 
+  double PBH_accretion_fraction;
+  double PBH_accretion_mass;
   double PBH_accretion_recipe;
-  double PBH_accreting_fraction;
-  double PBH_accreting_mass;
+  double PBH_accretion_relative_velocities;
+  double PBH_accretion_ADAF_delta;
+  double PBH_accretion_eigenvalue;
 
   /* Injection efficiency */
   int f_eff_type;
@@ -68,6 +71,7 @@ struct heating{
   double H0;
   double T_g0;
   double Omega0_b;
+  double Omega0_cdm;
   double rho0_cdm;
   /* Redshift dependent, i.e. defined in heating_calculate_at_z or heating_at_z_second_order */
   double H;
@@ -75,6 +79,7 @@ struct heating{
   double t;
   double R;
   double rho_g;
+  double rho_b;
   double rho_cdm;
   double rho_dcdm;
 
@@ -133,16 +138,6 @@ struct heating{
   double * PBH_table_mass_dd;
   double * PBH_table_F;
   double * PBH_table_F_dd;
-
-  int coll_ion_pbh;                /**< Specific to Ali_Haimoud accretion recipe. if 1: collisional ionizations (default, most
-                                        conservative). if 0: photoionization by PBH radiation  */
-  double PBH_ADAF_delta;           /**< Specific to ADAF_Simulation accretion recipe. Determines the heating of the electrons in
-                                        the disk, influencing the emissivity.
-                                        Can be set to 0.5 (aggressive scenario) or 1e-3 (conservative). From Fie and Yuan 2012. */
-  double PBH_accretion_eigenvalue; /**< The eigenvalue of the accretion rate. It rescales the perfect Bondi case. (see e.g.
-                                        Ali-Haimoud & Kamionkowski 2016) */
-  double PBH_relative_velocities;  /**< The relative velocities between PBH and baryons in km/s. If negative, the linear result
-                                        is chosen by the code. */
 
   /* Energy injection table */
   double** injection_table;

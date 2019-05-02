@@ -2689,7 +2689,29 @@ int input_read_parameters_heating(struct file_content * pfc,
 
 
   /** 4) PBH matter accretion */
-  /** 4.b) Recipe */
+  /** 4.a) Fraction */
+  /* Read */
+  class_read_double("PBH_accretion_fraction",phe->PBH_accretion_fraction);
+  /* Test */
+  class_test(phe->PBH_accretion_fraction < 0.,
+             errmsg,
+             "You need to enter a positive fraction of accreting PBH. Please adjust your param file.");
+
+  /** 4.b) Mass */
+  /* Read */
+  class_read_double("PBH_accretion_mass",phe->PBH_accretion_mass);
+  /* Test */
+  class_test(phe->PBH_accretion_mass<0.,
+             errmsg,
+             "You need to enter a positive mass for your PBH.");
+  class_test(phe->PBH_accretion_mass>0. && phe->PBH_accretion_fraction == 0,
+             errmsg,
+            "You have 'PBH_accretion_mass > 0.' but 'PBH_accretion_fraction = 0'. Please adjust your param file.");
+  class_test(phe->PBH_accretion_fraction>0. && phe->PBH_accretion_mass == 0.,
+             errmsg,
+             "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
+
+  /** 4.c) Recipe */
   /* Read */
   class_call(parser_read_string(pfc,"PBH_accretion_recipe",&string1,&flag1,errmsg),
              errmsg,
@@ -2702,7 +2724,6 @@ int input_read_parameters_heating(struct file_content * pfc,
     }
     else if (strcmp(string1,"disk_accretion") == 0) {
       phe->PBH_accretion_recipe=disk_accretion;
-      //class_read_double("PBH_ADAF_delta",pth->PBH_ADAF_delta);
     }
     else{
       class_stop(errmsg,
@@ -2710,27 +2731,22 @@ int input_read_parameters_heating(struct file_content * pfc,
     }
   }
 
-  /** 4.b) Fraction */
-  /* Read */
-  class_read_double("PBH_accreting_fraction",phe->PBH_accreting_fraction);
-  /* Test */
-  class_test(phe->PBH_accreting_fraction <0.,
-             errmsg,
-             "You need to enter a positive fraction of accreting PBH. Please adjust your param file.");
+  /** 4.c.1) Additional parameters specific for spherical accretion */
+  if(phe->PBH_accretion_recipe=spherical_accretion){
+    /* Read */
+    class_read_double("PBH_accretion_relative_velocities",phe->PBH_accretion_relative_velocities);
+  }
 
-  /** 4.c) Mass */
-  /* Read */
-  class_read_double("PBH_accreting_mass",phe->PBH_accreting_mass);
-  /* Test */
-  class_test(phe->PBH_accreting_mass<0.,
-             errmsg,
-             "You need to enter a positive mass for your PBH.");
-  class_test(phe->PBH_accreting_mass>0. && phe->PBH_accreting_fraction == 0,
-             errmsg,
-            "You have 'PBH_accreting_mass > 0.' but 'PBH_accreting_fraction = 0'. Please adjust your param file.");
-  class_test(phe->PBH_accreting_fraction>0. && phe->PBH_accreting_mass == 0.,
-             errmsg,
-             "You have asked for a fraction of PBH being DM but you have zero mass. Please adjust your param file.");
+  /** 4.c.2) Additional parameters specific for disk accretion */
+  if(phe->PBH_accretion_recipe=disk_accretion){
+    /* Read */
+    class_read_double("PBH_accretion_ADAF_delta",phe->PBH_accretion_ADAF_delta);
+    class_read_double("PBH_accretion_eigenvalue",phe->PBH_accretion_eigenvalue);
+    /* Test */
+    class_test(phe->PBH_accretion_ADAF_delta != 1e-3 && phe->PBH_accretion_ADAF_delta != 0.5  && phe->PBH_accretion_ADAF_delta != 0.1,
+               errmsg,
+               "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
+  }
 
 
   /** 5) Injection efficiency */
@@ -4754,25 +4770,30 @@ int input_default_params(struct background *pba,
   phe->PBH_evaporation_mass = 0.;
 
   /** 4) PBH accretion */
-  /** 4.a) Recipe */
+  /** 4.a) Fraction */
+  phe->PBH_accretion_fraction = 0.;
+  /** 4.b) Mass */
+  phe->PBH_accretion_mass = 0.;
+  /** 4.c) Recipe */
   phe->PBH_accretion_recipe = disk_accretion;
-  /** 4.b) Fraction */
-  phe->PBH_accreting_fraction = 0.;
-  /** 4.c) Mass */
-  phe->PBH_accreting_mass = 0.;
+  /** 4.c.1) Additional parameters for spherical accretion */
+  phe->PBH_accretion_relative_velocities = -1.;
+  /** 4.c.1) Additional parameters for disk accretion */
+  phe->PBH_accretion_eigenvalue = 0.1;
+  phe->PBH_accretion_ADAF_delta = 1.e-3;
 
-  /** 3) Injection efficiency */
+  /** 5) Injection efficiency */
   phe->f_eff_type = f_eff_on_the_spot;
-  /** 3.1) External file */
+  /** 5.1) External file */
   phe->f_eff_file = "/external/heating/example_f_eff_file.dat";
 
-  /** 4) Deposition function */
+  /** 6) Deposition function */
   phe->chi_type = chi_CK;
-  /** 4.1) External file */
+  /** 6.1) External file */
   phe->chi_z_file = "/external/heating/example_chiz_file.dat";
   phe->chi_x_file = "/external/heating/example_chix_file.dat";
 
-  /** 5) Dissipation of acoustic waves */
+  /** 7) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
 
   /**
