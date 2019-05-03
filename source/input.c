@@ -2720,7 +2720,6 @@ int input_read_parameters_heating(struct file_content * pfc,
   if (flag1 == _TRUE_){
     if (strcmp(string1,"spherical_accretion") == 0) {
       phe->PBH_accretion_recipe=spherical_accretion;
-      //class_read_int("coll_ion_pbh",pth->coll_ion_pbh); //A parameter that can be specified to HyRec when computing the effect of spherical accreting PBH.
     }
     else if (strcmp(string1,"disk_accretion") == 0) {
       phe->PBH_accretion_recipe=disk_accretion;
@@ -2732,13 +2731,13 @@ int input_read_parameters_heating(struct file_content * pfc,
   }
 
   /** 4.c.1) Additional parameters specific for spherical accretion */
-  if(phe->PBH_accretion_recipe=spherical_accretion){
+  if(phe->PBH_accretion_recipe == spherical_accretion){
     /* Read */
     class_read_double("PBH_accretion_relative_velocities",phe->PBH_accretion_relative_velocities);
   }
 
   /** 4.c.2) Additional parameters specific for disk accretion */
-  if(phe->PBH_accretion_recipe=disk_accretion){
+  if(phe->PBH_accretion_recipe == disk_accretion){
     /* Read */
     class_read_double("PBH_accretion_ADAF_delta",phe->PBH_accretion_ADAF_delta);
     class_read_double("PBH_accretion_eigenvalue",phe->PBH_accretion_eigenvalue);

@@ -1217,7 +1217,6 @@ int heating_rate_PBH_accretion(struct heating * phe,
                                double z,
                                double * energy_rate){
 
-
   /** Define local variables */
   double tau, * pvecback;
   int last_index_back;
@@ -1231,8 +1230,8 @@ int heating_rate_PBH_accretion(struct heating * phe,
 
   /** Initialize local variables */
   /* Eddington luminosity */
-  L_ed = 4.*_PI_*_G_*(phe->PBH_accretion_mass*_Sun_mass_)*_m_p_/_sigma_*_c_;                        // [W = kg m^2/s^3]
-  M_ed_dot= 10*L_ed/(_c_*_c_);                                                                      // [kg/s]
+  L_ed = 4.*_PI_*_G_*(phe->PBH_accretion_mass*_Sun_mass_)*_m_p_/_sigma_*_c_;                        // [W]
+  M_ed_dot= 10.*L_ed/pow(_c_,2.);                                                                   // [kg/s]
   M_crit = 0.01*M_ed_dot;                                                                           // [kg/s]
 
   /* Boldi definitions */
@@ -1247,7 +1246,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
     }
   }
   else{
-    v_l = phe->PBH_accretion_relative_velocities*1.e3;                                                        // [m/s]
+    v_l = phe->PBH_accretion_relative_velocities*1.e3;                                              // [m/s]
     v_eff = pow(v_l*v_l+v_B*v_B,0.5);                                                               // [m/s]
   }
   r_B = _G_*(phe->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,2.);                                     // [m]
@@ -1257,7 +1256,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
   if(phe->PBH_accretion_recipe == disk_accretion){
 
     lambda = phe->PBH_accretion_eigenvalue;                                                         // [-]
-    M_b_dot = 4.*_PI_*lambda*(phe->rho_b/pow(_c_,2.))*pow(r_B,2.)*v_eff;                            // [kg/s] Eq. (6)
+    M_b_dot = 4.*_PI_*lambda*(phe->rho_b/pow(_c_,2.))*pow(r_B,2.)*v_eff;                            // [kg/s]
 
     if(phe->PBH_accretion_ADAF_delta == 1e-3){
       Value_min = 7.6e-5;
@@ -1328,7 +1327,7 @@ int heating_rate_PBH_accretion(struct heating * phe,
   }
 
   /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
-  if(phe->PBH_accretion_recipe == spherical_accretion){
+  else if(phe->PBH_accretion_recipe == spherical_accretion){
 
     beta_compton_drag = 4./3.*phe->x_e*_sigma_*phe->rho_g*t_B/_m_p_/_c_;                            // [-] Eq. (7)
     gamma_cooling = 2.*(_m_p_/_m_e_)/(1+phe->x_e)*beta_compton_drag;                                // [-] Eq. (8)
