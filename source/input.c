@@ -4186,7 +4186,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
         psd->user_defined_detector = _TRUE_;
       }
       /* Read */
-      class_call(parser_read_double(pfc,"detector_accuracy",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"delta_Ic_detector",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
       /* Complete set of parameters */

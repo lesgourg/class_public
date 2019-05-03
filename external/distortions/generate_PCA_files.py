@@ -6,6 +6,7 @@ import scipy.interpolate as sciint
 from numpy.linalg import norm as vector_norm
 from numpy.linalg import eigh as eigen_vals_vecs
 import os
+import matplotlib.pyplot as plt
 
 # Read inputs
 assert(len(sys.argv)==13)
@@ -168,7 +169,8 @@ with open(os.path.join(dir_path,readfile)) as f:
 
   # Normalize fisher matrix
   delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
-  normalization = (delta_ln_z/(delta_I_c*1.e-18))**2
+  normalization = (delta_ln_z/(delta_I_c*1.e8))**2
+  normalization_Residual = delta_ln_z
   Fisher /= normalization
 
   # Solve eigenvalue problem
@@ -178,10 +180,11 @@ with open(os.path.join(dir_path,readfile)) as f:
 
   E_vecs = np.real(eigvecs[:,:N_PCA]).T
   E_vecs = [(E_vecs[i] if np.mean(E_vecs[i])>0. else -E_vecs[i]) for i in range(len(E_vecs))]
+  E_vecs = [E_vec/vector_norm(E_vec) for E_vec in E_vecs]
   S_vecs = np.zeros((N_PCA,Nx_arr))
   for index_pca in range(N_PCA):
     for index_x in range(Nx_arr):
-      S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:])
+      S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:]*normalization_Residual)
 
   # Create output files
   form = "%.10e" #Output formatting
