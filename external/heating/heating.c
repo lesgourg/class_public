@@ -1197,7 +1197,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
   }
   else {
     dMdt=5.34e25*f*pow(mass,-2.);                                                                     // [g/s]
-    f_em = (1-0.45*phe->PBH_QCD_activation)*(f-6.*0.142)/f;                                           // [-]
+    f_em = 0.55*phe->PBH_QCD_activation+(1-phe->PBH_QCD_activation)*(f-6.*0.142)/f;                   // [-]
     *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*f_em*dMdt/phe->PBH_evaporation_mass;    // [J/(m^3 s)]
   }
 
