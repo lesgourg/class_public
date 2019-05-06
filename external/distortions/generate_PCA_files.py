@@ -9,19 +9,20 @@ import os
 import matplotlib.pyplot as plt
 
 # Read inputs
-assert(len(sys.argv)==13)
-detector_name = sys.argv[1]
-nu_min = eval(sys.argv[2])
-nu_max = eval(sys.argv[3])
-nu_delta = eval(sys.argv[4])
-z_min = eval(sys.argv[5])
-z_max = eval(sys.argv[6])
-z_size = eval(sys.argv[7])
-delta_I_c = eval(sys.argv[8])
-N_PCA = eval(sys.argv[9])
-z_th = eval(sys.argv[10])
-DI_units = eval(sys.argv[11])   # = 2.70062634e-18
-x_to_nu = eval(sys.argv[12])    # = 56.7798
+assert(len(sys.argv)==14)
+sd_detector_name = sys.argv[1]
+sd_detector_nu_min = eval(sys.argv[2])
+sd_detector_nu_max = eval(sys.argv[3])
+sd_detector_nu_delta = eval(sys.argv[4])
+sd_detector_bin_number = eval(sys.argv[5])
+sd_z_min = eval(sys.argv[6])
+sd_z_max = eval(sys.argv[7])
+sd_z_size = eval(sys.argv[8])
+sd_detector_delta_Ic = eval(sys.argv[9])
+sd_PCA_size = eval(sys.argv[10])
+z_th = eval(sys.argv[11])
+DI_units = eval(sys.argv[12])   # = 2.70062634e-18
+x_to_nu = eval(sys.argv[13])    # = 56.7798
 
 def PCA_string_to_array(line,delimiter=" "):
   line = line.replace("\n","")
@@ -82,15 +83,16 @@ with open(os.path.join(dir_path,readfile)) as f:
   Greens_drho_Spline = sciint.CubicSpline(Greens_z,Greens_drho)
 
   # Define new z and x arrays
-  z_arr = np.logspace(np.log10(z_min),np.log10(z_max),z_size)
-  Nz_arr = len(z_arr)
+  Nz_arr = sd_z_size
+  z_arr = np.logspace(np.log10(sd_z_min),np.log10(sd_z_max),Nz_arr)
 
-  x_size = np.ceil((nu_max-nu_min)/nu_delta)+1
-  x_arr = np.linspace(nu_min/x_to_nu,nu_max/x_to_nu,x_size)
-  Nx_arr = len(x_arr)
+  Nx_arr = sd_detector_bin_number+1
+  x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu*(1.+1.e-10),Nx_arr)
+  # Note: the factor 1.e-10 has been added to facilita the interpolation done in distortions.c
 
   # Define visibility function
-  bb_vis = np.exp(-(z_arr/2.0e6)**2.5)
+  #bb_vis = np.exp(-(z_arr/2.0e6)**2.5)
+  bb_vis = np.exp(-(z_arr/z_th)**2.5)
 
   # The Gth file of Chluba subtracts away some part of the G_T distortion into a shift from T_ini to T_last
   # Here we calculate backwards, and obtain the shift of f_g due to the internal dT
@@ -169,7 +171,7 @@ with open(os.path.join(dir_path,readfile)) as f:
 
   # Normalize fisher matrix
   delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
-  normalization = (delta_ln_z/(delta_I_c*1.e8))**2
+  normalization = (delta_ln_z/(sd_detector_delta_Ic*1.e8))**2
   normalization_Residual = delta_ln_z
   Fisher /= normalization
 
@@ -178,11 +180,11 @@ with open(os.path.join(dir_path,readfile)) as f:
   eigvals = eigvals[::-1]
   eigvecs = eigvecs[:,::-1]
 
-  E_vecs = np.real(eigvecs[:,:N_PCA]).T
+  E_vecs = np.real(eigvecs[:,:sd_PCA_size]).T
   E_vecs = [(E_vecs[i] if np.mean(E_vecs[i])>0. else -E_vecs[i]) for i in range(len(E_vecs))]
   E_vecs = [E_vec/vector_norm(E_vec) for E_vec in E_vecs]
-  S_vecs = np.zeros((N_PCA,Nx_arr))
-  for index_pca in range(N_PCA):
+  S_vecs = np.zeros((sd_PCA_size,Nx_arr))
+  for index_pca in range(sd_PCA_size):
     for index_x in range(Nx_arr):
       S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:]*normalization_Residual)
 
@@ -190,34 +192,34 @@ with open(os.path.join(dir_path,readfile)) as f:
   form = "%.10e" #Output formatting
 
   # Write file for branching ratio (Evec)
-  with open(os.path.join(dir_path,detector_name+"_branching_ratios.dat"),"w") as brfile:
-    brfile.write("# In the file there is: z, J_T, J_y, J_mu, E_i (i=1-{})\n".format(N_PCA))
-    brfile.write("{} {}\n".format(Nz_arr,N_PCA))
+  with open(os.path.join(dir_path,sd_detector_name+"_branching_ratios.dat"),"w") as brfile:
+    brfile.write("# In the file there is: z, J_T, J_y, J_mu, E_i (i=1-{})\n".format(sd_PCA_size))
+    brfile.write("{} {}\n".format(Nz_arr,sd_PCA_size))
     for index_z in range(Nz_arr):
       brfile.write((form+" ") % z_arr[index_z])
       brfile.write((form+" ") % J_g[index_z])
       brfile.write((form+" ") % J_y[index_z])
       brfile.write((form    ) % J_mu[index_z])
-      for index_pca in range(N_PCA):
+      for index_pca in range(sd_PCA_size):
         brfile.write((" "+form) % E_vecs[index_pca][index_z])
       brfile.write("\n")
 
   # Write file for distortion shapes (Svec)
-  with open(os.path.join(dir_path,detector_name+"_distortions_shapes.dat"),"w") as dsfile:
-    dsfile.write("# In the file there is: nu, G_T, Y_SZ, M_mu, S_i (i=1-{})\n".format(N_PCA))
-    dsfile.write("{} {}\n".format(Nx_arr,N_PCA))
+  with open(os.path.join(dir_path,sd_detector_name+"_distortions_shapes.dat"),"w") as dsfile:
+    dsfile.write("# In the file there is: nu, G_T, Y_SZ, M_mu, S_i (i=1-{})\n".format(sd_PCA_size))
+    dsfile.write("{} {}\n".format(Nx_arr,sd_PCA_size))
     for index_x in range(Nx_arr):
       dsfile.write((form+" ") % (x_arr[index_x]*x_to_nu))
       dsfile.write((form+" ") % Gdist[index_x])
       dsfile.write((form+" ") % Ydist[index_x])
       dsfile.write((form    ) % Mdist[index_x])
-      for index_pca in range(N_PCA):
+      for index_pca in range(sd_PCA_size):
         dsfile.write((" "+form) % S_vecs[index_pca][index_x])
       dsfile.write("\n")
 
   # Update list of detectors
   # Open and read already present list
   with open(os.path.join(dir_path,"detectors_list.dat"),"a") as detector_file:
-    detector_file.write('%s  %7.2e  %7.2e  %7.2e  %7.2e\n' % (detector_name, nu_min, nu_max, nu_delta, delta_I_c))
+    detector_file.write('%s  %7.4e  %7.4e  %7.4e  %i  %7.4e\n' % (sd_detector_name, sd_detector_nu_min, sd_detector_nu_max, sd_detector_nu_delta, sd_detector_bin_number,  sd_detector_delta_Ic))
 
 

@@ -423,6 +423,7 @@ extern "C" {
                                     ErrorMsg errmsg);
 
   int input_read_parameters_distortions(struct file_content * pfc,
+                                        struct precision * ppr,
                                         struct distortions * psd,
                                         ErrorMsg errmsg);
 

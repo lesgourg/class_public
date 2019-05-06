@@ -28,15 +28,16 @@ struct distortions
 
   //@{
 
-  int branching_approx;                      /* Which approximation to use for the branching ratios? */
+  int sd_branching_approx;                      /* Which approximation to use for the branching ratios? */
 
-  int N_PCA;
+  int sd_PCA_size;
 
-  DetectorName distortions_detector;         /* Name of detector */
-  double nu_min_detector;                    /* Minimum frequency of chosen detector */
-  double nu_max_detector;                    /* Maximum frequency of chosen detector */
-  double nu_delta_detector;                  /* Bin size of chosen detector */
-  double delta_Ic_detector;
+  DetectorName sd_detector;                     /* Name of detector */
+  double sd_detector_nu_min;                    /* Minimum frequency of chosen detector */
+  double sd_detector_nu_max;                    /* Maximum frequency of chosen detector */
+  double sd_detector_nu_delta;                  /* Bin size of chosen detector */
+  int sd_detector_bin_number;
+  double sd_detector_delta_Ic;
 
   //@}
 

@@ -44,7 +44,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message,
              psd->error_message);
 
-  if(psd->branching_approx == bra_exact){
+  if(psd->sd_branching_approx == bra_exact){
     /** Set/Check the distortions detector */
     class_call(distortions_set_detector(ppr,psd),
                psd->error_message,
@@ -186,6 +186,7 @@ int distortions_set_detector(struct precision * ppr,
   char line[_LINE_LENGTH_MAX_];
   DetectorName detector_name;
   double nu_min,nu_max,nu_delta,delta_Ic;
+  int N_bins;
   char * left;
   int headlines = 0;
   int i,j;
@@ -199,9 +200,9 @@ int distortions_set_detector(struct precision * ppr,
     /* The user wants a new detector with specified settings, but without name */
     else{
       /* Generate a custom name for this custom detector, so we can check if it has already been defined */
-      sprintf(psd->distortions_detector,
-              "Custom__%7.2e_%7.2e_%7.2e_%7.2e__Detector",
-              psd->nu_min_detector,psd->nu_max_detector,psd->nu_delta_detector,psd->delta_Ic_detector);
+      sprintf(psd->sd_detector,
+              "Custom__%7.2e_%7.2e_%7.2e_%i_%7.2e__Detector",
+              psd->sd_detector_nu_min,psd->sd_detector_nu_max,psd->sd_detector_nu_delta,psd->sd_detector_bin_number,psd->sd_detector_delta_Ic);
     }
   }
 
@@ -219,43 +220,49 @@ int distortions_set_detector(struct precision * ppr,
         left++;
     }
     if (left[0] > 39) {
-      class_test(sscanf(line,"%s %lg %lg %lg %lg",detector_name,&nu_min,&nu_max,&nu_delta,&delta_Ic) != 5,
+      class_test(sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6,
                  psd->error_message,
-                 "Could not read line %i in file '%s'\n",headlines,"./external/distortions/known_detectors.dat");
+                 "Could not read line %i in file '%s'\n",headlines,"./external/distortions/detectors_list.dat");
 
       /* Detector has been found */
-      if(strcmp(psd->distortions_detector,detector_name)==0){
+      if(strcmp(psd->sd_detector,detector_name)==0){
         printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         found_detector = _TRUE_;
 
         if (psd->distortions_verbose > 1){
-          printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    delta_Ic = %lg \n",nu_min, nu_max, nu_delta, delta_Ic);
+          printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
+                      nu_min, nu_max, nu_delta, N_bins, delta_Ic);
         }
         /* If the user has defined the detector, check that their and our definitions agree */
         if(psd->user_defined_detector){
-          class_test(fabs(psd->nu_min_detector-nu_min)>ppr->tol_distortions_detector,
+          class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
                      psd->error_message,
                      "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->nu_min_detector,nu_min);
-          class_test(fabs(psd->nu_max_detector-nu_max)>ppr->tol_distortions_detector,
+                     detector_name,psd->sd_detector_nu_min,nu_min);
+          class_test(fabs(psd->sd_detector_nu_max-nu_max)>ppr->tol_sd_detector,
                      psd->error_message,
                      "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->nu_max_detector,nu_max);
-          class_test(fabs(psd->nu_delta_detector-nu_delta)>ppr->tol_distortions_detector,
+                     detector_name,psd->sd_detector_nu_max,nu_max);
+          class_test(fabs(psd->sd_detector_nu_delta-nu_delta)>ppr->tol_sd_detector,
                      psd->error_message,
                      "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->nu_delta_detector,nu_delta);
-          class_test(fabs(psd->delta_Ic_detector-delta_Ic)>ppr->tol_distortions_detector,
+                     detector_name,psd->sd_detector_nu_delta,nu_delta);
+          class_test(fabs(psd->sd_detector_bin_number-N_bins)>ppr->tol_sd_detector,
+                     psd->error_message,
+                     "Number of bins (N_bins) disagrees between stored detector '%s' and input ->  %i (input) vs %i (stored)",
+                     detector_name,psd->sd_detector_bin_number,N_bins);
+          class_test(fabs(psd->sd_detector_delta_Ic-delta_Ic)>ppr->tol_sd_detector,
                      psd->error_message,
                      "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->delta_Ic_detector,delta_Ic);
+                     detector_name,psd->sd_detector_delta_Ic,delta_Ic);
         }
 
         /* In any case, just take the detector definition from the file */
-        psd->nu_min_detector = nu_min;
-        psd->nu_max_detector = nu_max;
-        psd->nu_delta_detector = nu_delta;
-        psd->delta_Ic_detector = delta_Ic;
+        psd->sd_detector_nu_min = nu_min;
+        psd->sd_detector_nu_max = nu_max;
+        psd->sd_detector_nu_delta = nu_delta;
+        psd->sd_detector_bin_number = N_bins;
+        psd->sd_detector_delta_Ic = delta_Ic;
       }
     }
   }
@@ -264,7 +271,7 @@ int distortions_set_detector(struct precision * ppr,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
     if(psd->user_defined_detector){
-      printf(" -> Generating detector '%s' \n",psd->distortions_detector);
+      printf(" -> Generating detector '%s' \n",psd->sd_detector);
       class_call(distortions_generate_detector(ppr,psd),
                  psd->error_message,
                  psd->error_message);
@@ -272,8 +279,8 @@ int distortions_set_detector(struct precision * ppr,
     else{
       class_stop(psd->error_message,
                  "You asked for detector '%s', but it was not in the database '%s'.\nPlease check the name of your detector, or specify its properties if you want to create a new one",
-                 psd->distortions_detector,
-                 "./external/distortions/known_detectors.dat");
+                 psd->sd_detector,
+                 "./external/distortions/detectors_list.dat");
     }
   }
 
@@ -306,15 +313,16 @@ int distortions_generate_detector(struct precision * ppr,
 
   /* Then activate the PCA generator*/
   printf(" -> Executing the PCA generator\n");
-  sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
-          psd->distortions_detector,
-          psd->nu_min_detector,
-          psd->nu_max_detector,
-          psd->nu_delta_detector,
-          ppr->distortions_z_min,
-          ppr->distortions_z_max,
-          ppr->distortions_z_size,
-          psd->delta_Ic_detector,
+  sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
+          psd->sd_detector,
+          psd->sd_detector_nu_min,
+          psd->sd_detector_nu_max,
+          psd->sd_detector_nu_delta,
+          psd->sd_detector_bin_number,
+          ppr->sd_z_min,
+          ppr->sd_z_max,
+          ppr->sd_z_size,
+          psd->sd_detector_delta_Ic,
           6,
           psd->z_th,
           psd->DI_units,
@@ -345,7 +353,7 @@ int distortions_indices(struct distortions * psd) {
   class_define_index(psd->index_type_g,_TRUE_,index_type,1);
   class_define_index(psd->index_type_y,_TRUE_,index_type,1);
   class_define_index(psd->index_type_mu,_TRUE_,index_type,1);
-  class_define_index(psd->index_type_PCA,_TRUE_,index_type,psd->N_PCA);
+  class_define_index(psd->index_type_PCA,_TRUE_,index_type,psd->sd_PCA_size);
 
   psd->type_size = index_type;
 
@@ -370,9 +378,9 @@ int distortions_get_xz_lists(struct precision * ppr,
   int index_z, index_x;
 
   /** Define and allocate z array */
-  psd->z_min = ppr->distortions_z_min;
-  psd->z_max = ppr->distortions_z_max;
-  psd->z_size = ppr->distortions_z_size;
+  psd->z_min = ppr->sd_z_min;
+  psd->z_max = ppr->sd_z_max;
+  psd->z_size = ppr->sd_z_size;
   psd->z_delta = (log(psd->z_max)-log(psd->z_min))/psd->z_size;
 
   class_alloc(psd->z,
@@ -396,10 +404,10 @@ int distortions_get_xz_lists(struct precision * ppr,
              psd->error_message);
 
   /** Define and allocate x array */
-  if(psd->branching_approx != bra_exact){
-    psd->x_min = ppr->distortions_x_min;
-    psd->x_max = ppr->distortions_x_max;
-    psd->x_size = ppr->distortions_x_size;
+  if(psd->sd_branching_approx != bra_exact){
+    psd->x_min = ppr->sd_x_min;
+    psd->x_max = ppr->sd_x_max;
+    psd->x_size = ppr->sd_x_size;
     psd->x_delta = (log(psd->x_max)-log(psd->x_min))/psd->x_size;
 
     class_alloc(psd->x,
@@ -412,10 +420,10 @@ int distortions_get_xz_lists(struct precision * ppr,
 
   }
   else{
-    psd->x_min = psd->nu_min_detector/psd->x_to_nu;
-    psd->x_max = psd->nu_max_detector/psd->x_to_nu;
-    psd->x_delta = psd->nu_delta_detector/psd->x_to_nu;
-    psd->x_size = (psd->x_max-psd->x_min)/psd->x_delta;
+    psd->x_min = psd->sd_detector_nu_min/psd->x_to_nu;
+    psd->x_max = psd->sd_detector_nu_max/psd->x_to_nu;
+    psd->x_delta = psd->sd_detector_nu_delta/psd->x_to_nu;
+    psd->x_size = psd->sd_detector_bin_number+1;
 
     class_alloc(psd->x,
                 psd->x_size*sizeof(double),
@@ -423,6 +431,7 @@ int distortions_get_xz_lists(struct precision * ppr,
 
     for (index_x = 0; index_x<psd->x_size; index_x++) {
       psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
+      printf("%g\n",psd->x[index_x]*psd->x_to_nu);
     }
   }
 
@@ -475,12 +484,12 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   }
 
   /** Calulate branching ratios */
-  if(psd->branching_approx != bra_exact){
+  if(psd->sd_branching_approx != bra_exact){
     for(index_z=0; index_z<psd->z_size; ++index_z){
       bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));
 
       /* 1) Calculate branching ratios using sharp_sharp transition */
-      if(psd->branching_approx == bra_sharp_sharp){
+      if(psd->sd_branching_approx == bra_sharp_sharp){
         if(psd->z[index_z]>psd->z_th){
           f_g = 1.;
           f_y = 0.;
@@ -499,7 +508,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       }
 
       /* 2) Calculate branching ratios using sharp_soft transition */
-      if(psd->branching_approx == bra_sharp_soft){
+      if(psd->sd_branching_approx == bra_sharp_soft){
         f_g = 1.-bb_vis;
         if(psd->z[index_z]>psd->z_muy){
           f_y = 0.;
@@ -512,14 +521,14 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       }
 
       /* 3) Calculate branching ratios unsing soft_soft transitions */
-      if(psd->branching_approx == bra_soft_soft){
+      if(psd->sd_branching_approx == bra_soft_soft){
         f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
         f_mu = bb_vis*(1.-exp(-pow((1.0+psd->z[index_z])/(5.8e4),1.88)));
       }
 
       /* 4) Calculate branching ratios unsing soft_soft_cons transitions */
-      if(psd->branching_approx == bra_soft_soft_cons){
+      if(psd->sd_branching_approx == bra_soft_soft_cons){
         f_g = 1.-bb_vis;
         f_y = 1.0/(1.0+pow((1.0+psd->z[index_z])/(6.0e4),2.58));
         f_mu = bb_vis*(1.-f_y);
@@ -544,7 +553,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
 
     /* Allocate local variable */
     class_alloc(f_E,
-                psd->N_PCA*sizeof(double),
+                psd->sd_PCA_size*sizeof(double),
                 psd->error_message);
 
     /* Interpolate over z */
@@ -563,7 +572,7 @@ int distortions_compute_branching_ratios(struct precision * ppr,
       psd->br_table[psd->index_type_g][index_z] = f_g;
       psd->br_table[psd->index_type_y][index_z] = f_y;
       psd->br_table[psd->index_type_mu][index_z] = f_mu;
-      for(index_k=0; index_k<psd->N_PCA; ++index_k){
+      for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
         psd->br_table[psd->index_type_PCA+index_k][index_z] = f_E[index_k];
       }
 
@@ -733,7 +742,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   }
 
   /** Calculate spectral shapes */
-  if(psd->branching_approx != bra_exact || psd->N_PCA == 0){
+  if(psd->sd_branching_approx != bra_exact || psd->sd_PCA_size == 0){
     /* If no PCA analysis is required, the shapes have simple analistical form */
     for(index_x=0; index_x<psd->x_size; ++index_x){
       psd->sd_shape_table[psd->index_type_g][index_x] = pow(psd->x[index_x],4.)*exp(-psd->x[index_x])/
@@ -759,7 +768,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
     /* Allocate local variable */
     class_alloc(S,
-                psd->N_PCA*sizeof(double),
+                psd->sd_PCA_size*sizeof(double),
                 psd->error_message);
 
     /* Interpolate over z */
@@ -774,7 +783,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                  psd->error_message,
                  psd->error_message);
 
-      for(index_k=0; index_k<psd->N_PCA; ++index_k){
+      for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
         psd->sd_shape_table[psd->index_type_PCA+index_k][index_x] = S[index_k];
       }
     }
@@ -790,8 +799,8 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /* For the details of the calculation see Chluba & Jeong 2014, left column of page 6 */
   psd->epsilon = 0.;
 
-  if(psd->branching_approx == bra_exact && psd->N_PCA != 0){
-    for(index_k=0; index_k<psd->N_PCA; ++index_k){
+  if(psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0){
+    for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
       sum_S = 0.;
       sum_G = 0.;
       for(index_x=0; index_x<psd->x_size; ++index_x){
@@ -883,9 +892,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
       printf(" -> y-parameter = %g\n", psd->sd_parameter_table[psd->index_type_y]);
     }
 
-    if(psd->branching_approx == bra_exact && psd->N_PCA != 0){
+    if(psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0){
        if(psd->distortions_verbose > 2){
-         for(index_k=0; index_k<psd->N_PCA; ++index_k){
+         for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
            printf(" -> PCA multipole mu_%d = %g\n", index_k+1, psd->sd_parameter_table[psd->index_type_PCA+index_k]);
          }
        }
@@ -1087,7 +1096,7 @@ int distortions_read_br_data(struct precision * ppr,
   int headlines = 0;
 
   /** Open file */
-  sprintf(br_file,"external/distortions/%s_branching_ratios.dat", psd->distortions_detector);
+  sprintf(br_file,"external/distortions/%s_branching_ratios.dat", psd->sd_detector);
   class_open(infile, br_file, "r", psd->error_message);
 
   /** Read header */
@@ -1263,7 +1272,7 @@ int distortions_interpolate_br_data(struct distortions* psd,
                                                  index+1,
                                                  h,a,b);
 
-  for(index_k=0; index_k<psd->N_PCA; ++index_k){
+  for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
     f_E[index_k] = array_interpolate_spline_hunt(psd->E_vec+index_k*psd->br_exact_Nz,
                                                  psd->ddE_vec+index_k*psd->br_exact_Nz,
                                                  index,
@@ -1318,7 +1327,7 @@ int distortions_read_sd_data(struct precision * ppr,
   int index_x,index_k;
 
   /** Open file */
-  sprintf(sd_file,"external/distortions/%s_distortions_shapes.dat", psd->distortions_detector);
+  sprintf(sd_file,"external/distortions/%s_distortions_shapes.dat", psd->sd_detector);
   class_open(infile, sd_file, "r", psd->error_message);
 
   /** Read header */
@@ -1499,7 +1508,7 @@ int distortions_interpolate_sd_data(struct distortions* psd,
                                         last_index+1,
                                         h,a,b);
 
-  for(index_k=0; index_k<psd->N_PCA; ++index_k){
+  for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
     S[index_k] = array_interpolate_spline_hunt(psd->S_vec+index_k*psd->PCA_Nnu,
                                                psd->ddS_vec+index_k*psd->PCA_Nnu,
                                                last_index,

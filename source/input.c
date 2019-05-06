@@ -1427,7 +1427,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for distortions quantities */
-  class_call(input_read_parameters_distortions(pfc,psd,
+  class_call(input_read_parameters_distortions(pfc,ppr,psd,
                                                errmsg),
              errmsg,
              errmsg);
@@ -4095,103 +4095,125 @@ int input_read_parameters_lensing(struct file_content * pfc,
  * Read free parameters of distortions structure.
  *
  * @param pfc     Input: pointer to local structure
- * @param ppt     Input: pointer to perturbations structure
- * @param ple     Input: pointer to lensing structure
+ * @param ppr     Input: pointer to precision structure
+ * @param psd     Input: pointer to distortions structure
  * @param errmsg  Input: Error message
  */
 int input_read_parameters_distortions(struct file_content * pfc,
+                                      struct precision * ppr,
                                       struct distortions * psd,
                                       ErrorMsg errmsg){
 
   /** Summary: */
 
   /** Define local variables */
-  int flag1;
+  int flag1, flag2;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  double param1;
+  double param1, param2;
   int int1;
+  double updated_nu_max;
 
   /** 1) Branching ratio approximation */
   /* Read */
-  class_call(parser_read_string(pfc,"branching_approx",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"sd_branching_approx",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
   /* Complete set of parameters */
 
   if(flag1 == _TRUE_){
     if ( (strstr(string1,"sharp_sharp") != NULL) || (strstr(string1,"sharp sharp") != NULL) ) {
-      psd->branching_approx = bra_sharp_sharp;
-      psd->N_PCA = 0;
+      psd->sd_branching_approx = bra_sharp_sharp;
+      psd->sd_PCA_size = 0;
     }
     else if ( (strstr(string1,"sharp_soft") != NULL) || (strstr(string1,"sharp soft") != NULL) ) {
-      psd->branching_approx = bra_sharp_soft;
-      psd->N_PCA = 0;
+      psd->sd_branching_approx = bra_sharp_soft;
+      psd->sd_PCA_size = 0;
     }
     else if ( (strstr(string1,"soft_soft") != NULL) || (strstr(string1,"soft soft") != NULL) ) {
-      psd->branching_approx = bra_soft_soft;
-      psd->N_PCA = 0;
+      psd->sd_branching_approx = bra_soft_soft;
+      psd->sd_PCA_size = 0;
     }
     else if ( (strstr(string1,"soft_soft_cons") != NULL) || (strstr(string1,"soft soft cons") != NULL) ) {
-      psd->branching_approx = bra_soft_soft_cons;
-      psd->N_PCA = 0;
+      psd->sd_branching_approx = bra_soft_soft_cons;
+      psd->sd_PCA_size = 0;
     }
     else if ( (strstr(string1,"exact") != NULL) ) {
-      psd->branching_approx = bra_exact;
+      psd->sd_branching_approx = bra_exact;
 
       /** 1.a.1) Number of multipoles in PCA expansion */
       /* Read */
-      class_read_int("PCA_size",psd->N_PCA);
+      class_read_int("PCA_size",psd->sd_PCA_size);
       /* Test */
-      if(psd->N_PCA < 0 || psd->N_PCA > 6){
-        psd->N_PCA = 6;
+      if(psd->sd_PCA_size < 0 || psd->sd_PCA_size > 6){
+        psd->sd_PCA_size = 6;
       }
 
       /** 1.a.2) Detector name */
       /* Read */
-      class_call(parser_read_string(pfc,"distortions_detector",&string1,&flag1,errmsg),
+      class_call(parser_read_string(pfc,"sd_detector",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
       /* Complete set of parameters */
       if(flag1 == _TRUE_){
-        strcpy(psd->distortions_detector,string1);
+        strcpy(psd->sd_detector,string1);
         psd->user_defined_name = _TRUE_;
       }
 
       /** 1.a.3) Detector properties */
       /* Read */
-      class_call(parser_read_double(pfc,"detector_nu_min",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"sd_detector_nu_min",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
       /* Complete set of parameters */
       if(flag1 == _TRUE_){
-        psd->nu_min_detector = param1;
+        psd->sd_detector_nu_min = param1;
         psd->user_defined_detector = _TRUE_;
       }
       /* Read */
-      class_call(parser_read_double(pfc,"detector_nu_max",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
       /* Complete set of parameters */
       if(flag1 == _TRUE_){
-        psd->nu_max_detector = param1;
+        psd->sd_detector_nu_max = param1;
         psd->user_defined_detector = _TRUE_;
       }
       /* Read */
-      class_call(parser_read_double(pfc,"detector_nu_delta",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
+       class_call(parser_read_double(pfc,"sd_detector_bin_number",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      /* Test */
+      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+                 errmsg,
+                 "You can only enter one of 'sd_detector_nu_delta' or 'sd_detector_bin_number'.",
+                 psd->sd_detector_nu_delta,psd->sd_detector_bin_number);
       /* Complete set of parameters */
       if(flag1 == _TRUE_){
-        psd->nu_delta_detector = param1;
+        psd->sd_detector_nu_delta = param1;
+        psd->sd_detector_bin_number = ((int)ceil((psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param1));
         psd->user_defined_detector = _TRUE_;
       }
+      if(flag2 == _TRUE_){
+        psd->sd_detector_nu_delta = (psd->x_max-psd->x_min)/psd->x_delta;
+        psd->sd_detector_bin_number = param2;
+        psd->user_defined_detector = _TRUE_;
+     }
+      /* Update value of nu_max, given the number of bins */
+      updated_nu_max = psd->sd_detector_nu_min+psd->sd_detector_nu_delta*psd->sd_detector_bin_number;
+      if(fabs(updated_nu_max-psd->sd_detector_nu_max) > ppr->tol_sd_detector){
+        printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accomodate the binning of you detector.\n",updated_nu_max);
+        psd->sd_detector_nu_max = updated_nu_max;
+      }
       /* Read */
-      class_call(parser_read_double(pfc,"delta_Ic_detector",&param1,&flag1,errmsg),
+      class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
                  errmsg,
                  errmsg);
       /* Complete set of parameters */
       if(flag1 == _TRUE_){
-        psd->delta_Ic_detector = param1;
+        psd->sd_detector_delta_Ic = param1;
         psd->user_defined_detector = _TRUE_;
       }
     }
@@ -4200,7 +4222,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     }
 
     /* Final tests */
-    class_test(psd->branching_approx != bra_exact && psd->N_PCA > 0,
+    class_test(psd->sd_branching_approx != bra_exact && psd->sd_PCA_size > 0,
                errmsg,
                "The PCA expansion is possible only for 'branching_approx = exact'");
   }
@@ -4958,12 +4980,17 @@ int input_default_params(struct background *pba,
    */
 
   /** 1) Branching ratio approximation */
-  psd->branching_approx = bra_exact;
+  psd->sd_branching_approx = bra_exact;
   /** 1.a.1) Number of multipoles in PCA expansion */
-  psd->N_PCA=2;
+  psd->sd_PCA_size=2;
   /** 1.a.2) Detector name */
   psd->user_defined_name = _TRUE_;
-  sprintf(psd->distortions_detector,"PIXIE");
+  sprintf(psd->sd_detector,"PIXIE");
+  psd->sd_detector_nu_min = 30.;
+  psd->sd_detector_nu_max = 990.;
+  psd->sd_detector_nu_delta = 15.;
+  psd->sd_detector_bin_number = 64;
+  psd->sd_detector_delta_Ic = 5.e-26;
 
   /** 2) Include SZ effect from reionization? */
   psd->has_SZ_effect = _FALSE_;
