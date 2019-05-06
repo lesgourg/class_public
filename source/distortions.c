@@ -431,7 +431,6 @@ int distortions_get_xz_lists(struct precision * ppr,
 
     for (index_x = 0; index_x<psd->x_size; index_x++) {
       psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
-      printf("%g\n",psd->x[index_x]*psd->x_to_nu);
     }
   }
 
