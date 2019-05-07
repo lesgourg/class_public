@@ -87,7 +87,7 @@ with open(os.path.join(dir_path,readfile)) as f:
   z_arr = np.logspace(np.log10(sd_z_min),np.log10(sd_z_max),Nz_arr)
 
   Nx_arr = sd_detector_bin_number+1
-  x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu*(1.+1.e-10),Nx_arr)
+  x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu,Nx_arr)
   # Note: the factor 1.e-10 has been added to facilita the interpolation done in distortions.c
 
   # Define visibility function
@@ -189,7 +189,7 @@ with open(os.path.join(dir_path,readfile)) as f:
       S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:]*normalization_Residual)
 
   # Create output files
-  form = "%.10e" #Output formatting
+  form = "%.6e" #Output formatting
 
   # Write file for branching ratio (Evec)
   with open(os.path.join(dir_path,sd_detector_name+"_branching_ratios.dat"),"w") as brfile:
@@ -220,6 +220,6 @@ with open(os.path.join(dir_path,readfile)) as f:
   # Update list of detectors
   # Open and read already present list
   with open(os.path.join(dir_path,"detectors_list.dat"),"a") as detector_file:
-    detector_file.write('%s  %7.4e  %7.4e  %7.4e  %i  %7.4e\n' % (sd_detector_name, sd_detector_nu_min, sd_detector_nu_max, sd_detector_nu_delta, sd_detector_bin_number,  sd_detector_delta_Ic))
+    detector_file.write('%s  %.6e  %.6e  %.6e  %i  %.6e\n' % (sd_detector_name, sd_detector_nu_min, sd_detector_nu_max, sd_detector_nu_delta, sd_detector_bin_number, sd_detector_delta_Ic))
 
 

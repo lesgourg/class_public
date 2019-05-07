@@ -4197,16 +4197,17 @@ int input_read_parameters_distortions(struct file_content * pfc,
         psd->user_defined_detector = _TRUE_;
       }
       if(flag2 == _TRUE_){
-        psd->sd_detector_nu_delta = (psd->x_max-psd->x_min)/psd->x_delta;
+        psd->sd_detector_nu_delta = (psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param2;
         psd->sd_detector_bin_number = param2;
         psd->user_defined_detector = _TRUE_;
      }
       /* Update value of nu_max, given the number of bins */
       updated_nu_max = psd->sd_detector_nu_min+psd->sd_detector_nu_delta*psd->sd_detector_bin_number;
       if(fabs(updated_nu_max-psd->sd_detector_nu_max) > ppr->tol_sd_detector){
-        printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accomodate the binning of you detector.\n",updated_nu_max);
+        printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accommodate the binning of your detector.\n",updated_nu_max);
         psd->sd_detector_nu_max = updated_nu_max;
       }
+
       /* Read */
       class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
                  errmsg,
@@ -4984,12 +4985,12 @@ int input_default_params(struct background *pba,
   /** 1.a.1) Number of multipoles in PCA expansion */
   psd->sd_PCA_size=2;
   /** 1.a.2) Detector name */
-  psd->user_defined_name = _TRUE_;
+  psd->user_defined_name = _FALSE_;
   sprintf(psd->sd_detector,"PIXIE");
   psd->sd_detector_nu_min = 30.;
-  psd->sd_detector_nu_max = 990.;
+  psd->sd_detector_nu_max = 1005.;
   psd->sd_detector_nu_delta = 15.;
-  psd->sd_detector_bin_number = 64;
+  psd->sd_detector_bin_number = 65;
   psd->sd_detector_delta_Ic = 5.e-26;
 
   /** 2) Include SZ effect from reionization? */

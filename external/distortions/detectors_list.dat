@@ -1,8 +1,9 @@
 # The list includes all known detector with corresponding 
-#   1) the name, 
-#   2) the minimum frequency in GHz, 
-#   3) the maximum frequencies in GHz, 
-#   4) the bin widthin in GHz and 
-#   5) the noise of the detector in W/(m^2 Hz sr)
+#   1) the name,
+#   2) the minimum frequency in GHz,
+#   3) the maximum frequencies in GHz,
+#   4) the bin widthin in GHz,
+#   5) the number of bins and
+#   6) the noise of the detector in W/(m^2 Hz sr)
 #
-PIXIE  3.0000e+01  9.9000e+02  1.5000e+01  64  5.0000e-26
+PIXIE  3.000000e+01  9.900000e+02  1.500000e+01  64  5.000000e-26

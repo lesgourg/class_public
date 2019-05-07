@@ -226,11 +226,11 @@ int distortions_set_detector(struct precision * ppr,
 
       /* Detector has been found */
       if(strcmp(psd->sd_detector,detector_name)==0){
-        printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
+        printf("Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         found_detector = _TRUE_;
 
         if (psd->distortions_verbose > 1){
-          printf("    Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
+          printf(" -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
                       nu_min, nu_max, nu_delta, N_bins, delta_Ic);
         }
         /* If the user has defined the detector, check that their and our definitions agree */
@@ -271,7 +271,7 @@ int distortions_set_detector(struct precision * ppr,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
     if(psd->user_defined_detector){
-      printf(" -> Generating detector '%s' \n",psd->sd_detector);
+      printf("Generating detector '%s' \n",psd->sd_detector);
       class_call(distortions_generate_detector(ppr,psd),
                  psd->error_message,
                  psd->error_message);
@@ -305,14 +305,14 @@ int distortions_generate_detector(struct precision * ppr,
 
 
   /* Test first whether or not python exists*/
-  printf(" -> Testing python\n");
+  printf("Testing python\n");
   is_success = system("python --version");
   class_test(is_success == -1,
              psd->error_message,
              "The command 'python --version' failed.\nPlease install a valid version of python.");
 
   /* Then activate the PCA generator*/
-  printf(" -> Executing the PCA generator\n");
+  printf("Executing the PCA generator\n");
   sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
           psd->sd_detector,
           psd->sd_detector_nu_min,
@@ -429,7 +429,7 @@ int distortions_get_xz_lists(struct precision * ppr,
                 psd->x_size*sizeof(double),
                 psd->error_message);
 
-    for (index_x = 0; index_x<psd->x_size; index_x++) {
+    for (index_x = 0; index_x<psd->x_size; index_x++){
       psd->x[index_x] = psd->x_min+psd->x_delta*index_x;
     }
   }
@@ -1479,11 +1479,13 @@ int distortions_interpolate_sd_data(struct distortions* psd,
   int last_index = *index;
   int index_k;
   double h,a,b;
+  double nu_round;
 
   /** Find z position */
+  nu_round = round(nu*pow(10.,3))/pow(10.,3); // The rounding is necessary for the interpolation with the external file
   class_call(array_spline_hunt(psd->PCA_nu,
                                psd->PCA_Nnu,
-                               nu,
+                               nu_round,
                                &last_index,
                                &h,&a,&b,
                                psd->error_message),

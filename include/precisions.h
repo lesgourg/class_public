@@ -445,7 +445,7 @@ class_precision_parameter(sd_x_size,int,500)
 /**
  * Tolerance on the deviation of the distortions detector quality
  */
-class_precision_parameter(tol_sd_detector,double,1.e-6)
+class_precision_parameter(tol_sd_detector,double,1.e-5)
 
 
 
