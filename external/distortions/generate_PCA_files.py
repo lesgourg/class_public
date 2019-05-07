@@ -172,7 +172,6 @@ with open(os.path.join(dir_path,readfile)) as f:
   # Normalize fisher matrix
   delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
   normalization = (delta_ln_z/(sd_detector_delta_Ic*1.e8))**2
-  normalization_Residual = delta_ln_z
   Fisher /= normalization
 
   # Solve eigenvalue problem
@@ -186,7 +185,10 @@ with open(os.path.join(dir_path,readfile)) as f:
   S_vecs = np.zeros((sd_PCA_size,Nx_arr))
   for index_pca in range(sd_PCA_size):
     for index_x in range(Nx_arr):
-      S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:]*normalization_Residual)
+      S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:])
+  # Note: Compared to the reference paper, the S vectors are missing the normalization factor Dlnz.
+  #       It will be accounted for later in the function distortions_compute_spectral_shapes()
+  #       when computing the spectral amplitudes epsilon_k.
 
   # Create output files
   form = "%.6e" #Output formatting

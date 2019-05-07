@@ -721,8 +721,8 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                psd->error_message);
 
     if(index_type>=psd->index_type_PCA){
-      /* The E_k are not properly normalized, we have to renormalize here */
-      psd->sd_parameter_table[index_type]/=(log(1.+psd->z[1])-log(1.+psd->z[0]));
+      /* The S_k are not properly normalized, we have to renormalize here */
+      psd->sd_parameter_table[index_type] /= (log(1.+psd->z[1])-log(1.+psd->z[0]));
     }
   }
 
