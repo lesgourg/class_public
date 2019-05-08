@@ -212,6 +212,17 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct distortions:
+        double * sd_parameter_table
+        int index_type_g
+        int index_type_mu
+        int index_type_y
+        int index_type_PCA
+        int type_size
+        double * DI
+        double * x
+        double DI_units
+        double x_to_nu
+        int x_size
         ErrorMsg error_message
 
     cdef struct lensing:
@@ -263,6 +274,7 @@ cdef extern from "class.h":
     void thermodynamics_free(void*)
     void background_free(void*)
     void nonlinear_free(void*)
+    void distortions_free(void*)
 
     cdef int _FAILURE_
     cdef int _FALSE_
@@ -278,6 +290,7 @@ cdef extern from "class.h":
     int transfer_init(void*,void*,void*,void*,void*,void*)
     int spectra_init(void*,void*,void*,void*,void*,void*,void*)
     int lensing_init(void*,void*,void*,void*,void*)
+    int distortions_init(void*,void*,void*,void*,void*,void*)
 
     int background_tau_of_z(void* pba, double z,double* tau)
     int background_at_tau(void* pba, double tau, short return_format, short inter_mode, int * last_index, double *pvecback)
