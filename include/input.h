@@ -21,6 +21,9 @@ struct distortions * psd;
 
 #define _N_FILEROOT_ 100 /* Number of files that will be not overwritten for a given root */
 
+/* macro for checking if string begins with certain character */
+int string_begins_with(char* thestring,char beginchar);
+
 /* macro for reading parameter values with routines from the parser */
 #define class_read_double(name,destination)                                     \
   do {                                                                          \
@@ -63,10 +66,12 @@ struct distortions * psd;
                errmsg,                                                          \
                errmsg);                                                         \
     if (flag_temp == _TRUE_){                                                   \
-      if( (string_temp[0]=='y') || (string_temp[0]=='Y') ){                     \
+      if( string_begins_with(string_temp,'y')                                   \
+         || string_begins_with(string_temp,'Y') ){                              \
         destination = _TRUE_;                                                   \
       }                                                                         \
-      else if( (string_temp[0]=='n') || (string_temp[0]=='N') ){                \
+      if( string_begins_with(string_temp,'n')                                   \
+         || string_begins_with(string_temp,'N') ){                              \
         destination = _FALSE_;                                                  \
       }                                                                         \
       else {                                                                    \
@@ -90,10 +95,12 @@ struct distortions * psd;
     }                                                                           \
     /* Compatibility code END */                                                \
     if (flag_temp == _TRUE_){                                                   \
-      if( (string_temp[0]=='y') || (string_temp[0]=='Y') ){                     \
+      if( string_begins_with(string_temp,'y')                                   \
+         || string_begins_with(string_temp,'Y') ){                              \
         destination = _TRUE_;                                                   \
       }                                                                         \
-      else if( (string_temp[0]=='n') || (string_temp[0]=='N') ){                \
+      if( string_begins_with(string_temp,'n')                                   \
+         || string_begins_with(string_temp,'N') ){                              \
         destination = _FALSE_;                                                  \
       }                                                                         \
       else {                                                                    \

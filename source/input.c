@@ -2463,7 +2463,7 @@ int input_read_parameters_species(struct file_content * pfc,
                errmsg,
                errmsg);
     if (flag1 == _TRUE_){
-      if((string1[0] == 'y') || (string1[0] == 'Y')){
+      if(string_begins_with(string1,'y') || string_begins_with(string1,'Y')){
         pba->use_ppf = _TRUE_;
         class_read_double("c_gamma_over_c_fld",pba->c_gamma_over_c_fld);
       }
@@ -2531,7 +2531,7 @@ int input_read_parameters_species(struct file_content * pfc,
                 errmsg);
     /* Complete set of parameters */
     if (flag1 == _TRUE_){
-      if((string1[0] == 'y') || (string1[0] == 'Y')){
+      if(string_begins_with(string1,'y') || string_begins_with(string1,'Y')){
         pba->attractor_ic_scf = _TRUE_;
       }
       else{
@@ -4063,7 +4063,7 @@ int input_read_parameters_lensing(struct file_content * pfc,
              errmsg,
              errmsg);
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && ((string1[0] == 'y') || (string1[0] == 'Y'))){
+  if ((flag1 == _TRUE_) && (string_begins_with(string1,'y') || string_begins_with(string1,'Y'))){
     if ((ppt->has_scalars == _TRUE_) && ((ppt->has_cl_cmb_temperature == _TRUE_) || (ppt->has_cl_cmb_polarization == _TRUE_)) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)){
       ple->has_lensed_cls = _TRUE_;
       /* Slightly increase precision by delta_l_max for more precise lensed Cl's*/
@@ -5043,3 +5043,29 @@ int input_default_params(struct background *pba,
 }
 
 
+/**
+ * This function detects if a string begins with a character,
+ * ignoring whitespaces during its search
+ *
+ * returns the result, NOT the _SUCCESS_ or _FAILURE_ codes.
+ * (This is done such that it can be used inside of an if statement)
+ * */
+int string_begins_with(char* thestring, char beginchar){
+
+  /** Define temporary variables */
+  int int_temp=0;
+  int strlength = strlen((thestring));
+  int result = _FALSE_;
+
+  /** Check through the beginning of the string to see if the beginchar is met */
+  for(int_temp=0;int_temp<strlength;++int_temp){
+    /* Skip over whitespaces (very important) */
+    if(thestring[int_temp]==' ' || thestring[int_temp]=='\t'){continue;}
+    /* If the beginchar is met, everything is good */
+    else if(thestring[int_temp]==beginchar){result=_TRUE_;}
+    /* If something else is met, cancel */
+    else{break;}
+  }
+
+  return result;
+}
