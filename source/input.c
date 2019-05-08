@@ -4139,7 +4139,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
 
       /** 1.a.1) Number of multipoles in PCA expansion */
       /* Read */
-      class_read_int("PCA_size",psd->sd_PCA_size);
+      class_read_int("sd_PCA_size",psd->sd_PCA_size);
       /* Test */
       if(psd->sd_PCA_size < 0 || psd->sd_PCA_size > 6){
         psd->sd_PCA_size = 6;
