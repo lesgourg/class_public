@@ -2778,7 +2778,6 @@ int input_read_parameters_heating(struct file_content * pfc,
                errmsg,
                "for the option 'from_file' for 'f_eff_type' the option 'f_eff_file' is required.");
     /* Complete set of parameters */
-    phe->f_eff_file = (char *) malloc(strlen(string1) + 1);
     strcpy(phe->f_eff_file, string1);
   }
 
@@ -2825,9 +2824,7 @@ int input_read_parameters_heating(struct file_content * pfc,
                errmsg,
                "for the option 'from_x_file' or 'from_z_file' for 'chi_type' the option 'chi_file' is required.");
     /* Complete set of parameters */
-    phe->chi_z_file = (char *) malloc(strlen(string1) + 1);
     strcpy(phe->chi_z_file, string1);
-    phe->chi_x_file = (char *) malloc(strlen(string1) + 1);
     strcpy(phe->chi_x_file, string1);
   }
 
@@ -4230,12 +4227,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
 
 
   /** 2) Include SZ effect from reionization? */
-  class_call(parser_read_string(pfc,"include_SZ_effect",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))){
-    psd->has_SZ_effect = _TRUE_;
-  }
+  class_read_flag("include_SZ_effect",psd->has_SZ_effect);
 
   return _SUCCESS_;
 
@@ -4455,10 +4447,12 @@ int input_read_parameters_output(struct file_content * pfc,
 
   /** 1.l) Input/precision parameters */
   /* Read */
+  flag1 = _FALSE_;
   class_read_flag_or_deprecated("write_parameters","write parameters",flag1);
 
   /** 1.m) Warnings */
   /* Read */
+  flag2 = _FALSE_;
   class_read_flag_or_deprecated("write_warnings","write warnings",flag2);
 
 
@@ -4807,13 +4801,13 @@ int input_default_params(struct background *pba,
   /** 5) Injection efficiency */
   phe->f_eff_type = f_eff_on_the_spot;
   /** 5.1) External file */
-  phe->f_eff_file = "/external/heating/example_f_eff_file.dat";
+  sprintf(phe->f_eff_file,"/external/heating/example_f_eff_file.dat");
 
   /** 6) Deposition function */
   phe->chi_type = chi_CK;
   /** 6.1) External file */
-  phe->chi_z_file = "/external/heating/example_chiz_file.dat";
-  phe->chi_x_file = "/external/heating/example_chix_file.dat";
+  sprintf(phe->chi_z_file,"/external/heating/example_chiz_file.dat");
+  sprintf(phe->chi_x_file,"/external/heating/example_chix_file.dat");
 
   /** 7) Dissipation of acoustic waves */
   phe->heating_rate_acoustic_diss_approx = _TRUE_;
@@ -4916,7 +4910,8 @@ int input_default_params(struct background *pba,
   ppm->behavior=numerical;
   /** 1.g) For type 'external_Pk' */
   /** 1.g.1) Command generating the table */
-  ppm->command="write here your command for the external Pk";
+  ppm->command=NULL;//"write here your command for the external Pk"
+
   /** 1.g.2) Parameters to be passed to the command */
   ppm->custom1=0.;
   ppm->custom2=0.;

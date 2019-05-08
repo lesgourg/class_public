@@ -187,8 +187,6 @@ int heating_indices(struct thermo* pth){
 
   /** Indices for injection table */
   index_inj = 0;
-  class_define_index(phe->index_inj_cool    , _TRUE_           , index_inj, 1);
-  class_define_index(phe->index_inj_diss    , _TRUE_           , index_inj, 1);
   class_define_index(phe->index_inj_DM_ann  , phe->has_DM_ann  , index_inj, 1);
   class_define_index(phe->index_inj_DM_dec  , phe->has_DM_dec  , index_inj, 1);
   class_define_index(phe->index_inj_PBH_eva , phe->has_PBH_eva , index_inj, 1);
@@ -230,7 +228,7 @@ int heating_free(struct thermo* pth){
   }
   free(phe->injection_table);
 
-  if(phe->has_PBH_eva=_TRUE_){
+  if(phe->has_PBH_eva==_TRUE_){
     free(phe->PBH_table_z);
     free(phe->PBH_table_mass);
     free(phe->PBH_table_mass_dd);
@@ -245,7 +243,7 @@ int heating_free(struct thermo* pth){
   if(phe->chi_type == chi_from_z_file){
     free(phe->chiz_table);
   }
-  if(phe->chi_type == chi_from_x_file){
+  if(phe->chi_type == chi_from_x_file || phe->chi_type == chi_Galli){
     free(phe->chix_table);
   }
 

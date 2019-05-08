@@ -1544,7 +1544,7 @@ int output_distortions(
   int size_data_heat, size_data_distortion;
   int number_of_titles_heat, number_of_titles_distortion;
 
-  if(pop->write_heating==_TRUE_){
+  if(pop->write_heating==_TRUE_ && psd->has_distortions == _TRUE_){
 
     /* File name */
     sprintf(file_name_heat,"%s%s",pop->root,"heating.dat");
@@ -1588,7 +1588,7 @@ int output_distortions(
     fclose(out_heat);
   }
 
-  if(pop->write_distortions==_TRUE_){
+  if(pop->write_distortions==_TRUE_ && psd->has_distortions == _TRUE_){
 
     /* File name */
     sprintf(file_name_distortion,"%s%s",pop->root,"distortions.dat");

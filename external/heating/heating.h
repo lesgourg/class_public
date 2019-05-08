@@ -44,12 +44,12 @@ struct heating{
 
   /* Injection efficiency */
   int f_eff_type;
-  char *f_eff_file;
+  FileName f_eff_file;
 
   /* Deposition function and injection efficiency */
   int chi_type;
-  char *chi_z_file;
-  char *chi_x_file;
+  FileName chi_z_file;
+  FileName chi_x_file;
 
   /* Approximation for energy injection of acoustic waves dissipation */
   int heating_rate_acoustic_diss_approx;
