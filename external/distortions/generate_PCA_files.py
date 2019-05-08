@@ -132,11 +132,8 @@ with open(os.path.join(dir_path,readfile)) as f:
       highx_vals = Greens_G_th_Spline[index_x_old+1](lnz_arr)
 
       G_th[index_x_new,:] = (lowx_vals*(1.-frac)+highx_vals*frac)
-      #G_th[index_x_new,:] *= bb_vis
       G_th[index_x_new,:] *= bb_vis*1.e-8
       G_th[index_x_new,:] += DI_T_shift[index_x_new,:]*1.e-8
-      #print DI_T_shift[index_x_new,-1]*1.e-8, Gdist[index_x_new]*df_g[-1]
-      #G_th[index_x_new,:] *= 1.e-8 # Units
       #G_th[index_x_new,:] += Gdist[index_x_new]*df_g
     except:
       raise ValueError("{} is not in the file range [{},{}] for file '{}'".format(x,Greens_x[0],Greens_x[-1],readfile))
@@ -197,77 +194,6 @@ with open(os.path.join(dir_path,readfile)) as f:
     if (index_pca==1 or index_pca==3 or index_pca==5): E_vecs[index_pca] = -E_vecs[index_pca]
     for index_x in range(Nx_arr):
       S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:]*delta_ln_z)
-
-  array=np.loadtxt("/home/matteo/Desktop/university/thesis_ms/Original/Codes/class_thermo/external/distortions/TEST_br.dat")
-  array=array.T
-  z_TEST=array[0]
-  f_g_TEST=array[1]
-  f_y_TEST=array[2]
-  f_m_TEST=array[3]
-  E_1_TEST=array[4]
-  E_2_TEST=array[5]
-  E_3_TEST=array[6]
-  E_4_TEST=array[7]
-  E_5_TEST=array[8]
-  E_6_TEST=array[9]
-
-  plt.semilogx(z_TEST,f_mu/1.401,label='OURS')
-  plt.semilogx(z_TEST,f_m_TEST/1.401,label='TEST')
-  plt.semilogx(z_TEST,4.*f_y,label='OURS')
-  plt.semilogx(z_TEST,4.*f_y_TEST,label='TEST')
-  plt.semilogx(z_TEST,4.*f_g,label='OURS')
-  plt.semilogx(z_TEST,4.*f_g_TEST,label='TEST')
-
-  plt.legend()
-  plt.show()
-  plt.close()
-
-  plt.semilogx(z_TEST,f_g_TEST/f_g-1.,label='g')
-  plt.semilogx(z_TEST,f_y_TEST/f_y-1.,label='y')
-  plt.semilogx(z_TEST,f_m_TEST/f_mu-1.,label='mu')
-  plt.semilogx(z_TEST,E_1_TEST/E_vecs[0]-1.,label='E_1')
-  plt.semilogx(z_TEST,E_2_TEST/E_vecs[1]-1.,label='E_2')
-  plt.semilogx(z_TEST,E_3_TEST/E_vecs[2]-1.,label='E_3')
-  plt.semilogx(z_TEST,E_4_TEST/E_vecs[3]-1.,label='E_4')
-  plt.semilogx(z_TEST,E_5_TEST/E_vecs[4]-1.,label='E_5')
-  plt.semilogx(z_TEST,E_6_TEST/E_vecs[5]-1.,label='E_6')
-  plt.legend()
-  plt.show()
-  plt.close()
-
-  array=np.loadtxt("/home/matteo/Desktop/university/thesis_ms/Original/Codes/class_thermo/external/distortions/TEST_ss.dat")
-  array=array.T
-  nu_TEST=array[0]
-  g_TEST=array[1]
-  y_TEST=array[2]
-  m_TEST=array[3]
-  S_1_TEST=array[4]
-  S_2_TEST=array[5]
-  S_3_TEST=array[6]
-  S_4_TEST=array[7]
-  S_5_TEST=array[8]
-  S_6_TEST=array[9]
-
-  plt.semilogx(nu_TEST,g_TEST/Gdist-1.,label='g')
-  plt.semilogx(nu_TEST,y_TEST/Ydist-1.,label='y')
-  plt.semilogx(nu_TEST,m_TEST/Mdist-1.,label='mu')
-  plt.semilogx(nu_TEST,S_1_TEST/S_vecs[0]-1.,label='S_1')
-  plt.semilogx(nu_TEST,S_2_TEST/S_vecs[1]-1.,label='S_2')
-  plt.semilogx(nu_TEST,S_3_TEST/S_vecs[2]-1.,label='S_3')
-  plt.semilogx(nu_TEST,S_4_TEST/S_vecs[3]-1.,label='S_4')
-  plt.semilogx(nu_TEST,S_5_TEST/S_vecs[4]-1.,label='S_5')
-  plt.semilogx(nu_TEST,S_6_TEST/S_vecs[5]-1.,label='S_6')
-  plt.legend()
-  plt.show()
-  plt.close()
-
-  #-> PCA multipole mu_1 = -5.69531e-09
-  #-> PCA multipole mu_2 = -3.23456e-11
-  #-> PCA multipole mu_3 = -3.70352e-09
-  #-> PCA multipole mu_4 = -1.05644e-10
-  #-> PCA multipole mu_5 = -3.16124e-09
-  #-> PCA multipole mu_6 = -4.30649e-10
-  #-> epsilon-parameter = 4.11062e-11
 
   # Create output files
   form = "%.6e" #Output formatting
