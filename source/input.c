@@ -4136,95 +4136,97 @@ int input_read_parameters_distortions(struct file_content * pfc,
     }
     else if ( (strstr(string1,"exact") != NULL) ) {
       psd->sd_branching_approx = bra_exact;
-
-      /** 1.a.1) Number of multipoles in PCA expansion */
-      /* Read */
-      class_read_int("sd_PCA_size",psd->sd_PCA_size);
-      /* Test */
-      if(psd->sd_PCA_size < 0 || psd->sd_PCA_size > 6){
-        psd->sd_PCA_size = 6;
-      }
-
-      /** 1.a.2) Detector name */
-      /* Read */
-      class_call(parser_read_string(pfc,"sd_detector",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Complete set of parameters */
-      if(flag1 == _TRUE_){
-        strcpy(psd->sd_detector,string1);
-        psd->user_defined_name = _TRUE_;
-      }
-
-      /** 1.a.3) Detector properties */
-      /* Read */
-      class_call(parser_read_double(pfc,"sd_detector_nu_min",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Complete set of parameters */
-      if(flag1 == _TRUE_){
-        psd->sd_detector_nu_min = param1;
-        psd->user_defined_detector = _TRUE_;
-      }
-      /* Read */
-      class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Complete set of parameters */
-      if(flag1 == _TRUE_){
-        psd->sd_detector_nu_max = param1;
-        psd->user_defined_detector = _TRUE_;
-      }
-      /* Read */
-      class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-       class_call(parser_read_double(pfc,"sd_detector_bin_number",&param2,&flag2,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Test */
-      class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
-                 errmsg,
-                 "You can only enter one of 'sd_detector_nu_delta' or 'sd_detector_bin_number'.",
-                 psd->sd_detector_nu_delta,psd->sd_detector_bin_number);
-      /* Complete set of parameters */
-      if(flag1 == _TRUE_){
-        psd->sd_detector_nu_delta = param1;
-        psd->sd_detector_bin_number = ((int)ceil((psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param1));
-        psd->user_defined_detector = _TRUE_;
-      }
-      if(flag2 == _TRUE_){
-        psd->sd_detector_nu_delta = (psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param2;
-        psd->sd_detector_bin_number = param2;
-        psd->user_defined_detector = _TRUE_;
-     }
-      /* Update value of nu_max, given the number of bins */
-      updated_nu_max = psd->sd_detector_nu_min+psd->sd_detector_nu_delta*psd->sd_detector_bin_number;
-      if(fabs(updated_nu_max-psd->sd_detector_nu_max) > ppr->tol_sd_detector){
-        printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accommodate the binning of your detector.\n",updated_nu_max);
-        psd->sd_detector_nu_max = updated_nu_max;
-      }
-
-      /* Read */
-      class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-      /* Complete set of parameters */
-      if(flag1 == _TRUE_){
-        psd->sd_detector_delta_Ic = param1;
-        psd->user_defined_detector = _TRUE_;
-      }
     }
     else{
       class_stop(errmsg,"You specified 'branching_approx' as '%s'. It has to be one of {'sharp_sharp','sharp_soft','soft_soft','soft_soft_cons','exact'}.",string1);
     }
-
-    /* Final tests */
-    class_test(psd->sd_branching_approx != bra_exact && psd->sd_PCA_size > 0,
-               errmsg,
-               "The PCA expansion is possible only for 'branching_approx = exact'");
   }
 
+  /* Only read these if 'bra_exact' has been set (could also be set from default) */
+  if(psd->sd_branching_approx == bra_exact){
+
+    /** 1.a.1) Number of multipoles in PCA expansion */
+    /* Read */
+    class_read_int("sd_PCA_size",psd->sd_PCA_size);
+    /* Test */
+    if(psd->sd_PCA_size < 0 || psd->sd_PCA_size > 6){
+      psd->sd_PCA_size = 6;
+    }
+
+    /** 1.a.2) Detector name */
+    /* Read */
+    class_call(parser_read_string(pfc,"sd_detector",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      strcpy(psd->sd_detector,string1);
+      psd->user_defined_name = _TRUE_;
+    }
+
+    /** 1.a.3) Detector properties */
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_nu_min",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_nu_min = param1;
+      psd->user_defined_detector = _TRUE_;
+    }
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_nu_max = param1;
+      psd->user_defined_detector = _TRUE_;
+    }
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+     class_call(parser_read_double(pfc,"sd_detector_bin_number",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+               errmsg,
+               "You can only enter one of 'sd_detector_nu_delta' or 'sd_detector_bin_number'.",
+               psd->sd_detector_nu_delta,psd->sd_detector_bin_number);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_nu_delta = param1;
+      psd->sd_detector_bin_number = ((int)ceil((psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param1));
+      psd->user_defined_detector = _TRUE_;
+    }
+    if(flag2 == _TRUE_){
+      psd->sd_detector_nu_delta = (psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param2;
+      psd->sd_detector_bin_number = param2;
+      psd->user_defined_detector = _TRUE_;
+   }
+    /* Update value of nu_max, given the number of bins */
+    updated_nu_max = psd->sd_detector_nu_min+psd->sd_detector_nu_delta*psd->sd_detector_bin_number;
+    if(fabs(updated_nu_max-psd->sd_detector_nu_max) > ppr->tol_sd_detector){
+      printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accommodate the binning of your detector.\n",updated_nu_max);
+      psd->sd_detector_nu_max = updated_nu_max;
+    }
+
+    /* Read */
+    class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      psd->sd_detector_delta_Ic = param1;
+      psd->user_defined_detector = _TRUE_;
+    }
+  }
+  /* Final tests */
+  class_test(psd->sd_branching_approx != bra_exact && psd->sd_PCA_size > 0,
+             errmsg,
+             "The PCA expansion is possible only for 'branching_approx = exact'");
 
   /** 2) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);

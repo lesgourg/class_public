@@ -195,6 +195,9 @@ int distortions_set_detector(struct precision * ppr,
   if(psd->user_defined_name == _FALSE_){
     /* The user wants the default */
     if(psd->user_defined_detector == _FALSE_){
+      if(psd->distortions_verbose > 0){
+        printf("  -> Using the default (%s) detector\n",psd->sd_detector);
+      }
       return _SUCCESS_; // Nothing more to do
     }
     /* The user wants a new detector with specified settings, but without name */
@@ -226,11 +229,13 @@ int distortions_set_detector(struct precision * ppr,
 
       /* Detector has been found */
       if(strcmp(psd->sd_detector,detector_name)==0){
-        printf("Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
+        if(psd->distortions_verbose > 0){
+          printf("  -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
+        }
         found_detector = _TRUE_;
 
         if (psd->distortions_verbose > 1){
-          printf(" -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
+          printf("  -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
                       nu_min, nu_max, nu_delta, N_bins, delta_Ic);
         }
         /* If the user has defined the detector, check that their and our definitions agree */
@@ -271,7 +276,9 @@ int distortions_set_detector(struct precision * ppr,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
     if(psd->user_defined_detector){
-      printf("Generating detector '%s' \n",psd->sd_detector);
+      if(psd->distortions_verbose > 0){
+        printf("  -> Generating detector '%s' \n",psd->sd_detector);
+      }
       class_call(distortions_generate_detector(ppr,psd),
                  psd->error_message,
                  psd->error_message);
@@ -305,14 +312,18 @@ int distortions_generate_detector(struct precision * ppr,
 
 
   /* Test first whether or not python exists*/
-  printf("Testing python\n");
+  if(psd->distortions_verbose > 0){
+    printf("  -> Testing python\n");
+  }
   is_success = system("python --version");
   class_test(is_success == -1,
              psd->error_message,
              "The command 'python --version' failed.\nPlease install a valid version of python.");
 
   /* Then activate the PCA generator*/
-  printf("Executing the PCA generator\n");
+  if(psd->distortions_verbose > 0){
+    printf("  -> Executing the PCA generator\n");
+  }
   sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
           psd->sd_detector,
           psd->sd_detector_nu_min,
