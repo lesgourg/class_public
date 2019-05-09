@@ -136,9 +136,9 @@ class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, 
  * Hyrec Parameters
  */
 
-class_string_parameter(hyrec_Alpha_inf_file,"/external/HyRec2012/Alpha_inf.dat","Alpha_inf hyrec file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/external/HyRec2012/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/external/HyRec2012/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
+class_string_parameter(hyrec_Alpha_inf_file,"/external/HyRec2012/Alpha_inf.dat","hyrec_Alpha_inf_file") /**< File containing the alpha parameter of hyrec */
+class_string_parameter(hyrec_R_inf_file,"/external/HyRec2012/R_inf.dat","hyrec_R_inf_file") /**< File containing the R_inf parameter of hyrec */
+class_string_parameter(hyrec_two_photon_tables_file,"/external/HyRec2012/two_photon_tables.dat","hyrec_two_photon_tables_file") /**< File containing the two-photon interaction parameter of hyrec */
 
 /*
  * Reionization parameters
@@ -447,6 +447,7 @@ class_precision_parameter(sd_x_size,int,500)
  */
 class_precision_parameter(tol_sd_detector,double,1.e-5)
 
+class_string_parameter(sd_external_path,"/external/distortions","sd_external_path")
 
 
 #undef class_precision_parameter
