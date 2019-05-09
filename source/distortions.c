@@ -94,8 +94,13 @@ int distortions_free(struct distortions * psd) {
   if(psd->has_distortions == _TRUE_){
     /** Delete lists */
     free(psd->z);
-    free(psd->x);
     free(psd->z_weights);
+    free(psd->x);
+
+    /** Delete noise file */
+    if(psd->has_detector_file){
+      free(psd->delta_Ic_array);
+    }
 
     /** Delete branching ratios */
     for(index_type=0;index_type<psd->type_size;++index_type){
@@ -152,6 +157,7 @@ int distortions_constants(struct precision * ppr,
 
   sprintf(psd->sd_PCA_file_generator,"%s/%s",ppr->sd_external_path,"generate_PCA_files.py");
   sprintf(psd->sd_detector_list_file,"%s/%s",ppr->sd_external_path,"detectors_list.dat");
+  sprintf(psd->sd_detector_noise_file,"%s/%s",ppr->sd_external_path,psd->sd_detector_file);
 
 }
 
@@ -189,7 +195,9 @@ int distortions_set_detector(struct precision * ppr,
   FILE* det_list_file;
   char line[_LINE_LENGTH_MAX_];
   DetectorName detector_name;
+  DetectorFileName detector_noise_file_name;
   double nu_min,nu_max,nu_delta,delta_Ic;
+  int has_detector_noise_file;
   int N_bins;
   char * left;
   int headlines = 0;
@@ -198,18 +206,25 @@ int distortions_set_detector(struct precision * ppr,
 
   if(psd->user_defined_name == _FALSE_){
     /* The user wants the default */
-    if(psd->user_defined_detector == _FALSE_){
+    if(psd->user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_){
       if(psd->distortions_verbose > 0){
-        printf("  -> Using the default (%s) detector\n",psd->sd_detector);
+        printf("  -> Using the default (%s) detector\n",psd->sd_detector_name);
       }
       return _SUCCESS_; // Nothing more to do
     }
     /* The user wants a new detector with specified settings, but without name */
     else{
       /* Generate a custom name for this custom detector, so we can check if it has already been defined */
-      sprintf(psd->sd_detector,
-              "Custom__%7.2e_%7.2e_%7.2e_%i_%7.2e__Detector",
-              psd->sd_detector_nu_min,psd->sd_detector_nu_max,psd->sd_detector_nu_delta,psd->sd_detector_bin_number,psd->sd_detector_delta_Ic);
+      if(psd->has_detector_file == _TRUE_){
+        sprintf(psd->sd_detector_name,
+                "Custom__%.80s__Detector",
+                psd->sd_detector_file);
+      }
+      else{
+        sprintf(psd->sd_detector_name,
+                "Custom__%7.2e_%7.2e_%7.2e_%i_%7.2e__Detector",
+                psd->sd_detector_nu_min,psd->sd_detector_nu_max,psd->sd_detector_nu_delta,psd->sd_detector_bin_number,psd->sd_detector_delta_Ic);
+      }
     }
   }
 
@@ -227,51 +242,62 @@ int distortions_set_detector(struct precision * ppr,
         left++;
     }
     if (left[0] > 39) {
-      class_test(sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6,
-                 psd->error_message,
-                 "Could not read line %i in file '%s'\n",headlines,psd->sd_detector_list_file);
+      if(sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6){
+        has_detector_noise_file = _TRUE_;
+        if(sscanf(line,"%s %s",detector_name,detector_noise_file_name) != 2){
+          class_stop(psd->error_message,
+                     "Could not read line %i in file '%s'\n",headlines,psd->sd_detector_list_file);
+        }
+      }
 
       /* Detector has been found */
-      if(strcmp(psd->sd_detector,detector_name)==0){
+      if(strcmp(psd->sd_detector_name,detector_name)==0){
         if(psd->distortions_verbose > 0){
           printf("  -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         }
         found_detector = _TRUE_;
 
-        if (psd->distortions_verbose > 1){
-          printf("  -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
-                      nu_min, nu_max, nu_delta, N_bins, delta_Ic);
+        if(has_detector_noise_file){
+          class_call(distortions_read_detector_noisefile(ppr,psd),
+                     psd->error_message,
+                     psd->error_message);
         }
-        /* If the user has defined the detector, check that their and our definitions agree */
-        if(psd->user_defined_detector){
-          class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
-                     psd->error_message,
-                     "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->sd_detector_nu_min,nu_min);
-          class_test(fabs(psd->sd_detector_nu_max-nu_max)>ppr->tol_sd_detector,
-                     psd->error_message,
-                     "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->sd_detector_nu_max,nu_max);
-          class_test(fabs(psd->sd_detector_nu_delta-nu_delta)>ppr->tol_sd_detector,
-                     psd->error_message,
-                     "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->sd_detector_nu_delta,nu_delta);
-          class_test(fabs(psd->sd_detector_bin_number-N_bins)>ppr->tol_sd_detector,
-                     psd->error_message,
-                     "Number of bins (N_bins) disagrees between stored detector '%s' and input ->  %i (input) vs %i (stored)",
-                     detector_name,psd->sd_detector_bin_number,N_bins);
-          class_test(fabs(psd->sd_detector_delta_Ic-delta_Ic)>ppr->tol_sd_detector,
-                     psd->error_message,
-                     "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
-                     detector_name,psd->sd_detector_delta_Ic,delta_Ic);
-        }
+        else{
+          if (psd->distortions_verbose > 1){
+            printf("  -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
+                        nu_min, nu_max, nu_delta, N_bins, delta_Ic);
+          }
+          /* If the user has defined the detector, check that their and our definitions agree */
+          if(psd->user_defined_detector){
+            class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
+                       psd->error_message,
+                       "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       detector_name,psd->sd_detector_nu_min,nu_min);
+            class_test(fabs(psd->sd_detector_nu_max-nu_max)>ppr->tol_sd_detector,
+                       psd->error_message,
+                       "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       detector_name,psd->sd_detector_nu_max,nu_max);
+            class_test(fabs(psd->sd_detector_nu_delta-nu_delta)>ppr->tol_sd_detector,
+                       psd->error_message,
+                       "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       detector_name,psd->sd_detector_nu_delta,nu_delta);
+            class_test(fabs(psd->sd_detector_bin_number-N_bins)>ppr->tol_sd_detector,
+                       psd->error_message,
+                       "Number of bins (N_bins) disagrees between stored detector '%s' and input ->  %i (input) vs %i (stored)",
+                       detector_name,psd->sd_detector_bin_number,N_bins);
+            class_test(fabs(psd->sd_detector_delta_Ic-delta_Ic)>ppr->tol_sd_detector,
+                       psd->error_message,
+                       "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       detector_name,psd->sd_detector_delta_Ic,delta_Ic);
+          }
 
-        /* In any case, just take the detector definition from the file */
-        psd->sd_detector_nu_min = nu_min;
-        psd->sd_detector_nu_max = nu_max;
-        psd->sd_detector_nu_delta = nu_delta;
-        psd->sd_detector_bin_number = N_bins;
-        psd->sd_detector_delta_Ic = delta_Ic;
+          /* In any case, just take the detector definition from the file */
+          psd->sd_detector_nu_min = nu_min;
+          psd->sd_detector_nu_max = nu_max;
+          psd->sd_detector_nu_delta = nu_delta;
+          psd->sd_detector_bin_number = N_bins;
+          psd->sd_detector_delta_Ic = delta_Ic;
+        }
       }
     }
   }
@@ -279,9 +305,9 @@ int distortions_set_detector(struct precision * ppr,
   /* If the detector has not been found, either the user has specified the settings and we create a new one,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
-    if(psd->user_defined_detector){
+    if(psd->user_defined_detector || psd->has_detector_file){
       if(psd->distortions_verbose > 0){
-        printf("  -> Generating detector '%s' \n",psd->sd_detector);
+        printf("  -> Generating detector '%s' \n",psd->sd_detector_name);
       }
       class_call(distortions_generate_detector(ppr,psd),
                  psd->error_message,
@@ -290,7 +316,7 @@ int distortions_set_detector(struct precision * ppr,
     else{
       class_stop(psd->error_message,
                  "You asked for detector '%s', but it was not in the database '%s'.\nPlease check the name of your detector, or specify its properties if you want to create a new one",
-                 psd->sd_detector,
+                 psd->sd_detector_name,
                  psd->sd_detector_list_file);
     }
   }
@@ -328,21 +354,38 @@ int distortions_generate_detector(struct precision * ppr,
   if(psd->distortions_verbose > 0){
     printf("  -> Executing the PCA generator\n");
   }
-  sprintf(temporary_string,"python %s %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
-          psd->sd_PCA_file_generator,
-          psd->sd_detector,
-          psd->sd_detector_nu_min,
-          psd->sd_detector_nu_max,
-          psd->sd_detector_nu_delta,
-          psd->sd_detector_bin_number,
-          ppr->sd_z_min,
-          ppr->sd_z_max,
-          ppr->sd_z_size,
-          psd->sd_detector_delta_Ic,
-          6,
-          psd->z_th,
-          psd->DI_units,
-          psd->x_to_nu);
+
+  if(psd->has_detector_file){
+    sprintf(temporary_string,"python %s %s %s %.10e %.10e %i %i %.10e %.10e %.10e",
+            psd->sd_PCA_file_generator,
+            psd->sd_detector_name,
+            psd->sd_detector_noise_file,
+            ppr->sd_z_min,
+            ppr->sd_z_max,
+            ppr->sd_z_size,
+            6,
+            psd->z_th,
+            psd->DI_units,
+            psd->x_to_nu);
+
+  }
+  else{
+    sprintf(temporary_string,"python %s %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
+            psd->sd_PCA_file_generator,
+            psd->sd_detector_name,
+            psd->sd_detector_nu_min,
+            psd->sd_detector_nu_max,
+            psd->sd_detector_nu_delta,
+            psd->sd_detector_bin_number,
+            ppr->sd_z_min,
+            ppr->sd_z_max,
+            ppr->sd_z_size,
+            psd->sd_detector_delta_Ic,
+            6,
+            psd->z_th,
+            psd->DI_units,
+            psd->x_to_nu);
+  }
   is_success = system(temporary_string);
   class_test(is_success == -1,
              psd->error_message,
@@ -435,7 +478,7 @@ int distortions_get_xz_lists(struct precision * ppr,
     }
 
   }
-  else{
+  else if(!psd->has_detector_file){
     psd->x_min = psd->sd_detector_nu_min/psd->x_to_nu;
     psd->x_max = psd->sd_detector_nu_max/psd->x_to_nu;
     psd->x_delta = psd->sd_detector_nu_delta/psd->x_to_nu;
@@ -1111,7 +1154,7 @@ int distortions_read_br_data(struct precision * ppr,
   int headlines = 0;
 
   /** Open file */
-  sprintf(br_file,"%s/%s_branching_ratios.dat", ppr->sd_external_path, psd->sd_detector);
+  sprintf(br_file,"%s/%s_branching_ratios.dat", ppr->sd_external_path, psd->sd_detector_name);
   class_open(infile, br_file, "r", psd->error_message);
 
   /** Read header */
@@ -1129,7 +1172,7 @@ int distortions_read_br_data(struct precision * ppr,
       /** Read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line,"%d %d", &psd->br_exact_Nz, &psd->E_vec_size) != 2,
                  psd->error_message,
-                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,br_file);
+                 "could not header (number of lines, number of multipoles) at line %i in file '%s' \n",headlines,br_file);
 
       class_alloc(psd->br_exact_z, psd->br_exact_Nz*sizeof(double), psd->error_message);
       class_alloc(psd->f_g_exact, psd->br_exact_Nz*sizeof(double), psd->error_message);
@@ -1342,7 +1385,7 @@ int distortions_read_sd_data(struct precision * ppr,
   int index_x,index_k;
 
   /** Open file */
-  sprintf(sd_file,"%s/%s_distortions_shapes.dat",ppr->sd_external_path, psd->sd_detector);
+  sprintf(sd_file,"%s/%s_distortions_shapes.dat",ppr->sd_external_path, psd->sd_detector_name);
   class_open(infile, sd_file, "r", psd->error_message);
 
   /** Read header */
@@ -1360,7 +1403,7 @@ int distortions_read_sd_data(struct precision * ppr,
       /** Read number of lines, infer size of arrays and allocate them */
       class_test(sscanf(line, "%d %d", &psd->PCA_Nnu, &psd->S_vec_size) != 2,
                  psd->error_message,
-                 "could not header (number of lines, number of columns, number of multipoles) at line %i in file '%s' \n",headlines,sd_file);
+                 "could not header (number of lines, number of multipoles) at line %i in file '%s' \n",headlines,sd_file);
 
       class_alloc(psd->PCA_nu, psd->PCA_Nnu*sizeof(double), psd->error_message);
       class_alloc(psd->PCA_G_T, psd->PCA_Nnu*sizeof(double), psd->error_message);
@@ -1556,6 +1599,74 @@ int distortions_free_sd_data(struct distortions * psd){
   free(psd->ddPCA_M_mu);
   free(psd->S_vec);
   free(psd->ddS_vec);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Reads the external detector noise file containing the
+ * array of frequencies and the detector accuracies
+ * Assumed to be in units of [GHz] and [10^-26 W/m^2/Hz/sr] respectively
+ *
+ * @param ppr        Input: pointer to the precisions structure
+ * @param psd        Input: pointer to the distortions structure
+ * @return the error status
+ */
+int distortions_read_detector_noisefile(struct precision * ppr,
+                                        struct distortions * psd){
+
+  /** Define local variables */
+  int index_x;
+  double nu_temp,delta_Ic_temp;
+  FILE * infile;
+  char line[_LINE_LENGTH_MAX_];
+  char * left;
+  int headlines = 0;
+  int numcols;
+
+  /** Open file */
+  class_open(infile, psd->sd_detector_noise_file, "r", psd->error_message);
+
+  /** Read header */
+  psd->br_exact_Nz = 0;
+  while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
+    headlines++;
+
+    /* Eliminate blank spaces at beginning of line */
+    left=line;
+    while (left[0]==' ') {
+        left++;
+    }
+
+    if (left[0] > 39) {
+      /** Read number of lines, infer size of arrays and allocate them */
+      class_test(sscanf(line,"%d %d", &psd->x_size, &numcols) != 2,
+                 psd->error_message,
+                 "could not header (number of lines, number of columns) at line %i in file '%s' \n",headlines,psd->sd_detector_noise_file);
+      class_test(numcols !=2,
+                 psd->error_message,
+                 "Incorrect number of columns in the detector noise file '%s'",psd->sd_detector_noise_file);
+
+      class_alloc(psd->x, psd->x_size*sizeof(double), psd->error_message);
+      class_alloc(psd->delta_Ic_array, psd->x_size*sizeof(double), psd->error_message);
+      break;
+    }
+  }
+
+  /** Read parameters */
+  for(index_x=0; index_x<psd->x_size; ++index_x){
+    class_test(fscanf(infile, "%le",
+                      &(nu_temp))!=1,                                                 // [-]
+                      psd->error_message,
+                      "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
+    psd->x[index_x] = nu_temp/psd->x_to_nu;
+    class_test(fscanf(infile, "%le",
+                      &(psd->delta_Ic_array[index_x]))!=1,                            // [-]
+                      psd->error_message,
+                      "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
+    psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;
+  }
 
   return _SUCCESS_;
 }

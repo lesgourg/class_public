@@ -4155,16 +4155,27 @@ int input_read_parameters_distortions(struct file_content * pfc,
 
     /** 1.a.2) Detector name */
     /* Read */
-    class_call(parser_read_string(pfc,"sd_detector",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"sd_detector_name",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
-      strcpy(psd->sd_detector,string1);
+      strcpy(psd->sd_detector_name,string1);
       psd->user_defined_name = _TRUE_;
     }
 
-    /** 1.a.3) Detector properties */
+    /** 1.a.3.1) Detector noise file name */
+    /* Read */
+    class_call(parser_read_string(pfc,"sd_detector_file",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if(flag1 == _TRUE_){
+      strcpy(psd->sd_detector_file,string1);
+      psd->has_detector_file = _TRUE_;
+    }
+
+    /** 1.a.3.1) Detector nu min */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_min",&param1,&flag1,errmsg),
                errmsg,
@@ -4174,6 +4185,8 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->sd_detector_nu_min = param1;
       psd->user_defined_detector = _TRUE_;
     }
+
+    /** 1.a.3.2) Detector nu max */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
                errmsg,
@@ -4183,6 +4196,8 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->sd_detector_nu_max = param1;
       psd->user_defined_detector = _TRUE_;
     }
+
+    /** 1.a.3.3) Detector nu delta / bin number */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
                errmsg,
@@ -4213,20 +4228,27 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->sd_detector_nu_max = updated_nu_max;
     }
 
+    /** 1.a.3.4) Detector delta Ic */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
-      psd->sd_detector_delta_Ic = param1;
+      psd->sd_detector_delta_Ic = 1.0e-26*param1;
       psd->user_defined_detector = _TRUE_;
     }
   }
+
   /* Final tests */
   class_test(psd->sd_branching_approx != bra_exact && psd->sd_PCA_size > 0,
              errmsg,
              "The PCA expansion is possible only for 'branching_approx = exact'");
+  class_test(psd->has_detector_file && psd->user_defined_detector,
+             errmsg,
+             "You can only enter the noise file {'%s'} or the specifications {'%s','%s'/'%s','%s'}.",
+             "sd_detector_file","sd_detector_nu_min","sd_detector_nu_max",
+             "sd_detector_nu_delta","sd_detector_bin_number","sd_detector_delta_Ic");
 
   /** 2) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);
@@ -4981,14 +5003,22 @@ int input_default_params(struct background *pba,
   psd->sd_branching_approx = bra_exact;
   /** 1.a.1) Number of multipoles in PCA expansion */
   psd->sd_PCA_size=2;
-  /** 1.a.2) Detector name */
+  /** 1.a.2) Detector noise file name */
+  psd->has_detector_file = _FALSE_;
+  /** 1.a.3) Detector name */
   psd->user_defined_name = _FALSE_;
-  sprintf(psd->sd_detector,"PIXIE");
+  psd->user_defined_detector = _FALSE_;
+  sprintf(psd->sd_detector_name,"PIXIE");
+  /** 1.3.a.1) Detector nu min */
   psd->sd_detector_nu_min = 30.;
+  /** 1.3.a.2) Detector nu max */
   psd->sd_detector_nu_max = 1005.;
+  /** 1.3.a.3) Detector nu delta/bin number */
   psd->sd_detector_nu_delta = 15.;
   psd->sd_detector_bin_number = 65;
+  /** 1.3.a.1) Detector noise */
   psd->sd_detector_delta_Ic = 5.e-26;
+
 
   /** 2) Include SZ effect from reionization? */
   psd->has_SZ_effect = _FALSE_;

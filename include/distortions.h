@@ -14,7 +14,7 @@
 
 #define _MAX_DETECTOR_NAME_LENGTH_ 100
 typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
-typedef char DetectorFileName[_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+128];
+typedef char DetectorFileName[_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+256];
 
 /**
  * All deistortions parameters and evolution that other modules need to know.
@@ -33,10 +33,9 @@ struct distortions
 
   int sd_PCA_size;
 
-  DetectorFileName sd_PCA_file_generator;               /* Name of PCA generator file */
-  DetectorFileName sd_detector_list_file;               /* Name of detector list file */
+  FileName sd_detector_file;                   /* Name of detector list file */
 
-  DetectorName sd_detector;                     /* Name of detector */
+  DetectorName sd_detector_name;                /* Name of detector */
   double sd_detector_nu_min;                    /* Minimum frequency of chosen detector */
   double sd_detector_nu_max;                    /* Maximum frequency of chosen detector */
   double sd_detector_nu_delta;                  /* Bin size of chosen detector */
@@ -62,14 +61,23 @@ struct distortions
 
   double * z_weights;
 
+  /* Can be specified if no noisefile */
   double x_min;                              /* Minimum dimentionless frequency */
   double x_max;                              /* Maximum dimentionless frequency */
-  int x_size;                                /* Lenght of dimentionless frequency array */
   double x_delta;                            /* dimentionless frequency intervals */
+  /* Will always be specified */
+  int x_size;                                /* Lenght of dimentionless frequency array */
   double * x;                                /* x[index_x] = list of values */
 
+  /* Unit conversions */
   double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
   double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
+
+  /* File names for the PCA */
+  DetectorFileName sd_detector_noise_file;              /* Name of detector noise file */
+  DetectorFileName sd_PCA_file_generator;               /* Name of PCA generator file */
+  DetectorFileName sd_detector_list_file;               /* Name of detector list file */
+
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
   double ** br_table;
@@ -126,6 +134,9 @@ struct distortions
   double * ddS_vec;
   int S_vec_size;
 
+
+  double * delta_Ic_array;                   /* delta_Ic[index_x] for detectors with given sensitivity in each bin */
+
   //@}
 
 
@@ -137,6 +148,8 @@ struct distortions
 
   int user_defined_detector;
   int user_defined_name;
+
+  int has_detector_file;
 
   int has_SZ_effect;
 
@@ -178,6 +191,9 @@ extern "C" {
 
   int distortions_set_detector(struct precision * ppr,
                                struct distortions* psd);
+
+  int distortions_read_detector_noisefile(struct precision * ppr,
+                                          struct distortions * psd);
 
   /* Indices and lists */
   int distortions_indices(struct distortions * psd);

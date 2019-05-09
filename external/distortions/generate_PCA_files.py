@@ -9,26 +9,60 @@ import os
 import matplotlib.pyplot as plt
 
 # Read inputs
-assert(len(sys.argv)==14)
-sd_detector_name = sys.argv[1]
-sd_detector_nu_min = eval(sys.argv[2])
-sd_detector_nu_max = eval(sys.argv[3])
-sd_detector_nu_delta = eval(sys.argv[4])
-sd_detector_bin_number = eval(sys.argv[5])
-sd_z_min = eval(sys.argv[6])
-sd_z_max = eval(sys.argv[7])
-sd_z_size = eval(sys.argv[8])
-sd_detector_delta_Ic = eval(sys.argv[9])
-sd_PCA_size = eval(sys.argv[10])
-z_th = eval(sys.argv[11])
-DI_units = eval(sys.argv[12])   # = 2.70062634e-18
-x_to_nu = eval(sys.argv[13])    # = 56.7798
+if(len(sys.argv)==14):
+  sd_detector_name = sys.argv[1]
+  sd_detector_nu_min = eval(sys.argv[2])
+  sd_detector_nu_max = eval(sys.argv[3])
+  sd_detector_nu_delta = eval(sys.argv[4])
+  sd_detector_bin_number = eval(sys.argv[5])
+  sd_z_min = eval(sys.argv[6])
+  sd_z_max = eval(sys.argv[7])
+  sd_z_size = eval(sys.argv[8])
+  sd_detector_delta_Ic = eval(sys.argv[9])
+  sd_PCA_size = eval(sys.argv[10])
+  z_th = eval(sys.argv[11])
+  DI_units = eval(sys.argv[12])   # = 2.70062634e-18
+  x_to_nu = eval(sys.argv[13])    # = 56.7798
+  has_noisefile = False
+elif(len(sys.argv)==10):
+  sd_detector_name = sys.argv[1]
+  sd_noisefile_name = sys.argv[2]
+  sd_z_min = eval(sys.argv[3])
+  sd_z_max = eval(sys.argv[4])
+  sd_z_size = eval(sys.argv[5])
+  sd_PCA_size = eval(sys.argv[6])
+  z_th = eval(sys.argv[7])
+  DI_units = eval(sys.argv[8])   # = 2.70062634e-18
+  x_to_nu = eval(sys.argv[9])    # = 56.7798
+  has_noisefile = True
+else:
+  raise Exception("generate_PCA_files.py received invalid input arguments")
 
 def PCA_string_to_array(line,delimiter=" "):
   line = line.replace("\n","")
   if delimiter is not "\t":
     line = line.replace("\t","")
   return np.array([float(x) for x in line.split(delimiter) if (x is not "" and x is not " ")])
+
+def read_noisefile(filename):
+  with open(filename) as det_noise:
+    header = True
+    while(header):
+      line = det_noise.readline()
+      if(line.startswith("#")):
+        continue
+      header=False
+    Nrows,Ncols = PCA_string_to_array(line)
+    #Skip first line containing Nx,Ncols
+    line = det_noise.readline()
+    cols = []
+    while(line):
+      cols.append(PCA_string_to_array(line))
+      line = det_noise.readline()
+    cols = np.array(cols).T
+    assert(int(Ncols)==len(cols))
+    assert(int(Nrows)==len(cols[0]))
+    return len(cols[0]),cols[0]/x_to_nu,cols[1]*1e-26
 
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -90,8 +124,11 @@ with open(os.path.join(dir_path,readfile)) as f:
   z_arr = np.logspace(np.log10(sd_z_min),np.log10(sd_z_max),Nz_arr)
   lnz_arr = np.log(z_arr+1.)
 
-  Nx_arr = sd_detector_bin_number+1
-  x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu,Nx_arr)
+  if has_noisefile:
+    Nx_arr,x_arr,deltaIc_arr = read_noisefile(sd_noisefile_name)
+  else:
+    Nx_arr = sd_detector_bin_number+1
+    x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu,Nx_arr)
 
   # Define visibility function
   bb_vis = np.exp(-(z_arr/2.021e6)**2.5)
@@ -171,6 +208,10 @@ with open(os.path.join(dir_path,readfile)) as f:
   for index_x in range(Nx_arr):
     for index_z in range(Nz_arr):
       Residual[index_x,index_z] = G_th[index_x,index_z]-Gdist[index_x]*f_g[index_z]-Ydist[index_x]*f_y[index_z]-Mdist[index_x]*f_mu[index_z]
+      if has_noisefile:
+        Residual[index_x,index_z]/=deltaIc_arr[index_x]*1.e8
+      else:
+        Residual[index_x,index_z]/=sd_detector_delta_Ic*1.e8
 
   # Calculate non-normalized fisher matrix
   Fisher = np.zeros((Nz_arr,Nz_arr))
@@ -180,7 +221,7 @@ with open(os.path.join(dir_path,readfile)) as f:
 
   # Normalize fisher matrix
   delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
-  normalization = (delta_ln_z/(sd_detector_delta_Ic*1.e8))**2
+  normalization = (delta_ln_z)**2
   Fisher /= normalization
 
   # Solve eigenvalue problem
@@ -227,6 +268,9 @@ with open(os.path.join(dir_path,readfile)) as f:
   # Update list of detectors
   # Open and read already present list
   with open(os.path.join(dir_path,"detectors_list.dat"),"a") as detector_file:
-    detector_file.write('%s  %.6e  %.6e  %.6e  %i  %.6e\n' % (sd_detector_name, sd_detector_nu_min, sd_detector_nu_max, sd_detector_nu_delta, sd_detector_bin_number, sd_detector_delta_Ic))
+    if has_noisefile:
+      detector_file.write('%s  %s\n' % (sd_detector_name, sd_noisefile_name))
+    else:
+      detector_file.write('%s  %.6e  %.6e  %.6e  %i  %.6e\n' % (sd_detector_name, sd_detector_nu_min, sd_detector_nu_max, sd_detector_nu_delta, sd_detector_bin_number, sd_detector_delta_Ic))
 
 
