@@ -70,7 +70,7 @@ int string_begins_with(char* thestring,char beginchar);
          || string_begins_with(string_temp,'Y') ){                              \
         destination = _TRUE_;                                                   \
       }                                                                         \
-      if( string_begins_with(string_temp,'n')                                   \
+      else if( string_begins_with(string_temp,'n')                              \
          || string_begins_with(string_temp,'N') ){                              \
         destination = _FALSE_;                                                  \
       }                                                                         \
@@ -99,7 +99,7 @@ int string_begins_with(char* thestring,char beginchar);
          || string_begins_with(string_temp,'Y') ){                              \
         destination = _TRUE_;                                                   \
       }                                                                         \
-      if( string_begins_with(string_temp,'n')                                   \
+      else if( string_begins_with(string_temp,'n')                              \
          || string_begins_with(string_temp,'N') ){                              \
         destination = _FALSE_;                                                  \
       }                                                                         \
