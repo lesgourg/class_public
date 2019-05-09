@@ -14,6 +14,7 @@
 
 #define _MAX_DETECTOR_NAME_LENGTH_ 100
 typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
+typedef char DetectorFileName[_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+128];
 
 /**
  * All deistortions parameters and evolution that other modules need to know.
@@ -31,6 +32,9 @@ struct distortions
   int sd_branching_approx;                      /* Which approximation to use for the branching ratios? */
 
   int sd_PCA_size;
+
+  DetectorFileName sd_PCA_file_generator;               /* Name of PCA generator file */
+  DetectorFileName sd_detector_list_file;               /* Name of detector list file */
 
   DetectorName sd_detector;                     /* Name of detector */
   double sd_detector_nu_min;                    /* Minimum frequency of chosen detector */
@@ -161,7 +165,8 @@ extern "C" {
                        struct primordial * ppm,
                        struct distortions * psd);
 
-  int distortions_constants(struct background * pba,
+  int distortions_constants(struct precision* ppr,
+                            struct background * pba,
                             struct thermo * pth,
                             struct distortions * psd);
 

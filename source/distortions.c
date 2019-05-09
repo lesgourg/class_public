@@ -40,7 +40,7 @@ int distortions_init(struct precision * ppr,
              "Cannot compute spectral distortions without damping scale\n");
 
   /** Set physical constants */
-  class_call(distortions_constants(pba,pth,psd),
+  class_call(distortions_constants(ppr,pba,pth,psd),
              psd->error_message,
              psd->error_message);
 
@@ -134,7 +134,8 @@ int distortions_free(struct distortions * psd) {
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_constants(struct background * pba,
+int distortions_constants(struct precision * ppr,
+                          struct background * pba,
                           struct thermo * pth,
                           struct distortions * psd){
 
@@ -148,6 +149,9 @@ int distortions_constants(struct background * pba,
          pow((1.-pth->YHe/2.)/0.8767,-2./5.)*
          pow(pba->Omega0_b*pow(pba->h,2.)/0.02225,-2./5.)*
          pow(pba->T_cmb/2.726,1./5.);
+
+  sprintf(psd->sd_PCA_file_generator,"%s/%s",ppr->sd_external_path,"generate_PCA_files.py");
+  sprintf(psd->sd_detector_list_file,"%s/%s",ppr->sd_external_path,"detectors_list.dat");
 
 }
 
@@ -210,7 +214,7 @@ int distortions_set_detector(struct precision * ppr,
   }
 
   /** Open file */
-  class_open(det_list_file, "./external/distortions/detectors_list.dat", "r",
+  class_open(det_list_file, psd->sd_detector_list_file, "r",
              psd->error_message);
 
   found_detector = _FALSE_;
@@ -225,7 +229,7 @@ int distortions_set_detector(struct precision * ppr,
     if (left[0] > 39) {
       class_test(sscanf(line,"%s %lg %lg %lg %i %lg",detector_name,&nu_min,&nu_max,&nu_delta,&N_bins,&delta_Ic) != 6,
                  psd->error_message,
-                 "Could not read line %i in file '%s'\n",headlines,"./external/distortions/detectors_list.dat");
+                 "Could not read line %i in file '%s'\n",headlines,psd->sd_detector_list_file);
 
       /* Detector has been found */
       if(strcmp(psd->sd_detector,detector_name)==0){
@@ -287,7 +291,7 @@ int distortions_set_detector(struct precision * ppr,
       class_stop(psd->error_message,
                  "You asked for detector '%s', but it was not in the database '%s'.\nPlease check the name of your detector, or specify its properties if you want to create a new one",
                  psd->sd_detector,
-                 "./external/distortions/detectors_list.dat");
+                 psd->sd_detector_list_file);
     }
   }
 
@@ -308,7 +312,7 @@ int distortions_generate_detector(struct precision * ppr,
 
   /** Define local variables*/
   int is_success;
-  char temporary_string[500];
+  char temporary_string[_FILENAMESIZE_+2*_MAX_DETECTOR_NAME_LENGTH_+1024];
 
 
   /* Test first whether or not python exists*/
@@ -324,7 +328,8 @@ int distortions_generate_detector(struct precision * ppr,
   if(psd->distortions_verbose > 0){
     printf("  -> Executing the PCA generator\n");
   }
-  sprintf(temporary_string,"python ./external/distortions/generate_PCA_files.py %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
+  sprintf(temporary_string,"python %s %s %.10e %.10e %.10e  %i %.10e %.10e %i %.10e %i %.10e %.10e %.10e",
+          psd->sd_PCA_file_generator,
           psd->sd_detector,
           psd->sd_detector_nu_min,
           psd->sd_detector_nu_max,
@@ -341,7 +346,7 @@ int distortions_generate_detector(struct precision * ppr,
   is_success = system(temporary_string);
   class_test(is_success == -1,
              psd->error_message,
-             "The command 'python ./external/distortions/generate_PCA_files.py' failed.\nPlease make sure the file exists.");
+             "The command 'python %s' failed.\nPlease make sure the file exists.",psd->sd_PCA_file_generator);
 
   return _SUCCESS_;
 }
@@ -1100,13 +1105,13 @@ int distortions_read_br_data(struct precision * ppr,
   /** Define local variables */
   int index_k,index_z;
   FILE * infile;
-  char br_file[500];
+  DetectorFileName br_file;
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
 
   /** Open file */
-  sprintf(br_file,"external/distortions/%s_branching_ratios.dat", psd->sd_detector);
+  sprintf(br_file,"%s/%s_branching_ratios.dat", ppr->sd_external_path, psd->sd_detector);
   class_open(infile, br_file, "r", psd->error_message);
 
   /** Read header */
@@ -1330,14 +1335,14 @@ int distortions_read_sd_data(struct precision * ppr,
 
   /** Define local variables */
   FILE * infile;
-  char sd_file[500];
+  DetectorFileName sd_file;
   char line[_LINE_LENGTH_MAX_];
   char * left;
   int headlines = 0;
   int index_x,index_k;
 
   /** Open file */
-  sprintf(sd_file,"external/distortions/%s_distortions_shapes.dat", psd->sd_detector);
+  sprintf(sd_file,"%s/%s_distortions_shapes.dat",ppr->sd_external_path, psd->sd_detector);
   class_open(infile, sd_file, "r", psd->error_message);
 
   /** Read header */
