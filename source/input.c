@@ -2594,6 +2594,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   class_read_double("DM_annihilation_efficiency",phe->DM_annihilation_efficiency);
   class_read_double("DM_annihilation_cross_section",phe->DM_annihilation_cross_section);
   class_read_double("DM_annihilation_mass",phe->DM_annihilation_mass);
+  class_read_double("DM_annihilation_fraction",phe->DM_annihilation_fraction);
   /* Test */
   class_test(phe->DM_annihilation_efficiency<0,
              errmsg,
@@ -2607,9 +2608,9 @@ int input_read_parameters_heating(struct file_content * pfc,
   class_test(phe->DM_annihilation_mass ==0 && phe->DM_annihilation_cross_section >0,
              errmsg,
              "you have annihilation_cross_section > 0 but DM_mass = 0. That is weird, please check your param file and set 'DM_mass' [GeV] to a non-zero value.\n");
-  class_test(phe->DM_annihilation_mass !=0 && phe->DM_annihilation_efficiency != 0,
+  class_test((phe->DM_annihilation_cross_section !=0 || phe->DM_annihilation_mass !=0 || phe->DM_annihilation_fraction !=0) && phe->DM_annihilation_efficiency != 0,
              errmsg,
-             "You can only enter one of 'm_DM' or 'annihilation_efficiency'.");
+             "You can only enter one of {'DM_annihilation_cross_section', 'DM_annihilation_mass', 'DM_annihilation_fraction'} or 'annihilation_efficiency'.");
   if (phe->heating_verbose > 0){
     if ((phe->DM_annihilation_efficiency >0) && (pth->reio_parametrization == reio_none) && (ppr->recfast_Heswitch >= 3) && (pth->recombination==recfast))
       printf("Warning: if you have DM annihilation and you use recfast with option recfast_Heswitch >= 3, then the expression for CfHe_t and dy[1] becomes undefined at late times, producing nan's. This is however masked by reionization if you are not in reio_none mode.");
@@ -4164,7 +4165,8 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->user_defined_name = _TRUE_;
     }
 
-    /** 1.a.3.1) Detector noise file name */
+    /** 1.a.3) Detector specifics */
+    /** 1.a.3.1) From file */
     /* Read */
     class_call(parser_read_string(pfc,"sd_detector_file_name",&string1,&flag1,errmsg),
                errmsg,
@@ -4175,7 +4177,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->has_detector_file = _TRUE_;
     }
 
-    /** 1.a.3.1) Detector nu min */
+    /** 1.a.3.2) User defined */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_min",&param1,&flag1,errmsg),
                errmsg,
@@ -4185,8 +4187,6 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->sd_detector_nu_min = param1;
       psd->user_defined_detector = _TRUE_;
     }
-
-    /** 1.a.3.2) Detector nu max */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
                errmsg,
@@ -4196,8 +4196,6 @@ int input_read_parameters_distortions(struct file_content * pfc,
       psd->sd_detector_nu_max = param1;
       psd->user_defined_detector = _TRUE_;
     }
-
-    /** 1.a.3.3) Detector nu delta / bin number */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
                errmsg,
@@ -4227,8 +4225,6 @@ int input_read_parameters_distortions(struct file_content * pfc,
       printf(" -> WARNING: The value of 'sd_detector_nu_max' has been updated to %7.3e to accommodate the binning of your detector.\n",updated_nu_max);
       psd->sd_detector_nu_max = updated_nu_max;
     }
-
-    /** 1.a.3.4) Detector delta Ic */
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_delta_Ic",&param1,&flag1,errmsg),
                errmsg,

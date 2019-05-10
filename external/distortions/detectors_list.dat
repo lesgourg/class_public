@@ -9,5 +9,5 @@
 # or
 #   2) path to frequency-noise file
 #
-PIXIE  3.000000e+01  9.900000e+02  1.500000e+01  64  5.000000e-26
+PIXIE  3.000000e+01  1.005000e+03  1.500000e+01  65  5.000000e-26
 FIRAS  FIRAS_nu_delta_I.dat

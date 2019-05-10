@@ -22,6 +22,7 @@ struct heating{
   double DM_annihilation_efficiency;
   double DM_annihilation_cross_section;
   double DM_annihilation_mass;
+  double DM_annihilation_fraction;
   double DM_annihilation_variation;
   double DM_annihilation_z;
   double DM_annihilation_zmax;
