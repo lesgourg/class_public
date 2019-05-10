@@ -4166,12 +4166,12 @@ int input_read_parameters_distortions(struct file_content * pfc,
 
     /** 1.a.3.1) Detector noise file name */
     /* Read */
-    class_call(parser_read_string(pfc,"sd_detector_file",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"sd_detector_file_name",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
-      strcpy(psd->sd_detector_file,string1);
+      strcpy(psd->sd_detector_file_name,string1);
       psd->has_detector_file = _TRUE_;
     }
 

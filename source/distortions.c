@@ -157,7 +157,6 @@ int distortions_constants(struct precision * ppr,
 
   sprintf(psd->sd_PCA_file_generator,"%s/%s",ppr->sd_external_path,"generate_PCA_files.py");
   sprintf(psd->sd_detector_list_file,"%s/%s",ppr->sd_external_path,"detectors_list.dat");
-  sprintf(psd->sd_detector_noise_file,"%s/%s",ppr->sd_external_path,psd->sd_detector_file);
 
 }
 
@@ -204,6 +203,8 @@ int distortions_set_detector(struct precision * ppr,
   int i,j;
   int found_detector;
 
+  has_detector_noise_file = _FALSE_;
+
   if(psd->user_defined_name == _FALSE_){
     /* The user wants the default */
     if(psd->user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_){
@@ -218,7 +219,7 @@ int distortions_set_detector(struct precision * ppr,
       if(psd->has_detector_file == _TRUE_){
         sprintf(psd->sd_detector_name,
                 "Custom__%.80s__Detector",
-                psd->sd_detector_file);
+                psd->sd_detector_file_name);
       }
       else{
         sprintf(psd->sd_detector_name,
@@ -249,6 +250,9 @@ int distortions_set_detector(struct precision * ppr,
                      "Could not read line %i in file '%s'\n",headlines,psd->sd_detector_list_file);
         }
       }
+      else{
+        has_detector_noise_file = _FALSE_;
+      }
 
       /* Detector has been found */
       if(strcmp(psd->sd_detector_name,detector_name)==0){
@@ -258,9 +262,22 @@ int distortions_set_detector(struct precision * ppr,
         found_detector = _TRUE_;
 
         if(has_detector_noise_file){
-          class_call(distortions_read_detector_noisefile(ppr,psd),
+          if (psd->distortions_verbose > 1){
+            printf("  -> Properties:    Noise file name = %s \n",
+                        detector_noise_file_name);
+          }
+         if(psd->has_detector_file){
+            class_test(strcmp(psd->sd_detector_file_name,detector_noise_file_name) != 0,
+                       psd->error_message,
+                       "Noise file path (sd_detector_file_name) disagrees between stored detector '%s' and input ->  %s (input) vs %s (stored)",
+                       detector_name,psd->sd_detector_file_name,detector_noise_file_name);
+          }
+          class_test(psd->user_defined_detector,
                      psd->error_message,
-                     psd->error_message);
+                     "Detector property type disagrees between stored detector '%s' and input  ->  Userdefined (input) vs Noisefile (stored)",
+                     detector_name);
+          sprintf(psd->sd_detector_file_name, "%s", detector_noise_file_name);
+          psd->has_detector_file = has_detector_noise_file;
         }
         else{
           if (psd->distortions_verbose > 1){
@@ -271,25 +288,29 @@ int distortions_set_detector(struct precision * ppr,
           if(psd->user_defined_detector){
             class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
                        psd->error_message,
-                       "Minimal frequency (nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       "Minimal frequency (sd_detector_nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
                        detector_name,psd->sd_detector_nu_min,nu_min);
             class_test(fabs(psd->sd_detector_nu_max-nu_max)>ppr->tol_sd_detector,
                        psd->error_message,
-                       "Maximal frequency (nu_max) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       "Maximal frequency (sd_detector_nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
                        detector_name,psd->sd_detector_nu_max,nu_max);
             class_test(fabs(psd->sd_detector_nu_delta-nu_delta)>ppr->tol_sd_detector,
                        psd->error_message,
-                       "Delta frequency (nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       "Delta frequency (sd_detector_nu_delta) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
                        detector_name,psd->sd_detector_nu_delta,nu_delta);
             class_test(fabs(psd->sd_detector_bin_number-N_bins)>ppr->tol_sd_detector,
                        psd->error_message,
-                       "Number of bins (N_bins) disagrees between stored detector '%s' and input ->  %i (input) vs %i (stored)",
+                       "Number of bins (sd_detector_bin_number) disagrees between stored detector '%s' and input ->  %i (input) vs %i (stored)",
                        detector_name,psd->sd_detector_bin_number,N_bins);
             class_test(fabs(psd->sd_detector_delta_Ic-delta_Ic)>ppr->tol_sd_detector,
                        psd->error_message,
-                       "Detector accuracy (delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
+                       "Detector accuracy (sd_detector_delta_Ic) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
                        detector_name,psd->sd_detector_delta_Ic,delta_Ic);
           }
+          class_test(psd->has_detector_file,
+                     psd->error_message,
+                     "Detector property type disagrees between stored detector '%s' and input  ->  Noisefile (input) vs Userdefined (stored)",
+                     detector_name);
 
           /* In any case, just take the detector definition from the file */
           psd->sd_detector_nu_min = nu_min;
@@ -319,6 +340,13 @@ int distortions_set_detector(struct precision * ppr,
                  psd->sd_detector_name,
                  psd->sd_detector_list_file);
     }
+  }
+
+
+  if(psd->has_detector_file){
+    class_call(distortions_read_detector_noisefile(ppr,psd),
+               psd->error_message,
+               psd->error_message);
   }
 
   return _SUCCESS_;
@@ -356,10 +384,11 @@ int distortions_generate_detector(struct precision * ppr,
   }
 
   if(psd->has_detector_file){
-    sprintf(temporary_string,"python %s %s %s %.10e %.10e %i %i %.10e %.10e %.10e",
+    sprintf(temporary_string,"python %s %s %s %s %.10e %.10e %i %i %.10e %.10e %.10e",
             psd->sd_PCA_file_generator,
             psd->sd_detector_name,
-            psd->sd_detector_noise_file,
+            ppr->sd_external_path,
+            psd->sd_detector_file_name,
             ppr->sd_z_min,
             ppr->sd_z_max,
             ppr->sd_z_size,
@@ -841,7 +870,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                  psd->error_message,
                  psd->error_message);
 
-      for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
+    for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
         psd->sd_shape_table[psd->index_type_PCA+index_k][index_x] = S[index_k];
       }
     }
@@ -1626,6 +1655,7 @@ int distortions_read_detector_noisefile(struct precision * ppr,
   int numcols;
 
   /** Open file */
+  sprintf(psd->sd_detector_noise_file,"%s/%s",ppr->sd_external_path,psd->sd_detector_file_name);
   class_open(infile, psd->sd_detector_noise_file, "r", psd->error_message);
 
   /** Read header */
@@ -1689,8 +1719,9 @@ int heating_output_data(struct distortions * psd,
                         double * data){
   int storeidx;
   double * dataptr;
+  int index_z;
 
-  for (int index_z=0; index_z<psd->z_size; index_z++) {
+  for (index_z=0; index_z<psd->z_size; index_z++) {
     dataptr = data + index_z*number_of_titles;
     storeidx = 0;
     class_store_double(dataptr, psd->z[index_z], _TRUE_, storeidx);
@@ -1733,8 +1764,9 @@ int distortions_output_data(struct distortions * psd,
   int index_type;
   int storeidx;
   double * dataptr;
+  int index_x;
 
-  for (int index_x=0; index_x<psd->x_size; index_x++) {
+  for (index_x=0; index_x<psd->x_size; index_x++) {
     dataptr = data + index_x*number_of_titles;
     storeidx = 0;
 

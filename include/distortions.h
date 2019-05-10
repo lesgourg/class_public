@@ -33,7 +33,7 @@ struct distortions
 
   int sd_PCA_size;
 
-  FileName sd_detector_file;                   /* Name of detector list file */
+  FileName sd_detector_file_name;               /* Name of detector list file */
 
   DetectorName sd_detector_name;                /* Name of detector */
   double sd_detector_nu_min;                    /* Minimum frequency of chosen detector */
@@ -74,9 +74,9 @@ struct distortions
   double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
 
   /* File names for the PCA */
-  DetectorFileName sd_detector_noise_file;              /* Name of detector noise file */
-  DetectorFileName sd_PCA_file_generator;               /* Name of PCA generator file */
-  DetectorFileName sd_detector_list_file;               /* Name of detector list file */
+  DetectorFileName sd_detector_noise_file;              /* Full path of detector noise file */
+  DetectorFileName sd_PCA_file_generator;               /* Full path of PCA generator file */
+  DetectorFileName sd_detector_list_file;               /* Full path of detector list file */
 
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */

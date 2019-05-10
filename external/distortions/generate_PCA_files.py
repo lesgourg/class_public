@@ -24,16 +24,17 @@ if(len(sys.argv)==14):
   DI_units = eval(sys.argv[12])   # = 2.70062634e-18
   x_to_nu = eval(sys.argv[13])    # = 56.7798
   has_noisefile = False
-elif(len(sys.argv)==10):
+elif(len(sys.argv)==11):
   sd_detector_name = sys.argv[1]
-  sd_noisefile_name = sys.argv[2]
-  sd_z_min = eval(sys.argv[3])
-  sd_z_max = eval(sys.argv[4])
-  sd_z_size = eval(sys.argv[5])
-  sd_PCA_size = eval(sys.argv[6])
-  z_th = eval(sys.argv[7])
-  DI_units = eval(sys.argv[8])   # = 2.70062634e-18
-  x_to_nu = eval(sys.argv[9])    # = 56.7798
+  sd_external_path = sys.argv[2]
+  sd_noisefile_name = sys.argv[3]
+  sd_z_min = eval(sys.argv[4])
+  sd_z_max = eval(sys.argv[5])
+  sd_z_size = eval(sys.argv[6])
+  sd_PCA_size = eval(sys.argv[7])
+  z_th = eval(sys.argv[8])
+  DI_units = eval(sys.argv[9])   # = 2.70062634e-18
+  x_to_nu = eval(sys.argv[10])    # = 56.7798
   has_noisefile = True
 else:
   raise Exception("generate_PCA_files.py received invalid input arguments")
@@ -125,7 +126,7 @@ with open(os.path.join(dir_path,readfile)) as f:
   lnz_arr = np.log(z_arr+1.)
 
   if has_noisefile:
-    Nx_arr,x_arr,deltaIc_arr = read_noisefile(sd_noisefile_name)
+    Nx_arr,x_arr,deltaIc_arr = read_noisefile(os.path.join(sd_external_path,sd_noisefile_name))
   else:
     Nx_arr = sd_detector_bin_number+1
     x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu,Nx_arr)
@@ -208,21 +209,16 @@ with open(os.path.join(dir_path,readfile)) as f:
   for index_x in range(Nx_arr):
     for index_z in range(Nz_arr):
       Residual[index_x,index_z] = G_th[index_x,index_z]-Gdist[index_x]*f_g[index_z]-Ydist[index_x]*f_y[index_z]-Mdist[index_x]*f_mu[index_z]
-      if has_noisefile:
-        Residual[index_x,index_z]/=deltaIc_arr[index_x]*1.e8
-      else:
-        Residual[index_x,index_z]/=sd_detector_delta_Ic*1.e8
 
-  # Calculate non-normalized fisher matrix
+  # Calculate Fisher matrix
   Fisher = np.zeros((Nz_arr,Nz_arr))
+  delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
   for index_za in range(Nz_arr):
     for index_zb in range(Nz_arr):
-      Fisher[index_za,index_zb] = np.sum(Residual[:,index_za]*Residual[:,index_zb])
-
-  # Normalize fisher matrix
-  delta_ln_z = np.log(z_arr[1])-np.log(z_arr[0])
-  normalization = (delta_ln_z)**2
-  Fisher /= normalization
+      if has_noisefile:
+        Fisher[index_za,index_zb] = np.sum(Residual[:,index_za]*Residual[:,index_zb]*pow(delta_ln_z/deltaIc_arr[:]*1.e8,2.))
+      else:
+        Fisher[index_za,index_zb] = np.sum(Residual[:,index_za]*Residual[:,index_zb]*pow(delta_ln_z/sd_detector_delta_Ic*1.e8,2.))
 
   # Solve eigenvalue problem
   eigvals,eigvecs = eigen_vals_vecs(Fisher)
@@ -232,7 +228,6 @@ with open(os.path.join(dir_path,readfile)) as f:
   E_vecs = np.real(eigvecs[:,:sd_PCA_size]).T
   S_vecs = np.zeros((sd_PCA_size,Nx_arr))
   for index_pca in range(sd_PCA_size):
-    if (index_pca==1 or index_pca==3 or index_pca==5): E_vecs[index_pca] = -E_vecs[index_pca]
     for index_x in range(Nx_arr):
       S_vecs[index_pca][index_x] = np.dot(E_vecs[index_pca],Residual[index_x,:]*delta_ln_z)
 
