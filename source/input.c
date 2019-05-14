@@ -3160,12 +3160,12 @@ int input_read_parameters_primordial(struct file_content * pfc,
 
   /** 1) Primordial spectrum type */
   /* Read */
-  class_call(parser_read_string(pfc,"P_k_ini_type",&string1,&flag1,errmsg),
+  class_call(parser_read_string(pfc,"Pk_ini_type",&string1,&flag1,errmsg),
              errmsg,
              errmsg);
   /* Compatibility code BEGIN */
   if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"P_k_ini type",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"Pk_ini type",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
   }

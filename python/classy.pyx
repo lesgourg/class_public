@@ -1672,6 +1672,13 @@ cdef class Class:
                 value = self.sp.sigma8
             elif name == 'sigma8_cb':
                 value = self.sp.sigma8_cb
+            elif name == 'g_sd':
+                value = self.sd.sd_parameter_table[sd.index_type_g]
+            elif name == 'y_sd':
+                value = self.sd.sd_parameter_table[sd.index_type_y]
+            elif name == 'mu_sd':
+                value = self.sd.sd_parameter_table[sd.index_type_mu]
+
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value

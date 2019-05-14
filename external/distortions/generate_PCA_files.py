@@ -237,6 +237,7 @@ with open(os.path.join(dir_path,readfile)) as f:
   # Write file for branching ratio (Evec)
   with open(os.path.join(dir_path,sd_detector_name+"_branching_ratios.dat"),"w") as brfile:
     brfile.write("# In the file there is: z, J_T, J_y, J_mu, E_i (i=1-{})\n".format(sd_PCA_size))
+    brfile.write("# The first line contains the number of lines and the number of columns.\n".format(sd_PCA_size))
     brfile.write("{} {}\n".format(Nz_arr,sd_PCA_size))
     for index_z in range(Nz_arr):
       brfile.write((form+" ") % z_arr[index_z])
@@ -250,6 +251,7 @@ with open(os.path.join(dir_path,readfile)) as f:
   # Write file for distortion shapes (Svec)
   with open(os.path.join(dir_path,sd_detector_name+"_distortions_shapes.dat"),"w") as dsfile:
     dsfile.write("# In the file there is: nu, G_T, Y_SZ, M_mu, S_i (i=1-{})\n".format(sd_PCA_size))
+    dsfile.write("# The first line contains the number of lines and the number of columns.\n".format(sd_PCA_size))
     dsfile.write("{} {}\n".format(Nx_arr,sd_PCA_size))
     for index_x in range(Nx_arr):
       dsfile.write((form+" ") % (x_arr[index_x]*x_to_nu))

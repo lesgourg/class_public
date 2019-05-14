@@ -2,6 +2,7 @@
 #  1) the frequency array in GHz,
 #  2) the uncertainty of the monopole spectrum in 10^-26 W/(m^2 Hz sr) and
 # for COBE/FIRAS as given in Tables 3 and 4 of Fixsen et al. 1996.
+# The first line contains the number of lines and the number of columns.
 43 2
 68.05    14.0e3
 81.54    19.0e3
