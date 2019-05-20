@@ -3165,7 +3165,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
              errmsg);
   /* Compatibility code BEGIN */
   if(flag1 == _FALSE_){
-    class_call(parser_read_string(pfc,"Pk_ini type",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"P_k_ini type",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
   }
@@ -4785,6 +4785,7 @@ int input_default_params(struct background *pba,
   phe->DM_annihilation_efficiency = 0.;
   phe->DM_annihilation_cross_section = 0.;
   phe->DM_annihilation_mass = 0.;
+  phe->DM_annihilation_fraction = 0.;
   /** 1.a.1) Redshift dependence */
   phe->DM_annihilation_variation = 0.;
   phe->DM_annihilation_z = 1000.;

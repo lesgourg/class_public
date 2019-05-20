@@ -1673,11 +1673,11 @@ cdef class Class:
             elif name == 'sigma8_cb':
                 value = self.sp.sigma8_cb
             elif name == 'g_sd':
-                value = self.g_sd()
+                value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':
-                value = self.y_sd()
+                value = self.sd.sd_parameter_table[1]
             elif name == 'mu_sd':
-                value = self.mu_sd()
+                value = self.sd.sd_parameter_table[2]
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
@@ -1803,18 +1803,6 @@ cdef class Class:
         for i in range(self.sd.type_size):
           sd_type_amps[i] = self.sd.sd_parameter_table[i]
         return sd_type_amps
-
-    def g_sd(self):
-        sd_amps = self.spectral_distortion_amplitudes()
-        return sd_amps[0]
-
-    def y_sd(self):
-        sd_amps = self.spectral_distortion_amplitudes()
-        return sd_amps[1]
-
-    def mu_sd(self):
-        sd_amps = self.spectral_distortion_amplitudes()
-        return sd_amps[2]
 
     def spectral_distortion(self):
         if self.sd.x_size == 0:

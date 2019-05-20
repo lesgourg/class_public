@@ -158,6 +158,7 @@ int distortions_constants(struct precision * ppr,
   sprintf(psd->sd_PCA_file_generator,"%s/%s",ppr->sd_external_path,"generate_PCA_files.py");
   sprintf(psd->sd_detector_list_file,"%s/%s",ppr->sd_external_path,"detectors_list.dat");
 
+  return _SUCCESS_;
 }
 
 
