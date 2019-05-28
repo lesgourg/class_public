@@ -3397,31 +3397,3 @@ int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, d
   return _SUCCESS_;
 }
 
-/**
- * [ML]
- * Compute integral using Simpson's rule
- *
- * @param nptz                Input: Number of points fro integration
- * @param int_f[nptz]         Input: The integrand as function of the index it is integrating over
- * @param h                   Input: Integration step
- * @param F                   Output: The integral
- * @return the error status
- *
- * Called in distortions.c
- */
-int simpson_integration(
-                        int nptz,
-                        double int_f[nptz],
-                        double h,
-                        double * F,
-                        ErrorMsg errmsg) {
-     double so = 0., se = 0.;
-     for(int i = 1; i < nptz; i++) {
-         if(i%2 == 1) { so = so+int_f[i]; }
-         else { se = se+int_f[i]; }
-     }
-     *F = h/3.*(int_f[0]+int_f[nptz-1]+4.*so+2.*se);
-
-     return _SUCCESS_;
-}
-

@@ -883,8 +883,9 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
   /** Define local variables */
   int index_k;
-  double * integrand_full, * integrand_approx;
+  double * integrand_full, * integrand_approx, * integrand, *weights;
   double dQrho_dz;
+  double other;
 
   /** a) Calculate full function */
   if (phe->heating_rate_acoustic_diss_approx == _FALSE_){
@@ -893,30 +894,39 @@ int heating_rate_acoustic_diss(struct heating * phe,
   /** b) Calculate approximated function */
   if (phe->heating_rate_acoustic_diss_approx == _TRUE_){
 
-    class_alloc(integrand_approx,
+    class_alloc(integrand,
+                phe->k_size*sizeof(double),
+                phe->error_message);
+    class_alloc(weights,
                 phe->k_size*sizeof(double),
                 phe->error_message);
 
     /* Define integrand for approximated function */
     for (index_k=0; index_k<phe->k_size; index_k++) {
-      integrand_approx[index_k] = 4.*0.81*pow(phe->k[index_k],2.)*
-                                  phe->pk_primordial_k[index_k]*
-                                  exp(-2.*pow(phe->k[index_k]/phe->kD,2.))*
-                                  phe->dkD_dz;                                                      // [-]
+      integrand[index_k] = 4.*0.81*pow(phe->k[index_k],1.)*
+                              phe->pk_primordial_k[index_k]*
+                              exp(-2.*pow(phe->k[index_k]/phe->kD,2.))*
+                              phe->dkD_dz;
     }
 
-    /** Calculate heating rates */
-    /* Integrate approximate function */
-    class_call(simpson_integration(phe->k_size,
-                                   integrand_approx,
-                                   (log(phe->k_max)-log(phe->k_min))/(phe->k_size),
-                                   &dQrho_dz,                                                       // [-]
-                                   phe->error_message),
+    class_call(array_trapezoidal_weights(phe->k,
+                                         phe->k_size,
+                                         weights,
+                                         phe->error_message),
                phe->error_message,
                phe->error_message);
 
-    /* Free space */
-    free(integrand_approx);
+    class_call(array_trapezoidal_integral(integrand,
+                                          phe->k_size,
+                                          weights,
+                                          &other,
+                                          phe->error_message),
+               phe->error_message,
+               phe->error_message);
+
+    free(integrand);
+    free(weights);
+
   }
 
   *energy_rate = dQrho_dz*phe->H*phe->rho_g/phe->a;                                                 // [J/(m^3 s)]
