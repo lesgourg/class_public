@@ -3352,6 +3352,8 @@ int array_trapezoidal_convolution(
  **/
 int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, double* ynew, double* dynew, ErrorMsg errmsg){
 
+  int i;
+
   double * xarr = x;
   double * yarr = y;
 
@@ -3367,7 +3369,7 @@ int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, d
    * (i.e. transforms it to around unity for x and y)
    * This usually prevents numerical cancelation (offsets) and over/underflow (scales)
    */
-  for(int i=0;i<x_size;++i){
+  for(i=0;i<x_size;++i){
     xval = (xarr[i]-xarr[0])/xarr[0];
     yval = (yarr[i]-yarr[0])/yarr[0];
     avx += xval;
