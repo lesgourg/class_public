@@ -915,7 +915,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
                phe->error_message,
                phe->error_message);
 
-    class_call(array_trapezoidal_integral(integrand,
+    class_call(array_trapezoidal_integral(integrand_approx,
                                           phe->k_size,
                                           weights,
                                           &dQrho_dz,
