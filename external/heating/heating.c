@@ -883,9 +883,8 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
   /** Define local variables */
   int index_k;
-  double * integrand_full, * integrand_approx, * integrand, *weights;
+  double * integrand_full, * integrand_approx, *weights;
   double dQrho_dz;
-  double other;
 
   /** a) Calculate full function */
   if (phe->heating_rate_acoustic_diss_approx == _FALSE_){
@@ -894,7 +893,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
   /** b) Calculate approximated function */
   if (phe->heating_rate_acoustic_diss_approx == _TRUE_){
 
-    class_alloc(integrand,
+    class_alloc(integrand_approx,
                 phe->k_size*sizeof(double),
                 phe->error_message);
     class_alloc(weights,
@@ -903,7 +902,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
     /* Define integrand for approximated function */
     for (index_k=0; index_k<phe->k_size; index_k++) {
-      integrand[index_k] = 4.*0.81*pow(phe->k[index_k],1.)*
+      integrand_approx[index_k] = 4.*0.81*pow(phe->k[index_k],1.)*
                               phe->pk_primordial_k[index_k]*
                               exp(-2.*pow(phe->k[index_k]/phe->kD,2.))*
                               phe->dkD_dz;
@@ -919,12 +918,12 @@ int heating_rate_acoustic_diss(struct heating * phe,
     class_call(array_trapezoidal_integral(integrand,
                                           phe->k_size,
                                           weights,
-                                          &other,
+                                          &dQrho_dz,
                                           phe->error_message),
                phe->error_message,
                phe->error_message);
 
-    free(integrand);
+    free(integrand_approx);
     free(weights);
 
   }
