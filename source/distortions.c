@@ -324,6 +324,8 @@ int distortions_set_detector(struct precision * ppr,
     }
   }
 
+  fclose(det_list_file);
+
   /* If the detector has not been found, either the user has specified the settings and we create a new one,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
@@ -1240,6 +1242,8 @@ int distortions_read_br_data(struct precision * ppr,
     }
   }
 
+  fclose(infile);
+
   return _SUCCESS_;
 }
 
@@ -1476,6 +1480,8 @@ int distortions_read_sd_data(struct precision * ppr,
 
   }
 
+  fclose(infile);
+
   return _SUCCESS_;
 }
 
@@ -1698,6 +1704,8 @@ int distortions_read_detector_noisefile(struct precision * ppr,
                       "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;
   }
+
+  fclose(infile);
 
   return _SUCCESS_;
 }

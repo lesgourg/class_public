@@ -1533,9 +1533,7 @@ int heating_read_chi_z_from_file(struct precision* ppr,
     }
   }
 
-  if(phe->chi_type == chi_from_z_file){
-    fclose(fA);
-  }
+  fclose(fA);
 
   /* Spline in one dimension */
   for(index_dep=0;index_dep<phe->dep_size;++index_dep){
