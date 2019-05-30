@@ -2887,7 +2887,12 @@ int perturb_find_approximation_switches(
         if (interval_approx[index_switch][index_ap] != interval_approx[index_switch-1][index_ap])
           num_switching_at_given_time++;
       }
-      class_test(num_switching_at_given_time != 1,
+      /* In the previous versions, one has checked here wheter exactly 1 approximation is switched at a given time,
+       * which can lead to buggy behavior, with CLASS canceling due to allegedly 0 approximation switches happening. 
+       * This workaround, namely testing that not more than one approximation is switched, resolves this behavior without 
+       * evidence for any kind of unstable behavior, so I recommend that change to be merged (LSch) */
+      /* TODO: Merge and delete this comment */
+      class_test(num_switching_at_given_time > 1,
                  ppt->error_message,
                  "for k=%e, at tau=%g, you switch %d approximations at the same time, this cannot be handled. Usually happens in two cases: triggers for different approximations coincide, or one approx is reversible\n",
                  k,
@@ -3014,9 +3019,9 @@ int perturb_vector_init(
 
   struct perturb_vector * ppv;
 
-  int index_pt;
+  int index_pt, index_pt_new;
   int l;
-  int n_ncdm,index_q,ncdm_l_size;
+  int n_ncdm,index_q,ncdm_l_size, ncdm_l_size_old;
   double rho_plus_p_ncdm,q,q2,epsilon,a,factor;
 
   /** - allocate a new perturb_vector structure to which ppw-->pv will point at the end of the routine */
@@ -3152,7 +3157,7 @@ int perturb_vector_init(
       for(n_ncdm = 0; n_ncdm < pba->N_ncdm; n_ncdm++){
         // Set value of ppv->l_max_ncdm:
         if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_off){
-          /* reject inconsistent values of the number of mutipoles in ultra relativistic neutrino hierarchy */
+          /* reject inconsistent values of the number of mutipoles in massive neutrino hierarchy */
           class_test(ppr->l_max_ncdm < 4,
                      ppt->error_message,
                      "ppr->l_max_ncdm=%d should be at least 4, i.e. we must integrate at least over first four momenta of non-cold dark matter perturbed phase-space distribution",n_ncdm);
@@ -3162,8 +3167,17 @@ int perturb_vector_init(
         }
         else{
           // In the fluid approximation, hierarchy is cut at lmax = 2 and q dependence is integrated out:
-          ppv->l_max_ncdm[n_ncdm] = 2;
-          ppv->q_size_ncdm[n_ncdm] = 1;
+            ppv->l_max_ncdm[n_ncdm] = 2;
+            // Unless we're using the AHL-approximation, which is no fluid formalism and still incorporates q-integration
+            if(ppr->ncdm_fluid_approximation == ncdmfa_ahl){
+                /** TODO: Remove that class_test once the gauge transformation succeeded. Currently, the formula is only valid in synchronous gauge */
+                class_test(ppt->gauge != synchronous,
+                           ppt->error_message,
+                           "you have requested the AHL approximation method for NCDM outside the synchronous gauge, which is currently not implemented.")
+                ppv->q_size_ncdm[n_ncdm] = pba->q_size_ncdm[n_ncdm];
+            }
+            else
+                ppv->q_size_ncdm[n_ncdm] = 1;
         }
         index_pt += (ppv->l_max_ncdm[n_ncdm]+1)*ppv->q_size_ncdm[n_ncdm];
       }
@@ -3820,24 +3834,61 @@ int perturb_vector_init(
           }
 
           a = ppw->pvecback[pba->index_bg_a];
+          /* TBD: The indexing here is more CLASS-like, but encompasses lengthy expressions, since the q-binning is retained - not used for now
           index_pt = ppw->pv->index_pt_psi0_ncdm1;
           for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
             // We are in the fluid approximation, so ncdm_l_size is always 3.
             ncdm_l_size = ppv->l_max_ncdm[n_ncdm]+1;
-            rho_plus_p_ncdm = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+
-              ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
-            for(l=0; l<=2; l++){
-              ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*n_ncdm+l] = 0.0;
+            ncdm_l_size_old = ppw->pv->l_max_ncdm[n_ncdm]+1;
+            if(ppr->ncdm_fluid_approximation==ncdmfa_ahl){
+            /* If we use the AH-"fluid"-approximation, we retatin the regular hierarchy. Thus, we must directly transfer
+             * the 3 multipoles we use to the new pv. It must be incorporated that before switching to the approximation, 
+             * there is a different l_max_ncdm and thus the indices between the new and old perturb vector differ. */
+             /* 
+              for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){                  
+                ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*(pba->q_size_ncdm[n_ncdm]*n_ncdm+index_q)] =
+                    ppw->pv->y[index_pt];
+                ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*(pba->q_size_ncdm[n_ncdm]*n_ncdm+index_q)+1] =
+                    ppw->pv->y[index_pt+1];
+                ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*(pba->q_size_ncdm[n_ncdm]*n_ncdm+index_q)+2] =
+                    ppw->pv->y[index_pt+2];
+                index_pt += ncdm_l_size_old;
+                }
+            }*/
+             
+          index_pt = ppw->pv->index_pt_psi0_ncdm1;
+          index_pt_new = 0;
+          for(n_ncdm = 0; n_ncdm < ppv->N_ncdm; n_ncdm++){
+            // We are in the fluid approximation, so ncdm_l_size is always 3.
+            ncdm_l_size = ppv->l_max_ncdm[n_ncdm]+1;
+            ncdm_l_size_old = ppw->pv->l_max_ncdm[n_ncdm]+1;
+            if(ppr->ncdm_fluid_approximation==ncdmfa_ahl){
+              for(index_q=0; index_q < ppv->q_size_ncdm[n_ncdm]; index_q++){
+                  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt_new] =
+                    ppw->pv->y[index_pt];
+                  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt_new+1] = 
+                    ppw->pv->y[index_pt+1];
+                  ppv->y[ppv->index_pt_psi0_ncdm1+index_pt_new+2] = 
+                    ppw->pv->y[index_pt+2];
+                  index_pt_new+=ncdm_l_size;
+                  index_pt+=ncdm_l_size_old;
+                }
             }
-            factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
-            for(index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++){
-              // Integrate over distributions:
-              q = pba->q_ncdm[n_ncdm][index_q];
-              q2 = q*q;
-              epsilon = sqrt(q2+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
-              ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*n_ncdm] +=
-                pba->w_ncdm[n_ncdm][index_q]*q2*epsilon*
-                ppw->pv->y[index_pt];
+            else{ 
+                rho_plus_p_ncdm = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+
+                ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
+                for(l=0; l<=2; l++){
+                    ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*n_ncdm+l] = 0.0;
+                }
+                factor = pba->factor_ncdm[n_ncdm]*pow(pba->a_today/a,4);
+                for(index_q=0; index_q < ppw->pv->q_size_ncdm[n_ncdm]; index_q++){
+                    // Integrate over distributions:
+                    q = pba->q_ncdm[n_ncdm][index_q];
+                    q2 = q*q;
+                    epsilon = sqrt(q2+a*a*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+                    ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*n_ncdm] +=
+                        pba->w_ncdm[n_ncdm][index_q]*q2*epsilon*
+                        ppw->pv->y[index_pt];
 
               ppv->y[ppv->index_pt_psi0_ncdm1+ncdm_l_size*n_ncdm+1] +=
                 pba->w_ncdm[n_ncdm][index_q]*q2*q*
@@ -3858,6 +3909,7 @@ int perturb_vector_init(
       }
     }
 
+    }
     /** - --> (b) for the vector mode */
 
     if (_vectors_) {
@@ -5485,7 +5537,7 @@ int perturb_total_stress_energy(
     /* non-cold dark matter contribution */
     if (pba->has_ncdm == _TRUE_) {
       idx = ppw->pv->index_pt_psi0_ncdm1;
-      if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_on){
+      if(ppw->approx[ppw->index_ap_ncdmfa] == (int)ncdmfa_on && ppr->ncdm_fluid_approximation != ncdmfa_ahl){
         // The perturbations are evolved integrated:
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
           rho_ncdm_bg = ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
@@ -6940,8 +6992,8 @@ int perturb_derivs(double tau,
 
   /* for use with non-cold dark matter (ncdm): */
   int index_q,n_ncdm,idx;
-  double q,epsilon,dlnf0_dlnq,qk_div_epsilon;
-  double rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm,w_ncdm,ca2_ncdm,ceff2_ncdm=0.,cvis2_ncdm=0.;
+  double q,epsilon,dlnf0_dlnq,qk_div_epsilon, x;
+  double rho_ncdm_bg,p_ncdm_bg,pseudo_p_ncdm,w_ncdm,ca2_ncdm,ceff2_ncdm=0.,cvis2_ncdm=0., psi3 = 0;
 
   /* for use with curvature */
   double cotKgen, sqrt_absK;
@@ -7488,72 +7540,109 @@ int perturb_derivs(double tau,
         /** - -----> loop over species */
 
         for (n_ncdm=0; n_ncdm<pv->N_ncdm; n_ncdm++) {
+            
+            /** - LS comment: -----> Usage of the AH truncation - technically not a fluid approx., but added to this due to strucural reasons 
+             * One still uses a hierarchy that requires momentum integration. */
+            
+            if(ppr->ncdm_fluid_approximation == ncdmfa_ahl) {
+                
+                /** - -----> loop over momentum bins */
+                
+                for (index_q=0; index_q < pv->q_size_ncdm[n_ncdm]; index_q++) {
 
-          /** - -----> define intermediate quantitites */
+                    /** - -----> define intermediate quantities */
 
-          rho_ncdm_bg = pvecback[pba->index_bg_rho_ncdm1+n_ncdm]; /* background density */
-          p_ncdm_bg = pvecback[pba->index_bg_p_ncdm1+n_ncdm]; /* background pressure */
-          pseudo_p_ncdm = pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm]; /* pseudo-pressure (see CLASS IV paper) */
-          w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* equation of state parameter */
-          ca2_ncdm = w_ncdm/3.0/(1.0+w_ncdm)*(5.0-pseudo_p_ncdm/p_ncdm_bg); /* adiabatic sound speed */
+                    dlnf0_dlnq = pba->dlnf0_dlnq_ncdm[n_ncdm][index_q];
+                    q = pba->q_ncdm[n_ncdm][index_q];
+                    epsilon = sqrt(q*q+a2*pba->M_ncdm[n_ncdm]*pba->M_ncdm[n_ncdm]);
+                    
+                    /** - ----> define intermediate quantities used for creation of $\Psi_3 $ */
+                    qk_div_epsilon = k*q/epsilon;
+                    x = tau*qk_div_epsilon;
+                    psi3 = (pow(x, 1.1)/8. * 2. + sqrt(2./8.)*pow(x,1.2)/2.)/(2./pow(x,-0.4)+pow(x,1.15)/2.)*y[idx+2]; 
+                    /** - -----> ncdm density for given momentum bin */
 
-          /* c_eff is (delta p / delta rho) in the gauge under
-             consideration (not in the gauge comoving with the
-             fluid) */
+                    dy[idx] = -qk_div_epsilon*y[idx+1]+metric_continuity*dlnf0_dlnq/3.;
 
-          /* c_vis is introduced in order to close the system */
+                    /** - -----> ncdm velocity for given momentum bin */
 
-          /* different ansatz for sound speed c_eff and viscosity speed c_vis */
-          if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
-            ceff2_ncdm = ca2_ncdm;
-            cvis2_ncdm = 3.*w_ncdm*ca2_ncdm;
-          }
-          if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
-            ceff2_ncdm = ca2_ncdm;
-            cvis2_ncdm = w_ncdm;
-          }
-          if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
-            ceff2_ncdm = ca2_ncdm;
-            cvis2_ncdm = 3.*w_ncdm*ca2_ncdm;
-          }
+                    dy[idx+1] = qk_div_epsilon/3.0*(y[idx] - 2*s_l[2]*y[idx+2])
+                    -epsilon*metric_euler/(3*q*k)*dlnf0_dlnq;
 
-          /** - -----> exact continuity equation */
+                    /** - -----> ncdm shear for given momentum bin */
 
-          dy[idx] = -(1.0+w_ncdm)*(y[idx+1]+metric_continuity)-
-            3.0*a_prime_over_a*(ceff2_ncdm-w_ncdm)*y[idx];
+                    dy[idx+2] = qk_div_epsilon/5.0*(2*s_l[2]*y[idx+1]-3.*s_l[3]*psi3)
+                    -s_l[2]*metric_shear*2./15.*dlnf0_dlnq;
+                    
+                    idx += (pv->l_max_ncdm[n_ncdm]+1);
+                }
+                
+            }
 
-          /** - -----> exact euler equation */
+            else{
+            /** - -----> define intermediate quantitites */
+                rho_ncdm_bg = pvecback[pba->index_bg_rho_ncdm1+n_ncdm]; /* background density */
+                p_ncdm_bg = pvecback[pba->index_bg_p_ncdm1+n_ncdm]; /* background pressure */
+                pseudo_p_ncdm = pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm]; /* pseudo-pressure (see CLASS IV paper) */
+                w_ncdm = p_ncdm_bg/rho_ncdm_bg; /* equation of state parameter */
+                ca2_ncdm = w_ncdm/3.0/(1.0+w_ncdm)*(5.0-pseudo_p_ncdm/p_ncdm_bg); /* adiabatic sound speed */
 
-          dy[idx+1] = -a_prime_over_a*(1.0-3.0*ca2_ncdm)*y[idx+1]+
-            ceff2_ncdm/(1.0+w_ncdm)*k2*y[idx]-k2*y[idx+2]
-            + metric_euler;
+                /* c_eff is (delta p / delta rho) in the gauge under
+                    consideration (not in the gauge comoving with the
+                    fluid) */
 
-          /** - -----> different ansatz for approximate shear derivative */
+                /* c_vis is introduced in order to close the system */
 
-          if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
+                /* different ansatz for sound speed c_eff and viscosity speed c_vis */
+                if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
+                    ceff2_ncdm = ca2_ncdm;
+                    cvis2_ncdm = 3.*w_ncdm*ca2_ncdm;
+                }
+                if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
+                    ceff2_ncdm = ca2_ncdm;
+                    cvis2_ncdm = w_ncdm;
+                }
+                if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
+                    ceff2_ncdm = ca2_ncdm;
+                    cvis2_ncdm = 3.*w_ncdm*ca2_ncdm;
+                }
 
-            dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./tau)*y[idx+2]
-              +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*s_l[2]*(y[idx+1]+metric_shear);
+                /** - -----> exact continuity equation */
 
-          }
+                dy[idx] = -(1.0+w_ncdm)*(y[idx+1]+metric_continuity)-
+                    3.0*a_prime_over_a*(ceff2_ncdm-w_ncdm)*y[idx];
 
-          if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
+                /** - -----> exact euler equation */
 
-            dy[idx+2] = -3.0*a_prime_over_a*ca2_ncdm/w_ncdm*y[idx+2]
-              +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*s_l[2]*(y[idx+1]+metric_shear);
+                dy[idx+1] = -a_prime_over_a*(1.0-3.0*ca2_ncdm)*y[idx+1]+
+                    ceff2_ncdm/(1.0+w_ncdm)*k2*y[idx]-k2*y[idx+2]
+                    + metric_euler;
 
-          }
+                /** - -----> different ansatz for approximate shear derivative */
 
-          if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
+                if (ppr->ncdm_fluid_approximation == ncdmfa_mb) {
 
-            dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./tau)*y[idx+2]
-              +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*s_l[2]*(y[idx+1]+metric_ufa_class);
+                    dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./tau)*y[idx+2]
+                    +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*s_l[2]*(y[idx+1]+metric_shear);
 
-          }
+                }
 
-          /** - -----> jump to next species */
+                if (ppr->ncdm_fluid_approximation == ncdmfa_hu) {
 
-          idx += pv->l_max_ncdm[n_ncdm]+1;
+                    dy[idx+2] = -3.0*a_prime_over_a*ca2_ncdm/w_ncdm*y[idx+2]
+                    +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*s_l[2]*(y[idx+1]+metric_shear);
+
+                }
+
+                if (ppr->ncdm_fluid_approximation == ncdmfa_CLASS) {
+
+                    dy[idx+2] = -3.0*(a_prime_over_a*(2./3.-ca2_ncdm-pseudo_p_ncdm/p_ncdm_bg/3.)+1./tau)*y[idx+2]
+                    +8.0/3.0*cvis2_ncdm/(1.0+w_ncdm)*s_l[2]*(y[idx+1]+metric_ufa_class);
+
+                }
+                /** - -----> jump to next species */
+                idx += pv->l_max_ncdm[n_ncdm]+1;
+            }
         }
       }
 
