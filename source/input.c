@@ -2793,11 +2793,11 @@ int input_read_parameters_heating(struct file_content * pfc,
     if (strcmp(string1,"CK_2004") == 0){
       phe->chi_type = chi_CK;
     }
-    else if (strcmp(string1,"Galli_2013") == 0){
-      phe->chi_type = chi_Galli;
+    else if (strcmp(string1,"Galli_2013_file") == 0){
+      phe->chi_type = chi_Galli_file;
     }
-    else if (strcmp(string1,"Slatyer_2013") == 0){
-      phe->chi_type = chi_Slatyer;
+    else if (strcmp(string1,"Galli_2013_analytic") == 0){
+      phe->chi_type = chi_Galli_analytic;
     }
     else if (strcmp(string1,"heat") == 0){
       phe->chi_type = chi_full_heating;
@@ -2810,7 +2810,7 @@ int input_read_parameters_heating(struct file_content * pfc,
     }
     else{
       class_stop(errmsg,
-                   "You specified 'chi_type' as '%s'. It has to be one of {'CK_2004','Galli_2013','Slatyer_2013','heat','from_x_file','from_z_file'}.",string1);
+                   "You specified 'chi_type' as '%s'. It has to be one of {'CK_2004','Galli_2013_file','Galli_2013_analytic','heat','from_x_file','from_z_file'}.",string1);
     }
   }
 

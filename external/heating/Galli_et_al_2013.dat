@@ -2,7 +2,6 @@
 # format: first line must contain the number of lines
 # other lines must contain (xe, chi_heat, chi_lya, chi_ionH, chi_ionHe, chi_lowE (E < 10.2eV))
 # blank lines and lines starting with # neglected
-
 18
 0.000000 0.151800 0.323526 0.350798 0.024367 0.142202
 0.000100 0.151880 0.323526 0.350798 0.024367 0.142202

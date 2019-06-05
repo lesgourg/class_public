@@ -132,7 +132,7 @@ int heating_init(struct precision * ppr,
               phe->error_message);
 
   /* Read from external file, if needed */
-  if(phe->chi_type == chi_Galli){
+  if(phe->chi_type == chi_Galli_file){
     class_call(heating_read_chi_x_from_file(ppr,phe,
                                             ppr->chi_z_Galli),
                phe->error_message,
@@ -243,7 +243,7 @@ int heating_free(struct thermo* pth){
   if(phe->chi_type == chi_from_z_file){
     free(phe->chiz_table);
   }
-  if(phe->chi_type == chi_from_x_file || phe->chi_type == chi_Galli){
+  if(phe->chi_type == chi_from_x_file || phe->chi_type == chi_Galli_file){
     free(phe->chix_table);
   }
 
@@ -524,7 +524,7 @@ int heating_deposition_function_at_z(struct heating* phe,
       }
     }
     /* Coefficient as revised by Galli et al. 2013 */
-    else if(phe->chi_type == chi_Galli){
+    else if(phe->chi_type == chi_Galli_file){
       for(index_dep=0; index_dep<phe->dep_size; ++index_dep){
         class_call(array_interpolate_spline_transposed(phe->chix_table,
                                                        phe->chix_size,
@@ -540,8 +540,8 @@ int heating_deposition_function_at_z(struct heating* phe,
                    phe->error_message);
       }
     }
-    /* coefficient as revised by Slatyer 2013 */
-    else if(phe->chi_type == chi_Slatyer){
+    /* coefficient as revised by Vivian Poulin (analytical interpolation of Galli et al. 2013) */
+    else if(phe->chi_type == chi_Galli_analytic){
       if(x<1.){
         phe->chi[phe->index_dep_heat]  = MIN(0.996857*(1.-pow(1.-pow(x,0.300134),1.51035)),1);
         phe->chi[phe->index_dep_ionH]  = 0.369202*pow(1.-pow(x,0.463929),1.70237);
@@ -1387,7 +1387,7 @@ int heating_read_feff_from_file(struct precision* ppr,
   FILE * fA;
   char line[_LINE_LENGTH_MAX_];
   char * left;
-  int headlines;
+  int headlines = 0;
   int index_z;
 
   phe->feff_z_size = 0;
@@ -1413,31 +1413,30 @@ int heating_read_feff_from_file(struct precision* ppr,
 
       /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
          its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (phe->feff_z_size == 0) {
 
-        /* Read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&(phe->feff_z_size)) != 1,
-                   phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
-                   headlines,f_eff_file);
+      /* Read num_lines, infer size of arrays and allocate them */
+      class_test(sscanf(line,"%d",&(phe->feff_z_size)) != 1,
+                 phe->error_message,
+                 "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                 headlines,f_eff_file);
 
-        /* (z, f, ddf)*/
-        class_alloc(phe->feff_table,
-                    3*phe->feff_z_size*sizeof(double),
-                    phe->error_message);
-      }
-      else {
-        /* Read coefficients */
-        class_test(sscanf(line,"%lg %lg",
-                          &(phe->feff_table[index_z*3+0]),  // z
-                          &(phe->feff_table[index_z*3+1])   // f_eff(z)
-                         ) != 2,
-                   phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",
-                   headlines,f_eff_file);
-        index_z++;
-      }
+      /* (z, f, ddf)*/
+      class_alloc(phe->feff_table,
+                  3*phe->feff_z_size*sizeof(double),
+                  phe->error_message);
+      break;
     }
+  }
+
+  for(index_z=0;index_z<phe->feff_z_size;++index_z){
+    /* Read coefficients */
+    class_test(fscanf(fA,"%lg %lg",
+                      &(phe->feff_table[index_z*3+0]),  // z
+                      &(phe->feff_table[index_z*3+1])   // f_eff(z)
+                     ) != 2,
+               phe->error_message,
+               "could not read value of parameters coefficients in line %i in file '%s'\n",
+               headlines,f_eff_file);
   }
 
   fclose(fA);
@@ -1474,7 +1473,7 @@ int heating_read_chi_z_from_file(struct precision* ppr,
   FILE * fA;
   char line[_LINE_LENGTH_MAX_];
   char * left;
-  int headlines;
+  int headlines = 0;
   int index_z,index_dep;
 
   phe->chiz_size = 0;
@@ -1501,35 +1500,34 @@ int heating_read_chi_z_from_file(struct precision* ppr,
 
       /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
          its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (phe->chiz_size == 0) {
 
-        /* Read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&(phe->chiz_size)) != 1,
-                   phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
-                   headlines,chi_z_file);
+      /* Read num_lines, infer size of arrays and allocate them */
+      class_test(sscanf(line,"%d",&(phe->chiz_size)) != 1,
+                 phe->error_message,
+                 "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                 headlines,chi_z_file);
 
-        /* (z, chi_i)*/
-        class_alloc(phe->chiz_table,
-                    (2*phe->dep_size+1)*phe->chiz_size*sizeof(double),
-                    phe->error_message);
-      }
-      else {
-        /* Read coefficients */
-        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+0]), //z
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1]), //heat
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+2]), //lya
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+3]), //ionH
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+4]), //ionHe
-                          &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
-                         )!= 6,
-                   phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",
-                   headlines,chi_z_file);
-        index_z++;
-      }
+      /* (z, chi_i)*/
+      class_alloc(phe->chiz_table,
+                  (2*phe->dep_size+1)*phe->chiz_size*sizeof(double),
+                  phe->error_message);
+      break;
     }
+  }
+
+  for(index_z=0;index_z<phe->chiz_size;++index_z){
+    /* Read coefficients */
+    class_test(fscanf(fA,"%lg %lg %lg %lg %lg %lg",
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+0]), //z
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1]), //heat
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+2]), //lya
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+3]), //ionH
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+4]), //ionHe
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
+                     )!= 6,
+               phe->error_message,
+               "could not read value of parameters coefficients in line %i in file '%s'\n",
+               index_z+headlines,chi_z_file);
   }
 
   fclose(fA);
@@ -1568,7 +1566,7 @@ int heating_read_chi_x_from_file(struct precision* ppr,
   FILE * fA;
   char line[_LINE_LENGTH_MAX_];
   char * left;
-  int headlines;
+  int headlines = 0;
   int index_x,index_dep;
 
   phe->chix_size = 0;
@@ -1595,35 +1593,34 @@ int heating_read_chi_x_from_file(struct precision* ppr,
 
       /* If the line contains data, we must interprete it. If num_lines == 0 , the current line must contain
          its value. Otherwise, it must contain (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE). */
-      if (phe->chix_size == 0) {
 
-        /* Read num_lines, infer size of arrays and allocate them */
-        class_test(sscanf(line,"%d",&(phe->chix_size)) != 1,
-                   phe->error_message,
-                   "could not read the initial integer of number of lines in line %i in file '%s' \n",
-                   headlines, chi_x_file);
+      /* Read num_lines, infer size of arrays and allocate them */
+      class_test(sscanf(line,"%d",&(phe->chix_size)) != 1,
+                 phe->error_message,
+                 "could not read the initial integer of number of lines in line %i in file '%s' \n",
+                 headlines, chi_x_file);
 
-        /* (z, chi_i)*/
-        class_alloc(phe->chix_table,
-                    (2*phe->dep_size+1)*phe->chix_size*sizeof(double),
-                    phe->error_message);
-      }
-      else {
-        /* Read coefficients */
-        class_test(sscanf(line,"%lg %lg %lg %lg %lg %lg",
-                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+0]), //x
-                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+1]), //heat
-                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+2]), //lya
-                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+3]), //ionH
-                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+4]), //ionHe
-                          &(phe->chix_table[index_x*(2*phe->dep_size+1)+5])  //lowE
-                         )!= 6,
-                   phe->error_message,
-                   "could not read value of parameters coefficients in line %i in file '%s'\n",
-                   headlines,chi_x_file);
-        index_x++;
-      }
+      /* (z, chi_i)*/
+      class_alloc(phe->chix_table,
+                  (2*phe->dep_size+1)*phe->chix_size*sizeof(double),
+                  phe->error_message);
+      break;
     }
+  }
+
+  for(index_x = 0; index_x < phe->chix_size;++index_x){
+    /* Read coefficients */
+    class_test(fscanf(fA,"%lg %lg %lg %lg %lg %lg",
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+0]), //x
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1]), //heat
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+2]), //lya
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+3]), //ionH
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+4]), //ionHe
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+5])  //lowE
+                     )!= 6,
+               phe->error_message,
+               "could not read value of parameters coefficients in line %i in file '%s'\n",
+               index_x+headlines,chi_x_file);
   }
 
   fclose(fA);

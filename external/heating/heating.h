@@ -8,7 +8,7 @@
  */
 enum PBH_accretion_approx {spherical_accretion, disk_accretion};
 enum f_eff_approx {f_eff_on_the_spot, f_eff_from_file};
-enum chi_approx {chi_CK, chi_Galli, chi_Slatyer, chi_full_heating, chi_from_x_file, chi_from_z_file};
+enum chi_approx {chi_CK, chi_Galli_file, chi_Galli_analytic, chi_full_heating, chi_from_x_file, chi_from_z_file};
 
 struct heating{
 
