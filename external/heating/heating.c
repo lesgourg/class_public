@@ -664,6 +664,7 @@ int heating_add_noninjected(struct background* pba,
   int index_k;
   double dEdt;
   int index_dep;
+  double z_wkb, tau_wkb;
 
   /** Allocate backgorund and thermodynamcis vectors */
   last_index_back = 0;
@@ -697,6 +698,25 @@ int heating_add_noninjected(struct background* pba,
                ppm->error_message,
                phe->error_message);
   }
+
+  /** Calculate WKB approximation ampltidue factor f_nu at early times */
+  z_wkb = 1.0e6;              /* Found to be reasonable for wkb approximation */
+  class_call(background_tau_of_z(pba,
+                                 z_wkb,
+                                 &tau_wkb),
+             pba->error_message,
+             phe->error_message);
+
+  class_call(background_at_tau(pba,
+                               tau_wkb,
+                               pba->long_info,
+                               pba->inter_normal,
+                               &last_index_back,
+                               pvecback),
+             pba->error_message,
+             phe->error_message);
+
+  phe->f_nu_wkb = (1.-pvecback[pba->index_bg_rho_g]/(pvecback[pba->index_bg_Omega_r]*pvecback[pba->index_bg_rho_crit]));
 
   /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<phe->z_size; ++index_z){
@@ -885,6 +905,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
   int index_k;
   double * integrand_full, * integrand_approx, *weights;
   double dQrho_dz;
+  double A_wkb;
 
   /** a) Calculate full function */
   if (phe->heating_rate_acoustic_diss_approx == _FALSE_){
@@ -892,6 +913,8 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
   /** b) Calculate approximated function */
   if (phe->heating_rate_acoustic_diss_approx == _TRUE_){
+
+    A_wkb = 1./(1.+4./15.*phe->f_nu_wkb);
 
     class_alloc(integrand_approx,
                 phe->k_size*sizeof(double),
@@ -902,7 +925,7 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
     /* Define integrand for approximated function */
     for (index_k=0; index_k<phe->k_size; index_k++) {
-      integrand_approx[index_k] = 4.*0.81*pow(phe->k[index_k],1.)*
+      integrand_approx[index_k] = 4.*A_wkb*A_wkb*pow(phe->k[index_k],1.)*
                               phe->pk_primordial_k[index_k]*
                               exp(-2.*pow(phe->k[index_k]/phe->kD,2.))*
                               phe->dkD_dz;

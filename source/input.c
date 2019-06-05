@@ -2148,7 +2148,7 @@ int input_read_parameters_species(struct file_content * pfc,
   /* Read */
   class_read_int("N_ncdm",N_ncdm);
   /* Complete set of parameters */
-  if ((flag1 == _TRUE_) && (N_ncdm > 0)){
+  if (N_ncdm > 0){
     pba->N_ncdm = N_ncdm;
     if (ppt->gauge == synchronous){
       ppr->tol_ncdm = ppr->tol_ncdm_synchronous;

@@ -74,6 +74,7 @@ struct heating{
   double Omega0_b;
   double Omega0_cdm;
   double rho0_cdm;
+  double f_nu_wkb;
   /* Redshift dependent, i.e. defined in heating_calculate_at_z or heating_at_z_second_order */
   double H;
   double a;
