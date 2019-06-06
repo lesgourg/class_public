@@ -411,7 +411,7 @@ int perturb_init(
         } /* end of loop over wavenumbers */
 
 #ifdef _OPENMP
-        if (ppt->perturbations_verbose>1)
+        if (ppt->perturbations_verbose>2)
           printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
                  __func__,tspent,omp_get_thread_num());
 #endif
@@ -5370,6 +5370,7 @@ int perturb_approximations(
         }
         else{
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+          //printf("tca_dark_off = %d\n",tau);
         }
       }
     }
@@ -8028,19 +8029,14 @@ int perturb_derivs(double tau,
         // an extra factor *(4./3.) should be here according to ethos, added to Sinv
       }
       else{
-        //Seb//tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
-          //(-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
-           //(.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
-        tca_slip_dark = (pth->nindex_dark+Sinv/(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
-            (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
-            (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
-        //Seb//tca_shear_dark = 8./15./dmu_dark/ppt->alpha_dark[0]*y[pv->index_pt_theta_idm];
-        ppw->tca_shear_dark = 0.5*8./15./dmu_dark/ppt->alpha_dark[0]*(y[pv->index_pt_theta_idm]+metric_shear);
-        //Seb//dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
-        //y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
-        dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
-                                                   y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
+        tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
+                        (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
+                        (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
 
+        ppw->tca_shear_dark = 0.5*8./15./dmu_dark/ppt->alpha_dark[0]*(y[pv->index_pt_theta_idm]+metric_shear);
+
+        dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
+                                     y[pv->index_pt_delta_idm] + k2*Sinv*(1./4.*delta_idr) - ppw->tca_shear_dark) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
       }
     }
 
