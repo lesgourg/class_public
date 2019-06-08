@@ -7664,7 +7664,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark=0.;
+  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark=0., slip_factor=0.;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -8030,13 +8030,14 @@ int perturb_derivs(double tau,
       }
       else{
 
-        //if (k==1.){
-        //   FILE * out=fopen("output/n4_0.1tca_tau_fac.dat","a");
-        //   fprintf(out,"%e %e\n",tau,(pth->nindex_dark+1-1./(1.+Sinv))*a_prime_over_a);
-        //   fclose(out);
-        //}
-
-        tca_slip_dark = (pth->nindex_dark+1-1./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
+        //(pth->nindex_dark+1.-1./(1.+Sinv))*a_prime_over_a this is the correct factor
+        if (pth->nindex_dark == 4.0){
+           slip_factor=(pth->nindex_dark-2./(1.+Sinv));
+        }
+        else{
+           slip_factor=(pth->nindex_dark+1.-1./(1.+Sinv));
+        }
+        tca_slip_dark = slip_factor*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
                         (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
                         (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
 
@@ -8044,6 +8045,11 @@ int perturb_derivs(double tau,
 
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
                                      y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
+        /*if (k==200.){
+           FILE * out=fopen("output/n4_file.dat","a");
+           fprintf(out,"%e %e %e %e\n",tau,tca_slip_dark,ppw->tca_shear_dark,dy[pv->index_pt_theta_idm]);
+           fclose(out);
+        }*/
       }
     }
 
