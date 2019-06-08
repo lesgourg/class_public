@@ -8029,8 +8029,14 @@ int perturb_derivs(double tau,
         // an extra factor *(4./3.) should be here according to ethos, added to Sinv
       }
       else{
-        //printf("%e\n",1./(1.+Sinv)/dmu_dark);
-        tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
+
+        //if (k==1.){
+        //   FILE * out=fopen("output/n4_0.1tca_tau_fac.dat","a");
+        //   fprintf(out,"%e %e\n",tau,(pth->nindex_dark+1-1./(1.+Sinv))*a_prime_over_a);
+        //   fclose(out);
+        //}
+
+        tca_slip_dark = (pth->nindex_dark+1-1./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
                         (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
                         (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
 
