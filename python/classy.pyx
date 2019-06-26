@@ -688,55 +688,6 @@ cdef class Class:
         free(pvecback)
         return r[:],dzdr[:]
 
-    def com_dist(self,z_array):
-        cdef double tau=0.0
-        cdef int last_index=0 #junk
-        cdef double * pvecback
-        r = np.zeros(len(z_array),'float64')
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        i = 0
-        for redshift in z_array:
-            if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
-
-            if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
-
-            # store r
-            r[i] = pvecback[self.ba.index_bg_conf_distance]
-
-            i += 1
-
-        free(pvecback)
-        return r[:]
-
-    def Hz(self,z_array):
-        cdef double tau=0.0
-        cdef int last_index=0 #junk
-        cdef double * pvecback
-        r = np.zeros(len(z_array),'float64')
-        dzdr = np.zeros(len(z_array),'float64')
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        i = 0
-        for redshift in z_array:
-            if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
-
-            if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
-
-            # store dz/dr = H
-            dzdr[i] = pvecback[self.ba.index_bg_H]
-
-            i += 1
-
-        free(pvecback)
-        return dzdr[:]
-
     def luminosity_distance(self, z):
         """
         luminosity_distance(z)
@@ -960,29 +911,33 @@ cdef class Class:
 
         # 1) Select the correct function
         if nonlinear:
-            if cdmbar:
+            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
                 pk_function = self.pk_cb
             else:
                 pk_function = self.pk
         else:
-            if cdmbar:
+            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
                 pk_function = self.pk_cb_lin
             else:
                 pk_function = self.pk_lin
 
         # 2) Check if z array, or z value
-        if not isinstance(z,list):
+        if not isinstance(z,(list,np.ndarray)):
             # Only single z value was passed -> k could still be an array of arbitrary dimension
-            if not isinstance(k,list):
+            if not isinstance(k,(list,np.ndarray)):
                 # Only single z value AND only single k value -> just return a value
                 # This iterates over ALL remaining dimensions
                 return pk_function(k,z)
             else:
                 k_arr = np.array(k)
                 out_pk = np.empty(np.shape(k_arr))
+                iterator = np.nditer(k_arr,flags=['multi_index'])
+                while not iterator.finished:
+                    out_pk[iterator.multi_index] = pk_function(iterator[0],z)
+                    iterator.iternext()
                 # This iterates over ALL remaining dimensions
-                for index_k in range(k_arr.shape[-1]):
-                    out_pk[...,index_k] = pk_function(k_arr[...,index_k],z)
+                #for index_k in range(k_arr.shape[-1]):
+                #    out_pk[...,index_k] = pk_function(k_arr[...,index_k],z)
                 return out_pk
 
         # 3) An array of z values was passed
@@ -1000,23 +955,31 @@ cdef class Class:
             if( len(k_arr) != len(z_arr) ):
                 raise CosmoSevereError("Mismatching array lengths of the z-array")
             for index_z in range(len(z_arr)):
+                iterator = np.nditer(k_arr[index_z],flags=['multi_index'])
+                while not iterator.finished:
+                    out_pk[index_z][iterator.multi_index] = pk_function(iterator[0],z[index_z])
+                    iterator.iternext()
                 # This iterates over ALL remaining dimensions
-                for index_k in range(k_arr[index_z].shape[-1]):
-                    out_pk[index_z][...,index_k] = pk_function(k_arr[index_z][...,index_k],z_arr[index_z])
+                #for index_k in range(k_arr[index_z].shape[-1]):
+                #    out_pk[index_z][...,index_k] = pk_function(k_arr[index_z][...,index_k],z_arr[index_z])
             # Move the z_axis back into position
             k_arr = np.moveaxis(k_arr, 0, z_axis_in_k_arr)
             out_pk = np.moveaxis(out_pk, 0, z_axis_in_k_arr)
             return out_pk
         else:
             # 3.2) If there is a multi-dimensional k-array of UNEQUAL lenghts
-            if isinstance(k_arr[0],list):
+            if isinstance(k_arr[0],(list,np.ndarray)):
                 # A very special thing happened: The user passed a k array with UNEQUAL lengths of k arrays for each z
                 out_pk = []
                 for index_z in range(len(z_arr)):
                     k_arr_at_z = np.array(k_arr[index_z])
                     out_pk_at_z = np.empty(np.shape(k_arr_at_z))
-                    for index_k in range(k_arr_at_z.shape[-1]):
-                       out_pk_at_z[...,index_k] = pk_function(k_arr_at_z[...,index_k],z_arr[index_z])
+                    iterator = np.nditer(k_arr_at_z,flags=['multi_index'])
+                    while not iterator.finished:
+                        out_pk_at_z[iterator.multi_index] = pk_function(iterator[0],z[index_z])
+                        iterator.iternext()
+                    #for index_k in range(k_arr_at_z.shape[-1]):
+                    #   out_pk_at_z[...,index_k] = pk_function(k_arr_at_z[...,index_k],z_arr[index_z])
                     out_pk.append(out_pk_at_z)
                 return out_pk
 
@@ -1173,6 +1136,35 @@ cdef class Class:
         free(pvecback)
 
         return D_A
+
+    def comoving_distance(self, z):
+        """
+        comoving_distance(z)
+
+        Return the comoving distance
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        r = pvecback[self.ba.index_bg_conf_distance]
+
+        free(pvecback)
+
+        return r
 
     def scale_independent_growth_factor(self, z):
         """
