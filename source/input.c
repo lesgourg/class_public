@@ -1388,7 +1388,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for nonlinear quantities */
-  class_call(input_read_parameters_nonlinear(pfc,ppr,ppt,pnl,
+  class_call(input_read_parameters_nonlinear(pfc,ppr,pba,ppt,pnl,
                                              input_verbose,
                                              errmsg),
              errmsg,
@@ -2577,6 +2577,7 @@ int input_read_parameters_heating(struct file_content * pfc,
  */
 int input_read_parameters_nonlinear(struct file_content * pfc,
                                     struct precision * ppr,
+                                    struct background * pba,
                                     struct perturbs * ppt,
                                     struct nonlinear * pnl,
                                     int input_verbose,
