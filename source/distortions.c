@@ -210,7 +210,7 @@ int distortions_set_detector(struct precision * ppr,
     /* The user wants the default */
     if(psd->user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_){
       if(psd->distortions_verbose > 0){
-        printf("  -> Using the default (%s) detector\n",psd->sd_detector_name);
+        printf(" -> Using the default (%s) detector\n",psd->sd_detector_name);
       }
       return _SUCCESS_; // Nothing more to do
     }
@@ -258,13 +258,13 @@ int distortions_set_detector(struct precision * ppr,
       /* Detector has been found */
       if(strcmp(psd->sd_detector_name,detector_name)==0){
         if(psd->distortions_verbose > 0){
-          printf("  -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
+          printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
         }
         found_detector = _TRUE_;
 
         if(has_detector_noise_file){
           if (psd->distortions_verbose > 1){
-            printf("  -> Properties:    Noise file name = %s \n",
+            printf(" -> Properties:    Noise file name = %s \n",
                         detector_noise_file_name);
           }
          if(psd->has_detector_file){
@@ -282,7 +282,7 @@ int distortions_set_detector(struct precision * ppr,
         }
         else{
           if (psd->distortions_verbose > 1){
-            printf("  -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
+            printf(" -> Properties:    nu_min = %lg    nu_max = %lg    delta_nu = %lg    N_bins = %i    delta_Ic = %lg \n",
                         nu_min, nu_max, nu_delta, N_bins, delta_Ic);
           }
           /* If the user has defined the detector, check that their and our definitions agree */
@@ -331,7 +331,7 @@ int distortions_set_detector(struct precision * ppr,
   if(found_detector == _FALSE_){
     if(psd->user_defined_detector || psd->has_detector_file){
       if(psd->distortions_verbose > 0){
-        printf("  -> Generating detector '%s' \n",psd->sd_detector_name);
+        printf(" -> Generating detector '%s' \n",psd->sd_detector_name);
       }
       class_call(distortions_generate_detector(ppr,psd),
                  psd->error_message,
@@ -374,7 +374,7 @@ int distortions_generate_detector(struct precision * ppr,
 
   /* Test first whether or not python exists*/
   if(psd->distortions_verbose > 0){
-    printf("  -> Testing python\n");
+    printf(" -> Testing python\n");
   }
   is_success = system("python --version");
   class_test(is_success == -1,
@@ -383,7 +383,7 @@ int distortions_generate_detector(struct precision * ppr,
 
   /* Then activate the PCA generator*/
   if(psd->distortions_verbose > 0){
-    printf("  -> Executing the PCA generator\n");
+    printf(" -> Executing the PCA generator\n");
   }
 
   if(psd->has_detector_file){
@@ -802,7 +802,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /** Compute distortion amplitudes corresponding to each branching ratio (g, y and mu) */
   /* Define y, mu, g and mu_k from heating rates */
   for(index_type=0; index_type<psd->type_size; ++index_type){
-    class_call(array_trapezoidal_convolution(psd->dQrho_dz_tot_screened,
+    class_call(array_trapezoidal_convolution(psd->dQrho_dz_tot,
                                              psd->br_table[index_type],
                                              psd->z_size,
                                              psd->z_weights,
@@ -966,7 +966,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /** Print found parameters */
   if (psd->distortions_verbose > 1){
 
-    printf(" -> g-parameter %g\n", psd->sd_parameter_table[psd->index_type_g]);
+    if ( psd->distortions_verbose > 3){
+      printf(" -> g-parameter %g (Note, that this does not include contributions from earlier than sd_z_max=%g)\n", psd->sd_parameter_table[psd->index_type_g], ppr->sd_z_max);
+    }
 
     if (psd->sd_parameter_table[psd->index_type_mu] > 9.e-5) {
       printf(" -> mu-parameter = %g. WARNING: The value of your mu-parameter is larger than the FIRAS constraint mu<9e-5.\n", psd->sd_parameter_table[psd->index_type_mu]);

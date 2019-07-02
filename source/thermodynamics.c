@@ -1183,7 +1183,7 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
   class_test(pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g] >
              pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g],
              pth->error_message,
-             "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
+             "The visibility function is not increasing at redshift _Z_REC_MAX_=%g, which is the value imposed in thermodynamics.h\n This implies that recombination must have already happened at a too early time.",_Z_REC_MAX_);
 
   while (pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g] <
          pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]) {
@@ -1204,11 +1204,11 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
 
   class_test(pth->z_rec+ppr->smallest_allowed_variation >= _Z_REC_MAX_,
              pth->error_message,
-             "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
+             "recombination (at z=%g) happens before _Z_REC_MAX_=%g, which is the maximum value imposed in thermodynamics.h",pth->z_rec+ppr->smallest_allowed_variation,_Z_REC_MAX_);
 
   class_test(pth->z_rec-ppr->smallest_allowed_variation <= _Z_REC_MIN_,
              pth->error_message,
-             "found a recombination redshift smaller or equal to the maximum value imposed in thermodynamics.h, z_rec_min=%g",_Z_REC_MIN_);
+             "recombination (at z=%g) happens after _Z_REC_MIN_=%g, which is the minimum value imposed in thermodynamics.h",pth->z_rec-ppr->smallest_allowed_variation,_Z_REC_MIN_);
 
   /** - find conformal recombination time using background_tau_of_z **/
 
@@ -2026,6 +2026,17 @@ int thermodynamics_solve_derivs(double mz,
         - phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z))  /* Heating from energy injection */
         - ptw->Tcmb;                                                              /* dTrad/dz */
   }
+
+  /*
+   * If we have extreme heatings, recombination does not fully happen
+   * and/or re-ionization happens before a redshift of reionization_z_start_max (default = 50).
+   *
+   * */
+  class_test(x>1.0 && ap_current != ptdw->index_ap_reio && z < ppr->z_end_reco_test,
+             pth->error_message,
+             "At redshift %.5g : Recombination did not complete by redshift %.5g, or re-ionization happened before %.5g.\nIf this is a desired behavior, please adjust z_end_reco_test and/or reionization_z_start_max.",
+             z,ppr->z_end_reco_test,ppr->reionization_z_start_max);
+
 
   /* time-invert derivatives (As the evolver evolves with -z, not with +z) */
   for(index_y=0;index_y<ptdw->tv->tv_size;index_y++){

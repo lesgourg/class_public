@@ -100,7 +100,10 @@ class_precision_parameter(tol_thermo_integration,double,1.0e-6)
  * Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards
  */
 class_precision_parameter(thermo_rate_smoothing_radius,int,50)
-
+/**
+ * Redshift at which CLASS starts to test for too early re-ionization and/or incomplete recombination
+ */
+class_precision_parameter(z_end_reco_test,double,500.)
 /*
  * Recfast 1.4/1.5 parameters
  */
@@ -402,17 +405,17 @@ class_precision_parameter(halofit_min_k_max,double,5.0) /**< when halofit is use
                                they are smaller */
 
 class_precision_parameter(halofit_k_per_decade,double,80.0) /**< halofit needs to evalute integrals
-                                  (linear power spectrum times some
-                                  kernels). They are sampled using
-                                  this logarithmic step size. */
+                               (linear power spectrum times some
+                               kernels). They are sampled using
+                               this logarithmic step size. */
 
 class_precision_parameter(halofit_sigma_precision,double,0.05) /**< a smaller value will lead to a
-				      more precise halofit result at the *highest*
-				      redshift at which halofit can make computations,
-				      at the expense of requiring a larger k_max; but
-				      this parameter is not relevant for the
-				      precision on P_nl(k,z) at other redshifts, so
-				      there is normally no need to change it */
+                               more precise halofit result at the *highest*
+                               redshift at which halofit can make computations,
+                               at the expense of requiring a larger k_max; but
+                               this parameter is not relevant for the
+                               precision on P_nl(k,z) at other redshifts, so
+                               there is normally no need to change it */
 
 class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance required on sigma(R) when
                                matching the condition sigma(R_nl)=1,
@@ -442,6 +445,7 @@ class_precision_parameter(sd_z_size,int,400)
 class_precision_parameter(sd_x_min,double,1.0e-2)
 class_precision_parameter(sd_x_max,double,5.0e1)
 class_precision_parameter(sd_x_size,int,500)
+
 /**
  * Tolerance on the deviation of the distortions detector quality
  */
