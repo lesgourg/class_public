@@ -92,23 +92,6 @@ int heating_init(struct precision * ppr,
                 phe->error_message);
   }
 
-  /* Check energy injection */
-  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporation_fraction!=0 || phe->PBH_accretion_fraction!=0){
-    phe->has_exotic_injection = _TRUE_;
-  }
-  if(phe->DM_annihilation_efficiency!=0){
-    phe->has_DM_ann = _TRUE_;
-  }
-  if(phe->DM_decay_fraction!=0){
-    phe->has_DM_dec = _TRUE_;
-  }
-  if(phe->PBH_evaporation_fraction!=0){
-    phe->has_PBH_eva = _TRUE_;
-  }
-  if(phe->PBH_accretion_fraction!=0){
-    phe->has_PBH_acc = _TRUE_;
-  }
-
   /* Calculate the PBH mass evolution, if needed */
   if(phe->has_PBH_eva == _TRUE_ ){
     class_call(heating_rate_PBH_evaporation_mass_evolution(pba,phe),
@@ -184,6 +167,24 @@ int heating_indices(struct thermo* pth){
   /** Define local variable */
   struct heating* phe = &(pth->he);
   int index_dep,index_inj;
+
+
+  /* Check energy injection */
+  if(phe->DM_annihilation_efficiency!=0 || phe->DM_decay_fraction!=0 || phe->PBH_evaporation_fraction!=0 || phe->PBH_accretion_fraction!=0){
+    phe->has_exotic_injection = _TRUE_;
+  }
+  if(phe->DM_annihilation_efficiency!=0){
+    phe->has_DM_ann = _TRUE_;
+  }
+  if(phe->DM_decay_fraction!=0){
+    phe->has_DM_dec = _TRUE_;
+  }
+  if(phe->PBH_evaporation_fraction!=0){
+    phe->has_PBH_eva = _TRUE_;
+  }
+  if(phe->PBH_accretion_fraction!=0){
+    phe->has_PBH_acc = _TRUE_;
+  }
 
   /** Indices for injection table */
   index_inj = 0;
