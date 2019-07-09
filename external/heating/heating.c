@@ -292,7 +292,7 @@ int heating_calculate_at_z(struct background* pba,
   phe->T_b = Tmat;                                                                                  // [K]
   phe->x_e = x;                                                                                     // [-]
   phe->nH = phe->N_e0*pow(1.+z,3);                                                                  // [1/m^3]
-  phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->f_He+phe->x_e);                               // [J/(K m^3)]
+  phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);                                // [J/(K m^3)]
   dEdz_inj = 0.;
 
   /** Import varying quantities from background structure */
@@ -719,6 +719,7 @@ int heating_add_noninjected(struct background* pba,
 
   phe->f_nu_wkb = (1.-pvecback[pba->index_bg_rho_g]/(pvecback[pba->index_bg_Omega_r]*pvecback[pba->index_bg_rho_crit]));
 
+  dEdt = 0.;
   /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<phe->z_size; ++index_z){
 
@@ -760,7 +761,7 @@ int heating_add_noninjected(struct background* pba,
     phe->T_b = pvecthermo[pth->index_th_Tb];                                                        // [K]
     phe->T_g = phe->T_g0*pow(phe->a,-1);                                                            // [K]
     phe->x_e = pvecthermo[pth->index_th_xe];                                                        // [-]
-    phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->f_He+phe->x_e);                             // [J/(K m^3)]
+    phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);                             // [J/(K m^3)]
 
     /** Injected energy that does not need to be deposited (i.e. adiabatic terms) */
     /* First order cooling of photons due to adiabatic interaction with baryons */

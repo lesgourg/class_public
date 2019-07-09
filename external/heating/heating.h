@@ -88,7 +88,6 @@ struct heating{
   /* Parameters from thermodynamics structure */
   /* Redshift independent, i.e. defined in heating_init */
   double Y_He;
-  double f_He;
   double fHe;
   double heat_capacity;
   double N_e0;
