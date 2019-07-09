@@ -3227,12 +3227,24 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
     /* reionization redshift */
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift] = z_mid;
     /* infer starting redshift for hygrogen */
+    //for(int i=0;i<pth->tt_size-1;++i){
+    //  printf("%.10e   %.10e\n",pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe],
+    //                     pth->z_table[i]);
+    //  if(pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]<0.5){
+    //    if(pth->thermodynamics_table[(i+1)*pth->th_size+pth->index_th_xe]<pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]){
+    //      ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = pth->z_table[i];
+    //    }
+    //  }
+    //}
+    //printf("NEW CLASS: %g\n",ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start]);
+
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
     /* if starting redshift for helium is larger, take that one
      *    (does not happen in realistic models) */
     if(ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] < pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width){
         ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
     }
+    //printf("OLD CLASS: %g\n",ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start]);
 
     class_test(ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] > ppr->reionization_z_start_max,
                pth->error_message,
