@@ -3226,25 +3226,14 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
 
     /* reionization redshift */
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift] = z_mid;
-    /* infer starting redshift for hygrogen */
-    //for(int i=0;i<pth->tt_size-1;++i){
-    //  printf("%.10e   %.10e\n",pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe],
-    //                     pth->z_table[i]);
-    //  if(pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]<0.5){
-    //    if(pth->thermodynamics_table[(i+1)*pth->th_size+pth->index_th_xe]<pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]){
-    //      ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = pth->z_table[i];
-    //    }
-    //  }
-    //}
-    //printf("NEW CLASS: %g\n",ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start]);
 
+    /* infer starting redshift for hygrogen (Note, that this is only the start of the ADDITIONAL tanh re-ionization function)*/
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift]+ppr->reionization_start_factor*pth->reionization_width;
     /* if starting redshift for helium is larger, take that one
      *    (does not happen in realistic models) */
     if(ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] < pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width){
         ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
     }
-    //printf("OLD CLASS: %g\n",ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start]);
 
     class_test(ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] > ppr->reionization_z_start_max,
                pth->error_message,
@@ -3337,14 +3326,29 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
   /* running index inside thermodynamics table */
   int i,integration_index;
 
-  /** - --> search of index of reionization start in current table */
-  i=0;
-  while (pth->z_table[i] < ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start]){
-    i++;
-    class_test(i == pth->tt_size,
-               pth->error_message,
-               "reionization_z_start_max = %e > largest redshift in thermodynamics table",ppr->reionization_z_start_max);
+  /**
+   * We are searching now for the start of re-ionization.
+   * Note, that the value reionization_parameters[index_reio_start]
+   * is only the start of the added re-ionization tanh,
+   * but not necessarily the total start of re-ionizatiom
+   *
+   * Re-ionization could be longer/shifted through energy injections.
+   * */
+  for(i=0;i<pth->tt_size-1;++i){
+    // Only search in non-ionized regions for the start of re-ionization
+    if(pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]<0.5){
+      // If the ionization fraction starts to grow again, it must be the minimum, so the start of re-ionization
+      // Alternatively: Find global minimum?
+      if(pth->thermodynamics_table[(i+1)*pth->th_size+pth->index_th_xe]>pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]){
+        //The starting redshift of re-ionization is now = pth->z_table[i], with index i
+        break;
+      }
+    }
   }
+
+  class_test(i == pth->tt_size,
+             pth->error_message,
+             "reionization start = %e > largest redshift in thermodynamics table",pth->z_table[i]);
 
   integration_index=i;
 
