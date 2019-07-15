@@ -3205,11 +3205,64 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
              pth->error_message,
              "parameters are such that reionization cannot start after z_start_max");
 
-  /* lower value */
+  /* Restore initial conditions */
+  ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
+  ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
+  ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
+  ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+  ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
+  ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
 
-  /* We trivially bracket the lower value by zero. */
+  /* lower value */
   z_inf = 0.;
-  tau_inf = 0.;
+
+  /* minimum possible reionization redshift */
+  ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift] = z_inf;
+  /* minimum possible starting redshift */
+  ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = ppr->reionization_start_factor*pth->reionization_width;
+  if(ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] < pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width){
+      ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
+  }
+
+  if(ppr->evolver == rk){
+    generic_evolver = evolver_rk;
+  }
+  else{
+    generic_evolver = evolver_ndf15;
+  }
+
+  /* Calculate a first ionization history  at upper limit */
+  class_call(generic_evolver(thermodynamics_solve_derivs,
+                             mz_ini,
+                             mz_end,
+                             ptv->y,
+                             ptv->used_in_output,
+                             ptv->tv_size,
+                             ptpaw,
+                             ppr->tol_thermo_integration,
+                             ppr->smallest_allowed_variation,
+                             thermodynamics_solve_timescale,  // timescale
+                             1., // stepsize
+                             mz_output, // values of z for output
+                             Nz, // size of previous array
+                             thermodynamics_solve_store_sources, // function for output
+                             NULL, // print variables
+                             pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+  class_call(thermodynamics_reionization_get_tau(ppr,
+                                                 pba,
+                                                 pth,
+                                                 ptw),
+             pth->error_message,
+             pth->error_message);
+
+  tau_inf=ptw->reionization_optical_depth;
+
+  class_test(tau_inf > pth->tau_reio,
+             pth->error_message,
+             "CLASS cannot reach the low value of tau_reio that was selected, even when setting z_reio as low as 0.\nThis means that some additional physical component is requiring some minimal tau_reio_min = %.10e.\nThis is usually caused by strong energy injections or other modifications of the x_e(z) behaviour.",tau_inf);
 
   /* Restore initial conditions */
   ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
@@ -3325,6 +3378,9 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
   /** Define local variables */
   /* running index inside thermodynamics table */
   int i,integration_index;
+  double x_e_min;
+
+  x_e_min = 1e100;
 
   /**
    * We are searching now for the start of re-ionization.
@@ -3333,24 +3389,22 @@ int thermodynamics_reionization_get_tau(struct precision * ppr,
    * but not necessarily the total start of re-ionizatiom
    *
    * Re-ionization could be longer/shifted through energy injections.
+   *
+   * Please note, that actually the definition of tau_reio is not
+   * clearly defined. We take it here to be the global minimum of
+   * the free electron fraction. Note, that this is a choice!
    * */
   for(i=0;i<pth->tt_size-1;++i){
-    // Only search in non-ionized regions for the start of re-ionization
-    if(pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]<0.5){
-      // If the ionization fraction starts to grow again, it must be the minimum, so the start of re-ionization
-      // Alternatively: Find global minimum?
-      if(pth->thermodynamics_table[(i+1)*pth->th_size+pth->index_th_xe]>pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]){
-        //The starting redshift of re-ionization is now = pth->z_table[i], with index i
-        break;
-      }
+    if(pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]<x_e_min){
+      x_e_min = pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe];
+      integration_index = i;
     }
   }
 
-  class_test(i == pth->tt_size,
+  class_test(integration_index == pth->tt_size,
              pth->error_message,
              "reionization start = %e > largest redshift in thermodynamics table",pth->z_table[i]);
 
-  integration_index=i;
 
   /** - --> spline \f$ d \tau / dz \f$ with respect to z in view of integrating for optical depth between 0 and the just found starting index */
   class_call(array_spline_table_line_to_line(pth->tau_table,

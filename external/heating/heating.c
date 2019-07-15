@@ -1669,3 +1669,44 @@ int heating_read_chi_x_from_file(struct precision* ppr,
 
 
 
+
+/**
+ * Outputs
+ */
+int heating_output_titles(struct heating * phe, char titles[_MAXTITLESTRINGLENGTH_]){
+
+  class_store_columntitle(titles,"Redshift z",_TRUE_);
+  class_store_columntitle(titles,"Heat_photon [-]",_TRUE_);
+  class_store_columntitle(titles,"Heat_baryon [-]",_TRUE_);
+  class_store_columntitle(titles,"IonH_baryon [-]",_TRUE_);
+  class_store_columntitle(titles,"IonHe_baryon [-]",_TRUE_);
+  class_store_columntitle(titles,"Lya_baryon [-]",_TRUE_);
+  class_store_columntitle(titles,"LH_photon [-]",_TRUE_);
+  class_store_columntitle(titles,"LH_baryon [-]",_TRUE_);
+
+  return _SUCCESS_;
+}
+
+int heating_output_data(struct heating * phe,
+                        int number_of_titles,
+                        double * data){
+  int storeidx;
+  double * dataptr;
+  int index_z;
+
+  for (index_z=0; index_z<phe->z_size; index_z++) {
+    dataptr = data + index_z*number_of_titles;
+    storeidx = 0;
+    class_store_double(dataptr, phe->z_table[index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, phe->photon_dep_table[index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, phe->deposition_table[phe->index_dep_heat][index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, phe->deposition_table[phe->index_dep_ionH][index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, phe->deposition_table[phe->index_dep_ionHe][index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, phe->deposition_table[phe->index_dep_lya][index_z], _TRUE_, storeidx);
+    class_store_double(dataptr, phe->photon_dep_table[index_z]*(1.+phe->z_table[index_z]), _TRUE_, storeidx);
+    class_store_double(dataptr, phe->deposition_table[phe->index_dep_heat][index_z]*(1.+phe->z_table[index_z]), _TRUE_, storeidx);
+  }
+
+  return _SUCCESS_;
+}
+

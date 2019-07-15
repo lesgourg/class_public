@@ -299,6 +299,11 @@ extern "C" {
                                    struct heating* phe,
                                    char* chi_x_file);
 
+  int heating_output_titles(struct heating* phe,char* titles_heat);
+
+  int heating_output_data(struct heating * phe,
+                          int number_of_titles,
+                          double * data);
 
 #ifdef __cplusplus
 }

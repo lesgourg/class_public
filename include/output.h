@@ -147,6 +147,11 @@ extern "C" {
                         struct output * pop
                         );
 
+  int output_heating(
+                     struct heating* phe,
+                     struct output * pop
+                     );
+
   /* [ML] */
   int output_distortions(
                          struct distortions * psd,

@@ -110,7 +110,6 @@ int distortions_free(struct distortions * psd) {
 
     /** Delete heating functions */
     free(psd->dQrho_dz_tot);
-    free(psd->dQrho_dz_tot_screened);
 
     /** Delete distortion shapes */
     for(index_type=0;index_type<psd->type_size;++index_type){
@@ -722,9 +721,6 @@ int distortions_compute_heating_rate(struct background* pba,
   class_alloc(psd->dQrho_dz_tot,
               psd->z_size*sizeof(double*),
               psd->error_message);
-  class_alloc(psd->dQrho_dz_tot_screened,
-              psd->z_size*sizeof(double*),
-              psd->error_message);
 
   /* Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<psd->z_size; ++index_z){
@@ -759,7 +755,6 @@ int distortions_compute_heating_rate(struct background* pba,
 
     /** Calculate total heating rate */
     psd->dQrho_dz_tot[index_z] = heat*a/(H*rho_g);                                                  // [-]
-    psd->dQrho_dz_tot_screened[index_z] = psd->dQrho_dz_tot[index_z]*bb_vis;                        // [-]
   }
 
   free(pvecback);
@@ -1716,18 +1711,17 @@ int distortions_read_detector_noisefile(struct precision * ppr,
 /**
  * Outputs
  */
-int heating_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]){
+int distortions_output_heat_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]){
 
   class_store_columntitle(titles,"Redshift z",_TRUE_);
   class_store_columntitle(titles,"Heat  [-]",_TRUE_);
   class_store_columntitle(titles,"LHeat [-]",_TRUE_);
-  class_store_columntitle(titles,"EHeat [-]",_TRUE_);
 
   return _SUCCESS_;
 }
-int heating_output_data(struct distortions * psd,
-                        int number_of_titles,
-                        double * data){
+int distortions_output_heat_data(struct distortions * psd,
+                                 int number_of_titles,
+                                 double * data){
   int storeidx;
   double * dataptr;
   int index_z;
@@ -1738,13 +1732,12 @@ int heating_output_data(struct distortions * psd,
     class_store_double(dataptr, psd->z[index_z], _TRUE_, storeidx);
     class_store_double(dataptr, psd->dQrho_dz_tot[index_z], _TRUE_, storeidx);
     class_store_double(dataptr, psd->dQrho_dz_tot[index_z]*(1.+psd->z[index_z]), _TRUE_, storeidx);
-    class_store_double(dataptr, psd->dQrho_dz_tot_screened[index_z]*(1.+psd->z[index_z]), _TRUE_, storeidx);
   }
 
   return _SUCCESS_;
 }
 
-int distortions_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]){
+int distortions_output_sd_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]){
 
   char temp_title[256];
   int index_type;
@@ -1769,9 +1762,9 @@ int distortions_output_titles(struct distortions * psd, char titles[_MAXTITLESTR
 
   return _SUCCESS_;
 }
-int distortions_output_data(struct distortions * psd,
-                            int number_of_titles,
-                            double * data){
+int distortions_output_sd_data(struct distortions * psd,
+                               int number_of_titles,
+                               double * data){
   int index_type;
   int storeidx;
   double * dataptr;

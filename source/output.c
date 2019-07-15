@@ -205,6 +205,14 @@ int output_init(
                pop->error_message);
 
   }
+  /** - deal with heating [NS]*/
+
+  if (pop->write_heating == _TRUE_) {
+
+    class_call(output_heating(&(pth->he),pop),
+               pop->error_message,
+               pop->error_message);
+  }
 
   /** - deal with spectral distortions [ML] */
 
@@ -1527,6 +1535,62 @@ int output_primordial(
   return _SUCCESS_;
 }
 
+int output_heating(struct heating* phe, struct output * pop) {
+
+  /** Local variables*/
+  FileName file_name_heat;
+  FILE * out_heat;
+
+  char titles_heat[_MAXTITLESTRINGLENGTH_]={0};
+
+  double * data_heat;
+  int size_data_heat;
+  int number_of_titles_heat;
+
+  if(pop->write_heating==_TRUE_){
+
+    /* File name */
+    sprintf(file_name_heat,"%s%s",pop->root,"heating.dat");
+
+    /* Titles */
+    class_call(heating_output_titles(phe,titles_heat),
+               phe->error_message,
+               phe->error_message);
+    number_of_titles_heat = get_number_of_titles(titles_heat);
+
+    /* Data array */
+    size_data_heat = number_of_titles_heat*phe->z_size;
+    class_alloc(data_heat,
+                sizeof(double)*size_data_heat,
+                pop->error_message);
+    class_call(heating_output_data(phe,
+                                   number_of_titles_heat,
+                                   data_heat),
+               phe->error_message,
+               pop->error_message);
+
+    /* File IO */
+    class_open(out_heat,
+               file_name_heat,
+               "w",
+               pop->error_message);
+
+    if(pop->write_header){
+      fprintf(out_heat,"# Heat is dE/dt|dep_h\n");
+    }
+
+    output_print_data(out_heat,
+                      titles_heat,
+                      data_heat,
+                      size_data_heat);
+    free(data_heat);
+    fclose(out_heat);
+
+  }
+
+  return _SUCCESS_;
+}
+
 /* [ML] */
 int output_distortions(
                        struct distortions * psd,
@@ -1539,18 +1603,18 @@ int output_distortions(
 
   char titles_heat[_MAXTITLESTRINGLENGTH_]={0};
   char titles_distortion[_MAXTITLESTRINGLENGTH_]={0};
-  
+
   double * data_heat, * data_distortion;
   int size_data_heat, size_data_distortion;
   int number_of_titles_heat, number_of_titles_distortion;
 
-  if(pop->write_heating==_TRUE_ && psd->has_distortions == _TRUE_){
+  if(pop->write_distortions==_TRUE_ && psd->has_distortions == _TRUE_){
 
     /* File name */
-    sprintf(file_name_heat,"%s%s",pop->root,"heating.dat");
+    sprintf(file_name_heat,"%s%s",pop->root,"sd_heating.dat");
 
     /* Titles */
-    class_call(heating_output_titles(psd,titles_heat),
+    class_call(distortions_output_heat_titles(psd,titles_heat),
                psd->error_message,
                pop->error_message);
     number_of_titles_heat = get_number_of_titles(titles_heat);
@@ -1560,9 +1624,9 @@ int output_distortions(
     class_alloc(data_heat,
                 sizeof(double)*size_data_heat,
                 pop->error_message);
-    class_call(heating_output_data(psd,
-                                   number_of_titles_heat,
-                                   data_heat),
+    class_call(distortions_output_heat_data(psd,
+                                            number_of_titles_heat,
+                                            data_heat),
                psd->error_message,
                pop->error_message);
 
@@ -1575,8 +1639,6 @@ int output_distortions(
     if(pop->write_header){
       fprintf(out_heat,"# Heat is d(Q/rho)/dz\n");
       fprintf(out_heat,"# LHeat is d(Q/rho)/dlnz\n");
-      fprintf(out_heat,"# EHeat is f_bb(z)*d(Q/rho)/dlnz\n");
-      fprintf(out_heat,"# Here f_bb(z) is the black-body visibility function\n");
       fprintf(out_heat,"#\n");
     }
 
@@ -1586,15 +1648,12 @@ int output_distortions(
                       size_data_heat);
     free(data_heat);
     fclose(out_heat);
-  }
-
-  if(pop->write_distortions==_TRUE_ && psd->has_distortions == _TRUE_){
 
     /* File name */
-    sprintf(file_name_distortion,"%s%s",pop->root,"distortions.dat");
+    sprintf(file_name_distortion,"%s%s",pop->root,"sd_distortions.dat");
 
     /* Titles */
-    class_call(distortions_output_titles(psd,titles_distortion),
+    class_call(distortions_output_sd_titles(psd,titles_distortion),
                psd->error_message,
                pop->error_message);
     number_of_titles_distortion = get_number_of_titles(titles_distortion);
@@ -1604,9 +1663,9 @@ int output_distortions(
     class_alloc(data_distortion,
                 sizeof(double)*size_data_distortion,
                 pop->error_message);
-    class_call(distortions_output_data(psd,
-                                       number_of_titles_distortion,
-                                       data_distortion),
+    class_call(distortions_output_sd_data(psd,
+                                          number_of_titles_distortion,
+                                          data_distortion),
                psd->error_message,
                pop->error_message);
 

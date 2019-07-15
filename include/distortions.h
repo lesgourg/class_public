@@ -96,7 +96,6 @@ struct distortions
 
   /* Total heating function */
   double * dQrho_dz_tot;
-  double * dQrho_dz_tot_screened;
 
   /* Total heating rate */
   double Drho_over_rho;
@@ -256,15 +255,15 @@ extern "C" {
   int distortions_free_sd_data(struct distortions * psd);
 
   /* Output */
-  int heating_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);
-  int heating_output_data(struct distortions * psd,
-                          int number_of_titles,
-                          double * data);
+  int distortions_output_heat_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);
+  int distortions_output_heat_data(struct distortions * psd,
+                                   int number_of_titles,
+                                   double * data);
 
-  int distortions_output_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);
-  int distortions_output_data(struct distortions * psd,
-                              int number_of_titles,
-                              double * data);
+  int distortions_output_sd_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]);
+  int distortions_output_sd_data(struct distortions * psd,
+                                 int number_of_titles,
+                                 double * data);
 
 #ifdef __cplusplus
 }
