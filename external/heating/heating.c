@@ -1544,11 +1544,11 @@ int heating_read_chi_z_from_file(struct precision* ppr,
     /* Read coefficients */
     class_test(fscanf(fA,"%lg %lg %lg %lg %lg %lg",
                       &(phe->chiz_table[index_z*(2*phe->dep_size+1)+0]), //z
-                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1]), //heat
-                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+2]), //lya
-                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+3]), //ionH
-                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+4]), //ionHe
-                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+5])  //lowE
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1+phe->index_dep_heat]), //heat
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1+phe->index_dep_lya]), //lya
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1+phe->index_dep_ionH]), //ionH
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1+phe->index_dep_ionHe]), //ionHe
+                      &(phe->chiz_table[index_z*(2*phe->dep_size+1)+1+phe->index_dep_lowE])  //lowE
                      )!= 6,
                phe->error_message,
                "could not read value of parameters coefficients in line %i in file '%s'\n",
@@ -1637,11 +1637,11 @@ int heating_read_chi_x_from_file(struct precision* ppr,
     /* Read coefficients */
     class_test(fscanf(fA,"%lg %lg %lg %lg %lg %lg",
                       &(phe->chix_table[index_x*(2*phe->dep_size+1)+0]), //x
-                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1]), //heat
-                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+2]), //lya
-                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+3]), //ionH
-                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+4]), //ionHe
-                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+5])  //lowE
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1+phe->index_dep_heat]), //heat
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1+phe->index_dep_lya]), //lya
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1+phe->index_dep_ionH]), //ionH
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1+phe->index_dep_ionHe]), //ionHe
+                      &(phe->chix_table[index_x*(2*phe->dep_size+1)+1+phe->index_dep_lowE])  //lowE
                      )!= 6,
                phe->error_message,
                "could not read value of parameters coefficients in line %i in file '%s'\n",
