@@ -164,7 +164,6 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   /* For the final interpolation */
   double z_goalm1;
 
-
   /* Intermediate quantities that are used at some points locally */
   double xHeIISaha,dxHeIISaha_dlna,xH1s_p,xH1s_m,Dxe,DdxHeIIdlna_Dxe;
   double xH1s_in, xHeII_in;
@@ -177,6 +176,9 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
   /* Something related to switching off modes or not depending on pion */
   double Pion_TR_rescaled,Pion_RLya,Pion_four_betaB,Pion;
+
+  /* Switch off radiative transfer calculation if needed */
+  int model;
 
   /* Heating/Energy injection */
   struct heating* phe = &(pth->he);
@@ -368,7 +370,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
 
           /* Switch off radiative transfer calculation if needed (param->nzrt and izH0 are evaluated in rec_get_cosmoparam) */
-          int model = (Pion < PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
+          model = (Pion > PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
           if(phy->thermohyrec_verbose > 3){printf("[%i,%i] : Model %i (%i)\n",iz_out,phy->stage,model,EMLA2s2p);}
 
           xe_in = phy->xe_output[iz_in];
@@ -408,7 +410,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
           //rec_get_xe_next2_HTm
           //////////////////////////////
           /* Switch off radiative transfer calculation if needed */
-          int model = (Pion > PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
+          model = (Pion > PION_MAX || MODEL != FULL) ? MODEL : EMLA2s2p;
           if(phy->thermohyrec_verbose > 3){printf("[%i,%i] : Model %i (%i)\n",iz_out,phy->stage,model,EMLA2s2p);}
 
           xe_in = phy->xe_output[iz_in];
@@ -542,6 +544,9 @@ int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, 
                                            double H, double TR, double nH, double* xH1s, double ion, double exclya){
 
   double xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, Dxe;
+  int model;
+  if (MODEL == FULL) model = EMLA2s2p;
+  else model = MODEL;
 
   xH1sSaha = rec_saha_xH1s(xHeII, phy->nH0, phy->T0, z_out, phy->fsR, phy->meR);
   xHIISaha = 1.-xH1sSaha;
@@ -558,12 +563,12 @@ int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, 
                           /* (partial xHII)/(partial xHeII).dxHeII/dlna */
   }
 
-  dxH1sdlna_Saha = -rec_dxHIIdlna(MODEL, xHIISaha + xHeII, xHIISaha, nH, H, TR, TR, phy->rate_table, phy->twog_params,
+  dxH1sdlna_Saha = -rec_dxHIIdlna(model, xHIISaha + xHeII, xHIISaha, nH, H, TR, TR, phy->rate_table, phy->twog_params,
                                   phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya);
   Dxe            = 0.01*xH1sSaha;
-  DdxH1sdlna_DxH1s = (rec_dxHIIdlna(MODEL, xHIISaha+Dxe + xHeII, xHIISaha+Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
+  DdxH1sdlna_DxH1s = (rec_dxHIIdlna(model, xHIISaha+Dxe + xHeII, xHIISaha+Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
                                   phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya)
-                    -rec_dxHIIdlna(MODEL, xHIISaha-Dxe + xHeII, xHIISaha-Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
+                    -rec_dxHIIdlna(model, xHIISaha-Dxe + xHeII, xHIISaha-Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
                                   phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya))/(2.*Dxe);
 
   *xH1s = xH1sSaha + (dxH1sSaha_dlna - dxH1sdlna_Saha)/DdxH1sdlna_DxH1s;
@@ -571,6 +576,10 @@ int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, 
   /* Check that we are still close enough to Saha equilibrium. If not, switch post-saha expansion off */
   if (fabs(*xH1s - xH1sSaha) > DXHII_MAX){phy->saha_flag = _FALSE_;}
 
+  if (MODEL == FULL){
+     rec_dxHIIdlna(MODEL, xHIISaha + Dxe + xHeII, xHIISaha+Dxe, nH, H, TR, TR, phy->rate_table, phy->twog_params,
+                   phy->Dfminus_hist, phy->Dfminus_Ly_hist, phy->Dfnu_hist, phy->zH0, iz_out-phy->izH0, z_out, phy->fsR, phy->meR, ion, exclya);
+  }
   return _SUCCESS_;
 }
 
