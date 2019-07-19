@@ -101,9 +101,10 @@ class_precision_parameter(tol_thermo_integration,double,1.0e-6)
  */
 class_precision_parameter(thermo_rate_smoothing_radius,int,50)
 /**
- * Redshift at which CLASS starts to test for too early re-ionization and/or incomplete recombination
+ * Redshift at which CLASS starts to test for too early re-ionization and/or incomplete recombination.
  */
 class_precision_parameter(z_end_reco_test,double,500.)
+
 /*
  * Recfast 1.4/1.5 parameters
  */
@@ -134,6 +135,10 @@ class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< Switch f
 class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 
 class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation */
+/**
+ * This is an important flag for energy injections! It also modifies wether recfast will switch approximation schemes or not.
+ */
+class_precision_parameter(recfast_z_switch_late,double,800.)
 
 /*
  * Hyrec Parameters

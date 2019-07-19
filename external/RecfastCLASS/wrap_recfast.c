@@ -29,6 +29,8 @@ int thermodynamics_recfast_init(struct precision* ppr,
   pre->x_He_trigger_small = 5.0e-9;
   pre->fHe = fHe;
 
+  pre->z_switch_late = ppr->recfast_z_switch_late;
+
   /** - Adjust fudging factors if needed */
   if (pre->Hswitch == _TRUE_){
     pre->fudge_H += ppr->recfast_delta_fudge_H;
@@ -103,8 +105,8 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
 
   /** - Get necessary coefficients */
   Rdown = 1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
-  Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
-  //Rup = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB/Trad);
+  //Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
+  Rup = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB/Trad);
 
   K = pre->CK/Hz;
 
@@ -120,7 +122,7 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
   /** - Calculate Peebles' coefficient */
   /* Peebles' coefficient (approximated as one when the Hydrogen
    * ionization fraction is very close to one) */
-  if (x_H < pre->x_H0_trigger2) {
+  if (x_H < pre->x_H0_trigger2 || z < pre->z_switch_late) {
     C = (1. + K*_Lambda_*nH*(1.-x_H))/(1./pre->fudge_H+K*_Lambda_*nH*(1.-x_H)/pre->fudge_H +K*Rup*nH*(1.-x_H));
   }
   else {
@@ -170,13 +172,16 @@ int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * p
   sq_1 = sqrt(Tmat/_T_1_);
 
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
-  Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
-  //Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_))) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
+  //Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
+  Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_))) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
 
 
   /** - The K_He is calculated up to the required accuracy  */
   if ((x_He < pre->x_He_trigger_small) || (x_He > pre->x_He0_trigger2)){
     Heflag = 0;
+  }
+  else if(z<pre->z_switch_late){
+    Heflag = 2;
   }
   else{
     Heflag = pre->Heswitch;
@@ -213,8 +218,8 @@ int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * p
     /* In modes where triple He is added (>=3), calculate the triple He CfHe_t */
     if (Heflag >= 3) {
       Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
-      Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
-      //Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_))) *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
+      //Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
+      Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_))) *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
 
       tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;

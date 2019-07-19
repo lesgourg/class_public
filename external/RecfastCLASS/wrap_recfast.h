@@ -36,6 +36,7 @@ struct thermorecfast {
   int Hswitch;
   double x_H0_trigger2;
   double x_He0_trigger2;
+  double z_switch_late;
 
   double x_He_trigger_small;
   double fudge_He;
@@ -44,7 +45,6 @@ struct thermorecfast {
   double x_H_limit_CfHe_t;
 
   double max_exp_boltz;
-
   double Bfact;
   double CT;
 
