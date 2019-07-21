@@ -1084,17 +1084,16 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
    * that a black hole emmits those particles which appear elementary at the
    * given energy. */
   for(i_step = 0; i_step<phe->Nz_size+2; i_step++) {
-
     /** Find value of f(M) */
     current_pbh_temperature = 1.06e13/current_mass;                                                 // [GeV]
     phe->PBH_QCD_activation = 1./(1.+exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1))); // [-] see Eq. (4.6) of Stoecker et al. 2018
 
     f_EM = 2.*0.060                                                                                 // gamma
-           +4.*0.146*exp(-(current_mass*5.11e-4)/(4.53*1.06e13))                                    // electron
-           +4.*0.146*exp(-(current_mass*0.1037)/(4.53*1.06e13))                                     // muon
-           +4.*0.146*exp(-(current_mass*1.777)/(4.53*1.06e13));                                     // tau
-    f_nu = 6.*0.142;                                                                                // neutrino
-    f_q = (12.*0.146*(exp(-(current_mass*2.2e-3)/(4.53*1.06e13))                                    // u
+           +4.*0.142*exp(-(current_mass*5.11e-4)/(4.53*1.06e13))                                    // electron
+           +4.*0.142*exp(-(current_mass*0.1037)/(4.53*1.06e13))                                     // muon
+           +4.*0.142*exp(-(current_mass*1.777)/(4.53*1.06e13));                                     // tau
+    f_nu = 6.*0.147;                                                                                // neutrino
+    f_q = (12.*0.142*(exp(-(current_mass*2.2e-3)/(4.53*1.06e13))                                    // u
                       +exp(-(current_mass*4.7e-3)/(4.53*1.06e13))                                   // d
                       +exp(-(current_mass*1.82)/(4.53*1.06e13))                                     // c
                       +exp(-(current_mass*9.6e-2)/(4.53*1.06e13))                                   // s
