@@ -107,7 +107,7 @@ class_precision_parameter(z_end_reco_test,double,500.)
 /**
  * Number of sampling points in the case of primordial black holes in ln(1+z)
  */
-class_precision_parameter(primordial_black_hole_Nz,int,20000)
+class_precision_parameter(primordial_black_hole_Nz,int,75000)
 /*
  * Recfast 1.4/1.5 parameters
  */
