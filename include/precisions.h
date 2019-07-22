@@ -104,7 +104,10 @@ class_precision_parameter(thermo_rate_smoothing_radius,int,50)
  * Redshift at which CLASS starts to test for too early re-ionization and/or incomplete recombination.
  */
 class_precision_parameter(z_end_reco_test,double,500.)
-
+/**
+ * Number of sampling points in the case of primordial black holes in ln(1+z)
+ */
+class_precision_parameter(primordial_black_hole_Nz,int,20000)
 /*
  * Recfast 1.4/1.5 parameters
  */

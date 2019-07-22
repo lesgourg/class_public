@@ -44,6 +44,8 @@ int heating_init(struct precision * ppr,
   phe->Nz_size = ppr->thermo_Nz_lin;
   phe->z_initial = ppr->thermo_z_initial;
   phe->z_start_chi_approx = ppr->z_start_chi_approx;
+  phe->Nz_PBH = ppr->primordial_black_hole_Nz;
+
 
   /* Background structure */
   phe->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
@@ -1043,13 +1045,14 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
   int i_step;
   double current_mass, current_pbh_temperature;
   double f_EM, f_nu, f_q, f_pi, f_bos, f;
-  double loop_z, loop_tau, time_now, time_prev, dt, dz;
+  double loop_z, loop_tau, time_now, time_prev, dt, dlnz, lnz_ini;
 
   /** Set initial parameters */
   current_mass = phe->PBH_evaporation_mass;                                                         // [g]
   phe->PBH_z_evaporation = 0;
-  dz = phe->z_initial/(phe->Nz_size);
-  loop_z = phe->z_initial+dz;
+  lnz_ini = log(1+phe->z_initial);
+  dlnz = lnz_ini/(phe->Nz_PBH-1);
+  loop_z = phe->z_initial*1.0001;
   time_prev = 0.;                                                                                   // [s]
 
   /** Alloate local variables */
@@ -1059,19 +1062,19 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
 
   /** Alloate variables for PBH mass evolution */
   class_alloc(phe->PBH_table_z,
-              (phe->Nz_size+2)*sizeof(double),
+              phe->Nz_PBH*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_mass,
-              (phe->Nz_size+2)*sizeof(double),
+              phe->Nz_PBH*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_mass_dd,
-              (phe->Nz_size+2)*sizeof(double),
+              phe->Nz_PBH*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_F,
-              (phe->Nz_size+2)*sizeof(double),
+              phe->Nz_PBH*sizeof(double),
               phe->error_message);
   class_alloc(phe->PBH_table_F_dd,
-              (phe->Nz_size+2)*sizeof(double),
+              phe->Nz_PBH*sizeof(double),
               phe->error_message);
 
   /** Fill tables with PBH mass evolution */
@@ -1083,7 +1086,8 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
    * and to be in agreement with PRD41 (1990) 3052, where the Ansatz is taken
    * that a black hole emmits those particles which appear elementary at the
    * given energy. */
-  for(i_step = 0; i_step<phe->Nz_size+2; i_step++) {
+  for(i_step = 0; i_step<phe->Nz_PBH; i_step++) {
+
     /** Find value of f(M) */
     current_pbh_temperature = 1.06e13/current_mass;                                                 // [GeV]
     phe->PBH_QCD_activation = 1./(1.+exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1))); // [-] see Eq. (4.6) of Stoecker et al. 2018
@@ -1129,6 +1133,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
     time_prev = time_now;
 
     if (i_step > 0) {
+      //TODO :: check this step
       if (current_mass > 0.5*phe->PBH_evaporation_mass){
         current_mass = current_mass-5.34e25*f*pow(current_mass,-2)*dt;                              // [g]
       }
@@ -1145,7 +1150,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
     phe->PBH_table_z[i_step] = loop_z;
     phe->PBH_table_mass[i_step] = current_mass;                                                     // [g]
     phe->PBH_table_F[i_step] = f;                                                                   // [-]
-    loop_z = MAX(0.,loop_z-dz);
+    loop_z = exp(lnz_ini-dlnz*(i_step+1))-1.;
 
   }
 
@@ -1154,7 +1159,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
 
   /** Spline mass and F(M) evolution in z */
   class_call(array_spline_table_lines(phe->PBH_table_z,
-                                      phe->Nz_size+2,
+                                      phe->Nz_PBH,
                                       phe->PBH_table_mass,
                                       1,
                                       phe->PBH_table_mass_dd,
@@ -1163,7 +1168,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
              phe->error_message,
              phe->error_message);
   class_call(array_spline_table_lines(phe->PBH_table_z,
-                                      phe->Nz_size+2,
+                                      phe->Nz_PBH,
                                       phe->PBH_table_F,
                                       1,
                                       phe->PBH_table_F_dd,
@@ -1197,7 +1202,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
 
   /** Interpolate the PBH mass evolution */
   class_call(array_interpolate_spline(phe->PBH_table_z,
-                                      phe->Nz_size+2,
+                                      phe->Nz_PBH,
                                       phe->PBH_table_mass,
                                       phe->PBH_table_mass_dd,
                                       1,
@@ -1210,7 +1215,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
              phe->error_message);
 
   class_call(array_interpolate_spline(phe->PBH_table_z,
-                                      phe->Nz_size+2,
+                                      phe->Nz_PBH,
                                       phe->PBH_table_F,
                                       phe->PBH_table_F_dd,
                                       1,
@@ -1228,7 +1233,7 @@ int heating_rate_PBH_evaporation(struct heating * phe,
   }
   else {
     dMdt=5.34e25*f*pow(mass,-2.);                                                                     // [g/s]
-    f_em = 0.55*phe->PBH_QCD_activation+(1-phe->PBH_QCD_activation)*(f-6.*0.142)/f;                   // [-]
+    f_em = 0.55*phe->PBH_QCD_activation+(1-phe->PBH_QCD_activation)*(f-6.*0.147)/f;                   // [-]
     *energy_rate = phe->rho_cdm*phe->PBH_evaporation_fraction*f_em*dMdt/phe->PBH_evaporation_mass;    // [J/(m^3 s)]
   }
 
