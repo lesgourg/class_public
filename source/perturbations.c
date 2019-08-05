@@ -7379,9 +7379,9 @@ int perturb_print_variables(double tau,
         theta_idm += k*k*alpha;
       }
 
-      if (pba->has_ncdm == _TRUE_) { /* QUESTION MArchi: why is it like this?! */
+      if (pba->has_ncdm == _TRUE_) {
         for(n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++){
-          /** - --> Do gauge transformation of delta, deltaP/rho (?) and theta using -= 3aH(1+w_ncdm) alpha for delta. */
+          /** - --> TODO: gauge transformation of delta, deltaP/rho (?) and theta using -= 3aH(1+w_ncdm) alpha for delta. */
         }
       }
 
