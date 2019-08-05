@@ -418,7 +418,7 @@ int perturb_init(
         } /* end of loop over wavenumbers */
 
 #ifdef _OPENMP
-        if (ppt->perturbations_verbose>1)
+        if (ppt->perturbations_verbose>2)
           printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
                  __func__,tspent,omp_get_thread_num());
 #endif
@@ -1949,7 +1949,7 @@ int perturb_workspace_init(
   if (_scalars_) {
     ppw->max_l_max = MAX(ppr->l_max_g, ppr->l_max_pol_g);
     if (pba->has_ur == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ur);
-    if (pba->has_idr == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_idr);
+    if ((pba->has_idr == _TRUE_) && (ppt->idr_nature == idr_free_streaming)) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_idr);
     if (pba->has_ncdm == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_ncdm);
     if (pba->has_dr == _TRUE_) ppw->max_l_max = MAX(ppw->max_l_max, ppr->l_max_dr);
   }
@@ -5360,6 +5360,7 @@ int perturb_approximations(
         }
         else{
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+          //printf("tca_dark_off = %d\n",tau);
         }
       }
     }
@@ -6032,10 +6033,8 @@ int perturb_total_stress_energy(
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off) {
         delta_idr = y[ppw->pv->index_pt_delta_idr];
         theta_idr = y[ppw->pv->index_pt_theta_idr];
-        if (ppt->idr_nature == idr_fluid){
-          shear_idr = 0.;
-        }
-        else{
+
+        if (ppt->idr_nature == idr_free_streaming){
           if((pba->has_idm == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
             if(ppt->gauge == newtonian)
               shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]));
@@ -6118,7 +6117,8 @@ int perturb_total_stress_energy(
     if (pba->has_idr == _TRUE_) {
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_idr]*delta_idr;
       ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*theta_idr;
-      ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
+      if (ppt->idr_nature==idr_free_streaming)
+          ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
       ppw->delta_p += 1./3. * ppw->pvecback[pba->index_bg_rho_idr]*delta_idr;
       rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_idr];
     }
@@ -7194,10 +7194,8 @@ int perturb_print_variables(double tau,
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off) {
         delta_idr = y[ppw->pv->index_pt_delta_idr];
         theta_idr = y[ppw->pv->index_pt_theta_idr];
-        if(ppt->idr_nature == idr_fluid){
-          shear_idr = 0.;
-        }
-        else{
+
+        if(ppt->idr_nature == idr_free_streaming){
           if((pba->has_idm == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
             shear_idr = ppw->tca_shear_dark;
           }
@@ -7686,7 +7684,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark=0.;
+  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark=0., slip_factor=0.;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -8050,7 +8048,8 @@ int perturb_derivs(double tau,
         dy[pv->index_pt_theta_idm] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]);
       }
       else{
-        tca_slip_dark = (pth->nindex_dark+Sinv/(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
+
+        tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
           (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm] - a_prime_over_a *
            (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm] - 1./4.*dy[pv->index_pt_delta_idr]));
 
@@ -8058,7 +8057,6 @@ int perturb_derivs(double tau,
 
         dy[pv->index_pt_theta_idm] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*
                                                    y[pv->index_pt_delta_idm] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
-
       }
     }
 
@@ -8227,6 +8225,7 @@ int perturb_derivs(double tau,
         else{
           dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm]
                                                      + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
+
         }
       }
     }
