@@ -866,8 +866,8 @@ int input_read_parameters(
   else if (flag2 == _TRUE_) {
     pba->xi_idr = param2;
     pba->N_dg = pba->stat_f_idr*pow(param2,4.)/(7./8.)*pow(11./4.,(4./3.));
-    if (input_verbose > 2)
-      printf("N_dg equiv = %e \n", pba->N_dg);
+    if (input_verbose > 1)
+      printf("You passed xi_idr = %e, this is equivalent to N_dg = %e \n", pba->xi_idr, pba->N_dg);
   }
 
   pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
@@ -930,8 +930,8 @@ int input_read_parameters(
     else if(flag4 == _TRUE_){
       pth->a_dark = param4;
       pba->Gamma_0_nadm = param4*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
-      if (input_verbose > 2)
-        printf("Gamma_0_nadm equiv = %e \n", pba->Gamma_0_nadm);
+      if (input_verbose > 1)
+        printf("You passed a_dark = %e, this is equivalent to Gamma_0_nadm = %e \n", pth->a_dark, pba->Gamma_0_nadm);
     }
 
     if (flag1 == _TRUE_){
@@ -948,24 +948,35 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
 
   if (input_verbose > 1)
-    printf("Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
+    printf("In your current set-up, you have Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
 
   /** - Load the rest of the parameters for idm and idr */
-  class_read_double("m_dm",pth->m_dm);
-  class_read_double("nindex_dark",pth->nindex_dark);
 
-  class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
+  if (flag5 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
+    pth->nindex_dark = 0;
+    ppt->idr_nature = idr_fluid;
+    if (input_verbose > 1)
+      printf("NADM requested. Will use nindex_dark = %i and idr_nature = fluid \n", pth->nindex_dark);
+  }
 
-  if (flag1 == _TRUE_) {
-    if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
-      ppt->idr_nature = idr_free_streaming;
-    }
-    if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
-      ppt->idr_nature = idr_fluid;
+  else{
+    class_read_double("nindex_dark",pth->nindex_dark);
+
+    class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if (flag1 == _TRUE_) {
+      if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+        ppt->idr_nature = idr_free_streaming;
+      }
+      if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+        ppt->idr_nature = idr_fluid;
+      }
     }
   }
+
+  class_read_double("m_dm",pth->m_dm);
 
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,

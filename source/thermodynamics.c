@@ -577,11 +577,11 @@ int thermodynamics_init(
   /** - --> compute damping scale:
 
       r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2+16/15(1+R))/(1+R)^2]^1/2
-                    = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2/(1+R)+16/15)/(1+R)]^1/2
+      = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2/(1+R)+16/15)/(1+R)]^1/2
 
-                    which is like in CosmoTherm (CT), but slightly
-                    different from Wayne Hu (WH)'s thesis eq. (5.59):
-                    the factor 16/15 in CT is 4/5 in WH */
+      which is like in CosmoTherm (CT), but slightly
+      different from Wayne Hu (WH)'s thesis eq. (5.59):
+      the factor 16/15 in CT is 4/5 in WH */
 
   if (pth->compute_damping_scale == _TRUE_) {
 
