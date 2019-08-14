@@ -176,7 +176,7 @@ struct thermo
   int index_th_ddmu_dark;     /**< derivative of idm-idr scattering rate */
   int index_th_dddmu_dark;    /**< second derivative of idm-idr scattering rate */
   int index_th_dmu_drdr;      /**< idr self-interaction rate */
-  int index_th_tau_idm;       /**< time of decoupling of interacting dark matter (idm-idr) */
+  int index_th_tau_idm_dr;    /**< time of decoupling of interacting dark matter (idm-idr) */
   int index_th_tau_idr;       /**< time of decoupling of interacting dark radiation (idm-idr) */
   int index_th_g_dark;        /**< dark visibility function for idm-idr */
   int index_th_cidm2;         /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */

@@ -1390,21 +1390,21 @@ int output_thermodynamics(
   if (pop->write_header == _TRUE_) {
     fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
     fprintf(thermofile,"# The following notation is used in column titles:\n");
-    fprintf(thermofile,"#       x_e = electron ionization fraction\n");
-    fprintf(thermofile,"#    -kappa = optical depth\n");
-    fprintf(thermofile,"#    kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
-    fprintf(thermofile,"#         g = kappa' e^-kappa = visibility function \n");
-    fprintf(thermofile,"#        Tb = baryon temperature \n");
-    fprintf(thermofile,"#     c_b^2 = baryon sound speed squared \n");
-    fprintf(thermofile,"#     tau_d = baryon drag optical depth \n");
-    fprintf(thermofile,"#  dmu_dark = scattering rate between idm and idr (units 1/Mpc)\n");
-    fprintf(thermofile,"# ddmu_dark = derivative of idm-idr scattering rate\n");
-    fprintf(thermofile,"#   tau_idm = time of decoupling of interacting dark matter (idm-idr) \n");
-    fprintf(thermofile,"#   tau_idr = time of decoupling of interacting dark radiation (idm-idr) \n");
-    fprintf(thermofile,"#    g_dark = dark visibility function for idm-idr \n");
-    fprintf(thermofile,"#    c_dm^2 = dark matter sound speed squared\n");
-    fprintf(thermofile,"#      T_dm = dark matter temperature \n");
-    fprintf(thermofile,"#  dmu_drdr = idr self-interaction rate \n");
+    fprintf(thermofile,"#        x_e = electron ionization fraction\n");
+    fprintf(thermofile,"#     -kappa = optical depth\n");
+    fprintf(thermofile,"#     kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
+    fprintf(thermofile,"#          g = kappa' e^-kappa = visibility function \n");
+    fprintf(thermofile,"#         Tb = baryon temperature \n");
+    fprintf(thermofile,"#      c_b^2 = baryon sound speed squared \n");
+    fprintf(thermofile,"#      tau_d = baryon drag optical depth \n");
+    fprintf(thermofile,"#   dmu_dark = scattering rate between idm and idr (units 1/Mpc)\n");
+    fprintf(thermofile,"#  ddmu_dark = derivative of idm-idr scattering rate\n");
+    fprintf(thermofile,"# tau_idm_dr = time of decoupling of interacting dark matter (idm-idr) \n");
+    fprintf(thermofile,"#    tau_idr = time of decoupling of interacting dark radiation (idm-idr) \n");
+    fprintf(thermofile,"#     g_dark = dark visibility function for idm-idr \n");
+    fprintf(thermofile,"#     c_dm^2 = dark matter sound speed squared\n");
+    fprintf(thermofile,"#       T_dm = dark matter temperature \n");
+    fprintf(thermofile,"#   dmu_drdr = idr self-interaction rate \n");
 
     if (pth->compute_damping_scale == _TRUE_) {
       fprintf(thermofile,"#  r_d = simplest analytic approximation to photon comoving damping scale \n");

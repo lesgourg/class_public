@@ -874,7 +874,7 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_idr;
 
-  /** - Omega_0_cdm (CDM) and Omega0_idm (interacting dark matter) */
+  /** - Omega_0_cdm (CDM) and Omega0_idm_dr (interacting dark matter) */
   /* Can take both the Ethos parameters, and the NADM parameters */
 
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
@@ -901,7 +901,7 @@ int input_read_parameters(
              "In input file, you can only enter one of a_dark or Gamma_0_nadm, choose one");
   class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
              errmsg,
-             "You requested a fraction of interacting dark matter. In input file, you have to set one of Omega_cdm or omega_cdm in order to compute omega_idm");
+             "You requested a fraction of interacting dark matter. In input file, you have to set one of Omega_cdm or omega_cdm in order to compute omega_idm_dr");
   class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_) && (flag5 == _FALSE_))),
              errmsg,
              "In input file, you have requested a fraction of interacting dark matter. Please set either a_dark or Gamma_0_nadm");
@@ -917,7 +917,7 @@ int input_read_parameters(
       pba->Omega0_cdm = param1;
     else if (flag2 == _TRUE_)
       pba->Omega0_cdm = param2/pba->h/pba->h;
-    pba->Omega0_idm = 0;
+    pba->Omega0_idm_dr = 0;
   }
 
   else {
@@ -935,20 +935,20 @@ int input_read_parameters(
     }
 
     if (flag1 == _TRUE_){
-      pba->Omega0_idm = param3*param1;
+      pba->Omega0_idm_dr = param3*param1;
       pba->Omega0_cdm = (1.-param3)*param1;
     }
     else if (flag2 == _TRUE_){
-      pba->Omega0_idm = param3*(param2/pba->h/pba->h);
+      pba->Omega0_idm_dr = param3*(param2/pba->h/pba->h);
       pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
     }
     pba->f_idm_dr = param3;
   }
 
-  Omega_tot += pba->Omega0_cdm + pba->Omega0_idm;
+  Omega_tot += pba->Omega0_cdm + pba->Omega0_idm_dr;
 
   if (input_verbose > 1)
-    printf("In your current set-up, you have Omega0_cdm = %e, Omega0_idm = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm, pba->Omega0_idr);
+    printf("In your current set-up, you have Omega0_cdm = %e, Omega0_idm_dr = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm_dr, pba->Omega0_idr);
 
   /** - Load the rest of the parameters for idm and idr */
 
@@ -3045,7 +3045,7 @@ int input_default_params(
   pba->Omega0_g = (4.*sigma_B/_c_*pow(pba->T_cmb,4.)) / (3.*_c_*_c_*1.e10*pba->h*pba->h/_Mpc_over_m_/_Mpc_over_m_/8./_PI_/_G_);
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0;
-  pba->Omega0_idm = 0.0;
+  pba->Omega0_idm_dr = 0.0;
   pba->f_idm_dr = 0.0;
   pba->stat_f_idr = 7./8.;
   pba->xi_idr = 0.0;
@@ -3079,7 +3079,7 @@ int input_default_params(
   pba->Omega0_k = 0.;
   pba->K = 0.;
   pba->sgnK = 0;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr-pba->Omega0_idm-pba->Omega0_idr;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr-pba->Omega0_idm_dr-pba->Omega0_idr;
   pba->Omega0_fld = 0.;
   pba->a_today = 1.;
   pba->use_ppf = _TRUE_;
@@ -3804,7 +3804,7 @@ int input_get_guess(double *xguess,
       ba.H0 = ba.h *  1.e5 / _c_;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
          sqrt_one_minus_M = sqrt(1.0 - Omega_M);
@@ -3823,7 +3823,7 @@ int input_get_guess(double *xguess,
       //printf("x = Omega_ini_guess = %g, dxdy = %g\n",*xguess,*dxdy);
       break;
     case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* This formula is exact in a Matter + Lambda Universe, but only
          for Omega_dcdm, not the combined.
          sqrt_one_minus_M = sqrt(1.0 - Omega_M);
@@ -3867,7 +3867,7 @@ int input_get_guess(double *xguess,
           Omega_ini_dcdm -> Omega_dcdmdr and
           omega_ini_dcdm -> omega_dcdmdr */
       Omega0_dcdmdr *=pfzw->target_value[index_guess];
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm+Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_dr+Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
