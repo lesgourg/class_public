@@ -139,6 +139,7 @@ struct heating{
   double * PBH_table_mass_dd;
   double * PBH_table_F;
   double * PBH_table_F_dd;
+  int Nz_PBH;
 
   /* Energy injection table */
   double** injection_table;
