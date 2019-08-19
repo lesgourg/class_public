@@ -2381,9 +2381,6 @@ int thermodynamics_vector_init(struct precision * ppr,
     class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
     class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
   }
-  else if(ptdw->ap_current == ptdw->index_ap_reio){
-    /* Nothing else to add */
-  }
 
   /* We have now obtained the full size */
   ptv->tv_size = index_tv;
@@ -3126,11 +3123,15 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   struct thermo_vector * ptvs; // Vector for storing the initial conditions
   ptvs = ptw->ptdw->tv;
 
+  int evolves_xHe = (pth->recombination == recfast);
+  int evolves_xH = (pth->recombination == recfast);
+
+
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
 
   class_define_index(ptv->index_D_Tmat,_TRUE_,index_tv,1);
-  class_define_index(ptv->index_x_He,_TRUE_,index_tv,1);
-  class_define_index(ptv->index_x_H,_TRUE_,index_tv,1);
+  class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
+  class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
 
   /* We have now obtained the full size */
   ptv->tv_size = index_tv;
@@ -3147,10 +3148,14 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   /** - Assign the temporary vector, then find upper and lower value of bisection */
   ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
   ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
-  ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-  ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
-  ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-  ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  if(evolves_xH){
+    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
+    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+  }
+  if(evolves_xHe){
+    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
+    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  }
 
   ptw->ptdw->tv = ptv;
 
@@ -3208,10 +3213,14 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   /* Restore initial conditions */
   ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
   ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
-  ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-  ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
-  ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-  ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  if(evolves_xH){
+    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
+    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+  }
+  if(evolves_xHe){
+    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
+    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  }
 
   /* lower value */
   z_inf = 0.;
@@ -3267,10 +3276,14 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
   /* Restore initial conditions */
   ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
   ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
-  ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-  ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
-  ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-  ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  if(evolves_xH){
+    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
+    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+  }
+  if(evolves_xH){
+    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
+    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  }
 
   /** - try intermediate values by bisection */
   counter=0;
@@ -3315,10 +3328,14 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
     /* Restore initial conditions */
     ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
     ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
-    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
-    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+    if(evolves_xH){
+      ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
+      ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+    }
+    if(evolves_xH){
+      ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
+      ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+    }
 
     class_call(thermodynamics_reionization_get_tau(ppr,
                                                    pba,

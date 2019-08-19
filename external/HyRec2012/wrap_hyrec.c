@@ -545,8 +545,8 @@ int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, 
 
   double xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, Dxe;
   int model;
-  if (MODEL == FULL) model = EMLA2s2p;
-  else model = MODEL;
+
+  if(MODEL == FULL) { model = EMLA2s2p; } else { model = MODEL; }
 
   xH1sSaha = rec_saha_xH1s(xHeII, phy->nH0, phy->T0, z_out, phy->fsR, phy->meR);
   xHIISaha = 1.-xH1sSaha;
