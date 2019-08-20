@@ -4249,6 +4249,27 @@ int input_read_parameters_distortions(struct file_content * pfc,
   /** 2) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);
 
+  if(psd->has_SZ_effect == _TRUE_){
+    /** 2.a) Type of calculation */
+    /* Read */
+    class_call(parser_read_string(pfc,"sd_reio_type",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      if (strcmp(string1,"Nozawa_2005") == 0){
+        psd->sd_reio_type = sd_reio_Nozawa;
+      }
+      else if (strcmp(string1,"Chluba_2012") == 0){
+        psd->sd_reio_type = sd_reio_Chluba;
+      }
+      else{
+        class_stop(errmsg,
+                   "You specified 'sd_reio_type' as '%s'. It has to be one of {'Nozawa_2005','Chluba_2012'}.",string1);
+      }
+    }
+  }
+
   return _SUCCESS_;
 
 }

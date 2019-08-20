@@ -996,8 +996,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
 
 /**
- * Compute relativistic contribution from reionization and structure
- * formation according to Nozawa et al. 2006 (up to order 3 in theta_e).
+ * Compute relativistic contribution from reionization and structure formation according to
+ *        1) Nozawa et al. 2005 (up to order 3 in theta_e) or
+ *        2) Chluba et al. 2012 (up to order ? in ?). Note that, for the moment, this appoximation
+ *           is only valid for cluster temperatures lower than few KeV.
  *
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to thermodynamics structure
@@ -1025,12 +1027,6 @@ int distortions_add_effects_reio(struct background * pba,
   /** Define local variables */
   double theta_e, cos_theta, P_1, P_2, x_tilde, S_tilde;
   double G_T, Y_SZ;
-  double Y_0, Y_1, Y_2;
-  double DI_tSZ_non_rel, DI_tSZ_rel, DI_tSZ;
-  double B_0, B_1, B_2, B_3;
-  double C_0, C_1, C_2, C_3;
-  double D_0, D_1, D_2, D_3;
-  double DI_kSZ;
 
   /* Compute related quantities */
   theta_e = T_e*1.e3/(_m_e_/_GeV_over_kg_*1.e9);
@@ -1043,122 +1039,142 @@ int distortions_add_effects_reio(struct background * pba,
   G_T = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.);
   Y_SZ = G_T*(x_tilde-4.);
 
-  /** Thermal SZ effect (TSZ) */
-  Y_0 = -4.
-        +x_tilde;
-  Y_1 = -10.
-        +47.*x_tilde/2.
-        -42.*pow(x_tilde,2.)/5.
-        +7.*pow(x_tilde,3.)/10.
-        +pow(S_tilde,2.)*(-21./5.
-                          +7.*x_tilde/5.);
-  Y_2 = -15./2.
-        +1023.*x_tilde/8.
-        -868.*pow(x_tilde,2.)/5.
-        +329.*pow(x_tilde,3.)/5.
-        -44.*pow(x_tilde,4.)/5.
-        +11.*pow(x_tilde,5.)/30.
-        +pow(S_tilde,2.)*(-434./5.
-                          +658.*x_tilde/5.
-                          -242.*pow(x_tilde,2.)/5.
-                          +143.*pow(x_tilde,3.)/30.)
-        +pow(S_tilde,4.)*(-44./5.
-                          +187.*x_tilde/60.);
+  /** 1) Nozawa et al. 2005 */
+  if(psd->sd_reio_type == sd_reio_Nozawa){
+    /** Define local variables */
+    double Y_0, Y_1, Y_2;
+    double DI_tSZ_non_rel, DI_tSZ_rel, DI_tSZ;
+    double B_0, B_1, B_2, B_3;
+    double C_0, C_1, C_2, C_3;
+    double D_0, D_1, D_2, D_3;
+    double DI_kSZ;
 
-  DI_tSZ_non_rel = theta_e*Dtau*Y_SZ;
-  DI_tSZ_rel = theta_e*Dtau*Y_SZ*(theta_e*Y_1+pow(theta_e,2.)*Y_2)/Y_0;
-  DI_tSZ = DI_tSZ_non_rel+DI_tSZ_rel;
+    /** Thermal SZ effect (TSZ) */
+    Y_0 = -4.
+          +x_tilde;
+    Y_1 = -10.
+          +47.*x_tilde/2.
+          -42.*pow(x_tilde,2.)/5.
+          +7.*pow(x_tilde,3.)/10.
+          +pow(S_tilde,2.)*(-21./5.
+                            +7.*x_tilde/5.);
+    Y_2 = -15./2.
+          +1023.*x_tilde/8.
+          -868.*pow(x_tilde,2.)/5.
+          +329.*pow(x_tilde,3.)/5.
+          -44.*pow(x_tilde,4.)/5.
+          +11.*pow(x_tilde,5.)/30.
+          +pow(S_tilde,2.)*(-434./5.
+                            +658.*x_tilde/5.
+                            -242.*pow(x_tilde,2.)/5.
+                            +143.*pow(x_tilde,3.)/30.)
+          +pow(S_tilde,4.)*(-44./5.
+                            +187.*x_tilde/60.);
 
-  /** Kinematic SZ effect (kSZ) */
-  B_0 = 1.*Y_0/3.;
-  B_1 = 5.*Y_0/6.
-        +2.*Y_1/3.;
-  B_2 = 5.*Y_0/8.
-        +3.*Y_1/2.
-        +Y_2;
-  B_3 = -5.*Y_0/8.
-        +5.*Y_1/4.
-        +5.*Y_2/2.;
+    DI_tSZ_non_rel = theta_e*Dtau*Y_SZ;
+    DI_tSZ_rel = theta_e*Dtau*Y_SZ*(theta_e*Y_1+pow(theta_e,2.)*Y_2)/Y_0;
+    DI_tSZ = DI_tSZ_non_rel+DI_tSZ_rel;
 
-  C_0 = 1.;
-  C_1 = 10.
-        -47.*x_tilde/5.
-        +7.*pow(x_tilde,2.)/5.
-        +7.*pow(S_tilde,2.)/10.;
-  C_2 = 25.
-        -1117.*x_tilde/10.
-        +847.*pow(x_tilde,2.)/10.
-        -183.*pow(x_tilde,3.)/10.
-        +11.*pow(x_tilde,4.)/10.
-        +pow(S_tilde,2.)*(847./20.
-                          -183.*x_tilde/5.
-                          +121.*pow(x_tilde,2.)/20.)
-        +11.*pow(S_tilde,4.)/10.;
-  C_3 = 75./4.
-        -21873.*x_tilde/40.
-        +49161.*pow(x_tilde,2.)/40.
-        -27519.*pow(x_tilde,3.)/35.
-        +6684.*pow(x_tilde,4.)/35.
-        -3917.*pow(x_tilde,5.)/210.
-        +64.*pow(x_tilde,6.)/105.
-        +pow(S_tilde,2.)*(49161./80.
-                          -55038.*x_tilde/35.
-                          +36762.*pow(x_tilde,2.)/35.
-                          -50921.*pow(x_tilde,3.)/210.
-                          +608.*pow(x_tilde,4.)/35.)
-        +pow(S_tilde,4.)*(6684./35.
-                          -66589.*x_tilde/420.
-                          +192.*pow(x_tilde,2.)/7.)
-        +272.*pow(S_tilde,6.)/105.;
+    /** Kinematic SZ effect (kSZ) */
+    B_0 = 1.*Y_0/3.;
+    B_1 = 5.*Y_0/6.
+          +2.*Y_1/3.;
+    B_2 = 5.*Y_0/8.
+          +3.*Y_1/2.
+          +Y_2;
+    B_3 = -5.*Y_0/8.
+          +5.*Y_1/4.
+          +5.*Y_2/2.;
 
-  D_0 = -2./3.
-        +11.*x_tilde/30.;
-  D_1 = -4.
-        +12.*x_tilde
-        -6.*pow(x_tilde,2.)
-        +19.*pow(S_tilde,2.)/30.;
-        +pow(S_tilde,2.)*(-3.
-                          +19.*x_tilde/15.);
- D_2 = -10.
-        +542.*x_tilde/5.
-        -843.*pow(x_tilde,2.)/5.
-        +10603.*pow(x_tilde,3.)/140.
-        -409.*pow(x_tilde,4.)/35.
-        +23.*pow(x_tilde,4.)/42.
-        +pow(S_tilde,2.)*(-843./10.
-                          +10603.*x_tilde/70.
-                          -4499.*pow(x_tilde,2.)/70.
-                          +299.*pow(x_tilde,3.)/42.)
-        +pow(S_tilde,4.)*(-409./35.
-                          +391.*x_tilde/84.);
-  D_3 = -15./2.
-        +4929.*x_tilde/40.
-        -39777.*pow(x_tilde,2.)/20.
-        +1199897.*pow(x_tilde,3.)/560.
-        -4392.*pow(x_tilde,4.)/5.
-        +16364.*pow(x_tilde,5.)/105.
-        -3764.*pow(x_tilde,6.)/315.
-        +101.*pow(x_tilde,7.)/315.
-        +pow(S_tilde,2.)*(-39777./40.
-                          +1199897.*x_tilde/280.
-                          -24156.*pow(x_tilde,2.)/5.
-                          +212732.*pow(x_tilde,3.)/105.
-                          -35758.*pow(x_tilde,4.)/105.
-                          +404.*pow(x_tilde,5.)/21.)
-        +pow(S_tilde,4.)*(-4392./5.
-                          +139094.*x_tilde/105.
-                          -3764.*pow(x_tilde,2.)/7.
-                          +6464.*pow(x_tilde,3.)/105.)
-        +pow(S_tilde,6.)*(-15997./315.
-                          +6262.*x_tilde/315.);
+    C_0 = 1.;
+    C_1 = 10.
+          -47.*x_tilde/5.
+          +7.*pow(x_tilde,2.)/5.
+          +7.*pow(S_tilde,2.)/10.;
+    C_2 = 25.
+          -1117.*x_tilde/10.
+          +847.*pow(x_tilde,2.)/10.
+          -183.*pow(x_tilde,3.)/10.
+          +11.*pow(x_tilde,4.)/10.
+          +pow(S_tilde,2.)*(847./20.
+                            -183.*x_tilde/5.
+                            +121.*pow(x_tilde,2.)/20.)
+          +11.*pow(S_tilde,4.)/10.;
+    C_3 = 75./4.
+          -21873.*x_tilde/40.
+          +49161.*pow(x_tilde,2.)/40.
+          -27519.*pow(x_tilde,3.)/35.
+          +6684.*pow(x_tilde,4.)/35.
+          -3917.*pow(x_tilde,5.)/210.
+          +64.*pow(x_tilde,6.)/105.
+          +pow(S_tilde,2.)*(49161./80.
+                            -55038.*x_tilde/35.
+                            +36762.*pow(x_tilde,2.)/35.
+                            -50921.*pow(x_tilde,3.)/210.
+                            +608.*pow(x_tilde,4.)/35.)
+          +pow(S_tilde,4.)*(6684./35.
+                            -66589.*x_tilde/420.
+                            +192.*pow(x_tilde,2.)/7.)
+          +272.*pow(S_tilde,6.)/105.;
 
-  DI_kSZ = Dtau*G_T*(pow(beta,2.)*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3)+
-                     beta*P_1*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3)+
-                     pow(beta,2.)*P_2*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3)
-                    );
+    D_0 = -2./3.
+          +11.*x_tilde/30.;
+    D_1 = -4.
+          +12.*x_tilde
+          -6.*pow(x_tilde,2.)
+          +19.*pow(S_tilde,2.)/30.;
+          +pow(S_tilde,2.)*(-3.
+                            +19.*x_tilde/15.);
+   D_2 = -10.
+          +542.*x_tilde/5.
+          -843.*pow(x_tilde,2.)/5.
+          +10603.*pow(x_tilde,3.)/140.
+          -409.*pow(x_tilde,4.)/35.
+          +23.*pow(x_tilde,4.)/42.
+          +pow(S_tilde,2.)*(-843./10.
+                            +10603.*x_tilde/70.
+                            -4499.*pow(x_tilde,2.)/70.
+                            +299.*pow(x_tilde,3.)/42.)
+          +pow(S_tilde,4.)*(-409./35.
+                            +391.*x_tilde/84.);
+    D_3 = -15./2.
+          +4929.*x_tilde/40.
+          -39777.*pow(x_tilde,2.)/20.
+          +1199897.*pow(x_tilde,3.)/560.
+          -4392.*pow(x_tilde,4.)/5.
+          +16364.*pow(x_tilde,5.)/105.
+          -3764.*pow(x_tilde,6.)/315.
+          +101.*pow(x_tilde,7.)/315.
+          +pow(S_tilde,2.)*(-39777./40.
+                            +1199897.*x_tilde/280.
+                            -24156.*pow(x_tilde,2.)/5.
+                            +212732.*pow(x_tilde,3.)/105.
+                            -35758.*pow(x_tilde,4.)/105.
+                            +404.*pow(x_tilde,5.)/21.)
+          +pow(S_tilde,4.)*(-4392./5.
+                            +139094.*x_tilde/105.
+                            -3764.*pow(x_tilde,2.)/7.
+                            +6464.*pow(x_tilde,3.)/105.)
+          +pow(S_tilde,6.)*(-15997./315.
+                            +6262.*x_tilde/315.);
 
-  *y_reio = theta_e*Dtau;
-  *DI_reio = DI_tSZ+DI_kSZ;
+    DI_kSZ = Dtau*G_T*(pow(beta,2.)*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3)+
+                       beta*P_1*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3)+
+                       pow(beta,2.)*P_2*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3)
+                      );
+
+    *y_reio = theta_e*Dtau;
+    *DI_reio = DI_tSZ+DI_kSZ;
+  }
+  /** 2) Chluba et al. 2012 */
+  else if(psd->sd_reio_type == sd_reio_Chluba){
+
+
+
+    *y_reio = 0.;
+    *DI_reio = 0.;
+  }
+
 
   return _SUCCESS_;
 }

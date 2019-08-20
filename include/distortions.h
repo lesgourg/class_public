@@ -20,6 +20,8 @@ typedef char DetectorFileName[_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+256];
  * All deistortions parameters and evolution that other modules need to know.
  */
 enum br_approx {bra_sharp_sharp,bra_sharp_soft,bra_soft_soft,bra_soft_soft_cons,bra_exact};
+enum reio_approx {sd_reio_Nozawa, sd_reio_Chluba};
+
 
 struct distortions
 {
@@ -41,6 +43,8 @@ struct distortions
   double sd_detector_nu_delta;                  /* Bin size of chosen detector */
   int sd_detector_bin_number;
   double sd_detector_delta_Ic;
+
+  int sd_reio_type;
 
   //@}
 
