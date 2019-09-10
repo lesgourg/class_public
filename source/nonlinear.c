@@ -109,15 +109,22 @@ int nonlinear_pk_linear_at_z(
   double tau;
   double ln_tau;
   int index_k;
+  int index_ic1_ic2;
   int last_index;
 
   if (z == 0) {
     for (index_k=0; index_k<pnl->k_size; index_k++) {
-      ln_pk_m_ic_l[index_k] = pnl->ln_pk_m_ic_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
       ln_pk_m_l[index_k] = pnl->ln_pk_m_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+      for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+        ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
+          pnl->ln_pk_m_ic_l[((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
+      }
       if (pnl->has_pk_cb == _TRUE_) {
-        ln_pk_cb_ic_l[index_k] = pnl->ln_pk_cb_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
         ln_pk_cb_l[index_k] = pnl->ln_pk_cb_l[(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+        for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+          ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
+            pnl->ln_pk_cb_ic_l[((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
+        }
       }
     }
   }

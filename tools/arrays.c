@@ -2718,17 +2718,18 @@ int array_interpolate_two_arrays_one_column(
 
   int inf,sup,mid;
   double weight;
+  double epsilon=1e-9;
 
   inf=0;
   sup=n_lines-1;
 
   if (array_x[inf] < array_x[sup]){
 
-    class_test(x < array_x[inf],
+    class_test(x < array_x[inf]-epsilon,
 	       errmsg,
 	       "x=%e < x_min=%e",x,array_x[inf]);
 
-    class_test(x > array_x[sup],
+    class_test(x > array_x[sup]+epsilon,
 	       errmsg,
 	       "x=%e > x_max=%e",x,array_x[sup]);
 
@@ -2744,11 +2745,11 @@ int array_interpolate_two_arrays_one_column(
 
   else {
 
-    class_test(x < array_x[sup],
+    class_test(x < array_x[sup]-epsilon,
 	       errmsg,
 	       "x=%e < x_min=%e",x,array_x[sup]);
 
-    class_test(x > array_x[inf],
+    class_test(x > array_x[inf]+epsilon,
 	       errmsg,
 	       "x=%e > x_max=%e",x,array_x[inf]);
 

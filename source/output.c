@@ -924,7 +924,7 @@ int output_pk(
 
             class_call(output_one_line_of_pk(out_ic[index_ic1_ic2],
                                              exp(pnl->ln_k[index_k])/pba->h,
-                                             exp(ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2])*pow(pba->h,3)),
+                                             exp(ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2])*pow(pba->h,3)),
                        pop->error_message,
                        pop->error_message);
 
