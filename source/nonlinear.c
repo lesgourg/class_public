@@ -373,11 +373,11 @@ int nonlinear_init(
        following locations (the region of the arrays
        pnl->ln_pk_... with the right index_tau) */
 
-    ln_pk_m_ic_l_at_tau = &(pnl->ln_pk_m_ic_l[index_tau * pnl->k_size]);
+    ln_pk_m_ic_l_at_tau = &(pnl->ln_pk_m_ic_l[index_tau * pnl->k_size * pnl->ic_ic_size]);
     ln_pk_m_l_at_tau = &(pnl->ln_pk_m_l[index_tau * pnl->k_size]);
 
     if (pnl->has_pk_cb == _TRUE_) {
-      ln_pk_cb_ic_l_at_tau = &(pnl->ln_pk_cb_ic_l[index_tau * pnl->k_size]);
+      ln_pk_cb_ic_l_at_tau = &(pnl->ln_pk_cb_ic_l[index_tau * pnl->k_size * pnl->ic_ic_size]);
       ln_pk_cb_l_at_tau = &(pnl->ln_pk_cb_l[index_tau * pnl->k_size]);
     }
     else {
