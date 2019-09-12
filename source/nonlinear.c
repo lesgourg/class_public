@@ -1233,8 +1233,8 @@ int nonlinear_pk_linear(
           ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
 
           pk_m += 2.*cosine_correlation
-              * sqrt(ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
-                     * ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+              * sqrt(exp(ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1])
+                     * exp(ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]));
           // extra 2 factor (to include the symmetric term ic2,ic1)
 
           if (pnl->has_pk_cb) {
@@ -1248,8 +1248,8 @@ int nonlinear_pk_linear(
             ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
 
             pk_cb += 2.*cosine_correlation
-              * sqrt(ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
-                     * ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+              * sqrt(exp(ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1])
+                     * exp(ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]));
             // extra 2 factor (to include the symmetric term ic2,ic1)
 
           }
