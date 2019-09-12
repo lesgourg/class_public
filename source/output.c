@@ -1266,7 +1266,7 @@ int output_pk_old(
     /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
 
     /* if z_pk = 0, no interpolation needed */
-
+/*
     if (pop->z_pk[index_z] == 0.) {
 
       for (index_k=0; index_k<psp->ln_k_size; index_k++) {
@@ -1308,9 +1308,9 @@ int output_pk_old(
         }
       }
     }
-
+*/
     /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
-    else {
+  //  else {
 
       class_call(spectra_pk_at_z(pba,
                                  psp,
@@ -1322,7 +1322,7 @@ int output_pk_old(
                                  pk_cb_ic),
                  psp->error_message,
                  pop->error_message);
-    }
+    //}
 
     /** - fourth, write in files */
 
