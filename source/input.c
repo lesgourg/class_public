@@ -232,7 +232,9 @@ int input_init(
    * and before the shooting, we want to already fix our precision parameters.
    *
    * No precision parameter should depend on any input parameter
-   * */
+   *
+   */
+
   class_call(input_read_precisions(pfc,
                                    ppr,
                                    pba,
@@ -275,7 +277,9 @@ int input_init(
    *  parameter is calculated
    *
    * See input_try_unknown_parameters for the actual shooting
-   *  */
+   *
+   */
+
   char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
                                        "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
@@ -906,11 +910,7 @@ int input_read_parameters(
   class_read_int("N_ncdm",N_ncdm);
   if ((flag1 == _TRUE_) && (N_ncdm > 0)){
     pba->N_ncdm = N_ncdm;
-    /* Precision parameters for ncdm has to be read now since they are used here:*/
-    //class_read_double("tol_M_ncdm",ppr->tol_M_ncdm);
-    //class_read_double("tol_ncdm_newtonian",ppr->tol_ncdm_newtonian);
-    //class_read_double("tol_ncdm_synchronous",ppr->tol_ncdm_synchronous);
-    //class_read_double("tol_ncdm_bg",ppr->tol_ncdm_bg);
+
     if (ppt->gauge == synchronous)
       ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
     if (ppt->gauge == newtonian)
@@ -2308,6 +2308,17 @@ int input_read_parameters(
     }
   }
 
+  /** Do we want density and velocity transfer functions in Nbody gauge? */
+  if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
+    class_call(parser_read_string(pfc,"Nbody gauge transfer functions",&string1,&flag1,errmsg),
+	       errmsg,
+	       errmsg);
+
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"y") != NULL))) {
+      ppt->has_Nbody_gauge_transfers = _TRUE_;
+    }
+  }
+
   /* deal with selection functions */
   if ((ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
 
@@ -2488,7 +2499,8 @@ int input_read_parameters(
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_analytic = _TRUE_;
         pma->has_nz_analytic = _TRUE_;
-      }else{
+      } 
+      else{
         ptr->has_nz_file = _TRUE_;
         pma->has_nz_file = _TRUE_;
         class_read_string("dNdz_selection",ptr->nz_file_name);
@@ -2508,7 +2520,8 @@ int input_read_parameters(
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_evo_analytic = _TRUE_;
         pma->has_nz_evo_analytic = _TRUE_;
-      }else{
+      }
+      else{
         ptr->has_nz_evo_file = _TRUE_;
         pma->has_nz_evo_file = _TRUE_;
         class_read_string("dNdz_evolution",ptr->nz_evo_file_name);
@@ -3171,6 +3184,7 @@ int input_default_params(
 
   ppt->gauge=synchronous;
 
+  ppt->has_Nbody_gauge_transfers = _FALSE_;
   ppt->k_output_values_num=0;
   ppt->store_perturbations = _FALSE_;
   ppt->number_of_scalar_titles=0;

@@ -609,6 +609,8 @@ int perturb_indices_of_perturbs(
   ppt->has_source_h_prime = _FALSE_;
   ppt->has_source_eta = _FALSE_;
   ppt->has_source_eta_prime = _FALSE_;
+  ppt->has_source_H_T_Nb_prime = _FALSE_;
+  ppt->has_source_k2gamma_Nb = _FALSE_;
 
   /** - source flags and indices, for sources that all modes have in
       common (temperature, polarization, ...). For temperature, the
@@ -673,7 +675,8 @@ int perturb_indices_of_perturbs(
 
       if (ppt->has_density_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
-        ppt->has_source_delta_g = _TRUE_;
+	ppt->has_source_delta_tot = _TRUE_;
+	ppt->has_source_delta_g = _TRUE_;
         ppt->has_source_delta_b = _TRUE_;
         if (pba->has_cdm == _TRUE_)
           ppt->has_source_delta_cdm = _TRUE_;
@@ -699,6 +702,7 @@ int perturb_indices_of_perturbs(
 
       if (ppt->has_velocity_transfers == _TRUE_) {
         ppt->has_lss = _TRUE_;
+	ppt->has_source_theta_tot = _TRUE_;
         ppt->has_source_theta_g = _TRUE_;
         ppt->has_source_theta_b = _TRUE_;
         if ((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous))
@@ -753,11 +757,24 @@ int perturb_indices_of_perturbs(
           ppt->has_source_eta = _TRUE_;
           ppt->has_source_eta_prime = _TRUE_;
         }
+	ppt->has_source_H_T_Nb_prime = _TRUE_;
+	ppt->has_source_k2gamma_Nb = _TRUE_;
+      }
+
+      if (ppt->has_Nbody_gauge_transfers == _TRUE_){
+	if (ppt->gauge == synchronous) {
+	  ppt->has_source_h_prime = _TRUE_;
+	  ppt->has_source_eta_prime = _TRUE_;
+	}
+	ppt->has_source_H_T_Nb_prime = _TRUE_;
+	/** gamma is not neccessary for converting output to Nbody gauge but is included anyway. */
+	ppt->has_source_k2gamma_Nb = _TRUE_;
       }
 
       index_type = index_type_common;
       class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
       class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_type,1);
       class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
       class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
       class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
@@ -769,6 +786,7 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr, index_type,1);
       class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
       class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
+      class_define_index(ppt->index_tp_theta_tot,  ppt->has_source_theta_tot, index_type,1);
       class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
       class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_type,1);
       class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
@@ -788,6 +806,8 @@ int perturb_indices_of_perturbs(
       class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,   index_type,1);
       class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_type,1);
       class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime, index_type,1);
+      class_define_index(ppt->index_tp_H_T_Nb_prime,  ppt->has_source_H_T_Nb_prime, index_type,1);
+      class_define_index(ppt->index_tp_k2gamma_Nb,  ppt->has_source_k2gamma_Nb, index_type,1);
       ppt->tp_size[index_md] = index_type;
 
       class_test(index_type == 0,
@@ -2552,6 +2572,10 @@ int perturb_prepare_output(struct background * pba,
       /* Scalar field scf */
       class_store_columntitle(ppt->scalar_titles, "delta_scf", pba->has_scf);
       class_store_columntitle(ppt->scalar_titles, "theta_scf", pba->has_scf);
+      /** Fluid */
+      class_store_columntitle(ppt->scalar_titles, "delta_rho_fld", pba->has_fld);
+      class_store_columntitle(ppt->scalar_titles, "rho_plus_p_theta_fld", pba->has_fld);
+      class_store_columntitle(ppt->scalar_titles, "delta_p_fld", pba->has_fld);
 
       ppt->number_of_scalar_titles =
         get_number_of_titles(ppt->scalar_titles);
@@ -5176,6 +5200,17 @@ int perturb_einstein(
                    ppt->error_message,
                    ppt->error_message);
 
+	/* update total delta and theta given rsa approximation results */
+	ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
+        ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
+
+        if (pba->has_ur == _TRUE_) {
+	  
+	  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
+          ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
+
+        }
+
       }
     }
 
@@ -5196,12 +5231,13 @@ int perturb_einstein(
                    ppt->error_message,
                    ppt->error_message);
 
-        /* update total theta given rsa approximation results */
-
+        /* update total delta and theta given rsa approximation results */
+	ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
         if (pba->has_ur == _TRUE_) {
-
+	  
+	  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
           ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
 
         }
@@ -5345,8 +5381,16 @@ int perturb_total_stress_energy(
   double rho_relativistic;
   double rho_dr_over_f;
   double delta_rho_scf, delta_p_scf, psi;
+  /** Variables used for FLD and PPF */
   double c_gamma_k_H_square;
-  double Gamma_prime_plus_a_prime_over_a_Gamma, alpha=0., s2sq=1.;
+  double Gamma_prime_plus_a_prime_over_a_Gamma, s2sq=1.;
+  double w_prime_fld, ca2_fld;
+  double alpha, alpha_prime, metric_euler;
+  double rho_t, p_t, rho_t_prime, p_t_prime;
+  double rho_fld, p_fld, rho_fld_prime, p_fld_prime; 
+  double X, Y, Z, X_prime, Y_prime, Z_prime;
+  double Gamma_fld, S, S_prime, theta_t, theta_t_prime, rho_plus_p_theta_fld_prime;
+  
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5602,33 +5646,89 @@ int perturb_total_stress_energy(
     if (pba->has_fld == _TRUE_) {
 
       class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
-
+      w_prime_fld = dw_over_da_fld * a_prime_over_a * a;
+      
       if (pba->use_ppf == _FALSE_) {
         ppw->delta_rho_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
         ppw->rho_plus_p_theta_fld = (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
+	ca2_fld = w_fld - w_prime_fld / 3. / (1.+w_fld) / a_prime_over_a;
+	/** We must gauge transform the pressure perturbation from the fluid rest-frame to the gauge we are working in */
+	ppw->delta_p_fld = pba->cs2_fld * ppw->delta_rho_fld + (pba->cs2_fld-ca2_fld)*(3*a_prime_over_a*ppw->rho_plus_p_theta_fld/k/k);
       }
       else {
         s2sq = ppw->s_l[2]*ppw->s_l[2];
-        if (ppt->gauge == synchronous)
-          alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+a_prime_over_a/k2*ppw->rho_plus_p_theta)-y[ppw->pv->index_pt_Gamma_fld])/a_prime_over_a;
-        else
+        c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
+	/** The equation is too stiff for Runge-Kutta when c_gamma_k_H_square is large.
+	    Use the asymptotic solution Gamma=Gamma'=0 in that case.
+	*/
+	if (c_gamma_k_H_square > ppr->c_gamma_k_H_square_max)
+	  Gamma_fld = 0.;
+	else
+	  Gamma_fld = y[ppw->pv->index_pt_Gamma_fld];
+
+	if (ppt->gauge == synchronous){
+          alpha = (y[ppw->pv->index_pt_eta]+1.5*a2/k2/s2sq*(ppw->delta_rho+3*a_prime_over_a/k2*ppw->rho_plus_p_theta)-Gamma_fld)/a_prime_over_a;
+	  alpha_prime = -2. * a_prime_over_a * alpha + y[ppw->pv->index_pt_eta] - 4.5 * (a2/k2) * ppw->rho_plus_p_shear;
+	  metric_euler = 0.;
+	}
+        else{
           alpha = 0.;
+	  alpha_prime = 0.;
+	  metric_euler = k2*y[ppw->pv->index_pt_phi] - 4.5*a2*ppw->rho_plus_p_shear;
+	}
         ppw->S_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*1.5*a2/k2/a_prime_over_a*
           (ppw->rho_plus_p_theta/rho_plus_p_tot+k2*alpha);
         // note that the last terms in the ratio do not include fld, that's correct, it's the whole point of the PPF scheme
-        c_gamma_k_H_square = pow(pba->c_gamma_over_c_fld*k/a_prime_over_a,2)*pba->cs2_fld;
-        ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*y[ppw->pv->index_pt_Gamma_fld]);
-        Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*y[ppw->pv->index_pt_Gamma_fld];
+	/** We must now check the stiffenss criterion again and set Gamma_prime_fld accordingly. */
+	if (c_gamma_k_H_square > ppr->c_gamma_k_H_square_max){
+	  ppw->Gamma_prime_fld = 0.;
+	}
+	else{
+	  ppw->Gamma_prime_fld = a_prime_over_a*(ppw->S_fld/(1.+c_gamma_k_H_square) - (1.+c_gamma_k_H_square)*Gamma_fld);
+	}
+        Gamma_prime_plus_a_prime_over_a_Gamma = ppw->Gamma_prime_fld+a_prime_over_a*Gamma_fld;
         // delta and theta in both gauges gauge:
         ppw->rho_plus_p_theta_fld = ppw->pvecback[pba->index_bg_rho_fld]*(1.+w_fld)*ppw->rho_plus_p_theta/rho_plus_p_tot-
           k2*2./3.*a_prime_over_a/a2/(1+4.5*a2/k2/s2sq*rho_plus_p_tot)*
           (ppw->S_fld-Gamma_prime_plus_a_prime_over_a_Gamma/a_prime_over_a);
-        ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*y[ppw->pv->index_pt_Gamma_fld]-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
+        ppw->delta_rho_fld = -2./3.*k2*s2sq/a2*Gamma_fld-3*a_prime_over_a/k2*ppw->rho_plus_p_theta_fld;
+
+	/** Now construct the pressure perturbation, see 1903.xxxxx. */
+	/** Construct energy density and pressure for DE (_fld) and the rest (_t).
+	    Also compute derivatives. */
+	rho_fld = ppw->pvecback[pba->index_bg_rho_fld];
+	p_fld = w_fld*rho_fld;
+	rho_fld_prime = -3*a_prime_over_a*(rho_fld+p_fld);
+	p_fld_prime = w_prime_fld*rho_fld-3*a_prime_over_a*(1+w_fld)*p_fld;
+	rho_t = ppw->pvecback[pba->index_bg_rho_tot] - rho_fld;
+	p_t = ppw->pvecback[pba->index_bg_p_tot] - p_fld;
+	rho_t_prime = -3*a_prime_over_a*(rho_t+p_t);
+	p_t_prime = ppw->pvecback[pba->index_bg_p_tot_prime]-p_fld_prime;
+	/** Compute background quantities X,Y,Z and their derivatives. */
+	X = c_gamma_k_H_square;
+	X_prime = -2*X*(a_prime_over_a + ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H]);
+	Y = 4.5*a2/k2/s2sq*(rho_t+p_t);
+	Y_prime = Y*(2.*a_prime_over_a+(rho_t_prime+p_t_prime)/(rho_t+p_t));
+	Z = 2./3.*k2*ppw->pvecback[pba->index_bg_H]/a;
+	Z_prime = Z*(ppw->pvecback[pba->index_bg_H_prime]/ppw->pvecback[pba->index_bg_H] - a_prime_over_a);
+	/** Construct theta_t and its derivative from the Euler equation */
+	theta_t = ppw->rho_plus_p_theta/rho_plus_p_tot;
+	theta_t_prime = -a_prime_over_a*theta_t-(p_t_prime*theta_t-k2*ppw->delta_p +k2*ppw->rho_plus_p_shear)/rho_plus_p_tot+metric_euler;
+	S = ppw->S_fld;
+	S_prime = -Z_prime/Z*S+1./Z*(rho_fld_prime+p_fld_prime)*(theta_t+k2*alpha)+1./Z*(rho_fld+p_fld)*(theta_t_prime+k2*alpha_prime);
+	/** Analytic derivative of the equation for ppw->rho_plus_p_theta_fld above. */
+	rho_plus_p_theta_fld_prime = Z_prime*(S-1./(1.+Y)*(S/(1.+1./X)+Gamma_fld*X)) +
+	  Z*(S_prime + Y_prime/(1.+Y*Y+2*Y)*(S/(1.+1./X)+Gamma_fld*X)-
+	     1./(1.+Y)*(S_prime/(1.+1./X)+S*X_prime/(1.+X*X+2*X)+ppw->Gamma_prime_fld*X+Gamma_fld*X_prime))-
+	  k2*alpha_prime*(rho_fld+p_fld)-k2*alpha*(rho_fld_prime+p_fld_prime);
+
+	/** We can finally compute the pressure perturbation using the Euler equation for theta_fld */
+	ppw->delta_p_fld = (rho_plus_p_theta_fld_prime+4*a_prime_over_a* ppw->rho_plus_p_theta_fld - (rho_fld+p_fld)*metric_euler)/k2;
       }
 
       ppw->delta_rho += ppw->delta_rho_fld;
       ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_fld;
-      ppw->delta_p += pba->cs2_fld * ppw->delta_rho_fld;
+      ppw->delta_p += ppw->delta_p_fld;
 
     }
 
@@ -5890,6 +5990,8 @@ int perturb_sources(
 
   double a_rel, a2_rel, f_dr;
 
+  double rho_plus_p_tot, H_T_Nb_prime;
+
   /** - rename structure fields (just to avoid heavy notations) */
 
   pppaw = parameters_and_workspace;
@@ -5933,11 +6035,8 @@ int perturb_sources(
   a_rel = ppw->pvecback[pba->index_bg_a]/pba->a_today;
   a2_rel = a_rel * a_rel;
 
-  /* derived background quantities, useful only in synchronous gauge */
-  if (ppt->gauge == synchronous) {
-    a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
-    a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
-  }
+  a_prime_over_a = pvecback[pba->index_bg_a] * pvecback[pba->index_bg_H]; /* (a'/a)=aH */
+  a_prime_over_a_prime = pvecback[pba->index_bg_H_prime] * pvecback[pba->index_bg_a] + pow(pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a],2); /* (a'/a)' = aH'+(aH)^2 */
 
   /** - for scalars */
   if (_scalars_) {
@@ -6060,6 +6159,24 @@ int perturb_sources(
 
     /* now, non-CMB sources */
 
+    /* H_T_prime in N-body gauge. (H_T=3zeta where zeta is the comoving curvature perturbation.).
+       See equation A.5 in 1811.00904.*/
+    if (ppt->has_source_H_T_Nb_prime == _TRUE_) {
+      rho_plus_p_tot = (pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+      H_T_Nb_prime = 3*a_prime_over_a/rho_plus_p_tot*(-ppw->delta_p+
+						      pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/rho_plus_p_tot/k/k+
+						      ppw->rho_plus_p_shear);
+      _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
+      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. Note: term involving the second derivative H_T_Nb_prime_prime
+	  will be added in the spectra module. This is because we compute the derivative numerically since the analytic
+	  expression would contain the derivatives of pressure and shear which are cumbersome to compute and is only feasible
+	  in a simplified cosmology with no massive neutrino or DE perturbations. */
+      if (ppt->has_source_k2gamma_Nb == _TRUE_){
+	_set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
+      }
+
+    }
+
     /* Bardeen potential -PHI_H = phi in Newtonian gauge */
     if (ppt->has_source_phi == _TRUE_) {
 
@@ -6124,6 +6241,19 @@ int perturb_sources(
       if (ppt->has_source_eta_prime == _TRUE_)
         _set_source_(ppt->index_tp_eta_prime) = dy[ppw->pv->index_pt_eta];
 
+    }
+
+    /* total over density  */
+    if (ppt->has_source_delta_tot == _TRUE_) {
+      /** following strange CMBFAST/CAMB convention of not including rho_lambda in rho_tot */
+      double rho_tot;
+      if (pba->has_lambda == _TRUE_){
+	rho_tot = pvecback[pba->index_bg_rho_tot] - pvecback[pba->index_bg_rho_lambda];
+      }
+      else{
+	rho_tot = pvecback[pba->index_bg_rho_tot];
+      }
+      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/rho_tot;
     }
 
     /* total matter over density (gauge-invariant, defined as in arXiv:1307.1459) */
@@ -6198,7 +6328,12 @@ int perturb_sources(
       }
     }
 
-    /* total velocity (gauge-invariant, defined as in arXiv:1307.1459) */
+    /* total velocity  */
+    if (ppt->has_source_theta_tot == _TRUE_) {
+      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+    }
+
+    /* total matter velocity (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_theta_m == _TRUE_) {
       _set_source_(ppt->index_tp_theta_m) = ppw->theta_m;
     }
@@ -6729,7 +6864,10 @@ int perturb_print_variables(double tau,
     /* Scalar field scf*/
     class_store_double(dataptr, delta_scf, pba->has_scf, storeidx);
     class_store_double(dataptr, theta_scf, pba->has_scf, storeidx);
-
+    /** Fluid */
+    class_store_double(dataptr, ppw->delta_rho_fld, pba->has_fld, storeidx);
+    class_store_double(dataptr, ppw->rho_plus_p_theta_fld, pba->has_fld, storeidx);
+    class_store_double(dataptr, ppw->delta_p_fld, pba->has_fld, storeidx);
     //fprintf(ppw->perturb_output_file,"\n");
 
   }

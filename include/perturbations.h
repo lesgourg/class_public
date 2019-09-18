@@ -133,6 +133,7 @@ struct perturbs
   short has_density_transfers;        /**< do we need to output individual matter density transfer functions? */
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
+  short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 
@@ -236,6 +237,7 @@ struct perturbs
 
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarization? */
+  short has_source_delta_tot;   /**< do we need source for delta total? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
   short has_source_delta_cb; /**< do we ALSO need source for delta of ONLY cdm and baryon? */
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
@@ -247,6 +249,7 @@ struct perturbs
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_theta_tot;    /**< do we need source for theta total? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_cb; /**< do we ALSO need source for theta of ONLY cdm and baryon? */
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
@@ -266,6 +269,8 @@ struct perturbs
   short has_source_h_prime;      /**< do we need source for metric fluctuation h'? */
   short has_source_eta;          /**< do we need source for metric fluctuation eta? */
   short has_source_eta_prime;    /**< do we need source for metric fluctuation eta'? */
+  short has_source_H_T_Nb_prime;    /**< do we need source for metric fluctuation H_T_Nb'? */
+  short has_source_k2gamma_Nb;    /**< do we need source for metric fluctuation gamma in Nbody gauge? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -275,7 +280,8 @@ struct perturbs
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
-  int index_tp_delta_m; /**< index value for delta tot */
+  int index_tp_delta_tot; /**< index value for delta tot */
+  int index_tp_delta_m; /**< index value for delta matter tot */
   int index_tp_delta_cb; /**< index value for delta cb */
   int index_tp_delta_g;   /**< index value for delta of gammas */
   int index_tp_delta_b;   /**< index value for delta of baryons */
@@ -289,7 +295,8 @@ struct perturbs
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
-  int index_tp_theta_m;    /**< index value for theta tot */
+  int index_tp_theta_tot;    /**< index value for theta tot */
+  int index_tp_theta_m;    /**< index value for theta matter tot */
   int index_tp_theta_cb;   /**< index value for theta cb */
   int index_tp_theta_g;    /**< index value for theta of gammas */
   int index_tp_theta_b;    /**< index value for theta of baryons */
@@ -309,6 +316,8 @@ struct perturbs
   int index_tp_h_prime;      /**< index value for metric fluctuation h' */
   int index_tp_eta;          /**< index value for metric fluctuation eta */
   int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
+  int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
+  int index_tp_k2gamma_Nb;     /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
@@ -519,6 +528,7 @@ struct perturb_workspace
   double theta_cb;       /**< velocity divergence theta of only cdm and baryon */
 
   double delta_rho_fld;        /**< density perturbation of fluid, not so trivial in PPF scheme */
+  double delta_p_fld;          /**< pressure perturbation of fluid, very non-trivial in PPF scheme */
   double rho_plus_p_theta_fld; /**< velocity divergence of fluid, not so trivial in PPF scheme */
   double S_fld;                /**< S quantity sourcing Gamma_prime evolution in PPF scheme (equivalent to eq. 15 in 0808.3125) */
   double Gamma_prime_fld;      /**< Gamma_prime in PPF scheme (equivalent to eq. 14 in 0808.3125) */

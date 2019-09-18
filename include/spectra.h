@@ -25,7 +25,6 @@ struct spectra {
 
   double z_max_pk;  /**< maximum value of z at which matter spectrum P(k,z) will be evaluated; keep fixed to zero if P(k) only needed today */
 
-
   int non_diag; /**< sets the number of cross-correlation spectra
                    that you want to calculate: 0 means only
                    auto-correlation, 1 means only adjacent bins,
@@ -254,6 +253,9 @@ struct spectra {
   int index_tr_h_prime;        /**< index of synchronous gauge metric perturbation h' */
   int index_tr_eta;            /**< index of synchronous gauge metric perturbation eta */
   int index_tr_eta_prime;      /**< index of synchronous gauge metric perturbation eta' */
+  int index_tr_H_T_Nb_prime;   /**< index of derivative of H_T in Nbody gauge */
+  int index_tr_H_T_Nb_prime_prime;/**< index of second derivative of H_T in Nbody gauge */
+  int index_tr_k2gamma_Nb;       /**< index of gamma times k^2 in Nbody gauge */
   int tr_size;                 /**< total number of species in transfer functions */
 
   double * matter_transfer;   /**< Matter transfer functions.
