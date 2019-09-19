@@ -152,6 +152,8 @@ struct distortions
 
   int has_SZ_effect;
 
+  int only_exotic; /**< flag specifying wether to only take exotic injection contributions */
+
   short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message;    /**< zone for writing error messages */

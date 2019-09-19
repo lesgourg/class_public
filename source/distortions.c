@@ -706,10 +706,12 @@ int distortions_compute_heating_rate(struct background* pba,
   double H, a, rho_g;
   double bb_vis;
 
-  /** Update heating table with second order contributions */
-  class_call(heating_add_noninjected(pba,pth,ppt,ppm),
-             phe->error_message,
-             psd->error_message);
+  if( ! psd->only_exotic ){
+    /** Update heating table with second order contributions */
+    class_call(heating_add_noninjected(pba,pth,ppt,ppm),
+               phe->error_message,
+               psd->error_message);
+  }
 
   /** Allocate space for background vector */
   last_index_back = 0;

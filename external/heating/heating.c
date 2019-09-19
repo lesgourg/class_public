@@ -526,6 +526,23 @@ int heating_deposition_function_at_z(struct heating* phe,
         phe->chi[phe->index_dep_lowE]  = 0.;
       }
     }
+    /* Old approximation from Padmanabhan and Finkbeiner */
+    else if(phe->chi_type == chi_PF){
+      if(x<1.+phe->fHe){
+        phe->chi[phe->index_dep_heat]  = (1.+2.*x/(1+phe->fHe))/3.;
+        phe->chi[phe->index_dep_ionH]  = (1.-x/(1+phe->fHe))/3.;
+        phe->chi[phe->index_dep_ionHe] = 0.;
+        phe->chi[phe->index_dep_lya]   = (1.-x/(1+phe->fHe))/3.;
+        phe->chi[phe->index_dep_lowE]  = 0.;
+      }
+      else{
+        phe->chi[phe->index_dep_heat]  = 1.;
+        phe->chi[phe->index_dep_ionH]  = 0.;
+        phe->chi[phe->index_dep_ionHe] = 0.;
+        phe->chi[phe->index_dep_lya]   = 0.;
+        phe->chi[phe->index_dep_lowE]  = 0.;
+      }
+    }
     /* Coefficient as revised by Galli et al. 2013 */
     else if(phe->chi_type == chi_Galli_file){
       for(index_dep=0; index_dep<phe->dep_size; ++index_dep){

@@ -2793,6 +2793,9 @@ int input_read_parameters_heating(struct file_content * pfc,
     if (strcmp(string1,"CK_2004") == 0){
       phe->chi_type = chi_CK;
     }
+    else if (strcmp(string1,"PF_2005") == 0){
+      phe->chi_type = chi_PF;
+    }
     else if (strcmp(string1,"Galli_2013_file") == 0){
       phe->chi_type = chi_Galli_file;
     }
@@ -2810,7 +2813,7 @@ int input_read_parameters_heating(struct file_content * pfc,
     }
     else{
       class_stop(errmsg,
-                   "You specified 'chi_type' as '%s'. It has to be one of {'CK_2004','Galli_2013_file','Galli_2013_analytic','heat','from_x_file','from_z_file'}.",string1);
+                   "You specified 'chi_type' as '%s'. It has to be one of {'CK_2004','PF_2005','Galli_2013_file','Galli_2013_analytic','heat','from_x_file','from_z_file'}.",string1);
     }
   }
 
@@ -4246,7 +4249,10 @@ int input_read_parameters_distortions(struct file_content * pfc,
              "sd_detector_file","sd_detector_nu_min","sd_detector_nu_max",
              "sd_detector_nu_delta","sd_detector_bin_number","sd_detector_delta_Ic");
 
-  /** 2) Include SZ effect from reionization? */
+  /** 2) Only calculate non-LCDM contributions to heating? */
+  class_read_flag("sd_only_exotic",psd->only_exotic);
+
+  /** 3) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);
 
   return _SUCCESS_;
