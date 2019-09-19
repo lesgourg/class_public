@@ -998,8 +998,10 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
 
 /**
- * Compute relativistic contribution from reionization and structure
- * formation according to Nozawa et al. 2006 (up to order 3 in theta_e).
+ * Compute relativistic contribution from reionization and structure formation according to
+ *        1) Nozawa et al. 2005 (up to order 3 in theta_e) or
+ *        2) Chluba et al. 2012 (up to order ? in ?). Note that, for the moment, this appoximation
+ *           is only valid for cluster temperatures lower than few KeV.
  *
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to thermodynamics structure
@@ -1027,12 +1029,13 @@ int distortions_add_effects_reio(struct background * pba,
   /** Define local variables */
   double theta_e, cos_theta, P_1, P_2, x_tilde, S_tilde;
   double G_T, Y_SZ;
+  double Y_k, M_low, M_k, D_low, D_k, Q_low, Q_k;
+  int index_k, index_n;
   double Y_0, Y_1, Y_2;
-  double DI_tSZ_non_rel, DI_tSZ_rel, DI_tSZ;
   double B_0, B_1, B_2, B_3;
   double C_0, C_1, C_2, C_3;
   double D_0, D_1, D_2, D_3;
-  double DI_kSZ;
+  double DI_tSZ_non_rel, DI_tSZ_rel, DI_tSZ, DI_kSZ;
 
   /* Compute related quantities */
   theta_e = T_e*1.e3/(_m_e_/_GeV_over_kg_*1.e9);
@@ -1045,120 +1048,239 @@ int distortions_add_effects_reio(struct background * pba,
   G_T = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.);
   Y_SZ = G_T*(x_tilde-4.);
 
-  /** Thermal SZ effect (TSZ) */
-  Y_0 = -4.
-        +x_tilde;
-  Y_1 = -10.
-        +47.*x_tilde/2.
-        -42.*pow(x_tilde,2.)/5.
-        +7.*pow(x_tilde,3.)/10.
-        +pow(S_tilde,2.)*(-21./5.
-                          +7.*x_tilde/5.);
-  Y_2 = -15./2.
-        +1023.*x_tilde/8.
-        -868.*pow(x_tilde,2.)/5.
-        +329.*pow(x_tilde,3.)/5.
-        -44.*pow(x_tilde,4.)/5.
-        +11.*pow(x_tilde,5.)/30.
-        +pow(S_tilde,2.)*(-434./5.
-                          +658.*x_tilde/5.
-                          -242.*pow(x_tilde,2.)/5.
-                          +143.*pow(x_tilde,3.)/30.)
-        +pow(S_tilde,4.)*(-44./5.
-                          +187.*x_tilde/60.);
+  double Delta_x[8] = {-G_T,
+                        G_T*x_tilde,
+                       -G_T*        (pow(x_tilde,2.)
+                                     +pow(S_tilde,2.)/2.),
+                        G_T*x_tilde*(pow(x_tilde,2.)
+                                     +pow(S_tilde,2.)*2.),
+                       -G_T*        (pow(x_tilde,2.)*pow(S_tilde,2.)*11./2.
+                                     +pow(x_tilde,4.)
+                                     +pow(S_tilde,4.)),
+                        G_T*x_tilde*(pow(x_tilde,2.)*pow(S_tilde,2.)*13.
+                                     +pow(x_tilde,4.)
+                                     +pow(S_tilde,4.)*17./2.),
+                        G_T*        (pow(x_tilde,4.)*pow(S_tilde,2.)*57./2.
+                                     +pow(x_tilde,2.)*pow(S_tilde,4.)*45.
+                                     +pow(x_tilde,4.)
+                                     +pow(S_tilde,4.)*17./4.),
+                        G_T*x_tilde*(pow(x_tilde,4.)*pow(S_tilde,2.)*60.
+                                     +pow(x_tilde,2.)*pow(S_tilde,4.)*192.
+                                     +pow(x_tilde,4.)
+                                     +pow(S_tilde,4.)*65.)};
 
-  DI_tSZ_non_rel = theta_e*Dtau*Y_SZ;
-  DI_tSZ_rel = theta_e*Dtau*Y_SZ*(theta_e*Y_1+pow(theta_e,2.)*Y_2)/Y_0;
+  /** Thermal SZ effect (TSZ) */
+ /* Fill coefficient tables from appendix A1 of Chluba et al. 2012 */
+  double a[6][3] = {{4., 10.,    15./2.},
+                    {1., 47./2., 1023./8.},
+                    {0., 42./5., 868./5.},
+                    {0., 7./10., 329./5.},
+                    {0., 0.,     44./5.},
+                    {0., 0.,     11./30.}};
+
+  /** Non-relativistic TSZ */
+  DI_tSZ_non_rel = 0.;
+  for(index_k=0; index_k<1; ++index_k){
+    Y_k = 0.;
+    for(index_n=0; index_n<2*index_k+2; ++index_n){
+      Y_k += a[index_n][index_k]*Delta_x[index_n];
+    }
+    DI_tSZ_non_rel += Dtau*pow(theta_e,index_k+1)*Y_k;
+  }
+
+  /** Relativistic TSZ */
+  DI_tSZ_rel = 0.;
+  for(index_k=1; index_k<3; ++index_k){
+    Y_k = 0.;
+    for(index_n=0; index_n<2*index_k+2; ++index_n){
+      Y_k += a[index_n][index_k]*Delta_x[index_n];
+    }
+    DI_tSZ_rel += Dtau*pow(theta_e,index_k+1)*Y_k;
+  }
+
   DI_tSZ = DI_tSZ_non_rel+DI_tSZ_rel;
 
   /** Kinematic SZ effect (kSZ) */
-  B_0 = 1.*Y_0/3.;
-  B_1 = 5.*Y_0/6.
-        +2.*Y_1/3.;
-  B_2 = 5.*Y_0/8.
-        +3.*Y_1/2.
-        +Y_2;
-  B_3 = -5.*Y_0/8.
-        +5.*Y_1/4.
-        +5.*Y_2/2.;
+  /* Calculated according to Nozawa et al. 2005 */
+  if(psd->sd_reio_type == sd_reio_Nozawa){
+    Y_0 = -4.
+          +x_tilde;
+    Y_1 = -10.
+          +47.*x_tilde/2.
+          -42.*pow(x_tilde,2.)/5.
+          +7.*pow(x_tilde,3.)/10.
+          +pow(S_tilde,2.)*(-21./5.
+                            +7.*x_tilde/5.);
+    Y_2 = -15./2.
+          +1023.*x_tilde/8.
+          -868.*pow(x_tilde,2.)/5.
+          +329.*pow(x_tilde,3.)/5.
+          -44.*pow(x_tilde,4.)/5.
+          +11.*pow(x_tilde,5.)/30.
+          +pow(S_tilde,2.)*(-434./5.
+                            +658.*x_tilde/5.
+                            -242.*pow(x_tilde,2.)/5.
+                            +143.*pow(x_tilde,3.)/30.)
+          +pow(S_tilde,4.)*(-44./5.
+                            +187.*x_tilde/60.);
 
-  C_0 = 1.;
-  C_1 = 10.
-        -47.*x_tilde/5.
-        +7.*pow(x_tilde,2.)/5.
-        +7.*pow(S_tilde,2.)/10.;
-  C_2 = 25.
-        -1117.*x_tilde/10.
-        +847.*pow(x_tilde,2.)/10.
-        -183.*pow(x_tilde,3.)/10.
-        +11.*pow(x_tilde,4.)/10.
-        +pow(S_tilde,2.)*(847./20.
-                          -183.*x_tilde/5.
-                          +121.*pow(x_tilde,2.)/20.)
-        +11.*pow(S_tilde,4.)/10.;
-  C_3 = 75./4.
-        -21873.*x_tilde/40.
-        +49161.*pow(x_tilde,2.)/40.
-        -27519.*pow(x_tilde,3.)/35.
-        +6684.*pow(x_tilde,4.)/35.
-        -3917.*pow(x_tilde,5.)/210.
-        +64.*pow(x_tilde,6.)/105.
-        +pow(S_tilde,2.)*(49161./80.
-                          -55038.*x_tilde/35.
-                          +36762.*pow(x_tilde,2.)/35.
-                          -50921.*pow(x_tilde,3.)/210.
-                          +608.*pow(x_tilde,4.)/35.)
-        +pow(S_tilde,4.)*(6684./35.
-                          -66589.*x_tilde/420.
-                          +192.*pow(x_tilde,2.)/7.)
-        +272.*pow(S_tilde,6.)/105.;
+    B_0 = 1.*Y_0/3.;
+    B_1 = 5.*Y_0/6.
+          +2.*Y_1/3.;
+    B_2 = 5.*Y_0/8.
+          +3.*Y_1/2.
+          +Y_2;
+    B_3 = -5.*Y_0/8.
+          +5.*Y_1/4.
+          +5.*Y_2/2.;
 
-  D_0 = -2./3.
-        +11.*x_tilde/30.;
-  D_1 = -4.
-        +12.*x_tilde
-        -6.*pow(x_tilde,2.)
-        +19.*pow(S_tilde,2.)/30.;
-        +pow(S_tilde,2.)*(-3.
-                          +19.*x_tilde/15.);
- D_2 = -10.
-        +542.*x_tilde/5.
-        -843.*pow(x_tilde,2.)/5.
-        +10603.*pow(x_tilde,3.)/140.
-        -409.*pow(x_tilde,4.)/35.
-        +23.*pow(x_tilde,4.)/42.
-        +pow(S_tilde,2.)*(-843./10.
-                          +10603.*x_tilde/70.
-                          -4499.*pow(x_tilde,2.)/70.
-                          +299.*pow(x_tilde,3.)/42.)
-        +pow(S_tilde,4.)*(-409./35.
-                          +391.*x_tilde/84.);
-  D_3 = -15./2.
-        +4929.*x_tilde/40.
-        -39777.*pow(x_tilde,2.)/20.
-        +1199897.*pow(x_tilde,3.)/560.
-        -4392.*pow(x_tilde,4.)/5.
-        +16364.*pow(x_tilde,5.)/105.
-        -3764.*pow(x_tilde,6.)/315.
-        +101.*pow(x_tilde,7.)/315.
-        +pow(S_tilde,2.)*(-39777./40.
-                          +1199897.*x_tilde/280.
-                          -24156.*pow(x_tilde,2.)/5.
-                          +212732.*pow(x_tilde,3.)/105.
-                          -35758.*pow(x_tilde,4.)/105.
-                          +404.*pow(x_tilde,5.)/21.)
-        +pow(S_tilde,4.)*(-4392./5.
-                          +139094.*x_tilde/105.
-                          -3764.*pow(x_tilde,2.)/7.
-                          +6464.*pow(x_tilde,3.)/105.)
-        +pow(S_tilde,6.)*(-15997./315.
-                          +6262.*x_tilde/315.);
+    C_0 = 1.;
+    C_1 = 10.
+          -47.*x_tilde/5.
+          +7.*pow(x_tilde,2.)/5.
+          +7.*pow(S_tilde,2.)/10.;
+    C_2 = 25.
+          -1117.*x_tilde/10.
+          +847.*pow(x_tilde,2.)/10.
+          -183.*pow(x_tilde,3.)/10.
+          +11.*pow(x_tilde,4.)/10.
+          +pow(S_tilde,2.)*(847./20.
+                            -183.*x_tilde/5.
+                            +121.*pow(x_tilde,2.)/20.)
+          +11.*pow(S_tilde,4.)/10.;
+    C_3 = 75./4.
+          -21873.*x_tilde/40.
+          +49161.*pow(x_tilde,2.)/40.
+          -27519.*pow(x_tilde,3.)/35.
+          +6684.*pow(x_tilde,4.)/35.
+          -3917.*pow(x_tilde,5.)/210.
+          +64.*pow(x_tilde,6.)/105.
+          +pow(S_tilde,2.)*(49161./80.
+                            -55038.*x_tilde/35.
+                            +36762.*pow(x_tilde,2.)/35.
+                            -50921.*pow(x_tilde,3.)/210.
+                            +608.*pow(x_tilde,4.)/35.)
+          +pow(S_tilde,4.)*(6684./35.
+                            -66589.*x_tilde/420.
+                            +192.*pow(x_tilde,2.)/7.)
+          +272.*pow(S_tilde,6.)/105.;
 
-  DI_kSZ = Dtau*G_T*(pow(beta,2.)*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3)+
-                     beta*P_1*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3)+
-                     pow(beta,2.)*P_2*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3)
-                    );
+    D_0 = -2./3.
+          +11.*x_tilde/30.;
+    D_1 = -4.
+          +12.*x_tilde
+          -6.*pow(x_tilde,2.)
+          +19.*pow(S_tilde,2.)/30.;
+          +pow(S_tilde,2.)*(-3.
+                            +19.*x_tilde/15.);
+   D_2 = -10.
+          +542.*x_tilde/5.
+          -843.*pow(x_tilde,2.)/5.
+          +10603.*pow(x_tilde,3.)/140.
+          -409.*pow(x_tilde,4.)/35.
+          +23.*pow(x_tilde,4.)/42.
+          +pow(S_tilde,2.)*(-843./10.
+                            +10603.*x_tilde/70.
+                            -4499.*pow(x_tilde,2.)/70.
+                            +299.*pow(x_tilde,3.)/42.)
+          +pow(S_tilde,4.)*(-409./35.
+                            +391.*x_tilde/84.);
+    D_3 = -15./2.
+          +4929.*x_tilde/40.
+          -39777.*pow(x_tilde,2.)/20.
+          +1199897.*pow(x_tilde,3.)/560.
+          -4392.*pow(x_tilde,4.)/5.
+          +16364.*pow(x_tilde,5.)/105.
+          -3764.*pow(x_tilde,6.)/315.
+          +101.*pow(x_tilde,7.)/315.
+          +pow(S_tilde,2.)*(-39777./40.
+                            +1199897.*x_tilde/280.
+                            -24156.*pow(x_tilde,2.)/5.
+                            +212732.*pow(x_tilde,3.)/105.
+                            -35758.*pow(x_tilde,4.)/105.
+                            +404.*pow(x_tilde,5.)/21.)
+          +pow(S_tilde,4.)*(-4392./5.
+                            +139094.*x_tilde/105.
+                            -3764.*pow(x_tilde,2.)/7.
+                            +6464.*pow(x_tilde,3.)/105.)
+          +pow(S_tilde,6.)*(-15997./315.
+                            +6262.*x_tilde/315.);
 
+    M_low = G_T*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3);
+    D_low = G_T*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3);
+    Q_low = G_T*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3);
+  }
+  /* Calculated according to Chluba et al. 2012 */
+  else if(psd->sd_reio_type == sd_reio_Chluba){
+    /* Low temperature approximation */
+    if(T_e < 10.){
+      double d[7][3] = {{-2./5., -1./5.,   407./140.},
+                        {-8./5., -24./5., -233./35.},
+                        {-2./5., -66./5., -10433./140.},
+                        { 0.,    -24./5., -3876./35.},
+                        { 0.,    -2./5.,  -1513./35.},
+                        { 0.,     0.,     -204./35.},
+                        { 0.,     0.,     -17./70.}};
+
+      double q[7][4] = {{-3./5.,   183./70., -429./40.},
+                        { 2./5.,  -5./7.,     207./20.},
+                        { 1./10.,  115./28.,  1647./80.},
+                        { 0.,      12./7.,    44.},
+                        { 0.,      1./7.,     19.},
+                        { 0.,      0.,        92./35.},
+                        { 0.,      0.,        23./210.}};
+
+      M_low = 1./3.*(Y_SZ+G_T);
+      for(index_k=0; index_k<3; ++index_k){
+        M_k = 0.;
+        for(index_n=0; index_n<2*index_k+2; ++index_n){
+          M_k += (a[index_n][index_k]-d[index_n][index_k])
+                        *(index_n*(index_n+2)*Delta_x[index_n]+
+                          (2*index_n+3)*Delta_x[index_n+1]+
+                          Delta_x[index_n+2]
+                         );
+        }
+        M_k *= 1./3.;
+        M_low += pow(theta_e,index_k+1)*M_k;
+      }
+
+      D_low = G_T;
+      for(index_k=0; index_k<3; ++index_k){
+        D_k = 0.;
+        for(index_n=0; index_n<2*index_k+2; ++index_n){
+          D_k += (d[index_n][index_k]-a[index_n][index_k])
+                        *(index_n*Delta_x[index_n]+
+                          Delta_x[index_n+1]
+                         );
+        }
+        D_low += pow(theta_e,index_k+1)*D_k;
+      }
+
+      Q_low = 11./30.*(x_tilde*G_T);
+      for(index_k=0; index_k<3; ++index_k){
+        Q_k = 0.;
+        for(index_n=0; index_n<2*index_k+2; ++index_n){
+          Q_k += (a[index_n][index_k]+q[index_n][index_k]-2.*d[index_n][index_k])
+                        *(index_n*(index_n-1)*Delta_x[index_n]+
+                          2*index_n*Delta_x[index_n+1]+
+                          Delta_x[index_n+2]
+                         );
+        }
+        Q_k *= 1./3.;
+        Q_low += pow(theta_e,index_k+1)*Q_k;
+      }
+    }
+    /* High temperature approximation (not implemented yet) */
+    else{
+      M_low = 0.;
+      D_low = 0.;
+      Q_low = 0.;
+    }
+  }
+
+  DI_kSZ = Dtau*beta*(beta*M_low+P_1*D_low+beta*P_2*Q_low);
+
+  /** Total distortion */
   *y_reio = theta_e*Dtau;
   *DI_reio = DI_tSZ+DI_kSZ;
 
