@@ -8165,7 +8165,7 @@ int matter_read_bessel_integrals(struct matters* pma){
   double read_end_omp = 0.0;
 #endif
   if(pma->matter_verbose > MATTER_VERBOSITY_TIMING ){
-    printf(" -> Reading bessel integrals (recursion) took %f REAL seconds \n",read_end_omp-read_start_omp);
+    printf(" -> Reading bessel integrals took %f REAL seconds \n",read_end_omp-read_start_omp);
   }
   return _SUCCESS_;
 }
