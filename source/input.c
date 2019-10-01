@@ -2611,6 +2611,7 @@ int input_read_parameters(
       pnl->method=nl_HMcode;
       ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->hmcode_min_k_max);
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      class_read_int("extrapolation_method",pnl->extrapolation_method);
 
       class_call(parser_read_string(pfc,
                                     "feedback model",
@@ -3152,6 +3153,7 @@ int input_default_params(
   /** - nonlinear structure */
 
   pnl->method = nl_none;
+  pnl->extrapolation_method = extrap_max_scaled;
   pnl->has_pk_eq = _FALSE_;
 
   pnl->feedback = nl_emu_dmonly;

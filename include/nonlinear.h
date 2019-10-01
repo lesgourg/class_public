@@ -14,6 +14,7 @@
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
 enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
+enum source_extrapolation {extrap_zero,extrap_only_max,extrap_only_max_units,extrap_max_scaled,extrap_hmcode,extrap_user_defined};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -33,6 +34,8 @@ struct nonlinear {
   //@{
 
   enum non_linear_method method; /**< method for computing non-linear corrections (none, Halogit, etc.) */
+
+  enum source_extrapolation extrapolation_method; /**< method for analytical extrapolation of sources beyond pre-computed range */
 
   enum hmcode_baryonic_feedback_model feedback; /** to choose between different baryonic feedback models
                                                 in hmcode (dmonly, gas cooling, Agn or supernova feedback) */
@@ -430,6 +433,19 @@ extern "C" {
                         double * sigma_prime_cb,
                         struct nonlinear_workspace * pnw
                         );
+
+  int nonlinear_get_source(
+                           struct background * pba,
+                           struct perturbs * ppt,
+                           struct nonlinear * pnl,
+                           int index_k,
+                           int index_ic,
+                           int index_md,
+                           int index_tp,
+                           int index_tau,
+                           double ** sources,
+                           double * source);
+
 
 #ifdef __cplusplus
 }
