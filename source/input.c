@@ -792,31 +792,31 @@ int input_read_parameters(
       pba->Omega_ini_dcdm = param1;
     if (flag2 == _TRUE_)
       pba->Omega_ini_dcdm = param2/pba->h/pba->h;
-
-    /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
-    class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-    /* Read tau_gamma in seconds */
-    class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),
-               errmsg,
-               errmsg);
-
-    class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
-               errmsg,
-               "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
-
-    /* Convert to Mpc */
-    if (flag1 == _TRUE_){
-      pba->Gamma_dcdm = param1*(1.e3 / _c_);
-      pba->tau_dcdm = 1/(param1*1.02e-3)*(1e9*365*24*3600); //convert to sec.
-      // fprintf(stdout, "you have chosen Gamma = %e km/s/Mpc, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_),pba->tau_dcdm);
-    }
-    if (flag2 == _TRUE_){
-      pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_); //1 km s^-1 Mpc-^1 = 1.02* 10^-3 Gyr^-1
-      pba->tau_dcdm = param2;
-    }
   }
+  /* Read Gamma in same units as H0, i.e. km/(s Mpc)*/
+  class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  /* Read tau_gamma in seconds */
+  class_call(parser_read_double(pfc,"tau_dcdm",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+
+  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+             errmsg,
+             "In input file, you can only enter one of Gamma_dcdm or tau_dcdm, choose one");
+
+  /* Convert to Mpc */
+  if (flag1 == _TRUE_){
+    pba->Gamma_dcdm = param1*(1.e3 / _c_);
+    pba->tau_dcdm = 1/(param1*1.02e-3)*(1e9*365*24*3600); //convert to sec.
+    // fprintf(stdout, "you have chosen Gamma = %e km/s/Mpc, tau = %e s \n",pba->Gamma_dcdm/(1.e3 / _c_),pba->tau_dcdm);
+  }
+  if (flag2 == _TRUE_){
+    pba->Gamma_dcdm = 1/(param2/(1e9*365*24*3600))/1.02e-3*(1.e3 / _c_); //1 km s^-1 Mpc-^1 = 1.02* 10^-3 Gyr^-1
+    pba->tau_dcdm = param2;
+  }
+
 
   /** - non-cold relics (ncdm) */
   class_read_int("N_ncdm",N_ncdm);
