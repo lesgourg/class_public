@@ -398,7 +398,7 @@ int nonlinear_init(
                                    ln_pk_m_l_at_tau,
                                    ln_pk_cb_ic_l_at_tau,
                                    ln_pk_cb_l_at_tau
-                                   ),
+                                  ),
                pnl->error_message,
                pnl->error_message);
 
@@ -713,6 +713,9 @@ int nonlinear_init(
         }
       }
     }
+    else {
+      pnl->k_size_extra = pnl->k_size;
+    }
 
     /** (d) Loop over time and for each time/redshift, compute P_NL(k,z) using wither Halofit or HMcode */
 
@@ -796,10 +799,22 @@ int nonlinear_init(
                    pnl->error_message,
                    pnl->error_message);
 
-
         /*
-        for (index_k==0;index_k<pnl->k_size_extra;index_k++) {
-          lnk_l[index_pk][index_k] = log(pnl->k_extra[index_k]);
+        for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+          fprintf(stderr,"%d %e\n",index_k,lnpk_l[index_pk][index_k]);
+        }
+        */
+
+        //fprintf(stderr,"%d %d\n",pnl->k_size,pnl->k_size_extra);
+        /*
+        if (pnl->k_size == pnl->k_size_extra) {
+          for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+            lnk_l[index_pk][index_k] = log(pnl->k[index_k]);
+          }
+        } else {
+          for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+            lnk_l[index_pk][index_k] = log(pnl->k_extra[index_k]);
+          }
         }
 
         class_call(nonlinear_pk_linear_at_index_tau(
@@ -814,11 +829,15 @@ int nonlinear_init(
                    pnl->error_message,
                    pnl->error_message);
 
-        for (index_k==0;index_k<pnl->k_size_extra;index_k++) {
+        for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+          fprintf(stderr,"%d %e\n",index_k,lnpk_l[index_pk][index_k]);
+        }
+
+        for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
           pk_l[index_pk][index_k] = exp(lnpk_l[index_pk][index_k]);
         }
 
-        class_call(array_spline_table_columns(lnk_l[index_k],
+        class_call(array_spline_table_columns(lnk_l[index_pk],
                                         pnl->k_size_extra,
                                         lnpk_l[index_pk],
                                         1,
@@ -828,8 +847,6 @@ int nonlinear_init(
              pnl->error_message,
              pnl->error_message);
         */
-
-
 
         /* get P_NL(k) at this time with Halofit */
         if (pnl->method == nl_halofit) {
@@ -1341,7 +1358,7 @@ int nonlinear_pk_linear_at_index_tau(
 
   class_alloc(primordial_pk,pnl->ic_ic_size*sizeof(double),pnl->error_message);
 
-  class_alloc(pk_ic,pnl->ic_size*sizeof(double),pnl->error_message);
+  class_alloc(pk_ic,pnl->ic_ic_size*sizeof(double),pnl->error_message);
 
   if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
     index_tp = ppt->index_tp_delta_m;
@@ -1363,7 +1380,7 @@ int nonlinear_pk_linear_at_index_tau(
                pnl->error_message);
 
     /** - initialize a local variable for P_m(k) and P_cb(k) to zero */
-    pk =0;
+    pk = 0.;
 
     /** - here we recall the relations relevant for the nomalization fo the power spectrum:
         For adiabatic modes, the curvature primordial spectrum thnat we just read was:
@@ -1379,7 +1396,7 @@ int nonlinear_pk_linear_at_index_tau(
     /** - get contributions to P(k) diagonal in the initial conditions */
     for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
 
-      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+      index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
 
       class_call(nonlinear_get_source(pba,
                                       ppt,
@@ -1396,62 +1413,62 @@ int nonlinear_pk_linear_at_index_tau(
 
       pk_ic[index_ic1_ic1] = 2.*_PI_*_PI_/exp(3.*pnl->ln_k[index_k])
         *source_ic1*source_ic1
-        *exp(primordial_pk[index_ic1_ic2]);
+        *exp(primordial_pk[index_ic1_ic1]);
 
       pk += pk_ic[index_ic1_ic1];
 
-      }
+    }
 
-      /** - get contributions to P(k) non-diagonal in the initial conditions */
-      for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
-        for (index_ic2 = index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
+    /** - get contributions to P(k) non-diagonal in the initial conditions */
+    for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
+      for (index_ic2 = index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
 
-          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
-          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
-          index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+        index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+        index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+        index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
 
-          if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+        if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
 
-            class_call(nonlinear_get_source(pba,
-                                            ppt,
-                                            pnl,
-                                            index_k,
-                                            index_ic1,
-                                            index_md,
-                                            index_tp,
-                                            index_tau,
-                                            ppt->sources[index_md],
-                                            &source_ic1),
-                       pnl->error_message,
-                       pnl->error_message);
+          class_call(nonlinear_get_source(pba,
+                                          ppt,
+                                          pnl,
+                                          index_k,
+                                          index_ic1,
+                                          index_md,
+                                          index_tp,
+                                          index_tau,
+                                          ppt->sources[index_md],
+                                          &source_ic1),
+                     pnl->error_message,
+                     pnl->error_message);
 
-            class_call(nonlinear_get_source(pba,
-                                            ppt,
-                                            pnl,
-                                            index_k,
-                                            index_ic2,
-                                            index_md,
-                                            index_tp,
-                                            index_tau,
-                                            ppt->sources[index_md],
-                                            &source_ic2),
-                       pnl->error_message,
-                       pnl->error_message);
+          class_call(nonlinear_get_source(pba,
+                                          ppt,
+                                          pnl,
+                                          index_k,
+                                          index_ic2,
+                                          index_md,
+                                          index_tp,
+                                          index_tau,
+                                          ppt->sources[index_md],
+                                          &source_ic2),
+                     pnl->error_message,
+                     pnl->error_message);
 
-            cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
+          cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
 
-            pnl->ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
+          pk_ic[index_ic1_ic2] = cosine_correlation * sqrt(pk_ic[index_ic1_ic1]*pk_ic[index_ic2_ic2]);
 
-            pk += 2.*cosine_correlation
-              * sqrt(pk_ic[index_ic1_ic1]*pk_ic[index_ic2_ic2]);
-          }
+          pk += 2.*pk_ic[index_ic1_ic2];
+
         }
       }
+    }
 
-      lnpk[index_k] = log(pk);
+    lnpk[index_k] = log(pk);
   }
 
-  free (primordial_pk);
+  free(primordial_pk);
   free(pk_ic);
 
   return _SUCCESS_;
@@ -3662,7 +3679,7 @@ int nonlinear_get_source(
   double scaled_factor;
 
   /** - use precomputed values */
-  if (index_k<pnl->k_size) {
+  if (index_k < pnl->k_size) {
     *source = sources[index_ic * ppt->tp_size[index_md] + index_tp][index_tau * pnl->k_size + index_k];
   }
   /** - extrapolate **/
