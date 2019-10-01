@@ -842,7 +842,9 @@ int nonlinear_init(
                                                     pnl,
                                                     index_pk,
                                                     index_tau,
-                                                    lnpk_l[index_pk]
+                                                    pnl->k_size_extra,
+                                                    lnpk_l[index_pk],
+                                                    NULL
                                                     ),
                    pnl->error_message,
                    pnl->error_message);
@@ -1352,7 +1354,9 @@ int nonlinear_pk_linear_at_index_tau(
                                      struct nonlinear *pnl,
                                      int index_pk,
                                      int index_tau,
-                                     double *lnpk
+                                     int k_size,
+                                     double * lnpk,
+                                     double * lnpk_ic
                                      ) {
 
   int index_md;
@@ -1386,7 +1390,7 @@ int nonlinear_pk_linear_at_index_tau(
 
   /** - loop over k values */
 
-  for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+  for (index_k=0; index_k<k_size; index_k++) {
 
     /** - get primordial spectrum */
     class_call(primordial_spectrum_at_k(ppm,index_md,logarithmic,pnl->ln_k[index_k],primordial_pk),
@@ -1431,6 +1435,9 @@ int nonlinear_pk_linear_at_index_tau(
 
       pk += pk_ic[index_ic1_ic1];
 
+      if (lnpk_ic != NULL) {
+        lnpk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1] = log(pk_ic[index_ic1_ic1]);
+      }
     }
 
     /** - get contributions to P(k) non-diagonal in the initial conditions */
@@ -1475,6 +1482,14 @@ int nonlinear_pk_linear_at_index_tau(
 
           pk += 2.*pk_ic[index_ic1_ic2];
 
+          if (lnpk_ic != NULL) {
+            lnpk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1] = cosine_correlation;
+          }
+        }
+        else {
+          if (lnpk_ic != NULL) {
+            lnpk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1] = 0.;
+          }
         }
       }
     }
