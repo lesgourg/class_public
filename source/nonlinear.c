@@ -1550,6 +1550,7 @@ int nonlinear_pk_l(
 
     for (index_ic=0; index_ic<ppm->ic_size[index_md]; index_ic++){
 
+      /*
       class_call(extrapolate_source(pnl->k_extra,
                                     pnl->k_size,
                                     pnl->k_size_extra,
@@ -1560,7 +1561,7 @@ int nonlinear_pk_l(
                                     pba->h,																		                           pnl->error_message),
                  pnl->error_message,
                  pnl->error_message)
-
+      */
         }
 
     for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
@@ -3718,7 +3719,7 @@ int nonlinear_get_source(
        * Extrapolate by assuming the source to vanish
        * Has terrible discontinuity
        */
-    case extrapolation_zero:
+    case extrap_zero:
       {
         *source=0.0;
         break;
@@ -3727,7 +3728,7 @@ int nonlinear_get_source(
        * Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
        * Has a terrible bend in log slope, discontinuity only in derivative
        */
-    case extrapolation_only_max:
+    case extrap_only_max:
       {
         *source = source_max*(log(k)/log(k_max));
         break;
@@ -3737,7 +3738,7 @@ int nonlinear_get_source(
        * Here we use k in h/Mpc instead of 1/Mpc as it is done in the CAMB implementation of HMcode
        * Has a terrible bend in log slope, discontinuity only in derivative
        */
-    case extrapolation_only_max_units:
+    case extrap_only_max_units:
       {
         *source = source_max*(log(k/pba->h)/log(k_max/pba->h));
         break;
@@ -3746,7 +3747,7 @@ int nonlinear_get_source(
        * Extrapolate assuming source ~ ln(a*k) where a is obtained from the data at k_0
        * Mostly continuous derivative, quite good
        */
-    case extrapolation_max_scaled:
+    case extrap_max_scaled:
       {
         scaled_factor = exp((source_previous*log(k_max)-source_max*log(k_previous))/(source_max-source_previous));
         *source = source_max*(log(scaled_factor*k)/log(scaled_factor*k_max));
@@ -3755,7 +3756,7 @@ int nonlinear_get_source(
       /**
        * Extrapolate assuming source ~ ln(e+a*k) where a is estimated like is done in original HMCode
        */
-    case extrapolation_hmcode:
+    case extrap_hmcode:
       {
         scaled_factor = 1.8/(13.41*pba->a_eq*pba->H_eq);
         *source = source_max*(log(_E_+scaled_factor*k)/log(_E_+scaled_factor*k_max));
@@ -3765,7 +3766,7 @@ int nonlinear_get_source(
        * If the user has a complicated model and wants to interpolate differently,
        * they can define their interpolation here and switch to using it instead
        */
-    case extrapolation_user_defined:
+    case extrap_user_defined:
       {
         class_stop(pnl->error_message,"Method of source extrapolation 'user_defined' was not yet defined.");
         break;

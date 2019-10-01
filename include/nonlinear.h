@@ -1,7 +1,6 @@
 /** @file nonlinear.h Documented includes for trg module */
 
 #include "primordial.h"
-#include "extrapolate_source.h"
 #include "trigonometric_integrals.h"
 
 #ifndef __NONLINEAR__
@@ -10,6 +9,8 @@
 #define _M_EV_TOO_BIG_FOR_HALOFIT_ 10. /**< above which value of non-CDM mass (in eV) do we stop trusting halofit? */
 
 #define _M_SUN_ 1.98847e30 /**< Solar mass in Kg */
+
+#define _MAX_NUM_EXTRAPOLATION_ 100000
 
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
