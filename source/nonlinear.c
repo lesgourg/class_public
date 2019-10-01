@@ -577,9 +577,9 @@ int nonlinear_init(
       class_alloc(pk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
       class_alloc(pk_nl[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
 
-      class_alloc(lnk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);//this is not really necessary
-      class_alloc(lnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-      class_alloc(ddlnpk_l[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
+      class_alloc(lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);//this is not really necessary
+      class_alloc(lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+      class_alloc(ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
 
     }
 
@@ -620,7 +620,7 @@ int nonlinear_init(
        * and reallocating arrays.  This function finds out the size of
        * the extrapolation arrays
        */
-
+      /*
       class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
                                               pnl->k[pnl->k_size-1],
                                               ppr->hmcode_max_k_extra,
@@ -629,8 +629,8 @@ int nonlinear_init(
                                               pnl->error_message),
                  pnl->error_message,
                  pnl->error_message);
-
-      pnl->k_size_extra = size_extrapolated_source;
+      */
+      //pnl->k_size_extra = size_extrapolated_source;
 
       /** allocate pnl->k_extra and reallocate the k-dependent arrays */
 
@@ -638,13 +638,13 @@ int nonlinear_init(
 
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
         class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-        class_realloc(lnk_l[index_pk],lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-        class_realloc(lnpk_l[index_pk],lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-        class_realloc(ddlnpk_l[index_pk],ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+        //class_realloc(lnk_l[index_pk],lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+        //class_realloc(lnpk_l[index_pk],lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
+        //class_realloc(ddlnpk_l[index_pk],ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
       }
 
       /** fill pnl->k_extra */
-
+      /*
       class_call(extrapolate_k(
                                pnl->k,
                                pnl->k_size,
@@ -654,6 +654,11 @@ int nonlinear_init(
                                pnl->error_message),
                  pnl->error_message,
                  pnl->error_message);
+      */
+
+      for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+        pnl->k_extra[index_k] = exp(pnl->ln_k[index_k]);
+      }
 
       /** if fill table with scale independent growth factor */
 
@@ -826,14 +831,8 @@ int nonlinear_init(
                    pnl->error_message);
         */
 
-        if (pnl->k_size == pnl->k_size_extra) {
-          for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-            lnk_l[index_pk][index_k] = log(pnl->k[index_k]);
-          }
-        } else {
-          for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-            lnk_l[index_pk][index_k] = log(pnl->k_extra[index_k]);
-          }
+        for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+            lnk_l[index_pk][index_k] = pnl->ln_k[index_k];
         }
 
         class_call(nonlinear_pk_linear_at_index_tau(
