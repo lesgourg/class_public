@@ -791,9 +791,45 @@ int nonlinear_init(
         }
 
         /* get P_L(k) at this time */
+
         class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                    pnl->error_message,
                    pnl->error_message);
+
+
+        /*
+        for (index_k==0;index_k<pnl->k_size_extra;index_k++) {
+          lnk_l[index_pk][index_k] = log(pnl->k_extra[index_k]);
+        }
+
+        class_call(nonlinear_pk_linear_at_index_tau(
+                                                    pba,
+                                                    ppt,
+                                                    ppm,
+                                                    pnl,
+                                                    index_pk,
+                                                    index_tau,
+                                                    lnpk_l[index_pk]
+                                                    ),
+                   pnl->error_message,
+                   pnl->error_message);
+
+        for (index_k==0;index_k<pnl->k_size_extra;index_k++) {
+          pk_l[index_pk][index_k] = exp(lnpk_l[index_pk][index_k]);
+        }
+
+        class_call(array_spline_table_columns(lnk_l[index_k],
+                                        pnl->k_size_extra,
+                                        lnpk_l[index_pk],
+                                        1,
+                                        ddlnpk_l[index_pk],
+                                        _SPLINE_NATURAL_,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+        */
+
+
 
         /* get P_NL(k) at this time with Halofit */
         if (pnl->method == nl_halofit) {
@@ -1285,8 +1321,7 @@ int nonlinear_pk_linear_at_index_tau(
                                      struct nonlinear *pnl,
                                      int index_pk,
                                      int index_tau,
-                                     double *lnpk,
-                                     double *ddlnpk
+                                     double *lnpk
                                      ) {
 
   int index_md;
@@ -1415,17 +1450,6 @@ int nonlinear_pk_linear_at_index_tau(
 
       lnpk[index_k] = log(pk);
   }
-
-  //??? this array_spline table columns has to be replaced with another function
-  class_call(array_spline_table_columns(pnl->ln_k,
-                                        pnl->k_size_extra,
-                                        lnpk,
-                                        1,
-                                        ddlnpk,
-                                        _SPLINE_NATURAL_,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
 
   free (primordial_pk);
   free(pk_ic);

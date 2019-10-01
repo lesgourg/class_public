@@ -259,8 +259,7 @@ extern "C" {
                                        struct nonlinear *pnl,
                                        int index_pk,
                                        int index_tau,
-                                       double *lnpk,
-                                       double *ddlnpk
+                                       double *lnpk
                                        );
   // end new functions
 
