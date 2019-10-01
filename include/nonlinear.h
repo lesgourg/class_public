@@ -251,6 +251,17 @@ extern "C" {
                           double *ln_pk_cb_ic_l,
                           double *ln_pk_cb_l
                           );
+
+  int nonlinear_pk_linear_at_index_tau(
+                                       struct background *pba,
+                                       struct perturbs *ppt,
+                                       struct primordial *ppm,
+                                       struct nonlinear *pnl,
+                                       int index_pk,
+                                       int index_tau,
+                                       double *lnpk,
+                                       double *ddlnpk
+                                       );
   // end new functions
 
   int nonlinear_pk_l(struct background *pba,

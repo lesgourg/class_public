@@ -1278,6 +1278,162 @@ int nonlinear_pk_linear(
   return _SUCCESS_;
 }
 
+int nonlinear_pk_linear_at_index_tau(
+                                     struct background *pba,
+                                     struct perturbs *ppt,
+                                     struct primordial *ppm,
+                                     struct nonlinear *pnl,
+                                     int index_pk,
+                                     int index_tau,
+                                     double *lnpk,
+                                     double *ddlnpk
+                                     ) {
+
+  int index_md;
+  int index_k;
+  int index_tp;
+  int index_ic1,index_ic2,index_ic1_ic1,index_ic1_ic2,index_ic2_ic2;
+  double * primordial_pk;
+  double pk;
+  double * pk_ic;
+  double source_ic1;
+  double source_ic2;
+  double cosine_correlation;
+
+  index_md = ppt->index_md_scalars;
+
+  /** - allocate temporary vector where the primordial spectrum will be stored */
+
+  class_alloc(primordial_pk,pnl->ic_ic_size*sizeof(double),pnl->error_message);
+
+  class_alloc(pk_ic,pnl->ic_size*sizeof(double),pnl->error_message);
+
+  if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
+    index_tp = ppt->index_tp_delta_m;
+  }
+  else if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
+    index_tp = ppt->index_tp_delta_cb;
+  }
+  else {
+    class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons");
+  }
+
+  /** - loop over k values */
+
+  for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
+
+    /** - get primordial spectrum */
+    class_call(primordial_spectrum_at_k(ppm,index_md,logarithmic,pnl->ln_k[index_k],primordial_pk),
+               ppm->error_message,
+               pnl->error_message);
+
+    /** - initialize a local variable for P_m(k) and P_cb(k) to zero */
+    pk =0;
+
+    /** - here we recall the relations relevant for the nomalization fo the power spectrum:
+        For adiabatic modes, the curvature primordial spectrum thnat we just read was:
+        P_R(k) = 1/(2pi^2) k^3 <R R>
+        Thus the primordial curvature correlator is given by:
+        <R R> = (2pi^2) k^-3 P_R(k)
+        So the delta_m correlator reads:
+        P(k) = <delta_m delta_m> = (source_m)^2 <R R> = (2pi^2) k^-3 (source_m)^2 P_R(k)
+
+        For isocurvature or cross adiabatic-isocurvature parts,
+        one would just replace one or two 'R' by 'S_i's */
+
+    /** - get contributions to P(k) diagonal in the initial conditions */
+    for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
+
+      index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+
+      class_call(nonlinear_get_source(pba,
+                                      ppt,
+                                      pnl,
+                                      index_k,
+                                      index_ic1,
+                                      index_md,
+                                      index_tp,
+                                      index_tau,
+                                      ppt->sources[index_md],
+                                      &source_ic1),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      pk_ic[index_ic1_ic1] = 2.*_PI_*_PI_/exp(3.*pnl->ln_k[index_k])
+        *source_ic1*source_ic1
+        *exp(primordial_pk[index_ic1_ic2]);
+
+      pk += pk_ic[index_ic1_ic1];
+
+      }
+
+      /** - get contributions to P(k) non-diagonal in the initial conditions */
+      for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
+        for (index_ic2 = index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
+
+          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+          index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+
+          if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+
+            class_call(nonlinear_get_source(pba,
+                                            ppt,
+                                            pnl,
+                                            index_k,
+                                            index_ic1,
+                                            index_md,
+                                            index_tp,
+                                            index_tau,
+                                            ppt->sources[index_md],
+                                            &source_ic1),
+                       pnl->error_message,
+                       pnl->error_message);
+
+            class_call(nonlinear_get_source(pba,
+                                            ppt,
+                                            pnl,
+                                            index_k,
+                                            index_ic2,
+                                            index_md,
+                                            index_tp,
+                                            index_tau,
+                                            ppt->sources[index_md],
+                                            &source_ic2),
+                       pnl->error_message,
+                       pnl->error_message);
+
+            cosine_correlation = primordial_pk[index_ic1_ic2]*SIGN(source_ic1)*SIGN(source_ic2);
+
+            pnl->ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] = cosine_correlation;
+
+            pk += 2.*cosine_correlation
+              * sqrt(pk_ic[index_ic1_ic1]*pk_ic[index_ic2_ic2]);
+          }
+        }
+      }
+
+      lnpk[index_k] = log(pk);
+  }
+
+  //??? this array_spline table columns has to be replaced with another function
+  class_call(array_spline_table_columns(pnl->ln_k,
+                                        pnl->k_size_extra,
+                                        lnpk,
+                                        1,
+                                        ddlnpk,
+                                        _SPLINE_NATURAL_,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  free (primordial_pk);
+  free(pk_ic);
+
+  return _SUCCESS_;
+
+}
+
 /**
  * Calculation of the linear matter power spectrum, used to get the
  * nonlinear one.  This is partially redundent with a more elaborate
