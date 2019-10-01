@@ -257,6 +257,9 @@ int nonlinear_init(
   double * ln_pk_cb_ic_l_at_tau;
   double * ln_pk_cb_l_at_tau;
 
+  double k_max;
+  double exponent;
+
   /** This module only makes sense for dealing with scalar
       perturbations, so it should do nothing if there are no
       scalars */
@@ -304,16 +307,42 @@ int nonlinear_init(
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
   pnl->pk_size = index_pk;
 
-  /** - copy list of k from perturbation module */
+  /** - copy list of k from perturbation module, and extended if necessary to larger k for extrapolation */
 
   pnl->k_size = ppt->k_size[index_md];
 
-  class_alloc(pnl->k,   pnl->k_size*sizeof(double),pnl->error_message);
-  class_alloc(pnl->ln_k,pnl->k_size*sizeof(double),pnl->error_message);
+  k_max = ppt->k[index_md][pnl->k_size-1];
+  if (pnl->method == nl_HMcode){
+    index_k=0;
+    while(k < ppr->hmcode_max_k_extra && index_k < _MAX_NUM_EXTRAPOLATION_){
+      index_k++;
+      k = k_max * pow(10,(double)index_k/ppr->k_per_decade_for_pk);
+    }
+    class_test(index_k == _MAX_NUM_EXTRAPOLATION_,
+               pnl->error_message,
+               "could not reach extrapolated value k = %.10e starting from k = %.10e with k_per_decade of %.10e in _MAX_NUM_INTERPOLATION_=%i steps",
+               ppr->hmcode_max_k_extra,k_max,ppr->k_per_decade_for_pk,_MAX_NUM_EXTRAPOLATION_
+               );
+    pnl->k_size_extra = pnl->k_size+index_k;
+  }
+  else {
+    pnl->k_size_extra = pnl->k_size;
+  }
+
+  /* allocate array of k */
+  class_alloc(pnl->k,   pnl->k_size_extra*sizeof(double),pnl->error_message);
+  class_alloc(pnl->ln_k,pnl->k_size_extra*sizeof(double),pnl->error_message);
+
+  /* fill array of k */
   for (index_k=0; index_k<pnl->k_size; index_k++) {
     k = ppt->k[index_md][index_k];
     pnl->k[index_k] = k;
     pnl->ln_k[index_k] = log(k);
+  }
+  for (index_k=pnl->k_size; index_k<pnl->k_size_extra; index_k++) {
+    exponent = (double)(index_k-(pnl->k_size-1))/ppr->k_per_decade_for_pk;
+    pnl->k[index_k] = k * pow(10,exponent);
+    pnl->ln_k[index_k] = log(k) + exponent*log(10.);
   }
 
   /** copy list of tau from perturbation module (it already takes into account the upper limit in z_max_pk) */
@@ -713,9 +742,6 @@ int nonlinear_init(
         }
       }
     }
-    else {
-      pnl->k_size_extra = pnl->k_size;
-    }
 
     /** (d) Loop over time and for each time/redshift, compute P_NL(k,z) using wither Halofit or HMcode */
 
@@ -794,19 +820,12 @@ int nonlinear_init(
         }
 
         /* get P_L(k) at this time */
-
+        /*
         class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
                    pnl->error_message,
                    pnl->error_message);
-
-        /*
-        for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-          fprintf(stderr,"%d %e\n",index_k,lnpk_l[index_pk][index_k]);
-        }
         */
 
-        //fprintf(stderr,"%d %d\n",pnl->k_size,pnl->k_size_extra);
-        /*
         if (pnl->k_size == pnl->k_size_extra) {
           for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
             lnk_l[index_pk][index_k] = log(pnl->k[index_k]);
@@ -829,9 +848,6 @@ int nonlinear_init(
                    pnl->error_message,
                    pnl->error_message);
 
-        for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-          fprintf(stderr,"%d %e\n",index_k,lnpk_l[index_pk][index_k]);
-        }
 
         for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
           pk_l[index_pk][index_k] = exp(lnpk_l[index_pk][index_k]);
@@ -846,7 +862,6 @@ int nonlinear_init(
                                         pnl->error_message),
              pnl->error_message,
              pnl->error_message);
-        */
 
         /* get P_NL(k) at this time with Halofit */
         if (pnl->method == nl_halofit) {
