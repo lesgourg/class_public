@@ -227,7 +227,7 @@ int nonlinear_init(
   int index_tau_sources;
   int size_extrapolated_source;
 
-  int index_pk, pk_type;
+  int index_pk;
 
   double **pk_l;
   double **pk_nl;
@@ -302,9 +302,13 @@ int nonlinear_init(
     pnl->has_pk_cb = _FALSE_;
   }
 
+  /* due to some dependencies in HMcode, when pnl->index_pk_cb exists,
+     it must come first (e.g. the calculation of the non-linear P_m
+     depends on sigma_cb so the cb-related quantitites must be
+     evaluated first) */
   index_pk = 0;
-  class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
+  class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
   pnl->pk_size = index_pk;
 
   /** - copy list of k from perturbation module, and extended if necessary to larger k for extrapolation */
@@ -796,31 +800,14 @@ int nonlinear_init(
       //get pk_l
       //get ddlnpk_l
 
-      /** loop over the dummie index pk_type, such that it is ensured that index_pk starts at index_pk_cb when neutrinos are included
-       * This is necessary for hmcode, since the sigmatable needs to be filled for sigma_cb only.
-       * Thus, when HMcode evalutes P_m_nl, it needs both P_m_l and P_cb_l. */
+      /** loop over index_pk, defined such that it is ensured
+       * that index_pk starts at index_pk_cb when neutrinos are
+       * included. This is necessary for hmcode, since the sigmatable
+       * needs to be filled for sigma_cb only.  Thus, when HMcode
+       * evalutes P_m_nl, it needs both P_m_l and P_cb_l. */
 
-      for (pk_type=0; pk_type<pnl->pk_size; pk_type++) {
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
 
-        if(pk_type == 0) {
-          if(pba->has_ncdm) {
-            index_pk = pnl->index_pk_cb;
-          }
-          else {
-            index_pk = pnl->index_pk_m;
-          }
-        }
-        else if(pk_type == 1) {
-          if(pba->has_ncdm){
-            index_pk = pnl->index_pk_m;
-          }
-          else {
-            class_stop(pnl->error_message,"looks like pk_size=2 even if you do not have any massive neutrinos");
-          }
-        }
-        else {
-          class_stop(pnl->error_message,"P(k) is set neither to total matter nor to cold dark matter + baryons, pk_type=%d \n",pk_type);
-        }
 
         /* get P_L(k) at this time */
         /*
@@ -938,7 +925,7 @@ int nonlinear_init(
         /* get P_NL(k) at this time with HMcode */
         else if (pnl->method == nl_HMcode) {
           if (print_warning == _FALSE_) {
-            if (pk_type==0){
+            if (index_pk == 0) {
               class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],pnw),
                          pnl->error_message, pnl->error_message);
             }
@@ -1021,7 +1008,7 @@ int nonlinear_init(
           }
         */
 
-      } //end loop over pk_type
+      } //end loop over index_pk
 
       // uncomment this to see the time spent at each tau
       //show the time spent for each tau:
