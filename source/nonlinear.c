@@ -624,6 +624,7 @@ int nonlinear_free(
     }
     free(pnl->ln_pk_ic_l);
     free(pnl->ln_pk_l);
+
     if (pnl->ln_tau_size>1) {
       free(pnl->ddln_pk_ic_l);
       free(pnl->ddln_pk_l);
@@ -632,24 +633,13 @@ int nonlinear_free(
 
   if (pnl->method > nl_none) {
 
-    if (pnl->method == nl_halofit) {
-      free(pnl->tau);
-      for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
-        free(pnl->nl_corr_density[index_pk]);
-        free(pnl->k_nl[index_pk]);
-      }
-      free(pnl->nl_corr_density);
-      free(pnl->k_nl);
+    free(pnl->tau);
+    for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
+      free(pnl->nl_corr_density[index_pk]);
+      free(pnl->k_nl[index_pk]);
     }
-    else if (pnl->method == nl_HMcode){
-      free(pnl->tau);
-      for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
-        free(pnl->nl_corr_density[index_pk]);
-        free(pnl->k_nl[index_pk]);
-      }
-      free(pnl->nl_corr_density);
-      free(pnl->k_nl);
-    }
+    free(pnl->nl_corr_density);
+    free(pnl->k_nl);
   }
 
   if (pnl->has_pk_eq == _TRUE_) {
@@ -659,7 +649,6 @@ int nonlinear_free(
   }
 
   return _SUCCESS_;
-
 }
 
 /**
@@ -858,7 +847,9 @@ int nonlinear_get_tau_list(
   pnl->ln_tau_size = ppt->ln_tau_size;
 
   if (ppt->ln_tau_size > 1) {
+
     class_alloc(pnl->ln_tau,pnl->ln_tau_size*sizeof(double),pnl->error_message);
+
     for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
       pnl->ln_tau[index_tau] = ppt->ln_tau[index_tau];
     }
@@ -870,6 +861,7 @@ int nonlinear_get_tau_list(
     pnl->tau_size = ppt->tau_size;
 
     class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+
     for (index_tau=0; index_tau<pnl->tau_size; index_tau++) {
       pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
     }
@@ -881,20 +873,27 @@ int nonlinear_get_tau_list(
  * This routine computes all the components of the matter power
  * spectrum P(k), given the source functions and the primordial
  * spectra, at a given time within the pre-computed table of sources
- * (= Fourier transfer functions) of the perturbation module, and for
- * the same array of k values as in this table. Thus, if the
- * primordial spectrum has sharp features and needs to be sampled on a
- * finer grid than the sources (= Fourier transfer functions), this
- * function requires an extension.
+ * (= Fourier transfer functions) of the perturbation module, for a
+ * given type (total matter _m or baryon+CDM _cb), and for the same
+ * array of k values as in the pre-computed table.
  *
- * There are four output arrays, becasue we consider:
+ * If the input array of k values pnl->ln_k contains wavemumbers
+ * larger than those of the pre-computed table, the sources will be
+ * extrapolated analytically.
  *
- * - the matter power spectrum (_m) and also, in presence of
- * non-cold dark matter, the CDM+baryon power spectrum (_cb)
+ * On the opther hand, if the primordial spectrum has sharp features
+ * and needs to be sampled on a finer grid than the sources, this
+ * function has to be modified to capture the features.
  *
- * - in the quantitites labelled _ic, the splitting of the total
- * spectrum in different modes for different initial conditions.  Then
- * the convention is the following:
+ * There are two output arrays, because we consider:
+ *
+ * - the total matter (_m) or CDM+baryon (_cb) power spectrum
+ *
+ * - in the quantitites labelled _ic, the splitting of one of these
+ * spectra in different modes for different initial conditions. If the
+ * pointer ln_pk_ic is NULL in input, the function will ignore this
+ * part; thus, to get the result, one should allocate the array before
+ * calling the function. Then the convention is the following:
  *
  * -- the index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2)
  * (since the primordial spectrum is symmetric in (index_ic1,
@@ -913,14 +912,11 @@ int nonlinear_get_tau_list(
  * @param ppt           Input: pointer to perturbation structure
  * @param ppm           Input: pointer to primordial structure
  * @param pnl           Input: pointer to nonlinear structure
- * @param sources       Input: pointer to source array
- * @param k             Input: pointer to wavenumnber array
- * @param k_size        Input: wavenumber array size
+ * @param index_pk      Input: index of required P(k) type (_m, _cb)
  * @param index_tau     Input: index of time
- * @param ln_pk_m_ic_l  Output: log of matter power spectrum for each wavenumber and initial condition
- * @param ln_pk_m_l     Output: log of matter power spectrum for each wavenumber, summed over initial conditions
- * @param ln_pk_cb_ic_l Output: log of cb power spectrum for each wavenumber and initial condition
- * @param ln_pk_cb_l    Output: log of cb power spectrum for each wavenumber, summed over initial conditions
+ * @param k_size        Input: wavenumber array size
+ * @param ln_pk         Output: log of matter power spectrum for given type/time, for all wavenumbers
+ * @param ln_pk_ic      Output: log of matter power spectrum for given type/time, for all wavenumbers and initial conditions
  * @return the error status
  */
 
@@ -932,8 +928,8 @@ int nonlinear_pk_linear(
                         int index_pk,
                         int index_tau,
                         int k_size,
-                        double * lnpk,
-                        double * lnpk_ic
+                        double * lnpk,    //lnpk[index_k]
+                        double * lnpk_ic  //lnpk[index_k * pnl->ic_ic_size + index_ic1_ic2]
                         ) {
 
   int index_md;
@@ -969,15 +965,15 @@ int nonlinear_pk_linear(
 
   for (index_k=0; index_k<k_size; index_k++) {
 
-    /** - get primordial spectrum */
+    /** --> get primordial spectrum */
     class_call(primordial_spectrum_at_k(ppm,index_md,logarithmic,pnl->ln_k[index_k],primordial_pk),
                ppm->error_message,
                pnl->error_message);
 
-    /** - initialize a local variable for P_m(k) and P_cb(k) to zero */
+    /** --> initialize a local variable for P_m(k) and P_cb(k) to zero */
     pk = 0.;
 
-    /** - here we recall the relations relevant for the nomalization fo the power spectrum:
+    /** --> here we recall the relations relevant for the nomalization fo the power spectrum:
         For adiabatic modes, the curvature primordial spectrum thnat we just read was:
         P_R(k) = 1/(2pi^2) k^3 <R R>
         Thus the primordial curvature correlator is given by:
@@ -988,7 +984,7 @@ int nonlinear_pk_linear(
         For isocurvature or cross adiabatic-isocurvature parts,
         one would just replace one or two 'R' by 'S_i's */
 
-    /** - get contributions to P(k) diagonal in the initial conditions */
+    /** --> get contributions to P(k) diagonal in the initial conditions */
     for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
 
       index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
@@ -1017,7 +1013,7 @@ int nonlinear_pk_linear(
       }
     }
 
-    /** - get contributions to P(k) non-diagonal in the initial conditions */
+    /** --> get contributions to P(k) non-diagonal in the initial conditions */
     for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
       for (index_ic2 = index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
 
@@ -1095,16 +1091,14 @@ int nonlinear_pk_linear(
  * @param pba         Input: pointer to background structure
  * @param ppt         Input: pointer to perturbation structure
  * @param ppm         Input: pointer to primordial structure
- * @param pnl         Input/Output: pointer to nonlinear structure
+ * @param pnl         Input: pointer to nonlinear structure
  * @param index_pk    Input: index of component are we looking at (total matter or cdm+baryons?)
  * @param tau         Input: conformal time at which we want to do the calculation
- * @param pk_l        Input: linear spectrum at the relevant time
  * @param pk_nl       Output: non linear spectrum at the relevant time
- * @param lnk_l       Input: array log(wavenumber)
  * @param lnpk_l      Input: array of log(P(k)_linear)
  * @param ddlnpk_l    Input: array of second derivative of log(P(k)_linear) wrt k, for spline interpolation
  * @param k_nl        Output: non-linear wavenumber
- * @param halofit_found_k_max Ouput: flag cocnerning the status of the calculation (_FALSE_ if not possible)
+ * @param nl_corr_not_computable_at_this_k Ouput: flag concerning the status of the calculation (_TRUE_ if not possible)
  * @return the error status
  */
 
@@ -1549,7 +1543,21 @@ int nonlinear_halofit(
 
 /**
  * Internal routione of Halofit. In original Halofit, this is
- * equivalent to the function wint()
+ * equivalent to the function wint(). It performs convolutions of the
+ * linear spectrum with two window functions.
+ *
+ * @param pnl             Input: pointer to non linear structure
+ * @param integrand_array Input: array with k, P_L(k) values
+ * @param integrand_size  Input: one dimension of that array
+ * @param ia_size         Input: other dimension of that array
+ * @param index_ia_k      Input: index for k
+ * @param index_ia_pk     Input: index for pk
+ * @param index_ia_sum    Input: index for the result
+ * @param index_ia_ddsum  Input: index for its spline
+ * @param R               Input: radius
+ * @param type            Input: which window function to use
+ * @param sum             Output: result of the integral
+ * @return the error status
  */
 
 int nonlinear_halofit_integrate(
@@ -1610,936 +1618,24 @@ int nonlinear_halofit_integrate(
 }
 
 /**
- * allocate and fill arrays of nonlinear workspace (currently used only by HMcode)
- *
- * @param ppr         Input: pointer to precision structure
- * @param pba         Input: pointer to background structure
- * @param pnl         Input: pointer to nonlinear structure
- * @param pnl         Output: pointer to nonlinear workspace
- * @return the error status
- */
-
-int nonlinear_hmcode_workspace_init(
-                                    struct precision *ppr,
-                                    struct background *pba,
-                                    struct nonlinear *pnl,
-                                    struct nonlinear_workspace * pnw
-                                    ){
-
-  int ng;
-  int index_pk;
-
-  /** - allocate arrays of the nonlinear workspace */
-
-  class_alloc(pnw->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
-  class_alloc(pnw->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
-  class_alloc(pnw->ddstab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
-
-  ng = ppr->n_hmcode_tables;
-
-  class_alloc(pnw->growtable,ng*sizeof(double),pnl->error_message);
-  class_alloc(pnw->ztable,ng*sizeof(double),pnl->error_message);
-  class_alloc(pnw->tautable,ng*sizeof(double),pnl->error_message);
-
-  class_alloc(pnw->sigma_8,pnl->pk_size*sizeof(double *),pnl->error_message);
-  class_alloc(pnw->sigma_disp,pnl->pk_size*sizeof(double *),pnl->error_message);
-  class_alloc(pnw->sigma_disp_100,pnl->pk_size*sizeof(double *),pnl->error_message);
-  class_alloc(pnw->sigma_prime,pnl->pk_size*sizeof(double *),pnl->error_message);
-
-  for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-    class_alloc(pnw->sigma_8[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-    class_alloc(pnw->sigma_disp[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-        class_alloc(pnw->sigma_disp_100[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-        class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-  }
-
-  /** - fill table with scale independent growth factor */
-
-  class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl,pnw),
-             pnl->error_message,
-             pnl->error_message);
-
-  return _SUCCESS_;
-}
-
-/**
- * deallocate arrays in the nonlinear worksapce (currently used only
- * by HMcode)
- *
- * @param pnl Input: pointer to nonlinear structure
- * @param pnl Input: pointer to nonlinear workspace
- * @return the error status
- */
-
-int nonlinear_hmcode_workspace_free(
-                                    struct nonlinear *pnl,
-                                    struct nonlinear_workspace * pnw
-                                    ) {
-  int index_pk;
-
-  free(pnw->rtab);
-  free(pnw->stab);
-  free(pnw->ddstab);
-
-  free(pnw->growtable);
-  free(pnw->ztable);
-  free(pnw->tautable);
-
-  for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-    free(pnw->sigma_8[index_pk]);
-    free(pnw->sigma_disp[index_pk]);
-    free(pnw->sigma_disp_100[index_pk]);
-    free(pnw->sigma_prime[index_pk]);
-  }
-
-  free(pnw->sigma_8);
-  free(pnw->sigma_disp);
-  free(pnw->sigma_disp_100);
-  free(pnw->sigma_prime);
-
-  return _SUCCESS_;
-}
-
-/**
- * set the HMcode dark energy correction (if w is not -1)
- *
- * @param ppr         Input: pointer to precision structure
- * @param pba         Input: pointer to background structure
- * @param pnl         Input: pointer to nonlinear structure
- * @param pnl         Output: pointer to nonlinear workspace
- * @return the error status
- */
-
-int nonlinear_hmcode_dark_energy_correction(
-                                            struct precision *ppr,
-                                            struct background *pba,
-                                            struct nonlinear *pnl,
-                                            struct nonlinear_workspace * pnw
-                                            ) {
-
-  int last_index;
-  double * pvecback;
-  double tau_growth;
-  double g_lcdm,g_wcdm;
-  double w0,dw_over_da_fld,integral_fld;
-
-  /** - if there is dynamical Dark Energy (w is not -1) modeled as a fluid */
-
-  if (pba->has_fld==_TRUE_){
-
-    class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-
-    class_call(background_tau_of_z(
-                                   pba,
-                                   pnl->z_infinity,
-                                   &tau_growth
-                                   ),
-               pba->error_message,
-               pnl->error_message);
-
-    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
-               pba->error_message,
-               pnl->error_message);
-
-    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld),
-               pba->error_message,
-               pnl->error_message);
-
-    class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
-               pnl->error_message, pnl->error_message);
-
-    class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1.),&g_wcdm),
-               pnl->error_message,
-               pnl->error_message);
-
-    free(pvecback);
-
-    pnw->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
-  }
-
-  /** - otherwise, we assume no dynamical Dark Energy (w is -1) */
-
-  else {
-    pnw->dark_energy_correction = 1.;
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * set the HMcode baryonic feedback parameters according to the chosen feedback model
- *
- * @param pnl   Output: pointer to nonlinear structure
- * @return the error status
- */
-
-int nonlinear_hmcode_baryonic_feedback(
-                                       struct nonlinear *pnl
-                                       ) {
-
-  switch (pnl->feedback) {
-
-  case nl_emu_dmonly:
-    {
-      pnl->eta_0 = 0.603;
-      pnl->c_min = 3.13;
-      break;
-    }
-
-  case nl_owls_dmonly:
-    {
-      pnl->eta_0 = 0.64;
-      pnl->c_min = 3.43;
-      break;
-    }
-
-  case nl_owls_ref:
-    {
-      pnl->eta_0 = 0.68;
-      pnl->c_min = 3.91;
-      break;
-    }
-
-  case nl_owls_agn:
-    {
-      pnl->eta_0 = 0.76;
-      pnl->c_min = 2.32;
-      break;
-    }
-
-  case nl_owls_dblim:
-    {
-      pnl->eta_0 = 0.70;
-      pnl->c_min = 3.01;
-      break;
-    }
-
-  case nl_user_defined:
-    {
-      /* eta_0 and c_min already passed in input */
-      break;
-    }
-  }
-  return _SUCCESS_;
-}
-
-/**
- * Calculates the sigma integral for a given scale R
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pba Input: pointer to perturbation structure
- * @param ppm Input: pointer to primordial structure
- * @param pnl Input: pointer to nonlinear structure
- * @param R   Input: scale at which to compute sigma
- * @param *lnk_l     Input: logarithm of the wavevector for either index_m or index_cb
- * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
- * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
- * @param * sigma    Output: Sigma
- * @return the error status
- */
-
-int nonlinear_hmcode_sigma(
-                           struct precision * ppr,
-                           struct background * pba,
-                           struct perturbs * ppt,
-                           struct primordial * ppm,
-                           struct nonlinear * pnl,
-                           double R,
-                           double *lnpk_l,
-                           double *ddlnpk_l,
-                           double * sigma
-                           ) {
-  double pk, lnpk;
-
-  double * array_for_sigma;
-  int index_num;
-  int index_k;
-  int index_sigma;
-  int index_ddsigma;
-  int i;
-  int integrand_size;
-  int last_index=0;
-
-  double k,W,x,t;
-
-  i=0;
-  index_k=i;
-  i++;
-  index_sigma=i;
-  i++;
-  index_ddsigma=i;
-  i++;
-  index_num=i;
-
-  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
-  class_alloc(array_for_sigma,
-              integrand_size*index_num*sizeof(double),
-              pnl->error_message);
-
-  for (i=integrand_size-1;i>=0;i--) {
-    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
-    t = 1./(1.+k);
-    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-    if (x<0.01) {
-      W = 1.-(pow(x, 2.)/10.);
-    }
-    else {
-      W = 3./x/x/x*(sin(x)-x*cos(x));
-    }
-
-    class_call(array_interpolate_spline(
-                                        pnl->ln_k,
-                                        pnl->k_size_extra,
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        &lnpk,
-                                        1,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    pk = exp(lnpk);
-
-    array_for_sigma[(integrand_size-1-i)*index_num+index_k] = t;
-    array_for_sigma[(integrand_size-1-i)*index_num+index_sigma] = k*k*k*pk*W*W/(t*(1.-t));
-    //if (i<pnl->k_size && R==ppr->rmin_for_sigtab/pba->h) fprintf(stdout, "%e %e\n", k, array_for_sigma[(integrand_size-1-i)*index_num+index_sigma]);
-  }
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          integrand_size,
-                          index_k,
-                          index_sigma,
-                          index_ddsigma,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma,
-                                                  index_num,
-                                                  integrand_size,
-                                                  0, //integrand_size-1,
-                                                  index_k,
-                                                  index_sigma,
-                                                  index_ddsigma,
-                                                  sigma,
-                                                  pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  //for (i=0;i<pnl->k_size;i++) {
-  //fprintf(stdout, "%e %e %e\n", pnl->k[i], array_for_sigma[i*index_num+index_sigma], array_for_sigma[i*index_num+index_ddsigma]);
-  //	}
-
-  free(array_for_sigma);
-
-  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
-  //fprintf(stdout, "%e\n", *sigma);
-
-  return _SUCCESS_;
-
-
-
-}
-
-/** Calculates the d\sigma/dR integral for a given scale R
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pba Input: pointer to perturbation structure
- * @param ppm Input: pointer to primordial structure
- * @param pnl Input: pointer to nonlinear structure
- * @param R   Input: scale at which to compute sigma
- * @param *lnk_l     Input: logarithm of the wavevector for either index_m or index_cb
- * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
- * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
- * @param * sigma_prime    Output: d\sigma/dR
- * @return the error status
- */
-
-int nonlinear_hmcode_sigma_prime(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct perturbs * ppt,
-                                 struct primordial * ppm,
-                                 struct nonlinear * pnl,
-                                 double R,
-                                 double *lnpk_l,
-                                 double *ddlnpk_l,
-                                 double * sigma_prime
-                                 ) {
-  double pk, lnpk;
-
-  double * array_for_sigma_prime;
-  int index_num;
-  int index_k;
-  int index_sigma_prime;
-  int index_ddsigma_prime;
-  int integrand_size;
-  int last_index=0;
-  int i;
-
-  double k,W,W_prime,x,t;
-
-  i=0;
-  index_k=i;
-  i++;
-  index_sigma_prime=i;
-  i++;
-  index_ddsigma_prime=i;
-  i++;
-  index_num=i;
-
-  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
-  class_alloc(array_for_sigma_prime,
-              integrand_size*index_num*sizeof(double),
-              pnl->error_message);
-
-  for (i=integrand_size-1;i>=0;i--) {
-    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
-    t = 1./(1.+k);
-    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-	if (x<0.01) {
-      W = 1.-(x*x/10.);
-      W_prime = -0.2*x;
-
-	}
-	else {
-      W = 3./x/x/x*(sin(x)-x*cos(x));
-      W_prime=3./x/x*sin(x)-9./x/x/x/x*(sin(x)-x*cos(x));
-
-    }
-
-    class_call(array_interpolate_spline(
-                                        pnl->ln_k,
-                                        pnl->k_size_extra,
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        &lnpk,
-                                        1,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    pk = exp(lnpk);
-
-    array_for_sigma_prime[(integrand_size-1-i)*index_num+index_k] = t;
-    array_for_sigma_prime[(integrand_size-1-i)*index_num+index_sigma_prime] = k*k*k*pk*2.*k*W*W_prime/(t*(1.-t));
-  }
-
-  class_call(array_spline(array_for_sigma_prime,
-                          index_num,
-                          integrand_size,
-                          index_k,
-                          index_sigma_prime,
-                          index_ddsigma_prime,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma_prime,
-                                                  index_num,
-                                                  integrand_size,
-                                                  0, //integrand_size-1,
-                                                  index_k,
-                                                  index_sigma_prime,
-                                                  index_ddsigma_prime,
-                                                  sigma_prime,
-                                                  pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  //	for (i=0;i<integrand_size;i++) {
-  //		fprintf(stdout, "%e, %e, %e, %e\n", *sigma_prime, array_for_sigma_prime[i*index_num+index_k], array_for_sigma_prime[i*index_num+index_sigma_prime], array_for_sigma_prime[i*index_num+index_ddsigma_prime]);
-  //	}
-
-  free(array_for_sigma_prime);
-
-  *sigma_prime = *sigma_prime/(2.*_PI_*_PI_);
-  //fprintf(stdout, "%e\n", *sigma_prime);
-
-  return _SUCCESS_;
-
-
-
-}
-
-/** Calculates the sigma_velocitydispersion integral for a given scale R
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pba Input: pointer to perturbation structure
- * @param ppm Input: pointer to primordial structure
- * @param pnl Input: pointer to nonlinear structure
- * @param R   Input: scale at which to compute sigma
- * @param *lnk_l     Input: logarithm of the wavevector for either index_m or index_cb
- * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
- * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
- * @param * sigma_disp Output: \sigma_{disp}
- * @return the error status
- */
-
-int nonlinear_hmcode_sigma_disp(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct perturbs * ppt,
-                                struct primordial * ppm,
-                                struct nonlinear * pnl,
-                                double R,
-                                double *lnpk_l,
-                                double *ddlnpk_l,
-                                double * sigma_disp
-                                ) {
-  double pk, lnpk;
-
-  double * array_for_sigma_disp;
-  int index_num;
-  int index_k;
-  int index_y;
-  int index_ddy;
-  int integrand_size;
-  int last_index=0;
-  int i;
-
-  double k,W,x;
-
-  i=0;
-  index_k=i;
-  i++;
-  index_y=i;
-  i++;
-  index_ddy=i;
-  i++;
-  index_num=i;
-
-  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
-  class_alloc(array_for_sigma_disp,
-              integrand_size*index_num*sizeof(double),
-              pnl->error_message);
-
-  for (i=0;i<integrand_size;i++) {
-    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
-    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-	if (x<0.01) {
-      W = 1.-(pow(x, 2.)/10.);
-	}
-	else {
-      W = 3./x/x/x*(sin(x)-x*cos(x));
-    }
-
-    class_call(array_interpolate_spline(
-                                        pnl->ln_k,
-                                        pnl->k_size_extra,
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        &lnpk,
-                                        1,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    pk = exp(lnpk);
-
-
-    array_for_sigma_disp[i*index_num+index_k]=k;
-    array_for_sigma_disp[i*index_num+index_y]=pk*W*W;
-  }
-
-  class_call(array_spline(array_for_sigma_disp,
-                          index_num,
-                          integrand_size,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_spline(array_for_sigma_disp,
-                                        index_num,
-                                        integrand_size,
-                                        index_k,
-                                        index_y,
-                                        index_ddy,
-                                        sigma_disp,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  free(array_for_sigma_disp);
-
-  *sigma_disp = sqrt(*sigma_disp/(2.*_PI_*_PI_)/3); // unit: [Mpc]
-
-  return _SUCCESS_;
-
-}
-
-/** Function that fills pnw->rtab, pnw->stab and pnw->ddstab with (r, sigma, ddsigma)
- * logarithmically spaced in r.
- * Called by nonlinear_init at for all tau to account for scale-dependant growth
- * before nonlinear_hmcode is called
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pba Input: pointer to perturbation structure
- * @param ppm Input: pointer to primordial structure
- * @param pnl Input: pointer to nonlinear structure
- * @param index_tau  Input: index of tau, at which to compute the nl correction
- * @param *lnk_l    Input: logarithm of the wavevector for either index_m or index_cb
- * @param *lnpk_l   Input: logarithm of the linear power spectrum for either index_m or index_cb
- * @param *ddlnpk_l Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
- * @param pnl Output: pointer to nonlinear workspace
- * @return the error status
- * */
-
-int nonlinear_hmcode_fill_sigtab(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct perturbs * ppt,
-                                 struct primordial * ppm,
-                                 struct nonlinear * pnl,
-                                 int index_tau,
-                                 double *lnpk_l,
-                                 double *ddlnpk_l,
-                                 struct nonlinear_workspace * pnw
-                                 ) {
-
-  double r;
-  double rmin, rmax;
-  double sig;
-  double * sigtab;
-  int i, index_r, index_sig, index_ddsig, index_n, nsig;
-
-  rmin = ppr->rmin_for_sigtab/pba->h;
-  rmax = ppr->rmax_for_sigtab/pba->h;
-  nsig = ppr->n_hmcode_tables;
-
-  i=0;
-  index_r=i;
-  i++;
-  index_sig=i;
-  i++;
-  index_ddsig=i;
-  i++;
-  index_n=i;
-
-  class_alloc((sigtab),(nsig*index_n*sizeof(double)),pnl->error_message);
-
-  for (i=0;i<nsig;i++){
-    r=exp(log(rmin)+log(rmax/rmin)*i/(nsig-1));
-    class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,r,lnpk_l,ddlnpk_l,&sig),
-               pnl->error_message, pnl->error_message);
-    sigtab[i*index_n+index_r]=r;
-    sigtab[i*index_n+index_sig]=sig;
-  }
-
-  class_call(array_spline(sigtab,
-						  index_n,
-						  nsig,
-						  index_r,
-						  index_sig,
-						  index_ddsig,
-						  _SPLINE_EST_DERIV_,
-						  pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-  if (index_tau == pnl->tau_size-1){
-    for (i=0;i<nsig;i++){
-      pnw->rtab[i] = sigtab[i*index_n+index_r];
-      pnw->stab[i] = sigtab[i*index_n+index_sig];
-      pnw->ddstab[i] = sigtab[i*index_n+index_ddsig];
-    }
-  }
-  else{
-    for (i=0;i<nsig;i++){
-      pnw->stab[i] = sigtab[i*index_n+index_sig];
-      pnw->ddstab[i] = sigtab[i*index_n+index_ddsig];
-    }
-  }
-
-  free(sigtab);
-
-  return _SUCCESS_;
-}
-
-
-/** Function that fills pnw->tautable and pnw->growtable with (tau, D(tau))
- * linearly spaced in scalefactor a.
- * Called by nonlinear_init at before the loop over tau
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure (will provide the scale independent growth factor)
- * @param pnl Input/Output: pointer to nonlinear structure
- * @param pnl Output: pointer to nonlinear workspace
- * @return the error status
- */
-
-int nonlinear_hmcode_fill_growtab(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct nonlinear * pnl,
-                                  struct nonlinear_workspace * pnw
-                                  ){
-
-  double z, ainit, amax, scalefactor, tau_growth;
-  int index_scalefactor, last_index, ng;
-  double * pvecback;
-
-  ng = ppr->n_hmcode_tables;
-  ainit = ppr->ainit_for_growtab;
-  amax = ppr->amax_for_growtab;
-
-  last_index = 0;
-
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-
-  for (index_scalefactor=0;index_scalefactor<ng;index_scalefactor++){
-    scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
-    z = 1./scalefactor-1.;
-
-    pnw->ztable[index_scalefactor] = z;
-
-    class_call(background_tau_of_z(
-                                   pba,
-                                   z,
-                                   &tau_growth
-                                   ),
-               pba->error_message, pnl->error_message);
-
-    pnw->tautable[index_scalefactor] = tau_growth;
-
-    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
-               pba->error_message,
-               pnl->error_message);
-
-    pnw->growtable[index_scalefactor] = pvecback[pba->index_bg_D];
-
-    // for debugging:
-    //fprintf(stdout, "%e %e\n", exp(scalefactor), pnw->growtable[index_scalefactor]/exp(scalefactor));
-  }
-
-  free(pvecback);
-
-  return _SUCCESS_;
-}
-
-/** This function finds the scale independent growth factor by integrating the approximate relation
- * d(lnD)/d(lna) = Omega_m(z)^gamma by Linder & Cahn 2007
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param pnl Input: pointer to nonlinear structure
- * @param a   Input: scalefactor
- * @param w0  Input: dark energy equation of state today
- * @param wa  Input: dark energy equation of state varying with a: w=w0+(1-a)wa
- * @param growth Output: scale independent growth factor at a
- * @return the error status
- */
-int nonlinear_hmcode_growint(
-                             struct precision * ppr,
-                             struct background * pba,
-                             struct nonlinear * pnl,
-                             double a,
-                             double w0,
-                             double wa,
-                             double * growth
-                             ){
-
-  double z, ainit, amax, scalefactor, gamma, Omega_m, Omega0_m, Omega0_v, Omega0_k, Hubble2, X_de;
-  int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
-  double * pvecback;
-  double * integrand;
-
-  ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
-  ainit = a;
-  amax = 1.;
-
-  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  Omega0_v = 1. - (Omega0_m + pba->Omega0_g + pba->Omega0_ur);
-  Omega0_k = 1. - (Omega0_m + Omega0_v + pba->Omega0_g + pba->Omega0_ur);
-
-  i=0;
-  index_a = i;
-  i++;
-  index_growth = i;
-  i++;
-  index_ddgrowth = i;
-  i++;
-  index_gcol = i;
-
-  class_alloc(integrand,ng*index_gcol*sizeof(double),pnl->error_message);
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-
-  if (ainit == amax) {
-    *growth = 1.;
-  }
-  else {
-
-    for (index_scalefactor=0;index_scalefactor<ng;index_scalefactor++){
-      scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
-      z = 1./scalefactor-1.;
-      X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
-      Hubble2 = (Omega0_m*pow((1.+z), 3.) + Omega0_k*pow((1.+z), 2.) + Omega0_v*X_de);
-      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;//TBC check that the matching between the background quantity and this fitting formula improves by using Omega_cb (as it is done in background). Carefull: Hubble remains with Omega0_m
-
-      if (w0 == -1.){
-        gamma = 0.55;
-      }
-      else if (w0 < -1.){
-        gamma = 0.55+0.02*(1+w0);
-      }
-      else {
-        gamma = 0.55+0.05*(1+w0);
-      }
-      integrand[index_scalefactor*index_gcol+index_a] = scalefactor;
-      integrand[index_scalefactor*index_gcol+index_growth]= -pow(Omega_m, gamma)/scalefactor;
-    }
-
-    class_call(array_spline(integrand,
-                            index_gcol,
-                            ng,
-                            index_a,
-                            index_growth,
-                            index_ddgrowth,
-                            _SPLINE_EST_DERIV_,
-                            pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_call(array_integrate_all_trapzd_or_spline(integrand,
-                                                    index_gcol,
-                                                    ng,
-                                                    0, //ng-1,
-                                                    index_a,
-                                                    index_growth,
-                                                    index_ddgrowth,
-                                                    growth,
-                                                    pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    *growth = exp(*growth);
-
-  }
-  //fprintf(stdout, "%e %e \n", a, *growth);
-  free(pvecback);
-  free(integrand);
-
-  return _SUCCESS_;
-}
-
-/** This is the fourier transform of the NFW density profile.
- *
- * @param k   Input: wave vector
- * @param rv  Input: virial radius
- * @param c   Input: concentration = rv/rs (with scale radius rs)
- * @param window_nfw Output: Window Function of the NFW profile
- * @return the error status
- *
- *   */
-int nonlinear_hmcode_window_nfw(
-                                struct nonlinear * pnl,
-                                double k,
-                                double rv,
-                                double c,
-                                double *window_nfw
-                                ){
-  double si1, si2, ci1, ci2, ks;
-  double p1, p2, p3;
-
-  ks = k*rv/c;
-
-  class_call(sine_integral(
-                           ks*(1.+c),
-                           &si2,
-                           pnl->error_message
-                           ),
-             pnl->error_message, pnl->error_message);
-
-  class_call(sine_integral(
-                           ks,
-                           &si1,
-                           pnl->error_message
-                           ),
-             pnl->error_message, pnl->error_message);
-
-  class_call(cosine_integral(
-                             ks*(1.+c),
-                             &ci2,
-                             pnl->error_message
-                             ),
-             pnl->error_message, pnl->error_message);
-
-  class_call(cosine_integral(
-                             ks,
-                             &ci1,
-                             pnl->error_message
-                             ),
-             pnl->error_message, pnl->error_message);
-
-  p1=cos(ks)*(ci2-ci1);
-  p2=sin(ks)*(si2-si1);
-  p3=sin(ks*c)/(ks*(1.+c));
-
-  *window_nfw=p1+p2-p3;
-  *window_nfw=*window_nfw/(log(1.+c)-c/(1.+c));
-
-  return _SUCCESS_;
-}
-
-/** This is the Sheth-Tormen halo mass function (1999, MNRAS, 308, 119)
- *
- * @param nu   Input: the \nu parameter that depends on the halo mass via \nu(M) = \delta_c/\sigma(M)
- * @param hmf  Output: Value of the halo mass function at this \nu
- * @return the error status
- * */
-int nonlinear_hmcode_halomassfunction(
-                                      double nu,
-                                      double *hmf
-                                      ){
-
-  double p, q, A;
-
-  p=0.3;
-  q=0.707;
-  A=0.21616;
-
-  *hmf=A*(1.+(pow(q*nu*nu, -p)))*exp(-q*nu*nu/2.);
-
-  return _SUCCESS_;
-}
-
-
-/** Computes the nonlinear correction on the linear power spectrum via
+ * Computes the nonlinear correction on the linear power spectrum via
  * the method presented in Mead et al. 1505.07833
+ *
  * @param ppr Input: pointer to precision structure
  * @param pba Input: pointer to background structure
- * @param pba Input: pointer to perturbation structure
+ * @param ppt Input: pointer to perturbation structure
  * @param ppm Input: pointer to primordial structure
  * @param pnl Input: pointer to nonlinear structure
  * @param index_pk   Input: index of the pk type, either index_m or index_cb
  * @param index_tau  Input: index of tau, at which to compute the nl correction
  * @param tau        Input: tau, at which to compute the nl correction
- * @param *pk_l      Input: pointer to the linear power spectrum
- * @param *pk_nl     Output:nonlinear power spectrum
- * @param **lnk_l    Input: logarithm of the wavevector for both index_m and index_cb
- * @param **lnpk_l   Input: logarithm of the linear power spectrum for both index_m and index_cb
- * @param **ddlnpk_l Input: spline of the logarithm of the linear power spectrum for both index_m and index_cb
- * @param *k_nl      Output:nonlinear scale for index_m and index_cb
- * @param pnl Input/Output: pointer to nonlinear workspace
+ * @param pk_nl      Output:nonlinear power spectrum
+ * @param lnk_l      Input: logarithm of the wavevector for both index_m and index_cb
+ * @param lnpk_l     Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param ddlnpk_l   Input: spline of the logarithm of the linear power spectrum for both index_m and index_cb
+ * @param nl_corr_not_computable_at_this_k Ouput: was the computation doable?
+ * @param k_nl       Output: nonlinear scale for index_m and index_cb
+ * @param pnw        Input/Output: pointer to nonlinear workspace
  * @return the error status
  */
 
@@ -2994,6 +2090,935 @@ int nonlinear_hmcode(
   return _SUCCESS_;
 }
 
+/**
+ * allocate and fill arrays of nonlinear workspace (currently used only by HMcode)
+ *
+ * @param ppr         Input: pointer to precision structure
+ * @param pba         Input: pointer to background structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pnw         Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_workspace_init(
+                                    struct precision *ppr,
+                                    struct background *pba,
+                                    struct nonlinear *pnl,
+                                    struct nonlinear_workspace * pnw
+                                    ){
+
+  int ng;
+  int index_pk;
+
+  /** - allocate arrays of the nonlinear workspace */
+
+  class_alloc(pnw->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
+  class_alloc(pnw->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
+  class_alloc(pnw->ddstab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
+
+  ng = ppr->n_hmcode_tables;
+
+  class_alloc(pnw->growtable,ng*sizeof(double),pnl->error_message);
+  class_alloc(pnw->ztable,ng*sizeof(double),pnl->error_message);
+  class_alloc(pnw->tautable,ng*sizeof(double),pnl->error_message);
+
+  class_alloc(pnw->sigma_8,pnl->pk_size*sizeof(double *),pnl->error_message);
+  class_alloc(pnw->sigma_disp,pnl->pk_size*sizeof(double *),pnl->error_message);
+  class_alloc(pnw->sigma_disp_100,pnl->pk_size*sizeof(double *),pnl->error_message);
+  class_alloc(pnw->sigma_prime,pnl->pk_size*sizeof(double *),pnl->error_message);
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+    class_alloc(pnw->sigma_8[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+    class_alloc(pnw->sigma_disp[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnw->sigma_disp_100[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+  }
+
+  /** - fill table with scale independent growth factor */
+
+  class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl,pnw),
+             pnl->error_message,
+             pnl->error_message);
+
+  return _SUCCESS_;
+}
+
+/**
+ * deallocate arrays in the nonlinear worksapce (currently used only
+ * by HMcode)
+ *
+ * @param pnl Input: pointer to nonlinear structure
+ * @param pnw Input: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_workspace_free(
+                                    struct nonlinear *pnl,
+                                    struct nonlinear_workspace * pnw
+                                    ) {
+  int index_pk;
+
+  free(pnw->rtab);
+  free(pnw->stab);
+  free(pnw->ddstab);
+
+  free(pnw->growtable);
+  free(pnw->ztable);
+  free(pnw->tautable);
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+    free(pnw->sigma_8[index_pk]);
+    free(pnw->sigma_disp[index_pk]);
+    free(pnw->sigma_disp_100[index_pk]);
+    free(pnw->sigma_prime[index_pk]);
+  }
+
+  free(pnw->sigma_8);
+  free(pnw->sigma_disp);
+  free(pnw->sigma_disp_100);
+  free(pnw->sigma_prime);
+
+  return _SUCCESS_;
+}
+
+/**
+ * set the HMcode dark energy correction (if w is not -1)
+ *
+ * @param ppr         Input: pointer to precision structure
+ * @param pba         Input: pointer to background structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pnw         Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_dark_energy_correction(
+                                            struct precision *ppr,
+                                            struct background *pba,
+                                            struct nonlinear *pnl,
+                                            struct nonlinear_workspace * pnw
+                                            ) {
+
+  int last_index;
+  double * pvecback;
+  double tau_growth;
+  double g_lcdm,g_wcdm;
+  double w0,dw_over_da_fld,integral_fld;
+
+  /** - if there is dynamical Dark Energy (w is not -1) modeled as a fluid */
+
+  if (pba->has_fld==_TRUE_){
+
+    class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+
+    class_call(background_tau_of_z(
+                                   pba,
+                                   pnl->z_infinity,
+                                   &tau_growth
+                                   ),
+               pba->error_message,
+               pnl->error_message);
+
+    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld),
+               pba->error_message,
+               pnl->error_message);
+
+    class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
+               pnl->error_message, pnl->error_message);
+
+    class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1.),&g_wcdm),
+               pnl->error_message,
+               pnl->error_message);
+
+    free(pvecback);
+
+    pnw->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
+  }
+
+  /** - otherwise, we assume no dynamical Dark Energy (w is -1) */
+
+  else {
+    pnw->dark_energy_correction = 1.;
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * set the HMcode baryonic feedback parameters according to the chosen feedback model
+ *
+ * @param pnl   Output: pointer to nonlinear structure
+ * @return the error status
+ */
+
+int nonlinear_hmcode_baryonic_feedback(
+                                       struct nonlinear *pnl
+                                       ) {
+
+  switch (pnl->feedback) {
+
+  case nl_emu_dmonly:
+    {
+      pnl->eta_0 = 0.603;
+      pnl->c_min = 3.13;
+      break;
+    }
+
+  case nl_owls_dmonly:
+    {
+      pnl->eta_0 = 0.64;
+      pnl->c_min = 3.43;
+      break;
+    }
+
+  case nl_owls_ref:
+    {
+      pnl->eta_0 = 0.68;
+      pnl->c_min = 3.91;
+      break;
+    }
+
+  case nl_owls_agn:
+    {
+      pnl->eta_0 = 0.76;
+      pnl->c_min = 2.32;
+      break;
+    }
+
+  case nl_owls_dblim:
+    {
+      pnl->eta_0 = 0.70;
+      pnl->c_min = 3.01;
+      break;
+    }
+
+  case nl_user_defined:
+    {
+      /* eta_0 and c_min already passed in input */
+      break;
+    }
+  }
+  return _SUCCESS_;
+}
+
+/**
+ * Calculates the sigma integral for a given scale R
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param R   Input: scale at which to compute sigma
+ * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param * sigma    Output: Sigma
+ * @return the error status
+ */
+
+int nonlinear_hmcode_sigma(
+                           struct precision * ppr,
+                           struct background * pba,
+                           struct perturbs * ppt,
+                           struct primordial * ppm,
+                           struct nonlinear * pnl,
+                           double R,
+                           double *lnpk_l,
+                           double *ddlnpk_l,
+                           double * sigma
+                           ) {
+  double pk, lnpk;
+
+  double * array_for_sigma;
+  int index_num;
+  int index_k;
+  int index_sigma;
+  int index_ddsigma;
+  int i;
+  int integrand_size;
+  int last_index=0;
+
+  double k,W,x,t;
+
+  i=0;
+  index_k=i;
+  i++;
+  index_sigma=i;
+  i++;
+  index_ddsigma=i;
+  i++;
+  index_num=i;
+
+  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
+  class_alloc(array_for_sigma,
+              integrand_size*index_num*sizeof(double),
+              pnl->error_message);
+
+  for (i=integrand_size-1;i>=0;i--) {
+    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    t = 1./(1.+k);
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    x=k*R;
+    if (x<0.01) {
+      W = 1.-(pow(x, 2.)/10.);
+    }
+    else {
+      W = 3./x/x/x*(sin(x)-x*cos(x));
+    }
+
+    class_call(array_interpolate_spline(
+                                        pnl->ln_k,
+                                        pnl->k_size_extra,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    pk = exp(lnpk);
+
+    array_for_sigma[(integrand_size-1-i)*index_num+index_k] = t;
+    array_for_sigma[(integrand_size-1-i)*index_num+index_sigma] = k*k*k*pk*W*W/(t*(1.-t));
+    //if (i<pnl->k_size && R==ppr->rmin_for_sigtab/pba->h) fprintf(stdout, "%e %e\n", k, array_for_sigma[(integrand_size-1-i)*index_num+index_sigma]);
+  }
+
+  class_call(array_spline(array_for_sigma,
+                          index_num,
+                          integrand_size,
+                          index_k,
+                          index_sigma,
+                          index_ddsigma,
+                          _SPLINE_EST_DERIV_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma,
+                                                  index_num,
+                                                  integrand_size,
+                                                  0, //integrand_size-1,
+                                                  index_k,
+                                                  index_sigma,
+                                                  index_ddsigma,
+                                                  sigma,
+                                                  pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  //for (i=0;i<pnl->k_size;i++) {
+  //fprintf(stdout, "%e %e %e\n", pnl->k[i], array_for_sigma[i*index_num+index_sigma], array_for_sigma[i*index_num+index_ddsigma]);
+  //	}
+
+  free(array_for_sigma);
+
+  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
+  //fprintf(stdout, "%e\n", *sigma);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Calculates the d\sigma/dR integral for a given scale R
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param R   Input: scale at which to compute sigma
+ * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param * sigma_prime    Output: d\sigma/dR
+ * @return the error status
+ */
+
+int nonlinear_hmcode_sigma_prime(
+                                 struct precision * ppr,
+                                 struct background * pba,
+                                 struct perturbs * ppt,
+                                 struct primordial * ppm,
+                                 struct nonlinear * pnl,
+                                 double R,
+                                 double *lnpk_l,
+                                 double *ddlnpk_l,
+                                 double * sigma_prime
+                                 ) {
+  double pk, lnpk;
+
+  double * array_for_sigma_prime;
+  int index_num;
+  int index_k;
+  int index_sigma_prime;
+  int index_ddsigma_prime;
+  int integrand_size;
+  int last_index=0;
+  int i;
+
+  double k,W,W_prime,x,t;
+
+  i=0;
+  index_k=i;
+  i++;
+  index_sigma_prime=i;
+  i++;
+  index_ddsigma_prime=i;
+  i++;
+  index_num=i;
+
+  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
+  class_alloc(array_for_sigma_prime,
+              integrand_size*index_num*sizeof(double),
+              pnl->error_message);
+
+  for (i=integrand_size-1;i>=0;i--) {
+    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    t = 1./(1.+k);
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    x=k*R;
+	if (x<0.01) {
+      W = 1.-(x*x/10.);
+      W_prime = -0.2*x;
+
+	}
+	else {
+      W = 3./x/x/x*(sin(x)-x*cos(x));
+      W_prime=3./x/x*sin(x)-9./x/x/x/x*(sin(x)-x*cos(x));
+
+    }
+
+    class_call(array_interpolate_spline(
+                                        pnl->ln_k,
+                                        pnl->k_size_extra,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    pk = exp(lnpk);
+
+    array_for_sigma_prime[(integrand_size-1-i)*index_num+index_k] = t;
+    array_for_sigma_prime[(integrand_size-1-i)*index_num+index_sigma_prime] = k*k*k*pk*2.*k*W*W_prime/(t*(1.-t));
+  }
+
+  class_call(array_spline(array_for_sigma_prime,
+                          index_num,
+                          integrand_size,
+                          index_k,
+                          index_sigma_prime,
+                          index_ddsigma_prime,
+                          _SPLINE_EST_DERIV_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma_prime,
+                                                  index_num,
+                                                  integrand_size,
+                                                  0, //integrand_size-1,
+                                                  index_k,
+                                                  index_sigma_prime,
+                                                  index_ddsigma_prime,
+                                                  sigma_prime,
+                                                  pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  //	for (i=0;i<integrand_size;i++) {
+  //		fprintf(stdout, "%e, %e, %e, %e\n", *sigma_prime, array_for_sigma_prime[i*index_num+index_k], array_for_sigma_prime[i*index_num+index_sigma_prime], array_for_sigma_prime[i*index_num+index_ddsigma_prime]);
+  //	}
+
+  free(array_for_sigma_prime);
+
+  *sigma_prime = *sigma_prime/(2.*_PI_*_PI_);
+  //fprintf(stdout, "%e\n", *sigma_prime);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Calculates the sigma_velocitydispersion integral for a given scale R
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param R   Input: scale at which to compute sigma
+ * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
+ * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param * sigma_disp Output: \sigma_{disp}
+ * @return the error status
+ */
+
+int nonlinear_hmcode_sigma_disp(
+                                struct precision * ppr,
+                                struct background * pba,
+                                struct perturbs * ppt,
+                                struct primordial * ppm,
+                                struct nonlinear * pnl,
+                                double R,
+                                double *lnpk_l,
+                                double *ddlnpk_l,
+                                double * sigma_disp
+                                ) {
+  double pk, lnpk;
+
+  double * array_for_sigma_disp;
+  int index_num;
+  int index_k;
+  int index_y;
+  int index_ddy;
+  int integrand_size;
+  int last_index=0;
+  int i;
+
+  double k,W,x;
+
+  i=0;
+  index_k=i;
+  i++;
+  index_y=i;
+  i++;
+  index_ddy=i;
+  i++;
+  index_num=i;
+
+  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
+  class_alloc(array_for_sigma_disp,
+              integrand_size*index_num*sizeof(double),
+              pnl->error_message);
+
+  for (i=0;i<integrand_size;i++) {
+    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    x=k*R;
+	if (x<0.01) {
+      W = 1.-(pow(x, 2.)/10.);
+	}
+	else {
+      W = 3./x/x/x*(sin(x)-x*cos(x));
+    }
+
+    class_call(array_interpolate_spline(
+                                        pnl->ln_k,
+                                        pnl->k_size_extra,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    pk = exp(lnpk);
+
+
+    array_for_sigma_disp[i*index_num+index_k]=k;
+    array_for_sigma_disp[i*index_num+index_y]=pk*W*W;
+  }
+
+  class_call(array_spline(array_for_sigma_disp,
+                          index_num,
+                          integrand_size,
+                          index_k,
+                          index_y,
+                          index_ddy,
+                          _SPLINE_EST_DERIV_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(array_integrate_all_spline(array_for_sigma_disp,
+                                        index_num,
+                                        integrand_size,
+                                        index_k,
+                                        index_y,
+                                        index_ddy,
+                                        sigma_disp,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  free(array_for_sigma_disp);
+
+  *sigma_disp = sqrt(*sigma_disp/(2.*_PI_*_PI_)/3); // unit: [Mpc]
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Function that fills pnw->rtab, pnw->stab and pnw->ddstab with (r,
+ * sigma, ddsigma) logarithmically spaced in r.  Called by
+ * nonlinear_init at for all tau to account for scale-dependant growth
+ * before nonlinear_hmcode is called
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param index_tau  Input: index of tau, at which to compute the nl correction
+ * @param lnpk_l   Input: logarithm of the linear power spectrum for either index_m or index_cb
+ * @param ddlnpk_l Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
+ * @param pnw Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_fill_sigtab(
+                                 struct precision * ppr,
+                                 struct background * pba,
+                                 struct perturbs * ppt,
+                                 struct primordial * ppm,
+                                 struct nonlinear * pnl,
+                                 int index_tau,
+                                 double *lnpk_l,
+                                 double *ddlnpk_l,
+                                 struct nonlinear_workspace * pnw
+                                 ) {
+
+  double r;
+  double rmin, rmax;
+  double sig;
+  double * sigtab;
+  int i, index_r, index_sig, index_ddsig, index_n, nsig;
+
+  rmin = ppr->rmin_for_sigtab/pba->h;
+  rmax = ppr->rmax_for_sigtab/pba->h;
+  nsig = ppr->n_hmcode_tables;
+
+  i=0;
+  index_r=i;
+  i++;
+  index_sig=i;
+  i++;
+  index_ddsig=i;
+  i++;
+  index_n=i;
+
+  class_alloc((sigtab),(nsig*index_n*sizeof(double)),pnl->error_message);
+
+  for (i=0;i<nsig;i++){
+    r=exp(log(rmin)+log(rmax/rmin)*i/(nsig-1));
+    class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,r,lnpk_l,ddlnpk_l,&sig),
+               pnl->error_message, pnl->error_message);
+    sigtab[i*index_n+index_r]=r;
+    sigtab[i*index_n+index_sig]=sig;
+  }
+
+  class_call(array_spline(sigtab,
+						  index_n,
+						  nsig,
+						  index_r,
+						  index_sig,
+						  index_ddsig,
+						  _SPLINE_EST_DERIV_,
+						  pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+  if (index_tau == pnl->tau_size-1){
+    for (i=0;i<nsig;i++){
+      pnw->rtab[i] = sigtab[i*index_n+index_r];
+      pnw->stab[i] = sigtab[i*index_n+index_sig];
+      pnw->ddstab[i] = sigtab[i*index_n+index_ddsig];
+    }
+  }
+  else{
+    for (i=0;i<nsig;i++){
+      pnw->stab[i] = sigtab[i*index_n+index_sig];
+      pnw->ddstab[i] = sigtab[i*index_n+index_ddsig];
+    }
+  }
+
+  free(sigtab);
+
+  return _SUCCESS_;
+}
+
+
+/**
+ * Function that fills pnw->tautable and pnw->growtable with (tau, D(tau))
+ * linearly spaced in scalefactor a.
+ * Called by nonlinear_init at before the loop over tau
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure (will provide the scale independent growth factor)
+ * @param pnl Input/Output: pointer to nonlinear structure
+ * @param pnw Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_fill_growtab(
+                                  struct precision * ppr,
+                                  struct background * pba,
+                                  struct nonlinear * pnl,
+                                  struct nonlinear_workspace * pnw
+                                  ){
+
+  double z, ainit, amax, scalefactor, tau_growth;
+  int index_scalefactor, last_index, ng;
+  double * pvecback;
+
+  ng = ppr->n_hmcode_tables;
+  ainit = ppr->ainit_for_growtab;
+  amax = ppr->amax_for_growtab;
+
+  last_index = 0;
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+
+  for (index_scalefactor=0;index_scalefactor<ng;index_scalefactor++){
+    scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
+    z = 1./scalefactor-1.;
+
+    pnw->ztable[index_scalefactor] = z;
+
+    class_call(background_tau_of_z(
+                                   pba,
+                                   z,
+                                   &tau_growth
+                                   ),
+               pba->error_message, pnl->error_message);
+
+    pnw->tautable[index_scalefactor] = tau_growth;
+
+    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    pnw->growtable[index_scalefactor] = pvecback[pba->index_bg_D];
+
+    // for debugging:
+    //fprintf(stdout, "%e %e\n", exp(scalefactor), pnw->growtable[index_scalefactor]/exp(scalefactor));
+  }
+
+  free(pvecback);
+
+  return _SUCCESS_;
+}
+
+/**
+ * This function finds the scale independent growth factor by
+ * integrating the approximate relation d(lnD)/d(lna) =
+ * Omega_m(z)^gamma by Linder & Cahn 2007
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param pnl Input: pointer to nonlinear structure
+ * @param a   Input: scalefactor
+ * @param w0  Input: dark energy equation of state today
+ * @param wa  Input: dark energy equation of state varying with a: w=w0+(1-a)wa
+ * @param growth Output: scale independent growth factor at a
+ * @return the error status
+ */
+
+int nonlinear_hmcode_growint(
+                             struct precision * ppr,
+                             struct background * pba,
+                             struct nonlinear * pnl,
+                             double a,
+                             double w0,
+                             double wa,
+                             double * growth
+                             ){
+
+  double z, ainit, amax, scalefactor, gamma, Omega_m, Omega0_m, Omega0_v, Omega0_k, Hubble2, X_de;
+  int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
+  double * pvecback;
+  double * integrand;
+
+  ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
+  ainit = a;
+  amax = 1.;
+
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  Omega0_v = 1. - (Omega0_m + pba->Omega0_g + pba->Omega0_ur);
+  Omega0_k = 1. - (Omega0_m + Omega0_v + pba->Omega0_g + pba->Omega0_ur);
+
+  i=0;
+  index_a = i;
+  i++;
+  index_growth = i;
+  i++;
+  index_ddgrowth = i;
+  i++;
+  index_gcol = i;
+
+  class_alloc(integrand,ng*index_gcol*sizeof(double),pnl->error_message);
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+
+  if (ainit == amax) {
+    *growth = 1.;
+  }
+  else {
+
+    for (index_scalefactor=0;index_scalefactor<ng;index_scalefactor++){
+      scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
+      z = 1./scalefactor-1.;
+      X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
+      Hubble2 = (Omega0_m*pow((1.+z), 3.) + Omega0_k*pow((1.+z), 2.) + Omega0_v*X_de);
+      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;//TBC check that the matching between the background quantity and this fitting formula improves by using Omega_cb (as it is done in background). Carefull: Hubble remains with Omega0_m
+
+      if (w0 == -1.){
+        gamma = 0.55;
+      }
+      else if (w0 < -1.){
+        gamma = 0.55+0.02*(1+w0);
+      }
+      else {
+        gamma = 0.55+0.05*(1+w0);
+      }
+      integrand[index_scalefactor*index_gcol+index_a] = scalefactor;
+      integrand[index_scalefactor*index_gcol+index_growth]= -pow(Omega_m, gamma)/scalefactor;
+    }
+
+    class_call(array_spline(integrand,
+                            index_gcol,
+                            ng,
+                            index_a,
+                            index_growth,
+                            index_ddgrowth,
+                            _SPLINE_EST_DERIV_,
+                            pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    class_call(array_integrate_all_trapzd_or_spline(integrand,
+                                                    index_gcol,
+                                                    ng,
+                                                    0, //ng-1,
+                                                    index_a,
+                                                    index_growth,
+                                                    index_ddgrowth,
+                                                    growth,
+                                                    pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    *growth = exp(*growth);
+
+  }
+  //fprintf(stdout, "%e %e \n", a, *growth);
+  free(pvecback);
+  free(integrand);
+
+  return _SUCCESS_;
+}
+
+/**
+ * This is the fourier transform of the NFW density profile.
+ *
+ * @param pnl Input: pointer to nonlinear structure
+ * @param k   Input: wave vector
+ * @param rv  Input: virial radius
+ * @param c   Input: concentration = rv/rs (with scale radius rs)
+ * @param window_nfw Output: Window Function of the NFW profile
+ * @return the error status
+ */
+
+int nonlinear_hmcode_window_nfw(
+                                struct nonlinear * pnl,
+                                double k,
+                                double rv,
+                                double c,
+                                double *window_nfw
+                                ){
+  double si1, si2, ci1, ci2, ks;
+  double p1, p2, p3;
+
+  ks = k*rv/c;
+
+  class_call(sine_integral(
+                           ks*(1.+c),
+                           &si2,
+                           pnl->error_message
+                           ),
+             pnl->error_message, pnl->error_message);
+
+  class_call(sine_integral(
+                           ks,
+                           &si1,
+                           pnl->error_message
+                           ),
+             pnl->error_message, pnl->error_message);
+
+  class_call(cosine_integral(
+                             ks*(1.+c),
+                             &ci2,
+                             pnl->error_message
+                             ),
+             pnl->error_message, pnl->error_message);
+
+  class_call(cosine_integral(
+                             ks,
+                             &ci1,
+                             pnl->error_message
+                             ),
+             pnl->error_message, pnl->error_message);
+
+  p1=cos(ks)*(ci2-ci1);
+  p2=sin(ks)*(si2-si1);
+  p3=sin(ks*c)/(ks*(1.+c));
+
+  *window_nfw=p1+p2-p3;
+  *window_nfw=*window_nfw/(log(1.+c)-c/(1.+c));
+
+  return _SUCCESS_;
+}
+
+/**
+ * This is the Sheth-Tormen halo mass function (1999, MNRAS, 308, 119)
+ *
+ * @param nu   Input: the \nu parameter that depends on the halo mass via \nu(M) = \delta_c/\sigma(M)
+ * @param hmf  Output: Value of the halo mass function at this \nu
+ * @return the error status
+ */
+
+int nonlinear_hmcode_halomassfunction(
+                                      double nu,
+                                      double *hmf
+                                      ){
+
+  double p, q, A;
+
+  p=0.3;
+  q=0.707;
+  A=0.21616;
+
+  *hmf=A*(1.+(pow(q*nu*nu, -p)))*exp(-q*nu*nu/2.);
+
+  return _SUCCESS_;
+}
+
+/**
+ * Compute sigma8(z)
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pnl        Input: pointer to nonlinear structure
+ * @param z          Input: redshift
+ * @param sigma_8    Output: sigma8(z)
+ * @param sigma_8_cb Output: sigma8_cb(z)
+ * @param pnw        Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
 int nonlinear_hmcode_sigma8_at_z(
                                  struct background *pba,
                                  struct nonlinear * pnl,
@@ -3060,6 +3085,18 @@ int nonlinear_hmcode_sigma8_at_z(
   return _SUCCESS_;
 }
 
+/**
+ * Compute sigmadisp(z)
+ *
+ * @param pba           Input: pointer to background structure
+ * @param pnl           Input: pointer to nonlinear structure
+ * @param z             Input: redshift
+ * @param sigma_disp    Output: sigmadisp(z)
+ * @param sigma_disp_cb Output: sigmadisp_cb(z)
+ * @param pnw           Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
 int nonlinear_hmcode_sigmadisp_at_z(
                                     struct background *pba,
                                     struct nonlinear * pnl,
@@ -3125,6 +3162,18 @@ int nonlinear_hmcode_sigmadisp_at_z(
   return _SUCCESS_;
 }
 
+/**
+ * Compute sigmadisp100(z)
+ *
+ * @param pba               Input: pointer to background structure
+ * @param pnl               Input: pointer to nonlinear structure
+ * @param z                 Input: redshift
+ * @param sigma_disp_100    Output: sigmadisp100(z)
+ * @param sigma_disp_100_cb Output: sigmadisp100_cb(z)
+ * @param pnw           Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
 int nonlinear_hmcode_sigmadisp100_at_z(
                                        struct background *pba,
                                        struct nonlinear * pnl,
@@ -3188,6 +3237,18 @@ int nonlinear_hmcode_sigmadisp100_at_z(
 
   return _SUCCESS_;
 }
+
+/**
+ * Compute sigma'(z)
+ *
+ * @param pba            Input: pointer to background structure
+ * @param pnl            Input: pointer to nonlinear structure
+ * @param z              Input: redshift
+ * @param sigma_prime    Output: sigma'(z)
+ * @param sigma_prime_cb Output: sigma'_cb(z)
+ * @param pnw            Output: pointer to nonlinear workspace
+ * @return the error status
+ */
 
 int nonlinear_hmcode_sigmaprime_at_z(
                                      struct background *pba,
@@ -3270,6 +3331,7 @@ int nonlinear_hmcode_sigmaprime_at_z(
  * @param source          Output: desired value of source
  * @return the error status
  */
+
 int nonlinear_get_source(
                          struct background * pba,
                          struct perturbs * ppt,
@@ -3297,21 +3359,21 @@ int nonlinear_get_source(
     k = pnl->k[index_k];
 
     /**
-     * Get last source and k, which are used in (almost) all methods
+     * --> Get last source and k, which are used in (almost) all methods
      */
     k_max = pnl->k[pnl->k_size-1];
     source_max = sources[index_ic * ppt->tp_size[index_md] + index_tp][index_tau * pnl->k_size + pnl->k_size - 1];
 
     /**
-     * Get previous source and k, which are used in best methods
+     * --> Get previous source and k, which are used in best methods
      */
     k_previous = pnl->k[pnl->k_size-2];
     source_previous = sources[index_ic * ppt->tp_size[index_md] + index_tp][index_tau * pnl->k_size + pnl->k_size - 2];
 
     switch(pnl->extrapolation_method){
       /**
-       * Extrapolate by assuming the source to vanish
-       * Has terrible discontinuity
+       * --> Extrapolate by assuming the source to vanish Has terrible
+       * discontinuity
        */
     case extrap_zero:
       {
@@ -3319,7 +3381,7 @@ int nonlinear_get_source(
         break;
       }
       /**
-       * Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
+       * --> Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
        * Has a terrible bend in log slope, discontinuity only in derivative
        */
     case extrap_only_max:
@@ -3328,9 +3390,10 @@ int nonlinear_get_source(
         break;
       }
       /**
-       * Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
-       * Here we use k in h/Mpc instead of 1/Mpc as it is done in the CAMB implementation of HMcode
-       * Has a terrible bend in log slope, discontinuity only in derivative
+       * --> Extrapolate starting from the maximum value, assuming
+       * growth ~ ln(k) Here we use k in h/Mpc instead of 1/Mpc as it
+       * is done in the CAMB implementation of HMcode Has a terrible
+       * bend in log slope, discontinuity only in derivative
        */
     case extrap_only_max_units:
       {
@@ -3338,8 +3401,8 @@ int nonlinear_get_source(
         break;
       }
       /**
-       * Extrapolate assuming source ~ ln(a*k) where a is obtained from the data at k_0
-       * Mostly continuous derivative, quite good
+       * --> Extrapolate assuming source ~ ln(a*k) where a is obtained
+       * from the data at k_0 Mostly continuous derivative, quite good
        */
     case extrap_max_scaled:
       {
@@ -3348,7 +3411,8 @@ int nonlinear_get_source(
         break;
       }
       /**
-       * Extrapolate assuming source ~ ln(e+a*k) where a is estimated like is done in original HMCode
+       * --> Extrapolate assuming source ~ ln(e+a*k) where a is
+       * estimated like is done in original HMCode
        */
     case extrap_hmcode:
       {
@@ -3357,8 +3421,9 @@ int nonlinear_get_source(
         break;
       }
       /**
-       * If the user has a complicated model and wants to interpolate differently,
-       * they can define their interpolation here and switch to using it instead
+       * --> If the user has a complicated model and wants to
+       * interpolate differently, they can define their interpolation
+       * here and switch to using it instead
        */
     case extrap_user_defined:
       {

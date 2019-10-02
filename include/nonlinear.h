@@ -386,19 +386,6 @@ extern "C" {
                                     struct nonlinear_workspace * pnw
                                     );
 
-  int nonlinear_hmcode_halomassfunction(
-                                        double nu,
-                                        double *hmf
-                                        );
-
-  int nonlinear_hmcode_window_nfw(
-                                  struct nonlinear * pnl,
-                                  double k,
-                                  double rv,
-                                  double c,
-                                  double *window_nfw
-                                  );
-
   int nonlinear_hmcode_growint(
                                struct precision *ppr,
                                struct background * pba,
@@ -408,6 +395,19 @@ extern "C" {
                                double wa,
                                double * growth
                                );
+
+  int nonlinear_hmcode_window_nfw(
+                                  struct nonlinear * pnl,
+                                  double k,
+                                  double rv,
+                                  double c,
+                                  double *window_nfw
+                                  );
+
+  int nonlinear_hmcode_halomassfunction(
+                                        double nu,
+                                        double *hmf
+                                        );
 
   int nonlinear_hmcode_sigma8_at_z(
                         struct background *pba,
