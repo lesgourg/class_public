@@ -238,7 +238,6 @@ extern "C" {
                      struct nonlinear *pnl
                      );
 
-  // new functions:
   int nonlinear_pk_linear(
                           struct background *pba,
                           struct perturbs *ppt,
@@ -264,19 +263,6 @@ extern "C" {
                                        double * lnpk,
                                        double * lnpk_ic
                                        );
-  // end new functions
-
-  int nonlinear_pk_l(struct background *pba,
-                     struct perturbs *ppt,
-                     struct primordial *ppm,
-                     struct nonlinear *pnl,
-                     int index_pk,
-                     int index_tau,
-                     double *pk_l,
-                     double *lnk,
-                     double *lnpk,
-                     double *ddlnpk
-                     );
 
   int nonlinear_halofit(
                         struct precision *ppr,
