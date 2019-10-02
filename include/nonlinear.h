@@ -116,7 +116,6 @@ struct nonlinear {
   int pk_size;     /**< k_size = total number of pk */
 
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
-  double * k_extra;/** list of k-values with extrapolated high k-values  */
 
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values */

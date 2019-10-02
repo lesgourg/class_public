@@ -285,7 +285,7 @@ int nonlinear_init(
       printf("Computing linear Fourier spectra.\n");
   }
 
-  /** Define flags and indices (so few that no dedicated routine needed) */
+  /** Define flags and indices (will move soon to dedicated routine) */
 
   pnl->ic_size = ppm->ic_size[index_md];
   pnl->ic_ic_size = ppm->ic_ic_size[index_md];
@@ -477,7 +477,7 @@ int nonlinear_init(
       }
     }
 
-    /** - copy list of tau from perturbation module */
+    /** - copy list of all tau's from perturbation module */
 
     pnl->tau_size = ppt->tau_size;
     class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
@@ -491,6 +491,8 @@ int nonlinear_init(
     class_alloc(pnl->k_nl,
                 pnl->pk_size*sizeof(double *),
                 pnl->error_message);
+
+    /* temporary arrayas for spectra at one given time/redshift */
 
     class_alloc(pk_l,
                 pnl->k_size*sizeof(double),
@@ -556,16 +558,8 @@ int nonlinear_init(
         class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
       }
 
-      /** allocate pnl->k_extra and reallocate the k-dependent arrays */
-
-      class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
-
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
         class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-      }
-
-      for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-        pnl->k_extra[index_k] = exp(pnl->ln_k[index_k]);
       }
 
       /** if fill table with scale independent growth factor */
@@ -1002,7 +996,6 @@ int nonlinear_free(
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
       free(pnl->tau);
-      free(pnl->k_extra);
     }
   }
 
@@ -1797,13 +1790,13 @@ int nonlinear_hmcode_sigma(
   i++;
   index_num=i;
 
-  integrand_size=(int)(log(pnl->k_extra[pnl->k_size_extra-1]/pnl->k_extra[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
+  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
   class_alloc(array_for_sigma,
               integrand_size*index_num*sizeof(double),
               pnl->error_message);
 
   for (i=integrand_size-1;i>=0;i--) {
-    k=pnl->k_extra[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
     t = 1./(1.+k);
     if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
@@ -1920,13 +1913,13 @@ int nonlinear_hmcode_sigma_prime(
   i++;
   index_num=i;
 
-  integrand_size=(int)(log(pnl->k_extra[pnl->k_size_extra-1]/pnl->k_extra[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
+  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
   class_alloc(array_for_sigma_prime,
               integrand_size*index_num*sizeof(double),
               pnl->error_message);
 
   for (i=integrand_size-1;i>=0;i--) {
-    k=pnl->k_extra[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
     t = 1./(1.+k);
     if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
@@ -2046,13 +2039,13 @@ int nonlinear_hmcode_sigma_disp(
   i++;
   index_num=i;
 
-  integrand_size=(int)(log(pnl->k_extra[pnl->k_size_extra-1]/pnl->k_extra[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
+  integrand_size=(int)(log(pnl->k[pnl->k_size_extra-1]/pnl->k[0])/log(10.)*ppr->hmcode_k_per_decade)+1;
   class_alloc(array_for_sigma_disp,
               integrand_size*index_num*sizeof(double),
               pnl->error_message);
 
   for (i=0;i<integrand_size;i++) {
-    k=pnl->k_extra[0]*pow(10.,i/ppr->hmcode_k_per_decade);
+    k=pnl->k[0]*pow(10.,i/ppr->hmcode_k_per_decade);
     if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
     x=k*R;
 	if (x<0.01) {
