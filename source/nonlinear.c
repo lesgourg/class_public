@@ -242,13 +242,14 @@ int nonlinear_init(
   double **lnpk_l;
   double **ddlnpk_l;
 
-  short print_warning=_FALSE_;
+  short nl_corr_not_computable_at_this_k = _FALSE_;
+  //short halofit_found_kmax = _TRUE_;
+
   double * pvecback;
   int last_index;
   double a,z;
   double g_lcdm, g_wcdm;
   double w0, dw_over_da_fld, integral_fld;
-  short halofit_found_k_max;
   double k;
 
   double tau_growth;
@@ -652,11 +653,15 @@ int nonlinear_init(
 
     /** (d) Loop over time and for each time/redshift, compute P_NL(k,z) using wither Halofit or HMcode */
 
-    /** before the loop over tau, set the warning to false and the smallest index_tau at which nonlinear corrections still matter to 0.
-     *  When the loop reaches very early times (small index_tau) where nl corrections do not matter, print_warning will be activated
-     * and the index at which it was activated will be stored in pnl->index_tau_min_nl */
+    /** before the loop over tau, set the warning to false and the
+     *  smallest index_tau at which nonlinear corrections still matter
+     *  to 0.  When the loop reaches very early times (small
+     *  index_tau) where nl corrections do not matter,
+     *  nl_corr_not_computable_at_this_k flag will be set to TRUE and
+     *  the index at which it was activated will be stored in
+     *  pnl->index_tau_min_nl */
 
-    print_warning=_FALSE_;
+    nl_corr_not_computable_at_this_k = _FALSE_;
 
     pnl->index_tau_min_nl = 0;
 
@@ -705,9 +710,10 @@ int nonlinear_init(
              pnl->error_message,
              pnl->error_message);
 
-        /* get P_NL(k) at this time with Halofit */
-        if (pnl->method == nl_halofit) {
-          if (print_warning == _FALSE_) {
+        if (nl_corr_not_computable_at_this_k == _FALSE_) {
+
+          /* get P_NL(k) at this time with Halofit */
+          if (pnl->method == nl_halofit) {
 
             class_call(nonlinear_halofit(
                                          ppr,
@@ -723,62 +729,84 @@ int nonlinear_init(
                                          lnpk_l[index_pk],
                                          ddlnpk_l[index_pk],
                                          &(pnl->k_nl[index_pk][index_tau]),
-                                         &halofit_found_k_max),
+                                         &nl_corr_not_computable_at_this_k),
                        pnl->error_message,
                        pnl->error_message);
 
-            if (halofit_found_k_max == _TRUE_) {
+          }
 
-              // for debugging:
-              /*
-                for (index_k=0; index_k<pnl->k_size; index_k++) {
-                fprintf(stdout,"%e  %e  %e\n",pnl->k[index_k],pk_l[index_k],pk_nl[index_k]);
-                }
-                fprintf(stdout,"\n\n");
-              */
+          /* get P_NL(k) at this time with HMcode */
+          else if (pnl->method == nl_HMcode) {
 
-              for (index_k=0; index_k<pnl->k_size; index_k++) {
-                pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
-              }
+            if (index_pk == 0) {
+              class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk],pnw),
+                         pnl->error_message, pnl->error_message);
             }
-            else {
 
-              /* when Halofit found k_max is false, use 1 as the
-                 non-linear correction for this redshift/time, store the
-                 last index which worked, and print a warning. */
+            class_call(nonlinear_hmcode(ppr,
+                                        pba,
+                                        ppt,
+                                        ppm,
+                                        pnl,
+                                        index_pk,
+                                        index_tau,
+                                        pnl->tau[index_tau],
+                                        pk_l[index_pk],
+                                        pk_nl[index_pk],
+                                        lnk_l,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        &(pnl->k_nl[index_pk][index_tau]),
+                                        &nl_corr_not_computable_at_this_k,
+                                        pnw),
+                       pnl->error_message,
+                       pnl->error_message);
+          }
 
-              print_warning = _TRUE_;
-              pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
-              for (index_k=0; index_k<pnl->k_size; index_k++) {
-                pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
-              }
-              if (pnl->nonlinear_verbose > 0) {
-                class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-                class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
-                           pba->error_message,
-                           pnl->error_message);
-                a = pvecback[pba->index_bg_a];
-                z = pba->a_today/a-1.;
-                fprintf(stdout,
-                        " -> [WARNING:] Halofit non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for Halofit to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
-
-                free(pvecback);
-              }
+          if (nl_corr_not_computable_at_this_k == _FALSE_) {
+            for (index_k=0; index_k<pnl->k_size; index_k++) {
+              pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
             }
           }
           else {
 
-            /* if Halofit found k_max too small at a previous
-               time/redhsift, use 1 as the non-linear correction for all
-               higher redshifts/earlier times. */
+            /* when Halofit/HMcode found k_max is false, use 1 as the
+               non-linear correction for this redshift/time, store the
+               last index which worked, and print a warning. */
+
+            //nl_corr_not_computable_at_this_k = _TRUE_;
+            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
             }
+            if (pnl->nonlinear_verbose > 0) {
+              class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+              class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+                         pba->error_message,
+                         pnl->error_message);
+              a = pvecback[pba->index_bg_a];
+              z = pba->a_today/a-1.;
+              fprintf(stdout,
+                      " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
 
+              free(pvecback);
+            }
           }
-        } // end of Halofit part
+        }
+        else {
+
+          /* if Halofit/HMcode found k_max too small at a previous
+             time/redhsift, use 1 as the non-linear correction for all
+             higher redshifts/earlier times. */
+          for (index_k=0; index_k<pnl->k_size; index_k++) {
+            pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
+          }
+
+        }
+      }
 
         /* get P_NL(k) at this time with HMcode */
+      /*
         else if (pnl->method == nl_HMcode) {
           if (print_warning == _FALSE_) {
             if (index_pk == 0) {
@@ -807,22 +835,11 @@ int nonlinear_init(
 
             if (halofit_found_k_max == _TRUE_) {
 
-              // for debugging:
-              /*
-                for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
-                if (index_tau == pnl->tau_size-1) fprintf(stdout,"%e  %e  %e\n",pnl->k_extra[index_k],pk_l[index_k],pk_l_cb[index_k]);
-                }
-                if (index_tau == pnl->tau_size-1) fprintf(stdout,"\n\n");
-              */
-
               for (index_k=0; index_k<pnl->k_size; index_k++) {
                 pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/pk_l[index_pk][index_k]);
               }
             }
             else {
-              /* when halofit_found_k_max is false, use 1 as the
-                 non-linear correction for this redshift/time, store the
-                 last index which worked, and print a warning. */
               print_warning = _TRUE_;
               pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
               for (index_k=0; index_k<pnl->k_size; index_k++) {
@@ -843,17 +860,13 @@ int nonlinear_init(
             }
           }
           else {
-            /* if HMcode found k_max too small at a previous
-               time/redhsift, use 1 as the non-linear correction for all
-               higher redshifts/earlier times. */
-
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
             }
 
           }
         } // end of HMcode part
-
+      */
         // for debugging
         /*
           for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
@@ -864,7 +877,7 @@ int nonlinear_init(
           }
         */
 
-      } //end loop over index_pk
+        //} //end loop over index_pk
 
       // uncomment this to see the time spent at each tau
       //show the time spent for each tau:
@@ -1254,7 +1267,7 @@ int nonlinear_halofit(
                       double *lnpk_l,
                       double *ddlnpk_l,
                       double *k_nl,
-                      short * halofit_found_k_max
+                      short * nl_corr_not_computable_at_this_k
                       ) {
 
   double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
@@ -1476,13 +1489,13 @@ int nonlinear_halofit(
   */
 
   if (sigma < 1.) {
-    * halofit_found_k_max = _FALSE_;
+    * nl_corr_not_computable_at_this_k = _TRUE_;
     free(pvecback);
     free(integrand_array);
     return _SUCCESS_;
   }
   else {
-    * halofit_found_k_max = _TRUE_;
+    * nl_corr_not_computable_at_this_k = _FALSE_;
   }
 
   xlogr1 = log(R)/log(10.);
@@ -2476,7 +2489,7 @@ int nonlinear_hmcode(
                      double **lnpk_l,
                      double **ddlnpk_l,
                      double *k_nl,
-                     short * halofit_found_k_max,
+                     short * nl_corr_not_computable_at_this_k,
                      struct nonlinear_workspace * pnw
                      ) {
 
@@ -2665,7 +2678,7 @@ int nonlinear_hmcode(
   /* stop calculating the nonlinear correction if the nonlinear scale is not reached in the table: */
   if (nu_min > nu_nl) {
     if (pnl->nonlinear_verbose>0) fprintf(stdout, " -> [WARNING:] the minimum mass in the mass-table is too large to find the nonlinear scale at this redshift.\n   Decrease mmin_for_p1h_integral\n");
-    * halofit_found_k_max = _FALSE_;
+    * nl_corr_not_computable_at_this_k = _TRUE_;
     free(mass);
     free(r_real);
     free(r_virial);
@@ -2726,7 +2739,7 @@ int nonlinear_hmcode(
   *k_nl = 1./r_nl;
 
   if (*k_nl > pnl->k[pnl->k_size-1]) {
-    * halofit_found_k_max = _FALSE_;
+    * nl_corr_not_computable_at_this_k = _TRUE_;
     free(mass);
     free(r_real);
     free(r_virial);
@@ -2736,7 +2749,7 @@ int nonlinear_hmcode(
     return _SUCCESS_;
   }
   else {
-    * halofit_found_k_max = _TRUE_;
+    * nl_corr_not_computable_at_this_k = _FALSE_;
   }
 
   /* call sigma_prime function at r_nl to find the effective spectral index n_eff */
