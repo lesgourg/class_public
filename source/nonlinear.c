@@ -226,14 +226,10 @@ int nonlinear_init(
                    struct nonlinear *pnl
                    ) {
 
-  int index_md;
-  int index_ic1_ic2;
   int index_ncdm;
   int index_k;
   int index_tau;
   int index_tau_sources;
-  int size_extrapolated_source;
-
   int index_pk;
 
   double **pk_nl;
@@ -245,19 +241,9 @@ int nonlinear_init(
   double * pvecback;
   int last_index;
   double a,z;
-  double g_lcdm, g_wcdm;
-  double w0, dw_over_da_fld, integral_fld;
-  double k;
 
-  double tau_growth;
   struct nonlinear_workspace nw;
   struct nonlinear_workspace * pnw;
-  int ng;
-
-  double ** sources;
-
-  double k_max;
-  double exponent;
 
   /** - preliminary tests */
 
@@ -294,7 +280,6 @@ int nonlinear_init(
       }
     }
   }
-
 
   /** - define indices in nonlinear structure (and allocate some arrays in the structure) */
 
@@ -387,7 +372,7 @@ int nonlinear_init(
 	if ((pnl->nonlinear_verbose > 0) && (pnl->method == nl_HMcode))
       printf("Computing non-linear matter power spectrum with HMcode \n");
 
-    /* allocate temporary arrays for spectra at each given time/redshift */
+    /** --> allocate temporary arrays for spectra at each given time/redshift */
 
     class_alloc(pk_nl,
                 pnl->k_size*sizeof(double),
@@ -426,32 +411,29 @@ int nonlinear_init(
                  pnl->error_message);
     }
 
-    /** (d) Loop over time and for each time/redshift, compute P_NL(k,z) using wither Halofit or HMcode */
+    /** --> Loop over decreasing time/growing redhsift. For each
+            time/redshift, compute P_NL(k,z) using either Halofit or
+            HMcode */
 
-    /** before the loop over tau, set the warning to false and the
-     *  smallest index_tau at which nonlinear corrections still matter
-     *  to 0.  When the loop reaches very early times (small
-     *  index_tau) where nl corrections do not matter,
-     *  nl_corr_not_computable_at_this_k flag will be set to TRUE and
-     *  the index at which it was activated will be stored in
-     *  pnl->index_tau_min_nl */
-
+    /* this flag will become _TRUE_ at the minimum redshift such that
+       the non-lienar corrections cannot be consistently computed */
     nl_corr_not_computable_at_this_k = _FALSE_;
 
+    /* this index will refer to the value of time corresponding to
+       that redhsift */
     pnl->index_tau_min_nl = 0;
-
-    /** - loop over time */
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
-      /** loop over index_pk, defined such that it is ensured
+      /* loop over index_pk, defined such that it is ensured
        * that index_pk starts at index_pk_cb when neutrinos are
        * included. This is necessary for hmcode, since the sigmatable
-       * needs to be filled for sigma_cb only.  Thus, when HMcode
+       * needs to be filled for sigma_cb only. Thus, when HMcode
        * evalutes P_m_nl, it needs both P_m_l and P_cb_l. */
 
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
 
+        /* get P_L(k) at this time */
         class_call(nonlinear_pk_linear(
                                        pba,
                                        ppt,
@@ -466,6 +448,7 @@ int nonlinear_init(
                    pnl->error_message,
                    pnl->error_message);
 
+        /* spline P_L(k) at this time along k */
         class_call(array_spline_table_columns(
                                               pnl->ln_k,
                                               pnl->k_size_extra,
@@ -477,6 +460,7 @@ int nonlinear_init(
                    pnl->error_message,
                    pnl->error_message);
 
+        /* if we are still in a range of time where P_NL(k) should be computable */
         if (nl_corr_not_computable_at_this_k == _FALSE_) {
 
           /* get P_NL(k) at this time with Halofit */
@@ -503,10 +487,17 @@ int nonlinear_init(
           /* get P_NL(k) at this time with HMcode */
           else if (pnl->method == nl_HMcode) {
 
+            /* (preliminary step: fill table of sigma's, only for _cb if there is both _cb and _m) */
             if (index_pk == 0) {
-              class_call(nonlinear_hmcode_fill_sigtab(ppr,pba,ppt,ppm,pnl,index_tau,
-                                                      //pnl->ln_k,
-                                                      lnpk_l[index_pk],ddlnpk_l[index_pk],pnw),
+              class_call(nonlinear_hmcode_fill_sigtab(ppr,
+                                                      pba,
+                                                      ppt,
+                                                      ppm,
+                                                      pnl,
+                                                      index_tau,
+                                                      lnpk_l[index_pk],
+                                                      ddlnpk_l[index_pk],
+                                                      pnw),
                          pnl->error_message, pnl->error_message);
             }
 
@@ -528,21 +519,25 @@ int nonlinear_init(
                        pnl->error_message);
           }
 
+          /* infer and store R_NL=(P_NL/P_L)^1/2 */
           if (nl_corr_not_computable_at_this_k == _FALSE_) {
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = sqrt(pk_nl[index_pk][index_k]/exp(lnpk_l[index_pk][index_k]));
             }
           }
+
+          /* otherwise we met the first problematic value of time */
           else {
 
-            /* when Halofit/HMcode found k_max is false, use 1 as the
-               non-linear correction for this redshift/time, store the
-               last index which worked, and print a warning. */
+            /* store the index of that value */
+            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures that index_tau_min_nl is never out of bounds
 
-            pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
+            /* store R_NL=1 for that time */
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
             }
+
+            /* send a warning to inform user about the corresponding value of redshift */
             if (pnl->nonlinear_verbose > 0) {
               class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
               class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
@@ -557,11 +552,10 @@ int nonlinear_init(
             }
           }
         }
-        else {
 
-          /* if Halofit/HMcode found k_max too small at a previous
-             time/redhsift, use 1 as the non-linear correction for all
-             higher redshifts/earlier times. */
+        /* if we are still in a range of time where P_NL(k) should NOT be computable */
+        else {
+          /* store R_NL=1 for that time */
           for (index_k=0; index_k<pnl->k_size; index_k++) {
             pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
           }
@@ -569,6 +563,8 @@ int nonlinear_init(
         }
       }
     } //end loop over index_tau
+
+    /* --> free temporary arrays */
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
       free(pk_nl[index_pk]);
@@ -580,7 +576,7 @@ int nonlinear_init(
     free(lnpk_l);
     free(ddlnpk_l);
 
-    /** - free the nonlinear workspace */
+    /** --> free the nonlinear workspace */
 
     if (pnl->method == nl_HMcode) {
 
@@ -590,6 +586,7 @@ int nonlinear_init(
     }
   }
 
+  /** - if the nl_method could not be identified */
   else {
     class_stop(pnl->error_message,
                "Your non-linear method variable is set to %d, out of the range defined in nonlinear.h",pnl->method);
@@ -793,7 +790,8 @@ int nonlinear_get_k_list(
                            struct nonlinear * pnl
                          ) {
 
-  double k,k_max,exponent;
+  double k=0;
+  double k_max,exponent;
   int index_md;
   int index_k;
 
@@ -876,6 +874,7 @@ int nonlinear_get_tau_list(
       pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
     }
   }
+  return _SUCCESS_;
 }
 
 /**
