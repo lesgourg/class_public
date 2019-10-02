@@ -243,7 +243,6 @@ extern "C" {
                           struct perturbs *ppt,
                           struct primordial *ppm,
                           struct nonlinear *pnl,
-                          double ** sources,
                           int k_size,
                           int index_tau,
                           double *ln_pk_m_ic_l,
