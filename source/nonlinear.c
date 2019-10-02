@@ -362,6 +362,7 @@ int nonlinear_init(
 
   /** allocate array of linear power spectrum values */
 
+  // will disappear:
   if (pnl->has_pk_m == _TRUE_) {
 
     class_alloc(pnl->ln_pk_m_ic_l,
@@ -373,6 +374,7 @@ int nonlinear_init(
                 pnl->error_message);
   }
 
+  // will disappear:
   if (pnl->has_pk_cb == _TRUE_) {
 
     class_alloc(pnl->ln_pk_cb_ic_l,
@@ -382,6 +384,29 @@ int nonlinear_init(
     class_alloc(pnl->ln_pk_cb_l,
                 sizeof(double)*pnl->ln_tau_size*pnl->k_size,
                 pnl->error_message);
+  }
+
+  // will stay:
+  class_alloc(pnl->ln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
+  class_alloc(pnl->ln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+    class_alloc(pnl->ln_pk_ic_l[index_pk],pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size*sizeof(double*),pnl->error_message);
+    class_alloc(pnl->ln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
+  }
+
+  /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
+     compute array of second derivatives in view of spline interpolation */
+
+  if (pnl->ln_tau_size > 1) {
+
+    class_alloc(pnl->ddln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
+    class_alloc(pnl->ddln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
+
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+      class_alloc(pnl->ddln_pk_ic_l[index_pk],pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size*sizeof(double*),pnl->error_message);
+      class_alloc(pnl->ddln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
+    }
   }
 
   /** get the linear power spectrum at each time */
@@ -1086,6 +1111,8 @@ int nonlinear_free(
     free(pnl->k);
     free(pnl->ln_k);
     free(pnl->ln_tau);
+
+    // will disappear:
     free(pnl->ln_pk_m_ic_l);
     free(pnl->ln_pk_m_l);
     if (pnl->tau_size>1) {
@@ -1099,6 +1126,21 @@ int nonlinear_free(
         free(pnl->ddln_pk_cb_ic_l);
         free(pnl->ddln_pk_cb_l);
       }
+    }
+    // will stay:
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+      free(pnl->ln_pk_ic_l[index_pk]);
+      free(pnl->ln_pk_l[index_pk]);
+      if (pnl->ln_tau_size>1) {
+        free(pnl->ddln_pk_ic_l[index_pk]);
+        free(pnl->ddln_pk_l[index_pk]);
+      }
+    }
+    free(pnl->ln_pk_ic_l);
+    free(pnl->ln_pk_l);
+    if (pnl->ln_tau_size>1) {
+      free(pnl->ddln_pk_ic_l);
+      free(pnl->ddln_pk_l);
     }
   }
 
