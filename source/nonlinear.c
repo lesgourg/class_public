@@ -202,7 +202,69 @@ int nonlinear_pk_linear_at_z(
   return _SUCCESS_;
 }
 
+int nonlinear_pk_linear_at_z_bis(
+                                 struct background * pba,
+                                 struct nonlinear *pnl,
+                                 double z,
+                                 int index_pk,
+                                 double * ln_pk_l,
+                                 double * ln_pk_ic_l
+                                 ) {
+  double tau;
+  double ln_tau;
+  int index_k;
+  int index_ic1_ic2;
+  int last_index;
 
+  if (z == 0) {
+    for (index_k=0; index_k<pnl->k_size; index_k++) {
+
+      ln_pk_l[index_pk][index_k] = pnl->ln_pk_l[pnl->index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+
+      for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+        ln_pk_ic_l[index_pk][index_k * pnl->ic_ic_size + index_ic1_ic2] =
+          pnl->ln_pk_ic_l[pnl->index_pk][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
+      }
+    }
+  }
+  else {
+    class_call(background_tau_of_z(pba,
+                                   z,
+                                   &tau),
+               pba->error_message,
+               pnl->error_message);
+
+    ln_tau = log(tau);
+    last_index = pnl->ln_tau_size-1;
+
+    class_call(array_interpolate_spline(pnl->ln_tau,
+                                        pnl->ln_tau_size,
+                                        pnl->ln_pk_l[pnl->index_pk],
+                                        pnl->ddln_pk_l[pnl->index_pk],
+                                        pnl->k_size,
+                                        ln_tau,
+                                        &last_index,
+                                        ln_pk_l[index_pk],
+                                        pnl->k_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    class_call(array_interpolate_spline(pnl->ln_tau,
+                                        pnl->ln_tau_size,
+                                        pnl->ln_pk_ic_l[pnl->index_pk],
+                                        pnl->ddln_pk_ic_l[pnl->index_pk],
+                                        pnl->k_size*pnl->ic_ic_size,
+                                        ln_tau,
+                                        &last_index,
+                                        ln_pk_ic_l[index_pk],
+                                        pnl->k_size*pnl->ic_ic_size,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  return _SUCCESS_;
+}
 
 /**
  * Initialize the nonlinear structure, and in particular the
