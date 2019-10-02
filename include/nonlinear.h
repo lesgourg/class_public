@@ -307,12 +307,28 @@ extern "C" {
                        struct nonlinear_workspace * pnw
                        );
 
-  int nonlinear_hmcode_init(
-                            struct precision *ppr,
-                            struct background *pba,
-                            struct nonlinear *pnl,
-                            struct nonlinear_workspace * pnw
-                            );
+  int nonlinear_hmcode_workspace_init(
+                                      struct precision *ppr,
+                                      struct background *pba,
+                                      struct nonlinear *pnl,
+                                      struct nonlinear_workspace * pnw
+                                      );
+
+  int nonlinear_hmcode_workspace_free(
+                                      struct nonlinear *pnl,
+                                      struct nonlinear_workspace * pnw
+                                      );
+
+  int nonlinear_hmcode_dark_energy_correction(
+                                              struct precision *ppr,
+                                              struct background *pba,
+                                              struct nonlinear *pnl,
+                                              struct nonlinear_workspace * pnw
+                                              );
+
+  int nonlinear_hmcode_baryonic_feedback(
+                                         struct nonlinear *pnl
+                                         );
 
   int nonlinear_hmcode_sigma(
                              struct precision * ppr,

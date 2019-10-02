@@ -413,7 +413,15 @@ int nonlinear_init(
 
       pnw = &nw;
 
-      class_call(nonlinear_hmcode_init(ppr,pba,pnl,pnw),
+      class_call(nonlinear_hmcode_workspace_init(ppr,pba,pnl,pnw),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      class_call(nonlinear_hmcode_dark_energy_correction(ppr,pba,pnl,pnw),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      class_call(nonlinear_hmcode_baryonic_feedback(pnl),
                  pnl->error_message,
                  pnl->error_message);
     }
@@ -572,30 +580,13 @@ int nonlinear_init(
     free(lnpk_l);
     free(ddlnpk_l);
 
-    /** free the nonlinear workspace */
+    /** - free the nonlinear workspace */
 
     if (pnl->method == nl_HMcode) {
 
-      free(pnw->rtab);
-      free(pnw->stab);
-      free(pnw->ddstab);
-
-      free(pnw->growtable);
-      free(pnw->ztable);
-      free(pnw->tautable);
-
-      for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-        free(pnw->sigma_8[index_pk]);
-        free(pnw->sigma_disp[index_pk]);
-        free(pnw->sigma_disp_100[index_pk]);
-        free(pnw->sigma_prime[index_pk]);
-      }
-
-      free(pnw->sigma_8);
-      free(pnw->sigma_disp);
-      free(pnw->sigma_disp_100);
-      free(pnw->sigma_prime);
-
+      class_call(nonlinear_hmcode_workspace_free(pnl,pnw),
+                 pnl->error_message,
+                 pnl->error_message);
     }
   }
 
@@ -1619,22 +1610,27 @@ int nonlinear_halofit_integrate(
   return _SUCCESS_;
 }
 
-int nonlinear_hmcode_init(
-                          struct precision *ppr,
-                          struct background *pba,
-                          struct nonlinear *pnl,
-                          struct nonlinear_workspace * pnw
-                          ){
+/**
+ * allocate and fill arrays of nonlinear workspace (currently used only by HMcode)
+ *
+ * @param ppr         Input: pointer to precision structure
+ * @param pba         Input: pointer to background structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pnl         Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_workspace_init(
+                                    struct precision *ppr,
+                                    struct background *pba,
+                                    struct nonlinear *pnl,
+                                    struct nonlinear_workspace * pnw
+                                    ){
 
   int ng;
   int index_pk;
-  int last_index;
-  double * pvecback;
-  double tau_growth;
-  double g_lcdm,g_wcdm;
-  double w0,dw_over_da_fld,integral_fld;
 
-  /** Allocate arrays of the nonlinear workspace */
+  /** - allocate arrays of the nonlinear workspace */
 
   class_alloc(pnw->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
   class_alloc(pnw->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
@@ -1658,17 +1654,81 @@ int nonlinear_hmcode_init(
         class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
   }
 
-  /** if fill table with scale independent growth factor */
+  /** - fill table with scale independent growth factor */
 
   class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl,pnw),
              pnl->error_message,
              pnl->error_message);
 
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+  return _SUCCESS_;
+}
 
-  /** calculate the Dark Energy correction: */
+/**
+ * deallocate arrays in the nonlinear worksapce (currently used only
+ * by HMcode)
+ *
+ * @param pnl Input: pointer to nonlinear structure
+ * @param pnl Input: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_workspace_free(
+                                    struct nonlinear *pnl,
+                                    struct nonlinear_workspace * pnw
+                                    ) {
+  int index_pk;
+
+  free(pnw->rtab);
+  free(pnw->stab);
+  free(pnw->ddstab);
+
+  free(pnw->growtable);
+  free(pnw->ztable);
+  free(pnw->tautable);
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+    free(pnw->sigma_8[index_pk]);
+    free(pnw->sigma_disp[index_pk]);
+    free(pnw->sigma_disp_100[index_pk]);
+    free(pnw->sigma_prime[index_pk]);
+  }
+
+  free(pnw->sigma_8);
+  free(pnw->sigma_disp);
+  free(pnw->sigma_disp_100);
+  free(pnw->sigma_prime);
+
+  return _SUCCESS_;
+}
+
+/**
+ * set the HMcode dark energy correction (if w is not -1)
+ *
+ * @param ppr         Input: pointer to precision structure
+ * @param pba         Input: pointer to background structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pnl         Output: pointer to nonlinear workspace
+ * @return the error status
+ */
+
+int nonlinear_hmcode_dark_energy_correction(
+                                            struct precision *ppr,
+                                            struct background *pba,
+                                            struct nonlinear *pnl,
+                                            struct nonlinear_workspace * pnw
+                                            ) {
+
+  int last_index;
+  double * pvecback;
+  double tau_growth;
+  double g_lcdm,g_wcdm;
+  double w0,dw_over_da_fld,integral_fld;
+
+  /** - if there is dynamical Dark Energy (w is not -1) modeled as a fluid */
 
   if (pba->has_fld==_TRUE_){
+
+    class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
     class_call(background_tau_of_z(
                                    pba,
@@ -1693,16 +1753,33 @@ int nonlinear_hmcode_init(
                pnl->error_message,
                pnl->error_message);
 
+    free(pvecback);
+
     pnw->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
   }
+
+  /** - otherwise, we assume no dynamical Dark Energy (w is -1) */
+
   else {
     pnw->dark_energy_correction = 1.;
   }
-  free(pvecback);
 
-  /** if HMcode, Set the baryonic feedback parameters according to the chosen feedback models */
+  return _SUCCESS_;
+}
+
+/**
+ * set the HMcode baryonic feedback parameters according to the chosen feedback model
+ *
+ * @param pnl   Output: pointer to nonlinear structure
+ * @return the error status
+ */
+
+int nonlinear_hmcode_baryonic_feedback(
+                                       struct nonlinear *pnl
+                                       ) {
 
   switch (pnl->feedback) {
+
   case nl_emu_dmonly:
     {
       pnl->eta_0 = 0.603;
@@ -1744,11 +1821,12 @@ int nonlinear_hmcode_init(
       break;
     }
   }
-
   return _SUCCESS_;
 }
 
-/** Calculates the sigma integral for a given scale R
+/**
+ * Calculates the sigma integral for a given scale R
+ *
  * @param ppr Input: pointer to precision structure
  * @param pba Input: pointer to background structure
  * @param pba Input: pointer to perturbation structure
