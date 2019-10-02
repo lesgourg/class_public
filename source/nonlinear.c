@@ -270,7 +270,7 @@ int nonlinear_init(
     return _SUCCESS_;
   }
 
-  /** -> Nothing to be done if we don't want the matter power spectrum */
+  /** --> Nothing to be done if we don't want the matter power spectrum */
 
   pnl->has_pk_matter = ppt->has_pk_matter;
 
@@ -284,7 +284,7 @@ int nonlinear_init(
       printf("Computing linear Fourier spectra.\n");
   }
 
-  /** -> check applicability of Halofit and HMcode */
+  /** --> check applicability of Halofit and HMcode */
   if (pnl->method > nl_none) {
 
     if (pba->has_ncdm) {
@@ -302,7 +302,7 @@ int nonlinear_init(
              pnl->error_message,
              pnl->error_message);
 
-  /** -> get the linear power spectrum at each time */
+  /** - get the linear power spectrum at each time */
 
   for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
 
@@ -369,18 +369,17 @@ int nonlinear_init(
     }
   }
 
-  /** -> get the non-linear power spectrum at each time */
+  /** - get the non-linear power spectrum at each time */
 
-  /** (a) First deal with the case where non non-linear corrections requested */
+  /** --> First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
     if (pnl->nonlinear_verbose > 0)
       printf("No non-linear spectra requested. Nonlinear calculations skipped.\n");
   }
 
+  /** --> Then go through common preliminary steps to the HALOFIT and HMcode methods */
   else if ((pnl->method == nl_halofit) || ((pnl->method == nl_HMcode))) {
-
-    /** (b) Then go through common steps to the HALOFIT and HMcode methods to compute the non-linear spectrum */
 
     if ((pnl->nonlinear_verbose > 0) && (pnl->method == nl_halofit))
       printf("Computing non-linear matter power spectrum with Halofit (including update Takahashi et al. 2012 and Bird 2014)\n");
@@ -388,7 +387,7 @@ int nonlinear_init(
 	if ((pnl->nonlinear_verbose > 0) && (pnl->method == nl_HMcode))
       printf("Computing non-linear matter power spectrum with HMcode \n");
 
-    /* temporary arrays for spectra at one given time/redshift */
+    /* allocate temporary arrays for spectra at each given time/redshift */
 
     class_alloc(pk_nl,
                 pnl->k_size*sizeof(double),
@@ -408,125 +407,16 @@ int nonlinear_init(
       class_alloc(ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
     }
 
-    ////// hmcode_init
-    /** (c) Then go through specific steps for HMcode */
+    /** --> Then go through preliminary steps specific to HMcode */
 
     if (pnl->method == nl_HMcode){
 
-      /** Allocate arrays of the nonlinear workspace */
-
       pnw = &nw;
 
-      class_alloc(pnw->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
-      class_alloc(pnw->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
-      class_alloc(pnw->ddstab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
-
-      ng = ppr->n_hmcode_tables;
-
-      class_alloc(pnw->growtable,ng*sizeof(double),pnl->error_message);
-      class_alloc(pnw->ztable,ng*sizeof(double),pnl->error_message);
-      class_alloc(pnw->tautable,ng*sizeof(double),pnl->error_message);
-
-      class_alloc(pnw->sigma_8,pnl->pk_size*sizeof(double *),pnl->error_message);
-      class_alloc(pnw->sigma_disp,pnl->pk_size*sizeof(double *),pnl->error_message);
-      class_alloc(pnw->sigma_disp_100,pnl->pk_size*sizeof(double *),pnl->error_message);
-      class_alloc(pnw->sigma_prime,pnl->pk_size*sizeof(double *),pnl->error_message);
-
-      for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-        class_alloc(pnw->sigma_8[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-        class_alloc(pnw->sigma_disp[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-        class_alloc(pnw->sigma_disp_100[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-        class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-      }
-
-      /** if fill table with scale independent growth factor */
-
-      class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl,pnw),
+      class_call(nonlinear_hmcode_init(ppr,pba,pnl,pnw),
                  pnl->error_message,
                  pnl->error_message);
-
-      class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-
-      /** calculate the Dark Energy correction: */
-
-      if (pba->has_fld==_TRUE_){
-
-        class_call(background_tau_of_z(
-                                       pba,
-                                       pnl->z_infinity,
-                                       &tau_growth
-                                       ),
-                   pba->error_message,
-                   pnl->error_message);
-
-        class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
-                   pba->error_message,
-                   pnl->error_message);
-
-        class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld),
-                   pba->error_message,
-                   pnl->error_message);
-
-        class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
-                   pnl->error_message, pnl->error_message);
-
-        class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1.),&g_wcdm),
-                   pnl->error_message,
-                   pnl->error_message);
-
-        pnw->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
-      }
-      else {
-        pnw->dark_energy_correction = 1.;
-      }
-      free(pvecback);
-
-      /** if HMcode, Set the baryonic feedback parameters according to the chosen feedback models */
-
-      switch (pnl->feedback) {
-      case nl_emu_dmonly:
-        {
-          pnl->eta_0 = 0.603;
-          pnl->c_min = 3.13;
-          break;
-        }
-
-      case nl_owls_dmonly:
-        {
-          pnl->eta_0 = 0.64;
-          pnl->c_min = 3.43;
-          break;
-        }
-
-      case nl_owls_ref:
-        {
-          pnl->eta_0 = 0.68;
-          pnl->c_min = 3.91;
-          break;
-        }
-
-      case nl_owls_agn:
-        {
-          pnl->eta_0 = 0.76;
-          pnl->c_min = 2.32;
-          break;
-        }
-
-      case nl_owls_dblim:
-        {
-          pnl->eta_0 = 0.70;
-          pnl->c_min = 3.01;
-          break;
-        }
-
-      case nl_user_defined:
-        {
-          /* eta_0 and c_min already passed in input */
-          break;
-        }
-      }
     }
-    //// end hmcode_init
 
     /** (d) Loop over time and for each time/redshift, compute P_NL(k,z) using wither Halofit or HMcode */
 
@@ -1725,6 +1615,135 @@ int nonlinear_halofit_integrate(
                                         pnl->error_message),
              pnl->error_message,
              pnl->error_message);
+
+  return _SUCCESS_;
+}
+
+int nonlinear_hmcode_init(
+                          struct precision *ppr,
+                          struct background *pba,
+                          struct nonlinear *pnl,
+                          struct nonlinear_workspace * pnw
+                          ){
+
+  int ng;
+  int index_pk;
+  int last_index;
+  double * pvecback;
+  double tau_growth;
+  double g_lcdm,g_wcdm;
+  double w0,dw_over_da_fld,integral_fld;
+
+  /** Allocate arrays of the nonlinear workspace */
+
+  class_alloc(pnw->rtab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
+  class_alloc(pnw->stab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
+  class_alloc(pnw->ddstab,ppr->n_hmcode_tables*sizeof(double),pnl->error_message);
+
+  ng = ppr->n_hmcode_tables;
+
+  class_alloc(pnw->growtable,ng*sizeof(double),pnl->error_message);
+  class_alloc(pnw->ztable,ng*sizeof(double),pnl->error_message);
+  class_alloc(pnw->tautable,ng*sizeof(double),pnl->error_message);
+
+  class_alloc(pnw->sigma_8,pnl->pk_size*sizeof(double *),pnl->error_message);
+  class_alloc(pnw->sigma_disp,pnl->pk_size*sizeof(double *),pnl->error_message);
+  class_alloc(pnw->sigma_disp_100,pnl->pk_size*sizeof(double *),pnl->error_message);
+  class_alloc(pnw->sigma_prime,pnl->pk_size*sizeof(double *),pnl->error_message);
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+    class_alloc(pnw->sigma_8[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+    class_alloc(pnw->sigma_disp[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnw->sigma_disp_100[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+        class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+  }
+
+  /** if fill table with scale independent growth factor */
+
+  class_call(nonlinear_hmcode_fill_growtab(ppr,pba,pnl,pnw),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+
+  /** calculate the Dark Energy correction: */
+
+  if (pba->has_fld==_TRUE_){
+
+    class_call(background_tau_of_z(
+                                   pba,
+                                   pnl->z_infinity,
+                                   &tau_growth
+                                   ),
+               pba->error_message,
+               pnl->error_message);
+
+    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
+               pba->error_message,
+               pnl->error_message);
+
+    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld),
+               pba->error_message,
+               pnl->error_message);
+
+    class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),-1.,0.,&g_lcdm),
+               pnl->error_message, pnl->error_message);
+
+    class_call(nonlinear_hmcode_growint(ppr,pba,pnl,1./(1.+pnl->z_infinity),w0,dw_over_da_fld*(-1.),&g_wcdm),
+               pnl->error_message,
+               pnl->error_message);
+
+    pnw->dark_energy_correction = pow(g_wcdm/g_lcdm, 1.5);
+  }
+  else {
+    pnw->dark_energy_correction = 1.;
+  }
+  free(pvecback);
+
+  /** if HMcode, Set the baryonic feedback parameters according to the chosen feedback models */
+
+  switch (pnl->feedback) {
+  case nl_emu_dmonly:
+    {
+      pnl->eta_0 = 0.603;
+      pnl->c_min = 3.13;
+      break;
+    }
+
+  case nl_owls_dmonly:
+    {
+      pnl->eta_0 = 0.64;
+      pnl->c_min = 3.43;
+      break;
+    }
+
+  case nl_owls_ref:
+    {
+      pnl->eta_0 = 0.68;
+      pnl->c_min = 3.91;
+      break;
+    }
+
+  case nl_owls_agn:
+    {
+      pnl->eta_0 = 0.76;
+      pnl->c_min = 2.32;
+      break;
+    }
+
+  case nl_owls_dblim:
+    {
+      pnl->eta_0 = 0.70;
+      pnl->c_min = 3.01;
+      break;
+    }
+
+  case nl_user_defined:
+    {
+      /* eta_0 and c_min already passed in input */
+      break;
+    }
+  }
 
   return _SUCCESS_;
 }
