@@ -806,13 +806,11 @@ int nonlinear_indices(
 
   int index_ic1_ic2;
   int index_pk;
-  double k,k_max,exponent;
   int index_md;
-  int index_k;
-  int index_tau;
 
   /** - define indices for initial conditions (and allocate related arrays) */
 
+  index_md = ppt->index_md_scalars;
   pnl->ic_size = ppm->ic_size[index_md];
   pnl->ic_ic_size = ppm->ic_ic_size[index_md];
   class_alloc(pnl->is_non_zero,sizeof(short)*pnl->ic_ic_size,pnl->error_message);
@@ -838,67 +836,17 @@ int nonlinear_indices(
   class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
   pnl->pk_size = index_pk;
 
-  /** - copy list of k from perturbation module, and extended it if necessary to larger k for extrapolation */
+  /** - get list of k values */
 
-  index_md = ppt->index_md_scalars;
-  pnl->k_size = ppt->k_size[index_md];
-  k_max = ppt->k[index_md][pnl->k_size-1];
+  class_call(nonlinear_get_k_list(ppr,ppt,pnl),
+             pnl->error_message,
+             pnl->error_message);
 
-  if (pnl->method == nl_HMcode){
-    index_k=0;
-    while(k < ppr->hmcode_max_k_extra && index_k < _MAX_NUM_EXTRAPOLATION_){
-      index_k++;
-      k = k_max * pow(10,(double)index_k/ppr->k_per_decade_for_pk);
-    }
-    class_test(index_k == _MAX_NUM_EXTRAPOLATION_,
-               pnl->error_message,
-               "could not reach extrapolated value k = %.10e starting from k = %.10e with k_per_decade of %.10e in _MAX_NUM_INTERPOLATION_=%i steps",
-               ppr->hmcode_max_k_extra,k_max,ppr->k_per_decade_for_pk,_MAX_NUM_EXTRAPOLATION_
-               );
-    pnl->k_size_extra = pnl->k_size+index_k;
-  }
-  else {
-    pnl->k_size_extra = pnl->k_size;
-  }
+  /** - get list of tau values */
 
-  /* allocate array of k */
-  class_alloc(pnl->k,   pnl->k_size_extra*sizeof(double),pnl->error_message);
-  class_alloc(pnl->ln_k,pnl->k_size_extra*sizeof(double),pnl->error_message);
-
-  /* fill array of k */
-  for (index_k=0; index_k<pnl->k_size; index_k++) {
-    k = ppt->k[index_md][index_k];
-    pnl->k[index_k] = k;
-    pnl->ln_k[index_k] = log(k);
-  }
-  for (index_k=pnl->k_size; index_k<pnl->k_size_extra; index_k++) {
-    exponent = (double)(index_k-(pnl->k_size-1))/ppr->k_per_decade_for_pk;
-    pnl->k[index_k] = k * pow(10,exponent);
-    pnl->ln_k[index_k] = log(k) + exponent*log(10.);
-  }
-
-  /** - copy list of tau from perturbation module (it already takes into account the upper limit in z_max_pk) */
-
-  /** -> for linear calculations: only late times are considered */
-  pnl->ln_tau_size = ppt->ln_tau_size;
-
-  if (ppt->ln_tau_size > 1) {
-    class_alloc(pnl->ln_tau,pnl->ln_tau_size*sizeof(double),pnl->error_message);
-    for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
-      pnl->ln_tau[index_tau] = ppt->ln_tau[index_tau];
-    }
-  }
-
-  /** -> for non-linear calculations: we wills store a correction factor for all times */
-  if (pnl->method > nl_none) {
-
-    pnl->tau_size = ppt->tau_size;
-
-    class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
-    for (index_tau=0; index_tau<pnl->tau_size; index_tau++) {
-      pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
-    }
-  }
+  class_call(nonlinear_get_tau_list(ppt,pnl),
+             pnl->error_message,
+             pnl->error_message);
 
   /** - given previous indices, we can allocate the array of linear power spectrum values */
 
@@ -947,8 +895,107 @@ int nonlinear_indices(
   return _SUCCESS_;
 }
 
+/**
+ * Copy list of k from perturbation module, and extended it if
+ * necessary to larger k for extrapolation (currently this
+ * extrapolation is required only by HMcode)
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param pnl Input/Output: pointer to nonlinear structure
+ * @return the error status
+*/
 
+int nonlinear_get_k_list(
+                           struct precision *ppr,
+                           struct perturbs * ppt,
+                           struct nonlinear * pnl
+                         ) {
 
+  double k,k_max,exponent;
+  int index_md;
+  int index_k;
+
+  index_md = ppt->index_md_scalars;
+  pnl->k_size = ppt->k_size[index_md];
+  k_max = ppt->k[index_md][pnl->k_size-1];
+
+  /** - if k extrapolation necessary, compute number of required extra values */
+  if (pnl->method == nl_HMcode){
+    index_k=0;
+    while(k < ppr->hmcode_max_k_extra && index_k < _MAX_NUM_EXTRAPOLATION_){
+      index_k++;
+      k = k_max * pow(10,(double)index_k/ppr->k_per_decade_for_pk);
+    }
+    class_test(index_k == _MAX_NUM_EXTRAPOLATION_,
+               pnl->error_message,
+               "could not reach extrapolated value k = %.10e starting from k = %.10e with k_per_decade of %.10e in _MAX_NUM_INTERPOLATION_=%i steps",
+               ppr->hmcode_max_k_extra,k_max,ppr->k_per_decade_for_pk,_MAX_NUM_EXTRAPOLATION_
+               );
+    pnl->k_size_extra = pnl->k_size+index_k;
+  }
+  /** - otherwise, same number of values as in perturbation module */
+  else {
+    pnl->k_size_extra = pnl->k_size;
+  }
+
+  /** - allocate array of k */
+  class_alloc(pnl->k,   pnl->k_size_extra*sizeof(double),pnl->error_message);
+  class_alloc(pnl->ln_k,pnl->k_size_extra*sizeof(double),pnl->error_message);
+
+  /** - fill array of k (not extrapolated) */
+  for (index_k=0; index_k<pnl->k_size; index_k++) {
+    k = ppt->k[index_md][index_k];
+    pnl->k[index_k] = k;
+    pnl->ln_k[index_k] = log(k);
+  }
+
+  /** - fill additional values of k (extrapolated) */
+  for (index_k=pnl->k_size; index_k<pnl->k_size_extra; index_k++) {
+    exponent = (double)(index_k-(pnl->k_size-1))/ppr->k_per_decade_for_pk;
+    pnl->k[index_k] = k * pow(10,exponent);
+    pnl->ln_k[index_k] = log(k) + exponent*log(10.);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * Copy list of tau from perturbation module
+ *
+ * @param ppt Input: pointer to perturbation structure
+ * @param pnl Input/Output: pointer to nonlinear structure
+ * @return the error status
+*/
+
+int nonlinear_get_tau_list(
+                           struct perturbs * ppt,
+                           struct nonlinear * pnl
+                           ) {
+
+  int index_tau;
+
+  /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
+  pnl->ln_tau_size = ppt->ln_tau_size;
+
+  if (ppt->ln_tau_size > 1) {
+    class_alloc(pnl->ln_tau,pnl->ln_tau_size*sizeof(double),pnl->error_message);
+    for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
+      pnl->ln_tau[index_tau] = ppt->ln_tau[index_tau];
+    }
+  }
+
+  /** -> for non-linear calculations: we wills store a correction factor for all times */
+  if (pnl->method > nl_none) {
+
+    pnl->tau_size = ppt->tau_size;
+
+    class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+    for (index_tau=0; index_tau<pnl->tau_size; index_tau++) {
+      pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
+    }
+  }
+}
 
 /**
  * This routine computes all the components of the matter power

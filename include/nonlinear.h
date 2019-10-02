@@ -238,6 +238,17 @@ extern "C" {
                         struct nonlinear * pnl
                         );
 
+  int nonlinear_get_k_list(
+                           struct precision *ppr,
+                           struct perturbs * ppt,
+                           struct nonlinear * pnl
+                           );
+
+  int nonlinear_get_tau_list(
+                             struct perturbs * ppt,
+                             struct nonlinear * pnl
+                             );
+
   int nonlinear_pk_linear(
                           struct background *pba,
                           struct perturbs *ppt,
