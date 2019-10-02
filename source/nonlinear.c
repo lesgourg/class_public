@@ -257,10 +257,6 @@ int nonlinear_init(
   int ng;
 
   double ** sources;
-  double * ln_pk_m_ic_l_at_tau;
-  double * ln_pk_m_l_at_tau;
-  double * ln_pk_cb_ic_l_at_tau;
-  double * ln_pk_cb_l_at_tau;
 
   double k_max;
   double exponent;
@@ -367,31 +363,6 @@ int nonlinear_init(
 
   /** allocate array of linear power spectrum values */
 
-  // will disappear:
-  if (pnl->has_pk_m == _TRUE_) {
-
-    class_alloc(pnl->ln_pk_m_ic_l,
-                sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
-                pnl->error_message);
-
-    class_alloc(pnl->ln_pk_m_l,
-                sizeof(double)*pnl->ln_tau_size*pnl->k_size,
-                pnl->error_message);
-  }
-
-  // will disappear:
-  if (pnl->has_pk_cb == _TRUE_) {
-
-    class_alloc(pnl->ln_pk_cb_ic_l,
-                sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
-                pnl->error_message);
-
-    class_alloc(pnl->ln_pk_cb_l,
-                sizeof(double)*pnl->ln_tau_size*pnl->k_size,
-                pnl->error_message);
-  }
-
-  // will stay:
   class_alloc(pnl->ln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
   class_alloc(pnl->ln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
 
@@ -431,22 +402,6 @@ int nonlinear_init(
 
     index_tau_sources = ppt->tau_size-ppt->ln_tau_size+index_tau;
 
-    /* the result of nonlinear_pk_linear should be stored at the
-       following locations (the region of the arrays
-       pnl->ln_pk_... with the right index_tau) */
-
-    ln_pk_m_ic_l_at_tau = &(pnl->ln_pk_m_ic_l[index_tau * pnl->k_size * pnl->ic_ic_size]);
-    ln_pk_m_l_at_tau = &(pnl->ln_pk_m_l[index_tau * pnl->k_size]);
-
-    if (pnl->has_pk_cb == _TRUE_) {
-      ln_pk_cb_ic_l_at_tau = &(pnl->ln_pk_cb_ic_l[index_tau * pnl->k_size * pnl->ic_ic_size]);
-      ln_pk_cb_l_at_tau = &(pnl->ln_pk_cb_l[index_tau * pnl->k_size]);
-    }
-    else {
-      ln_pk_cb_ic_l_at_tau = NULL;
-      ln_pk_cb_l_at_tau = NULL;
-    }
-
     /** get the linear power spectrum at one time */
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
@@ -474,89 +429,27 @@ int nonlinear_init(
 
   if (pnl->ln_tau_size > 1) {
 
-    // will leave:
-    class_alloc(pnl->ddln_pk_m_ic_l,
-                sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
-                pnl->error_message);
-
-    class_call(array_spline_table_lines(pnl->ln_tau,
-                                        pnl->ln_tau_size,
-                                        pnl->ln_pk_m_ic_l,
-                                        pnl->k_size*pnl->ic_ic_size,
-                                        pnl->ddln_pk_m_ic_l,
-                                        _SPLINE_EST_DERIV_,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_alloc(pnl->ddln_pk_m_l,
-                sizeof(double)*pnl->ln_tau_size*pnl->k_size,
-                pnl->error_message);
-
-    class_call(array_spline_table_lines(pnl->ln_tau,
-                                        pnl->ln_tau_size,
-                                        pnl->ln_pk_m_l,
-                                        pnl->k_size,
-                                        pnl->ddln_pk_m_l,
-                                        _SPLINE_EST_DERIV_,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    if (pnl->has_pk_cb == _TRUE_) {
-
-      class_alloc(pnl->ddln_pk_cb_ic_l,
-                  sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
-                  pnl->error_message);
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
 
       class_call(array_spline_table_lines(pnl->ln_tau,
                                           pnl->ln_tau_size,
-                                          pnl->ln_pk_cb_ic_l,
-                                          pnl->k_size*pnl->ic_ic_size,
-                                          pnl->ddln_pk_cb_ic_l,
+                                          pnl->ln_pk_l[index_pk],
+                                          pnl->k_size,
+                                          pnl->ddln_pk_l[index_pk],
                                           _SPLINE_EST_DERIV_,
                                           pnl->error_message),
                  pnl->error_message,
                  pnl->error_message);
 
-      class_alloc(pnl->ddln_pk_cb_l,
-                  sizeof(double)*pnl->ln_tau_size*pnl->k_size,
-                  pnl->error_message);
-
       class_call(array_spline_table_lines(pnl->ln_tau,
                                           pnl->ln_tau_size,
-                                          pnl->ln_pk_cb_l,
-                                          pnl->k_size,
-                                          pnl->ddln_pk_cb_l,
+                                          pnl->ln_pk_ic_l[index_pk],
+                                          pnl->k_size*pnl->ic_ic_size,
+                                          pnl->ddln_pk_ic_l[index_pk],
                                           _SPLINE_EST_DERIV_,
-                                        pnl->error_message),
+                                          pnl->error_message),
                  pnl->error_message,
                  pnl->error_message);
-
-      // will stay:
-      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-
-        class_call(array_spline_table_lines(pnl->ln_tau,
-                                            pnl->ln_tau_size,
-                                            pnl->ln_pk_l[index_pk],
-                                            pnl->k_size,
-                                            pnl->ddln_pk_l[index_pk],
-                                            _SPLINE_EST_DERIV_,
-                                            pnl->error_message),
-                   pnl->error_message,
-                   pnl->error_message);
-
-        class_call(array_spline_table_lines(pnl->ln_tau,
-                                            pnl->ln_tau_size,
-                                            pnl->ln_pk_ic_l[index_pk],
-                                            pnl->k_size*pnl->ic_ic_size,
-                                            pnl->ddln_pk_ic_l[index_pk],
-                                            _SPLINE_EST_DERIV_,
-                                            pnl->error_message),
-                   pnl->error_message,
-                   pnl->error_message);
-
-      }
     }
   }
 
@@ -619,17 +512,6 @@ int nonlinear_init(
                 pnl->k_size*sizeof(double),
                 pnl->error_message);
 
-    /*
-    class_alloc(ln_pk_m_ic_l,
-                pnl->k_size*pnl->ic_ic_size*sizeof(double),
-                pnl->error_message);
-
-    if (pnl->has_pk_cb == _TRUE_)
-      class_alloc(ln_pk_cb_ic_l,
-                  pnl->k_size*pnl->ic_ic_size*sizeof(double),
-                  pnl->error_message);
-    */
-
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
 
       class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
@@ -674,48 +556,13 @@ int nonlinear_init(
         class_alloc(pnw->sigma_prime[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
       }
 
-      /**
-       * initialise the extrapolation for the sources by setting the
-       * length of the extrapolated vector, such that you can fill the
-       * extended k-array with same sampling up to pnl->k_size_extra,
-       * and reallocating arrays.  This function finds out the size of
-       * the extrapolation arrays
-       */
-      /*
-      class_call(get_extrapolated_source_size(ppr->k_per_decade_for_pk,
-                                              pnl->k[pnl->k_size-1],
-                                              ppr->hmcode_max_k_extra,
-                                              pnl->k_size,
-                                              &size_extrapolated_source,
-                                              pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
-      */
-      //pnl->k_size_extra = size_extrapolated_source;
-
       /** allocate pnl->k_extra and reallocate the k-dependent arrays */
 
       class_alloc(pnl->k_extra,pnl->k_size_extra*sizeof(double),pnl->error_message);
 
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
         class_realloc(pk_l[index_pk],pk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-        //class_realloc(lnk_l[index_pk],lnk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-        //class_realloc(lnpk_l[index_pk],lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-        //class_realloc(ddlnpk_l[index_pk],ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
       }
-
-      /** fill pnl->k_extra */
-      /*
-      class_call(extrapolate_k(
-                               pnl->k,
-                               pnl->k_size,
-                               pnl->k_extra,
-                               ppr->k_per_decade_for_pk,
-                               ppr->hmcode_max_k_extra,
-                               pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
-      */
 
       for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
         pnl->k_extra[index_k] = exp(pnl->ln_k[index_k]);
@@ -823,42 +670,6 @@ int nonlinear_init(
 
     for (index_tau = pnl->tau_size-1; index_tau>=0; index_tau--) {
 
-      // uncomment this to see the time spent at each tau
-      //clock_t begin = clock();
-
-      /** get the linear power spectrum */
-      /*
-      if (pnl->has_pk_cb == _TRUE_) {
-        class_call(nonlinear_pk_linear(pba,
-                                  ppt,
-                                  ppm,
-                                  pnl,
-                                  index_tau,
-                                  ln_pk_m_ic_l,
-                                  lnpk_l[pnl->index_pk_cb],
-                                  ln_pk_cb_ic_l,
-                                  lnpk_l[pnl->index_pk_m]),
-                   pnl->error_message,
-                   pnl->error_message);
-      }
-      else {
-        class_call(nonlinear_pk_linear(pba,
-                                  ppt,
-                                  ppm,
-                                  pnl,
-                                  index_tau,
-                                  ln_pk_m_ic_l,
-                                  lnpk_l[pnl->index_pk_m],
-                                  NULL,
-                                  NULL),
-                   pnl->error_message,
-                   pnl->error_message);
-      }
-      */
-      //get lnk_l
-      //get pk_l
-      //get ddlnpk_l
-
       /** loop over index_pk, defined such that it is ensured
        * that index_pk starts at index_pk_cb when neutrinos are
        * included. This is necessary for hmcode, since the sigmatable
@@ -866,14 +677,6 @@ int nonlinear_init(
        * evalutes P_m_nl, it needs both P_m_l and P_cb_l. */
 
       for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-
-
-        /* get P_L(k) at this time */
-        /*
-        class_call(nonlinear_pk_l(pba,ppt,ppm,pnl,index_pk,index_tau,pk_l[index_pk],lnk_l[index_pk],lnpk_l[index_pk],ddlnpk_l[index_pk]),
-                   pnl->error_message,
-                   pnl->error_message);
-        */
 
         for (index_k=0; index_k<pnl->k_size_extra; index_k++) {
             lnk_l[index_pk][index_k] = pnl->ln_k[index_k];
@@ -1147,6 +950,7 @@ int nonlinear_free(
     free(pnl->ln_tau);
 
     // will disappear:
+    /*
     free(pnl->ln_pk_m_ic_l);
     free(pnl->ln_pk_m_l);
     if (pnl->tau_size>1) {
@@ -1161,6 +965,7 @@ int nonlinear_free(
         free(pnl->ddln_pk_cb_l);
       }
     }
+    */
     // will stay:
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
       free(pnl->ln_pk_ic_l[index_pk]);
