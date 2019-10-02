@@ -250,9 +250,7 @@ extern "C" {
                         struct nonlinear *pnl,
                         int index_pk,
                         double tau,
-                        double *pk_l,
                         double *pk_nl,
-                        double *lnk_l,
                         double *lnpk_l,
                         double *ddlnpk_l,
                         double *k_nl,
@@ -282,9 +280,7 @@ extern "C" {
                        int index_pk,
                        int index_tau,
                        double tau,
-                       double *pk_l,
                        double *pk_nl,
-                       double **lnk_l,
                        double **lnpk_l,
                        double **ddlnpk_l,
                        double *k_nl,
@@ -299,7 +295,6 @@ extern "C" {
                              struct primordial * ppm,
                              struct nonlinear * pnl,
                              double R,
-                             double *lnk_l,
                              double *lnpk_l,
                              double *ddlnpk_l,
                              double * sigma
@@ -313,7 +308,6 @@ extern "C" {
                                    struct primordial * ppm,
                                    struct nonlinear * pnl,
                                    double R,
-                                   double *lnk_l,
                                    double *lnpk_l,
                                    double *ddlnpk_l,
                                    double * sigma_prime
@@ -326,7 +320,6 @@ extern "C" {
                                   struct primordial * ppm,
                                   struct nonlinear * pnl,
                                   double R,
-                                  double *lnk_l,
                                   double *lnpk_l,
                                   double *ddlnpk_l,
                                   double * sigma_disp
@@ -339,7 +332,6 @@ extern "C" {
                                    struct primordial * ppm,
                                    struct nonlinear * pnl,
                                    int index_tau,
-                                   double *lnk_l,
                                    double *lnpk_l,
                                    double *ddlnpk_l,
                                    struct nonlinear_workspace * pnw
