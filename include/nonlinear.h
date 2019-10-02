@@ -278,25 +278,12 @@ extern "C" {
                           struct perturbs *ppt,
                           struct primordial *ppm,
                           struct nonlinear *pnl,
-                          int k_size,
+                          int index_pk,
                           int index_tau,
-                          double *ln_pk_m_ic_l,
-                          double *ln_pk_m_l,
-                          double *ln_pk_cb_ic_l,
-                          double *ln_pk_cb_l
+                          int k_size,
+                          double * lnpk,
+                          double * lnpk_ic
                           );
-
-  int nonlinear_pk_linear_at_index_tau(
-                                       struct background *pba,
-                                       struct perturbs *ppt,
-                                       struct primordial *ppm,
-                                       struct nonlinear *pnl,
-                                       int index_pk,
-                                       int index_tau,
-                                       int k_size,
-                                       double * lnpk,
-                                       double * lnpk_ic
-                                       );
 
   int nonlinear_halofit(
                         struct precision *ppr,
