@@ -222,8 +222,8 @@ extern "C" {
                                    struct nonlinear *pnl,
                                    double z,
                                    int index_pk,
-                                   double * ln_pk_l,
-                                   double * ln_pk_ic_l
+                                   double ** ln_pk_l,
+                                   double ** ln_pk_ic_l
                                    );
 
   int nonlinear_init(
