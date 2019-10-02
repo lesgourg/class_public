@@ -259,7 +259,9 @@ int nonlinear_init(
   double k_max;
   double exponent;
 
-  /** This module only makes sense for dealing with scalar
+  /** - preliminary tests */
+
+  /** --> This module only makes sense for dealing with scalar
       perturbations, so it should do nothing if there are no
       scalars */
   if (ppt->has_scalars == _FALSE_) {
@@ -267,9 +269,8 @@ int nonlinear_init(
     printf("No scalar modes requested. Nonlinear module skipped.\n");
     return _SUCCESS_;
   }
-  index_md = ppt->index_md_scalars;
 
-  /** Nothing to be done if we don't want the matter power spectrum */
+  /** -> Nothing to be done if we don't want the matter power spectrum */
 
   pnl->has_pk_matter = ppt->has_pk_matter;
 
@@ -283,107 +284,25 @@ int nonlinear_init(
       printf("Computing linear Fourier spectra.\n");
   }
 
-  /** Define flags and indices (will move soon to dedicated routine) */
+  /** -> check applicability of Halofit and HMcode */
+  if (pnl->method > nl_none) {
 
-  pnl->ic_size = ppm->ic_size[index_md];
-  pnl->ic_ic_size = ppm->ic_ic_size[index_md];
-  class_alloc(pnl->is_non_zero,
-              sizeof(short)*pnl->ic_ic_size,
-              pnl->error_message);
-  for (index_ic1_ic2=0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++)
-    pnl->is_non_zero[index_ic1_ic2] = ppm->is_non_zero[index_md][index_ic1_ic2];
-
-  pnl->has_pk_m = _TRUE_;
-  if (pba->has_ncdm == _TRUE_) {
-    pnl->has_pk_cb = _TRUE_;
-  }
-  else {
-    pnl->has_pk_cb = _FALSE_;
-  }
-
-  /* due to some dependencies in HMcode, when pnl->index_pk_cb exists,
-     it must come first (e.g. the calculation of the non-linear P_m
-     depends on sigma_cb so the cb-related quantitites must be
-     evaluated first) */
-  index_pk = 0;
-  class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
-  class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
-  pnl->pk_size = index_pk;
-
-  /** - copy list of k from perturbation module, and extended if necessary to larger k for extrapolation */
-
-  pnl->k_size = ppt->k_size[index_md];
-
-  k_max = ppt->k[index_md][pnl->k_size-1];
-  if (pnl->method == nl_HMcode){
-    index_k=0;
-    while(k < ppr->hmcode_max_k_extra && index_k < _MAX_NUM_EXTRAPOLATION_){
-      index_k++;
-      k = k_max * pow(10,(double)index_k/ppr->k_per_decade_for_pk);
-    }
-    class_test(index_k == _MAX_NUM_EXTRAPOLATION_,
-               pnl->error_message,
-               "could not reach extrapolated value k = %.10e starting from k = %.10e with k_per_decade of %.10e in _MAX_NUM_INTERPOLATION_=%i steps",
-               ppr->hmcode_max_k_extra,k_max,ppr->k_per_decade_for_pk,_MAX_NUM_EXTRAPOLATION_
-               );
-    pnl->k_size_extra = pnl->k_size+index_k;
-  }
-  else {
-    pnl->k_size_extra = pnl->k_size;
-  }
-
-  /* allocate array of k */
-  class_alloc(pnl->k,   pnl->k_size_extra*sizeof(double),pnl->error_message);
-  class_alloc(pnl->ln_k,pnl->k_size_extra*sizeof(double),pnl->error_message);
-
-  /* fill array of k */
-  for (index_k=0; index_k<pnl->k_size; index_k++) {
-    k = ppt->k[index_md][index_k];
-    pnl->k[index_k] = k;
-    pnl->ln_k[index_k] = log(k);
-  }
-  for (index_k=pnl->k_size; index_k<pnl->k_size_extra; index_k++) {
-    exponent = (double)(index_k-(pnl->k_size-1))/ppr->k_per_decade_for_pk;
-    pnl->k[index_k] = k * pow(10,exponent);
-    pnl->ln_k[index_k] = log(k) + exponent*log(10.);
-  }
-
-  /** copy list of tau from perturbation module (it already takes into account the upper limit in z_max_pk) */
-
-  pnl->ln_tau_size = ppt->ln_tau_size;
-
-  if (ppt->ln_tau_size > 1) {
-    class_alloc(pnl->ln_tau,pnl->ln_tau_size*sizeof(double),pnl->error_message);
-    for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
-      pnl->ln_tau[index_tau] = ppt->ln_tau[index_tau];
+    if (pba->has_ncdm) {
+      for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
+        if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
+          fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
+      }
     }
   }
 
-  /** allocate array of linear power spectrum values */
 
-  class_alloc(pnl->ln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
-  class_alloc(pnl->ln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
+  /** - define indices in nonlinear structure (and allocate some arrays in the structure) */
 
-  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-    class_alloc(pnl->ln_pk_ic_l[index_pk],pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size*sizeof(double*),pnl->error_message);
-    class_alloc(pnl->ln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
-  }
+  class_call(nonlinear_indices(ppr,pba,ppt,ppm,pnl),
+             pnl->error_message,
+             pnl->error_message);
 
-  /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
-     compute array of second derivatives in view of spline interpolation */
-
-  if (pnl->ln_tau_size > 1) {
-
-    class_alloc(pnl->ddln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
-    class_alloc(pnl->ddln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
-
-    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-      class_alloc(pnl->ddln_pk_ic_l[index_pk],pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size*sizeof(double*),pnl->error_message);
-      class_alloc(pnl->ddln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
-    }
-  }
-
-  /** get the linear power spectrum at each time */
+  /** -> get the linear power spectrum at each time */
 
   for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
 
@@ -400,9 +319,11 @@ int nonlinear_init(
 
     index_tau_sources = ppt->tau_size-ppt->ln_tau_size+index_tau;
 
-    /** get the linear power spectrum at one time */
+    /** --> loop over required pk types (_m, _cb) */
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+      /** --> get the linear power spectrum for this time and this type */
 
       class_call(nonlinear_pk_linear(
                                      pba,
@@ -418,44 +339,43 @@ int nonlinear_init(
                  pnl->error_message,
                  pnl->error_message);
 
-    }
 
-   }
+      /** --> if interpolation of \f$P(k,\tau)\f$ will be needed (as a
+     function of tau), compute array of second derivatives in view of
+     spline interpolation */
 
-  /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
-     compute array of second derivatives in view of spline interpolation */
+      if (pnl->ln_tau_size > 1) {
 
-  if (pnl->ln_tau_size > 1) {
+        class_call(array_spline_table_lines(pnl->ln_tau,
+                                            pnl->ln_tau_size,
+                                            pnl->ln_pk_l[index_pk],
+                                            pnl->k_size,
+                                            pnl->ddln_pk_l[index_pk],
+                                            _SPLINE_EST_DERIV_,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
 
-    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
-
-      class_call(array_spline_table_lines(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_l[index_pk],
-                                          pnl->k_size,
-                                          pnl->ddln_pk_l[index_pk],
-                                          _SPLINE_EST_DERIV_,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
-
-      class_call(array_spline_table_lines(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_ic_l[index_pk],
-                                          pnl->k_size*pnl->ic_ic_size,
-                                          pnl->ddln_pk_ic_l[index_pk],
-                                          _SPLINE_EST_DERIV_,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
+        class_call(array_spline_table_lines(pnl->ln_tau,
+                                            pnl->ln_tau_size,
+                                            pnl->ln_pk_ic_l[index_pk],
+                                            pnl->k_size*pnl->ic_ic_size,
+                                            pnl->ddln_pk_ic_l[index_pk],
+                                            _SPLINE_EST_DERIV_,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+      }
     }
   }
+
+  /** -> get the non-linear power spectrum at each time */
 
   /** (a) First deal with the case where non non-linear corrections requested */
 
   if (pnl->method == nl_none) {
     if (pnl->nonlinear_verbose > 0)
-      printf("No non-linear spectra requested. Nonlinear module skipped.\n");
+      printf("No non-linear spectra requested. Nonlinear calculations skipped.\n");
   }
 
   else if ((pnl->method == nl_halofit) || ((pnl->method == nl_HMcode))) {
@@ -468,29 +388,7 @@ int nonlinear_init(
 	if ((pnl->nonlinear_verbose > 0) && (pnl->method == nl_HMcode))
       printf("Computing non-linear matter power spectrum with HMcode \n");
 
-    if (pba->has_ncdm) {
-      for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
-        if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
-          fprintf(stdout,"Warning: Halofit is proved to work for CDM, and also with a small HDM component thanks to Bird et al.'s update. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
-      }
-    }
-
-    /** - copy list of all tau's from perturbation module */
-
-    pnl->tau_size = ppt->tau_size;
-    class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
-    for (index_tau=0; index_tau<pnl->tau_size; index_tau++)
-      pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
-
-    class_alloc(pnl->nl_corr_density,
-                pnl->pk_size*sizeof(double *),
-                pnl->error_message);
-
-    class_alloc(pnl->k_nl,
-                pnl->pk_size*sizeof(double *),
-                pnl->error_message);
-
-    /* temporary arrayas for spectra at one given time/redshift */
+    /* temporary arrays for spectra at one given time/redshift */
 
     class_alloc(pk_nl,
                 pnl->k_size*sizeof(double),
@@ -505,17 +403,12 @@ int nonlinear_init(
                 pnl->error_message);
 
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
-
-      class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
-      class_alloc(pnl->k_nl[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
-
       class_alloc(pk_nl[index_pk],pnl->k_size*sizeof(double),pnl->error_message);
-
       class_alloc(lnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
       class_alloc(ddlnpk_l[index_pk],pnl->k_size_extra*sizeof(double),pnl->error_message);
-
     }
 
+    ////// hmcode_init
     /** (c) Then go through specific steps for HMcode */
 
     if (pnl->method == nl_HMcode){
@@ -633,6 +526,7 @@ int nonlinear_init(
         }
       }
     }
+    //// end hmcode_init
 
     /** (d) Loop over time and for each time/redshift, compute P_NL(k,z) using wither Halofit or HMcode */
 
@@ -747,7 +641,6 @@ int nonlinear_init(
                non-linear correction for this redshift/time, store the
                last index which worked, and print a warning. */
 
-            //nl_corr_not_computable_at_this_k = _TRUE_;
             pnl->index_tau_min_nl = MIN(pnl->tau_size-1,index_tau+1); //this MIN() ensures, that index_tau_min_nl is never out of bounds
             for (index_k=0; index_k<pnl->k_size; index_k++) {
               pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k] = 1.;
@@ -843,24 +736,6 @@ int nonlinear_free(
     free(pnl->ln_k);
     free(pnl->ln_tau);
 
-    // will disappear:
-    /*
-    free(pnl->ln_pk_m_ic_l);
-    free(pnl->ln_pk_m_l);
-    if (pnl->tau_size>1) {
-      free(pnl->ddln_pk_m_ic_l);
-      free(pnl->ddln_pk_m_l);
-    }
-    if (pnl->has_pk_cb == _TRUE_) {
-      free(pnl->ln_pk_cb_ic_l);
-      free(pnl->ln_pk_cb_l);
-      if (pnl->tau_size>1) {
-        free(pnl->ddln_pk_cb_ic_l);
-        free(pnl->ddln_pk_cb_l);
-      }
-    }
-    */
-    // will stay:
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
       free(pnl->ln_pk_ic_l[index_pk]);
       free(pnl->ln_pk_l[index_pk]);
@@ -889,13 +764,13 @@ int nonlinear_free(
       free(pnl->k_nl);
     }
     else if (pnl->method == nl_HMcode){
+      free(pnl->tau);
       for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
         free(pnl->nl_corr_density[index_pk]);
         free(pnl->k_nl[index_pk]);
       }
       free(pnl->nl_corr_density);
       free(pnl->k_nl);
-      free(pnl->tau);
     }
   }
 
@@ -908,6 +783,172 @@ int nonlinear_free(
   return _SUCCESS_;
 
 }
+
+/**
+ * Define indices in the nonlinear array, and when possible, allocate
+ * arrays in this structure given the index sizes found here
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to background structure
+ * @param ppt Input: pointer to perturbation structure
+ * @param ppm Input: pointer to primordial structure
+ * @param pnl Input/Output: pointer to nonlinear structure
+ * @return the error status
+*/
+
+int nonlinear_indices(
+                      struct precision *ppr,
+                      struct background *pba,
+                      struct perturbs * ppt,
+                      struct primordial * ppm,
+                      struct nonlinear * pnl
+                      ) {
+
+  int index_ic1_ic2;
+  int index_pk;
+  double k,k_max,exponent;
+  int index_md;
+  int index_k;
+  int index_tau;
+
+  /** - define indices for initial conditions (and allocate related arrays) */
+
+  pnl->ic_size = ppm->ic_size[index_md];
+  pnl->ic_ic_size = ppm->ic_ic_size[index_md];
+  class_alloc(pnl->is_non_zero,sizeof(short)*pnl->ic_ic_size,pnl->error_message);
+  for (index_ic1_ic2=0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++)
+    pnl->is_non_zero[index_ic1_ic2] = ppm->is_non_zero[index_md][index_ic1_ic2];
+
+  /** - define flags indices for pk types (_m, _cb). Note: due to some
+     dependencies in HMcode, when pnl->index_pk_cb exists, it must
+     come first (e.g. the calculation of the non-linear P_m depends on
+     sigma_cb so the cb-related quantitites must be evaluated
+     first) */
+
+  pnl->has_pk_m = _TRUE_;
+  if (pba->has_ncdm == _TRUE_) {
+    pnl->has_pk_cb = _TRUE_;
+  }
+  else {
+    pnl->has_pk_cb = _FALSE_;
+  }
+
+  index_pk = 0;
+  class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
+  class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
+  pnl->pk_size = index_pk;
+
+  /** - copy list of k from perturbation module, and extended it if necessary to larger k for extrapolation */
+
+  index_md = ppt->index_md_scalars;
+  pnl->k_size = ppt->k_size[index_md];
+  k_max = ppt->k[index_md][pnl->k_size-1];
+
+  if (pnl->method == nl_HMcode){
+    index_k=0;
+    while(k < ppr->hmcode_max_k_extra && index_k < _MAX_NUM_EXTRAPOLATION_){
+      index_k++;
+      k = k_max * pow(10,(double)index_k/ppr->k_per_decade_for_pk);
+    }
+    class_test(index_k == _MAX_NUM_EXTRAPOLATION_,
+               pnl->error_message,
+               "could not reach extrapolated value k = %.10e starting from k = %.10e with k_per_decade of %.10e in _MAX_NUM_INTERPOLATION_=%i steps",
+               ppr->hmcode_max_k_extra,k_max,ppr->k_per_decade_for_pk,_MAX_NUM_EXTRAPOLATION_
+               );
+    pnl->k_size_extra = pnl->k_size+index_k;
+  }
+  else {
+    pnl->k_size_extra = pnl->k_size;
+  }
+
+  /* allocate array of k */
+  class_alloc(pnl->k,   pnl->k_size_extra*sizeof(double),pnl->error_message);
+  class_alloc(pnl->ln_k,pnl->k_size_extra*sizeof(double),pnl->error_message);
+
+  /* fill array of k */
+  for (index_k=0; index_k<pnl->k_size; index_k++) {
+    k = ppt->k[index_md][index_k];
+    pnl->k[index_k] = k;
+    pnl->ln_k[index_k] = log(k);
+  }
+  for (index_k=pnl->k_size; index_k<pnl->k_size_extra; index_k++) {
+    exponent = (double)(index_k-(pnl->k_size-1))/ppr->k_per_decade_for_pk;
+    pnl->k[index_k] = k * pow(10,exponent);
+    pnl->ln_k[index_k] = log(k) + exponent*log(10.);
+  }
+
+  /** - copy list of tau from perturbation module (it already takes into account the upper limit in z_max_pk) */
+
+  /** -> for linear calculations: only late times are considered */
+  pnl->ln_tau_size = ppt->ln_tau_size;
+
+  if (ppt->ln_tau_size > 1) {
+    class_alloc(pnl->ln_tau,pnl->ln_tau_size*sizeof(double),pnl->error_message);
+    for (index_tau=0; index_tau<pnl->ln_tau_size;index_tau++) {
+      pnl->ln_tau[index_tau] = ppt->ln_tau[index_tau];
+    }
+  }
+
+  /** -> for non-linear calculations: we wills store a correction factor for all times */
+  if (pnl->method > nl_none) {
+
+    pnl->tau_size = ppt->tau_size;
+
+    class_alloc(pnl->tau,pnl->tau_size*sizeof(double),pnl->error_message);
+    for (index_tau=0; index_tau<pnl->tau_size; index_tau++) {
+      pnl->tau[index_tau] = ppt->tau_sampling[index_tau];
+    }
+  }
+
+  /** - given previous indices, we can allocate the array of linear power spectrum values */
+
+  class_alloc(pnl->ln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
+  class_alloc(pnl->ln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+    class_alloc(pnl->ln_pk_ic_l[index_pk],pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size*sizeof(double*),pnl->error_message);
+    class_alloc(pnl->ln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
+  }
+
+  /** - if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
+     compute also the array of second derivatives in view of spline interpolation */
+
+  if (pnl->ln_tau_size > 1) {
+
+    class_alloc(pnl->ddln_pk_ic_l,pnl->pk_size*sizeof(double*),pnl->error_message);
+    class_alloc(pnl->ddln_pk_l   ,pnl->pk_size*sizeof(double*),pnl->error_message);
+
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+      class_alloc(pnl->ddln_pk_ic_l[index_pk],pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size*sizeof(double*),pnl->error_message);
+      class_alloc(pnl->ddln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
+    }
+  }
+
+  /** - if non-linear computations needed, allocate array of
+        non-linear correction ratio R_nl(k,z) and k_nl(z) for each
+        P(k) type */
+
+  if (pnl->method > nl_none) {
+
+    class_alloc(pnl->k_nl,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    class_alloc(pnl->nl_corr_density,
+                pnl->pk_size*sizeof(double *),
+                pnl->error_message);
+
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
+      class_alloc(pnl->k_nl[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
+      class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+
+
 
 /**
  * This routine computes all the components of the matter power

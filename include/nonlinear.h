@@ -230,6 +230,14 @@ extern "C" {
                      struct nonlinear *pnl
                      );
 
+  int nonlinear_indices(
+                        struct precision *ppr,
+                        struct background *pba,
+                        struct perturbs * ppt,
+                        struct primordial * ppm,
+                        struct nonlinear * pnl
+                        );
+
   int nonlinear_pk_linear(
                           struct background *pba,
                           struct perturbs *ppt,
