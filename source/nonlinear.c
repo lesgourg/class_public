@@ -458,13 +458,31 @@ int nonlinear_init(
                pnl->error_message,
                pnl->error_message);
 
-  }
+    for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+      class_call(nonlinear_pk_linear_at_index_tau(
+                                                  pba,
+                                                  ppt,
+                                                  ppm,
+                                                  pnl,
+                                                  index_pk,
+                                                  index_tau_sources,
+                                                  pnl->k_size,
+                                                  &(pnl->ln_pk_l[index_pk][index_tau * pnl->k_size]),
+                                                  &(pnl->ln_pk_ic_l[index_pk][index_tau * pnl->k_size])
+                                                  ),
+                 pnl->error_message,
+                 pnl->error_message);
+
+    }
+   }
 
   /**- if interpolation of \f$P(k,\tau)\f$ will be needed (as a function of tau),
      compute array of second derivatives in view of spline interpolation */
 
   if (pnl->ln_tau_size > 1) {
 
+    // will leave:
     class_alloc(pnl->ddln_pk_m_ic_l,
                 sizeof(double)*pnl->ln_tau_size*pnl->k_size*pnl->ic_ic_size,
                 pnl->error_message);
@@ -523,6 +541,30 @@ int nonlinear_init(
                  pnl->error_message,
                  pnl->error_message);
 
+      // will stay:
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+        class_call(array_spline_table_lines(pnl->ln_tau,
+                                            pnl->ln_tau_size,
+                                            pnl->ln_pk_l[index_pk],
+                                            pnl->k_size,
+                                            pnl->ddln_pk_l[index_pk],
+                                            _SPLINE_EST_DERIV_,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+
+        class_call(array_spline_table_lines(pnl->ln_tau,
+                                            pnl->ln_tau_size,
+                                            pnl->ln_pk_ic_l[index_pk],
+                                            pnl->k_size*pnl->ic_ic_size,
+                                            pnl->ddln_pk_ic_l[index_pk],
+                                            _SPLINE_EST_DERIV_,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+
+      }
     }
   }
 
