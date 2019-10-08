@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import os
 
@@ -35,7 +37,7 @@ def get_cirelli_spectra(key):
 	dim2 = len(log10X)
 	dNdlog10X_el = 2*data_elec_EW[2,:].reshape(dim1,dim2)
 	dNdlog10X_ph = data_phot_EW[2,:].reshape(dim1,dim2)
-  	dNdlog10X_oth = 2*(data_nu_e_EW[2,:] + data_nu_m_EW[2,:] + data_nu_t_EW[2,:] + data_prot_EW[2,:] + data_deut_EW[2,:]).reshape(dim1,dim2)
+	dNdlog10X_oth = 2*(data_nu_e_EW[2,:] + data_nu_m_EW[2,:] + data_nu_t_EW[2,:] + data_prot_EW[2,:] + data_deut_EW[2,:]).reshape(dim1,dim2)
 
 	return masses, log10X, dNdlog10X_el, dNdlog10X_ph, dNdlog10X_oth 
 

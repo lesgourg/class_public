@@ -53,16 +53,11 @@ def run( *arguments, **DarkOptions ):
 	#####
 
 	##### In this block the 'model' object is created given the spectra
-<<<<<<< HEAD
 	## (This function could also take logEnergies and redshift as additional
 	## arguments. But since we do not give them here. The global default values
 	## are taken)
 	#####
 	full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass)
-=======
-	#####
-        full_model = annihilating_model(total_spec[0], total_spec[1], total_spec[2], 1e9*sampling_mass, logEnergies, redshift)
->>>>>>> fcada785b6dae285a0f8201268703e5f06d7a3b0
 	#####
 
 	##### To finish the calculation, calculate f(z) for each deposition channel

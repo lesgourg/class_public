@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+from __future__ import absolute_import, division, print_function
+
 import os
 import sys
 import optparse
@@ -80,6 +82,8 @@ parser.add_option("--extra-options", dest="extra", metavar="EXTRA.yaml",
                   help="Yaml-File with additional parameters")
 parser.add_option("--nuke-and-start-again", action='store_true', dest='nuke', default=False,
                   help="Delete all preprocessed *.obj-files (transfer-functions, dumped interpolators, models, etc.) and start from scratch")
+parser.add_option("--return_f_eff_table", action='store_true', dest='return_feff', default=False,
+                  help="Print f(z) summed over all deposition channels (with corrections) instead of each channel")
 
 (options, args) = parser.parse_args()
 if len(args) == 0:
@@ -129,7 +133,7 @@ DarkOptions = dict()
 if options.extra is not None:
 	import yaml
 	with open(options.extra, 'r') as stream:
-		additional_DarkOptions = yaml.load(stream)
+		additional_DarkOptions = yaml.safe_load(stream)
 		DarkOptions.update(additional_DarkOptions)
 		del additional_DarkOptions
 
@@ -140,8 +144,8 @@ if options.script_file is not None:
 	dumpDict.update(DarkOptions)
 	dumpDict.update({'background_H0':options.background[0], 'background_Omega_m': options.background[1], 'background_Omega_r' :options.background[2]})
 	import yaml
-	with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}.yaml'.format(os.getpid(), random_num )), 'wb') as options_dumper:
-		yaml.dump(dumpDict, options_dumper)
+	with open(os.path.join( os.environ['DARKAGES_BASE'], 'pid_{:d}_{:d}.yaml'.format(os.getpid(), random_num )), 'w') as options_dumper:
+		yaml.safe_dump(dumpDict, options_dumper)
 
 import atexit
 @atexit.register
@@ -153,10 +157,10 @@ def goodbye():
 			pass
 
 if options.injection_history == 'decay' and (options.t_dec is None):
-	raise DarkAgesError('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"')
+	raise DarkAgesError('With choosing the injection history: "decay" you need to specify the lifetime of the DM-candidate with "--tdec"','Missing input')
 
 if options.model is not None and options.script_file is not None:
-	raise DarkAgesError('You used --file (-f) ... and --model ... in your input. That is a very confusing demand. Please choose only one option.')
+	raise DarkAgesError('You used --file (-f) ... and --model ... in your input. That is a very confusing demand. Please choose only one option.','Missing input')
 
 if options.model is not None:
 	sys.exit( recipes.access_model(options.model, options.rebuild_model, *args, **DarkOptions) )
@@ -180,6 +184,11 @@ if options.mass is None:
 
 if options.mass <= 0:
 	raise DarkAgesError('You entered an invalid value for the mass. It needs to be positive and non zero.')
+
+# For the following recipes either print the table of all deposition channels or the sum (with corrections) as f_eff(z)
+# If the option is already set via the YAML input the command-line input is ignored.
+if "print_f_eff" not in DarkOptions:
+	DarkOptions.update({"print_f_eff":options.return_feff})
 
 if options.injection_history == 'evaporating_PBH':
 	sys.exit( recipes.evaporating_PBH(options.mass, transfer_functions, **DarkOptions) )

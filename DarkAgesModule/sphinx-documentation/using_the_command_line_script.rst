@@ -34,7 +34,7 @@ or directly in the manner of an python script with
 	$ python ./bin/DarkAges ...
 
 Especially if you are using more than one installations of python we advise you to 
-execute the script in the latter way, with repalcing :code:`python` by the path to
+execute the script in the latter way, with replacing :code:`python` by the path to
 the installation of python you want to use, if needed.
 
 .. note::
@@ -47,8 +47,8 @@ the installation of python you want to use, if needed.
       $ chmod +x ./bin/DarkAges
 
 The structure command-line script is in principle that it parses the input parameters
-given in the command-line, runs some basic consistency checks, and depending on the 
-input-values executes a given routine (this routines are part of the 
+given in the command-line, runs some basic consistency checks, and, depending on the
+input-values, executes a given routine (this routines are part of the
 :mod:`recipes <DarkAges.recipes>`-module and can also be used in a custom
 python script using the DarkAges-package).  
 

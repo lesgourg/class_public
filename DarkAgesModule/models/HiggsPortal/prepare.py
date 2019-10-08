@@ -17,8 +17,8 @@ def prepare():
 	dump_dict = dict()
 
 	frac_read = np.genfromtxt(os.path.join(model_dir,'data/Fractions.dat'), unpack=True, usecols=(0,4,5,6,7,8,9,10,11,12), dtype=np.float64)
-	primaries = np.array(['top', 'higgs', 'zzstar', 'wwstar', 'bottom', 'tau', 'charm', 'gluon', 'gamma'], dtype=np.dtype('a32'))
-	#primaries = np.array(['top', 'higgs'], dtype=np.dtype('a32'))
+	primaries = np.array(['top', 'higgs', 'zzstar', 'wwstar', 'bottom', 'tau', 'charm', 'gluon', 'gamma'], dtype=np.dtype('U32'))
+	#primaries = np.array(['top', 'higgs'], dtype=np.dtype('U32'))
 
 	dump_dict.update({'channels':primaries})
 

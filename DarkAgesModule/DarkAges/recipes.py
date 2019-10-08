@@ -42,10 +42,12 @@ By now there are three possible scenarios and the following wrapping methods:
 
 """
 
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import os
 import sys
-from .common import finalize, sample_spectrum
+from .common import finalize, feff_finalize, sample_spectrum
 from .__init__ import transfer_functions, DarkAgesError, get_redshift, get_logEnergies, print_info, print_warning, channel_dict
 from .model import annihilating_model, decaying_model, evaporating_model, annihilating_halos_model, accreting_model
 from .interpolator import logInterpolator, NDlogInterpolator
@@ -122,19 +124,33 @@ def accreting_PBH( PBH_mass, recipe, transfer_functions, logEnergies=None, redsh
 	if redshift is None: redshift = get_redshift()
 
 	model_from_file = accreting_model(PBH_mass,recipe, logEnergies, redshift, **DarkOptions)
-	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
-	for channel in channel_dict:
-		idx = channel_dict[channel]
-		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
-	finalize(redshift,
-			 f_function[channel_dict['Heat']],
-			 f_function[channel_dict['Ly-A']],
-			 f_function[channel_dict['H-Ion']],
-			 f_function[channel_dict['He-Ion']],
-			 f_function[channel_dict['LowE']],
-			 **DarkOptions)
+	print_feff = DarkOptions.get("print_f_eff", False)
+	if not print_feff:
+		f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
+		for channel in channel_dict:
+			idx = channel_dict[channel]
+			f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
+		finalize(redshift,
+				 f_function[channel_dict['Heat']],
+				 f_function[channel_dict['Ly-A']],
+				 f_function[channel_dict['H-Ion']],
+				 f_function[channel_dict['He-Ion']],
+				 f_function[channel_dict['LowE']],
+				 **DarkOptions)
+	else:
+		f_eff = np.zeros( shape=(len(redshift),), dtype=np.float64 )
+		from .__init__ import transfer_functions_corr as tf_corr
+		transfer_comb = transfer_functions.sum() - tf_corr
+		f_eff[:] = model_from_file.calc_f(transfer_comb, **DarkOptions)[-1]
+		#if hist == 'decay':
+		#	from .common import time_at_z
+		#	f_eff *= np.exp(time_at_z(redshift)/t_dec)
+
+		feff_finalize(redshift,
+					  f_eff,
+					  **DarkOptions)
 
 def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies=None, redshift=None, **DarkOptions):
 	u"""Wrapper for the calculation of :math:`f_c (z)` for a evaporating primordial
@@ -169,19 +185,33 @@ def evaporating_PBH( PBH_mass_ini, transfer_functions, logEnergies=None, redshif
 	if redshift is None: redshift = get_redshift()
 
 	model_from_file = evaporating_model(PBH_mass_ini,logEnergies,redshift, **DarkOptions)
-	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
-	for channel in channel_dict:
-		idx = channel_dict[channel]
-		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
-	finalize(redshift,
-			 f_function[channel_dict['Heat']],
-			 f_function[channel_dict['Ly-A']],
-			 f_function[channel_dict['H-Ion']],
-			 f_function[channel_dict['He-Ion']],
-			 f_function[channel_dict['LowE']],
-			 **DarkOptions)
+	print_feff = DarkOptions.get("print_f_eff", False)
+	if not print_feff:
+		f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
+		for channel in channel_dict:
+			idx = channel_dict[channel]
+			f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
+		finalize(redshift,
+				 f_function[channel_dict['Heat']],
+				 f_function[channel_dict['Ly-A']],
+				 f_function[channel_dict['H-Ion']],
+				 f_function[channel_dict['He-Ion']],
+				 f_function[channel_dict['LowE']],
+				 **DarkOptions)
+	else:
+		f_eff = np.zeros( shape=(len(redshift),), dtype=np.float64 )
+		from .__init__ import transfer_functions_corr as tf_corr
+		transfer_comb = transfer_functions.sum() - tf_corr
+		f_eff[:] = model_from_file.calc_f(transfer_comb, **DarkOptions)[-1]
+		#if hist == 'decay':
+		#	from .common import time_at_z
+		#	f_eff *= np.exp(time_at_z(redshift)/t_dec)
+
+		feff_finalize(redshift,
+					  f_eff,
+					  **DarkOptions)
 
 def loading_from_specfiles(fnames, transfer_functions, mass,  logEnergies=None, redshift=None, t_dec=np.inf,zh=1.,fh=0., hist='annihilation', branchings=[1.], **DarkOptions):
 	u"""Wrapper to calculate :math:`f(z)` and print the table for all five deposition channels
@@ -247,17 +277,22 @@ def loading_from_specfiles(fnames, transfer_functions, mass,  logEnergies=None, 
 	Cirelli_particles = ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs']
 
 	if not dirac_mode:
+		if "decay" in hist:
+			equivalent_mass = mass/2.
+		else:
+			equivalent_mass = mass
+
 		spectra = np.empty(shape=(3,len(logEnergies),len(fnames)), dtype=np.float64)
 		for idx, fname in enumerate(fnames):
 			if os.path.isfile(fname):
 				spec_interpolator = load_from_spectrum(fname, logEnergies, injection_history=hist, **DarkOptions)
 				lower = spec_interpolator.get_lower()
 				upper = spec_interpolator.get_upper()
-				if mass < lower or mass > upper:
-					print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g}) cannot be deduced. Return zeros'.format(fname, lower, upper, mass))
+				if equivalent_mass < lower or equivalent_mass > upper:
+					print_warning('The spectra-file >>{:s}<< contains only spectra in the mass range [{:.2g}, {:.2g}]. Hence the spectrum you asked for (mass: {:.2g} - equivalent mass: {:.2g}) cannot be deduced. Return zeros.'.format(fname, lower, upper, mass, equivalent_mass))
 					spectra[:,:,idx] = np.zeros(shape=(3,len(logEnergies)), dtype=np.float64)
 				else:
-					spectra[:,:,idx] = spec_interpolator.__call__(mass)
+					spectra[:,:,idx] = spec_interpolator.__call__(equivalent_mass)
 			elif fname in Cirelli_particles:
 				from .special_functions import secondaries_from_cirelli
 				spectra[:,:,idx] = secondaries_from_cirelli(logEnergies,mass,fname, injection_history=hist)
@@ -268,9 +303,9 @@ def loading_from_specfiles(fnames, transfer_functions, mass,  logEnergies=None, 
 	else:
 		spectra = np.empty(shape=(3,1,len(fnames)), dtype=np.float64)
 		if hist == 'decay':
-			logEnergies = np.ones((1,1))*np.log10(1e9*0.5*mass)
+			logEnergies = np.ones((1,))*np.log10(1e9*0.5*mass)
 		elif hist == 'annihilation' or hist =='annihilation_halos':
-			logEnergies = np.ones((1,1))*np.log10(1e9*mass)
+			logEnergies = np.ones((1,))*np.log10(1e9*mass)
 		else:
 			raise DarkAgesError('The \'dirac-mode\' is not compatible with the history "{:s}". I am so sorry.'.format(hist))
 		for idx, fname in enumerate(fnames):
@@ -289,25 +324,40 @@ def loading_from_specfiles(fnames, transfer_functions, mass,  logEnergies=None, 
 	elif hist == 'annihilation_halos':
 		model_from_file = annihilating_halos_model(tot_spec[0], tot_spec[1], tot_spec[2], 1e9*mass,zh,fh,logEnergies,redshift, **DarkOptions)
 	else:
-		raise DarkAgesError('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.func_name, hist))
+		raise DarkAgesError('The method >> {:s} << cannot deal with the injection history >> {:s} <<'.format(loading_from_specfiles.__name__, hist))
 	try:
 		assert len(channel_dict) == len(transfer_functions)
 	except AssertionError:
 		raise DarkAgesError('The number of "transfer" instances ({:d}) and the number of channels ({:d}) do not match'.format(len(transfer_functions),len(channel_dict)))
-	f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
-	for channel in channel_dict:
-		idx = channel_dict[channel]
-		f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
-	finalize(redshift,
-			 f_function[channel_dict['Heat']],
-			 f_function[channel_dict['Ly-A']],
-			 f_function[channel_dict['H-Ion']],
-			 f_function[channel_dict['He-Ion']],
-			 f_function[channel_dict['LowE']],
-			 **DarkOptions)
+	print_feff = DarkOptions.get("print_f_eff", False)
+	if not print_feff:
+		f_function = np.zeros( shape=(len(channel_dict),len(redshift)), dtype=np.float64 )
+		for channel in channel_dict:
+			idx = channel_dict[channel]
+			f_function[idx,:] = model_from_file.calc_f(transfer_functions[idx], **DarkOptions)[-1]
 
-def load_from_spectrum(fname, logEnergies, **DarkOptions):
+		finalize(redshift,
+				 f_function[channel_dict['Heat']],
+				 f_function[channel_dict['Ly-A']],
+				 f_function[channel_dict['H-Ion']],
+				 f_function[channel_dict['He-Ion']],
+				 f_function[channel_dict['LowE']],
+				 **DarkOptions)
+	else:
+		f_eff = np.zeros( shape=(len(redshift),), dtype=np.float64 )
+		from .__init__ import transfer_functions_corr as tf_corr
+		transfer_comb = transfer_functions.sum() - tf_corr
+		f_eff[:] = model_from_file.calc_f(transfer_comb, **DarkOptions)[-1]
+		#if hist == 'decay':
+		#	from .common import time_at_z
+		#	f_eff *= np.exp(time_at_z(redshift)/t_dec)
+
+		feff_finalize(redshift,
+					  f_eff,
+					  **DarkOptions)
+
+def load_from_spectrum(fname, logEnergies, injection_history="annihilation", **DarkOptions):
 	u"""Wrapper to return the interpolated spectra of electrons and positrons,
 	photons, and other particles as an initialized instance of the
 	:class:`NDlogInterpolator <DarkAges.interpolator.NDlogInterpolator>`-class
@@ -407,7 +457,6 @@ def access_model(model_name, force_rebuild = False, *arguments, **DarkOptions):
 	if not os.path.isdir(model_dir):
 		raise DarkAgesError('"{0}" seems not to be a proper model. Could not find the respective directory.'.format(model_name))
 	sys.path.insert(0,model_dir)
-	print len(arguments)
 	if os.path.isfile( os.path.join(model_dir, '{0}.obj'.format(model_name)) ) and not force_rebuild:
 		_run_model(model_dir, *arguments, **DarkOptions)
 	else:
@@ -424,7 +473,7 @@ def _prepare_model(model_dir):
 					_module = fname[:-4]
 				else:
 					_module = fname[:-3]
-				_temp = __import__(_module, globals(), locals(), [], -1)
+				_temp = __import__(_module, globals(), locals(), [], 0)
 				_prepare = _temp.__getattribute__('prepare')
 				file_to_run = os.path.join(model_dir,_module)
 				_found = True # If module with the "prepare"-method could be loaded exit the for loop
@@ -449,7 +498,7 @@ def _run_model(model_dir, *arguments, **DarkOptions):
 					_module = fname[:-4]
 				else:
 					_module = fname[:-3]
-				_temp = __import__(_module, globals(), locals(), [], -1)
+				_temp = __import__(_module, globals(), locals(), [], 0)
 				_run = _temp.__getattribute__('run')
 				file_to_run = os.path.join(model_dir,_module)
 				_found = True
@@ -462,7 +511,7 @@ def _run_model(model_dir, *arguments, **DarkOptions):
 		raise DarkAgesError('Could not find the method "run" in the directory of the model')
 	_cmnd.append(file_to_run)
 	if arguments:
-		for arg in arguments[0]:
+		for arg in arguments:
 			_cmnd.append(arg)
 	print_info('Executing run()-method found in "{0}.py".'.format(file_to_run))
 	_run(*_cmnd, **DarkOptions)

@@ -27,6 +27,8 @@ functions:
 
 """
 
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 
 from .common import time_at_z, logConversion, H, nan_clean
@@ -57,7 +59,7 @@ particle_dict = {'gamma': [0,'1',2,1,1,1,0],
 def _particle_list_resolver( *particles ):
 	particles = list(particles)
 	if ('ALL' in particles) or ('all' in particles):
-		return particle_dict.keys()
+		return list(particle_dict.keys())
 	else:
 		if ('light quarks' in particles):
 			particles.pop(particles.index('light quarks'))
@@ -129,19 +131,25 @@ def PBH_F_of_M( PBH_mass, *particles, **DarkOptions ):
 
 	# factor_dict has the structure 'spin_label' : [f, beta]
 	factor_dict = {'0':[0.267, 2.66],
-			   '1/2 N':[0.142, 4.53],
-			   '1/2 C':[0.147, 4.53],
+			   '1/2 N':[0.147, 4.53],
+			   '1/2 C':[0.142, 4.53],
 			       '1':[0.060, 6.04]}
 
 	def _single_contribution(PBH_mass, mass_of_particle, multiplicity, beta, sigmoid_factor = 0, **DarkOptions):
 		if sigmoid_factor != 0:
+			use_QCD_transition = DarkOptions.get('QCD_phase_transition',True)
 			T_BH = get_temperature_from_mass(PBH_mass)
 			Lam_QCD = DarkOptions.get('QCD_lambda',0.3)
 			if Lam_QCD <= 0:
 				raise DarkAgesError('"QCD_lambda" needs to be positive, but yout input was >> {:.3e} <<'.format(Lam_QCD))
 			sigma = DarkOptions.get('QCD_width',0.1)
 			if sigma > 0.:
-				activation = 1. / (1. + np.exp(- sigmoid_factor*(np.log10(T_BH) - np.log10(Lam_QCD))/sigma))
+				if use_QCD_transition:
+					activation = 1. / (1. + np.exp(- sigmoid_factor*(np.log10(T_BH) - np.log10(Lam_QCD))/sigma))
+				elif sigmoid_factor < 0:
+					activation = 0.
+				else:
+					activation = 1.
 			else:
 				raise DarkAgesError('Your input for "QCD_width" >> {:.3e} << is not valid. It needs to be a positive number'.format(sigma))
 		else:
@@ -328,7 +336,7 @@ def PBH_dMdt(PBH_mass, time, scale=1, **DarkOptions):
 		ret = -5.34e25*(scale**(-3))*PBH_F_of_M( scale*PBH_mass, **DarkOptions ) * (PBH_mass)**(-2)
 		return ret
 	else:
-		return 0
+		return -0.0
 
 def PBH_mass_at_z(initial_PBH_mass, redshift=None, **DarkOptions):
 	u"""Solves the ODE for the PBH mass (:meth:`PBH_dMdt <DarkAges.evaporator.PBH_dMdt>`)
@@ -352,10 +360,11 @@ def PBH_mass_at_z(initial_PBH_mass, redshift=None, **DarkOptions):
 		Array (:code:`shape = (l)`) of the PBH mass at the redshifts given in t
 	"""
 
-	# (Very easy) jacobian of the ODE for the PBH mass.
+	# Jacobian of the ODE for the PBH mass.
 	# Needed for better performance of the ODE-solver.
-	def jac(mass, time):
-		out = np.zeros((1,1)) # partial_(dMdt) / partial_t = 0, since dMdt has no explicit time dependence.
+	def jac(mass, time, scale=1, **DarkOptions):
+		out = np.ones((1,1))*(-2./(scale*mass))*PBH_dMdt(mass, time, scale=scale, **DarkOptions) # partial_(dMdt) / partial_M = -2*(dMdt)/M.
+		#out = np.zeros((1,1))
 		return out
 
 	if redshift is None:
@@ -370,10 +379,12 @@ def PBH_mass_at_z(initial_PBH_mass, redshift=None, **DarkOptions):
 	scale = 10**(np.floor(log10_ini_mass)+5)
 	initial_PBH_mass *= 1/scale
 
-	temp_t = 10**np.linspace(np.log10(time_at_z(z_start)), np.log10(time_at_z(1.)), 1e5)
 	# Workaround for dealing with **DarkOptions inside the ODE-solver.
 	ODE_to_solve = lambda m,t: PBH_dMdt(m, t, scale=scale, **DarkOptions)
-	temp_mass, full_info = solve_ode(ODE_to_solve, initial_PBH_mass, temp_t, Dfun=jac, full_output=1,mxstep=10000)
+	jac_to_use = lambda m,t: jac(m,t, scale=scale, **DarkOptions)    
+
+	temp_t = 10**np.linspace(np.log10(time_at_z(z_start)), np.log10(time_at_z(1.)), 1e5)
+	temp_mass, full_info = solve_ode(ODE_to_solve, initial_PBH_mass, temp_t, Dfun=jac_to_use, full_output=1,mxstep=10000)
 
 	times =  time_at_z(redshift)
 	PBH_mass_at_t = np.interp(times, temp_t, temp_mass[:,0])

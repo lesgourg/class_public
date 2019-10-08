@@ -27,6 +27,9 @@ In particular, these variables are
    hence only the getter-function :code:`get_redshift` can be used.
 """
 
+from __future__ import absolute_import, division, print_function
+from builtins import range
+
 import numpy as np
 np.seterr(all='ignore')
 #Silence numpy when it comes to overflows etc.
@@ -39,6 +42,7 @@ sys.path.insert(0, os.environ['DARKAGES_BASE'])
 logEnergies = None
 redshift = None
 transfer_functions = None
+transfer_functions_corr = None
 CosmoBackground = None
 
 from .transfer import transfer, transfer_dump, transfer_load
@@ -136,7 +140,7 @@ def get_background(key=None):
 	if key is None:
 		return CosmoBackground
 	else:
-		if CosmoBackground.has_key(key):
+		if key in CosmoBackground:
 			return CosmoBackground.get(key)
 		else:
 			raise DarkAgesError('CosmoBackground has no key "{0}"'.format(key))
@@ -244,35 +248,41 @@ def set_logEnergies(logE):
 	global logEnergies
 	logEnergies = logE
 
-def _transfer_init_and_dump(transfer_functions):
-	for channel in channel_dict.keys():
+def _transfer_init_and_dump():
+	global transfer_functions
+	global transfer_functions_corr
+	for channel in list(channel_dict.keys()):
 		idx = channel_dict.get(channel)
 		transfer_functions[idx] = transfer(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/original/Transfer_Ch{:d}.dat'.format(idx+1)))
 		transfer_dump(transfer_functions[idx], os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/transfer_Ch{:d}.obj'.format(idx+1)))
-	return transfer_functions
+	transfer_functions_corr = transfer(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/original/Transfer_Corr.dat'))
+	transfer_dump(transfer_functions_corr, os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/transfer_Corr.obj'))
 
-def _transfer_load_from_dump(transfer_functions):
-	for channel in channel_dict.keys():
+def _transfer_load_from_dump():
+	global transfer_functions
+	global transfer_functions_corr
+	for channel in list(channel_dict.keys()):
 		idx = channel_dict.get(channel)
 		transfer_functions[idx] = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Ch{:d}.obj'.format(idx+1)) )
-	return transfer_functions
+	transfer_functions_corr = transfer_load( os.path.join(os.environ['DARKAGES_BASE'], 'transfer_functions/transfer_Corr.obj') )
 
 #################################
 
-if transfer_functions is None:
+if (transfer_functions is None) or (transfer_functions_corr is None):
 	transfer_functions = np.empty(shape=5, dtype=transfer)
 
 	transfer_is_initialized = True
-	for i in xrange(5):
+	for i in range(5):
 		transfer_is_initialized = transfer_is_initialized and os.path.isfile(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/transfer_Ch{:d}.obj'.format(i+1)))
+	transfer_is_initialized = transfer_is_initialized and os.path.isfile(os.path.join(os.environ['DARKAGES_BASE'],'transfer_functions/transfer_Corr.obj'))
 
 	if not transfer_is_initialized:
 		print_info('The transfer seem not to be initialized. This will be done now. this may take a few seconds.')
-		_transfer_init_and_dump(transfer_functions)
+		_transfer_init_and_dump()
 		print_info('The transfer functions are now initialized and loaded.\n')
 	else:
 		#print_info('The transfer functions are already initialized and loaded.\n')
-		_transfer_load_from_dump(transfer_functions)
+		_transfer_load_from_dump()
 	del transfer_is_initialized
 	del i
 

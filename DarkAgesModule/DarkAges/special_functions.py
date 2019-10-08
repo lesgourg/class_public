@@ -1,3 +1,5 @@
+from __future__ import absolute_import, division, print_function
+
 import numpy as np
 import os
 import sys
@@ -15,8 +17,14 @@ def secondaries_from_cirelli(logEnergies,mass,primary, **DarkOptions):
 	from .common import sample_spectrum
 	cirelli_dir = os.path.join(data_dir, 'cirelli')
 	dumpername = 'cirelli_spectrum_of_{:s}.obj'.format(primary)
-	if mass < 5 or mass > 1e5:
-		raise err('The spectra of Cirelli are only given in the range [5 GeV, 1e2 TeV]. The mass you entered ({:.2g} GeV) is not in that range.'.format(mass))
+
+	injection_history = DarkOptions.get("injection_history","annihilation")
+	if "decay" in injection_history:
+		equivalent_mass = mass/2.
+	else:
+		equivalent_mass = mass
+	if equivalent_mass < 5 or equivalent_mass > 1e5:
+		raise err('The spectra of Cirelli are only given in the range [5 GeV, 1e2 TeV] assuming DM annihilation. The equivalent mass for the given injection_history ({:.2g} GeV) is not in that range.'.format(equivalent_mass))
 
 	if not hasattr(logEnergies,'__len__'):
 		logEnergies = np.asarray([logEnergies])
@@ -39,8 +47,8 @@ def secondaries_from_cirelli(logEnergies,mass,primary, **DarkOptions):
 			interpolator = dump_dict.get('dNdLog10X_interpolator')
 			log10X = dump_dict.get('log10X')
 	del dump_dict
-	temp_log10E = log10X + np.log10(mass)*np.ones_like(log10X)
-	temp_el, temp_ph, temp_oth = interpolator.__call__(mass) / (10**temp_log10E * np.log(10))[None,:]
+	temp_log10E = log10X + np.log10(equivalent_mass)*np.ones_like(log10X)
+	temp_el, temp_ph, temp_oth = interpolator.__call__(equivalent_mass) / (10**temp_log10E * np.log(10))[None,:]
 	ret_spectra = np.empty(shape=(3,len(logEnergies)))
 	ret_spectra = sample_spectrum(temp_el, temp_ph, temp_oth, temp_log10E, mass, logEnergies, **DarkOptions)
 	return ret_spectra
@@ -86,7 +94,7 @@ def luminosity_accreting_bh(Energy,recipe,PBH_mass):
 		out = np.zeros_like(Energy)
 		Emin_mask = Energy > Emin
 		# Emax_mask = Ts > Energy
-	 	out[Emin_mask] = Energy[Emin_mask]**(-a)*np.exp(-Energy[Emin_mask]/Ts)
+		out[Emin_mask] = Energy[Emin_mask]**(-a)*np.exp(-Energy[Emin_mask]/Ts)
 		out[~Emin_mask] = 0.
 		# out[~Emax_mask] = 0.
 

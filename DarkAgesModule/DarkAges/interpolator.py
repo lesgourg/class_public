@@ -21,6 +21,9 @@ Contains the definition of the classes
 
 """
 
+from __future__ import absolute_import, division, print_function
+from builtins import map, range, object
+
 import numpy as np
 from scipy.interpolate import interp1d
 from .common import nan_clean
@@ -83,7 +86,7 @@ class logInterpolator(object):
 			self._only_one_point = False
 
 		func_copy = np.zeros_like(y, dtype=np.float64)
-		for idx in xrange(len(y)):
+		for idx in range(len(y)):
 			if (y[idx] < 0) or (y[idx] != y[idx]):
 				func_copy[idx] = np.nan
 				#func_copy[idx] = 0
@@ -265,7 +268,7 @@ class NDlogInterpolator(object):
 
 		out = np.vectorize(dummy, otypes=[np.ndarray]).__call__(xgrid)
 		try:
-			out = np.array(map(list, out), dtype=np.float64)
+			out = np.array(list(map(list, out)), dtype=np.float64)
 		except TypeError:
 			out = np.array(out, dtype=np.float64)
 		return out
@@ -315,7 +318,7 @@ class logLinearInterpolator(object):
 			self._only_one_point = False
 
 		func_copy = np.zeros_like(y, dtype=np.float64)
-		for idx in xrange(len(y)):
+		for idx in range(len(y)):
 			if (y[idx] <= 0) or (y[idx] != y[idx]):
 				func_copy[idx] = np.nan
 				#func_copy[idx] = 0

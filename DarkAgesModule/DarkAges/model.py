@@ -22,6 +22,9 @@ for the most common energy injection histories.
 
 """
 
+from __future__ import absolute_import, division, print_function
+from builtins import range, object
+
 from .transfer import transfer
 from .common import f_function
 from .__init__ import DarkAgesError, get_logEnergies, get_redshift, print_info
@@ -163,7 +166,7 @@ class annihilating_model(model):
 
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
 
-		norm_by = DarkOptions.get('normalize_spectrum_by','mass')
+		norm_by = DarkOptions.get('normalize_spectrum_by','energy_integral')
 		if norm_by == 'energy_integral':
 			from .common import trapz, logConversion
 			E = logConversion(logEnergies)
@@ -199,7 +202,7 @@ class annihilating_halos_model(model):
 
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
 
-		norm_by = DarkOptions.get('normalize_spectrum_by','mass')
+		norm_by = DarkOptions.get('normalize_spectrum_by','energy_integral')
 		if norm_by == 'energy_integral':
 			from .common import trapz, logConversion
 			E = logConversion(logEnergies)
@@ -275,7 +278,7 @@ class decaying_model(model):
 
 		tot_spec = ref_el_spec + ref_ph_spec + ref_oth_spec
 
-		norm_by = DarkOptions.get('normalize_spectrum_by','mass')
+		norm_by = DarkOptions.get('normalize_spectrum_by','energy_integral')
 		if norm_by == 'energy_integral':
 			from .common import trapz, logConversion
 			E = logConversion(logEnergies)
@@ -335,16 +338,28 @@ class evaporating_model(model):
 			redshift = get_redshift()
 
 		mass_at_z = PBH_mass_at_z(PBH_mass_ini, redshift=redshift, **DarkOptions)
+		dMdt_at_z = (-1)*np.vectorize(PBH_dMdt).__call__(mass_at_z[-1,:],np.ones_like(mass_at_z[0,:]))
+
 		E = logConversion(logEnergies)
 		E_sec = 1e-9*E
 		E_prim = 1e-9*E
 
+		# Total spectrum (for normalization)
+		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL', **DarkOptions)
+		del_E = np.zeros(redshift.shape, dtype=np.float64)
+		corr = np.ones(redshift.shape, dtype=np.float64)
+		for idx in range(del_E.shape[0]):
+			del_E[idx] = trapz(spec_all[:,idx]*E**2*np.log(10),(logEnergies))
+			if del_E[idx] > 0.0:
+				corr[idx] = dMdt_at_z[idx]/del_E[idx]
+		normalization = del_E*corr
+
 		# Primary spectra
-		prim_spec_el = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'electron', **DarkOptions)
-		prim_spec_ph = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'gamma', **DarkOptions)
-		prim_spec_muon = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'muon', **DarkOptions)
-		prim_spec_pi0 = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'pi0', **DarkOptions)
-		prim_spec_piCh = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'piCh', **DarkOptions)
+		prim_spec_el = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'electron', **DarkOptions)*corr[None,:]
+		prim_spec_ph = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'gamma', **DarkOptions)*corr[None,:]
+		prim_spec_muon = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'muon', **DarkOptions)*corr[None,:]
+		prim_spec_pi0 = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'pi0', **DarkOptions)*corr[None,:]
+		prim_spec_piCh = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'piCh', **DarkOptions)*corr[None,:]
 
 		# full spectra (including secondaries)
 		if include_secondaries:
@@ -373,13 +388,6 @@ class evaporating_model(model):
 		spec_ph += trapz((sec_from_piCh[:,:,None,1])*prim_spec_piCh[None,:,:],E_prim,axis=1)
 		spec_ph += trapz((sec_from_muon[:,:,None,1])*prim_spec_muon[None,:,:],E_prim,axis=1)
 		spec_ph = nan_clean(spec_ph)
-
-		# Total spectrum (for normalization)
-		spec_all = PBH_spectrum_at_m( mass_at_z[-1,:], logEnergies, 'ALL', **DarkOptions)
-		del_E = np.zeros(redshift.shape, dtype=np.float64)
-		for idx in xrange(del_E.shape[0]):
-			del_E[idx] = trapz(spec_all[:,idx]*E**2*np.log(10),(logEnergies))
-			normalization = del_E
 
 		model.__init__(self, spec_el, spec_ph, normalization, logEnergies,0)
 

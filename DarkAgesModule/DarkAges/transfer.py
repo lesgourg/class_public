@@ -11,6 +11,11 @@ Also contains methods to store (dump) an instance of this class in a file and
 to load them from this.
 """
 
+from __future__ import absolute_import, division, print_function
+from builtins import object
+from copy import deepcopy as _dcp
+
+
 import numpy as np
 import dill
 
@@ -43,12 +48,27 @@ class transfer(object):
 		self.transfer_phot = data[4].reshape(l1,l2,l3).astype(np.float64)
 		self.transfer_elec = data[3].reshape(l1,l2,l3).astype(np.float64)
 
+	def __add__(self,other):
+		returned_instance = _dcp(self)
+		returned_instance.transfer_elec += other.transfer_elec
+		returned_instance.transfer_phot += other.transfer_phot
+		return returned_instance
+
+	def __sub__(self,other):
+		return self + (-other)
+
 	def __neg__(self):
-		import copy
-		negself = copy.deepcopy(self)
+		negself = _dcp(self)
 		negself.transfer_phot = -self.transfer_phot
 		negself.transfer_elec = -self.transfer_elec
 		return negself
+
+	def __eq__(self,other):
+		same = (self.transfer_elec.shape == other.transfer_elec.shape)
+		if same:
+			same = same & np.all(self.transfer_elec == other.transfer_elec)
+			same = same & np.all(self.transfer_phot == other.transfer_phot)
+		return same
 
 def transfer_dump(transfer_instance, outfile):
 	u"""Stores a initialized instance of the :class:`transfer <DarkAges.transfer.transfer>`
@@ -99,10 +119,8 @@ def transfer_combine(*transfer_instances):
 		if not isinstance(single_transfer,transfer):
 			raise DarkAgesError('You did not include a proper instance of the class "transfer"')
 		if first_time_in_loop:
-			import copy
 			first_time_in_loop = False
-			transfer_to_return = copy.deepcopy(single_transfer)
+			transfer_to_return = _dcp(single_transfer)
 		else:
-			transfer_to_return.transfer_phot += single_transfer.transfer_phot
-			transfer_to_return.transfer_elec += single_transfer.transfer_elec
+			transfer_to_return += single_transfer
 	return transfer_to_return

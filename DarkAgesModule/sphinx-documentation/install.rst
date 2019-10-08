@@ -4,11 +4,12 @@ Installation Guide
 Prerequisites
 -------------
 
-For the use of the DarkAges package, you need a clean installation of Python_ (version 2.7)
-with the the numpy_ and the scipy_ module.
+For the use of the DarkAges package, you need a clean installation of Python_
+(version 2.7 or version 3.x) with the the numpy_ and the scipy_ module.
 
-.. warning:: Even though the code being written to be compatible with version 3.0,
-   the compatibility is not fully tested yet
+Since version 1.1.0 the code is compatible to work with both common major
+versions 2.7 and 3.x.
+To ensure upward compatibility the **future** package is required.
 
 In addition to this minimal setting you will need to have the following two
 packages to be installed
@@ -18,22 +19,12 @@ packages to be installed
   are stored in files and read again in later session rather to be recalculated every time,
   to save time
 
-To test for the presence of the modules **numpy**,  **scipy**,
-**dill**, **yaml** (PyYaml) on your machine, you can type
-
-.. code::
-
-   >>> import numpy
-   >>> import scipy
-   >>> import dill
-   >>> import yaml
-
-If one of these steps fails, go to the corresponding websites, and
-follow the instructions (if you have the privilege to have the root
-password on your machine, an `apt-get install python-numpy`,
-`python-scipy` and `cython` will do the trick. Otherwise, all these
-packages can also be downloaded and installed locally, with the
-command :code:`python setup.py install --user`).
+All requirements (if not already satisfied) can be installed via
+:code:`pip install -r requirements.txt`.
+In case you do not have administrator rights on the machine, add :code:`--user`
+to the command above to install the required packages locally.
+Please make sure that you are using the correct version of :code:`pip` if you
+have multiple installations of Python_ on your machine.
 
 Using the modules
 -----------------

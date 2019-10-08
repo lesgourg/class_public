@@ -19,7 +19,7 @@ def prepare():
 	model_dir = os.path.split(os.path.realpath(__file__))[0]
 	model_name =  model_dir.split('/')[-1]
 
-	primaries = np.array(['muon','bottom'], dtype=np.dtype('a32'))
+	primaries = np.array(['muon','bottom'], dtype=np.dtype('U32'))
 	#####
 
 	##### The idea of the 'model'-mode is to do the interpolation of the spectra once
