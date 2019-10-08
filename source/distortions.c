@@ -96,6 +96,7 @@ int distortions_free(struct distortions * psd) {
     free(psd->z);
     free(psd->z_weights);
     free(psd->x);
+    free(psd->x_weights);
 
     /** Delete noise file */
     if(psd->has_detector_file){
@@ -524,6 +525,18 @@ int distortions_get_xz_lists(struct precision * ppr,
     }
   }
 
+  /** Define and allocate integrating weights for x array */
+  class_alloc(psd->x_weights,
+              psd->x_size*sizeof(double),
+              psd->error_message);
+  class_call(array_trapezoidal_weights(
+                    psd->x,
+                    psd->x_size,
+                    psd->x_weights,
+                    psd->error_message),
+             psd->error_message,
+             psd->error_message);
+
   return _SUCCESS_;
 }
 
@@ -887,13 +900,21 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   psd->epsilon = 0.;
 
   if(psd->sd_branching_approx == bra_exact && psd->sd_PCA_size != 0){
+    class_call(array_trapezoidal_integral(psd->sd_shape_table[psd->index_type_g],
+                                          psd->x_size,
+                                          psd->x_weights,
+                                          &(sum_G),
+                                          psd->error_message),
+               psd->error_message,
+               psd->error_message);
     for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
-      sum_S = 0.;
-      sum_G = 0.;
-      for(index_x=0; index_x<psd->x_size; ++index_x){
-        sum_S += psd->sd_shape_table[psd->index_type_PCA+index_k][index_x];
-        sum_G += psd->sd_shape_table[psd->index_type_g][index_x];
-      }
+      class_call(array_trapezoidal_integral(psd->sd_shape_table[psd->index_type_PCA+index_k],
+                                            psd->x_size,
+                                            psd->x_weights,
+                                            &(sum_S),
+                                            psd->error_message),
+                 psd->error_message,
+                 psd->error_message);
       psd->epsilon += (4.*sum_S/sum_G)*psd->sd_parameter_table[psd->index_type_PCA+index_k];
     }
   }

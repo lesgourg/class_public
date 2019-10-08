@@ -73,6 +73,8 @@ struct distortions
   int x_size;                                /* Lenght of dimentionless frequency array */
   double * x;                                /* x[index_x] = list of values */
 
+  double * x_weights;
+
   /* Unit conversions */
   double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
   double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
