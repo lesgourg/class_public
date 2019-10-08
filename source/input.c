@@ -1470,45 +1470,190 @@ int input_read_parameters(
   class_test(pth->DM_mass<0.,errmsg,
     "You need to enter a 'DM_mass > 0. '");
 
-  class_test(pth->PBH_fraction>0 && pth->DM_mass>0,errmsg,"you cannot yet work with both PBH and DM annihilation or decay. Please choose one.")
-  class_test(pth->decay_fraction>0 && (pth->annihilation>0 || pth->annihilation_cross_section > 0),errmsg,"you cannot yet work with both DM annihilation and decay. Please choose one.")
+  class_test(pth->PBH_fraction>0 && pth->DM_mass>0,errmsg,
+    "You cannot yet work with both PBH and DM annihilation or decay. Please choose one. ")
+  class_test(pth->decay_fraction>0 && (pth->annihilation>0 || pth->annihilation_cross_section > 0),errmsg,
+    "You cannot yet work with both DM annihilation and decay. Please choose one. ")
 
-
-  class_test(pth->recombination==cosmorec && pth->PBH_accreting_mass!= 0.,
-               errmsg,
-               "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
-  class_test(pth->recombination==cosmorec && pth->PBH_evaporating_mass!= 0.,
-               errmsg,
-               "Effect of evaporating PBH cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
-  class_test(pth->recombination==cosmorec && pth->decay_fraction!= 0.,
-               errmsg,
-               "Effect of decaying DM cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
+  class_test(pth->recombination==cosmorec && pth->PBH_accreting_mass!= 0., errmsg,
+    "Effect of accreting PBH cannot yet be computed using cosmorec. Please, restart using recfast or hyrec. In the case you'd be using hyrec, only the 'on the spot' approximation is currently implemented.");
+  class_test(pth->recombination==cosmorec && pth->PBH_evaporating_mass!= 0.,errmsg,
+    "Effect of evaporating PBH cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
+  class_test(pth->recombination==cosmorec && pth->decay_fraction!= 0., errmsg,
+    "Effect of decaying DM cannot yet be computed using cosmorec. Please, restart in recfast or hyrec mode.");
   class_test(pth->PBH_ADAF_delta != 1e-3 && pth->PBH_ADAF_delta != 0.5  && pth->PBH_ADAF_delta != 0.1 ,errmsg,
-   "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
-  class_test(pth->annihilation>0. && pth->annihilation_cross_section >0.,errmsg,"You gave both boost factor and annihilation parameter, please enter only one.");
+    "The parameter 'pth->PBH_ADAF_delta' can currently only be set to 1e-3, 0.1 or 0.5.");
+  class_test(pth->annihilation>0. && pth->annihilation_cross_section >0.,errmsg,
+    "You gave both boost factor and annihilation parameter, please enter only one.");
+
   if(pth->DM_mass > 0 && pth->annihilation_cross_section >0.){
       double conversion = 1.78*pow(10,-21); // Conversion GeV => Kg
       class_test(pth->DM_mass<=0.,errmsg,
         "You need to enter a mass for your dark matter particle 'm_DM > 0.' (in GeV).");
       pth->annihilation = pth->annihilation_cross_section/(pth->DM_mass*conversion);
-      if(input_verbose > 0)fprintf(stdout,"You gave m_DM = %.2e and cross_section = %.2e. Your parameter annihilation = %.2e. \n",pth->DM_mass,pth->annihilation_cross_section, pth->annihilation);
+      if(input_verbose > 0)
+        fprintf(stdout,"You gave m_DM = %.2e and cross_section = %.2e. Your parameter annihilation = %.2e. \n",pth->DM_mass,pth->annihilation_cross_section, pth->annihilation);
   }
 
-
-
   if (pth->annihilation > 0.){
-
-  class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
-  class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
-
+    class_read_double("annihilation_f_halo",pth->annihilation_f_halo);
+    class_read_double("annihilation_z_halo",pth->annihilation_z_halo);
   }
 
   /** - Relevant parameters in case of exotic energy injection */
   if(pth->annihilation>0. || pth->decay_fraction>0. || pth->PBH_accreting_mass > 0. || pth->PBH_evaporating_mass > 0.){
 
+  class_call(parser_read_string(pfc,
+                                "on the spot",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+             errmsg,
+             errmsg);
 
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pth->has_on_the_spot = _TRUE_;
+    }
+    else {
+      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        pth->has_on_the_spot = _FALSE_;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+      }
+    }
+  }
+
+  class_call(parser_read_string(pfc,"energy_repartition_coefficient",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  if (flag1 == _TRUE_){
+    flag2 = _FALSE_;
+    if (strcmp(string1,"SSCK") == 0) {
+      pth->energy_repart_coefficient=SSCK;
+      flag2=_TRUE_;
+    }
+    else if (strcmp(string1,"GSVI") == 0) {
+      pth->energy_repart_coefficient=GSVI;
+      flag2=_TRUE_;
+    }
+    else if (strcmp(string1,"from_file") == 0) {
+      pth->energy_repart_coefficient=chi_from_file;
+      class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+      if (flag1 == _TRUE_){
+        class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
+      }
+      else {
+        class_test(flag1==_FALSE_,errmsg,
+          "You have forgotten to specify the file to the energy repartition functions. ");
+      }
+      flag2=_TRUE_;
+    }
+    else if (strcmp(string1,"no_factorization") == 0) {
+      pth->energy_repart_coefficient=no_factorization;
+      flag2=_TRUE_;
+    }
+    class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_coefficient  == no_factorization,errmsg,
+      "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
+
+    class_test(flag2==_FALSE_,errmsg,
+      "Could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
+  }
+
+  if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
+    fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
+    pth->has_on_the_spot = _FALSE_;
+  }
+
+  class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  class_call(parser_read_string(pfc,"energy_deposition_function",&string1,&flag2,errmsg),
+            errmsg,
+            errmsg);
+
+  class_test(flag1 == _TRUE_ && flag2 == _TRUE_,errmsg,
+    "You have both f_eff and energy_deposition_function defined, please specify only of them. ")
+
+  if(flag1 == _TRUE_){
+    pth->f_eff = param1;
+    pth->has_on_the_spot = _TRUE_;
+  }
+
+  if (flag2 == _TRUE_){
+    flag3 = _FALSE_;
+    if (strcmp(string1,"Analytical_approximation") == 0) {
+      pth->energy_deposition_function=Analytical_approximation;
+      flag3=_TRUE_;
+    }
+    if (strcmp(string1,"DarkAges") == 0) {
+      pth->energy_deposition_function=DarkAges;
+      pth->energy_repart_coefficient = no_factorization;
+      pth->has_on_the_spot = _FALSE_;
+      flag3=_TRUE_;
+    }
+    if (strcmp(string1,"from_file") == 0) {
+      pth->energy_deposition_function=function_from_file;
+      class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
+        errmsg,
+        errmsg);
+        if (flag1 == _TRUE_ && pth->energy_repart_coefficient == no_factorization){
+          class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
+        }
+        else if (flag1 == _TRUE_ && pth->energy_repart_coefficient != no_factorization){
+          class_read_string("energy deposition function file",ppr->energy_injec_f_eff_file);
+        }
+        else {
+          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy deposition function. Please, do so with energy deposition function file = path_to_a_file.");
+        }
+        flag3=_TRUE_;
+    }
+    if (strcmp(string1,"No_deposition") == 0) {
+      pth->energy_deposition_function=No_deposition;
+      flag3=_TRUE_;
+    }
+
+    class_test(flag3==_FALSE_, errmsg,
+      "Could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
+  }
+
+  class_test(pth->has_on_the_spot == _TRUE_ && pth->f_eff == 0,errmsg,
+    "You have 'on the spot = yes' but you did not give a value to f_eff. Please adjust your param file.")
+
+  class_test(pth->has_on_the_spot == _FALSE_ && flag2 == _FALSE_,errmsg,
+    "You have one of pth->PBH_fraction>0 ||pth->annihilation > 0 || pth->decay_fraction > 0 and on the spot = no but you have not specified energy_deposition_function. Please choose one of 'Analytical_approximation', 'DarkAges', 'from_file', 'no_deposition'.");
+
+  class_call(parser_read_string(pfc,
+                                "reio_stars_and_dark_matter",
+                                &(string1),
+                                &(flag1),
+                                errmsg),
+           errmsg,
+           errmsg);
+
+  if (flag1 == _TRUE_) {
+    if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
+      pth->reio_stars_and_dark_matter = _TRUE_;
+    }
+    else {
+      if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
+        pth->reio_stars_and_dark_matter = _FALSE_;
+        pth->reio_parametrization=reio_none;
+      }
+      else {
+        class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
+      }
+    }
+  }
+
+  if(pth->energy_deposition_function==DarkAges){
     class_call(parser_read_string(pfc,
-                                  "on the spot",
+                                  "print_energy_deposition_function",
                                   &(string1),
                                   &(flag1),
                                   errmsg),
@@ -1517,315 +1662,136 @@ int input_read_parameters(
 
     if (flag1 == _TRUE_) {
       if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-        pth->has_on_the_spot = _TRUE_;
+        pth->print_energy_deposition_function = _TRUE_;
       }
       else {
         if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-          pth->has_on_the_spot = _FALSE_;
+          pth->print_energy_deposition_function = _FALSE_;
         }
         else {
-          class_stop(errmsg,"incomprehensible input '%s' for the field 'on the spot'",string1);
+          class_stop(errmsg,"incomprehensible input '%s' for the field 'print_energy_deposition_function'",string1);
         }
       }
     }
 
-
-    class_call(parser_read_string(pfc,"energy_repartition_coefficient",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"DarkAges_mode",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
+
     if (flag1 == _TRUE_){
       flag2 = _FALSE_;
-      if (strcmp(string1,"SSCK") == 0) {
-        pth->energy_repart_coefficient=SSCK;
+      /**
+       * If an DarkAgesModule command is passed, we automatically set parameters to their required values.
+       **/
+       pth->energy_repart_coefficient = no_factorization;
+       pth->has_on_the_spot = _FALSE_;
+
+      if (strcmp(string1,"built_in") == 0) {
         flag2=_TRUE_;
-      }
-      else if (strcmp(string1,"GSVI") == 0) {
-        pth->energy_repart_coefficient=GSVI;
-        flag2=_TRUE_;
-      }
-      else if (strcmp(string1,"from_file") == 0) {
-        pth->energy_repart_coefficient=chi_from_file;
-        class_call(parser_read_string(pfc,"energy repartition coefficient file",&string1,&flag1,errmsg),
-                   errmsg,
-                   errmsg);
-        if (flag1 == _TRUE_){
-          class_read_string("energy repartition coefficient file",ppr->energy_injec_coeff_file);
+        sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
+        strcat(ppr->command_fz, "python ");
+        strcat(ppr->command_fz,__CLASSDIR__);
+
+        /* Check first if injection history is standard and already implemented */
+
+        /* Automatic comand for annihialtion without halo boost*/
+        if(pth->annihilation > 0 && pth->annihilation_f_halo == 0){
+          strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation --spectrum ");
+          sprintf(string2,"");
+          class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          strcat(ppr->command_fz,string2);
+          class_test(strcmp(string2,"") == 0,errmsg,
+            "The field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n");
+          strcat(ppr->command_fz," --branching ");
+          sprintf(string2,"");
+          class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          strcat(ppr->command_fz,string2);
+          class_test(strcmp(string2,"") == 0,errmsg,
+            "The field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n");
+          strcat(ppr->command_fz," --mass=");
+          sprintf(string2,"%g",pth->DM_mass);
+          strcat(ppr->command_fz,string2);
         }
-        else {
-          class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy repartition functions.");
+
+        /* Automatic comand for annihialtion with halo boost*/
+        else if(pth->annihilation > 0 && pth->annihilation_f_halo > 0){
+          strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation_halos --spectrum ");
+          sprintf(string2,"");
+          class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          strcat(ppr->command_fz,string2);
+          class_test(strcmp(string2,"") == 0,errmsg,
+            "The field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n");
+          strcat(ppr->command_fz," --branching ");
+          sprintf(string2,"");
+          class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          strcat(ppr->command_fz,string2);
+          class_test(strcmp(string2,"") == 0,errmsg,
+            "The field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n");
+          strcat(ppr->command_fz," --mass=");
+          sprintf(string2,"%g",pth->DM_mass);
+          strcat(ppr->command_fz,string2);
+          strcat(ppr->command_fz," --fh=");
+          sprintf(string2,"%g",pth->annihilation_f_halo);
+          strcat(ppr->command_fz,string2);
+          strcat(ppr->command_fz," --zh=");
+          sprintf(string2,"%g",pth->annihilation_z_halo);
+          strcat(ppr->command_fz,string2);
         }
-        flag2=_TRUE_;
-      }
-      else if (strcmp(string1,"no_factorization") == 0) {
-        pth->energy_repart_coefficient=no_factorization;
-        flag2=_TRUE_;
-      }
-      class_test(pth->has_on_the_spot == _TRUE_ && pth->energy_repart_coefficient  == no_factorization,errmsg,
-        "You cannot work in the 'on the spot' approximation if you choose to not factorize the energy deposition functions from the repartition functions. Please restart and either change the energy repartition functions or work beyond the on the spot treatment.\n");
 
-    class_test(flag2==_FALSE_,
-                 errmsg,
-                 "could not identify energy repartition functions, check that it is one of 'SSCK', 'GSVI', no_factorization'");
-    }
-
-
-    if(pth->has_on_the_spot == _TRUE_ && pth->annihilation_f_halo > 0.){
-      fprintf(stdout,"You cannot work in the 'on the spot' approximation with dark matter halos formation. Condition 'has_on_the_spot' will be set to 'no' automatically.\n");
-      pth->has_on_the_spot = _FALSE_;
-    }
-
-    class_call(parser_read_double(pfc,"f_eff",&param1,&flag1,errmsg),
-               errmsg,
-               errmsg);
-
-    class_call(parser_read_string(pfc,"energy_deposition_function",&string1,&flag2,errmsg),
-              errmsg,
-              errmsg);
-
-    class_test(flag1 == _TRUE_ && flag2 == _TRUE_,errmsg,"you have both f_eff and energy_deposition_function defined, please specify only of them.")
-
-    if(flag1 == _TRUE_){
-      pth->f_eff = param1;
-      pth->has_on_the_spot = _TRUE_;
-    }
-
-    if (flag2 == _TRUE_){
-      flag3 = _FALSE_;
-      if (strcmp(string1,"Analytical_approximation") == 0) {
-	pth->energy_deposition_function=Analytical_approximation;
-	flag3=_TRUE_;
-      }
-      if (strcmp(string1,"DarkAges") == 0) {
-	pth->energy_deposition_function=DarkAges;
-        pth->energy_repart_coefficient = no_factorization;
-        pth->has_on_the_spot = _FALSE_;
-	flag3=_TRUE_;
-      }
-      if (strcmp(string1,"from_file") == 0) {
-	pth->energy_deposition_function=function_from_file;
-	class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
-		   errmsg,
-		   errmsg);
-	if (flag1 == _TRUE_ && pth->energy_repart_coefficient == no_factorization){
-	  class_read_string("energy deposition function file",ppr->energy_injec_coeff_file);
-	}
-	else if (flag1 == _TRUE_ && pth->energy_repart_coefficient != no_factorization){
-	  class_read_string("energy deposition function file",ppr->energy_injec_f_eff_file);
-	}
-	else {
-	  class_test(flag1==_FALSE_,errmsg,"you have forgotten to specify the file to the energy deposition function. Please, do so with energy deposition function file = path_to_a_file.");
-	}
-	flag3=_TRUE_;
-      }
-      if (strcmp(string1,"No_deposition") == 0) {
-	pth->energy_deposition_function=No_deposition;
-	flag3=_TRUE_;
-      }
-      class_test(flag3==_FALSE_,
-		 errmsg,
-		 "could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
-    }
-
-    class_test(pth->has_on_the_spot == _TRUE_ && pth->f_eff == 0,errmsg,"you have 'on the spot = yes' but you did not give a value to f_eff. Please adjust your param file.")
-
-     class_test(pth->has_on_the_spot == _FALSE_ && flag2 == _FALSE_,errmsg,"You have one of pth->PBH_fraction>0 ||pth->annihilation > 0 || pth->decay_fraction > 0 and on the spot = no but you have not specified energy_deposition_function. Please choose one of 'Analytical_approximation', 'DarkAges', 'from_file', 'no_deposition'.");
-
-
-
-
-
-
-      class_call(parser_read_string(pfc,
-                                    "reio_stars_and_dark_matter",
-                                    &(string1),
-                                    &(flag1),
-                                    errmsg),
-                 errmsg,
-                 errmsg);
-
-      if (flag1 == _TRUE_) {
-        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-          pth->reio_stars_and_dark_matter = _TRUE_;
+        /* Automatic command for PBH evaporation */
+        else if(pth->PBH_evaporating_mass > 0){
+          strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=evaporating_PBH --mass=");
+          sprintf(string2,"%g",pth->PBH_evaporating_mass);
+          strcat(ppr->command_fz,string2);
         }
-        else {
-          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-            pth->reio_stars_and_dark_matter = _FALSE_;
-            pth->reio_parametrization=reio_none;
-          }
-          else {
-            class_stop(errmsg,"incomprehensible input '%s' for the field 'reio_stars_and_dark_matter'",string1);
-          }
+
+        /* Automatic command for PBH accretion */
+        else if (pth->PBH_accreting_mass > 0){
+          strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=accreting_PBH --mass=");
+          sprintf(string2,"%g",pth->PBH_accreting_mass);
+          strcat(ppr->command_fz,string2);
+          if(pth->PBH_accretion_recipe==spherical_accretion)
+            strcat(ppr->command_fz," --accretion_recipe=spherical_accretion");
+          else if(pth->PBH_accretion_recipe==disk_accretion)
+            strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
+          strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
         }
-      }
 
-
-
-    /* BEGIN: Set all the DarkAges module options */
-    if(pth->energy_deposition_function==DarkAges){
-      class_call(parser_read_string(pfc,
-                                    "print_energy_deposition_function",
-                                    &(string1),
-                                    &(flag1),
-                                    errmsg),
-                 errmsg,
-                 errmsg);
-
-      if (flag1 == _TRUE_) {
-        if ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL)) {
-          pth->print_energy_deposition_function = _TRUE_;
+        /* Automatic command for decaying dark matter */
+        else if(pth->decay_fraction > 0){
+          strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=decay --spectrum ");
+          sprintf(string2,"");
+          class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          strcat(ppr->command_fz,string2);
+          class_test(strcmp(string2,"") == 0,errmsg,
+            "The field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n");
+          class_test(pth->DM_mass <= 0.,errmsg,
+            "When using DarkAges for decaying dark matter you need to specify the mass, such that the right refernce spectrum can be taken. Please revise your input and include an entry for 'DM_mass'");
+          strcat(ppr->command_fz," --mass=");
+          sprintf(string2,"%g",pth->DM_mass);
+          strcat(ppr->command_fz,string2);
+          strcat(ppr->command_fz," --branching ");
+          sprintf(string2,"");
+          class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
+                     errmsg,
+                     errmsg);
+          strcat(ppr->command_fz,string2);
+          class_test(strcmp(string2,"") == 0,errmsg,
+            "The field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n");
+          strcat(ppr->command_fz," --tdec=");
+          sprintf(string2,"%g",pba->tau_dcdm);
+          strcat(ppr->command_fz,string2);
         }
-        else {
-          if ((strstr(string1,"n") != NULL) || (strstr(string1,"N") != NULL)) {
-            pth->print_energy_deposition_function = _FALSE_;
-          }
-          else {
-            class_stop(errmsg,"incomprehensible input '%s' for the field 'print_energy_deposition_function'",string1);
-          }
-        }
-      }
-
-
-
-
-
-      class_call(parser_read_string(pfc,"DarkAges_mode",&string1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-
-      if (flag1 == _TRUE_){
-        flag2 = _FALSE_;
-        /**
-        * If an DarkAgesModule command is passed, we automatically set parameters to their required values.
-        **/
-        pth->energy_repart_coefficient = no_factorization;
-        pth->has_on_the_spot = _FALSE_;
-
-        if (strcmp(string1,"built_in") == 0) {
-          flag2=_TRUE_;
-          sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
-          strcat(ppr->command_fz, "python ");
-          strcat(ppr->command_fz,__CLASSDIR__);
-
-            /* Check first if injection history is standard and already implemented */
-
-            if(pth->annihilation > 0 && pth->annihilation_f_halo == 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation --spectrum ");
-              sprintf(string2,"");
-              class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              strcat(ppr->command_fz,string2);
-              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n");
-              strcat(ppr->command_fz," --branching ");
-              sprintf(string2,"");
-              class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              strcat(ppr->command_fz,string2);
-              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n");
-              strcat(ppr->command_fz," --mass=");
-              sprintf(string2,"%g",pth->DM_mass);
-              strcat(ppr->command_fz,string2);
-
-            }
-            else if(pth->annihilation > 0 && pth->annihilation_f_halo > 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=annihilation_halos --spectrum ");
-              sprintf(string2,"");
-              class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              strcat(ppr->command_fz,string2);
-              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n");
-              strcat(ppr->command_fz," --branching ");
-              sprintf(string2,"");
-              class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              strcat(ppr->command_fz,string2);
-              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n");
-              strcat(ppr->command_fz," --mass=");
-              sprintf(string2,"%g",pth->DM_mass);
-              strcat(ppr->command_fz,string2);
-              strcat(ppr->command_fz," --fh=");
-              sprintf(string2,"%g",pth->annihilation_f_halo);
-              strcat(ppr->command_fz,string2);
-              strcat(ppr->command_fz," --zh=");
-              sprintf(string2,"%g",pth->annihilation_z_halo);
-              strcat(ppr->command_fz,string2);
-            }
-
-            /* For PBH evaporation history: automatic command */
-            else if(pth->PBH_evaporating_mass > 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=evaporating_PBH --mass=");
-              sprintf(string2,"%g",pth->PBH_evaporating_mass);
-              strcat(ppr->command_fz,string2);
-            }
-            else if (pth->PBH_accreting_mass > 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=accreting_PBH --mass=");
-              sprintf(string2,"%g",pth->PBH_accreting_mass);
-              strcat(ppr->command_fz,string2);
-              if(pth->PBH_accretion_recipe==spherical_accretion)
-                strcat(ppr->command_fz," --accretion_recipe=spherical_accretion");
-              else if(pth->PBH_accretion_recipe==disk_accretion)
-                strcat(ppr->command_fz," --accretion_recipe=disk_accretion");
-              strcat(ppr->command_fz," --Log10Emin=0 --Log10Emax=5.5 --nbins_table=20");
-            }
-            else if(pth->decay_fraction > 0){
-              strcat(ppr->command_fz,"/DarkAgesModule/bin/DarkAges --hist=decay --spectrum ");
-              sprintf(string2,"");
-              class_call(parser_read_string(pfc,"injected_particle_spectra",&string2,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              strcat(ppr->command_fz,string2);
-              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_spectra is empty!! you need to give either:\ni) the name of a file in which to get the spectrum\nii) a list of the following keywords ['electron','muon','tau','quark','charm','bottom','top','wboson','zboson','gluon','photon','higgs','dirac_electron','dirac_photon'] with a SPACE (no comas) between each word.\n");
-	      class_test(pth->DM_mass <= 0.,errmsg,"When using DarkAges for decaying dark matter you need to specify the mass, such that the right refernce spectrum can be taken. Please revise your input and include an entry for 'DM_mass'");
-              strcat(ppr->command_fz," --mass=");
-              sprintf(string2,"%g",pth->DM_mass);
-              strcat(ppr->command_fz,string2);
-              strcat(ppr->command_fz," --branching ");
-              sprintf(string2,"");
-              class_call(parser_read_string(pfc,"injected_particle_branching_ratio",&string2,&flag1,errmsg),
-                         errmsg,
-                         errmsg);
-              strcat(ppr->command_fz,string2);
-              class_test(strcmp(string2,"") == 0,errmsg,"the field injected_particle_branching_ratio is empty!! You need to give a list of number (<=1) (as many as there are injected particles) with a SPACE (no comas) between each of them. The sum MUST add to 1.\n");
-              strcat(ppr->command_fz," --tdec=");
-              sprintf(string2,"%g",pba->tau_dcdm);
-              strcat(ppr->command_fz,string2);
-            }
-
-            class_call(parser_read_string(pfc,
-                                        "YAML file",
-                                        &(string2),
-                                        &(flag3),
-                                        errmsg),
-                                        errmsg,
-                                        errmsg);
-
-              if(flag3 == _TRUE_){
-                  strcat(ppr->command_fz," --extra-options=");
-                  strcat(ppr->command_fz,string2);
-              }
-        }
-        /* If the story is not implemented */
-        /* Reading the input parameter for the external command */
-        else if (strcmp(string1,"user_command") == 0){
-            flag2=_TRUE_;
-	    sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
-
-            class_call( parser_read_string(pfc,"DarkAges_command",&string2,&flag2,errmsg), errmsg, errmsg);
-          	class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
-          	strcat(ppr->command_fz, string2);
-            /** An arbitrary number of external parameters to be used by the external command
-               */
-            class_read_double("DarkAges_par1",ppr->param_fz_1);
-            class_read_double("DarkAges_par2",ppr->param_fz_2);
-            class_read_double("DarkAges_par3",ppr->param_fz_3);
-            class_read_double("DarkAges_par4",ppr->param_fz_4);
-            class_read_double("DarkAges_par5",ppr->param_fz_5);
-
-  	  sprintf(string2, " %g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
-      strcat(ppr->command_fz,string2);
 
         class_call(parser_read_string(pfc,
                                     "YAML file",
@@ -1835,34 +1801,53 @@ int input_read_parameters(
                                     errmsg,
                                     errmsg);
 
-          if(flag3 == _TRUE_){
-              strcat(ppr->command_fz," --extra-options=");
-              strcat(ppr->command_fz,string2);
-          }
+        if(flag3 == _TRUE_){
+            strcat(ppr->command_fz," --extra-options=");
+            strcat(ppr->command_fz,string2);
         }
-
-
-        class_test(flag2==_FALSE_,
-                         errmsg,
-                         "could not identify DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
       }
-      else{
-        class_test(flag1==_FALSE_,
-                         errmsg,
-                         "You did not precise DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
+
+      /* If the story is not implemented */
+      /* Reading the input parameter for the external command */
+      else if (strcmp(string1,"user_command") == 0){
+        flag2=_TRUE_;
+        sprintf(ppr->command_fz,""); //Start by reseting previous command, useful in context of MCMC with MontePython.
+
+        class_call( parser_read_string(pfc,"DarkAges_command",&string2,&flag2,errmsg), errmsg, errmsg);
+        class_test(strlen(string2) == 0, errmsg, "You omitted to write a command to calculate the f(z) externally");
+        strcat(ppr->command_fz, string2);
+        /** An arbitrary number of external parameters to be used by the external command */
+        class_read_double("DarkAges_par1",ppr->param_fz_1);
+        class_read_double("DarkAges_par2",ppr->param_fz_2);
+        class_read_double("DarkAges_par3",ppr->param_fz_3);
+        class_read_double("DarkAges_par4",ppr->param_fz_4);
+        class_read_double("DarkAges_par5",ppr->param_fz_5);
+
+        sprintf(string2, " %g %g %g %g %g", ppr->param_fz_1, ppr->param_fz_2, ppr->param_fz_3, ppr->param_fz_4, ppr->param_fz_5);
+        strcat(ppr->command_fz,string2);
+
+        class_call(parser_read_string(pfc,
+                                    "YAML file",
+                                    &(string2),
+                                    &(flag3),
+                                    errmsg),
+                                    errmsg,
+                                    errmsg);
+
+        if(flag3 == _TRUE_){
+          strcat(ppr->command_fz," --extra-options=");
+          strcat(ppr->command_fz,string2);
+        }
       }
+
+      class_test(flag2==_FALSE_,errmsg,
+        "Could not identify DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
     }
-    // else if (strcmp(string1,"from_file") == 0){
-    //   flag2=_TRUE_;
-    //   ppr->fz_is_extern=_FALSE_;
-    // }
-
-
-
-
-      /* END */
-
-
+    else{
+      class_test(flag1==_FALSE_, errmsg,
+        "You did not precise DarkAges_mode, check that it is either 'built_in' or 'user_command'.");
+    }
+  }
 }
 
 /** Tables specific to evaporating PBH */
@@ -1874,9 +1859,6 @@ if(pth->PBH_evaporating_mass > 0.){
   pth->PBH_table_F = NULL;
   pth->PBH_table_F_dd = NULL;
 }
-
-
-
 
   class_call(parser_read_string(pfc,
                                 "compute damping scale",
