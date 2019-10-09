@@ -223,8 +223,9 @@ struct background
   //@{
 
   int bt_size;               /**< number of lines (i.e. time-steps) in the array */
-  double * tau_table;        /**< vector tau_table[index_tau] with values of \f$ \tau \f$ (conformal time) */
-  double * z_table;          /**< vector z_table[index_tau] with values of \f$ z \f$ (redshift) */
+  double * loga_table;       /**< vector loga_table[index_loga] with values of \f$ log(a/a0) \f$ (logarithm of relative scale factor compared to today) */
+  double * tau_table;        /**< vector tau_table[index_loga] with values of \f$ \tau \f$ (conformal time) */
+  double * z_table;          /**< vector z_table[index_loga] with values of \f$ z \f$ (redshift) */
   double * background_table; /**< table background_table[index_tau*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
 
   //@}
@@ -233,8 +234,9 @@ struct background
 
   //@{
 
-  double * d2tau_dz2_table; /**< vector d2tau_dz2_table[index_tau] with values of \f$ d^2 \tau / dz^2 \f$ (conformal time) */
-  double * d2background_dtau2_table; /**< table d2background_dtau2_table[index_tau*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\tau^2 \f$ (conformal time) */
+  double * d2tau_dz2_table; /**< vector d2tau_dz2_table[index_loga] with values of \f$ d^2 \tau / dz^2 \f$ (conformal time) */
+  double * d2z_dtau2_table; /**< vector d2z_dtau2_table[index_loga] with values of \f$ d^2 z / d\tau^2 \f$ (conformal time) */
+  double * d2background_dloga2_table; /**< table d2background_dtau2_table[index_loga*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\log(a)^2 \f$ */
 
   //@}
 
@@ -252,7 +254,6 @@ struct background
 
   //@{
 
-  int index_bi_a;       /**< {B} scale factor */
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
@@ -402,9 +403,24 @@ extern "C" {
                           double z,
                           double * tau
                           );
+  int background_at_a(
+			struct background *pba,
+			double a_rel,
+			short return_format,
+			short inter_mode,
+			int * last_index,
+			double * pvecback
+			);
+
+  int background_z_of_tau(
+                          struct background *pba,
+                          double tau,
+                          double * z
+                          );
 
   int background_functions(
 			   struct background *pba,
+         double a_rel,
 			   double * pvecback_B,
 			   short return_format,
 			   double * pvecback
@@ -476,22 +492,45 @@ extern "C" {
 					int species
 				    );
 
+  int background_info(
+                     struct background *pba,
+                     struct precision * ppr
+                     );
+
   int background_solve(
 		       struct precision *ppr,
 		       struct background *pba
 		       );
 
+  int background_sources(
+                         double loga,
+                         double * y,
+                         double * dy,
+                         int index_loga,
+                         void * parameters_and_workspace,
+                         ErrorMsg error_message
+                         );
+
+  int background_timescale(
+                          double loga,
+                          void * parameters_and_workspace,
+                          double * timescale,
+                          ErrorMsg error_message
+                          );
+
   int background_initial_conditions(
 				    struct precision *ppr,
 				    struct background *pba,
 				    double * pvecback,
-				    double * pvecback_integration
+				    double * pvecback_integration,
+            double * loga_ini
 				    );
 
   int background_find_equality(
                                struct precision *ppr,
                                struct background *pba
                                );
+
 
   int background_output_titles(struct background * pba,
                                char titles[_MAXTITLESTRINGLENGTH_]
@@ -502,8 +541,8 @@ extern "C" {
                            int number_of_titles,
                            double *data);
 
-  int background_derivs(
-			 double z,
+  int background_derivs_loga(
+			 double loga,
 			 double * y,
 			 double * dy,
 			 void * parameters_and_workspace,
