@@ -1597,7 +1597,12 @@ int input_read_parameters(
       pth->has_on_the_spot = _FALSE_;
       flag3=_TRUE_;
     }
-    if (strcmp(string1,"from_file") == 0) {
+    if (strcmp(string1,"DarkAges_f_eff") == 0) {
+      pth->energy_deposition_function=DarkAges;
+      pth->has_on_the_spot = _FALSE_;
+      flag3=_TRUE_;
+    }
+    if (strcmp(string1,"from_file") == 0 ) {
       pth->energy_deposition_function=function_from_file;
       class_call(parser_read_string(pfc,"energy deposition function file",&string1,&flag1,errmsg),
         errmsg,
@@ -1619,7 +1624,7 @@ int input_read_parameters(
     }
 
     class_test(flag3==_FALSE_, errmsg,
-      "Could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','from_file','No_deposition'.");
+      "Could not identify energy_deposition_function, check that it is one of 'Analytical_approximation', 'DarkAges','DarkAges_f_eff','from_file','No_deposition'.");
   }
 
   class_test(pth->has_on_the_spot == _TRUE_ && pth->f_eff == 0,errmsg,
@@ -1680,11 +1685,10 @@ int input_read_parameters(
 
     if (flag1 == _TRUE_){
       flag2 = _FALSE_;
-      /**
-       * If an DarkAgesModule command is passed, we automatically set parameters to their required values.
-       **/
-       pth->energy_repart_coefficient = no_factorization;
-       pth->has_on_the_spot = _FALSE_;
+      /*
+       If an DarkAgesModule command is passed, we are automatically "beyond on-the-spot".
+      */
+      pth->has_on_the_spot = _FALSE_;
 
       if (strcmp(string1,"built_in") == 0) {
         flag2=_TRUE_;
@@ -1805,6 +1809,13 @@ int input_read_parameters(
             strcat(ppr->command_fz," --extra-options=");
             strcat(ppr->command_fz,string2);
         }
+
+        /* If we use DarkAges and "pth->energy_repart_coefficient" is not set
+           to "no_factorization", we need to tell DarkAges to return a compressed
+           table which only contains f(z) instead of f_c(z) */
+        if(pth->energy_repart_coefficient != no_factorization){
+          strcat(ppr->command_fz," --return_f_eff_table");
+        }
       }
 
       /* If the story is not implemented */
@@ -1837,6 +1848,13 @@ int input_read_parameters(
         if(flag3 == _TRUE_){
           strcat(ppr->command_fz," --extra-options=");
           strcat(ppr->command_fz,string2);
+        }
+
+        /* If we use DarkAges and "pth->energy_repart_coefficient" is not set
+           to "no_factorization", we need to tell DarkAges to return a compressed
+           table which only contains f(z) instead of f_c(z) */
+        if(pth->energy_repart_coefficient != no_factorization){
+          strcat(ppr->command_fz," --return_f_eff_table");
         }
       }
 

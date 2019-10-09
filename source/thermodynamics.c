@@ -337,9 +337,17 @@ int thermodynamics_init(
     }
 
     if(pth->has_on_the_spot==_FALSE_ && pth->energy_repart_coefficient!=no_factorization){
-      class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,preco),
-                 preco->error_message,
-                 preco->error_message);
+      class_call(thermodynamics_annihilation_f_eff_init(ppr,pba,pth,preco),
+                 pth->error_message,
+                 pth->error_message);
+      // If we used DarkAges in the f_eff mode in the function above, there is now no conceptual
+      // difference to the scenario when we just had obtained this table from a file.
+      // To avoid modifying a lot of if()-clasues in the rest of the code, we adjust
+      // pth->energy_deposition_function and preco->energy_deposition_function
+      // as if this table was read from file.
+      if (pth->energy_deposition_function == DarkAges) {
+        pth->energy_deposition_function = function_from_file;
+      }
     }
   }
 
@@ -1404,7 +1412,7 @@ int thermodynamics_annihilation_coefficients_init(
 
   /* spline in one dimension */
   class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
+                                      pth->annihil_coef_num_lines,
                                       pth->annihil_coef_heat,
                                       1,
                                       pth->annihil_coef_dd_heat,
@@ -1414,7 +1422,7 @@ int thermodynamics_annihilation_coefficients_init(
              pth->error_message);
 
   class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
+                                      pth->annihil_coef_num_lines,
                                       pth->annihil_coef_lya,
                                       1,
                                       pth->annihil_coef_dd_lya,
@@ -1424,7 +1432,7 @@ int thermodynamics_annihilation_coefficients_init(
              pth->error_message);
 
   class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
+                                      pth->annihil_coef_num_lines,
                                       pth->annihil_coef_ionH,
                                       1,
                                       pth->annihil_coef_dd_ionH,
@@ -1433,7 +1441,7 @@ int thermodynamics_annihilation_coefficients_init(
              pth->error_message,
              pth->error_message);
   class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                     num_lines,
+                                     pth->annihil_coef_num_lines,
                                      pth->annihil_coef_ionHe,
                                      1,
                                      pth->annihil_coef_dd_ionHe,
@@ -1442,7 +1450,7 @@ int thermodynamics_annihilation_coefficients_init(
               pth->error_message,
               pth->error_message);
   class_call(array_spline_table_lines(pth->annihil_coef_xe,
-                                      num_lines,
+                                      pth->annihil_coef_num_lines,
                                       pth->annihil_coef_lowE,
                                       1,
                                       pth->annihil_coef_dd_lowE,
@@ -1566,6 +1574,7 @@ int thermodynamics_annihilation_coefficients_free(
 int thermodynamics_annihilation_f_eff_init(
                                                   struct precision * ppr,
                                                   struct background * pba,
+                                                  struct thermo * pth,
                                                   struct recombination * preco
                                                   ) {
 
@@ -1578,12 +1587,21 @@ int thermodynamics_annihilation_f_eff_init(
 
   /*
 
-      the following file is assumed to contain (apart from comments and blank lines):
+      the following file (or output of DarkAges) is assumed to contain (apart from comments and blank lines):
      - One number (num_lines) = number of lines of the file
      - One column (z , f(z)) where f(z) represents the "effective" fraction of energy deposited into the medium at redshift z, in presence of halo formation.
 
   */
-  class_open(fA,ppr->energy_injec_f_eff_file, "r",preco->error_message);
+  if (pth->energy_deposition_function==DarkAges) {
+    if (pth->thermodynamics_verbose > 0) {
+      printf(" -> running: %s\n", ppr->command_fz);
+    }
+    fflush(fA);
+    fA = popen(ppr->command_fz, "r");
+    class_test(fA == NULL, pth->error_message, "The program failed to set the environment for the external command.");
+  } else {
+    class_open(fA,ppr->energy_injec_f_eff_file, "r",pth->error_message);
+  }
 
   /* go through each line */
   while (fgets(line,_LINE_LENGTH_MAX_-1,fA) != NULL) {
@@ -1607,12 +1625,12 @@ int thermodynamics_annihilation_f_eff_init(
 
         /* read num_lines, infer size of arrays and allocate them */
         class_test(sscanf(line,"%d",&num_lines) != 1,
-                   preco->error_message,
+                   pth->error_message,
                    "could not read value of parameters num_lines in file %s\n",ppr->energy_injec_f_eff_file);
-        class_alloc(preco->annihil_z,num_lines*sizeof(double),preco->error_message);
-        class_alloc(preco->annihil_f_eff,num_lines*sizeof(double),preco->error_message);
+        class_alloc(preco->annihil_z,num_lines*sizeof(double),pth->error_message);
+        class_alloc(preco->annihil_f_eff,num_lines*sizeof(double),pth->error_message);
 
-        class_alloc(preco->annihil_dd_f_eff,num_lines*sizeof(double),preco->error_message);
+        class_alloc(preco->annihil_dd_f_eff,num_lines*sizeof(double),pth->error_message);
 
         preco->annihil_f_eff_num_lines = num_lines;
 
@@ -1626,26 +1644,29 @@ int thermodynamics_annihilation_f_eff_init(
         class_test(sscanf(line,"%lg %lg",
                           &(preco->annihil_z[array_line]),
                           &(preco->annihil_f_eff[array_line]))!= 2,
-                   preco->error_message,
+                   pth->error_message,
                    "could not read value of parameters coefficients in file %s\n",ppr->energy_injec_f_eff_file);
         array_line ++;
       }
     }
   }
 
-  fclose(fA);
+  if (pth->energy_deposition_function == DarkAges) {
+    pclose(fA);
+  } else {
+    fclose(fA);
+  }
 
   /* spline in one dimension */
   class_call(array_spline_table_lines(preco->annihil_z,
-                                      num_lines,
+                                      preco->annihil_f_eff_num_lines,
                                       preco->annihil_f_eff,
                                       1,
                                       preco->annihil_dd_f_eff,
                                       _SPLINE_NATURAL_,
-                                      preco->error_message),
-             preco->error_message,
-             preco->error_message);
-
+                                      pth->error_message),
+             pth->error_message,
+             pth->error_message);
 
   return _SUCCESS_;
 
@@ -1656,7 +1677,8 @@ int thermodynamics_annihilation_f_eff_interpolate(
                                                   struct precision * ppr,
                                                   struct background * pba,
                                                   struct recombination * preco,
-                                                  double z
+                                                  double z,
+                                                  ErrorMsg error_message
                                                 ) {
 
   int last_index;
@@ -1669,9 +1691,9 @@ int thermodynamics_annihilation_f_eff_interpolate(
                                       &last_index,
                                       &(preco->f_eff),
                                       1,
-                                      preco->error_message),
-             preco->error_message,
-             preco->error_message);
+                                      error_message),
+             error_message,
+             error_message);
 
 
   return _SUCCESS_;
@@ -2011,7 +2033,7 @@ int thermodynamics_accreting_pbh_energy_injection(
                                  z,
                                  &tau),
              pba->error_message,
-             preco->error_message);
+             error_message);
 
   class_call(background_at_tau(pba,
                                tau,
@@ -2020,7 +2042,7 @@ int thermodynamics_accreting_pbh_energy_injection(
                                &last_index_back,
                                pvecback),
              pba->error_message,
-             preco->error_message);
+             error_message);
 
 
         c_s = 5.7e3*pow(preco->Tm_tmp/2730,0.5);//conversion km en m
@@ -2277,9 +2299,9 @@ int thermodynamics_energy_injection(
       else if(preco->energy_deposition_function == function_from_file){
 
             if(preco->energy_repart_coefficient!=no_factorization){
-              class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z),
-                        preco->error_message,
-                        preco->error_message);
+              class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,z,error_message),
+                        error_message,
+                        error_message);
               preco->f_eff=MAX(preco->f_eff,0.);
             }
             else preco->f_eff=1.;
@@ -3955,8 +3977,8 @@ int thermodynamics_recombination_with_cosmorec(
 
         if(preco->energy_repart_coefficient!=no_factorization){
           class_call(thermodynamics_annihilation_f_eff_interpolate(ppr,pba,preco,600),
-                    preco->error_message,
-                    preco->error_message);
+                    pth->error_message,
+                    pth->error_message);
           preco->f_eff=MAX(preco->f_eff,0.);
         }
         else{

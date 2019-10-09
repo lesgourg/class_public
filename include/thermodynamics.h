@@ -725,13 +725,15 @@ extern "C" {
   int thermodynamics_annihilation_f_eff_init(
                                                    struct precision * ppr,
                                                    struct background * pba,
+                                                   struct thermo * pth,
                                                    struct recombination * preco
                                                  );
   int thermodynamics_annihilation_f_eff_interpolate(
                                                     struct precision * ppr,
                                                     struct background * pba,
                                                     struct recombination * preco,
-                                                    double z
+                                                    double z,
+                                                    ErrorMsg error_message
                                                   );
   int thermodynamics_annihilation_f_eff_free(
                                                   struct recombination * preco
