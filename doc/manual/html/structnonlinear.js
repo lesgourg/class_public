@@ -1,6 +1,10 @@
 var structnonlinear =
 [
     [ "method", "structnonlinear.html#aa5256a476f6fa766b8977272715be21a", null ],
+    [ "has_pk_m", "structnonlinear.html#a187aed56225caf3f06e51f4eb9e6e62a", null ],
+    [ "has_pk_cb", "structnonlinear.html#a545a784bf86e6304be4e2cf3f71e0a40", null ],
+    [ "index_pk_m", "structnonlinear.html#a83116d2c8e45607d4b65bc4f627195ab", null ],
+    [ "index_pk_cb", "structnonlinear.html#ab71f6984b0a86b82ce4bab5d78470461", null ],
     [ "pk_size", "structnonlinear.html#ad1989b77431ef92f23f2f291109191a6", null ],
     [ "k_size", "structnonlinear.html#a5337c7a8ffea7bb7f178d6bad11b5622", null ],
     [ "k", "structnonlinear.html#a6d371ac0fc8dfdef575a5751afd44565", null ],

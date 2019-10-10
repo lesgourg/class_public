@@ -4,7 +4,7 @@ var annotated_dup =
     [ "background_parameters_and_workspace", "background_8h.html#structbackground__parameters__and__workspace", null ],
     [ "background_parameters_for_distributions", "background_8h.html#structbackground__parameters__for__distributions", null ],
     [ "lensing", "lensing_8h.html#structlensing", "lensing_8h_structlensing" ],
-    [ "nonlinear", "nonlinear_8h.html#structnonlinear", "nonlinear_8h_structnonlinear" ],
+    [ "nonlinear", "structnonlinear.html", "structnonlinear" ],
     [ "output", "output_8h.html#structoutput", "output_8h_structoutput" ],
     [ "perturb_parameters_and_workspace", "perturbations_8h.html#structperturb__parameters__and__workspace", "perturbations_8h_structperturb__parameters__and__workspace" ],
     [ "perturb_vector", "perturbations_8h.html#structperturb__vector", "perturbations_8h_structperturb__vector" ],

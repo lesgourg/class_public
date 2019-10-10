@@ -2155,7 +2155,7 @@ int background_output_titles(struct background * pba,
   /** - Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
   int n;
-  char tmp[20];
+  char tmp[24];
 
   class_store_columntitle(titles,"z",_TRUE_);
   class_store_columntitle(titles,"proper time [Gyr]",_TRUE_);

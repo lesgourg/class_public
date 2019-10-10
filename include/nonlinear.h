@@ -35,18 +35,24 @@ struct nonlinear {
 
   //@{
 
-  int pk_size;     /**< k_size = total number of pk: 1 (P_m) if no massive neutrinos, 2 (P_m and P_cb) if massive neutrinos are present*/
-  int index_pk_m;
-  int index_pk_cb;
-  short has_pk_cb; /** calculate P(k) with only cold dark matter and baryons*/
+  short has_pk_m;  /**< do we want nonlinear corrections for total matter? */
+  short has_pk_cb; /**< do we want nonlinear corrections for cdm+baryons? */
+
+  int index_pk_m;  /**< index of pk for matter */
+  int index_pk_cb; /**< index of pk for cold dark matter plus baryons */
+  int pk_size;     /**< k_size = total number of pk */
+
   int k_size;      /**< k_size = total number of k values */
   double * k;      /**< k[index_k] = list of k values */
+
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values */
 
   double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
-  double ** k_nl;  /**< wavenumber at which non-linear corrections become important, defined differently by different non_linear_method's */
-  int index_tau_min_nl; /**< index of smallest value of tau at which nonlinear corrections have been computed (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
+  double ** k_nl;              /**< wavenumber at which non-linear corrections become important,
+                                    defined differently by different non_linear_method's */
+  int index_tau_min_nl;        /**< index of smallest value of tau at which nonlinear corrections have been computed
+                                    (so, for tau<tau_min_nl, the array nl_corr_density only contains some factors 1 */
 
   //@}
 

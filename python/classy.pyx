@@ -86,7 +86,8 @@ cdef class Class:
     cdef lensing le
     cdef file_content fc
 
-    cpdef int ready # Flag
+    cpdef int ready # Flag to see if classy can currently compute
+    cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
@@ -115,6 +116,7 @@ cdef class Class:
     def __cinit__(self, default=False):
         cpdef char* dumc
         self.ready = False
+        self.allocated = False
         self._pars = {}
         self.fc.size=0
         self.fc.filename = <char*>malloc(sizeof(char)*30)
@@ -191,6 +193,7 @@ cdef class Class:
         if "background" in self.ncp:
             background_free(&self.ba)
         self.ready = False
+        self.allocated = False
 
     def _check_task_dependency(self, level):
         """
@@ -285,6 +288,10 @@ cdef class Class:
         # the function.
         if self.ready and self.ncp.issuperset(level):
             return
+
+        # Check if already allocated to prevent memory leaks
+        if self.allocated:
+            self.struct_cleanup()
 
         # Otherwise, proceed with the normal computation.
         self.ready = False
@@ -381,6 +388,7 @@ cdef class Class:
             self.ncp.add("lensing")
 
         self.ready = True
+        self.allocated = True
 
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
@@ -886,6 +894,43 @@ cdef class Class:
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
+    def get_pk_and_k_and_z(self, nonlinear=True):
+        """
+        Returns a grid of matter power spectrum values and the z and k
+        at which it has been fully computed. Useful for creating interpolators.
+
+        Parameters
+        ----------
+        nonlinear : bool
+                Whether the returned power spectrum values are linear or non-linear (default)
+        """
+        cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.sp.ln_k_size, self.sp.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.sp.ln_k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.sp.ln_tau_size),'float64')
+        cdef int index_k, index_tau
+        cdef double k0, kend, z0, zend, eps
+
+        eps = 1.0e-10
+        pk_lin_or_nonlin = self.pk if nonlinear else self.pk_lin
+
+        # Get k and z arrays
+        for index_k in xrange(self.sp.ln_k_size):
+            k[index_k] = np.exp(self.sp.ln_k[index_k])
+        for index_tau in xrange(self.sp.ln_tau_size):
+            z[index_tau] = self.z_of_tau(np.exp(self.sp.ln_tau[index_tau]))
+
+        # Avoid saturating the limits
+        z[-1] *= (1-eps)
+        z[0] *= (1+eps)
+        if(z[0] < eps):
+          z[0] = 0
+
+        # Now copy P(k,z)
+        for index_tau in xrange(self.sp.ln_tau_size):
+            for index_k in xrange(self.sp.ln_k_size):
+               pk_at_k_z[index_k, index_tau] = pk_lin_or_nonlin(k[index_k], z[index_tau])
+        return pk_at_k_z, k, z
+
     # Gives sigma(R,z) for a given (R,z)
     def sigma(self,double R,double z):
         """
@@ -1090,6 +1135,30 @@ cdef class Class:
         free(pvecback)
 
         return f
+
+    def z_of_tau(self, tau):
+        """
+        Redshift corresponding to a given conformal time.
+
+        Parameters
+        ----------
+        tau : float
+                Conformal time
+        """
+        cdef double z
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        z = 1./pvecback[self.ba.index_bg_a]-1.
+
+        free(pvecback)
+
+        return z
 
     def Hubble(self, z):
         """
@@ -1659,7 +1728,7 @@ cdef class Class:
             elif name == 'sigma8':
                 value = self.sp.sigma8
             elif name == 'sigma8_cb':
-                value = self.sp.sigma8
+                value = self.sp.sigma8_cb
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
