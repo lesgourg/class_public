@@ -3945,7 +3945,7 @@ int input_default_precision ( struct precision * ppr ) {
   sprintf(ppr->energy_injec_coeff_file,__CLASSDIR__);
   strcat(ppr->energy_injec_coeff_file,"/DarkAgesModule/GSVI_file.dat"); //Default correspond to the GSVI case
   sprintf(ppr->energy_injec_f_eff_file,__CLASSDIR__);
-  strcat(ppr->energy_injec_f_eff_file,"EnergyInjection_example_file_type1.dat");
+  strcat(ppr->energy_injec_f_eff_file,"/EnergyInjection_example_file_type1.dat");
 
   /* BEGIN: Initializing the parameters related to using an external code for the calculation of f(z) */
   ppr->fz_is_extern = _FALSE_;
