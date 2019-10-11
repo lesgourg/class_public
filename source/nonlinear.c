@@ -96,120 +96,26 @@ int nonlinear_k_nl_at_z(
   return _SUCCESS_;
 }
 
-/*
-int nonlinear_pk_linear_at_z(
-                             struct background * pba,
-                             struct nonlinear *pnl,
-                             double z,
-                             double * ln_pk_m_ic_l,
-                             double * ln_pk_m_l,
-                             double * ln_pk_cb_ic_l,
-                             double * ln_pk_cb_l
-                             ) {
-  double tau;
-  double ln_tau;
-  int index_k;
-  int index_ic1_ic2;
-  int last_index;
-
-  if (z == 0) {
-    for (index_k=0; index_k<pnl->k_size; index_k++) {
-
-      ln_pk_m_l[index_k] = pnl->ln_pk_l[pnl->index_pk_m][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
-
-      for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
-        ln_pk_m_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
-          pnl->ln_pk_ic_l[pnl->index_pk_m][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
-      }
-      if (pnl->has_pk_cb == _TRUE_) {
-
-        ln_pk_cb_l[index_k] = pnl->ln_pk_l[pnl->index_pk_cb][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
-
-
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
-          ln_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
-            pnl->ln_pk_ic_l[pnl->index_pk_cb][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
-        }
-      }
-    }
-  }
-  else {
-    class_call(background_tau_of_z(pba,
-                                   z,
-                                   &tau),
-               pba->error_message,
-               pnl->error_message);
-
-    ln_tau = log(tau);
-    last_index = pnl->ln_tau_size-1;
-
-    class_call(array_interpolate_spline(pnl->ln_tau,
-                                        pnl->ln_tau_size,
-                                        pnl->ln_pk_ic_l[pnl->index_pk_m],
-                                        pnl->ddln_pk_ic_l[pnl->index_pk_m],
-                                        pnl->k_size*pnl->ic_ic_size,
-                                        ln_tau,
-                                        &last_index,
-                                        ln_pk_m_ic_l,
-                                        pnl->k_size*pnl->ic_ic_size,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    class_call(array_interpolate_spline(pnl->ln_tau,
-                                        pnl->ln_tau_size,
-                                        pnl->ln_pk_l[pnl->index_pk_m],
-                                        pnl->ddln_pk_l[pnl->index_pk_m],
-                                        pnl->k_size,
-                                        ln_tau,
-                                        &last_index,
-                                        ln_pk_m_l,
-                                        pnl->k_size,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    if (pnl->has_pk_cb == _TRUE_) {
-
-      class_call(array_interpolate_spline(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_ic_l[pnl->index_pk_cb],
-                                          pnl->ddln_pk_ic_l[pnl->index_pk_cb],
-                                          pnl->k_size*pnl->ic_ic_size,
-                                          ln_tau,
-                                          &last_index,
-                                          ln_pk_cb_ic_l,
-                                          pnl->k_size*pnl->ic_ic_size,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
-
-      class_call(array_interpolate_spline(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_l[pnl->index_pk_cb],
-                                          pnl->ddln_pk_l[pnl->index_pk_cb],
-                                          pnl->k_size,
-                                          ln_tau,
-                                          &last_index,
-                                          ln_pk_cb_l,
-                                          pnl->k_size,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
-    }
-  }
-
-  return _SUCCESS_;
-}
-*/
+/**
+ * Return the P(k,z) for a given redshift z and pk type (_m, _cb), as
+ * well as its possible decomposition into different IC contributions.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pnl        Input: pointer to nonlinear structure
+ * @param z          Input: redshift
+ * @param index_pk   Input: index of pk type (_m, _cb)
+ * @param ln_pk_l    Output: P(k) return as ln_pk_l[index_k]
+ * @param ln_pk_ic_l Ouput:  P_ic(k) return as  ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @return the error status
+ */
 
 int nonlinear_pk_linear_at_z(
                              struct background * pba,
                              struct nonlinear *pnl,
                              double z,
                              int index_pk,
-                             double * ln_pk_l,
-                             double * ln_pk_ic_l
+                             double * ln_pk_l, // array ln_pk_l[index_k]
+                             double * ln_pk_ic_l // array ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
                              ) {
   double tau;
   double ln_tau;
@@ -217,6 +123,7 @@ int nonlinear_pk_linear_at_z(
   int index_ic1_ic2;
   int last_index;
 
+  /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
     for (index_k=0; index_k<pnl->k_size; index_k++) {
 
@@ -228,7 +135,11 @@ int nonlinear_pk_linear_at_z(
       }
     }
   }
+
+  /** - interpolation in z */
   else {
+
+    /* get value of contormal time tau */
     class_call(background_tau_of_z(pba,
                                    z,
                                    &tau),
@@ -238,6 +149,7 @@ int nonlinear_pk_linear_at_z(
     ln_tau = log(tau);
     last_index = pnl->ln_tau_size-1;
 
+    /** --> interpolate P(k) at tau from pre-computed array */
     class_call(array_interpolate_spline(pnl->ln_tau,
                                         pnl->ln_tau_size,
                                         pnl->ln_pk_l[index_pk],
@@ -251,6 +163,7 @@ int nonlinear_pk_linear_at_z(
                pnl->error_message,
                pnl->error_message);
 
+    /** --> interpolate P_ic(k) at tau from pre-computed array */
     class_call(array_interpolate_spline(pnl->ln_tau,
                                         pnl->ln_tau_size,
                                         pnl->ln_pk_ic_l[index_pk],
@@ -264,6 +177,7 @@ int nonlinear_pk_linear_at_z(
                pnl->error_message,
                pnl->error_message);
   }
+
   return _SUCCESS_;
 }
 

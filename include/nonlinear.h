@@ -207,18 +207,6 @@ extern "C" {
                           double * k_nl_cb
                           );
 
-  /*
-  int nonlinear_pk_linear_at_z(
-                             struct background * pba,
-                             struct nonlinear *pnl,
-                             double z,
-                             double * ln_pk_m_ic_l,
-                             double * ln_pk_m_l,
-                             double * ln_pk_cb_ic_l,
-                             double * ln_pk_cb_l
-                               );
-  */
-
   int nonlinear_pk_linear_at_z(
                                struct background * pba,
                                struct nonlinear *pnl,
