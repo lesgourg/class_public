@@ -96,7 +96,7 @@ int nonlinear_k_nl_at_z(
   return _SUCCESS_;
 }
 
-
+/*
 int nonlinear_pk_linear_at_z(
                              struct background * pba,
                              struct nonlinear *pnl,
@@ -201,15 +201,16 @@ int nonlinear_pk_linear_at_z(
 
   return _SUCCESS_;
 }
+*/
 
-int nonlinear_pk_linear_at_z_bis(
-                                 struct background * pba,
-                                 struct nonlinear *pnl,
-                                 double z,
-                                 int index_pk,
-                                 double ** ln_pk_l,
-                                 double ** ln_pk_ic_l
-                                 ) {
+int nonlinear_pk_linear_at_z(
+                             struct background * pba,
+                             struct nonlinear *pnl,
+                             double z,
+                             int index_pk,
+                             double * ln_pk_l,
+                             double * ln_pk_ic_l
+                             ) {
   double tau;
   double ln_tau;
   int index_k;
@@ -219,10 +220,10 @@ int nonlinear_pk_linear_at_z_bis(
   if (z == 0) {
     for (index_k=0; index_k<pnl->k_size; index_k++) {
 
-      ln_pk_l[index_pk][index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+      ln_pk_l[index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
 
       for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
-        ln_pk_ic_l[index_pk][index_k * pnl->ic_ic_size + index_ic1_ic2] =
+        ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
           pnl->ln_pk_ic_l[index_pk][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
       }
     }
@@ -244,7 +245,7 @@ int nonlinear_pk_linear_at_z_bis(
                                         pnl->k_size,
                                         ln_tau,
                                         &last_index,
-                                        ln_pk_l[index_pk],
+                                        ln_pk_l,
                                         pnl->k_size,
                                         pnl->error_message),
                pnl->error_message,
@@ -257,7 +258,7 @@ int nonlinear_pk_linear_at_z_bis(
                                         pnl->k_size*pnl->ic_ic_size,
                                         ln_tau,
                                         &last_index,
-                                        ln_pk_ic_l[index_pk],
+                                        ln_pk_ic_l,
                                         pnl->k_size*pnl->ic_ic_size,
                                         pnl->error_message),
                pnl->error_message,
