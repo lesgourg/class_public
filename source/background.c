@@ -2158,7 +2158,7 @@ int background_output_titles(struct background * pba,
   /** - Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
   int n;
-  char tmp[20];
+  char tmp[40];
 
   class_store_columntitle(titles,"z",_TRUE_);
   class_store_columntitle(titles,"proper time [Gyr]",_TRUE_);
@@ -2498,7 +2498,7 @@ double ddV_scf(
 int background_output_budget(struct background* pba){
   double budget_matter, budget_radiation, budget_other,budget_neutrino;
   int index_ncdm;
-  
+
   budget_matter = 0;
   budget_radiation = 0;
   budget_other = 0;
@@ -2506,8 +2506,8 @@ int background_output_budget(struct background* pba){
   //The name for the _class_print_species_ macro can be at most 30 characters total
   if(pba->background_verbose > 1){
     printf(" ---------------------------- Budget equation ----------------------- \n");
-    
-    
+
+
     printf(" ---> Nonrelativistic Species \n");
     _class_print_species_("Bayrons",b);
     budget_matter+=pba->Omega0_b;
@@ -2519,8 +2519,8 @@ int background_output_budget(struct background* pba){
       _class_print_species_("Decaying Dark Matter (dark g)",dcdm);
       budget_matter+=pba->Omega0_dcdm;
     }
-    
-    
+
+
     printf(" ---> Relativistic Species \n");
     _class_print_species_("Photons",g);
     budget_radiation+=pba->Omega0_g;
@@ -2532,18 +2532,20 @@ int background_output_budget(struct background* pba){
       _class_print_species_("Dark Radiation (by decay)",dr);
       budget_radiation+=pba->Omega0_dr;
     }
-    
-    
-    printf(" ---> Massive Neutrino Species \n");
+
+    if(pba->N_ncdm > 0){
+      printf(" ---> Massive Neutrino Species \n");
+    }
     if(pba->N_ncdm > 0){
       for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm){
         printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
         budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
       }
     }
-    
-    
-    printf(" ---> Other Content \n");
+
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+      printf(" ---> Other Content \n");
+    }
     if(pba->has_lambda){
       _class_print_species_("Cosmological Constant",lambda);
       budget_other+=pba->Omega0_lambda;
@@ -2560,14 +2562,18 @@ int background_output_budget(struct background* pba){
       _class_print_species_("Spatial Curvature",k);
       budget_other+=pba->Omega0_k;
     }
-    
+
     printf(" ---> Total budgets \n");
     printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
     printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
-    printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
-    printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
+    if(pba->N_ncdm > 0){
+      printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+    }
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+      printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
+    }
     printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
-  
+
     printf(" -------------------------------------------------------------------- \n");
   }
   return _SUCCESS_;
