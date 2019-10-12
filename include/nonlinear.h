@@ -66,6 +66,8 @@ struct nonlinear {
   int index_pk_m;  /**< index of pk for matter (defined only when has_pk_m is TRUE) */
   int index_pk_cb; /**< index of pk for cold dark matter plus baryons (defined only when has_pk_cb is TRUE */
 
+  /* and two redundent but useful indices: */
+
   int index_pk_total;      /**< always equal to index_pk_m
                               (always defined, useful e.g. for weak lensing spectrum) */
   int index_pk_cluster;    /**< equal to index_pk_cb if it exists, otherwise to index_pk_m
@@ -100,7 +102,7 @@ struct nonlinear {
                              cosine of the correlation angle, namely
                              P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
                              This choice is convenient since the sign of the non-diagonal cross-correlation
-                             is arbitrary. For fully correlated or anti-correlated initial conditions,
+                             could be negative. For fully correlated or anti-correlated initial conditions,
                              this non-diagonal element is independent on k, and equal to +1 or -1.
                           */
 
@@ -222,6 +224,7 @@ extern "C" {
   int nonlinear_pk_linear_at_z(
                                struct background * pba,
                                struct nonlinear *pnl,
+                               enum linear_or_logarithmic mode,
                                double z,
                                int index_pk,
                                double * ln_pk_l,
@@ -231,6 +234,7 @@ extern "C" {
   int nonlinear_pk_linear_at_k_and_z(
                                      struct background * pba,
                                      struct nonlinear *pnl,
+                                     enum linear_or_logarithmic mode,
                                      double k,
                                      double z,
                                      int index_pk,

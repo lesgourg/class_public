@@ -119,6 +119,7 @@ int nonlinear_k_nl_at_z(
  *
  * @param pba        Input: pointer to background structure
  * @param pnl        Input: pointer to nonlinear structure
+ * @param mode          Input: linear or logarithmic
  * @param z          Input: redshift
  * @param index_pk   Input: index of pk type (_m, _cb)
  * @param ln_pk_l    Output: P(k) returned as ln_pk_l[index_k]
@@ -129,6 +130,7 @@ int nonlinear_k_nl_at_z(
 int nonlinear_pk_linear_at_z(
                              struct background * pba,
                              struct nonlinear *pnl,
+                             enum linear_or_logarithmic mode,
                              double z,
                              int index_pk,
                              double * ln_pk_l, // array ln_pk_l[index_k]
@@ -137,6 +139,10 @@ int nonlinear_pk_linear_at_z(
   double tau;
   double ln_tau;
   int index_k;
+  int index_ic1;
+  int index_ic2;
+  int index_ic1_ic1;
+  int index_ic2_ic2;
   int index_ic1_ic2;
   int last_index;
 
@@ -195,6 +201,41 @@ int nonlinear_pk_linear_at_z(
                pnl->error_message);
   }
 
+  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
+
+  if (mode == linear) {
+
+    /** --> loop over k */
+    for (index_k=0; index_k<pnl->k_size; index_k++) {
+
+      /** --> convert total spectrum */
+      ln_pk_l[index_k] = exp(ln_pk_l[index_k]);
+
+      /** --> convert contribution of each ic (diagonal elements) */
+      for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+        index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+
+        ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1] = exp(ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]);
+      }
+
+      /** --> convert contribution of each ic (non-diagonal elements) */
+      for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+        for (index_ic2=index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+          index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+
+          /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
+          ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+            = ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+            *sqrt(ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
+                  *ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+
+        }
+      }
+    }
+  }
+
   return _SUCCESS_;
 }
 
@@ -220,6 +261,7 @@ int nonlinear_pk_linear_at_z(
  *
  * @param pba        Input: pointer to background structure
  * @param pnl        Input: pointer to nonlinear structure
+ * @param mode       Input: linear or logarithmic
  * @param k          Input: wavenumber in 1/Mpc
  * @param z          Input: redshift
  * @param index_pk   Input: index of pk type (_m, _cb)
@@ -231,6 +273,7 @@ int nonlinear_pk_linear_at_z(
 int nonlinear_pk_linear_at_k_and_z(
                                    struct background * pba,
                                    struct nonlinear *pnl,
+                                   enum linear_or_logarithmic mode,
                                    double k,
                                    double z,
                                    int index_pk,
@@ -262,6 +305,7 @@ int nonlinear_pk_linear_at_k_and_z(
 
   class_call(nonlinear_pk_linear_at_z(pba,
                                       pnl,
+                                      mode,
                                       z,
                                       index_pk,
                                       ln_pk_l_at_z,
@@ -829,6 +873,8 @@ int nonlinear_indices(
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
   class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
   pnl->pk_size = index_pk;
+
+  /* and two redundent but useful indices: */
 
   if (pnl->has_pk_cb == _TRUE_) {
     pnl->index_pk_total = pnl->index_pk_m;

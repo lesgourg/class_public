@@ -793,6 +793,7 @@ int output_pk(
 
       class_call(nonlinear_pk_linear_at_z(pba,
                                           pnl,
+                                          logarithmic,
                                           pop->z_pk[index_z],
                                           index_pk,
                                           ln_pk_l,
