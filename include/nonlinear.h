@@ -56,6 +56,25 @@ struct nonlinear {
 
   //@}
 
+  /** @name - information on the type of power spectra (_cb, _m...) */
+
+  //@{
+
+  short has_pk_m;  /**< do we want spectra for total matter? */
+  short has_pk_cb; /**< do we want spectra for cdm+baryons? */
+
+  int index_pk_m;  /**< index of pk for matter (defined only when has_pk_m is TRUE) */
+  int index_pk_cb; /**< index of pk for cold dark matter plus baryons (defined only when has_pk_cb is TRUE */
+
+  int index_pk_total;      /**< always equal to index_pk_m
+                              (always defined, useful e.g. for weak lensing spectrum) */
+  int index_pk_cluster;    /**< equal to index_pk_cb if it exists, otherwise to index_pk_m
+                              (always defined, useful e.g. for galaxy clustering spectrum) */
+
+  int pk_size;     /**< k_size = total number of pk */
+
+  //@}
+
   /** @name - arrays for the Fourier power spectra P(k,tau) */
 
   //@{
@@ -107,13 +126,6 @@ struct nonlinear {
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
 
   //@{
-
-  short has_pk_m;  /**< do we want nonlinear corrections for total matter? */
-  short has_pk_cb; /**< do we want nonlinear corrections for cdm+baryons? */
-
-  int index_pk_m;  /**< index of pk for matter */
-  int index_pk_cb; /**< index of pk for cold dark matter plus baryons */
-  int pk_size;     /**< k_size = total number of pk */
 
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
 

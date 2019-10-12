@@ -15,6 +15,7 @@
 
 /**
  * Return the value of the non-linearity wavenumber k_nl for a given redshift z
+ *
  * @param pba Input: pointer to background structure
  * @param pnl Input: pointer to nonlinear structure
  * @param z Input: redshift
@@ -100,6 +101,22 @@ int nonlinear_k_nl_at_z(
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb), as
  * well as its possible decomposition into different IC contributions.
  *
+ * Hints on input index_pk:
+ *
+ * a. if you want the total matter spectrum P_m(k,z), pass in input
+ *    pnl->index_pk_total
+ *    (this index is always defined)
+ *
+ * b. if you want the power spectrum relevant for galaxy or halos,
+ *    given by P_cb if there is non-cold-dark-matter (e.g. massive neutrinos)
+ *    and to P_m otherwise, pass in input
+ *    pnl->index_pk_cluster
+ *    (this index is always defined)
+ *
+ * c. there is another possible syntax (use it only if you know what you are doing):
+ *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
+ *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
+ *
  * @param pba        Input: pointer to background structure
  * @param pnl        Input: pointer to nonlinear structure
  * @param z          Input: redshift
@@ -184,6 +201,22 @@ int nonlinear_pk_linear_at_z(
 /**
  * Return the P(k,z) for a given (k,z) and pk type (_m, _cb), as
  * well as its possible decomposition into different IC contributions.
+ *
+ * Hints on input index_pk:
+ *
+ * a. if you want the total matter spectrum P_m(k,z), pass in input
+ *    pnl->index_pk_total
+ *    (this index is always defined)
+ *
+ * b. if you want the power spectrum relevant for galaxy or halos,
+ *    given by P_cb if there is non-cold-dark-matter (e.g. massive neutrinos)
+ *    and to P_m otherwise, pass in input
+ *    pnl->index_pk_cluster
+ *    (this index is always defined)
+ *
+ * c. there is another possible syntax (use it only if you know what you are doing):
+ *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
+ *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
  * @param pba        Input: pointer to background structure
  * @param pnl        Input: pointer to nonlinear structure
@@ -796,6 +829,15 @@ int nonlinear_indices(
   class_define_index(pnl->index_pk_cb, pnl->has_pk_cb, index_pk,1);
   class_define_index(pnl->index_pk_m, pnl->has_pk_m, index_pk,1);
   pnl->pk_size = index_pk;
+
+  if (pnl->has_pk_cb == _TRUE_) {
+    pnl->index_pk_total = pnl->index_pk_m;
+    pnl->index_pk_cluster = pnl->index_pk_cb;
+  }
+  else {
+    pnl->index_pk_total = pnl->index_pk_m;
+    pnl->index_pk_cluster = pnl->index_pk_m;
+  }
 
   /** - get list of k values */
 
