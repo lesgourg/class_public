@@ -174,7 +174,7 @@ int nonlinear_pk_linear_at_z(
   /** - interpolation in z */
   else {
 
-    /* get value of contormal time tau */
+    /** --> get value of contormal time tau */
     class_call(background_tau_of_z(pba,
                                    z,
                                    &tau),
@@ -184,7 +184,26 @@ int nonlinear_pk_linear_at_z(
     ln_tau = log(tau);
     last_index = pnl->ln_tau_size-1;
 
-    /* here we will add a tolerance */
+    /** -> check that tau is in pre-computed table */
+
+    if (ln_tau < pnl->ln_tau[0]) {
+      /** --> if ln(tau) much too small, raise an error */
+      class_test(ln_tau<pnl->ln_tau[0]-_EPSILON_,
+                 pnl->error_message,
+                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e) ",ln_tau,pnl->ln_tau[0]);
+      /** --> if ln(tau) too small but within tolerance, round it */
+      ln_tau = pnl->ln_tau[0];
+    }
+
+    if (ln_tau > pnl->ln_tau[pnl->ln_tau_size-1]) {
+      /** --> if ln(tau) much too large, raise an error */
+      class_test(ln_tau>pnl->ln_tau[pnl->ln_tau_size-1]+_EPSILON_,
+                 pnl->error_message,
+                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pnl->ln_tau[pnl->ln_tau_size-1]);
+      /** --> if ln(tau) too large but within tolerance, round it */
+      ln_tau = pnl->ln_tau[pnl->ln_tau_size-1];
+
+    }
 
     /** --> interpolate P(k) at tau from pre-computed array */
     class_call(array_interpolate_spline(pnl->ln_tau,

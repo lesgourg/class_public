@@ -54,6 +54,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _HUGE_ 1.e99
 
+#define _EPSILON_ 1.e-10
+
 #define _OUTPUTPRECISION_ 12 /**< Number of significant digits in some output files */
 
 #define _COLUMNWIDTH_ 24 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
@@ -61,8 +63,6 @@ typedef char FileName[_FILENAMESIZE_];
 #define _MAXTITLESTRINGLENGTH_ 8000 /**< Maximum number of characters in title strings */
 
 #define _DELIMITER_ "\t" /**< character used for delimiting titles in the title strings */
-
-
 
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
