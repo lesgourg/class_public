@@ -104,8 +104,8 @@ int nonlinear_k_nl_at_z(
  * @param pnl        Input: pointer to nonlinear structure
  * @param z          Input: redshift
  * @param index_pk   Input: index of pk type (_m, _cb)
- * @param ln_pk_l    Output: P(k) return as ln_pk_l[index_k]
- * @param ln_pk_ic_l Ouput:  P_ic(k) return as  ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param ln_pk_l    Output: P(k) returned as ln_pk_l[index_k]
+ * @param ln_pk_ic_l Ouput:  P_ic(k) returned as  ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
 
@@ -177,6 +177,123 @@ int nonlinear_pk_linear_at_z(
                pnl->error_message,
                pnl->error_message);
   }
+
+  return _SUCCESS_;
+}
+
+/**
+ * Return the P(k,z) for a given (k,z) and pk type (_m, _cb), as
+ * well as its possible decomposition into different IC contributions.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pnl        Input: pointer to nonlinear structure
+ * @param k          Input: wavenumber in 1/Mpc
+ * @param z          Input: redshift
+ * @param index_pk   Input: index of pk type (_m, _cb)
+ * @param ln_pk_l    Output: pointer to P
+ * @param ln_pk_ic_l Ouput:  P_ic returned as ln_pk_ic_l[index_ic1_ic2]
+ * @return the error status
+ */
+
+int nonlinear_pk_linear_at_k_and_z(
+                                   struct background * pba,
+                                   struct nonlinear *pnl,
+                                   double k,
+                                   double z,
+                                   int index_pk,
+                                   double * ln_pk_l, // array ln_pk_l[index_k]
+                                   double * ln_pk_ic_l // array ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                                   ) {
+
+  double * ln_pk_l_at_z;
+  double * ln_pk_ic_l_at_z;
+  double * ddln_pk_l_at_z;
+  double * ddln_pk_ic_l_at_z;
+  int last_index;
+
+  class_alloc(ln_pk_l_at_z,
+              pnl->k_size*sizeof(double),
+              pnl->error_message);
+
+  class_alloc(ddln_pk_l_at_z,
+              pnl->k_size*sizeof(double),
+              pnl->error_message);
+
+  class_alloc(ln_pk_ic_l_at_z,
+              pnl->k_size*pnl->ic_ic_size*sizeof(double),
+              pnl->error_message);
+
+  class_alloc(ddln_pk_ic_l_at_z,
+              pnl->k_size*pnl->ic_ic_size*sizeof(double),
+              pnl->error_message);
+
+  class_call(nonlinear_pk_linear_at_z(pba,
+                                      pnl,
+                                      z,
+                                      index_pk,
+                                      ln_pk_l_at_z,
+                                      ln_pk_ic_l_at_z
+                                      ),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(array_spline_table_lines(pnl->ln_k,
+                                      pnl->k_size,
+                                      ln_pk_l_at_z,
+                                      1,
+                                      ddln_pk_l_at_z,
+                                      _SPLINE_NATURAL_,
+                                      pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(array_interpolate_spline(pnl->ln_k,
+                                      pnl->k_size,
+                                      ln_pk_l_at_z,
+                                      ddln_pk_l_at_z,
+                                      1,
+                                      log(k),
+                                      &last_index,
+                                      ln_pk_l,
+                                      1,
+                                      pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  if (pnl->ic_ic_size>1) {
+
+    class_call(array_spline_table_lines(pnl->ln_k,
+                                          pnl->k_size,
+                                          ln_pk_ic_l_at_z,
+                                          pnl->ic_ic_size,
+                                          ddln_pk_ic_l_at_z,
+                                          _SPLINE_NATURAL_,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      class_call(array_interpolate_spline(pnl->ln_k,
+                                          pnl->k_size,
+                                          ln_pk_ic_l_at_z,
+                                          ddln_pk_ic_l_at_z,
+                                          pnl->ic_ic_size,
+                                          log(k),
+                                          &last_index,
+                                          ln_pk_ic_l,
+                                          1,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      free(ln_pk_ic_l_at_z);
+      free(ddln_pk_ic_l_at_z);
+
+  }
+
+  free(ln_pk_l_at_z);
+  free(ddln_pk_l_at_z);
+  free(ln_pk_ic_l_at_z);
+  free(ddln_pk_ic_l_at_z);
 
   return _SUCCESS_;
 }
