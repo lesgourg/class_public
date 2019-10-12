@@ -420,6 +420,68 @@ int nonlinear_pk_linear_at_k_and_z(
   return _SUCCESS_;
 }
 
+/*
+ * Same as nonlinear_pk_linear_at_z() (see the comments there about
+ * the input/output format), excepted that we don't pass in input one
+ * type of P(k) through index_pk. Instead, we get all existing types
+ * in output. This function is maintained to enhance compatibility
+ * with old versions, but the use of nonlinear_pk_linear_at_z() should
+ * be preferred.
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pnl        Input: pointer to nonlinear structure
+ * @param mode          Input: linear or logarithmic
+ * @param z          Input: redshift
+ * @param out_pk_l    Output: P_m(k) returned as out_pk_l[index_k]
+ * @param out_pk_ic_l Ouput:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_cb_l    Output: P_cb(k) returned as out_pk_cb_l[index_k]
+ * @param out_pk_cb_ic_l Ouput:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @return the error status
+ */
+
+int nonlinear_pks_linear_at_z(
+                             struct background * pba,
+                             struct nonlinear *pnl,
+                             enum linear_or_logarithmic mode,
+                             double z,
+                             double * out_pk_l, // array out_pk_l[index_k]
+                             double * out_pk_ic_l, // array out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                             double * out_pk_cb_l, // array out_pk_cb_l[index_k]
+                             double * out_pk_cb_ic_l // array out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                             ) {
+
+  if (pnl->has_pk_cb) {
+
+    class_call(nonlinear_pk_linear_at_z(pba,
+                                        pnl,
+                                        mode,
+                                        z,
+                                        pnl->index_pk_cb,
+                                        out_pk_cb_l,
+                                        out_pk_cb_ic_l
+                                        ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  if (pnl->has_pk_m) {
+
+    class_call(nonlinear_pk_linear_at_z(pba,
+                                        pnl,
+                                        mode,
+                                        z,
+                                        pnl->index_pk_m,
+                                        out_pk_l,
+                                        out_pk_ic_l
+                                        ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+
 /**
  * Initialize the nonlinear structure, and in particular the
  * nl_corr_density and k_nl interpolation tables.
