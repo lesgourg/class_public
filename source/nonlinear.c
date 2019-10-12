@@ -117,13 +117,25 @@ int nonlinear_k_nl_at_z(
  *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
  *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
+ * Hints on output format:
+ *
+ * 1. if mode = logarithmic (most strightforward for the code):
+ *     out_pk_l = ln(P(k))
+ *     out_pk_ic_l[diagonal] = ln(P_ic(k))
+ *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
+ *
+ * 2. if mode = linear (a conversion si done internally in this function)
+ *     out_pk_l = P(k)
+ *     out_pk_ic_l[diagonal] = P_ic(k)
+ *     out_pk_ic_l[non-diagonal] = P_icxic(k)
+ *
  * @param pba        Input: pointer to background structure
  * @param pnl        Input: pointer to nonlinear structure
  * @param mode          Input: linear or logarithmic
  * @param z          Input: redshift
  * @param index_pk   Input: index of pk type (_m, _cb)
- * @param ln_pk_l    Output: P(k) returned as ln_pk_l[index_k]
- * @param ln_pk_ic_l Ouput:  P_ic(k) returned as  ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_l    Output: P(k) returned as out_pk_l[index_k]
+ * @param out_pk_ic_l Ouput:  P_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
 
@@ -133,8 +145,8 @@ int nonlinear_pk_linear_at_z(
                              enum linear_or_logarithmic mode,
                              double z,
                              int index_pk,
-                             double * ln_pk_l, // array ln_pk_l[index_k]
-                             double * ln_pk_ic_l // array ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                             double * out_pk_l, // array out_pk_l[index_k]
+                             double * out_pk_ic_l // array out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
                              ) {
   double tau;
   double ln_tau;
@@ -150,10 +162,10 @@ int nonlinear_pk_linear_at_z(
   if (z == 0) {
     for (index_k=0; index_k<pnl->k_size; index_k++) {
 
-      ln_pk_l[index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
+      out_pk_l[index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
 
       for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
-        ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
+        out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
           pnl->ln_pk_ic_l[index_pk][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
       }
     }
@@ -172,6 +184,8 @@ int nonlinear_pk_linear_at_z(
     ln_tau = log(tau);
     last_index = pnl->ln_tau_size-1;
 
+    /* here we will add a tolerance */
+
     /** --> interpolate P(k) at tau from pre-computed array */
     class_call(array_interpolate_spline(pnl->ln_tau,
                                         pnl->ln_tau_size,
@@ -180,7 +194,7 @@ int nonlinear_pk_linear_at_z(
                                         pnl->k_size,
                                         ln_tau,
                                         &last_index,
-                                        ln_pk_l,
+                                        out_pk_l,
                                         pnl->k_size,
                                         pnl->error_message),
                pnl->error_message,
@@ -194,7 +208,7 @@ int nonlinear_pk_linear_at_z(
                                         pnl->k_size*pnl->ic_ic_size,
                                         ln_tau,
                                         &last_index,
-                                        ln_pk_ic_l,
+                                        out_pk_ic_l,
                                         pnl->k_size*pnl->ic_ic_size,
                                         pnl->error_message),
                pnl->error_message,
@@ -209,13 +223,13 @@ int nonlinear_pk_linear_at_z(
     for (index_k=0; index_k<pnl->k_size; index_k++) {
 
       /** --> convert total spectrum */
-      ln_pk_l[index_k] = exp(ln_pk_l[index_k]);
+      out_pk_l[index_k] = exp(out_pk_l[index_k]);
 
       /** --> convert contribution of each ic (diagonal elements) */
       for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
         index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
 
-        ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1] = exp(ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]);
+        out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]);
       }
 
       /** --> convert contribution of each ic (non-diagonal elements) */
@@ -226,10 +240,10 @@ int nonlinear_pk_linear_at_z(
           index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
 
           /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
-          ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-            = ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-            *sqrt(ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
-                  *ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
+          out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+            = out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+            *sqrt(out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
+                  *out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
 
         }
       }
@@ -259,14 +273,26 @@ int nonlinear_pk_linear_at_z(
  *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
  *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
+ * Hints on output format:
+ *
+ * 1. if mode = logarithmic (most strightforward for the code):
+ *     out_pk_l = ln(P(k))
+ *     out_pk_ic_l[diagonal] = ln(P_ic(k))
+ *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
+ *
+ * 2. if mode = linear (a conversion si done internally in this function)
+ *     out_pk_l = P(k)
+ *     out_pk_ic_l[diagonal] = P_ic(k)
+ *     out_pk_ic_l[non-diagonal] = P_icxic(k)
+ *
  * @param pba        Input: pointer to background structure
  * @param pnl        Input: pointer to nonlinear structure
  * @param mode       Input: linear or logarithmic
  * @param k          Input: wavenumber in 1/Mpc
  * @param z          Input: redshift
  * @param index_pk   Input: index of pk type (_m, _cb)
- * @param ln_pk_l    Output: pointer to P
- * @param ln_pk_ic_l Ouput:  P_ic returned as ln_pk_ic_l[index_ic1_ic2]
+ * @param out_pk_l    Output: pointer to P
+ * @param out_pk_ic_l Ouput:  P_ic returned as out_pk_ic_l[index_ic1_ic2]
  * @return the error status
  */
 
@@ -277,29 +303,29 @@ int nonlinear_pk_linear_at_k_and_z(
                                    double k,
                                    double z,
                                    int index_pk,
-                                   double * ln_pk_l, // array ln_pk_l[index_k]
-                                   double * ln_pk_ic_l // array ln_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                                   double * out_pk_l, // array out_pk_l[index_k]
+                                   double * out_pk_ic_l // array out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
                                    ) {
 
-  double * ln_pk_l_at_z;
-  double * ln_pk_ic_l_at_z;
-  double * ddln_pk_l_at_z;
-  double * ddln_pk_ic_l_at_z;
+  double * out_pk_l_at_z;
+  double * out_pk_ic_l_at_z;
+  double * ddout_pk_l_at_z;
+  double * ddout_pk_ic_l_at_z;
   int last_index;
 
-  class_alloc(ln_pk_l_at_z,
+  class_alloc(out_pk_l_at_z,
               pnl->k_size*sizeof(double),
               pnl->error_message);
 
-  class_alloc(ddln_pk_l_at_z,
+  class_alloc(ddout_pk_l_at_z,
               pnl->k_size*sizeof(double),
               pnl->error_message);
 
-  class_alloc(ln_pk_ic_l_at_z,
+  class_alloc(out_pk_ic_l_at_z,
               pnl->k_size*pnl->ic_ic_size*sizeof(double),
               pnl->error_message);
 
-  class_alloc(ddln_pk_ic_l_at_z,
+  class_alloc(ddout_pk_ic_l_at_z,
               pnl->k_size*pnl->ic_ic_size*sizeof(double),
               pnl->error_message);
 
@@ -308,17 +334,17 @@ int nonlinear_pk_linear_at_k_and_z(
                                       mode,
                                       z,
                                       index_pk,
-                                      ln_pk_l_at_z,
-                                      ln_pk_ic_l_at_z
+                                      out_pk_l_at_z,
+                                      out_pk_ic_l_at_z
                                       ),
              pnl->error_message,
              pnl->error_message);
 
   class_call(array_spline_table_lines(pnl->ln_k,
                                       pnl->k_size,
-                                      ln_pk_l_at_z,
+                                      out_pk_l_at_z,
                                       1,
-                                      ddln_pk_l_at_z,
+                                      ddout_pk_l_at_z,
                                       _SPLINE_NATURAL_,
                                       pnl->error_message),
              pnl->error_message,
@@ -326,12 +352,12 @@ int nonlinear_pk_linear_at_k_and_z(
 
   class_call(array_interpolate_spline(pnl->ln_k,
                                       pnl->k_size,
-                                      ln_pk_l_at_z,
-                                      ddln_pk_l_at_z,
+                                      out_pk_l_at_z,
+                                      ddout_pk_l_at_z,
                                       1,
                                       log(k),
                                       &last_index,
-                                      ln_pk_l,
+                                      out_pk_l,
                                       1,
                                       pnl->error_message),
              pnl->error_message,
@@ -341,9 +367,9 @@ int nonlinear_pk_linear_at_k_and_z(
 
     class_call(array_spline_table_lines(pnl->ln_k,
                                           pnl->k_size,
-                                          ln_pk_ic_l_at_z,
+                                          out_pk_ic_l_at_z,
                                           pnl->ic_ic_size,
-                                          ddln_pk_ic_l_at_z,
+                                          ddout_pk_ic_l_at_z,
                                           _SPLINE_NATURAL_,
                                           pnl->error_message),
                  pnl->error_message,
@@ -351,26 +377,26 @@ int nonlinear_pk_linear_at_k_and_z(
 
       class_call(array_interpolate_spline(pnl->ln_k,
                                           pnl->k_size,
-                                          ln_pk_ic_l_at_z,
-                                          ddln_pk_ic_l_at_z,
+                                          out_pk_ic_l_at_z,
+                                          ddout_pk_ic_l_at_z,
                                           pnl->ic_ic_size,
                                           log(k),
                                           &last_index,
-                                          ln_pk_ic_l,
+                                          out_pk_ic_l,
                                           1,
                                           pnl->error_message),
                  pnl->error_message,
                  pnl->error_message);
 
-      free(ln_pk_ic_l_at_z);
-      free(ddln_pk_ic_l_at_z);
+      free(out_pk_ic_l_at_z);
+      free(ddout_pk_ic_l_at_z);
 
   }
 
-  free(ln_pk_l_at_z);
-  free(ddln_pk_l_at_z);
-  free(ln_pk_ic_l_at_z);
-  free(ddln_pk_ic_l_at_z);
+  free(out_pk_l_at_z);
+  free(ddout_pk_l_at_z);
+  free(out_pk_ic_l_at_z);
+  free(ddout_pk_ic_l_at_z);
 
   return _SUCCESS_;
 }

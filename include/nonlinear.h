@@ -227,8 +227,8 @@ extern "C" {
                                enum linear_or_logarithmic mode,
                                double z,
                                int index_pk,
-                               double * ln_pk_l,
-                               double * ln_pk_ic_l
+                               double * out_pk_l,
+                               double * out_pk_ic_l
                                );
 
   int nonlinear_pk_linear_at_k_and_z(
@@ -238,8 +238,8 @@ extern "C" {
                                      double k,
                                      double z,
                                      int index_pk,
-                                     double * ln_pk_l,
-                                     double * ln_pk_ic_l
+                                     double * out_pk_l,
+                                     double * out_pk_ic_l
                                      );
 
   int nonlinear_init(
