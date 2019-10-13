@@ -1270,6 +1270,126 @@ int nonlinear_get_tau_list(
 }
 
 /**
+ * Get sources for a given wavenumber (and for a given time, type, ic,
+ * mode...) either directly from precomputed valkues (computed ain
+ * perturbation module), or by analytic extrapolation
+ *
+ * @param pba             Input: pointer to background structure
+ * @param ppt             Input: pointer to perturbation structure
+ * @param pnl             Input: pointer to nonlinear structure
+ * @param index_k         Input: index of required k value
+ * @param index_ic        Input: index of required ic value
+ * @param index_md        Input: index of required md value
+ * @param index_tp        Input: index of required tp value
+ * @param index_tau       Input: index of required tau value
+ * @param sources         Input: array containing the original sources
+ * @param source          Output: desired value of source
+ * @return the error status
+ */
+
+int nonlinear_get_source(
+                         struct background * pba,
+                         struct perturbs * ppt,
+                         struct nonlinear * pnl,
+                         int index_k,
+                         int index_ic,
+                         int index_tp,
+                         int index_tau,
+                         double ** sources,
+                         double * source
+                         ) {
+
+  double k,k_max,k_previous;
+  double source_max,source_previous;
+  double scaled_factor;
+
+  /** - use precomputed values */
+  if (index_k < pnl->k_size) {
+    *source = sources[index_ic * ppt->tp_size[pnl->index_md_scalars] + index_tp][index_tau * pnl->k_size + index_k];
+  }
+  /** - extrapolate **/
+  else {
+
+    k = pnl->k[index_k];
+
+    /**
+     * --> Get last source and k, which are used in (almost) all methods
+     */
+    k_max = pnl->k[pnl->k_size-1];
+    source_max = sources[index_ic * ppt->tp_size[pnl->index_md_scalars] + index_tp][index_tau * pnl->k_size + pnl->k_size - 1];
+
+    /**
+     * --> Get previous source and k, which are used in best methods
+     */
+    k_previous = pnl->k[pnl->k_size-2];
+    source_previous = sources[index_ic * ppt->tp_size[pnl->index_md_scalars] + index_tp][index_tau * pnl->k_size + pnl->k_size - 2];
+
+    switch(pnl->extrapolation_method){
+      /**
+       * --> Extrapolate by assuming the source to vanish Has terrible
+       * discontinuity
+       */
+    case extrap_zero:
+      {
+        *source=0.0;
+        break;
+      }
+      /**
+       * --> Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
+       * Has a terrible bend in log slope, discontinuity only in derivative
+       */
+    case extrap_only_max:
+      {
+        *source = source_max*(log(k)/log(k_max));
+        break;
+      }
+      /**
+       * --> Extrapolate starting from the maximum value, assuming
+       * growth ~ ln(k) Here we use k in h/Mpc instead of 1/Mpc as it
+       * is done in the CAMB implementation of HMcode Has a terrible
+       * bend in log slope, discontinuity only in derivative
+       */
+    case extrap_only_max_units:
+      {
+        *source = source_max*(log(k/pba->h)/log(k_max/pba->h));
+        break;
+      }
+      /**
+       * --> Extrapolate assuming source ~ ln(a*k) where a is obtained
+       * from the data at k_0 Mostly continuous derivative, quite good
+       */
+    case extrap_max_scaled:
+      {
+        scaled_factor = exp((source_previous*log(k_max)-source_max*log(k_previous))/(source_max-source_previous));
+        *source = source_max*(log(scaled_factor*k)/log(scaled_factor*k_max));
+        break;
+      }
+      /**
+       * --> Extrapolate assuming source ~ ln(e+a*k) where a is
+       * estimated like is done in original HMCode
+       */
+    case extrap_hmcode:
+      {
+        scaled_factor = 1.8/(13.41*pba->a_eq*pba->H_eq);
+        *source = source_max*(log(_E_+scaled_factor*k)/log(_E_+scaled_factor*k_max));
+        break;
+      }
+      /**
+       * --> If the user has a complicated model and wants to
+       * interpolate differently, they can define their interpolation
+       * here and switch to using it instead
+       */
+    case extrap_user_defined:
+      {
+        class_stop(pnl->error_message,"Method of source extrapolation 'user_defined' was not yet defined.");
+        break;
+      }
+    }
+  }
+  return _SUCCESS_;
+}
+
+/**
  * This routine computes all the components of the matter power
  * spectrum P(k), given the source functions and the primordial
  * spectra, at a given time within the pre-computed table of sources
@@ -1391,7 +1511,6 @@ int nonlinear_pk_linear(
                                       pnl,
                                       index_k,
                                       index_ic1,
-                                      pnl->index_md_scalars,
                                       index_tp,
                                       index_tau,
                                       ppt->sources[pnl->index_md_scalars],
@@ -1425,7 +1544,6 @@ int nonlinear_pk_linear(
                                           pnl,
                                           index_k,
                                           index_ic1,
-                                          pnl->index_md_scalars,
                                           index_tp,
                                           index_tau,
                                           ppt->sources[pnl->index_md_scalars],
@@ -1438,7 +1556,6 @@ int nonlinear_pk_linear(
                                           pnl,
                                           index_k,
                                           index_ic2,
-                                          pnl->index_md_scalars,
                                           index_tp,
                                           index_tau,
                                           ppt->sources[pnl->index_md_scalars],
@@ -3708,126 +3825,5 @@ int nonlinear_hmcode_sigmaprime_at_z(
   }
 
 
-  return _SUCCESS_;
-}
-
-/**
- * Get sources for a given wavenumber (and for a given time, type, ic,
- * mode...) either directly from precomputed valkues (computed ain
- * perturbation module), or by analytic extrapolation
- *
- * @param pba             Input: pointer to background structure
- * @param ppt             Input: pointer to perturbation structure
- * @param pnl             Input: pointer to nonlinear structure
- * @param index_k         Input: index of required k value
- * @param index_ic        Input: index of required ic value
- * @param index_md        Input: index of required md value
- * @param index_tp        Input: index of required tp value
- * @param index_tau       Input: index of required tau value
- * @param sources         Input: array containing the original sources
- * @param source          Output: desired value of source
- * @return the error status
- */
-
-int nonlinear_get_source(
-                         struct background * pba,
-                         struct perturbs * ppt,
-                         struct nonlinear * pnl,
-                         int index_k,
-                         int index_ic,
-                         int index_md,
-                         int index_tp,
-                         int index_tau,
-                         double ** sources,
-                         double * source
-                         ) {
-
-  double k,k_max,k_previous;
-  double source_max,source_previous;
-  double scaled_factor;
-
-  /** - use precomputed values */
-  if (index_k < pnl->k_size) {
-    *source = sources[index_ic * ppt->tp_size[index_md] + index_tp][index_tau * pnl->k_size + index_k];
-  }
-  /** - extrapolate **/
-  else {
-
-    k = pnl->k[index_k];
-
-    /**
-     * --> Get last source and k, which are used in (almost) all methods
-     */
-    k_max = pnl->k[pnl->k_size-1];
-    source_max = sources[index_ic * ppt->tp_size[index_md] + index_tp][index_tau * pnl->k_size + pnl->k_size - 1];
-
-    /**
-     * --> Get previous source and k, which are used in best methods
-     */
-    k_previous = pnl->k[pnl->k_size-2];
-    source_previous = sources[index_ic * ppt->tp_size[index_md] + index_tp][index_tau * pnl->k_size + pnl->k_size - 2];
-
-    switch(pnl->extrapolation_method){
-      /**
-       * --> Extrapolate by assuming the source to vanish Has terrible
-       * discontinuity
-       */
-    case extrap_zero:
-      {
-        *source=0.0;
-        break;
-      }
-      /**
-       * --> Extrapolate starting from the maximum value, assuming  growth ~ ln(k)
-       * Has a terrible bend in log slope, discontinuity only in derivative
-       */
-    case extrap_only_max:
-      {
-        *source = source_max*(log(k)/log(k_max));
-        break;
-      }
-      /**
-       * --> Extrapolate starting from the maximum value, assuming
-       * growth ~ ln(k) Here we use k in h/Mpc instead of 1/Mpc as it
-       * is done in the CAMB implementation of HMcode Has a terrible
-       * bend in log slope, discontinuity only in derivative
-       */
-    case extrap_only_max_units:
-      {
-        *source = source_max*(log(k/pba->h)/log(k_max/pba->h));
-        break;
-      }
-      /**
-       * --> Extrapolate assuming source ~ ln(a*k) where a is obtained
-       * from the data at k_0 Mostly continuous derivative, quite good
-       */
-    case extrap_max_scaled:
-      {
-        scaled_factor = exp((source_previous*log(k_max)-source_max*log(k_previous))/(source_max-source_previous));
-        *source = source_max*(log(scaled_factor*k)/log(scaled_factor*k_max));
-        break;
-      }
-      /**
-       * --> Extrapolate assuming source ~ ln(e+a*k) where a is
-       * estimated like is done in original HMCode
-       */
-    case extrap_hmcode:
-      {
-        scaled_factor = 1.8/(13.41*pba->a_eq*pba->H_eq);
-        *source = source_max*(log(_E_+scaled_factor*k)/log(_E_+scaled_factor*k_max));
-        break;
-      }
-      /**
-       * --> If the user has a complicated model and wants to
-       * interpolate differently, they can define their interpolation
-       * here and switch to using it instead
-       */
-    case extrap_user_defined:
-      {
-        class_stop(pnl->error_message,"Method of source extrapolation 'user_defined' was not yet defined.");
-        break;
-      }
-    }
-  }
   return _SUCCESS_;
 }

@@ -288,6 +288,17 @@ extern "C" {
                              struct nonlinear * pnl
                              );
 
+  int nonlinear_get_source(
+                           struct background * pba,
+                           struct perturbs * ppt,
+                           struct nonlinear * pnl,
+                           int index_k,
+                           int index_ic,
+                           int index_tp,
+                           int index_tau,
+                           double ** sources,
+                           double * source);
+
   int nonlinear_pk_linear(
                           struct background *pba,
                           struct perturbs *ppt,
@@ -483,19 +494,6 @@ extern "C" {
                         double * sigma_prime_cb,
                         struct nonlinear_workspace * pnw
                         );
-
-  int nonlinear_get_source(
-                           struct background * pba,
-                           struct perturbs * ppt,
-                           struct nonlinear * pnl,
-                           int index_k,
-                           int index_ic,
-                           int index_md,
-                           int index_tp,
-                           int index_tau,
-                           double ** sources,
-                           double * source);
-
 
 #ifdef __cplusplus
 }
