@@ -1196,16 +1196,16 @@ int output_pk_old(
     /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
   //  else {
 
-      class_call(spectra_pk_at_z(pba,
-                                 psp,
-                                 linear,
-                                 pop->z_pk[index_z],
-                                 pk_tot,
-                                 pk_ic,
-                                 pk_cb_tot,
-                                 pk_cb_ic),
-                 psp->error_message,
-                 pop->error_message);
+    class_call(spectra_pk_at_z(pba,
+                               psp,
+                               linear,
+                               pop->z_pk[index_z],
+                               pk_tot,
+                               pk_ic,
+                               pk_cb_tot,
+                               pk_cb_ic),
+               psp->error_message,
+               pop->error_message);
     //}
 
     /** - fourth, write in files */

@@ -312,6 +312,7 @@ int spectra_cl_at_l(
  * interpolating in the pre-computed table (if several values of z have been stored)
  * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
  *
+ * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.
  *
  * Can be called in two modes: linear or logarithmic.
  *
@@ -351,248 +352,21 @@ int spectra_pk_at_z(
                     double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
                     ) {
 
-  /* JL 21.09.2017: TODO: now, P(k) total is already calculated and
-     stored in spectra_pk(), in the array psp->pk_l. WE should use
-     that here too to compute output_tot, inmstead of redoing the sum
-     over ICs. */
 
-  /** Summary: */
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
 
-  /** - define local variables */
-
-  int index_md;
-  int last_index;
-  int index_k;
-  double tau,ln_tau;
-  int index_ic1,index_ic2,index_ic1_ic2;
-
-  index_md = psp->index_md_scalars;
-
-  /** - first step: convert z into \f$\ln{\tau}\f$ */
-
-  class_call(background_tau_of_z(pba,z,&tau),
-             pba->error_message,
+  class_call(nonlinear_pks_linear_at_z(
+                                       pba,
+                                       psp->pnl,
+                                       mode,
+                                       z,
+                                       output_tot,
+                                       output_ic,
+                                       output_cb_tot,
+                                       output_cb_ic
+                                       ),
+             psp->pnl->error_message,
              psp->error_message);
-
-  class_test(tau <= 0.,
-             psp->error_message,
-             "negative or null value of conformal time: cannot interpolate");
-
-  ln_tau = log(tau);
-
-  double small_deviation = 1e-10;
-  class_test(ln_tau<psp->ln_tau[0]-small_deviation,
-             psp->error_message,
-             "requested z was not inside of tau tabulation range (Requested %.10e, Min %.10e) ",ln_tau,psp->ln_tau[0]-small_deviation);
-  if(ln_tau<psp->ln_tau[0]){
-    //Case of small deviation caused by rounding
-    ln_tau = psp->ln_tau[0];
-  }
-  class_test(ln_tau>psp->ln_tau[psp->ln_tau_size-1]+small_deviation,
-             psp->error_message,
-             "requested z was not inside of tau tabulation range (Requested %.10e, Max %.10e) ",ln_tau,psp->ln_tau[psp->ln_tau_size-1]+small_deviation);
-
-  if(ln_tau>psp->ln_tau[psp->ln_tau_size-1]){
-    //Case of small deviation caused by rounding
-    ln_tau = psp->ln_tau[psp->ln_tau_size-1];
-  }
-  /** - second step: for both modes (linear or logarithmic), store the spectrum in logarithmic format in the output array(s) */
-
-  /** - --> (a) if only values at tau=tau_today are stored and we want \f$ P(k,z=0)\f$, no need to interpolate */
-
-  if (psp->ln_tau_size == 1) {
-
-    class_test(z != 0.,
-               psp->error_message,
-               "asked z=%e but only P(k,z=0) has been tabulated",z);
-
-    for (index_k=0; index_k<psp->ln_k_size; index_k++)
-      if (psp->ic_size[index_md] == 1) {
-      	output_tot[index_k] = psp->ln_pk[index_k];
-        if (pba->has_ncdm) output_cb_tot[index_k] = psp->ln_pk_cb[index_k];
-      }
-      else {
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
-          output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] =
-            psp->ln_pk[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
-          if (pba->has_ncdm)
-            output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] =
-              psp->ln_pk_cb[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
-        }
-      }
-  }
-
-  /** - --> (b) if several values of tau have been stored, use interpolation routine to get spectra at correct redshift */
-
-  else {
-
-    if (psp->ic_ic_size[index_md] == 1) {
-
-      class_call(array_interpolate_spline(psp->ln_tau,
-                                          psp->ln_tau_size,
-                                          psp->ln_pk,
-                                          psp->ddln_pk,
-                                          psp->ln_k_size,
-                                          ln_tau,
-                                          &last_index,
-                                          output_tot,
-                                          psp->ln_k_size,
-                                          psp->error_message),
-                 psp->error_message,
-                 psp->error_message);
-
-      if (pba->has_ncdm){
-        class_call(array_interpolate_spline(psp->ln_tau,
-                                            psp->ln_tau_size,
-                                            psp->ln_pk_cb,
-                                            psp->ddln_pk_cb,
-                                            psp->ln_k_size,
-                                            ln_tau,
-                                            &last_index,
-                                            output_cb_tot,
-                                            psp->ln_k_size,
-                                            psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-      }
-
-    }
-    else {
-
-      class_call(array_interpolate_spline(psp->ln_tau,
-                                          psp->ln_tau_size,
-                                          psp->ln_pk,
-                                          psp->ddln_pk,
-                                          psp->ic_ic_size[index_md]*psp->ln_k_size,
-                                          ln_tau,
-                                          &last_index,
-                                          output_ic,
-                                          psp->ic_ic_size[index_md]*psp->ln_k_size,
-                                          psp->error_message),
-                 psp->error_message,
-                 psp->error_message);
-
-      if (pba->has_ncdm){
-        class_call(array_interpolate_spline(psp->ln_tau,
-                                            psp->ln_tau_size,
-                                            psp->ln_pk_cb,
-                                            psp->ddln_pk_cb,
-                                            psp->ic_ic_size[index_md]*psp->ln_k_size,
-                                            ln_tau,
-                                            &last_index,
-                                            output_cb_ic,
-                                            psp->ic_ic_size[index_md]*psp->ln_k_size,
-                                            psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-      }
-
-    }
-  }
-
-  /** - third step: if there are several initial conditions, compute the total P(k) and set back all uncorrelated coefficients to exactly zero. Check positivity of total P(k). */
-
-  if (psp->ic_size[index_md] > 1) {
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-      output_tot[index_k] = 0.;
-      if (pba->has_ncdm) output_cb_tot[index_k] = 0.;
-      for (index_ic1=0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-        for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
-          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
-          if (index_ic1 == index_ic2) {
-            output_tot[index_k] += exp(output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-            if (pba->has_ncdm) output_cb_tot[index_k] += exp(output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-          }
-          else {
-            if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-              output_tot[index_k] +=
-                2. * output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] *
-                sqrt(exp(output_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])]) *
-                     exp(output_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]));
-              if (pba->has_ncdm){
-                output_cb_tot[index_k] +=
-                  2. * output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] *
-                  sqrt(exp(output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])]) *
-                       exp(output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]));
-              }
-            }
-            else{
-              output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = 0.;
-              if (pba->has_ncdm) output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = 0.;
-            }
-          }
-        }
-      }
-
-      class_test(output_tot[index_k] <= 0.,
-                 psp->error_message,
-                 "for k=%e, z=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_total=%e results negative",
-                 exp(psp->ln_k[index_k]),z,output_tot[index_k]);
-
-      if (pba->has_ncdm){
-        class_test(output_cb_tot[index_k] <= 0.,
-                   psp->error_message,
-                   "for k=%e, z=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_cb_total=%e results negative",
-                   exp(psp->ln_k[index_k]),z,output_cb_tot[index_k]);
-      }
-
-    }
-  }
-
-  /** - fourth step: depending on requested mode (linear or logarithmic), apply necessary transformation to the output arrays */
-
-  /** - --> (a) linear mode: if only one initial condition, convert output_tot to linear format; if several initial conditions, convert output_ic to linear format, output_tot is already in this format */
-
-  if (mode == linear) {
-
-    if (psp->ic_size[index_md] == 1) {
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-        output_tot[index_k] = exp(output_tot[index_k]);
-        if (pba->has_ncdm) output_cb_tot[index_k] = exp(output_cb_tot[index_k]);
-      }
-    }
-
-    else {
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-        for (index_ic1=0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
-          output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = exp(output_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-          if (pba->has_ncdm)
-            output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = exp(output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-        }
-        for (index_ic1=0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-          for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
-
-            output_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])] =
-              output_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])]
-              *sqrt(output_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])] *
-                    output_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-
-            if (pba->has_ncdm){
-              output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])] =
-                output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])]
-                *sqrt(output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])] *
-                      output_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-            }
-
-          }
-        }
-      }
-    }
-  }
-
-  /** - --> (b) logarithmic mode: if only one initial condition, nothing to be done; if several initial conditions, convert output_tot to logarithmic format, output_ic is already in this format */
-
-  else {
-
-    if (psp->ic_size[index_md] > 1) {
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-        /* we have already checked above that output_tot was positive */
-        output_tot[index_k] = log(output_tot[index_k]);
-        if (pba->has_ncdm) output_cb_tot[index_k] = log(output_cb_tot[index_k]);
-      }
-    }
-  }
 
   return _SUCCESS_;
 
@@ -1386,7 +1160,7 @@ int spectra_init(
                  struct background * pba,
                  struct perturbs * ppt,
                  struct primordial * ppm,
-                 struct nonlinear *pnl,
+                 struct nonlinear * pnl,
                  struct transfers * ptr,
                  struct spectra * psp
                  ) {
@@ -1418,6 +1192,16 @@ int spectra_init(
   class_call(spectra_indices(pba,ppt,ptr,ppm,psp),
              psp->error_message,
              psp->error_message);
+
+  /** - a pointer to the nonlinear structure is stored in the spectra
+        structure. This odd, unusual and unelegant feature has been
+        introduced in v2.8 in order to keep in use some deprecated
+        functions spectra_pk_...() that are now pointing at new
+        function nonlinear_pk_...(). In the future, if the deprecated
+        functions are removed, it will be possible to remove also this
+        pointer. */
+
+  psp->pnl = pnl;
 
   /** - deal with \f$ C_l\f$'s, if any */
 
