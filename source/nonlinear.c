@@ -596,6 +596,50 @@ int nonlinear_pks_linear_at_z(
   return _SUCCESS_;
 }
 
+int nonlinear_pks_linear_at_k_and_z(
+                                    struct background * pba,
+                                    struct primordial * ppm,
+                                    struct nonlinear *pnl,
+                                    double k,
+                                    double z,
+                                    double * out_pk_l, // number P_m(k)
+                                    double * out_pk_ic_l, // array P_m_ic(k) of index [index_ic1_ic2]
+                                    double * out_pk_cb_l, // number P_cb(k)
+                                    double * out_pk_cb_ic_l // array P__cb_ic(k)of index [index_ic1_ic2]
+                                   ) {
+
+  if (pnl->has_pk_cb) {
+
+    class_call(nonlinear_pk_linear_at_k_and_z(pba,
+                                              ppm,
+                                              pnl,
+                                              k,
+                                              z,
+                                              pnl->index_pk_cb,
+                                              out_pk_cb_l,
+                                              out_pk_cb_ic_l
+                                              ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  if (pnl->has_pk_m) {
+
+    class_call(nonlinear_pk_linear_at_k_and_z(pba,
+                                              ppm,
+                                              pnl,
+                                              k,
+                                              z,
+                                              pnl->index_pk_m,
+                                              out_pk_l,
+                                              out_pk_ic_l
+                                              ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
 
 /**
  * Initialize the nonlinear structure, and in particular the
