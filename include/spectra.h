@@ -261,6 +261,8 @@ struct spectra {
 extern "C" {
 #endif
 
+  /* external functions (meant to be called from other modules) */
+
   int spectra_bandpower(
                         struct spectra * psp,
                         int l1,
@@ -277,41 +279,6 @@ extern "C" {
                       double ** cl_md,
                       double ** cl_md_ic
                       );
-
-  int spectra_pk_at_z(
-                      struct background * pba,
-                      struct spectra * psp,
-                      enum linear_or_logarithmic mode,
-                      double z,
-                      double * output_tot,
-                      double * output_ic,
-                      double * output_cb_tot,
-                      double * output_cb_ic
-                      );
-
-  int spectra_pk_at_k_and_z(
-                            struct background * pba,
-                            struct primordial * ppm,
-                            struct spectra * psp,
-                            double k,
-                            double z,
-                            double * pk,
-                            double * pk_ic,
-                            double * pk_cb,
-                            double * pk_cb_ic
-                            );
-
-  int spectra_pk_at_k_and_z_new(
-                                struct background * pba,
-                                struct primordial * ppm,
-                                struct spectra * psp,
-                                double k,
-                                double z,
-                                double * pk_tot,
-                                double * pk_ic,
-                                double * pk_cb_tot,
-                                double * pk_cb_ic
-                                );
 
   int spectra_pk_nl_at_z(
                          struct background * pba,
@@ -346,6 +313,8 @@ extern "C" {
                             double z,
                             double * output
                             );
+
+  /* internal functions */
 
   int spectra_init(
                    struct precision * ppr,
@@ -408,6 +377,33 @@ extern "C" {
                  struct nonlinear *pnl,
                  struct spectra * psp
                  );
+
+  /* deprecated functions (since v2.8) */
+
+  int spectra_pk_at_z(
+                      struct background * pba,
+                      struct spectra * psp,
+                      enum linear_or_logarithmic mode,
+                      double z,
+                      double * output_tot,
+                      double * output_ic,
+                      double * output_cb_tot,
+                      double * output_cb_ic
+                      );
+
+  int spectra_pk_at_k_and_z(
+                            struct background * pba,
+                            struct primordial * ppm,
+                            struct spectra * psp,
+                            double k,
+                            double z,
+                            double * pk,
+                            double * pk_ic,
+                            double * pk_cb,
+                            double * pk_cb_ic
+                            );
+
+  /* end deprecated functions */
 
   int spectra_sigma(
                     struct background * pba,

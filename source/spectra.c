@@ -306,511 +306,6 @@ int spectra_cl_at_l(
 }
 
 /**
- * Matter power spectrum for arbitrary redshift and for all initial conditions.
- *
- * This routine evaluates the matter power spectrum at a given value of z by
- * interpolating in the pre-computed table (if several values of z have been stored)
- * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
- *
- * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.
- *
- * Can be called in two modes: linear or logarithmic.
- *
- * - linear: returns P(k) (units: \f$ Mpc^3\f$)
- *
- * - logarithmic: returns \f$\ln{P(k)}\f$
- *
- * One little subtlety: in case of several correlated initial conditions,
- * the cross-correlation spectrum can be negative. Then, in logarithmic mode,
- * the non-diagonal elements contain the cross-correlation angle \f$ P_{12}/\sqrt{P_{11} P_{22}}\f$
- * (from -1 to 1) instead of \f$\ln{P_{12}}\f$
- *
- * This function can be
- * called from whatever module at whatever time, provided that
- * spectra_init() has been called before, and spectra_free() has not
- * been called yet.
- *
- * @param pba           Input: pointer to background structure (used for converting z into tau)
- * @param psp           Input: pointer to spectra structure (containing pre-computed table)
- * @param mode          Input: linear or logarithmic
- * @param z             Input: redshift
- * @param output_tot    Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
- * @param output_ic     Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
- * @param output_cb_tot Output: CDM+baryon power spectrum P_cb(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
- * @param output_cb_ic  Output: for each pair of initial conditions, CDM+baryon power spectra P_cb(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
- * @return the error status
- */
-
-int spectra_pk_at_z(
-                    struct background * pba,
-                    struct spectra * psp,
-                    enum linear_or_logarithmic mode,
-                    double z,
-                    double * output_tot,    /* array with argument output_tot[index_k] (must be already allocated) */
-                    double * output_ic,     /* array with argument output_tot[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
-                    double * output_cb_tot, /* same as output_tot for the baryon+CDM only */
-                    double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
-                    ) {
-
-
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
-
-  class_call(nonlinear_pks_linear_at_z(
-                                       pba,
-                                       psp->pnl,
-                                       mode,
-                                       z,
-                                       output_tot,
-                                       output_ic,
-                                       output_cb_tot,
-                                       output_cb_ic
-                                       ),
-             psp->pnl->error_message,
-             psp->error_message);
-
-  return _SUCCESS_;
-
-}
-
-/**
- * Matter power spectrum for arbitrary wavenumber, redshift and initial condition.
- *
- * This routine evaluates the matter power spectrum at a given value of k and z by
- * interpolating in a table of all P(k)'s computed at this z by spectra_pk_at_z() (when kmin <= k <= kmax),
- * or eventually by using directly the primordial spectrum (when 0 <= k < kmin):
- * the latter case is an approximation, valid when kmin << comoving Hubble scale today.
- * Returns zero when k=0. Returns an error when k<0 or k > kmax.
- *
- * This function can be
- * called from whatever module at whatever time, provided that
- * spectra_init() has been called before, and spectra_free() has not
- * been called yet.
- *
- * @param pba        Input: pointer to background structure (used for converting z into tau)
- * @param ppm        Input: pointer to primordial structure (used only in the case 0 < k < kmin)
- * @param psp        Input: pointer to spectra structure (containing pre-computed table)
- * @param k          Input: wavenumber in 1/Mpc
- * @param z          Input: redshift
- * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
- * @param pk_ic      Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3\f$
- * @param pk_cb_tot  Output: b+CDM power spectrum P(k) in \f$ Mpc^3 \f$
- * @param pk_cb_ic   Output: for each pair of initial conditions, b+CDM power spectra P(k) in \f$ Mpc^3\f$
- * @return the error status
- */
-
-int spectra_pk_at_k_and_z(
-                          struct background * pba,
-                          struct primordial * ppm,
-                          struct spectra * psp,
-                          double k,
-                          double z,
-                          double * pk_tot,    /* pointer to a single number (must be already allocated) */
-                          double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2] (must be already allocated only if several initial conditions) */
-                          double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
-                          double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
-                          ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  int index_md;
-  int index_k;
-  int last_index;
-  int index_ic1,index_ic2,index_ic1_ic2;
-
-  double * spectrum_at_z = NULL;
-  double * spectrum_at_z_ic = NULL;
-  double * spline;
-  double * pk_primordial_k = NULL;
-  double kmin;
-  double * pk_primordial_kmin = NULL;
-
-  double * spectrum_cb_at_z = NULL;
-  double * spectrum_cb_at_z_ic = NULL;
-  double * spline_cb = NULL;
-
-  index_md = psp->index_md_scalars;
-
-  /** - first step: check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_pk_at_z()) */
-
-  class_test((k < 0.) || (k > exp(psp->ln_k[psp->ln_k_size-1])),
-             psp->error_message,
-             "k=%e out of bounds [%e:%e]",k,0.,exp(psp->ln_k[psp->ln_k_size-1]));
-
-  /** - deal with case 0 <= k < kmin */
-
-  if (k < exp(psp->ln_k[0])) {
-
-    /** - --> (a) subcase k=0: then P(k)=0 */
-
-    if (k == 0.) {
-      if (psp->ic_size[index_md] == 1) {
-        *pk_tot=0.;
-        if (pba->has_ncdm) *pk_cb_tot=0.;
-      }
-      else {
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
-          pk_ic[index_ic1_ic2] = 0.;
-          if (pba->has_ncdm) pk_cb_ic[index_ic1_ic2] = 0.;
-        }
-      }
-    }
-
-    /** - --> (b) subcase 0<k<kmin: in this case we know that on super-Hubble scales:
-     *          P(k) = [some number] * k  * P_primordial(k)
-     *          so
-     *          P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin))
-     *          (note that the result is accurate only if kmin is such that [a0 kmin] << H0)
-     */
-
-    else {
-
-      /* compute P(k,z) which contains P(kmin,z)*/
-      class_alloc(spectrum_at_z,
-                  psp->ln_k_size*sizeof(double),
-                  psp->error_message);
-      class_alloc(spectrum_cb_at_z,
-                  psp->ln_k_size*sizeof(double),
-                  psp->error_message);
-      if (psp->ic_size[index_md] > 1) {
-        class_alloc(spectrum_at_z_ic,
-                    sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                    psp->error_message);
-
-        class_alloc(spectrum_cb_at_z_ic,
-                    sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                    psp->error_message);
-
-      }
-      class_call(spectra_pk_at_z(pba,
-                                 psp,
-                                 linear,
-                                 z,
-                                 spectrum_at_z,
-                                 spectrum_at_z_ic,
-                                 spectrum_cb_at_z,
-                                 spectrum_cb_at_z_ic),
-                 psp->error_message,
-                 psp->error_message);
-
-      /* compute P_primordial(k) */
-      class_alloc(pk_primordial_k,
-                  sizeof(double)*psp->ic_ic_size[index_md],
-                  psp->error_message);
-      class_call(primordial_spectrum_at_k(ppm,
-                                          index_md,
-                                          linear,
-                                          k,
-                                          pk_primordial_k),
-                 ppm->error_message,psp->error_message);
-
-      /* compute P_primordial(kmin) */
-      kmin = exp(psp->ln_k[0]);
-      class_alloc(pk_primordial_kmin,
-                  sizeof(double)*psp->ic_ic_size[index_md],
-                  psp->error_message);
-      class_call(primordial_spectrum_at_k(ppm,
-                                          index_md,
-                                          linear,
-                                          kmin,
-                                          pk_primordial_kmin),
-                 ppm->error_message,
-                 psp->error_message);
-
-      /* apply above analytic approximation for P(k) */
-      index_k=0;
-      if (psp->ic_size[index_md] == 1) {
-        index_ic1_ic2 = 0;
-        *pk_tot = spectrum_at_z[index_k]
-          *k*pk_primordial_k[index_ic1_ic2]
-          /kmin/pk_primordial_kmin[index_ic1_ic2];
-        if (pba->has_ncdm){
-          *pk_cb_tot = spectrum_cb_at_z[index_k]
-            *k*pk_primordial_k[index_ic1_ic2]
-            /kmin/pk_primordial_kmin[index_ic1_ic2];
-        }
-      }
-      else {
-      	for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
-          pk_ic[index_ic1_ic2] = spectrum_at_z_ic[index_ic1_ic2]
-            *k*pk_primordial_k[index_ic1_ic2]
-            /kmin/pk_primordial_kmin[index_ic1_ic2];
-          if (pba->has_ncdm){
-            pk_cb_ic[index_ic1_ic2] = spectrum_cb_at_z_ic[index_ic1_ic2]
-              *k*pk_primordial_k[index_ic1_ic2]
-              /kmin/pk_primordial_kmin[index_ic1_ic2];
-          }
-        }
-      }
-
-      free(spectrum_at_z);
-      free(spectrum_cb_at_z);
-      if (psp->ic_size[index_md] > 1){
-        free(spectrum_at_z_ic);
-        free(spectrum_cb_at_z_ic);
-      }
-      free(pk_primordial_k);
-      free(pk_primordial_kmin);
-
-    }
-  }
-
-  /** - deal with case kmin <= k <= kmax */
-
-  else {
-
-    /* compute P(k,z) (in logarithmic format for more accurate interpolation) */
-    class_alloc(spectrum_at_z,
-                psp->ln_k_size*sizeof(double),
-                psp->error_message);
-    class_alloc(spectrum_cb_at_z,
-                psp->ln_k_size*sizeof(double),
-                psp->error_message);
-    if (psp->ic_size[index_md] > 1) {
-      class_alloc(spectrum_at_z_ic,
-                  sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                  psp->error_message);
-      class_alloc(spectrum_cb_at_z_ic,
-                  sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                  psp->error_message);
-    }
-    class_call(spectra_pk_at_z(pba,
-                               psp,
-                               logarithmic,
-                               z,
-                               spectrum_at_z,
-                               spectrum_at_z_ic,
-                               spectrum_cb_at_z,
-                               spectrum_cb_at_z_ic),
-               psp->error_message,
-               psp->error_message);
-
-    /* get its second derivatives with spline, then interpolate, then convert to linear format */
-
-    class_alloc(spline,
-                sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                psp->error_message);
-
-    if (pba->has_ncdm)
-      class_alloc(spline_cb,
-                  sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                  psp->error_message);
-
-    if (psp->ic_size[index_md] == 1) {
-
-      class_call(array_spline_table_lines(psp->ln_k,
-                                          psp->ln_k_size,
-                                          spectrum_at_z,
-                                          1,
-                                          spline,
-                                          _SPLINE_NATURAL_,
-                                          psp->error_message),
-                 psp->error_message,
-                 psp->error_message);
-
-      class_call(array_interpolate_spline(psp->ln_k,
-                                          psp->ln_k_size,
-                                          spectrum_at_z,
-                                          spline,
-                                          1,
-                                          log(k),
-                                          &last_index,
-                                          pk_tot,
-                                          1,
-                                          psp->error_message),
-                 psp->error_message,
-                 psp->error_message);
-
-      *pk_tot = exp(*pk_tot);
-
-      if (pba->has_ncdm){
-        class_call(array_spline_table_lines(psp->ln_k,
-                                            psp->ln_k_size,
-                                            spectrum_cb_at_z,
-                                            1,
-                                            spline_cb,
-                                            _SPLINE_NATURAL_,
-                                            psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-
-        class_call(array_interpolate_spline(psp->ln_k,
-                                            psp->ln_k_size,
-                                            spectrum_cb_at_z,
-                                            spline_cb,
-                                            1,
-                                            log(k),
-                                            &last_index,
-                                            pk_cb_tot,
-                                            1,
-                                            psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-
-        *pk_cb_tot = exp(*pk_cb_tot);
-      }
-
-    }
-    else {
-
-      class_call(array_spline_table_lines(psp->ln_k,
-                                          psp->ln_k_size,
-                                          spectrum_at_z_ic,
-                                          psp->ic_ic_size[index_md],
-                                          spline,
-                                          _SPLINE_NATURAL_,
-                                          psp->error_message),
-                 psp->error_message,
-                 psp->error_message);
-
-      class_call(array_interpolate_spline(psp->ln_k,
-                                          psp->ln_k_size,
-                                          spectrum_at_z_ic,
-                                          spline,
-                                          psp->ic_ic_size[index_md],
-                                          log(k),
-                                          &last_index,
-                                          pk_ic,
-                                          psp->ic_ic_size[index_md],
-                                          psp->error_message),
-                 psp->error_message,
-                 psp->error_message);
-
-      if (pba->has_ncdm){
-        class_call(array_spline_table_lines(psp->ln_k,
-                                            psp->ln_k_size,
-                                            spectrum_cb_at_z_ic,
-                                            psp->ic_ic_size[index_md],
-                                            spline_cb,
-                                            _SPLINE_NATURAL_,
-                                            psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-
-        class_call(array_interpolate_spline(psp->ln_k,
-                                            psp->ln_k_size,
-                                            spectrum_cb_at_z_ic,
-                                            spline_cb,
-                                            psp->ic_ic_size[index_md],
-                                            log(k),
-                                            &last_index,
-                                            pk_cb_ic,
-                                            psp->ic_ic_size[index_md],
-                                            psp->error_message),
-                   psp->error_message,
-                   psp->error_message);
-      }
-
-      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-        index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
-        pk_ic[index_ic1_ic2] = exp(pk_ic[index_ic1_ic2]);
-        if (pba->has_ncdm) pk_cb_ic[index_ic1_ic2] = exp(pk_cb_ic[index_ic1_ic2]);
-      }
-      for (index_ic1 = 0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-        for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
-          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
-          if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-            pk_ic[index_ic1_ic2] = pk_ic[index_ic1_ic2]*
-              sqrt(pk_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])]*
-                   pk_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-            if (pba->has_ncdm){
-              pk_cb_ic[index_ic1_ic2] = pk_cb_ic[index_ic1_ic2]*
-                sqrt(pk_cb_ic[index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])]*
-                     pk_cb_ic[index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-            }
-          }
-          else {
-            pk_ic[index_ic1_ic2] = 0.;
-            if (pba->has_ncdm) pk_cb_ic[index_ic1_ic2] = 0.;
-          }
-        }
-      }
-      free(spectrum_at_z_ic);
-      free(spectrum_cb_at_z_ic);
-    }
-
-    free(spectrum_at_z);
-    free(spectrum_cb_at_z);
-    free(spline);
-    if (pba->has_ncdm) free(spline_cb);
-  }
-
-  /** - last step: if more than one condition, sum over pk_ic to get pk_tot, and set back coefficients of non-correlated pairs to exactly zero. */
-
-  if (psp->ic_size[index_md] > 1) {
-
-    *pk_tot = 0.;
-
-    if (pba->has_ncdm) *pk_cb_tot = 0.;
-
-    for (index_ic1 = 0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-      for (index_ic2 = index_ic1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
-        index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
-
-        if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-
-          if (index_ic1 == index_ic2){
-            *pk_tot += pk_ic[index_ic1_ic2];
-            if (pba->has_ncdm) *pk_cb_tot += pk_cb_ic[index_ic1_ic2];
-          }
-          else{
-            *pk_tot += 2.*pk_ic[index_ic1_ic2];
-            if (pba->has_ncdm) *pk_cb_tot += 2.*pk_cb_ic[index_ic1_ic2];
-          }
-        }
-        else {
-          pk_ic[index_ic1_ic2] = 0.;
-          if (pba->has_ncdm) pk_cb_ic[index_ic1_ic2] = 0.;
-        }
-      }
-    }
-
-    class_test(*pk_tot <= 0.,
-               psp->error_message,
-               "for k=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_total results negative",k);
-    if (pba->has_ncdm){
-      class_test(*pk_cb_tot <= 0.,
-                 psp->error_message,
-                 "for k=%e, the matrix of initial condition amplitudes was not positive definite, hence P(k)_cb_total results negative",k);
-    }
-  }
-
-  return _SUCCESS_;
-
-}
-
-int spectra_pk_at_k_and_z_new(
-                              struct background * pba,
-                              struct primordial * ppm,
-                              struct spectra * psp,
-                              double k,
-                              double z,
-                              double * pk_tot,    /* pointer to a single number (must be already allocated) */
-                              double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2]
-                                                     (must be already allocated only if several initial conditions) */
-                              double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
-                              double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
-                              ) {
-
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
-
-  class_call(nonlinear_pks_linear_at_k_and_z(pba,
-                                             ppm,
-                                             psp->pnl,
-                                             k,
-                                             z,
-                                             pk_tot,
-                                             pk_ic,
-                                             pk_cb_tot,
-                                             pk_cb_ic),
-             psp->pnl->error_message,
-             psp->error_message);
-
-  return _SUCCESS_;
-}
-
-/**
  * Non-linear total matter power spectrum for arbitrary redshift.
  *
  * This routine evaluates the non-linear matter power spectrum at a given value of z by
@@ -2909,6 +2404,132 @@ int spectra_pk(
 
   return _SUCCESS_;
 }
+
+  /* deprecated functions (since v2.8) */
+
+/**
+ * Matter power spectrum for arbitrary redshift and for all initial conditions.
+ *
+ * This routine evaluates the matter power spectrum at a given value of z by
+ * interpolating in the pre-computed table (if several values of z have been stored)
+ * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
+ *
+ * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.
+ *
+ * Can be called in two modes: linear or logarithmic.
+ *
+ * - linear: returns P(k) (units: \f$ Mpc^3\f$)
+ *
+ * - logarithmic: returns \f$\ln{P(k)}\f$
+ *
+ * One little subtlety: in case of several correlated initial conditions,
+ * the cross-correlation spectrum can be negative. Then, in logarithmic mode,
+ * the non-diagonal elements contain the cross-correlation angle \f$ P_{12}/\sqrt{P_{11} P_{22}}\f$
+ * (from -1 to 1) instead of \f$\ln{P_{12}}\f$
+ *
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * spectra_init() has been called before, and spectra_free() has not
+ * been called yet.
+ *
+ * @param pba           Input: pointer to background structure (used for converting z into tau)
+ * @param psp           Input: pointer to spectra structure (containing pre-computed table)
+ * @param mode          Input: linear or logarithmic
+ * @param z             Input: redshift
+ * @param output_tot    Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_ic     Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @param output_cb_tot Output: CDM+baryon power spectrum P_cb(k) in \f$ Mpc^3 \f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_cb_ic  Output: for each pair of initial conditions, CDM+baryon power spectra P_cb(k) in \f$ Mpc^3 \f$ (linear mode), or their logarithms and cross-correlation angles (logarithmic mode)
+ * @return the error status
+ */
+
+int spectra_pk_at_z(
+                    struct background * pba,
+                    struct spectra * psp,
+                    enum linear_or_logarithmic mode,
+                    double z,
+                    double * output_tot,    /* array with argument output_tot[index_k] (must be already allocated) */
+                    double * output_ic,     /* array with argument output_tot[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
+                    double * output_cb_tot, /* same as output_tot for the baryon+CDM only */
+                    double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
+                    ) {
+
+
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
+
+  class_call(nonlinear_pks_linear_at_z(
+                                       pba,
+                                       psp->pnl,
+                                       mode,
+                                       z,
+                                       output_tot,
+                                       output_ic,
+                                       output_cb_tot,
+                                       output_cb_ic
+                                       ),
+             psp->pnl->error_message,
+             psp->error_message);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Matter power spectrum for arbitrary wavenumber, redshift and initial condition.
+ *
+ * This routine evaluates the matter power spectrum at a given value
+ * of k and z by interpolating in a table of all P(k)'s computed at
+ * this z by nonlinear_pk_linear_at_z() (when kmin <= k <= kmax), or
+ * possibly by using directly the primordial spectrum (when 0 <= k <
+ * kmin): the latter case is an approximation, valid when kmin <<
+ * comoving Hubble scale today.  Returns zero when k=0. Returns an
+ * error when k<0 or k > kmax.
+ *
+ * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into tau)
+ * @param ppm        Input: pointer to primordial structure (used only in the case 0 < k < kmin)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param k          Input: wavenumber in 1/Mpc
+ * @param z          Input: redshift
+ * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3 \f$
+ * @param pk_ic      Output: for each pair of initial conditions, matter power spectra P(k) in \f$ Mpc^3\f$
+ * @param pk_cb_tot  Output: b+CDM power spectrum P(k) in \f$ Mpc^3 \f$
+ * @param pk_cb_ic   Output: for each pair of initial conditions, b+CDM power spectra P(k) in \f$ Mpc^3\f$
+ * @return the error status
+ */
+
+int spectra_pk_at_k_and_z(
+                          struct background * pba,
+                          struct primordial * ppm,
+                          struct spectra * psp,
+                          double k,
+                          double z,
+                          double * pk_tot,    /* pointer to a single number (must be already allocated) */
+                          double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2]
+                                                 (must be already allocated only if several initial conditions) */
+                          double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
+                          double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
+                          ) {
+
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
+
+  class_call(nonlinear_pks_linear_at_k_and_z(pba,
+                                             ppm,
+                                             psp->pnl,
+                                             k,
+                                             z,
+                                             pk_tot,
+                                             pk_ic,
+                                             pk_cb_tot,
+                                             pk_cb_ic),
+             psp->pnl->error_message,
+             psp->error_message);
+
+  return _SUCCESS_;
+}
+
+  /* end deprecated functions */
 
 /**
  * This routine computes sigma(R) given P(k) (does not check that k_max is large
