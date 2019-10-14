@@ -353,7 +353,7 @@ int spectra_pk_at_z(
                     ) {
 
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
 
   class_call(nonlinear_pks_linear_at_z(
                                        pba,
@@ -778,6 +778,36 @@ int spectra_pk_at_k_and_z(
 
   return _SUCCESS_;
 
+}
+
+int spectra_pk_at_k_and_z_new(
+                              struct background * pba,
+                              struct primordial * ppm,
+                              struct spectra * psp,
+                              double k,
+                              double z,
+                              double * pk_tot,    /* pointer to a single number (must be already allocated) */
+                              double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2]
+                                                     (must be already allocated only if several initial conditions) */
+                              double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
+                              double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
+                              ) {
+
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
+
+  class_call(nonlinear_pks_linear_at_k_and_z(pba,
+                                             ppm,
+                                             psp->pnl,
+                                             k,
+                                             z,
+                                             pk_tot,
+                                             pk_ic,
+                                             pk_cb_tot,
+                                             pk_cb_ic),
+             psp->pnl->error_message,
+             psp->error_message);
+
+  return _SUCCESS_;
 }
 
 /**

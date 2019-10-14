@@ -301,6 +301,18 @@ extern "C" {
                             double * pk_cb_ic
                             );
 
+  int spectra_pk_at_k_and_z_new(
+                                struct background * pba,
+                                struct primordial * ppm,
+                                struct spectra * psp,
+                                double k,
+                                double z,
+                                double * pk_tot,
+                                double * pk_ic,
+                                double * pk_cb_tot,
+                                double * pk_cb_ic
+                                );
+
   int spectra_pk_nl_at_z(
                          struct background * pba,
                          struct spectra * psp,

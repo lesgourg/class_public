@@ -177,6 +177,10 @@ int nonlinear_pk_linear_at_z(
   /** - interpolation in z */
   else {
 
+    class_test(pnl->ln_tau_size == 1,
+               pnl->error_message,
+               "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
+
     /** --> get value of contormal time tau */
     class_call(background_tau_of_z(pba,
                                    z,
@@ -448,7 +452,7 @@ int nonlinear_pk_linear_at_k_and_z(
                                             log(k),
                                             &last_index,
                                             out_pk_ic_l,
-                                            1,
+                                            pnl->ic_ic_size,
                                             pnl->error_message),
                    pnl->error_message,
                    pnl->error_message);
