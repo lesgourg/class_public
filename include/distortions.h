@@ -158,7 +158,8 @@ struct distortions
 
   int has_SZ_effect;
 
-  int only_exotic; /**< flag specifying wether to only take exotic injection contributions */
+  int only_exotic; /**< flag specifying whether to only take exotic injection contributions */
+  int include_g_distortion; /**< flag specifying whether to include the g distortion in the total distortion */
 
   short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 

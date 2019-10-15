@@ -4252,11 +4252,14 @@ int input_read_parameters_distortions(struct file_content * pfc,
   /** 2) Only calculate non-LCDM contributions to heating? */
   class_read_flag("sd_only_exotic",psd->only_exotic);
 
-  /** 3) Include SZ effect from reionization? */
+  /** 3) Only calculate non-LCDM contributions to heating? */
+  class_read_flag("sd_include_g_distortion",psd->include_g_distortion);
+
+  /** 4) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);
 
   if(psd->has_SZ_effect == _TRUE_){
-    /** 2.a) Type of calculation */
+    /** 4.a) Type of calculation */
     /* Read */
     class_call(parser_read_string(pfc,"sd_reio_type",&string1,&flag1,errmsg),
                errmsg,
@@ -5043,8 +5046,11 @@ int input_default_params(struct background *pba,
   /** 1.3.a.1) Detector noise */
   psd->sd_detector_delta_Ic = 5.e-26;
 
-
-  /** 2) Include SZ effect from reionization? */
+  /** 2) Only exotic species ? */
+  psd->only_exotic = _FALSE_;
+  /** 3) Include g distortion in total calculation ? */
+  psd->include_g_distortion = _FALSE_;
+  /** 4) Include SZ effect from reionization? */
   psd->has_SZ_effect = _FALSE_;
 
   /**

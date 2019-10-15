@@ -939,9 +939,11 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
     for(index_type=0;index_type<psd->type_size;++index_type){
       if(index_type==psd->index_type_g){
-        g = psd->sd_parameter_table[psd->index_type_g];
-        psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
-            g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
+        if(psd->include_g_distortion){
+          g = psd->sd_parameter_table[psd->index_type_g];
+          psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
+                                                 g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
+        }
       }
       else{
         psd->sd_table[index_type][index_x] = psd->sd_parameter_table[index_type]*psd->sd_shape_table[index_type][index_x];
@@ -976,15 +978,18 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   }
 
   /** Compute total heating */
-  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_g]*4.+
-                       psd->sd_parameter_table[psd->index_type_y]*4.+
+  psd->Drho_over_rho = psd->sd_parameter_table[psd->index_type_y]*4.+
                        psd->sd_parameter_table[psd->index_type_mu]/1.401+
                        psd->epsilon;
+
+  if(psd->include_g_distortion){
+     psd->Drho_over_rho += psd->sd_parameter_table[psd->index_type_g]*4.;
+  }
 
   /** Print found parameters */
   if (psd->distortions_verbose > 1){
 
-    if ( psd->distortions_verbose > 3){
+    if ( psd->distortions_verbose > 3 && psd->include_g_distortion){
       printf(" -> g-parameter %g (Note, that this does not include contributions from earlier than sd_z_max=%g)\n", psd->sd_parameter_table[psd->index_type_g], ppr->sd_z_max);
     }
 

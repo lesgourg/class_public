@@ -122,10 +122,10 @@ void read_rates(HRATEEFF *rate_table){
 
    for (i = 0; i < NTR; i++) {
        for (j = 0; j < NTM; j++) for (l = 0; l <= 1; l++) {
-           fscanf(fA, "%le", &(rate_table->logAlpha_tab[l][j][i]));
+           if(fscanf(fA, "%le", &(rate_table->logAlpha_tab[l][j][i]))!=1){printf("Critical error when reading logAlpha_tab \n");}
            rate_table->logAlpha_tab[l][j][i] = log(rate_table->logAlpha_tab[l][j][i]);
        }
-      fscanf(fR, "%le", &(rate_table->logR2p2s_tab[i]));
+      if(fscanf(fR, "%le", &(rate_table->logR2p2s_tab[i]))!=1){printf("Critical error when reading logR2p2s_tab \n");}
       rate_table->logR2p2s_tab[i] = log(rate_table->logR2p2s_tab[i]);   
    }
    fclose(fA);
@@ -281,11 +281,11 @@ void read_twog_params(TWO_PHOTON_PARAMS *twog){
    fA = fopen(TWOG_FILE, "r");  
 
    for (b = 0; b < NVIRT; b++) { 
-      fscanf(fA, "%le", &(twog->Eb_tab[b]));
-      fscanf(fA, "%le", &(twog->A1s_tab[b]));
-      fscanf(fA, "%le", &(twog->A2s_tab[b]));
-      fscanf(fA, "%le", &(twog->A3s3d_tab[b]));
-      fscanf(fA, "%le", &(twog->A4s4d_tab[b]));
+      if(fscanf(fA, "%le", &(twog->Eb_tab[b]))!=1){printf("Critical error when reading Eb_tab \n");}
+      if(fscanf(fA, "%le", &(twog->A1s_tab[b]))!=1){printf("Critical error when reading A1s_tab \n");}
+      if(fscanf(fA, "%le", &(twog->A2s_tab[b]))!=1){printf("Critical error when reading A2s_tab \n");}
+      if(fscanf(fA, "%le", &(twog->A3s3d_tab[b]))!=1){printf("Critical error when reading A3s3d_tab \n");}
+      if(fscanf(fA, "%le", &(twog->A4s4d_tab[b]))!=1){printf("Critical error when reading A4s4d_tab \n");}
    }  
    fclose(fA); 
 
