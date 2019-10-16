@@ -134,6 +134,7 @@ struct thermo
   //@{
 
   int index_th_xe;            /**< ionization fraction \f$ x_e \f$ */
+  int index_th_xe_noreio;     /**< ionization fraction without reionization \f$ x_e \f$ */
   int index_th_dkappa;        /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int index_th_tau_d;         /**< Baryon drag optical depth */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */

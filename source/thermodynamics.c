@@ -394,6 +394,7 @@ int thermodynamics_indices(struct thermo * pth,
 
   /* Free electron fraction */
   class_define_index(pth->index_th_xe,_TRUE_,index,1);
+  class_define_index(pth->index_th_xe_noreio,_TRUE_,index,1);
   /* Optical depth and related quantities */
   class_define_index(pth->index_th_dkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_ddkappa,_TRUE_,index,1);
@@ -3575,6 +3576,7 @@ int thermodynamics_solve_store_sources(double mz,
 
   /* ionization fraction */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe] = x;
+  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe_noreio] = ptdw->x_noreio;
 
   /* Tb */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_Tb] = Tmat;
