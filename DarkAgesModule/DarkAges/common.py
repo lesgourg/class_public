@@ -533,9 +533,8 @@ def finalize(redshift, f_heat, f_lya, f_ionH, f_ionHe, f_lowE, **DarkOptions):
 		f_lya = np.zeros_like(f_ionH)
 
 	first = int(DarkOptions.get('first_index',1))
-	last_idx = int(DarkOptions.get('last_index',1))
-	if last_idx == 0:
-		print_warning('We strongly discourage you to assign the value "0" to "last_index". The last entry of the table is zero for numerical reasons.')
+	last_idx = int(DarkOptions.get('last_index',0))
+
 	last = len(redshift) - last_idx
 	min_z = DarkOptions.get('lower_z_bound',0.)
 	max_z = DarkOptions.get('upper_z_bound',1e4)
@@ -584,9 +583,8 @@ def feff_finalize(redshift, f_eff, **DarkOptions):
 	redshift = redshift - np.ones_like(redshift) # Go from DarkAges-redshift (z+1) to CLASS-redshift (z)
 
 	first = int(DarkOptions.get('first_index',1))
-	last_idx = int(DarkOptions.get('last_index',1))
-	if last_idx == 0:
-		print_warning('We strongly discourage you to assign the value "0" to "last_index". The last entry of the table is zero for numerical reasons.')
+	last_idx = int(DarkOptions.get('last_index',0))
+
 	last = len(redshift) - last_idx
 	min_z = DarkOptions.get('lower_z_bound',0.)
 	max_z = DarkOptions.get('upper_z_bound',1e4)
