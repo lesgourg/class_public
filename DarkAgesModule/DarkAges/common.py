@@ -257,7 +257,8 @@ def f_function(transfer_functions_log10E, log10E, z_inj, z_dep, normalization,
 		low = max(i,0)
 		#low = i
 		integrand = ( conversion(z_inj[low:], alpha=alpha) )*energy_integral[i,low:]
-		z_integral[i] = trapz( integrand, dummy[low:] )
+		#z_integral[i] = trapz( integrand, dummy[low:] )
+		z_integral[i] = integrand.sum()
 
 	result = np.empty_like( norm, dtype=np.float64 )
 	for i in range(len(norm)):
