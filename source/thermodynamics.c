@@ -3499,9 +3499,9 @@ int thermodynamics_solve_store_sources(double mz,
   /** Define local variables */
   /* Redshift and ionization fraction/temperature */
   double z;
-  double x,Tmat;
+  double x,x_noreio,Tmat;
   /* Recfast smoothing */
-  double x_previous, weight,s;
+  double x_previous,x_noreio_previous,weight,s;
   /* Structures as shorthand_notation */
   struct thermodynamics_parameters_and_workspace * ptpaw;
   struct precision * ppr;
@@ -3550,6 +3550,7 @@ int thermodynamics_solve_store_sources(double mz,
              pth->error_message,
              pth->error_message);
   x = ptdw->x_reio;
+  x_noreio = ptdw->x_noreio;
 
   /** - In the recfast case, we manually smooth the results a bit */
   if(pth->recombination == recfast){
@@ -3561,12 +3562,14 @@ int thermodynamics_solve_store_sources(double mz,
                  pth->error_message);
 
       x_previous = ptdw->x_reio;
+      x_noreio_previous = ptdw->x_noreio;
       // get s from 0 to 1
       s = (ptdw->ap_z_limits[ap_current-1]-z)/(2*ptdw->ap_z_limits_delta[ap_current]);
       // infer f2(x) = smooth function interpolating from 0 to 1
       weight = f2(s);
 
       x = weight*x+(1.-weight)*x_previous;
+      x_noreio = weight*x_noreio+(1.-weight)*x_noreio_previous;
     }
 
   }
@@ -3576,7 +3579,7 @@ int thermodynamics_solve_store_sources(double mz,
 
   /* ionization fraction */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe] = x;
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe_noreio] = ptdw->x_noreio;
+  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe_noreio] = x_noreio;
 
   /* Tb */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_Tb] = Tmat;
@@ -3628,6 +3631,7 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"z",_TRUE_);
   class_store_columntitle(titles,"conf. time [Mpc]",_TRUE_);
   class_store_columntitle(titles,"x_e",_TRUE_);
+  class_store_columntitle(titles,"x_noreio",_TRUE_);
   class_store_columntitle(titles,"kappa' [Mpc^-1]",_TRUE_);
   //class_store_columntitle(titles,"kappa''",_TRUE_);
   //class_store_columntitle(titles,"kappa'''",_TRUE_);
@@ -3635,6 +3639,8 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"g [Mpc^-1]",_TRUE_);
   //class_store_columntitle(titles,"g'",_TRUE_);
   //class_store_columntitle(titles,"g''",_TRUE_);
+  class_store_columntitle(titles,"g_reco",_TRUE_);
+  class_store_columntitle(titles,"g_reio",_TRUE_);
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
   class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"tau_d",_TRUE_);
@@ -3685,6 +3691,7 @@ int thermodynamics_output_data(struct background * pba,
     class_store_double(dataptr,z,_TRUE_,storeidx);
     class_store_double(dataptr,tau,_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_xe],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_xe_noreio],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_dkappa],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_ddkappa],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_dddkappa],_TRUE_,storeidx);
