@@ -634,6 +634,8 @@ int perturb_indices_of_perturbs(
 
   index_type = 0;
   class_define_index(ppt->index_tp_t2,ppt->has_source_t,index_type,1);
+  class_define_index(ppt->index_tp_t2_reco,ppt->has_source_t,index_type,1);
+  class_define_index(ppt->index_tp_t2_reio,ppt->has_source_t,index_type,1);
   class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
   index_type_common = index_type;
 
@@ -5222,7 +5224,7 @@ int perturb_einstein(
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
         if (pba->has_ur == _TRUE_) {
-	  
+
 	  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
           ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
 
@@ -5253,7 +5255,7 @@ int perturb_einstein(
         ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
         if (pba->has_ur == _TRUE_) {
-	  
+
 	  ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
           ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
 
@@ -5404,10 +5406,10 @@ int perturb_total_stress_energy(
   double w_prime_fld, ca2_fld;
   double alpha, alpha_prime, metric_euler;
   double rho_t, p_t, rho_t_prime, p_t_prime;
-  double rho_fld, p_fld, rho_fld_prime, p_fld_prime; 
+  double rho_fld, p_fld, rho_fld_prime, p_fld_prime;
   double X, Y, Z, X_prime, Y_prime, Z_prime;
   double Gamma_fld, S, S_prime, theta_t, theta_t_prime, rho_plus_p_theta_fld_prime;
-  
+
 
   /** - wavenumber and scale factor related quantities */
 
@@ -5664,7 +5666,7 @@ int perturb_total_stress_energy(
 
       class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
       w_prime_fld = dw_over_da_fld * a_prime_over_a * a;
-      
+
       if (pba->use_ppf == _FALSE_) {
         ppw->delta_rho_fld = ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_delta_fld];
         ppw->rho_plus_p_theta_fld = (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld]*y[ppw->pv->index_pt_theta_fld];
@@ -6125,6 +6127,8 @@ int perturb_sources(
         _set_source_(ppt->index_tp_t1) = switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k* (pvecmetric[ppw->index_mt_psi]-y[ppw->pv->index_pt_phi]);
 
         _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+        _set_source_(ppt->index_tp_t2_reco) = ppt->switch_pol * pvecthermo[pth->index_th_g_reco] * P;
+        _set_source_(ppt->index_tp_t2_reio) = ppt->switch_pol * pvecthermo[pth->index_th_g_reio] * P;
       }
 
 
@@ -6157,8 +6161,9 @@ int perturb_sources(
                                                                     + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
                                                                     - y[ppw->pv->index_pt_eta]);
 
-        _set_source_(ppt->index_tp_t2) =
-          ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+        _set_source_(ppt->index_tp_t2) = ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+        _set_source_(ppt->index_tp_t2_reco) = ppt->switch_pol * pvecthermo[pth->index_th_g_reco] * P;
+        _set_source_(ppt->index_tp_t2_reio) = ppt->switch_pol * pvecthermo[pth->index_th_g_reio] * P;
       }
     }
 

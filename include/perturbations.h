@@ -279,6 +279,8 @@ struct perturbs
   int index_tp_t0; /**< index value for temperature (j=0 term) */
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
+  int index_tp_t2_reco; /**< index value for temperature (j=2 term) */
+  int index_tp_t2_reio; /**< index value for temperature (j=2 term) */
   int index_tp_p; /**< index value for polarization */
   int index_tp_delta_tot; /**< index value for delta tot */
   int index_tp_delta_m; /**< index value for delta matter tot */
