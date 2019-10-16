@@ -142,6 +142,12 @@ struct thermo
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
+  int index_th_g_reco;        /**< visibility function for recombination only */
+  int index_th_dg_reco;       /**< visibility function for recombination only */
+  int index_th_ddg_reco;      /**< visibility function for recombination only */
+  int index_th_g_reio;        /**< visibility function for reionization only  */
+  int index_th_dg_reio;       /**< visibility function for reionization only */
+  int index_th_ddg_reio;      /**< visibility function for reionization only */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal

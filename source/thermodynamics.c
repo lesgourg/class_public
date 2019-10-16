@@ -403,6 +403,12 @@ int thermodynamics_indices(struct thermo * pth,
   class_define_index(pth->index_th_g,_TRUE_,index,1);
   class_define_index(pth->index_th_dg,_TRUE_,index,1);
   class_define_index(pth->index_th_ddg,_TRUE_,index,1);
+  class_define_index(pth->index_th_g_reco,_TRUE_,index,1);
+  class_define_index(pth->index_th_dg_reco,_TRUE_,index,1);
+  class_define_index(pth->index_th_ddg_reco,_TRUE_,index,1);
+  class_define_index(pth->index_th_g_reio,_TRUE_,index,1);
+  class_define_index(pth->index_th_dg_reio,_TRUE_,index,1);
+  class_define_index(pth->index_th_ddg_reio,_TRUE_,index,1);
   /* Baryon quantities, Temperature, Sound Speed, Drag time end */
   class_define_index(pth->index_th_Tb,_TRUE_,index,1);
   class_define_index(pth->index_th_cb2,_TRUE_,index,1);
@@ -3684,6 +3690,8 @@ int thermodynamics_output_data(struct background * pba,
     class_store_double(dataptr,pvecthermo[pth->index_th_g],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_dg],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_ddg],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_g_reio],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_g_reco],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_Tb],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
@@ -3695,4 +3703,3 @@ int thermodynamics_output_data(struct background * pba,
   return _SUCCESS_;
 
 }
-
