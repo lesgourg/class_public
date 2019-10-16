@@ -136,6 +136,7 @@ struct thermo
   int index_th_xe;            /**< ionization fraction \f$ x_e \f$ */
   int index_th_xe_noreio;     /**< ionization fraction without reionization \f$ x_e \f$ */
   int index_th_dkappa;        /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
+  int index_th_dkappa_noreio; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int index_th_tau_d;         /**< Baryon drag optical depth */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
   int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
@@ -144,11 +145,7 @@ struct thermo
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_g_reco;        /**< visibility function for recombination only */
-  int index_th_dg_reco;       /**< visibility function for recombination only */
-  int index_th_ddg_reco;      /**< visibility function for recombination only */
   int index_th_g_reio;        /**< visibility function for reionization only  */
-  int index_th_dg_reio;       /**< visibility function for reionization only */
-  int index_th_ddg_reio;      /**< visibility function for reionization only */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal

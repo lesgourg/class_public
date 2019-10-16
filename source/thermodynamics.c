@@ -395,21 +395,18 @@ int thermodynamics_indices(struct thermo * pth,
   /* Free electron fraction */
   class_define_index(pth->index_th_xe,_TRUE_,index,1);
   class_define_index(pth->index_th_xe_noreio,_TRUE_,index,1);
-  /* Optical depth and related quantities */
+   /* Optical depth and related quantities */
   class_define_index(pth->index_th_dkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_ddkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_dddkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_exp_m_kappa,_TRUE_,index,1);
+  class_define_index(pth->index_th_dkappa_noreio,_TRUE_,index,1);
   /* Visibility function + derivatives */
   class_define_index(pth->index_th_g,_TRUE_,index,1);
   class_define_index(pth->index_th_dg,_TRUE_,index,1);
   class_define_index(pth->index_th_ddg,_TRUE_,index,1);
   class_define_index(pth->index_th_g_reco,_TRUE_,index,1);
-  class_define_index(pth->index_th_dg_reco,_TRUE_,index,1);
-  class_define_index(pth->index_th_ddg_reco,_TRUE_,index,1);
   class_define_index(pth->index_th_g_reio,_TRUE_,index,1);
-  class_define_index(pth->index_th_dg_reio,_TRUE_,index,1);
-  class_define_index(pth->index_th_ddg_reio,_TRUE_,index,1);
   /* Baryon quantities, Temperature, Sound Speed, Drag time end */
   class_define_index(pth->index_th_Tb,_TRUE_,index,1);
   class_define_index(pth->index_th_cb2,_TRUE_,index,1);
@@ -1033,8 +1030,10 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
   /** Define local quantities */
   /* Visibility function value */
   double g;
+  double g_reco;
   /* kappa derivative values*/
   double dkappa,ddkappa,dddkappa,expmkappa;
+  double dkappa_noreio;
   int index_tau;
 
   /** - --> second derivative with respect to tau of dkappa (in view of spline interpolation) */
@@ -1083,8 +1082,11 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
     dddkappa = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dddkappa];
     expmkappa = exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
+    dkappa_noreio = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa_noreio];
+
     /** - ---> compute g */
     g = dkappa * expmkappa;
+    g_reco = dkappa_noreio * expmkappa;
 
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] = expmkappa;
@@ -1100,6 +1102,8 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
 
     /** - ---> store g */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g] = g;
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g_reco] = g_reco;
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g_reio] = g - g_reco;
 
     /** - ---> compute variation rate */
     class_test(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] == 0.,
@@ -1948,6 +1952,8 @@ int thermodynamics_solve_derivs(double mz,
   class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
              phe->error_message,
              error_message);
+
+  x = ptdw->x_noreio;
 
   /** - HyRec */
   if(pth->recombination == hyrec && phyrec->to_store == _TRUE_){
@@ -3592,6 +3598,9 @@ int thermodynamics_solve_store_sources(double mz,
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
     = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x * _sigma_ * _Mpc_over_m_;
 
+  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa_noreio]
+    = (1.+z) * (1.+z) * ptw->SIunit_nH0 * x_noreio * _sigma_ * _Mpc_over_m_;
+
   return _SUCCESS_;
 
 }
@@ -3693,14 +3702,10 @@ int thermodynamics_output_data(struct background * pba,
     class_store_double(dataptr,pvecthermo[pth->index_th_xe],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_xe_noreio],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_dkappa],_TRUE_,storeidx);
-    //class_store_double(dataptr,pvecthermo[pth->index_th_ddkappa],_TRUE_,storeidx);
-    //class_store_double(dataptr,pvecthermo[pth->index_th_dddkappa],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_exp_m_kappa],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_g],_TRUE_,storeidx);
-    //class_store_double(dataptr,pvecthermo[pth->index_th_dg],_TRUE_,storeidx);
-    //class_store_double(dataptr,pvecthermo[pth->index_th_ddg],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecthermo[pth->index_th_g_reio],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_g_reco],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_g_reio],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_Tb],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
