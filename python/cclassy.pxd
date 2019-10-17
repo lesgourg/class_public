@@ -64,6 +64,19 @@ cdef extern from "class.h":
         double Omega0_scf
         double Omega0_k
         int bt_size
+        
+        # Added for Neural Networks
+        double * tau_table
+        int index_tau
+        int index_bg_rs
+        double * background_table
+        int bg_size_short
+        short short_info
+        int index_bg_a
+        double tau_eq
+        double a_eq
+        double H_eq
+        double * z_table
 
     cdef struct thermo:
         ErrorMsg error_message
@@ -86,6 +99,15 @@ cdef extern from "class.h":
         double n_e
 
         int tt_size
+
+        # Added for Neural Networks
+        double rd_rec
+        int index_th_r_d
+        int index_th_g
+        int index_th_dg
+        int index_th_exp_m_kappa
+        double * z_table
+        double * thermodynamics_table
 
     cdef struct perturbs:
         ErrorMsg error_message
@@ -118,6 +140,45 @@ cdef extern from "class.h":
         int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+
+        # Added for access to source functions; Needed for training of 
+        # neural networks
+        int has_source_t
+        int has_source_p
+        int has_source_delta_m
+        int has_source_delta_g
+        int has_source_theta_m
+        int has_source_phi
+        int has_source_phi_prime
+        int has_source_phi_plus_psi
+        int has_source_psi
+        int index_md_scalars
+        int index_ic_ad
+        int index_tp_delta_g
+        int index_tp_t0
+        # Also, new indices for the split source function for T0...
+        int index_tp_t0_sw
+        int index_tp_t0_isw
+        int index_tp_t1
+        int index_tp_t2
+        # ...and for split source function for T2.
+        int index_tp_t2_reco
+        int index_tp_t2_reio
+        int index_tp_p
+        int index_tp_delta_m
+        int index_tp_theta_m
+        int index_tp_phi
+        int index_tp_phi_plus_psi
+        int index_tp_phi_prime
+        int index_tp_psi
+        
+        double ** k
+        double * tau_sampling
+        int * k_size
+        int * k_size_cl
+        int tau_size
+        int * tp_size
+        double *** sources
 
     cdef struct transfers:
         ErrorMsg error_message

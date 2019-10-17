@@ -1813,3 +1813,242 @@ cdef class Class:
           sd_amp[i] = self.sd.DI[i]*self.sd.DI_units*1.e26
           sd_nu[i] = self.sd.x[i]*self.sd.x_to_nu
         return sd_nu,sd_amp
+
+    ################################################################################
+    # utility functions for neural networks
+    ################################################################################
+    def get_k_tau(self):
+        """
+        Return the k, tau grid values of the source functions.
+
+        Returns
+        -------
+        k_array : numpy array containing k values.
+        tau_array: numpy array containing tau values.
+        """      
+        cdef:
+            int i_k;
+            int i_tau;
+            int index_md = self.pt.index_md_scalars;
+            double * k = self.pt.k[index_md];
+            double * tau = self.pt.tau_sampling;
+            int k_size = self.pt.k_size[index_md];
+            int tau_size = self.pt.tau_size
+            double [:] numpy_k = np.zeros(k_size,dtype=np.double)
+            double [:] numpy_tau = np.zeros(tau_size,dtype=np.double)
+
+        for i_k in range(k_size):
+            numpy_k[i_k] = k[i_k]
+        for i_tau in range(tau_size):
+            numpy_tau[i_tau] = tau[i_tau]
+
+        return np.asarray(numpy_k), np.asarray(numpy_tau)   
+
+    def get_quantities_at_RM_equality(self):
+        return self.ba.tau_eq, self.ba.a_eq, self.ba.H_eq
+
+    def get_bg_z(self):
+        cdef:
+            int index_tau;
+            int bt_size = self.ba.bt_size;
+            double * z_table = self.ba.z_table;
+            double [:] np_z_table = np.zeros((bt_size));
+
+        for index_tau in range(bt_size):
+            np_z_table[index_tau] = z_table[index_tau]
+
+        return np.asarray(np_z_table)
+
+    def get_bg_tau(self):
+        cdef:
+            int index_tau;
+            int bt_size = self.ba.bt_size;
+            double * tau_table = self.ba.tau_table;
+            double [:] np_tau_table = np.zeros((bt_size));
+
+        for index_tau in range(bt_size):
+            np_tau_table[index_tau] = tau_table[index_tau]
+
+        return np.asarray(np_tau_table)
+
+    def get_backgrounds_for_NN(self):
+        """
+        Return the comoving sound horizon of photons from the background module and the
+        corresponding conformal time values.
+        """
+        cdef: 
+            double * tau_bg = self.ba.tau_table;
+            int index_tau;
+            int bt_size = self.ba.bt_size;
+            int bg_size = self.ba.bg_size;
+            int index_bg_rs = self.ba.index_bg_rs;
+            double * background_table = self.ba.background_table;
+            double [:] numpy_r_s = np.zeros((bt_size));
+            double [:] numpy_tau_bg = np.zeros((bt_size));
+
+        for index_tau in range(bt_size):
+            numpy_r_s[index_tau] = background_table[index_tau*bg_size+index_bg_rs]
+            numpy_tau_bg[index_tau] = tau_bg[index_tau]
+
+        return np.asarray(numpy_r_s), np.asarray(numpy_tau_bg)
+
+    def get_thermos_for_NN(self):
+        """
+        Return the photon comoving damping scale, visibility function, its conformal time
+        derivative and the corresponding conformal time values.
+        """
+        cdef: 
+            double tau;
+            double * z_table = self.th.z_table;
+            double * thermodynamics_table = self.th.thermodynamics_table;
+            int th_size = self.th.th_size;
+            int index_z;
+            int tt_size = self.th.tt_size;
+            int index_th_r_d = self.th.index_th_r_d;
+            int index_th_g = self.th.index_th_g;
+            int index_th_dg = self.th.index_th_dg;
+            int index_th_exp_m_kappa = self.th.index_th_exp_m_kappa;
+            double [:] numpy_r_d = np.zeros((tt_size));
+            double [:] numpy_g = np.zeros((tt_size));
+            double [:] numpy_dg = np.zeros((tt_size));
+            double [:] numpy_e_kappa = np.zeros((tt_size));
+            double [:] numpy_tau = np.zeros((tt_size));
+
+        for index_z in range(tt_size):
+            
+            if background_tau_of_z(&self.ba,z_table[index_z],&tau)==_FAILURE_:
+                raise CosmoSevereError(self.ba.error_message)
+            numpy_tau[index_z] = tau
+            numpy_r_d[index_z] = thermodynamics_table[index_z*th_size + index_th_r_d]
+            numpy_g[index_z] = thermodynamics_table[index_z*th_size + index_th_g]
+            numpy_dg[index_z] = thermodynamics_table[index_z*th_size + index_th_dg]
+            numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
+
+        return np.asarray(numpy_r_d), np.asarray(numpy_g), np.asarray(numpy_dg), np.asarray(numpy_e_kappa), np.asarray(numpy_tau)
+
+
+    def get_sources(self):
+        """
+        Return the source functions for all k, tau in the grid.
+
+        Returns
+        -------
+        sources : dictionary containing source functions.
+        k_array : numpy array containing k values.
+        tau_array: numpy array containing tau values.
+        """
+        sources = {}
+
+        cdef: 
+            int index_k, index_tau, i_index_type;
+            int index_type;
+            int index_md = self.pt.index_md_scalars;
+            double * k = self.pt.k[index_md];
+            double * tau = self.pt.tau_sampling;
+            int index_ic = self.pt.index_ic_ad;
+            int k_size = self.pt.k_size[index_md];
+            int tau_size = self.pt.tau_size;
+            int tp_size = self.pt.tp_size[index_md]
+            double *** sources_ptr = self.pt.sources
+            double data
+            double [:,:] tmparray = np.zeros((k_size, tau_size)) 
+            double [:] k_array = np.zeros(k_size)
+            double [:] tau_array = np.zeros(tau_size)
+            # TODO remove the next 3 lines
+            int tot_num_of_sources = 11 + 2 + 2
+            int [:] index_types = np.zeros(tot_num_of_sources,dtype=np.int32)
+            int [:] index_types_mask = np.zeros(tot_num_of_sources,dtype=np.int32)
+
+        names = np.array([
+            't0','t0_sw', 't0_isw', 
+            't1',
+            't2','t2_reco', 't2_reio', 
+            'p',
+            'delta_m','delta_g','theta_m','phi','phi_plus_psi','phi_prime','psi'
+            ])
+       
+
+        for index_k in range(k_size):
+            k_array[index_k] = k[index_k]
+        for index_tau in range(tau_size):
+            tau_array[index_tau] = tau[index_tau]
+
+        indices = []
+
+        if self.pt.has_source_t:
+            indices.extend([
+                self.pt.index_tp_t0, self.pt.index_tp_t0_sw, self.pt.index_tp_t0_isw,
+                self.pt.index_tp_t1,
+                self.pt.index_tp_t2, self.pt.index_tp_t2_reco, self.pt.index_tp_t2_reio
+                ])
+        if self.pt.has_source_p:
+            indices.append(self.pt.index_tp_p)
+        if self.pt.has_source_delta_m:
+            indices.append(self.pt.index_tp_delta_m)
+        if self.pt.has_source_delta_g:
+            indices.append(self.pt.index_tp_delta_g)
+        if self.pt.has_source_theta_m:
+            indices.append(self.pt.index_tp_theta_m)
+        if self.pt.has_source_phi:
+            indices.append(self.pt.index_tp_phi)
+        if self.pt.has_source_phi_plus_psi:
+            indices.append(self.pt.index_tp_phi_plus_psi)
+        if self.pt.has_source_phi_prime:
+            indices.append(self.pt.index_tp_phi_prime)
+        if self.pt.has_source_psi:
+            indices.append(self.pt.index_tp_psi)
+
+
+        # TODO this is old, remove it
+        # if self.pt.has_source_t:
+        #     index_types[0] = self.pt.index_tp_t0
+        #     index_types[1] = self.pt.index_tp_t1
+        #     index_types[2] = self.pt.index_tp_t2
+        #     index_types_mask[0:3] = 1
+        # if self.pt.has_source_p:
+        #     index_types[3]=self.pt.index_tp_p
+        #     index_types_mask[3] = 1
+        # if self.pt.has_source_delta_m:
+        #     index_types[4]=self.pt.index_tp_delta_m
+        #     index_types_mask[4] = 1
+        # if self.pt.has_source_delta_g:
+        #     index_types[5]=self.pt.index_tp_delta_g
+        #     index_types_mask[5] = 1
+        # if self.pt.has_source_theta_m:
+        #     index_types[6]=self.pt.index_tp_theta_m
+        #     index_types_mask[6] = 1
+        # if self.pt.has_source_phi:
+        #     index_types[7]=self.pt.index_tp_phi
+        #     index_types_mask[7] = 1
+        # if self.pt.has_source_phi_plus_psi:
+        #     index_types[8]=self.pt.index_tp_phi_plus_psi
+        #     index_types_mask[8] = 1
+        # if self.pt.has_source_phi_prime:
+        #     index_types[9]=self.pt.index_tp_phi_prime
+        #     index_types_mask[9] = 1
+        # if self.pt.has_source_psi:
+        #     index_types[10]=self.pt.index_tp_psi
+        #     index_types_mask[10] = 1
+
+        # for i_index_type in range(tot_num_of_sources):  
+        #     if index_types_mask[i_index_type]:         
+        #         index_type = index_types[i_index_type]
+                          
+        #         for index_k in range(k_size):                 
+        #             for index_tau in range(tau_size):
+        #                 tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
+
+        #         sources[names[i_index_type]] = np.asarray(tmparray)
+        #         tmparray = np.zeros((k_size,tau_size))
+
+        for index_type, name in zip(indices, names):
+            for index_k in range(k_size):                 
+                for index_tau in range(tau_size):
+                    tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
+
+            sources[name] = np.asarray(tmparray)
+            tmparray = np.zeros((k_size,tau_size))
+
+        return (sources, np.asarray(k_array), np.asarray(tau_array))
+        
+
