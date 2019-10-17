@@ -1568,6 +1568,9 @@ cdef class Class:
                 value = self.th.da_rec
             elif name == 'da_rec_h':
                 value = self.th.da_rec*self.ba.h
+            # NEW FOR NEURAL NET
+            elif name == 'rd_rec':
+                value = self.th.rd_rec
             elif name == 'z_d':
                 value = self.th.z_d
             elif name == 'tau_d':
@@ -1891,6 +1894,12 @@ cdef class Class:
             numpy_tau_bg[index_tau] = tau_bg[index_tau]
 
         return np.asarray(numpy_r_s), np.asarray(numpy_tau_bg)
+
+    def tau_of_z(self,z):
+        cdef double tau
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+        return tau
 
     def get_thermos_for_NN(self):
         """
