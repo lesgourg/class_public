@@ -1919,6 +1919,8 @@ cdef class Class:
             int index_th_exp_m_kappa = self.th.index_th_exp_m_kappa;
             double [:] numpy_r_d = np.zeros((tt_size));
             double [:] numpy_g = np.zeros((tt_size));
+            double [:] numpy_g_reco = np.zeros(tt_size);
+            double [:] numpy_g_reio = np.zeros(tt_size);
             double [:] numpy_dg = np.zeros((tt_size));
             double [:] numpy_e_kappa = np.zeros((tt_size));
             double [:] numpy_tau = np.zeros((tt_size));
@@ -1930,10 +1932,126 @@ cdef class Class:
             numpy_tau[index_z] = tau
             numpy_r_d[index_z] = thermodynamics_table[index_z*th_size + index_th_r_d]
             numpy_g[index_z] = thermodynamics_table[index_z*th_size + index_th_g]
+            numpy_g_reco[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reco]
+            numpy_g_reio[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reio]
             numpy_dg[index_z] = thermodynamics_table[index_z*th_size + index_th_dg]
             numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
 
-        return np.asarray(numpy_r_d), np.asarray(numpy_g), np.asarray(numpy_dg), np.asarray(numpy_e_kappa), np.asarray(numpy_tau)
+        return np.asarray(numpy_r_d), np.asarray(numpy_g), np.asarray(numpy_dg), np.asarray(numpy_g_reco), np.asarray(numpy_g_reio), np.asarray(numpy_e_kappa), np.asarray(numpy_tau)
+
+    def scale_independent_growth_factor(self, z):
+        """
+        scale_independent_growth_factor(z)
+
+        Return the scale invariant growth factor D(a) for CDM perturbations
+        (exactly, the quantity defined by Class as index_bg_D in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        D = pvecback[self.ba.index_bg_D]
+
+        free(pvecback)
+
+        return D
+
+    def scale_independent_growth_factor_f(self, z):
+        """
+        scale_independent_growth_factor_f(z)
+
+        Return the scale invariant growth factor f(z)=d ln D / d ln a for CDM perturbations
+        (exactly, the quantity defined by Class as index_bg_f in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        f = pvecback[self.ba.index_bg_f]
+
+        free(pvecback)
+
+        return f
+
+    def Hubble(self, z):
+        """
+        Hubble(z)
+
+        Return the Hubble rate (exactly, the quantity defined by Class as index_bg_H
+        in the background module)
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        H = pvecback[self.ba.index_bg_H]
+
+        free(pvecback)
+
+        return H
+
+    def a_of_tau(self, tau):
+        """
+        a(tau)
+
+        Return the scale factor
+
+        Parameters
+        ----------
+        tau : float
+                Desired conformal time
+        """
+        cdef int last_index
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size_short,sizeof(double))
+        if background_at_tau(&self.ba,tau,self.ba.short_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        a = pvecback[self.ba.index_bg_a]
+
+        free(pvecback)
+
+        return a
 
 
     def get_sources(self):
