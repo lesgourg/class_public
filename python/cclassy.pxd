@@ -105,6 +105,9 @@ cdef extern from "class.h":
         int index_th_r_d
         int index_th_g
         int index_th_dg
+        # Add the new split g
+        int index_th_g_reco
+        int index_th_g_reio
         int index_th_exp_m_kappa
         double * z_table
         double * thermodynamics_table

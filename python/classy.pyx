@@ -1937,7 +1937,22 @@ cdef class Class:
             numpy_dg[index_z] = thermodynamics_table[index_z*th_size + index_th_dg]
             numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
 
-        return np.asarray(numpy_r_d), np.asarray(numpy_g), np.asarray(numpy_dg), np.asarray(numpy_g_reco), np.asarray(numpy_g_reio), np.asarray(numpy_e_kappa), np.asarray(numpy_tau)
+        tau_arr = np.asarray(numpy_tau)
+        g_reco = np.asarray(numpy_g_reco)
+        g_reio = np.asarray(numpy_g_reio)
+        g_reco_prime = np.gradient(g_reco, tau_arr)
+        g_reio_prime = np.gradient(g_reio, tau_arr)
+        return {
+                "r_d": np.asarray(numpy_r_d),
+                "g": np.asarray(numpy_g),
+                "g_prime": np.asarray(numpy_dg),
+                "g_reco": g_reco,
+                "g_reco_prime": g_reco_prime,
+                "g_reio": g_reio,
+                "g_reio_prime": g_reio_prime,
+                "e_kappa": np.asarray(numpy_e_kappa),
+                "tau": np.asarray(numpy_tau)
+                }
 
     def scale_independent_growth_factor(self, z):
         """
