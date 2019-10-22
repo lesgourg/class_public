@@ -100,7 +100,7 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
   /** Define local variables */
   struct heating* phe = &(pth->he);
   /* new in recfast 1.4: */
-  double Rup,Rdown,K,C;
+  double Rup,Rdown,K,C,C_nofudge;
   double ion_H,ion_He,ion_lya;
 
   /** - Get necessary coefficients */
@@ -124,9 +124,11 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
    * ionization fraction is very close to one) */
   if (x_H < pre->x_H0_trigger2 || z < pre->z_switch_late) {
     C = (1. + K*_Lambda_*nH*(1.-x_H))/(1./pre->fudge_H+K*_Lambda_*nH*(1.-x_H)/pre->fudge_H +K*Rup*nH*(1.-x_H));
+    C_nofudge = (1. + K*_Lambda_*nH*(1.-x_H))/(1.+K*_Lambda_*nH*(1.-x_H) + K*Rup*nH*(1.-x_H));
   }
   else {
     C = 1.;
+    C_nofudge = 1.;
   }
 
   /** - Evolve system by fudged Peebles' equation, use fudged Peebles' coefficient C */
@@ -137,7 +139,7 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
   ion_He = phe->pvecdeposition[phe->index_dep_ionHe];
   ion_lya = phe->pvecdeposition[phe->index_dep_lya];
 
-  *dxH_dz += -1./nH*((ion_H+ion_He)/(_E_H_ion_*_eV_)+ion_lya*(1.-C)/(_E_H_lya_*_eV_))/(Hz*(1.+z));
+  *dxH_dz += -1./nH*((ion_H+ion_He)/(_E_H_ion_*_eV_)+ion_lya*(1.-C_nofudge)/(_E_H_lya_*_eV_))/(Hz*(1.+z));
 
   return _SUCCESS_;
 }

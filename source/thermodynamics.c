@@ -1942,6 +1942,11 @@ int thermodynamics_solve_derivs(double mz,
              phe->error_message,
              error_message);
 
+  /* The following derivatives for x_H and x_He should be calculated using only the x from recombination.
+     Of course, the full treatment would involve the actual evolution equations for x_H and x_He during reionization,
+     but these are not yet fully implemented. */
+  x = ptdw->x_noreio;
+
   /** - HyRec */
   if(pth->recombination == hyrec && phyrec->to_store == _TRUE_){
     class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
@@ -2472,9 +2477,6 @@ int thermodynamics_vector_init(struct precision * ppr,
       class_call(thermodynamics_solve_current_quantities(z,ptdw->tv->y,pth,ptw,ptdw->ap_current-1),
                  pth->error_message,
                  pth->error_message);
-      //class_call(thermodynamics_x_analytic(z,ppr,pth,ptw,ptdw->ap_current-1),
-      //           pth->error_message,
-      //           pth->error_message);
 
       /* Set the new vector and its indices */
       ptv->y[ptv->index_D_Tmat] = ptdw->tv->y[ptdw->tv->index_D_Tmat];
