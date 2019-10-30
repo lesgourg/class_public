@@ -268,6 +268,15 @@ extern "C" {
                                       double * out_pk_cb_ic_l
                                       );
 
+  int nonlinear_pk_nonlinear_at_z(
+                                  struct background * pba,
+                                  struct nonlinear *pnl,
+                                  enum linear_or_logarithmic mode,
+                                  double z,
+                                  int index_pk,
+                                  double * out_pk_ln
+                                  );
+
   int nonlinear_init(
                      struct precision *ppr,
                      struct background *pba,

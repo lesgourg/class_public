@@ -16,10 +16,10 @@
 /**
  * Return the value of the non-linearity wavenumber k_nl for a given redshift z
  *
- * @param pba Input: pointer to background structure
- * @param pnl Input: pointer to nonlinear structure
- * @param z Input: redshift
- * @param k_nl Output: k_nl value
+ * @param pba     Input: pointer to background structure
+ * @param pnl     Input: pointer to nonlinear structure
+ * @param z       Input: redshift
+ * @param k_nl    Output: k_nl value
  * @param k_nl_cb Ouput: k_nl value of the cdm+baryon part only, if there is ncdm
  * @return the error status
  */
@@ -119,23 +119,23 @@ int nonlinear_k_nl_at_z(
  *
  * Hints on output format:
  *
- * 1. if mode = logarithmic (most strightforward for the code):
+ * 1. if mode = logarithmic (most straightforward for the code):
  *     out_pk_l = ln(P(k))
  *     out_pk_ic_l[diagonal] = ln(P_ic(k))
  *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
  *
- * 2. if mode = linear (a conversion si done internally in this function)
+ * 2. if mode = linear (a conversion is done internally in this function)
  *     out_pk_l = P(k)
  *     out_pk_ic_l[diagonal] = P_ic(k)
  *     out_pk_ic_l[non-diagonal] = P_icxic(k)
  *
- * @param pba        Input: pointer to background structure
- * @param pnl        Input: pointer to nonlinear structure
- * @param mode          Input: linear or logarithmic
- * @param z          Input: redshift
- * @param index_pk   Input: index of pk type (_m, _cb)
+ * @param pba         Input: pointer to background structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param mode        Input: linear or logarithmic
+ * @param z           Input: redshift
+ * @param index_pk    Input: index of pk type (_m, _cb)
  * @param out_pk_l    Output: P(k) returned as out_pk_l[index_k]
- * @param out_pk_ic_l Ouput:  P_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_ic_l Output:  P_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
 
@@ -304,22 +304,22 @@ int nonlinear_pk_linear_at_z(
  *
  * Hints on output format:
  *
- * 1. if mode = logarithmic (most strightforward for the code):
+ * 1. if mode = logarithmic (most straightforward for the code):
  *     out_pk_l = ln(P(k))
  *     out_pk_ic_l[diagonal] = ln(P_ic(k))
  *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
  *
- * 2. if mode = linear (a conversion si done internally in this function)
+ * 2. if mode = linear (a conversion is done internally in this function)
  *     out_pk_l = P(k)
  *     out_pk_ic_l[diagonal] = P_ic(k)
  *     out_pk_ic_l[non-diagonal] = P_icxic(k)
  *
- * @param pba        Input: pointer to background structure
- * @param pnl        Input: pointer to nonlinear structure
- * @param mode       Input: linear or logarithmic
- * @param k          Input: wavenumber in 1/Mpc
- * @param z          Input: redshift
- * @param index_pk   Input: index of pk type (_m, _cb)
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param k           Input: wavenumber in 1/Mpc
+ * @param z           Input: redshift
+ * @param index_pk    Input: index of pk type (_m, _cb)
  * @param out_pk_l    Output: pointer to P
  * @param out_pk_ic_l Ouput:  P_ic returned as out_pk_ic_l[index_ic1_ic2]
  * @return the error status
@@ -547,14 +547,14 @@ int nonlinear_pk_linear_at_k_and_z(
  * with old versions, but the use of nonlinear_pk_linear_at_z() should
  * be preferred.
  *
- * @param pba        Input: pointer to background structure
- * @param pnl        Input: pointer to nonlinear structure
- * @param mode          Input: linear or logarithmic
- * @param z          Input: redshift
- * @param out_pk_l    Output: P_m(k) returned as out_pk_l[index_k]
- * @param out_pk_ic_l Ouput:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param pba            Input: pointer to background structure
+ * @param pnl            Input: pointer to nonlinear structure
+ * @param mode           Input: linear or logarithmic
+ * @param z              Input: redshift
+ * @param out_pk_l       Output: P_m(k) returned as out_pk_l[index_k]
+ * @param out_pk_ic_l    Output:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
  * @param out_pk_cb_l    Output: P_cb(k) returned as out_pk_cb_l[index_k]
- * @param out_pk_cb_ic_l Ouput:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
  * @return the error status
  */
 
@@ -600,6 +600,26 @@ int nonlinear_pks_linear_at_z(
   return _SUCCESS_;
 }
 
+/*
+ * Same as nonlinear_pk_linear_at_k_and_z() (see the comments there about
+ * the input/output format), excepted that we don't pass in input one
+ * type of P(k) through index_pk. Instead, we get all existing types
+ * in output. This function is maintained to enhance compatibility
+ * with old versions, but the use of nonlinear_pk_linear_at_z() should
+ * be preferred.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param ppm            Input: pointer to primordial structure
+ * @param pnl            Input: pointer to nonlinear structure
+ * @param k              Input: wavenumber
+ * @param z              Input: redshift
+ * @param out_pk_l       Output: P_m(k) returned as out_pk_l[index_k]
+ * @param out_pk_ic_l    Output:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_cb_l    Output: P_cb(k) returned as out_pk_cb_l[index_k]
+ * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @return the error status
+ */
+
 int nonlinear_pks_linear_at_k_and_z(
                                     struct background * pba,
                                     struct primordial * ppm,
@@ -644,6 +664,54 @@ int nonlinear_pks_linear_at_k_and_z(
   return _SUCCESS_;
 }
 
+/**
+ * Return the total nonlinear P(k,z) for a given redshift z and pk
+ * type (_m, _cb)
+ *
+ * Hints on input index_pk:
+ *
+ * a. if you want the total matter spectrum P_m(k,z), pass in input
+ *    pnl->index_pk_total
+ *    (this index is always defined)
+ *
+ * b. if you want the power spectrum relevant for galaxy or halos,
+ *    given by P_cb if there is non-cold-dark-matter (e.g. massive neutrinos)
+ *    and to P_m otherwise, pass in input
+ *    pnl->index_pk_cluster
+ *    (this index is always defined)
+ *
+ * c. there is another possible syntax (use it only if you know what you are doing):
+ *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
+ *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
+ *
+ * Hints on output format:
+ *
+ * 1. if mode = logarithmic (most straightforward for the code):
+ *     out_pk_l = ln(P(k))
+ *
+ * 2. if mode = linear (a conversion is done internally in this function)
+ *     out_pk_l = P(k)
+ *
+ * @param pba        Input: pointer to background structure
+ * @param pnl        Input: pointer to nonlinear structure
+ * @param mode       Input: linear or logarithmic
+ * @param z          Input: redshift
+ * @param index_pk   Input: index of pk type (_m, _cb)
+ * @param out_pk_l   Output: P(k) returned as out_pk_l[index_k]
+ * @return the error status
+ */
+
+int nonlinear_pk_nonlinear_at_z(
+                                struct background * pba,
+                                struct nonlinear *pnl,
+                                enum linear_or_logarithmic mode,
+                                double z,
+                                int index_pk,
+                                double * out_pk_ln
+                                ) {
+
+  return _SUCCESS_;
+}
 
 /**
  * Initialize the nonlinear structure, and in particular the
