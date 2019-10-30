@@ -707,8 +707,9 @@ int nonlinear_pk_nonlinear_at_z(
                                 enum linear_or_logarithmic mode,
                                 double z,
                                 int index_pk,
-                                double * out_pk_ln
+                                double * out_pk_nl
                                 ) {
+
 
   return _SUCCESS_;
 }
@@ -739,6 +740,7 @@ int nonlinear_init(
   int index_k;
   int index_tau;
   int index_tau_sources;
+  int index_tau_late;
   int index_pk;
 
   double **pk_nl;
@@ -1070,8 +1072,42 @@ int nonlinear_init(
           }
 
         }
-      }
+
+        /** --> fill the array of nonlinear power spectra (only if we
+            are at a late time where P(k) and T(k) are supposed to
+            be stored, i.e., such that z(tau < z_max_pk) */
+
+        if (index_tau >= pnl->tau_size - pnl->ln_tau_size) {
+
+          index_tau_late = index_tau - (pnl->tau_size - pnl->ln_tau_size);
+
+          fprintf(stderr,"%d/%d\n",index_tau_late,pnl->ln_tau_size);
+
+          for (index_k=0; index_k<pnl->k_size; index_k++) {
+            pnl->ln_pk_nl[index_pk][index_tau_late * pnl->k_size + index_k] = pnl->ln_pk_l[index_pk][index_tau_late * pnl->k_size + index_k] + 2.*log(pnl->nl_corr_density[index_pk][index_tau * pnl->k_size + index_k]);
+          }
+        }
+
+      } // end loop over index_pk
     } //end loop over index_tau
+
+
+    /** --> spline the array of nonlinear power spectrum */
+
+    if (pnl->ln_tau_size > 1) {
+      for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+        class_call(array_spline_table_lines(pnl->ln_tau,
+                                            pnl->ln_tau_size,
+                                            pnl->ln_pk_nl[index_pk],
+                                            pnl->k_size,
+                                            pnl->ddln_pk_nl[index_pk],
+                                            _SPLINE_EST_DERIV_,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+      }
+    }
 
     /* --> free temporary arrays */
 
@@ -1146,9 +1182,15 @@ int nonlinear_free(
     for(index_pk=0;index_pk<pnl->pk_size;index_pk++){
       free(pnl->nl_corr_density[index_pk]);
       free(pnl->k_nl[index_pk]);
+      free(pnl->ln_pk_nl[index_pk]);
+      if (pnl->ln_tau_size > 1)
+        free(pnl->ddln_pk_nl[index_pk]);
     }
     free(pnl->nl_corr_density);
     free(pnl->k_nl);
+    free(pnl->ln_pk_nl);
+    if (pnl->ln_tau_size > 1)
+      free(pnl->ddln_pk_nl);
   }
 
   if (pnl->has_pk_eq == _TRUE_) {
@@ -1258,8 +1300,8 @@ int nonlinear_indices(
   }
 
   /** - if non-linear computations needed, allocate array of
-        non-linear correction ratio R_nl(k,z) and k_nl(z) for each
-        P(k) type */
+        non-linear correction ratio R_nl(k,z), k_nl(z) and P_nl(k,z)
+        for each P(k) type */
 
   if (pnl->method > nl_none) {
 
@@ -1271,9 +1313,16 @@ int nonlinear_indices(
                 pnl->pk_size*sizeof(double *),
                 pnl->error_message);
 
+    class_alloc(pnl->ln_pk_nl,pnl->pk_size*sizeof(double*),pnl->error_message);
+    if (pnl->ln_tau_size > 1)
+      class_alloc(pnl->ddln_pk_nl,pnl->pk_size*sizeof(double*),pnl->error_message);
+
     for (index_pk=0; index_pk<pnl->pk_size; index_pk++){
       class_alloc(pnl->k_nl[index_pk],pnl->tau_size*sizeof(double),pnl->error_message);
       class_alloc(pnl->nl_corr_density[index_pk],pnl->tau_size*pnl->k_size*sizeof(double),pnl->error_message);
+      class_alloc(pnl->ln_pk_nl[index_pk],pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
+      if (pnl->ln_tau_size > 1)
+        class_alloc(pnl->ddln_pk_nl[index_pk],pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
     }
   }
 

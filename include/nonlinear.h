@@ -90,7 +90,12 @@ struct nonlinear {
   double * k;      /**< k[index_k] = list of k values */
   double * ln_k;   /**< ln_k[index_k] = list of log(k) values */
 
-  double * ln_tau;     /**< log(tau) array, only needed if user wants some output at z>0, instead of only z=0 */
+  double * ln_tau;     /**< log(tau) array, only needed if user wants
+                        some output at z>0, instead of only z=0.  This
+                        array onlt covers late times, used for the
+                        output of P(k) or T(k), and matching the
+                        condition z(tau) < z)max)pk */
+
   int ln_tau_size;     /**< number of values in this array */
 
   double ** ln_pk_ic_l;   /**< Matter power spectrum (linear).
@@ -126,6 +131,13 @@ struct nonlinear {
 
   double ** ddln_pk_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
+  double ** ln_pk_nl;   /**< Total matter power spectrum summed over initial conditions (nonlinear).
+                          Only depends on indices index_pk,index_k, index_tau as:
+                          ln_pk[index_pk][index_tau * pnl->k_size + index_k]
+                       */
+
+  double ** ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
+
   //@}
 
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */
@@ -135,7 +147,8 @@ struct nonlinear {
   int k_size_extra;/** total number of k values of extrapolated k array (high k)*/
 
   int tau_size;    /**< tau_size = number of values */
-  double * tau;    /**< tau[index_tau] = list of time values */
+  double * tau;    /**< tau[index_tau] = list of time values, covering
+                      all the values of the poerturbation module */
 
   double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
   double ** k_nl;              /**< wavenumber at which non-linear corrections become important,
@@ -274,7 +287,7 @@ extern "C" {
                                   enum linear_or_logarithmic mode,
                                   double z,
                                   int index_pk,
-                                  double * out_pk_ln
+                                  double * out_pk_nl
                                   );
 
   int nonlinear_init(
