@@ -333,7 +333,7 @@ int spectra_cl_at_l(
  * @return the error status
  */
 
-int spectra_pk_nl_at_z(
+int spectra_pk_nl_at_z_old(
                        struct background * pba,
                        struct spectra * psp,
                        enum linear_or_logarithmic mode,
@@ -2527,6 +2527,59 @@ int spectra_pk_at_k_and_z(
              psp->error_message);
 
   return _SUCCESS_;
+}
+
+/**
+ * Non-linear total matter power spectrum for arbitrary redshift.
+ *
+ * This routine evaluates the non-linear matter power spectrum at a given value of z by
+ * interpolating in the pre-computed table (if several values of z have been stored)
+ * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
+ *
+ *
+ * Can be called in two modes: linear or logarithmic.
+ *
+ * - linear: returns P(k) (units: Mpc^3)
+ *
+ * - logarithmic: returns ln(P(k))
+ *
+ * This function can be
+ * called from whatever module at whatever time, provided that
+ * spectra_init() has been called before, and spectra_free() has not
+ * been called yet.
+ *
+ * This function is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_z() instead.
+ *
+ * @param pba           Input: pointer to background structure (used for converting z into tau)
+ * @param psp           Input: pointer to spectra structure (containing pre-computed table)
+ * @param mode          Input: linear or logarithmic
+ * @param z             Input: redshift
+ * @param output_tot    Output: total matter power spectrum P(k) in \f$ Mpc^3\f$ (linear mode), or its logarithms (logarithmic mode)
+ * @param output_cb_tot Output: b+CDM power spectrum P(k) in \f$ Mpc^3\f$ (linear mode), or its logarithms (logarithmic mode)
+ * @return the error status
+ */
+
+int spectra_pk_nl_at_z(
+                       struct background * pba,
+                       struct spectra * psp,
+                       enum linear_or_logarithmic mode,
+                       double z,
+                       double * output_tot,   /* array with argument output_tot[index_k] (must be already allocated) */
+                       double * output_cb_tot
+                       ) {
+
+  class_call(nonlinear_pks_nonlinear_at_z(pba,
+                                          psp->pnl,
+                                          mode,
+                                          z,
+                                          output_tot,
+                                          output_cb_tot
+                                          ),
+             psp->pnl->error_message,
+             psp->error_message);
+
+  return _SUCCESS_;
+
 }
 
   /* end deprecated functions */

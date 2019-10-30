@@ -280,14 +280,14 @@ extern "C" {
                       double ** cl_md_ic
                       );
 
-  int spectra_pk_nl_at_z(
-                         struct background * pba,
-                         struct spectra * psp,
-                         enum linear_or_logarithmic mode,
-                         double z,
-                         double * output_tot,
-                         double * output_cb_tot
-                         );
+  int spectra_pk_nl_at_z_old(
+                             struct background * pba,
+                             struct spectra * psp,
+                             enum linear_or_logarithmic mode,
+                             double z,
+                             double * output_tot,
+                             double * output_cb_tot
+                             );
 
   int spectra_pk_nl_at_k_and_z(
                                struct background * pba,
@@ -402,6 +402,15 @@ extern "C" {
                             double * pk_cb,
                             double * pk_cb_ic
                             );
+
+  int spectra_pk_nl_at_z(
+                         struct background * pba,
+                         struct spectra * psp,
+                         enum linear_or_logarithmic mode,
+                         double z,
+                         double * output_tot,
+                         double * output_cb_tot
+                         );
 
   /* end deprecated functions */
 
