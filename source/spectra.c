@@ -2049,7 +2049,7 @@ int spectra_pk(
 /**
  * Matter power spectrum for arbitrary redshift and for all initial conditions.
  *
- * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.
+ * This function is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.
  *
  * @param pba           Input: pointer to background structure (used for converting z into tau)
  * @param psp           Input: pointer to spectra structure (containing pre-computed table)
@@ -2074,18 +2074,19 @@ int spectra_pk_at_z(
                     ) {
 
 
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
-  class_call(nonlinear_pks_linear_at_z(
-                                       pba,
-                                       psp->pnl,
-                                       mode,
-                                       z,
-                                       output_tot,
-                                       output_ic,
-                                       output_cb_tot,
-                                       output_cb_ic
-                                       ),
+  class_call(nonlinear_pks_at_z(
+                                pba,
+                                psp->pnl,
+                                mode,
+                                pk_linear,
+                                z,
+                                output_tot,
+                                output_ic,
+                                output_cb_tot,
+                                output_cb_ic
+                                ),
              psp->pnl->error_message,
              psp->error_message);
 
@@ -2143,7 +2144,7 @@ int spectra_pk_at_k_and_z(
 /**
  * Non-linear total matter power spectrum for arbitrary redshift.
  *
- * This function is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_z() instead.
+ * This function is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.
  *
  * @param pba           Input: pointer to background structure (used for converting z into tau)
  * @param psp           Input: pointer to spectra structure (containing pre-computed table)
@@ -2163,15 +2164,18 @@ int spectra_pk_nl_at_z(
                        double * output_cb_tot
                        ) {
 
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
-  class_call(nonlinear_pks_nonlinear_at_z(pba,
-                                          psp->pnl,
-                                          mode,
-                                          z,
-                                          output_tot,
-                                          output_cb_tot
-                                          ),
+  class_call(nonlinear_pks_at_z(pba,
+                                psp->pnl,
+                                mode,
+                                pk_nonlinear,
+                                z,
+                                output_tot,
+                                NULL,
+                                output_cb_tot,
+                                NULL
+                                ),
              psp->pnl->error_message,
              psp->error_message);
 

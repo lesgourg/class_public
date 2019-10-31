@@ -797,19 +797,6 @@ int output_pk(
 
       /** - third, compute P(k) for each k */
 
-      /*
-      class_call(nonlinear_pk_linear_at_z(pba,
-                                          pnl,
-                                          logarithmic,
-                                          pop->z_pk[index_z],
-                                          index_pk,
-                                          ln_pk_l,
-                                          ln_pk_ic_l
-                                          ),
-                 pnl->error_message,
-                 pop->error_message);
-      */
-
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
@@ -1381,21 +1368,10 @@ int output_pk_nl(
 
       /** - third, compute P(k) for each k */
 
-      /*
-      class_call(nonlinear_pk_nonlinear_at_z(pba,
-                                              pnl,
-                                              logarithmic,
-                                              pop->z_pk[index_z],
-                                              index_pk,
-                                              ln_pk_nl),
-                 pnl->error_message,
-                 pop->error_message);
-      */
-
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
-                                   pk_linear,
+                                   pk_nonlinear,
                                    pop->z_pk[index_z],
                                    index_pk,
                                    ln_pk_nl,

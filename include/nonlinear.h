@@ -261,16 +261,6 @@ extern "C" {
                           double * k_nl_cb
                           );
 
-  int nonlinear_pk_linear_at_z(
-                               struct background * pba,
-                               struct nonlinear *pnl,
-                               enum linear_or_logarithmic mode,
-                               double z,
-                               int index_pk,
-                               double * out_pk_l,
-                               double * out_pk_ic_l
-                               );
-
   int nonlinear_pk_linear_at_k_and_z(
                                      struct background * pba,
                                      struct primordial * ppm,
@@ -281,17 +271,6 @@ extern "C" {
                                      double * out_pk_l,
                                      double * out_pk_ic_l
                                      );
-
-  int nonlinear_pks_linear_at_z(
-                                struct background * pba,
-                                struct nonlinear *pnl,
-                                enum linear_or_logarithmic mode,
-                                double z,
-                                double * out_pk_l,
-                                double * out_pk_ic_l,
-                                double * out_pk_cb_l,
-                                double * out_pk_cb_ic_l
-                                );
 
   int nonlinear_pks_linear_at_k_and_z(
                                       struct background * pba,
@@ -305,15 +284,6 @@ extern "C" {
                                       double * out_pk_cb_ic_l
                                       );
 
-  int nonlinear_pk_nonlinear_at_z(
-                                  struct background * pba,
-                                  struct nonlinear *pnl,
-                                  enum linear_or_logarithmic mode,
-                                  double z,
-                                  int index_pk,
-                                  double * out_pk_nl
-                                  );
-
   int nonlinear_pk_nonlinear_at_k_and_z(
                                         struct background * pba,
                                         struct primordial * ppm,
@@ -323,15 +293,6 @@ extern "C" {
                                         int index_pk,
                                         double * out_pk_nl
                                         );
-
-  int nonlinear_pks_nonlinear_at_z(
-                                   struct background * pba,
-                                   struct nonlinear *pnl,
-                                   enum linear_or_logarithmic mode,
-                                   double z,
-                                   double * out_pk_nl,
-                                   double * out_pk_cb_nl
-                                   );
 
   int nonlinear_pks_nonlinear_at_k_and_z(
                                          struct background * pba,

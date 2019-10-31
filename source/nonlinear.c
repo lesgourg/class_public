@@ -280,8 +280,8 @@ int nonlinear_pks_at_z(
     class_call(nonlinear_pk_at_z(pba,
                                  pnl,
                                  mode,
-                                 z,
                                  pk_output,
+                                 z,
                                  pnl->index_pk_m,
                                  out_pk,
                                  out_pk_ic
@@ -372,191 +372,6 @@ int nonlinear_k_nl_at_z(
 
   else{
     *k_nl_cb = *k_nl;
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * Return the P(k,z) for a given redshift z and pk type (_m, _cb), as
- * well as its possible decomposition into different IC contributions.
- *
- * Hints on input index_pk:
- *
- * a. if you want the total matter spectrum P_m(k,z), pass in input
- *    pnl->index_pk_total
- *    (this index is always defined)
- *
- * b. if you want the power spectrum relevant for galaxy or halos,
- *    given by P_cb if there is non-cold-dark-matter (e.g. massive neutrinos)
- *    and to P_m otherwise, pass in input
- *    pnl->index_pk_cluster
- *    (this index is always defined)
- *
- * c. there is another possible syntax (use it only if you know what you are doing):
- *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
- *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
- *
- * Hints on output format:
- *
- * 1. if mode = logarithmic (most straightforward for the code):
- *     out_pk_l = ln(P(k))
- *     out_pk_ic_l[diagonal] = ln(P_ic(k))
- *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
- *
- * 2. if mode = linear (a conversion is done internally in this function)
- *     out_pk_l = P(k)
- *     out_pk_ic_l[diagonal] = P_ic(k)
- *     out_pk_ic_l[non-diagonal] = P_icxic(k)
- *
- * @param pba         Input: pointer to background structure
- * @param pnl         Input: pointer to nonlinear structure
- * @param mode        Input: linear or logarithmic
- * @param z           Input: redshift
- * @param index_pk    Input: index of pk type (_m, _cb)
- * @param out_pk_l    Output: P(k) returned as out_pk_l[index_k]
- * @param out_pk_ic_l Output:  P_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
- * @return the error status
- */
-
-int nonlinear_pk_linear_at_z(
-                             struct background * pba,
-                             struct nonlinear *pnl,
-                             enum linear_or_logarithmic mode,
-                             double z,
-                             int index_pk,
-                             double * out_pk_l, // array out_pk_l[index_k]
-                             double * out_pk_ic_l // array out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-                             ) {
-  double tau;
-  double ln_tau;
-  int index_k;
-  int index_ic1;
-  int index_ic2;
-  int index_ic1_ic1;
-  int index_ic2_ic2;
-  int index_ic1_ic2;
-  int last_index;
-
-  /** - case z=0 requiring no interpolation in z */
-  if (z == 0) {
-
-    for (index_k=0; index_k<pnl->k_size; index_k++) {
-
-      out_pk_l[index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
-
-      if (pnl->ic_size > 1) {
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
-          out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2] =
-            pnl->ln_pk_ic_l[index_pk][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
-        }
-      }
-    }
-  }
-
-  /** - interpolation in z */
-  else {
-
-    class_test(pnl->ln_tau_size == 1,
-               pnl->error_message,
-               "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
-
-    /** --> get value of contormal time tau */
-    class_call(background_tau_of_z(pba,
-                                   z,
-                                   &tau),
-               pba->error_message,
-               pnl->error_message);
-
-    ln_tau = log(tau);
-    last_index = pnl->ln_tau_size-1;
-
-    /** -> check that tau is in pre-computed table */
-
-    if (ln_tau < pnl->ln_tau[0]) {
-      /** --> if ln(tau) much too small, raise an error */
-      class_test(ln_tau<pnl->ln_tau[0]-_EPSILON_,
-                 pnl->error_message,
-                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e) ",ln_tau,pnl->ln_tau[0]);
-      /** --> if ln(tau) too small but within tolerance, round it */
-      ln_tau = pnl->ln_tau[0];
-    }
-
-    if (ln_tau > pnl->ln_tau[pnl->ln_tau_size-1]) {
-      /** --> if ln(tau) much too large, raise an error */
-      class_test(ln_tau>pnl->ln_tau[pnl->ln_tau_size-1]+_EPSILON_,
-                 pnl->error_message,
-                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pnl->ln_tau[pnl->ln_tau_size-1]);
-      /** --> if ln(tau) too large but within tolerance, round it */
-      ln_tau = pnl->ln_tau[pnl->ln_tau_size-1];
-
-    }
-
-    /** --> interpolate P(k) at tau from pre-computed array */
-    class_call(array_interpolate_spline(pnl->ln_tau,
-                                        pnl->ln_tau_size,
-                                        pnl->ln_pk_l[index_pk],
-                                        pnl->ddln_pk_l[index_pk],
-                                        pnl->k_size,
-                                        ln_tau,
-                                        &last_index,
-                                        out_pk_l,
-                                        pnl->k_size,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    /** --> interpolate P_ic(k) at tau from pre-computed array */
-    if (pnl->ic_size > 1) {
-      class_call(array_interpolate_spline(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_ic_l[index_pk],
-                                          pnl->ddln_pk_ic_l[index_pk],
-                                          pnl->k_size*pnl->ic_ic_size,
-                                          ln_tau,
-                                          &last_index,
-                                          out_pk_ic_l,
-                                          pnl->k_size*pnl->ic_ic_size,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
-    }
-  }
-
-  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
-
-  if (mode == linear) {
-
-    /** --> loop over k */
-    for (index_k=0; index_k<pnl->k_size; index_k++) {
-
-      /** --> convert total spectrum */
-      out_pk_l[index_k] = exp(out_pk_l[index_k]);
-
-      if (pnl->ic_size > 1) {
-        /** --> convert contribution of each ic (diagonal elements) */
-        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
-          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
-
-          out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]);
-        }
-
-        /** --> convert contribution of each ic (non-diagonal elements) */
-        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
-          for (index_ic2=index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
-            index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
-            index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
-            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
-
-            /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
-            out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-              = out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-              *sqrt(out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic1]
-                    *out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic2_ic2]);
-          }
-        }
-      }
-    }
   }
 
   return _SUCCESS_;
@@ -663,14 +478,15 @@ int nonlinear_pk_linear_at_k_and_z(
                   pnl->error_message);
     }
 
-    class_call(nonlinear_pk_linear_at_z(pba,
-                                        pnl,
-                                        linear,
-                                        z,
-                                        index_pk,
-                                        out_pk_l_at_z,
-                                        out_pk_ic_l_at_z
-                                        ),
+    class_call(nonlinear_pk_at_z(pba,
+                                 pnl,
+                                 linear,
+                                 pk_linear,
+                                 z,
+                                 index_pk,
+                                 out_pk_l_at_z,
+                                 out_pk_ic_l_at_z
+                                 ),
                pnl->error_message,
                pnl->error_message);
 
@@ -820,67 +636,6 @@ int nonlinear_pk_linear_at_k_and_z(
 }
 
 /*
- * Same as nonlinear_pk_linear_at_z() (see the comments there about
- * the input/output format), excepted that we don't pass in input one
- * type of P(k) through index_pk. Instead, we get all existing types
- * in output. This function is maintained to enhance compatibility
- * with old versions, but the use of nonlinear_pk_linear_at_z() should
- * be preferred.
- *
- * @param pba            Input: pointer to background structure
- * @param pnl            Input: pointer to nonlinear structure
- * @param mode           Input: linear or logarithmic
- * @param z              Input: redshift
- * @param out_pk_l       Output: P_m(k) returned as out_pk_l[index_k]
- * @param out_pk_ic_l    Output:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
- * @param out_pk_cb_l    Output: P_cb(k) returned as out_pk_cb_l[index_k]
- * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
- * @return the error status
- */
-
-int nonlinear_pks_linear_at_z(
-                             struct background * pba,
-                             struct nonlinear * pnl,
-                             enum linear_or_logarithmic mode,
-                             double z,
-                             double * out_pk_l, // array out_pk_l[index_k]
-                             double * out_pk_ic_l, // array out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-                             double * out_pk_cb_l, // array out_pk_cb_l[index_k]
-                             double * out_pk_cb_ic_l // array out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
-                             ) {
-
-  if (pnl->has_pk_cb) {
-
-    class_call(nonlinear_pk_linear_at_z(pba,
-                                        pnl,
-                                        mode,
-                                        z,
-                                        pnl->index_pk_cb,
-                                        out_pk_cb_l,
-                                        out_pk_cb_ic_l
-                                        ),
-               pnl->error_message,
-               pnl->error_message);
-  }
-
-  if (pnl->has_pk_m) {
-
-    class_call(nonlinear_pk_linear_at_z(pba,
-                                        pnl,
-                                        mode,
-                                        z,
-                                        pnl->index_pk_m,
-                                        out_pk_l,
-                                        out_pk_ic_l
-                                        ),
-               pnl->error_message,
-               pnl->error_message);
-  }
-
-  return _SUCCESS_;
-}
-
-/*
  * Same as nonlinear_pk_linear_at_k_and_z() (see the comments there about
  * the input/output format), excepted that we don't pass in input one
  * type of P(k) through index_pk. Instead, we get all existing types
@@ -939,129 +694,6 @@ int nonlinear_pks_linear_at_k_and_z(
                                               ),
                pnl->error_message,
                pnl->error_message);
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * Return the total nonlinear P(k,z) for a given redshift z and pk
- * type (_m, _cb)
- *
- * Hints on input index_pk:
- *
- * a. if you want the total matter spectrum P_m(k,z), pass in input
- *    pnl->index_pk_total
- *    (this index is always defined)
- *
- * b. if you want the power spectrum relevant for galaxy or halos,
- *    given by P_cb if there is non-cold-dark-matter (e.g. massive neutrinos)
- *    and to P_m otherwise, pass in input
- *    pnl->index_pk_cluster
- *    (this index is always defined)
- *
- * c. there is another possible syntax (use it only if you know what you are doing):
- *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
- *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
- *
- * Hints on output format:
- *
- * 1. if mode = logarithmic (most straightforward for the code):
- *     out_pk_l = ln(P(k))
- *
- * 2. if mode = linear (a conversion is done internally in this function)
- *     out_pk_l = P(k)
- *
- * @param pba        Input: pointer to background structure
- * @param pnl        Input: pointer to nonlinear structure
- * @param mode       Input: linear or logarithmic
- * @param z          Input: redshift
- * @param index_pk   Input: index of pk type (_m, _cb)
- * @param out_pk_l   Output: P(k) returned as out_pk_l[index_k]
- * @return the error status
- */
-
-int nonlinear_pk_nonlinear_at_z(
-                                struct background * pba,
-                                struct nonlinear *pnl,
-                                enum linear_or_logarithmic mode,
-                                double z,
-                                int index_pk,
-                                double * out_pk_nl
-                                ) {
-
-  int index_k;
-  double tau,ln_tau;
-  int last_index;
-
-  /** - case z=0 requiring no interpolation in z */
-  if (z == 0) {
-    for (index_k=0; index_k<pnl->k_size; index_k++) {
-      out_pk_nl[index_k] = pnl->ln_pk_nl[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
-    }
-  }
-
-  /** - interpolation in z */
-  else {
-
-    class_test(pnl->ln_tau_size == 1,
-               pnl->error_message,
-               "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
-
-    /** --> get value of contormal time tau */
-    class_call(background_tau_of_z(pba,
-                                   z,
-                                   &tau),
-               pba->error_message,
-               pnl->error_message);
-
-    ln_tau = log(tau);
-    last_index = pnl->ln_tau_size-1;
-
-    /** -> check that tau is in pre-computed table */
-
-    if (ln_tau < pnl->ln_tau[0]) {
-      /** --> if ln(tau) much too small, raise an error */
-      class_test(ln_tau<pnl->ln_tau[0]-_EPSILON_,
-                 pnl->error_message,
-                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e) ",ln_tau,pnl->ln_tau[0]);
-      /** --> if ln(tau) too small but within tolerance, round it */
-      ln_tau = pnl->ln_tau[0];
-    }
-
-    if (ln_tau > pnl->ln_tau[pnl->ln_tau_size-1]) {
-      /** --> if ln(tau) much too large, raise an error */
-      class_test(ln_tau>pnl->ln_tau[pnl->ln_tau_size-1]+_EPSILON_,
-                 pnl->error_message,
-                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pnl->ln_tau[pnl->ln_tau_size-1]);
-      /** --> if ln(tau) too large but within tolerance, round it */
-      ln_tau = pnl->ln_tau[pnl->ln_tau_size-1];
-
-    }
-
-    /** --> interpolate P_nl(k) at tau from pre-computed array */
-    class_call(array_interpolate_spline(pnl->ln_tau,
-                                        pnl->ln_tau_size,
-                                        pnl->ln_pk_nl[index_pk],
-                                        pnl->ddln_pk_nl[index_pk],
-                                        pnl->k_size,
-                                        ln_tau,
-                                        &last_index,
-                                        out_pk_nl,
-                                        pnl->k_size,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-  }
-
-  /** - so far, all output stored in logarithmic format. Eventually, convert to linear one. */
-
-  if (mode == linear) {
-
-    /** --> loop over k */
-    for (index_k=0; index_k<pnl->k_size; index_k++) {
-      out_pk_nl[index_k] = exp(out_pk_nl[index_k]);
-    }
   }
 
   return _SUCCESS_;
@@ -1133,13 +765,15 @@ int nonlinear_pk_nonlinear_at_k_and_z(
                 pnl->k_size*sizeof(double),
                 pnl->error_message);
 
-    class_call(nonlinear_pk_nonlinear_at_z(pba,
-                                           pnl,
-                                           linear,
-                                           z,
-                                           index_pk,
-                                           out_pk_nl_at_z
-                                           ),
+    class_call(nonlinear_pk_at_z(pba,
+                                 pnl,
+                                 linear,
+                                 pk_nonlinear,
+                                 z,
+                                 index_pk,
+                                 out_pk_nl_at_z,
+                                 NULL
+                                 ),
                pnl->error_message,
                pnl->error_message);
 
@@ -1237,61 +871,6 @@ int nonlinear_pk_nonlinear_at_k_and_z(
 
     free(out_pk_nl_at_z);
   }
-  return _SUCCESS_;
-}
-
-/*
- * Same as nonlinear_pk_nonlinear_at_z() (see the comments there about
- * the input/output format), excepted that we don't pass in input one
- * type of P(k) through index_pk. Instead, we get all existing types
- * in output. This function is maintained to enhance compatibility
- * with old versions, but the use of nonlinear_pk_nonlinear_at_z() should
- * be preferred.
- *
- * @param pba            Input: pointer to background structure
- * @param pnl            Input: pointer to nonlinear structure
- * @param mode           Input: linear or logarithmic
- * @param z              Input: redshift
- * @param out_pk_nl      Output: P_m(k) returned as out_pk_l[index_k]
- * @param out_pk_cb_nl   Output: P_cb(k) returned as out_pk_cb_l[index_k]
- * @return the error status
- */
-
-int nonlinear_pks_nonlinear_at_z(
-                                 struct background * pba,
-                                 struct nonlinear * pnl,
-                                 enum linear_or_logarithmic mode,
-                                 double z,
-                                 double * out_pk_nl, // array out_pk_nl[index_k]
-                                 double * out_pk_cb_nl // array out_pk_cb_nl[index_k]
-                                 ) {
-
-  if (pnl->has_pk_cb) {
-
-    class_call(nonlinear_pk_nonlinear_at_z(pba,
-                                           pnl,
-                                           mode,
-                                           z,
-                                           pnl->index_pk_cb,
-                                           out_pk_cb_nl
-                                           ),
-               pnl->error_message,
-               pnl->error_message);
-  }
-
-  if (pnl->has_pk_m) {
-
-    class_call(nonlinear_pk_nonlinear_at_z(pba,
-                                           pnl,
-                                           mode,
-                                           z,
-                                           pnl->index_pk_m,
-                                           out_pk_nl
-                                           ),
-               pnl->error_message,
-               pnl->error_message);
-  }
-
   return _SUCCESS_;
 }
 
