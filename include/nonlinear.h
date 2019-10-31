@@ -253,6 +253,31 @@ extern "C" {
                          double * out_pk_cb_ic
                          );
 
+  int nonlinear_pk_at_k_and_z(
+                              struct background * pba,
+                              struct primordial * ppm,
+                              struct nonlinear *pnl,
+                              enum pk_outputs pk_output,
+                              double k,
+                              double z,
+                              int index_pk,
+                              double * out_pk_l,
+                              double * out_pk_ic_l
+                              );
+
+  int nonlinear_pks_at_k_and_z(
+                               struct background * pba,
+                               struct primordial * ppm,
+                               struct nonlinear *pnl,
+                               enum pk_outputs pk_output,
+                               double k,
+                               double z,
+                               double * out_pk,
+                               double * out_pk_ic,
+                               double * out_pk_cb,
+                               double * out_pk_cb_ic
+                               );
+
   int nonlinear_k_nl_at_z(
                           struct background *pba,
                           struct nonlinear * pnl,

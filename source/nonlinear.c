@@ -15,9 +15,9 @@
 
 /**
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
- * (linear if nonlinear = _FALSE_, linear if nonlinear = _TRUE_)
+ * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
  *
- * iIn the linear case, also returns the possible decomposition into
+ * In the linear case, also returns the possible decomposition into
  * different IC contributions.
  *
  * Hints on input index_pk:
@@ -286,6 +286,348 @@ int nonlinear_pks_at_z(
                                  out_pk,
                                  out_pk_ic
                                  ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * Return the P(k,z) for a given (k,z) and pk type (_m, _cb)
+ * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
+ *
+ * In the linear case, return as well as its possible decomposition
+ * into different IC contributions.
+ *
+ * Hints on input index_pk:
+ *
+ * a. if you want the total matter spectrum P_m(k,z), pass in input
+ *    pnl->index_pk_total
+ *    (this index is always defined)
+ *
+ * b. if you want the power spectrum relevant for galaxy or halos,
+ *    given by P_cb if there is non-cold-dark-matter (e.g. massive neutrinos)
+ *    and to P_m otherwise, pass in input
+ *    pnl->index_pk_cluster
+ *    (this index is always defined)
+ *
+ * c. there is another possible syntax (use it only if you know what you are doing):
+ *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
+ *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
+ *
+ * Hints on output format:
+ *
+ * 1. if mode = logarithmic (most straightforward for the code):
+ *     out_pk_l = ln(P(k))
+ *     out_pk_ic_l[diagonal] = ln(P_ic(k))
+ *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
+ *
+ * 2. if mode = linear (a conversion is done internally in this function)
+ *     out_pk_l = P(k)
+ *     out_pk_ic_l[diagonal] = P_ic(k)
+ *     out_pk_ic_l[non-diagonal] = P_icxic(k)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pk_output   Input: linear or nonlinear
+ * @param k           Input: wavenumber in 1/Mpc
+ * @param z           Input: redshift
+ * @param index_pk    Input: index of pk type (_m, _cb)
+ * @param out_pk      Output: pointer to P
+ * @param out_pk_ic   Ouput:  P_ic returned as out_pk_ic_l[index_ic1_ic2]
+ * @return the error status
+ */
+
+int nonlinear_pk_at_k_and_z(
+                            struct background * pba,
+                            struct primordial * ppm,
+                            struct nonlinear *pnl,
+                            enum pk_outputs pk_output,
+                            double k,
+                            double z,
+                            int index_pk,
+                            double * out_pk, // number *out_pk_l
+                            double * out_pk_ic // array out_pk_ic_l[index_ic_ic]
+                            ) {
+
+  double * out_pk_at_z;
+  double * out_pk_ic_at_z;
+  double * ddout_pk_at_z;
+  double * ddout_pk_ic_at_z;
+  int last_index;
+  int index_k;
+  int index_ic_ic;
+  double kmin;
+  double * pk_primordial_k;
+  double * pk_primordial_kmin;
+
+  /** - first step: check that k is in valid range [0:kmax]
+      (the test for z will be done when calling nonlinear_pk_linear_at_z()) */
+
+  class_test((k < 0.) || (k > exp(pnl->ln_k[pnl->k_size-1])),
+             pnl->error_message,
+             "k=%e out of bounds [%e:%e]",k,0.,exp(pnl->ln_k[pnl->k_size-1]));
+
+  /** - deal with case k = 0 for which P(k) is set to zero
+      (this non-physical result can be useful for interpolations) */
+
+  if (k == 0.) {
+    *out_pk = 0.;
+
+    if (pk_output == pk_linear) {
+      if (pnl->ic_size>1) {
+        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
+          out_pk_ic[index_ic_ic] = 0.;
+        }
+      }
+    }
+  }
+
+  /** - deal with 0 < k <= kmax */
+
+  else {
+
+    /** --> First, get P(k) at the right z */
+
+    class_alloc(out_pk_at_z,
+                pnl->k_size*sizeof(double),
+                pnl->error_message);
+
+    if (pk_output == pk_linear) {
+      if (pnl->ic_size>1) {
+        class_alloc(out_pk_ic_at_z,
+                    pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                    pnl->error_message);
+      }
+    }
+
+    class_call(nonlinear_pk_at_z(pba,
+                                 pnl,
+                                 linear,
+                                 pk_linear,
+                                 z,
+                                 index_pk,
+                                 out_pk_at_z,
+                                 out_pk_ic_at_z
+                                 ),
+               pnl->error_message,
+               pnl->error_message);
+
+    /** - deal with standard case kmin <= k <= kmax
+        (just need to interpolate at the right k) */
+
+    if (k > exp(pnl->ln_k[0])) {
+
+      class_alloc(ddout_pk_at_z,
+                  pnl->k_size*sizeof(double),
+                  pnl->error_message);
+
+      class_call(array_spline_table_lines(pnl->ln_k,
+                                          pnl->k_size,
+                                          out_pk_at_z,
+                                          1,
+                                          ddout_pk_at_z,
+                                          _SPLINE_NATURAL_,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      class_call(array_interpolate_spline(pnl->ln_k,
+                                          pnl->k_size,
+                                          out_pk_at_z,
+                                          ddout_pk_at_z,
+                                          1,
+                                          log(k),
+                                          &last_index,
+                                          out_pk,
+                                          1,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      free(ddout_pk_at_z);
+
+      if (pk_output == pk_linear) {
+        if (pnl->ic_size>1) {
+
+          class_alloc(ddout_pk_ic_at_z,
+                      pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                      pnl->error_message);
+
+          class_call(array_spline_table_lines(pnl->ln_k,
+                                              pnl->k_size,
+                                              out_pk_ic_at_z,
+                                              pnl->ic_ic_size,
+                                              ddout_pk_ic_at_z,
+                                              _SPLINE_NATURAL_,
+                                              pnl->error_message),
+                     pnl->error_message,
+                     pnl->error_message);
+
+          class_call(array_interpolate_spline(pnl->ln_k,
+                                              pnl->k_size,
+                                              out_pk_ic_at_z,
+                                              ddout_pk_ic_at_z,
+                                              pnl->ic_ic_size,
+                                              log(k),
+                                              &last_index,
+                                              out_pk_ic,
+                                              pnl->ic_ic_size,
+                                              pnl->error_message),
+                     pnl->error_message,
+                     pnl->error_message);
+
+          free(ddout_pk_ic_at_z);
+        }
+      }
+    }
+
+    /** --> deal with case 0 < k < kmin that requires extrapolation
+     *    P(k) = [some number] * k  * P_primordial(k)
+     *    so
+     *    P(k) = P(kmin) * (k P_primordial(k)) / (kmin P_primordial(kmin))
+     *    (note that the result is accurate only if kmin is such that [a0 kmin] << H0)
+     *
+     *    This is accurate for the synchronous gauge; TODO: write
+     *    newtonian gauge case. Also, In presence of isocurvature
+     *    modes, we assumes for simplicity that the mode with
+     *    index_ic_ic=0 dominates at small k: exact treatment should be
+     *    written if needed.
+     */
+
+    else {
+
+      /* get P(kmin) */
+      *out_pk = out_pk_at_z[0];
+
+      if (pk_output == pk_linear) {
+        if (pnl->ic_size>1) {
+          for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
+            out_pk_ic[index_ic_ic] = out_pk_ic_at_z[index_ic_ic];
+          }
+        }
+      }
+
+      /* compute P_primordial(k) */
+
+      class_alloc(pk_primordial_k,
+                  sizeof(double)*pnl->ic_ic_size,
+                  pnl->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+                                          pnl->index_md_scalars,
+                                          linear,
+                                          k,
+                                          pk_primordial_k),
+                 ppm->error_message,
+                 pnl->error_message);
+
+      /* compute P_primordial(kmin) */
+
+      kmin = exp(pnl->ln_k[0]);
+
+      class_alloc(pk_primordial_kmin,
+                  sizeof(double)*pnl->ic_ic_size,
+                  pnl->error_message);
+
+      class_call(primordial_spectrum_at_k(ppm,
+                                          pnl->index_md_scalars,
+                                          linear,
+                                          kmin,
+                                          pk_primordial_kmin),
+                 ppm->error_message,
+                 pnl->error_message);
+
+      /* finally, infer P(k) */
+
+      *out_pk *= (k*pk_primordial_k[0]/kmin/pk_primordial_kmin[0]);
+
+      if (pk_output == pk_linear) {
+        if (pnl->ic_size > 1) {
+          for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
+            out_pk_ic[index_ic_ic] *= (k*pk_primordial_k[index_ic_ic]
+                                       /kmin/pk_primordial_kmin[index_ic_ic]);
+          }
+        }
+      }
+
+      free(pk_primordial_k);
+      free(pk_primordial_kmin);
+    }
+
+    free(out_pk_at_z);
+    if (pk_output == pk_linear) {
+      if (pnl->ic_size>1) {
+        free(out_pk_ic_at_z);
+      }
+    }
+  }
+
+  return _SUCCESS_;
+}
+
+/*
+ * Same as nonlinear_pk_at_k_and_z() (see the comments there about
+ * the input/output format), excepted that we don't pass in input one
+ * type of P(k) through index_pk. Instead, we get all existing types
+ * in output. This function is maintained to enhance compatibility
+ * with old versions, but the use of nonlinear_pk_at_k_and_z() should
+ * be preferred.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param ppm            Input: pointer to primordial structure
+ * @param pnl            Input: pointer to nonlinear structure
+ * @param k              Input: wavenumber
+ * @param z              Input: redshift
+ * @param out_pk_l       Output: P_m(k) returned as out_pk_l[index_k]
+ * @param out_pk_ic_l    Output:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_cb_l    Output: P_cb(k) returned as out_pk_cb_l[index_k]
+ * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @return the error status
+ */
+
+int nonlinear_pks_at_k_and_z(
+                             struct background * pba,
+                             struct primordial * ppm,
+                             struct nonlinear *pnl,
+                             enum pk_outputs pk_output,
+                             double k,
+                             double z,
+                             double * out_pk, // number P_m(k)
+                             double * out_pk_ic, // array P_m_ic(k) of index [index_ic1_ic2]
+                             double * out_pk_cb, // number P_cb(k)
+                             double * out_pk_cb_ic // array P__cb_ic(k)of index [index_ic1_ic2]
+                             ) {
+
+  if (pnl->has_pk_cb) {
+
+    class_call(nonlinear_pk_at_k_and_z(pba,
+                                       ppm,
+                                       pnl,
+                                       pk_output,
+                                       k,
+                                       z,
+                                       pnl->index_pk_cb,
+                                       out_pk_cb,
+                                       out_pk_cb_ic
+                                       ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  if (pnl->has_pk_m) {
+
+    class_call(nonlinear_pk_at_k_and_z(pba,
+                                       ppm,
+                                       pnl,
+                                       pk_output,
+                                       k,
+                                       z,
+                                       pnl->index_pk_m,
+                                       out_pk,
+                                       out_pk_ic
+                                       ),
                pnl->error_message,
                pnl->error_message);
   }
