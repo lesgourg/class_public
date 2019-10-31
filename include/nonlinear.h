@@ -230,7 +230,7 @@ struct nonlinear_workspace {
 extern "C" {
 #endif
 
-  /* extrenal functions */
+  /* external functions (meant to be called from other modules) */
 
   int nonlinear_pk_at_z(
                         struct background * pba,

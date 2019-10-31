@@ -103,29 +103,9 @@ extern "C" {
                 struct background * pba,
                 struct perturbs * ppt,
                 struct nonlinear * pnl,
-                struct output * pop
+                struct output * pop,
+                enum pk_outputs pk_output
                 );
-
-  int output_pk_old(
-                    struct background * pba,
-                    struct perturbs * ppt,
-                    struct spectra * psp,
-                    struct output * pop
-                    );
-
-  int output_pk_nl(
-                   struct background * pba,
-                   struct perturbs * ppt,
-                   struct nonlinear * pnl,
-                   struct output * pop
-                   );
-
-  int output_pk_nl_old(
-                       struct background * pba,
-                       struct perturbs * ppt,
-                       struct spectra * psp,
-                       struct output * pop
-                       );
 
   int output_tk(
                 struct background * pba,
