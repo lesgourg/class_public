@@ -116,9 +116,16 @@ extern "C" {
   int output_pk_nl(
                    struct background * pba,
                    struct perturbs * ppt,
-                   struct spectra * psp,
+                   struct nonlinear * pnl,
                    struct output * pop
                    );
+
+  int output_pk_nl_old(
+                       struct background * pba,
+                       struct perturbs * ppt,
+                       struct spectra * psp,
+                       struct output * pop
+                       );
 
   int output_tk(
                 struct background * pba,

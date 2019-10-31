@@ -153,7 +153,11 @@ int output_init(
                pop->error_message);
 
     if (pnl->method != nl_none) {
-      class_call(output_pk_nl(pba,ppt,psp,pop),
+      class_call(output_pk_nl(pba,ppt,pnl,pop),
+                 pop->error_message,
+                 pop->error_message);
+
+      class_call(output_pk_nl_old(pba,ppt,psp,pop),
                  pop->error_message,
                  pop->error_message);
     }
@@ -597,6 +601,8 @@ int output_cl(
 /**
  * This routines writes the output in files for Fourier matter power spectra P(k)'s.
  *
+ * TODO: for 2.8, merge this with output_pk_nl, with a new argument "linear" or "nonlinear"
+ *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
  * @param ppt Input: pointer perturbation structure
  * @param psp Input: pointer to spectra structure
@@ -789,7 +795,7 @@ int output_pk(
         }
       }
 
-      /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total), by interpolating the table at the correct value of tau. */
+      /** - third, compute P(k) for each k */
 
       class_call(nonlinear_pk_linear_at_z(pba,
                                           pnl,
@@ -855,6 +861,8 @@ int output_pk(
 
 /**
  * This routines writes the output in files for Fourier matter power spectra P(k)'s.
+ *
+ * TODO: deprecated, remove before releasing 2.8
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
  * @param ppt Input: pointer perturbation structure
@@ -1288,6 +1296,126 @@ int output_pk_old(
 int output_pk_nl(
                  struct background * pba,
                  struct perturbs * ppt,
+                 struct nonlinear * pnl,
+                 struct output * pop
+                 ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  FILE * out_pk_nl;     /* out_pk_nl[index_pk] is a pointer to a file with total P_nl(k) */
+
+  double * ln_pk_nl;    /* array with argument ln_pk_nl[index_k] */
+
+  int index_k;
+  int index_z;
+  int index_pk;
+
+  FileName file_name;
+
+  char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
+  char type_suffix[9];     // 6 is enough to write "pk_cb_nl" plus closing character \0
+  char first_line[_LINE_LENGTH_MAX_];
+
+  /** - allocate arrays to store the P(k) */
+
+  class_alloc(ln_pk_nl,
+              pnl->k_size*sizeof(double),
+              pop->error_message);
+
+  /** - loop over pk type (_cb, _m) */
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+    if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
+      sprintf(type_suffix,"pk_nl");
+    }
+    if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
+      sprintf(type_suffix,"pk_cb_nl");
+    }
+
+    /** - loop over z */
+
+    for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+
+      /** - first, check that requested redshift z_pk is consistent */
+
+      class_test((pop->z_pk[index_z] > ppt->z_max_pk),
+                 pop->error_message,
+                 "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
+
+      if (pop->z_pk_num == 1)
+        redshift_suffix[0]='\0';
+      else
+        sprintf(redshift_suffix,"z%d_",index_z+1);
+
+      /** - second, open only the relevant files, and write a heading in each of them */
+
+      sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,".dat");
+
+      class_call(output_open_pk_file(pba,
+                                     pnl,
+                                     pop,
+                                     &out_pk_nl,
+                                     file_name,
+                                     "",
+                                     pop->z_pk[index_z]
+                                     ),
+                 pop->error_message,
+                 pop->error_message);
+
+      /** - third, compute P(k) for each k */
+
+      class_call(nonlinear_pk_nonlinear_at_z(pba,
+                                              pnl,
+                                              logarithmic,
+                                              pop->z_pk[index_z],
+                                              index_pk,
+                                              ln_pk_nl),
+                 pnl->error_message,
+                 pop->error_message);
+
+      /** - fourth, write in files */
+
+      for (index_k=0; index_k<pnl->k_size; index_k++) {
+
+        class_call(output_one_line_of_pk(out_pk_nl,
+                                         pnl->k[index_k]/pba->h,
+                                         exp(ln_pk_nl[index_k])*pow(pba->h,3)
+                                         ),
+                   pop->error_message,
+                   pop->error_message);
+      }
+
+      /** - fifth, close files */
+
+      fclose(out_pk_nl);
+
+    } /* end loop over index_z */
+  } /* end loop over index_pk */
+
+  /* free arrays and pointers */
+  free(ln_pk_nl);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * This routines writes the output in files for Fourier non-linear matter power spectra P(k)'s.
+ *
+ * TODO: deprecated, remove before releasing 2.8
+ *
+ * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param ppt Input: pointer perturbation structure
+ * @param psp Input: pointer to spectra structure
+ * @param pop Input: pointer to output structure
+ */
+
+int output_pk_nl_old(
+                 struct background * pba,
+                 struct perturbs * ppt,
                  struct spectra * psp,
                  struct output * pop
                  ) {
@@ -1325,8 +1453,8 @@ int output_pk_nl(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl.dat");
-    if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nl.dat");
+    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl_old.dat");
+    if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nl_old.dat");
 
     class_call(output_open_pk_file_old(pba,
                                        psp,
