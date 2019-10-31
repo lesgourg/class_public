@@ -306,59 +306,6 @@ int spectra_cl_at_l(
 }
 
 /**
- * Obsolete function, superseeded by perturb_sources_at_tau()
- * (at the time of the switch, this function was anyway never used anywhere)
- *
- * @param pba        Input: pointer to background structure (used for converting z into tau)
- * @param psp        Input: pointer to spectra structure (containing pre-computed table)
- * @param z          Input: redshift
- * @param output     Output: matter transfer functions
- * @return the error status
- */
-
-int spectra_tk_at_z(
-                    struct background * pba,
-                    struct spectra * psp,
-                    double z,
-                    double * output /* array with argument output[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+index_tr] (must be already allocated) */
-                    ) {
-
-
-  class_stop(psp->error_message,
-             "The function spectra_tk_at_z() is obsolete, use instead perturb_sources_at_tau(), it does the same");
-
-  return _SUCCESS_;
-
-}
-
-/**
- * Obsolete function, superseeded by perturb_sources_at_tau()
- * (at the time of the switch, this function was anyway never used anywhere)
- *
- * @param pba        Input: pointer to background structure (used for converting z into tau)
- * @param psp        Input: pointer to spectra structure (containing pre-computed table)
- * @param k          Input: wavenumber in 1/Mpc
- * @param z          Input: redshift
- * @param output     Output: matter transfer functions
- * @return the error status
- */
-
-int spectra_tk_at_k_and_z(
-                          struct background * pba,
-                          struct spectra * psp,
-                          double k,
-                          double z,
-                          double * output  /* array with argument output[index_ic*psp->tr_size+index_tr] (must be already allocated) */
-                          ) {
-
-  class_stop(psp->error_message,
-             "The function spectra_tk_at_k_and_z() is obsolete, use instead perturb_sources_at_tau(), it does the same provided that you interpolate its output at some wavenumber k");
-
-  return _SUCCESS_;
-
-}
-
-/**
  * This routine initializes the spectra structure (in particular,
  * computes table of anisotropy and Fourier spectra \f$ C_l^{X}, P(k), ... \f$)
  *
@@ -2269,6 +2216,60 @@ int spectra_pk_nl_at_k_and_z(
                                                 ),
              psp->pnl->error_message,
              psp->error_message);
+
+  return _SUCCESS_;
+
+}
+
+
+/**
+ * Obsolete function, superseeded by perturb_sources_at_tau()
+ * (at the time of the switch, this function was anyway never used anywhere)
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into tau)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param z          Input: redshift
+ * @param output     Output: matter transfer functions
+ * @return the error status
+ */
+
+int spectra_tk_at_z(
+                    struct background * pba,
+                    struct spectra * psp,
+                    double z,
+                    double * output /* array with argument output[(index_k*psp->ic_size[index_md]+index_ic)*psp->tr_size+index_tr] (must be already allocated) */
+                    ) {
+
+
+  class_stop(psp->error_message,
+             "The function spectra_tk_at_z() is obsolete, use instead perturb_sources_at_tau(), it does the same");
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Obsolete function, superseeded by perturb_sources_at_tau()
+ * (at the time of the switch, this function was anyway never used anywhere)
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into tau)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param k          Input: wavenumber in 1/Mpc
+ * @param z          Input: redshift
+ * @param output     Output: matter transfer functions
+ * @return the error status
+ */
+
+int spectra_tk_at_k_and_z(
+                          struct background * pba,
+                          struct spectra * psp,
+                          double k,
+                          double z,
+                          double * output  /* array with argument output[index_ic*psp->tr_size+index_tr] (must be already allocated) */
+                          ) {
+
+  class_stop(psp->error_message,
+             "The function spectra_tk_at_k_and_z() is obsolete, use instead perturb_sources_at_tau(), it does the same provided that you interpolate its output at some wavenumber k");
 
   return _SUCCESS_;
 

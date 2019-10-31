@@ -280,21 +280,6 @@ extern "C" {
                       double ** cl_md_ic
                       );
 
-  int spectra_tk_at_z(
-                      struct background * pba,
-                      struct spectra * psp,
-                      double z,
-                      double * output
-                      );
-
-  int spectra_tk_at_k_and_z(
-                            struct background * pba,
-                            struct spectra * psp,
-                            double k,
-                            double z,
-                            double * output
-                            );
-
   /* internal functions */
 
   int spectra_init(
@@ -402,6 +387,23 @@ extern "C" {
                                double * pk_tot,
                                double * pk_cb_tot
                                );
+
+  /* deprecated functions (since v2.1) */
+
+  int spectra_tk_at_z(
+                      struct background * pba,
+                      struct spectra * psp,
+                      double z,
+                      double * output
+                      );
+
+  int spectra_tk_at_k_and_z(
+                            struct background * pba,
+                            struct spectra * psp,
+                            double k,
+                            double z,
+                            double * output
+                            );
 
   /* end deprecated functions */
 
