@@ -229,6 +229,70 @@ int nonlinear_pk_at_z(
   return _SUCCESS_;
 }
 
+/*
+ * Same as nonlinear_pk_at_z() (see the comments there about
+ * the input/output format), excepted that we don't pass in input one
+ * type of P(k) through index_pk. Instead, we get all existing types
+ * in output. This function is maintained to enhance compatibility
+ * with old versions, but the use of nonlinear_pk_at_z() should
+ * be preferred.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param pnl            Input: pointer to nonlinear structure
+ * @param mode           Input: linear or logarithmic
+ * @param z              Input: redshift
+ * @param out_pk_l       Output: P_m(k) returned as out_pk_l[index_k]
+ * @param out_pk_ic_l    Output:  P_m_ic(k) returned as  out_pk_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @param out_pk_cb_l    Output: P_cb(k) returned as out_pk_cb_l[index_k]
+ * @param out_pk_cb_ic_l Output:  P_cb_ic(k) returned as  out_pk_cb_ic_l[index_k * pnl->ic_ic_size + index_ic1_ic2]
+ * @return the error status
+ */
+
+int nonlinear_pks_at_z(
+                       struct background * pba,
+                       struct nonlinear * pnl,
+                       enum linear_or_logarithmic mode,
+                       enum pk_outputs pk_output,
+                       double z,
+                       double * out_pk,      // array out_pk[index_k]
+                       double * out_pk_ic,   // array out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                       double * out_pk_cb,   // array out_pk_cb[index_k]
+                       double * out_pk_cb_ic // array out_pk_cb_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
+                       ) {
+
+  if (pnl->has_pk_cb) {
+
+    class_call(nonlinear_pk_at_z(pba,
+                                 pnl,
+                                 mode,
+                                 pk_output,
+                                 z,
+                                 pnl->index_pk_cb,
+                                 out_pk_cb,
+                                 out_pk_cb_ic
+                                 ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  if (pnl->has_pk_m) {
+
+    class_call(nonlinear_pk_at_z(pba,
+                                 pnl,
+                                 mode,
+                                 z,
+                                 pk_output,
+                                 pnl->index_pk_m,
+                                 out_pk,
+                                 out_pk_ic
+                                 ),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
 /**
  * Return the value of the non-linearity wavenumber k_nl for a given redshift z
  *
