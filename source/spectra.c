@@ -306,154 +306,6 @@ int spectra_cl_at_l(
 }
 
 /**
- * Non-linear total matter power spectrum for arbitrary wavenumber and redshift.
- *
- * This routine evaluates the matter power spectrum at a given value of k and z by
- * interpolating in a table of all P(k)'s computed at this z by spectra_pk_nl_at_z() (when kmin <= k <= kmax),
- * or eventually by using directly the primordial spectrum (when 0 <= k < kmin):
- * the latter case is an approximation, valid when kmin << comoving Hubble scale today.
- * Returns zero when k=0. Returns an error when k<0 or k > kmax.
- *
- * This function can be
- * called from whatever module at whatever time, provided that
- * spectra_init() has been called before, and spectra_free() has not
- * been called yet.
- *
- * @param pba        Input: pointer to background structure (used for converting z into tau)
- * @param ppm        Input: pointer to primordial structure (used only in the case 0 < k < kmin)
- * @param psp        Input: pointer to spectra structure (containing pre-computed table)
- * @param k          Input: wavenumber in 1/Mpc
- * @param z          Input: redshift
- * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3\f$
- * @param pk_cb_tot  Output: b+CDM power spectrum P(k) in \f$ Mpc^3\f$
- * @return the error status
- */
-
-int spectra_pk_nl_at_k_and_z(
-                             struct background * pba,
-                             struct primordial * ppm,
-                             struct spectra * psp,
-                             double k,
-                             double z,
-                             double * pk_tot,   /* pointer to a single number (must be already allocated) */
-                             double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
-                             ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  int index_md;
-  int last_index;
-
-  double * spectrum_at_z = NULL;
-  double * spline;
-
-  double * spectrum_cb_at_z = NULL;
-  double * spline_cb = NULL;
-
-  index_md = psp->index_md_scalars;
-
-  /** - check that k is in valid range [0:kmax] (the test for z will be done when calling spectra_pk_at_z()) */
-
-  class_test((k < exp(psp->ln_k[0])) || (k > exp(psp->ln_k[psp->ln_k_size-1])),
-             psp->error_message,
-             "k=%e out of bounds [%e:%e]",k,0.,exp(psp->ln_k[psp->ln_k_size-1]));
-
-  /** - compute P(k,z) (in logarithmic format for more accurate interpolation) */
-  class_alloc(spectrum_at_z,
-              psp->ln_k_size*sizeof(double),
-              psp->error_message);
-
-  class_alloc(spectrum_cb_at_z,
-              psp->ln_k_size*sizeof(double),
-              psp->error_message);
-
-  class_call(spectra_pk_nl_at_z(pba,
-                                psp,
-                                logarithmic,
-                                z,
-                                spectrum_at_z,
-                                spectrum_cb_at_z),
-             psp->error_message,
-             psp->error_message);
-
-  /** - get its second derivatives with spline, then interpolate, then convert to linear format */
-
-  class_alloc(spline,
-              sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-              psp->error_message);
-
-  if (pba->has_ncdm){
-    class_alloc(spline_cb,
-                sizeof(double)*psp->ic_ic_size[index_md]*psp->ln_k_size,
-                psp->error_message);
-  }
-
-  class_call(array_spline_table_lines(psp->ln_k,
-                                      psp->ln_k_size,
-                                      spectrum_at_z,
-                                      1,
-                                      spline,
-                                      _SPLINE_NATURAL_,
-                                      psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  class_call(array_interpolate_spline(psp->ln_k,
-                                      psp->ln_k_size,
-                                      spectrum_at_z,
-                                      spline,
-                                      1,
-                                      log(k),
-                                      &last_index,
-                                      pk_tot,
-                                      1,
-                                      psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  *pk_tot = exp(*pk_tot);
-
-  if (pba->has_ncdm){
-
-    class_call(array_spline_table_lines(psp->ln_k,
-                                        psp->ln_k_size,
-                                        spectrum_cb_at_z,
-                                        1,
-                                        spline_cb,
-                                        _SPLINE_NATURAL_,
-                                        psp->error_message),
-               psp->error_message,
-               psp->error_message);
-
-    class_call(array_interpolate_spline(psp->ln_k,
-                                        psp->ln_k_size,
-                                        spectrum_cb_at_z,
-                                        spline_cb,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        pk_cb_tot,
-                                        1,
-                                        psp->error_message),
-               psp->error_message,
-               psp->error_message);
-
-    *pk_cb_tot = exp(*pk_cb_tot);
-
-  }
-
-  free(spectrum_at_z);
-  free(spectrum_cb_at_z);
-  free(spline);
-  if (pba->has_ncdm) free(spline_cb);
-
-  return _SUCCESS_;
-
-}
-
-/**
  * Obsolete function, superseeded by perturb_sources_at_tau()
  * (at the time of the switch, this function was anyway never used anywhere)
  *
@@ -2250,27 +2102,7 @@ int spectra_pk(
 /**
  * Matter power spectrum for arbitrary redshift and for all initial conditions.
  *
- * This routine evaluates the matter power spectrum at a given value of z by
- * interpolating in the pre-computed table (if several values of z have been stored)
- * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
- *
  * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.
- *
- * Can be called in two modes: linear or logarithmic.
- *
- * - linear: returns P(k) (units: \f$ Mpc^3\f$)
- *
- * - logarithmic: returns \f$\ln{P(k)}\f$
- *
- * One little subtlety: in case of several correlated initial conditions,
- * the cross-correlation spectrum can be negative. Then, in logarithmic mode,
- * the non-diagonal elements contain the cross-correlation angle \f$ P_{12}/\sqrt{P_{11} P_{22}}\f$
- * (from -1 to 1) instead of \f$\ln{P_{12}}\f$
- *
- * This function can be
- * called from whatever module at whatever time, provided that
- * spectra_init() has been called before, and spectra_free() has not
- * been called yet.
  *
  * @param pba           Input: pointer to background structure (used for converting z into tau)
  * @param psp           Input: pointer to spectra structure (containing pre-computed table)
@@ -2295,7 +2127,7 @@ int spectra_pk_at_z(
                     ) {
 
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
 
   class_call(nonlinear_pks_linear_at_z(
                                        pba,
@@ -2316,14 +2148,6 @@ int spectra_pk_at_z(
 
 /**
  * Matter power spectrum for arbitrary wavenumber, redshift and initial condition.
- *
- * This routine evaluates the matter power spectrum at a given value
- * of k and z by interpolating in a table of all P(k)'s computed at
- * this z by nonlinear_pk_linear_at_z() (when kmin <= k <= kmax), or
- * possibly by using directly the primordial spectrum (when 0 <= k <
- * kmin): the latter case is an approximation, valid when kmin <<
- * comoving Hubble scale today.  Returns zero when k=0. Returns an
- * error when k<0 or k > kmax.
  *
  * This function is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.
  *
@@ -2352,7 +2176,7 @@ int spectra_pk_at_k_and_z(
                           double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
                           ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
 
   class_call(nonlinear_pks_linear_at_k_and_z(pba,
                                              ppm,
@@ -2371,22 +2195,6 @@ int spectra_pk_at_k_and_z(
 
 /**
  * Non-linear total matter power spectrum for arbitrary redshift.
- *
- * This routine evaluates the non-linear matter power spectrum at a given value of z by
- * interpolating in the pre-computed table (if several values of z have been stored)
- * or by directly reading it (if it only contains values at z=0 and we want P(k,z=0))
- *
- *
- * Can be called in two modes: linear or logarithmic.
- *
- * - linear: returns P(k) (units: Mpc^3)
- *
- * - logarithmic: returns ln(P(k))
- *
- * This function can be
- * called from whatever module at whatever time, provided that
- * spectra_init() has been called before, and spectra_free() has not
- * been called yet.
  *
  * This function is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_z() instead.
  *
@@ -2408,6 +2216,8 @@ int spectra_pk_nl_at_z(
                        double * output_cb_tot
                        ) {
 
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_z() instead.\n");
+
   class_call(nonlinear_pks_nonlinear_at_z(pba,
                                           psp->pnl,
                                           mode,
@@ -2415,6 +2225,48 @@ int spectra_pk_nl_at_z(
                                           output_tot,
                                           output_cb_tot
                                           ),
+             psp->pnl->error_message,
+             psp->error_message);
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Non-linear total matter power spectrum for arbitrary wavenumber and redshift.
+ *
+ * This function is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_k_and_z() instead.
+ *
+ * @param pba        Input: pointer to background structure (used for converting z into tau)
+ * @param ppm        Input: pointer to primordial structure (used only in the case 0 < k < kmin)
+ * @param psp        Input: pointer to spectra structure (containing pre-computed table)
+ * @param k          Input: wavenumber in 1/Mpc
+ * @param z          Input: redshift
+ * @param pk_tot     Output: total matter power spectrum P(k) in \f$ Mpc^3\f$
+ * @param pk_cb_tot  Output: b+CDM power spectrum P(k) in \f$ Mpc^3\f$
+ * @return the error status
+ */
+
+int spectra_pk_nl_at_k_and_z(
+                             struct background * pba,
+                             struct primordial * ppm,
+                             struct spectra * psp,
+                             double k,
+                             double z,
+                             double * pk_tot,   /* pointer to a single number (must be already allocated) */
+                             double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
+                             ) {
+
+  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_k_and_z() instead.\n");
+
+    class_call(nonlinear_pks_nonlinear_at_k_and_z(pba,
+                                                ppm,
+                                                psp->pnl,
+                                                k,
+                                                z,
+                                                pk_tot,
+                                                pk_cb_tot
+                                                ),
              psp->pnl->error_message,
              psp->error_message);
 

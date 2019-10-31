@@ -280,16 +280,6 @@ extern "C" {
                       double ** cl_md_ic
                       );
 
-  int spectra_pk_nl_at_k_and_z(
-                               struct background * pba,
-                               struct primordial * ppm,
-                               struct spectra * psp,
-                               double k,
-                               double z,
-                               double * pk_tot,
-                               double * pk_cb_tot
-                               );
-
   int spectra_tk_at_z(
                       struct background * pba,
                       struct spectra * psp,
@@ -402,6 +392,16 @@ extern "C" {
                          double * output_tot,
                          double * output_cb_tot
                          );
+
+    int spectra_pk_nl_at_k_and_z(
+                               struct background * pba,
+                               struct primordial * ppm,
+                               struct spectra * psp,
+                               double k,
+                               double z,
+                               double * pk_tot,
+                               double * pk_cb_tot
+                               );
 
   /* end deprecated functions */
 

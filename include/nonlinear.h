@@ -290,6 +290,16 @@ extern "C" {
                                   double * out_pk_nl
                                   );
 
+  int nonlinear_pk_nonlinear_at_k_and_z(
+                                        struct background * pba,
+                                        struct primordial * ppm,
+                                        struct nonlinear *pnl,
+                                        double k,
+                                        double z,
+                                        int index_pk,
+                                        double * out_pk_nl
+                                        );
+
   int nonlinear_pks_nonlinear_at_z(
                                    struct background * pba,
                                    struct nonlinear *pnl,
@@ -298,6 +308,16 @@ extern "C" {
                                    double * out_pk_nl,
                                    double * out_pk_cb_nl
                                    );
+
+  int nonlinear_pks_nonlinear_at_k_and_z(
+                                         struct background * pba,
+                                         struct primordial * ppm,
+                                         struct nonlinear *pnl,
+                                         double k,
+                                         double z,
+                                         double * out_pk_nl,
+                                         double * out_pk_cb_nl
+                                         );
 
   int nonlinear_init(
                      struct precision *ppr,
