@@ -186,6 +186,11 @@ struct spectra {
 
   double sigma8_cb; /**< if ncdm present: contribution to sigma8 from only baryons and cdm */
 
+  double neff; //Lya DCH
+  double Lya_k_s_over_km; //Lya DCH
+  double Lya_z; //Lya DCH
+  short compute_neff_Lya; //Lya DCH
+
   double * ln_pk_l;   /**q< Total linear matter power spectrum, just
                            depending on indices index_k, index_tau as:
                            ln_pk[index_tau * psp->k_size + index_k]
@@ -227,6 +232,7 @@ struct spectra {
   int index_tr_delta_g;        /**< index of gamma density transfer function */
   int index_tr_delta_b;        /**< index of baryon density transfer function */
   int index_tr_delta_cdm;      /**< index of cold dark matter density transfer function */
+  int index_tr_delta_idm_b;    /**< index of interacting dark matter density transfer function DCH */
   int index_tr_delta_dcdm;     /**< index of decaying cold dark matter density transfer function */
   int index_tr_delta_scf;      /**< index of scalar field phi transfer function */
   int index_tr_delta_fld;      /**< index of dark energy fluid density transfer function */
@@ -237,6 +243,7 @@ struct spectra {
   int index_tr_theta_g;        /**< index of gamma velocity transfer function */
   int index_tr_theta_b;        /**< index of baryon velocity transfer function */
   int index_tr_theta_cdm;      /**< index of cold dark matter velocity transfer function */
+  int index_tr_theta_idm_b;    /**< index of interacting dark matter velocity transfer function DCH*/
   int index_tr_theta_dcdm;     /**< index of decaying cold dark matter velocity transfer function */
   int index_tr_theta_scf;      /**< index of derivative of scalar field phi transfer function */
   int index_tr_theta_fld;      /**< index of dark energy fluid velocity transfer function */
@@ -441,6 +448,14 @@ extern "C" {
                     double z,
                     double *sigma_cb
                     );
+
+  int spectra_neff(
+                   struct background * pba,
+                   struct primordial * ppm,
+                   struct spectra * psp,
+                   double z,
+                   double *neff
+                   ); //Lya DCH
 
   int spectra_matter_transfers(
                                struct background * pba,

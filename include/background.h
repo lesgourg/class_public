@@ -54,6 +54,11 @@ struct background
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
   double Omega0_cdm;      /**< \f$ \Omega_{0 cdm} \f$: cold dark matter */
+
+  double Omega0_idm_b; /**< DCH interacting dark matter with baryons*/
+  double f_idm_b;      /**< DCH fraction of DM interacting with baryons*/
+  double m_dm;         /**< dark matter mass for idm *
+
   double Omega0_dcdmdr;   /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
   double Omega_ini_dcdm;  /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */
   double Gamma_dcdm;      /**< \f$ \Gamma_{dcdm} \f$: decay constant for decaying cold dark matter */
@@ -137,6 +142,7 @@ struct background
   int index_bg_rho_g;         /**< photon density */
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
+  int index_bg_rho_idm_b;     /**< DCH interacting dark matter */
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid density */
   int index_bg_w_fld;         /**< fluid equation of state */
@@ -247,6 +253,7 @@ struct background
   //@{
 
   short has_cdm;       /**< presence of cold dark matter? */
+  short has_idm_b;     /**< DCH presence of interacting dark matter? */
   short has_dcdm;      /**< presence of decaying cold dark matter? */
   short has_dr;        /**< presence of relativistic decay radiation? */
   short has_scf;       /**< presence of a scalar field? */
