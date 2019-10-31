@@ -16,6 +16,7 @@ enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
 enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
 enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
 enum source_extrapolation {extrap_zero,extrap_only_max,extrap_only_max_units,extrap_max_scaled,extrap_hmcode,extrap_user_defined};
+enum pk_outputs {pk_linear,pk_nonlinear};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -228,6 +229,17 @@ struct nonlinear_workspace {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+  int nonlinear_pk_at_z(
+                        struct background * pba,
+                        struct nonlinear *pnl,
+                        enum linear_or_logarithmic mode,
+                        enum pk_outputs pk_output,
+                        double z,
+                        int index_pk,
+                        double * out_pk,
+                        double * out_pk_ic
+                        );
 
   int nonlinear_k_nl_at_z(
                           struct background *pba,
