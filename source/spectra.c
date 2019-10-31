@@ -2126,15 +2126,16 @@ int spectra_pk_at_k_and_z(
 
   //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
 
-  class_call(nonlinear_pks_linear_at_k_and_z(pba,
-                                             ppm,
-                                             psp->pnl,
-                                             k,
-                                             z,
-                                             pk_tot,
-                                             pk_ic,
-                                             pk_cb_tot,
-                                             pk_cb_ic),
+  class_call(nonlinear_pks_at_k_and_z(pba,
+                                      ppm,
+                                      psp->pnl,
+                                      pk_linear,
+                                      k,
+                                      z,
+                                      pk_tot,
+                                      pk_ic,
+                                      pk_cb_tot,
+                                      pk_cb_ic),
              psp->pnl->error_message,
              psp->error_message);
 
@@ -2210,14 +2211,17 @@ int spectra_pk_nl_at_k_and_z(
 
   //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_k_and_z() instead.\n");
 
-    class_call(nonlinear_pks_nonlinear_at_k_and_z(pba,
-                                                ppm,
-                                                psp->pnl,
-                                                k,
-                                                z,
-                                                pk_tot,
-                                                pk_cb_tot
-                                                ),
+  class_call(nonlinear_pks_at_k_and_z(pba,
+                                      ppm,
+                                      psp->pnl,
+                                      pk_nonlinear,
+                                      k,
+                                      z,
+                                      pk_tot,
+                                      NULL,
+                                      pk_cb_tot,
+                                      NULL
+                                      ),
              psp->pnl->error_message,
              psp->error_message);
 
