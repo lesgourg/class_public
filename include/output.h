@@ -169,33 +169,11 @@ extern "C" {
                           double z
                           );
 
-  int output_open_pk_file_old(
-                          struct background * pba,
-                          struct spectra * psp,
-                          struct output * pop,
-                          FILE ** pkfile,
-                          FileName filename,
-                          char * first_line,
-                          double z
-                          );
-
   int output_one_line_of_pk(
                             FILE * tkfile,
                             double one_k,
                             double one_pk
                             );
-
-  int output_open_pk_nl_file(
-                             struct background * pba,
-                             struct nonlinear * pnl,
-                             struct output * pop,
-                             FILE ** pkfile,
-                             FileName filename,
-                             char * first_line,
-                             double z,
-                             int k_size
-                             );
-
 
 #ifdef __cplusplus
 }

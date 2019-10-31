@@ -593,14 +593,14 @@ int output_cl(
 }
 
 /**
- * This routines writes the output in files for Fourier matter power spectra P(k)'s.
+ * This routines writes the output in files for Fourier matter power spectra P(k)'s
+ * (linear or non-linear)
  *
- * TODO: for 2.8, merge this with output_pk_nl, with a new argument "linear" or "nonlinear"
- *
- * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input: pointer perturbation structure
- * @param psp Input: pointer to spectra structure
- * @param pop Input: pointer to output structure
+ * @param pba       Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param ppt       Input: pointer perturbation structure
+ * @param psp       Input: pointer to spectra structure
+ * @param pop       Input: pointer to output structure
+ * @param pk_output Input: pk_linear or pk_nonlinear
  */
 
 int output_pk(
@@ -1517,50 +1517,6 @@ int output_open_pk_file(
             exp(pnl->ln_k[0])/pba->h,
             exp(pnl->ln_k[pnl->k_size-1])/pba->h);
     fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size);
-
-    fprintf(*pkfile,"#");
-    class_fprintf_columntitle(*pkfile,"k (h/Mpc)",_TRUE_,colnum);
-    class_fprintf_columntitle(*pkfile,"P (Mpc/h)^3",_TRUE_,colnum);
-
-    fprintf(*pkfile,"\n");
-  }
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine opens one file where some P(k)'s will be written, and writes
- * a heading with some general information concerning its content.
- *
- * @param pba        Input: pointer to background structure (needed for h)
- * @param psp        Input: pointer to spectra structure
- * @param pop        Input: pointer to output structure
- * @param pkfile     Output: returned pointer to file pointer
- * @param filename   Input: name of the file
- * @param first_line Input: text describing the content (initial conditions, ...)
- * @param z          Input: redshift of the output
- * @return the error status
- */
-
-int output_open_pk_file_old(
-                            struct background * pba,
-                            struct spectra * psp,
-                            struct output * pop,
-                            FILE * * pkfile,
-                            FileName filename,
-                            char * first_line,
-                            double z
-                            ) {
-
-  int colnum = 1;
-  class_open(*pkfile,filename,"w",pop->error_message);
-
-  if (pop->write_header == _TRUE_) {
-    fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z);
-    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",
-            exp(psp->ln_k[0])/pba->h,
-            exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
 
     fprintf(*pkfile,"#");
     class_fprintf_columntitle(*pkfile,"k (h/Mpc)",_TRUE_,colnum);
