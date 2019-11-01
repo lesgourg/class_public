@@ -632,6 +632,12 @@ int output_pk(
   char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
   char type_suffix[9];     // 6 is enough to write "pk_cb_nl" plus closing character \0
   char first_line[_LINE_LENGTH_MAX_];
+  short do_ic = _FALSE_;
+
+  /** - preliminary: check whether we need to output the decomposition into contributions from each initial condition */
+
+  if ((pk_output == pk_linear) && (pnl->ic_size > 1))
+    do_ic = _TRUE_;
 
   /** - allocate arrays to store the P(k) */
 
@@ -639,7 +645,7 @@ int output_pk(
               pnl->k_size*sizeof(double),
               pop->error_message);
 
-  if (pk_output == pk_linear) {
+  if (do_ic == _TRUE_) {
 
     class_alloc(ln_pk_ic,
                 pnl->k_size*pnl->ic_ic_size*sizeof(double),
@@ -699,7 +705,7 @@ int output_pk(
                  pop->error_message,
                  pop->error_message);
 
-      if ((pk_output == pk_linear) && (pnl->ic_size > 1)) {
+      if (do_ic == _TRUE_) {
 
         for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
 
@@ -824,7 +830,7 @@ int output_pk(
                    pop->error_message,
                    pop->error_message);
 
-        if ((pk_output == pk_linear) && (pnl->ic_ic_size > 1)) {
+        if (do_ic == _TRUE_) {
 
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
 
@@ -844,7 +850,7 @@ int output_pk(
 
       fclose(out_pk);
 
-      if ((pk_output == pk_linear) && (pnl->ic_size > 1)) {
+      if (do_ic == _TRUE_) {
         for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
           if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
             fclose(out_pk_ic[index_ic1_ic2]);

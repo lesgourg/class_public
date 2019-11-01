@@ -17,8 +17,9 @@
  * Return the P(k,z) for a given redshift z and pk type (_m, _cb)
  * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
  *
- * In the linear case, also returns the possible decomposition into
- * different IC contributions.
+ * In the linear case, if there are several initial conditions *and* the
+ * input pointer out_pk_ic is not set to NULL, the function also
+ * returns the decomposition into different IC contributions.
  *
  * Hints on input index_pk:
  *
@@ -78,6 +79,12 @@ int nonlinear_pk_at_z(
   int index_ic2_ic2;
   int index_ic1_ic2;
   int last_index;
+  short do_ic = _FALSE_;
+
+  /** - check whether we need the decomposition into contributions from each initial condition */
+
+  if ((pk_output == pk_linear) && (pnl->ic_size > 1) && (out_pk_ic != NULL))
+    do_ic = _TRUE_;
 
   /** - case z=0 requiring no interpolation in z */
   if (z == 0) {
@@ -87,7 +94,7 @@ int nonlinear_pk_at_z(
       if (pk_output == pk_linear) {
         out_pk[index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1)*pnl->k_size+index_k];
 
-        if (pnl->ic_size > 1) {
+        if (do_ic == _TRUE_) {
           for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
             out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2] =
               pnl->ln_pk_ic_l[index_pk][((pnl->ln_tau_size-1)*pnl->k_size+index_k)*pnl->ic_ic_size+index_ic1_ic2];
@@ -155,7 +162,7 @@ int nonlinear_pk_at_z(
                  pnl->error_message);
 
       /** --> interpolate P_ic_l(k) at tau from pre-computed array */
-      if (pnl->ic_size > 1) {
+      if (do_ic == _TRUE_) {
         class_call(array_interpolate_spline(pnl->ln_tau,
                                             pnl->ln_tau_size,
                                             pnl->ln_pk_ic_l[index_pk],
@@ -198,28 +205,26 @@ int nonlinear_pk_at_z(
       /** --> convert total spectrum */
       out_pk[index_k] = exp(out_pk[index_k]);
 
-      if (pk_output == pk_linear) {
-        if (pnl->ic_size > 1) {
-          /** --> convert contribution of each ic (diagonal elements) */
-          for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+      if (do_ic == _TRUE_) {
+        /** --> convert contribution of each ic (diagonal elements) */
+        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+
+          out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1]);
+        }
+
+        /** --> convert contribution of each ic (non-diagonal elements) */
+        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+          for (index_ic2=index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
             index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+            index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
 
-            out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1] = exp(out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1]);
-          }
-
-          /** --> convert contribution of each ic (non-diagonal elements) */
-          for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
-            for (index_ic2=index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
-              index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
-              index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
-              index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
-
-              /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
-              out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
-                = out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
-                *sqrt(out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1]
-                      *out_pk_ic[index_k * pnl->ic_ic_size + index_ic2_ic2]);
-            }
+            /* P_ic1xic2 = cos(angle) * sqrt(P_ic1 * P_ic2) */
+            out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
+              = out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
+              *sqrt(out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic1]
+                    *out_pk_ic[index_k * pnl->ic_ic_size + index_ic2_ic2]);
           }
         }
       }
@@ -297,8 +302,9 @@ int nonlinear_pks_at_z(
  * Return the P(k,z) for a given (k,z) and pk type (_m, _cb)
  * (linear if pk_output = pk_linear, nonlinear if pk_output = pk_nonlinear)
  *
- * In the linear case, return as well as its possible decomposition
- * into different IC contributions.
+ * In the linear case, if there are several initial conditions *and* the
+ * input pointer out_pk_ic is not set to NULL, the function also
+ * returns the decomposition into different IC contributions.
  *
  * Hints on input index_pk:
  *
@@ -353,7 +359,7 @@ int nonlinear_pk_at_k_and_z(
                             ) {
 
   double * out_pk_at_z;
-  double * out_pk_ic_at_z;
+  double * out_pk_ic_at_z = NULL;
   double * ddout_pk_at_z;
   double * ddout_pk_ic_at_z;
   int last_index;
@@ -362,6 +368,12 @@ int nonlinear_pk_at_k_and_z(
   double kmin;
   double * pk_primordial_k;
   double * pk_primordial_kmin;
+  short do_ic = _FALSE_;
+
+  /** - preliminary: check whether we need the decomposition into contributions from each initial condition */
+
+  if ((pk_output == pk_linear) && (pnl->ic_size > 1) && (out_pk_ic != NULL))
+    do_ic = _TRUE_;
 
   /** - first step: check that k is in valid range [0:kmax]
       (the test for z will be done when calling nonlinear_pk_linear_at_z()) */
@@ -376,11 +388,9 @@ int nonlinear_pk_at_k_and_z(
   if (k == 0.) {
     *out_pk = 0.;
 
-    if (pk_output == pk_linear) {
-      if (pnl->ic_size>1) {
-        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-          out_pk_ic[index_ic_ic] = 0.;
-        }
+    if (do_ic == _TRUE_) {
+      for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
+        out_pk_ic[index_ic_ic] = 0.;
       }
     }
   }
@@ -395,12 +405,10 @@ int nonlinear_pk_at_k_and_z(
                 pnl->k_size*sizeof(double),
                 pnl->error_message);
 
-    if (pk_output == pk_linear) {
-      if (pnl->ic_size>1) {
-        class_alloc(out_pk_ic_at_z,
-                    pnl->k_size*pnl->ic_ic_size*sizeof(double),
-                    pnl->error_message);
-      }
+    if (do_ic == _TRUE_) {
+      class_alloc(out_pk_ic_at_z,
+                  pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                  pnl->error_message);
     }
 
     class_call(nonlinear_pk_at_z(pba,
@@ -449,38 +457,36 @@ int nonlinear_pk_at_k_and_z(
 
       free(ddout_pk_at_z);
 
-      if (pk_output == pk_linear) {
-        if (pnl->ic_size>1) {
+      if (do_ic == _TRUE_) {
 
-          class_alloc(ddout_pk_ic_at_z,
-                      pnl->k_size*pnl->ic_ic_size*sizeof(double),
-                      pnl->error_message);
+        class_alloc(ddout_pk_ic_at_z,
+                    pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                    pnl->error_message);
 
-          class_call(array_spline_table_lines(pnl->ln_k,
-                                              pnl->k_size,
-                                              out_pk_ic_at_z,
-                                              pnl->ic_ic_size,
-                                              ddout_pk_ic_at_z,
-                                              _SPLINE_NATURAL_,
-                                              pnl->error_message),
-                     pnl->error_message,
-                     pnl->error_message);
+        class_call(array_spline_table_lines(pnl->ln_k,
+                                            pnl->k_size,
+                                            out_pk_ic_at_z,
+                                            pnl->ic_ic_size,
+                                            ddout_pk_ic_at_z,
+                                            _SPLINE_NATURAL_,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
 
-          class_call(array_interpolate_spline(pnl->ln_k,
-                                              pnl->k_size,
-                                              out_pk_ic_at_z,
-                                              ddout_pk_ic_at_z,
-                                              pnl->ic_ic_size,
-                                              log(k),
-                                              &last_index,
-                                              out_pk_ic,
-                                              pnl->ic_ic_size,
-                                              pnl->error_message),
-                     pnl->error_message,
-                     pnl->error_message);
+        class_call(array_interpolate_spline(pnl->ln_k,
+                                            pnl->k_size,
+                                            out_pk_ic_at_z,
+                                            ddout_pk_ic_at_z,
+                                            pnl->ic_ic_size,
+                                            log(k),
+                                            &last_index,
+                                            out_pk_ic,
+                                            pnl->ic_ic_size,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
 
-          free(ddout_pk_ic_at_z);
-        }
+        free(ddout_pk_ic_at_z);
       }
     }
 
@@ -502,11 +508,9 @@ int nonlinear_pk_at_k_and_z(
       /* get P(kmin) */
       *out_pk = out_pk_at_z[0];
 
-      if (pk_output == pk_linear) {
-        if (pnl->ic_size>1) {
-          for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-            out_pk_ic[index_ic_ic] = out_pk_ic_at_z[index_ic_ic];
-          }
+      if (do_ic == _TRUE_) {
+        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
+          out_pk_ic[index_ic_ic] = out_pk_ic_at_z[index_ic_ic];
         }
       }
 
@@ -544,12 +548,10 @@ int nonlinear_pk_at_k_and_z(
 
       *out_pk *= (k*pk_primordial_k[0]/kmin/pk_primordial_kmin[0]);
 
-      if (pk_output == pk_linear) {
-        if (pnl->ic_size > 1) {
-          for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-            out_pk_ic[index_ic_ic] *= (k*pk_primordial_k[index_ic_ic]
-                                       /kmin/pk_primordial_kmin[index_ic_ic]);
-          }
+      if (do_ic == _TRUE_) {
+        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
+          out_pk_ic[index_ic_ic] *= (k*pk_primordial_k[index_ic_ic]
+                                     /kmin/pk_primordial_kmin[index_ic_ic]);
         }
       }
 
@@ -558,10 +560,8 @@ int nonlinear_pk_at_k_and_z(
     }
 
     free(out_pk_at_z);
-    if (pk_output == pk_linear) {
-      if (pnl->ic_size>1) {
-        free(out_pk_ic_at_z);
-      }
+    if (do_ic == _TRUE_) {
+      free(out_pk_ic_at_z);
     }
   }
 
