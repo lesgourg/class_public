@@ -301,6 +301,7 @@ cdef extern from "class.h":
 
     int spectra_cl_at_l(void* psp,double l,double * cl,double * * cl_md,double * * cl_md_ic)
     int lensing_cl_at_l(void * ple,int l,double * cl_lensed)
+
     int spectra_pk_at_z(
         void * pba,
         void * psp,
@@ -360,6 +361,17 @@ cdef extern from "class.h":
         int index_pk,
         int sigma_output,
         double * result)
+
+    int nonlinear_pks_at_kvec_and_zvec(
+        void * pba,
+        void * pnl,
+        int pk_output,
+        double * kvec,
+        int kvec_size,
+        double * zvec,
+        int zvec_size,
+        double * out_pk,
+        double * out_pk_cb)
 
     int nonlinear_hmcode_sigma8_at_z(void* pba, void* pnl, double z, double* sigma_8, double* sigma_8_cb)
     int nonlinear_hmcode_sigmadisp_at_z(void* pba, void* pnl, double z, double* sigma_disp, double* sigma_disp_cb)
