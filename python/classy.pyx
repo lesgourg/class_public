@@ -724,10 +724,10 @@ cdef class Class:
 
         if (self.nl.method == nl_none):
             if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
+                raise CosmoSevereError(self.nl.error_message)
         else:
             if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
+                raise CosmoSevereError(self.nl.error_message)
 
         return pk
 
@@ -751,10 +751,10 @@ cdef class Class:
 
         if (self.nl.method == nl_none):
             if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_cb,&pk_cb,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
+                raise CosmoSevereError(self.nl.error_message)
         else:
             if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_cb,&pk_cb,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
+                raise CosmoSevereError(self.nl.error_message)
 
         return pk_cb
 
@@ -775,7 +775,7 @@ cdef class Class:
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk_lin,NULL)==_FAILURE_:
-            raise CosmoSevereError(self.sp.error_message)
+            raise CosmoSevereError(self.nl.error_message)
 
         return pk_lin
 
@@ -794,11 +794,12 @@ cdef class Class:
 
         if (self.pt.has_pk_matter == _FALSE_):
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+
         if (self.nl.has_pk_cb == _FALSE_):
-            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
+            raise CosmoSevereError("P_cb not computed by CLASS (probably because there are no massive neutrinos)")
 
         if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_cb,&pk_cb_lin,NULL)==_FAILURE_:
-            raise CosmoSevereError(self.sp.error_message)
+            raise CosmoSevereError(self.nl.error_message)
 
         return pk_cb_lin
 
@@ -849,7 +850,7 @@ cdef class Class:
     # Gives sigma(R,z) for a given (R,z)
     def sigma(self,double R,double z):
         """
-        Gives sigma for a given R and z
+        Gives sigma (total matter) for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
 
         .. note::
@@ -862,25 +863,20 @@ cdef class Class:
         cdef double sigma
 
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError(
-                "No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs."
-                )
+            raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
 
         if (self.pt.k_max_for_pk < self.ba.h):
-            raise CosmoSevereError(
-                "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
-                )
+            raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if spectra_sigma(&self.ba,&self.pm,&self.sp,R,z,&sigma)==_FAILURE_:
-                 raise CosmoSevereError(self.sp.error_message)
+        if nonlinear_sigmas_at_z(&self.ba,&self.nl,R,z,self.nl.index_pk_m,80.,out_sigma,&sigma)==_FAILURE_:
+            raise CosmoSevereError(self.nl.error_message)
 
         return sigma
 
     # Gives sigma_cb(R,z) for a given (R,z)
     def sigma_cb(self,double R,double z):
         """
-        Gives the pk for a given R and z
-
+        Gives sigma (cdm+b) for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
 
         .. note::
@@ -888,27 +884,21 @@ cdef class Class:
             there is an additional check to verify whether output contains `mPk`,
             and whether k_max > ...
             because otherwise a segfault will occur
-        """
 
+        """
         cdef double sigma_cb
 
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError(
-                "No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs."
-                )
+            raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
+
+        if (self.nl.has_pk_cb == _FALSE_):
+            raise CosmoSevereError("sigma_cb not computed by CLASS (probably because there are no massive neutrinos)")
 
         if (self.pt.k_max_for_pk < self.ba.h):
-            raise CosmoSevereError(
-                "In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc."
-                )
+            raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if (self.ba.Omega0_ncdm_tot == 0.):
-            raise CosmoSevereError(
-                "No massive neutrinos. You must use sigma, rather than sigma_cb."
-                )
-
-        if spectra_sigma_cb(&self.ba,&self.pm,&self.sp,R,z,&sigma_cb)==_FAILURE_:
-                 raise CosmoSevereError(self.sp.error_message)
+        if nonlinear_sigmas_at_z(&self.ba,&self.nl,R,z,self.nl.index_pk_cb,80.,out_sigma,&sigma_cb)==_FAILURE_:
+            raise CosmoSevereError(self.nl.error_message)
 
         return sigma_cb
 

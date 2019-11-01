@@ -36,6 +36,11 @@ cdef extern from "class.h":
         pk_linear
         pk_nonlinear
 
+    cdef enum out_sigmas:
+        out_sigma
+        out_sigma_prime
+        out_sigma_disp
+
     cdef struct precision:
         ErrorMsg error_message
 
@@ -345,6 +350,16 @@ cdef extern from "class.h":
         int index_pk,
         double * out_pk,
         double * out_pk_ic)
+
+    int nonlinear_sigmas_at_z(
+        void * pba,
+        void * pnl,
+        double R,
+        double z,
+        int index_pk,
+        double k_per_decade,
+        int sigma_output,
+        double * result)
 
     int nonlinear_hmcode_sigma8_at_z(void* pba, void* pnl, double z, double* sigma_8, double* sigma_8_cb)
     int nonlinear_hmcode_sigmadisp_at_z(void* pba, void* pnl, double z, double* sigma_disp, double* sigma_disp_cb)
