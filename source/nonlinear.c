@@ -854,6 +854,123 @@ int nonlinear_pks_at_kvec_and_zvec(
 }
 
 /**
+ * This routine computes the variance of density fluctuations in a
+ * sphere of radius R, sigma(R,z), for one given pk type (_m, _cb).
+ *
+ * The integral is performed on the discrete values of k defined in the
+ * perturbation module, thus the accuracy of the result depend on k_max,
+ * delta k and k_min in this pre-computed array.
+ *
+ * Here there is not automatic checking that k_max is large enough for
+ * the result to be well converged. E.g. to get an accurate sigma8 at
+ * R = 8 Mpc/h, the user should pass at least about P_k_max_h/Mpc = 1.
+ *
+ * @param pba      Input: pointer to background structure
+ * @param pnl      Input: pointer to nonlinear structure
+ * @param R        Input: radius in Mpc
+ * @param z        Input: redshift
+ * @param index_pk Input: type of pk (_m, _cb)
+ * @param sigma    Output: variance in a sphere of radius R (dimensionless)
+ * @return the error status
+ */
+
+int nonlinear_sigma(
+                    struct background * pba,
+                    struct nonlinear * pnl,
+                    double R,
+                    double z,
+                    int index_pk,
+                    double *sigma
+                    ) {
+
+  double * out_pk;
+  int i,index_k,index_y,index_ddy,index_num;
+  double * array_for_sigma;
+  double k,x,W;
+
+  /** - allocate temporary array for P(k,z) as a function of k */
+  class_alloc(out_pk, pnl->k_size*sizeof(double), pnl->error_message);
+
+  /** - allocate temporary array for the integral */
+  class_alloc(out_pk, pnl->k_size*sizeof(double), pnl->error_message);
+
+  i=0;
+  index_k=i;   // index for k
+  i++;
+  index_y=i;   // index for integrand
+  i++;
+  index_ddy=i; // index for its secoinf serivative (spline method)
+  i++;
+  index_num=i; // number of columns in the array
+
+  class_alloc(array_for_sigma,
+              pnl->k_size*index_num*sizeof(double),
+              pnl->error_message);
+
+  /** - get P(k,z) as a function of k, for the right z */
+
+  class_call(nonlinear_pk_at_z(pba,
+                               pnl,
+                               logarithmic,
+                               pk_linear,
+                               z,
+                               index_pk,
+                               out_pk,
+                               NULL),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - fill the array with values of k and of the integrand */
+
+  for (i=0; i<pnl->k_size; i++) {
+
+    k=pnl->k[i];
+    x=k*R;
+    W=3./x/x/x*(sin(x)-x*cos(x));
+
+    array_for_sigma[i*index_num+index_k]=k;
+    array_for_sigma[i*index_num+index_y]=k*k*exp(out_pk[i])*W*W;
+  }
+
+  /** - spline the integrand */
+
+  class_call(array_spline(array_for_sigma,
+                          index_num,
+                          pnl->k_size,
+                          index_k,
+                          index_y,
+                          index_ddy,
+                          _SPLINE_EST_DERIV_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - perform the integral */
+
+  class_call(array_integrate_all_spline(array_for_sigma,
+                                        index_num,
+                                        pnl->k_size,
+                                        index_k,
+                                        index_y,
+                                        index_ddy,
+                                        sigma,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - normalise the result properly */
+
+  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
+
+  /** - free temporary arrrays */
+
+  free(array_for_sigma);
+  free(out_pk);
+
+  return _SUCCESS_;
+}
+
+/**
  * Return the value of the non-linearity wavenumber k_nl for a given redshift z
  *
  * @param pba     Input: pointer to background structure

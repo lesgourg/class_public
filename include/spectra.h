@@ -399,6 +399,24 @@ extern "C" {
                                        double * pk_cb_tot_out,
                                        int nonlinear);
 
+  int spectra_sigma(
+                    struct background * pba,
+                    struct primordial * ppm,
+                    struct spectra * psp,
+                    double R,
+                    double z,
+                    double *sigma
+                    );
+
+  int spectra_sigma_cb(
+                       struct background * pba,
+                       struct primordial * ppm,
+                       struct spectra * psp,
+                       double R,
+                       double z,
+                       double *sigma_cb
+                       );
+
   /* deprecated functions (since v2.1) */
 
   int spectra_tk_at_z(
@@ -417,24 +435,6 @@ extern "C" {
                             );
 
   /* end deprecated functions */
-
-  int spectra_sigma(
-                    struct background * pba,
-                    struct primordial * ppm,
-                    struct spectra * psp,
-                    double R,
-                    double z,
-                    double *sigma
-                    );
-
-  int spectra_sigma_cb(
-                    struct background * pba,
-                    struct primordial * ppm,
-                    struct spectra * psp,
-                    double R,
-                    double z,
-                    double *sigma_cb
-                    );
 
 #ifdef __cplusplus
 }

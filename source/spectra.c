@@ -2283,6 +2283,68 @@ int spectra_fast_pk_at_kvec_and_zvec(
   return _SUCCESS_;
 }
 
+/**
+ * This routine computes sigma(R) given P(k) for total matter power
+ * spectrum (does not check that k_max is large enough)
+ *
+ * @param pba   Input: pointer to background structure
+ * @param ppm   Input: pointer to primordial structure
+ * @param psp   Input: pointer to spectra structure
+ * @param R     Input: radius in Mpc
+ * @param z     Input: redshift
+ * @param sigma Output: variance in a sphere of radius R (dimensionless)
+ * @return the error status
+ */
+
+int spectra_sigma(
+                  struct background * pba,
+                  struct primordial * ppm,
+                  struct spectra * psp,
+                  double R,
+                  double z,
+                  double * sigma
+                  ) {
+
+  if (psp->pnl->has_pk_m) {
+    class_call(nonlinear_sigma(pba,psp->pnl,R,z,psp->pnl->index_pk_m,sigma),
+               psp->pnl->error_message,
+               psp->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes sigma(R) given P(k) for baryon+cdm power
+ * spectrum (does not check that k_max is large enough)
+ *
+ * @param pba   Input: pointer to background structure
+ * @param ppm   Input: pointer to primordial structure
+ * @param psp   Input: pointer to spectra structure
+ * @param R     Input: radius in Mpc
+ * @param z     Input: redshift
+ * @param sigma Output: variance in a sphere of radius R (dimensionless)
+ * @return the error status
+ */
+
+int spectra_sigma_cb(
+                     struct background * pba,
+                     struct primordial * ppm,
+                     struct spectra * psp,
+                     double R,
+                     double z,
+                     double * sigma_cb
+                     ) {
+
+  if (psp->pnl->has_pk_cb) {
+    class_call(nonlinear_sigma(pba,psp->pnl,R,z,psp->pnl->index_pk_cb,sigma_cb),
+               psp->pnl->error_message,
+               psp->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
   /* deprecated functions (since v2.1) */
 
 /**
@@ -2339,206 +2401,3 @@ int spectra_tk_at_k_and_z(
 }
 
   /* end deprecated functions */
-
-/**
- * This routine computes sigma(R) given P(k) (does not check that k_max is large
- * enough)
- *
- * @param pba   Input: pointer to background structure
- * @param ppm   Input: pointer to primordial structure
- * @param psp   Input: pointer to spectra structure
- * @param z     Input: redshift
- * @param R     Input: radius in Mpc
- * @param sigma Output: variance in a sphere of radius R (dimensionless)
- */
-
-int spectra_sigma(
-                  struct background * pba,
-                  struct primordial * ppm,
-                  struct spectra * psp,
-                  double R,
-                  double z,
-                  double * sigma
-                  ) {
-
-  double pk;
-  double * pk_ic = NULL;
-
-  double pk_cb;
-  double * pk_cb_ic = NULL;
-
-  double * array_for_sigma;
-  int index_num;
-  int index_k;
-  int index_y;
-  int index_ddy;
-  int i;
-
-  double k,W,x;
-
-  if (psp->ic_ic_size[psp->index_md_scalars]>1){
-    class_alloc(pk_ic,
-                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
-                psp->error_message);
-    if (pba->has_ncdm)
-      class_alloc(pk_cb_ic,
-                  psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
-                  psp->error_message);
-  }
-
-  i=0;
-  index_k=i;
-  i++;
-  index_y=i;
-  i++;
-  index_ddy=i;
-  i++;
-  index_num=i;
-
-  class_alloc(array_for_sigma,
-              psp->ln_k_size*index_num*sizeof(double),
-              psp->error_message);
-
-  for (i=0;i<psp->ln_k_size;i++) {
-    k=exp(psp->ln_k[i]);
-    if (i == (psp->ln_k_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-    W=3./x/x/x*(sin(x)-x*cos(x));
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic),
-               psp->error_message,
-               psp->error_message);
-    array_for_sigma[i*index_num+index_k]=k;
-    array_for_sigma[i*index_num+index_y]=k*k*pk*W*W;
-  }
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          psp->ln_k_size,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  class_call(array_integrate_all_spline(array_for_sigma,
-                                        index_num,
-                                        psp->ln_k_size,
-                                        index_k,
-                                        index_y,
-                                        index_ddy,
-                                        sigma,
-                                        psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  free(array_for_sigma);
-
-  if (psp->ic_ic_size[psp->index_md_scalars]>1){
-    free(pk_ic);
-    if (pba->has_ncdm)
-      free(pk_cb_ic);
-  }
-
-  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
-
-  return _SUCCESS_;
-
-}
-
-//**/
-int spectra_sigma_cb(
-                     struct background * pba,
-                     struct primordial * ppm,
-                     struct spectra * psp,
-                     double R,
-                     double z,
-                     double * sigma_cb
-                     ) {
-
-  double pk;
-  double * pk_ic = NULL;
-
-  double pk_cb;
-  double * pk_cb_ic = NULL;
-
-  double * array_for_sigma;
-  int index_num;
-  int index_k;
-  int index_y;
-  int index_ddy;
-  int i;
-
-  double k,W,x;
-
-  if (psp->ic_ic_size[psp->index_md_scalars]>1){
-    class_alloc(pk_ic,
-                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
-                psp->error_message);
-    if (pba->has_ncdm)
-      class_alloc(pk_cb_ic,
-                  psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
-                  psp->error_message);
-  }
-
-  i=0;
-  index_k=i;
-  i++;
-  index_y=i;
-  i++;
-  index_ddy=i;
-  i++;
-  index_num=i;
-
-  class_alloc(array_for_sigma,
-              psp->ln_k_size*index_num*sizeof(double),
-              psp->error_message);
-
-  for (i=0;i<psp->ln_k_size;i++) {
-    k=exp(psp->ln_k[i]);
-    if (i == (psp->ln_k_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-    W=3./x/x/x*(sin(x)-x*cos(x));
-    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic),
-               psp->error_message,
-               psp->error_message);
-    array_for_sigma[i*index_num+index_k]=k;
-    array_for_sigma[i*index_num+index_y]=k*k*pk_cb*W*W;
-  }
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          psp->ln_k_size,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  class_call(array_integrate_all_spline(array_for_sigma,
-                                        index_num,
-                                        psp->ln_k_size,
-                                        index_k,
-                                        index_y,
-                                        index_ddy,
-                                        sigma_cb,
-                                        psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  free(array_for_sigma);
-
-  if (psp->ic_ic_size[psp->index_md_scalars]>1){
-    free(pk_ic);
-    if (pba->has_ncdm)
-      free(pk_cb_ic);
-  }
-
-  *sigma_cb = sqrt(*sigma_cb/(2.*_PI_*_PI_));
-
-  return _SUCCESS_;
-
-}
