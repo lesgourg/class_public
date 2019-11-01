@@ -123,7 +123,7 @@ int nonlinear_pk_at_z(
       /** --> if ln(tau) much too small, raise an error */
       class_test(ln_tau<pnl->ln_tau[0]-_EPSILON_,
                  pnl->error_message,
-                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e) ",ln_tau,pnl->ln_tau[0]);
+                 "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pnl->ln_tau[0]);
       /** --> if ln(tau) too small but within tolerance, round it */
       ln_tau = pnl->ln_tau[0];
     }
@@ -630,6 +630,224 @@ int nonlinear_pks_at_k_and_z(
                                        ),
                pnl->error_message,
                pnl->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * Return the P(k,z) for a grid of (k_i,z_j) passed in input,
+ * for all available pk types (_m, _cb),
+ * either linear or nonlinear depending on input.
+ *
+ * If there are several initial conditions, this function is not
+ * designed to return individual contributions.
+ *
+ * The main goal of this routine is speed. Unlike
+ * nonlinear_pk_at_k_and_z(), it performs no extrapolation when an
+ * input k_i falls outside the pre-computed range [kmin,kmax]: in that
+ * case, it just returns P(k,z)=0 for such a k_i
+ *
+ * @param pba            Input: pointer to background structure
+ * @param pnl            Input: pointer to nonlinear structure
+ * @param pk_output      Input: pk_linear or pk_nonlinear
+ * @param kvec           Input: array of wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size      Input: size of array of wavenumbers
+ * @param zvec           Input: array of redshifts in arbitrary order
+ * @param zvec_size      Input: size of array of redshifts
+ * @param out_pk         Output: P(k_i,z_j) for total matter (if available) in Mpc**3
+ * @param out_pk_cb      Output: P_cb(k_i,z_j) for cdm+baryons (if available) in Mpc**3
+ * @return the error status
+ */
+
+int nonlinear_pks_at_kvec_and_zvec(
+                                   struct background * pba,
+                                   struct nonlinear * pnl,
+                                   enum pk_outputs pk_output,
+                                   double * kvec, // kvec[index_kvec]
+                                   int kvec_size,
+                                   double * zvec, // zvec[index_zvec]
+                                   int zvec_size,
+                                   double * out_pk,   // output_pk[index_zvec*kvec_size+index_kvec],
+                                                      // already allocated
+                                                      //(or NULL if user knows there is no _m output)
+                                   double * out_pk_cb // output_pk[index_zvec*kvec_size+index_kvec],
+                                                      //already allocated
+                                                      //(or NULL if user knows there is no _cb output)
+                                  ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  int index_k, index_kvec, index_zvec;
+  double * ln_kvec;
+  double * ln_pk_table;
+  double * ddln_pk_table;
+  double * ln_pk_cb_table;
+  double * ddln_pk_cb_table;
+  double h, a, b;
+
+  /** - Allocate arrays */
+
+  class_alloc(ln_kvec, sizeof(double)*kvec_size,
+              pnl->error_message);
+
+  if (pnl->has_pk_m) {
+    class_alloc(ln_pk_table, sizeof(double)*pnl->k_size*zvec_size,
+                pnl->error_message);
+    class_alloc(ddln_pk_table, sizeof(double)*pnl->k_size*zvec_size,
+                pnl->error_message);
+  }
+  if (pnl->has_pk_cb) {
+    class_alloc(ln_pk_cb_table, sizeof(double)*pnl->k_size*zvec_size,
+                pnl->error_message);
+    class_alloc(ddln_pk_cb_table, sizeof(double)*pnl->k_size*zvec_size,
+                pnl->error_message);
+  }
+
+  /** - Construct table of log(P(k_n,z_j)) for pre-computed wavenumbers but requested redshifts: */
+
+  for (index_zvec=0; index_zvec<zvec_size; index_zvec++){
+
+    if (pnl->has_pk_m) {
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   logarithmic,
+                                   pk_output,
+                                   zvec[index_zvec],
+                                   pnl->index_pk_m,
+                                   &(ln_pk_table[index_zvec * pnl->k_size]),
+                                   NULL),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+    if (pnl->has_pk_m) {
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   logarithmic,
+                                   pk_output,
+                                   zvec[index_zvec],
+                                   pnl->index_pk_cb,
+                                   &(ln_pk_cb_table[index_zvec * pnl->k_size]),
+                                   NULL),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
+  }
+
+  /** - Spline it for interpolation along k */
+
+  if (pnl->has_pk_m) {
+
+    class_call(array_spline_table_columns2(pnl->ln_k,
+                                           pnl->k_size,
+                                           ln_pk_table,
+                                           zvec_size,
+                                           ddln_pk_table,
+                                           _SPLINE_NATURAL_,
+                                           pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+  if (pnl->has_pk_cb) {
+
+    class_call(array_spline_table_columns2(pnl->ln_k,
+                                           pnl->k_size,
+                                           ln_pk_cb_table,
+                                           zvec_size,
+                                           ddln_pk_cb_table,
+                                           _SPLINE_NATURAL_,
+                                           pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  /** - Construct ln(kvec): */
+
+  for (index_kvec=0; index_kvec<kvec_size; index_kvec++)
+    ln_kvec[index_kvec] = log(kvec[index_kvec]);
+
+  /** - Loop over first k values. If k<kmin, fill output with zeros. If not, go to next step. */
+
+  for(index_kvec = 0; index_kvec<kvec_size; index_kvec++){
+
+    /* check whether one should go to next step */
+    if (ln_kvec[index_kvec] >= pnl->ln_k[0])
+      break;
+
+    /* deal with k<k_min */
+    for (index_zvec = 0; index_zvec < zvec_size; index_zvec++) {
+      if (pnl->has_pk_m)     out_pk[index_zvec*kvec_size+index_kvec] = 0.;
+      if (pnl->has_pk_cb) out_pk_cb[index_zvec*kvec_size+index_kvec] = 0.;
+      /* (If needed, one could add instead some extrapolation here) */
+    }
+  }
+
+  /** - Deal with case kmin<=k<=kmax. For better performance, do not
+      loop through kvec, but through pre-computed k values. */
+
+  for (index_k=0; index_k < (pnl->k_size-1); index_k++){
+
+    /** --> Loop through k_i's that fall in interval [k_n,k_n+1] */
+
+    while ((index_kvec < kvec_size) && (ln_kvec[index_kvec] <= pnl->ln_k[index_k+1])){
+
+      /** --> for each of them, perform spine interpolation */
+
+      h = pnl->ln_k[index_k+1]-pnl->ln_k[index_k];
+      b = (ln_kvec[index_kvec] - pnl->ln_k[index_k])/h;
+      a = 1.-b;
+
+      for (index_zvec = 0; index_zvec < zvec_size; index_zvec++) {
+
+        if (pnl->has_pk_m) {
+
+          out_pk[index_zvec*kvec_size+index_kvec] =
+            exp(
+                a * ln_pk_table[index_zvec * pnl->k_size + index_k]
+                + b * ln_pk_table[index_zvec * pnl->k_size + index_k+1]
+                + ((a*a*a-a) * ddln_pk_table[index_zvec * pnl->k_size + index_k]
+                   +(b*b*b-b) * ddln_pk_table[index_zvec * pnl->k_size + index_k+1])
+                *h*h/6.0
+                );
+        }
+        if (pnl->has_pk_cb) {
+
+          out_pk_cb[index_zvec*kvec_size+index_kvec] =
+            exp(
+                a * ln_pk_cb_table[index_zvec * pnl->k_size + index_k]
+                + b * ln_pk_cb_table[index_zvec * pnl->k_size + index_k+1]
+                + ((a*a*a-a) * ddln_pk_cb_table[index_zvec * pnl->k_size + index_k]
+                   +(b*b*b-b) * ddln_pk_cb_table[index_zvec * pnl->k_size + index_k+1])
+                *h*h/6.0
+                );
+        }
+      }
+      index_kvec++;
+    }
+  }
+
+  /** - Loop over possible remaining k values with k > kmax, to fill output with zeros. */
+
+  while (index_kvec < kvec_size) {
+
+    for (index_zvec = 0; index_zvec < zvec_size; index_zvec++) {
+      if (pnl->has_pk_m)     out_pk[index_zvec*kvec_size+index_kvec] = 0.;
+      if (pnl->has_pk_cb) out_pk_cb[index_zvec*kvec_size+index_kvec] = 0.;
+      /* (If needed, one could add instead some extrapolation here) */
+    }
+    index_kvec++;
+  }
+
+  free(ln_kvec);
+  if (pnl->has_pk_m) {
+    free(ln_pk_table);
+    free(ddln_pk_table);
+  }
+  if (pnl->has_pk_cb) {
+    free(ln_pk_cb_table);
+    free(ddln_pk_cb_table);
   }
 
   return _SUCCESS_;

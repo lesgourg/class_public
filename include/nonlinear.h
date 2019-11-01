@@ -263,8 +263,8 @@ extern "C" {
                               double k,
                               double z,
                               int index_pk,
-                              double * out_pk_l,
-                              double * out_pk_ic_l
+                              double * out_pk,
+                              double * out_pk_ic
                               );
 
   int nonlinear_pks_at_k_and_z(
@@ -279,6 +279,18 @@ extern "C" {
                                double * out_pk_cb,
                                double * out_pk_cb_ic
                                );
+
+  int nonlinear_pks_at_kvec_and_zvec(
+                                     struct background * pba,
+                                     struct nonlinear * pnl,
+                                     enum pk_outputs pk_output,
+                                     double * kvec,
+                                     int kvec_size,
+                                     double * zvec,
+                                     int zvec_size,
+                                     double * out_pk,
+                                     double * out_pk_cb
+                                     );
 
   int nonlinear_k_nl_at_z(
                           struct background *pba,
