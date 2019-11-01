@@ -139,6 +139,8 @@ struct nonlinear {
 
   double ** ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
 
+  double * sigma8;   /**< sigma8[index_pk] */
+
   //@}
 
   /** @name - table non-linear corrections for matter density, sqrt(P_NL(k,z)/P_NL(k,z)) */

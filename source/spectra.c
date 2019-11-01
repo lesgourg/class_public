@@ -2074,7 +2074,7 @@ int spectra_pk_at_z(
                     ) {
 
 
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
   class_call(nonlinear_pks_at_z(
                                 pba,
@@ -2124,7 +2124,7 @@ int spectra_pk_at_k_and_z(
                           double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
                           ) {
 
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
 
   class_call(nonlinear_pks_at_k_and_z(pba,
                                       ppm,
@@ -2165,7 +2165,7 @@ int spectra_pk_nl_at_z(
                        double * output_cb_tot
                        ) {
 
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
   class_call(nonlinear_pks_at_z(pba,
                                 psp->pnl,
@@ -2187,7 +2187,7 @@ int spectra_pk_nl_at_z(
 /**
  * Non-linear total matter power spectrum for arbitrary wavenumber and redshift.
  *
- * This function is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_k_and_z() instead.
+ * This function is deprecated since v2.8. Try using nonlinear_pk_at_k_and_z() instead.
  *
  * @param pba        Input: pointer to background structure (used for converting z into tau)
  * @param ppm        Input: pointer to primordial structure (used only in the case 0 < k < kmin)
@@ -2209,7 +2209,7 @@ int spectra_pk_nl_at_k_and_z(
                              double * pk_cb_tot /* same as pk_tot for baryon+CDM only */
                              ) {
 
-  //fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_nonlinear_at_k_and_z() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_at_k_and_z() instead.\n");
 
   class_call(nonlinear_pks_at_k_and_z(pba,
                                       ppm,
@@ -2234,7 +2234,7 @@ int spectra_pk_nl_at_k_and_z(
  * for all available pk types (_m, _cb),
  * either linear or nonlinear depending on input.
  *
- * This function is deprecated since v2.8. Try using nonlinear_pks__at_kvec_and_zvec() instead.
+ * This function is deprecated since v2.8. Try using nonlinear_pks_at_kvec_and_zvec() instead.
  *
  * @param pba            Input: pointer to background structure
  * @param psp            Input: pointer to spectra structure
@@ -2242,25 +2242,28 @@ int spectra_pk_nl_at_k_and_z(
  * @param kvec_size      Input: size of array of wavenumbers
  * @param zvec           Input: array of redshifts in arbitrary order
  * @param zvec_size      Input: size of array of redshifts
- * @param out_pk         Output: P(k_i,z_j) for total matter (if available) in Mpc**3
- * @param out_pk_cb      Output: P_cb(k_i,z_j) for cdm+baryons (if available) in Mpc**3
+ * @param pk_tot_out     Output: P(k_i,z_j) for total matter (if available) in Mpc**3
+ * @param pk_cb_tot_out  Output: P_cb(k_i,z_j) for cdm+baryons (if available) in Mpc**3
  * @param nonlinear      Input: _TRUE_ or _FALSE_ (to output nonlinear or linear P(k,z))
  * @return the error status
  */
 
 int spectra_fast_pk_at_kvec_and_zvec(
-                                       struct background * pba,
-                                       struct spectra * psp,
+                                     struct background * pba,
+                                     struct spectra * psp,
                                        double * kvec,
-                                       int kvec_size,
-                                       double * zvec,
-                                       int zvec_size,
-                                       double * pk_tot_out, // pk_tot_out[index_zvec*kvec_size+index_kvec],
-                                                            // already allocated
-                                                            //(or NULL if user knows there is no _m output)
-                                       double * pk_cb_tot_out, // idem
-                                       int nonlinear) {
+                                     int kvec_size,
+                                     double * zvec,
+                                     int zvec_size,
+                                     double * pk_tot_out, // pk_tot_out[index_zvec*kvec_size+index_kvec],
+                                                          // already allocated
+                                                          //(or NULL if user knows there is no _m output)
+                                     double * pk_cb_tot_out, // idem
+                                     int nonlinear
+                                     ) {
   enum pk_outputs pk_output;
+
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_fast_pks_at_kvec_and_zvec() which is deprecated since v2.8. Try using nonlinear_pk_at_kvec_and_zvec() instead.\n");
 
   if (nonlinear == _TRUE_)
     pk_output = pk_nonlinear;
@@ -2287,6 +2290,8 @@ int spectra_fast_pk_at_kvec_and_zvec(
  * This routine computes sigma(R) given P(k) for total matter power
  * spectrum (does not check that k_max is large enough)
  *
+ * This function is deprecated since v2.8. Try using nonlinear_sigma() instead.
+ *
  * @param pba   Input: pointer to background structure
  * @param ppm   Input: pointer to primordial structure
  * @param psp   Input: pointer to spectra structure
@@ -2305,6 +2310,8 @@ int spectra_sigma(
                   double * sigma
                   ) {
 
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigma() instead.\n");
+
   if (psp->pnl->has_pk_m) {
     class_call(nonlinear_sigma(pba,psp->pnl,R,z,psp->pnl->index_pk_m,sigma),
                psp->pnl->error_message,
@@ -2318,12 +2325,14 @@ int spectra_sigma(
  * This routine computes sigma(R) given P(k) for baryon+cdm power
  * spectrum (does not check that k_max is large enough)
  *
- * @param pba   Input: pointer to background structure
- * @param ppm   Input: pointer to primordial structure
- * @param psp   Input: pointer to spectra structure
- * @param R     Input: radius in Mpc
- * @param z     Input: redshift
- * @param sigma Output: variance in a sphere of radius R (dimensionless)
+ * This function is deprecated since v2.8. Try using nonlinear_sigma() instead.
+ *
+ * @param pba      Input: pointer to background structure
+ * @param ppm      Input: pointer to primordial structure
+ * @param psp      Input: pointer to spectra structure
+ * @param R        Input: radius in Mpc
+ * @param z        Input: redshift
+ * @param sigma_cb Output: variance in a sphere of radius R (dimensionless)
  * @return the error status
  */
 
@@ -2335,6 +2344,8 @@ int spectra_sigma_cb(
                      double z,
                      double * sigma_cb
                      ) {
+
+    fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigma() instead.\n");
 
   if (psp->pnl->has_pk_cb) {
     class_call(nonlinear_sigma(pba,psp->pnl,R,z,psp->pnl->index_pk_cb,sigma_cb),

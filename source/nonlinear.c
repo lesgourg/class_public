@@ -1205,6 +1205,30 @@ int nonlinear_init(
     }
   }
 
+  /** - compute and store sigma8 (variance of density fluctuations in
+        spheres of radius 8/h Mpc at z=0, always computed by
+        convention using the linear power spectrum) */
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+    class_call(nonlinear_sigma(pba,pnl,8./pba->h,0.,index_pk,&(pnl->sigma8[index_pk])),
+               pnl->error_message,
+               pnl->error_message);
+  }
+
+  if (pnl->nonlinear_verbose>0) {
+
+    if (pnl->has_pk_m == _TRUE_)
+      fprintf(stdout," -> sigma8=%g for total matter (computed till k = %g h/Mpc)\n",
+              pnl->sigma8[pnl->index_pk_m],
+              pnl->k[pnl->k_size-1]/pba->h);
+
+    if (pnl->has_pk_cb == _TRUE_)
+      fprintf(stdout," -> sigma8=%g for baryons+cdm  (computed till k = %g h/Mpc)\n",
+              pnl->sigma8[pnl->index_pk_cb],
+              pnl->k[pnl->k_size-1]/pba->h);
+  }
+
   /** - get the non-linear power spectrum at each time */
 
   /** --> First deal with the case where non non-linear corrections requested */
@@ -1508,6 +1532,8 @@ int nonlinear_free(
     free(pnl->ln_pk_ic_l);
     free(pnl->ln_pk_l);
 
+    free (pnl->sigma8);
+
     if (pnl->ln_tau_size>1) {
       free(pnl->ddln_pk_ic_l);
       free(pnl->ddln_pk_l);
@@ -1636,6 +1662,10 @@ int nonlinear_indices(
       class_alloc(pnl->ddln_pk_l[index_pk]   ,pnl->ln_tau_size*pnl->k_size*sizeof(double*),pnl->error_message);
     }
   }
+
+  /** - array of sigma8 values */
+
+  class_alloc(pnl->sigma8,pnl->pk_size*sizeof(double*),pnl->error_message);
 
   /** - if non-linear computations needed, allocate array of
         non-linear correction ratio R_nl(k,z), k_nl(z) and P_nl(k,z)
