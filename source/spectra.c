@@ -2313,9 +2313,18 @@ int spectra_sigma(
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigma() instead.\n");
 
   if (psp->pnl->has_pk_m) {
-    class_call(nonlinear_sigma(pba,psp->pnl,R,z,psp->pnl->index_pk_m,sigma),
+
+    class_call(nonlinear_sigmas(pba,
+                                psp->pnl,
+                                R,
+                                z,
+                                psp->pnl->index_pk_m,
+                                80., // hardcoded, yes, but the function is deprecated...
+                                out_sigma,
+                                sigma),
                psp->pnl->error_message,
                psp->error_message);
+
   }
 
   return _SUCCESS_;
@@ -2348,7 +2357,15 @@ int spectra_sigma_cb(
     fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigma() instead.\n");
 
   if (psp->pnl->has_pk_cb) {
-    class_call(nonlinear_sigma(pba,psp->pnl,R,z,psp->pnl->index_pk_cb,sigma_cb),
+
+    class_call(nonlinear_sigmas(pba,
+                                psp->pnl,
+                                R,
+                                z,
+                                psp->pnl->index_pk_cb,
+                                80., // hardcoded, yes, but the function is deprecated...
+                                out_sigma,
+                                sigma_cb),
                psp->pnl->error_message,
                psp->error_message);
   }

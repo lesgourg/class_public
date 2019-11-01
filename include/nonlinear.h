@@ -13,10 +13,14 @@
 #define _MAX_NUM_EXTRAPOLATION_ 100000
 
 enum non_linear_method {nl_none,nl_halofit,nl_HMcode};
-enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
-enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
-enum source_extrapolation {extrap_zero,extrap_only_max,extrap_only_max_units,extrap_max_scaled,extrap_hmcode,extrap_user_defined};
 enum pk_outputs {pk_linear,pk_nonlinear};
+
+enum source_extrapolation {extrap_zero,extrap_only_max,extrap_only_max_units,extrap_max_scaled,extrap_hmcode,extrap_user_defined};
+
+enum halofit_integral_type {halofit_integral_one, halofit_integral_two, halofit_integral_three};
+
+enum hmcode_baryonic_feedback_model {nl_emu_dmonly, nl_owls_dmonly, nl_owls_ref, nl_owls_agn, nl_owls_dblim, nl_user_defined};
+enum out_sigmas {out_sigma,out_sigma_prime,out_sigma_disp};
 
 /**
  * Structure containing all information on non-linear spectra.
@@ -294,6 +298,17 @@ extern "C" {
                                      double * out_pk_cb
                                      );
 
+  int nonlinear_sigmas(
+                       struct background * pba,
+                       struct nonlinear * pnl,
+                       double R,
+                       double z,
+                       int index_pk,
+                       double k_per_decade,
+                       enum out_sigmas sigma_output,
+                       double * result
+                       );
+
   int nonlinear_sigma(
                     struct background * pba,
                     struct nonlinear * pnl,
@@ -436,6 +451,17 @@ extern "C" {
   int nonlinear_hmcode_baryonic_feedback(
                                          struct nonlinear *pnl
                                          );
+
+  int nonlinear_hmcode_sigmas(
+                              struct nonlinear * pnl,
+                              double R,
+                              double *lnpk_l,
+                              double *ddlnpk_l,
+                              int k_size,
+                              double k_per_decade,
+                              enum out_sigmas sigma_output,
+                              double * result
+                              );
 
   int nonlinear_hmcode_sigma(
                              struct precision * ppr,

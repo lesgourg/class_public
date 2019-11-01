@@ -370,6 +370,8 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
  * Nonlinear module precision parameters
  * */
 
+class_precision_parameter(sigma_k_per_decade,double,80.) /**< logarithmic stepsize controlling the precision of integrals for sigma(R,k) and similar quantitites */
+
 /** parameters relevant for HALOFIT computation */
 
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
@@ -418,10 +420,6 @@ class_precision_parameter(hmcode_min_k_max,double,5.)   /**< when HMcode is used
                              output is still controlled by
                              P_k_max_1/Mpc or P_k_max_h/Mpc even if
                              they are smaller */
-
-class_precision_parameter(hmcode_k_per_decade,double,80.) /**< hmcode needs to evalute integrals (linear power
-                                                             spectrum times spherical tophat). They are sampled
-                                                             using this logarithmic step size. */
 
 class_precision_parameter(hmcode_tol_sigma,double,1.e-6) /**< tolerance required on sigma(R) when matching the
                                                             condition sigma(R_nl)=1, which defines the wavenumber
