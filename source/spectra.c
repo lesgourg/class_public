@@ -2229,6 +2229,61 @@ int spectra_pk_nl_at_k_and_z(
 
 }
 
+/**
+ * Return the P(k,z) for a grid of (k_i,z_j) passed in input,
+ * for all available pk types (_m, _cb),
+ * either linear or nonlinear depending on input.
+ *
+ * This function is deprecated since v2.8. Try using nonlinear_pks__at_kvec_and_zvec() instead.
+ *
+ * @param pba            Input: pointer to background structure
+ * @param psp            Input: pointer to spectra structure
+ * @param kvec           Input: array of wavenumbers in ascending order (in 1/Mpc)
+ * @param kvec_size      Input: size of array of wavenumbers
+ * @param zvec           Input: array of redshifts in arbitrary order
+ * @param zvec_size      Input: size of array of redshifts
+ * @param out_pk         Output: P(k_i,z_j) for total matter (if available) in Mpc**3
+ * @param out_pk_cb      Output: P_cb(k_i,z_j) for cdm+baryons (if available) in Mpc**3
+ * @param nonlinear      Input: _TRUE_ or _FALSE_ (to output nonlinear or linear P(k,z))
+ * @return the error status
+ */
+
+int spectra_fast_pk_at_kvec_and_zvec(
+                                       struct background * pba,
+                                       struct spectra * psp,
+                                       double * kvec,
+                                       int kvec_size,
+                                       double * zvec,
+                                       int zvec_size,
+                                       double * pk_tot_out, // pk_tot_out[index_zvec*kvec_size+index_kvec],
+                                                            // already allocated
+                                                            //(or NULL if user knows there is no _m output)
+                                       double * pk_cb_tot_out, // idem
+                                       int nonlinear) {
+  enum pk_outputs pk_output;
+
+  if (nonlinear == _TRUE_)
+    pk_output = pk_nonlinear;
+  else
+    pk_output = pk_linear;
+
+  class_call(nonlinear_pks_at_kvec_and_zvec(
+                                            pba,
+                                            psp->pnl,
+                                            pk_output,
+                                            kvec,
+                                            kvec_size,
+                                            zvec,
+                                            zvec_size,
+                                            pk_tot_out,
+                                            pk_cb_tot_out),
+             psp->pnl->error_message,
+             psp->error_message);
+
+  return _SUCCESS_;
+}
+
+  /* deprecated functions (since v2.1) */
 
 /**
  * Obsolete function, superseeded by perturb_sources_at_tau()
@@ -2486,145 +2541,4 @@ int spectra_sigma_cb(
 
   return _SUCCESS_;
 
-}
-
-int spectra_fast_pk_at_kvec_and_zvec(
-                                     struct background * pba,
-                                     struct spectra * psp,
-                                     double * kvec,
-                                     int kvec_size,
-                                     double * zvec,
-                                     int zvec_size,
-                                     double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
-                                     double * pk_cb_tot_out,
-                                     int nonlinear
-                                     ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  int index_md;
-  int index_k, index_knode, index_z;
-  double *spline, *pk_at_k, *ln_kvec, *ln_pk_table;
-  double h, a, b;
-  double *spline_cb, *pk_cb_at_k, *ln_pk_cb_table;
-
-  index_md = psp->index_md_scalars;
-  class_test(psp->ic_size[index_md] != 1,
-             psp->error_message,
-             "This function has only been coded for pure adiabatic ICs, sorry.");
-
-  /** Compute spline over ln(k) */
-  class_alloc(ln_kvec, sizeof(double)*kvec_size,psp->error_message);
-  class_alloc(ln_pk_table, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
-  class_alloc(spline, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
-  class_alloc(pk_at_k, sizeof(double)*psp->ln_tau_size,psp->error_message);
-
-  class_alloc(ln_pk_cb_table, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
-  class_alloc(spline_cb, sizeof(double)*psp->ln_k_size*zvec_size,psp->error_message);
-  class_alloc(pk_cb_at_k, sizeof(double)*psp->ln_tau_size,psp->error_message);
-
-  /** Construct table of log(pk) on the computed k nodes but requested redshifts: */
-  for (index_z=0; index_z<zvec_size; index_z++){
-    if (nonlinear==_TRUE_) {
-      class_call(spectra_pk_nl_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size,ln_pk_cb_table+index_z*psp->ln_k_size),
-                 psp->error_message,
-                 psp->error_message);
-    }
-    else{
-      class_call(spectra_pk_at_z(pba,psp, logarithmic,zvec[index_z],ln_pk_table+index_z*psp->ln_k_size, NULL,ln_pk_cb_table+index_z*psp->ln_k_size,NULL),
-                 psp->error_message,
-                 psp->error_message);
-    }
-  }
-
-  class_call(array_spline_table_columns2(psp->ln_k,
-                                         psp->ln_k_size,
-                                         ln_pk_table,
-                                         zvec_size,
-                                         spline,
-                                         _SPLINE_NATURAL_,
-                                         psp->error_message),
-             psp->error_message,
-             psp->error_message);
-
-  if (pba->has_ncdm){
-    class_call(array_spline_table_columns2(psp->ln_k,
-                                           psp->ln_k_size,
-                                           ln_pk_cb_table,
-                                           zvec_size,
-                                           spline_cb,
-                                           _SPLINE_NATURAL_,
-                                           psp->error_message),
-               psp->error_message,
-               psp->error_message);
-  }
-  /** Construct ln(kvec): */
-  for (index_k=0; index_k<kvec_size; index_k++){
-    ln_kvec[index_k] = log(kvec[index_k]);
-  }
-
-  /** I will assume that the k vector is sorted in ascending order.
-      Case k<kmin: */
-  for(index_k = 0; index_k<kvec_size; index_k++){
-    if (ln_kvec[index_k] >= psp->ln_k[0])
-      break;
-    for (index_z = 0; index_z < zvec_size; index_z++) {
-      /** If needed, add some extrapolation here */
-      pk_tot_out[index_z*kvec_size+index_k] = 0.;
-      if (pba->has_ncdm) pk_cb_tot_out[index_z*kvec_size+index_k] = 0.;
-    }
-    /** Implement some extrapolation perhaps */
-  }
-
-  /** Case kmin<=k<=kmax. Do not loop through kvec, but loop through the
-      interpolation nodes. */
-  for (index_knode=0; index_knode < (psp->ln_k_size-1); index_knode++){
-    /** Loop through k's that fall in this interval */
-    //printf("index _k is %d, do we have %g < %g <%g?\n",index_k, psp->ln_k[index_knode],ln_kvec[index_k],psp->ln_k[index_knode+1]);
-    while ((index_k < kvec_size) && (ln_kvec[index_k] <= psp->ln_k[index_knode+1])){
-      /** Perform interpolation */
-      h = psp->ln_k[index_knode+1]-psp->ln_k[index_knode];
-      b = (ln_kvec[index_k] - psp->ln_k[index_knode])/h;
-      a = 1.-b;
-      for (index_z = 0; index_z < zvec_size; index_z++) {
-        pk_tot_out[index_z*kvec_size+index_k] =
-          exp(
-              a * ln_pk_table[index_z*psp->ln_k_size + index_knode]
-              + b * ln_pk_table[index_z*psp->ln_k_size + index_knode+1]
-              + ((a*a*a-a) * spline[index_z*psp->ln_k_size + index_knode]
-                 +(b*b*b-b) * spline[index_z*psp->ln_k_size + index_knode+1])*h*h/6.0
-              );
-        if (pba->has_ncdm){
-          pk_cb_tot_out[index_z*kvec_size+index_k] =
-            exp(
-                a * ln_pk_cb_table[index_z*psp->ln_k_size + index_knode]
-                + b * ln_pk_cb_table[index_z*psp->ln_k_size + index_knode+1]
-                + ((a*a*a-a) * spline_cb[index_z*psp->ln_k_size + index_knode]
-                   +(b*b*b-b) * spline_cb[index_z*psp->ln_k_size + index_knode+1])*h*h/6.0
-                );
-        }
-      }
-      index_k++;
-    }
-  }
-
-  /** case k>kmax */
-  while (index_k<kvec_size){
-    for (index_z = 0; index_z < zvec_size; index_z++) {
-      /** If needed, add some extrapolation here */
-      pk_tot_out[index_z*kvec_size+index_k] = 0.;
-      if (pba->has_ncdm) pk_cb_tot_out[index_z*kvec_size+index_k] = 0.;
-    }
-    index_k++;
-  }
-
-  free(ln_kvec);
-  free(ln_pk_table);
-  free(ln_pk_cb_table);
-  free(spline);
-  if (pba->has_ncdm) free(spline_cb);
-  free(pk_at_k);
-  return _SUCCESS_;
 }

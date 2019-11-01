@@ -388,6 +388,17 @@ extern "C" {
                                double * pk_cb_tot
                                );
 
+  int spectra_fast_pk_at_kvec_and_zvec(
+                                       struct background * pba,
+                                       struct spectra * psp,
+                                       double * kvec,
+                                       int kvec_size,
+                                       double * zvec,
+                                       int zvec_size,
+                                       double * pk_tot_out,
+                                       double * pk_cb_tot_out,
+                                       int nonlinear);
+
   /* deprecated functions (since v2.1) */
 
   int spectra_tk_at_z(
@@ -424,17 +435,6 @@ extern "C" {
                     double z,
                     double *sigma_cb
                     );
-
-  int spectra_fast_pk_at_kvec_and_zvec(
-				       struct background * pba,
-				       struct spectra * psp,
-				       double * kvec,
-				       int kvec_size,
-				       double * zvec,
-				       int zvec_size,
-				       double * pk_tot_out, /* (must be already allocated with kvec_size*zvec_size) */
-                       double * pk_cb_tot_out,
-				       int nonlinear);
 
 #ifdef __cplusplus
 }
