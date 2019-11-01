@@ -2290,7 +2290,7 @@ int spectra_fast_pk_at_kvec_and_zvec(
  * This routine computes sigma(R) given P(k) for total matter power
  * spectrum (does not check that k_max is large enough)
  *
- * This function is deprecated since v2.8. Try using nonlinear_sigma() instead.
+ * This function is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.
  *
  * @param pba   Input: pointer to background structure
  * @param ppm   Input: pointer to primordial structure
@@ -2310,18 +2310,18 @@ int spectra_sigma(
                   double * sigma
                   ) {
 
-  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigma() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
 
   if (psp->pnl->has_pk_m) {
 
-    class_call(nonlinear_sigmas(pba,
-                                psp->pnl,
-                                R,
-                                z,
-                                psp->pnl->index_pk_m,
-                                80., // hardcoded, yes, but the function is deprecated...
-                                out_sigma,
-                                sigma),
+    class_call(nonlinear_sigmas_at_z(pba,
+                                     psp->pnl,
+                                     R,
+                                     z,
+                                     psp->pnl->index_pk_m,
+                                     80., // hardcoded, yes, but the function is deprecated...
+                                     out_sigma,
+                                     sigma),
                psp->pnl->error_message,
                psp->error_message);
 
@@ -2334,7 +2334,7 @@ int spectra_sigma(
  * This routine computes sigma(R) given P(k) for baryon+cdm power
  * spectrum (does not check that k_max is large enough)
  *
- * This function is deprecated since v2.8. Try using nonlinear_sigma() instead.
+ * This function is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.
  *
  * @param pba      Input: pointer to background structure
  * @param ppm      Input: pointer to primordial structure
@@ -2354,18 +2354,18 @@ int spectra_sigma_cb(
                      double * sigma_cb
                      ) {
 
-    fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigma() instead.\n");
+  fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
 
   if (psp->pnl->has_pk_cb) {
 
-    class_call(nonlinear_sigmas(pba,
-                                psp->pnl,
-                                R,
-                                z,
-                                psp->pnl->index_pk_cb,
-                                80., // hardcoded, yes, but the function is deprecated...
-                                out_sigma,
-                                sigma_cb),
+    class_call(nonlinear_sigmas_at_z(pba,
+                                     psp->pnl,
+                                     R,
+                                     z,
+                                     psp->pnl->index_pk_cb,
+                                     80., // hardcoded, yes, but the function is deprecated...
+                                     out_sigma,
+                                     sigma_cb),
                psp->pnl->error_message,
                psp->error_message);
   }

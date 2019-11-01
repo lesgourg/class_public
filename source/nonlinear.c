@@ -855,35 +855,36 @@ int nonlinear_pks_at_kvec_and_zvec(
 
 /**
  * This routine computes the variance of density fluctuations in a
- * sphere of radius R, sigma(R,z), for one given pk type (_m, _cb).
+ * sphere of radius R at redshift z, sigma(R,z), or other similar derived
+ * quantitites, for one given pk type (_m, _cb).
  *
- * The integral is performed on the discrete values of k defined in the
- * perturbation module, thus the accuracy of the result depend on k_max,
- * delta k and k_min in this pre-computed array.
+ * The integral is performed until the maximum value of k_max defined
+ * in the perturbation module. Here there is not automatic checking
+ * that k_max is large enough for the result to be well
+ * converged. E.g. to get an accurate sigma8 at R = 8 Mpc/h, the user
+ * should pass at least about P_k_max_h/Mpc = 1.
  *
- * Here there is not automatic checking that k_max is large enough for
- * the result to be well converged. E.g. to get an accurate sigma8 at
- * R = 8 Mpc/h, the user should pass at least about P_k_max_h/Mpc = 1.
- *
- * @param pba      Input: pointer to background structure
- * @param pnl      Input: pointer to nonlinear structure
- * @param R        Input: radius in Mpc
- * @param z        Input: redshift
- * @param index_pk Input: type of pk (_m, _cb)
- * @param sigma    Output: variance in a sphere of radius R (dimensionless)
+ * @param pba          Input: pointer to background structure
+ * @param pnl          Input: pointer to nonlinear structure
+ * @param R            Input: radius in Mpc
+ * @param z            Input: redshift
+ * @param index_pk     Input: type of pk (_m, _cb)
+ * @param k_per_decade Input: logarithmic step for the integral (recommended: pass ppr->sigma_k_per_decade)
+ * @param sigma_output Input: quantity to be computed (sigma, sigma', ...)
+ * @param result       Output: result
  * @return the error status
  */
 
-int nonlinear_sigmas(
-                     struct background * pba,
-                     struct nonlinear * pnl,
-                     double R,
-                     double z,
-                     int index_pk,
-                     double k_per_decade,
-                     enum out_sigmas sigma_output,
-                     double * result
-                     ) {
+int nonlinear_sigmas_at_z(
+                          struct background * pba,
+                          struct nonlinear * pnl,
+                          double R,
+                          double z,
+                          int index_pk,
+                          double k_per_decade,
+                          enum out_sigmas sigma_output,
+                          double * result
+                          ) {
 
   double * out_pk;
   double * ddout_pk;
@@ -919,16 +920,19 @@ int nonlinear_sigmas(
              pnl->error_message);
 
   /** - calll the function computing the sigmas */
-  class_call(nonlinear_hmcode_sigmas(pnl,
-                                     R,
-                                     out_pk,
-                                     ddout_pk,
-                                     pnl->k_size,
-                                     k_per_decade,
-                                     sigma_output,
-                                     result),
+
+  class_call(nonlinear_sigmas(pnl,
+                              R,
+                              out_pk,
+                              ddout_pk,
+                              pnl->k_size,
+                              k_per_decade,
+                              sigma_output,
+                              result),
              pnl->error_message,
              pnl->error_message);
+
+  /** - free allocated arrays */
 
   free(out_pk);
   free(ddout_pk);
@@ -1290,10 +1294,14 @@ int nonlinear_init(
 
   for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
 
-    class_call(nonlinear_sigmas(pba,pnl,8./pba->h,0.,index_pk,
-                                ppr->sigma_k_per_decade,
-                                out_sigma,
-                                &(pnl->sigma8[index_pk])),
+    class_call(nonlinear_sigmas_at_z(pba,
+                                     pnl,
+                                     8./pba->h,
+                                     0.,
+                                     index_pk,
+                                     ppr->sigma_k_per_decade,
+                                     out_sigma,
+                                     &(pnl->sigma8[index_pk])),
                pnl->error_message,
                pnl->error_message);
   }
@@ -2207,6 +2215,173 @@ int nonlinear_pk_linear(
 }
 
 /**
+ * Calculate intermediate quantities for hmcode (sigma, sigma', ...)
+ * for a given scale R and a given input P(k).
+ *
+ * This function has several differences w.r.t. the standard external
+ * function non_linear_sigma (format of input, of output, integration
+ * stepsize, management of extrapolation at large k, ...) and is
+ * overall more precise for sigma(R).
+ *
+ * @param pnl          Input: pointer to nonlinear structure
+ * @param R            Input: scale at which to compute sigma
+ * @param lnpk_l       Input: array of ln(P(k))
+ * @param ddlnpk_l     Input: its spline along k
+ * @param k_size       Input: dimension of array lnpk_l
+ * @param k_per_decade Input: logarithmic step for the integral (recommended: pass ppr->sigma_k_per_decade)
+ * @param sigma_output Input: quantity to be computed (sigma, sigma', ...)
+ * @param result       Output: result
+ * @return the error status
+ */
+
+int nonlinear_sigmas(
+                     struct nonlinear * pnl,
+                     double R,
+                     double * lnpk_l,
+                     double * ddlnpk_l,
+                     int k_size,
+                     double k_per_decade,
+                     enum out_sigmas sigma_output,
+                     double * result
+                     ) {
+  double pk, lnpk;
+
+  double * array_for_sigma;
+  int index_num;
+  int index_x;
+  int index_y;
+  int index_ddy;
+  int i=0;
+  int integrand_size;
+  int last_index=0;
+
+  double k,W,W_prime,x,t;
+
+  /** - allocate temporary array for an integral over y(x) */
+
+  class_define_index(index_x,  _TRUE_,i,1); // index for x
+  class_define_index(index_y,  _TRUE_,i,1); // index for integrand
+  class_define_index(index_ddy,_TRUE_,i,1); // index for its second derivative (spline method)
+  index_num=i;                              // number of columns in the array
+
+  integrand_size=(int)(log(pnl->k[k_size-1]/pnl->k[0])/log(10.)*k_per_decade)+1;
+  class_alloc(array_for_sigma,
+              integrand_size*index_num*sizeof(double),
+              pnl->error_message);
+
+  /** - fill the array with values of k and of the integrand */
+
+  for (i=0; i<integrand_size; i++) {
+
+    k=pnl->k[0]*pow(10.,i/k_per_decade);
+
+    class_call(array_interpolate_spline(
+                                        pnl->ln_k,
+                                        k_size,
+                                        lnpk_l,
+                                        ddlnpk_l,
+                                        1,
+                                        log(k),
+                                        &last_index,
+                                        &lnpk,
+                                        1,
+                                        pnl->error_message),
+               pnl->error_message,
+               pnl->error_message);
+
+    pk = exp(lnpk);
+
+    t = 1./(1.+k);
+    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    x=k*R;
+
+    switch (sigma_output) {
+
+    case out_sigma:
+      if (x<0.01)
+        W = 1.-x*x/10.;
+      else
+        W = 3./x/x/x*(sin(x)-x*cos(x));
+      array_for_sigma[(integrand_size-1-i)*index_num+index_x] = t;
+      array_for_sigma[(integrand_size-1-i)*index_num+index_y] = k*k*k*pk*W*W/(t*(1.-t));
+      break;
+
+    case out_sigma_prime:
+      if (x<0.01) {
+        W = 1.-x*x/10.;
+        W_prime = -0.2*x;
+      }
+      else {
+        W = 3./x/x/x*(sin(x)-x*cos(x));
+        W_prime = 3./x/x*sin(x)-9./x/x/x/x*(sin(x)-x*cos(x));
+      }
+      array_for_sigma[(integrand_size-1-i)*index_num+index_x] = t;
+      array_for_sigma[(integrand_size-1-i)*index_num+index_y] = k*k*k*pk*2.*k*W*W_prime/(t*(1.-t));
+      break;
+
+    case out_sigma_disp:
+      if (x<0.01)
+        W = 1.-x*x/10.;
+      else
+        W = 3./x/x/x*(sin(x)-x*cos(x));
+      array_for_sigma[(integrand_size-1-i)*index_num+index_x] = k;
+      array_for_sigma[(integrand_size-1-i)*index_num+index_y] = -pk*W*W;
+      break;
+    }
+  }
+
+  /** - spline the integrand */
+
+  class_call(array_spline(array_for_sigma,
+                          index_num,
+                          integrand_size,
+                          index_x,
+                          index_y,
+                          index_ddy,
+                          _SPLINE_EST_DERIV_,
+                          pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - integrate */
+
+  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma,
+                                                  index_num,
+                                                  integrand_size,
+                                                  0, //integrand_size-1,
+                                                  index_x,
+                                                  index_y,
+                                                  index_ddy,
+                                                  result,
+                                                  pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - preperly normalize the final result */
+
+  switch (sigma_output) {
+
+  case out_sigma:
+    *result = sqrt(*result/(2.*_PI_*_PI_));
+    break;
+
+  case out_sigma_prime:
+    *result = *result/(2.*_PI_*_PI_);
+    break;
+
+  case out_sigma_disp:
+    *result = sqrt(*result/(2.*_PI_*_PI_*3.));
+    break;
+  }
+
+  /** - free allocated array */
+
+  free(array_for_sigma);
+
+  return _SUCCESS_;
+}
+
+/**
  * Calculation of the nonlinear matter power spectrum with Halofit
  * (includes Takahashi 2012 + Bird 2013 revisions).
  *
@@ -2886,60 +3061,35 @@ int nonlinear_hmcode(
 
   /** Get sigma(R=8 Mpc/h), sigma_disp(R=0), sigma_disp(R=100 Mpc/h) and write them into pnl structure */
 
-  class_call(nonlinear_hmcode_sigmas(pnl,
-                                     8./pba->h,
-                                     lnpk_l[index_pk],ddlnpk_l[index_pk],
-                                     pnl->k_size_extra,
-                                     ppr->sigma_k_per_decade,
-                                     out_sigma,
-                                     &sigma8),
+  class_call(nonlinear_sigmas(pnl,
+                              8./pba->h,
+                              lnpk_l[index_pk],ddlnpk_l[index_pk],
+                              pnl->k_size_extra,
+                              ppr->sigma_k_per_decade,
+                              out_sigma,
+                              &sigma8),
              pnl->error_message,
              pnl->error_message);
 
-  class_call(nonlinear_hmcode_sigmas(pnl,
-                                     0.,
-                                     lnpk_l[index_pk],ddlnpk_l[index_pk],
-                                     pnl->k_size_extra,
-                                     ppr->sigma_k_per_decade,
-                                     out_sigma_disp,
-                                     &sigma_disp),
+  class_call(nonlinear_sigmas(pnl,
+                              0.,
+                              lnpk_l[index_pk],ddlnpk_l[index_pk],
+                              pnl->k_size_extra,
+                              ppr->sigma_k_per_decade,
+                              out_sigma_disp,
+                              &sigma_disp),
              pnl->error_message,
              pnl->error_message);
 
-  class_call(nonlinear_hmcode_sigmas(pnl,
-                                     100./pba->h,
-                                     lnpk_l[index_pk],ddlnpk_l[index_pk],
-                                     pnl->k_size_extra,
-                                     ppr->sigma_k_per_decade,
-                                     out_sigma_disp,
-                                     &sigma_disp100),
+  class_call(nonlinear_sigmas(pnl,
+                              100./pba->h,
+                              lnpk_l[index_pk],ddlnpk_l[index_pk],
+                              pnl->k_size_extra,
+                              ppr->sigma_k_per_decade,
+                              out_sigma_disp,
+                              &sigma_disp100),
              pnl->error_message,
              pnl->error_message);
-
-  fprintf(stderr,"%e %e %e\n",sigma8,sigma_disp,sigma_disp100);
-
-  class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,
-                                    8./pba->h,
-                                    lnpk_l[index_pk],ddlnpk_l[index_pk],
-                                    &sigma8),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,
-                                         0.,
-                                         lnpk_l[index_pk],ddlnpk_l[index_pk],
-                                         &sigma_disp),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(nonlinear_hmcode_sigma_disp(ppr,pba,ppt,ppm,pnl,
-                                         100./pba->h,
-                                         lnpk_l[index_pk],ddlnpk_l[index_pk],
-                                         &sigma_disp100),
-             pnl->error_message,
-             pnl->error_message);
-
-  fprintf(stderr,"%e %e %e\n",sigma8,sigma_disp,sigma_disp100);
 
   pnw->sigma_8[index_pk][index_tau] = sigma8;
   pnw->sigma_disp[index_pk][index_tau] = sigma_disp;
@@ -3056,19 +3206,14 @@ int nonlinear_hmcode(
     r_nl = (r1+r2)/2.;
     counter ++;
 
-    class_call(nonlinear_hmcode_sigmas(pnl,
-                                       r_nl,
-                                       lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
-                                       pnl->k_size_extra,
-                                       ppr->sigma_k_per_decade,
-                                       out_sigma,
-                                       &sigma_nl),
+    class_call(nonlinear_sigmas(pnl,
+                                r_nl,
+                                lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
+                                pnl->k_size_extra,
+                                ppr->sigma_k_per_decade,
+                                out_sigma,
+                                &sigma_nl),
                pnl->error_message, pnl->error_message);
-
-    /*
-    class_call(nonlinear_hmcode_sigma(ppr,pba,ppt,ppm,pnl,r_nl,lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],&sigma_nl),
-               pnl->error_message, pnl->error_message);
-    */
 
     diff = sigma_nl - delta_c;
 
@@ -3106,22 +3251,15 @@ int nonlinear_hmcode(
 
   /* call sigma_prime function at r_nl to find the effective spectral index n_eff */
 
-  class_call(nonlinear_hmcode_sigmas(pnl,
-                                     r_nl,
-                                     lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
-                                     pnl->k_size_extra,
-                                     ppr->sigma_k_per_decade,
-                                     out_sigma_prime,
-                                     &sigma_prime),
+  class_call(nonlinear_sigmas(pnl,
+                              r_nl,
+                              lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],
+                              pnl->k_size_extra,
+                              ppr->sigma_k_per_decade,
+                              out_sigma_prime,
+                              &sigma_prime),
              pnl->error_message,
              pnl->error_message);
-
-  fprintf(stderr,"%e\n",sigma_prime);
-
-  class_call(nonlinear_hmcode_sigma_prime(ppr,pba,ppt,ppm,pnl,r_nl,lnpk_l[index_pk_cb],ddlnpk_l[index_pk_cb],&sigma_prime),
-             pnl->error_message, pnl->error_message);
-
-  fprintf(stderr,"%e\n",sigma_prime);
 
   dlnsigdlnR = r_nl*pow(sigma_nl, -2)*sigma_prime;
   n_eff = -3.- dlnsigdlnR;
@@ -3506,166 +3644,6 @@ int nonlinear_hmcode_baryonic_feedback(
       break;
     }
   }
-  return _SUCCESS_;
-}
-
-/**
- * Calculate intermediate quantities for hmcode (sigma, sigma', ...)
- * for a given scale R and a given input P(k).
- *
- * This function has several differences w.r.t. the standard external
- * function non_linear_sigma (format of input, of output, integration
- * stepsize, management of extrapolation at large k, ...) and is
- * overall more precise for sigma(R).
- *
- * @param ppr Input: pointer to precision structure
- * @param pba Input: pointer to background structure
- * @param ppt Input: pointer to perturbation structure
- * @param ppm Input: pointer to primordial structure
- * @param pnl Input: pointer to nonlinear structure
- * @param R   Input: scale at which to compute sigma
- * @param *lnpk_l    Input: logarithm of the linear power spectrum for both index_m and index_cb
- * @param *ddlnpk_l  Input: spline of the logarithm of the linear power spectrum for either index_m or index_cb
- * @param * sigma    Output: Sigma
- * @return the error status
- */
-
-int nonlinear_hmcode_sigmas(
-                            struct nonlinear * pnl,
-                            double R,
-                            double * lnpk_l,
-                            double * ddlnpk_l,
-                            int k_size,
-                            double k_per_decade,
-                            enum out_sigmas sigma_output,
-                            double * result
-                            ) {
-  double pk, lnpk;
-
-  double * array_for_sigma;
-  int index_num;
-  int index_x;
-  int index_y;
-  int index_ddy;
-  int i=0;
-  int integrand_size;
-  int last_index=0;
-
-  double k,W,W_prime,x,t;
-
-  /** - allocate temporary array for an integral over y(x) */
-
-  class_define_index(index_x,  _TRUE_,i,1); // index for x
-  class_define_index(index_y,  _TRUE_,i,1); // index for integrand
-  class_define_index(index_ddy,_TRUE_,i,1); // index for its second derivative (spline method)
-  index_num=i;                              // number of columns in the array
-
-  integrand_size=(int)(log(pnl->k[k_size-1]/pnl->k[0])/log(10.)*k_per_decade)+1;
-  class_alloc(array_for_sigma,
-              integrand_size*index_num*sizeof(double),
-              pnl->error_message);
-
-  /** - fill the array with values of k and of the integrand */
-
-  for (i=0; i<integrand_size; i++) {
-
-    k=pnl->k[0]*pow(10.,i/k_per_decade);
-
-    class_call(array_interpolate_spline(
-                                        pnl->ln_k,
-                                        k_size,
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        &lnpk,
-                                        1,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
-
-    pk = exp(lnpk);
-
-    t = 1./(1.+k);
-    if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
-    x=k*R;
-
-    switch (sigma_output) {
-
-    case out_sigma:
-      if (x<0.01)
-        W = 1.-x*x/10.;
-      else
-        W = 3./x/x/x*(sin(x)-x*cos(x));
-      array_for_sigma[(integrand_size-1-i)*index_num+index_x] = t;
-      array_for_sigma[(integrand_size-1-i)*index_num+index_y] = k*k*k*pk*W*W/(t*(1.-t));
-      break;
-
-    case out_sigma_prime:
-      if (x<0.01) {
-        W = 1.-x*x/10.;
-        W_prime = -0.2*x;
-      }
-      else {
-        W = 3./x/x/x*(sin(x)-x*cos(x));
-        W_prime = 3./x/x*sin(x)-9./x/x/x/x*(sin(x)-x*cos(x));
-      }
-      array_for_sigma[(integrand_size-1-i)*index_num+index_x] = t;
-      array_for_sigma[(integrand_size-1-i)*index_num+index_y] = k*k*k*pk*2.*k*W*W_prime/(t*(1.-t));
-      break;
-
-    case out_sigma_disp:
-      if (x<0.01)
-        W = 1.-x*x/10.;
-      else
-        W = 3./x/x/x*(sin(x)-x*cos(x));
-      array_for_sigma[(integrand_size-1-i)*index_num+index_x] = k;
-      array_for_sigma[(integrand_size-1-i)*index_num+index_y] = -pk*W*W;
-      break;
-    }
-  }
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          integrand_size,
-                          index_x,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  class_call(array_integrate_all_trapzd_or_spline(array_for_sigma,
-                                                  index_num,
-                                                  integrand_size,
-                                                  0, //integrand_size-1,
-                                                  index_x,
-                                                  index_y,
-                                                  index_ddy,
-                                                  result,
-                                                  pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  switch (sigma_output) {
-
-  case out_sigma:
-    *result = sqrt(*result/(2.*_PI_*_PI_));
-    break;
-
-  case out_sigma_prime:
-    *result = *result/(2.*_PI_*_PI_);
-    break;
-
-  case out_sigma_disp:
-    *result = sqrt(*result/(2.*_PI_*_PI_*3.));
-    break;
-  }
-
-  free(array_for_sigma);
-
   return _SUCCESS_;
 }
 
