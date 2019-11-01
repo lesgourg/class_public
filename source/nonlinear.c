@@ -869,19 +869,18 @@ int nonlinear_pks_at_kvec_and_zvec(
  * @param R            Input: radius in Mpc
  * @param z            Input: redshift
  * @param index_pk     Input: type of pk (_m, _cb)
- * @param k_per_decade Input: logarithmic step for the integral (recommended: pass ppr->sigma_k_per_decade)
  * @param sigma_output Input: quantity to be computed (sigma, sigma', ...)
  * @param result       Output: result
  * @return the error status
  */
 
 int nonlinear_sigmas_at_z(
+                          struct precision * ppr,
                           struct background * pba,
                           struct nonlinear * pnl,
                           double R,
                           double z,
                           int index_pk,
-                          double k_per_decade,
                           enum out_sigmas sigma_output,
                           double * result
                           ) {
@@ -926,7 +925,7 @@ int nonlinear_sigmas_at_z(
                               out_pk,
                               ddout_pk,
                               pnl->k_size,
-                              k_per_decade,
+                              ppr->sigma_k_per_decade,
                               sigma_output,
                               result),
              pnl->error_message,
@@ -936,119 +935,6 @@ int nonlinear_sigmas_at_z(
 
   free(out_pk);
   free(ddout_pk);
-
-  return _SUCCESS_;
-}
-
-/**
- * This routine computes the variance of density fluctuations in a
- * sphere of radius R, sigma(R,z), for one given pk type (_m, _cb).
- *
- * The integral is performed on the discrete values of k defined in the
- * perturbation module, thus the accuracy of the result depend on k_max,
- * delta k and k_min in this pre-computed array.
- *
- * Here there is not automatic checking that k_max is large enough for
- * the result to be well converged. E.g. to get an accurate sigma8 at
- * R = 8 Mpc/h, the user should pass at least about P_k_max_h/Mpc = 1.
- *
- * @param pba      Input: pointer to background structure
- * @param pnl      Input: pointer to nonlinear structure
- * @param R        Input: radius in Mpc
- * @param z        Input: redshift
- * @param index_pk Input: type of pk (_m, _cb)
- * @param sigma    Output: variance in a sphere of radius R (dimensionless)
- * @return the error status
- */
-
-int nonlinear_sigma(
-                    struct background * pba,
-                    struct nonlinear * pnl,
-                    double R,
-                    double z,
-                    int index_pk,
-                    double *sigma
-                    ) {
-
-  double * out_pk;
-  int i=0;
-  int index_k,index_y,index_ddy,index_num;
-  double * array_for_sigma;
-  double k,x,W;
-
-  /** - allocate temporary array for P(k,z) as a function of k */
-  class_alloc(out_pk, pnl->k_size*sizeof(double), pnl->error_message);
-
-  /** - allocate temporary array for the integral */
-
-  class_define_index(index_k,  _TRUE_,i,1); // index for k
-  class_define_index(index_y,  _TRUE_,i,1); // index for integrand
-  class_define_index(index_ddy,_TRUE_,i,1); // index for its second derivative (spline method)
-  index_num=i;                              // number of columns in the array
-
-  class_alloc(array_for_sigma,
-              pnl->k_size*index_num*sizeof(double),
-              pnl->error_message);
-
-  /** - get P(k,z) as a function of k, for the right z */
-
-  class_call(nonlinear_pk_at_z(pba,
-                               pnl,
-                               logarithmic,
-                               pk_linear,
-                               z,
-                               index_pk,
-                               out_pk,
-                               NULL),
-             pnl->error_message,
-             pnl->error_message);
-
-  /** - fill the array with values of k and of the integrand */
-
-  for (i=0; i<pnl->k_size; i++) {
-
-    k=pnl->k[i];
-    x=k*R;
-    W=3./x/x/x*(sin(x)-x*cos(x));
-
-    array_for_sigma[i*index_num+index_k]=k;
-    array_for_sigma[i*index_num+index_y]=k*k*exp(out_pk[i])*W*W;
-  }
-
-  /** - spline the integrand */
-
-  class_call(array_spline(array_for_sigma,
-                          index_num,
-                          pnl->k_size,
-                          index_k,
-                          index_y,
-                          index_ddy,
-                          _SPLINE_EST_DERIV_,
-                          pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  /** - perform the integral */
-
-  class_call(array_integrate_all_spline(array_for_sigma,
-                                        index_num,
-                                        pnl->k_size,
-                                        index_k,
-                                        index_y,
-                                        index_ddy,
-                                        sigma,
-                                        pnl->error_message),
-             pnl->error_message,
-             pnl->error_message);
-
-  /** - normalise the result properly */
-
-  *sigma = sqrt(*sigma/(2.*_PI_*_PI_));
-
-  /** - free temporary arrrays */
-
-  free(array_for_sigma);
-  free(out_pk);
 
   return _SUCCESS_;
 }
@@ -1294,12 +1180,12 @@ int nonlinear_init(
 
   for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
 
-    class_call(nonlinear_sigmas_at_z(pba,
+    class_call(nonlinear_sigmas_at_z(ppr,
+                                     pba,
                                      pnl,
                                      8./pba->h,
                                      0.,
                                      index_pk,
-                                     ppr->sigma_k_per_decade,
                                      out_sigma,
                                      &(pnl->sigma8[index_pk])),
                pnl->error_message,
@@ -2377,6 +2263,94 @@ int nonlinear_sigmas(
   /** - free allocated array */
 
   free(array_for_sigma);
+
+  return _SUCCESS_;
+}
+
+/**
+ * This routine computes the variance of density fluctuations in a
+ * sphere of radius R at redshift z, sigma(R,z) for one given pk type (_m, _cb).
+ *
+ * Try to use instead nonlinear_sigmas_at_z(). This function is just
+ * maintained for compatibility with the deprecated function
+ * spectra_sigma()
+ *
+ * The integral is performed until the maximum value of k_max defined
+ * in the perturbation module. Here there is not automatic checking
+ * that k_max is large enough for the result to be well
+ * converged. E.g. to get an accurate sigma8 at R = 8 Mpc/h, the user
+ * should pass at least about P_k_max_h/Mpc = 1.
+ *
+ * @param pba          Input: pointer to background structure
+ * @param pnl          Input: pointer to nonlinear structure
+ * @param R            Input: radius in Mpc
+ * @param z            Input: redshift
+ * @param index_pk     Input: type of pk (_m, _cb)
+ * @param k_per_decade Input: logarithmic step for the integral (recommended: pass ppr->sigma_k_per_decade)
+ * @param result       Output: result
+ * @return the error status
+ */
+
+int nonlinear_sigma_at_z(
+                         struct background * pba,
+                         struct nonlinear * pnl,
+                         double R,
+                         double z,
+                         int index_pk,
+                         double k_per_decade,
+                         double * result
+                         ) {
+
+  double * out_pk;
+  double * ddout_pk;
+
+  /** - allocate temporary array for P(k,z) as a function of k */
+
+  class_alloc(out_pk, pnl->k_size*sizeof(double), pnl->error_message);
+  class_alloc(ddout_pk, pnl->k_size*sizeof(double), pnl->error_message);
+
+  /** - get P(k,z) as a function of k, for the right z */
+
+  class_call(nonlinear_pk_at_z(pba,
+                               pnl,
+                               logarithmic,
+                               pk_linear,
+                               z,
+                               index_pk,
+                               out_pk,
+                               NULL),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - spline it along k */
+
+  class_call(array_spline_table_columns(pnl->ln_k,
+                                        pnl->k_size,
+                                        out_pk,
+                                        1,
+                                        ddout_pk,
+                                        _SPLINE_EST_DERIV_,
+                                        pnl->error_message),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - calll the function computing the sigmas */
+
+  class_call(nonlinear_sigmas(pnl,
+                              R,
+                              out_pk,
+                              ddout_pk,
+                              pnl->k_size,
+                              k_per_decade,
+                              out_sigma,
+                              result),
+             pnl->error_message,
+             pnl->error_message);
+
+  /** - free allocated arrays */
+
+  free(out_pk);
+  free(ddout_pk);
 
   return _SUCCESS_;
 }

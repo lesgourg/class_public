@@ -1547,14 +1547,13 @@ int spectra_sigma(
 
   if (psp->pnl->has_pk_m) {
 
-    class_call(nonlinear_sigmas_at_z(pba,
-                                     psp->pnl,
-                                     R,
-                                     z,
-                                     psp->pnl->index_pk_m,
-                                     80., // hardcoded, yes, but the function is deprecated...
-                                     out_sigma,
-                                     sigma),
+    class_call(nonlinear_sigma_at_z(pba,
+                                    psp->pnl,
+                                    R,
+                                    z,
+                                    psp->pnl->index_pk_m,
+                                    80., // hardcoded, yes, but the function is deprecated...
+                                    sigma),
                psp->pnl->error_message,
                psp->error_message);
 
@@ -1591,14 +1590,13 @@ int spectra_sigma_cb(
 
   if (psp->pnl->has_pk_cb) {
 
-    class_call(nonlinear_sigmas_at_z(pba,
-                                     psp->pnl,
-                                     R,
-                                     z,
-                                     psp->pnl->index_pk_cb,
-                                     80., // hardcoded, yes, but the function is deprecated...
-                                     out_sigma,
-                                     sigma_cb),
+    class_call(nonlinear_sigma_at_z(pba,
+                                    psp->pnl,
+                                    R,
+                                    z,
+                                    psp->pnl->index_pk_cb,
+                                    80., // hardcoded, yes, but the function is deprecated...
+                                    sigma_cb),
                psp->pnl->error_message,
                psp->error_message);
   }

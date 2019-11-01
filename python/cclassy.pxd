@@ -352,12 +352,12 @@ cdef extern from "class.h":
         double * out_pk_ic)
 
     int nonlinear_sigmas_at_z(
+        void * ppr,
         void * pba,
         void * pnl,
         double R,
         double z,
         int index_pk,
-        double k_per_decade,
         int sigma_output,
         double * result)
 

@@ -868,7 +868,7 @@ cdef class Class:
         if (self.pt.k_max_for_pk < self.ba.h):
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if nonlinear_sigmas_at_z(&self.ba,&self.nl,R,z,self.nl.index_pk_m,80.,out_sigma,&sigma)==_FAILURE_:
+        if nonlinear_sigmas_at_z(&self.pr,&self.ba,&self.nl,R,z,self.nl.index_pk_m,out_sigma,&sigma)==_FAILURE_:
             raise CosmoSevereError(self.nl.error_message)
 
         return sigma
@@ -897,7 +897,7 @@ cdef class Class:
         if (self.pt.k_max_for_pk < self.ba.h):
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if nonlinear_sigmas_at_z(&self.ba,&self.nl,R,z,self.nl.index_pk_cb,80.,out_sigma,&sigma_cb)==_FAILURE_:
+        if nonlinear_sigmas_at_z(&self.pr,&self.ba,&self.nl,R,z,self.nl.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
             raise CosmoSevereError(self.nl.error_message)
 
         return sigma_cb

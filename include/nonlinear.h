@@ -299,24 +299,15 @@ extern "C" {
                                      );
 
   int nonlinear_sigmas_at_z(
+                            struct precision * ppr,
                             struct background * pba,
                             struct nonlinear * pnl,
                             double R,
                             double z,
                             int index_pk,
-                            double k_per_decade,
                             enum out_sigmas sigma_output,
                             double * result
                             );
-
-  int nonlinear_sigma(
-                    struct background * pba,
-                    struct nonlinear * pnl,
-                    double R,
-                    double z,
-                    int index_pk,
-                    double *sigma
-                    );
 
   int nonlinear_k_nl_at_z(
                           struct background *pba,
@@ -394,6 +385,16 @@ extern "C" {
                        double * result
                        );
 
+  int nonlinear_sigma_at_z(
+                           struct background * pba,
+                           struct nonlinear * pnl,
+                           double R,
+                           double z,
+                           int index_pk,
+                           double k_per_decade,
+                           double * result
+                           );
+
   int nonlinear_halofit(
                         struct precision *ppr,
                         struct background *pba,
@@ -462,6 +463,7 @@ extern "C" {
   int nonlinear_hmcode_baryonic_feedback(
                                          struct nonlinear *pnl
                                          );
+
 
   int nonlinear_hmcode_fill_sigtab(
                                    struct precision *ppr,
