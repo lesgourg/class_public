@@ -463,43 +463,6 @@ extern "C" {
                                          struct nonlinear *pnl
                                          );
 
-  int nonlinear_hmcode_sigma(
-                             struct precision * ppr,
-                             struct background * pba,
-                             struct perturbs * ppt,
-                             struct primordial * ppm,
-                             struct nonlinear * pnl,
-                             double R,
-                             double *lnpk_l,
-                             double *ddlnpk_l,
-                             double * sigma
-                             );
-
-
-  int nonlinear_hmcode_sigma_prime(
-                                   struct precision * ppr,
-                                   struct background * pba,
-                                   struct perturbs * ppt,
-                                   struct primordial * ppm,
-                                   struct nonlinear * pnl,
-                                   double R,
-                                   double *lnpk_l,
-                                   double *ddlnpk_l,
-                                   double * sigma_prime
-                                   );
-
-  int nonlinear_hmcode_sigma_disp(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct perturbs * ppt,
-                                  struct primordial * ppm,
-                                  struct nonlinear * pnl,
-                                  double R,
-                                  double *lnpk_l,
-                                  double *ddlnpk_l,
-                                  double * sigma_disp
-                                  );
-
   int nonlinear_hmcode_fill_sigtab(
                                    struct precision *ppr,
                                    struct background * pba,
