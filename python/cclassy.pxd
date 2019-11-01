@@ -156,8 +156,8 @@ cdef extern from "class.h":
         double n_ad_niv
         double phi_min
         double phi_max
-
         int lnk_size
+
     cdef struct spectra:
         ErrorMsg error_message
         int has_tt
@@ -195,8 +195,6 @@ cdef extern from "class.h":
         int * l_size
         int index_md_scalars
         double* ln_k
-        double sigma8
-        double sigma8_cb
         double alpha_II_2_20
         double alpha_RI_2_20
         double alpha_RR_2_20
@@ -248,6 +246,9 @@ cdef extern from "class.h":
 
     cdef struct nonlinear:
         int method
+        double * sigma8
+        int index_pk_m
+        int index_pk_cb
         ErrorMsg error_message
 
     cdef struct file_content:

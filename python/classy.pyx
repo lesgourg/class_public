@@ -1016,12 +1016,12 @@ cdef class Class:
         return self.ba.Neff
 
     def sigma8(self):
-        self.compute(["spectra"])
-        return self.sp.sigma8
+        self.compute(["nonlinear"])
+        return self.nl.sigma8[self.nl.index_pk_m]
 
     def sigma8_cb(self):
-        self.compute(["spectra"])
-        return self.sp.sigma8_cb
+        self.compute(["nonlinear"])
+        return self.nl.sigma8[self.nl.index_pk_cb]
 
     def rs_drag(self):
         self.compute(["thermodynamics"])
@@ -1705,9 +1705,9 @@ cdef class Class:
             elif name == 'alpha_RR_2_2500':
                 value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
-                value = self.sp.sigma8
+                value = self.nl.sigma8[self.nl.index_pk_m]
             elif name == 'sigma8_cb':
-                value = self.sp.sigma8_cb
+                value = self.nl.sigma8[self.nl.index_pk_cb]
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
