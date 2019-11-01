@@ -173,7 +173,6 @@ cdef extern from "class.h":
         int has_tl
         int l_max_tot
         int ** l_max_ct
-        int ln_k_size
         int ct_size
         int * ic_size
         int * ic_ic_size
@@ -194,22 +193,6 @@ cdef extern from "class.h":
         int index_ct_tl
         int * l_size
         int index_md_scalars
-        double* ln_k
-        double alpha_II_2_20
-        double alpha_RI_2_20
-        double alpha_RR_2_20
-        double alpha_II_21_200
-        double alpha_RI_21_200
-        double alpha_RR_21_200
-        double alpha_II_201_2500
-        double alpha_RI_201_2500
-        double alpha_RR_201_2500
-        double alpha_II_2_2500
-        double alpha_RI_2_2500
-        double alpha_RR_2_2500
-        double alpha_kp
-        double alpha_k1
-        double alpha_k2
 
     cdef struct output:
         ErrorMsg error_message

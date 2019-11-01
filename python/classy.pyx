@@ -1674,36 +1674,6 @@ cdef class Class:
                 value = self.pm.phi_min
             elif name == 'phi_max':
                 value = self.pm.phi_max
-            elif name == 'alpha_kp':
-                value = self.sp.alpha_kp
-            elif name == 'alpha_k1':
-                value = self.sp.alpha_k1
-            elif name == 'alpha_k2':
-                value = self.sp.alpha_k2
-            elif name == 'alpha_II_2_20':
-                value = self.sp.alpha_II_2_20
-            elif name == 'alpha_RI_2_20':
-                value = self.sp.alpha_RI_2_20
-            elif name == 'alpha_RR_2_20':
-                value = self.sp.alpha_RR_2_20
-            elif name == 'alpha_II_21_200':
-                value = self.sp.alpha_II_21_200
-            elif name == 'alpha_RI_21_200':
-                value = self.sp.alpha_RI_21_200
-            elif name == 'alpha_RR_21_200':
-                value = self.sp.alpha_RR_21_200
-            elif name == 'alpha_II_201_2500':
-                value = self.sp.alpha_II_201_2500
-            elif name == 'alpha_RI_201_2500':
-                value = self.sp.alpha_RI_201_2500
-            elif name == 'alpha_RR_201_2500':
-                value = self.sp.alpha_RR_201_2500
-            elif name == 'alpha_II_2_2500':
-                value = self.sp.alpha_II_2_2500
-            elif name == 'alpha_RI_2_2500':
-                value = self.sp.alpha_RI_2_2500
-            elif name == 'alpha_RR_2_2500':
-                value = self.sp.alpha_RR_2_2500
             elif name == 'sigma8':
                 value = self.nl.sigma8[self.nl.index_pk_m]
             elif name == 'sigma8_cb':

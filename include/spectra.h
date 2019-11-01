@@ -117,118 +117,6 @@ struct spectra {
   double ** cl;   /**< table of anisotropy spectra for each mode, multipole, pair of initial conditions and types, cl[index_md][(index_l * psp->ic_ic_size[index_md] + index_ic1_ic2) * psp->ct_size + index_ct] */
   double ** ddcl; /**< second derivatives of previous table with respect to l, in view of spline interpolation */
 
-  double alpha_II_2_20;	/**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,20] (see Planck parameter papers) */
-  double alpha_RI_2_20;	/**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,20] (see Planck parameter papers) */
-  double alpha_RR_2_20;	/**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,20] (see Planck parameter papers) */
-
-  double alpha_II_21_200; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [21,200] (see Planck parameter papers) */
-  double alpha_RI_21_200; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [21,200] (see Planck parameter papers) */
-  double alpha_RR_21_200; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [21,200] (see Planck parameter papers) */
-
-  double alpha_II_201_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [201,2500] (see Planck parameter papers) */
-  double alpha_RI_201_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [201,2500] (see Planck parameter papers) */
-  double alpha_RR_201_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [201,2500] (see Planck parameter papers) */
-
-  double alpha_II_2_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,2500] (see Planck parameter papers) */
-  double alpha_RI_2_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,2500] (see Planck parameter papers) */
-  double alpha_RR_2_2500; /**< parameter describing adiabatic versus isocurvature contribution in mutipole range [2,2500] (see Planck parameter papers) */
-
-  double alpha_kp; /**< parameter describing adiabatic versus isocurvature contribution at pivot scale (see Planck parameter papers) */
-  double alpha_k1; /**< parameter describing adiabatic versus isocurvature contribution at scale k1 (see Planck parameter papers) */
-  double alpha_k2; /**< parameter describing adiabatic versus isocurvature contribution at scale k2 (see Planck parameter papers) */
-
-  //@}
-
-  /** @name - table of pre-computed matter power spectrum P(k) values, and related quantities */
-
-  //@{
-
-  int ln_k_size;    /**< number ln(k) values */
-  double * ln_k;    /**< list of ln(k) values ln_k[index_k] */
-
-  int ln_tau_size;  /**< number of ln(tau) values, for the matter
-                       power spectrum and the matter transfer
-                       functions, (only one if z_max_pk = 0) */
-
-  double * ln_tau;  /**< list of ln(tau) values ln_tau[index_tau], for
-                       the matter power spectrum and the matter
-                       transfer functions, in growing order. So
-                       exp(ln_tau[0]) is the earliest time
-                       (i.e. highest redshift), while
-                       exp(ln_tau[ln_tau_size-1]) is today (i.e
-                       z=0). */
-
-  double * ln_pk;   /**< Matter power spectrum.
-                       depends on indices index_ic1_ic2, index_k, index_tau as:
-                       ln_pk[(index_tau * psp->k_size + index_k)* psp->ic_ic_size[index_md] + index_ic1_ic2]
-                       where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
-                       the primordial spectrum is symmetric in (index_ic1, index_ic2)).
-                       - for diagonal elements (index_ic1 = index_ic2) this arrays contains
-                       ln[P(k)] where P(k) is positive by construction.
-                       - for non-diagonal elements this arrays contains the k-dependent
-                       cosine of the correlation angle, namely
-                       P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-                       This choice is convenient since the sign of the non-diagonal cross-correlation
-                       is arbitrary. For fully correlated or anti-correlated initial conditions,
-                       this non-diagonal element is independent on k, and equal to +1 or -1.
-                    */
-
-  double * ddln_pk; /**< second derivative of above array with respect to log(tau), for spline interpolation. So:
-                       - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
-                       good since this function is usually smooth.
-                       - for non-diagonal coefficients, we spline
-                       P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-                       vs. ln(k), which is fine since this quantity is often assumed to be
-                       constant (e.g for fully correlated/anticorrelated initial conditions)
-                       or nearly constant, and with arbitrary sign.
-                    */
-
-  double sigma8;    /**< sigma8 parameter */
-
-  double sigma8_cb; /**< if ncdm present: contribution to sigma8 from only baryons and cdm */
-
-  double * ln_pk_l;   /**q< Total linear matter power spectrum, just
-                           depending on indices index_k, index_tau as:
-                           ln_pk[index_tau * psp->k_size + index_k]
-                           Range of k and tau value identical to
-                           ln_pk array. */
-
-  double * ddln_pk_l; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
-
-  int ln_tau_nl_size;  /**< number of ln(tau) values for non-linear
-                          spectrum (possibly smaller than ln_tau_size,
-                          because the non-linear spectrum is stored
-                          only in the time/redhsift range where the
-                          non-linear corrections were really computed,
-                          to avoid dealing with discontinuities in
-                          the spline interpolation) */
-
-  double * ln_tau_nl;  /**< list of ln(tau) values
-                          ln_tau_nl[index_tau], for the non-linear
-                          power spectrum, in growing order. So
-                          exp(ln_tau_nl[0]) is the earliest time
-                          (i.e. highest redshift), while
-                          exp(ln_tau_nl[ln_tau_nl_size-1]) is today
-                          (i.e z=0). */
-
-  double * ln_pk_nl;   /**< Non-linear matter power spectrum.
-                          depends on indices index_k, index_tau as:
-                          ln_pk_nl[index_tau * psp->k_size + index_k] */
-  double * ddln_pk_nl; /**< second derivative of above array with respect to log(tau), for spline interpolation. */
-
-  double * ln_pk_cb;           /**< same as ln_pk for baryon+cdm component only */
-  double * ddln_pk_cb;         /**< same as ddln_pk for baryon+cdm component only */
-
-  double * ln_pk_cb_l;         /**< same as ln_pk_l for baryon+cdm component only */
-  double * ddln_pk_cb_l;       /**< same as ddln_pk_l for baryon+cdm component only */
-
-  double * ln_pk_cb_nl;        /**< same as ln_pk_nl for baryon+cdm component only */
-  double * ddln_pk_cb_nl;      /**< same as ddln_pk_nl for baryon+cdm component only */
-
-  /* double * LddCl; /\**< density Cl's in the Limber plus thin shell approximation (then, there are no non-diagonal correlations between various shells of different redshifts); depends on index_tau,index_l as: LddCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
-
-  /* double * LTdCl; /\**< cross (temperature * density) Cl's in the Limber plus thin shell approximation; depends on index_tau,index_l as: LTdCl[index_tau*psp->psp->l_size[psp->index_md_scalars]+index_l] *\/ */
-
   //@}
 
   /** @name - technical parameters */
@@ -262,15 +150,6 @@ extern "C" {
 #endif
 
   /* external functions (meant to be called from other modules) */
-
-  int spectra_bandpower(
-                        struct spectra * psp,
-                        int l1,
-                        int l2,
-                        double * TT_II,
-                        double * TT_RI,
-                        double * TT_RR
-                        );
 
   int spectra_cl_at_l(
                       struct spectra * psp,
@@ -335,14 +214,6 @@ extern "C" {
                         struct nonlinear *pnl,
                         struct spectra * psp
                         );
-
-  int spectra_pk(
-                 struct background * pba,
-                 struct perturbs * ppt,
-                 struct primordial * ppm,
-                 struct nonlinear *pnl,
-                 struct spectra * psp
-                 );
 
   /* deprecated functions (since v2.8) */
 
