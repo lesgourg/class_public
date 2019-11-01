@@ -706,149 +706,101 @@ cdef class Class:
         free(pvecback)
         return lum_distance
 
-    # Gives the pk for a given (k,z)
+    # Gives the total matter pk for a given (k,z)
     def pk(self,double k,double z):
         """
-        Gives the pk for a given k and z (will be non linear if requested to Class, linear otherwise)
+        Gives the total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
         .. note::
 
-            there is an additional check to verify if output contains `mPk`,
+            there is an additional check that output contains `mPk`,
             because otherwise a segfault will occur
 
         """
         cdef double pk
-        cdef double pk_cb
-        cdef double pk_velo
-        cdef double pk_cross
-        cdef int dummy
 
-        # Quantities for the isocurvature modes
-        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
-        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError(
-                "No power spectrum computed. You must add mPk to the list of outputs."
-                )
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
-        if (self.nl.method == 0):
-             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
-                 raise CosmoSevereError(self.sp.error_message)
+        if (self.nl.method == nl_none):
+            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
+                raise CosmoSevereError(self.sp.error_message)
         else:
-             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,&pk_cb) ==_FAILURE_:
-                    raise CosmoSevereError(self.sp.error_message)
+            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
+                raise CosmoSevereError(self.sp.error_message)
 
-        free(pk_ic)
-        free(pk_cb_ic)
         return pk
 
-    # Gives the pk_cb for a given (k,z)
+    # Gives the cdm+b pk for a given (k,z)
     def pk_cb(self,double k,double z):
         """
-        Gives the pk_cb for a given k and z (will be non linear if requested to Class, linear otherwise)
+        Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
         .. note::
 
-            there is an additional check to verify if output contains `mPk`,
+            there is an additional check that output contains `mPk`,
             because otherwise a segfault will occur
 
         """
-        cdef double pk
         cdef double pk_cb
-        cdef double pk_velo
-        cdef double pk_cross
-        cdef int dummy
 
-        # Quantities for the isocurvature modes
-        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
-        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError(
-                "No power spectrum computed. You must add mPk to the list of outputs."
-                )
-        if (self.ba.Omega0_ncdm_tot == 0.):
-            raise CosmoSevereError(
-                "No massive neutrinos. You must use pk, rather than pk_cb."
-                )
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        if (self.nl.has_pk_cb == _FALSE_):
+            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
 
-        if (self.nl.method == 0):
-             if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
-                 raise CosmoSevereError(self.sp.error_message)
+        if (self.nl.method == nl_none):
+            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_cb,&pk_cb,NULL)==_FAILURE_:
+                raise CosmoSevereError(self.sp.error_message)
         else:
-             if spectra_pk_nl_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,&pk_cb) ==_FAILURE_:
-                    raise CosmoSevereError(self.sp.error_message)
+            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_cb,&pk_cb,NULL)==_FAILURE_:
+                raise CosmoSevereError(self.sp.error_message)
 
-        free(pk_ic)
-        free(pk_cb_ic)
         return pk_cb
 
-    # Gives the linear pk for a given (k,z)
+    # Gives the total matter pk for a given (k,z)
     def pk_lin(self,double k,double z):
         """
-        Gives the linear pk for a given k and z (even if non linear corrections were requested to Class)
+        Gives the linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
         .. note::
 
-            there is an additional check to verify if output contains `mPk`,
+            there is an additional check that output contains `mPk`,
             because otherwise a segfault will occur
 
         """
-        cdef double pk
-        cdef double pk_cb
-        cdef double pk_velo
-        cdef double pk_cross
-        cdef int dummy
+        cdef double pk_lin
 
-        # Quantities for the isocurvature modes
-        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
-        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError(
-                "No power spectrum computed. You must add mPk to the list of outputs."
-                )
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
-        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
+        if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk_lin,NULL)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
-        free(pk_ic)
-        free(pk_cb_ic)
-        return pk
+        return pk_lin
 
-    # Gives the linear pk for a given (k,z)
+    # Gives the cdm+b pk for a given (k,z)
     def pk_cb_lin(self,double k,double z):
         """
-        Gives the linear pk for a given k and z (even if non linear corrections were requested to Class)
+        Gives the linear cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
         .. note::
 
-            there is an additional check to verify if output contains `mPk`,
+            there is an additional check that output contains `mPk`,
             because otherwise a segfault will occur
 
         """
-        cdef double pk
-        cdef double pk_cb
-        cdef double pk_velo
-        cdef double pk_cross
-        cdef int dummy
+        cdef double pk_cb_lin
 
-        # Quantities for the isocurvature modes
-        cdef double *pk_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
-        cdef double *pk_cb_ic = <double*> calloc(self.sp.ic_ic_size[self.sp.index_md_scalars], sizeof(double))
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError(
-                "No power spectrum computed. You must add mPk to the list of outputs."
-                )
-        if (self.ba.Omega0_ncdm_tot == 0.):
-            raise CosmoSevereError(
-                "No massive neutrinos. You must use pk_lin, rather than pk_cb_lin."
-                )
+            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+        if (self.nl.has_pk_cb == _FALSE_):
+            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
 
-        if spectra_pk_at_k_and_z(&self.ba,&self.pm,&self.sp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic)==_FAILURE_:
+        if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_cb,&pk_cb_lin,NULL)==_FAILURE_:
             raise CosmoSevereError(self.sp.error_message)
 
-        free(pk_ic)
-        free(pk_cb_ic)
-        return pk_cb
+        return pk_cb_lin
 
     def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """

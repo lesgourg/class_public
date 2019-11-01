@@ -24,8 +24,17 @@ cdef extern from "class.h":
         logarithmic
 
     cdef enum file_format:
-         class_format
-         camb_format
+        class_format
+        camb_format
+
+    cdef enum non_linear_method:
+        nl_none
+        nl_halofit
+        nl_HMcode
+
+    cdef enum pk_outputs:
+        pk_linear
+        pk_nonlinear
 
     cdef struct precision:
         ErrorMsg error_message
@@ -229,7 +238,11 @@ cdef extern from "class.h":
 
     cdef struct nonlinear:
         int method
+        int ic_size;
+        int ic_ic_size;
         double * sigma8
+        int has_pk_m
+        int has_pk_cb
         int index_pk_m
         int index_pk_cb
         ErrorMsg error_message
@@ -321,6 +334,17 @@ cdef extern from "class.h":
         double z,
         double * output_tot,
         double * output_cb_tot)
+
+    int nonlinear_pk_at_k_and_z(
+        void * pba,
+        void * ppm,
+        void * pnl,
+        int pk_output,
+        double k,
+        double z,
+        int index_pk,
+        double * out_pk,
+        double * out_pk_ic)
 
     int nonlinear_hmcode_sigma8_at_z(void* pba, void* pnl, double z, double* sigma_8, double* sigma_8_cb)
     int nonlinear_hmcode_sigmadisp_at_z(void* pba, void* pnl, double z, double* sigma_disp, double* sigma_disp_cb)
