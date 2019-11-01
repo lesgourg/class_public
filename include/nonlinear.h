@@ -292,6 +292,15 @@ extern "C" {
                                      double * out_pk_cb
                                      );
 
+  int nonlinear_sigma(
+                    struct background * pba,
+                    struct nonlinear * pnl,
+                    double R,
+                    double z,
+                    int index_pk,
+                    double *sigma
+                    );
+
   int nonlinear_k_nl_at_z(
                           struct background *pba,
                           struct nonlinear * pnl,
