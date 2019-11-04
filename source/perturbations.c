@@ -5961,7 +5961,6 @@ int perturb_total_stress_energy(
     ppw->delta_p = 1./3.*ppw->pvecback[pba->index_bg_rho_g]*delta_g
       + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to total perturbed stress-energy
 
-    ppw->rho_tot = ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
     ppw->rho_plus_p_tot = 4./3. * ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
 
     if (ppt->has_source_delta_m == _TRUE_) {
@@ -5979,7 +5978,6 @@ int perturb_total_stress_energy(
       if (ppt->gauge == newtonian)
         ppw->rho_plus_p_theta = ppw->rho_plus_p_theta + ppw->pvecback[pba->index_bg_rho_cdm]*y[ppw->pv->index_pt_theta_cdm]; // contribution to total perturbed stress-energy
 
-      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_cdm];
       ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_cdm];
 
       if (ppt->has_source_delta_m == _TRUE_) {
@@ -5998,7 +5996,6 @@ int perturb_total_stress_energy(
       ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_delta_dcdm];
       ppw->rho_plus_p_theta += ppw->pvecback[pba->index_bg_rho_dcdm]*y[ppw->pv->index_pt_theta_dcdm];
 
-      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
       ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_dcdm];
 
       if (ppt->has_source_delta_m == _TRUE_) {
@@ -6025,7 +6022,6 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_shear += 2./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr+2];
       ppw->delta_p += 1./3.*rho_dr_over_f*y[ppw->pv->index_pt_F0_dr];
 
-      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_dr];
       ppw->rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_dr];
     }
 
@@ -6037,7 +6033,6 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_shear = ppw->rho_plus_p_shear + 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*shear_ur;
       ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*delta_ur;
 
-      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_ur];
       ppw->rho_plus_p_tot += 4./3. * ppw->pvecback[pba->index_bg_rho_ur];
     }
 
@@ -6073,7 +6068,6 @@ int perturb_total_stress_energy(
           ppw->rho_plus_p_shear += rho_plus_p_ncdm*y[idx+2];
           ppw->delta_p += cg2_ncdm*rho_ncdm_bg*y[idx];
 
-          ppw->rho_tot += rho_ncdm_bg;
           ppw->rho_plus_p_tot += rho_plus_p_ncdm;
 
           idx += ppw->pv->l_max_ncdm[n_ncdm]+1;
@@ -6121,7 +6115,6 @@ int perturb_total_stress_energy(
           ppw->rho_plus_p_shear += rho_plus_p_shear_ncdm;
           ppw->delta_p += delta_p_ncdm;
 
-          ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
           ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_ncdm1+n_ncdm]+ppw->pvecback[pba->index_bg_p_ncdm1+n_ncdm];
         }
       }
@@ -6176,7 +6169,6 @@ int perturb_total_stress_energy(
 
       ppw->delta_p += delta_p_scf;
 
-      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_scf];
       ppw->rho_plus_p_tot += ppw->pvecback[pba->index_bg_rho_scf]+ppw->pvecback[pba->index_bg_p_scf];
 
     }
@@ -6271,7 +6263,6 @@ int perturb_total_stress_energy(
       ppw->rho_plus_p_theta += ppw->rho_plus_p_theta_fld;
       ppw->delta_p += ppw->delta_p_fld;
 
-      ppw->rho_tot += ppw->pvecback[pba->index_bg_rho_fld];
       ppw->rho_plus_p_tot += (1.+w_fld)*ppw->pvecback[pba->index_bg_rho_fld];
 
     }
@@ -6758,15 +6749,8 @@ int perturb_sources(
         rho_tot = pvecback[pba->index_bg_rho_tot];
       }
 
-      // new:
       _set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/rho_tot
         + 3*a_prime_over_a*(1+pvecback[pba->index_bg_p_tot]/pvecback[pba->index_bg_rho_tot])*theta_over_k2;
-      // old:
-      //_set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/ppw->rho_tot;
-
-      fprintf(stderr,"JL: after checking that these two numbers are equal, %e=%e, we can remove compltely ppw->rho_tot from everywhere, as well as this comment!\n",
-              ppw->rho_tot,
-              rho_tot);
     }
 
     /* delta_g */
