@@ -246,6 +246,10 @@ cdef extern from "class.h":
         int method
         int ic_size;
         int ic_ic_size;
+        int k_size;
+        int ln_tau_size;
+        double * k;
+        double * ln_tau;
         double * sigma8
         int has_pk_m
         int has_pk_cb

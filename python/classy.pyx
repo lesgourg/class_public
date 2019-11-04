@@ -857,9 +857,9 @@ cdef class Class:
         nonlinear : bool
                 Whether the returned power spectrum values are linear or non-linear (default)
         """
-        cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.sp.ln_k_size, self.sp.ln_tau_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.sp.ln_k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.sp.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.nl.k_size, self.nl.ln_tau_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.nl.k_size),'float64')
+        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.nl.ln_tau_size),'float64')
         cdef int index_k, index_tau
         cdef double k0, kend, z0, zend, eps
 
@@ -867,10 +867,10 @@ cdef class Class:
         pk_lin_or_nonlin = self.pk if nonlinear else self.pk_lin
 
         # Get k and z arrays
-        for index_k in xrange(self.sp.ln_k_size):
-            k[index_k] = np.exp(self.sp.ln_k[index_k])
-        for index_tau in xrange(self.sp.ln_tau_size):
-            z[index_tau] = self.z_of_tau(np.exp(self.sp.ln_tau[index_tau]))
+        for index_k in xrange(self.nl.k_size):
+            k[index_k] = self.nl.k[index_k]
+        for index_tau in xrange(self.nl.ln_tau_size):
+            z[index_tau] = self.z_of_tau(np.exp(self.nl.ln_tau[index_tau]))
 
         # Avoid saturating the limits
         z[-1] *= (1-eps)
@@ -879,8 +879,8 @@ cdef class Class:
           z[0] = 0
 
         # Now copy P(k,z)
-        for index_tau in xrange(self.sp.ln_tau_size):
-            for index_k in xrange(self.sp.ln_k_size):
+        for index_tau in xrange(self.nl.ln_tau_size):
+            for index_k in xrange(self.nl.k_size):
                pk_at_k_z[index_k, index_tau] = pk_lin_or_nonlin(k[index_k], z[index_tau])
         return pk_at_k_z, k, z
 
