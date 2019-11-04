@@ -281,7 +281,7 @@ int input_init(
   char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
                                         "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
-                                        cs_background, cs_background, cs_background, cs_spectra};
+                                        cs_background, cs_background, cs_background, cs_nonlinear};
 
   int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
 
@@ -2613,12 +2613,81 @@ int input_read_parameters(
   if (flag1 == _TRUE_) {
 
     class_test(ppt->has_perturbations == _FALSE_, errmsg, "You requested non linear computation but no linear computation. You must set output to tCl or similar.");
+    class_test(ppt->has_pk_matter == _FALSE_, errmsg, "You requested non linear computation but no matter power spectrum. You must set output to mPk.");
 
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->halofit_min_k_max);
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
+    if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
+      pnl->method=nl_HMcode;
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->hmcode_min_k_max);
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      class_read_int("extrapolation_method",pnl->extrapolation_method);
 
+      class_call(parser_read_string(pfc,
+                                    "feedback model",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+
+		if (strstr(string1,"emu_dmonly") != NULL) {
+          pnl->feedback = nl_emu_dmonly;
+		}
+		if (strstr(string1,"owls_dmonly") != NULL) {
+          pnl->feedback = nl_owls_dmonly;
+		}
+		if (strstr(string1,"owls_ref") != NULL) {
+          pnl->feedback = nl_owls_ref;
+		}
+		if (strstr(string1,"owls_agn") != NULL) {
+          pnl->feedback = nl_owls_agn;
+		}
+		if (strstr(string1,"owls_dblim") != NULL) {
+          pnl->feedback = nl_owls_dblim;
+		}
+      }
+
+      class_call(parser_read_double(pfc,"eta_0",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
+                 errmsg,
+                 errmsg);
+
+      class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
+                 errmsg,
+                 "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
+
+      if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
+		pnl->feedback = nl_user_defined;
+		class_read_double("eta_0", pnl->eta_0);
+		class_read_double("c_min", pnl->c_min);
+      }
+      else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
+		pnl->feedback = nl_user_defined;
+		class_read_double("eta_0", pnl->eta_0);
+		pnl->c_min = (0.98 - pnl->eta_0)/0.12;
+      }
+      else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
+		pnl->feedback = nl_user_defined;
+		class_read_double("c_min", pnl->c_min);
+		pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
+      }
+
+      class_call(parser_read_double(pfc,"z_infinity",&param1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        class_read_double("z_infinity", pnl->z_infinity);
+      }
+    }
   }
 
   /** (g) amount of information sent to standard output (none if all set to zero) */
@@ -2794,8 +2863,19 @@ int input_read_parameters(
   /** - (i.5) special steps if we want Halofit with wa_fld non-zero:
         so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
 
-  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.))
-    pnl->has_pk_eq = _TRUE_;
+  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
+
+    class_call(parser_read_string(pfc,"pk_eq",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+      pnl->has_pk_eq = _TRUE_;
+
+    }
+  }
+
 
   if (pnl->has_pk_eq == _TRUE_) {
 
@@ -2840,7 +2920,6 @@ int input_default_params(
                          ) {
 
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
-  int filenum;
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
 
@@ -2995,15 +3074,6 @@ int input_default_params(
   ppt->has_Nbody_gauge_transfers = _FALSE_;
   ppt->k_output_values_num=0;
   ppt->store_perturbations = _FALSE_;
-  ppt->number_of_scalar_titles=0;
-  ppt->number_of_vector_titles=0;
-  ppt->number_of_tensor_titles=0;
-  for (filenum = 0; filenum<_MAX_NUMBER_OF_K_FILES_; filenum++){
-    ppt->scalar_perturbations_data[filenum] = NULL;
-    ppt->vector_perturbations_data[filenum] = NULL;
-    ppt->tensor_perturbations_data[filenum] = NULL;
-  }
-  ppt->index_k_output_values=NULL;
 
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
@@ -3094,6 +3164,15 @@ int input_default_params(
   ppm->custom9=0.;
   ppm->custom10=0.;
 
+  /** - nonlinear structure */
+
+  pnl->method = nl_none;
+  pnl->extrapolation_method = extrap_max_scaled;
+  pnl->has_pk_eq = _FALSE_;
+
+  pnl->feedback = nl_emu_dmonly;
+  pnl->z_infinity = 10.;
+
   /** - transfer structure */
 
   ptr->selection_bias[0]=1.;
@@ -3106,6 +3185,16 @@ int input_default_params(
   ptr->has_nz_file = _FALSE_;
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
+
+  /** - spectra structure */
+
+  psp->z_max_pk = pop->z_pk[0];
+  psp->non_diag=0;
+
+  /** - lensing structure */
+
+  ple->has_lensed_cls = _FALSE_;
+
   /** - output structure */
 
   pop->z_pk_num = 1;
@@ -3117,22 +3206,6 @@ int input_default_params(
   pop->write_thermodynamics = _FALSE_;
   pop->write_perturbations = _FALSE_;
   pop->write_primordial = _FALSE_;
-
-  /** - spectra structure */
-
-  psp->z_max_pk = pop->z_pk[0];
-  psp->non_diag=0;
-
-  /** - nonlinear structure */
-
-  /** - lensing structure */
-
-  ple->has_lensed_cls = _FALSE_;
-
-  /** - nonlinear structure */
-
-  pnl->method = nl_none;
-  pnl->has_pk_eq = _FALSE_;
 
   /** - all verbose parameters */
 
@@ -3504,7 +3577,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     case sigma8:
-      output[i] = sp.sigma8-pfzw->target_value[i];
+      output[i] = nl.sigma8[nl.index_pk_m]-pfzw->target_value[i];
       break;
     }
   }

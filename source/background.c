@@ -530,7 +530,6 @@ int background_w_fld(
     if (pba->has_dcdm == _TRUE_)
         class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
     a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
-    class_stop(pba->error_message,"a_eq = %e, z_eq =%e\n",a_eq,1./a_eq-1.);
 
     // w_ede(a) taken from eq. (11) in 1706.00730
     *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
@@ -566,7 +565,14 @@ int background_w_fld(
         implement a numerical calculation of this integral only for
         a=a_ini, using for instance Romberg integration. It should be
         fast, simple, and accurate enough. */
-  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    break;
+  case EDE:
+    class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    break;
+  }
 
   /** note: of course you can generalise these formulas to anything,
       defining new parameters pba->w..._fld. Just remember that so
@@ -2399,7 +2405,6 @@ int background_derivs(
       (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
   }
-
 
   return _SUCCESS_;
 

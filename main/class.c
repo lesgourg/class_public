@@ -10,10 +10,10 @@ int main(int argc, char **argv) {
   struct background ba;       /* for cosmological background */
   struct thermo th;           /* for thermodynamics */
   struct perturbs pt;         /* for source functions */
-  struct transfers tr;        /* for transfer functions */
   struct primordial pm;       /* for primordial spectra */
-  struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
+  struct transfers tr;        /* for transfer functions */
+  struct spectra sp;          /* for output spectra */
   struct lensing le;          /* for lensed spectra */
   struct output op;           /* for output files */
   ErrorMsg errmsg;            /* for error messages */

@@ -605,8 +605,12 @@ int lensing_init(
       if (ple->has_te==_TRUE_ || ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
         /* X_022 = exp(-(fac-1.)*sigma2[index_mu]); */
         X_022 = X_000 * (1+sigma2[index_mu]*(1+0.5*sigma2[index_mu])); /* Order 2 */
-        X_p022 = (fac-1.)*X_022;
-        /* X_242 = 0.25*sqrt4[l]  * exp(-(fac-5./2.)*sigma2[index_mu]); */
+        X_p022 = -(fac-1.)*X_022; /* Old versions were missing the
+        minus sign in this line, which introduced a very small error
+        on the high-l C_l^TE lensed spectrum [credits for bug fix:
+        Selim Hotinli] */
+
+        /* X_242 = 0.25*sqrt4[l] * exp(-(fac-5./2.)*sigma2[index_mu]); */
         X_242 = 0.25*sqrt4[l] * X_000; /* Order 0 */
         if (ple->has_ee==_TRUE_ || ple->has_bb==_TRUE_) {
 

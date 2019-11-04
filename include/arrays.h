@@ -242,6 +242,13 @@ int array_integrate_all_trapzd_or_spline(
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
 
+  int array_search_bisect(
+                       int n_lines,
+                       double * __restrict__ array,
+                       double c,
+                       int * __restrict__ last_index,
+                       ErrorMsg errmsg);
+
   int array_interpolate_linear(
 			       double * x_array,
 			       int n_lines,
