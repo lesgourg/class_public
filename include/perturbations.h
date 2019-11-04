@@ -222,7 +222,6 @@ struct perturbs
 
   short has_source_t;  /**< do we need source for CMB temperature? */
   short has_source_p;  /**< do we need source for CMB polarization? */
-  short has_source_delta_tot;   /**< do we need source for delta total? */
   short has_source_delta_m;   /**< do we need source for delta of total matter? */
   short has_source_delta_cb; /**< do we ALSO need source for delta of ONLY cdm and baryon? */
   short has_source_delta_tot;  /**< do we need source for delta total? */
@@ -235,7 +234,6 @@ struct perturbs
   short has_source_delta_dr; /**< do we need source for delta of decay radiation? */
   short has_source_delta_ur; /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
   short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_theta_tot;    /**< do we need source for theta total? */
   short has_source_theta_m;    /**< do we need source for theta of total matter? */
   short has_source_theta_cb; /**< do we ALSO need source for theta of ONLY cdm and baryon? */
   short has_source_theta_tot;  /**< do we need source for theta total? */
@@ -304,6 +302,7 @@ struct perturbs
   int index_tp_eta;          /**< index value for metric fluctuation eta */
   int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
   int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
+  int index_tp_H_T_Nb_prime_prime; /**< index value for metric fluctuation H_T_Nb'' */
   int index_tp_k2gamma_Nb;     /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */

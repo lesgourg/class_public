@@ -246,6 +246,9 @@ int perturb_output_data(
           class_store_double(dataptr,tk[ppt->index_tp_h_prime],ppt->has_source_h_prime,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_eta],ppt->has_source_eta,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_eta_prime],ppt->has_source_eta_prime,storeidx);
+          class_store_double(dataptr,tk[ppt->index_tp_H_T_Nb_prime],ppt->has_source_H_T_Nb_prime,storeidx);
+          class_store_double(dataptr,tk[ppt->index_tp_H_T_Nb_prime_prime],ppt->has_source_k2gamma_Nb,storeidx);
+          class_store_double(dataptr,tk[ppt->index_tp_k2gamma_Nb],ppt->has_source_k2gamma_Nb,storeidx);
         }
         if (ppt->has_velocity_transfers == _TRUE_) {
 
@@ -332,6 +335,9 @@ int perturb_output_titles(
       class_store_columntitle(titles,"h_prime",ppt->has_source_h_prime);
       class_store_columntitle(titles,"eta",ppt->has_source_eta);
       class_store_columntitle(titles,"eta_prime",ppt->has_source_eta_prime);
+      class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_H_T_Nb_prime);
+      class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_k2gamma_Nb);
+      class_store_columntitle(titles,"k2gamma_Nb",ppt->has_source_k2gamma_Nb);
     }
     if (ppt->has_velocity_transfers == _TRUE_) {
       class_store_columntitle(titles,"t_g",_TRUE_);
@@ -1174,8 +1180,8 @@ int perturb_indices_of_perturbs(
           ppt->has_source_eta = _TRUE_;
           ppt->has_source_eta_prime = _TRUE_;
         }
-	ppt->has_source_H_T_Nb_prime = _TRUE_;
-	ppt->has_source_k2gamma_Nb = _TRUE_;
+        ppt->has_source_H_T_Nb_prime = _TRUE_;
+        ppt->has_source_k2gamma_Nb = _TRUE_;
       }
 
       if (ppt->has_Nbody_gauge_transfers == _TRUE_){
@@ -5828,6 +5834,7 @@ int perturb_total_stress_energy(
   /** - define local variables */
 
   double a,a2,a_prime_over_a,k2;
+  double rho_plus_p_tot=0.;
   double rho_m=0.;
   double delta_rho_m=0.;
   double rho_plus_p_m=0.;
@@ -6461,7 +6468,8 @@ int perturb_sources(
 
   double a_rel, a2_rel, f_dr;
 
-  double rho_plus_p_tot, H_T_Nb_prime;
+  double rho_plus_p_tot, H_T_Nb_prime, rho_tot;
+  double theta_over_k2,theta_shift;
 
   /** - rename structure fields (just to avoid heavy notations) */
 
@@ -6635,17 +6643,21 @@ int perturb_sources(
     if (ppt->has_source_H_T_Nb_prime == _TRUE_) {
       rho_plus_p_tot = (pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
       H_T_Nb_prime = 3*a_prime_over_a/rho_plus_p_tot*(-ppw->delta_p+
-						      pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/rho_plus_p_tot/k/k+
-						      ppw->rho_plus_p_shear);
+                                                      pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/rho_plus_p_tot/k/k+
+                                                      ppw->rho_plus_p_shear);
       _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
       /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. Note: term involving the second derivative H_T_Nb_prime_prime
-	  will be added in the spectra module. This is because we compute the derivative numerically since the analytic
-	  expression would contain the derivatives of pressure and shear which are cumbersome to compute and is only feasible
-	  in a simplified cosmology with no massive neutrino or DE perturbations. */
+          will be added in the spectra module. This is because we compute the derivative numerically since the analytic
+          expression would contain the derivatives of pressure and shear which are cumbersome to compute and is only feasible
+          in a simplified cosmology with no massive neutrino or DE perturbations. */
       if (ppt->has_source_k2gamma_Nb == _TRUE_){
-	_set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
+        _set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
       }
 
+    }
+
+    if (ppt->has_source_k2gamma_Nb == _TRUE_) {
+	  class_stop(ppt->error_message,"We need to compute the derivative of H_T_Nb_prime numerically. Written by T. Tram but not yet propagated here. See devel branch prior to merging with hmcode branch");
     }
 
     /* Bardeen potential -PHI_H = phi in Newtonian gauge */
@@ -6724,6 +6736,17 @@ int perturb_sources(
       _set_source_(ppt->index_tp_delta_cb) = ppw->delta_cb;
     }
 
+    /* compute the corrections that have to be applied to each (delta_i, theta_i) in N-body gauge */
+	if (ppt->has_Nbody_gauge_transfers == _TRUE_){
+      theta_over_k2 = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+      theta_shift = H_T_Nb_prime;
+      if (ppt->gauge == synchronous) theta_shift += pvecmetric[ppw->index_mt_alpha]*k*k;
+	}
+	else{
+	  theta_over_k2 = 0.;
+	  theta_shift = 0.;
+	}
+
     /* delta_tot */
     if (ppt->has_source_delta_tot == _TRUE_)  {
 
@@ -6736,9 +6759,11 @@ int perturb_sources(
       }
 
       // new:
-      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/rho_tot;
+      _set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/rho_tot
+        + 3*a_prime_over_a*(1+pvecback[pba->index_bg_p_tot]/pvecback[pba->index_bg_rho_tot])*theta_over_k2;
       // old:
       //_set_source_(ppt->index_tp_delta_tot) = ppw->delta_rho/ppw->rho_tot;
+
       fprintf(stderr,"JL: after checking that these two numbers are equal, %e=%e, we can remove compltely ppw->rho_tot from everywhere, as well as this comment!\n",
               ppw->rho_tot,
               rho_tot);
@@ -6746,27 +6771,32 @@ int perturb_sources(
 
     /* delta_g */
     if (ppt->has_source_delta_g == _TRUE_)  {
-      _set_source_(ppt->index_tp_delta_g) = delta_g;
+      _set_source_(ppt->index_tp_delta_g) = delta_g
+        + 4.*a_prime_over_a*theta_over_k2; // N-body gauge correction
     }
 
     /* delta_baryon */
     if (ppt->has_source_delta_b == _TRUE_) {
-      _set_source_(ppt->index_tp_delta_b) = y[ppw->pv->index_pt_delta_b];
+      _set_source_(ppt->index_tp_delta_b) = y[ppw->pv->index_pt_delta_b]
+        + 3.*a_prime_over_a*theta_over_k2; // N-body gauge correction
     }
 
     /* delta_cdm */
     if (ppt->has_source_delta_cdm == _TRUE_) {
-      _set_source_(ppt->index_tp_delta_cdm) = y[ppw->pv->index_pt_delta_cdm];
+      _set_source_(ppt->index_tp_delta_cdm) = y[ppw->pv->index_pt_delta_cdm]
+        + 3.*a_prime_over_a*theta_over_k2; // N-body gauge correction
     }
 
     /* delta_dcdm */
     if (ppt->has_source_delta_dcdm == _TRUE_) {
-      _set_source_(ppt->index_tp_delta_dcdm) = y[ppw->pv->index_pt_delta_dcdm];
+      _set_source_(ppt->index_tp_delta_dcdm) = y[ppw->pv->index_pt_delta_dcdm]
+        + (3.*a_prime_over_a+a_rel*pba->Gamma_dcdm)*theta_over_k2; // N-body gauge correction;
     }
 
     /* delta_fld */
     if (ppt->has_source_delta_fld == _TRUE_) {
-      _set_source_(ppt->index_tp_delta_fld) = ppw->delta_rho_fld/pvecback[pba->index_bg_rho_fld];
+      _set_source_(ppt->index_tp_delta_fld) = ppw->delta_rho_fld/pvecback[pba->index_bg_rho_fld]
+        + 3.*a_prime_over_a*(1.+pvecback[pba->index_bg_w_fld])*theta_over_k2; // N-body gauge correction
     }
 
     /* delta_scf */
@@ -6774,13 +6804,15 @@ int perturb_sources(
       if (ppt->gauge == synchronous){
         delta_rho_scf =  1./3.*
           (1./a2_rel*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
-           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]);
+           + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf])
+          + 3.*a_prime_over_a*(1.+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf])*theta_over_k2; // N-body gauge correction
       }
       else{
         delta_rho_scf =  1./3.*
           (1./a2_rel*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_prime_scf]
            + ppw->pvecback[pba->index_bg_dV_scf]*y[ppw->pv->index_pt_phi_scf]
-           - 1./a2_rel*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*ppw->pvecmetric[ppw->index_mt_psi]);
+           - 1./a2_rel*pow(ppw->pvecback[pba->index_bg_phi_prime_scf],2)*ppw->pvecmetric[ppw->index_mt_psi])
+          + 3.*a_prime_over_a*(1.+pvecback[pba->index_bg_p_scf]/pvecback[pba->index_bg_rho_scf])*theta_over_k2; // N-body gauge correction
       }
       _set_source_(ppt->index_tp_delta_scf) = delta_rho_scf/pvecback[pba->index_bg_rho_scf];
     }
@@ -6788,27 +6820,33 @@ int perturb_sources(
     /* delta_dr */
     if (ppt->has_source_delta_dr == _TRUE_) {
       f_dr = pow(a2_rel/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
-      _set_source_(ppt->index_tp_delta_dr) = y[ppw->pv->index_pt_F0_dr]/f_dr;
+      _set_source_(ppt->index_tp_delta_dr) = y[ppw->pv->index_pt_F0_dr]/f_dr
+        + 4.*a_prime_over_a*theta_over_k2; // N-body gauge correction
     }
 
     /* delta_ur */
     if (ppt->has_source_delta_ur == _TRUE_) {
       if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off)
-        _set_source_(ppt->index_tp_delta_ur) = y[ppw->pv->index_pt_delta_ur];
+        _set_source_(ppt->index_tp_delta_ur) = y[ppw->pv->index_pt_delta_ur]
+          + 4.*a_prime_over_a*theta_over_k2; // N-body gauge correction
       else
-        _set_source_(ppt->index_tp_delta_ur) = ppw->rsa_delta_ur;
+        _set_source_(ppt->index_tp_delta_ur) = ppw->rsa_delta_ur
+          + 4.*a_prime_over_a*theta_over_k2; // N-body gauge correction
     }
 
     /* delta_ncdm1 */
     if (ppt->has_source_delta_ncdm == _TRUE_) {
       for (index_tp = ppt->index_tp_delta_ncdm1; index_tp < ppt->index_tp_delta_ncdm1+pba->N_ncdm; index_tp++) {
-        _set_source_(index_tp) = ppw->delta_ncdm[index_tp - ppt->index_tp_delta_ncdm1];
+        _set_source_(index_tp) = ppw->delta_ncdm[index_tp - ppt->index_tp_delta_ncdm1]
+          + 3.*a_prime_over_a*(1+pvecback[index_tp - ppt->index_tp_delta_ncdm1 + pba->index_bg_p_ncdm1]
+                               /pvecback[index_tp - ppt->index_tp_delta_ncdm1 + pba->index_bg_rho_ncdm1])*theta_over_k2; // N-body gauge correction
       }
     }
 
     /* total velocity  */
     if (ppt->has_source_theta_tot == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot])
+        + theta_shift; // N-body gauge correction
     }
 
     /* total matter velocity (gauge-invariant, defined as in arXiv:1307.1459) */
@@ -6823,30 +6861,36 @@ int perturb_sources(
 
     /* total velocity */
     if (ppt->has_source_theta_tot == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/ppw->rho_plus_p_tot;
+      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/ppw->rho_plus_p_tot
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_g */
     if (ppt->has_source_theta_g == _TRUE_) {
       if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off)
-        _set_source_(ppt->index_tp_theta_g) = y[ppw->pv->index_pt_theta_g];
+        _set_source_(ppt->index_tp_theta_g) = y[ppw->pv->index_pt_theta_g]
+          + theta_shift; // N-body gauge correction
       else
-        _set_source_(ppt->index_tp_theta_g) = ppw->rsa_theta_g;
+        _set_source_(ppt->index_tp_theta_g) = ppw->rsa_theta_g
+          + theta_shift; // N-body gauge correction
     }
 
     /* theta_baryon */
     if (ppt->has_source_theta_b == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_b) = y[ppw->pv->index_pt_theta_b];
+      _set_source_(ppt->index_tp_theta_b) = y[ppw->pv->index_pt_theta_b]
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_cdm */
     if (ppt->has_source_theta_cdm == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_cdm) = y[ppw->pv->index_pt_theta_cdm];
+      _set_source_(ppt->index_tp_theta_cdm) = y[ppw->pv->index_pt_theta_cdm]
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_dcdm */
     if (ppt->has_source_theta_dcdm == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_dcdm) = y[ppw->pv->index_pt_theta_dcdm];
+      _set_source_(ppt->index_tp_theta_dcdm) = y[ppw->pv->index_pt_theta_dcdm]
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_fld */
@@ -6854,35 +6898,44 @@ int perturb_sources(
 
       class_call(background_w_fld(pba,a_rel*pba->a_today,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, ppt->error_message);
 
-      _set_source_(ppt->index_tp_theta_fld) = ppw->rho_plus_p_theta_fld/(1.+w_fld)/pvecback[pba->index_bg_rho_fld];
+      _set_source_(ppt->index_tp_theta_fld) = ppw->rho_plus_p_theta_fld/(1.+w_fld)/pvecback[pba->index_bg_rho_fld]
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_scf */
     if (ppt->has_source_theta_scf == _TRUE_) {
+
       rho_plus_p_theta_scf = 1./3.*
         k*k/a2_rel*ppw->pvecback[pba->index_bg_phi_prime_scf]*y[ppw->pv->index_pt_phi_scf];
-      _set_source_(ppt->index_tp_theta_scf) = rho_plus_p_theta_scf/
-        (pvecback[pba->index_bg_rho_scf]+pvecback[pba->index_bg_p_scf]);
+
+      _set_source_(ppt->index_tp_theta_scf) = rho_plus_p_theta_scf/(pvecback[pba->index_bg_rho_scf]+pvecback[pba->index_bg_p_scf])
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_dr */
     if (ppt->has_source_theta_dr == _TRUE_) {
+
       f_dr = pow(a2_rel/pba->H0,2)*pvecback[pba->index_bg_rho_dr];
-      _set_source_(ppt->index_tp_theta_dr) = 3./4.*k*y[ppw->pv->index_pt_F0_dr+1]/f_dr;
+
+      _set_source_(ppt->index_tp_theta_dr) = 3./4.*k*y[ppw->pv->index_pt_F0_dr+1]/f_dr
+        + theta_shift; // N-body gauge correction
     }
 
     /* theta_ur */
     if (ppt->has_source_theta_ur == _TRUE_) {
       if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off)
-        _set_source_(ppt->index_tp_theta_ur) = y[ppw->pv->index_pt_theta_ur];
+        _set_source_(ppt->index_tp_theta_ur) = y[ppw->pv->index_pt_theta_ur]
+          + theta_shift; // N-body gauge correction
       else
-        _set_source_(ppt->index_tp_theta_ur) = ppw->rsa_theta_ur;
+        _set_source_(ppt->index_tp_theta_ur) = ppw->rsa_theta_ur
+          + theta_shift; // N-body gauge correction
     }
 
     /* theta_ncdm1 */
     if (ppt->has_source_theta_ncdm == _TRUE_) {
       for (index_tp = ppt->index_tp_theta_ncdm1; index_tp < ppt->index_tp_theta_ncdm1+pba->N_ncdm; index_tp++) {
-        _set_source_(index_tp) = ppw->theta_ncdm[index_tp - ppt->index_tp_theta_ncdm1];
+        _set_source_(index_tp) = ppw->theta_ncdm[index_tp - ppt->index_tp_theta_ncdm1]
+          + theta_shift; // N-body gauge correction
       }
     }
   }
