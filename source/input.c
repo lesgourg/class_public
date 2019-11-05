@@ -2373,11 +2373,53 @@ int input_read_parameters_species(struct file_content * pfc,
                "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
   }
 
+  /* New interacting DM, DCH */
+
+  /** 8) DM interacting with baryons (IDM_B) */
+  /** 8.a) Cross section and fraction */
+  /* Read */
+
+  class_read_double("cross_idm_b",pth->cross_idm_b); //read the cross section between DM and baryons
+  class_read_double("f_idm_b",pba->f_idm_b); //read fraction of interacting DM
+
+  /* Consistency checks */
+  class_test(((pba->f_idm_b > 1.0)||(pba->f_idm_b < 0.0)),
+             errmsg,
+             "The fraction of DM interacting with baryons has to be between 0 and 1, you passed f_idm_b = %e.", pba->f_idm_b); //check that the fraction of idm is consistent
+  class_test(((pba->f_idm_b > 0) && (pth->cross_idm_b == 0)),
+             errmsg,
+             "You asked for a non-zero fraction of interacting DM, You need to also give a non-zero cross section between DM and baryons."); //check that if IDM is called, there is some coupling
+  if (input_verbose > 0){
+    if ((pth->cross_idm_b >0) && (pba->f_idm_b = 0.0)){
+      printf("Warning: you have passed a non-zero cross section between DM and baryons, but set the fraction of interacting DM to 0. I will assume CDM.\n");
+    }
+  }
+
+  /** 8.b) Find Omega_idm_b from Omega_cdm and f_idm_b */
+
+  if (pba->f_idm_b > 0.0){
+    pba->Omega0_idm_b = pba->f_idm_b*pba->Omega0_cdm;
+    pba->Omega0_cdm = (1.-pba->f_idm_b)*pba->Omega0_cdm;
+  }
+
+  /** 8.c) Read other idm_b parameters */
+
+  if(pba->Omega0_idm > 0.0){ //read the other parameters needed for idm DCH
+    class_read_double("m_dm",pba->m_dm); //read the dark matter mass, in eV
+    class_read_double("n_index_idm_b",pth->n_index_idm_b); //read the index n for the dm-baryon interaction, sigma = cross_idm_b*v^n
+    class_test(((pth->n_index_idm_b > 4)||(pth->n_index_idm_b < -4)),
+               errmsg,
+               "The index for the DM-baryon interaction must be between -4 and 4."); //check that the index is in the accepted range
+    // the following lines set the coefficent cn. TODO: change this to the actual formula used in Dvorkin et al. (2013)
+    float cn_list[9] = {0.27, 0.33, 0.53, 1.0, 2.1, 5.0, 13.0, 35.0, 102.0};
+    pth->n_coeff_idm_b = cn_list[4+pth->n_index_idm_b];
+    pth->u_idm_b = pth->cross_idm_b/pba->m_dm;
+  }
+
   /* ** ADDITIONAL SPECIES ** */
 
-
   /* At this point all the species should be set, and used for the budget equation below */
-  /** 8) Dark energy
+  /** 9) Dark energy
          Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
          fluid), Omega0_scf (scalar field) */
   /* Read */
@@ -2455,9 +2497,9 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /* ** END OF BUDGET EQUATION ** */
 
-  /** 8.a) If Omega fluid is different from 0 */
+  /** 9.a) If Omega fluid is different from 0 */
   if (pba->Omega0_fld != 0.) {
-    /** 8.a.1) PPF approximation */
+    /** 9.a.1) PPF approximation */
     /* Read */
     class_call(parser_read_string(pfc,"use_ppf",&string1,&flag1,errmsg),
                errmsg,
@@ -2472,7 +2514,7 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
 
-    /** 8.a.2) Equation of state */
+    /** 9.a.2) Equation of state */
     /* Read */
     class_call(parser_read_string(pfc,"fluid_equation_of_state",&string1,&flag1,errmsg),
                errmsg,
@@ -2491,7 +2533,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
     if (pba->fluid_equation_of_state == CLP) {
-      /** 8.a.2.2) Equation of state of the fluid in 'CLP' case */
+      /** 9.a.2.2) Equation of state of the fluid in 'CLP' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("wa_fld",pba->wa_fld);
@@ -2499,7 +2541,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
     if (pba->fluid_equation_of_state == EDE) {
-      /** 8.c.2) Equation of state of the fluid in 'EDE' case */
+      /** 9.c.2) Equation of state of the fluid in 'EDE' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("Omega_EDE",pba->Omega_EDE);
@@ -2507,10 +2549,10 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
 
-  /** 8.b) If Omega scalar field (SCF) is different from 0 */
+  /** 9.b) If Omega scalar field (SCF) is different from 0 */
   if (pba->Omega0_scf != 0.){
 
-    /** 8.b.1) Additional SCF parameters */
+    /** 9.b.1) Additional SCF parameters */
     /* Read */
     class_call(parser_read_list_of_doubles(pfc,
                                            "scf_parameters",
@@ -2520,7 +2562,7 @@ int input_read_parameters_species(struct file_content * pfc,
                                            errmsg),
                errmsg,errmsg);
 
-    /** 8.b.2) SCF initial conditions from attractor solution */
+    /** 9.b.2) SCF initial conditions from attractor solution */
     /* Read */
     class_call(parser_read_string(pfc,
                                   "attractor_ic_scf",
@@ -2545,7 +2587,7 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
 
-    /** 8.b.3) SCF tuning parameter */
+    /** 9.b.3) SCF tuning parameter */
     /* Read */
     class_read_int("scf_tuning_index",pba->scf_tuning_index);
     /* Test */
@@ -2554,7 +2596,7 @@ int input_read_parameters_species(struct file_content * pfc,
                "Tuning index 'scf_tuning_index' (%d) is larger than the number of entries (%d) in 'scf_parameters'.",
                pba->scf_tuning_index,pba->scf_parameters_size);
 
-    /** 8.b.4) Shooting parameter */
+    /** 9.b.4) Shooting parameter */
     /* Read */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
     /* Complete set of parameters */
@@ -3988,10 +4030,14 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
   }
 
-  /** 3.c) Maximum redshift */
+  /** 3.c) Maximum redshift + Lya (as this can affect the max redshift) DCH */
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
     /* Read */
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    /* DCH Lya */
+    class_call(parser_read_string(pfc,"compute_neff_Lya",&string2,&flag2,errmsg),
                errmsg,
                errmsg);
     /* Complete set of parameters */
@@ -4027,10 +4073,29 @@ int input_read_parameters_spectra(struct file_content * pfc,
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
+
+      /* DCH Lya*/
+      if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))) {
+        psp->compute_neff_Lya=_TRUE_;
+        class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
+        class_read_double("Lya_z",psp->Lya_z);
+        ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
+      }
+
       /* Now we have checked all contributions that could change z_max_pk */
     }
     psp->z_max_pk = ppt->z_max_pk;
   }
+
+  /* 4) Read parameters specific to the Lya computation, */
+  class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+    psp->compute_neff_Lya=_TRUE_;
+  }
+  class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
+  class_read_double("Lya_z",psp->Lya_z);
 
   return _SUCCESS_;
 
@@ -4766,7 +4831,7 @@ int input_default_params(struct background *pba,
   pba->K = 0.;
   pba->sgnK = 0;
 
-  /* ** ADDITIONAL SPECIES ** --> Add your species here */
+  /* ** ADDITIONAL SPECIES ** */
 
   /** 7.a) Fractional density of dcdm+dr */
   pba->Omega0_dcdmdr = 0.0;
@@ -4775,35 +4840,47 @@ int input_default_params(struct background *pba,
   pba->Gamma_dcdm = 0.0;
   pba->tau_dcdm = 0.0;
 
-  /* ** ADDITIONAL SPECIES ** */
+  /* ** ADDITIONAL SPECIES ** --> Add your species here */
 
-  /** 8) Dark energy contributions */
+  /** 8) DM interacting with baryons (IDM_B) DCH */
+  /** 8.a) Cross section and fraction */
+  pth->cross_idm_b = 0.;   /* dark matter-baryon cross section for idm DCH*/
+  pba->f_idm_b = 0
+  /** 8.b) Omega_idm_b from Omega_cdm and f_idm_b */
+  pba->Omega0_idm_b = 0;
+  /** 8.c) Other idm_b parameters */
+  pba->m_dm = 1.e9;        /* dark matter mass for idm in eV DCH changed to pba for recfast*/
+  pth->u_idm_b = 1.;       /* ratio between cross section and mass, used for comparison purposes DCH */
+  pth->n_index_idm_b = 0.; /* dark matter index n for idm_b DCH*/
+  pth->n_coeff_idm_b = 0.; /* dark matter coefficient cn for idm_b DCH*/
+
+  /** 9) Dark energy contributions */
   pba->Omega0_fld = 0.;
   pba->Omega0_scf = 0.;
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
-  /** 8.a) Omega fluid */
-  /** 8.a.1) PPF approximation */
+  /** 9.a) Omega fluid */
+  /** 9.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;
-  /** 8.a.2) Equation of state */
+  /** 9.a.2) Equation of state */
   pba->fluid_equation_of_state = CLP;
   pba->w0_fld = -1.;
   pba->cs2_fld = 1.;
-  /** 8.a.2.1) 'CLP' case */
+  /** 9.a.2.1) 'CLP' case */
   pba->wa_fld = 0.;
-  /** 8.a.2.2) 'EDE' case */
+  /** 9.a.2.2) 'EDE' case */
   pba->Omega_EDE = 0.;
-  /** 8.b) Omega scalar field */
-  /** 8.b.1) Potential parameters and initial conditions */
+  /** 9.b) Omega scalar field */
+  /** 9.b.1) Potential parameters and initial conditions */
   pba->scf_parameters = NULL;
   pba->scf_parameters_size = 0;
-  /** 8.b.2) Initial conditions from attractor solution */
+  /** 9.b.2) Initial conditions from attractor solution */
   pba->attractor_ic_scf = _TRUE_;
   pba->phi_ini_scf = 1;                // MZ: initial conditions are as multiplicative
   pba->phi_prime_ini_scf = 1;          //     factors of the radiation attractor values
-  /** 8.b.3) Tuning parameter */
+  /** 9.b.3) Tuning parameter */
   pba->scf_tuning_index = 0;
-  /** 8.b.4) Shooting parameter */
+  /** 9.b.4) Shooting parameter */
   pba->shooting_failed = _FALSE_;
 
   /**
@@ -5009,6 +5086,11 @@ int input_default_params(struct background *pba,
   pop->z_pk[0] = 0.;
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
+
+  /** 4) Lya DCH */
+  psp->compute_neff_Lya=_FALSE_;
+  psp->Lya_k_s_over_km=0.009;
+  psp->Lya_z=3.0;
 
   /**
    * Default to input_read_parameters_lensing
