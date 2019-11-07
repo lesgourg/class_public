@@ -1415,7 +1415,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for spectra quantities */
-  class_call(input_read_parameters_spectra(pfc,ppr,pba,ppt,ptr,psp,pop,
+  class_call(input_read_parameters_spectra(pfc,ppr,pba,ppm,ppt,ptr,psp,pop,
                                            errmsg),
              errmsg,
              errmsg);
@@ -3739,6 +3739,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
 int input_read_parameters_spectra(struct file_content * pfc,
                                   struct precision * ppr,
                                   struct background * pba,
+                                  struct primordial * ppm,
                                   struct perturbs * ppt,
                                   struct transfers * ptr,
                                   struct spectra *psp,
@@ -3965,6 +3966,30 @@ int input_read_parameters_spectra(struct file_content * pfc,
     }
     if (flag2 == _TRUE_){
       ppt->k_max_for_pk=param2;
+    }
+
+    /** 3.a.1) Maximum k in primordial P(k) */
+    /* Read */
+    class_call(parser_read_double(pfc,"primordial_P_k_max_h/Mpc",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"primordial_P_k_max_1/Mpc",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+               errmsg,
+               "You can only enter one of 'primordial_P_k_max_h/Mpc' or 'primordial_P_k_max_1/Mpc'.");
+    /* Complete set of parameters */
+    ppm->has_k_max_for_primordial_pk = _FALSE_;  // If the flag is _FALSE_, in primordial.c (primordial_init)
+                                                 // the ppt value for k_max is employed.
+    if (flag1 == _TRUE_){
+      ppm->k_max_for_primordial_pk=param1*pba->h;
+      ppm->has_k_max_for_primordial_pk = _TRUE_;
+    }
+    if (flag2 == _TRUE_){
+      ppm->k_max_for_primordial_pk=param2;
+      ppm->has_k_max_for_primordial_pk = _TRUE_;
     }
 
     /** 3.b) Redshift values */

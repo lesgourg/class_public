@@ -416,6 +416,7 @@ extern "C" {
   int input_read_parameters_spectra(struct file_content * pfc,
                                     struct precision * ppr,
                                     struct background * pba,
+                                    struct primordial * ppm,
                                     struct perturbs * ppt,
                                     struct transfers * ptr,
                                     struct spectra * psp,

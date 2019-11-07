@@ -217,7 +217,12 @@ int primordial_init(
   /** - get kmin and kmax from perturbation structure. Test that they make sense. */
 
   k_min = ppt->k_min; /* first value, inferred from perturbations structure */
-  k_max = ppt->k_max; /* last value, inferred from perturbations structure */
+  if(ppm->has_k_max_for_primordial_pk == _TRUE_){
+    k_max = ppm->k_max_for_primordial_pk; /* last value, user-defined (i.e. if specified in .ini file) */
+  }
+  else{
+    k_max = ppt->k_max; /* last value, inferred from perturbations structure */
+  }
 
   class_test(k_min <= 0.,
              ppm->error_message,
