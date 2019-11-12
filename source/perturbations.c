@@ -945,10 +945,10 @@ int perturb_indices_of_perturbs(
 
   /** - define local variables */
 
-  int index_tp;
+  int index_type;
   int index_md;
   int index_ic;
-  int index_tp_common;
+  int index_type_common;
   int filenum;
 
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
@@ -1049,15 +1049,15 @@ int perturb_indices_of_perturbs(
     ppt->has_cmb = _TRUE_;
   }
 
-  index_tp = 0;
-  class_define_index(ppt->index_tp_t2,ppt->has_source_t,index_tp,1);
-  class_define_index(ppt->index_tp_p,ppt->has_source_p,index_tp,1);
-  index_tp_common = index_tp;
+  index_type = 0;
+  class_define_index(ppt->index_tp_t2,ppt->has_source_t,index_type,1);
+  class_define_index(ppt->index_tp_p,ppt->has_source_p,index_type,1);
+  index_type_common = index_type;
 
   /* indices for perturbed recombination */
 
-  class_define_index(ppt->index_tp_perturbed_recombination_delta_temp,ppt->has_perturbed_recombination,index_tp,1);
-  class_define_index(ppt->index_tp_perturbed_recombination_delta_chi,ppt->has_perturbed_recombination,index_tp,1);
+  class_define_index(ppt->index_tp_perturbed_recombination_delta_temp,ppt->has_perturbed_recombination,index_type,1);
+  class_define_index(ppt->index_tp_perturbed_recombination_delta_chi,ppt->has_perturbed_recombination,index_type,1);
 
 
 
@@ -1194,46 +1194,46 @@ int perturb_indices_of_perturbs(
         ppt->has_source_k2gamma_Nb = _TRUE_;
       }
 
-      index_tp = index_tp_common;
-      class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_tp,1);
-      class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_tp,1);
-      class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_tp,1);
-      class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_tp,1);
-      class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_tp,1);
-      class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_tp,1);
-      class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_tp,1);
-      class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_tp,1);
-      class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_tp,1);
-      class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_tp,1);
-      class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_tp,1);
-      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr,  index_tp,1);
-      class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_tp,1);
-      class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_tp,pba->N_ncdm);
-      class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_tp,1);
-      class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_tp,1);
-      class_define_index(ppt->index_tp_theta_tot,  ppt->has_source_theta_tot, index_tp,1);
-      class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_tp,1);
-      class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_tp,1);
-      class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_tp,1);
-      class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_tp,1);
-      class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_tp,1);
-      class_define_index(ppt->index_tp_theta_scf,  ppt->has_source_theta_scf, index_tp,1);
-      class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_tp,1);
-      class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_tp,1);
-      class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_tp,pba->N_ncdm);
-      class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_tp,1);
-      class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_tp,1);
-      class_define_index(ppt->index_tp_phi_plus_psi,ppt->has_source_phi_plus_psi,index_tp,1);
-      class_define_index(ppt->index_tp_psi,        ppt->has_source_psi,       index_tp,1);
-      class_define_index(ppt->index_tp_h,          ppt->has_source_h,         index_tp,1);
-      class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,   index_tp,1);
-      class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_tp,1);
-      class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime, index_tp,1);
-      class_define_index(ppt->index_tp_H_T_Nb_prime,ppt->has_source_H_T_Nb_prime,index_tp,1);
-      class_define_index(ppt->index_tp_k2gamma_Nb, ppt->has_source_k2gamma_Nb,index_tp,1);
-      ppt->tp_size[index_md] = index_tp;
+      index_type = index_type_common;
+      class_define_index(ppt->index_tp_t0,         ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_t1,         ppt->has_source_t,         index_type,1);
+      class_define_index(ppt->index_tp_delta_m,    ppt->has_source_delta_m,   index_type,1);
+      class_define_index(ppt->index_tp_delta_cb,   ppt->has_source_delta_cb,  index_type,1);
+      class_define_index(ppt->index_tp_delta_tot,  ppt->has_source_delta_tot, index_type,1);
+      class_define_index(ppt->index_tp_delta_g,    ppt->has_source_delta_g,   index_type,1);
+      class_define_index(ppt->index_tp_delta_b,    ppt->has_source_delta_b,   index_type,1);
+      class_define_index(ppt->index_tp_delta_cdm,  ppt->has_source_delta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_delta_dcdm, ppt->has_source_delta_dcdm,index_type,1);
+      class_define_index(ppt->index_tp_delta_fld,  ppt->has_source_delta_fld, index_type,1);
+      class_define_index(ppt->index_tp_delta_scf,  ppt->has_source_delta_scf, index_type,1);
+      class_define_index(ppt->index_tp_delta_dr,   ppt->has_source_delta_dr,  index_type,1);
+      class_define_index(ppt->index_tp_delta_ur,   ppt->has_source_delta_ur,  index_type,1);
+      class_define_index(ppt->index_tp_delta_ncdm1,ppt->has_source_delta_ncdm,index_type,pba->N_ncdm);
+      class_define_index(ppt->index_tp_theta_m,    ppt->has_source_theta_m,   index_type,1);
+      class_define_index(ppt->index_tp_theta_cb,   ppt->has_source_theta_cb,  index_type,1);
+      class_define_index(ppt->index_tp_theta_tot,  ppt->has_source_theta_tot, index_type,1);
+      class_define_index(ppt->index_tp_theta_g,    ppt->has_source_theta_g,   index_type,1);
+      class_define_index(ppt->index_tp_theta_b,    ppt->has_source_theta_b,   index_type,1);
+      class_define_index(ppt->index_tp_theta_cdm,  ppt->has_source_theta_cdm, index_type,1);
+      class_define_index(ppt->index_tp_theta_dcdm, ppt->has_source_theta_dcdm,index_type,1);
+      class_define_index(ppt->index_tp_theta_fld,  ppt->has_source_theta_fld, index_type,1);
+      class_define_index(ppt->index_tp_theta_scf,  ppt->has_source_theta_scf, index_type,1);
+      class_define_index(ppt->index_tp_theta_dr,   ppt->has_source_theta_dr,  index_type,1);
+      class_define_index(ppt->index_tp_theta_ur,   ppt->has_source_theta_ur,  index_type,1);
+      class_define_index(ppt->index_tp_theta_ncdm1,ppt->has_source_theta_ncdm,index_type,pba->N_ncdm);
+      class_define_index(ppt->index_tp_phi,        ppt->has_source_phi,       index_type,1);
+      class_define_index(ppt->index_tp_phi_prime,  ppt->has_source_phi_prime, index_type,1);
+      class_define_index(ppt->index_tp_phi_plus_psi,ppt->has_source_phi_plus_psi,index_type,1);
+      class_define_index(ppt->index_tp_psi,        ppt->has_source_psi,       index_type,1);
+      class_define_index(ppt->index_tp_h,          ppt->has_source_h,         index_type,1);
+      class_define_index(ppt->index_tp_h_prime,    ppt->has_source_h_prime,   index_type,1);
+      class_define_index(ppt->index_tp_eta,        ppt->has_source_eta,       index_type,1);
+      class_define_index(ppt->index_tp_eta_prime,  ppt->has_source_eta_prime, index_type,1);
+      class_define_index(ppt->index_tp_H_T_Nb_prime,ppt->has_source_H_T_Nb_prime,index_type,1);
+      class_define_index(ppt->index_tp_k2gamma_Nb, ppt->has_source_k2gamma_Nb,index_type,1);
+      ppt->tp_size[index_md] = index_type;
 
-      class_test(index_tp == 0,
+      class_test(index_type == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for scalars, so you should have at least one non-zero scalar source type (temperature, polarization, lensing/gravitational potential, ...). Please adjust your input.");
 
@@ -1259,12 +1259,12 @@ int perturb_indices_of_perturbs(
 
       /** - --> source flags and indices, for sources that are specific to vectors */
 
-      index_tp = index_tp_common;
-      class_define_index(ppt->index_tp_t1,ppt->has_source_t,index_tp,1);
-      ppt->tp_size[index_md] = index_tp;
+      index_type = index_type_common;
+      class_define_index(ppt->index_tp_t1,ppt->has_source_t,index_type,1);
+      ppt->tp_size[index_md] = index_type;
 
       /*
-      class_test(index_tp == 0,
+      class_test(index_type == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for vectors, so you should have at least one non-zero vector source type (temperature or polarization). Please adjust your input.");
       */
@@ -1282,12 +1282,12 @@ int perturb_indices_of_perturbs(
 
       /** - --> source flags and indices, for sources that are specific to tensors */
 
-      index_tp = index_tp_common;
+      index_type = index_type_common;
       /* nothing specific, unlike for vectors and scalars! */
-      ppt->tp_size[index_md] = index_tp;
+      ppt->tp_size[index_md] = index_type;
 
       /*
-      class_test(index_tp == 0,
+      class_test(index_type == 0,
                  ppt->error_message,
                  "inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
       */
@@ -1300,7 +1300,7 @@ int perturb_indices_of_perturbs(
 
     }
 
-    /** - (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_tp] */
+    /** - (d) for each mode, allocate array of arrays of source functions for each initial conditions and wavenumber, (ppt->source[index_md])[index_ic][index_type] */
 
     class_alloc(ppt->sources[index_md],
                 ppt->ic_size[index_md] * ppt->tp_size[index_md] * sizeof(double *),
