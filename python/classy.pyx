@@ -986,7 +986,7 @@ cdef class Class:
 
     # Defined twice ?
     def Omega_m(self):
-        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
+        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm + self.ba.Omega0_idm_b
 
     # This is commented because in the current form it only applies
     # to minimal LambdaCDM.
@@ -1009,6 +1009,10 @@ cdef class Class:
     def Neff(self):
         return self.ba.Neff
 
+    def k_eq(self):
+        self.compute(["background"])
+        return self.ba.a_eq*self.ba.H_eq
+
     def sigma8(self):
         self.compute(["spectra"])
         return self.sp.sigma8
@@ -1016,6 +1020,10 @@ cdef class Class:
     def sigma8_cb(self):
         self.compute(["spectra"])
         return self.sp.sigma8_cb
+
+    def neff(self):
+        self.compute(["spectra"])
+        return self.sp.neff
 
     def rs_drag(self):
         self.compute(["thermodynamics"])
@@ -1221,7 +1229,7 @@ cdef class Class:
         """
         Return the sum of Omega0 for all non-relativistic components
         """
-        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
+        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm + self.ba.Omega0_idm_b
 
     def get_background(self):
         """
@@ -1539,10 +1547,10 @@ cdef class Class:
             elif name == 'Neff':
                 value = self.ba.Neff
             elif name == 'Omega_m':
-                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
+                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+self.ba.Omega0_idm_b+
                          self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)
             elif name == 'omega_m':
-                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
+                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+self.ba.Omega0_idm_b+
                          self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)/self.ba.h**2
             elif name == 'tau_reio':
                 value = self.th.tau_reio
@@ -1672,6 +1680,10 @@ cdef class Class:
                 value = self.sp.sigma8
             elif name == 'sigma8_cb':
                 value = self.sp.sigma8_cb
+            elif name == 'neff':
+                value = self.sp.neff
+            elif name == 'k_eq':
+                value = self.ba.a_eq*self.ba.H_eq
             elif name == 'g_sd':
                 value = self.sd.sd_parameter_table[0]
             elif name == 'y_sd':

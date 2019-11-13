@@ -2111,6 +2111,7 @@ int spectra_indices(
   class_define_index(psp->index_tr_delta_g,ppt->has_source_delta_g,index_tr,1);
   class_define_index(psp->index_tr_delta_b,ppt->has_source_delta_b,index_tr,1);
   class_define_index(psp->index_tr_delta_cdm,ppt->has_source_delta_cdm,index_tr,1);
+  class_define_index(psp->index_tr_delta_idm_b,ppt->has_source_delta_idm_b,index_tr,1); //DCH
   class_define_index(psp->index_tr_delta_dcdm,ppt->has_source_delta_dcdm,index_tr,1);
   class_define_index(psp->index_tr_delta_scf,ppt->has_source_delta_scf,index_tr,1);
   class_define_index(psp->index_tr_delta_fld,ppt->has_source_delta_fld,index_tr,1);
@@ -2134,6 +2135,7 @@ int spectra_indices(
   class_define_index(psp->index_tr_theta_g,ppt->has_source_theta_g,index_tr,1);
   class_define_index(psp->index_tr_theta_b,ppt->has_source_theta_b,index_tr,1);
   class_define_index(psp->index_tr_theta_cdm,ppt->has_source_theta_cdm,index_tr,1);
+  class_define_index(psp->index_tr_theta_idm_b,ppt->has_source_theta_idm_b,index_tr,1); //DCH
   class_define_index(psp->index_tr_theta_dcdm,ppt->has_source_theta_dcdm,index_tr,1);
   class_define_index(psp->index_tr_theta_scf,ppt->has_source_theta_scf,index_tr,1);
   class_define_index(psp->index_tr_theta_fld,ppt->has_source_theta_fld,index_tr,1);
@@ -3219,6 +3221,19 @@ int spectra_pk(
             psp->sigma8,
             exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
 
+  // DCH Lya
+  if(psp->compute_neff_Lya==_TRUE_){
+    class_call(spectra_neff(pba,ppm,psp,psp->Lya_z,&(psp->neff)),
+               psp->error_message,
+               psp->error_message);
+    if (psp->spectra_verbose>0){
+      fprintf(stdout," -> neff=%g (computed at k = %g s/km and at z= %g)\n",
+              psp->neff,
+              psp->Lya_k_s_over_km,
+              psp->Lya_z);
+    }
+  }
+
   if(pba->has_ncdm){
     class_call(spectra_sigma_cb(pba,ppm,psp,8./pba->h,0.,&(psp->sigma8_cb)),
                psp->error_message,
@@ -3474,6 +3489,177 @@ int spectra_sigma_cb(
 
 }
 
+//DCH !!!
+int spectra_neff(
+                 struct background * pba,
+                 struct primordial * ppm,
+                 struct spectra * psp,
+                 double z,
+                 double * neff
+                 ) {
+
+  double pk;
+  double * pk_ic = NULL;
+
+  double pk_cb;
+  double * pk_cb_ic = NULL; //!!!
+
+  double * array_for_neff;
+
+  double * dy;
+  double * d2dy;
+
+  int index_num;
+  int index_k;
+  int index_y;
+  int index_dy;
+  int index_ddy;
+  int index_d2dy;
+  int i;
+  int last_index;
+
+  double Lya_k_1_over_Mpc;
+  double k;
+  double tau;
+  double Omega0_m;
+
+  //int last_index_back;
+  //double * pvecback_short; /* array with argument pvecback_sp_long[pba->index_bg] */
+
+  /*class_call(background_tau_of_z(pba,z,&tau),
+    pba->error_message,
+    psp->error_message);
+    class_alloc(pvecback_short,pba->bg_size*sizeof(double),psp->error_message);
+    class_call(background_at_tau(pba,tau,pba->short_info,pba->inter_normal,&last_index_back,pvecback_short),
+    pba->error_message,
+    psp->error_message);*/
+
+  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm + pba->Omega0_idm_b);
+
+  //k(h/Mpc)=a*H*k(s/km)
+  Lya_k_1_over_Mpc = pba->h*100.*pow((Omega0_m*pow((1.+z),3.)+pba->Omega0_lambda),(1./2.))/(1.+z)*psp->Lya_k_s_over_km;
+  //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
+  //Lya_k_1_over_Mpc = pvecback_short[pba->index_bg_H]*_c_/1.e3*pvecback_short[pba->index_bg_a]*psp->Lya_k_s_over_km;
+  //fprintf(stdout,"Lya_k_1_over_Mpc %g\n",Lya_k_1_over_Mpc);
+  if (Lya_k_1_over_Mpc>0.999*exp(psp->ln_k[psp->ln_k_size-1])){
+    class_stop(psp->error_message,"Lya_k_1_over_Mpc>P_k_max_1/Mpc\n");
+  }
+  if (psp->spectra_verbose>0){
+    fprintf(stdout," -> neff is computed at k = %g 1/Mpc\n",
+            Lya_k_1_over_Mpc);
+  }
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1){
+    class_alloc(pk_ic,
+                psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+                psp->error_message);
+
+    if (pba->has_ncdm)
+      class_alloc(pk_cb_ic,
+                  psp->ic_ic_size[psp->index_md_scalars]*sizeof(double),
+                  psp->error_message);
+  }
+
+  i=0;
+  index_y=i;
+  i++;
+  index_dy=i;
+  i++;
+  index_ddy=i;
+  i++;
+  index_d2dy=i;
+  i++;
+  index_num=i;
+
+  class_alloc(array_for_neff,
+              psp->ln_k_size*index_num*sizeof(double),
+              psp->error_message);
+
+  class_alloc(dy,
+              psp->ln_k_size*sizeof(double),
+              psp->error_message);
+  class_alloc(d2dy,
+              psp->ln_k_size*sizeof(double),
+              psp->error_message);
+
+  for (i=0;i<psp->ln_k_size;i++) { //!!!
+    k=exp(psp->ln_k[i]);
+    if (i == (psp->ln_k_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
+    class_call(spectra_pk_at_k_and_z(pba,ppm,psp,k,z,&pk,pk_ic,&pk_cb,pk_cb_ic),
+               psp->error_message,
+               psp->error_message);
+    array_for_neff[i*index_num+index_y]=log(pk);
+  }
+  //spline y to get ddy
+  class_call(array_spline_table_line_to_line(psp->ln_k,
+                                             psp->ln_k_size,
+                                             array_for_neff,
+                                             index_num,
+                                             index_y,
+                                             index_ddy,
+                                             _SPLINE_EST_DERIV_,
+                                             psp->error_message),
+             psp->error_message,
+             psp->error_message);
+  //derive to get dy
+  class_call(array_derive_spline_table_line_to_line(psp->ln_k,
+                                                    psp->ln_k_size,
+                                                    array_for_neff,
+                                                    index_num,
+                                                    index_y,
+                                                    index_ddy,
+                                                    index_dy,
+                                                    psp->error_message),
+             psp->error_message,
+             psp->error_message);
+  //spline dy to get d2dy (i.e. dddy)
+  class_call(array_spline_table_line_to_line(psp->ln_k,
+                                             psp->ln_k_size,
+                                             array_for_neff,
+                                             index_num,
+                                             index_dy,
+                                             index_d2dy,
+                                             _SPLINE_EST_DERIV_,
+                                             psp->error_message),
+             psp->error_message,
+             psp->error_message);
+  for (i=0;i<psp->ln_k_size;i++) {
+    dy[i]=array_for_neff[i*index_num+index_dy];
+    d2dy[i]=array_for_neff[i*index_num+index_d2dy];
+    //fprintf(stdout,"%g %g\n",exp(psp->ln_k[i]),dy[i]);
+  }
+  //interpolate to get dy at k_pivot_sim
+  class_call(array_interpolate_spline(psp->ln_k,
+                                      psp->ln_k_size,
+                                      dy,
+                                      d2dy,
+                                      1,
+                                      log(Lya_k_1_over_Mpc),
+                                      &last_index,
+                                      &(psp->neff),
+                                      1,
+                                      psp->error_message),
+             psp->error_message,
+             psp->error_message);
+
+  free(array_for_neff);
+  free(dy);
+  free(d2dy);
+
+
+  if (psp->ic_ic_size[psp->index_md_scalars]>1){
+    free(pk_ic);
+    if (pba->has_ncdm)
+      free(pk_cb_ic);
+  }
+
+  //free(pvecback_short);
+
+  return _SUCCESS_;
+
+}
+
+
 /**
  * This routine computes a table of values for all matter power spectra P(k),
  * given the source functions and primordial spectra.
@@ -3574,7 +3760,7 @@ int spectra_matter_transfers(
 	    delta_i += 4*a_prime_over_a*theta_over_k2;
 
 	  psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_delta_g] = delta_i;
-	  
+
         }
 
         if (ppt->has_source_theta_g == _TRUE_) {
@@ -3633,6 +3819,42 @@ int spectra_matter_transfers(
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k] + theta_shift;
 
           }
+
+        }
+
+        /* T_idm_b(k,tau) DCH */
+
+        if (pba->has_idm_b == _TRUE_) {
+
+          rho_i = pvecback_sp_long[pba->index_bg_rho_idm_b];
+
+          if (ppt->has_source_delta_idm_b == _TRUE_) {
+
+            delta_i = ppt->sources[index_md]
+              [index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_idm_b]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+            psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_delta_idm_b] = delta_i;
+
+            delta_rho_tot += rho_i * delta_i;
+
+          }
+
+          rho_tot += rho_i;
+
+          if (ppt->has_source_theta_idm_b == _TRUE_) {
+
+            theta_i = ppt->sources[index_md]
+              [index_ic * ppt->tp_size[index_md] + ppt->index_tp_theta_idm_b]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
+
+            psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_idm_b] = theta_i;
+
+            rho_plus_p_theta_tot += rho_i * theta_i;
+
+          }
+
+          rho_plus_p_tot += rho_i;
 
         }
 
@@ -3967,6 +4189,7 @@ int spectra_output_tk_titles(struct background *pba,
       class_store_columntitle(titles,"d_g",_TRUE_);
       class_store_columntitle(titles,"d_b",_TRUE_);
       class_store_columntitle(titles,"d_cdm",pba->has_cdm);
+      class_store_columntitle(titles,"d_idm_b",pba->has_idm_b);
       class_store_columntitle(titles,"d_fld",pba->has_fld);
       class_store_columntitle(titles,"d_ur",pba->has_ur);
       if (pba->has_ncdm == _TRUE_) {
@@ -3994,6 +4217,7 @@ int spectra_output_tk_titles(struct background *pba,
       class_store_columntitle(titles,"t_g",_TRUE_);
       class_store_columntitle(titles,"t_b",_TRUE_);
       class_store_columntitle(titles,"t_cdm",((pba->has_cdm == _TRUE_) && (ppt->gauge != synchronous)));
+      class_store_columntitle(titles,"t_idm_b",pba->has_idm_b); //DCH
       class_store_columntitle(titles,"t_fld",pba->has_fld);
       class_store_columntitle(titles,"t_ur",pba->has_ur);
       if (pba->has_ncdm == _TRUE_) {
@@ -4013,6 +4237,7 @@ int spectra_output_tk_titles(struct background *pba,
 
     class_store_columntitle(titles,"k (h/Mpc)",_TRUE_);
     class_store_columntitle(titles,"-T_cdm/k2",_TRUE_);
+    class_store_columntitle(titles,"-T_idm_b/k2",_TRUE_); //DCH
     class_store_columntitle(titles,"-T_b/k2",_TRUE_);
     class_store_columntitle(titles,"-T_g/k2",_TRUE_);
     class_store_columntitle(titles,"-T_ur/k2",_TRUE_);
@@ -4104,6 +4329,7 @@ int spectra_output_tk_data(
           class_store_double(dataptr,tk[psp->index_tr_delta_g],ppt->has_source_delta_g,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_delta_b],ppt->has_source_delta_b,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_delta_cdm],ppt->has_source_delta_cdm,storeidx);
+          class_store_double(dataptr,tk[psp->index_tr_delta_idm_b],ppt->has_source_delta_idm_b,storeidx); //DCH
           class_store_double(dataptr,tk[psp->index_tr_delta_fld],ppt->has_source_delta_fld,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_delta_ur],ppt->has_source_delta_ur,storeidx);
           if (pba->has_ncdm == _TRUE_){
@@ -4131,6 +4357,7 @@ int spectra_output_tk_data(
           class_store_double(dataptr,tk[psp->index_tr_theta_g],ppt->has_source_theta_g,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_theta_b],ppt->has_source_theta_b,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_theta_cdm],ppt->has_source_theta_cdm,storeidx);
+          class_store_double(dataptr,tk[psp->index_tr_theta_idm_b],ppt->has_source_theta_idm_b,storeidx); //DCH
           class_store_double(dataptr,tk[psp->index_tr_theta_fld],ppt->has_source_theta_fld,storeidx);
           class_store_double(dataptr,tk[psp->index_tr_theta_ur],ppt->has_source_theta_ur,storeidx);
           if (pba->has_ncdm == _TRUE_){
@@ -4150,6 +4377,7 @@ int spectra_output_tk_data(
 
         /* rescale and reorder the matter transfer functions following the CMBFAST/CAMB convention */
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_cdm]/k2,ppt->has_source_delta_cdm,storeidx,0.0);
+        class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_idm_b]/k2,ppt->has_source_delta_idm_b,storeidx,0.0); //DCH
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_b]/k2,ppt->has_source_delta_b,storeidx,0.0);
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_g]/k2,ppt->has_source_delta_g,storeidx,0.0);
         class_store_double_or_default(dataptr,-tk[psp->index_tr_delta_ur]/k2,ppt->has_source_delta_ur,storeidx,0.0);

@@ -52,6 +52,7 @@ cdef extern from "class.h":
         double Omega0_g
         double Omega0_b
         double Omega0_cdm
+        double Omega0_idm_b
         double Omega0_dcdm
         double Omega0_ncdm_tot
         double Omega0_lambda
@@ -192,6 +193,7 @@ cdef extern from "class.h":
         double* ln_k
         double sigma8
         double sigma8_cb
+        double neff
         double alpha_II_2_20
         double alpha_RI_2_20
         double alpha_RR_2_20
@@ -367,6 +369,13 @@ cdef extern from "class.h":
                   double R,
                   double z,
                   double * sigma_cb)
+
+    int spectra_neff(
+            void * pba,
+            void * ppm,
+            void * psp,
+            double z,
+            double * neff)
 
     int spectra_fast_pk_at_kvec_and_zvec(
                   void * pba,
