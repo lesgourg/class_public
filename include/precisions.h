@@ -213,6 +213,14 @@ class_precision_parameter(perturb_sampling_stepsize,double,0.1)
 class_precision_parameter(tol_perturb_integration,double,1.0e-5)
 
 /**
+ * cutoff relevant for controlling stiffness in the PPF scheme. It is
+ * neccessary for the Runge-Kutta evolver, but not for ndf15. However,
+ * the approximation is excellent for a cutoff value of 1000, so we
+ * leave it on for both evolvers. (CAMB uses a cutoff value of 30.)
+ */
+class_precision_parameter(c_gamma_k_H_square_max,double,1.0e3)
+
+/**
  * precision with which the code should determine (by bisection) the
  * times at which sources start being sampled, and at which
  * approximations must be switched on/off (units of Mpc)
@@ -385,6 +393,9 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
  * Nonlinear module precision parameters
  * */
 
+class_precision_parameter(sigma_k_per_decade,double,80.) /**< logarithmic stepsize controlling the precision of integrals for sigma(R,k) and similar quantitites */
+
+/** parameters relevant for HALOFIT computation */
 
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
 
@@ -417,6 +428,44 @@ class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance requir
 
 class_precision_parameter(pk_eq_z_max,double,5.0) /**< Maximum z for the pk_eq method */
 class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq method for finding the pk */
+
+/** Parameters relevant for HMcode computation */
+
+class_precision_parameter(hmcode_max_k_extra,double,1.e6) /**< parameter specifying the maximum k value for
+                                                             the extrapolation of the linear power spectrum
+                                                             (needed for the sigma computation) */
+
+class_precision_parameter(hmcode_min_k_max,double,5.)   /**< when HMcode is used, k_max must be
+                             at least equal to this value such that
+                             HMcode finds the nonlinear scale.
+                             Calculations are done
+                             internally until this k_max, but the
+                             output is still controlled by
+                             P_k_max_1/Mpc or P_k_max_h/Mpc even if
+                             they are smaller */
+
+class_precision_parameter(hmcode_tol_sigma,double,1.e-6) /**< tolerance required on sigma(R) when matching the
+                                                            condition sigma(R_nl)=1, which defines the wavenumber
+                                                            of non-linearity, k_nl=1./R_nl */
+
+/**
+ * parameters controlling stepsize and min/max r & a values for
+ * sigma(r) & grow table
+ */
+class_precision_parameter(n_hmcode_tables,int,64)
+class_precision_parameter(rmin_for_sigtab,double,1.e-5)
+class_precision_parameter(rmax_for_sigtab,double,1.e3)
+class_precision_parameter(ainit_for_growtab,double,1.e-3)
+class_precision_parameter(amax_for_growtab,double,1.)
+
+/**
+ * parameters controlling stepsize and min/max halomass values for the
+ * 1-halo-power integral
+ */
+class_precision_parameter(nsteps_for_p1h_integral,int,256)
+class_precision_parameter(mmin_for_p1h_integral,double,1.e3)
+class_precision_parameter(mmax_for_p1h_integral,double,1.e18)
+
 
 /*
  * Lensing precision parameters

@@ -591,7 +591,6 @@ int array_spline_table_lines(
 
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
 
-
   index_x=0;
 
   if (spline_mode == _SPLINE_NATURAL_) {
@@ -752,7 +751,6 @@ int array_logspline_table_lines(
   }
 
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
-
 
   index_x=0;
 
@@ -1085,7 +1083,7 @@ int array_spline_table_columns2(
     return _FAILURE_;
   }
 
-  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
 
 #pragma omp parallel                                                \
   shared(x,x_size,y_array,y_size,ddy_array,spline_mode,p,qn,un,u)   \
@@ -1758,6 +1756,72 @@ int array_interpolate_spline(
       b * *(array+sup*n_columns+i) +
       ((a*a*a-a)* *(array_splined+inf*n_columns+i) +
        (b*b*b-b)* *(array_splined+sup*n_columns+i))*h*h/6.;
+
+  return _SUCCESS_;
+}
+
+ /**
+  * Get the y[i] for which y[i]>c
+  *
+  * Called by nonlinear_HMcode()
+  */
+int array_search_bisect(
+                        int n_lines,
+                        double * __restrict__ array,
+                        double c,
+                        int * __restrict__ last_index,
+                        ErrorMsg errmsg) {
+
+  int inf,sup,mid;
+
+  inf=0;
+  sup=n_lines-1;
+
+  if (array[inf] < array[sup]){
+
+    if (c < array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : c=%e < y_min=%e",__func__,__LINE__,c,array[inf]);
+      return _FAILURE_;
+    }
+
+    if (c > array[sup]) {
+      sprintf(errmsg,"%s(L:%d) : c=%e > y_max=%e",__func__,__LINE__,c,array[sup]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (c < array[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  else {
+
+    if (c < array[sup]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,c,array[sup]);
+      return _FAILURE_;
+    }
+
+    if (c > array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,c,array[inf]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (c > array[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  *last_index = inf;
 
   return _SUCCESS_;
 }
@@ -2654,17 +2718,18 @@ int array_interpolate_two_arrays_one_column(
 
   int inf,sup,mid;
   double weight;
+  double epsilon=1e-9;
 
   inf=0;
   sup=n_lines-1;
 
   if (array_x[inf] < array_x[sup]){
 
-    class_test(x < array_x[inf],
+    class_test(x < array_x[inf]-epsilon,
 	       errmsg,
 	       "x=%e < x_min=%e",x,array_x[inf]);
 
-    class_test(x > array_x[sup],
+    class_test(x > array_x[sup]+epsilon,
 	       errmsg,
 	       "x=%e > x_max=%e",x,array_x[sup]);
 
@@ -2680,11 +2745,11 @@ int array_interpolate_two_arrays_one_column(
 
   else {
 
-    class_test(x < array_x[sup],
+    class_test(x < array_x[sup]-epsilon,
 	       errmsg,
 	       "x=%e < x_min=%e",x,array_x[sup]);
 
-    class_test(x > array_x[inf],
+    class_test(x > array_x[inf]+epsilon,
 	       errmsg,
 	       "x=%e > x_max=%e",x,array_x[inf]);
 

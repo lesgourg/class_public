@@ -102,21 +102,14 @@ extern "C" {
   int output_pk(
                 struct background * pba,
                 struct perturbs * ppt,
-                struct spectra * psp,
-                struct output * pop
+                struct nonlinear * pnl,
+                struct output * pop,
+                enum pk_outputs pk_output
                 );
-
-  int output_pk_nl(
-                   struct background * pba,
-                   struct perturbs * ppt,
-                   struct spectra * psp,
-                   struct output * pop
-                   );
 
   int output_tk(
                 struct background * pba,
                 struct perturbs * ppt,
-                struct spectra * psp,
                 struct output * pop
                 );
 
@@ -168,7 +161,7 @@ extern "C" {
 
   int output_open_pk_file(
                           struct background * pba,
-                          struct spectra * psp,
+                          struct nonlinear * pnl,
                           struct output * pop,
                           FILE ** pkfile,
                           FileName filename,
@@ -181,18 +174,6 @@ extern "C" {
                             double one_k,
                             double one_pk
                             );
-
-  int output_open_pk_nl_file(
-                             struct background * pba,
-                             struct nonlinear * pnl,
-                             struct output * pop,
-                             FILE ** pkfile,
-                             FileName filename,
-                             char * first_line,
-                             double z,
-                             int k_size
-                             );
-
 
 #ifdef __cplusplus
 }

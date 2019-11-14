@@ -198,10 +198,15 @@ struct background
   int index_bg_ddV_scf;       /**< scalar field potential second derivative V'' */
   int index_bg_rho_scf;       /**< scalar field energy density */
   int index_bg_p_scf;         /**< scalar field pressure */
+  int index_bg_p_prime_scf;         /**< scalar field pressure */
 
   int index_bg_rho_ncdm1;     /**< density of first ncdm species (others contiguous) */
   int index_bg_p_ncdm1;       /**< pressure of first ncdm species (others contiguous) */
   int index_bg_pseudo_p_ncdm1;/**< another statistical momentum useful in ncdma approximation */
+
+  int index_bg_rho_tot;       /**< Total density */
+  int index_bg_p_tot;         /**< Total pressure */
+  int index_bg_p_tot_prime;   /**< Conf. time derivative of total pressure */
 
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
 

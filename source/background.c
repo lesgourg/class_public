@@ -272,11 +272,18 @@ int background_functions(
   double a;
   /* scalar field quantities */
   double phi, phi_prime;
+  /* Since we only know a_prime_over_a after we have rho_tot,
+     it is not possible to simply sum up p_tot_prime directly.
+     Instead we sum up dp_dloga = p_prime/a_prime_over_a. The formula is
+     p_prime = a_prime_over_a * dp_dloga = a_prime_over_a * Sum [ (w_prime/a_prime_over_a -3(1+w)w)rho].
+     Note: The scalar field contribution must be added in the end, as an exception!*/
+  double dp_dloga;
 
   /** - initialize local variables */
   a = pvecback_B[pba->index_bi_a];
   rho_tot = 0.;
   p_tot = 0.;
+  dp_dloga = 0.;
   rho_r=0.;
   rho_m=0.;
   a_rel = a / pba->a_today;
@@ -294,6 +301,7 @@ int background_functions(
   pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
   rho_tot += pvecback[pba->index_bg_rho_g];
   p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
+  dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_g];
   rho_r += pvecback[pba->index_bg_rho_g];
 
   /* baryons */
@@ -325,6 +333,7 @@ int background_functions(
     pvecback[pba->index_bg_rho_dr] = pvecback_B[pba->index_bi_rho_dr];
     rho_tot += pvecback[pba->index_bg_rho_dr];
     p_tot += (1./3.)*pvecback[pba->index_bg_rho_dr];
+    dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_dr];
     rho_r += pvecback[pba->index_bg_rho_dr];
   }
 
@@ -341,6 +350,7 @@ int background_functions(
     pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
     rho_tot += pvecback[pba->index_bg_rho_scf];
     p_tot += pvecback[pba->index_bg_p_scf];
+    dp_dloga += 0.0; /** <-- This depends on a_prime_over_a, so we cannot add it now! */
     //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
     rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
     rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
@@ -375,6 +385,8 @@ int background_functions(
       pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
       p_tot += p_ncdm;
       pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
+      /** See e.g. Eq. A6 in 1811.00904. */
+      dp_dloga += (pseudo_p_ncdm - 5*p_ncdm);
 
       /* (3 p_ncdm1) is the "relativistic" contribution to rho_ncdm1 */
       rho_r += 3.* p_ncdm;
@@ -408,6 +420,7 @@ int background_functions(
 
     rho_tot += pvecback[pba->index_bg_rho_fld];
     p_tot += w_fld * pvecback[pba->index_bg_rho_fld];
+    dp_dloga += (a*dw_over_da-3*(1+w_fld)*w_fld)*pvecback[pba->index_bg_rho_fld];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
@@ -415,6 +428,7 @@ int background_functions(
     pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a_rel,4);
     rho_tot += pvecback[pba->index_bg_rho_ur];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
+    dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
     rho_r += pvecback[pba->index_bg_rho_ur];
   }
 
@@ -442,6 +456,21 @@ int background_functions(
 
   /** - compute derivative of H with respect to conformal time */
   pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a;
+
+  /* Total energy density*/
+  pvecback[pba->index_bg_rho_tot] = rho_tot;
+
+  /* Total pressure */
+  pvecback[pba->index_bg_p_tot] = p_tot;
+
+  /* Derivative of total pressure w.r.t. conformal time */
+  pvecback[pba->index_bg_p_tot_prime] = a*pvecback[pba->index_bg_H]*dp_dloga;
+  if (pba->has_scf == _TRUE_){
+    /** The contribution of scf was not added to dp_dloga, add p_scf_prime here: */
+    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_phi_prime_scf]*
+      (-pvecback[pba->index_bg_phi_prime_scf]*pvecback[pba->index_bg_H]/a-2./3.*pvecback[pba->index_bg_dV_scf]);
+    pvecback[pba->index_bg_p_tot_prime] += pvecback[pba->index_bg_p_prime_scf];
+  }
 
   /** - compute relativistic density to total density ratio */
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
@@ -518,7 +547,6 @@ int background_w_fld(
     if (pba->has_dcdm == _TRUE_)
       class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
     a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
-    class_stop(pba->error_message,"a_eq = %e, z_eq =%e\n",a_eq,1./a_eq-1.);
 
     // w_ede(a) taken from eq. (11) in 1706.00730
     *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
@@ -545,16 +573,23 @@ int background_w_fld(
   }
 
   /** - finally, give the analytic solution of the following integral:
-      \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
-      one place, in the initial conditions for the background, and
-      with a=a_ini. If your w(a) does not lead to a simple analytic
-      solution of this integral, no worry: instead of writing
-      something here, the best would then be to leave it equal to
-      zero, and then in background_initial_conditions() you should
-      implement a numerical calculation of this integral only for
-      a=a_ini, using for instance Romberg integration. It should be
-      fast, simple, and accurate enough. */
-  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+        \f$ \int_{a}^{a0} da 3(1+w_{fld})/a \f$. This is used in only
+        one place, in the initial conditions for the background, and
+        with a=a_ini. If your w(a) does not lead to a simple analytic
+        solution of this integral, no worry: instead of writing
+        something here, the best would then be to leave it equal to
+        zero, and then in background_initial_conditions() you should
+        implement a numerical calculation of this integral only for
+        a=a_ini, using for instance Romberg integration. It should be
+        fast, simple, and accurate enough. */
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    break;
+  case EDE:
+    class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    break;
+  }
 
   /** note: of course you can generalise these formulas to anything,
       defining new parameters pba->w..._fld. Just remember that so
@@ -942,6 +977,7 @@ int background_indices(
   class_define_index(pba->index_bg_ddV_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
   class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
+  class_define_index(pba->index_bg_p_prime_scf,pba->has_scf,index_bg,1);
 
   /* - index for Lambda */
   class_define_index(pba->index_bg_rho_lambda,pba->has_lambda,index_bg,1);
@@ -952,6 +988,15 @@ int background_indices(
 
   /* - index for ultra-relativistic neutrinos/species */
   class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1);
+
+  /* - index for total density */
+  class_define_index(pba->index_bg_rho_tot,_TRUE_,index_bg,1);
+
+  /* - index for total pressure */
+  class_define_index(pba->index_bg_p_tot,_TRUE_,index_bg,1);
+
+  /* - index for derivative of total pressure */
+  class_define_index(pba->index_bg_p_tot_prime,_TRUE_,index_bg,1);
 
   /* - index for Omega_r (relativistic density fraction) */
   class_define_index(pba->index_bg_Omega_r,_TRUE_,index_bg,1);
@@ -2231,11 +2276,16 @@ int background_output_titles(struct background * pba,
 
   class_store_columntitle(titles,"(.)rho_scf",pba->has_scf);
   class_store_columntitle(titles,"(.)p_scf",pba->has_scf);
+  class_store_columntitle(titles,"(.)p_prime_scf",pba->has_scf);
   class_store_columntitle(titles,"phi_scf",pba->has_scf);
   class_store_columntitle(titles,"phi'_scf",pba->has_scf);
   class_store_columntitle(titles,"V_scf",pba->has_scf);
   class_store_columntitle(titles,"V'_scf",pba->has_scf);
   class_store_columntitle(titles,"V''_scf",pba->has_scf);
+
+  class_store_columntitle(titles,"(.)rho_tot",_TRUE_);
+  class_store_columntitle(titles,"(.)p_tot",_TRUE_);
+  class_store_columntitle(titles,"(.)p_tot_prime",_TRUE_);
 
   class_store_columntitle(titles,"gr.fac. D",_TRUE_);
   class_store_columntitle(titles,"gr.fac. f",_TRUE_);
@@ -2285,11 +2335,16 @@ int background_output_data(
 
     class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
+
+    class_store_double(dataptr,pvecback[pba->index_bg_rho_tot],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_p_tot],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecback[pba->index_bg_p_tot_prime],_TRUE_,storeidx);
 
     class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
@@ -2401,7 +2456,6 @@ int background_derivs(
       (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
   }
-
 
   return _SUCCESS_;
 
