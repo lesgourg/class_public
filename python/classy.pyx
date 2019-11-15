@@ -847,7 +847,7 @@ cdef class Class:
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
-    def get_pk_and_k_and_z(self, nonlinear=True):
+    def get_pk_and_k_and_z(self, nonlinear=True, only_clustering_species = False):
         """
         Returns a grid of matter power spectrum values and the z and k
         at which it has been fully computed. Useful for creating interpolators.
@@ -856,32 +856,62 @@ cdef class Class:
         ----------
         nonlinear : bool
                 Whether the returned power spectrum values are linear or non-linear (default)
+        nonlinear : bool
+                Whether the returned power spectrum is for galaxy clustering and excludes massive neutrinos, or always includes evrything (default)
         """
         cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.nl.k_size, self.nl.ln_tau_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.nl.k_size),'float64')
         cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.nl.ln_tau_size),'float64')
-        cdef int index_k, index_tau
-        cdef double k0, kend, z0, zend, eps
+        cdef int index_k, index_tau, index_pk
+        cdef double z_max_nonlinear, z_max_requested
 
-        eps = 1.0e-10
-        pk_lin_or_nonlin = self.pk if nonlinear else self.pk_lin
+        # consistency checks
 
-        # Get k and z arrays
+        if self.nl.has_pk_matter == False:
+            raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations; add 'mPk' in 'output'")
+
+        if nonlinear == True and self.nl.method == nl_none:
+            raise CosmoSevereError("You ask classy to return an array of nonlinear P(k,z) values, but the input parameters sent to CLASS did not require any non-linear P(k,z) calculations; add e.g. 'halofit' or 'HMcode' in 'nonlinear'")
+
+        # check wich type of P(k) to return (total or clustering only, i.e. without massive neutrino contribution)
+        if (only_clustering_species == True):
+            index_pk = self.nl.index_pk_cluster
+        else:
+            index_pk = self.nl.index_pk_total
+
+        # get list of redshfits
+
+        if self.nl.ln_tau_size == 1:
+            raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
+        else:
+            for index_tau in xrange(self.nl.ln_tau_size):
+                if index_tau == self.nl.ln_tau_size-1:
+                    z[index_tau] = 0.
+                else:
+                    z[index_tau] = self.z_of_tau(np.exp(self.nl.ln_tau[index_tau]))
+
+        # check consitency of the list of redshifts
+
+        if nonlinear == True:
+            z_max_nonlinear = self.z_of_tau(self.nl.tau[self.nl.index_tau_min_nl])
+            z_max_requested = z[0]
+            if z_max_requested > z_max_nonlinear:
+                raise CosmoSevereError("You ask classy to return an array of nonlinear P(k,z) values up to z_max=%e, but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consitently computed up to z=%e; increase one of 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
+
+        # get list of k
+
         for index_k in xrange(self.nl.k_size):
             k[index_k] = self.nl.k[index_k]
-        for index_tau in xrange(self.nl.ln_tau_size):
-            z[index_tau] = self.z_of_tau(np.exp(self.nl.ln_tau[index_tau]))
 
-        # Avoid saturating the limits
-        z[-1] *= (1-eps)
-        z[0] *= (1+eps)
-        if(z[0] < eps):
-          z[0] = 0
+        # get P(k,z) array
 
-        # Now copy P(k,z)
         for index_tau in xrange(self.nl.ln_tau_size):
             for index_k in xrange(self.nl.k_size):
-               pk_at_k_z[index_k, index_tau] = pk_lin_or_nonlin(k[index_k], z[index_tau])
+                if nonlinear == True:
+                    pk_at_k_z[index_k, index_tau] = np.exp(self.nl.ln_pk_nl[index_pk][index_tau * self.nl.k_size + index_k])
+                else:
+                    pk_at_k_z[index_k, index_tau] = np.exp(self.nl.ln_pk_l[index_pk][index_tau * self.nl.k_size + index_k])
+
         return pk_at_k_z, k, z
 
     # Gives sigma(R,z) for a given (R,z)
