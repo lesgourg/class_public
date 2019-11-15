@@ -300,9 +300,10 @@ int thermodynamics_init(
 
   /* Y_He */
   if (pth->YHe == _BBN_) {
-    class_call(thermodynamics_helium_from_bbn(ppr,pba,pth),
-               pth->error_message,
-               pth->error_message);
+    class_call_except(thermodynamics_helium_from_bbn(ppr,pba,pth),
+                      pth->error_message,
+                      pth->error_message,
+                      free(pvecback));
     if (pth->thermodynamics_verbose > 0)
       printf(" with Y_He=%.4f\n",pth->YHe);
   }
@@ -393,9 +394,10 @@ int thermodynamics_init(
   /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
 
   if (pth->reio_parametrization != reio_none) {
-    class_call(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
+    class_call_except(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
+                      pth->error_message,
+                      pth->error_message,
+                      free(preco->recombination_table);free(pvecback));
   }
   else {
     preio->rt_size=0;
@@ -1251,25 +1253,29 @@ int thermodynamics_helium_from_bbn(
 
   omega_b=pba->Omega0_b*pba->h*pba->h;
 
-  class_test(omega_b < omegab[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             omega_b);
+  class_test_except(omega_b < omegab[0],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    omega_b);
 
-  class_test(omega_b > omegab[num_omegab-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             omega_b);
+  class_test_except(omega_b > omegab[num_omegab-1],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    omega_b);
 
-  class_test(DeltaNeff < deltaN[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(DeltaNeff < deltaN[0],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    DeltaNeff);
 
-  class_test(DeltaNeff > deltaN[num_deltaN-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(DeltaNeff > deltaN[num_deltaN-1],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    DeltaNeff);
 
   /** - interpolate in one dimension (along deltaN) */
   class_call(array_interpolate_spline(deltaN,
@@ -1909,9 +1915,10 @@ int thermodynamics_reionization(
 
       tau_sup=preio->reionization_optical_depth;
 
-      class_test(tau_sup < pth->tau_reio,
-                 pth->error_message,
-                 "parameters are such that reionization cannot start after z_start_max");
+      class_test_except(tau_sup < pth->tau_reio,
+                        pth->error_message,
+                        free(preio->reionization_parameters);free(preio->reionization_table),
+                        "parameters are such that reionization cannot start after z_start_max");
 
       /* lower value */
 
