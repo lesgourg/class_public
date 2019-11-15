@@ -1637,6 +1637,14 @@ cdef class Class:
                 value = self.th.da_rec
             elif name == 'da_rec_h':
                 value = self.th.da_rec*self.ba.h
+            elif name == 'z_star':
+                value = self.th.z_star
+            elif name == 'tau_star':
+                value = self.th.tau_star
+            elif name == 'rs_star':
+                value = self.th.rs_star
+            elif name == 'ds_star':
+                value = self.th.ds_star
             elif name == 'z_d':
                 value = self.th.z_d
             elif name == 'tau_d':

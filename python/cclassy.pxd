@@ -94,6 +94,10 @@ cdef extern from "class.h":
         double rs_rec
         double ds_rec
         double da_rec
+        double z_star
+        double tau_star
+        double rs_star
+        double ds_star
         double z_d
         double tau_d
         double ds_d
