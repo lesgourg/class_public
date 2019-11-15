@@ -1009,6 +1009,9 @@ cdef class Class:
     def theta_s_100(self):
         return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
 
+    def theta_star_100(self):
+        return 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
+
     def Omega_Lambda(self):
         return self.ba.Omega0_lambda
 
@@ -1645,6 +1648,12 @@ cdef class Class:
                 value = self.th.rs_star
             elif name == 'ds_star':
                 value = self.th.ds_star
+            elif name == 'ra_star':
+                value = self.th.ra_star
+            elif name == 'da_star':
+                value = self.th.da_star
+            elif name == 'rd_star':
+                value = self.th.rd_star
             elif name == 'z_d':
                 value = self.th.z_d
             elif name == 'tau_d':
@@ -1659,6 +1668,8 @@ cdef class Class:
                 value = self.th.rs_d*self.ba.h
             elif name == '100*theta_s':
                 value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+            elif name == '100*theta_star':
+                value = 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
             elif name == 'YHe':
                 value = self.th.YHe
             elif name == 'n_e':

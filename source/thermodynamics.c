@@ -793,6 +793,15 @@ int thermodynamics_init(
 
   pth->rs_star=pvecback[pba->index_bg_rs];
   pth->ds_star=pth->rs_star*pba->a_today/(1.+pth->z_star);
+  pth->da_star=pvecback[pba->index_bg_ang_distance];
+  pth->ra_star=pth->da_star*(1.+pth->z_star)/pba->a_today;
+
+  if (pth->compute_damping_scale == _TRUE_) {
+
+    pth->rd_star = (pth->z_table[index_tau+1]-pth->z_star)/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_r_d]
+      +(pth->z_star-pth->z_table[index_tau])/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_r_d];
+
+  }
 
   /** - find baryon drag time (when tau_d crosses one, using linear
       interpolation) and sound horizon at that time */
@@ -842,6 +851,7 @@ int thermodynamics_init(
       printf("    or comoving damping wavenumber k_d = %f 1/Mpc\n",2.*_PI_/pth->rd_rec);
     }
     printf("    Thomson optical depth crosses one at z_* = %f\n",pth->z_star);
+    printf("    giving an angle 100*theta_* = %f\n",100.*pth->rs_star/pth->ra_star);
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);

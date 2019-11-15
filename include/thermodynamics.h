@@ -211,6 +211,9 @@ struct thermo
   double tau_star;/**< confirmal time at which photon optical depth crosses one */
   double rs_star; /**< comoving sound horizon at z_star */
   double ds_star; /**< physical sound horizon at z_star */
+  double ra_star;  /**< conformal angular diameter distance to z_star */
+  double da_star;  /**< physical angular diameter distance to z_star */
+  double rd_star;  /**< comoving photon damping scale at z_star */
 
   double z_d;     /**< baryon drag redshift */
   double tau_d;   /**< baryon drag time */
