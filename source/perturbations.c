@@ -224,7 +224,6 @@ int perturb_output_data(
       if (output_format == class_format) {
 
         if (ppt->has_density_transfers == _TRUE_) {
-
           class_store_double(dataptr,tk[ppt->index_tp_delta_g],ppt->has_source_delta_g,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_b],ppt->has_source_delta_b,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_delta_cdm],ppt->has_source_delta_cdm,storeidx);
@@ -322,8 +321,10 @@ int perturb_output_titles(
       class_store_columntitle(titles,"d_g",_TRUE_);
       class_store_columntitle(titles,"d_b",_TRUE_);
       class_store_columntitle(titles,"d_cdm",pba->has_cdm);
+      class_store_columntitle(titles,"d_idm_dr",pba->has_idm_dr);
       class_store_columntitle(titles,"d_fld",pba->has_fld);
       class_store_columntitle(titles,"d_ur",pba->has_ur);
+      class_store_columntitle(titles,"d_idr",pba->has_idr);
       if (pba->has_ncdm == _TRUE_) {
         for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
           sprintf(tmp,"d_ncdm[%d]",n_ncdm);
