@@ -3981,8 +3981,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
                errmsg,
                "You can only enter one of 'primordial_P_k_max_h/Mpc' or 'primordial_P_k_max_1/Mpc'.");
     /* Complete set of parameters */
-    ppm->has_k_max_for_primordial_pk = _FALSE_;  // If the flag is _FALSE_, in primordial.c (primordial_init)
-                                                 // the ppt value for k_max is employed.
     if (flag1 == _TRUE_){
       ppm->k_max_for_primordial_pk=param1*pba->h;
       ppm->has_k_max_for_primordial_pk = _TRUE_;
@@ -5029,6 +5027,8 @@ int input_default_params(struct background *pba,
   /** 3) Power spectrum P(k) */
   /** 3.a) Maximum k in P(k) */
   ppt->k_max_for_pk=1.;
+  /** 3.a) Maximum k in P(k) primordial */
+  ppm->has_k_max_for_primordial_pk = _FALSE_;
   /** 3.b) Redshift values */
   pop->z_pk_num = 1;
   pop->z_pk[0] = 0.;
