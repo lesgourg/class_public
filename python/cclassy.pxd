@@ -101,6 +101,13 @@ cdef extern from "class.h":
         double rs_rec
         double ds_rec
         double da_rec
+        double z_star
+        double tau_star
+        double rs_star
+        double ds_star
+        double ra_star
+        double da_star
+        double rd_star
         double z_d
         double tau_d
         double ds_d
@@ -257,18 +264,25 @@ cdef extern from "class.h":
         ErrorMsg error_message
 
     cdef struct nonlinear:
+        short has_pk_matter
         int method
-        int ic_size;
-        int ic_ic_size;
-        int k_size;
-        int ln_tau_size;
-        double * k;
-        double * ln_tau;
+        int ic_size
+        int ic_ic_size
+        int k_size
+        int ln_tau_size
+        int index_tau_min_nl
+        double * k
+        double * ln_tau
+        double * tau
+        double ** ln_pk_l
+        double ** ln_pk_nl
         double * sigma8
         int has_pk_m
         int has_pk_cb
         int index_pk_m
         int index_pk_cb
+        int index_pk_total
+        int index_pk_cluster
         ErrorMsg error_message
 
     cdef struct file_content:

@@ -10,6 +10,10 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
+//The name for this macro can be at most 30 characters total
+#define _class_print_species_(name,type) \
+printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
+
 /** list of possible types of spatial curvature */
 
 enum spatial_curvature {flat,open,closed};
@@ -544,6 +548,11 @@ extern "C" {
                struct background *pba,
                double phi,
                double phi_prime
+               );
+
+  /** Budget equation output */
+  int background_output_budget(
+               struct background* pba
                );
 
 #ifdef __cplusplus

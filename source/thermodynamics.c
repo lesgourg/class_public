@@ -336,9 +336,10 @@ int thermodynamics_init(
 
   /* Y_He */
   if (pth->YHe == _BBN_) {
-    class_call(thermodynamics_helium_from_bbn(ppr,pba,pth),
-               pth->error_message,
-               pth->error_message);
+    class_call_except(thermodynamics_helium_from_bbn(ppr,pba,pth),
+                      pth->error_message,
+                      pth->error_message,
+                      free(pvecback));
     if (pth->thermodynamics_verbose > 0)
       printf(" with Y_He=%.4f\n",pth->YHe);
   }
@@ -429,9 +430,10 @@ int thermodynamics_init(
   /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
 
   if (pth->reio_parametrization != reio_none) {
-    class_call(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
+    class_call_except(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
+                      pth->error_message,
+                      pth->error_message,
+                      free(preco->recombination_table);free(pvecback));
   }
   else {
     preio->rt_size=0;
@@ -1077,6 +1079,37 @@ int thermodynamics_init(
       pth->tau_idr_free_streaming = tau;
     }
   }
+  /** - find z_star (when optical depth kappa crosses one, using linear
+      interpolation) and sound horizon at that time */
+
+  index_tau=0;
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa] > 1./_E_) && (index_tau < pth->tt_size))
+    index_tau++;
+
+  pth->z_star = pth->z_table[index_tau-1]+
+    (1./_E_-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
+    /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
+    *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
+
+  class_call(background_tau_of_z(pba,pth->z_star,&(pth->tau_star)),
+             pba->error_message,
+             pth->error_message);
+
+  class_call(background_at_tau(pba,pth->tau_star, pba->long_info, pba->inter_normal, &last_index_back, pvecback),
+             pba->error_message,
+             pth->error_message);
+
+  pth->rs_star=pvecback[pba->index_bg_rs];
+  pth->ds_star=pth->rs_star*pba->a_today/(1.+pth->z_star);
+  pth->da_star=pvecback[pba->index_bg_ang_distance];
+  pth->ra_star=pth->da_star*(1.+pth->z_star)/pba->a_today;
+
+  if (pth->compute_damping_scale == _TRUE_) {
+
+    pth->rd_star = (pth->z_table[index_tau+1]-pth->z_star)/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_r_d]
+      +(pth->z_star-pth->z_table[index_tau])/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_r_d];
+
+  }
 
   /** - find baryon drag time (when tau_d crosses one, using linear
       interpolation) and sound horizon at that time */
@@ -1159,7 +1192,7 @@ int thermodynamics_init(
         printf(" -> computation of idm_dr and idr decoupling skipped because z would not be in z_table\n");
       }
     }
-    printf(" -> recombination at z = %f\n",pth->z_rec);
+    printf(" -> recombination at z = %f (max of visibility function)\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with comoving sound horizon = %f Mpc\n",pth->rs_rec);
     printf("    angular diameter distance = %f Mpc\n",pth->da_rec);
@@ -1168,6 +1201,8 @@ int thermodynamics_init(
       printf("    and with comoving photon damping scale = %f Mpc\n",pth->rd_rec);
       printf("    or comoving damping wavenumber k_d = %f 1/Mpc\n",2.*_PI_/pth->rd_rec);
     }
+    printf("    Thomson optical depth crosses one at z_* = %f\n",pth->z_star);
+    printf("    giving an angle 100*theta_* = %f\n",100.*pth->rs_star/pth->ra_star);
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
@@ -1594,25 +1629,29 @@ int thermodynamics_helium_from_bbn(
 
   omega_b=pba->Omega0_b*pba->h*pba->h;
 
-  class_test(omega_b < omegab[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             omega_b);
+  class_test_except(omega_b < omegab[0],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    omega_b);
 
-  class_test(omega_b > omegab[num_omegab-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             omega_b);
+  class_test_except(omega_b > omegab[num_omegab-1],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    omega_b);
 
-  class_test(DeltaNeff < deltaN[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(DeltaNeff < deltaN[0],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    DeltaNeff);
 
-  class_test(DeltaNeff > deltaN[num_deltaN-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(DeltaNeff > deltaN[num_deltaN-1],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    DeltaNeff);
 
   /** - interpolate in one dimension (along deltaN) */
   class_call(array_interpolate_spline(deltaN,
@@ -2252,9 +2291,10 @@ int thermodynamics_reionization(
 
       tau_sup=preio->reionization_optical_depth;
 
-      class_test(tau_sup < pth->tau_reio,
-                 pth->error_message,
-                 "parameters are such that reionization cannot start after z_start_max");
+      class_test_except(tau_sup < pth->tau_reio,
+                        pth->error_message,
+                        free(preio->reionization_parameters);free(preio->reionization_table),
+                        "parameters are such that reionization cannot start after z_start_max");
 
       /* lower value */
 
@@ -4199,5 +4239,4 @@ int thermodynamics_tanh(double x,
 
   *result = before + (after-before)*(tanh((x-center)/width)+1.)/2.;
 
-  return _SUCCESS_;
-}
+  return _SUCCESS_;}
