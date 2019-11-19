@@ -57,7 +57,7 @@ struct background
 
   double Omega0_idm_b; /**< DCH interacting dark matter with baryons*/
   double f_idm_b;      /**< DCH fraction of DM interacting with baryons*/
-  double m_dm;         /**< dark matter mass for idm *
+  double m_dm;         /**< dark matter mass for idm */
 
   double Omega0_dcdmdr;   /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
   double Omega_ini_dcdm;  /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */

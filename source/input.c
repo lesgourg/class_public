@@ -2404,7 +2404,7 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /** 8.c) Read other idm_b parameters */
 
-  if(pba->Omega0_idm > 0.0){ //read the other parameters needed for idm DCH
+  if(pba->Omega0_idm_b > 0.0){ //read the other parameters needed for idm DCH
     class_read_double("m_dm",pba->m_dm); //read the dark matter mass, in eV
     class_read_double("n_index_idm_b",pth->n_index_idm_b); //read the index n for the dm-baryon interaction, sigma = cross_idm_b*v^n
     class_test(((pth->n_index_idm_b > 4)||(pth->n_index_idm_b < -4)),
@@ -4845,7 +4845,7 @@ int input_default_params(struct background *pba,
   /** 8) DM interacting with baryons (IDM_B) DCH */
   /** 8.a) Cross section and fraction */
   pth->cross_idm_b = 0.;   /* dark matter-baryon cross section for idm DCH*/
-  pba->f_idm_b = 0
+  pba->f_idm_b = 0;
   /** 8.b) Omega_idm_b from Omega_cdm and f_idm_b */
   pba->Omega0_idm_b = 0;
   /** 8.c) Other idm_b parameters */

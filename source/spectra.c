@@ -3800,21 +3800,21 @@ int spectra_matter_transfers(
 
           if (ppt->has_source_delta_cdm == _TRUE_) {
 
-           delta_i = ppt->sources[index_md]
+            delta_i = ppt->sources[index_md]
               [index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_cdm]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
-	    if (ppt->has_Nbody_gauge_transfers == _TRUE_)
-	      delta_i += 3*a_prime_over_a*theta_over_k2;
+            if (ppt->has_Nbody_gauge_transfers == _TRUE_)
+              delta_i += 3*a_prime_over_a*theta_over_k2;
 
-	    psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_delta_cdm] = delta_i;
+            psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_delta_cdm] = delta_i;
 
           }
 
           if (ppt->has_source_theta_cdm == _TRUE_) {
 
             psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_cdm] =
-	      ppt->sources[index_md]
+              ppt->sources[index_md]
               [index_ic * ppt->tp_size[index_md] + ppt->index_tp_theta_cdm]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k] + theta_shift;
 
@@ -3823,10 +3823,7 @@ int spectra_matter_transfers(
         }
 
         /* T_idm_b(k,tau) DCH */
-
         if (pba->has_idm_b == _TRUE_) {
-
-          rho_i = pvecback_sp_long[pba->index_bg_rho_idm_b];
 
           if (ppt->has_source_delta_idm_b == _TRUE_) {
 
@@ -3834,29 +3831,24 @@ int spectra_matter_transfers(
               [index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_idm_b]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
+            if (ppt->has_Nbody_gauge_transfers == _TRUE_)
+              delta_i += 3*a_prime_over_a*theta_over_k2;
+
             psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_delta_idm_b] = delta_i;
 
-            delta_rho_tot += rho_i * delta_i;
-
           }
-
-          rho_tot += rho_i;
 
           if (ppt->has_source_theta_idm_b == _TRUE_) {
 
-            theta_i = ppt->sources[index_md]
-              [index_ic * ppt->tp_size[index_md] + ppt->index_tp_theta_idm_b]
-              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
-
-            psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_idm_b] = theta_i;
-
-            rho_plus_p_theta_tot += rho_i * theta_i;
+            psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_idm_b] =
+              ppt->sources[index_md]
+              [index_ic * ppt->tp_size[index_md] + ppt->index_tp_theta_cdm]
+              [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k] + theta_shift;
 
           }
 
-          rho_plus_p_tot += rho_i;
-
         }
+
 
         /* T_dcdm(k,tau) */
         if (pba->has_dcdm == _TRUE_) {
@@ -3867,8 +3859,8 @@ int spectra_matter_transfers(
               [index_ic * ppt->tp_size[index_md] + ppt->index_tp_delta_dcdm]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k];
 
-	   if (ppt->has_Nbody_gauge_transfers == _TRUE_)
-	      delta_i += -(-3*a_prime_over_a-a*pba->Gamma_dcdm)*theta_over_k2;
+           if (ppt->has_Nbody_gauge_transfers == _TRUE_)
+             delta_i += -(-3*a_prime_over_a-a*pba->Gamma_dcdm)*theta_over_k2;
 
 	    psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_delta_dcdm] = delta_i;
 
@@ -3877,7 +3869,7 @@ int spectra_matter_transfers(
           if (ppt->has_source_theta_dcdm == _TRUE_) {
 
             psp->matter_transfer[((index_tau*psp->ln_k_size + index_k) * psp->ic_size[index_md] + index_ic) * psp->tr_size + psp->index_tr_theta_dcdm] =
-	      ppt->sources[index_md]
+              ppt->sources[index_md]
               [index_ic * ppt->tp_size[index_md] + ppt->index_tp_theta_dcdm]
               [(index_tau-psp->ln_tau_size+ppt->tau_size) * ppt->k_size[index_md] + index_k] + theta_shift;
 
