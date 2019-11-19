@@ -155,9 +155,13 @@ int thermodynamics_at_z(
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pba->T_cmb*(1.+z);
 
-    /* Calculate cb2 (cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)) */
+    /* Calculate baryon equation of state parameter wb = (k_B/mu) Tb */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
-    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+z) * 4. / 3.;
+    pvecthermo[pth->index_th_wb] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+z);
+
+    /* Calculate baryon adiabatic sound speed cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
+    /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
+    pvecthermo[pth->index_th_cb2] = pvecthermo[pth->index_th_wb] * 4. / 3.;
 
     /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
     if (pth->compute_cb2_derivatives == _TRUE_) {
@@ -953,6 +957,8 @@ int thermodynamics_indices(
   index++;
   pth->index_th_Tb = index;
   index++;
+  pth->index_th_wb = index;
+  index++;
   pth->index_th_cb2 = index;
   index++;
 
@@ -986,6 +992,8 @@ int thermodynamics_indices(
   index++;
   preco->index_re_Tb = index;
   index++;
+  preco->index_re_wb = index;
+  index++;
   preco->index_re_cb2 = index;
   index++;
 
@@ -1000,6 +1008,8 @@ int thermodynamics_indices(
   preio->index_re_xe = index;
   index++;
   preio->index_re_Tb = index;
+  index++;
+  preio->index_re_wb = index;
   index++;
   preio->index_re_cb2 = index;
   index++;
@@ -2416,8 +2426,11 @@ int thermodynamics_reionization_sample(
   /** - --> after recombination, Tb scales like (1+z)**2. Compute constant factor Tb/(1+z)**2. */
   //Tba2 = Tb/(1+z)/(1+z);
 
-  /** - --> get baryon sound speed */
-  reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+  /** - --> get baryon equation of state */
+  reio_vector[preio->index_re_wb] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+
+  /** - --> get baryon adiabatic sound speed */
+  reio_vector[preio->index_re_cb2] = 5./3. * reio_vector[preio->index_re_wb];
 
   /** - --> store these values in growing table */
   class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
@@ -2599,10 +2612,16 @@ int thermodynamics_reionization_sample(
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
 
-    /** - --> get baryon sound speed */
+    /** - --> get baryon equation of state */
 
-    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] = _k_B_/ ( _c_ * _c_ * mu)
-      * preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_wb] =
+      _k_B_/ ( _c_ * _c_ * mu)
+      * preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb];
+
+    /** - --> get baryon adiabatic sound speed */
+
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] =
+      preio->reionization_table[(i-1)*preio->re_size+preio->index_re_wb]
       *(1.+(1+z)/3.*dTdz/preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]);
   }
 
@@ -2927,10 +2946,15 @@ int thermodynamics_recombination_with_hyrec(
     /* Tb */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
 
+    /* wb = (k_B/mu) Tb */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm;
+
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
+      = *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -3336,9 +3360,14 @@ int thermodynamics_recombination_with_recfast(
                pth->error_message,
                pth->error_message);
 
+    /* wb = (k_B/mu) Tb  = (k_B/mu) Tb */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2];
+
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
+      = *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      * (1. + (1.+zend) * dy[2] / y[2] / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -3699,6 +3728,8 @@ int thermodynamics_merge_reco_and_reio(
       preio->reionization_table[i*preio->re_size+preio->index_re_dkappadtau];
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_Tb]=
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
+    pth->thermodynamics_table[i*pth->th_size+pth->index_th_wb]=
+      preio->reionization_table[i*preio->re_size+preio->index_re_wb];
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_cb2]=
       preio->reionization_table[i*preio->re_size+preio->index_re_cb2];
   }
@@ -3713,6 +3744,8 @@ int thermodynamics_merge_reco_and_reio(
       preco->recombination_table[index_re*preco->re_size+preco->index_re_dkappadtau];
     pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=
       preco->recombination_table[index_re*preco->re_size+preco->index_re_Tb];
+    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_wb]=
+      preco->recombination_table[index_re*preco->re_size+preco->index_re_wb];
     pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=
       preco->recombination_table[index_re*preco->re_size+preco->index_re_cb2];
   }
@@ -3747,6 +3780,7 @@ int thermodynamics_output_titles(struct background * pba,
   //class_store_columntitle(titles,"g'",_TRUE_);
   //class_store_columntitle(titles,"g''",_TRUE_);
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
+  class_store_columntitle(titles,"w_b",_TRUE_);
   class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"tau_d",_TRUE_);
   //class_store_columntitle(titles,"max. rate",_TRUE_);
@@ -3795,6 +3829,7 @@ int thermodynamics_output_data(struct background * pba,
     //class_store_double(dataptr,pvecthermo[pth->index_th_dg],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_ddg],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_Tb],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_wb],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_rate],_TRUE_,storeidx);
