@@ -97,7 +97,6 @@ cdef class Class:
     cdef distortions sd
     cdef file_content fc
 
-    cpdef int ready # Flag to see if classy can currently compute
     cpdef int computed # Flag to see if classy has already computed with the given pars
     cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
@@ -112,7 +111,7 @@ cdef class Class:
             return self._pars
     property state:
         def __get__(self):
-            return self.ready
+            return True
     property Omega_nu:
         def __get__(self):
             return self.ba.Omega0_ncdm_tot
@@ -137,7 +136,6 @@ cdef class Class:
         sprintf(self.fc.filename,"%s",dumc)
         self.ncp = set()
         if default: self.set_default()
-        self.ready = True
 
     def __dealloc__(self):
         if self.allocated:
@@ -160,7 +158,7 @@ cdef class Class:
             raise CosmoSevereError("bad call")
         self._pars.update(kars)
         if viewdictitems(self._pars) <= viewdictitems(oldpars):
-          return # Don't change the ready/computed states, if the new dict was already contained in the previous dict
+          return # Don't change the computed states, if the new dict was already contained in the previous dict
         self.computed=False
         return True
 
@@ -335,8 +333,6 @@ cdef class Class:
             self.struct_cleanup()
 
         # Otherwise, proceed with the normal computation.
-        assert(self.ready)
-        self.ready = False
         self.computed = False
 
         # Equivalent of writing a parameter file
@@ -345,6 +341,9 @@ cdef class Class:
         # self.ncp will contain the list of computed modules (under the form of
         # a set, instead of a python list)
         self.ncp=set()
+        # Up until the empty set, all modules are allocated
+        # (And then we successively keep track of the ones we allocate additionally)
+        self.allocated = True
 
         # --------------------------------------------------------------------
         # Check the presence for all CLASS modules in the list 'level'. If a
@@ -437,8 +436,6 @@ cdef class Class:
                 raise CosmoComputationError(self.sd.error_message)
             self.ncp.add("distortions")
 
-        self.ready = True
-        self.allocated = True
         self.computed = True
 
         # At this point, the cosmological instance contains everything needed. The
