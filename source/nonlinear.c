@@ -2159,23 +2159,28 @@ int nonlinear_sigmas(
 
   for (i=0; i<integrand_size; i++) {
 
-    k=pnl->k[0]*pow(10.,i/k_per_decade);
+    if (i==0) {
+      pk = exp(lnpk_l[0]);
+    }
+    else {
+      k=pnl->k[0]*pow(10.,i/k_per_decade);
 
-    class_call(array_interpolate_spline(
-                                        pnl->ln_k,
-                                        k_size,
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        1,
-                                        log(k),
-                                        &last_index,
-                                        &lnpk,
-                                        1,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
+      class_call(array_interpolate_spline(
+                                          pnl->ln_k,
+                                          k_size,
+                                          lnpk_l,
+                                          ddlnpk_l,
+                                          1,
+                                          log(k),
+                                          &last_index,
+                                          &lnpk,
+                                          1,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
 
-    pk = exp(lnpk);
+      pk = exp(lnpk);
+    }
 
     t = 1./(1.+k);
     if (i == (integrand_size-1)) k *= 0.9999999; // to prevent rounding error leading to k being bigger than maximum value
