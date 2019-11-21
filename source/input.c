@@ -2898,7 +2898,6 @@ int input_read_parameters(
     }
   }
 
-
   if (pnl->has_pk_eq == _TRUE_) {
 
     if (input_verbose > 0) {
