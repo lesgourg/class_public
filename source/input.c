@@ -1310,12 +1310,13 @@ int input_read_parameters(
       pth->tau_reio=param2;
       pth->reio_z_or_tau=reio_tau;
 
-      class_test((pth->tau_reio > _tau_reio_BIG_) || (pth->tau_reio < _tau_reio_SMALL_),
-                 errmsg,
-                 "Your value of tau_reio=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in input.c",
-                 pth->tau_reio,
-                 _tau_reio_BIG_,
-                 _tau_reio_SMALL_);
+      class_test_except((pth->tau_reio > _tau_reio_BIG_) || (pth->tau_reio < _tau_reio_SMALL_),
+                        errmsg,
+                        background_free_input(pba),
+                        "Your value of tau_reio=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in input.c",
+                        pth->tau_reio,
+                        _tau_reio_BIG_,
+                        _tau_reio_SMALL_);
     }
 
     class_read_double("reionization_exponent",pth->reionization_exponent);
