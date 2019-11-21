@@ -109,7 +109,7 @@ int perturb_sources_at_tau(
  * the source functions \f$ S^{X} (k, \tau) \f$ at a given conformal
  * time tau corresponding to the input redshift z.
  *
- * @param ppa              Input: pointer to background structure
+ * @param pba              Input: pointer to background structure
  * @param ppt              Input: pointer to perturbation structure
  * @param output_format    Input: choice of ordering and normalisation for the output quantities
  * @param z                Input: redshift

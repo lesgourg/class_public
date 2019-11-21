@@ -863,6 +863,7 @@ int nonlinear_pks_at_kvec_and_zvec(
  * converged. E.g. to get an accurate sigma8 at R = 8 Mpc/h, the user
  * should pass at least about P_k_max_h/Mpc = 1.
  *
+ * @param ppr          Input: pointer to precision structure
  * @param pba          Input: pointer to background structure
  * @param pnl          Input: pointer to nonlinear structure
  * @param R            Input: radius in Mpc
@@ -1787,7 +1788,6 @@ int nonlinear_get_tau_list(
  * @param pnl             Input: pointer to nonlinear structure
  * @param index_k         Input: index of required k value
  * @param index_ic        Input: index of required ic value
- * @param index_md        Input: index of required md value
  * @param index_tp        Input: index of required tp value
  * @param index_tau       Input: index of required tau value
  * @param sources         Input: array containing the original sources
@@ -1943,8 +1943,8 @@ int nonlinear_get_source(
  * @param index_pk      Input: index of required P(k) type (_m, _cb)
  * @param index_tau     Input: index of time
  * @param k_size        Input: wavenumber array size
- * @param ln_pk         Output: log of matter power spectrum for given type/time, for all wavenumbers
- * @param ln_pk_ic      Output: log of matter power spectrum for given type/time, for all wavenumbers and initial conditions
+ * @param lnpk         Output: log of matter power spectrum for given type/time, for all wavenumbers
+ * @param lnpk_ic      Output: log of matter power spectrum for given type/time, for all wavenumbers and initial conditions
  * @return the error status
  */
 
@@ -2912,7 +2912,6 @@ int nonlinear_halofit_integrate(
  * @param index_tau  Input: index of tau, at which to compute the nl correction
  * @param tau        Input: tau, at which to compute the nl correction
  * @param pk_nl      Output:nonlinear power spectrum
- * @param lnk_l      Input: logarithm of the wavevector for both index_m and index_cb
  * @param lnpk_l     Input: logarithm of the linear power spectrum for both index_m and index_cb
  * @param ddlnpk_l   Input: spline of the logarithm of the linear power spectrum for both index_m and index_cb
  * @param nl_corr_not_computable_at_this_k Ouput: was the computation doable?
@@ -3957,14 +3956,14 @@ int nonlinear_hmcode_window_nfw(
 /**
  * This is the Sheth-Tormen halo mass function (1999, MNRAS, 308, 119)
  *
- * @param nu   Input: the \nu parameter that depends on the halo mass via \nu(M) = \delta_c/\sigma(M)
- * @param hmf  Output: Value of the halo mass function at this \nu
+ * @param nu   Input: the \f$ \nu \f$ parameter that depends on the halo mass via \f$ \nu(M) = \delta_c/\sigma(M) \f$
+ * @param hmf  Output: Value of the halo mass function at this \f$ \nu \f$
  * @return the error status
  */
 
 int nonlinear_hmcode_halomassfunction(
                                       double nu,
-                                      double *hmf
+                                      double * hmf
                                       ){
 
   double p, q, A;

@@ -598,7 +598,7 @@ int output_cl(
  *
  * @param pba       Input: pointer to background structure (needed for calling spectra_pk_at_z())
  * @param ppt       Input: pointer perturbation structure
- * @param psp       Input: pointer to spectra structure
+ * @param pnl       Input: pointer to nonlinear structure
  * @param pop       Input: pointer to output structure
  * @param pk_output Input: pk_linear or pk_nonlinear
  */
@@ -1495,7 +1495,7 @@ int output_one_line_of_cl(
  * a heading with some general information concerning its content.
  *
  * @param pba        Input: pointer to background structure (needed for h)
- * @param psp        Input: pointer to spectra structure
+ * @param pnl        Input: pointer to nonlinear structure
  * @param pop        Input: pointer to output structure
  * @param pkfile     Output: returned pointer to file pointer
  * @param filename   Input: name of the file

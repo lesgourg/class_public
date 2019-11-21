@@ -2074,6 +2074,8 @@ int transfer_interpolate_sources(
  * @param index_md              Input: index of mode
  * @param index_tt              Input: index of type of (transfer) source
  * @param sources               Output: transfer source
+ * @param window                Input: window functions for each type and time
+ * @param tau_size_max          Input: number of times at wich window fucntions are sampled
  * @param tau0_minus_tau        Output: values of (tau0-tau) at which source are sample
  * @param w_trapz               Output: trapezoidal weights for integration over tau
  * @param tau_size_out          Output: pointer to size of previous two arrays, converted to double
@@ -4587,7 +4589,6 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
  * @param pba                   Input: pointer to background structure
  * @param ppt                   Input: pointer to perturbation structure
  * @param ptr                   Input: pointer to transfers structure
- * @param interpolated_sources  Input: interpolated perturbation source
  * @param tau_rec               Input: recombination time
  * @param tau_size_max          Input: maximum size that tau array can have
  * @param window                Output: pointer to array of selection functions
