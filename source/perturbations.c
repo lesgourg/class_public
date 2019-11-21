@@ -247,7 +247,6 @@ int perturb_output_data(
           class_store_double(dataptr,tk[ppt->index_tp_eta],ppt->has_source_eta,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_eta_prime],ppt->has_source_eta_prime,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_H_T_Nb_prime],ppt->has_source_H_T_Nb_prime,storeidx);
-          class_store_double(dataptr,tk[ppt->index_tp_H_T_Nb_prime_prime],ppt->has_source_k2gamma_Nb,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_k2gamma_Nb],ppt->has_source_k2gamma_Nb,storeidx);
         }
         if (ppt->has_velocity_transfers == _TRUE_) {
@@ -6645,10 +6644,7 @@ int perturb_sources(
                                                       pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/rho_plus_p_tot/k/k+
                                                       ppw->rho_plus_p_shear);
       _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
-      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. Note: term involving the second derivative H_T_Nb_prime_prime
-          will be added in the spectra module. This is because we compute the derivative numerically since the analytic
-          expression would contain the derivatives of pressure and shear which are cumbersome to compute and is only feasible
-          in a simplified cosmology with no massive neutrino or DE perturbations. */
+      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. */
       if (ppt->has_source_k2gamma_Nb == _TRUE_){
         _set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
       }
