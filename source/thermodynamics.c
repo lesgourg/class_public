@@ -298,8 +298,8 @@ int thermodynamics_init(
                pth->error_message,
                "Your value of tau_reio=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in thermodynamics.c",
                pth->tau_reio,
-               _tau_reio_BIG_,
-               _tau_reio_SMALL_);
+               _tau_reio_SMALL_,
+               _tau_reio_BIG_);
   }
 
   /** - initialize pointers, allocate background vector */

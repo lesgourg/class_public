@@ -635,7 +635,7 @@ extern "C" {
 
 //@{
 
-#define _tau_reio_BIG_ 0.02     /**< maximal \f$ tau_reio \f$ */
+#define _tau_reio_BIG_ 0.2      /**< maximal \f$ tau_reio \f$ */
 #define _tau_reio_SMALL_ 0.004  /**< minimal \f$ tau_reio \f$ */
 
 //@}

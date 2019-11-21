@@ -612,8 +612,8 @@ int background_init(
                     background_free_input(pba),
                     "Your value of pba->h=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
                     pba->h,
-                    _h_BIG_,
-                    _h_SMALL_);
+                    _h_SMALL_,
+                    _h_BIG_);
 
   class_test_except((pba->Omega0_b*pba->h*pba->h < _omegab_SMALL_) || (pba->Omega0_b*pba->h*pba->h > _omegab_BIG_),
                     pba->error_message,
