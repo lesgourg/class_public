@@ -2114,47 +2114,14 @@ int transfer_sources(
   /* minimum tau index kept in transfer sources */
   int index_tau_min;
 
-  /* for calling background_at_eta */
-  int last_index;
-  double * pvecback = NULL;
-
   /* conformal time */
   double tau, tau0;
-
-  /* geometrical quantities */
-  double sinKgen_source=0.;
-  double sinKgen_source_to_lens=0.;
-  double cotKgen_source=0.;
-  double cscKgen_lens=0.;
 
   /* rescaling factor depending on the background at a given time */
   double rescaling=0.;
 
   /* flag: is there any difference between the perturbation and transfer source? */
   short redefine_source;
-
-  /* array of selection function values at different times */
-  double * selection;
-
-  /* array of time sampling for lensing source selection function */
-  double * tau0_minus_tau_lensing_sources;
-
-  /* trapezoidal weights for lensing source selection function */
-  double * w_trapz_lensing_sources;
-
-  /* index running on time in previous two arrays */
-  int index_tau_sources;
-
-  /* number of time values in previous two arrays */
-  int tau_sources_size;
-
-  /* source evolution factor */
-  double f_evo = 0.;
-
-  /* when the selection function is multiplied by a function dNdz */
-  double z;
-  double dNdz;
-  double dln_dNdz_dz;
 
   /** - in which cases are perturbation and transfer sources are different?
      I.e., in which case do we need to multiply the sources by some
@@ -4652,9 +4619,6 @@ int transfer_precompute_selection(
   /* number of tau values */
   int tau_size;
 
-  /* minimum tau index kept in transfer sources */
-  int index_tau_min;
-
   /* for calling background_at_eta */
   int last_index;
   double * pvecback = NULL;
@@ -4670,9 +4634,6 @@ int transfer_precompute_selection(
 
   /* rescaling factor depending on the background at a given time */
   double rescaling=0.;
-
-  /* flag: is there any difference between the perturbation and transfer source? */
-  short redefine_source;
 
   /* array of selection function values at different times */
   double * selection;

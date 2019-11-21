@@ -6466,7 +6466,7 @@ int perturb_sources(
 
   double a_rel, a2_rel, f_dr;
 
-  double rho_plus_p_tot, H_T_Nb_prime, rho_tot;
+  double rho_plus_p_tot, H_T_Nb_prime=0., rho_tot;
   double theta_over_k2,theta_shift;
 
   /** - rename structure fields (just to avoid heavy notations) */
@@ -8633,9 +8633,6 @@ int perturb_tca_slip_and_shear(double * y,
   double Delta;
   double cb2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.;
-
-  /* perturbed recombination */
-  double delta_temp=0.;
 
   /* for use with curvature */
   double s2_squared;

@@ -363,7 +363,6 @@ int nonlinear_pk_at_k_and_z(
   double * ddout_pk_at_z;
   double * ddout_pk_ic_at_z;
   int last_index;
-  int index_k;
   int index_ic_ic;
   double kmin;
   double * pk_primordial_k;
@@ -682,10 +681,10 @@ int nonlinear_pks_at_kvec_and_zvec(
 
   int index_k, index_kvec, index_zvec;
   double * ln_kvec;
-  double * ln_pk_table;
-  double * ddln_pk_table;
-  double * ln_pk_cb_table;
-  double * ddln_pk_cb_table;
+  double * ln_pk_table = NULL;
+  double * ddln_pk_table = NULL;
+  double * ln_pk_cb_table = NULL;
+  double * ddln_pk_cb_table = NULL;
   double h, a, b;
 
   /** - Allocate arrays */
@@ -2159,12 +2158,12 @@ int nonlinear_sigmas(
 
   for (i=0; i<integrand_size; i++) {
 
+    k=pnl->k[0]*pow(10.,i/k_per_decade);
+
     if (i==0) {
       pk = exp(lnpk_l[0]);
     }
     else {
-      k=pnl->k[0]*pow(10.,i/k_per_decade);
-
       class_call(array_interpolate_spline(
                                           pnl->ln_k,
                                           k_size,
