@@ -718,13 +718,6 @@ int input_read_parameters(
     pba->h = param2;
   }
 
-  class_test((pba->h > _h_BIG_) || (pba->h < _h_SMALL_),
-             errmsg,
-             "Your value of pba->h=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in input.c",
-             pba->h,
-             _h_BIG_,
-             _h_SMALL_);
-
   /** - Omega_0_g (photons) and T_cmb */
   class_call(parser_read_double(pfc,"T_cmb",&param1,&flag1,errmsg),
              errmsg,
@@ -779,13 +772,6 @@ int input_read_parameters(
     pba->Omega0_b = param1;
   if (flag2 == _TRUE_)
     pba->Omega0_b = param2/pba->h/pba->h;
-
-  class_test((pba->Omega0_b*pba->h*pba->h < _omegab_SMALL_) || (pba->Omega0_b*pba->h*pba->h > _omegab_BIG_),
-             errmsg,
-             "Your value of omega_b=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value (e.g., issues with interpolating the BBN table) so we will not try to call CLASS. If you want to force this barrier, you may comment it out in input.c",
-             pba->Omega0_b*pba->h*pba->h,
-             _omegab_SMALL_,
-             _omegab_BIG_);
 
   Omega_tot += pba->Omega0_b;
 
@@ -1310,13 +1296,6 @@ int input_read_parameters(
       pth->tau_reio=param2;
       pth->reio_z_or_tau=reio_tau;
 
-      class_test_except((pth->tau_reio > _tau_reio_BIG_) || (pth->tau_reio < _tau_reio_SMALL_),
-                        errmsg,
-                        background_free_input(pba),
-                        "Your value of tau_reio=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in input.c",
-                        pth->tau_reio,
-                        _tau_reio_BIG_,
-                        _tau_reio_SMALL_);
     }
 
     class_read_double("reionization_exponent",pth->reionization_exponent);

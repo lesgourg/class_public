@@ -605,6 +605,24 @@ int background_init(
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
+  /** barrier against crazy input parameters */
+
+  class_test_except((pba->h > _h_BIG_) || (pba->h < _h_SMALL_),
+                    pba->error_message,
+                    background_free_input(pba),
+                    "Your value of pba->h=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
+                    pba->h,
+                    _h_BIG_,
+                    _h_SMALL_);
+
+  class_test_except((pba->Omega0_b*pba->h*pba->h < _omegab_SMALL_) || (pba->Omega0_b*pba->h*pba->h > _omegab_BIG_),
+                    pba->error_message,
+                    background_free_input(pba),
+                    "Your value of omega_b=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value (e.g., issues with interpolating the BBN table) so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
+                    pba->Omega0_b*pba->h*pba->h,
+                    _omegab_SMALL_,
+                    _omegab_BIG_);
+
   /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
@@ -672,30 +690,6 @@ int background_init(
   class_call(background_indices(pba),
              pba->error_message,
              pba->error_message);
-
-  /** - control that cosmological parameter values make sense */
-
-  /* H0 in Mpc^{-1} */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-             pba->error_message,
-             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
-
-  class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
-             pba->error_message,
-             "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
-
-  /* T_cmb in K */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
-             pba->error_message,
-             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
-
-  /* Omega_k */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
-             pba->error_message,
-             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
