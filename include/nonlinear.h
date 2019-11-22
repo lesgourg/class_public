@@ -309,6 +309,17 @@ extern "C" {
                             double * result
                             );
 
+  int nonlinear_pk_tilt_at_k_and_z(
+                                    struct background * pba,
+                                    struct primordial * ppm,
+                                    struct nonlinear * pnl,
+                                    enum pk_outputs pk_output,
+                                    double k,
+                                    double z,
+                                    int index_pk,
+                                    double * pk_tilt
+                                    );
+
   int nonlinear_k_nl_at_z(
                           struct background *pba,
                           struct nonlinear * pnl,

@@ -385,6 +385,16 @@ cdef extern from "class.h":
         double * out_pk,
         double * out_pk_ic)
 
+    int nonlinear_pk_tilt_at_k_and_z(
+        void * pba,
+        void * ppm,
+        void * pnl,
+        int pk_output,
+        double k,
+        double z,
+        int index_pk,
+        double * pk_tilt)
+
     int nonlinear_sigmas_at_z(
         void * ppr,
         void * pba,

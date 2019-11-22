@@ -2685,10 +2685,6 @@ int input_read_parameters(
                errmsg,
                errmsg);
 
-    //    class_call(parser_read_string(pfc,"compute_neff_Lya",&string2,&flag2,errmsg),
-    //           errmsg,
-    //           errmsg);
-
     if (flag1==_TRUE_) {
       ppt->z_max_pk = param1;
     }
@@ -2718,27 +2714,10 @@ int input_read_parameters(
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
-
-      //      if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))) {
-      //  psp->compute_neff_Lya=_TRUE_;
-      //  class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
-      //  class_read_double("Lya_z",psp->Lya_z);
-      //  ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
-      //}
     }
     psp->z_max_pk = ppt->z_max_pk;
   }
   /* end of z_max section */
-
-  /* Lya calculation */
-  //  class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag1,errmsg),
-  //           errmsg,
-  //           errmsg);
-  //if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-  //  psp->compute_neff_Lya=_TRUE_;
-  //}
-  //class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
-  //class_read_double("Lya_z",psp->Lya_z);
 
   class_call(parser_read_string(pfc,"root",&string1,&flag1,errmsg),
              errmsg,

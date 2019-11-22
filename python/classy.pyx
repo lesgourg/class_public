@@ -850,30 +850,6 @@ cdef class Class:
                     pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
         return pk
 
-    # Gives neff(Lya_k_s_over_km,z) for a given z (Lya_k_s_over_km is fixed)
-    #def get_neffz(self,double z):
-    #    """
-    #    Gives the pk slope for a given z at Lya_k_s_over_km
-    #
-    #    .. note::
-    #
-    #        there is an additional check to verify whether output contains `mPk`,
-    #        and whether k_max > ...
-    #        because otherwise a segfault will occur
-    #
-    #    """
-    #    cdef double neffz
-    #
-    #    if (self.pt.has_pk_matter == _FALSE_):
-    #        raise CosmoSevereError(
-    #            "No power spectrum computed. In order to get neff you must add mPk to the list of outputs."
-    #            )
-    #
-    #    if spectra_sigma_neff(&self.ba,&self.pm,&self.sp,z,&neffz)==_FAILURE_:
-    #             raise CosmoSevereError(self.sp.error_message)
-    #
-    #    return neffz
-
     def get_pk_cb(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
         cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
@@ -1028,6 +1004,30 @@ cdef class Class:
             raise CosmoSevereError(self.nl.error_message)
 
         return sigma_cb
+
+    # Gives effective logarithmic slope of P_L(k,z) (total matter) for a given (k,z)
+    def pk_tilt(self,double k,double z):
+        """
+        Gives effective logarithmic slope of P_L(k,z) (total matter) for a given k and z
+        (k is the wavenumber in units of 1/Mpc, z is the redshift, the output is dimensionless)
+
+        .. note::
+
+            there is an additional check to verify whether output contains `mPk` and whether k is in the right range
+
+        """
+        cdef double pk_tilt
+
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("No power spectrum computed. In order to get pk_tilt(k,z) you must add mPk to the list of outputs.")
+
+        if (k < self.nl.k[1] or k > self.nl.k[self.nl.k_size-2]):
+            raise CosmoSevereError("In order to get pk_tilt at k=%e 1/Mpc, you should compute P(k,z) in a wider range of k's"%k)
+
+        if nonlinear_pk_tilt_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_total,&pk_tilt)==_FAILURE_:
+            raise CosmoSevereError(self.nl.error_message)
+
+        return pk_tilt
 
     #calculates the hmcode window_function of the Navarrow Frenk White Profile
     def nonlinear_hmcode_window_nfw(self,double k,double rv,double c):
