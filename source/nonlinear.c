@@ -3774,8 +3774,6 @@ int nonlinear_hmcode_fill_growtab(
 
     pnw->growtable[index_scalefactor] = pvecback[pba->index_bg_D];
 
-    // for debugging:
-    //fprintf(stdout, "%e %e\n", exp(scalefactor), pnw->growtable[index_scalefactor]/exp(scalefactor));
   }
 
   free(pvecback);
@@ -3808,7 +3806,7 @@ int nonlinear_hmcode_growint(
                              double * growth
                              ){
 
-  double z, ainit, amax, scalefactor, gamma, Omega_m;
+  double z, ainit, amax, scalefactor, gamma, X_de, Hubble2, Omega_m;
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
   double * pvecback;
   double * integrand;
@@ -3818,13 +3816,6 @@ int nonlinear_hmcode_growint(
   ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
   ainit = a;
   amax = 1.;
-
-  /* In original HMcode version but not needed anymore */
-  /*
-  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
-  Omega0_v = 1. - (Omega0_m + pba->Omega0_g + pba->Omega0_ur);
-  Omega0_k = 1. - (Omega0_m + Omega0_v + pba->Omega0_g + pba->Omega0_ur);
-  */
 
   i=0;
   index_a = i;
@@ -3848,30 +3839,14 @@ int nonlinear_hmcode_growint(
       scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
       z = 1./scalefactor-1.;
 
-      /* In original HMcode version: */
-      /*
+      /* This will compute Omega_m(z) for the input values of w0 and wa, to let the user compare the wCDM and LCDM cases. This is why we cannot extract Omega_m(z) fromn the background module in this place. */
       X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
-      Hubble2 = (Omega0_m*pow((1.+z), 3.) + Omega0_k*pow((1.+z), 2.) + Omega0_v*X_de);
-      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;
-      */
+      Hubble2 = (pba->Omega0_m*pow((1.+z), 3.) + pba->Omega0_k*pow((1.+z), 2.) + pba->Omega0_de*X_de);
+      Omega_m = (pba->Omega0_m*pow((1.+z), 3.))/Hubble2;
       /* Samuel brieden: TBC: check that the matching between the
          background quantity and this fitting formula improves by
          using Omega_cb (as it is done in background). Carefull:
          Hubble remains with Omega0_m */
-
-      /* JL: extract this information form the background
-         module (only difference: tiny radiation density now
-         implicitely taken into account): */
-
-      class_call(background_tau_of_z(pba,z,&tau),
-                 pba->error_message,
-                 pnl->error_message);
-
-      class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
-                 pba->error_message,
-                 pnl->error_message);
-
-      Omega_m = pvecback[pba->index_bg_Omega_m];
 
       if (w0 == -1.){
         gamma = 0.55;
