@@ -1032,15 +1032,11 @@ cdef class Class:
     def tau_reio(self):
         return self.th.tau_reio
 
-    # Defined twice ?
     def Omega_m(self):
-        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
+        return self.ba.Omega0_m
 
-    # This is commented because in the current form it only applies
-    # to minimal LambdaCDM.
-    # On would need to add contributions from ncdm, ddmdr, etc.
-    #def Omega_r(self):
-    #    return self.ba.Omega0_g+self.ba.Omega0_ur
+    def Omega_r(self):
+        return self.ba.Omega0_r
 
     def theta_s_100(self):
         return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
@@ -1326,11 +1322,13 @@ cdef class Class:
         """
         return self.ba.T_cmb
 
+    # redundent with a previous Omega_m() funciton,
+    # but we leave it not to break compatibility
     def Omega0_m(self):
         """
         Return the sum of Omega0 for all non-relativistic components
         """
-        return self.ba.Omega0_b+self.ba.Omega0_cdm+self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm
+        return self.ba.Omega0_m
 
     def get_background(self):
         """
@@ -1647,11 +1645,9 @@ cdef class Class:
             elif name == 'Neff':
                 value = self.ba.Neff
             elif name == 'Omega_m':
-                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
-                         self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)
+                value = self.ba.Omega0_m
             elif name == 'omega_m':
-                value = (self.ba.Omega0_b + self.ba.Omega0_cdm+
-                         self.ba.Omega0_ncdm_tot + self.ba.Omega0_dcdm)/self.ba.h**2
+                value = self.ba.Omega0_m/self.ba.h**2
             elif name == 'tau_reio':
                 value = self.th.tau_reio
             elif name == 'z_reio':

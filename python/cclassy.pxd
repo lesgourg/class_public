@@ -77,9 +77,17 @@ cdef extern from "class.h":
         double cs2_fld
         double Omega0_ur
         double Omega0_dcdmdr
+        double Omega0_dr
         double Omega0_scf
         double Omega0_k
         int bt_size
+        double Omega0_m
+        double Omega0_r
+        double Omega0_de
+        double a_eq
+        double H_eq
+        double z_eq
+        double tau_eq
 
     cdef struct thermo:
         ErrorMsg error_message
