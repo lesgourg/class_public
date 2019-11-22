@@ -37,7 +37,7 @@
  *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
  *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
- * Hints on output format:
+ * Output format:
  *
  * 1. if mode = logarithmic (most straightforward for the code):
  *     out_pk = ln(P(k))
@@ -322,17 +322,11 @@ int nonlinear_pks_at_z(
  *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
  *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
- * Hints on output format:
+ * Output format:
  *
- * 1. if mode = logarithmic (most straightforward for the code):
- *     out_pk_l = ln(P(k))
- *     out_pk_ic_l[diagonal] = ln(P_ic(k))
- *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
- *
- * 2. if mode = linear (a conversion is done internally in this function)
- *     out_pk_l = P(k)
- *     out_pk_ic_l[diagonal] = P_ic(k)
- *     out_pk_ic_l[non-diagonal] = P_icxic(k)
+ *     out_pk = P(k)
+ *     out_pk_ic[diagonal] = P_ic(k)
+ *     out_pk_ic[non-diagonal] = P_icxic(k)
  *
  * @param pba         Input: pointer to background structure
  * @param ppm         Input: pointer to primordial structure
