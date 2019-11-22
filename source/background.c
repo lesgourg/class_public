@@ -254,6 +254,8 @@ int background_functions(
 
   /* total density */
   double rho_tot;
+  /* critical density */
+  double rho_crit;
   /* total pressure */
   double p_tot;
   /* total relativistic density */
@@ -456,20 +458,23 @@ int background_functions(
     pvecback[pba->index_bg_p_tot_prime] += pvecback[pba->index_bg_p_prime_scf];
   }
 
+  /** - compute critical density */
+  rho_crit = rho_tot-pba->K/a/a;
+  class_test(rho_crit <= 0.,
+             pba->error_message,
+             "rho_crit = %e instead of strictly positive",rho_crit);
+
   /** - compute relativistic density to total density ratio */
-  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
+  pvecback[pba->index_bg_Omega_r] = rho_r / rho_crit;
 
   /** - compute other quantities in the exhaustive, redundant format */
   if (return_format == pba->long_info) {
 
-    /** - compute critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->K/a/a;
-    class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
-               pba->error_message,
-               "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
+    /** - store critical density */
+    pvecback[pba->index_bg_rho_crit] = rho_crit;
 
     /** - compute Omega_m */
-    pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
+    pvecback[pba->index_bg_Omega_m] = rho_m / rho_crit;
 
     /* one can put other variables here */
     /*  */
@@ -1781,7 +1786,6 @@ int background_solve(
     pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
   }
 
-
   /** - allocate background tables */
   class_alloc(pba->tau_table,pba->bt_size * sizeof(double),pba->error_message);
 
@@ -1865,8 +1869,9 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - compute remaining "related parameters"
-   *     - so-called "effective neutrino number", computed at earliest
+  /** - compute remaining "related parameters" */
+
+  /**  - so-called "effective neutrino number", computed at earliest
       time in interpolation table. This should be seen as a
       definition: Neff is the equivalent number of
       instantaneously-decoupled neutrinos accounting for the
@@ -1906,6 +1911,11 @@ int background_solve(
       printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]);
     }
   }
+
+  /**  - total matter, radiation, dark energy today */
+  pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
+  pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
+  pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
 
   free(pvecback);
   free(pvecback_integration);

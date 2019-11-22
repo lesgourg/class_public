@@ -2444,10 +2444,8 @@ int nonlinear_halofit(
 
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  Omega0_m = pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm;
-
   if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
-    fnu = pba->Omega0_ncdm_tot/Omega0_m;
+    fnu = pba->Omega0_ncdm_tot/pba->Omega0_m;
   }
   else if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
     fnu = 0.;
@@ -2528,7 +2526,6 @@ int nonlinear_halofit(
 
   class_alloc(integrand_array,integrand_size*ia_size*sizeof(double),pnl->error_message);
 
-  //fprintf(stderr,"Omega_m=%e,  fnu=%e\n",Omega0_m,fnu);
 
   /* we fill integrand_array with values of k and P(k) using interpolation */
 
@@ -2804,7 +2801,7 @@ int nonlinear_halofit(
 
       y=(rk/rknl);
       pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
-      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(0.977-18.015*(Omega0_m-0.3)));
+      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(0.977-18.015*(pba->Omega0_m-0.3)));
       // rk is in 1/Mpc, 47.48and 1.5 in Mpc**-2, so we need an h**2 here (Credits Antonio J. Cuesta)
       pk_linaa=pk_lin*(1+fnu*47.48*pow(rk/pba->h,2)/(1+1.5*pow(rk/pba->h,2)));
       pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
@@ -2998,10 +2995,9 @@ int nonlinear_hmcode(
   nsig = ppr->n_hmcode_tables;
 
 
-  /** Call all the relevant background parameters at this tau */
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
+  /** Compute background quantitites today */
 
-  Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
+  Omega0_m = pba->Omega0_m;
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
 
   /** If index_pk_cb, choose Omega0_cb as the matter density parameter.
@@ -3011,6 +3007,9 @@ int nonlinear_hmcode(
   }
 
   anorm    = 1./(2*pow(_PI_,2));
+
+  /** Call all the relevant background parameters at this tau */
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
   class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
              pba->error_message,
@@ -3813,14 +3812,19 @@ int nonlinear_hmcode_growint(
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
   double * pvecback;
   double * integrand;
+  double tau;
+  int last_index;
 
   ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
   ainit = a;
   amax = 1.;
 
+  /* In original HMcode version but not needed anymore */
+  /*
   Omega0_m = (pba->Omega0_cdm + pba->Omega0_b + pba->Omega0_ncdm_tot + pba->Omega0_dcdm);
   Omega0_v = 1. - (Omega0_m + pba->Omega0_g + pba->Omega0_ur);
   Omega0_k = 1. - (Omega0_m + Omega0_v + pba->Omega0_g + pba->Omega0_ur);
+  */
 
   i=0;
   index_a = i;
@@ -3840,11 +3844,34 @@ int nonlinear_hmcode_growint(
   else {
 
     for (index_scalefactor=0;index_scalefactor<ng;index_scalefactor++){
+
       scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
       z = 1./scalefactor-1.;
+
+      /* In original HMcode version: */
+      /*
       X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
       Hubble2 = (Omega0_m*pow((1.+z), 3.) + Omega0_k*pow((1.+z), 2.) + Omega0_v*X_de);
-      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;//TBC check that the matching between the background quantity and this fitting formula improves by using Omega_cb (as it is done in background). Carefull: Hubble remains with Omega0_m
+      Omega_m = (Omega0_m*pow((1.+z), 3.))/Hubble2;
+      */
+      /* Samuel brieden: TBC: check that the matching between the
+         background quantity and this fitting formula improves by
+         using Omega_cb (as it is done in background). Carefull:
+         Hubble remains with Omega0_m */
+
+      /* JL: extract this information form the background
+         module (only difference: tiny radiation density now
+         implicitely taken into account): */
+
+      class_call(background_tau_of_z(pba,z,&tau),
+                 pba->error_message,
+                 pnl->error_message);
+
+      class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+                 pba->error_message,
+                 pnl->error_message);
+
+      Omega_m = pvecback[pba->index_bg_Omega_m];
 
       if (w0 == -1.){
         gamma = 0.55;
