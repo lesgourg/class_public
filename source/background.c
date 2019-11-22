@@ -755,6 +755,7 @@ int background_free(
                     ) {
   int err;
 
+  /*
   free(pba->tau_table);
   free(pba->z_table);
   free(pba->d2tau_dz2_table);
@@ -764,6 +765,17 @@ int background_free(
   err = background_free_input(pba);
 
   return err;
+  */
+
+  class_call(background_free_noinput(pba),
+              pba->error_message,
+              pba->error_message);
+
+  class_call(background_free_input(pba),
+              pba->error_message,
+              pba->error_message);
+
+  return _SUCCESS_;
 }
 
 /**
