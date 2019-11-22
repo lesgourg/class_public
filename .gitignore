@@ -11,3 +11,5 @@ python/classy.c
 python/build/
 RealSpaceInterface/cache/
 .DS_Store
+doc/manual/html
+doc/manual/latex

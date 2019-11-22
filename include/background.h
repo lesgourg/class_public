@@ -10,6 +10,10 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
+//The name for this macro can be at most 30 characters total
+#define _class_print_species_(name,type) \
+printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
+
 /** list of possible types of spatial curvature */
 
 enum spatial_curvature {flat,open,closed};
@@ -145,6 +149,9 @@ struct background
   double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
   double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
   double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
+  double Omega0_m;  /**< total non-relativistic matter today */
+  double Omega0_r;  /**< total ultra-relativistic radiation today */
+  double Omega0_de; /**< total dark energy density today, currently defined as 1 - Omega0_m - Omega0_r - Omega0_k */
   double a_eq;      /**< scale factor at radiation/matter equality */
   double H_eq;      /**< Hubble rate at radiation/matter equality [Mpc^-1] */
   double z_eq;      /**< redshift at radiation/matter equality */
@@ -187,10 +194,15 @@ struct background
   int index_bg_ddV_scf;       /**< scalar field potential second derivative V'' */
   int index_bg_rho_scf;       /**< scalar field energy density */
   int index_bg_p_scf;         /**< scalar field pressure */
+  int index_bg_p_prime_scf;         /**< scalar field pressure */
 
   int index_bg_rho_ncdm1;     /**< density of first ncdm species (others contiguous) */
   int index_bg_p_ncdm1;       /**< pressure of first ncdm species (others contiguous) */
   int index_bg_pseudo_p_ncdm1;/**< another statistical momentum useful in ncdma approximation */
+
+  int index_bg_rho_tot;       /**< Total density */
+  int index_bg_p_tot;         /**< Total pressure */
+  int index_bg_p_tot_prime;   /**< Conf. time derivative of total pressure */
 
   int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
 
@@ -528,6 +540,11 @@ extern "C" {
                double phi_prime
                );
 
+  /** Budget equation output */
+  int background_output_budget(
+               struct background* pba
+               );
+
 #ifdef __cplusplus
 }
 #endif
@@ -564,13 +581,17 @@ extern "C" {
 
 //@{
 
-#define _H0_BIG_ 1./2997.9     /**< maximal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=1.0) \f$ */
-#define _H0_SMALL_ 0.3/2997.9  /**< minimal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=0.3) \f$ */
+//#define _H0_BIG_ 1./2997.9     /**< maximal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=1.0) \f$ */
+//#define _H0_SMALL_ 0.3/2997.9  /**< minimal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=0.3) \f$ */
 #define _TCMB_BIG_ 2.8         /**< maximal \f$ T_{cmb} \f$ in K */
 #define _TCMB_SMALL_ 2.7       /**< minimal \f$ T_{cmb}  \f$ in K */
 #define _TOLERANCE_ON_CURVATURE_ 1.e-5 /**< if \f$ | \Omega_k | \f$ smaller than this, considered as flat */
-#define _OMEGAK_BIG_ 0.5     /**< maximal \f$ Omega_k \f$ */
-#define _OMEGAK_SMALL_ -0.5  /**< minimal \f$ Omega_k \f$ */
+#define _OMEGAK_BIG_ 0.5      /**< maximal \f$ Omega_k \f$ */
+#define _OMEGAK_SMALL_ -0.5   /**< minimal \f$ Omega_k \f$ */
+#define _h_BIG_ 1.            /**< maximal \f$ h \f$ */
+#define _h_SMALL_ 0.3         /**< minimal \f$ h \f$ */
+#define _omegab_BIG_ 0.039    /**< maximal \f$ omega_b \f$ */
+#define _omegab_SMALL_ 0.005  /**< minimal \f$ omega_b \f$ */
 
 //@}
 

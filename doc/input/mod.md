@@ -35,6 +35,6 @@ and move manually the chapters `"The external Pk mode"` and `"Updating the manua
 
 ` . make2.sh`
 
-You should now be able to find the finished pdf in `class/doc/manual/CLASS_MANUAL.pdf`. Finally you can commit the changes to git, but not all the content of `doc/` is necessary: only `doc/README`, `doc/input/`, `doc/manual/CLASS_MANUAL.pdf`, `doc/manual/html/`. This means that before committing you will have to do a: `git add doc/manual/html/`, but NOT a: `git add doc/manual/latex/`!
+You should now be able to find the finished pdf in `class/doc/manual/CLASS_MANUAL.pdf`. Finally you can commit the changes to git, but not all the content of `doc/` is necessary: only `doc/README`, `doc/input/` and `doc/manual/CLASS_MANUAL.pdf`. Since version 2.8, we are not committing anymore `doc/manual/html/` because it was too big (and complicating the version history): users only get the PDF manual from git.
 
 As a final comment, doxygen uses two main configuration files: `doxyconf` and `doxygen.sty`, both located in class/doc/input. Changes to these files can dramatically impact the outcome, so any modifications to these files should be done with great care.

@@ -155,9 +155,13 @@ int thermodynamics_at_z(
     /* Calculate Tb */
     pvecthermo[pth->index_th_Tb] = pba->T_cmb*(1.+z);
 
-    /* Calculate cb2 (cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)) */
+    /* Calculate baryon equation of state parameter wb = (k_B/mu) Tb */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
-    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+z) * 4. / 3.;
+    pvecthermo[pth->index_th_wb] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+z);
+
+    /* Calculate baryon adiabatic sound speed cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
+    /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
+    pvecthermo[pth->index_th_cb2] = pvecthermo[pth->index_th_wb] * 4. / 3.;
 
     /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
     if (pth->compute_cb2_derivatives == _TRUE_) {
@@ -282,9 +286,21 @@ int thermodynamics_init(
   struct recombination * preco;
   struct reionization * preio;
 
-  double tau;
+  double tau,tau_ini;
   double g_max;
   int index_tau_max;
+  double dkappa_ini;
+
+  /** barrier against crazy input parameters */
+
+  if (pth->reio_z_or_tau == reio_tau) {
+    class_test((pth->tau_reio > _tau_reio_BIG_) || (pth->tau_reio < _tau_reio_SMALL_),
+               pth->error_message,
+               "Your value of tau_reio=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in thermodynamics.c",
+               pth->tau_reio,
+               _tau_reio_SMALL_,
+               _tau_reio_BIG_);
+  }
 
   /** - initialize pointers, allocate background vector */
 
@@ -299,9 +315,10 @@ int thermodynamics_init(
 
   /* Y_He */
   if (pth->YHe == _BBN_) {
-    class_call(thermodynamics_helium_from_bbn(ppr,pba,pth),
-               pth->error_message,
-               pth->error_message);
+    class_call_except(thermodynamics_helium_from_bbn(ppr,pba,pth),
+                      pth->error_message,
+                      pth->error_message,
+                      free(pvecback));
     if (pth->thermodynamics_verbose > 0)
       printf(" with Y_He=%.4f\n",pth->YHe);
   }
@@ -392,9 +409,10 @@ int thermodynamics_init(
   /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
 
   if (pth->reio_parametrization != reio_none) {
-    class_call(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
-               pth->error_message,
-               pth->error_message);
+    class_call_except(thermodynamics_reionization(ppr,pba,pth,preco,preio,pvecback),
+                      pth->error_message,
+                      pth->error_message,
+                      free(preco->recombination_table);free(pvecback));
   }
   else {
     preio->rt_size=0;
@@ -473,15 +491,23 @@ int thermodynamics_init(
              pth->error_message);
 
   /* the temporary quantities stored in columns ddkappa and dddkappa
-     will not be used anymore, they will be overwritten */
+     will not be used anymore, so they can be overwritten by other
+     intermediate steps of other computations */
 
-  /** - --> compute r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') (R^2+4/5(1+R))/(1+R^2)/6 ]^1/2 (see e.g. Wayne Hu's thesis eq. (5.59) */
+  /** - --> compute damping scale:
+
+      r_d = 2pi/k_d = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2+16/15(1+R))/(1+R)^2]^1/2
+                    = 2pi * [int_{tau_ini}^{tau} dtau (1/kappa') 1/6 (R^2/(1+R)+16/15)/(1+R)]^1/2
+
+                    which is like in CosmoTherm (CT), but slightly
+                    different from Wayne Hu (WH)'s thesis eq. (5.59):
+                    the factor 16/15 in CT is 4/5 in WH */
 
   if (pth->compute_damping_scale == _TRUE_) {
 
     class_alloc(tau_table_growing,pth->tt_size*sizeof(double),pth->error_message);
 
-    /* compute integrand 1/kappa' (R^2+4/5(1+R))/(1+R^2)/6 and store temporarily in column "ddkappa" */
+    /* compute integrand and store temporarily in column "ddkappa" */
     for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
       tau_table_growing[index_tau]=tau_table[pth->tt_size-1-index_tau];
@@ -498,12 +524,12 @@ int thermodynamics_init(
       R = 3./4.*pvecback[pba->index_bg_rho_b]/pvecback[pba->index_bg_rho_g];
 
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
-                 1./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
-                 *(R*R+4./5.*(1.+R))/(1.+R*R)/6.;
+        1./6./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
+        *(R*R/(1+R)+16./15.)/(1.+R);
 
     }
 
-    /* compute second derivative of integrand 1/kappa' and store temporarily in column "dddkappa" */
+    /* compute second derivative of integrand, and store temporarily in column "dddkappa" */
     class_call(array_spline_table_line_to_line(tau_table_growing,
                                                pth->tt_size,
                                                pth->thermodynamics_table,
@@ -515,7 +541,7 @@ int thermodynamics_init(
                pth->error_message,
                pth->error_message);
 
-    /* compute integrated quantity r_d^2 and store temporarily in column "g" */
+    /* compute integratal and store temporarily in column "g" */
      class_call(array_integrate_spline_table_line_to_line(tau_table_growing,
                                                           pth->tt_size,
                                                           pth->thermodynamics_table,
@@ -529,24 +555,25 @@ int thermodynamics_init(
 
      free(tau_table_growing);
 
-     /* an analytic calculation shows that in the early
-        radiation-dominated and ionized universe, when kappa' is
-        proportional to (1+z)^2 and tau is proportional to the scale
-        factor, the integral is equal to eta/(3 kappa')*2./15. So
-        [tau_ini/3/kappa'_ini*2./15.] should be added to the integral in
-        order to account for the integration between 0 and tau_ini */
+     /* we could now write the result as r_d = 2pi * sqrt(integral),
+        but we will first better acount for the contribution frokm the tau_ini boundary.
+        Close to this boundary, R=0 and the integrand is just 16/(15*6)/kappa'
+        Using kappa' propto 1/a^2 and tau propro a during RD, we get the analytic result:
+        int_0^{tau_ini} dtau / kappa' = tau_ini / 3 / kappa'_ini
+        Thus r_d = 2pi * sqrt( 16/(15*6*3) * (tau_ini/ kappa'_ini) * integral) */
 
-     /* compute r_d */
+     tau_ini = tau_table[pth->tt_size-1];
+     dkappa_ini = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa];
+
      for (index_tau=0; index_tau < pth->tt_size; index_tau++) {
 
        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_r_d] =
-         2.*_PI_*sqrt(tau_table[pth->tt_size-1]/3.
-                      /pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_dkappa]*2./15.
+         2.*_PI_*sqrt(16./(15.*6.*3.)*tau_ini/dkappa_ini
                       +pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_g]);
 
      }
 
-  }
+  } // end of damping scale calculation
 
   /** - --> second derivative with respect to tau of dkappa (in view of spline interpolation) */
   class_call(array_spline_table_line_to_line(tau_table,
@@ -748,8 +775,8 @@ int thermodynamics_init(
              pba->error_message,
              pth->error_message);
 
-  while (1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa]/tau
-         < ppr->radiation_streaming_trigger_tau_c_over_tau) {
+  while ((1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dkappa]/tau < ppr->radiation_streaming_trigger_tau_c_over_tau)
+         && (index_tau>0)) {
 
     index_tau--;
 
@@ -760,6 +787,38 @@ int thermodynamics_init(
   }
 
   pth->tau_free_streaming = tau;
+
+  /** - find z_star (when optical depth kappa crosses one, using linear
+      interpolation) and sound horizon at that time */
+
+  index_tau=0;
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa] > 1./_E_) && (index_tau < pth->tt_size))
+    index_tau++;
+
+  pth->z_star = pth->z_table[index_tau-1]+
+    (1./_E_-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
+    /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
+    *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
+
+  class_call(background_tau_of_z(pba,pth->z_star,&(pth->tau_star)),
+             pba->error_message,
+             pth->error_message);
+
+  class_call(background_at_tau(pba,pth->tau_star, pba->long_info, pba->inter_normal, &last_index_back, pvecback),
+             pba->error_message,
+             pth->error_message);
+
+  pth->rs_star=pvecback[pba->index_bg_rs];
+  pth->ds_star=pth->rs_star*pba->a_today/(1.+pth->z_star);
+  pth->da_star=pvecback[pba->index_bg_ang_distance];
+  pth->ra_star=pth->da_star*(1.+pth->z_star)/pba->a_today;
+
+  if (pth->compute_damping_scale == _TRUE_) {
+
+    pth->rd_star = (pth->z_table[index_tau+1]-pth->z_star)/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_r_d]
+      +(pth->z_star-pth->z_table[index_tau])/(pth->z_table[index_tau+1]-pth->z_table[index_tau])*pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_r_d];
+
+  }
 
   /** - find baryon drag time (when tau_d crosses one, using linear
       interpolation) and sound horizon at that time */
@@ -799,7 +858,7 @@ int thermodynamics_init(
   /** - if verbose flag set to next-to-minimum value, print the main results */
 
   if (pth->thermodynamics_verbose > 0) {
-    printf(" -> recombination at z = %f\n",pth->z_rec);
+    printf(" -> recombination at z = %f (max of visibility function)\n",pth->z_rec);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_rec);
     printf("    with comoving sound horizon = %f Mpc\n",pth->rs_rec);
     printf("    angular diameter distance = %f Mpc\n",pth->da_rec);
@@ -808,6 +867,8 @@ int thermodynamics_init(
       printf("    and with comoving photon damping scale = %f Mpc\n",pth->rd_rec);
       printf("    or comoving damping wavenumber k_d = %f 1/Mpc\n",2.*_PI_/pth->rd_rec);
     }
+    printf("    Thomson optical depth crosses one at z_* = %f\n",pth->z_star);
+    printf("    giving an angle 100*theta_* = %f\n",100.*pth->rs_star/pth->ra_star);
     printf(" -> baryon drag stops at z = %f\n",pth->z_d);
     printf("    corresponding to conformal time = %f Mpc\n",pth->tau_d);
     printf("    with comoving sound horizon rs = %f Mpc\n",pth->rs_d);
@@ -907,6 +968,8 @@ int thermodynamics_indices(
   index++;
   pth->index_th_Tb = index;
   index++;
+  pth->index_th_wb = index;
+  index++;
   pth->index_th_cb2 = index;
   index++;
 
@@ -940,6 +1003,8 @@ int thermodynamics_indices(
   index++;
   preco->index_re_Tb = index;
   index++;
+  preco->index_re_wb = index;
+  index++;
   preco->index_re_cb2 = index;
   index++;
 
@@ -954,6 +1019,8 @@ int thermodynamics_indices(
   preio->index_re_xe = index;
   index++;
   preio->index_re_Tb = index;
+  index++;
+  preio->index_re_wb = index;
   index++;
   preio->index_re_cb2 = index;
   index++;
@@ -1207,25 +1274,29 @@ int thermodynamics_helium_from_bbn(
 
   omega_b=pba->Omega0_b*pba->h*pba->h;
 
-  class_test(omega_b < omegab[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             omega_b);
+  class_test_except(omega_b < omegab[0],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic small value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    omega_b);
 
-  class_test(omega_b > omegab[num_omegab-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             omega_b);
+  class_test_except(omega_b > omegab[num_omegab-1],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic high value omega_b = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    omega_b);
 
-  class_test(DeltaNeff < deltaN[0],
-             pth->error_message,
-             "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(DeltaNeff < deltaN[0],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic small value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    DeltaNeff);
 
-  class_test(DeltaNeff > deltaN[num_deltaN-1],
-             pth->error_message,
-             "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
-             DeltaNeff);
+  class_test_except(DeltaNeff > deltaN[num_deltaN-1],
+                    pth->error_message,
+                    free(omegab);free(deltaN);free(YHe);free(ddYHe);free(YHe_at_deltaN);free(ddYHe_at_deltaN),
+                    "You have asked for an unrealistic high value of Delta N_eff = %e. The corresponding value of the primordial helium fraction cannot be found in the interpolation table. If you really want this value, you should fix YHe to a given value rather than to BBN",
+                    DeltaNeff);
 
   /** - interpolate in one dimension (along deltaN) */
   class_call(array_interpolate_spline(deltaN,
@@ -1865,9 +1936,10 @@ int thermodynamics_reionization(
 
       tau_sup=preio->reionization_optical_depth;
 
-      class_test(tau_sup < pth->tau_reio,
-                 pth->error_message,
-                 "parameters are such that reionization cannot start after z_start_max");
+      class_test_except(tau_sup < pth->tau_reio,
+                        pth->error_message,
+                        free(preio->reionization_parameters);free(preio->reionization_table),
+                        "parameters are such that reionization cannot start after z_start_max");
 
       /* lower value */
 
@@ -2365,8 +2437,11 @@ int thermodynamics_reionization_sample(
   /** - --> after recombination, Tb scales like (1+z)**2. Compute constant factor Tb/(1+z)**2. */
   //Tba2 = Tb/(1+z)/(1+z);
 
-  /** - --> get baryon sound speed */
-  reio_vector[preio->index_re_cb2] = 5./3. * _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+  /** - --> get baryon equation of state */
+  reio_vector[preio->index_re_wb] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * Yp + xe * (1.-Yp)) * Tb;
+
+  /** - --> get baryon adiabatic sound speed */
+  reio_vector[preio->index_re_cb2] = 5./3. * reio_vector[preio->index_re_wb];
 
   /** - --> store these values in growing table */
   class_call(gt_add(&gTable,_GT_END_,(void *) reio_vector,sizeof(double)*(preio->re_size)),
@@ -2548,10 +2623,16 @@ int thermodynamics_reionization_sample(
     preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb] =
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb]-dTdz*dz;
 
-    /** - --> get baryon sound speed */
+    /** - --> get baryon equation of state */
 
-    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] = _k_B_/ ( _c_ * _c_ * mu)
-      * preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_wb] =
+      _k_B_/ ( _c_ * _c_ * mu)
+      * preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb];
+
+    /** - --> get baryon adiabatic sound speed */
+
+    preio->reionization_table[(i-1)*preio->re_size+preio->index_re_cb2] =
+      preio->reionization_table[(i-1)*preio->re_size+preio->index_re_wb]
       *(1.+(1+z)/3.*dTdz/preio->reionization_table[(i-1)*preio->re_size+preio->index_re_Tb]);
   }
 
@@ -2876,10 +2957,15 @@ int thermodynamics_recombination_with_hyrec(
     /* Tb */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_Tb)=Tm;
 
+    /* wb = (k_B/mu) Tb */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm;
+
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)
        with (1+z)dlnTb/dz= - [dlnTb/dlna] */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + xe * (1.-pth->YHe)) * Tm * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
+      = *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      * (1. - rec_dTmdlna(xe, Tm, pba->T_cmb*(1.+z), Hz, param.fHe, param.nH0*pow((1+z),3)*1e-6, energy_injection_rate(&param,z)) / Tm / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -3285,9 +3371,14 @@ int thermodynamics_recombination_with_recfast(
                pth->error_message,
                pth->error_message);
 
+    /* wb = (k_B/mu) Tb  = (k_B/mu) Tb */
+    *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2];
+
     /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_cb2)
-      = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * preco->YHe + x0 * (1.-preco->YHe)) * y[2] * (1. + (1.+zend) * dy[2] / y[2] / 3.);
+      = *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_wb)
+      * (1. + (1.+zend) * dy[2] / y[2] / 3.);
 
     /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
     *(preco->recombination_table+(Nz-i-1)*preco->re_size+preco->index_re_dkappadtau)
@@ -3648,6 +3739,8 @@ int thermodynamics_merge_reco_and_reio(
       preio->reionization_table[i*preio->re_size+preio->index_re_dkappadtau];
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_Tb]=
       preio->reionization_table[i*preio->re_size+preio->index_re_Tb];
+    pth->thermodynamics_table[i*pth->th_size+pth->index_th_wb]=
+      preio->reionization_table[i*preio->re_size+preio->index_re_wb];
     pth->thermodynamics_table[i*pth->th_size+pth->index_th_cb2]=
       preio->reionization_table[i*preio->re_size+preio->index_re_cb2];
   }
@@ -3662,6 +3755,8 @@ int thermodynamics_merge_reco_and_reio(
       preco->recombination_table[index_re*preco->re_size+preco->index_re_dkappadtau];
     pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=
       preco->recombination_table[index_re*preco->re_size+preco->index_re_Tb];
+    pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_wb]=
+      preco->recombination_table[index_re*preco->re_size+preco->index_re_wb];
     pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=
       preco->recombination_table[index_re*preco->re_size+preco->index_re_cb2];
   }
@@ -3696,6 +3791,7 @@ int thermodynamics_output_titles(struct background * pba,
   //class_store_columntitle(titles,"g'",_TRUE_);
   //class_store_columntitle(titles,"g''",_TRUE_);
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
+  class_store_columntitle(titles,"w_b",_TRUE_);
   class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"tau_d",_TRUE_);
   //class_store_columntitle(titles,"max. rate",_TRUE_);
@@ -3744,6 +3840,7 @@ int thermodynamics_output_data(struct background * pba,
     //class_store_double(dataptr,pvecthermo[pth->index_th_dg],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_ddg],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_Tb],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_wb],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_tau_d],_TRUE_,storeidx);
     //class_store_double(dataptr,pvecthermo[pth->index_th_rate],_TRUE_,storeidx);
