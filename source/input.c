@@ -1449,6 +1449,7 @@ int input_read_parameters(
     if (flag2 == _TRUE_) {
       pth->tau_reio=param2;
       pth->reio_z_or_tau=reio_tau;
+
     }
 
     class_read_double("reionization_exponent",pth->reionization_exponent);
@@ -3063,7 +3064,6 @@ int input_read_parameters(
 
     }
   }
-
 
   if (pnl->has_pk_eq == _TRUE_) {
 

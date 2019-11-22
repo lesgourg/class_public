@@ -254,6 +254,8 @@ int background_functions(
 
   /* total density */
   double rho_tot;
+  /* critical density */
+  double rho_crit;
   /* total pressure */
   double p_tot;
   /* total relativistic density */
@@ -472,20 +474,23 @@ int background_functions(
     pvecback[pba->index_bg_p_tot_prime] += pvecback[pba->index_bg_p_prime_scf];
   }
 
+  /** - compute critical density */
+  rho_crit = rho_tot-pba->K/a/a;
+  class_test(rho_crit <= 0.,
+             pba->error_message,
+             "rho_crit = %e instead of strictly positive",rho_crit);
+
   /** - compute relativistic density to total density ratio */
-  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
+  pvecback[pba->index_bg_Omega_r] = rho_r / rho_crit;
 
   /** - compute other quantities in the exhaustive, redundant format */
   if (return_format == pba->long_info) {
 
-    /** - compute critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->K/a/a;
-    class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
-               pba->error_message,
-               "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
+    /** - store critical density */
+    pvecback[pba->index_bg_rho_crit] = rho_crit;
 
     /** - compute Omega_m */
-    pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
+    pvecback[pba->index_bg_Omega_m] = rho_m / rho_crit;
 
     /* one can put other variables here */
     /*  */
@@ -622,6 +627,24 @@ int background_init(
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
+  /** barrier against crazy input parameters */
+
+  class_test_except((pba->h > _h_BIG_) || (pba->h < _h_SMALL_),
+                    pba->error_message,
+                    background_free_input(pba),
+                    "Your value of pba->h=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
+                    pba->h,
+                    _h_SMALL_,
+                    _h_BIG_);
+
+  class_test_except((pba->Omega0_b*pba->h*pba->h < _omegab_SMALL_) || (pba->Omega0_b*pba->h*pba->h > _omegab_BIG_),
+                    pba->error_message,
+                    background_free_input(pba),
+                    "Your value of omega_b=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value (e.g., issues with interpolating the BBN table) so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
+                    pba->Omega0_b*pba->h*pba->h,
+                    _omegab_SMALL_,
+                    _omegab_BIG_);
+
   /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
@@ -699,30 +722,6 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
-  /** - control that cosmological parameter values make sense */
-
-  /* H0 in Mpc^{-1} */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-    pba->error_message,
-    "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
-
-  class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
-             pba->error_message,
-             "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
-
-  /* T_cmb in K */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
-    pba->error_message,
-    "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
-
-  /* Omega_k */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
-    pba->error_message,
-    "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
-
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
 
@@ -785,17 +784,16 @@ int background_init(
 int background_free(
                     struct background *pba
                     ) {
-  int err;
 
-  free(pba->tau_table);
-  free(pba->z_table);
-  free(pba->d2tau_dz2_table);
-  free(pba->background_table);
-  free(pba->d2background_dtau2_table);
+  class_call(background_free_noinput(pba),
+              pba->error_message,
+              pba->error_message);
 
-  err = background_free_input(pba);
+  class_call(background_free_input(pba),
+              pba->error_message,
+              pba->error_message);
 
-  return err;
+  return _SUCCESS_;
 }
 
 /**
@@ -808,6 +806,7 @@ int background_free(
 int background_free_noinput(
                             struct background *pba
                             ) {
+
   free(pba->tau_table);
   free(pba->z_table);
   free(pba->d2tau_dz2_table);
@@ -829,6 +828,7 @@ int background_free_input(
                           ) {
 
   int k;
+
   if (pba->Omega0_ncdm_tot != 0.){
     for(k=0; k<pba->N_ncdm; k++){
       free(pba->q_ncdm[k]);
@@ -1816,7 +1816,6 @@ int background_solve(
     pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
   }
 
-
   /** - allocate background tables */
   class_alloc(pba->tau_table,pba->bt_size * sizeof(double),pba->error_message);
 
@@ -1900,12 +1899,14 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - compute remaining "related parameters"
-   *     - so-called "effective neutrino number", computed at earliest
-   time in interpolation table. This should be seen as a
-   definition: Neff is the equivalent number of
-   instantaneously-decoupled neutrinos accounting for the
-   radiation density, beyond photons */
+  /** - compute remaining "related parameters" */
+
+  /**  - so-called "effective neutrino number", computed at earliest
+      time in interpolation table. This should be seen as a
+      definition: Neff is the equivalent number of
+      instantaneously-decoupled neutrinos accounting for the
+      radiation density, beyond photons */
+
   pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
                *pba->background_table[pba->index_bg_rho_crit]
                -pba->background_table[pba->index_bg_rho_g])
@@ -1942,6 +1943,11 @@ int background_solve(
       printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]);
     }
   }
+
+  /**  - total matter, radiation, dark energy today */
+  pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
+  pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
+  pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
 
   free(pvecback);
   free(pvecback_integration);

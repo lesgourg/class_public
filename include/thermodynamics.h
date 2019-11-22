@@ -182,7 +182,8 @@ struct thermo
   int index_th_cidm2;         /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
   int index_th_Tdm;           /**< interacting dark matter temperature \f$ T_{dm} \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
-  int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_th_wb;            /**< baryon equation of state parameter \f$ w_b = k_B T_b / \mu \f$ */
+  int index_th_cb2;           /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
@@ -298,7 +299,8 @@ struct recombination {
   int index_re_z;          /**< redshift \f$ z \f$ */
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
-  int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_re_wb;         /**< baryon equation of state parameter \f$ w_b \f$ */
+  int index_re_cb2;        /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau \f$ (units 1/Mpc) */
   int re_size;             /**< size of this vector */
 
@@ -392,7 +394,8 @@ struct reionization {
   int index_re_z;          /**< redshift \f$ z \f$ */
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
-  int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_re_wb;         /**< baryon equation of state parameter \f$ w_b \f$ */
+  int index_re_cb2;        /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int index_re_dkappadz;   /**< Thomson scattering rate with respect to redshift \f$ d \kappa / d z\f$ (units 1/Mpc) */
   int index_re_d3kappadz3; /**< second derivative of previous quantity with respect to redshift */
@@ -641,6 +644,18 @@ extern "C" {
 //@{
 
 #define _BBN_ -1
+
+//@}
+
+/**
+ * @name Some numbers useful in numerical algorithms - but not
+ * affecting precision, otherwise would be in precision structure
+ */
+
+//@{
+
+#define _tau_reio_BIG_ 0.2      /**< maximal \f$ tau_reio \f$ */
+#define _tau_reio_SMALL_ 0.004  /**< minimal \f$ tau_reio \f$ */
 
 //@}
 

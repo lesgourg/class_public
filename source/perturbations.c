@@ -109,7 +109,7 @@ int perturb_sources_at_tau(
  * the source functions \f$ S^{X} (k, \tau) \f$ at a given conformal
  * time tau corresponding to the input redshift z.
  *
- * @param ppa              Input: pointer to background structure
+ * @param pba              Input: pointer to background structure
  * @param ppt              Input: pointer to perturbation structure
  * @param output_format    Input: choice of ordering and normalisation for the output quantities
  * @param z                Input: redshift
@@ -248,7 +248,6 @@ int perturb_output_data(
           class_store_double(dataptr,tk[ppt->index_tp_eta],ppt->has_source_eta,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_eta_prime],ppt->has_source_eta_prime,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_H_T_Nb_prime],ppt->has_source_H_T_Nb_prime,storeidx);
-          class_store_double(dataptr,tk[ppt->index_tp_H_T_Nb_prime_prime],ppt->has_source_k2gamma_Nb,storeidx);
           class_store_double(dataptr,tk[ppt->index_tp_k2gamma_Nb],ppt->has_source_k2gamma_Nb,storeidx);
         }
         if (ppt->has_velocity_transfers == _TRUE_) {
@@ -6474,7 +6473,7 @@ int perturb_total_stress_energy(
   double rho_fld, p_fld, rho_fld_prime, p_fld_prime;
   double X, Y, Z, X_prime, Y_prime, Z_prime;
   double Gamma_fld, S, S_prime, theta_t, theta_t_prime, rho_plus_p_theta_fld_prime;
-
+  double delta_p_b_over_rho_b;
 
   /** - wavenumber and scale factor related quantities */
 
@@ -6557,7 +6556,16 @@ int perturb_total_stress_energy(
 
     }
 
-    /** - ---> (a.3.) interacting dark radiation */
+    /** - ---> (a.3.) baryon pressure perturbation */
+
+    if ((ppt->has_perturbed_recombination == _TRUE_) &&(ppw->approx[ppw->index_ap_tca] == (int)tca_off)) {
+      delta_p_b_over_rho_b = ppw->pvecthermo[pth->index_th_wb]*(y[ppw->pv->index_pt_delta_b]+ y[ppw->pv->index_pt_perturbed_recombination_delta_temp]);
+    }
+    else {
+      delta_p_b_over_rho_b = ppw->pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b];
+    }
+
+    /** - ---> (a.4.) interacting dark radiation */
 
     if (pba->has_idr == _TRUE_) {
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off) {
@@ -6592,8 +6600,7 @@ int perturb_total_stress_energy(
       + ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_theta_b]; // contribution to total perturbed stress-energy
     ppw->rho_plus_p_shear = 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g; // contribution to total perturbed stress-energy
     ppw->delta_p = 1./3.*ppw->pvecback[pba->index_bg_rho_g]*delta_g
-      + ppw->pvecthermo[pth->index_th_cb2]*ppw->pvecback[pba->index_bg_rho_b]*y[ppw->pv->index_pt_delta_b]; // contribution to total perturbed stress-energy
-
+      + ppw->pvecback[pba->index_bg_rho_b]*delta_p_b_over_rho_b; // contribution to total perturbed stress-energy
     ppw->rho_plus_p_tot = 4./3. * ppw->pvecback[pba->index_bg_rho_g] + ppw->pvecback[pba->index_bg_rho_b];
 
     if (ppt->has_source_delta_m == _TRUE_) {
@@ -7110,7 +7117,7 @@ int perturb_sources(
 
   double a_rel, a2_rel, f_dr;
 
-  double rho_plus_p_tot, H_T_Nb_prime, rho_tot;
+  double rho_plus_p_tot, H_T_Nb_prime=0., rho_tot;
   double theta_over_k2,theta_shift;
 
   /** - rename structure fields (just to avoid heavy notations) */
@@ -7288,10 +7295,7 @@ int perturb_sources(
                                                       pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/rho_plus_p_tot/k/k+
                                                       ppw->rho_plus_p_shear);
       _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
-      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. Note: term involving the second derivative H_T_Nb_prime_prime
-          will be added in the spectra module. This is because we compute the derivative numerically since the analytic
-          expression would contain the derivatives of pressure and shear which are cumbersome to compute and is only feasible
-          in a simplified cosmology with no massive neutrino or DE perturbations. */
+      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. */
       if (ppt->has_source_k2gamma_Nb == _TRUE_){
         _set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
       }
@@ -8313,7 +8317,7 @@ int perturb_derivs(double tau,
   double delta_g=0.,theta_g=0.,shear_g=0.;
   double delta_b,theta_b;
   double delta_idr=0., theta_idr=0., shear_idr=0.;
-  double cb2,cs2,ca2;
+  double cb2,cs2,ca2,delta_p_b_over_rho_b;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
   /* perturbed recombination (just to simplify the notation) */
@@ -8445,12 +8449,15 @@ int perturb_derivs(double tau,
     delta_b = y[pv->index_pt_delta_b];
     theta_b = y[pv->index_pt_theta_b];
     cb2 = pvecthermo[pth->index_th_cb2];
+    delta_p_b_over_rho_b = cb2*delta_b; /* for baryons, (delta p)/rho with Ma & Bertschinger approximation: sound speed = adiabatic sound speed */
 
     /** - --> (b) perturbed recombination **/
 
     if ((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca]==(int)tca_off)){
 
       delta_temp= y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
+      delta_p_b_over_rho_b = pvecthermo[pth->index_th_wb]*(delta_b+delta_temp); /* for baryons, (delta p)/rho with sound speed from arXiv:0707.2727 */
+
       delta_chi= y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
       chi=pvecthermo[pth->index_th_xe];
 
@@ -8533,8 +8540,6 @@ int perturb_derivs(double tau,
 
     /** - --> (e) BEGINNING OF ACTUAL SYSTEM OF EQUATIONS OF EVOLUTION */
 
-    /* Note concerning perturbed recombination: $cb2*delta_b$ must be replaced everywhere by $cb2*(delta_b+delta_temp)$. If perturbed recombination is not required, delta_temp is equal to zero. */
-
     /** - ---> photon temperature density */
 
     if (ppw->approx[ppw->index_ap_rsa] == (int)rsa_off) {
@@ -8557,7 +8562,7 @@ int perturb_derivs(double tau,
       dy[pv->index_pt_theta_b] =
         - a_prime_over_a*theta_b
         + metric_euler
-        + k2*cb2*(delta_b+delta_temp)
+        + k2*delta_p_b_over_rho_b
         + R*pvecthermo[pth->index_th_dkappa]*(theta_g-theta_b);
 
     }
@@ -8572,7 +8577,7 @@ int perturb_derivs(double tau,
       /* perturbed recombination has an impact **/
       dy[pv->index_pt_theta_b] =
         (-a_prime_over_a*theta_b
-         +k2*(cb2*(delta_b+delta_temp)+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))
+         +k2*(delta_p_b_over_rho_b+R*(delta_g/4.-s2_squared*ppw->tca_shear_g))
          +R*ppw->tca_slip)/(1.+R)
         +metric_euler;
 
@@ -8665,7 +8670,7 @@ int perturb_derivs(double tau,
 
         /* perturbed recombination has an impact **/
         dy[pv->index_pt_theta_g] =
-          -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-cb2*k2*(delta_b+delta_temp))/R
+          -(dy[pv->index_pt_theta_b]+a_prime_over_a*theta_b-k2*delta_p_b_over_rho_b)/R
           +k2*(0.25*delta_g-s2_squared*ppw->tca_shear_g)+(1.+R)/R*metric_euler;
       }
     }
@@ -9469,9 +9474,6 @@ int perturb_tca_slip_and_shear(double * y,
   double cb2;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_shear_prime=0.;
 
-  /* perturbed recombination */
-  double delta_temp=0.;
-
   /* for use with curvature */
   double s2_squared;
 
@@ -9510,11 +9512,9 @@ int perturb_tca_slip_and_shear(double * y,
   delta_b = y[pv->index_pt_delta_b];
   theta_b = y[pv->index_pt_theta_b];
   cb2 = pvecthermo[pth->index_th_cb2];
-
-  /* perturbed recombination */
-  if ((ppt->has_perturbed_recombination == _TRUE_) && (ppw->approx[ppw->index_ap_tca] == (int)tca_off) ){
-    delta_temp = y[pv->index_pt_perturbed_recombination_delta_temp];
-  }
+  /* during TCA one can show that sound speed = adiabatic sound speed,
+     so no need to take into account corrections from perturbed
+     recombination here */
 
   /** - --> (b) define short-cut notations used only in tight-coupling approximation */
   tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
@@ -9612,8 +9612,7 @@ int perturb_tca_slip_and_shear(double * y,
      was already consistently included in CAMB) */
 
   /** - ---> intermediate quantities for 2nd order tca: zero order for theta_b' = theta_g' */
-  /** - ----> perturbed recombination has an impact **/
-  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*(delta_b+delta_temp)+R/4.*delta_g))/(1.+R) + metric_euler;
+  theta_prime = (-a_prime_over_a*theta_b+k2*(cb2*delta_b+R/4.*delta_g))/(1.+R) + metric_euler;
 
   /** - ---> intermediate quantities for 2nd order tca: shear_g_prime at first order in tight-coupling */
   shear_g_prime=16./45.*(tau_c*(theta_prime+metric_shear_prime)+dtau_c*(theta_g+metric_shear));
@@ -9653,9 +9652,8 @@ int perturb_tca_slip_and_shear(double * y,
         +(
           a_primeprime_over_a*a_prime_over_a*((2.-3.*cb2)*R-2.)*theta_b/(1.+R)
           +a_prime_over_a*k2*(1.-3.*cb2)*theta_b/3./(1.+R)
-          /* perturbed recombination has an impact (next two lines) */
-          +a_primeprime_over_a*k2*cb2*(delta_b+delta_temp)/(1.+R)
-          +k2*k2*(3.*cb2-1.)*cb2*(delta_b+delta_temp)/3./(1.+R)
+          +a_primeprime_over_a*k2*cb2*delta_b/(1.+R)
+          +k2*k2*(3.*cb2-1.)*cb2*delta_b/3./(1.+R)
           +k2*k2*R*(3.*cb2-1.)*delta_g/12./(1.+R)
           +a_primeprime_over_a*k2*(2.+3.*R)*delta_g/4./(1.+R)
           +a_prime_over_a*a_prime_over_a*k2*((2.-3.*cb2)*R-1.)*delta_g/2./(1.+R)
