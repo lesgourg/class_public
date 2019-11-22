@@ -758,19 +758,6 @@ int background_init(
 int background_free(
                     struct background *pba
                     ) {
-  int err;
-
-  /*
-  free(pba->tau_table);
-  free(pba->z_table);
-  free(pba->d2tau_dz2_table);
-  free(pba->background_table);
-  free(pba->d2background_dtau2_table);
-
-  err = background_free_input(pba);
-
-  return err;
-  */
 
   class_call(background_free_noinput(pba),
               pba->error_message,
@@ -793,6 +780,7 @@ int background_free(
 int background_free_noinput(
                     struct background *pba
                     ) {
+
   free(pba->tau_table);
   free(pba->z_table);
   free(pba->d2tau_dz2_table);
@@ -814,6 +802,7 @@ int background_free_input(
                           ) {
 
   int k;
+
   if (pba->Omega0_ncdm_tot != 0.){
     for(k=0; k<pba->N_ncdm; k++){
       free(pba->q_ncdm[k]);

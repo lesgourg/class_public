@@ -2399,7 +2399,7 @@ int nonlinear_halofit(
                       short * nl_corr_not_computable_at_this_k
                       ) {
 
-  double Omega_m,Omega_v,fnu,Omega0_m, w0, dw_over_da_fld, integral_fld;
+  double Omega_m,Omega_v,fnu,w0, dw_over_da_fld, integral_fld;
 
   /** Determine non linear ratios (from pk) **/
 
@@ -3808,7 +3808,7 @@ int nonlinear_hmcode_growint(
                              double * growth
                              ){
 
-  double z, ainit, amax, scalefactor, gamma, Omega_m, Omega0_m, Omega0_v, Omega0_k, Hubble2, X_de;
+  double z, ainit, amax, scalefactor, gamma, Omega_m;
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
   double * pvecback;
   double * integrand;
