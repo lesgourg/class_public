@@ -79,11 +79,15 @@ cdef extern from "class.h":
         double cs2_fld
         double Omega0_ur
         double Omega0_dcdmdr
+        double Omega0_dr
         double Omega0_scf
         double Omega0_k
         int bt_size
-        double a_eq
-        double H_eq
+        double Omega0_m
+        double Omega0_r
+        double Omega0_de
+        double z_eq
+        double tau_eq
         double xi_idr
         double N_dg
         double Gamma_0_nadm
