@@ -1892,7 +1892,7 @@ int perturb_get_k_list(
 
     /* find k_max: */
 
-    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_))
+    if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_nl_corrections_based_on_delta_m == _TRUE_))
       k_max = MAX(k_max,ppt->k_max_for_pk);
 
     /** - --> test that result for k_min, k_max make sense */

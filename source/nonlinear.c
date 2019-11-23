@@ -1074,9 +1074,9 @@ int nonlinear_init(
 
   pnl->has_pk_matter = ppt->has_pk_matter;
 
-  if (pnl->has_pk_matter == _FALSE_) {
+  if ((pnl->has_pk_matter == _FALSE_) && (pnl->method == nl_none)) {
     if (pnl->nonlinear_verbose > 0)
-      printf("No Fourier spectra requested. Nonlinear module skipped.\n");
+      printf("No Fourier spectra nor nonlinear corrections requested. Nonlinear module skipped.\n");
     return _SUCCESS_;
   }
   else {
@@ -1485,7 +1485,7 @@ int nonlinear_free(
                    ) {
   int index_pk;
 
-  if (pnl->has_pk_matter == _TRUE_) {
+  if ((pnl->has_pk_matter == _TRUE_) || (pnl->method > nl_none)) {
 
     free(pnl->k);
     free(pnl->ln_k);
