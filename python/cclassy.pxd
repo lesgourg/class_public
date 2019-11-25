@@ -264,6 +264,7 @@ cdef extern from "class.h":
         int ic_ic_size
         int k_size
         int ln_tau_size
+        int tau_size
         int index_tau_min_nl
         double * k
         double * ln_tau
