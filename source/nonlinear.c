@@ -37,7 +37,7 @@
  *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
  *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
- * Hints on output format:
+ * Output format:
  *
  * 1. if mode = logarithmic (most straightforward for the code):
  *     out_pk = ln(P(k))
@@ -126,72 +126,107 @@ int nonlinear_pk_at_z(
 
     /** -> check that tau is in pre-computed table */
 
-    if (ln_tau < pnl->ln_tau[0]) {
+    if (ln_tau <= pnl->ln_tau[0]) {
+
       /** --> if ln(tau) much too small, raise an error */
       class_test(ln_tau<pnl->ln_tau[0]-_EPSILON_,
                  pnl->error_message,
                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Min %.10e). Solution might be to increase input parameter z_max_pk (see explanatory.ini)",ln_tau,pnl->ln_tau[0]);
-      /** --> if ln(tau) too small but within tolerance, round it */
+
+      /** --> if ln(tau) too small but within tolerance, round it and get right values without interpolating */
       ln_tau = pnl->ln_tau[0];
+
+      for (index_k = 0 ; index_k < pnl->k_size; index_k++) {
+        if (pk_output == pk_linear) {
+          out_pk[index_k] = pnl->ln_pk_l[index_pk][index_k];
+          if (do_ic == _TRUE_) {
+            for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+              out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2] = pnl->ln_pk_ic_l[index_pk][index_k * pnl->ic_ic_size + index_ic1_ic2];
+            }
+          }
+        }
+        else {
+          out_pk[index_k] = pnl->ln_pk_nl[index_pk][index_k];
+        }
+      }
     }
 
-    if (ln_tau > pnl->ln_tau[pnl->ln_tau_size-1]) {
+    else if (ln_tau >= pnl->ln_tau[pnl->ln_tau_size-1]) {
+
       /** --> if ln(tau) much too large, raise an error */
       class_test(ln_tau>pnl->ln_tau[pnl->ln_tau_size-1]+_EPSILON_,
                  pnl->error_message,
                  "requested z was not inside of tau tabulation range (Requested ln(tau_=%.10e, Max %.10e) ",ln_tau,pnl->ln_tau[pnl->ln_tau_size-1]);
-      /** --> if ln(tau) too large but within tolerance, round it */
+
+      /** --> if ln(tau) too large but within tolerance, round it and get right values without interpolating */
       ln_tau = pnl->ln_tau[pnl->ln_tau_size-1];
 
+      for (index_k = 0 ; index_k < pnl->k_size; index_k++) {
+        if (pk_output == pk_linear) {
+          out_pk[index_k] = pnl->ln_pk_l[index_pk][(pnl->ln_tau_size-1) * pnl->k_size + index_k];
+          if (do_ic == _TRUE_) {
+            for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+              out_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2] = pnl->ln_pk_ic_l[index_pk][((pnl->ln_tau_size-1) * pnl->k_size + index_k) * pnl->ic_ic_size + index_ic1_ic2];
+            }
+          }
+        }
+        else {
+          out_pk[index_k] = pnl->ln_pk_nl[index_pk][(pnl->ln_tau_size-1) * pnl->k_size + index_k];
+        }
+      }
     }
 
-    if (pk_output == pk_linear) {
+    /** -> tau is in pre-computed table: interpolate */
+    else {
 
-      /** --> interpolate P_l(k) at tau from pre-computed array */
-      class_call(array_interpolate_spline(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_l[index_pk],
-                                          pnl->ddln_pk_l[index_pk],
-                                          pnl->k_size,
-                                          ln_tau,
-                                          &last_index,
-                                          out_pk,
-                                          pnl->k_size,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
+      if (pk_output == pk_linear) {
 
-      /** --> interpolate P_ic_l(k) at tau from pre-computed array */
-      if (do_ic == _TRUE_) {
+        /** --> interpolate P_l(k) at tau from pre-computed array */
         class_call(array_interpolate_spline(pnl->ln_tau,
                                             pnl->ln_tau_size,
-                                            pnl->ln_pk_ic_l[index_pk],
-                                            pnl->ddln_pk_ic_l[index_pk],
-                                            pnl->k_size*pnl->ic_ic_size,
+                                            pnl->ln_pk_l[index_pk],
+                                            pnl->ddln_pk_l[index_pk],
+                                            pnl->k_size,
                                             ln_tau,
                                             &last_index,
-                                            out_pk_ic,
-                                            pnl->k_size*pnl->ic_ic_size,
+                                            out_pk,
+                                            pnl->k_size,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+
+        /** --> interpolate P_ic_l(k) at tau from pre-computed array */
+        if (do_ic == _TRUE_) {
+          class_call(array_interpolate_spline(pnl->ln_tau,
+                                              pnl->ln_tau_size,
+                                              pnl->ln_pk_ic_l[index_pk],
+                                              pnl->ddln_pk_ic_l[index_pk],
+                                              pnl->k_size*pnl->ic_ic_size,
+                                              ln_tau,
+                                              &last_index,
+                                              out_pk_ic,
+                                              pnl->k_size*pnl->ic_ic_size,
+                                              pnl->error_message),
+                     pnl->error_message,
+                     pnl->error_message);
+        }
+      }
+      else {
+
+        /** --> interpolate P_nl(k) at tau from pre-computed array */
+        class_call(array_interpolate_spline(pnl->ln_tau,
+                                            pnl->ln_tau_size,
+                                            pnl->ln_pk_nl[index_pk],
+                                            pnl->ddln_pk_nl[index_pk],
+                                            pnl->k_size,
+                                            ln_tau,
+                                            &last_index,
+                                            out_pk,
+                                            pnl->k_size,
                                             pnl->error_message),
                    pnl->error_message,
                    pnl->error_message);
       }
-    }
-    else {
-
-      /** --> interpolate P_nl(k) at tau from pre-computed array */
-      class_call(array_interpolate_spline(pnl->ln_tau,
-                                          pnl->ln_tau_size,
-                                          pnl->ln_pk_nl[index_pk],
-                                          pnl->ddln_pk_nl[index_pk],
-                                          pnl->k_size,
-                                          ln_tau,
-                                          &last_index,
-                                          out_pk,
-                                          pnl->k_size,
-                                          pnl->error_message),
-                 pnl->error_message,
-                 pnl->error_message);
     }
   }
 
@@ -322,17 +357,11 @@ int nonlinear_pks_at_z(
  *    if pnl->has_pk_m == _TRUE_ you may pass pnl->index_pk_m to get P_m
  *    if pnl->has_pk_cb == _TRUE_ you may pass pnl->index_pk_cb to get P_cb
  *
- * Hints on output format:
+ * Output format:
  *
- * 1. if mode = logarithmic (most straightforward for the code):
- *     out_pk_l = ln(P(k))
- *     out_pk_ic_l[diagonal] = ln(P_ic(k))
- *     out_pk_ic_l[non-diagonal] = cos(correlation angle icxic)
- *
- * 2. if mode = linear (a conversion is done internally in this function)
- *     out_pk_l = P(k)
- *     out_pk_ic_l[diagonal] = P_ic(k)
- *     out_pk_ic_l[non-diagonal] = P_icxic(k)
+ *     out_pk = P(k)
+ *     out_pk_ic[diagonal] = P_ic(k)
+ *     out_pk_ic[non-diagonal] = P_icxic(k)
  *
  * @param pba         Input: pointer to background structure
  * @param ppm         Input: pointer to primordial structure
@@ -1080,9 +1109,9 @@ int nonlinear_init(
 
   pnl->has_pk_matter = ppt->has_pk_matter;
 
-  if (pnl->has_pk_matter == _FALSE_) {
+  if ((pnl->has_pk_matter == _FALSE_) && (pnl->method == nl_none)) {
     if (pnl->nonlinear_verbose > 0)
-      printf("No Fourier spectra requested. Nonlinear module skipped.\n");
+      printf("No Fourier spectra nor nonlinear corrections requested. Nonlinear module skipped.\n");
     return _SUCCESS_;
   }
   else {
@@ -1491,7 +1520,7 @@ int nonlinear_free(
                    ) {
   int index_pk;
 
-  if (pnl->has_pk_matter == _TRUE_) {
+  if ((pnl->has_pk_matter == _TRUE_) || (pnl->method > nl_none)) {
 
     free(pnl->k);
     free(pnl->ln_k);
@@ -2535,19 +2564,25 @@ int nonlinear_halofit(
 
     k_integrand=pnl->k[0]*pow(10.,index_k/ppr->halofit_k_per_decade);
 
-    class_call(array_interpolate_spline(
-                                        pnl->ln_k,
-                                        pnl->k_size,
-                                        lnpk_l,
-                                        ddlnpk_l,
-                                        1,
-                                        log(k_integrand),
-                                        &last_index,
-                                        &lnpk_integrand,
-                                        1,
-                                        pnl->error_message),
-               pnl->error_message,
-               pnl->error_message);
+    if (index_k ==0 ) {
+      lnpk_integrand = lnpk_l[0];
+    }
+    else {
+
+      class_call(array_interpolate_spline(
+                                          pnl->ln_k,
+                                          pnl->k_size,
+                                          lnpk_l,
+                                          ddlnpk_l,
+                                          1,
+                                          log(k_integrand),
+                                          &last_index,
+                                          &lnpk_integrand,
+                                          1,
+                                          pnl->error_message),
+                 pnl->error_message,
+                 pnl->error_message);
+    }
 
     integrand_array[index_k*ia_size + index_ia_k] = k_integrand;
     integrand_array[index_k*ia_size + index_ia_pk] = exp(lnpk_integrand);
