@@ -97,9 +97,9 @@ struct nonlinear {
 
   double * ln_tau;     /**< log(tau) array, only needed if user wants
                         some output at z>0, instead of only z=0.  This
-                        array onlt covers late times, used for the
+                        array only covers late times, used for the
                         output of P(k) or T(k), and matching the
-                        condition z(tau) < z)max)pk */
+                        condition z(tau) < z_max_pk */
 
   int ln_tau_size;     /**< number of values in this array */
 
@@ -155,7 +155,7 @@ struct nonlinear {
 
   int tau_size;    /**< tau_size = number of values */
   double * tau;    /**< tau[index_tau] = list of time values, covering
-                      all the values of the poerturbation module */
+                      all the values of the perturbation module */
 
   double ** nl_corr_density;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
   double ** k_nl;              /**< wavenumber at which non-linear corrections become important,

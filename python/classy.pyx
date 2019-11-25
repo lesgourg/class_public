@@ -36,6 +36,8 @@ from cclassy cimport *
 
 DEF _MAXTITLESTRINGLENGTH_ = 8000
 
+__version__ = '2.8.1'
+
 # Implement a specific Exception (this might not be optimally designed, nor
 # even acceptable for python standards. It, however, does the job).
 # The idea is to raise either an AttributeError if the problem happened while
@@ -931,8 +933,8 @@ cdef class Class:
         if nonlinear == True:
             z_max_nonlinear = self.z_of_tau(self.nl.tau[self.nl.index_tau_min_nl])
             z_max_requested = z[0]
-            if z_max_requested > z_max_nonlinear:
-                raise CosmoSevereError("You ask classy to return an array of nonlinear P(k,z) values up to z_max=%e, but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consitently computed up to z=%e; increase one of 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
+            if ((self.nl.tau_size - self.nl.ln_tau_size) < self.nl.index_tau_min_nl):
+                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the input parameter 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or increase the precision parameters 'halofit_min_k_max' and/or 'hmcode_min_k_max', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
 
         # get list of k
 
