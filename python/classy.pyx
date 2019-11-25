@@ -36,6 +36,8 @@ from cclassy cimport *
 
 DEF _MAXTITLESTRINGLENGTH_ = 8000
 
+__version__ = '2.8.0'
+
 # Implement a specific Exception (this might not be optimally designed, nor
 # even acceptable for python standards. It, however, does the job).
 # The idea is to raise either an AttributeError if the problem happened while
