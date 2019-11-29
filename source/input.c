@@ -2617,12 +2617,12 @@ int input_read_parameters(
 
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->halofit_min_k_max);
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->halofit_min_k_max,ppr->nonlinear_min_k_max));
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
     if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pnl->method=nl_HMcode;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->hmcode_min_k_max);
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->hmcode_min_k_max,ppr->nonlinear_min_k_max));
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       class_read_int("extrapolation_method",pnl->extrapolation_method);
 
