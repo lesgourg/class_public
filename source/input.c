@@ -3820,12 +3820,12 @@ int input_find_root(double *xzero,
              errmsg, errmsg);
   //      printf("x1= %g\n",x1);
 
-  class_call_except(input_fzerofun_1d(x1,
+  class_call(input_fzerofun_1d(x1,
                                pfzw,
                                &f1,
                                errmsg),
-                    errmsg, errmsg,
-                    fprintf(stderr,"Error: %s\n",errmsg));
+             errmsg, errmsg);
+
   (*fevals)++;
   //printf("x1= %g, f1= %g\n",x1,f1);
 
@@ -3867,8 +3867,6 @@ int input_find_root(double *xzero,
     f1 = f2;
   }
 
-  fprintf(stderr,"Here D\n");
-
   /** - Find root using Ridders method. (Exchange for bisection if you are old-school.)*/
   class_call(class_fzero_ridder(input_fzerofun_1d,
                                 x1,
@@ -3881,9 +3879,6 @@ int input_find_root(double *xzero,
                                 fevals,
                                 errmsg),
              errmsg,errmsg);
-
-  fprintf(stderr,"Here E\n");
-  fprintf(stderr,"%s\n",errmsg);
 
   return _SUCCESS_;
 }
