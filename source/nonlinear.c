@@ -1195,6 +1195,9 @@ int nonlinear_init(
           fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
     }
+    if (pba->has_idm_dr){
+      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested IDM-DR, which makes the use of Halofit or HMCode unreliable.\n");
+    }
   }
 
   /** - define indices in nonlinear structure (and allocate some arrays in the structure) */

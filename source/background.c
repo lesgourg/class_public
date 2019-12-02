@@ -2626,6 +2626,10 @@ int background_output_budget(struct background* pba){
       _class_print_species_("Cold Dark Matter",cdm);
       budget_matter+=pba->Omega0_cdm;
     }
+    if(pba->has_idm_dr){
+      _class_print_species_("Interacting Dark Matter - DR ",idm_dr);
+      budget_matter+=pba->Omega0_idm_dr;
+    }
     if(pba->has_dcdm){
       _class_print_species_("Decaying Dark Matter (dark g)",dcdm);
       budget_matter+=pba->Omega0_dcdm;
@@ -2642,6 +2646,10 @@ int background_output_budget(struct background* pba){
     if(pba->has_dr){
       _class_print_species_("Dark Radiation (by decay)",dr);
       budget_radiation+=pba->Omega0_dr;
+    }
+    if(pba->has_idr){
+      _class_print_species_("Interacting Dark Radiation",idr);
+      budget_radiation+=pba->Omega0_idr;
     }
 
     if(pba->N_ncdm > 0){

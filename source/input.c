@@ -860,14 +860,14 @@ int input_read_parameters(
     pba->N_dg = param1;
 
     if (input_verbose > 1)
-      printf("You passed N_dg = %e, this is equivalent to xi_idr = %e \n", pba->N_dg, pba->xi_idr);
+      printf("You passed N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", pba->N_dg, pba->xi_idr);
   }
 
   else if (flag2 == _TRUE_) {
     pba->xi_idr = param2;
     pba->N_dg = pba->stat_f_idr*pow(param2,4.)/(7./8.)*pow(11./4.,(4./3.));
     if (input_verbose > 1)
-      printf("You passed xi_idr = %e, this is equivalent to N_dg = %e \n", pba->xi_idr, pba->N_dg);
+      printf("You passed xi_idr = %e, this is equivalent to N_dg = %e in the NADM notation. \n", pba->xi_idr, pba->N_dg);
   }
 
   pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
@@ -875,7 +875,7 @@ int input_read_parameters(
   Omega_tot += pba->Omega0_idr;
 
   /** - Omega_0_cdm (CDM) and Omega0_idm_dr (interacting dark matter) */
-  /* Can take both the Ethos parameters, and the NADM parameters */
+  /* Can take both the ETHOS parameters, and the NADM parameters */
 
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
@@ -925,13 +925,13 @@ int input_read_parameters(
       pth->a_dark = param5*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
       pba->Gamma_0_nadm = param5;
       if (input_verbose > 1)
-        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_dark = %e \n", pba->Gamma_0_nadm, pth->a_dark);
+        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_dark = %e in the ETHOS notation. \n", pba->Gamma_0_nadm, pth->a_dark);
     }
     else if(flag4 == _TRUE_){
       pth->a_dark = param4;
       pba->Gamma_0_nadm = param4*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
       if (input_verbose > 1)
-        printf("You passed a_dark = %e, this is equivalent to Gamma_0_nadm = %e \n", pth->a_dark, pba->Gamma_0_nadm);
+        printf("You passed a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", pth->a_dark, pba->Gamma_0_nadm);
     }
 
     if (flag1 == _TRUE_){
@@ -947,16 +947,13 @@ int input_read_parameters(
 
   Omega_tot += pba->Omega0_cdm + pba->Omega0_idm_dr;
 
-  if (input_verbose > 1)
-    printf("In your current set-up, you have Omega0_cdm = %e, Omega0_idm_dr = %e, Omega0_idr = %e\n",pba->Omega0_cdm, pba->Omega0_idm_dr, pba->Omega0_idr);
-
   /** - Load the rest of the parameters for idm and idr */
 
   if (flag5 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
     pth->nindex_dark = 0;
     ppt->idr_nature = idr_fluid;
     if (input_verbose > 1)
-      printf("NADM requested. Will use nindex_dark = %i and idr_nature = fluid \n", pth->nindex_dark);
+      printf("NADM requested. Defaulting on nindex_dark = %i and idr_nature = fluid \n", pth->nindex_dark);
   }
 
   else{
