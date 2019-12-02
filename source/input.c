@@ -3493,11 +3493,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call_except(background_init(&pr,&ba),
-                      ba.error_message,
-                      errmsg,
-                      background_free(&ba)
-                      );
+    class_call(background_init(&pr,&ba),
+               ba.error_message,
+               errmsg
+               );
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -3508,7 +3507,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call_except(thermodynamics_init(&pr,&ba,&th),
                       th.error_message,
                       errmsg,
-                      thermodynamics_free(&th);
                       background_free(&ba)
                       );
   }
@@ -3520,9 +3518,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call_except(perturb_init(&pr,&ba,&th,&pt),
                       pt.error_message,
                       errmsg,
-                      perturb_free(&pt);
-                      thermodynamics_free(&th);
-                      background_free(&ba)
+                      thermodynamics_free(&th);background_free(&ba)
                       );
   }
 
@@ -3533,10 +3529,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call_except(primordial_init(&pr,&pt,&pm),
                       pm.error_message,
                       errmsg,
-                      primordial_free(&pm);
-                      perturb_free(&pt);
-                      thermodynamics_free(&th);
-                      background_free(&ba)
+                      perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
                       );
   }
 
@@ -3547,11 +3540,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call_except(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl),
                       nl.error_message,
                       errmsg,
-                      nonlinear_free(&nl);
-                      primordial_free(&pm);
-                      perturb_free(&pt);
-                      thermodynamics_free(&th);
-                      background_free(&ba)
+                      primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
                       );
   }
 
@@ -3562,12 +3551,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call_except(transfer_init(&pr,&ba,&th,&pt,&nl,&tr),
                       tr.error_message,
                       errmsg,
-                      transfer_free(&tr);
-                      nonlinear_free(&nl);
-                      primordial_free(&pm);
-                      perturb_free(&pt);
-                      thermodynamics_free(&th);
-                      background_free(&ba)
+                      nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
                       );
   }
 
@@ -3578,13 +3562,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     class_call_except(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),
                       sp.error_message,
                       errmsg,
-                      spectra_free(&sp);
-                      transfer_free(&tr);
-                      nonlinear_free(&nl);
-                      primordial_free(&pm);
-                      perturb_free(&pt);
-                      thermodynamics_free(&th);
-                      background_free(&ba)
+                      transfer_free(&tr);nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
                       );
   }
 
@@ -3841,11 +3819,13 @@ int input_find_root(double *xzero,
   class_call(input_get_guess(&x1, &dxdy, pfzw, errmsg),
              errmsg, errmsg);
   //      printf("x1= %g\n",x1);
-  class_call(input_fzerofun_1d(x1,
+
+  class_call_except(input_fzerofun_1d(x1,
                                pfzw,
                                &f1,
                                errmsg),
-                 errmsg, errmsg);
+                    errmsg, errmsg,
+                    fprintf(stderr,"Error: %s\n",errmsg));
   (*fevals)++;
   //printf("x1= %g, f1= %g\n",x1,f1);
 
@@ -3887,6 +3867,8 @@ int input_find_root(double *xzero,
     f1 = f2;
   }
 
+  fprintf(stderr,"Here D\n");
+
   /** - Find root using Ridders method. (Exchange for bisection if you are old-school.)*/
   class_call(class_fzero_ridder(input_fzerofun_1d,
                                 x1,
@@ -3899,6 +3881,9 @@ int input_find_root(double *xzero,
                                 fevals,
                                 errmsg),
              errmsg,errmsg);
+
+  fprintf(stderr,"Here E\n");
+  fprintf(stderr,"%s\n",errmsg);
 
   return _SUCCESS_;
 }

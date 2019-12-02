@@ -575,27 +575,6 @@ extern "C" {
 //@}
 
 /**
- * @name Some numbers useful in numerical algorithms - but not
- * affecting precision, otherwise would be in precision structure
- */
-
-//@{
-
-//#define _H0_BIG_ 1./2997.9     /**< maximal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=1.0) \f$ */
-//#define _H0_SMALL_ 0.3/2997.9  /**< minimal \f$ H_0 \f$ in \f$ Mpc^{-1} (h=0.3) \f$ */
-#define _TCMB_BIG_ 2.8         /**< maximal \f$ T_{cmb} \f$ in K */
-#define _TCMB_SMALL_ 2.7       /**< minimal \f$ T_{cmb}  \f$ in K */
-#define _TOLERANCE_ON_CURVATURE_ 1.e-5 /**< if \f$ | \Omega_k | \f$ smaller than this, considered as flat */
-#define _OMEGAK_BIG_ 0.5      /**< maximal \f$ Omega_k \f$ */
-#define _OMEGAK_SMALL_ -0.5   /**< minimal \f$ Omega_k \f$ */
-#define _h_BIG_ 1.            /**< maximal \f$ h \f$ */
-#define _h_SMALL_ 0.3         /**< minimal \f$ h \f$ */
-#define _omegab_BIG_ 0.039    /**< maximal \f$ omega_b \f$ */
-#define _omegab_SMALL_ 0.005  /**< minimal \f$ omega_b \f$ */
-
-//@}
-
-/**
  * @name Some limits imposed in other parts of the module:
  */
 

@@ -291,23 +291,6 @@ int thermodynamics_init(
   int index_tau_max;
   double dkappa_ini;
 
-  /** barrier against crazy input parameters */
-
-  if (pth->reio_z_or_tau == reio_tau) {
-    class_test((pth->tau_reio > _tau_reio_BIG_) || (pth->tau_reio < _tau_reio_SMALL_),
-               pth->error_message,
-               "Your value of tau_reio=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in thermodynamics.c",
-               pth->tau_reio,
-               _tau_reio_SMALL_,
-               _tau_reio_BIG_);
-  }
-
-  /** - initialize pointers, allocate background vector */
-
-  preco=&reco;
-  preio=&reio;
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-
   if (pth->thermodynamics_verbose > 0)
     printf("Computing thermodynamics");
 
@@ -315,10 +298,9 @@ int thermodynamics_init(
 
   /* Y_He */
   if (pth->YHe == _BBN_) {
-    class_call_except(thermodynamics_helium_from_bbn(ppr,pba,pth),
-                      pth->error_message,
-                      pth->error_message,
-                      free(pvecback));
+    class_call(thermodynamics_helium_from_bbn(ppr,pba,pth),
+               pth->error_message,
+               pth->error_message);
     if (pth->thermodynamics_verbose > 0)
       printf(" with Y_He=%.4f\n",pth->YHe);
   }
@@ -394,17 +376,27 @@ int thermodynamics_init(
              pth->error_message,
              "stop to avoid division by zero");
 
+  /** - initialize pointers */
+
+  preco=&reco;
+  preio=&reio;
+
   /** - assign values to all indices in the structures with thermodynamics_indices()*/
 
   class_call(thermodynamics_indices(pth,preco,preio),
              pth->error_message,
              pth->error_message);
 
+  /** - allocate background vector */
+
+  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+
   /** - solve recombination and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_recombination() */
 
-  class_call(thermodynamics_recombination(ppr,pba,pth,preco,pvecback),
-             pth->error_message,
-             pth->error_message);
+  class_call_except(thermodynamics_recombination(ppr,pba,pth,preco,pvecback),
+                    pth->error_message,
+                    pth->error_message,
+                    free(pvecback));
 
   /** - if there is reionization, solve reionization and store values of \f$ z, x_e, d \kappa / d \tau, T_b, c_b^2 \f$ with thermodynamics_reionization()*/
 
