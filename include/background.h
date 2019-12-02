@@ -575,6 +575,19 @@ extern "C" {
 //@}
 
 /**
+ * @name Some limits on possible background parameters
+ */
+
+//@{
+
+#define _h_BIG_ 1.5            /**< maximal \f$ h \f$ */
+#define _h_SMALL_ 0.3         /**< minimal \f$ h \f$ */
+#define _omegab_BIG_ 0.039    /**< maximal \f$ omega_b \f$ */
+#define _omegab_SMALL_ 0.005  /**< minimal \f$ omega_b \f$ */
+
+//@}
+
+/**
  * @name Some limits imposed in other parts of the module:
  */
 
