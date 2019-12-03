@@ -1,0 +1,19 @@
+<map id="perturbations.h" name="perturbations.h">
+<area shape="rect" id="node2" href="$input_8h.html" title="input.h" alt="" coords="209,519,271,544"/>
+<area shape="rect" id="node3" href="$class_8h_source.html" title="class.h" alt="" coords="603,592,666,617"/>
+<area shape="rect" id="node6" href="$primordial_8h.html" title="primordial.h" alt="" coords="517,79,608,104"/>
+<area shape="rect" id="node18" href="$perturbations_8c.html" title="perturbations.c" alt="" coords="849,79,959,104"/>
+<area shape="rect" id="node5" href="$input_8c.html" title="input.c" alt="" coords="210,592,270,617"/>
+<area shape="rect" id="node4" href="$class_8c.html" title="class.c" alt="" coords="604,665,666,691"/>
+<area shape="rect" id="node7" href="$nonlinear_8h.html" title="nonlinear.h" alt="" coords="519,152,606,177"/>
+<area shape="rect" id="node17" href="$primordial_8c.html" title="primordial.c" alt="" coords="43,152,133,177"/>
+<area shape="rect" id="node8" href="$transfer_8h.html" title="transfer.h" alt="" coords="487,225,564,251"/>
+<area shape="rect" id="node16" href="$nonlinear_8c.html" title="nonlinear.c" alt="" coords="638,225,724,251"/>
+<area shape="rect" id="node9" href="$spectra_8h.html" title="spectra.h" alt="" coords="406,299,482,324"/>
+<area shape="rect" id="node15" href="$transfer_8c.html" title="transfer.c" alt="" coords="506,299,582,324"/>
+<area shape="rect" id="node10" href="$lensing_8h.html" title="lensing.h" alt="" coords="424,372,499,397"/>
+<area shape="rect" id="node14" href="$spectra_8c.html" title="spectra.c" alt="" coords="325,372,400,397"/>
+<area shape="rect" id="node11" href="$output_8h.html" title="output.h" alt="" coords="353,445,423,471"/>
+<area shape="rect" id="node13" href="$lensing_8c.html" title="lensing.c" alt="" coords="447,445,521,471"/>
+<area shape="rect" id="node12" href="$output_8c.html" title="output.c" alt="" coords="426,519,494,544"/>
+</map>
