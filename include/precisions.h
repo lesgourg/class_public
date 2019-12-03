@@ -395,18 +395,21 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
 
 class_precision_parameter(sigma_k_per_decade,double,80.) /**< logarithmic stepsize controlling the precision of integrals for sigma(R,k) and similar quantitites */
 
+class_precision_parameter(nonlinear_min_k_max,double,20.0) /**< when
+                               using an algorithm to compute nonlinear
+                               corrections, like halofit or hmcode,
+                               k_max must be at least equal to this
+                               value. Calculations are done internally
+                               until this k_max, but the P(k,z) output
+                               is still controlled by P_k_max_1/Mpc or
+                               P_k_max_h/Mpc even if they are
+                               smaller */
+
 /** parameters relevant for HALOFIT computation */
 
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
 
-class_precision_parameter(halofit_min_k_max,double,5.0) /**< when halofit is used, k_max must be
-                               at least equal to this value (otherwise
-                               halofit could not find the scale of
-                               non-linearity). Calculations are done
-                               internally until this k_max, but the
-                               output is still controlled by
-                               P_k_max_1/Mpc or P_k_max_h/Mpc even if
-                               they are smaller */
+class_precision_parameter(halofit_min_k_max,double,5.0) /**< DEPRECATED: should use instead nonlinear_min_k_max */
 
 class_precision_parameter(halofit_k_per_decade,double,80.0) /**< halofit needs to evalute integrals
                                   (linear power spectrum times some
@@ -435,14 +438,7 @@ class_precision_parameter(hmcode_max_k_extra,double,1.e6) /**< parameter specify
                                                              the extrapolation of the linear power spectrum
                                                              (needed for the sigma computation) */
 
-class_precision_parameter(hmcode_min_k_max,double,5.)   /**< when HMcode is used, k_max must be
-                             at least equal to this value such that
-                             HMcode finds the nonlinear scale.
-                             Calculations are done
-                             internally until this k_max, but the
-                             output is still controlled by
-                             P_k_max_1/Mpc or P_k_max_h/Mpc even if
-                             they are smaller */
+class_precision_parameter(hmcode_min_k_max,double,5.)   /**< DEPRECATED: should use instead nonlinear_min_k_max */
 
 class_precision_parameter(hmcode_tol_sigma,double,1.e-6) /**< tolerance required on sigma(R) when matching the
                                                             condition sigma(R_nl)=1, which defines the wavenumber

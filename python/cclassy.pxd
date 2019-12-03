@@ -13,6 +13,8 @@ DEF _LINE_LENGTH_MAX_ = 1024
 
 cdef extern from "class.h":
 
+    cdef char[10] _VERSION_
+
     ctypedef char FileArg[40]
 
     ctypedef char* ErrorMsg
