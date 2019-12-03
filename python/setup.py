@@ -33,17 +33,21 @@ with open(os.path.join(include_folder, 'common.h'), 'r') as v_file:
             VERSION = line.split()[-1][2:-1]
             break
 
+# Define cython extension and fix Python version
+classy_ext = Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
+                           include_dirs=[nm.get_include(), include_folder],
+                           libraries=liblist,
+                           library_dirs=[root_folder, GCCPATH],
+                           extra_link_args=['-lgomp'])
+import six
+classy_ext.cython_directives = {'language_level': "3" if six.PY3 else "2"}
+        
 setup(
     name='classy',
     version=VERSION,
     description='Python interface to the Cosmological Boltzmann code CLASS',
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
-    ext_modules=[Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
-                           include_dirs=[nm.get_include(), include_folder],
-                           libraries=liblist,
-                           library_dirs=[root_folder, GCCPATH],
-                           extra_link_args=['-lgomp'],
-                           )],
+    ext_modules=[classy_ext],
     #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )

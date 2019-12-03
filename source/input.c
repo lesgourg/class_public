@@ -2617,12 +2617,12 @@ int input_read_parameters(
 
     if ((strstr(string1,"halofit") != NULL) || (strstr(string1,"Halofit") != NULL) || (strstr(string1,"HALOFIT") != NULL)) {
       pnl->method=nl_halofit;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->halofit_min_k_max);
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->halofit_min_k_max,ppr->nonlinear_min_k_max));
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
     if ((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
       pnl->method=nl_HMcode;
-      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,ppr->hmcode_min_k_max);
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->hmcode_min_k_max,ppr->nonlinear_min_k_max));
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
       class_read_int("extrapolation_method",pnl->extrapolation_method);
 
@@ -3493,7 +3493,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call(background_init(&pr,&ba), ba.error_message, errmsg);
+    class_call(background_init(&pr,&ba),
+               ba.error_message,
+               errmsg
+               );
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -3501,42 +3504,66 @@ int input_try_unknown_parameters(double * unknown_parameter,
      printf("Stage 2: thermodynamics\n");
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
-    class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
+    class_call_except(thermodynamics_init(&pr,&ba,&th),
+                      th.error_message,
+                      errmsg,
+                      background_free(&ba)
+                      );
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
        if (input_verbose>2)
          printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
-    class_call(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg);
+    class_call_except(perturb_init(&pr,&ba,&th,&pt),
+                      pt.error_message,
+                      errmsg,
+                      thermodynamics_free(&th);background_free(&ba)
+                      );
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
     if (input_verbose>2)
       printf("Stage 4: primordial\n");
     pm.primordial_verbose = 0;
-    class_call(primordial_init(&pr,&pt,&pm), pm.error_message, errmsg);
+    class_call_except(primordial_init(&pr,&pt,&pm),
+                      pm.error_message,
+                      errmsg,
+                      perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
+                      );
   }
 
   if (pfzw->required_computation_stage >= cs_nonlinear){
     if (input_verbose>2)
       printf("Stage 5: nonlinear\n");
     nl.nonlinear_verbose = 0;
-    class_call(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl), nl.error_message, errmsg);
+    class_call_except(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl),
+                      nl.error_message,
+                      errmsg,
+                      primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
+                      );
   }
 
   if (pfzw->required_computation_stage >= cs_transfer){
     if (input_verbose>2)
       printf("Stage 6: transfer\n");
     tr.transfer_verbose = 0;
-    class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
+    class_call_except(transfer_init(&pr,&ba,&th,&pt,&nl,&tr),
+                      tr.error_message,
+                      errmsg,
+                      nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
+                      );
   }
 
   if (pfzw->required_computation_stage >= cs_spectra){
     if (input_verbose>2)
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
-    class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
+    class_call_except(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),
+                      sp.error_message,
+                      errmsg,
+                      transfer_free(&tr);nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
+                      );
   }
 
   /** - Get the corresponding shoot variable and put into output */
@@ -3792,11 +3819,13 @@ int input_find_root(double *xzero,
   class_call(input_get_guess(&x1, &dxdy, pfzw, errmsg),
              errmsg, errmsg);
   //      printf("x1= %g\n",x1);
+
   class_call(input_fzerofun_1d(x1,
                                pfzw,
                                &f1,
                                errmsg),
-                 errmsg, errmsg);
+             errmsg, errmsg);
+
   (*fevals)++;
   //printf("x1= %g, f1= %g\n",x1,f1);
 

@@ -610,24 +610,6 @@ int background_init(
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
-  /** barrier against crazy input parameters */
-
-  class_test_except((pba->h > _h_BIG_) || (pba->h < _h_SMALL_),
-                    pba->error_message,
-                    background_free_input(pba),
-                    "Your value of pba->h=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
-                    pba->h,
-                    _h_SMALL_,
-                    _h_BIG_);
-
-  class_test_except((pba->Omega0_b*pba->h*pba->h < _omegab_SMALL_) || (pba->Omega0_b*pba->h*pba->h > _omegab_BIG_),
-                    pba->error_message,
-                    background_free_input(pba),
-                    "Your value of omega_b=%e is out of the bounds [%e , %e]. Various problems may occur with such an extreme value (e.g., issues with interpolating the BBN table) so we will not try to call CLASS. If you want to force this barrier, you may comment it out in background.c",
-                    pba->Omega0_b*pba->h*pba->h,
-                    _omegab_SMALL_,
-                    _omegab_BIG_);
-
   /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
@@ -686,10 +668,11 @@ int background_init(
   }
 
   /** - if shooting failed during input, catch the error here */
-  class_test(pba->shooting_failed == _TRUE_,
-             pba->error_message,
-             "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
-             pba->shooting_error);
+  class_test_except(pba->shooting_failed == _TRUE_,
+                    pba->error_message,
+                    background_free_input(pba),
+                    "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
+                    pba->shooting_error);
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
   class_call(background_indices(pba),
