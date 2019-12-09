@@ -4,7 +4,7 @@
  * Julien Lesgourgues, 6.09.2010
  *
  * Restructured structs by:
- * Nils Schoeneberg, 27.02.2019
+ * Nils Schoeneberg and Matteo Lucca, 27.02.2019
  *
  * Evolver implementation by:
  * Daniel Meinert

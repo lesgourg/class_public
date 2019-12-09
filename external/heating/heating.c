@@ -1,8 +1,7 @@
 /** @file heating.c Documented heating module
  *
  * Initially written by:
- * Matteo Lucca, 27.02.2019
- * Nils Schoeneberg, 27.02.2019
+ * Nils Schoeneberg and Matteo Lucca, 27.02.2019
  *
  * The main goal of this module is to calculate the deposited energy in form of heating, ionization
  * and Lyman alpha processes. For more details see the description in the README file.
@@ -1208,7 +1207,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
     f_nu = 6.*0.147;                                                                                // neutrino
     f_q = (12.*0.142*(exp(-(current_mass*2.2e-3)/(4.53*1.06e13))                                    // u
                       +exp(-(current_mass*4.7e-3)/(4.53*1.06e13))                                   // d
-                      +exp(-(current_mass*1.82)/(4.53*1.06e13))                                     // c
+                      +exp(-(current_mass*1.28)/(4.53*1.06e13))                                     // c
                       +exp(-(current_mass*9.6e-2)/(4.53*1.06e13))                                   // s
                       +exp(-(current_mass*173.1)/(4.53*1.06e13))                                    // t
                       +exp(-(current_mass*4.18)/(4.53*1.06e13))                                     // b
@@ -1220,7 +1219,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
            )*(1-phe->PBH_QCD_activation);
     f_bos = 6.*0.060*exp(-(current_mass*80.39)/(6.04*1.06e13))                                      // W
             +3.*0.060*exp(-(current_mass*91.19)/(6.04*1.06e13))                                     // Z
-            +1.*0.267*exp(-(current_mass*125.06)/(2.66*1.06e13));                                   // h
+            +1.*0.267*exp(-(current_mass*125.1)/(2.66*1.06e13));                                   // h
     f = f_EM+f_nu+f_q+f_pi+f_bos;
 
     /** Find current time value */

@@ -2,6 +2,9 @@
  *
  * Julien Lesgourgues, 27.08.2010
  *
+ * Restructured structs by:
+ * Nils Schoeneberg and Matteo Lucca, 07.03.2019
+ *
  */
 
 #include "input.h"
