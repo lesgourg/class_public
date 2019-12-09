@@ -4,7 +4,7 @@
  * Julien Lesgourgues, 6.09.2010
  *
  * Restructured structs by:
- * Nils Schoeneberg, 27.02.2019
+ * Nils Schoeneberg and Matteo Lucca, 27.02.2019
  *
  * Evolver implementation by:
  * Daniel Meinert
@@ -3130,6 +3130,9 @@ int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters
 
 
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
+
+  /** - Start from no component, then add additional components */
+  index_tv = 0;
 
   class_define_index(ptv->index_D_Tmat,_TRUE_,index_tv,1);
   class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
