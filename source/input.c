@@ -1614,6 +1614,12 @@ int input_read_parameters(
 
   }
 
+  /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
+  if(ppt->has_perturbations == _FALSE_) {
+    free(ppt->alpha_dark);
+    free(ppt->beta_dark);
+  }
+
   if (ppt->has_density_transfers == _TRUE_) {
     class_call(parser_read_string(pfc,"extra metric transfer functions",&string1,&flag1,errmsg),
                errmsg,
