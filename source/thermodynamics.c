@@ -199,7 +199,7 @@ int thermodynamics_at_z(
       pvecthermo[pth->index_th_g_dark] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_g_dark];
 
       /* calculate interacting dark matter sound speed */
-      pvecthermo[pth->index_th_cidm2] = 4*_k_B_*pba->xi_idr*pba->T_cmb*(1.+z)/_eV_/3./pth->m_dm;
+      pvecthermo[pth->index_th_cidm2] = 4*_k_B_*pba->xi_idr*pba->T_cmb*(1.+z)/_eV_/3./pth->m_idm;
 
       /* calculate interacting dark matter temperature */
       pvecthermo[pth->index_th_Tdm] = pba->xi_idr*pba->T_cmb*(1.+z);
@@ -843,7 +843,7 @@ int thermodynamics_init(
     }
 
     pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_Tdm] = T_idm_dr;
-    pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_cidm2] = _k_B_*T_idm_dr/_eV_/pth->m_dm*(1.+dTdz_idm_dr/3./T_idm_dr);
+    pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_cidm2] = _k_B_*T_idm_dr/_eV_/pth->m_idm*(1.+dTdz_idm_dr/3./T_idm_dr);
 
     /* T_adia and z_adia will be used later. They are defined as "the
        last T_DM(z) at which the temperature was evaluated
@@ -947,7 +947,7 @@ int thermodynamics_init(
       }
 
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_Tdm] = T_idm_dr;
-      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cidm2] = _k_B_*T_idm_dr/_eV_/pth->m_dm*(1.+dTdz_idm_dr/3./T_idm_dr);
+      pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cidm2] = _k_B_*T_idm_dr/_eV_/pth->m_idm*(1.+dTdz_idm_dr/3./T_idm_dr);
     }
   }
 

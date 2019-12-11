@@ -973,7 +973,7 @@ int input_read_parameters(
     }
   }
 
-  class_read_double("m_dm",pth->m_dm);
+  class_read_double("m_idm",pth->m_idm);
 
   class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
              errmsg,
@@ -3199,7 +3199,7 @@ int input_default_params(
   pth->a_dark = 0.;
   pth->b_dark = 0.;
   pth->nindex_dark = 4.;
-  pth->m_dm = 1.e11;
+  pth->m_idm = 1.e11;
 
   /** - perturbation structure */
 
