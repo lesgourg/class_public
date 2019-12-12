@@ -1399,13 +1399,13 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for heating quantities */
-  class_call(input_read_parameters_heating(pfc,pth,
+  class_call(input_read_parameters_heating(pfc,ppr,pth,
                                            errmsg),
              errmsg,
              errmsg);
 
   /** Read parameters for nonlinear quantities */
-  class_call(input_read_parameters_nonlinear(pfc,ppr,ppt,pnl,
+  class_call(input_read_parameters_nonlinear(pfc,ppr,pba,pth,ppt,pnl,
                                              input_verbose,
                                              errmsg),
              errmsg,
@@ -2576,10 +2576,12 @@ int input_read_parameters_species(struct file_content * pfc,
  * Read the parameters of heating structure.
  *
  * @param pfc     Input: pointer to local structure
+ * @param ppr     Input: pointer to precision structure
  * @param pth     Input: pointer to thermodynamics structure
  * @param errmsg  Input: Error message
  */
 int input_read_parameters_heating(struct file_content * pfc,
+                                  struct precision * ppr,
                                   struct thermo * pth,
                                   ErrorMsg errmsg){
 
@@ -2855,6 +2857,8 @@ int input_read_parameters_heating(struct file_content * pfc,
  *
  * @param pfc            Input: pointer to local structure
  * @param ppr            Input: pointer to precision structure
+ * @param pba            Input: pointer to background structure
+ * @param pth            Input: pointer to thermodynamics structure
  * @param ppt            Input: pointer to perturbations structure
  * @param pnl            Input: pointer to nonlinear structure
  * @param input_verbose  Input: verbosity of input
@@ -2862,6 +2866,8 @@ int input_read_parameters_heating(struct file_content * pfc,
  */
 int input_read_parameters_nonlinear(struct file_content * pfc,
                                     struct precision * ppr,
+                                    struct background *pba,
+                                    struct thermo *pth,
                                     struct perturbs * ppt,
                                     struct nonlinear * pnl,
                                     int input_verbose,

@@ -7,17 +7,17 @@
 #include "parser.h"
 
 /* Declare the structs this module refers to */
-struct precision * ppr;
-struct background * pba;
-struct thermo * pth;
-struct perturbs * ppt;
-struct transfers * ptr;
-struct primordial * ppm;
-struct spectra * psp;
-struct nonlinear * pnl;
-struct lensing * ple;
-struct output * pop;
-struct distortions * psd;
+struct precision;
+struct background;
+struct thermo;
+struct perturbs;
+struct transfers;
+struct primordial;
+struct spectra;
+struct nonlinear;
+struct lensing;
+struct output;
+struct distortions;
 
 #define _N_FILEROOT_ 100 /* Number of files that will be not overwritten for a given root */
 
@@ -391,11 +391,14 @@ extern "C" {
                                     ErrorMsg errmsg);
 
   int input_read_parameters_heating(struct file_content * pfc,
+                                    struct precision * ppr,
                                     struct thermo * pth,
                                     ErrorMsg errmsg);
 
   int input_read_parameters_nonlinear(struct file_content * pfc,
                                       struct precision * ppr,
+                                      struct background *pba,
+                                      struct thermo *pth,
                                       struct perturbs * ppt,
                                       struct nonlinear * pnl,
                                       int input_verbose,
