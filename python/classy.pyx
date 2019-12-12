@@ -612,7 +612,7 @@ cdef class Class:
 
 
                 start_get_sources = time()
-                k_NN, NN_prediction = self.predictor.predict_all(self, tau_CLASS, add_k0=True)
+                k_NN, NN_prediction = self.predictor.predict_all(self, np.asarray(tau_CLASS), add_k0=True)
                 time_get_sources = time() - start_get_sources
 
 
