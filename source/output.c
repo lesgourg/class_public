@@ -102,7 +102,7 @@ int output_total_cl_at_l(
  * @param psp Input: pointer to spectra structure
  * @param pnl Input: pointer to nonlinear structure
  * @param ple Input: pointer to lensing structure
- * @param ple Input: pointer to distortions structure [ML]
+ * @param ple Input: pointer to distortions structure
  * @param pop Input: pointer to output structure
  */
 
@@ -115,7 +115,7 @@ int output_init(
                 struct spectra * psp,
                 struct nonlinear * pnl,
                 struct lensing * ple,
-                struct distortions * psd, // [ML]
+                struct distortions * psd,
                 struct output * pop
                 ) {
 
@@ -214,7 +214,7 @@ int output_init(
                pop->error_message);
   }
 
-  /** - deal with spectral distortions [ML] */
+  /** - deal with spectral distortions */
 
   if (pop->write_distortions == _TRUE_) {
 
@@ -1591,7 +1591,6 @@ int output_heating(struct heating* phe, struct output * pop) {
   return _SUCCESS_;
 }
 
-/* [ML] */
 int output_distortions(
                        struct distortions * psd,
                        struct output * pop

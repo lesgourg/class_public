@@ -5,7 +5,7 @@
 
 #include "common.h"
 #include "lensing.h"
-#include "distortions.h" // [ML]
+#include "distortions.h"
 
 /**
  * Maximum number of values of redshift at which the spectra will be
@@ -49,8 +49,8 @@ struct output {
   short write_thermodynamics; /**< flag for outputing thermodynamical evolution in file */
   short write_perturbations; /**< flag for outputing perturbations of selected wavenumber(s) in file(s) */
   short write_primordial; /**< flag for outputing scalar/tensor primordial spectra in files */
-  short write_heating; /**< flag for outputing spectral distortions in files [ML] */
-  short write_distortions; /**< flag for outputing spectral distortions in files [ML] */
+  short write_heating; /**< flag for outputing spectral distortions in files */
+  short write_distortions; /**< flag for outputing spectral distortions in files */
 
   //@}
 
@@ -91,7 +91,7 @@ extern "C" {
                   struct spectra * psp,
                   struct nonlinear * pnl,
                   struct lensing * ple,
-                  struct distortions * psd,  // [ML]
+                  struct distortions * psd,
                   struct output * pop
                   );
 
@@ -152,11 +152,10 @@ extern "C" {
                      struct output * pop
                      );
 
-  /* [ML] */
   int output_distortions(
                          struct distortions * psd,
                          struct output * pop
-                         ); 
+                         );
 
   int output_print_data(FILE *out,
                         char titles[_MAXTITLESTRINGLENGTH_],
