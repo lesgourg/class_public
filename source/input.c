@@ -1016,19 +1016,19 @@ int input_read_parameters(
       for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
     }
 
-    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idm_dr),&flag1,errmsg),
+    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
                errmsg,
                errmsg);
 
     if(flag1 == _TRUE_){
       if(entries_read != (ppr->l_max_idr-1)){
-        class_realloc(ppt->beta_idm_dr,ppt->beta_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idm_dr[n] = ppt->beta_idm_dr[entries_read-1];
+        class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
       }
     }
     else{
-      class_alloc(ppt->beta_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idm_dr[n] = 1.5;
+      class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
     }
   }
 
@@ -1642,7 +1642,7 @@ int input_read_parameters(
   /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
   if(ppt->has_perturbations == _FALSE_) {
     free(ppt->alpha_idm_dr);
-    free(ppt->beta_idm_dr);
+    free(ppt->beta_idr);
   }
 
   if (ppt->has_density_transfers == _TRUE_) {

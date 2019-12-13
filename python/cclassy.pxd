@@ -71,6 +71,7 @@ cdef extern from "class.h":
         double Omega0_b
         double f_idm_dr
         double Omega0_idm_dr
+        double Omega0_idr
         double Omega0_cdm
         double Omega0_dcdm
         double Omega0_ncdm_tot
@@ -92,9 +93,9 @@ cdef extern from "class.h":
         double H_eq
         double z_eq
         double tau_eq
-        double xi_idr
-        double N_dg
-        double Gamma_0_nadm
+        double T_idr
+        double N_idr
+        double a_idm_dr
 
     cdef struct thermo:
         ErrorMsg error_message
@@ -122,9 +123,9 @@ cdef extern from "class.h":
         double rs_d
         double YHe
         double n_e
-        double a_dark
-        double nindex_dark
-        double m_dm
+        double a_idm_dr
+        double nindex_idm_dr
+        double m_idm
 
         int tt_size
 

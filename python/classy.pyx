@@ -1687,13 +1687,13 @@ cdef class Class:
             elif name == 'omega_m':
                 value = self.ba.Omega0_m/self.ba.h**2
             elif name == 'xi_idr':
-                value = self.ba.xi_idr
+                value = self.ba.T_idr/self.ba.T_cmb
             elif name == 'N_dg':
-                value = self.ba.N_dg
+                value = self.ba.Omega0_idr/self.ba.Omega0_g*8./7.*pow(11./4.,4./3.)
             elif name == 'Gamma_0_nadm':
-                value = self.ba.Gamma_0_nadm
+                value = self.th.a_idm_dr*(4./3.)*(self.ba.h*self.ba.h*self.ba.Omega0_idr)
             elif name == 'a_dark':
-                value = self.th.a_dark
+                value = self.th.a_idm_dr
             elif name == 'tau_reio':
                 value = self.th.tau_reio
             elif name == 'z_reio':

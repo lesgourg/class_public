@@ -938,7 +938,7 @@ int perturb_free(
 
     free(ppt->alpha_idm_dr);
 
-    free(ppt->beta_idm_dr);
+    free(ppt->beta_idr);
 
     /** Stuff related to perturbations output: */
 
@@ -8878,26 +8878,26 @@ int perturb_derivs(double tau,
             l = 2;
             dy[pv->index_pt_shear_idr] = 0.5*(8./15.*(y[pv->index_pt_theta_idr]+metric_shear)-3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_idr+1]);
             if (pba->has_idm_dr == _TRUE_)
-              dy[pv->index_pt_shear_idr]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr];
+              dy[pv->index_pt_shear_idr]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idr[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr];
 
             /** - ----> exact idr l=3 */
             l = 3;
             dy[pv->index_pt_l3_idr] = k/(2.*l+1.)*(l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_idr]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_idr+1]);
             if (pba->has_idm_dr == _TRUE_)
-              dy[pv->index_pt_l3_idr]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
+              dy[pv->index_pt_l3_idr]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idr[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
 
             /** - ----> exact idr l>3 */
             for (l = 4; l < pv->l_max_idr; l++) {
               dy[pv->index_pt_delta_idr+l] = k/(2.*l+1)*(l*s_l[l]*y[pv->index_pt_delta_idr+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_idr+l+1]);
               if (pba->has_idm_dr == _TRUE_)
-                dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+                dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idr[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
             }
 
             /** - ----> exact idr lmax_dr */
             l = pv->l_max_idr;
             dy[pv->index_pt_delta_idr+l] = k*(s_l[l]*y[pv->index_pt_delta_idr+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_idr+l]);
             if (pba->has_idm_dr == _TRUE_)
-              dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+              dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idr[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
           }
         }
         else{

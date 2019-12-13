@@ -174,8 +174,8 @@ struct perturbs
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
 
-  double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm-idr */
-  double * beta_idm_dr;  /**< Angular contribution to collisional term at l>=2 for idm-idr */
+  double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm_fr-idr */
+  double * beta_idr;  /**< Angular contribution to collisional term at l>=2 for idr-idr */
 
   int idr_nature; /**< Nature of the interacting dark radiation (free streaming or fluid) */
 
@@ -229,46 +229,46 @@ struct perturbs
 
   //@{
 
-  short has_source_t;  /**< do we need source for CMB temperature? */
-  short has_source_p;  /**< do we need source for CMB polarization? */
-  short has_source_delta_m;   /**< do we need source for delta of total matter? */
-  short has_source_delta_cb; /**< do we ALSO need source for delta of ONLY cdm and baryon? */
-  short has_source_delta_tot;  /**< do we need source for delta total? */
-  short has_source_delta_g;    /**< do we need source for delta of gammas? */
-  short has_source_delta_b;    /**< do we need source for delta of baryons? */
-  short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
-  short has_source_delta_dcdm; /**< do we need source for delta of DCDM? */
-  short has_source_delta_fld;  /**< do we need source for delta of dark energy? */
-  short has_source_delta_scf;  /**< do we need source for delta from scalar field? */
-  short has_source_delta_dr;   /**< do we need source for delta of decay radiation? */
-  short has_source_delta_ur;   /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
-  short has_source_delta_idr;  /**< do we need source for delta of interacting dark radiation? */
-  short has_source_delta_idm_dr; /**< do we need source for delta of interacting dark matter (with dr)? */
-  short has_source_delta_ncdm; /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_theta_m;    /**< do we need source for theta of total matter? */
-  short has_source_theta_cb; /**< do we ALSO need source for theta of ONLY cdm and baryon? */
-  short has_source_theta_tot;  /**< do we need source for theta total? */
-  short has_source_theta_g;    /**< do we need source for theta of gammas? */
-  short has_source_theta_b;    /**< do we need source for theta of baryons? */
-  short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
-  short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
-  short has_source_theta_fld;  /**< do we need source for theta of dark energy? */
-  short has_source_theta_scf;  /**< do we need source for theta of scalar field? */
-  short has_source_theta_dr;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_ur;   /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_idr;  /**< do we need source for theta of interacting dark radiation? */
-  short has_source_theta_idm_dr;  /**< do we need source for theta of interacting dark matter (with dr)? */
-  short has_source_theta_ncdm; /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_phi;          /**< do we need source for metric fluctuation phi? */
-  short has_source_phi_prime;    /**< do we need source for metric fluctuation phi'? */
-  short has_source_phi_plus_psi; /**< do we need source for metric fluctuation (phi+psi)? */
-  short has_source_psi;          /**< do we need source for metric fluctuation psi? */
-  short has_source_h;            /**< do we need source for metric fluctuation h? */
-  short has_source_h_prime;      /**< do we need source for metric fluctuation h'? */
-  short has_source_eta;          /**< do we need source for metric fluctuation eta? */
-  short has_source_eta_prime;    /**< do we need source for metric fluctuation eta'? */
-  short has_source_H_T_Nb_prime;    /**< do we need source for metric fluctuation H_T_Nb'? */
-  short has_source_k2gamma_Nb;    /**< do we need source for metric fluctuation gamma in Nbody gauge? */
+  short has_source_t;           /**< do we need source for CMB temperature? */
+  short has_source_p;           /**< do we need source for CMB polarization? */
+  short has_source_delta_m;     /**< do we need source for delta of total matter? */
+  short has_source_delta_cb;    /**< do we ALSO need source for delta of ONLY cdm and baryon? */
+  short has_source_delta_tot;   /**< do we need source for delta total? */
+  short has_source_delta_g;     /**< do we need source for delta of gammas? */
+  short has_source_delta_b;     /**< do we need source for delta of baryons? */
+  short has_source_delta_cdm;   /**< do we need source for delta of cold dark matter? */
+  short has_source_delta_dcdm;  /**< do we need source for delta of DCDM? */
+  short has_source_delta_fld;   /**< do we need source for delta of dark energy? */
+  short has_source_delta_scf;   /**< do we need source for delta from scalar field? */
+  short has_source_delta_dr;    /**< do we need source for delta of decay radiation? */
+  short has_source_delta_ur;    /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
+  short has_source_delta_idr;   /**< do we need source for delta of interacting dark radiation? */
+  short has_source_delta_idm_dr;/**< do we need source for delta of interacting dark matter (with dr)? */
+  short has_source_delta_ncdm;  /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_theta_m;     /**< do we need source for theta of total matter? */
+  short has_source_theta_cb;    /**< do we ALSO need source for theta of ONLY cdm and baryon? */
+  short has_source_theta_tot;   /**< do we need source for theta total? */
+  short has_source_theta_g;     /**< do we need source for theta of gammas? */
+  short has_source_theta_b;     /**< do we need source for theta of baryons? */
+  short has_source_theta_cdm;   /**< do we need source for theta of cold dark matter? */
+  short has_source_theta_dcdm;  /**< do we need source for theta of DCDM? */
+  short has_source_theta_fld;   /**< do we need source for theta of dark energy? */
+  short has_source_theta_scf;   /**< do we need source for theta of scalar field? */
+  short has_source_theta_dr;    /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_ur;    /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
+  short has_source_theta_idr;   /**< do we need source for theta of interacting dark radiation? */
+  short has_source_theta_idm_dr;/**< do we need source for theta of interacting dark matter (with dr)? */
+  short has_source_theta_ncdm;  /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
+  short has_source_phi;         /**< do we need source for metric fluctuation phi? */
+  short has_source_phi_prime;   /**< do we need source for metric fluctuation phi'? */
+  short has_source_phi_plus_psi;/**< do we need source for metric fluctuation (phi+psi)? */
+  short has_source_psi;         /**< do we need source for metric fluctuation psi? */
+  short has_source_h;           /**< do we need source for metric fluctuation h? */
+  short has_source_h_prime;     /**< do we need source for metric fluctuation h'? */
+  short has_source_eta;         /**< do we need source for metric fluctuation eta? */
+  short has_source_eta_prime;   /**< do we need source for metric fluctuation eta'? */
+  short has_source_H_T_Nb_prime;/**< do we need source for metric fluctuation H_T_Nb'? */
+  short has_source_k2gamma_Nb;  /**< do we need source for metric fluctuation gamma in Nbody gauge? */
 
   /* remember that the temperature source function includes three
      terms that we call 0,1,2 (since the strategy in class v > 1.7 is
@@ -290,7 +290,7 @@ struct perturbs
   int index_tp_delta_dr; /**< index value for delta of decay radiation */
   int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
   int index_tp_delta_idr; /**< index value for delta of interacting dark radiation */
-  int index_tp_delta_idm_dr; /**< index value for delta of interacting dark matter (with dr)*/
+  int index_tp_delta_idm_dr;/**< index value for delta of interacting dark matter (with dr)*/
   int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
@@ -304,7 +304,6 @@ struct perturbs
   int index_tp_theta_dcdm; /**< index value for theta of DCDM */
   int index_tp_theta_fld;  /**< index value for theta of dark energy */
   int index_tp_theta_scf;  /**< index value for theta of scalar field */
-
   int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_idr; /**< index value for theta of interacting dark radiation */
   int index_tp_theta_idm_dr; /**< index value for theta of interacting dark matter (with dr)*/
@@ -462,8 +461,8 @@ struct perturb_vector
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
-  int index_pt_delta_idm_dr; /**< idm_dr density */
-  int index_pt_theta_idm_dr; /**< idm_dr velocity */
+  int index_pt_delta_idm_dr;/**< idm_dr density */
+  int index_pt_theta_idm_dr;/**< idm_dr velocity */
   int index_pt_delta_dcdm; /**< dcdm density */
   int index_pt_theta_dcdm; /**< dcdm velocity */
   int index_pt_delta_fld;  /**< dark energy density in true fluid case */
@@ -571,7 +570,7 @@ struct perturb_workspace
 
   double tca_shear_g;  /**< photon shear in tight-coupling approximation */
   double tca_slip;     /**< photon-baryon slip in tight-coupling approximation */
-  double tca_shear_idm_dr; /**< interacting dark radiation shear in tight coupling appproximation */
+  double tca_shear_idm_dr;/**< interacting dark radiation shear in tight coupling appproximation */
   double rsa_delta_g;  /**< photon density in radiation streaming approximation */
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
