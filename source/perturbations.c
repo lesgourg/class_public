@@ -1977,10 +1977,10 @@ int perturb_get_k_list(
 
     /* the following is a boost on k_per_decade_for_pk for very large k
        and very large a_dark for the interacting dm-dr cases */
-    if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_dark>=2)){
+    if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_idm_dr>=2)){
       class_alloc(ppt->k[ppt->index_md_scalars],
                   ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
-                   (int)(MAX(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_dark,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
+                   (int)(MAX(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_idm_dr,ppr->k_per_decade_for_bao)*log(k_max/k_min)/log(10.))+3)
                   *sizeof(double),ppt->error_message);
     }
 
@@ -2061,9 +2061,9 @@ int perturb_get_k_list(
     /* values until k_max */
 
     while (k < k_max) {
-      if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_dark>=2)){
-        k *= pow(10.,1./(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_dark
-                         +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_dark)
+      if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_idm_dr>=2)){
+        k *= pow(10.,1./(ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_idm_dr
+                         +(ppr->k_per_decade_for_bao-ppr->k_per_decade_for_pk*ppr->idmdr_boost_k_per_decade_for_pk*pth->nindex_idm_dr)
                          *(1.-tanh(pow((log(k)-log(ppr->k_bao_center*k_rec))/log(ppr->k_bao_width),4)))));
       }
       else{
@@ -5898,7 +5898,7 @@ int perturb_approximations(
 
         if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
             (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
-            (pth->nindex_dark>=2) && (ppt->idr_nature == idr_free_streaming)) {
+            (pth->nindex_idm_dr>=2) && (ppt->idr_nature == idr_free_streaming)) {
           ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
         }
         else{
@@ -5926,7 +5926,7 @@ int perturb_approximations(
       if(pba->has_idm_dr==_TRUE_){
 
         if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
-            ((tau > pth->tau_idr_free_streaming) && (pth->nindex_dark>=2)) &&
+            ((tau > pth->tau_idr_free_streaming) && (pth->nindex_idm_dr>=2)) &&
             (ppr->dark_radiation_streaming_approximation != rsa_idr_none)){
 
           ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
@@ -8727,7 +8727,7 @@ int perturb_derivs(double tau,
       }
       else{
 
-        tca_slip_dark = (pth->nindex_dark-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm_dr]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
+        tca_slip_dark = (pth->nindex_idm_dr-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm_dr]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
           (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm_dr] - a_prime_over_a *
            (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm_dr] - 1./4.*dy[pv->index_pt_delta_idr]));
 

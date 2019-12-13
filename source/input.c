@@ -971,15 +971,15 @@ int input_read_parameters(
     /** - Load the rest of the parameters for idm and idr */
 
     if (flag3 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
-      pth->nindex_dark = 0;
+      pth->nindex_idm_dr = 0;
       ppt->idr_nature = idr_fluid;
       if (input_verbose > 1)
-        printf("NADM requested. Defaulting on nindex_dark = %i and idr_nature = fluid \n", pth->nindex_dark);
+        printf("NADM requested. Defaulting on nindex_idm_dr = %i and idr_nature = fluid \n", pth->nindex_idm_dr);
     }
 
     else{
 
-      class_read_double_one_of_two("nindex_dark","nindex_idm_dr",pth->nindex_dark);
+      class_read_double_one_of_two("nindex_dark","nindex_idm_dr",pth->nindex_idm_dr);
 
       class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
                  errmsg,
@@ -3219,7 +3219,7 @@ int input_default_params(
 
   pth->a_idm_dr = 0.;
   pth->b_idr = 0.;
-  pth->nindex_dark = 4.;
+  pth->nindex_idm_dr = 4.;
   pth->m_idm = 1.e11;
 
   /** - perturbation structure */

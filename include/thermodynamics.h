@@ -154,7 +154,7 @@ struct thermo
 
   double a_idm_dr; /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
   double b_idr; /**< strength of the self coupling for interacting dark radiation (idr-idr) */
-  double nindex_dark; /**< temperature dependence of the interaction between dark matter and dark radiation \f$ \tau_{DR}^{-1} \f$ */
+  double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation \f$ \tau_{DR}^{-1} \f$ */
   double m_idm; /**< interacting dark matter mass */
 
   //@}
