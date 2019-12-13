@@ -953,19 +953,19 @@ int input_read_parameters(
                "In input file, you can only enter one of a_idm_dr, a_dark or Gamma_0_nadm, choose one");
 
     if (flag1 == _TRUE_){
-      pth->a_dark = param1;
+      pth->a_idm_dr = param1;
       if (input_verbose > 1)
         printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param1, param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
     }
     else if (flag2 == _TRUE_){
-      pth->a_dark = param2;
+      pth->a_idm_dr = param2;
       if (input_verbose > 1)
         printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param2, param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
     }
     else if (flag3 == _TRUE_){
-      pth->a_dark = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
+      pth->a_idm_dr = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
       if (input_verbose > 1)
-        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_dark);
+        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_idm_dr);
     }
 
     /** - Load the rest of the parameters for idm and idr */
@@ -997,7 +997,7 @@ int input_read_parameters(
 
     class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
 
-    class_read_double_one_of_two("b_dark","b_idm_dr",pth->b_dark);
+    class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
 
     /* the reading of alpha_dark and beta_dark will be modified later on */
 
@@ -3217,8 +3217,8 @@ int input_default_params(
 
   pth->compute_damping_scale = _FALSE_;
 
-  pth->a_dark = 0.;
-  pth->b_dark = 0.;
+  pth->a_idm_dr = 0.;
+  pth->b_idr = 0.;
   pth->nindex_dark = 4.;
   pth->m_idm = 1.e11;
 

@@ -8426,7 +8426,7 @@ int perturb_derivs(double tau,
   if((pba->has_idm_dr==_TRUE_)){
     Sinv = 4./3. * pvecback[pba->index_bg_rho_idr]/ pvecback[pba->index_bg_rho_idm_dr];
     dmu_dark = pvecthermo[pth->index_th_dmu_dark];
-    dmu_drdr = pth->b_dark/pth->a_dark*pba->Omega0_idr/pba->Omega0_idm_dr*dmu_dark;
+    dmu_drdr = pth->b_idr/pth->a_idm_dr*pba->Omega0_idr/pba->Omega0_idm_dr*dmu_dark;
   }
 
   /** - Compute 'generalised cotK function of argument \f$ \sqrt{|K|}*\tau \f$, for closing hierarchy.
