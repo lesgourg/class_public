@@ -28,8 +28,8 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum tca_idm_dr_flags {tca_idm_dr_on, tca_idm_dr_off}; /* for the idm-idr case */
-enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    /* for the idm-idr case */
+enum tca_idm_dr_flags {tca_idm_dr_on, tca_idm_dr_off};
+enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
@@ -43,8 +43,8 @@ enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
 
 enum tca_method {first_order_MB,first_order_CAMB,first_order_CLASS,second_order_CRS,second_order_CLASS,compromise_CLASS};
 enum rsa_method {rsa_null,rsa_MD,rsa_MD_with_reio,rsa_none};
-enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};  /* for the idm-idr case */
 enum idr_method {idr_free_streaming,idr_fluid}; /* for the idm-idr case */
+enum rsa_idr_method {rsa_idr_none,rsa_idr_MD};  /* for the idm-idr case */
 enum ufa_method {ufa_mb,ufa_hu,ufa_CLASS,ufa_none};
 enum ncdmfa_method {ncdmfa_mb,ncdmfa_hu,ncdmfa_CLASS,ncdmfa_none};
 enum tensor_methods {tm_photons_only,tm_massless_approximation,tm_exact};
@@ -138,8 +138,6 @@ struct perturbs
   short has_velocity_transfers;       /**< do we need to output individual matter velocity transfer functions? */
   short has_metricpotential_transfers;/**< do we need to output individual transfer functions for scalar metric perturbations? */
   short has_Nbody_gauge_transfers;    /**< should we convert density and velocity transfer functions to Nbody gauge? */
-
-  short has_idm_dr;                   /**< do we need interacting dark matter (with dark radiation)? */
 
   short has_nl_corrections_based_on_delta_m;  /**< do we want to compute non-linear corrections with an algorithm relying on delta_m (like halofit)? */
 

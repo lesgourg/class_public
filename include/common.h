@@ -355,7 +355,6 @@ struct precision
   #include "precisions.h"
   #undef __ALLOCATE_PRECISION_PARAMETER__
 
-
   /** @name - general precision parameters */
 
   //@{

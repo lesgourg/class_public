@@ -83,9 +83,9 @@ struct background
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
   double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
-  double T_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: current temperature of interacting dark radiation in Kelvins */
+  double T_idr;      /**< \f$ T_{idr} \f$: current temperature of interacting dark radiation in Kelvins */
 
-  double Omega0_idm_dr; /**< \f$ \Omega_{0 idm_dr} \f$: interacting dark matter */
+  double Omega0_idm_dr; /**< \f$ \Omega_{0 idm_dr} \f$: dark matter interacting with dark radiation */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 
@@ -189,9 +189,9 @@ struct background
   int index_bg_rho_fld;       /**< fluid density */
   int index_bg_w_fld;         /**< fluid equation of state */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
-  int index_bg_rho_idr;       /**< interacting dark radiation density */
+  int index_bg_rho_idm_dr;    /**< density of dark matter interacting with dark radiation */
+  int index_bg_rho_idr;       /**< density of interacting dark radiation */
   int index_bg_rho_dcdm;      /**< dcdm density */
-  int index_bg_rho_idm_dr;    /**< interacting dark matter density */
   int index_bg_rho_dr;        /**< dr density */
 
   int index_bg_phi_scf;       /**< scalar field value */
@@ -303,7 +303,7 @@ struct background
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
   short has_idr;       /**< presence of interacting dark radiation? */
-  short has_idm_dr;    /**< presence of interacting dark matter? */
+  short has_idm_dr;    /**< presence of dark matter interacting with dark radiation? */
   short has_curvature; /**< presence of global spatial curvature? */
 
   //@}
