@@ -151,11 +151,10 @@ struct thermo
   double annihilation_f_halo; /**< takes the contribution of DM annihilation in halos into account*/
   double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
 
-
-  double a_idm_dr; /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
-  double b_idr; /**< strength of the self coupling for interacting dark radiation (idr-idr) */
-  double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation \f$ \tau_{DR}^{-1} \f$ */
-  double m_idm; /**< interacting dark matter mass */
+  double a_idm_dr;      /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
+  double b_idr;         /**< strength of the self coupling for interacting dark radiation (idr-idr) */
+  double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation */
+  double m_idm;         /**< interacting dark matter mass */
 
   //@}
 
@@ -238,8 +237,7 @@ struct thermo
 
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
   double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
-  double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
-
+  double tau_free_streaming;     /**< minimum value of tau at which free-streaming approximation can be switched on */
   double tau_idr_free_streaming; /**< trigger for dark radiation free streaming approximation (idm-idr) */
 
   //@}
@@ -511,7 +509,7 @@ extern "C" {
 			  );
 
   int thermodynamics_indices(
-			     struct background * pba,
+                 struct background * pba,
                  struct thermo * pthermo,
 			     struct recombination * preco,
 			     struct reionization * preio
