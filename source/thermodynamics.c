@@ -199,10 +199,10 @@ int thermodynamics_at_z(
       pvecthermo[pth->index_th_g_dark] = pth->thermodynamics_table[(pth->tt_size-1)*pth->th_size+pth->index_th_g_dark];
 
       /* calculate interacting dark matter sound speed */
-      pvecthermo[pth->index_th_cidm2] = 4*_k_B_*pba->xi_idr*pba->T_cmb*(1.+z)/_eV_/3./pth->m_idm;
+      pvecthermo[pth->index_th_cidm2] = 4*_k_B_*pba->T_idr*(1.+z)/_eV_/3./pth->m_idm;
 
       /* calculate interacting dark matter temperature */
-      pvecthermo[pth->index_th_Tdm] = pba->xi_idr*pba->T_cmb*(1.+z);
+      pvecthermo[pth->index_th_Tdm] = pba->T_idr*(1.+z);
     }
 
   }
@@ -828,15 +828,15 @@ int thermodynamics_init(
 
     /* (A1) --> if Gamma is not much smaller than H, set T_DM to T_DM=T_idr=xi*T_gamma (tight coupling solution) */
     if(Gamma_heat_dark > 1.e-3 * pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
-      T_idm_dr = pba->xi_idr*pba->T_cmb*(1.+z);
-      dTdz_idm_dr = pba->xi_idr*pba->T_cmb;
+      T_idm_dr = pba->T_idr*(1.+z);
+      dTdz_idm_dr = pba->T_idr;
     }
 
     /* (A2) --> otherwise, if Gamma << H, set initial T_DM to the
        approximate analytic solution (Gamma/aH)/(1+(Gamma/aH)*T_DR)
        (eq. (A62) in ETHOS I) */
     else {
-      T_idr = pba->xi_idr*pba->T_cmb*(1.+z);
+      T_idr = pba->T_idr*(1.+z);
       T_idm_dr = Gamma_heat_dark/(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H])
         /(1. + Gamma_heat_dark/(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]))*T_idr;
       dTdz_idm_dr = 2.*T_idm_dr - Gamma_heat_dark/pvecback[pba->index_bg_H] * (T_idr - T_idm_dr);
@@ -863,7 +863,7 @@ int thermodynamics_init(
       /* (B1) --> tight-coupling solution: Gamma >> H implies T_DM=T_idr=xi*T_gamma */
       if(Gamma_heat_dark > 1.e3 * pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]){
         z = pth->z_table[index_tau];
-        T_idr = pba->xi_idr*pba->T_cmb*(1.+z);
+        T_idr = pba->T_idr*(1.+z);
         T_idm_dr = T_idr;
         Gamma_heat_dark = 2.*pba->Omega0_idr*pow(pba->h,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
         class_call(background_tau_of_z(pba,z,&(tau)),
@@ -872,7 +872,7 @@ int thermodynamics_init(
         class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
                    pba->error_message,
                    pth->error_message);
-        dTdz_idm_dr =pba->xi_idr*pba->T_cmb;
+        dTdz_idm_dr =pba->T_idr;
       }
 
       /* (B2) --> intermediate solution: integrate differential equation equation dT_DM/dz = 2 a T_DM - Gamma/H (T_idr - T_DM) */
@@ -883,7 +883,7 @@ int thermodynamics_init(
         /* (B2a) ----> if dz << H/Gamma the equation is not too stiff and the traditional forward Euler method converges */
         if (dz < pvecback[pba->index_bg_H]/Gamma_heat_dark/10.) {
           z = pth->z_table[index_tau];
-          T_idr = pba->xi_idr*pba->T_cmb*(1.+z);
+          T_idr = pba->T_idr*(1.+z);
           T_idm_dr -= dTdz_idm_dr*dz;
           Gamma_heat_dark = 2.*pba->Omega0_idr*pow(pba->h,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
           class_call(background_tau_of_z(pba,z,&(tau)),
@@ -913,7 +913,7 @@ int thermodynamics_init(
             /* final redshift last sub-step overwritten to avoid small rounding error */
             if (n==(N_sub_steps-1)) z=pth->z_table[index_tau];
 
-            T_idr = pba->xi_idr*pba->T_cmb*(1.+z);
+            T_idr = pba->T_idr*(1.+z);
             T_idm_dr -= dTdz_idm_dr*dz_sub_step;
             Gamma_heat_dark = 2.*pba->Omega0_idr*pow(pba->h,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
             class_call(background_tau_of_z(pba,z,&(tau)),
@@ -934,7 +934,7 @@ int thermodynamics_init(
       /* (B3) --> decoupled solution: T_DM scales like a^-2 */
       else {
         z = pth->z_table[index_tau];
-        T_idr = pba->xi_idr*pba->T_cmb*(1.+z);
+        T_idr = pba->T_idr*(1.+z);
         T_idm_dr = T_adia * pow((1.+z)/(1.+z_adia),2);
         Gamma_heat_dark = 2.*pba->Omega0_idr*pow(pba->h,2)*pth->a_dark*pow((1.+z),(pth->nindex_dark+1.))/pow(1.e7,pth->nindex_dark);
         class_call(background_tau_of_z(pba,z,&(tau)),

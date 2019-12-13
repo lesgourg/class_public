@@ -84,9 +84,7 @@ struct background
 
   double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
   double Omega0_idm_dr; /**< \f$ \Omega_{0 idm_dr} \f$: interacting dark matter */
-  double f_idm_dr;   /**< fraction of interacting dark matter */
-
-  double xi_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: related to the amount of interacting dark radiation */
+  double T_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: current temperature of interacting dark radiation in Kelvins */
   double stat_f_idr; /**< Interacting dark radiation statistical factor */
   double N_dg;       /**< number of dark gluons, for the NADM case */
   double Gamma_0_nadm; /**< \f$ \Gamma_0 \f$: interaction coefficient, for the NADM case */
@@ -569,12 +567,6 @@ extern "C" {
  */
 
 //@{
-
-#define _eV_over_K_ 8.6173303e-5 /**< Boltzmann constant in eV/Kelvin */
-
-#define _Mpc_over_cm_ 3.0856e24  /**< conversion factor from centimeters to megaparsecs */
-
-#define _invGeV_over_cm_ 1.9733e-14  /**< conversion factor from centimeters to GeV^-1 */
 
 #define _Mpc_over_m_ 3.085677581282e22  /**< conversion factor from meters to megaparsecs */
 /* remark: CAMB uses 3.085678e22: good to know if you want to compare  with high accuracy */

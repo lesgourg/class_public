@@ -858,25 +858,25 @@ int input_read_parameters(
              "In input file, you can only enter one of N_idr, N_dg or xi_idr, choose one");
 
   if (flag1 == _TRUE_) {
-    pba->xi_idr = pow(param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
+    pba->T_idr = pow(param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
     pba->N_dg = param2;
     if (input_verbose > 1)
-      printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", pba->N_dg, pba->xi_idr);
+      printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
   }
   else if (flag2 == _TRUE_) {
-    pba->xi_idr = pow(param2/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
+    pba->T_idr = pow(param2/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
     pba->N_dg = param1;
     if (input_verbose > 2)
-      printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", pba->N_dg, pba->xi_idr);
+      printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
   }
   else if (flag3 == _TRUE_) {
-    pba->xi_idr = param3;
+    pba->T_idr = param3 * pba->T_cmb;
     pba->N_dg = pba->stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.));
     if (input_verbose > 1)
-      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", pba->xi_idr, pba->N_dg);
+      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", param3, pba->N_dg);
   }
 
-  pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
+  pba->Omega0_idr = pba->stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
 
   Omega_tot += pba->Omega0_idr;
 
@@ -934,8 +934,6 @@ int input_read_parameters(
   }
 
   Omega_tot += pba->Omega0_idm_dr;
-
-  pba->f_idm_dr = pba->Omega0_idm_dr/(pba->Omega0_idm_dr+pba->Omega0_cdm); // could be suppressed later?
 
   if (pba->Omega0_idm_dr > 0.) {
 
@@ -3149,9 +3147,8 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0;
   pba->Omega0_idm_dr = 0.0;
-  pba->f_idm_dr = 0.0; // JL: could be maybe suppressed?
   pba->stat_f_idr = 7./8.;
-  pba->xi_idr = 0.0;
+  pba->T_idr = 0.0;
   pba->N_dg = 0.0;
   pba->Gamma_0_nadm = 0.0;
   pba->Omega0_b = 0.022032/pow(pba->h,2);
