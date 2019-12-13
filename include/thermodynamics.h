@@ -509,11 +509,11 @@ extern "C" {
 			  );
 
   int thermodynamics_indices(
-                 struct background * pba,
-                 struct thermo * pthermo,
-			     struct recombination * preco,
-			     struct reionization * preio
-			     );
+                             struct background * pba,
+                             struct thermo * pthermo,
+                             struct recombination * preco,
+                             struct reionization * preio
+                             );
 
   int thermodynamics_helium_from_bbn(
 				     struct precision * ppr,

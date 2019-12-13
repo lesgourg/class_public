@@ -295,19 +295,19 @@ struct perturbs
   int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
   int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
 
-  int index_tp_theta_m;    /**< index value for matter velocity fluctuation */
-  int index_tp_theta_cb;   /**< index value for theta cb */
-  int index_tp_theta_tot;  /**< index value for total velocity fluctuation */
-  int index_tp_theta_g;    /**< index value for theta of gammas */
-  int index_tp_theta_b;    /**< index value for theta of baryons */
-  int index_tp_theta_cdm;  /**< index value for theta of cold dark matter */
-  int index_tp_theta_dcdm; /**< index value for theta of DCDM */
-  int index_tp_theta_fld;  /**< index value for theta of dark energy */
-  int index_tp_theta_scf;  /**< index value for theta of scalar field */
-  int index_tp_theta_ur; /**< index value for theta of ultra-relativistic neutrinos/relics */
-  int index_tp_theta_idr; /**< index value for theta of interacting dark radiation */
-  int index_tp_theta_idm_dr; /**< index value for theta of interacting dark matter (with dr)*/
-  int index_tp_theta_dr; /**< index value for F1 of decay radiation */
+  int index_tp_theta_m;     /**< index value for matter velocity fluctuation */
+  int index_tp_theta_cb;    /**< index value for theta cb */
+  int index_tp_theta_tot;   /**< index value for total velocity fluctuation */
+  int index_tp_theta_g;     /**< index value for theta of gammas */
+  int index_tp_theta_b;     /**< index value for theta of baryons */
+  int index_tp_theta_cdm;   /**< index value for theta of cold dark matter */
+  int index_tp_theta_dcdm;  /**< index value for theta of DCDM */
+  int index_tp_theta_fld;   /**< index value for theta of dark energy */
+  int index_tp_theta_scf;   /**< index value for theta of scalar field */
+  int index_tp_theta_ur;    /**< index value for theta of ultra-relativistic neutrinos/relics */
+  int index_tp_theta_idr;   /**< index value for theta of interacting dark radiation */
+  int index_tp_theta_idm_dr;/**< index value for theta of interacting dark matter (with dr)*/
+  int index_tp_theta_dr;    /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
   int index_tp_phi;          /**< index value for metric fluctuation phi */
@@ -319,7 +319,7 @@ struct perturbs
   int index_tp_eta;          /**< index value for metric fluctuation eta */
   int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
   int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
-  int index_tp_k2gamma_Nb;     /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
+  int index_tp_k2gamma_Nb;   /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
 
   int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
 
