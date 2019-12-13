@@ -28,7 +28,7 @@
 
 enum tca_flags {tca_on, tca_off};
 enum rsa_flags {rsa_off, rsa_on};
-enum tca_dark_flags {tca_dark_on, tca_dark_off}; /* for the idm-idr case */
+enum tca_idm_dr_flags {tca_idm_dr_on, tca_idm_dr_off}; /* for the idm-idr case */
 enum rsa_idr_flags {rsa_idr_off, rsa_idr_on};    /* for the idm-idr case */
 enum ufa_flags {ufa_off, ufa_on};
 enum ncdmfa_flags {ncdmfa_off, ncdmfa_on};
@@ -176,8 +176,8 @@ struct perturbs
 
   double z_max_pk; /**< when we compute only the matter spectrum / transfer functions, but not the CMB, we are sometimes interested to sample source functions at very high redshift, way before recombination. This z_max_pk will then fix the initial sampling time of the sources. */
 
-  double * alpha_dark; /**< Angular contribution to collisional term at l>=2 for idm-idr */
-  double * beta_dark;  /**< Angular contribution to collisional term at l>=2 for idm-idr */
+  double * alpha_idm_dr; /**< Angular contribution to collisional term at l>=2 for idm-idr */
+  double * beta_idm_dr;  /**< Angular contribution to collisional term at l>=2 for idm-idr */
 
   int idr_nature; /**< Nature of the interacting dark radiation (free streaming or fluid) */
 
@@ -573,7 +573,7 @@ struct perturb_workspace
 
   double tca_shear_g;  /**< photon shear in tight-coupling approximation */
   double tca_slip;     /**< photon-baryon slip in tight-coupling approximation */
-  double tca_shear_dark; /**< interacting dark radiation shear in tight coupling appproximation */
+  double tca_shear_idm_dr; /**< interacting dark radiation shear in tight coupling appproximation */
   double rsa_delta_g;  /**< photon density in radiation streaming approximation */
   double rsa_theta_g;  /**< photon velocity in radiation streaming approximation */
   double rsa_delta_ur; /**< photon density in radiation streaming approximation */
@@ -619,7 +619,7 @@ struct perturb_workspace
 
   int index_ap_tca; /**< index for tight-coupling approximation */
   int index_ap_rsa; /**< index for radiation streaming approximation */
-  int index_ap_tca_dark; /**< index for dark tight-coupling approximation (idm-idr) */
+  int index_ap_tca_idm_dr; /**< index for dark tight-coupling approximation (idm-idr) */
   int index_ap_rsa_idr; /**< index for dark radiation streaming approximation */
   int index_ap_ufa; /**< index for ur fluid approximation */
   int index_ap_ncdmfa; /**< index for ncdm fluid approximation */

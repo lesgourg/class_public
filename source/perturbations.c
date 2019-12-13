@@ -936,9 +936,9 @@ int perturb_free(
     free(ppt->late_sources);
     free(ppt->ddlate_sources);
 
-    free(ppt->alpha_dark);
+    free(ppt->alpha_idm_dr);
 
-    free(ppt->beta_dark);
+    free(ppt->beta_idm_dr);
 
     /** Stuff related to perturbations output: */
 
@@ -1976,7 +1976,7 @@ int perturb_get_k_list(
     /* allocate array with, for the moment, the largest possible size */
 
     /* the following is a boost on k_per_decade_for_pk for very large k
-       and very large a_dark for the interacting dm-dr cases */
+       and very large a_idm_dr for the interacting dm-dr cases */
     if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_idm_dr>=2)){
       class_alloc(ppt->k[ppt->index_md_scalars],
                   ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
@@ -2576,7 +2576,7 @@ int perturb_workspace_init(
 
     class_define_index(ppw->index_ap_ufa,pba->has_ur,index_ap,1);
     class_define_index(ppw->index_ap_ncdmfa,pba->has_ncdm,index_ap,1);
-    class_define_index(ppw->index_ap_tca_dark,pba->has_idm_dr,index_ap,1);
+    class_define_index(ppw->index_ap_tca_idm_dr,pba->has_idm_dr,index_ap,1);
     class_define_index(ppw->index_ap_rsa_idr,pba->has_idr,index_ap,1);
 
   }
@@ -2598,7 +2598,7 @@ int perturb_workspace_init(
     if (pba->has_idr == _TRUE_)
       ppw->approx[ppw->index_ap_rsa_idr]=(int)rsa_idr_off;
     if (pba->has_idm_dr == _TRUE_)
-      ppw->approx[ppw->index_ap_tca_dark]=(int)tca_dark_on;
+      ppw->approx[ppw->index_ap_tca_idm_dr]=(int)tca_idm_dr_on;
 
     if (pba->has_ur == _TRUE_) {
       ppw->approx[ppw->index_ap_ufa]=(int)ufa_off;
@@ -3522,8 +3522,8 @@ int perturb_find_approximation_switches(
           }
 
           if (pba->has_idm_dr == _TRUE_){
-            if ((interval_approx[index_switch-1][ppw->index_ap_tca_dark]==(int)tca_dark_on) &&
-                (interval_approx[index_switch][ppw->index_ap_tca_dark]==(int)tca_dark_off))
+            if ((interval_approx[index_switch-1][ppw->index_ap_tca_idm_dr]==(int)tca_idm_dr_on) &&
+                (interval_approx[index_switch][ppw->index_ap_tca_idm_dr]==(int)tca_idm_dr_off))
               fprintf(stdout,"Mode k=%e: will switch off dark tight-coupling approximation at tau=%e\n",k,interval_limit[index_switch]);
           }
 
@@ -3778,7 +3778,7 @@ int perturb_vector_init(
         class_define_index(ppv->index_pt_delta_idr,_TRUE_,index_pt,1); /* density of interacting dark radiation */
         class_define_index(ppv->index_pt_theta_idr,_TRUE_,index_pt,1); /* velocity of interacting dark radiation */
         if (ppt->idr_nature == idr_free_streaming){
-          if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+          if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
             class_define_index(ppv->index_pt_shear_idr,_TRUE_,index_pt,1); /* shear of interacting dark radiation */
             ppv->l_max_idr = ppr->l_max_idr;
             class_define_index(ppv->index_pt_l3_idr,_TRUE_,index_pt,ppv->l_max_idr-2); /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3) */
@@ -3995,11 +3995,11 @@ int perturb_vector_init(
 
       /* we don't need interacting dark radiation multipoles
          above l=2 (but they are defined only when rsa_idr
-         and tca_dark are off*/
+         and tca_idm_dr are off*/
 
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off){
         if (ppt->idr_nature == idr_free_streaming){
-          if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+          if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
             for (index_pt=ppv->index_pt_l3_idr; index_pt <= ppv->index_pt_delta_idr+ppv->l_max_idr; index_pt++)
               ppv->used_in_sources[index_pt]=_FALSE_;
           }
@@ -4075,7 +4075,7 @@ int perturb_vector_init(
 
       }
 
-      /* we do not need to do a check for tca_dark, as the initial conditions are consistent with any tca_dark */
+      /* we do not need to do a check for tca_idm_dr, as the initial conditions are consistent with any tca_idm_dr */
 
       if (pba->has_ur == _TRUE_) {
 
@@ -4149,7 +4149,7 @@ int perturb_vector_init(
                  "at tau=%g: the tight-coupling approximation can be switched off, not on",tau);
 
       if (pba->has_idm_dr == _TRUE_){
-        class_test((pa_old[ppw->index_ap_tca] == (int)tca_dark_off) && (ppw->approx[ppw->index_ap_tca] == (int)tca_dark_on),
+        class_test((pa_old[ppw->index_ap_tca] == (int)tca_idm_dr_off) && (ppw->approx[ppw->index_ap_tca] == (int)tca_idm_dr_on),
                    ppt->error_message,
                    "at tau=%g: the dark tight-coupling approximation can be switched off, not on",tau);
       }
@@ -4296,7 +4296,7 @@ int perturb_vector_init(
 
             if (ppt->idr_nature == idr_free_streaming){
 
-              if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+              if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
 
                 ppv->y[ppv->index_pt_shear_idr] =
                   ppw->pv->y[ppw->pv->index_pt_shear_idr];
@@ -4366,7 +4366,7 @@ int perturb_vector_init(
 
             if (ppt->idr_nature == idr_free_streaming){
 
-              if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+              if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
 
                 ppv->y[ppv->index_pt_shear_idr] =
                   ppw->pv->y[ppw->pv->index_pt_shear_idr];
@@ -4474,7 +4474,7 @@ int perturb_vector_init(
 
               if (ppt->idr_nature == idr_free_streaming){
 
-                if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+                if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
 
                   ppv->y[ppv->index_pt_shear_idr] =
                     ppw->pv->y[ppw->pv->index_pt_shear_idr];
@@ -4606,7 +4606,7 @@ int perturb_vector_init(
 
         /* Case of switching off interacting dark radiation tight coupling approximation */
 
-        if ((pa_old[ppw->index_ap_tca_dark] == (int)tca_dark_on) && (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off)) {
+        if ((pa_old[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on) && (ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off)) {
 
           if (ppt->perturbations_verbose>2)
             fprintf(stdout,"Mode k=%e: switch off dark tight coupling approximation at tau=%e\n",k,tau);
@@ -4619,10 +4619,10 @@ int perturb_vector_init(
             ppv->y[ppv->index_pt_theta_idr] =
               ppw->pv->y[ppw->pv->index_pt_theta_idr];
 
-            /* idr is always free streaming if tca_dark is on */
+            /* idr is always free streaming if tca_idm_dr is on */
             if (ppt->idr_nature == idr_free_streaming){
-              ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_dark;
-              ppv->y[ppv->index_pt_l3_idr] = 6./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[1];
+              ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_idm_dr;
+              ppv->y[ppv->index_pt_l3_idr] = 6./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_idm_dr]/ppt->alpha_idm_dr[1];
             }
           }
 
@@ -4805,7 +4805,7 @@ int perturb_vector_init(
 
               if (ppt->idr_nature == idr_free_streaming){
 
-                if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+                if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
 
                   ppv->y[ppv->index_pt_shear_idr] =
                     ppw->pv->y[ppw->pv->index_pt_shear_idr];
@@ -5567,7 +5567,7 @@ int perturb_initial_conditions(struct precision * ppr,
       ppw->pv->y[ppw->pv->index_pt_delta_idr] = delta_ur;
       ppw->pv->y[ppw->pv->index_pt_theta_idr] = theta_ur;
       if (ppt->idr_nature == idr_free_streaming){
-        if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))){
+        if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))){
           ppw->pv->y[ppw->pv->index_pt_shear_idr] = shear_ur;
           ppw->pv->y[ppw->pv->index_pt_l3_idr] = l3_ur;
         }
@@ -5884,26 +5884,26 @@ int perturb_approximations(
 
     if(pba->has_idm_dr == _TRUE_){
 
-      if(ppw->pvecthermo[pth->index_th_dmu_dark] == 0.){
-        ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
+      if(ppw->pvecthermo[pth->index_th_dmu_idm_dr] == 0.){
+        ppw->approx[ppw->index_ap_tca_idm_dr] = (int)tca_idm_dr_off;
       }
       else{
 
-        class_test(1./ppw->pvecthermo[pth->index_th_dmu_dark] < 0.,
+        class_test(1./ppw->pvecthermo[pth->index_th_dmu_idm_dr] < 0.,
                    ppt->error_message,
-                   "negative tau_dark=1/dmu_dark=%e at z=%e, conformal time=%e.\n",
-                   1./ppw->pvecthermo[pth->index_th_dmu_dark],
+                   "negative tau_idm_dr=1/dmu_idm_dr=%e at z=%e, conformal time=%e.\n",
+                   1./ppw->pvecthermo[pth->index_th_dmu_idm_dr],
                    1./ppw->pvecback[pba->index_bg_a]-1.,
                    tau);
 
-        if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_dark] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
+        if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
+            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
             (pth->nindex_idm_dr>=2) && (ppt->idr_nature == idr_free_streaming)) {
-          ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_on;
+          ppw->approx[ppw->index_ap_tca_idm_dr] = (int)tca_idm_dr_on;
         }
         else{
-          ppw->approx[ppw->index_ap_tca_dark] = (int)tca_dark_off;
-          //printf("tca_dark_off = %d\n",tau);
+          ppw->approx[ppw->index_ap_tca_idm_dr] = (int)tca_idm_dr_off;
+          //printf("tca_idm_dr_off = %d\n",tau);
         }
       }
     }
@@ -6349,9 +6349,9 @@ int perturb_einstein(
 
       }
 
-      if ((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
+      if ((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on)){
 
-        shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
+        shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_idm_dr]/ppt->alpha_idm_dr[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
 
         ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
       }
@@ -6587,9 +6587,9 @@ int perturb_total_stress_energy(
         theta_idr = y[ppw->pv->index_pt_theta_idr];
 
         if (ppt->idr_nature == idr_free_streaming){
-          if((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
+          if((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on)){
             if(ppt->gauge == newtonian)
-              shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_dark]/ppt->alpha_dark[0]*(y[ppw->pv->index_pt_theta_idr]));
+              shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_idm_dr]/ppt->alpha_idm_dr[0]*(y[ppw->pv->index_pt_theta_idr]));
             else
               shear_idr = 0.; /* this is set in perturb_einstein, so here it's set to 0 */
           }
@@ -7870,8 +7870,8 @@ int perturb_print_variables(double tau,
         theta_idr = y[ppw->pv->index_pt_theta_idr];
 
         if(ppt->idr_nature == idr_free_streaming){
-          if((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_on)){
-            shear_idr = ppw->tca_shear_dark;
+          if((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on)){
+            shear_idr = ppw->tca_shear_idm_dr;
           }
           else{
             shear_idr = y[ppw->pv->index_pt_shear_idr];
@@ -8361,7 +8361,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, a_rel, dmu_dark=0., dmu_drdr=0., tca_slip_dark=0., slip_factor=0.;
+  double Sinv, a_rel, dmu_idm_dr=0., dmu_drdr=0., tca_slip_idm_dr=0., slip_factor=0.;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
@@ -8425,8 +8425,8 @@ int perturb_derivs(double tau,
 
   if((pba->has_idm_dr==_TRUE_)){
     Sinv = 4./3. * pvecback[pba->index_bg_rho_idr]/ pvecback[pba->index_bg_rho_idm_dr];
-    dmu_dark = pvecthermo[pth->index_th_dmu_dark];
-    dmu_drdr = pth->b_idr/pth->a_idm_dr*pba->Omega0_idr/pba->Omega0_idm_dr*dmu_dark;
+    dmu_idm_dr = pvecthermo[pth->index_th_dmu_idm_dr];
+    dmu_drdr = pth->b_idr/pth->a_idm_dr*pba->Omega0_idr/pba->Omega0_idm_dr*dmu_idm_dr;
   }
 
   /** - Compute 'generalised cotK function of argument \f$ \sqrt{|K|}*\tau \f$, for closing hierarchy.
@@ -8720,21 +8720,21 @@ int perturb_derivs(double tau,
 
       dy[pv->index_pt_delta_idm_dr] = -(y[pv->index_pt_theta_idm_dr]+metric_continuity); /* idm_dr density */
 
-      if (ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off) {
+      if (ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off) {
 
         dy[pv->index_pt_theta_idm_dr] = - a_prime_over_a*y[pv->index_pt_theta_idm_dr] + metric_euler; /* idm_dr velocity */
-        dy[pv->index_pt_theta_idm_dr] -= (Sinv*dmu_dark*(y[pv->index_pt_theta_idm_dr] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm_dr]);
+        dy[pv->index_pt_theta_idm_dr] -= (Sinv*dmu_idm_dr*(y[pv->index_pt_theta_idm_dr] - theta_idr) - k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm_dr]);
       }
       else{
 
-        tca_slip_dark = (pth->nindex_idm_dr-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm_dr]-theta_idr) + 1./(1.+Sinv)/dmu_dark*
+        tca_slip_idm_dr = (pth->nindex_idm_dr-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm_dr]-theta_idr) + 1./(1.+Sinv)/dmu_idm_dr*
           (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm_dr] - a_prime_over_a *
            (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm2]*dy[pv->index_pt_delta_idm_dr] - 1./4.*dy[pv->index_pt_delta_idr]));
 
-        ppw->tca_shear_dark = 0.5*8./15./dmu_dark/ppt->alpha_dark[0]*(y[pv->index_pt_theta_idm_dr]+metric_shear);
+        ppw->tca_shear_idm_dr = 0.5*8./15./dmu_idm_dr/ppt->alpha_idm_dr[0]*(y[pv->index_pt_theta_idm_dr]+metric_shear);
 
         dy[pv->index_pt_theta_idm_dr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm_dr] + k2*pvecthermo[pth->index_th_cidm2]*
-                                                   y[pv->index_pt_delta_idm_dr] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_dark)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_dark;
+                                                   y[pv->index_pt_delta_idm_dr] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_idm_dr)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_idm_dr;
       }
     }
 
@@ -8861,7 +8861,7 @@ int perturb_derivs(double tau,
 
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off) {
 
-        if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_dark] == (int)tca_dark_off))) {
+        if ((pba->has_idm_dr == _FALSE_)||((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off))) {
 
           /** - ----> idr velocity */
           if(ppt->idr_nature == idr_free_streaming)
@@ -8870,7 +8870,7 @@ int perturb_derivs(double tau,
             dy[pv->index_pt_theta_idr] = k2/4. * y[pv->index_pt_delta_idr] + metric_euler;
 
           if (pba->has_idm_dr == _TRUE_)
-            dy[pv->index_pt_theta_idr] += dmu_dark*(y[pv->index_pt_theta_idm_dr]-y[pv->index_pt_theta_idr]);
+            dy[pv->index_pt_theta_idr] += dmu_idm_dr*(y[pv->index_pt_theta_idm_dr]-y[pv->index_pt_theta_idr]);
 
           if(ppt->idr_nature == idr_free_streaming){
 
@@ -8878,31 +8878,31 @@ int perturb_derivs(double tau,
             l = 2;
             dy[pv->index_pt_shear_idr] = 0.5*(8./15.*(y[pv->index_pt_theta_idr]+metric_shear)-3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_shear_idr+1]);
             if (pba->has_idm_dr == _TRUE_)
-              dy[pv->index_pt_shear_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr];
+              dy[pv->index_pt_shear_idr]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_shear_idr];
 
             /** - ----> exact idr l=3 */
             l = 3;
             dy[pv->index_pt_l3_idr] = k/(2.*l+1.)*(l*2.*s_l[l]*s_l[2]*y[pv->index_pt_shear_idr]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_idr+1]);
             if (pba->has_idm_dr == _TRUE_)
-              dy[pv->index_pt_l3_idr]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
+              dy[pv->index_pt_l3_idr]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_l3_idr];
 
             /** - ----> exact idr l>3 */
             for (l = 4; l < pv->l_max_idr; l++) {
               dy[pv->index_pt_delta_idr+l] = k/(2.*l+1)*(l*s_l[l]*y[pv->index_pt_delta_idr+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_delta_idr+l+1]);
               if (pba->has_idm_dr == _TRUE_)
-                dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+                dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
             }
 
             /** - ----> exact idr lmax_dr */
             l = pv->l_max_idr;
             dy[pv->index_pt_delta_idr+l] = k*(s_l[l]*y[pv->index_pt_delta_idr+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_idr+l]);
             if (pba->has_idm_dr == _TRUE_)
-              dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_dark[l-2]*dmu_dark + ppt->beta_dark[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
+              dy[pv->index_pt_delta_idr+l]-= (ppt->alpha_idm_dr[l-2]*dmu_idm_dr + ppt->beta_idm_dr[l-2]*dmu_drdr)*y[pv->index_pt_delta_idr+l];
           }
         }
         else{
           dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm_dr] + k2*pvecthermo[pth->index_th_cidm2]*y[pv->index_pt_delta_idm_dr]
-                                                     + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_dark)) + metric_euler - 1./(1.+Sinv)*tca_slip_dark;
+                                                     + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_idm_dr)) + metric_euler - 1./(1.+Sinv)*tca_slip_idm_dr;
 
         }
       }

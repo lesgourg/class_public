@@ -172,13 +172,13 @@ struct thermo
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
-  int index_th_dmu_dark;      /**< scattering rate between idm and idr (units 1/Mpc) */
-  int index_th_ddmu_dark;     /**< derivative of idm-idr scattering rate */
-  int index_th_dddmu_dark;    /**< second derivative of idm-idr scattering rate */
+  int index_th_dmu_idm_dr;      /**< scattering rate between idm and idr (units 1/Mpc) */
+  int index_th_ddmu_idm_dr;     /**< derivative of idm-idr scattering rate */
+  int index_th_dddmu_idm_dr;    /**< second derivative of idm-idr scattering rate */
   int index_th_dmu_drdr;      /**< idr self-interaction rate */
   int index_th_tau_idm_dr;    /**< time of decoupling of interacting dark matter (idm-idr) */
   int index_th_tau_idr;       /**< time of decoupling of interacting dark radiation (idm-idr) */
-  int index_th_g_dark;        /**< dark visibility function for idm-idr */
+  int index_th_g_idm_dr;        /**< dark visibility function for idm-idr */
   int index_th_cidm2;         /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
   int index_th_Tdm;           /**< interacting dark matter temperature \f$ T_{dm} \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
