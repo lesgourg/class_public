@@ -4281,17 +4281,29 @@ int input_read_parameters_distortions(struct file_content * pfc,
              "sd_detector_file","sd_detector_nu_min","sd_detector_nu_max",
              "sd_detector_nu_delta","sd_detector_bin_number","sd_detector_delta_Ic");
 
+
   /** 2) Only calculate non-LCDM contributions to heating? */
   class_read_flag("sd_only_exotic",psd->only_exotic);
 
-  /** 3) Only calculate non-LCDM contributions to heating? */
+
+  /** 3) Include g distortions? */
   class_read_flag("sd_include_g_distortion",psd->include_g_distortion);
 
-  /** 4) Include SZ effect from reionization? */
+
+  /** 4) Set g-distortions to zero? */
+  class_call(parser_read_double(pfc,"sd_add_y",&psd->sd_add_y,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"sd_add_mu",&psd->sd_add_mu,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+
+  /** 5) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);
 
   if(psd->has_SZ_effect == _TRUE_){
-    /** 4.a) Type of calculation */
+    /** 5.a) Type of calculation */
     /* Read */
     class_call(parser_read_string(pfc,"sd_reio_type",&string1,&flag1,errmsg),
                errmsg,
@@ -5080,12 +5092,20 @@ int input_default_params(struct background *pba,
   /** 1.3.a.1) Detector noise */
   psd->sd_detector_delta_Ic = 5.e-26;
 
-  /** 2) Only exotic species ? */
+  /** 2) Only exotic species? */
   psd->only_exotic = _FALSE_;
-  /** 3) Include g distortion in total calculation ? */
+
+  /** 3) Include g distortion in total calculation? */
   psd->include_g_distortion = _FALSE_;
-  /** 4) Include SZ effect from reionization? */
+
+  /** 4) Additional y or mu parameters? */
+  psd->sd_add_y = 0.;
+  psd->sd_add_mu = 0.;
+
+  /** 5) Include SZ effect from reionization? */
   psd->has_SZ_effect = _FALSE_;
+  /** 5.a) What type of approximation you want to use for the SZ effect? */
+  psd->sd_reio_type = sd_reio_Chluba;
 
   /**
    * Default to input_read_additional
