@@ -615,8 +615,8 @@ int input_read_parameters(
 
   /** - define local variables */
 
-  int flag1,flag2,flag3,flag4,flag5;
-  double param1,param2,param3,param4, param5;
+  int flag1,flag2,flag3;
+  double param1,param2,param3;
   int N_ncdm=0,n,entries_read;
   int int1,fileentries;
   double scf_lambda;
@@ -844,167 +844,199 @@ int input_read_parameters(
 
   class_read_double("stat_f_idr",pba->stat_f_idr);
 
-  class_call(parser_read_double(pfc,"N_dg",&param1,&flag1,errmsg),
+  class_call(parser_read_double(pfc,"N_idr",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
-  class_call(parser_read_double(pfc,"xi_idr",&param2,&flag2,errmsg),
+  class_call(parser_read_double(pfc,"N_dg",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-
-  class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
+  class_call(parser_read_double(pfc,"xi_idr",&param3,&flag3,errmsg),
              errmsg,
-             "In input file, you can only enter one of N_dg or xi_idr, choose one");
+             errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+             errmsg,
+             "In input file, you can only enter one of N_idr, N_dg or xi_idr, choose one");
 
   if (flag1 == _TRUE_) {
-    pba->xi_idr = pow( param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
-    pba->N_dg = param1;
-
+    pba->xi_idr = pow(param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
+    pba->N_dg = param2;
     if (input_verbose > 1)
-      printf("You passed N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", pba->N_dg, pba->xi_idr);
+      printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", pba->N_dg, pba->xi_idr);
   }
-
   else if (flag2 == _TRUE_) {
-    pba->xi_idr = param2;
-    pba->N_dg = pba->stat_f_idr*pow(param2,4.)/(7./8.)*pow(11./4.,(4./3.));
+    pba->xi_idr = pow(param2/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.));
+    pba->N_dg = param1;
+    if (input_verbose > 2)
+      printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", pba->N_dg, pba->xi_idr);
+  }
+  else if (flag3 == _TRUE_) {
+    pba->xi_idr = param3;
+    pba->N_dg = pba->stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.));
     if (input_verbose > 1)
-      printf("You passed xi_idr = %e, this is equivalent to N_dg = %e in the NADM notation. \n", pba->xi_idr, pba->N_dg);
+      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", pba->xi_idr, pba->N_dg);
   }
 
   pba->Omega0_idr = pba->stat_f_idr*pow(pba->xi_idr,4.)*pba->Omega0_g;
 
   Omega_tot += pba->Omega0_idr;
 
-  /** - Omega_0_cdm (CDM) and Omega0_idm_dr (interacting dark matter) */
-  /* Can take both the ETHOS parameters, and the NADM parameters */
-
+  /** - Omega_0_cdm (CDM) */
   class_call(parser_read_double(pfc,"Omega_cdm",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
   class_call(parser_read_double(pfc,"omega_cdm",&param2,&flag2,errmsg),
              errmsg,
              errmsg);
-  class_call(parser_read_double(pfc,"f_idm_dr",&param3,&flag3,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"a_dark",&param4,&flag4,errmsg),
-             errmsg,
-             errmsg);
-  class_call(parser_read_double(pfc,"Gamma_0_nadm",&param5,&flag5,errmsg),
-             errmsg,
-             errmsg);
-
   class_test(((flag1 == _TRUE_) && (flag2 == _TRUE_)),
              errmsg,
              "In input file, you can only enter one of Omega_cdm or omega_cdm, choose one");
-  class_test(((flag4 == _TRUE_) && (flag5 == _TRUE_)),
-             errmsg,
-             "In input file, you can only enter one of a_dark or Gamma_0_nadm, choose one");
-  class_test(((flag3 == _TRUE_) && ((flag1 == _FALSE_) && (flag2 == _FALSE_))),
-             errmsg,
-             "You requested a fraction of interacting dark matter. In input file, you have to set one of Omega_cdm or omega_cdm in order to compute omega_idm_dr");
-  class_test(((flag3 == _TRUE_) && ((flag4 == _FALSE_) && (flag5 == _FALSE_))),
-             errmsg,
-             "In input file, you have requested a fraction of interacting dark matter. Please set either a_dark or Gamma_0_nadm");
-  class_test(((flag3 == _TRUE_) && (pba->Omega0_idr==0.0)),
-             errmsg,
-             "In input file, you have requested interacting dark matter, this requires interacting dark radiation. Please set either N_dg or xi_idr");
-  class_test(((flag3 == _TRUE_) && ((param3 > 1.) || (param3 < 0.))),
-             errmsg,
-             "The fraction of DM interacting with DR has to be between 0 and 1, you asked for f_idm_dr = %e", param3);
+  if (flag1 == _TRUE_)
+    pba->Omega0_cdm = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_cdm = param2/pba->h/pba->h;
 
-  if (flag3 == _FALSE_){
-    if (flag1 == _TRUE_)
-      pba->Omega0_cdm = param1;
-    else if (flag2 == _TRUE_)
-      pba->Omega0_cdm = param2/pba->h/pba->h;
-    pba->Omega0_idm_dr = 0;
+  Omega_tot += pba->Omega0_cdm;
+
+  /** - Omega_0_icdm_dr (DM interacting with DR) */
+  class_call(parser_read_double(pfc,"Omega_idm_dr",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_idm_dr",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"f_idm_dr",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+             errmsg,
+             "In input file, you can only enter one of Omega_idm_dr, omega_idm_dr or f_idm_dr, choose one");
+
+  /* ---> if user passes directly the density of idm_dr */
+  if (flag1 == _TRUE_)
+    pba->Omega0_idm_dr = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_idm_dr = param2/pba->h/pba->h;
+
+  /* ---> if user passes density of idm_dr as a fraction of the CDM one */
+  if (flag3 == _TRUE_) {
+    class_test((param3 < 0.) || (param3 > 1.),
+               errmsg,
+               "The fraction of interacting DM with DR must be between 0 and 1, you asked for f_idm_dr=%e",param3);
+    class_test((param3 > 0.) && (pba->Omega0_cdm == 0.),
+               errmsg,
+               "If you want a fraction of interacting DM with DR, to be consistent, you should not set the fraction of CDM to zero");
+
+    pba->Omega0_idm_dr = param3 * pba->Omega0_cdm;
+    /* readjust Omega0_cdm */
+    pba->Omega0_cdm -= pba->Omega0_idm_dr;
+    /* to be consistent, remove same amount from Omega_tot */
+    Omega_tot -= pba->Omega0_idm_dr;
   }
 
-  else {
-    if (flag5 == _TRUE_){
-      pth->a_dark = param5*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
-      pba->Gamma_0_nadm = param5;
-      if (input_verbose > 1)
-        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_dark = %e in the ETHOS notation. \n", pba->Gamma_0_nadm, pth->a_dark);
-    }
-    else if(flag4 == _TRUE_){
-      pth->a_dark = param4;
-      pba->Gamma_0_nadm = param4*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
-      if (input_verbose > 1)
-        printf("You passed a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", pth->a_dark, pba->Gamma_0_nadm);
-    }
+  Omega_tot += pba->Omega0_idm_dr;
+
+  pba->f_idm_dr = pba->Omega0_idm_dr/(pba->Omega0_idm_dr+pba->Omega0_cdm); // could be suppressed later?
+
+  if (pba->Omega0_idm_dr > 0.) {
+
+    class_test(pba->Omega0_idr == 0.0,
+               errmsg,
+               "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
+
+    class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"a_dark",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"Gamma_0_nadm",&param3,&flag3,errmsg),
+               errmsg,
+               errmsg);
+    class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+               errmsg,
+               "In input file, you can only enter one of a_idm_dr, a_dark or Gamma_0_nadm, choose one");
 
     if (flag1 == _TRUE_){
-      pba->Omega0_idm_dr = param3*param1;
-      pba->Omega0_cdm = (1.-param3)*param1;
+      pth->a_dark = param1;
+      pba->Gamma_0_nadm = param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
+      if (input_verbose > 1)
+        printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", pth->a_dark, pba->Gamma_0_nadm);
     }
     else if (flag2 == _TRUE_){
-      pba->Omega0_idm_dr = param3*(param2/pba->h/pba->h);
-      pba->Omega0_cdm = (1.-param3)*(param2/pba->h/pba->h);
+      pth->a_dark = param2;
+      pba->Gamma_0_nadm = param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
+      if (input_verbose > 1)
+        printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", pth->a_dark, pba->Gamma_0_nadm);
     }
-    pba->f_idm_dr = param3;
-  }
+    else if (flag3 == _TRUE_){
+      pth->a_dark = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
+      pba->Gamma_0_nadm = param3;
+      if (input_verbose > 1)
+        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", pba->Gamma_0_nadm, pth->a_dark);
+    }
 
-  Omega_tot += pba->Omega0_cdm + pba->Omega0_idm_dr;
+    /** - Load the rest of the parameters for idm and idr */
 
-  /** - Load the rest of the parameters for idm and idr */
+    if (flag3 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
+      pth->nindex_dark = 0;
+      ppt->idr_nature = idr_fluid;
+      if (input_verbose > 1)
+        printf("NADM requested. Defaulting on nindex_dark = %i and idr_nature = fluid \n", pth->nindex_dark);
+    }
 
-  if (flag5 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
-    pth->nindex_dark = 0;
-    ppt->idr_nature = idr_fluid;
-    if (input_verbose > 1)
-      printf("NADM requested. Defaulting on nindex_dark = %i and idr_nature = fluid \n", pth->nindex_dark);
-  }
+    else{
 
-  else{
-    class_read_double("nindex_dark",pth->nindex_dark);
+      class_read_double_one_of_two("nindex_dark","nindex_idm_dr",pth->nindex_dark);
 
-    class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+      class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+          ppt->idr_nature = idr_free_streaming;
+        }
+        if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+          ppt->idr_nature = idr_fluid;
+        }
+      }
+    }
+
+    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
+
+    class_read_double_one_of_two("b_dark","b_idm_dr",pth->b_dark);
+
+    /* the reading of alpha_dark and beta_dark will be modified later on */
+
+    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
                errmsg,
                errmsg);
 
-    if (flag1 == _TRUE_) {
-      if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
-        ppt->idr_nature = idr_free_streaming;
-      }
-      if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
-        ppt->idr_nature = idr_fluid;
+    if(flag1 == _TRUE_){
+      if(entries_read != (ppr->l_max_idr-1)){
+        class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
       }
     }
-  }
-
-  class_read_double("m_idm",pth->m_idm);
-
-  class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_dark),&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->alpha_dark,ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = ppt->alpha_dark[entries_read-1];
+    else{
+      class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.5;
     }
-  }
-  else{
-    class_alloc(ppt->alpha_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_dark[n] = 1.5;
-  }
 
-  class_read_double("b_dark",pth->b_dark);
+    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
+               errmsg,
+               errmsg);
 
-  class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_dark),&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+    if(flag1 == _TRUE_){
+      if(entries_read != (ppr->l_max_idr-1)){
+        class_realloc(ppt->beta_dark,ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = ppt->beta_dark[entries_read-1];
+      }
     }
-  }
-  else{
-    class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
+    else{
+      class_alloc(ppt->beta_dark,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_dark[n] = 1.5;
+    }
   }
 
   /** - Omega_0_dcdmdr (DCDM) */
@@ -3117,7 +3149,7 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0;
   pba->Omega0_idm_dr = 0.0;
-  pba->f_idm_dr = 0.0;
+  pba->f_idm_dr = 0.0; // JL: could be maybe suppressed?
   pba->stat_f_idr = 7./8.;
   pba->xi_idr = 0.0;
   pba->N_dg = 0.0;
