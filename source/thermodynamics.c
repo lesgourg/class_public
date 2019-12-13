@@ -1056,7 +1056,7 @@ int thermodynamics_init(
                  pth->error_message);
 
       while ((1./pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_dmu_idm_dr]/tau
-              < ppr->dark_radiation_streaming_trigger_tau_c_over_tau) &&
+              < ppr->idr_streaming_trigger_tau_c_over_tau) &&
              ((pth->nindex_idm_dr >= 2 && index_tau > 0) ||
               (pth->nindex_idm_dr < 2 && index_tau < pth->tt_size-1))) {
 

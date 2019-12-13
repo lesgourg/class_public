@@ -65,7 +65,6 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * Currently unused parameter.
  */
 //class_precision_parameter(safe_phi_scf,double,0.0)
-
 /**
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
@@ -179,8 +178,8 @@ class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) /**< s
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
 
 
-class_precision_parameter(dark_tight_coupling_trigger_tau_c_over_tau_k,double,0.01)  /**< when to switch off the dark-tight-coupling approximation, first condition (see normal tca for full definition) */
-class_precision_parameter(dark_tight_coupling_trigger_tau_c_over_tau_h,double,0.015) /**< when to switch off the dark-tight-coupling approximation, second condition (see normal tca for full definition) */
+class_precision_parameter(idm_dr_tight_coupling_trigger_tau_c_over_tau_k,double,0.01)  /**< when to switch off the dark-tight-coupling approximation, first condition (see normal tca for full definition) */
+class_precision_parameter(idm_dr_tight_coupling_trigger_tau_c_over_tau_h,double,0.015) /**< when to switch off the dark-tight-coupling approximation, second condition (see normal tca for full definition) */
 
 
 class_precision_parameter(l_max_g,int,12)     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
@@ -249,9 +248,9 @@ class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0
 class_precision_parameter(radiation_streaming_trigger_tau_c_over_tau,double,5.0)
 
 
-class_precision_parameter(dark_radiation_streaming_approximation,int,rsa_idr_none) /**< method for dark radiation free-streaming approximation */
-class_precision_parameter(dark_radiation_streaming_trigger_tau_over_tau_k,double,50.0) /**< when to switch on dark radiation (idr) free-streaming approximation, first condition */
-class_precision_parameter(dark_radiation_streaming_trigger_tau_c_over_tau,double,10.0) /**< when to switch on dark radiation (idr) free-streaming approximation, second condition */
+class_precision_parameter(idr_streaming_approximation,int,rsa_idr_none) /**< method for dark radiation free-streaming approximation */
+class_precision_parameter(idr_streaming_trigger_tau_over_tau_k,double,50.0) /**< when to switch on dark radiation (idr) free-streaming approximation, first condition */
+class_precision_parameter(idr_streaming_trigger_tau_c_over_tau,double,10.0) /**< when to switch on dark radiation (idr) free-streaming approximation, second condition */
 
 
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */

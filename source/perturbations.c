@@ -525,8 +525,8 @@ int perturb_init(
               "your radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
 
   if (pba->has_idr == _TRUE_){
-    class_test ((ppr->dark_radiation_streaming_approximation < rsa_idr_none) ||
-                (ppr->dark_radiation_streaming_approximation > rsa_idr_MD),
+    class_test ((ppr->idr_streaming_approximation < rsa_idr_none) ||
+                (ppr->idr_streaming_approximation > rsa_idr_MD),
                 ppt->error_message,
                 "your dark_radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
   }
@@ -5896,8 +5896,8 @@ int perturb_approximations(
                    1./ppw->pvecback[pba->index_bg_a]-1.,
                    tau);
 
-        if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_h) &&
-            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->dark_tight_coupling_trigger_tau_c_over_tau_k) &&
+        if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->idm_dr_tight_coupling_trigger_tau_c_over_tau_h) &&
+            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->idm_dr_tight_coupling_trigger_tau_c_over_tau_k) &&
             (pth->nindex_idm_dr>=2) && (ppt->idr_nature == idr_free_streaming)) {
           ppw->approx[ppw->index_ap_tca_idm_dr] = (int)tca_idm_dr_on;
         }
@@ -5925,9 +5925,9 @@ int perturb_approximations(
 
       if(pba->has_idm_dr==_TRUE_){
 
-        if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
+        if ((tau/tau_k > ppr->idr_streaming_trigger_tau_over_tau_k) &&
             ((tau > pth->tau_idr_free_streaming) && (pth->nindex_idm_dr>=2)) &&
-            (ppr->dark_radiation_streaming_approximation != rsa_idr_none)){
+            (ppr->idr_streaming_approximation != rsa_idr_none)){
 
           ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
         }
@@ -5938,9 +5938,9 @@ int perturb_approximations(
       }
 
       else{
-        if ((tau/tau_k > ppr->dark_radiation_streaming_trigger_tau_over_tau_k) &&
+        if ((tau/tau_k > ppr->idr_streaming_trigger_tau_over_tau_k) &&
             (tau > pth->tau_idr_free_streaming) &&
-            (ppr->dark_radiation_streaming_approximation != rsa_idr_none)){
+            (ppr->idr_streaming_approximation != rsa_idr_none)){
 
           ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
         }
