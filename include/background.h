@@ -83,11 +83,9 @@ struct background
   double Omega0_ur; /**< \f$ \Omega_{0 \nu r} \f$: ultra-relativistic neutrinos */
 
   double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
-  double Omega0_idm_dr; /**< \f$ \Omega_{0 idm_dr} \f$: interacting dark matter */
   double T_idr;     /**< \f$ \xi_{idr} = T_{dr}/T_{\gamma} \f$: current temperature of interacting dark radiation in Kelvins */
-  double stat_f_idr; /**< Interacting dark radiation statistical factor */
-  double N_dg;       /**< number of dark gluons, for the NADM case */
-  double Gamma_0_nadm; /**< \f$ \Gamma_0 \f$: interaction coefficient, for the NADM case */
+
+  double Omega0_idm_dr; /**< \f$ \Omega_{0 idm_dr} \f$: interacting dark matter */
 
   double Omega0_dcdmdr; /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
 

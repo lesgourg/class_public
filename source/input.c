@@ -636,6 +636,7 @@ int input_read_parameters(
   double f_iso=0.;
   double n_cor=0.;
   double c_cor=0.;
+  double stat_f_idr = 7./8.;
 
   double Omega_tot;
 
@@ -842,7 +843,7 @@ int input_read_parameters(
   /** - Omega_0_idr (interacting dark radiation) */
   /* Can take both the ethos parameters, and the NADM parameters */
 
-  class_read_double("stat_f_idr",pba->stat_f_idr);
+  class_read_double("stat_f_idr",stat_f_idr);
 
   class_call(parser_read_double(pfc,"N_idr",&param1,&flag1,errmsg),
              errmsg,
@@ -858,25 +859,22 @@ int input_read_parameters(
              "In input file, you can only enter one of N_idr, N_dg or xi_idr, choose one");
 
   if (flag1 == _TRUE_) {
-    pba->T_idr = pow(param1/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
-    pba->N_dg = param2;
+    pba->T_idr = pow(param1/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
     if (input_verbose > 1)
       printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
   }
   else if (flag2 == _TRUE_) {
-    pba->T_idr = pow(param2/pba->stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
-    pba->N_dg = param1;
+    pba->T_idr = pow(param2/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
     if (input_verbose > 2)
       printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
   }
   else if (flag3 == _TRUE_) {
     pba->T_idr = param3 * pba->T_cmb;
-    pba->N_dg = pba->stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.));
     if (input_verbose > 1)
-      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", param3, pba->N_dg);
+      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", param3, stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.)));
   }
 
-  pba->Omega0_idr = pba->stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
+  pba->Omega0_idr = stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
 
   Omega_tot += pba->Omega0_idr;
 
@@ -956,21 +954,18 @@ int input_read_parameters(
 
     if (flag1 == _TRUE_){
       pth->a_dark = param1;
-      pba->Gamma_0_nadm = param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
       if (input_verbose > 1)
-        printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", pth->a_dark, pba->Gamma_0_nadm);
+        printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param1, param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
     }
     else if (flag2 == _TRUE_){
       pth->a_dark = param2;
-      pba->Gamma_0_nadm = param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr);
       if (input_verbose > 1)
-        printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", pth->a_dark, pba->Gamma_0_nadm);
+        printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param2, param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
     }
     else if (flag3 == _TRUE_){
       pth->a_dark = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
-      pba->Gamma_0_nadm = param3;
       if (input_verbose > 1)
-        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", pba->Gamma_0_nadm, pth->a_dark);
+        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_dark);
     }
 
     /** - Load the rest of the parameters for idm and idr */
@@ -3147,10 +3142,7 @@ int input_default_params(
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
   pba->Omega0_idr = 0.0;
   pba->Omega0_idm_dr = 0.0;
-  pba->stat_f_idr = 7./8.;
   pba->T_idr = 0.0;
-  pba->N_dg = 0.0;
-  pba->Gamma_0_nadm = 0.0;
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
