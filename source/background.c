@@ -632,19 +632,13 @@ int background_init(
     printf("Running CLASS version %s\n",_VERSION_);
     printf("Computing background\n");
 
-    /* below we want to inform the user about ncdm species*/
-    if ((pba->N_ncdm > 0)||(pba->Omega0_idr != 0.))  {
+    /* below we want to inform the user about ncdm species and/or the total N_eff */
+    if ((pba->N_ncdm > 0) || (pba->Omega0_idr != 0.))  {
 
+      /* contribution of ultra-relativistic species _ur to N_eff */
       Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
 
-      /* first we check for interacting dark radiation */
-      if(pba->Omega0_idr != 0.){
-        N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-        Neff += N_dark;
-        printf(" -> dark radiation Delta Neff %e\n",N_dark);
-      }
-
-      /* now we check for other ncdm species */
+      /* contribution of ncdm species to N_eff*/
       if (pba->N_ncdm > 0){
         /* loop over ncdm species */
         for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
@@ -688,7 +682,14 @@ int background_init(
         }
       }
 
-      printf(" -> total N_eff = %g (sumed over ultra-relativistic and ncdm species and dark radiation)\n",Neff);
+      /* contribution of interacting dark radiation _idr to N_eff */
+      if (pba->Omega0_idr != 0.) {
+        N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
+        Neff += N_dark;
+        printf(" -> dark radiation Delta Neff %e\n",N_dark);
+      }
+
+      printf(" -> total N_eff = %g (sumed over ultra-relativistic species, ncdm and dark radiation)\n",Neff);
 
     }
   }
@@ -941,7 +942,6 @@ int background_indices(
 
   /* - index for rho_cdm */
   class_define_index(pba->index_bg_rho_cdm,pba->has_cdm,index_bg,1);
-
 
   /* - indices for ncdm. We only define the indices for ncdm1
      (density, pressure, pseudo-pressure), the other ncdm indices
@@ -2589,7 +2589,11 @@ double ddV_scf(
  * @param pba                      Input: Pointer to background structure
  * @return the error status
  */
-int background_output_budget(struct background* pba){
+
+int background_output_budget(
+                             struct background* pba
+                             ) {
+
   double budget_matter, budget_radiation, budget_other,budget_neutrino;
   int index_ncdm;
 
@@ -2597,10 +2601,11 @@ int background_output_budget(struct background* pba){
   budget_radiation = 0;
   budget_other = 0;
   budget_neutrino = 0;
+
   //The name for the _class_print_species_ macro can be at most 30 characters total
   if(pba->background_verbose > 1){
-    printf(" ---------------------------- Budget equation ----------------------- \n");
 
+    printf(" ---------------------------- Budget equation ----------------------- \n");
 
     printf(" ---> Nonrelativistic Species \n");
     _class_print_species_("Bayrons",b);
@@ -2614,7 +2619,7 @@ int background_output_budget(struct background* pba){
       budget_matter+=pba->Omega0_idm_dr;
     }
     if(pba->has_dcdm){
-      _class_print_species_("Decaying Dark Matter (dark g)",dcdm);
+      _class_print_species_("Decaying Cold Dark Matter",dcdm);
       budget_matter+=pba->Omega0_dcdm;
     }
 
@@ -2623,11 +2628,11 @@ int background_output_budget(struct background* pba){
     _class_print_species_("Photons",g);
     budget_radiation+=pba->Omega0_g;
     if(pba->has_ur){
-      _class_print_species_("Massless ultra-relativistic",ur);
+      _class_print_species_("Ultra-relativistic relics",ur);
       budget_radiation+=pba->Omega0_ur;
     }
     if(pba->has_dr){
-      _class_print_species_("Dark Radiation (by decay)",dr);
+      _class_print_species_("Dark Radiation (from decay)",dr);
       budget_radiation+=pba->Omega0_dr;
     }
     if(pba->has_idr){
@@ -2678,5 +2683,6 @@ int background_output_budget(struct background* pba){
 
     printf(" -------------------------------------------------------------------- \n");
   }
+
   return _SUCCESS_;
 }
