@@ -988,16 +988,16 @@ int background_indices(
   /* - index for Omega_r (relativistic density fraction) */
   class_define_index(pba->index_bg_Omega_r,_TRUE_,index_bg,1);
 
-  /* - put here additional ingredients that you want to appear in the
-     normal vector */
-  /*    */
-  /*    */
-
   /* - index interacting for dark radiation */
   class_define_index(pba->index_bg_rho_idr,pba->has_idr,index_bg,1);
 
   /* - index for interacting dark matter */
   class_define_index(pba->index_bg_rho_idm_dr,pba->has_idm_dr,index_bg,1);
+
+  /* - put here additional ingredients that you want to appear in the
+     normal vector */
+  /*    */
+  /*    */
 
   /* - end of indices in the normal vector of background values */
   pba->bg_size_normal = index_bg;
