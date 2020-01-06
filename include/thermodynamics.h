@@ -171,15 +171,15 @@ struct thermo
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
-  int index_th_dmu_idm_dr;      /**< scattering rate between idm and idr (units 1/Mpc) */
-  int index_th_ddmu_idm_dr;     /**< derivative of idm-idr scattering rate */
-  int index_th_dddmu_idm_dr;    /**< second derivative of idm-idr scattering rate */
-  int index_th_dmu_drdr;      /**< idr self-interaction rate */
-  int index_th_tau_idm_dr;    /**< time of decoupling of interacting dark matter (idm-idr) */
-  int index_th_tau_idr;       /**< time of decoupling of interacting dark radiation (idm-idr) */
-  int index_th_g_idm_dr;        /**< dark visibility function for idm-idr */
-  int index_th_cidm2;         /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
-  int index_th_Tdm;           /**< interacting dark matter temperature \f$ T_{dm} \f$ */
+  int index_th_dmu_idm_dr;    /**< scattering rate of idr with idm_dr (i.e. idr opacity to idm_dr scattering) (units 1/Mpc) */
+  int index_th_ddmu_idm_dr;   /**< derivative of this scattering rate */
+  int index_th_dddmu_idm_dr;  /**< second derivative of this scattering rate */
+  int index_th_dmu_idr;       /**< idr self-interaction rate */
+  int index_th_tau_idm_dr;    /**< optical depth of idm_dr (due to interactions with idr) */
+  int index_th_tau_idr;       /**< optical depth of idr (due to self-interactions) */
+  int index_th_g_idm_dr;      /**< visibility function of idm_idr */
+  int index_th_cidm_dr2;      /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
+  int index_th_Tidm_dr;       /**< temperature of DM interacting with DR \f$ T_{idm_dr} \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_wb;            /**< baryon equation of state parameter \f$ w_b = k_B T_b / \mu \f$ */
   int index_th_cb2;           /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
