@@ -2325,12 +2325,16 @@ cdef class Class:
             int index_th_r_d = self.th.index_th_r_d;
             int index_th_g = self.th.index_th_g;
             int index_th_dg = self.th.index_th_dg;
+            int index_th_dg_reco = self.th.index_th_dg_reco;
+            int index_th_dg_reio = self.th.index_th_dg_reio;
             int index_th_exp_m_kappa = self.th.index_th_exp_m_kappa;
             double [:] numpy_r_d = np.zeros((tt_size));
             double [:] numpy_g = np.zeros((tt_size));
             double [:] numpy_g_reco = np.zeros(tt_size);
             double [:] numpy_g_reio = np.zeros(tt_size);
             double [:] numpy_dg = np.zeros((tt_size));
+            double [:] numpy_dg_reco = np.zeros((tt_size));
+            double [:] numpy_dg_reio = np.zeros((tt_size));
             double [:] numpy_e_kappa = np.zeros((tt_size));
             double [:] numpy_tau = np.zeros((tt_size));
 
@@ -2344,13 +2348,15 @@ cdef class Class:
             numpy_g_reco[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reco]
             numpy_g_reio[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reio]
             numpy_dg[index_z] = thermodynamics_table[index_z*th_size + index_th_dg]
+            numpy_dg_reco[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reco]
+            numpy_dg_reio[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reio]
             numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
 
         tau_arr = np.asarray(numpy_tau)
         g_reco = np.asarray(numpy_g_reco)
         g_reio = np.asarray(numpy_g_reio)
-        g_reco_prime = np.gradient(g_reco, tau_arr)
-        g_reio_prime = np.gradient(g_reio, tau_arr)
+        g_reco_prime = np.asarray(numpy_dg_reco)
+        g_reio_prime = np.asarray(numpy_dg_reio)
         return {
                 "r_d": np.asarray(numpy_r_d),
                 "g": np.asarray(numpy_g),

@@ -105,6 +105,8 @@ cdef extern from "class.h":
         int index_th_r_d
         int index_th_g
         int index_th_dg
+        int index_th_dg_reco
+        int index_th_dg_reio
         # Add the new split g
         int index_th_g_reco
         int index_th_g_reio
