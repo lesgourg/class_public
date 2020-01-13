@@ -166,7 +166,7 @@ cdef class Class:
             dumcp = kk.encode()
             dumc = dumcp
             sprintf(self.fc.name[i],"%s",dumc)
-            dumcp = str(self._pars[kk]).encode()
+            dumcp = str(self._pars[kk]).strip().encode()
             dumc = dumcp
             sprintf(self.fc.value[i],"%s",dumc)
             self.fc.read[i] = _FALSE_
