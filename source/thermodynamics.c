@@ -121,6 +121,7 @@ int thermodynamics_at_z(
 
     /* Calculate d2kappa/dtau2 = dz/dtau d/dz[dkappa/dtau] given that [dkappa/dtau] proportional to (1+z)^2 and dz/dtau = -H */
     pvecthermo[pth->index_th_ddkappa] = -pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
+    pvecthermo[pth->index_th_ddkappa_noreio] = -pvecback[pba->index_bg_H] * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa_noreio];
 
     /* Calculate d3kappa/dtau3 given that [dkappa/dtau] proportional to (1+z)^2 */
     pvecthermo[pth->index_th_dddkappa] = (pvecback[pba->index_bg_H]*pvecback[pba->index_bg_H]/ (1.+z) - pvecback[pba->index_bg_H_prime]) * 2. / (1.+z) * pvecthermo[pth->index_th_dkappa];
@@ -130,7 +131,11 @@ int thermodynamics_at_z(
        z_start_sources<z_initial is checked in the perturbation module) */
     pvecthermo[pth->index_th_exp_m_kappa] = 0.;
     pvecthermo[pth->index_th_g]=0.;
+    pvecthermo[pth->index_th_g_reio]=0.;
+    pvecthermo[pth->index_th_g_reco]=0.;
     pvecthermo[pth->index_th_dg]=0.;
+    pvecthermo[pth->index_th_dg_reco]=0.;
+    pvecthermo[pth->index_th_dg_reio]=0.;
     pvecthermo[pth->index_th_ddg]=0.;
 
     /* Calculate Tb */
@@ -398,12 +403,16 @@ int thermodynamics_indices(struct thermo * pth,
    /* Optical depth and related quantities */
   class_define_index(pth->index_th_dkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_ddkappa,_TRUE_,index,1);
+  class_define_index(pth->index_th_ddkappa_noreio,_TRUE_,index,1);
+  class_define_index(pth->index_th_dddkappa_noreio,_TRUE_,index,1);
   class_define_index(pth->index_th_dddkappa,_TRUE_,index,1);
   class_define_index(pth->index_th_exp_m_kappa,_TRUE_,index,1);
   class_define_index(pth->index_th_dkappa_noreio,_TRUE_,index,1);
   /* Visibility function + derivatives */
   class_define_index(pth->index_th_g,_TRUE_,index,1);
   class_define_index(pth->index_th_dg,_TRUE_,index,1);
+  class_define_index(pth->index_th_dg_reco,_TRUE_,index,1);
+  class_define_index(pth->index_th_dg_reio,_TRUE_,index,1);
   class_define_index(pth->index_th_ddg,_TRUE_,index,1);
   class_define_index(pth->index_th_g_reco,_TRUE_,index,1);
   class_define_index(pth->index_th_g_reio,_TRUE_,index,1);
@@ -960,7 +969,6 @@ int thermodynamics_calculate_damping_scale(struct background* pba,
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa] =
         1./6./pth->thermodynamics_table[(pth->tt_size-1-index_tau)*pth->th_size+pth->index_th_dkappa]
         *(R*R/(1+R)+16./15.)/(1.+R);
-
     }
 
     /* compute second derivative of integrand, and store temporarily in column "dddkappa" */
@@ -1033,7 +1041,7 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
   double g_reco;
   /* kappa derivative values*/
   double dkappa,ddkappa,dddkappa,expmkappa;
-  double dkappa_noreio;
+  double dkappa_noreio, ddkappa_noreio;
   int index_tau;
 
   /** - --> second derivative with respect to tau of dkappa (in view of spline interpolation) */
@@ -1048,6 +1056,18 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
              pth->error_message,
              pth->error_message);
 
+  /** - --> second derivative with respect to tau of dkappa (in view of spline interpolation) */
+  class_call(array_spline_table_line_to_line(pth->tau_table,
+                                             pth->tt_size,
+                                             pth->thermodynamics_table,
+                                             pth->th_size,
+                                             pth->index_th_dkappa_noreio,
+                                             pth->index_th_dddkappa_noreio,
+                                             _SPLINE_EST_DERIV_,
+                                             pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
   /** - --> first derivative with respect to tau of dkappa (using spline interpolation) */
   class_call(array_derive_spline_table_line_to_line(pth->tau_table,
                                                     pth->tt_size,
@@ -1056,6 +1076,18 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
                                                     pth->index_th_dkappa,
                                                     pth->index_th_dddkappa,
                                                     pth->index_th_ddkappa,
+                                                    pth->error_message),
+             pth->error_message,
+             pth->error_message);
+
+  /** - --> first derivative with respect to tau of dkappa (using spline interpolation) */
+  class_call(array_derive_spline_table_line_to_line(pth->tau_table,
+                                                    pth->tt_size,
+                                                    pth->thermodynamics_table,
+                                                    pth->th_size,
+                                                    pth->index_th_dkappa_noreio,
+                                                    pth->index_th_dddkappa_noreio,
+                                                    pth->index_th_ddkappa_noreio,
                                                     pth->error_message),
              pth->error_message,
              pth->error_message);
@@ -1083,6 +1115,7 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
     expmkappa = exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
     dkappa_noreio = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa_noreio];
+    ddkappa_noreio = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddkappa_noreio];
 
     /** - ---> compute g */
     g = dkappa * expmkappa;
@@ -1095,6 +1128,11 @@ int thermodynamics_calculate_opticals(struct precision* ppr,
     /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
       (ddkappa + dkappa * dkappa) * expmkappa;
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg_reco] =
+      (ddkappa_noreio + dkappa_noreio * dkappa) * expmkappa;
+    pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg_reio] =
+        pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg]
+        - pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg_reco];
 
     /** - ---> compute g''  */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_ddg] =

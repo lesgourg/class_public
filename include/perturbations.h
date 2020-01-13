@@ -279,6 +279,8 @@ struct perturbs
   int index_tp_t0; /**< index value for temperature (j=0 term) */
   int index_tp_t0_sw; /**< index value for temperature (j=0 term) */
   int index_tp_t0_isw; /**< index value for temperature (j=0 term) */
+  int index_tp_t0_reco; /**< index value for temperature (j=0 term), reco contribution */
+  int index_tp_t0_reio; /**< index value for temperature (j=0 term), reio contribution */
   int index_tp_t1; /**< index value for temperature (j=1 term) */
   int index_tp_t2; /**< index value for temperature (j=2 term) */
   int index_tp_t2_reco; /**< index value for temperature (j=2 term) */
