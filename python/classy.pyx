@@ -2511,10 +2511,6 @@ cdef class Class:
             double [:,:] tmparray = np.zeros((k_size, tau_size)) 
             double [:] k_array = np.zeros(k_size)
             double [:] tau_array = np.zeros(tau_size)
-            # TODO remove the next 3 lines
-            int tot_num_of_sources = 11 + 2 + 2
-            int [:] index_types = np.zeros(tot_num_of_sources,dtype=np.int32)
-            int [:] index_types_mask = np.zeros(tot_num_of_sources,dtype=np.int32)
 
         # names = np.array([
         #     't0','t0_sw', 't0_isw', 
@@ -2536,11 +2532,13 @@ cdef class Class:
         if self.pt.has_source_t:
             indices.extend([
                 self.pt.index_tp_t0, self.pt.index_tp_t0_sw, self.pt.index_tp_t0_isw,
+                self.pt.index_tp_t0_reco, self.pt.index_tp_t0_reio,
                 self.pt.index_tp_t1,
                 self.pt.index_tp_t2, self.pt.index_tp_t2_reco, self.pt.index_tp_t2_reio
                 ])
             names.extend([
                 "t0", "t0_sw", "t0_isw", 
+                "t0_reco", "t0_reio",
                 "t1",
                 "t2", "t2_reco", "t2_reio"
                 ])
@@ -2568,49 +2566,6 @@ cdef class Class:
         if self.pt.has_source_psi:
             indices.append(self.pt.index_tp_psi)
             names.append("psi")
-
-
-        # TODO this is old, remove it
-        # if self.pt.has_source_t:
-        #     index_types[0] = self.pt.index_tp_t0
-        #     index_types[1] = self.pt.index_tp_t1
-        #     index_types[2] = self.pt.index_tp_t2
-        #     index_types_mask[0:3] = 1
-        # if self.pt.has_source_p:
-        #     index_types[3]=self.pt.index_tp_p
-        #     index_types_mask[3] = 1
-        # if self.pt.has_source_delta_m:
-        #     index_types[4]=self.pt.index_tp_delta_m
-        #     index_types_mask[4] = 1
-        # if self.pt.has_source_delta_g:
-        #     index_types[5]=self.pt.index_tp_delta_g
-        #     index_types_mask[5] = 1
-        # if self.pt.has_source_theta_m:
-        #     index_types[6]=self.pt.index_tp_theta_m
-        #     index_types_mask[6] = 1
-        # if self.pt.has_source_phi:
-        #     index_types[7]=self.pt.index_tp_phi
-        #     index_types_mask[7] = 1
-        # if self.pt.has_source_phi_plus_psi:
-        #     index_types[8]=self.pt.index_tp_phi_plus_psi
-        #     index_types_mask[8] = 1
-        # if self.pt.has_source_phi_prime:
-        #     index_types[9]=self.pt.index_tp_phi_prime
-        #     index_types_mask[9] = 1
-        # if self.pt.has_source_psi:
-        #     index_types[10]=self.pt.index_tp_psi
-        #     index_types_mask[10] = 1
-
-        # for i_index_type in range(tot_num_of_sources):  
-        #     if index_types_mask[i_index_type]:         
-        #         index_type = index_types[i_index_type]
-                          
-        #         for index_k in range(k_size):                 
-        #             for index_tau in range(tau_size):
-        #                 tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
-
-        #         sources[names[i_index_type]] = np.asarray(tmparray)
-        #         tmparray = np.zeros((k_size,tau_size))
 
         for index_type, name in zip(indices, names):
             for index_k in range(k_size):                 

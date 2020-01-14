@@ -164,6 +164,8 @@ cdef extern from "class.h":
         # Also, new indices for the split source function for T0...
         int index_tp_t0_sw
         int index_tp_t0_isw
+        int index_tp_t0_reco
+        int index_tp_t0_reio
         int index_tp_t1
         int index_tp_t2
         # ...and for split source function for T2.
