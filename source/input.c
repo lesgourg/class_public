@@ -999,11 +999,18 @@ int input_read_parameters(
 
     class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
 
-    /* the reading of alpha_dark and beta_dark will be modified later on */
+    /* Read alpha_idm_dr or alpha_dark */
 
-    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+    class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
                errmsg,
                errmsg);
+
+    /* try with the other syntax */
+    if (flag1 == _FALSE_) {
+      class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
 
     if(flag1 == _TRUE_){
       if(entries_read != (ppr->l_max_idr-1)){
@@ -1016,9 +1023,18 @@ int input_read_parameters(
       for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
     }
 
-    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+    /* Read alpha_idm_dr or alpha_dark */
+
+    class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
                errmsg,
                errmsg);
+
+    /* try with the other syntax */
+    if (flag1 == _FALSE_) {
+      class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
 
     if(flag1 == _TRUE_){
       if(entries_read != (ppr->l_max_idr-1)){
