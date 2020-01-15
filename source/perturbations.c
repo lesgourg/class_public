@@ -528,7 +528,7 @@ int perturb_init(
     class_test ((ppr->idr_streaming_approximation < rsa_idr_none) ||
                 (ppr->idr_streaming_approximation > rsa_idr_MD),
                 ppt->error_message,
-                "your dark_radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->radiation_streaming_approximation);
+                "your idr_radiation_streaming_approximation is set to %d, out of range defined in perturbations.h",ppr->idr_streaming_approximation);
   }
 
   if (pba->has_ur == _TRUE_) {
@@ -736,10 +736,8 @@ int perturb_init(
 
       if (ppt->perturbations_verbose > 1) {
         printf("Evolving ic %d/%d\n",index_ic+1,ppt->ic_size[index_md]);
-
         printf("evolving %d wavenumbers\n",ppt->k_size[index_md]);
       }
-
 
       abort = _FALSE_;
 
@@ -1200,7 +1198,6 @@ int perturb_indices_of_perturbs(
         if (ppt->has_nc_rsd == _TRUE_) {
           ppt->has_source_theta_m = _TRUE_;
           if (pba->has_ncdm == _TRUE_)
-
             /* we may not need theta_cb at all, rsd always defined for
                the total matter, but at least this is made
                available */
@@ -1387,6 +1384,7 @@ int perturb_indices_of_perturbs(
  * @param ppt Input/Output: Initialized perturbation structure
  * @return the error status
  */
+
 int perturb_timesampling_for_sources(
                                      struct precision * ppr,
                                      struct background * pba,
@@ -1975,8 +1973,7 @@ int perturb_get_k_list(
 
     /* allocate array with, for the moment, the largest possible size */
 
-    /* the following is a boost on k_per_decade_for_pk for very large k
-       and very large a_idm_dr for the interacting dm-dr cases */
+    /* the following is a boost on k_per_decade_for_pk for the interacting idm-idr cases (relevant for large k and a_idm_dr) */
     if((pba->has_idm_dr==_TRUE_)&&(pth->nindex_idm_dr>=2)){
       class_alloc(ppt->k[ppt->index_md_scalars],
                   ((int)((k_max_cmb[ppt->index_md_scalars]-k_min)/k_rec/MIN(ppr->k_step_super,ppr->k_step_sub))+
@@ -3995,7 +3992,7 @@ int perturb_vector_init(
 
       /* we don't need interacting dark radiation multipoles
          above l=2 (but they are defined only when rsa_idr
-         and tca_idm_dr are off*/
+         and tca_idm_dr are off) */
 
       if (ppw->approx[ppw->index_ap_rsa_idr] == (int)rsa_idr_off){
         if (ppt->idr_nature == idr_free_streaming){
@@ -9450,6 +9447,15 @@ int perturb_derivs(double tau,
   return _SUCCESS_;
 }
 
+/**
+ * Compute the baryon-photon slip (theta_g - theta_b)' and the photon
+ * shear in the tight-coupling approximation
+ *
+ * @param y                        Input: vector of perturbations
+ * @param parameters_and_workspace Input/Output: in input, fixed parameters (e.g. indices); in output, slip and shear
+ * @param error_message            Output: error message
+ */
+
 int perturb_tca_slip_and_shear(double * y,
                                void * parameters_and_workspace,
                                ErrorMsg error_message
@@ -9741,6 +9747,23 @@ int perturb_tca_slip_and_shear(double * y,
 
 }
 
+/**
+ * Compute the density delta and velocity theta of photons and
+ * ultra-relativistic neutrinos in the radiation streaming
+ * approximation
+ *
+ * @param ppr                      Input: pointer to precision structure
+ * @param pba                      Input: pointer to background structure
+ * @param pth                      Input: pointer to thermodynamics structure
+ * @param ppt                      Input: pointer to perturbation structure
+ * @param k                        Input: wavenumber
+ * @param y                        Input: vector of perturbations
+ * @param a_prime_over_a           Input: a'/a
+ * @param pvecthermo               Input: vector of thermodynamics quantites
+ * @param ppw                      Input/Output: in input, fixed parameters (e.g. indices); in output, delta and theta
+ * @param error_message            Output: error message
+ */
+
 int perturb_rsa_delta_and_theta(
                                 struct precision * ppr,
                                 struct background * pba,
@@ -9860,6 +9883,22 @@ int perturb_rsa_delta_and_theta(
   return _SUCCESS_;
 
 }
+
+/**
+ * Compute the density delta and velocity theta of interacting dark
+ * radiation in its streaming approximation
+ *
+ * @param ppr                      Input: pointer to precision structure
+ * @param pba                      Input: pointer to background structure
+ * @param pth                      Input: pointer to thermodynamics structure
+ * @param ppt                      Input: pointer to perturbation structure
+ * @param k                        Input: wavenumber
+ * @param y                        Input: vector of perturbations
+ * @param a_prime_over_a           Input: a'/a
+ * @param pvecthermo               Input: vector of thermodynamics quantites
+ * @param ppw                      Input/Output: in input, fixed parameters (e.g. indices); in output, delta and theta
+ * @param error_message            Output: error message
+ */
 
 int perturb_rsa_idr_delta_and_theta(
                                     struct precision * ppr,
