@@ -1196,7 +1196,7 @@ int nonlinear_init(
       }
     }
     if (pba->has_idm_dr){
-      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested IDM-DR, which makes the use of Halofit or HMCode unreliable.\n");
+      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
     }
   }
 
@@ -3099,11 +3099,9 @@ int nonlinear_hmcode(
   ng = ppr->n_hmcode_tables;
   nsig = ppr->n_hmcode_tables;
 
-
   /** Compute background quantitites today */
 
   Omega0_m = pba->Omega0_m;
-
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
 
   /** If index_pk_cb, choose Omega0_cb as the matter density parameter.
