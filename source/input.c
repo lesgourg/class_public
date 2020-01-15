@@ -974,7 +974,7 @@ int input_read_parameters(
       pth->nindex_idm_dr = 0;
       ppt->idr_nature = idr_fluid;
       if (input_verbose > 1)
-        printf("NADM requested. Defaulting on nindex_idm_dr = %i and idr_nature = fluid \n", pth->nindex_idm_dr);
+        printf("NADM requested. Defaulting on nindex_idm_dr = %e and idr_nature = fluid \n", pth->nindex_idm_dr);
     }
 
     else{

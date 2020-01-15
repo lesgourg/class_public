@@ -8327,7 +8327,7 @@ int perturb_derivs(double tau,
   /* short-cut notations for the perturbations */
   double delta_g=0.,theta_g=0.,shear_g=0.;
   double delta_b,theta_b;
-  double delta_idr=0., theta_idr=0., shear_idr=0.;
+  double delta_idr=0., theta_idr=0.;
   double cb2,cs2,ca2,delta_p_b_over_rho_b;
   double metric_continuity=0.,metric_euler=0.,metric_shear=0.,metric_ufa_class=0.;
 
@@ -8358,7 +8358,7 @@ int perturb_derivs(double tau,
   /* for use with dcdm and dr */
   double f_dr, fprime_dr;
 
-  double Sinv, a_rel, dmu_idm_dr=0., dmu_idr=0., tca_slip_idm_dr=0., slip_factor=0.;
+  double Sinv=0., dmu_idm_dr=0., dmu_idr=0., tca_slip_idm_dr=0.;
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 

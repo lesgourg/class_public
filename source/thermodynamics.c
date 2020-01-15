@@ -324,7 +324,7 @@ int thermodynamics_init(
 
   double z_idm_dr, z_idr, tau_idm_dr, tau_idr, Gamma_heat_idm_dr, dTdz_idm_dr, T_idm_dr, z, T_idr, dz, T_adia, z_adia;
 
-  double tau_idm_dr_fs;
+  double tau_idm_dr_fs=0.;
   int index_tau_fs;
   int n, N_sub_steps;
   double dz_sub_step;

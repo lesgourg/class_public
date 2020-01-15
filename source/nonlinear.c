@@ -3914,8 +3914,6 @@ int nonlinear_hmcode_growint(
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
   double * pvecback;
   double * integrand;
-  double tau;
-  int last_index;
 
   ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
   ainit = a;
