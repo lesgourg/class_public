@@ -803,8 +803,6 @@ int thermodynamics_init(
     }
   }
 
-  free(tau_table);
-
   /** - smooth the rate (details of smoothing unimportant: only the
       order of magnitude of the rate matters) */
   class_call(array_smooth(pth->thermodynamics_table,
@@ -983,6 +981,8 @@ int thermodynamics_init(
       pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_cidm_dr2] = _k_B_*T_idm_dr/_eV_/pth->m_idm*(1.+dTdz_idm_dr/3./T_idm_dr);
     }
   }
+
+  free(tau_table);
 
   /** - fill tables of second derivatives with respect to z (in view of spline interpolation) */
 
@@ -4233,7 +4233,8 @@ int thermodynamics_output_titles(struct background * pba,
 
   if(pba->has_idm_dr == _TRUE_){
     class_store_columntitle(titles,"dmu_idm_dr",_TRUE_);
-    class_store_columntitle(titles,"ddmu_idm_dr",_TRUE_);
+    //class_store_columntitle(titles,"ddmu_idm_dr",_TRUE_);
+    //class_store_columntitle(titles,"dddmu_idm_dr",_TRUE_);
     class_store_columntitle(titles,"tau_idm_dr",_TRUE_);
     class_store_columntitle(titles,"tau_idr",_TRUE_);
     class_store_columntitle(titles,"g_idm_dr [Mpc^-1]",_TRUE_);
@@ -4293,7 +4294,8 @@ int thermodynamics_output_data(struct background * pba,
 
     if(pba->has_idm_dr == _TRUE_){
       class_store_double(dataptr,pvecthermo[pth->index_th_dmu_idm_dr],_TRUE_,storeidx);
-      class_store_double(dataptr,pvecthermo[pth->index_th_ddmu_idm_dr],_TRUE_,storeidx);
+      //class_store_double(dataptr,pvecthermo[pth->index_th_ddmu_idm_dr],_TRUE_,storeidx);
+      //class_store_double(dataptr,pvecthermo[pth->index_th_dddmu_idm_dr],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_tau_idm_dr],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_tau_idr],_TRUE_,storeidx);
       class_store_double(dataptr,pvecthermo[pth->index_th_g_idm_dr],_TRUE_,storeidx);
