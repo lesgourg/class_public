@@ -81,13 +81,35 @@ class_string_parameter(sBBN_file,"/bbn/sBBN_2017.dat","sBBN file")
 
 
 /**
- * The initial z for the recfast calculation of the recombination history
+ * The initial z for the recfast calculation of the recombination history, e.g. 10^4
  */
 class_precision_parameter(recfast_z_initial,double,1.0e4)
 /**
- * Number of recfast integration steps
+ * Number of recfast integration steps, e.g. if this is 1.10^4 and the previous one is 10^4, the step will be Delta z = 0.5
  */
 class_precision_parameter(recfast_Nz0,int,20000)
+/**
+ * If there is interacting DM, we want the thermodynamics table to
+ * start at a much larger z, in order to capture the possible
+ * non-trivial behavior of the dark matter interaction rate at early
+ * times:
+ *
+ * - The new initial redshift will be thermo_z_initial_idm_dr
+ *
+ * - the highest redhsift will be sampled with thermo_Nz1_idm_dr values, and the step will be
+ * Delta z = (thermo_z_initial_idm_dr-recfast_z_initial)/thermo_Nz1_idm_dr
+ * For instance, if the previous value is 10^9 and this value is 10^4, then Delta z simeq 10^5
+ *
+ * - But the first interval after recfast_z_initial will be better
+ * sampled with thermo_Nz2_idm_dr values, in order to ensure a smoother
+ * transition from a small step to a large step. The intermediate
+ * stepsize will then be
+ * Delta z = (thermo_z_initial_idm_dr-recfast_z_initial)/thermo_Nz1_idm_dr/thermo_Nz1_idm_dr.
+ * For instance, if the three values are (10^9, 10^4, 10^2), then the intermediate timestep is Delta z simeq 10^3
+*/
+class_precision_parameter(thermo_z_initial_idm_dr,double,1.0e9)
+class_precision_parameter(thermo_Nz1_idm_dr,int,10000)
+class_precision_parameter(thermo_Nz2_idm_dr,int,100)
 /**
  * Tolerance of the relative value of integral during thermodynamical integration
  */
