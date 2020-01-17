@@ -4115,9 +4115,6 @@ int thermodynamics_merge_reco_and_reio(
   /** - define local variables */
 
   int i,index_th,index_re;
-  int nz_idm_dr = 10000;
-  int nz_int = 100;
-  double dark_z_initial = 1.e9;
   double x0;
 
   /** - first, a little check that the two tables match each other and can be merged */
@@ -4133,7 +4130,9 @@ int thermodynamics_merge_reco_and_reio(
 
   pth->tt_size = ppr->recfast_Nz0 + preio->rt_size - preio->index_reco_when_reio_start - 1;
 
-  if(pba->has_idm_dr == _TRUE_) pth->tt_size += nz_idm_dr + nz_int - 1;
+  /** - add  more points to start earlier in presence of interacting DM */
+
+  if(pba->has_idm_dr == _TRUE_) pth->tt_size += ppr->thermo_Nz1_idm_dr + ppr->thermo_Nz2_idm_dr - 1;
 
   /** - allocate arrays in thermo structure */
 
@@ -4174,25 +4173,35 @@ int thermodynamics_merge_reco_and_reio(
       preco->recombination_table[index_re*preco->re_size+preco->index_re_cb2];
   }
 
-  if(pba->has_idm_dr == _TRUE_){
-    for (i=0; i<nz_int-1; i++){
-      index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1;
-      pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (dark_z_initial - ppr->recfast_z_initial) / (double)nz_idm_dr / (double)nz_int;
-      x0=pth->thermodynamics_table[(preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 2)*pth->th_size+pth->index_th_xe];
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_xe]=x0;
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dkappa]=(1.+pth->z_table[index_th]) * (1.+pth->z_table[index_th]) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=pba->T_cmb*(1.+pth->z_table[index_th]);
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+pth->z_table[index_th]) * 4. / 3.;
-    }
-    for (i=0; i < nz_idm_dr; i++){
-      index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1 + nz_int - 1;
-      pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (dark_z_initial - ppr->recfast_z_initial) / (double)nz_idm_dr;
-      x0=pth->thermodynamics_table[(preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 2)*pth->th_size+pth->index_th_xe];
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_xe]=x0;
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dkappa]=(1.+pth->z_table[index_th]) * (1.+pth->z_table[index_th]) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=pba->T_cmb*(1.+pth->z_table[index_th]);
-      pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+pth->z_table[index_th]) * 4. / 3.;
-    }
+  /** - add more points at larger redshift in presence of interacting
+        DM. This is necessary because the value of integrated
+        quantitites like tau_idm_dr or tau_idr will then be computed
+        exactly up to high redshift. With extrapolations in
+        thermodynamics_at_z() we could not obtain this. */
+
+    if(pba->has_idm_dr == _TRUE_){
+
+      for (i=0; i<ppr->thermo_Nz2_idm_dr+ppr->thermo_Nz1_idm_dr-1; i++){
+
+        /* with an intermediate step Delta z = (thermo_z_initial_idm_dr-recfast_z_initial)/thermo_Nz1_idm_dr/thermo_Nz1_idm_dr */
+        if (i<ppr->thermo_Nz2_idm_dr-1) {
+          index_th=i+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1;
+          pth->z_table[index_th]= ppr->recfast_z_initial + ((double)i+1.) * (ppr->thermo_z_initial_idm_dr - ppr->recfast_z_initial) / (double)ppr->thermo_Nz1_idm_dr / (double)ppr->thermo_Nz2_idm_dr;
+        }
+        /* with a large step Delta z  = (thermo_z_initial_idm_dr-recfast_z_initial)/thermo_Nz1_idm_dr */
+        else {
+          index_th=(i-ppr->thermo_Nz2_idm_dr+1)+preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 1 + ppr->thermo_Nz2_idm_dr - 1;
+          pth->z_table[index_th]= ppr->recfast_z_initial + ((double)(i-ppr->thermo_Nz2_idm_dr+1)+1.) * (ppr->thermo_z_initial_idm_dr - ppr->recfast_z_initial) / (double)ppr->thermo_Nz1_idm_dr;
+        }
+        /* same extrapolation formulas as in thermodynamics_at_z() */
+        x0=pth->thermodynamics_table[(preio->rt_size+ppr->recfast_Nz0 - preio->index_reco_when_reio_start - 2)*pth->th_size+pth->index_th_xe];
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_xe]=x0;
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_dkappa]=(1.+pth->z_table[index_th]) * (1.+pth->z_table[index_th]) * pth->n_e * x0 * _sigma_ * _Mpc_over_m_;
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_Tb]=pba->T_cmb*(1.+pth->z_table[index_th]);
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_wb]=_k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+pth->z_table[index_th]);
+        pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_cb2]=pth->thermodynamics_table[index_th*pth->th_size+pth->index_th_wb] * 4./3.;
+      }
+
   }
 
   /** - free the temporary structures */
