@@ -893,6 +893,8 @@ int input_read_parameters(
   if (flag2 == _TRUE_)
     pba->Omega0_cdm = param2/pba->h/pba->h;
 
+  if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
+
   Omega_tot += pba->Omega0_cdm;
 
   /** - Omega_0_icdm_dr (DM interacting with DR) */
@@ -929,6 +931,12 @@ int input_read_parameters(
     pba->Omega0_cdm -= pba->Omega0_idm_dr;
     /* to be consistent, remove same amount from Omega_tot */
     Omega_tot -= pba->Omega0_idm_dr;
+    /* avoid Omega0_cdm =0 in synchronous gauge */
+    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) {
+      pba->Omega0_cdm += ppr->Omega0_cdm_min_synchronous;
+      Omega_tot += ppr->Omega0_cdm_min_synchronous;
+      pba->Omega0_idm_dr -= ppr->Omega0_cdm_min_synchronous;
+    }
   }
 
   Omega_tot += pba->Omega0_idm_dr;

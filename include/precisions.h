@@ -61,6 +61,10 @@ class_precision_parameter(tol_ncdm_initial_w,double,1.e-3)
  * Tolerance on the deviation of the conformal time of equality from the true value in 1/Mpc.
  */
 class_precision_parameter(tol_tau_eq,double,1.e-6)
+/**
+ * Minimum amount of cdm to allow calculations in synchronous gauge comoving with cdm.
+ */
+class_precision_parameter(Omega0_cdm_min_synchronous,double,1.e-10)
 /*
  * Currently unused parameter.
  */
