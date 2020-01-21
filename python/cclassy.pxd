@@ -69,6 +69,9 @@ cdef extern from "class.h":
         double Neff
         double Omega0_g
         double Omega0_b
+        double Omega0_idr
+        double T_idr
+        double Omega0_idm_dr
         double Omega0_cdm
         double Omega0_dcdm
         double Omega0_ncdm_tot
@@ -117,6 +120,10 @@ cdef extern from "class.h":
         double rs_d
         double YHe
         double n_e
+        double a_idm_dr
+        double b_idr
+        double nindex_idm_dr
+        double m_idm
 
         int tt_size
 
@@ -151,6 +158,9 @@ cdef extern from "class.h":
         int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
+
+        double * alpha_idm_dr
+        double * beta_idr
 
         int * k_size
         int * ic_size
@@ -381,6 +391,16 @@ cdef extern from "class.h":
         int index_pk,
         double * out_pk,
         double * out_pk_ic)
+
+    int nonlinear_pk_tilt_at_k_and_z(
+        void * pba,
+        void * ppm,
+        void * pnl,
+        int pk_output,
+        double k,
+        double z,
+        int index_pk,
+        double * pk_tilt)
 
     int nonlinear_sigmas_at_z(
         void * ppr,

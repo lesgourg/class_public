@@ -305,7 +305,7 @@ int transfer_init(
              ptr->error_message);
 
   /* (a.3.) workspace, allocated in a parallel zone since in openmp
-      version there is one workspace per thread */
+     version there is one workspace per thread */
 
   /* initialize error management flag */
   abort = _FALSE_;
@@ -672,25 +672,25 @@ int transfer_perturbation_copy_sources_and_nl_corrections(
 
           for (index_tau=0; index_tau<ppt->tau_size; index_tau++) {
             for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
-             if (((ppt->has_source_delta_cb == _TRUE_) && (index_tp == ppt->index_tp_delta_cb)) ||
-                 ((ppt->has_source_theta_cb == _TRUE_) && (index_tp == ppt->index_tp_theta_cb))){
-              sources[index_md]
-                [index_ic * ppt->tp_size[index_md] + index_tp]
-                [index_tau * ppt->k_size[index_md] + index_k] =
-                ppt->sources[index_md]
-                [index_ic * ppt->tp_size[index_md] + index_tp]
-                [index_tau * ppt->k_size[index_md] + index_k]
-                * pnl->nl_corr_density[pnl->index_pk_cb][index_tau * ppt->k_size[index_md] + index_k];
-             }
-             else{
-              sources[index_md]
-                [index_ic * ppt->tp_size[index_md] + index_tp]
-                [index_tau * ppt->k_size[index_md] + index_k] =
-                ppt->sources[index_md]
-                [index_ic * ppt->tp_size[index_md] + index_tp]
-                [index_tau * ppt->k_size[index_md] + index_k]
-                * pnl->nl_corr_density[pnl->index_pk_m][index_tau * ppt->k_size[index_md] + index_k];
-             }
+              if (((ppt->has_source_delta_cb == _TRUE_) && (index_tp == ppt->index_tp_delta_cb)) ||
+                  ((ppt->has_source_theta_cb == _TRUE_) && (index_tp == ppt->index_tp_theta_cb))){
+                sources[index_md]
+                  [index_ic * ppt->tp_size[index_md] + index_tp]
+                  [index_tau * ppt->k_size[index_md] + index_k] =
+                  ppt->sources[index_md]
+                  [index_ic * ppt->tp_size[index_md] + index_tp]
+                  [index_tau * ppt->k_size[index_md] + index_k]
+                  * pnl->nl_corr_density[pnl->index_pk_cb][index_tau * ppt->k_size[index_md] + index_k];
+              }
+              else{
+                sources[index_md]
+                  [index_ic * ppt->tp_size[index_md] + index_tp]
+                  [index_tau * ppt->k_size[index_md] + index_k] =
+                  ppt->sources[index_md]
+                  [index_ic * ppt->tp_size[index_md] + index_tp]
+                  [index_tau * ppt->k_size[index_md] + index_k]
+                  * pnl->nl_corr_density[pnl->index_pk_m][index_tau * ppt->k_size[index_md] + index_k];
+              }
             }
           }
         }
@@ -1276,7 +1276,7 @@ int transfer_get_k_list(
 
     if (ptr->k[index_md][0] < ppt->k[index_md][0]){
       /* If ptr->k[index_md][0] < ppt->k[index_md][0] at the level of rounding,
-          adjust first value of k_list to avoid interpolation errors: */
+         adjust first value of k_list to avoid interpolation errors: */
       if ((ppt->k[index_md][0]-ptr->k[index_md][0]) < 10.*DBL_EPSILON){
         ptr->k[index_md][0] = ppt->k[index_md][0];
       }
@@ -1290,12 +1290,12 @@ int transfer_get_k_list(
     }
 
     /*
-       class_test(ptr->k[index_md][0] < ppt->k[index_md][0],
-       ptr->error_message,
-       "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
-       ppt->k[0][0],
-       index_md,
-       ptr->k[index_md][0]);
+      class_test(ptr->k[index_md][0] < ppt->k[index_md][0],
+      ptr->error_message,
+      "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
+      ppt->k[0][0],
+      index_md,
+      ptr->k[index_md][0]);
     */
     class_test(ptr->k[index_md][ptr->q_size-1] > ppt->k[0][ppt->k_size_cl[0]-1],
                ptr->error_message,
@@ -1326,7 +1326,7 @@ int transfer_get_source_correspondence(
                                        struct transfers * ptr,
                                        int ** tp_of_tt
                                        ) {
-/** Summary: */
+  /** Summary: */
   /** - running index on modes */
   int index_md;
 
@@ -1707,8 +1707,8 @@ int transfer_compute_for_each_q(
   int index_l;
 
   /** - we deal with workspaces, i.e. with contiguous memory zones (one
-     per thread) containing various fields used by the integration
-     routine */
+      per thread) containing various fields used by the integration
+      routine */
 
   /* - first workspace field: perturbation source interpolated from perturbation structure */
   double * interpolated_sources;
@@ -2126,9 +2126,9 @@ int transfer_sources(
   short redefine_source;
 
   /** - in which cases are perturbation and transfer sources are different?
-     I.e., in which case do we need to multiply the sources by some
-     background and/or window function, and eventually to resample it,
-     or redefine its time limits? */
+      I.e., in which case do we need to multiply the sources by some
+      background and/or window function, and eventually to resample it,
+      or redefine its time limits? */
 
   redefine_source = _FALSE_;
 
@@ -2148,7 +2148,7 @@ int transfer_sources(
   tau0 = pba->conformal_age;
 
   /** - case where we need to redefine by a window function (or any
-     function of the background and of k) */
+      function of the background and of k) */
   if (redefine_source == _TRUE_) {
 
     class_call(transfer_source_tau_size(ppr,
@@ -2393,7 +2393,7 @@ int transfer_sources(
   }
 
   /** - return tau_size value that will be stored in the workspace (the
-     workspace wants a double) */
+      workspace wants a double) */
 
   *tau_size_out = tau_size;
 
@@ -2575,7 +2575,7 @@ int transfer_dNdz_analytic(
 
   double z0,alpha,beta;
 
-//Euclid IST dNdz, do not change this!
+  //Euclid IST dNdz, do not change this!
   z0 = 0.9/pow(2.,1./2.);
   alpha = 2.0;
   beta = 1.5;
@@ -4037,7 +4037,7 @@ int transfer_radial_function(
     factor = 1.0;
     for (j=0; j<x_size; j++)
       radial_function[x_size-1-j] = factor*absK_over_k2*d2Phi[j]*rescale_argument*rescale_argument*rescale_function[j];
-      // Note: in previous line there was a missing factor absK_over_k2 until version 2.4.3. Credits Francesco Montanari.
+    // Note: in previous line there was a missing factor absK_over_k2 until version 2.4.3. Credits Francesco Montanari.
     break;
   }
 
@@ -4571,7 +4571,7 @@ int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
   }
   //printf("Done\n");
   /*  printf("Hunt left iter=%d, hunt right iter=%d (fevals: %d). For binary search: %d (fevals: %d)\n",
-       hil,hir,fevalshunt,bini,fevals);
+      hil,hir,fevalshunt,bini,fevals);
   */
   return _SUCCESS_;
 }
