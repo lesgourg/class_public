@@ -144,14 +144,16 @@ int output_init(
 
   if (ppt->has_pk_matter == _TRUE_) {
 
-    class_call(output_pk(pba,ppt,psp,pop),
+    class_call(output_pk(pba,ppt,pnl,pop,pk_linear),
                pop->error_message,
                pop->error_message);
 
     if (pnl->method != nl_none) {
-      class_call(output_pk_nl(pba,ppt,psp,pop),
+
+      class_call(output_pk(pba,ppt,pnl,pop,pk_nonlinear),
                  pop->error_message,
                  pop->error_message);
+
     }
   }
 
@@ -159,9 +161,10 @@ int output_init(
 
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
-    class_call(output_tk(pba,ppt,psp,pop),
+    class_call(output_tk(pba,ppt,pop),
                pop->error_message,
                pop->error_message);
+
   }
 
   /** - deal with background quantities */
@@ -590,288 +593,208 @@ int output_cl(
 }
 
 /**
- * This routines writes the output in files for Fourier matter power spectra P(k)'s.
+ * This routines writes the output in files for Fourier matter power spectra P(k)'s
+ * (linear or non-linear)
  *
- * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input: pointer perturbation structure
- * @param psp Input: pointer to spectra structure
- * @param pop Input: pointer to output structure
+ * @param pba       Input: pointer to background structure (needed for calling spectra_pk_at_z())
+ * @param ppt       Input: pointer perturbation structure
+ * @param pnl       Input: pointer to nonlinear structure
+ * @param pop       Input: pointer to output structure
+ * @param pk_output Input: pk_linear or pk_nonlinear
  */
 
 int output_pk(
               struct background * pba,
               struct perturbs * ppt,
-              struct spectra * psp,
-              struct output * pop
+              struct nonlinear * pnl,
+              struct output * pop,
+              enum pk_outputs pk_output
               ) {
 
   /** Summary: */
 
   /** - define local variables */
 
-  FILE ** out_ic=NULL; /* array of pointers to files with argument
-                          out_ic[index_ic1_ic2]
-                          (will contain P(k)'s for each pair of initial conditions) */
+  FILE ** out_pk_ic = NULL;  /* out_pk_ic[index_ic1_ic2] is a pointer to a file with P(k) for each pair of ic */
+  FILE * out_pk;             /* out_pk[index_pk] is a pointer to a file with total P(k) summed over ic */
 
-  FILE * out;     /* (will contain total P(k) summed eventually over initial conditions) */
+  double * ln_pk_ic = NULL;  /* array ln_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2] */
+  double * ln_pk;            /* array ln_pk[index_k] */
 
-  double * pk_ic=NULL;  /* array with argument
-                           pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] */
-
-  double * pk_tot; /* array with argument
-                      pk_tot[index_k] */
-
-  FILE ** out_cb_ic=NULL; /* same as out_ic for CDM+baryon only */
-  FILE * out_cb;          /* same as out for CDM+baryon only */
-
-  double * pk_cb_ic=NULL; /* same as pk_ic for CDM+baryon only */
-  double * pk_cb_tot=NULL;     /* same as pk_tot for CDM+baryon only */
-
-  int index_md;
   int index_ic1,index_ic2;
   int index_ic1_ic2=0;
   int index_k;
   int index_z;
+  int index_pk;
 
   FileName file_name;
-  FileName file_cb_name;
+
   char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
+  char type_suffix[9];     // 6 is enough to write "pk_cb_nl" plus closing character \0
   char first_line[_LINE_LENGTH_MAX_];
+  short do_ic = _FALSE_;
 
-  index_md=ppt->index_md_scalars;
+  /** - preliminary: check whether we need to output the decomposition into contributions from each initial condition */
 
-  for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+  if ((pk_output == pk_linear) && (pnl->ic_size > 1))
+    do_ic = _TRUE_;
 
-    /** - first, check that requested redshift z_pk is consistent */
+  /** - allocate arrays to store the P(k) */
 
-    class_test((pop->z_pk[index_z] > psp->z_max_pk),
-               pop->error_message,
-               "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
+  class_alloc(ln_pk,
+              pnl->k_size*sizeof(double),
+              pop->error_message);
 
-    if (pop->z_pk_num == 1)
-      redshift_suffix[0]='\0';
-    else
-      sprintf(redshift_suffix,"z%d_",index_z+1);
+  if (do_ic == _TRUE_) {
 
-    /** - second, open only the relevant files and write a heading in each of them */
+    class_alloc(ln_pk_ic,
+                pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                pop->error_message);
 
-    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk.dat");
-    if(pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb.dat");
+    /** - allocate pointer to output files */
 
-    class_call(output_open_pk_file(pba,
-                                   psp,
-                                   pop,
-                                   &out,
-                                   file_name,
-                                   "",
-                                   pop->z_pk[index_z]
-                                   ),
-               pop->error_message,
-               pop->error_message);
+    class_alloc(out_pk_ic,
+                pnl->ic_ic_size*sizeof(FILE *),
+                pop->error_message);
+  }
 
-    if(pba->has_ncdm){
+  /** - loop over pk type (_cb, _m) */
+
+  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+
+    if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
+      if (pk_output == pk_linear)
+        sprintf(type_suffix,"pk");
+      else
+        sprintf(type_suffix,"pk_nl");
+    }
+    if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
+      if (pk_output == pk_linear)
+        sprintf(type_suffix,"pk_cb");
+      else
+        sprintf(type_suffix,"pk_cb_nl");
+    }
+
+    /** - loop over z */
+
+    for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
+
+      /** - first, check that requested redshift z_pk is consistent */
+
+      class_test((pop->z_pk[index_z] > ppt->z_max_pk),
+                 pop->error_message,
+                 "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
+
+      if (pop->z_pk_num == 1)
+        redshift_suffix[0]='\0';
+      else
+        sprintf(redshift_suffix,"z%d_",index_z+1);
+
+      /** - second, open only the relevant files and write a header in each of them */
+
+      sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,".dat");
+
       class_call(output_open_pk_file(pba,
-                                     psp,
+                                     pnl,
                                      pop,
-                                     &out_cb,
-                                     file_cb_name,
+                                     &out_pk,
+                                     file_name,
                                      "",
                                      pop->z_pk[index_z]
                                      ),
                  pop->error_message,
                  pop->error_message);
-    }
 
-    class_alloc(pk_tot,
-                psp->ln_k_size*sizeof(double),
-                pop->error_message);
+      if (do_ic == _TRUE_) {
 
-    if(pba->has_ncdm){
-      class_alloc(pk_cb_tot,
-                  psp->ln_k_size*sizeof(double),
-                  pop->error_message);
-    }
+        for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
 
-    if (psp->ic_size[index_md] > 1) {
+          for (index_ic2 = index_ic1; index_ic2 < pnl->ic_size; index_ic2++) {
 
-      class_alloc(out_ic,
-                  psp->ic_ic_size[index_md]*sizeof(FILE *),
-                  pop->error_message);
+            if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_ad.dat");
+              strcpy(first_line,"for adiabatic (AD) mode ");
+            }
 
-      class_alloc(pk_ic,
-                  psp->ln_k_size*psp->ic_ic_size[index_md]*sizeof(double),
-                  pop->error_message);
+            if ((ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_bi.dat");
+              strcpy(first_line,"for baryon isocurvature (BI) mode ");
+            }
 
-      if (pba->has_ncdm){
-        class_alloc(out_cb_ic,
-                    psp->ic_ic_size[index_md]*sizeof(FILE *),
-                    pop->error_message);
+            if ((ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_cdi.dat");
+              strcpy(first_line,"for CDM isocurvature (CDI) mode ");
+            }
 
-        class_alloc(pk_cb_ic,
-                    psp->ln_k_size*psp->ic_ic_size[index_md]*sizeof(double),
-                    pop->error_message);
-      }
+            if ((ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_nid.dat");
+              strcpy(first_line,"for neutrino density isocurvature (NID) mode ");
+            }
 
-      for (index_ic1 = 0; index_ic1 < ppt->ic_size[index_md]; index_ic1++) {
+            if ((ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_niv.dat");
+              strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode ");
+            }
 
-        for (index_ic2 = index_ic1; index_ic2 < ppt->ic_size[index_md]; index_ic2++) {
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_ad_bi.dat");
+              strcpy(first_line,"for cross ADxBI mode ");
+            }
 
-          if ((ppt->has_ad == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_ad_cdi.dat");
+              strcpy(first_line,"for cross ADxCDI mode ");
+            }
 
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad.dat");
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_ad_nid.dat");
+              strcpy(first_line,"for scalar cross ADxNID mode ");
+            }
 
-            strcpy(first_line,"for adiabatic (AD) mode ");
-          }
+            if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_ad_niv.dat");
+              strcpy(first_line,"for cross ADxNIV mode ");
+            }
 
-          if ((ppt->has_bi == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_bi)) {
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) && (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_bi_cdi.dat");
+              strcpy(first_line,"for cross BIxCDI mode ");
+            }
 
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_bi.dat");
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_bi_nid.dat");
+              strcpy(first_line,"for cross BIxNID mode ");
+            }
 
-            strcpy(first_line,"for baryon isocurvature (BI) mode ");
-          }
+            if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_bi_niv.dat");
+              strcpy(first_line,"for cross BIxNIV mode ");
+            }
 
-          if ((ppt->has_cdi == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_cdi)) {
+            if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) && (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_cdi_nid.dat");
+              strcpy(first_line,"for cross CDIxNID mode ");
+            }
 
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_cdi.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_cdi.dat");
+            if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_cdi_niv.dat");
+              strcpy(first_line,"for cross CDIxNIV mode ");
+            }
 
-            strcpy(first_line,"for CDM isocurvature (CDI) mode ");
-          }
+            if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) && (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
+              sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_nid_niv.dat");
+              strcpy(first_line,"for cross NIDxNIV mode ");
+            }
 
-          if ((ppt->has_nid == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_nid)) {
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
 
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nid.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nid.dat");
+            if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
 
-            strcpy(first_line,"for neutrino density isocurvature (NID) mode ");
-          }
-
-          if ((ppt->has_niv == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_niv) && (index_ic2 == ppt->index_ic_niv)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_niv.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_niv.dat");
-
-            strcpy(first_line,"for neutrino velocity isocurvature (NIV) mode ");
-          }
-
-          if ((ppt->has_ad == _TRUE_) &&
-              (ppt->has_bi == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_bi)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_bi.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_bi.dat");
-
-            strcpy(first_line,"for cross ADxBI mode ");
-          }
-
-          if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_cdi)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_cdi.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_cdi.dat");
-
-            strcpy(first_line,"for cross ADxCDI mode ");
-          }
-
-          if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_nid)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_nid.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_nid.dat");
-
-            strcpy(first_line,"for scalar cross ADxNID mode ");
-          }
-
-          if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_niv)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_ad_niv.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ad_niv.dat");
-
-            strcpy(first_line,"for cross ADxNIV mode ");
-          }
-
-          if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_cdi)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi_cdi.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_bi_cdi.dat");
-
-            strcpy(first_line,"for cross BIxCDI mode ");
-          }
-
-          if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_nid)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi_nid.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_bi_nid.dat");
-
-            strcpy(first_line,"for cross BIxNID mode ");
-          }
-
-          if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_bi) && (index_ic2 == ppt->index_ic_niv)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_bi_niv.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_ni_niv.dat");
-
-            strcpy(first_line,"for cross BIxNIV mode ");
-          }
-
-          if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_nid)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_cdi_nid.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_cdi_nid.dat");
-
-            strcpy(first_line,"for cross CDIxNID mode ");
-          }
-
-          if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_cdi) && (index_ic2 == ppt->index_ic_niv)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_cdi_niv.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_cdi_niv.dat");
-
-            strcpy(first_line,"for cross CDIxNIV mode ");
-          }
-
-          if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (index_ic1 == ppt->index_ic_nid) && (index_ic2 == ppt->index_ic_niv)) {
-
-            sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nid_niv.dat");
-            if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nid_niv.dat");
-
-            strcpy(first_line,"for cross NIDxNIV mode ");
-          }
-
-          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
-
-          if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-
-            class_call(output_open_pk_file(pba,
-                                           psp,
-                                           pop,
-                                           &(out_ic[index_ic1_ic2]),
-                                           file_name,
-                                           first_line,
-                                           pop->z_pk[index_z]
-                                           ),
-                       pop->error_message,
-                       pop->error_message);
-
-            if (pba->has_ncdm) {
               class_call(output_open_pk_file(pba,
-                                             psp,
+                                             pnl,
                                              pop,
-                                             &(out_cb_ic[index_ic1_ic2]),
-                                             file_cb_name,
+                                             &(out_pk_ic[index_ic1_ic2]),
+                                             file_name,
                                              first_line,
                                              pop->z_pk[index_z]
                                              ),
@@ -881,298 +804,85 @@ int output_pk(
           }
         }
       }
-    }
 
-    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
+      /** - third, compute P(k) for each k */
 
-    /* if z_pk = 0, no interpolation needed */
-
-    if (pop->z_pk[index_z] == 0.) {
-
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-
-        if (psp->ic_size[index_md] == 1) {
-          pk_tot[index_k] = exp(psp->ln_pk[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
-          if (pba->has_ncdm) pk_cb_tot[index_k] = exp(psp->ln_pk_cb[(psp->ln_tau_size-1) * psp->ln_k_size + index_k]);
-        }
-        else {
-          pk_tot[index_k] = 0.;
-          if (pba->has_ncdm) pk_cb_tot[index_k] = 0.;
-          for (index_ic1=0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md]);
-            pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = exp(psp->ln_pk[((psp->ln_tau_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-            pk_tot[index_k] += pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
-
-            if(pba->has_ncdm){
-              pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2] = exp(psp->ln_pk_cb[((psp->ln_tau_size-1) * psp->ln_k_size + index_k) * psp->ic_ic_size[index_md] + index_ic1_ic2]);
-              pk_cb_tot[index_k] += pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
-            }
-          }
-          for (index_ic1=0; index_ic1 < psp->ic_size[index_md]; index_ic1++) {
-            for (index_ic2 = index_ic1+1; index_ic2 < psp->ic_size[index_md]; index_ic2++) {
-              pk_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])] =
-                psp->ln_pk[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])]
-                *sqrt(pk_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])] *
-                      pk_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-              pk_tot[index_k] += 2.*pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
-
-              if(pba->has_ncdm){
-                pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])] =
-                  psp->ln_pk_cb[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md])]
-                  *sqrt(pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic1,index_ic1,psp->ic_size[index_md])] *
-                        pk_ic[index_k * psp->ic_ic_size[index_md] + index_symmetric_matrix(index_ic2,index_ic2,psp->ic_size[index_md])]);
-                pk_cb_tot[index_k] += 2.*pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2];
-              }
-            }
-          }
-        }
-      }
-    }
-
-    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
-    else {
-
-      class_call(spectra_pk_at_z(pba,
-                                 psp,
-                                 linear,
-                                 pop->z_pk[index_z],
-                                 pk_tot,
-                                 pk_ic,
-                                 pk_cb_tot,
-                                 pk_cb_ic),
-                 psp->error_message,
-                 pop->error_message);
-    }
-
-    /** - fourth, write in files */
-
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-
-      class_call(output_one_line_of_pk(out,
-                                       exp(psp->ln_k[index_k])/pba->h,
-                                       pk_tot[index_k]*pow(pba->h,3)),
-                 pop->error_message,
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   logarithmic,
+                                   pk_output,
+                                   pop->z_pk[index_z],
+                                   index_pk,
+                                   ln_pk,
+                                   ln_pk_ic
+                                   ),
+                 pnl->error_message,
                  pop->error_message);
 
-      if(pba->has_ncdm){
-        class_call(output_one_line_of_pk(out_cb,
-                                         exp(psp->ln_k[index_k])/pba->h,
-                                         pk_cb_tot[index_k]*pow(pba->h,3)),
+      /** - fourth, write in files */
+
+      for (index_k=0; index_k<pnl->k_size; index_k++) {
+
+        class_call(output_one_line_of_pk(out_pk,
+                                         exp(pnl->ln_k[index_k])/pba->h,
+                                         exp(ln_pk[index_k])*pow(pba->h,3)
+                                         ),
                    pop->error_message,
                    pop->error_message);
-      }
 
-      if (psp->ic_size[index_md] > 1) {
+        if (do_ic == _TRUE_) {
 
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
+          for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
 
-          if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+            if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
 
-            class_call(output_one_line_of_pk(out_ic[index_ic1_ic2],
-                                             exp(psp->ln_k[index_k])/pba->h,
-                                             pk_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]*pow(pba->h,3)),
-                       pop->error_message,
-                       pop->error_message);
-
-            if(pba->has_ncdm){
-              class_call(output_one_line_of_pk(out_cb_ic[index_ic1_ic2],
-                                               exp(psp->ln_k[index_k])/pba->h,
-                                               pk_cb_ic[index_k * psp->ic_ic_size[index_md] + index_ic1_ic2]*pow(pba->h,3)),
+              class_call(output_one_line_of_pk(out_pk_ic[index_ic1_ic2],
+                                               exp(pnl->ln_k[index_k])/pba->h,
+                                               exp(ln_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2])*pow(pba->h,3)),
                          pop->error_message,
                          pop->error_message);
-
             }
           }
         }
-      }
-    }
+      } /* end loop over k */
 
-    /** - fifth, free memory and close files */
+      /** - fifth, close files */
 
-    free(pk_tot);
-    if(pba->has_ncdm) free(pk_cb_tot);
-    fclose(out);
-    if(pba->has_ncdm) fclose(out_cb);
+      fclose(out_pk);
 
-    if (psp->ic_size[index_md] > 1) {
-      for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
-        if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
-          fclose(out_ic[index_ic1_ic2]);
-          if(pba->has_ncdm) fclose(out_cb_ic[index_ic1_ic2]);
+      if (do_ic == _TRUE_) {
+        for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+          if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+            fclose(out_pk_ic[index_ic1_ic2]);
+          }
         }
       }
-      free(out_ic);
-      if(pba->has_ncdm) free(out_cb_ic);
-      free(pk_ic);
-      if(pba->has_ncdm) free(pk_cb_ic);
-    }
+
+    } /* end loop over index_z */
+
+  } /* end loop over index_pk */
+
+  /* free arrays and pointers */
+  free(ln_pk);
+  if (pk_output == pk_linear) {
+    free(ln_pk_ic);
+    free(out_pk_ic);
   }
 
   return _SUCCESS_;
-
 }
-
-/**
- * This routines writes the output in files for Fourier non-linear matter power spectra P(k)'s.
- *
- * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
- * @param ppt Input: pointer perturbation structure
- * @param psp Input: pointer to spectra structure
- * @param pop Input: pointer to output structure
- */
-
-int output_pk_nl(
-                 struct background * pba,
-                 struct perturbs * ppt,
-                 struct spectra * psp,
-                 struct output * pop
-                 ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  FILE * out;     /* (will contain total P(k) summed eventually over initial conditions) */
-
-  double * pk_tot; /* array with argument pk_tot[index_k] */
-
-  FILE * out_cb;
-  double * pk_cb_tot=NULL;
-
-  int index_k;
-  int index_z;
-
-  FileName file_name;
-  FileName file_cb_name;
-  char redshift_suffix[7]; // 7 is enough to write "z%d_" as long as there are at most 10'000 bins
-
-  for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
-
-    /** - first, check that requested redshift z_pk is consistent */
-
-    class_test((pop->z_pk[index_z] > psp->z_max_pk),
-               pop->error_message,
-               "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
-
-    if (pop->z_pk_num == 1)
-      redshift_suffix[0]='\0';
-    else
-      sprintf(redshift_suffix,"z%d_",index_z+1);
-
-    /** - second, open only the relevant files, and write a heading in each of them */
-
-    sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"pk_nl.dat");
-    if (pba->has_ncdm) sprintf(file_cb_name,"%s%s%s",pop->root,redshift_suffix,"pk_cb_nl.dat");
-
-    class_call(output_open_pk_file(pba,
-                                   psp,
-                                   pop,
-                                   &out,
-                                   file_name,
-                                   "",
-                                   pop->z_pk[index_z]
-                                   ),
-               pop->error_message,
-               pop->error_message);
-
-    if (pba->has_ncdm){
-      class_call(output_open_pk_file(pba,
-                                     psp,
-                                     pop,
-                                     &out_cb,
-                                     file_cb_name,
-                                     "",
-                                     pop->z_pk[index_z]
-                                     ),
-                 pop->error_message,
-                 pop->error_message);
-    }
-
-    class_alloc(pk_tot,
-                psp->ln_k_size*sizeof(double),
-                pop->error_message);
-
-    if (pba->has_ncdm){
-      class_alloc(pk_cb_tot,
-                  psp->ln_k_size*sizeof(double),
-                  pop->error_message);
-    }
-
-    /** - third, compute P(k) for each k (if several ic's, compute it for each ic and compute also the total); if z_pk = 0, this is done by directly reading inside the pre-computed table; if not, this is done by interpolating the table at the correct value of tau. */
-
-    /* if z_pk = 0, no interpolation needed */
-
-    if (pop->z_pk[index_z] == 0.) {
-
-      for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-
-        pk_tot[index_k] = exp(psp->ln_pk_nl[(psp->ln_tau_nl_size-1) * psp->ln_k_size + index_k]);
-
-        if (pba->has_ncdm) pk_cb_tot[index_k] = exp(psp->ln_pk_cb_nl[(psp->ln_tau_nl_size-1) * psp->ln_k_size + index_k]);
-
-      }
-    }
-
-    /* if 0 <= z_pk <= z_max_pk, interpolation needed, */
-    else {
-
-      class_call(spectra_pk_nl_at_z(pba,
-                                    psp,
-                                    linear,
-                                    pop->z_pk[index_z],
-                                    pk_tot,
-                                    pk_cb_tot),
-                 psp->error_message,
-                 pop->error_message);
-    }
-
-    /** - fourth, write in files */
-
-    for (index_k=0; index_k<psp->ln_k_size; index_k++) {
-
-      class_call(output_one_line_of_pk(out,
-                                       exp(psp->ln_k[index_k])/pba->h,
-                                       pk_tot[index_k]*pow(pba->h,3)),
-                 pop->error_message,
-                 pop->error_message);
-
-      if (pba->has_ncdm){
-        class_call(output_one_line_of_pk(out_cb,
-                                         exp(psp->ln_k[index_k])/pba->h,
-                                         pk_cb_tot[index_k]*pow(pba->h,3)),
-                   pop->error_message,
-                   pop->error_message);
-      }
-
-    }
-
-    /** - fifth, free memory and close files */
-
-    fclose(out);
-    if (pba->has_ncdm) fclose(out_cb);
-    free(pk_tot);
-    if (pba->has_ncdm) free(pk_cb_tot);
-
-  }
-
-  return _SUCCESS_;
-
-}
-
 
 /**
  * This routines writes the output in files for matter transfer functions \f$ T_i(k)\f$'s.
  *
  * @param pba Input: pointer to background structure (needed for calling spectra_pk_at_z())
  * @param ppt Input: pointer perturbation structure
- * @param psp Input: pointer to spectra structure
  * @param pop Input: pointer to output structure
  */
 
 int output_tk(
               struct background * pba,
               struct perturbs * ppt,
-              struct spectra * psp,
               struct output * pop
               ) {
 
@@ -1211,13 +921,13 @@ int output_tk(
   }
 
 
-  class_call(spectra_output_tk_titles(pba,ppt,pop->output_format,titles),
+  class_call(perturb_output_titles(pba,ppt,pop->output_format,titles),
              pba->error_message,
              pop->error_message);
   number_of_titles = get_number_of_titles(titles);
-  size_data = number_of_titles*psp->ln_k_size;
+  size_data = number_of_titles*ppt->k_size[index_md];
 
-  class_alloc(data, sizeof(double)*psp->ic_size[index_md]*size_data, pop->error_message);
+  class_alloc(data, sizeof(double)*ppt->ic_size[index_md]*size_data, pop->error_message);
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
@@ -1225,9 +935,9 @@ int output_tk(
 
     /** - first, check that requested redshift z_pk is consistent */
 
-    class_test((pop->z_pk[index_z] > psp->z_max_pk),
+    class_test((pop->z_pk[index_z] > ppt->z_max_pk),
                pop->error_message,
-               "T_i(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",psp->z_max_pk,pop->z_pk[index_z]);
+               "T_i(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1)
       redshift_suffix[0]='\0';
@@ -1236,21 +946,20 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_call(spectra_output_tk_data(pba,
+    class_call(perturb_output_data(pba,
                                       ppt,
-                                      psp,
                                       pop->output_format,
                                       pop->z_pk[index_z],
                                       number_of_titles,
                                       data
                                       ),
-               psp->error_message,
+               ppt->error_message,
                pop->error_message);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      class_call(spectra_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
-                 pop->error_message, pop->error_message);
+      class_call(perturb_output_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
+                 ppt->error_message, pop->error_message);
 
       if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
         sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
@@ -1262,8 +971,8 @@ int output_tk(
       if (pop->write_header == _TRUE_) {
         if (pop->output_format == class_format) {
           fprintf(tkfile,"# Transfer functions T_i(k) %sat redshift z=%g\n",first_line,z);
-          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-          fprintf(tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",ppt->k[index_md][0]/pba->h,ppt->k[index_md][ppt->k_size[index_md]-1]/pba->h);
+          fprintf(tkfile,"# number of wavenumbers equal to %d\n",ppt->k_size[index_md]);
           if (ppt->has_density_transfers == _TRUE_) {
             fprintf(tkfile,"# d_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
             fprintf(tkfile,"# d_tot stands for (delta rho_tot/rho_tot)(k,z) with rho_Lambda NOT included in rho_tot\n");
@@ -1279,8 +988,8 @@ int output_tk(
         else if (pop->output_format == camb_format) {
 
           fprintf(tkfile,"# Rescaled matter transfer functions [-T_i(k)/k^2] %sat redshift z=%g\n",first_line,z);
-          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",exp(psp->ln_k[0])/pba->h,exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-          fprintf(tkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+          fprintf(tkfile,"# for k=%g to %g h/Mpc,\n",ppt->k[index_md][0]/pba->h,ppt->k[index_md][ppt->k_size[index_md]-1]/pba->h);
+          fprintf(tkfile,"# number of wavenumbers equal to %d\n",ppt->k_size[index_md]);
           fprintf(tkfile,"# T_i   stands for (delta rho_i/rho_i)(k,z) with above normalization \n");
           fprintf(tkfile,"# The rescaling factor [-1/k^2] with k in 1/Mpc is here to match the CMBFAST/CAMB output convention\n");
           fprintf(tkfile,"#\n");
@@ -1390,15 +1099,25 @@ int output_thermodynamics(
   if (pop->write_header == _TRUE_) {
     fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
     fprintf(thermofile,"# The following notation is used in column titles:\n");
-    fprintf(thermofile,"#    x_e = electron ionization fraction\n");
-    fprintf(thermofile,"# -kappa = optical depth\n");
-    fprintf(thermofile,"# kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
-    fprintf(thermofile,"#      g = kappa' e^-kappa = visibility function \n");
-    fprintf(thermofile,"#     Tb = baryon temperature \n");
-    fprintf(thermofile,"#  c_b^2 = baryon sound speed squared \n");
-    fprintf(thermofile,"#  tau_d = baryon drag optical depth \n");
-    if (pth->compute_damping_scale == _TRUE_) {
-      fprintf(thermofile,"#  r_d = simplest analytic approximation to photon comoving damping scale \n");
+    fprintf(thermofile,"#         x_e = electron ionization fraction\n");
+    fprintf(thermofile,"#      -kappa = optical depth\n");
+    fprintf(thermofile,"#      kappa' = Thomson scattering rate, prime denotes conformal time derivatives\n");
+    fprintf(thermofile,"#           g = kappa' e^-kappa = visibility function \n");
+    fprintf(thermofile,"#          Tb = baryon temperature \n");
+    fprintf(thermofile,"#         w_b = baryon equation of state parameter \n");
+    fprintf(thermofile,"#       c_b^2 = baryon sound speed squared \n");
+    fprintf(thermofile,"#       tau_d = baryon drag optical depth \n");
+    if (pth->compute_damping_scale == _TRUE_)
+      fprintf(thermofile,"#         r_d = approximate comoving value of photon damping scale \n");
+    if(pba->has_idm_dr == _TRUE_) {
+      fprintf(thermofile,"#  dmu_idm_dr = scattering rate of idr with idm_dr (i.e. idr opacity to idm_dr scattering) (units 1/Mpc)\n");
+      fprintf(thermofile,"# ddmu_idm_dr = derivative of this rate\n");
+      fprintf(thermofile,"#  tau_idm_dr = optical depth of idm_dr (due to interactions with idr) \n");
+      fprintf(thermofile,"#     tau_idr = optical depth of idr (due to self-interactions) \n");
+      fprintf(thermofile,"#    g_idm_dr = visibility function of idm_idr \n");
+      fprintf(thermofile,"#  c_idm_dr^2 = interacting dark matter squared sound speed \n");
+      fprintf(thermofile,"#    T_idm_dr = temperature of DM interacting with DR \n");
+      fprintf(thermofile,"#     dmu_idr = idr self-interaction rate \n");
     }
   }
 
@@ -1786,7 +1505,7 @@ int output_one_line_of_cl(
  * a heading with some general information concerning its content.
  *
  * @param pba        Input: pointer to background structure (needed for h)
- * @param psp        Input: pointer to spectra structure
+ * @param pnl        Input: pointer to nonlinear structure
  * @param pop        Input: pointer to output structure
  * @param pkfile     Output: returned pointer to file pointer
  * @param filename   Input: name of the file
@@ -1797,7 +1516,7 @@ int output_one_line_of_cl(
 
 int output_open_pk_file(
                         struct background * pba,
-                        struct spectra * psp,
+                        struct nonlinear * pnl,
                         struct output * pop,
                         FILE * * pkfile,
                         FileName filename,
@@ -1811,9 +1530,9 @@ int output_open_pk_file(
   if (pop->write_header == _TRUE_) {
     fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z);
     fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",
-            exp(psp->ln_k[0])/pba->h,
-            exp(psp->ln_k[psp->ln_k_size-1])/pba->h);
-    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",psp->ln_k_size);
+            exp(pnl->ln_k[0])/pba->h,
+            exp(pnl->ln_k[pnl->k_size-1])/pba->h);
+    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size);
 
     fprintf(*pkfile,"#");
     class_fprintf_columntitle(*pkfile,"k (h/Mpc)",_TRUE_,colnum);

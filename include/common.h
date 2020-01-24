@@ -15,7 +15,7 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.7.1"
+#define _VERSION_ "v2.9.0"
 /* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
@@ -42,6 +42,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _SQRT_PI_ 1.77245385090551602729816748334e0 /**< square root of pi. */
 
+#define _E_ 2.718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427427466391932003059921817413596629043572900334295260595630738132328627943490763233829880753195251019011573834187930702154089149934884167509244761460668082264800168477411853742345442437107539077744992069551702761838606261331384583000752044933826560297606737113200709328709127443747047230696977209310141692836819025515108657463772111252389784425056953696 /**< exponential of one */
+
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
 #define _QUADRATURE_MAX_ 250 /**< maximum allowed number of abssices in quadrature integral estimation */
@@ -52,6 +54,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _HUGE_ 1.e99
 
+#define _EPSILON_ 1.e-10
+
 #define _OUTPUTPRECISION_ 12 /**< Number of significant digits in some output files */
 
 #define _COLUMNWIDTH_ 24 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
@@ -59,8 +63,6 @@ typedef char FileName[_FILENAMESIZE_];
 #define _MAXTITLESTRINGLENGTH_ 8000 /**< Maximum number of characters in title strings */
 
 #define _DELIMITER_ "\t" /**< character used for delimiting titles in the title strings */
-
-
 
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */

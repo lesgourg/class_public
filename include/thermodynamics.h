@@ -99,7 +99,7 @@ struct thermo
 
   double binned_reio_step_sharpness; /**< sharpness of tanh() step interpolating between binned values */
 
-    /** parameters for reio_many_tanh */
+  /** parameters for reio_many_tanh */
 
   int many_tanh_num; /**< with how many jumps do we want to describe reionization? */
 
@@ -119,13 +119,13 @@ struct thermo
 
   /** parameters for energy injection */
 
-  double annihilation; /** parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
+  double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
 
-  short has_on_the_spot; /** flag to specify if we want to use the on-the-spot approximation **/
+  short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
 
-  double decay; /** parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
+  double decay; /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
 
-  double annihilation_variation; /** if this parameter is non-zero,
+  double annihilation_variation; /**< if this parameter is non-zero,
 				     the function F(z)=(f <sigma*v> /
 				     m_cdm)(z) will be a parabola in
 				     log-log scale between zmin and
@@ -135,21 +135,26 @@ struct thermo
 				     zmax; it will be constant outside
 				     this range */
 
-  double annihilation_z; /** if annihilation_variation is non-zero,
+  double annihilation_z; /**< if annihilation_variation is non-zero,
 			     this is the value of z at which the
 			     parameter annihilation is defined, i.e.
 			     F(annihilation_z)=annihilation */
 
-  double annihilation_zmax; /** if annihilation_variation is non-zero,
+  double annihilation_zmax; /**< if annihilation_variation is non-zero,
 				redshift above which annihilation rate
 				is maximal */
 
-  double annihilation_zmin; /** if annihilation_variation is non-zero,
+  double annihilation_zmin; /**< if annihilation_variation is non-zero,
 				redshift below which annihilation rate
 				is constant */
 
-  double annihilation_f_halo; /** takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo; /** characteristic redshift for DM annihilation in halos*/
+  double annihilation_f_halo; /**< takes the contribution of DM annihilation in halos into account*/
+  double annihilation_z_halo; /**< characteristic redshift for DM annihilation in halos*/
+
+  double a_idm_dr;      /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
+  double b_idr;         /**< strength of the self coupling for interacting dark radiation (idr-idr) */
+  double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation */
+  double m_idm;         /**< interacting dark matter mass */
 
   //@}
 
@@ -162,12 +167,22 @@ struct thermo
   int index_th_tau_d;         /**< Baryon drag optical depth */
   int index_th_ddkappa;       /**< scattering rate derivative \f$ d^2 \kappa / d \tau^2 \f$ */
   int index_th_dddkappa;      /**< scattering rate second derivative \f$ d^3 \kappa / d \tau^3 \f$ */
-  int index_th_exp_m_kappa;  /**< \f$ exp^{-\kappa} \f$ */
+  int index_th_exp_m_kappa;   /**< \f$ exp^{-\kappa} \f$ */
   int index_th_g;             /**< visibility function \f$ g = (d \kappa / d \tau) * exp^{-\kappa} \f$ */
   int index_th_dg;            /**< visibility function derivative \f$ (d g / d \tau) \f$ */
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
+  int index_th_dmu_idm_dr;    /**< scattering rate of idr with idm_dr (i.e. idr opacity to idm_dr scattering) (units 1/Mpc) */
+  int index_th_ddmu_idm_dr;   /**< derivative of this scattering rate */
+  int index_th_dddmu_idm_dr;  /**< second derivative of this scattering rate */
+  int index_th_dmu_idr;       /**< idr self-interaction rate */
+  int index_th_tau_idm_dr;    /**< optical depth of idm_dr (due to interactions with idr) */
+  int index_th_tau_idr;       /**< optical depth of idr (due to self-interactions) */
+  int index_th_g_idm_dr;      /**< visibility function of idm_idr */
+  int index_th_cidm_dr2;      /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
+  int index_th_Tidm_dr;       /**< temperature of DM interacting with DR \f$ T_{idm_dr} \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
-  int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_th_wb;            /**< baryon equation of state parameter \f$ w_b = k_B T_b / \mu \f$ */
+  int index_th_cb2;           /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
@@ -206,13 +221,24 @@ struct thermo
   double ra_rec;  /**< conformal angular diameter distance to recombination */
   double da_rec;  /**< physical angular diameter distance to recombination */
   double rd_rec;  /**< comoving photon damping scale at recombination */
+
+  double z_star;  /**< redshift at which photon optical depth crosses one */
+  double tau_star;/**< confirmal time at which photon optical depth crosses one */
+  double rs_star; /**< comoving sound horizon at z_star */
+  double ds_star; /**< physical sound horizon at z_star */
+  double ra_star;  /**< conformal angular diameter distance to z_star */
+  double da_star;  /**< physical angular diameter distance to z_star */
+  double rd_star;  /**< comoving photon damping scale at z_star */
+
   double z_d;     /**< baryon drag redshift */
   double tau_d;   /**< baryon drag time */
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
+
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
   double angular_rescaling; /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
-  double tau_free_streaming;   /**< minimum value of tau at which sfree-streaming approximation can be switched on */
+  double tau_free_streaming;     /**< minimum value of tau at which free-streaming approximation can be switched on */
+  double tau_idr_free_streaming; /**< trigger for dark radiation free streaming approximation (idm-idr) */
 
   //@}
 
@@ -271,7 +297,8 @@ struct recombination {
   int index_re_z;          /**< redshift \f$ z \f$ */
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
-  int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_re_wb;         /**< baryon equation of state parameter \f$ w_b \f$ */
+  int index_re_cb2;        /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau \f$ (units 1/Mpc) */
   int re_size;             /**< size of this vector */
 
@@ -365,7 +392,8 @@ struct reionization {
   int index_re_z;          /**< redshift \f$ z \f$ */
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
-  int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_re_wb;         /**< baryon equation of state parameter \f$ w_b \f$ */
+  int index_re_cb2;        /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int index_re_dkappadz;   /**< Thomson scattering rate with respect to redshift \f$ d \kappa / d z\f$ (units 1/Mpc) */
   int index_re_d3kappadz3; /**< second derivative of previous quantity with respect to redshift */
@@ -481,10 +509,11 @@ extern "C" {
 			  );
 
   int thermodynamics_indices(
-			     struct thermo * pthermo,
-			     struct recombination * preco,
-			     struct reionization * preio
-			     );
+                             struct background * pba,
+                             struct thermo * pthermo,
+                             struct recombination * preco,
+                             struct reionization * preio
+                             );
 
   int thermodynamics_helium_from_bbn(
 				     struct precision * ppr,
@@ -576,6 +605,7 @@ extern "C" {
 
   int thermodynamics_merge_reco_and_reio(
 					 struct precision * ppr,
+                     struct background * pba,
 					 struct thermo * pth,
 					 struct recombination * preco,
 					 struct reionization * preio
