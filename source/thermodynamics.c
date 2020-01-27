@@ -1128,11 +1128,11 @@ int thermodynamics_init(
       interpolation) and sound horizon at that time */
 
   index_tau=0;
-  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa] > 1./_E_) && (index_tau < pth->tt_size))
+  while ((pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa] > exp(-(1.+pth->tau_reio))) && (index_tau < pth->tt_size))
     index_tau++;
 
   pth->z_star = pth->z_table[index_tau-1]+
-    (1./_E_-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
+    (exp(-(1.+pth->tau_reio))-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
     /(pth->thermodynamics_table[(index_tau)*pth->th_size+pth->index_th_exp_m_kappa]-pth->thermodynamics_table[(index_tau-1)*pth->th_size+pth->index_th_exp_m_kappa])
     *(pth->z_table[index_tau]-pth->z_table[index_tau-1]);
 
