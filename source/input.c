@@ -1519,12 +1519,6 @@ int input_read_parameters_general(struct file_content * pfc,
                errmsg);
     class_test(flag1==_FALSE_,
                errmsg, "The options for output are {'tCl','pCl','lCl','nCl','dCl','sCl','mPk','mTk','dTk','vTk'}, you entered '%s'",string1);
-    // [NS] :: TODO :: check
-    /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
-    if(ppt->has_perturbations == _FALSE_) {
-      free(ppt->alpha_idm_dr);
-      free(ppt->beta_idr);
-    }
   }
 
   /** 1.a) Terms contributing to the temperature spectrum */
@@ -2481,7 +2475,7 @@ int input_read_parameters_species(struct file_content * pfc,
     class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
 
     /** 7.2.g) Read alpha_idm_dr or alpha_dark */
- class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+    class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
                errmsg,
                errmsg);
 
@@ -2492,15 +2486,19 @@ int input_read_parameters_species(struct file_content * pfc,
                  errmsg);
     }
 
-    if(flag1 == _TRUE_){
-      if(entries_read != (ppr->l_max_idr-1)){
-        class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+    // [NS] :: TODO :: move to perturbations module this allocation somehow? + fix bug that happens when entries_read == l_max_idr-1
+    /* Only allocate if perturbations module will be called (otherwise segfaults) */
+    if (ppt->has_perturbations) {
+      if(flag1 == _TRUE_){
+        if(entries_read != (ppr->l_max_idr-1)){
+          class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+          for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+        }
       }
-    }
-    else{
-      class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
+      else{
+        class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
+      }
     }
 
     /* 7.2.h) Read beta_idm_dr or beta_dark */
@@ -2516,15 +2514,19 @@ int input_read_parameters_species(struct file_content * pfc,
                  errmsg);
     }
 
-    if(flag1 == _TRUE_){
-      if(entries_read != (ppr->l_max_idr-1)){
-        class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+    // [NS] :: TODO :: move to perturbations module this allocation somehow? + fix bug that happens when entries_read == l_max_idr-1
+    /* Only allocate if perturbations module will be called (otherwise segfaults) */
+    if (ppt->has_perturbations) {
+      if(flag1 == _TRUE_){
+        if(entries_read != (ppr->l_max_idr-1)){
+          class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+          for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+        }
       }
-    }
-    else{
-      class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
+      else{
+        class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
+      }
     }
   }
  
@@ -4018,7 +4020,6 @@ int input_read_parameters_spectra(struct file_content * pfc,
       }
       /* Now we have checked all contributions that could change z_max_pk */
     }
-    psp->z_max_pk = ppt->z_max_pk;
   }
 
   return _SUCCESS_;
@@ -4364,15 +4365,6 @@ int input_read_parameters_output(struct file_content * pfc,
 
   return _SUCCESS_;
 
-}
-
-// [NS] :: TODO check if necessary
-int compare_integers(const void * elem1, const void * elem2) {
-  int f = *((int*)elem1);
-  int s = *((int*)elem2);
-  if (f > s) return  1;
-  if (f < s) return -1;
-  return 0;
 }
 
 int compare_doubles(const void *a,
@@ -4807,8 +4799,6 @@ int input_default_params(struct background *pba,
   pop->z_pk[0] = 0.;
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
-  // [NS] :: TODO check if still exits 
-  psp->z_max_pk=0.;
 
   /**
    * Default to input_read_parameters_lensing
