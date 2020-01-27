@@ -2088,7 +2088,7 @@ int background_initial_conditions(
         log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
       if (3.*pow(scf_lambda,2)-12. < 0){
         /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
-    	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
+        pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
         if (pba->background_verbose > 0)
           printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
       }

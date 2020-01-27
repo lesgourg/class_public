@@ -986,8 +986,6 @@ int perturb_indices_of_perturbs(
   int index_type_common;
   int filenum;
 
-  int filenum;
-
   /** - count modes (scalar, vector, tensor) and assign corresponding indices */
 
   index_md = 0;

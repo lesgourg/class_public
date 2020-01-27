@@ -1388,7 +1388,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for nonlinear quantities */
-  class_call(input_read_parameters_nonlinear(pfc,ppr,pba,ppt,pnl,
+  class_call(input_read_parameters_nonlinear(pfc,ppr,pba,pth,ppt,pnl,
                                              input_verbose,
                                              errmsg),
              errmsg,
@@ -2793,14 +2793,15 @@ int input_read_parameters_heating(struct file_content * pfc,
 int input_read_parameters_nonlinear(struct file_content * pfc,
                                     struct precision * ppr,
                                     struct background * pba,
+                                    struct thermo * pth,
                                     struct perturbs * ppt,
                                     struct nonlinear * pnl,
                                     int input_verbose,
                                     ErrorMsg errmsg){
 
   /** Define local variables */
-  int flag1;
-  double param1;
+  int flag1,flag2,flag3;
+  double param1,param2,param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) Non-linearity */
@@ -2885,13 +2886,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
         pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
       }
 
-      class_call(parser_read_double(pfc,"z_infinity",&param1,&flag1,errmsg),
-                 errmsg,
-                 errmsg);
-
-      if (flag1 == _TRUE_) {
-        class_read_double("z_infinity", pnl->z_infinity);
-      }
+      class_read_double("z_infinity", pnl->z_infinity);
     }
     else{
       class_stop(errmsg,
