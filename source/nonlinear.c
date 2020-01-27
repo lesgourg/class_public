@@ -1908,7 +1908,7 @@ int nonlinear_get_source(
 
   double k,k_max,k_previous;
   double source_max,source_previous;
-  double scaled_factor;
+  double scaled_factor,log_scaled_factor;
 
   /** - use precomputed values */
   if (index_k < pnl->k_size) {
@@ -1967,8 +1967,8 @@ int nonlinear_get_source(
        */
     case extrap_max_scaled:
       {
-        scaled_factor = exp((source_previous*log(k_max)-source_max*log(k_previous))/(source_max-source_previous));
-        *source = source_max*(log(scaled_factor*k)/log(scaled_factor*k_max));
+        log_scaled_factor = (source_previous*log(k_max)-source_max*log(k_previous))/(source_max-source_previous);
+        *source = source_max*((log_scaled_factor+log(k))/(log_scaled_factor+log(k_max)));
         break;
       }
       /**
