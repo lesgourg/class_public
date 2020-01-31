@@ -1228,7 +1228,8 @@ int perturb_indices_of_perturbs(
           ppt->has_source_eta_prime = _TRUE_;
         }
         ppt->has_source_H_T_Nb_prime = _TRUE_;
-        ppt->has_source_k2gamma_Nb = _TRUE_;
+        /** gamma is not neccessary for converting output to Nbody gauge, so is not included for now. */
+        ppt->has_source_k2gamma_Nb = _FALSE_;
       }
 
       if (ppt->has_Nbody_gauge_transfers == _TRUE_){
@@ -1237,8 +1238,8 @@ int perturb_indices_of_perturbs(
           ppt->has_source_eta_prime = _TRUE_;
         }
         ppt->has_source_H_T_Nb_prime = _TRUE_;
-        /** gamma is not neccessary for converting output to Nbody gauge but is included anyway. */
-        ppt->has_source_k2gamma_Nb = _TRUE_;
+        /** gamma is not neccessary for converting output to Nbody gauge, so is not included for now. */
+        ppt->has_source_k2gamma_Nb = _FALSE_;
       }
 
       index_type = index_type_common;
