@@ -7275,7 +7275,7 @@ int perturb_derivs(double tau,
     else
       Vrms_idm_b2 = 1.e-8*powf(((1./pvecback[pba->index_bg_a])/1.e3),2);
     T_idm_b = pvecthermo[pth->index_th_T_idm_b]*_k_B_/_eV_; //Called from thermo DCH
-    T_diff_idm_b = (Tb_in_eV/m_b)+(T_idm_b/pba->m_dm)+(Vrms_idm_b2/3.0);
+    T_diff_idm_b = (Tb_in_eV/m_b)+(T_idm_b/pth->m_idm)+(Vrms_idm_b2/3.0);
     c_idm_b2 = pvecthermo[pth->index_th_c_idm_b2]; //Called from thermo DCH
     R_idm_b = pvecthermo[pth->index_th_R_idm_b];//
     //printf("R_idm_b = %e, c_idm_b2 = %e, T_idm_b = %e, T_diff = %e, T_b = %e \n", R_idm_b, c_idm_b2, T_idm_b, T_diff_idm_b, Tb_in_eV); //THOMAS
@@ -7584,10 +7584,10 @@ int perturb_derivs(double tau,
         double T_b_prime, T_idm_b_prime, beta_dark, R_idm_b_prime, dtau_idm_b;
         T_idm_b_prime = pvecthermo[pth->index_th_dT_idm_b]*(-pvecback[pba->index_bg_H]);
         T_b_prime = pvecthermo[pth->index_th_dTb]*(-pvecback[pba->index_bg_H]); // DCH!!!
-        R_idm_b_prime = (pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b*(1.0-pth->YHe)/(m_b+pba->m_dm))
+        R_idm_b_prime = (pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b*(1.0-pth->YHe)/(m_b+pth->m_idm))
           *(a_prime_over_a*a*T_diff_idm_b
             +a*((pth->n_index_idm_b+1.0)/2.0)*powf(T_diff_idm_b,((pth->n_index_idm_b-1.0)/2.0))
-            *(T_b_prime/m_b + T_idm_b_prime/pba->m_dm));
+            *(T_b_prime/m_b + T_idm_b_prime/pth->m_idm));
         dtau_idm_b = - R_idm_b_prime/(R_idm_b*R_idm_b);
         beta_dark = (pvecback[pba->index_bg_rho_idm_b]/pvecback[pba->index_bg_rho_b])/(1.+R)*(1./pvecthermo[pth->index_th_dkappa]*R_idm_b);
 

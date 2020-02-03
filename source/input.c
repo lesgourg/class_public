@@ -2405,7 +2405,7 @@ int input_read_parameters_species(struct file_content * pfc,
   /** 8.c) Read other idm_b parameters */
 
   if(pba->Omega0_idm_b > 0.0){ //read the other parameters needed for idm DCH
-    class_read_double("m_dm",pba->m_dm); //read the dark matter mass, in eV
+    class_read_double("m_idm",pth->m_idm); //read the dark matter mass, in eV
     class_read_double("n_index_idm_b",pth->n_index_idm_b); //read the index n for the dm-baryon interaction, sigma = cross_idm_b*v^n
     class_test(((pth->n_index_idm_b > 4)||(pth->n_index_idm_b < -4)),
                errmsg,
@@ -2413,7 +2413,7 @@ int input_read_parameters_species(struct file_content * pfc,
     // the following lines set the coefficent cn. TODO: change this to the actual formula used in Dvorkin et al. (2013)
     float cn_list[9] = {0.27, 0.33, 0.53, 1.0, 2.1, 5.0, 13.0, 35.0, 102.0};
     pth->n_coeff_idm_b = cn_list[4+pth->n_index_idm_b];
-    pth->u_idm_b = pth->cross_idm_b/pba->m_dm;
+    pth->u_idm_b = pth->cross_idm_b/pth->m_idm;
   }
 
   /* ** ADDITIONAL SPECIES ** */
@@ -4037,7 +4037,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                errmsg,
                errmsg);
     /* DCH Lya */
-    class_call(parser_read_string(pfc,"compute_neff_Lya",&string2,&flag2,errmsg),
+    class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag2,errmsg),
                errmsg,
                errmsg);
     /* Complete set of parameters */
@@ -4075,7 +4075,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
       }
 
       /* DCH Lya*/
-      if ((flag2 == _TRUE_) && ((strstr(string2,"y") != NULL) || (strstr(string2,"Y") != NULL))) {
+      if ((flag2 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
         psp->compute_neff_Lya=_TRUE_;
         class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
         class_read_double("Lya_z",psp->Lya_z);
@@ -4849,7 +4849,7 @@ int input_default_params(struct background *pba,
   /** 8.b) Omega_idm_b from Omega_cdm and f_idm_b */
   pba->Omega0_idm_b = 0;
   /** 8.c) Other idm_b parameters */
-  pba->m_dm = 1.e9;        /* dark matter mass for idm in eV DCH changed to pba for recfast*/
+  pth->m_idm = 1.e9;       /* dark matter mass for idm in eV DCH changed to pba for recfast*/
   pth->u_idm_b = 1.;       /* ratio between cross section and mass, used for comparison purposes DCH */
   pth->n_index_idm_b = 0.; /* dark matter index n for idm_b DCH*/
   pth->n_coeff_idm_b = 0.; /* dark matter coefficient cn for idm_b DCH*/
