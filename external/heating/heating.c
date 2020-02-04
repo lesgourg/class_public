@@ -1,8 +1,7 @@
 /** @file heating.c Documented heating module
  *
  * Initially written by:
- * Matteo Lucca, 27.02.2019
- * Nils Schoeneberg, 27.02.2019
+ * Nils Schoeneberg and Matteo Lucca, 27.02.2019
  *
  * The main goal of this module is to calculate the deposited energy in form of heating, ionization
  * and Lyman alpha processes. For more details see the description in the README file.
@@ -45,6 +44,7 @@ int heating_init(struct precision * ppr,
   phe->z_initial = ppr->thermo_z_initial;
   phe->z_start_chi_approx = ppr->z_start_chi_approx;
   phe->Nz_PBH = ppr->primordial_black_hole_Nz;
+  phe->heating_noninjected_Nz_log = ppr->heating_noninjected_Nz_log;
 
 
   /* Background structure */
@@ -265,6 +265,89 @@ int heating_free(struct thermo* pth){
 }
 
 
+int heating_noninjected_workspace_init(struct perturbs* ppt, struct primordial* ppm, struct heating* phe){
+
+  struct heating_noninjected_workspace* niws = phe->noninjws;
+
+  int index_k,index_z;
+  /** Allocate new storage space that is a bit coarser in z as to reduce computational costs */
+  niws->logz_max = log(1.+phe->z_table[phe->z_size-1]);
+  niws->z_size_coarse = phe->heating_noninjected_Nz_log; /* This table is only going to be filled after the initial run anyway */
+  class_alloc(niws->z_table_coarse,
+              niws->z_size_coarse*sizeof(double),
+              niws->error_message);
+  for(index_z=0;index_z<niws->z_size_coarse-1;++index_z){
+    niws->z_table_coarse[index_z] = exp(index_z*niws->logz_max/(niws->z_size_coarse-1))-1.;
+  }
+  niws->z_table_coarse[niws->z_size_coarse-1] = phe->z_table[phe->z_size-1];
+
+  class_alloc(niws->injected_deposition,
+              niws->z_size_coarse*sizeof(double),
+              niws->error_message);
+  class_alloc(niws->ddinjected_deposition,
+              niws->z_size_coarse*sizeof(double),
+              niws->error_message);
+
+  /** Allocate qunatities from primordial structure */
+  niws->k_max = 1.e6;
+  niws->k_min = 0.12;
+  niws->k_size = 500;        /* Found to be reasonable for the integral of acoustic dissipation, TODO :: make precision variable */
+  class_alloc(niws->k,
+              niws->k_size*sizeof(double),
+              phe->error_message);
+  class_alloc(niws->k_weights,
+              niws->k_size*sizeof(double),
+              phe->error_message);
+  class_alloc(niws->pk_primordial_k,
+              niws->k_size*sizeof(double),
+              phe->error_message);
+
+  /** Import primordial spectrum */
+  for (index_k=0; index_k<niws->k_size; index_k++) {
+    niws->k[index_k] = exp(log(niws->k_min)+(log(niws->k_max)-log(niws->k_min))/(niws->k_size)*index_k);
+    class_call(primordial_spectrum_at_k(ppm,
+                                        ppt->index_md_scalars,
+                                        linear,
+                                        niws->k[index_k],
+                                        &niws->pk_primordial_k[index_k]),
+               ppm->error_message,
+               niws->error_message);
+  }
+
+  class_call(array_trapezoidal_weights(niws->k,
+                                       niws->k_size,
+                                       niws->k_weights,
+                                       niws->error_message),
+             niws->error_message,
+             niws->error_message);
+
+  if (phe->heating_rate_acoustic_diss_approx == _TRUE_){
+    class_alloc(niws->integrand_approx,
+                niws->k_size*sizeof(double),
+                niws->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+int heating_noninjected_workspace_free(struct heating* phe){
+
+  struct heating_noninjected_workspace* niws = phe->noninjws;
+
+  free(niws->k);
+  free(niws->k_weights);
+  free(niws->pk_primordial_k);
+
+  free(niws->z_table_coarse);
+  free(niws->injected_deposition);
+  free(niws->ddinjected_deposition);
+
+  if (phe->heating_rate_acoustic_diss_approx == _TRUE_){
+    free(niws->integrand_approx);
+  }
+
+  return _SUCCESS_;
+}
 /**
  * Calculate the heating (first order only) at the given redshift.
  * If phe->to_store is set to true, also store the value in
@@ -676,15 +759,29 @@ int heating_add_noninjected(struct background* pba,
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
+  struct heating_noninjected_workspace* niws;
   int index_z;
   double tau;
-  int last_index_back, last_index_thermo;
+  int last_index_back, last_index_thermo, last_index_coarse;
   double *pvecback, *pvecthermo;
   double R, dkappa;
   int index_k;
   double dEdt;
-  int index_dep;
   double z_wkb, tau_wkb;
+  double h,a,b;
+
+  /* Store the deposition in here */
+  double temp_injection;
+  double z_coarse;
+
+  /** Allocate workspace to keep track of the arrays/values used throughout this function */
+  class_alloc(phe->noninjws,sizeof(struct heating_noninjected_workspace),phe->error_message);
+  class_call(heating_noninjected_workspace_init(ppt,ppm,phe),
+             phe->noninjws->error_message,
+             phe->error_message);
+
+  /** Define useful shortcut (do AFTER allocating) */
+  niws = phe->noninjws;
 
   /** Allocate backgorund and thermodynamcis vectors */
   last_index_back = 0;
@@ -695,29 +792,6 @@ int heating_add_noninjected(struct background* pba,
   class_alloc(pvecthermo,
               pth->tt_size*sizeof(double),
               phe->error_message);
-
-  /** Allocate qunatities from primordial structure */
-  phe->k_max = 1.e6;
-  phe->k_min = 0.12;
-  phe->k_size = 500;        /* Found to be reasonable for the integral of acoustic dissipation */
-  class_alloc(phe->k, //TODO :: make these not part of the struct anymore
-              phe->k_size*sizeof(double),
-              phe->error_message);
-  class_alloc(phe->pk_primordial_k,
-              phe->k_size*sizeof(double),
-              phe->error_message);
-
-  /** Import primordial spectrum */
-  for (index_k=0; index_k<phe->k_size; index_k++) {
-    phe->k[index_k] = exp(log(phe->k_min)+(log(phe->k_max)-log(phe->k_min))/(phe->k_size)*index_k);
-    class_call(primordial_spectrum_at_k(ppm,
-                                        ppt->index_md_scalars,
-                                        linear,
-                                        phe->k[index_k],
-                                        &phe->pk_primordial_k[index_k]),
-               ppm->error_message,
-               phe->error_message);
-  }
 
   /** Calculate WKB approximation ampltidue factor f_nu at early times */
   z_wkb = 1.0e6;              /* Found to be reasonable for wkb approximation */
@@ -740,11 +814,14 @@ int heating_add_noninjected(struct background* pba,
 
   dEdt = 0.;
   /* Loop over z and calculate the heating at each point */
-  for(index_z=0; index_z<phe->z_size; ++index_z){
+  for(index_z=0; index_z<niws->z_size_coarse; ++index_z){
+
+    z_coarse = niws->z_table_coarse[index_z];
+    niws->injected_deposition[index_z] = 0.;
 
     /** Import quantities from background and thermodynamics structure */
     class_call(background_tau_of_z(pba,
-                                   phe->z_table[index_z],
+                                   z_coarse,
                                    &tau),
                pba->error_message,
                phe->error_message);
@@ -766,7 +843,7 @@ int heating_add_noninjected(struct background* pba,
 
     class_call(thermodynamics_at_z(pba,
                                    pth,
-                                   phe->z_table[index_z],
+                                   z_coarse,
                                    pth->inter_normal,
                                    &last_index_thermo,
                                    pvecback,
@@ -775,36 +852,67 @@ int heating_add_noninjected(struct background* pba,
                phe->error_message);
 
     dkappa = pvecthermo[pth->index_th_dkappa];                                                      // [1/Mpc]
-    phe->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));    // [Mpc^2]
-    phe->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
+    niws->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));   // [Mpc^2]
+    niws->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                               // [1/Mpc]
     phe->T_b = pvecthermo[pth->index_th_Tb];                                                        // [K]
     phe->T_g = phe->T_g0*pow(phe->a,-1);                                                            // [K]
     phe->x_e = pvecthermo[pth->index_th_xe];                                                        // [-]
-    phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);                             // [J/(K m^3)]
+    phe->heat_capacity = (3./2.)*_k_B_*phe->nH*(1.+phe->fHe+phe->x_e);                              // [J/(K m^3)]
 
     /** Injected energy that does not need to be deposited (i.e. adiabatic terms) */
     /* First order cooling of photons due to adiabatic interaction with baryons */
     class_call(heating_rate_adiabatic_cooling(phe,
-                                              phe->z_table[index_z],
+                                              z_coarse,
                                               &dEdt),
                phe->error_message,
                phe->error_message);
-    phe->photon_dep_table[index_z] += dEdt;
+    niws->injected_deposition[index_z]+=dEdt;
 
     /* Second order acoustic dissipation of BAO */
     class_call(heating_rate_acoustic_diss(phe,
-                                          phe->z_table[index_z],
+                                          z_coarse,
                                           &dEdt),
                phe->error_message,
                phe->error_message);
-    phe->photon_dep_table[index_z] += dEdt;
+    niws->injected_deposition[index_z]+=dEdt;
+  }
+
+  class_call(array_spline_table_columns2(niws->z_table_coarse,
+                                         niws->z_size_coarse,
+                                         niws->injected_deposition,
+                                         1,
+                                         niws->ddinjected_deposition,
+                                         _SPLINE_EST_DERIV_,
+                                         phe->error_message),
+             phe->error_message,
+             phe->error_message);
+
+  for(index_z=0;index_z<phe->z_size;++index_z){
+    class_call(array_spline_hunt(niws->z_table_coarse,
+                                 niws->z_size_coarse,
+                                 phe->z_table[index_z],
+                                 &last_index_coarse,
+                                 &h,&a,&b,
+                                 phe->error_message),
+               phe->error_message,
+               phe->error_message);
+
+    temp_injection = array_interpolate_spline_hunt(niws->injected_deposition,
+                                                   niws->ddinjected_deposition,
+                                                   last_index_coarse,
+                                                   last_index_coarse+1,
+                                                   h,a,b);
+    phe->photon_dep_table[index_z]+=temp_injection;
   }
 
   /* Free allocated space */
   free(pvecback);
   free(pvecthermo);
-  free(phe->k);
-  free(phe->pk_primordial_k);
+
+  class_call(heating_noninjected_workspace_free(phe),
+             phe->noninjws->error_message,
+             phe->error_message);
+  free(phe->noninjws);
 
   return _SUCCESS_;
 }
@@ -923,13 +1031,14 @@ int heating_rate_acoustic_diss(struct heating * phe,
                                double * energy_rate){
 
   /** Define local variables */
+  struct heating_noninjected_workspace* niws = phe->noninjws;
   int index_k;
-  double * integrand_full, * integrand_approx, *weights;
   double dQrho_dz;
   double A_wkb;
 
   /** a) Calculate full function */
   if (phe->heating_rate_acoustic_diss_approx == _FALSE_){
+    class_stop(phe->error_message,"Full calculation currently not implemented");
   }
 
   /** b) Calculate approximated function */
@@ -937,45 +1046,27 @@ int heating_rate_acoustic_diss(struct heating * phe,
 
     A_wkb = 1./(1.+4./15.*phe->f_nu_wkb);
 
-    class_alloc(integrand_approx,
-                phe->k_size*sizeof(double),
-                phe->error_message);
-    class_alloc(weights,
-                phe->k_size*sizeof(double),
-                phe->error_message);
-
     /* Define integrand for approximated function */
-    for (index_k=0; index_k<phe->k_size; index_k++) {
-      integrand_approx[index_k] = 4.*A_wkb*A_wkb*pow(phe->k[index_k],1.)*
-                              phe->pk_primordial_k[index_k]*
-                              exp(-2.*pow(phe->k[index_k]/phe->kD,2.))*
-                              phe->dkD_dz;
+    for (index_k=0; index_k<niws->k_size; index_k++) {
+      niws->integrand_approx[index_k] = 4.*A_wkb*A_wkb*pow(niws->k[index_k],1.)*
+                              niws->pk_primordial_k[index_k]*
+                              exp(-2.*pow(niws->k[index_k]/niws->kD,2.))*
+                              niws->dkD_dz;
     }
 
-    class_call(array_trapezoidal_weights(phe->k,
-                                         phe->k_size,
-                                         weights,
-                                         phe->error_message),
-               phe->error_message,
-               phe->error_message);
-
-    class_call(array_trapezoidal_integral(integrand_approx,
-                                          phe->k_size,
-                                          weights,
+    class_call(array_trapezoidal_integral(niws->integrand_approx,
+                                          niws->k_size,
+                                          niws->k_weights,
                                           &dQrho_dz,
                                           phe->error_message),
                phe->error_message,
                phe->error_message);
-
-    free(integrand_approx);
-    free(weights);
 
   }
 
   *energy_rate = dQrho_dz*phe->H*phe->rho_g/phe->a;                                                 // [J/(m^3 s)]
 
   return _SUCCESS_;
-
 }
 
 
@@ -1116,7 +1207,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
     f_nu = 6.*0.147;                                                                                // neutrino
     f_q = (12.*0.142*(exp(-(current_mass*2.2e-3)/(4.53*1.06e13))                                    // u
                       +exp(-(current_mass*4.7e-3)/(4.53*1.06e13))                                   // d
-                      +exp(-(current_mass*1.82)/(4.53*1.06e13))                                     // c
+                      +exp(-(current_mass*1.28)/(4.53*1.06e13))                                     // c
                       +exp(-(current_mass*9.6e-2)/(4.53*1.06e13))                                   // s
                       +exp(-(current_mass*173.1)/(4.53*1.06e13))                                    // t
                       +exp(-(current_mass*4.18)/(4.53*1.06e13))                                     // b
@@ -1128,7 +1219,7 @@ int heating_rate_PBH_evaporation_mass_evolution(struct background * pba,
            )*(1-phe->PBH_QCD_activation);
     f_bos = 6.*0.060*exp(-(current_mass*80.39)/(6.04*1.06e13))                                      // W
             +3.*0.060*exp(-(current_mass*91.19)/(6.04*1.06e13))                                     // Z
-            +1.*0.267*exp(-(current_mass*125.06)/(2.66*1.06e13));                                   // h
+            +1.*0.267*exp(-(current_mass*125.1)/(2.66*1.06e13));                                   // h
     f = f_EM+f_nu+f_q+f_pi+f_bos;
 
     /** Find current time value */

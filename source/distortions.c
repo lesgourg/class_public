@@ -831,6 +831,9 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   psd->sd_parameter_table[psd->index_type_y] /= 4.;
   psd->sd_parameter_table[psd->index_type_mu] *= 1.401;
 
+  psd->sd_parameter_table[psd->index_type_y] += psd->sd_add_y;
+  psd->sd_parameter_table[psd->index_type_mu] += psd->sd_add_mu;
+
   /** Allocate space for distortions shapes in distortions_table */
   class_alloc(psd->sd_shape_table,
               psd->type_size*sizeof(double*),

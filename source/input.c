@@ -2,6 +2,9 @@
  *
  * Julien Lesgourgues, 27.08.2010
  *
+ * Restructured structs by:
+ * Nils Schoeneberg and Matteo Lucca, 07.03.2019
+ *
  */
 
 #include "input.h"
@@ -1396,13 +1399,13 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for heating quantities */
-  class_call(input_read_parameters_heating(pfc,pth,
+  class_call(input_read_parameters_heating(pfc,ppr,pth,
                                            errmsg),
              errmsg,
              errmsg);
 
   /** Read parameters for nonlinear quantities */
-  class_call(input_read_parameters_nonlinear(pfc,ppr,ppt,pnl,
+  class_call(input_read_parameters_nonlinear(pfc,ppr,pba,pth,ppt,pnl,
                                              input_verbose,
                                              errmsg),
              errmsg,
@@ -1415,7 +1418,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg);
 
   /** Read parameters for spectra quantities */
-  class_call(input_read_parameters_spectra(pfc,ppr,pba,ppt,ptr,psp,pop,
+  class_call(input_read_parameters_spectra(pfc,ppr,pba,ppm,ppt,ptr,psp,pop,
                                            errmsg),
              errmsg,
              errmsg);
@@ -2615,10 +2618,12 @@ int input_read_parameters_species(struct file_content * pfc,
  * Read the parameters of heating structure.
  *
  * @param pfc     Input: pointer to local structure
+ * @param ppr     Input: pointer to precision structure
  * @param pth     Input: pointer to thermodynamics structure
  * @param errmsg  Input: Error message
  */
 int input_read_parameters_heating(struct file_content * pfc,
+                                  struct precision * ppr,
                                   struct thermo * pth,
                                   ErrorMsg errmsg){
 
@@ -2894,6 +2899,8 @@ int input_read_parameters_heating(struct file_content * pfc,
  *
  * @param pfc            Input: pointer to local structure
  * @param ppr            Input: pointer to precision structure
+ * @param pba            Input: pointer to background structure
+ * @param pth            Input: pointer to thermodynamics structure
  * @param ppt            Input: pointer to perturbations structure
  * @param pnl            Input: pointer to nonlinear structure
  * @param input_verbose  Input: verbosity of input
@@ -2901,6 +2908,8 @@ int input_read_parameters_heating(struct file_content * pfc,
  */
 int input_read_parameters_nonlinear(struct file_content * pfc,
                                     struct precision * ppr,
+                                    struct background *pba,
+                                    struct thermo *pth,
                                     struct perturbs * ppt,
                                     struct nonlinear * pnl,
                                     int input_verbose,
@@ -3781,6 +3790,7 @@ int input_read_parameters_primordial(struct file_content * pfc,
 int input_read_parameters_spectra(struct file_content * pfc,
                                   struct precision * ppr,
                                   struct background * pba,
+                                  struct primordial * ppm,
                                   struct perturbs * ppt,
                                   struct transfers * ptr,
                                   struct spectra *psp,
@@ -4007,6 +4017,28 @@ int input_read_parameters_spectra(struct file_content * pfc,
     }
     if (flag2 == _TRUE_){
       ppt->k_max_for_pk=param2;
+    }
+
+    /** 3.a.1) Maximum k in primordial P(k) */
+    /* Read */
+    class_call(parser_read_double(pfc,"primordial_P_k_max_h/Mpc",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"primordial_P_k_max_1/Mpc",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    /* Test */
+    class_test((flag1 == _TRUE_) && (flag2 == _TRUE_),
+               errmsg,
+               "You can only enter one of 'primordial_P_k_max_h/Mpc' or 'primordial_P_k_max_1/Mpc'.");
+    /* Complete set of parameters */
+    if (flag1 == _TRUE_){
+      ppm->k_max_for_primordial_pk=param1*pba->h;
+      ppm->has_k_max_for_primordial_pk = _TRUE_;
+    }
+    if (flag2 == _TRUE_){
+      ppm->k_max_for_primordial_pk=param2;
+      ppm->has_k_max_for_primordial_pk = _TRUE_;
     }
 
     /** 3.b) Redshift values */
@@ -4314,17 +4346,29 @@ int input_read_parameters_distortions(struct file_content * pfc,
              "sd_detector_file","sd_detector_nu_min","sd_detector_nu_max",
              "sd_detector_nu_delta","sd_detector_bin_number","sd_detector_delta_Ic");
 
+
   /** 2) Only calculate non-LCDM contributions to heating? */
   class_read_flag("sd_only_exotic",psd->only_exotic);
 
-  /** 3) Only calculate non-LCDM contributions to heating? */
+
+  /** 3) Include g distortions? */
   class_read_flag("sd_include_g_distortion",psd->include_g_distortion);
 
-  /** 4) Include SZ effect from reionization? */
+
+  /** 4) Set g-distortions to zero? */
+  class_call(parser_read_double(pfc,"sd_add_y",&psd->sd_add_y,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"sd_add_mu",&psd->sd_add_mu,&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+
+  /** 5) Include SZ effect from reionization? */
   class_read_flag("include_SZ_effect",psd->has_SZ_effect);
 
   if(psd->has_SZ_effect == _TRUE_){
-    /** 4.a) Type of calculation */
+    /** 5.a) Type of calculation */
     /* Read */
     class_call(parser_read_string(pfc,"sd_reio_type",&string1,&flag1,errmsg),
                errmsg,
@@ -5081,6 +5125,8 @@ int input_default_params(struct background *pba,
   /** 3) Power spectrum P(k) */
   /** 3.a) Maximum k in P(k) */
   ppt->k_max_for_pk=1.;
+  /** 3.a) Maximum k in P(k) primordial */
+  ppm->has_k_max_for_primordial_pk = _FALSE_;
   /** 3.b) Redshift values */
   pop->z_pk_num = 1;
   pop->z_pk[0] = 0.;
@@ -5128,12 +5174,20 @@ int input_default_params(struct background *pba,
   /** 1.3.a.1) Detector noise */
   psd->sd_detector_delta_Ic = 5.e-26;
 
-  /** 2) Only exotic species ? */
+  /** 2) Only exotic species? */
   psd->only_exotic = _FALSE_;
-  /** 3) Include g distortion in total calculation ? */
+
+  /** 3) Include g distortion in total calculation? */
   psd->include_g_distortion = _FALSE_;
-  /** 4) Include SZ effect from reionization? */
+
+  /** 4) Additional y or mu parameters? */
+  psd->sd_add_y = 0.;
+  psd->sd_add_mu = 0.;
+
+  /** 5) Include SZ effect from reionization? */
   psd->has_SZ_effect = _FALSE_;
+  /** 5.a) What type of approximation you want to use for the SZ effect? */
+  psd->sd_reio_type = sd_reio_Chluba;
 
   /**
    * Default to input_read_additional

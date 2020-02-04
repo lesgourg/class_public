@@ -20,8 +20,18 @@ from libc.string cimport *
 import cython
 cimport cython
 
+# Nils : Added for python 3.x and python 2.x compatibility
+import sys
+def viewdictitems(d):
+    if sys.version_info >= (3,0):
+        return d.items()
+    else:
+        return d.viewitems()
+
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
+
+
 
 # Import the .pxd containing definitions
 from cclassy cimport *
@@ -87,7 +97,7 @@ cdef class Class:
     cdef distortions sd
     cdef file_content fc
 
-    cpdef int ready # Flag to see if classy can currently compute
+    cpdef int computed # Flag to see if classy has already computed with the given pars
     cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
@@ -101,7 +111,7 @@ cdef class Class:
             return self._pars
     property state:
         def __get__(self):
-            return self.ready
+            return True
     property Omega_nu:
         def __get__(self):
             return self.ba.Omega0_ncdm_tot
@@ -116,8 +126,8 @@ cdef class Class:
 
     def __cinit__(self, default=False):
         cpdef char* dumc
-        self.ready = False
         self.allocated = False
+        self.computed = False
         self._pars = {}
         self.fc.size=0
         self.fc.filename = <char*>malloc(sizeof(char)*30)
@@ -127,19 +137,34 @@ cdef class Class:
         self.ncp = set()
         if default: self.set_default()
 
+    def __dealloc__(self):
+        if self.allocated:
+          self.struct_cleanup()
+        self.empty()
+        # Reset all the fc to zero if its not already done
+        if self.fc.size !=0:
+            self.fc.size=0
+            free(self.fc.name)
+            free(self.fc.value)
+            free(self.fc.read)
+            free(self.fc.filename)
+
     # Set up the dictionary
     def set(self,*pars,**kars):
+        oldpars = self._pars.copy()
         if len(pars)==1:
             self._pars.update(dict(pars[0]))
         elif len(pars)!=0:
             raise CosmoSevereError("bad call")
         self._pars.update(kars)
-        self.ready=False
+        if viewdictitems(self._pars) <= viewdictitems(oldpars):
+          return # Don't change the computed states, if the new dict was already contained in the previous dict
+        self.computed=False
         return True
 
     def empty(self):
         self._pars = {}
-        self.ready = False
+        self.computed = False
 
     # Create an equivalent of the parameter file. Non specified values will be
     # taken at their default (in Class)
@@ -175,8 +200,8 @@ cdef class Class:
 
     # Called at the end of a run, to free memory
     def struct_cleanup(self):
-        if self.ready == _FALSE_:
-             return
+        if(self.allocated != True):
+          return
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
         if "lensing" in self.ncp:
@@ -195,8 +220,8 @@ cdef class Class:
             thermodynamics_free(&self.th)
         if "background" in self.ncp:
             background_free(&self.ba)
-        self.ready = False
         self.allocated = False
+        self.computed = False
 
     def _check_task_dependency(self, level):
         """
@@ -218,23 +243,32 @@ cdef class Class:
 
         """
         if "distortions" in level:
-            level.append("lensing")
+            if "lensing" not in level:
+                level.append("lensing")
         if "lensing" in level:
-            level.append("spectra")
+            if "spectra" not in level:
+                level.append("spectra")
         if "spectra" in level:
-            level.append("transfer")
+            if "transfer" not in level:
+                level.append("transfer")
         if "transfer" in level:
-            level.append("nonlinear")
+            if "nonlinear" not in level:
+                level.append("nonlinear")
         if "nonlinear" in level:
-            level.append("primordial")
+            if "primordial" not in level:
+                level.append("primordial")
         if "primordial" in level:
-            level.append("perturb")
+            if "perturb" not in level:
+                level.append("perturb")
         if "perturb" in level:
-            level.append("thermodynamics")
+            if "thermodynamics" not in level:
+                level.append("thermodynamics")
         if "thermodynamics" in level:
-            level.append("background")
+            if "background" not in level:
+                level.append("background")
         if len(level)!=0 :
-            level.append("input")
+            if "input" not in level:
+                level.append("input")
         return level
 
     def _pars_check(self, key, value, contains=False, add=""):
@@ -287,11 +321,11 @@ cdef class Class:
         # Append to the list level all the modules necessary to compute.
         level = self._check_task_dependency(level)
 
-        # Check if this function ran before (self.ready should be true), and
+        # Check if this function ran before (self.computed should be true), and
         # if no other modules were requested, i.e. if self.ncp contains (or is
         # equivalent to) level. If it is the case, simply stop the execution of
         # the function.
-        if self.ready and self.ncp.issuperset(level):
+        if self.computed and self.ncp.issuperset(level):
             return
 
         # Check if already allocated to prevent memory leaks
@@ -299,7 +333,7 @@ cdef class Class:
             self.struct_cleanup()
 
         # Otherwise, proceed with the normal computation.
-        self.ready = False
+        self.computed = False
 
         # Equivalent of writing a parameter file
         self._fillparfile()
@@ -307,6 +341,9 @@ cdef class Class:
         # self.ncp will contain the list of computed modules (under the form of
         # a set, instead of a python list)
         self.ncp=set()
+        # Up until the empty set, all modules are allocated
+        # (And then we successively keep track of the ones we allocate additionally)
+        self.allocated = True
 
         # --------------------------------------------------------------------
         # Check the presence for all CLASS modules in the list 'level'. If a
@@ -399,8 +436,7 @@ cdef class Class:
                 raise CosmoComputationError(self.sd.error_message)
             self.ncp.add("distortions")
 
-        self.ready = True
-        self.allocated = True
+        self.computed = True
 
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers

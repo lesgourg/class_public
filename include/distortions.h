@@ -46,6 +46,9 @@ struct distortions
 
   int sd_reio_type;
 
+  double sd_add_y;
+  double sd_add_mu;
+
   //@}
 
 

@@ -10,6 +10,7 @@ enum PBH_accretion_approx {spherical_accretion, disk_accretion};
 enum f_eff_approx {f_eff_on_the_spot, f_eff_from_file};
 enum chi_approx {chi_CK, chi_PF, chi_Galli_file, chi_Galli_analytic, chi_full_heating, chi_from_x_file, chi_from_z_file};
 
+struct noninjected_workspace;
 struct heating{
 
   /** @name - input parameters initialized by user in input module (all other quantities are computed in this module,
@@ -62,10 +63,11 @@ struct heating{
 
   //@{
 
-  /* Parameters from background structure */
+  /* Parameters from precision structure */
   int Nz_size;
   double z_initial;
   double z_start_chi_approx;
+  int heating_noninjected_Nz_log;
 
   /* Parameters from background structure */
   /* Redshift independent, i.e. defined in heating_init */
@@ -97,15 +99,6 @@ struct heating{
   double T_g;
   double x_e;
   double dkappa;
-  double dkD_dz;
-  double kD;
-
-  /* Parameters from primordial structure */
-  double k_max;
-  double k_min;
-  double k_size;
-  double* k;
-  double* pk_primordial_k;
 
   //@}
 
@@ -194,9 +187,38 @@ struct heating{
 
   /* Book-keeping */
   int heating_verbose;
+  struct heating_noninjected_workspace * noninjws;
 
   ErrorMsg error_message;
 
+};
+
+struct heating_noninjected_workspace{
+
+  /* Arrays related to wavenumbers */
+  double k_min;
+  double k_max;
+  int k_size;
+  double* k;
+  double* k_weights;
+  double* pk_primordial_k;
+
+  /* Array related to WKB approximation for diss. of acc. waves */
+  double* integrand_approx;
+
+  /* Arrays related to redshift */
+  double* z_table_coarse;
+  int z_size_coarse;
+  double logz_max;
+  double * injected_deposition;
+  double * ddinjected_deposition;
+
+  /* Temporary quantities */
+  double dkD_dz;
+  double kD;
+
+  /* Error message */
+  ErrorMsg error_message;
 };
 
 
@@ -229,6 +251,12 @@ extern "C" {
   int heating_indices(struct thermo* pth);
 
   int heating_free(struct thermo* pth);
+
+  int heating_noninjected_workspace_init(struct perturbs* ppt,
+                                         struct primordial* ppm,
+                                         struct heating* phe);
+
+  int heating_noninjected_workspace_free(struct heating* phe);
 
   /* Main functions */
   int heating_calculate_at_z(struct background* pba,

@@ -96,7 +96,6 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o
 
-# [ML]
 SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o distortions.o
 
 INPUT = input.o
@@ -119,7 +118,7 @@ NONLINEAR = nonlinear.o
 
 LENSING = lensing.o
 
-DISTORTIONS = distortions.o # [ML]
+DISTORTIONS = distortions.o
 
 OUTPUT = output.o
 
