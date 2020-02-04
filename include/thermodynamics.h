@@ -154,10 +154,11 @@ struct thermo
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
 
-  int index_th_T_idm_b;       /**< idm_b temperature \f$ T_dm \f$ DCH*/
-  int index_th_dT_idm_b;      /**< idm_b temperature derivative \f$ dT_dm \f$ DCH*/
+  int index_th_T_idm_b;       /**< idm_b temperature \f$ T_idm \f$ DCH*/
+  int index_th_dT_idm_b;      /**< idm_b temperature derivative \f$ dT_idm \f$ DCH*/
   int index_th_c_idm_b2;      /**< squared idm_b sound speed \f$ c_idm_b^2 \f$ DCH*/
   int index_th_R_idm_b;       /**< DM-bar interaction coefficient DCH */
+  int index_th_R_idm_b_prime; /**< derivative of DM-bar interaction coefficient DCH */
 
   int th_size;                /**< size of thermodynamics vector */
 
@@ -318,11 +319,11 @@ struct thermo_diffeq_workspace {
   double Tmat;
   double dTmat;
 
-  double T_idm_b; //DCH
-  double dT_idm_b; //DCH
-  double R_idm_b; //DCH
-  double R_idm_b_prime; //DCH
-  double c_idm_b2; //DCH
+  double T_idm_b;       /**< idm_b temperature \f$ T_dm \f$ DCH*/
+  double dT_idm_b;      /**< idm_b temperature derivative \f$ dT_dm \f$ DCH*/
+  double c_idm_b2;      /**< squared idm_b sound speed \f$ c_idm_b^2 \f$ DCH*/
+  double R_idm_b;       /**< DM-bar interaction coefficient DCH */
+  double R_idm_b_prime; /**< derivative of DM-bar interaction coefficient DCH */
 
   int index_ap_brec; /**< index for approximation before recombination */
   int index_ap_He1;  /**< index for 1st He-recombination (HeIII) */
@@ -604,7 +605,7 @@ extern "C" {
                               struct thermo_workspace * ptw,
                               int current_ap);
 
-  int thermodynamics_solve_current_idm_B(struct background * pba,
+  int thermodynamics_solve_current_idm_b(struct background * pba,
                                          double z,
                                          double * y,
                                          double * dy,
