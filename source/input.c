@@ -2390,7 +2390,7 @@ int input_read_parameters_species(struct file_content * pfc,
              errmsg,
              "You asked for a non-zero fraction of interacting DM, You need to also give a non-zero cross section between DM and baryons."); //check that if IDM is called, there is some coupling
   if (input_verbose > 0){
-    if ((pth->cross_idm_b >0) && (pba->f_idm_b = 0.0)){
+    if ((pth->cross_idm_b >0) && (pba->f_idm_b == 0.0)){
       printf("Warning: you have passed a non-zero cross section between DM and baryons, but set the fraction of interacting DM to 0. I will assume CDM.\n");
     }
   }

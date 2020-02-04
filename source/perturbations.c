@@ -4299,7 +4299,7 @@ int perturb_initial_conditions(struct precision * ppr,
 
         /* we use the initial condition to define the synchronous gauge in the presence of idm_b.
            However, the idm_b velocity will not always be zero. We have initialised it to zero,
-           but it should still evolve. Pending: define synchronous gauge in mixed case!!! DCH */
+           but it should still evolve.  */
         ppw->pv->y[ppw->pv->index_pt_theta_idm_b] = 0.;
 
       }
@@ -6743,7 +6743,7 @@ int perturb_print_variables(double tau,
       }
     }
 
-    if (pba->has_idm_b == _TRUE_) { //DCH !!!check this
+    if (pba->has_idm_b == _TRUE_) { // TODO DCH !!!check this
       delta_idm_b = y[ppw->pv->index_pt_delta_idm_b];
       //if (ppt->gauge == synchronous) {
       //  theta_idm_b = 0.;
@@ -7190,7 +7190,8 @@ int perturb_derivs(double tau,
   double w_fld,dw_over_da_fld,w_prime_fld,integral_fld;
 
   /* for use with interacting dark matter DCH */
-  double T_idm_b, T_diff_idm_b, m_b, c_idm_b2=0., R_idm_b=0, Tb_in_eV, Vrms_idm_b2;
+  double c_idm_b2, R_idm_b, R_idm_b_prime; //this is just going to be used as a short hand notation
+  double beta_dark, dtau_idm_b; // these will be used inside the TCA
 
   /* for use with non-cold dark matter (ncdm): */
   int index_q,n_ncdm,idx;
@@ -7264,21 +7265,11 @@ int perturb_derivs(double tau,
   a_prime_over_a = pvecback[pba->index_bg_H] * a;
   R = 4./3. * pvecback[pba->index_bg_rho_g]/pvecback[pba->index_bg_rho_b];
 
-  /** - compute background quantities for IDM (DCH)  */
+  /** - Call the quantities calculated in thermodynamics for IDM (DCH)  */
   if(pba->has_idm_b==_TRUE_){
-    //The following quantities were defined later on for tca_off, but are needed for idm_b regardless of tca
-    Tb_in_eV = pvecthermo[pth->index_th_Tb]*_k_B_/_eV_ ;
-    m_b = _m_p_*_c_*_c_/_eV_; //Mass of the proton (used for all baryons) in eV
-    //idm_b specific quantities
-    if (1./pvecback[pba->index_bg_a] > 1.e3)
-      Vrms_idm_b2 = 1.e-8;
-    else
-      Vrms_idm_b2 = 1.e-8*powf(((1./pvecback[pba->index_bg_a])/1.e3),2);
-    T_idm_b = pvecthermo[pth->index_th_T_idm_b]*_k_B_/_eV_; //Called from thermo DCH
-    T_diff_idm_b = (Tb_in_eV/m_b)+(T_idm_b/pth->m_idm)+(Vrms_idm_b2/3.0);
-    c_idm_b2 = pvecthermo[pth->index_th_c_idm_b2]; //Called from thermo DCH
-    R_idm_b = pvecthermo[pth->index_th_R_idm_b];//
-    //printf("R_idm_b = %e, c_idm_b2 = %e, T_idm_b = %e, T_diff = %e, T_b = %e \n", R_idm_b, c_idm_b2, T_idm_b, T_diff_idm_b, Tb_in_eV); //THOMAS
+    c_idm_b2 = pvecthermo[pth->index_th_c_idm_b2];
+    R_idm_b = pvecthermo[pth->index_th_R_idm_b];
+    R_idm_b_prime = pvecthermo[pth->index_th_R_idm_b_prime]*(-pvecback[pba->index_bg_H]); //conversion from (d/dz) to (d/dtau)
   }
 
   /** - Compute 'generalised cotK function of argument \f$ \sqrt{|K|}*\tau \f$, for closing hierarchy.
@@ -7308,10 +7299,10 @@ int perturb_derivs(double tau,
     theta_b = y[pv->index_pt_theta_b];
     cb2 = pvecthermo[pth->index_th_cb2];
 
-    //idm_b shortcut DCH
+    /* Define shortcut notation for IDM-b DCH */
     if(pba->has_idm_b==_TRUE_){
       delta_idm_b = y[pv->index_pt_delta_idm_b];
-      theta_idm_b = y[pv->index_pt_theta_idm_b]; //assuming this has been correctly initialised, this should work
+      theta_idm_b = y[pv->index_pt_theta_idm_b];
     }
 
     /** - --> (b) perturbed recombination **/
@@ -7580,14 +7571,7 @@ int perturb_derivs(double tau,
 
       // When the tca is on, photons couple to baryons, and baryons couple to DM, so we need to modify the baryon and photon equations
       else if((ppw->approx[ppw->index_ap_tca] == (int)tca_on)){
-        // we start with the baryon modification term
-        double T_b_prime, T_idm_b_prime, beta_dark, R_idm_b_prime, dtau_idm_b;
-        T_idm_b_prime = pvecthermo[pth->index_th_dT_idm_b]*(-pvecback[pba->index_bg_H]);
-        T_b_prime = pvecthermo[pth->index_th_dTb]*(-pvecback[pba->index_bg_H]); // DCH!!!
-        R_idm_b_prime = (pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b*(1.0-pth->YHe)/(m_b+pth->m_idm))
-          *(a_prime_over_a*a*T_diff_idm_b
-            +a*((pth->n_index_idm_b+1.0)/2.0)*powf(T_diff_idm_b,((pth->n_index_idm_b-1.0)/2.0))
-            *(T_b_prime/m_b + T_idm_b_prime/pth->m_idm));
+
         dtau_idm_b = - R_idm_b_prime/(R_idm_b*R_idm_b);
         beta_dark = (pvecback[pba->index_bg_rho_idm_b]/pvecback[pba->index_bg_rho_b])/(1.+R)*(1./pvecthermo[pth->index_th_dkappa]*R_idm_b);
 
