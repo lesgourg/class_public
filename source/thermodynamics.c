@@ -179,14 +179,14 @@ int thermodynamics_at_z(
       pvecthermo[pth->index_th_c_idm_b2] = pvecthermo[pth->index_th_T_idm_b]/pth->m_idm*_eV_/(_c_*_c_);
 
       pvecthermo[pth->index_th_R_idm_b] = (pvecback[pba->index_bg_a]*pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b/(m_b+pth->m_idm))
-        *powf(T_diff_idm_b,(pth->n_index_idm_b+1.0)/2.0)*fHe
-        *(3.e-4*powf(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units
+        *pow(T_diff_idm_b,(pth->n_index_idm_b+1.0)/2.0)*fHe
+        *(3.e-4*pow(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units
 
       pvecthermo[pth->index_th_R_idm_b_prime] = (pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b*fHe/(m_b+pth->m_idm))
-        *powf(T_diff_idm_b,((pth->n_index_idm_b-1.0)/2.0))
+        *pow(T_diff_idm_b,((pth->n_index_idm_b-1.0)/2.0))
         *(-pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]*T_diff_idm_b
           +pvecback[pba->index_bg_a]*((pth->n_index_idm_b+1.0)/2.0)*(pvecthermo[pth->index_th_dTb]/m_b + pvecthermo[pth->index_th_dT_idm_b]/pth->m_idm))
-        *(3.e-4*powf(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units, might need some checking DCH
+        *(3.e-4*pow(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units, might need some checking DCH
     }
 
   }
@@ -2450,15 +2450,15 @@ int thermodynamics_solve_current_idm_b(struct background * pba,
   T_diff_idm_b = (Tmat*_k_B_/_eV_/m_b)+(T_idm_b*_k_B_/_eV_/pth->m_idm)+(Vrms_idm_b2/3.0); // Get everything (m and T) in eV
 
   ptdw->R_idm_b = (pvecback[pba->index_bg_a]*pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b/(m_b+pth->m_idm))
-    *powf(T_diff_idm_b,(pth->n_index_idm_b+1.0)/2.0)*fHe
-    *(3.e-4*powf(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units, might need some checking DCH
+    *pow(T_diff_idm_b,(pth->n_index_idm_b+1.0)/2.0)*fHe
+    *(3.e-4*pow(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units, might need some checking DCH
 
   // derivative of R_idm_b wrt to redshift. In perturbations, we will take this wrt *conformal time*
   ptdw->R_idm_b_prime = (pvecback[pba->index_bg_rho_b]*pth->cross_idm_b*pth->n_coeff_idm_b*fHe/(m_b+pth->m_idm))
-    *powf(T_diff_idm_b,((pth->n_index_idm_b-1.0)/2.0))
+    *pow(T_diff_idm_b,((pth->n_index_idm_b-1.0)/2.0))
     *(-pvecback[pba->index_bg_a]*pvecback[pba->index_bg_a]*T_diff_idm_b
       +pvecback[pba->index_bg_a]*((pth->n_index_idm_b+1.0)/2.0)*((dy[ptv->index_D_Tmat]+ptw->Tcmb)/m_b + dy[ptv->index_T_idm_b]/pth->m_idm))
-    *(3.e-4*powf(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units, might need some checking DCH
+    *(3.e-4*pow(_c_,4.)/(8.*_PI_*_Mpc_over_m_*_G_*_eV_)); //conversion coefficient for the units, might need some checking DCH
 
   ptdw->c_idm_b2 = T_idm_b/pth->m_idm*_eV_/(_c_*_c_);
 
