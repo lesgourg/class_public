@@ -342,7 +342,6 @@ int perturb_output_titles(
       class_store_columntitle(titles,"eta",ppt->has_source_eta);
       class_store_columntitle(titles,"eta_prime",ppt->has_source_eta_prime);
       class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_H_T_Nb_prime);
-      class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_k2gamma_Nb);
       class_store_columntitle(titles,"k2gamma_Nb",ppt->has_source_k2gamma_Nb);
     }
     if (ppt->has_velocity_transfers == _TRUE_) {
@@ -7396,7 +7395,7 @@ int perturb_sources(
 
     /* compute the corrections that have to be applied to each (delta_i, theta_i) in N-body gauge */
 	if (ppt->has_Nbody_gauge_transfers == _TRUE_){
-      theta_over_k2 = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot]);
+      theta_over_k2 = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot])/k/k;
       theta_shift = H_T_Nb_prime;
       if (ppt->gauge == synchronous) theta_shift += pvecmetric[ppw->index_mt_alpha]*k*k;
 	}
@@ -7511,10 +7510,10 @@ int perturb_sources(
     }
 
     /* total velocity  */
-    if (ppt->has_source_theta_tot == _TRUE_) {
-      _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot])
-        + theta_shift; // N-body gauge correction
-    }
+    // if (ppt->has_source_theta_tot == _TRUE_) {
+    //   _set_source_(ppt->index_tp_theta_tot) = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot])
+    //     + theta_shift; // N-body gauge correction
+    // }
 
     /* total matter velocity (gauge-invariant, defined as in arXiv:1307.1459) */
     if (ppt->has_source_theta_m == _TRUE_) {
