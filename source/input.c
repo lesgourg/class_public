@@ -983,7 +983,7 @@ int input_get_guess(double *xguess,
       ba.H0 = ba.h *  1.e5 / _c_;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* *
        * This formula is exact in a Matter + Lambda Universe, but only for Omega_dcdm,
        * not the combined.
@@ -1231,7 +1231,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     case sigma8:
-      output[i] = sp.sigma8-pfzw->target_value[i];
+      output[i] = nl.sigma8[nl.index_pk_m]-pfzw->target_value[i];
       break;
     }
   }
@@ -2909,16 +2909,16 @@ int input_read_parameters_heating(struct file_content * pfc,
  */
 int input_read_parameters_nonlinear(struct file_content * pfc,
                                     struct precision * ppr,
-                                    struct background *pba,
-                                    struct thermo *pth,
+                                    struct background * pba,
+                                    struct thermo * pth,
                                     struct perturbs * ppt,
                                     struct nonlinear * pnl,
                                     int input_verbose,
                                     ErrorMsg errmsg){
 
   /** Define local variables */
-  int flag1;
-  double param1;
+  int flag1,flag2,flag3;
+  double param1,param2,param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) Non-linearity */
@@ -2933,6 +2933,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
                errmsg);
   }
   /* Compatibility code END */
+
   if (flag1 == _TRUE_) {
     /* Test */
     class_test(ppt->has_perturbations == _FALSE_,
@@ -2943,11 +2944,75 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       pnl->method=nl_halofit;
       ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
     }
+    else if((strstr(string1,"hmcode") != NULL) || (strstr(string1,"HMCODE") != NULL) || (strstr(string1,"HMcode") != NULL) || (strstr(string1,"Hmcode") != NULL)) {
+      pnl->method=nl_HMcode;
+      ppt->k_max_for_pk = MAX(ppt->k_max_for_pk,MAX(ppr->hmcode_min_k_max,ppr->nonlinear_min_k_max));
+      ppt->has_nl_corrections_based_on_delta_m = _TRUE_;
+      class_read_int("extrapolation_method",pnl->extrapolation_method);
+
+      class_call(parser_read_string(pfc,
+                                    "feedback model",
+                                    &(string1),
+                                    &(flag1),
+                                    errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+
+        if (strstr(string1,"emu_dmonly") != NULL) {
+          pnl->feedback = nl_emu_dmonly;
+        }
+        if (strstr(string1,"owls_dmonly") != NULL) {
+          pnl->feedback = nl_owls_dmonly;
+        }
+        if (strstr(string1,"owls_ref") != NULL) {
+          pnl->feedback = nl_owls_ref;
+        }
+        if (strstr(string1,"owls_agn") != NULL) {
+          pnl->feedback = nl_owls_agn;
+        }
+        if (strstr(string1,"owls_dblim") != NULL) {
+          pnl->feedback = nl_owls_dblim;
+        }
+      }
+
+      class_call(parser_read_double(pfc,"eta_0",&param2,&flag2,errmsg),
+                 errmsg,
+                 errmsg);
+      class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
+                 errmsg,
+                 errmsg);
+      class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
+                 errmsg,
+                 "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
+
+      if ((flag2 == _TRUE_) && (flag3 == _TRUE_)) {
+        pnl->feedback = nl_user_defined;
+        class_read_double("eta_0", pnl->eta_0);
+        class_read_double("c_min", pnl->c_min);
+      }
+      else if ((flag2 == _TRUE_) && (flag3 == _FALSE_)) {
+        pnl->feedback = nl_user_defined;
+        class_read_double("eta_0", pnl->eta_0);
+        pnl->c_min = (0.98 - pnl->eta_0)/0.12;
+      }
+      else if ((flag2 == _FALSE_) && (flag3 == _TRUE_)) {
+        pnl->feedback = nl_user_defined;
+        class_read_double("c_min", pnl->c_min);
+        pnl->eta_0 = 0.98 - 0.12*pnl->c_min;
+      }
+
+      class_read_double("z_infinity", pnl->z_infinity);
+    }
     else{
       class_stop(errmsg,
-                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit'}.");
+                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit','hmcode'}.");
     }
   }
+
+  /** - special steps if we want Halofit with wa_fld non-zero:
+      so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
     pnl->has_pk_eq = _TRUE_;
   }
@@ -4063,16 +4128,13 @@ int input_read_parameters_spectra(struct file_content * pfc,
 
   }
 
-  /** 3.c) Maximum redshift + Lya (as this can affect the max redshift) DCH */
+  /** 3.c) Maximum redshift */
   if ((ppt->has_pk_matter == _TRUE_) || (ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_) || (ppt->has_cl_number_count == _TRUE_) || (ppt->has_cl_lensing_potential == _TRUE_)) {
     /* Read */
     class_call(parser_read_double(pfc,"z_max_pk",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
-    /* DCH Lya */
-    class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag2,errmsg),
-               errmsg,
-               errmsg);
+
     /* Complete set of parameters */
     if (flag1==_TRUE_) {
       ppt->z_max_pk = param1;
@@ -4107,28 +4169,10 @@ int input_read_parameters_spectra(struct file_content * pfc,
         }
       }
 
-      /* DCH Lya*/
-      if ((flag2 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-        psp->compute_neff_Lya=_TRUE_;
-        class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
-        class_read_double("Lya_z",psp->Lya_z);
-        ppt->z_max_pk = MAX(ppt->z_max_pk,psp->Lya_z);
-      }
-
       /* Now we have checked all contributions that could change z_max_pk */
     }
     psp->z_max_pk = ppt->z_max_pk;
   }
-
-  /* 4) Read parameters specific to the Lya computation, */
-  class_call(parser_read_string(pfc,"compute_neff_Lya",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
-  if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
-    psp->compute_neff_Lya=_TRUE_;
-  }
-  class_read_double("Lya_k_s_over_km",psp->Lya_k_s_over_km);
-  class_read_double("Lya_z",psp->Lya_z);
 
   return _SUCCESS_;
 
@@ -4993,6 +5037,9 @@ int input_default_params(struct background *pba,
   ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
   pnl->method = nl_none;
   pnl->has_pk_eq = _FALSE_;
+  pnl->extrapolation_method = extrap_max_scaled;
+  pnl->feedback = nl_emu_dmonly;
+  pnl->z_infinity = 10.;
 
   /**
    * Default to input_read_parameters_primordial
@@ -5133,11 +5180,6 @@ int input_default_params(struct background *pba,
   pop->z_pk[0] = 0.;
   /** 3.c) Maximum redshift */
   ppt->z_max_pk=0.;
-
-  /** 4) Lya DCH */
-  psp->compute_neff_Lya=_FALSE_;
-  psp->Lya_k_s_over_km=0.009;
-  psp->Lya_z=3.0;
 
   /**
    * Default to input_read_parameters_lensing

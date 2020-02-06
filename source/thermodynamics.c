@@ -140,9 +140,13 @@ int thermodynamics_at_z(
     /* Tb derivative, needed for IDM_B DCH */
     pvecthermo[pth->index_th_dTb] = pba->T_cmb;
 
+    /* Calculate baryon equation of state parameter wb = (k_B/mu) Tb */
+    /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
+    pvecthermo[pth->index_th_wb] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+z);
+
     /* Calculate cb2 (cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1+1/3 (1+z) dlnTb/dz)) */
     /* note that m_H / mu = 1 + (m_H/m_He-1) Y_p + x_e (1-Y_p) */
-    pvecthermo[pth->index_th_cb2] = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * pth->YHe + x0 * (1.-pth->YHe)) * pba->T_cmb * (1.+z) * 4. / 3.;
+    pvecthermo[pth->index_th_cb2] = pvecthermo[pth->index_th_wb] * 4. / 3.;
 
     /* derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
     if (pth->compute_cb2_derivatives == _TRUE_) {
@@ -454,6 +458,7 @@ int thermodynamics_indices(struct thermo * pth,
   /* Baryon quantities, Temperature, Sound Speed, Drag time end */
   class_define_index(pth->index_th_Tb,_TRUE_,index,1);
   class_define_index(pth->index_th_dTb,_TRUE_,index,1);
+  class_define_index(pth->index_th_wb,_TRUE_,index,1);
   class_define_index(pth->index_th_cb2,_TRUE_,index,1);
   class_define_index(pth->index_th_tau_d,_TRUE_,index,1);
   /* Derivatives of baryon sound speed (only computed if some non-minimal tight-coupling schemes is requested) */
@@ -3801,6 +3806,10 @@ int thermodynamics_solve_store_sources(double mz,
   /* Baryon temperature derivative (needed in perturbations for idm_b) DCH */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dTb] = dy[ptv->index_D_Tmat]+ptw->Tcmb;
 
+  /* wb = (k_B/mu) Tb */
+  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_wb]
+    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat;
+
   /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1 - 1/3 (1+z) dlnTb/d(-z)) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_cb2]
     = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. - (1.+z) * (dy[ptv->index_D_Tmat]+ptw->Tcmb) / Tmat / 3.);
@@ -3940,6 +3949,7 @@ int thermodynamics_output_data(struct background * pba,
     //class_store_double(dataptr,pvecthermo[pth->index_th_ddg],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_Tb],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_dTb],_TRUE_,storeidx);
+    class_store_double(dataptr,pvecthermo[pth->index_th_wb],_TRUE_,storeidx);
     class_store_double(dataptr,pvecthermo[pth->index_th_cb2],_TRUE_,storeidx);
     if(pth->has_idm_b == _TRUE_){
       class_store_double(dataptr,pvecthermo[pth->index_th_T_idm_b],_TRUE_,storeidx);

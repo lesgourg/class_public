@@ -254,6 +254,8 @@ int background_functions(
 
   /* total density */
   double rho_tot;
+  /* critical density */
+  double rho_crit;
   /* total pressure */
   double p_tot;
   /* total relativistic density */
@@ -464,20 +466,23 @@ int background_functions(
     pvecback[pba->index_bg_p_tot_prime] += pvecback[pba->index_bg_p_prime_scf];
   }
 
+  /** - compute critical density */
+  rho_crit = rho_tot-pba->K/a/a;
+  class_test(rho_crit <= 0.,
+             pba->error_message,
+             "rho_crit = %e instead of strictly positive",rho_crit);
+
   /** - compute relativistic density to total density ratio */
-  pvecback[pba->index_bg_Omega_r] = rho_r / rho_tot;
+  pvecback[pba->index_bg_Omega_r] = rho_r / rho_crit;
 
   /** - compute other quantities in the exhaustive, redundant format */
   if (return_format == pba->long_info) {
 
-    /** - compute critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_tot-pba->K/a/a;
-    class_test(pvecback[pba->index_bg_rho_crit] <= 0.,
-               pba->error_message,
-               "rho_crit = %e instead of strictly positive",pvecback[pba->index_bg_rho_crit]);
+    /** - store critical density */
+    pvecback[pba->index_bg_rho_crit] = rho_crit;
 
     /** - compute Omega_m */
-    pvecback[pba->index_bg_Omega_m] = rho_m / rho_tot;
+    pvecback[pba->index_bg_Omega_m] = rho_m / rho_crit;
 
     /* one can put other variables here */
     /*  */
@@ -538,7 +543,6 @@ int background_w_fld(
     if (pba->has_dcdm == _TRUE_)
         class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
     a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
-    class_stop(pba->error_message,"a_eq = %e, z_eq =%e\n",a_eq,1./a_eq-1.);
 
     // w_ede(a) taken from eq. (11) in 1706.00730
     *w_fld = - dOmega_ede_over_da*a/Omega_ede/3./(1.-Omega_ede)+a_eq/3./(a+a_eq);
@@ -574,7 +578,14 @@ int background_w_fld(
         implement a numerical calculation of this integral only for
         a=a_ini, using for instance Romberg integration. It should be
         fast, simple, and accurate enough. */
-  *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+  switch (pba->fluid_equation_of_state) {
+  case CLP:
+    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    break;
+  case EDE:
+    class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    break;
+  }
 
   /** note: of course you can generalise these formulas to anything,
       defining new parameters pba->w..._fld. Just remember that so
@@ -665,39 +676,16 @@ int background_init(
   }
 
   /** - if shooting failed during input, catch the error here */
-  class_test(pba->shooting_failed == _TRUE_,
-             pba->error_message,
-             "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
-             pba->shooting_error);
+  class_test_except(pba->shooting_failed == _TRUE_,
+                    pba->error_message,
+                    background_free_input(pba),
+                    "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
+                    pba->shooting_error);
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
   class_call(background_indices(pba),
              pba->error_message,
              pba->error_message);
-
-  /** - control that cosmological parameter values make sense */
-
-  /* H0 in Mpc^{-1} */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->H0 < _H0_SMALL_)||(pba->H0 > _H0_BIG_),
-             pba->error_message,
-             "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
-
-  class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
-             pba->error_message,
-             "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
-
-  /* T_cmb in K */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->T_cmb < _TCMB_SMALL_)||(pba->T_cmb > _TCMB_BIG_),
-             pba->error_message,
-             "T_cmb=%g out of bounds (%g<T_cmb<%g)",pba->T_cmb,_TCMB_SMALL_,_TCMB_BIG_);*/
-
-  /* Omega_k */
-  /* Many users asked for this test to be supressed. It is commented out. */
-  /*class_test((pba->Omega0_k < _OMEGAK_SMALL_)||(pba->Omega0_k > _OMEGAK_BIG_),
-             pba->error_message,
-             "Omegak = %g out of bounds (%g<Omegak<%g) \n",pba->Omega0_k,_OMEGAK_SMALL_,_OMEGAK_BIG_);*/
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
@@ -742,6 +730,10 @@ int background_init(
              pba->error_message,
              pba->error_message);
 
+  class_call(background_output_budget(pba),
+             pba->error_message,
+             pba->error_message);
+
   return _SUCCESS_;
 
 }
@@ -757,17 +749,16 @@ int background_init(
 int background_free(
                     struct background *pba
                     ) {
-  int err;
 
-  free(pba->tau_table);
-  free(pba->z_table);
-  free(pba->d2tau_dz2_table);
-  free(pba->background_table);
-  free(pba->d2background_dtau2_table);
+  class_call(background_free_noinput(pba),
+              pba->error_message,
+              pba->error_message);
 
-  err = background_free_input(pba);
+  class_call(background_free_input(pba),
+              pba->error_message,
+              pba->error_message);
 
-  return err;
+  return _SUCCESS_;
 }
 
 /**
@@ -780,6 +771,7 @@ int background_free(
 int background_free_noinput(
                     struct background *pba
                     ) {
+
   free(pba->tau_table);
   free(pba->z_table);
   free(pba->d2tau_dz2_table);
@@ -801,6 +793,7 @@ int background_free_input(
                           ) {
 
   int k;
+
   if (pba->Omega0_ncdm_tot != 0.){
     for(k=0; k<pba->N_ncdm; k++){
       free(pba->q_ncdm[k]);
@@ -1780,7 +1773,6 @@ int background_solve(
     pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
   }
 
-
   /** - allocate background tables */
   class_alloc(pba->tau_table,pba->bt_size * sizeof(double),pba->error_message);
 
@@ -1864,8 +1856,9 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - compute remaining "related parameters"
-   *     - so-called "effective neutrino number", computed at earliest
+  /** - compute remaining "related parameters" */
+
+  /**  - so-called "effective neutrino number", computed at earliest
       time in interpolation table. This should be seen as a
       definition: Neff is the equivalent number of
       instantaneously-decoupled neutrinos accounting for the
@@ -1905,6 +1898,11 @@ int background_solve(
       printf("%.3f]\n",pba->scf_parameters[pba->scf_parameters_size-1]);
     }
   }
+
+  /**  - total matter, radiation, dark energy today */
+  pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
+  pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
+  pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
 
   free(pvecback);
   free(pvecback_integration);
@@ -2208,7 +2206,7 @@ int background_output_titles(struct background * pba,
   /** - Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
   int n;
-  char tmp[24];
+  char tmp[40];
 
   class_store_columntitle(titles,"z",_TRUE_);
   class_store_columntitle(titles,"proper time [Gyr]",_TRUE_);
@@ -2417,7 +2415,6 @@ int background_derivs(
        + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
   }
 
-
   return _SUCCESS_;
 
 }
@@ -2545,4 +2542,98 @@ double ddV_scf(
                struct background *pba,
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+}
+
+/**
+ * Function outputting the fractions Omega of the total critical density
+ * today, and also the reduced fractions omega=Omega*h*h
+ *
+ * It also prints the total budgets of non-relativistic, relativistic,
+ * and other contents, and of the total
+ *
+ * @param pba                      Input: Pointer to background structure
+ * @return the error status
+ */
+int background_output_budget(struct background* pba){
+  double budget_matter, budget_radiation, budget_other,budget_neutrino;
+  int index_ncdm;
+
+  budget_matter = 0;
+  budget_radiation = 0;
+  budget_other = 0;
+  budget_neutrino = 0;
+  //The name for the _class_print_species_ macro can be at most 30 characters total
+  if(pba->background_verbose > 1){
+    printf(" ---------------------------- Budget equation ----------------------- \n");
+
+
+    printf(" ---> Nonrelativistic Species \n");
+    _class_print_species_("Bayrons",b);
+    budget_matter+=pba->Omega0_b;
+    if(pba->has_cdm){
+      _class_print_species_("Cold Dark Matter",cdm);
+      budget_matter+=pba->Omega0_cdm;
+    }
+    if(pba->has_dcdm){
+      _class_print_species_("Decaying Dark Matter (dark g)",dcdm);
+      budget_matter+=pba->Omega0_dcdm;
+    }
+
+
+    printf(" ---> Relativistic Species \n");
+    _class_print_species_("Photons",g);
+    budget_radiation+=pba->Omega0_g;
+    if(pba->has_ur){
+      _class_print_species_("Massless ultra-relativistic",ur);
+      budget_radiation+=pba->Omega0_ur;
+    }
+    if(pba->has_dr){
+      _class_print_species_("Dark Radiation (by decay)",dr);
+      budget_radiation+=pba->Omega0_dr;
+    }
+
+    if(pba->N_ncdm > 0){
+      printf(" ---> Massive Neutrino Species \n");
+    }
+    if(pba->N_ncdm > 0){
+      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm){
+        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
+      }
+    }
+
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+      printf(" ---> Other Content \n");
+    }
+    if(pba->has_lambda){
+      _class_print_species_("Cosmological Constant",lambda);
+      budget_other+=pba->Omega0_lambda;
+    }
+    if(pba->has_fld){
+      _class_print_species_("Dark Energy Fluid",fld);
+      budget_other+=pba->Omega0_fld;
+    }
+    if(pba->has_scf){
+      _class_print_species_("Scalar Field",scf);
+      budget_other+=pba->Omega0_scf;
+    }
+    if(pba->has_curvature){
+      _class_print_species_("Spatial Curvature",k);
+      budget_other+=pba->Omega0_k;
+    }
+
+    printf(" ---> Total budgets \n");
+    printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
+    printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
+    if(pba->N_ncdm > 0){
+      printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+    }
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+      printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
+    }
+    printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
+
+    printf(" -------------------------------------------------------------------- \n");
+  }
+  return _SUCCESS_;
 }

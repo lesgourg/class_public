@@ -146,11 +146,10 @@ struct thermo
   int index_th_ddg;           /**< visibility function second derivative \f$ (d^2 g / d \tau^2) \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
   int index_th_dTb;           /**< derivative of baryon temperature DCH */
-  int index_th_cb2;           /**< squared baryon sound speed \f$ c_b^2 \f$ */
-  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal
-                                   tight-coupling schemes is requested) */
-  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some
-                                   non0-minimal tight-coupling schemes is requested) */
+  int index_th_wb;            /**< baryon equation of state parameter \f$ w_b = k_B T_b / \mu \f$ */
+  int index_th_cb2;           /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
+  int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
+  int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
 
@@ -195,10 +194,20 @@ struct thermo
   double ra_rec;  /**< conformal angular diameter distance to recombination */
   double da_rec;  /**< physical angular diameter distance to recombination */
   double rd_rec;  /**< comoving photon damping scale at recombination */
+
+  double z_star;  /**< redshift at which photon optical depth crosses one */
+  double tau_star;/**< confirmal time at which photon optical depth crosses one */
+  double rs_star; /**< comoving sound horizon at z_star */
+  double ds_star; /**< physical sound horizon at z_star */
+  double ra_star;  /**< conformal angular diameter distance to z_star */
+  double da_star;  /**< physical angular diameter distance to z_star */
+  double rd_star;  /**< comoving photon damping scale at z_star */
+
   double z_d;     /**< baryon drag redshift */
   double tau_d;   /**< baryon drag time */
   double ds_d;    /**< physical sound horizon at baryon drag */
   double rs_d;    /**< comoving sound horizon at baryon drag */
+
   double tau_cut; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
   double angular_rescaling;   /**< [ratio ra_rec / (tau0-tau_rec)]: gives CMB rescaling in angular space relative to flat model (=1 for curvature K=0) */
   double tau_free_streaming;  /**< minimum value of tau at which sfree-streaming approximation can be switched on */
@@ -355,7 +364,8 @@ struct thermo_workspace {
   int index_re_z;          /**< redshift \f$ z \f$ */
   int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
   int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
-  int index_re_cb2;        /**< squared baryon sound speed \f$ c_b^2 \f$ */
+  int index_re_wb;         /**< baryon equation of state parameter \f$ w_b \f$ */
+  int index_re_cb2;        /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
   int index_re_dkappadz;   /**< Thomson scattering rate with respect to redshift \f$ d \kappa / d z\f$ (units 1/Mpc) */
   int index_re_d3kappadz3; /**< second derivative of previous quantity with respect to redshift */
