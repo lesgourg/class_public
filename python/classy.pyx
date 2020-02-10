@@ -2310,6 +2310,12 @@ cdef class Class:
             raise CosmoSevereError(self.ba.error_message)
         return tau
 
+    def get_z_split_eisw_lisw(self):
+        return self.pt.eisw_lisw_split_z
+
+    def get_tau_split_eisw_lisw(self):
+        return self.tau_of_z(self.get_z_split_eisw_lisw())
+
     def get_thermos_for_NN(self):
         """
         Return the photon comoving damping scale, visibility function, its conformal time

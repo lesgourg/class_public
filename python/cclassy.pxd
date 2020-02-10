@@ -178,6 +178,8 @@ cdef extern from "class.h":
         int index_tp_phi_plus_psi
         int index_tp_phi_prime
         int index_tp_psi
+
+        double eisw_lisw_split_z
         
         double ** k
         double * tau_sampling
