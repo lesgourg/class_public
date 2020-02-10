@@ -6101,6 +6101,9 @@ int perturb_sources(
     /* scalar temperature */
     if (ppt->has_source_t == _TRUE_) {
 
+      const int switch_lisw = (ppt->switch_lisw != 0) && (z < ppt->eisw_lisw_split_z);
+      const int switch_eisw = (ppt->switch_eisw != 0) && (z >= ppt->eisw_lisw_split_z);
+
       /* check whether integrated Sachs-Wolf term should be included */
       if ((ppt->switch_eisw == 0) && (z >= ppt->eisw_lisw_split_z)){
         switch_isw = 0;
@@ -6132,7 +6135,7 @@ int perturb_sources(
         /* T0 with g_reco */
         const double t0_reco = 
           ppt->switch_sw * pvecthermo[pth->index_th_g_reco] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
-          + switch_isw * (pvecthermo[pth->index_th_g_reco] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi])
+          + switch_eisw * (pvecthermo[pth->index_th_g_reco] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi])
                           + pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime])
           + ppt->switch_dop /k/k * (pvecthermo[pth->index_th_g_reco] * dy[ppw->pv->index_pt_theta_b]
                                     + pvecthermo[pth->index_th_dg_reco] * y[ppw->pv->index_pt_theta_b]);
@@ -6195,7 +6198,7 @@ int perturb_sources(
         /* T0 reco */
         const double t0_reco =
           ppt->switch_sw * pvecthermo[pth->index_th_g_reco] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
-          + switch_isw * (pvecthermo[pth->index_th_g_reco] * (y[ppw->pv->index_pt_eta]
+          + switch_eisw * (pvecthermo[pth->index_th_g_reco] * (y[ppw->pv->index_pt_eta]
                                                          - pvecmetric[ppw->index_mt_alpha_prime]
                                                          - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha])
                           + pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime]
