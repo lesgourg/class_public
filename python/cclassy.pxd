@@ -111,6 +111,7 @@ cdef extern from "class.h":
         int index_th_g_reco
         int index_th_g_reio
         int index_th_exp_m_kappa
+        int index_th_dkappa
         double * z_table
         double * thermodynamics_table
 

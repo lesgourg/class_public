@@ -2333,6 +2333,7 @@ cdef class Class:
             int index_th_dg = self.th.index_th_dg;
             int index_th_dg_reco = self.th.index_th_dg_reco;
             int index_th_dg_reio = self.th.index_th_dg_reio;
+            int index_th_dkappa = self.th.index_th_dkappa;
             int index_th_exp_m_kappa = self.th.index_th_exp_m_kappa;
             double [:] numpy_r_d = np.zeros((tt_size));
             double [:] numpy_g = np.zeros((tt_size));
@@ -2342,6 +2343,7 @@ cdef class Class:
             double [:] numpy_dg_reco = np.zeros((tt_size));
             double [:] numpy_dg_reio = np.zeros((tt_size));
             double [:] numpy_e_kappa = np.zeros((tt_size));
+            double [:] numpy_dkappa = np.zeros((tt_size));
             double [:] numpy_tau = np.zeros((tt_size));
 
         for index_z in range(tt_size):
@@ -2356,6 +2358,7 @@ cdef class Class:
             numpy_dg[index_z] = thermodynamics_table[index_z*th_size + index_th_dg]
             numpy_dg_reco[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reco]
             numpy_dg_reio[index_z] = thermodynamics_table[index_z*th_size + index_th_dg_reio]
+            numpy_dkappa[index_z] = thermodynamics_table[index_z*th_size + index_th_dkappa]
             numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
 
         tau_arr = np.asarray(numpy_tau)
@@ -2372,7 +2375,8 @@ cdef class Class:
                 "g_reio": g_reio,
                 "g_reio_prime": g_reio_prime,
                 "e_kappa": np.asarray(numpy_e_kappa),
-                "tau": np.asarray(numpy_tau)
+                "tau": np.asarray(numpy_tau),
+                "dkappa": np.asarray(numpy_dkappa),
                 }
 
     def scale_independent_growth_factor(self, z):
