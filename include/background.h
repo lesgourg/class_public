@@ -62,6 +62,11 @@ struct background
   double Omega0_idm_b; /**< DCH interacting dark matter with baryons*/
   double f_idm_b;      /**< DCH fraction of DM interacting with baryons*/
 
+  double Omega0_idr; /**< \f$ \Omega_{0 idr} \f$: interacting dark radiation */
+  double T_idr;      /**< \f$ T_{idr} \f$: current temperature of interacting dark radiation in Kelvins */
+
+  double Omega0_idm_dr; /**< \f$ \Omega_{0 idm_dr} \f$: dark matter interacting with dark radiation */
+
   double Omega0_dcdmdr;   /**< \f$ \Omega_{0 dcdm}+\Omega_{0 dr} \f$: decaying cold dark matter (dcdm) decaying to dark radiation (dr) */
   double Omega_ini_dcdm;  /**< \f$ \Omega_{ini,dcdm} \f$: rescaled initial value for dcdm density (see 1407.2418 for definitions) */
   double Gamma_dcdm;      /**< \f$ \Gamma_{dcdm} \f$: decay constant for decaying cold dark matter */
@@ -99,7 +104,7 @@ struct background
   double w0_fld;   /**< \f$ w0_{DE} \f$: current fluid equation of state parameter */
   double wa_fld;   /**< \f$ wa_{DE} \f$: fluid equation of state parameter derivative */
   double cs2_fld;  /**< \f$ c^2_{s~DE} \f$: sound speed of the fluid in the frame comoving with the fluid (so, this is
-                        not [delta p/delta rho] in the synchronous or newtonian gauge!!!) */
+                        not [delta p/delta rho] in the synchronous or newtonian gauge!) */
   double Omega_EDE;        /**< \f$ wa_{DE} \f$: Early Dark Energy density parameter */
   double * scf_parameters; /**< list of parameters describing the scalar field potential */
   short attractor_ic_scf;  /**< whether the scalar field has attractor initial conditions */
@@ -149,9 +154,11 @@ struct background
   int index_bg_rho_b;         /**< baryon density */
   int index_bg_rho_cdm;       /**< cdm density */
   int index_bg_rho_idm_b;     /**< DCH interacting dark matter */
+  int index_bg_rho_idm_dr;    /**< density of dark matter interacting with dark radiation */
   int index_bg_rho_lambda;    /**< cosmological constant density */
   int index_bg_rho_fld;       /**< fluid density */
   int index_bg_w_fld;         /**< fluid equation of state */
+  int index_bg_rho_idr;       /**< density of interacting dark radiation */
   int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
   int index_bg_rho_dcdm;      /**< dcdm density */
   int index_bg_rho_dr;        /**< dr density */
@@ -260,6 +267,7 @@ struct background
 
   short has_cdm;       /**< presence of cold dark matter? */
   short has_idm_b;     /**< DCH presence of interacting dark matter? */
+  short has_idm_dr;    /**< presence of dark matter interacting with dark radiation? */
   short has_dcdm;      /**< presence of decaying cold dark matter? */
   short has_dr;        /**< presence of relativistic decay radiation? */
   short has_scf;       /**< presence of a scalar field? */
@@ -267,6 +275,7 @@ struct background
   short has_lambda;    /**< presence of cosmological constant? */
   short has_fld;       /**< presence of fluid with constant w and cs2? */
   short has_ur;        /**< presence of ultra-relativistic neutrinos/relics? */
+  short has_idr;       /**< presence of interacting dark radiation? */
   short has_curvature; /**< presence of global spatial curvature? */
 
   //@}

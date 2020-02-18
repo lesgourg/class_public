@@ -983,7 +983,7 @@ int input_get_guess(double *xguess,
       ba.H0 = ba.h *  1.e5 / _c_;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* *
        * This formula is exact in a Matter + Lambda Universe, but only for Omega_dcdm,
        * not the combined.
@@ -1002,7 +1002,7 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1./a_decay;
       break;
     case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -1035,7 +1035,7 @@ int input_get_guess(double *xguess,
       /* This works since correspondence is Omega_ini_dcdm -> Omega_dcdmdr and
          omega_ini_dcdm -> omega_dcdmdr */
       Omega0_dcdmdr *=pfzw->target_value[index_guess];
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_idm_dr+Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -1545,6 +1545,12 @@ int input_read_parameters_general(struct file_content * pfc,
       pth->compute_damping_scale=_TRUE_;
     }
 
+    /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
+    if(ppt->has_perturbations == _FALSE_) {
+      free(ppt->alpha_idm_dr);
+      free(ppt->beta_idr);
+    }
+
     /* Test */
     class_call(parser_check_options(string1, options_output, 33, &flag1),
                errmsg,
@@ -2000,6 +2006,7 @@ int input_read_parameters_species(struct file_content * pfc,
   double fnu_factor;
   double Omega_tot;
   double sigma_B; // Stefan-Boltzmann constant
+  double stat_f_idr = 7./8.;
 
   sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
 
@@ -2145,6 +2152,7 @@ int input_read_parameters_species(struct file_content * pfc,
     pba->Omega0_cdm = param2/pba->h/pba->h;
   }
 
+  if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) pba->Omega0_cdm = ppr->Omega0_cdm_min_synchronous;
 
   /** 5) Non-cold relics (ncdm) */
   /** 5.a) Number of non-cold relics */
@@ -2303,8 +2311,8 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /* ** ADDITIONAL SPECIES ** --> Add your species here */
 
-  /** 7) Decaying DM */
-  /** 7.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
+  /** 7.1) Decaying DM */
+  /** 7.1.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
   /* Read */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
              errmsg,
@@ -2325,7 +2333,7 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
   if (pba->Omega0_dcdmdr > 0) {
-    /** 7.b) Omega_ini_dcdm or omega_ini_dcdm */
+    /** 7.1.b) Omega_ini_dcdm or omega_ini_dcdm */
     /* Read */
     class_call(parser_read_double(pfc,"Omega_ini_dcdm",&param1,&flag1,errmsg),
                errmsg,
@@ -2346,7 +2354,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
 
-    /** 7.c) Gamma_dcdm */
+    /** 7.1.c) Gamma_dcdm */
     /* Read */
     class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
                errmsg,
@@ -2376,10 +2384,211 @@ int input_read_parameters_species(struct file_content * pfc,
                "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
   }
 
-  /* New interacting DM, DCH */
+  /** 7.2 Interacting Dark Radiation */
+  // TODO DCH: beautify input for new structure */
 
-  /** 8) DM interacting with baryons (IDM_B) */
-  /** 8.a) Cross section and fraction */
+  /** - Omega_0_idr (interacting dark radiation) */
+  /* Can take both the ethos parameters, and the NADM parameters */
+
+  class_read_double("stat_f_idr",stat_f_idr);
+
+  class_call(parser_read_double(pfc,"N_idr",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"N_dg",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"xi_idr",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+             errmsg,
+             "In input file, you can only enter one of N_idr, N_dg or xi_idr, choose one");
+
+  if (flag1 == _TRUE_) {
+    pba->T_idr = pow(param1/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
+    if (input_verbose > 1)
+      printf("You passed N_idr = N_dg = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
+  }
+  else if (flag2 == _TRUE_) {
+    pba->T_idr = pow(param2/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
+    if (input_verbose > 2)
+      printf("You passed N_dg = N_idr = %e, this is equivalent to xi_idr = %e in the ETHOS notation. \n", param2, pba->T_idr/pba->T_cmb);
+  }
+  else if (flag3 == _TRUE_) {
+    pba->T_idr = param3 * pba->T_cmb;
+    if (input_verbose > 1)
+      printf("You passed xi_idr = %e, this is equivalent to N_idr = N_dg = %e in the NADM notation. \n", param3, stat_f_idr*pow(param3,4.)/(7./8.)*pow(11./4.,(4./3.)));
+  }
+
+  pba->Omega0_idr = stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
+
+  /** 7.3 Interacting Dark Matter with Dark Radiation */
+  // TODO DCH: beautify input for new structure */
+
+  /** - Omega_0_idm_dr (DM interacting with DR) */
+  class_call(parser_read_double(pfc,"Omega_idm_dr",&param1,&flag1,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"omega_idm_dr",&param2,&flag2,errmsg),
+             errmsg,
+             errmsg);
+  class_call(parser_read_double(pfc,"f_idm_dr",&param3,&flag3,errmsg),
+             errmsg,
+             errmsg);
+  class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+             errmsg,
+             "In input file, you can only enter one of Omega_idm_dr, omega_idm_dr or f_idm_dr, choose one");
+
+  /* ---> if user passes directly the density of idm_dr */
+  if (flag1 == _TRUE_)
+    pba->Omega0_idm_dr = param1;
+  if (flag2 == _TRUE_)
+    pba->Omega0_idm_dr = param2/pba->h/pba->h;
+
+  /* ---> if user passes density of idm_dr as a fraction of the CDM one */
+  if (flag3 == _TRUE_) {
+    class_test((param3 < 0.) || (param3 > 1.),
+               errmsg,
+               "The fraction of interacting DM with DR must be between 0 and 1, you asked for f_idm_dr=%e",param3);
+    class_test((param3 > 0.) && (pba->Omega0_cdm == 0.),
+               errmsg,
+               "If you want a fraction of interacting DM with DR, to be consistent, you should not set the fraction of CDM to zero");
+
+    pba->Omega0_idm_dr = param3 * pba->Omega0_cdm;
+    /* readjust Omega0_cdm */
+    pba->Omega0_cdm -= pba->Omega0_idm_dr;
+    /* to be consistent, remove same amount from Omega_tot */
+    Omega_tot -= pba->Omega0_idm_dr;
+
+    /* avoid Omega0_cdm =0 in synchronous gauge */
+    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) {
+      pba->Omega0_cdm += ppr->Omega0_cdm_min_synchronous;
+      Omega_tot += ppr->Omega0_cdm_min_synchronous;
+      pba->Omega0_idm_dr -= ppr->Omega0_cdm_min_synchronous;
+    }
+  }
+
+  Omega_tot += pba->Omega0_idm_dr;
+
+  if (pba->Omega0_idm_dr > 0.) {
+
+    class_test(pba->Omega0_idr == 0.0,
+               errmsg,
+               "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
+
+    class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"a_dark",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"Gamma_0_nadm",&param3,&flag3,errmsg),
+               errmsg,
+               errmsg);
+    class_test(class_at_least_two_of_three(flag1,flag2,flag3),
+               errmsg,
+               "In input file, you can only enter one of a_idm_dr, a_dark or Gamma_0_nadm, choose one");
+
+    if (flag1 == _TRUE_){
+      pth->a_idm_dr = param1;
+      if (input_verbose > 1)
+        printf("You passed a_idm_dr = a_dark = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param1, param1*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
+    }
+    else if (flag2 == _TRUE_){
+      pth->a_idm_dr = param2;
+      if (input_verbose > 1)
+        printf("You passed a_dark = a_idm_dr = %e, this is equivalent to Gamma_0_nadm = %e in the NADM notation. \n", param2, param2*(4./3.)*(pba->h*pba->h*pba->Omega0_idr));
+    }
+    else if (flag3 == _TRUE_){
+      pth->a_idm_dr = param3*(3./4.)/(pba->h*pba->h*pba->Omega0_idr);
+      if (input_verbose > 1)
+        printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_idm_dr);
+    }
+
+    /** - Load the rest of the parameters for idm and idr */
+
+    if (flag3 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
+      pth->nindex_idm_dr = 0;
+      ppt->idr_nature = idr_fluid;
+      if (input_verbose > 1)
+        printf("NADM requested. Defaulting on nindex_idm_dr = %e and idr_nature = fluid \n", pth->nindex_idm_dr);
+    }
+
+    else{
+
+      class_read_double_one_of_two("nindex_dark","nindex_idm_dr",pth->nindex_idm_dr);
+
+      class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+
+      if (flag1 == _TRUE_) {
+        if ((strstr(string1,"free_streaming") != NULL) || (strstr(string1,"Free_Streaming") != NULL) || (strstr(string1,"Free_streaming") != NULL) || (strstr(string1,"FREE_STREAMING") != NULL)) {
+          ppt->idr_nature = idr_free_streaming;
+        }
+        if ((strstr(string1,"fluid") != NULL) || (strstr(string1,"Fluid") != NULL) || (strstr(string1,"FLUID") != NULL)) {
+          ppt->idr_nature = idr_fluid;
+        }
+      }
+    }
+
+    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
+
+    class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
+  }
+
+  /* Read alpha_idm_dr or alpha_dark */
+
+  class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  /* try with the other syntax */
+  if (flag1 == _FALSE_) {
+    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+               errmsg,
+               errmsg);
+  }
+
+  if(flag1 == _TRUE_){
+    if(entries_read != (ppr->l_max_idr-1)){
+      class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+    }
+  }
+  else{
+    class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
+  }
+
+  /* Read alpha_idm_dr or alpha_dark */
+
+  class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+             errmsg,
+             errmsg);
+
+  /* try with the other syntax */
+  if (flag1 == _FALSE_) {
+    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+               errmsg,
+               errmsg);
+  }
+
+  if(flag1 == _TRUE_){
+    if(entries_read != (ppr->l_max_idr-1)){
+      class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+    }
+  }
+  else{
+    class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
+  }
+
+  /** 7.4) DM interacting with baryons (IDM_B) DCH */
+  // TODO DCH: beautify this
+  /** 7.4.a) Cross section and fraction */
   /* Read */
 
   class_read_double("cross_idm_b",pth->cross_idm_b); //read the cross section between DM and baryons
@@ -2398,14 +2607,21 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
 
-  /** 8.b) Find Omega_idm_b from Omega_cdm and f_idm_b */
+  /** 7.4.b) Find Omega_idm_b from Omega_cdm and f_idm_b */
 
   if (pba->f_idm_b > 0.0){
     pba->Omega0_idm_b = pba->f_idm_b*pba->Omega0_cdm;
     pba->Omega0_cdm = (1.-pba->f_idm_b)*pba->Omega0_cdm;
+
+    /* avoid Omega0_cdm =0 in synchronous gauge */
+    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) {
+      pba->Omega0_cdm += ppr->Omega0_cdm_min_synchronous;
+      Omega_tot += ppr->Omega0_cdm_min_synchronous;
+      pba->Omega0_idm_dr -= ppr->Omega0_cdm_min_synchronous;
+    }
   }
 
-  /** 8.c) Read other idm_b parameters */
+  /** 7.4.c) Read other idm_b parameters */
 
   if(pba->Omega0_idm_b > 0.0){ //read the other parameters needed for idm DCH
     class_read_double("m_idm",pth->m_idm); //read the dark matter mass, in eV
@@ -2422,7 +2638,7 @@ int input_read_parameters_species(struct file_content * pfc,
   /* ** ADDITIONAL SPECIES ** */
 
   /* At this point all the species should be set, and used for the budget equation below */
-  /** 9) Dark energy
+  /** 8) Dark energy
          Omega_0_lambda (cosmological constant), Omega0_fld (dark energy
          fluid), Omega0_scf (scalar field) */
   /* Read */
@@ -2459,6 +2675,8 @@ int input_read_parameters_species(struct file_content * pfc,
   Omega_tot += pba->Omega0_ur;
   Omega_tot += pba->Omega0_cdm;
   Omega_tot += pba->Omega0_idm_b;
+  Omega_tot += pba->Omega0_idm_dr;
+  Omega_tot += pba->Omega0_idr;
   if (pba->Omega0_dcdmdr > 0) {
     Omega_tot += pba->Omega0_dcdmdr;
   }
@@ -4523,6 +4741,20 @@ int input_read_parameters_additional(struct file_content* pfc,
                "please choose different values for precision parameters ncdm_fluid_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
   }
 
+  if (pba->Omega0_idr != 0.){
+    class_test(ppr->idr_streaming_trigger_tau_over_tau_k==ppr->radiation_streaming_trigger_tau_over_tau_k,
+               errmsg,
+               "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and radiation_streaming_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+
+    class_test(ppr->idr_streaming_trigger_tau_over_tau_k==ppr->ur_fluid_trigger_tau_over_tau_k,
+               errmsg,
+               "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and ur_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+
+    class_test(ppr->idr_streaming_trigger_tau_over_tau_k==ppr->ncdm_fluid_trigger_tau_over_tau_k,
+               errmsg,
+               "please choose different values for precision parameters dark_radiation_trigger_tau_over_tau_k and ncdm_fluid_trigger_tau_over_tau_k, in order to avoid switching two approximation schemes at the same time");
+  }
+
   return _SUCCESS_;
 
 }
@@ -4922,22 +5154,32 @@ int input_default_params(struct background *pba,
 
   /* ** ADDITIONAL SPECIES ** */
 
-  /** 7.a) Fractional density of dcdm+dr */
+  /** 7.1.a) Fractional density of dcdm+dr */
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
-  /** 7.c) Decay constant */
+  /** 7.1.c) Decay constant */
   pba->Gamma_dcdm = 0.0;
   pba->tau_dcdm = 0.0;
 
   /* ** ADDITIONAL SPECIES ** --> Add your species here */
+  /** 7.2 Interacting Dark Radiation */
+  pba->Omega0_idr = 0.0;
+  pba->T_idr = 0.0;
+  pth->b_idr = 0.;
+  ppt->idr_nature=idr_free_streaming;
 
-  /** 8) DM interacting with baryons (IDM_B) DCH */
-  /** 8.a) Cross section and fraction */
+  /** 7.3) DM interacting with DR */
+  pba->Omega0_idm_dr = 0.0;
+  pth->a_idm_dr = 0.;
+  pth->nindex_idm_dr = 4.;
+
+  /** 7.4) DM interacting with baryons (IDM_B) DCH */
+  /** 7.4.a) Cross section and fraction */
   pth->cross_idm_b = 0.;   /* dark matter-baryon cross section for idm DCH*/
   pba->f_idm_b = 0;
-  /** 8.b) Omega_idm_b from Omega_cdm and f_idm_b */
+  /** 7.4.b) Omega_idm_b from Omega_cdm and f_idm_b */
   pba->Omega0_idm_b = 0;
-  /** 8.c) Other idm_b parameters */
+  /** 7.4.c) Other idm_b parameters */
   pth->m_idm = 1.e9;       /* dark matter mass for idm in eV DCH changed to pba for recfast*/
   pth->u_idm_b = 1.;       /* ratio between cross section and mass, used for comparison purposes DCH */
   pth->n_index_idm_b = 0.; /* dark matter index n for idm_b DCH*/
@@ -4946,8 +5188,8 @@ int input_default_params(struct background *pba,
   /** 9) Dark energy contributions */
   pba->Omega0_fld = 0.;
   pba->Omega0_scf = 0.;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr;
-  /** 9.a) Omega fluid */
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr+pba->Omega0_idr+pba->Omega0_idm_dr+pba->Omega0_idm_b;
+  /** 9.a) Omega fluid
   /** 9.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;

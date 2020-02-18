@@ -9,6 +9,7 @@ libclass.a
 python/classy.c
 *.pyc
 python/build/
+*.dSYM
 RealSpaceInterface/cache/
 .DS_Store
 doc/manual/html

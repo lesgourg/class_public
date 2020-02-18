@@ -882,6 +882,73 @@ int nonlinear_pks_at_kvec_and_zvec(
 }
 
 /**
+ * Return the logarithmic slope of P(k,z) for a given (k,z), a given pk type (_m, _cb)
+ * (computed with linear P_L if pk_output = pk_linear, nonlinear P_NL if pk_output = pk_nonlinear)
+ *
+ * @param pba         Input: pointer to background structure
+ * @param ppm         Input: pointer to primordial structure
+ * @param pnl         Input: pointer to nonlinear structure
+ * @param pk_output   Input: linear or nonlinear
+ * @param k           Input: wavenumber in 1/Mpc
+ * @param z           Input: redshift
+ * @param index_pk    Input: index of pk type (_m, _cb)
+ * @param n_eff       Output: logarithmic slope of P(k,z)
+ * @return the error status
+ */
+
+int nonlinear_pk_tilt_at_k_and_z(
+                                  struct background * pba,
+                                  struct primordial * ppm,
+                                  struct nonlinear * pnl,
+                                  enum pk_outputs pk_output,
+                                  double k,
+                                  double z,
+                                  int index_pk,
+                                  double * pk_tilt
+                                  ) {
+
+  double dlnk;
+  double out_pk1,out_pk2;
+
+  /* typical step dln(k) on which we believe that out results are not
+     dominated by numerical errors and that the P(k,z) is slowly
+     varying */
+
+  dlnk = pnl->ln_k[pnl->k_size-1] - pnl->ln_k[pnl->k_size-2];
+
+  class_call(nonlinear_pk_at_k_and_z(pba,
+                                     ppm,
+                                     pnl,
+                                     pk_output,
+                                     k/(1.+dlnk),
+                                     z,
+                                     index_pk,
+                                     &out_pk1,
+                                     NULL),
+             pnl->error_message,
+             pnl->error_message);
+
+  class_call(nonlinear_pk_at_k_and_z(pba,
+                                     ppm,
+                                     pnl,
+                                     pk_output,
+                                     k*(1.+dlnk),
+                                     z,
+                                     index_pk,
+                                     &out_pk2,
+                                     NULL),
+             pnl->error_message,
+             pnl->error_message);
+
+  /* logarithmic derivative: n_eff = (logPk2 - logPk1)/(logk2-logk1) */
+
+  *pk_tilt = (log(out_pk2)-log(out_pk1))/(2.*log(1.+dlnk));
+
+  return _SUCCESS_;
+
+}
+
+/**
  * This routine computes the variance of density fluctuations in a
  * sphere of radius R at redshift z, sigma(R,z), or other similar derived
  * quantitites, for one given pk type (_m, _cb).
@@ -1127,6 +1194,9 @@ int nonlinear_init(
         if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
           fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
+    }
+    if (pba->has_idm_dr){
+      fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
     }
   }
 
@@ -3029,7 +3099,6 @@ int nonlinear_hmcode(
   ng = ppr->n_hmcode_tables;
   nsig = ppr->n_hmcode_tables;
 
-
   /** Compute background quantitites today */
 
   Omega0_m = pba->Omega0_m;
@@ -3845,8 +3914,6 @@ int nonlinear_hmcode_growint(
   int i, index_scalefactor, index_a, index_growth, index_ddgrowth, index_gcol, ng; // index_scalefactor is a running index while index_a is a column index
   double * pvecback;
   double * integrand;
-  double tau;
-  int last_index;
 
   ng = 1024; // number of growth values (stepsize of the integral), should not be hardcoded and replaced by a precision parameter
   ainit = a;
