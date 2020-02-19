@@ -1972,6 +1972,9 @@ int thermodynamics_solve_derivs(double mz,
     }
   }
 
+  /* Restore to the real x for the temperature equations. */
+  x = ptdw->x_reio;
+
   /* Get dxdlna */
   class_call(thermodynamics_solve_current_dxdlna(z,y,dy,pth,ptw,ap_current),
              pth->error_message,
