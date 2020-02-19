@@ -2543,12 +2543,14 @@ cdef class Class:
             indices.extend([
                 self.pt.index_tp_t0, self.pt.index_tp_t0_sw, self.pt.index_tp_t0_isw,
                 self.pt.index_tp_t0_reco, self.pt.index_tp_t0_reio,
+                self.pt.index_tp_t0_reco_no_isw, self.pt.index_tp_t0_reio_no_isw,
                 self.pt.index_tp_t1,
                 self.pt.index_tp_t2, self.pt.index_tp_t2_reco, self.pt.index_tp_t2_reio
                 ])
             names.extend([
                 "t0", "t0_sw", "t0_isw", 
                 "t0_reco", "t0_reio",
+                "t0_reco_no_isw", "t0_reio_no_isw",
                 "t1",
                 "t2", "t2_reco", "t2_reio"
                 ])
