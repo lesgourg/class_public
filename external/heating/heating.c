@@ -762,7 +762,7 @@ int heating_add_noninjected(struct background* pba,
   struct heating_noninjected_workspace* niws;
   int index_z;
   double tau;
-  int last_index_back, last_index_thermo, last_index_coarse;
+  int last_index_back, last_index_thermo, last_index_coarse = 0;
   double *pvecback, *pvecthermo;
   double R, dkappa;
   int index_k;
@@ -1821,4 +1821,3 @@ int heating_output_data(struct heating * phe,
 
   return _SUCCESS_;
 }
-
