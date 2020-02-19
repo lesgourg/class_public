@@ -5127,7 +5127,8 @@ int perturb_initial_conditions(struct precision * ppr,
   double q,epsilon,k2;
   int index_q,n_ncdm,idx;
   double rho_r,rho_m,rho_nu,rho_m_over_rho_r;
-  double fracnu,fracg,fracb,fraccdm,fracidm_b,om;
+  double fracnu,fracg,fracb,fraccdm,fracidm_b = 0., fracidm_dr = 0.;
+  double om;
   double ktau_two,ktau_three;
   double f_dr;
 
@@ -5219,8 +5220,15 @@ int perturb_initial_conditions(struct precision * ppr,
     /* f_cdm = Omega_cdm(t_i) / Omega_m(t_i) */
     fraccdm = ppw->pvecback[pba->index_bg_rho_cdm]/rho_m;
 
-    /* f_idm_b = Omega_idm_b(t_i) / Omega_m(t_i) */ //DCH
-    fracidm_b =  ppw->pvecback[pba->index_bg_rho_idm_b]/rho_m;
+    if(pba->has_idm_b == _TRUE_){
+      /* f_idm_b = Omega_idm_b(t_i) / Omega_m(t_i) */ //DCH
+      fracidm_b =  ppw->pvecback[pba->index_bg_rho_idm_b]/rho_m;
+    }
+
+    if(pba->has_idm_dr == _TRUE_){
+      /* f_idm_dr = Omega_idm_dr(t_i) / Omega_m(t_i) */ //DCH
+      fracidm_dr =  ppw->pvecback[pba->index_bg_rho_idm_dr]/rho_m;
+    }
 
     /* Omega_m(t_i) / Omega_r(t_i) */
     rho_m_over_rho_r = rho_m/rho_r;
@@ -5292,7 +5300,7 @@ int perturb_initial_conditions(struct precision * ppr,
         ppw->pv->y[ppw->pv->index_pt_theta_idm_b] = 0.;
       }
 
-      /* interacting dark matter */
+      /* interacting dark matter with dark radiation*/
       if (pba->has_idm_dr == _TRUE_) {
         ppw->pv->y[ppw->pv->index_pt_delta_idm_dr] = 3./4.*ppw->pv->y[ppw->pv->index_pt_delta_g]; /* idm_dr density */
       }
@@ -5531,18 +5539,17 @@ int perturb_initial_conditions(struct precision * ppr,
       if (pba->has_cdm == _TRUE_)
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_cdm];
       if (pba->has_idm_b == _TRUE_) //DCH !!! changed this from an else if for the case of mixed idm_b-cdm
-        //  delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_idm_b];
         delta_cdm += ppw->pv->y[ppw->pv->index_pt_delta_idm_b];
+      if (pba->has_idm_dr == _TRUE_)
+        delta_cdm += ppw->pv->y[ppw->pv->index_pt_delta_idm_dr];
       else if (pba->has_dcdm == _TRUE_)
         delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_dcdm];
-      else if (pba->has_idm_dr == _TRUE_)
-        delta_cdm = ppw->pv->y[ppw->pv->index_pt_delta_idm_dr];
       else
         delta_cdm=0.;
 
       // note: if there are no neutrinos, fracnu, delta_ur and theta_ur below will consistently be zero.
 
-      delta_tot = (fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm+fracidm_b*ppw->pv->y[ppw->pv->index_pt_delta_idm_b]))/(1.+rho_m_over_rho_r);
+      delta_tot = (fracg*ppw->pv->y[ppw->pv->index_pt_delta_g]+fracnu*delta_ur+rho_m_over_rho_r*(fracb*ppw->pv->y[ppw->pv->index_pt_delta_b]+fraccdm*delta_cdm+fracidm_b*ppw->pv->y[ppw->pv->index_pt_delta_idm_b]+fracidm_dr*ppw->pv->y[ppw->pv->index_pt_delta_idm_dr]))/(1.+rho_m_over_rho_r);
 
       velocity_tot = ((4./3.)*(fracg*ppw->pv->y[ppw->pv->index_pt_theta_g]+fracnu*theta_ur) + rho_m_over_rho_r*fracb*ppw->pv->y[ppw->pv->index_pt_theta_b])/(1.+rho_m_over_rho_r);
 

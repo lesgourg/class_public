@@ -4344,6 +4344,7 @@ int thermodynamics_output_titles(struct background * pba,
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
   class_store_columntitle(titles,"dTb [K]",_TRUE_);
   class_store_columntitle(titles,"c_b^2",_TRUE_);
+  class_store_columntitle(titles,"w_b",_TRUE_);
   if(pth->has_idm_b==_TRUE_){ //DCH
     class_store_columntitle(titles,"Tidm_b [K]",_TRUE_);
     class_store_columntitle(titles,"dTidm_b [K]",_TRUE_);
