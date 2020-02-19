@@ -2884,8 +2884,8 @@ int thermodynamics_solve_current_dxdlna(double z,
  */
 int thermodynamics_solve_current_idm_b(struct background * pba,
                                        double z,
-                                       double * dy,
                                        double * y,
+                                       double * dy,
                                        struct thermo * pth,
                                        struct thermo_workspace * ptw,
                                        double * pvecback){
@@ -3062,6 +3062,20 @@ int thermodynamics_vector_init(struct precision * ppr,
 
       ptdw->tv->y[ptdw->tv->index_D_Tmat] = 0.;
       ptdw->tv->dy[ptdw->tv->index_D_Tmat] = 0.;
+      //  DCH initialize T_idm_b
+      if(pth->has_idm_b == _TRUE_){
+        if(pth->n_index_idm_b == -4){ //special treatment for this case, in which the baryons and DM are not tightly coupled at early times
+          ptdw->T_idm_b = 0.;
+          ptdw->dT_idm_b = 0.;
+        }
+        else{
+          ptdw->T_idm_b = ptw->Tcmb*(1.+z);
+          ptdw->dT_idm_b = ptw->Tcmb;
+        }
+        ptdw->tv->y[ptv->index_T_idm_b] = ptdw->T_idm_b;
+        ptdw->tv->dy[ptv->index_T_idm_b] = ptdw->dT_idm_b;
+      }
+
 
       ptdw->require_H = _FALSE_;
       ptdw->require_He = _FALSE_;
@@ -3080,6 +3094,11 @@ int thermodynamics_vector_init(struct precision * ppr,
       /* Set the new vector and its indices */
       ptv->y[ptv->index_D_Tmat] = ptdw->tv->y[ptdw->tv->index_D_Tmat];
       ptv->dy[ptv->index_D_Tmat] = ptdw->tv->dy[ptdw->tv->index_D_Tmat];
+      //  DCH initialize T_idm_b
+      if(pth->has_idm_b == _TRUE_){
+        ptv->y[ptv->index_T_idm_b] = ptdw->tv->y[ptdw->tv->index_T_idm_b];
+        ptv->dy[ptv->index_T_idm_b] = ptdw->tv->dy[ptdw->tv->index_T_idm_b];
+      }
       ptv->y[ptv->index_x_He] = ptdw->x_He;
       ptv->dy[ptv->index_x_He] = -ptdw->dx_He;
 
@@ -3109,6 +3128,11 @@ int thermodynamics_vector_init(struct precision * ppr,
       /* Set the new vector and its indices */
       ptv->y[ptv->index_D_Tmat] = ptdw->tv->y[ptdw->tv->index_D_Tmat];
       ptv->dy[ptv->index_D_Tmat] = ptdw->tv->dy[ptdw->tv->index_D_Tmat];
+      //  DCH initialize T_idm_b
+      if(pth->has_idm_b == _TRUE_){
+        ptv->y[ptv->index_T_idm_b] = ptdw->tv->y[ptdw->tv->index_T_idm_b];
+        ptv->dy[ptv->index_T_idm_b] = ptdw->tv->dy[ptdw->tv->index_T_idm_b];
+      }
       ptv->y[ptv->index_x_H] = ptdw->x_H;
       ptv->dy[ptv->index_x_H] = -ptdw->dx_H;
       ptv->y[ptv->index_x_He] = ptdw->tv->y[ptdw->tv->index_x_He];
@@ -3132,6 +3156,11 @@ int thermodynamics_vector_init(struct precision * ppr,
       /* Set the new vector and its indices */
       ptv->y[ptv->index_D_Tmat] = ptdw->tv->y[ptdw->tv->index_D_Tmat];
       ptv->dy[ptv->index_D_Tmat] = ptdw->tv->dy[ptdw->tv->index_D_Tmat];
+      //  DCH initialize T_idm_b
+      if(pth->has_idm_b == _TRUE_){
+        ptv->y[ptv->index_T_idm_b] = ptdw->tv->y[ptdw->tv->index_T_idm_b];
+        ptv->dy[ptv->index_T_idm_b] = ptdw->tv->dy[ptdw->tv->index_T_idm_b];
+      }
       ptv->y[ptv->index_x_H] = ptdw->tv->y[ptdw->tv->index_x_H];
       ptv->dy[ptv->index_x_H] = ptdw->tv->dy[ptdw->tv->index_x_H];
       ptv->y[ptv->index_x_He] = ptdw->tv->y[ptdw->tv->index_x_He];
@@ -3158,6 +3187,11 @@ int thermodynamics_vector_init(struct precision * ppr,
       /* Set the new vector and its indices */
       ptv->y[ptv->index_D_Tmat] = ptdw->tv->y[ptdw->tv->index_D_Tmat];
       ptv->dy[ptv->index_D_Tmat] = ptdw->tv->dy[ptdw->tv->index_D_Tmat];
+      //  DCH initialize T_idm_b
+      if(pth->has_idm_b == _TRUE_){
+        ptv->y[ptv->index_T_idm_b] = ptdw->tv->y[ptdw->tv->index_T_idm_b];
+        ptv->dy[ptv->index_T_idm_b] = ptdw->tv->dy[ptdw->tv->index_T_idm_b];
+      }
       /* Free the old vector and its indices */
       class_call(thermodynamics_vector_free(ptdw->tv),
                  pth->error_message,
@@ -3168,38 +3202,6 @@ int thermodynamics_vector_init(struct precision * ppr,
 
       ptdw->require_H = _FALSE_;
       ptdw->require_He = _FALSE_;
-    }
-  }
-
-  //  DCH initialise T_idm_b*/
-  if(pth->has_idm_b == _TRUE_){
-
-    if(ptdw->ap_current == ptdw->index_ap_brec){
-
-      if(pth->n_index_idm_b == -4){ //special treatment for this case, in which the baryons and DM are not tightly coupled at early times
-        ptdw->T_idm_b = 0.;
-        ptdw->dT_idm_b = 0.;
-      }
-      else{
-        ptdw->T_idm_b = ptw->Tcmb*(1.+z);
-        ptdw->dT_idm_b = ptw->Tcmb;
-      }
-
-      /* Set the new vector and its indices */
-      ptdw->tv = ptv;
-      ptdw->tv->y[ptdw->tv->index_T_idm_b] = 0.;
-      ptdw->tv->dy[ptdw->tv->index_T_idm_b] = 0.;
-    }
-
-    /* Afterwards initialization */
-    else{
-      /* Free the old vector and its indices */
-      ptv->y[ptv->index_T_idm_b] = ptdw->tv->y[ptdw->tv->index_T_idm_b];
-      ptv->dy[ptv->index_T_idm_b] = ptdw->tv->dy[ptdw->tv->index_T_idm_b];
-      class_call(thermodynamics_vector_free(ptdw->tv),
-                 pth->error_message,
-                 pth->error_message);
-      ptdw->tv = ptv;
     }
   }
 
