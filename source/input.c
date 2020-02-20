@@ -596,8 +596,10 @@ int input_shooting(struct file_content * pfc,
 
       /* We can do 1 dimensional root finding */
       if (input_verbose > 0) {
-        fprintf(stdout,"Computing unknown input parameter '%s' using input parameter '%s'\n",
-                fzw.fc.name[fzw.unknown_parameters_index[0]],target_namestrings[fzw.target_name[0]]);
+        fprintf(stdout,
+                "Computing unknown input parameter '%s' using input parameter '%s'\n",
+                fzw.fc.name[fzw.unknown_parameters_index[0]],
+                target_namestrings[fzw.target_name[0]]);
       }
 
       /* If shooting fails, postpone error to background module to play nice with MontePython. */
@@ -742,7 +744,6 @@ int input_needs_shooting_for_target(struct file_content * pfc,
   return _SUCCESS_;
 
 }
-
 
 int input_find_root(double *xzero,
                     int *fevals,
@@ -1157,42 +1158,42 @@ int input_try_unknown_parameters(double * unknown_parameter,
     th.thermodynamics_verbose = 0;
     th.he.heating_verbose = 0;
     th.hyrec_verbose = 0;
-    class_call(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg);
+    class_call_except(thermodynamics_init(&pr,&ba,&th), th.error_message, errmsg, background_free(&ba));
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
        if (input_verbose>2)
          printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
-    class_call(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg);
+    class_call_except(perturb_init(&pr,&ba,&th,&pt), pt.error_message, errmsg, thermodynamics_free(&th);background_free(&ba));
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
     if (input_verbose>2)
       printf("Stage 4: primordial\n");
     pm.primordial_verbose = 0;
-    class_call(primordial_init(&pr,&pt,&pm), pm.error_message, errmsg);
+    class_call_except(primordial_init(&pr,&pt,&pm), pm.error_message, errmsg, perturb_free(&pt);thermodynamics_free(&th);background_free(&ba));
   }
 
   if (pfzw->required_computation_stage >= cs_nonlinear){
     if (input_verbose>2)
       printf("Stage 5: nonlinear\n");
     nl.nonlinear_verbose = 0;
-    class_call(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl), nl.error_message, errmsg);
+    class_call_except(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl), nl.error_message, errmsg, primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba));
   }
 
   if (pfzw->required_computation_stage >= cs_transfer){
     if (input_verbose>2)
       printf("Stage 6: transfer\n");
     tr.transfer_verbose = 0;
-    class_call(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg);
+    class_call_except(transfer_init(&pr,&ba,&th,&pt,&nl,&tr), tr.error_message, errmsg, nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba));
   }
 
   if (pfzw->required_computation_stage >= cs_spectra){
     if (input_verbose>2)
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
-    class_call(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg);
+    class_call_except(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),sp.error_message, errmsg, transfer_free(&tr);nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba));
   }
 
   /** Get the corresponding shoot variable and put into output */
@@ -1318,11 +1319,12 @@ int input_read_precisions(struct file_content * pfc,
              "smallest_allowed_variation = %e < 0",
              ppr->smallest_allowed_variation);
 
+  /* Assign the default precision settings */
   #define __ASSIGN_DEFAULT_PRECISION__
   #include "precisions.h"
   #undef __ASSIGN_DEFAULT_PRECISION__
 
-  /** Set all precision parameters */
+  /** Read all precision parameters from input */
   #define __PARSE_PRECISION_PARAMETER__
   #include "precisions.h"
   #undef __PARSE_PRECISION_PARAMETER__
@@ -1391,7 +1393,7 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
-  /** Read the parameters for each physical species  */
+  /** Read the parameters for each physical species (has to be called after the general read) */
   class_call(input_read_parameters_species(pfc,ppr,pba,pth,ppt,
                                            input_verbose,
                                            errmsg),
@@ -2008,6 +2010,8 @@ int input_read_parameters_species(struct file_content * pfc,
   double sigma_B; // Stefan-Boltzmann constant
   double stat_f_idr = 7./8.;
 
+
+
   sigma_B = 2.*pow(_PI_,5.)*pow(_k_B_,4.)/15./pow(_h_P_,3.)/pow(_c_,2);  // [W/(m^2 K^4) = Kg/(K^4 s^3)]
 
   /** 1) Omega_0_g (photons) and T_cmb */
@@ -2309,9 +2313,9 @@ int input_read_parameters_species(struct file_content * pfc,
   }
 
 
-  /* ** ADDITIONAL SPECIES ** --> Add your species here */
+  /* 7) ** ADDITIONAL SPECIES ** --> Add your species here */
 
-  /** 7.1) Decaying DM */
+  /** 7.1) Decaying DM into DR */
   /** 7.1.a) Omega_0_dcdmdr (DCDM, i.e. decaying CDM) */
   /* Read */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
@@ -2354,7 +2358,7 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
 
-    /** 7.1.c) Gamma_dcdm */
+    /** 7.1.c) Gamma in same units as H0, i.e. km/(s Mpc)*/
     /* Read */
     class_call(parser_read_double(pfc,"Gamma_dcdm",&param1,&flag1,errmsg),                          // [km/(s Mpc)]
                errmsg,
@@ -2384,14 +2388,10 @@ int input_read_parameters_species(struct file_content * pfc,
                "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
   }
 
-  /** 7.2 Interacting Dark Radiation */
-  // TODO DCH: beautify input for new structure */
+  /** 7.2) Interacting dark matter & dark radiation, ETHOS-parametrization/NADM parametrization, see explanatory.ini
+  /** 7.2.a) Omega_0_idr  */
 
-  /** - Omega_0_idr (interacting dark radiation) */
-  /* Can take both the ethos parameters, and the NADM parameters */
-
-  class_read_double("stat_f_idr",stat_f_idr);
-
+  /* Read */
   class_call(parser_read_double(pfc,"N_idr",&param1,&flag1,errmsg),
              errmsg,
              errmsg);
@@ -2404,6 +2404,9 @@ int input_read_parameters_species(struct file_content * pfc,
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
              "In input file, you can only enter one of N_idr, N_dg or xi_idr, choose one");
+
+  /** 7.2.b) stat_f_idr  */
+  class_read_double("stat_f_idr",stat_f_idr);
 
   if (flag1 == _TRUE_) {
     pba->T_idr = pow(param1/stat_f_idr*(7./8.)/pow(11./4.,(4./3.)),(1./4.)) * pba->T_cmb;
@@ -2423,9 +2426,6 @@ int input_read_parameters_species(struct file_content * pfc,
 
   pba->Omega0_idr = stat_f_idr*pow(pba->T_idr/pba->T_cmb,4.)*pba->Omega0_g;
 
-  /** 7.3 Interacting Dark Matter with Dark Radiation */
-  // TODO DCH: beautify input for new structure */
-
   /** - Omega_0_idm_dr (DM interacting with DR) */
   class_call(parser_read_double(pfc,"Omega_idm_dr",&param1,&flag1,errmsg),
              errmsg,
@@ -2438,7 +2438,7 @@ int input_read_parameters_species(struct file_content * pfc,
              errmsg);
   class_test(class_at_least_two_of_three(flag1,flag2,flag3),
              errmsg,
-             "In input file, you can only enter one of Omega_idm_dr, omega_idm_dr or f_idm_dr, choose one");
+             "In input file, you can only enter one of {Omega_idm_dr, omega_idm_dr, f_idm_dr} choose one");
 
   /* ---> if user passes directly the density of idm_dr */
   if (flag1 == _TRUE_)
@@ -2458,25 +2458,23 @@ int input_read_parameters_species(struct file_content * pfc,
     pba->Omega0_idm_dr = param3 * pba->Omega0_cdm;
     /* readjust Omega0_cdm */
     pba->Omega0_cdm -= pba->Omega0_idm_dr;
-    /* to be consistent, remove same amount from Omega_tot */
-    Omega_tot -= pba->Omega0_idm_dr;
-
     /* avoid Omega0_cdm =0 in synchronous gauge */
     if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) {
       pba->Omega0_cdm += ppr->Omega0_cdm_min_synchronous;
-      Omega_tot += ppr->Omega0_cdm_min_synchronous;
       pba->Omega0_idm_dr -= ppr->Omega0_cdm_min_synchronous;
     }
   }
 
-  Omega_tot += pba->Omega0_idm_dr;
-
+  /* Test */
   if (pba->Omega0_idm_dr > 0.) {
 
     class_test(pba->Omega0_idr == 0.0,
                errmsg,
                "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
+    /** 7.2.d) */
+    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
 
+    /** 7.2.e) */
     class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
                errmsg,
                errmsg);
@@ -2506,20 +2504,23 @@ int input_read_parameters_species(struct file_content * pfc,
         printf("You passed Gamma_0_nadm = %e, this is equivalent to a_idm_dr = a_dark = %e in the ETHOS notation. \n", param3, pth->a_idm_dr);
     }
 
-    /** - Load the rest of the parameters for idm and idr */
-
-    if (flag3 == _TRUE_){ /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
+    /** 7.2.e.3/4) */
+    /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
+    if (flag3 == _TRUE_){ 
+      /** Simply set 7.2.e.3/4) */
       pth->nindex_idm_dr = 0;
       ppt->idr_nature = idr_fluid;
       if (input_verbose > 1)
         printf("NADM requested. Defaulting on nindex_idm_dr = %e and idr_nature = fluid \n", pth->nindex_idm_dr);
     }
 
+    /* If the user passed something else, assume they want ETHOS parameterisation*/
     else{
 
+      /** 7.2.e.3) n_index_idm_dr */
       class_read_double_one_of_two("nindex_dark","nindex_idm_dr",pth->nindex_idm_dr);
 
-      class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
+      /** 7.2.e.4) idr_nature */ class_call(parser_read_string(pfc,"idr_nature",&string1,&flag1,errmsg),
                  errmsg,
                  errmsg);
 
@@ -2533,61 +2534,71 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
 
-    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
-
+    /** 7.2.f) Strength of self interactions */
     class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
-  }
 
-  /* Read alpha_idm_dr or alpha_dark */
 
-  class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
-             errmsg,
-             errmsg);
+  // [NS] :: TODO :: This has to be fixed. For now, we simply always allocate it (exiting the if statement with a '}' and going into an always executed block with '{'.
+  }{ // <--------- Bad practice, has to be corrected ASAP
 
-  /* try with the other syntax */
-  if (flag1 == _FALSE_) {
-    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+    /** 7.2.g) Read alpha_idm_dr or alpha_dark */
+    class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
                errmsg,
                errmsg);
-  }
 
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+    /* try with the other syntax */
+    if (flag1 == _FALSE_) {
+      class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
     }
-  }
-  else{
-    class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
-  }
+    // [NS] :: TODO :: move to perturbations module this allocation somehow? + fix bug that happens when entries_read == l_max_idr-1
+    /* Only allocate if perturbations module will be called (otherwise segfaults) */
+    if (ppt->has_perturbations) {
+      if(flag1 == _TRUE_){
+        if(entries_read != (ppr->l_max_idr-1)){
+          class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+          for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+        }
+      }
+      else{
+        class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
+      }
+    }
 
-  /* Read alpha_idm_dr or alpha_dark */
+    /* 7.2.h) Read beta_idm_dr or beta_dark */
 
-  class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  /* try with the other syntax */
-  if (flag1 == _FALSE_) {
-    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+    class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
                errmsg,
                errmsg);
-  }
 
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+    /* try with the other syntax */
+    if (flag1 == _FALSE_) {
+      class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
     }
-  }
-  else{
-    class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
+
+    // [NS] :: TODO :: move to perturbations module this allocation somehow? + fix bug that happens when entries_read == l_max_idr-1
+    /* Only allocate if perturbations module will be called (otherwise segfaults) */
+    if (ppt->has_perturbations) {
+      if(flag1 == _TRUE_){
+        if(entries_read != (ppr->l_max_idr-1)){
+          class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+          for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+        }
+      }
+      else{
+        class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
+      }
+    }
   }
 
   /** 7.4) DM interacting with baryons (IDM_B) DCH */
   // TODO DCH: beautify this
+  // TODO NS : Correct this
   /** 7.4.a) Cross section and fraction */
   /* Read */
 
@@ -2634,8 +2645,9 @@ int input_read_parameters_species(struct file_content * pfc,
     pth->n_coeff_idm_b = cn_list[4+pth->n_index_idm_b];
     pth->u_idm_b = pth->cross_idm_b/pth->m_idm;
   }
-
+ 
   /* ** ADDITIONAL SPECIES ** */
+
 
   /* At this point all the species should be set, and used for the budget equation below */
   /** 8) Dark energy
@@ -2668,7 +2680,6 @@ int input_read_parameters_species(struct file_content * pfc,
            first unspecified component. */
 
   /* ** BUDGET EQUATION ** -> Add your species here */
-
   /* Compute Omega_tot */
   Omega_tot = pba->Omega0_g;
   Omega_tot += pba->Omega0_b;
@@ -2677,9 +2688,6 @@ int input_read_parameters_species(struct file_content * pfc,
   Omega_tot += pba->Omega0_idm_b;
   Omega_tot += pba->Omega0_idm_dr;
   Omega_tot += pba->Omega0_idr;
-  if (pba->Omega0_dcdmdr > 0) {
-    Omega_tot += pba->Omega0_dcdmdr;
-  }
   Omega_tot += pba->Omega0_ncdm_tot;
   /* Step 1 */
   if (flag1 == _TRUE_){
@@ -2719,9 +2727,9 @@ int input_read_parameters_species(struct file_content * pfc,
 
   /* ** END OF BUDGET EQUATION ** */
 
-  /** 9.a) If Omega fluid is different from 0 */
+  /** 8.a) If Omega fluid is different from 0 */
   if (pba->Omega0_fld != 0.) {
-    /** 9.a.1) PPF approximation */
+    /** 8.a.1) PPF approximation */
     /* Read */
     class_call(parser_read_string(pfc,"use_ppf",&string1,&flag1,errmsg),
                errmsg,
@@ -2736,7 +2744,7 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
 
-    /** 9.a.2) Equation of state */
+    /** 8.a.2) Equation of state */
     /* Read */
     class_call(parser_read_string(pfc,"fluid_equation_of_state",&string1,&flag1,errmsg),
                errmsg,
@@ -2755,15 +2763,14 @@ int input_read_parameters_species(struct file_content * pfc,
     }
 
     if (pba->fluid_equation_of_state == CLP) {
-      /** 9.a.2.2) Equation of state of the fluid in 'CLP' case */
+      /** 8.a.2.2) Equation of state of the fluid in 'CLP' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("wa_fld",pba->wa_fld);
       class_read_double("cs2_fld",pba->cs2_fld);
     }
-
     if (pba->fluid_equation_of_state == EDE) {
-      /** 9.c.2) Equation of state of the fluid in 'EDE' case */
+      /** 8.a.2.3) Equation of state of the fluid in 'EDE' case */
       /* Read */
       class_read_double("w0_fld",pba->w0_fld);
       class_read_double("Omega_EDE",pba->Omega_EDE);
@@ -2771,10 +2778,10 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
 
-  /** 9.b) If Omega scalar field (SCF) is different from 0 */
+  /** 8.b) If Omega scalar field (SCF) is different from 0 */
   if (pba->Omega0_scf != 0.){
 
-    /** 9.b.1) Additional SCF parameters */
+    /** 8.b.1) Additional SCF parameters */
     /* Read */
     class_call(parser_read_list_of_doubles(pfc,
                                            "scf_parameters",
@@ -2784,7 +2791,7 @@ int input_read_parameters_species(struct file_content * pfc,
                                            errmsg),
                errmsg,errmsg);
 
-    /** 9.b.2) SCF initial conditions from attractor solution */
+    /** 8.b.2) SCF initial conditions from attractor solution */
     /* Read */
     class_call(parser_read_string(pfc,
                                   "attractor_ic_scf",
@@ -2809,7 +2816,7 @@ int input_read_parameters_species(struct file_content * pfc,
       }
     }
 
-    /** 9.b.3) SCF tuning parameter */
+    /** 8.b.3) SCF tuning parameter */
     /* Read */
     class_read_int("scf_tuning_index",pba->scf_tuning_index);
     /* Test */
@@ -2818,7 +2825,7 @@ int input_read_parameters_species(struct file_content * pfc,
                "Tuning index 'scf_tuning_index' (%d) is larger than the number of entries (%d) in 'scf_parameters'.",
                pba->scf_tuning_index,pba->scf_parameters_size);
 
-    /** 9.b.4) Shooting parameter */
+    /** 8.b.4) Shooting parameter */
     /* Read */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
     /* Complete set of parameters */
@@ -3201,6 +3208,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       class_call(parser_read_double(pfc,"c_min",&param3,&flag3,errmsg),
                  errmsg,
                  errmsg);
+
       class_test(((flag1 == _TRUE_) && ((flag2 == _TRUE_) || (flag3 == _TRUE_))),
                  errmsg,
                  "In input file, you cannot enter both a baryonic feedback model and a choice of baryonic feedback parameters, choose one of both methods");
@@ -4386,10 +4394,8 @@ int input_read_parameters_spectra(struct file_content * pfc,
           ppt->z_max_pk = MAX(ppt->z_max_pk,z_max);
         }
       }
-
       /* Now we have checked all contributions that could change z_max_pk */
     }
-    psp->z_max_pk = ppt->z_max_pk;
   }
 
   return _SUCCESS_;
@@ -4842,7 +4848,6 @@ int input_read_parameters_output(struct file_content * pfc,
   /* Read */
   class_read_flag_or_deprecated("write_background","write background",pop->write_background);
 
-
   /** 1.e) Thermodynamics quantities */
   /* Read */
   class_read_flag_or_deprecated("write_thermodynamics","write thermodynamics",pop->write_thermodynamics);
@@ -4957,7 +4962,6 @@ int input_read_parameters_output(struct file_content * pfc,
 
 }
 
-
 int compare_doubles(const void *a,
                     const void *b){
   double *x = (double *) a;
@@ -5002,6 +5006,21 @@ int input_default_params(struct background *pba,
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
   sigma_B = 2. * pow(_PI_,5) * pow(_k_B_,4) / 15. / pow(_h_P_,3) / pow(_c_,2);
+
+  /* Default from 5.10.2014: default parameters matched to Planck 2013 + WP
+     best-fitting model, with ones small difference: the published
+     Planck 2013 + WP bestfit is with h=0.6704 and one massive
+     neutrino species with m_ncdm=0.06eV; here we assume only massless
+     neutrinos in the default model; for the CMB, taking m_ncdm = 0 or
+     0.06 eV makes practically no difference, provided that we adapt
+     the value of h in order ot get the same peak scale, i.e. the same
+     100*theta_s. The Planck 2013 + WP best-fitting model with
+     h=0.6704 gives 100*theta_s = 1.042143 (or equivalently
+     100*theta_MC=1.04119). By taking only massless neutrinos, one
+     gets the same 100*theta_s provided that h is increased to
+     0.67556. Hence, we take h=0.67556, N_ur=3.046, N_ncdm=0, and all
+     other parameters from the Planck2013 Cosmological Parameter
+     paper. */
 
   /**
    * Default to input_read_parameters_general
@@ -5077,6 +5096,7 @@ int input_default_params(struct background *pba,
   pth->reionization_width=0.5;
   pth->helium_fullreio_redshift=3.5;
   pth->helium_fullreio_width=0.5;
+
   /** 8.b) 'reio_bins_tanh' case */
   pth->binned_reio_num=0;
   pth->binned_reio_z=NULL;
@@ -5120,6 +5140,7 @@ int input_default_params(struct background *pba,
 
   /** 3) Ultra-relativistic species / massless neutrino density */
   pba->Omega0_ur = 3.046*7./8.*pow(4./11.,4./3.)*pba->Omega0_g;
+
   /** 3.a) Effective squared sound speed and viscosity parameter */
   ppt->three_ceff2_ur=1.;
   ppt->three_cvis2_ur=1.;
@@ -5154,7 +5175,8 @@ int input_default_params(struct background *pba,
 
   /* ** ADDITIONAL SPECIES ** */
 
-  /** 7.1.a) Fractional density of dcdm+dr */
+  /** 7.1) Decaying CDM into Dark Radiation = dcdm+dr */
+  /** 7.1.a) Current fractional density of dcdm+dr */
   pba->Omega0_dcdmdr = 0.0;
   pba->Omega0_dcdm = 0.0;
   /** 7.1.c) Decay constant */
@@ -5162,18 +5184,22 @@ int input_default_params(struct background *pba,
   pba->tau_dcdm = 0.0;
 
   /* ** ADDITIONAL SPECIES ** --> Add your species here */
-  /** 7.2 Interacting Dark Radiation */
+  /** 7.2) Interacting Dark Matter */
+  /** 7.2.a) Current fractional density of idm_dr+idr */
   pba->Omega0_idr = 0.0;
+  pba->Omega0_idm_dr = 0.0;
+  /** 7.2.b) Current temperature of idm_dr+idr */
   pba->T_idr = 0.0;
+  /** 7.2.c) ETHOS parameters of idm_dr+idr */
+  pth->a_idm_dr = 0.;
   pth->b_idr = 0.;
+  pth->nindex_idm_dr = 4.;
+  pth->m_idm = 1.e11;
+  /** 7.2.d) Approximation mode of idr */
   ppt->idr_nature=idr_free_streaming;
 
-  /** 7.3) DM interacting with DR */
-  pba->Omega0_idm_dr = 0.0;
-  pth->a_idm_dr = 0.;
-  pth->nindex_idm_dr = 4.;
-
   /** 7.4) DM interacting with baryons (IDM_B) DCH */
+  // TODO NS :: correct this
   /** 7.4.a) Cross section and fraction */
   pth->cross_idm_b = 0.;   /* dark matter-baryon cross section for idm DCH*/
   pba->f_idm_b = 0;
@@ -5185,12 +5211,14 @@ int input_default_params(struct background *pba,
   pth->n_index_idm_b = 0.; /* dark matter index n for idm_b DCH*/
   pth->n_coeff_idm_b = 0.; /* dark matter coefficient cn for idm_b DCH*/
 
+  /* ** ADDITIONAL SPECIES ** */
+
   /** 9) Dark energy contributions */
   pba->Omega0_fld = 0.;
   pba->Omega0_scf = 0.;
   pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr+pba->Omega0_idr+pba->Omega0_idm_dr+pba->Omega0_idm_b;
-  /** 9.a) Omega fluid
-  /** 9.a.1) PPF approximation */
+  /** 8.a) Omega fluid */
+  /** 8.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;
   pba->c_gamma_over_c_fld = 0.4;
   /** 9.a.2) Equation of state */
@@ -5552,3 +5580,12 @@ int string_begins_with(char* thestring, char beginchar){
 
   return result;
 }
+
+int class_version(
+                  char * version
+                  ) {
+
+  sprintf(version,"%s",_VERSION_);
+  return _SUCCESS_;
+}
+

@@ -191,7 +191,7 @@ int output_init(
 
   /** - deal with perturbation quantities */
 
-  if (pop->write_perturbations == _TRUE_) {
+  if (pop->write_perturbations == _TRUE_ && ppt->has_perturbations) {
 
     class_call(output_perturbations(pba,ppt,pop),
                pop->error_message,
@@ -201,7 +201,7 @@ int output_init(
 
   /** - deal with primordial spectra */
 
-  if (pop->write_primordial == _TRUE_) {
+  if (pop->write_primordial == _TRUE_ && ppt->has_perturbations) {
 
     class_call(output_primordial(ppt,ppm,pop),
                pop->error_message,

@@ -397,8 +397,8 @@ extern "C" {
 
   int input_read_parameters_nonlinear(struct file_content * pfc,
                                       struct precision * ppr,
-                                      struct background *pba,
-                                      struct thermo *pth,
+                                      struct background * pba,
+                                      struct thermo * pth,
                                       struct perturbs * ppt,
                                       struct nonlinear * pnl,
                                       int input_verbose,

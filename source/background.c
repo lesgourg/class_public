@@ -1431,8 +1431,7 @@ int background_ncdm_init(
       /** - in verbose mode, inform user of number of sampled momenta
           for background quantities */
       if (pba->background_verbose > 0){
-
-        printf("ncdm species i=%d sampled with %d points for purpose of background and perturbation integration using the manual method\n",
+        printf("ncdm species i=%d sampled with %d points for purpose of background andperturbation integration using the manual method\n",
                k+1,
                pba->q_size_ncdm[k]);
       }
@@ -2105,7 +2104,7 @@ int background_initial_conditions(
         log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
       if (3.*pow(scf_lambda,2)-12. < 0){
         /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
-    	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
+        pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
         if (pba->background_verbose > 0)
           printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
       }

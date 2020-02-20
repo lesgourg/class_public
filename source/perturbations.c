@@ -366,7 +366,7 @@ int perturb_output_titles(
       }
       class_store_columntitle(titles,"t_dcdm",pba->has_dcdm);
       class_store_columntitle(titles,"t_dr",pba->has_dr);
-      class_store_columntitle(titles,"t__scf",pba->has_scf);
+      class_store_columntitle(titles,"t_scf",pba->has_scf);
       class_store_columntitle(titles,"t_tot",_TRUE_);
     }
   }
@@ -940,7 +940,6 @@ int perturb_free(
     free(ppt->ddlate_sources);
 
     free(ppt->alpha_idm_dr);
-
     free(ppt->beta_idr);
 
     /** Stuff related to perturbations output: */

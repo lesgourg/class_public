@@ -194,7 +194,7 @@ cdef class Class:
             dumcp = kk.encode()
             dumc = dumcp
             sprintf(self.fc.name[i],"%s",dumc)
-            dumcp = str(self._pars[kk]).encode()
+            dumcp = str(self._pars[kk]).strip().encode()
             dumc = dumcp
             sprintf(self.fc.value[i],"%s",dumc)
             self.fc.read[i] = _FALSE_
@@ -897,6 +897,103 @@ cdef class Class:
                     pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
         return pk_cb
 
+    # [NS] :: TODO :: check optimization
+    def get_pk_all(self, k, z, nonlinear = True, cdmbar = False, z_axis_in_k_arr = 0):
+        """ General function to get the P(k,z) for ARBITRARY shapes of k,z
+            Additionally, it includes the functionality of selecting wether to use the non-linear parts or not,
+            and wether to use the cdm baryon power spectrum only
+            For Multi-Dimensional k-arrays, it assumes that one of the dimensions is the z-axis
+            This is handled by the z_axis_in_k_arr integer, as described in the source code """
+        # z_axis_in_k_arr specifies the integer position of the z_axis wihtin the n-dimensional k_arr
+        # Example: 1-d k_array -> z_axis_in_k_arr = 0
+        # Example: 3-d k_array with z_axis being the first axis -> z_axis_in_k_arr = 0
+        # Example: 3-d k_array with z_axis being the last axis  -> z_axis_in_k_arr = 2
+
+
+        # 1) Select the correct function
+        if nonlinear:
+            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
+                pk_function = self.pk_cb
+            else:
+                pk_function = self.pk
+        else:
+            if cdmbar and not (self.ba.Omega0_ncdm_tot == 0.):
+                pk_function = self.pk_cb_lin
+            else:
+                pk_function = self.pk_lin
+
+        # 2) Check if z array, or z value
+        if not isinstance(z,(list,np.ndarray)):
+            # Only single z value was passed -> k could still be an array of arbitrary dimension
+            if not isinstance(k,(list,np.ndarray)):
+                # Only single z value AND only single k value -> just return a value
+                # This iterates over ALL remaining dimensions
+                return pk_function(k,z)
+            else:
+                k_arr = np.array(k)
+                out_pk = np.empty(np.shape(k_arr))
+                iterator = np.nditer(k_arr,flags=['multi_index'])
+                while not iterator.finished:
+                    out_pk[iterator.multi_index] = pk_function(iterator[0],z)
+                    iterator.iternext()
+                # This iterates over ALL remaining dimensions
+                #for index_k in range(k_arr.shape[-1]):
+                #    out_pk[...,index_k] = pk_function(k_arr[...,index_k],z)
+                return out_pk
+
+        # 3) An array of z values was passed
+        k_arr = np.array(k)
+        z_arr = np.array(z)
+        if( z_arr.ndim != 1 ):
+            raise CosmoSevereError("Can only parse one-dimensional z-arrays, not multi-dimensional")
+
+        if( k_arr.ndim > 1 ):
+            # 3.1) If there is a multi-dimensional k-array of EQUAL lenghts
+            out_pk = np.empty(np.shape(k_arr))
+            # Bring the z_axis to the front
+            k_arr = np.moveaxis(k_arr, z_axis_in_k_arr, 0)
+            out_pk = np.moveaxis(out_pk, z_axis_in_k_arr, 0)
+            if( len(k_arr) != len(z_arr) ):
+                raise CosmoSevereError("Mismatching array lengths of the z-array")
+            for index_z in range(len(z_arr)):
+                iterator = np.nditer(k_arr[index_z],flags=['multi_index'])
+                while not iterator.finished:
+                    out_pk[index_z][iterator.multi_index] = pk_function(iterator[0],z[index_z])
+                    iterator.iternext()
+                # This iterates over ALL remaining dimensions
+                #for index_k in range(k_arr[index_z].shape[-1]):
+                #    out_pk[index_z][...,index_k] = pk_function(k_arr[index_z][...,index_k],z_arr[index_z])
+            # Move the z_axis back into position
+            k_arr = np.moveaxis(k_arr, 0, z_axis_in_k_arr)
+            out_pk = np.moveaxis(out_pk, 0, z_axis_in_k_arr)
+            return out_pk
+        else:
+            # 3.2) If there is a multi-dimensional k-array of UNEQUAL lenghts
+            if isinstance(k_arr[0],(list,np.ndarray)):
+                # A very special thing happened: The user passed a k array with UNEQUAL lengths of k arrays for each z
+                out_pk = []
+                for index_z in range(len(z_arr)):
+                    k_arr_at_z = np.array(k_arr[index_z])
+                    out_pk_at_z = np.empty(np.shape(k_arr_at_z))
+                    iterator = np.nditer(k_arr_at_z,flags=['multi_index'])
+                    while not iterator.finished:
+                        out_pk_at_z[iterator.multi_index] = pk_function(iterator[0],z[index_z])
+                        iterator.iternext()
+                    #for index_k in range(k_arr_at_z.shape[-1]):
+                    #   out_pk_at_z[...,index_k] = pk_function(k_arr_at_z[...,index_k],z_arr[index_z])
+                    out_pk.append(out_pk_at_z)
+                return out_pk
+
+            # 3.3) If there is a single-dimensional k-array
+            # The user passed a z-array, but only a 1-d k array
+            # Assume thus, that the k array should be reproduced for all z
+            out_pk = np.empty((len(z_arr),len(k_arr)))
+            for index_z in range(len(z_arr)):
+                for index_k in range(len(k_arr)):
+                    out_pk[index_z,index_k] = pk_function(k_arr[index_k],z_arr[index_z])
+            return out_pk
+
+
     def get_pk_and_k_and_z(self, nonlinear=True, only_clustering_species = False):
         """
         Returns a grid of matter power spectrum values and the z and k
@@ -1150,6 +1247,35 @@ cdef class Class:
         free(pvecback)
 
         return D_A
+
+    def comoving_distance(self, z):
+        """
+        comoving_distance(z)
+
+        Return the comoving distance
+
+        Parameters
+        ----------
+        z : float
+                Desired redshift
+        """
+        cdef double tau
+        cdef int last_index #junk
+        cdef double * pvecback
+
+        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+
+        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+            raise CosmoSevereError(self.ba.error_message)
+
+        r = pvecback[self.ba.index_bg_conf_distance]
+
+        free(pvecback)
+
+        return r
 
     def scale_independent_growth_factor(self, z):
         """
