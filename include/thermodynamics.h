@@ -513,7 +513,8 @@ extern "C" {
 
   int thermodynamics_free(struct thermo * pth);
 
-  int thermodynamics_indices(struct thermo * pth,
+  int thermodynamics_indices(struct background * pba,
+                             struct thermo * pth,
                              struct thermo_workspace* ptw);
 
   int thermodynamics_helium_from_bbn(struct precision * ppr,
