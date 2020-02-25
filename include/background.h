@@ -207,8 +207,9 @@ struct background
   //@{
 
   int bt_size;               /**< number of lines (i.e. time-steps) in the array */
-  double * tau_table;        /**< vector tau_table[index_tau] with values of \f$ \tau \f$ (conformal time) */
-  double * z_table;          /**< vector z_table[index_tau] with values of \f$ z \f$ (redshift) */
+  double * loga_table;       /**< vector loga_table[index_loga] with values of \f$ log(a/a0) \f$ (logarithm of relative scale factor compared to today) */
+  double * tau_table;        /**< vector tau_table[index_loga] with values of \f$ \tau \f$ (conformal time) */
+  double * z_table;          /**< vector z_table[index_loga] with values of \f$ z \f$ (redshift) */
   double * background_table; /**< table background_table[index_tau*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
 
   //@}
@@ -218,8 +219,9 @@ struct background
 
   //@{
 
-  double * d2tau_dz2_table; /**< vector d2tau_dz2_table[index_tau] with values of \f$ d^2 \tau / dz^2 \f$ (conformal time) */
-  double * d2background_dtau2_table; /**< table d2background_dtau2_table[index_tau*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\tau^2 \f$ (conformal time) */
+  double * d2tau_dz2_table; /**< vector d2tau_dz2_table[index_loga] with values of \f$ d^2 \tau / dz^2 \f$ (conformal time) */
+  double * d2z_dtau2_table; /**< vector d2z_dtau2_table[index_loga] with values of \f$ d^2 z / d\tau^2 \f$ (conformal time) */
+  double * d2background_dloga2_table; /**< table d2background_dtau2_table[index_loga*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\log(a)^2 \f$ */
 
   //@}
 
@@ -237,7 +239,6 @@ struct background
 
   //@{
 
-  int index_bi_a;       /**< {B} scale factor */
   int index_bi_rho_dcdm;/**< {B} dcdm density */
   int index_bi_rho_dr;  /**< {B} dr density */
   int index_bi_rho_fld; /**< {B} fluid density */
@@ -378,13 +379,13 @@ extern "C" {
 #endif
 
   int background_at_tau(
-			struct background *pba,
-			double tau,
-			short return_format,
-			short inter_mode,
-			int * last_index,
-			double * pvecback
-			);
+                        struct background *pba,
+                        double tau,
+                        short return_format,
+                        short inter_mode,
+                        int * last_index,
+                        double * pvecback
+                        );
 
   int background_tau_of_z(
                           struct background *pba,
@@ -392,12 +393,28 @@ extern "C" {
                           double * tau
                           );
 
+  int background_at_a(
+                      struct background *pba,
+                      double a_rel,
+                      short return_format,
+                      short inter_mode,
+                      int * last_index,
+                      double * pvecback
+                      );
+
+  int background_z_of_tau(
+                          struct background *pba,
+                          double tau,
+                          double * z
+                          );
+
   int background_functions(
-			   struct background *pba,
-			   double * pvecback_B,
-			   short return_format,
-			   double * pvecback
-			   );
+                           struct background *pba,
+                           double a_rel,
+                           double * pvecback_B,
+                           short return_format,
+                           double * pvecback
+                           );
 
   int background_w_fld(
                        struct background * pba,
@@ -407,43 +424,42 @@ extern "C" {
                        double * integral_fld);
 
   int background_init(
-		      struct precision *ppr,
-		      struct background *pba
-		      );
+                      struct precision *ppr,
+                      struct background *pba
+                      );
 
   int background_free(
-		      struct background *pba
-		      );
+                      struct background *pba
+                      );
 
   int background_free_input(
                             struct background *pba
                             );
 
   int background_free_noinput(
-                    struct background *pba
-                    );
+                              struct background *pba
+                              );
 
   int background_indices(
-			 struct background *pba
-			 );
+                         struct background *pba
+                         );
 
   int background_ncdm_distribution(
-				  void *pba,
-				  double q,
-				  double * f0
-				  );
+                                   void *pba,
+                                   double q,
+                                   double * f0
+                                  );
 
   int background_ncdm_test_function(
-				     void *pba,
-				     double q,
-				     double * test
-				     );
+                                    void *pba,
+                                    double q,
+                                    double * test
+                                    );
 
   int background_ncdm_init(
-			    struct precision *ppr,
-			    struct background *pba
-			    );
-
+                           struct precision *ppr,
+                           struct background *pba
+                           );
 
   int background_ncdm_momenta(
                              double * qvec,
@@ -453,34 +469,57 @@ extern "C" {
                              double factor,
                              double z,
                              double * n,
-		             double * rho,
+                             double * rho,
                              double * p,
                              double * drho_dM,
-			     double * pseudo_p
+                             double * pseudo_p
                              );
 
   int background_ncdm_M_from_Omega(
-				    struct precision *ppr,
-				    struct background *pba,
-					int species
-				    );
+                                   struct precision *ppr,
+                                   struct background *pba,
+                                   int species
+                                   );
+
+  int background_info(
+                      struct background *pba,
+                      struct precision * ppr
+                      );
 
   int background_solve(
-		       struct precision *ppr,
-		       struct background *pba
-		       );
+                       struct precision *ppr,
+                       struct background *pba
+                       );
+
+  int background_sources(
+                         double loga,
+                         double * y,
+                         double * dy,
+                         int index_loga,
+                         void * parameters_and_workspace,
+                         ErrorMsg error_message
+                         );
+
+  int background_timescale(
+                          double loga,
+                          void * parameters_and_workspace,
+                          double * timescale,
+                          ErrorMsg error_message
+                          );
 
   int background_initial_conditions(
-				    struct precision *ppr,
-				    struct background *pba,
-				    double * pvecback,
-				    double * pvecback_integration
-				    );
+                                    struct precision *ppr,
+                                    struct background *pba,
+                                    double * pvecback,
+                                    double * pvecback_integration,
+                                    double * loga_ini
+                                    );
 
   int background_find_equality(
                                struct precision *ppr,
                                struct background *pba
                                );
+
 
   int background_output_titles(struct background * pba,
                                char titles[_MAXTITLESTRINGLENGTH_]
@@ -491,13 +530,13 @@ extern "C" {
                            int number_of_titles,
                            double *data);
 
-  int background_derivs(
-			 double z,
-			 double * y,
-			 double * dy,
-			 void * parameters_and_workspace,
-			 ErrorMsg error_message
-			 );
+  int background_derivs_loga(
+                             double loga,
+                             double * y,
+                             double * dy,
+                             void * parameters_and_workspace,
+                             ErrorMsg error_message
+                             );
 
   /** Scalar field potential and its derivatives **/
   double V_scf(
@@ -506,9 +545,9 @@ extern "C" {
                );
 
   double dV_scf(
-		struct background *pba,
-		double phi
-		);
+                struct background *pba,
+                double phi
+                );
 
   double ddV_scf(
                  struct background *pba,
@@ -524,8 +563,8 @@ extern "C" {
 
   /** Budget equation output */
   int background_output_budget(
-               struct background* pba
-               );
+                               struct background* pba
+                               );
 
 #ifdef __cplusplus
 }
@@ -543,7 +582,7 @@ extern "C" {
 /* remark: CAMB uses 3.085678e22: good to know if you want to compare  with high accuracy */
 
 #define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears
-				         (c=1 units, Julian years of 365.25 days) */
+                 (c=1 units, Julian years of 365.25 days) */
 #define _c_ 2.99792458e8            /**< c in m/s */
 #define _G_ 6.67428e-11             /**< Newton constant in m^3/Kg/s^2 */
 #define _eV_ 1.602176487e-19        /**< 1 eV expressed in J */
@@ -576,8 +615,8 @@ extern "C" {
 //@{
 
 #define _SCALE_BACK_ 0.1  /**< logarithmic step used when searching
-			     for an initial scale factor at which ncdm
-			     are still relativistic */
+           for an initial scale factor at which ncdm
+           are still relativistic */
 
 #define _PSD_DERIVATIVE_EXP_MIN_ -30 /**< for ncdm, for accurate computation of dlnf0/dlnq, q step is varied in range specified by these parameters */
 #define _PSD_DERIVATIVE_EXP_MAX_ 2  /**< for ncdm, for accurate computation of dlnf0/dlnq, q step is varied in range specified by these parameters */

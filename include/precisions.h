@@ -10,10 +10,13 @@
  */
 class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
 /**
- * Default stepsize in conformal time for the background integration,
- * in units for the conformal Hubble time. dtau = back_integration_stepsize/aH
+ * Number of background integration steps that are stored in the output vector
  */
-class_precision_parameter(back_integration_stepsize,double,7.e-3)
+class_precision_parameter(background_Nloga,int,1000)
+/**
+ * default step \f$ d \tau \f$ in background integration
+ */
+class_precision_parameter(background_integration_stepsize,double,0.5)
 /**
  * Tolerance of the background integration, giving the allowed relative integration error.
  */
