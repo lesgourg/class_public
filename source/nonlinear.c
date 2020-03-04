@@ -456,6 +456,8 @@ int nonlinear_pk_at_k_and_z(
 
     if (k > exp(pnl->ln_k[0])) {
 
+      // spline interpolation
+
       class_alloc(ddout_pk_at_z,
                   pnl->k_size*sizeof(double),
                   pnl->error_message);
@@ -484,6 +486,29 @@ int nonlinear_pk_at_k_and_z(
                  pnl->error_message);
 
       free(ddout_pk_at_z);
+
+      // protection against negative values induced by spline
+      // oscillations (but if this case occurs, the precision
+      // parameters should be changed in order to truely fix the
+      // problem */
+
+      if (*out_pk < 0) *out_pk = 0.;
+
+      // uncomment this part if you prefer a linear interpolation
+
+      /*
+      class_call(array_interpolate_linear(pnl->ln_k,
+                                            pnl->k_size,
+                                            out_pk_at_z,
+                                            1,
+                                            log(k),
+                                            &last_index,
+                                            out_pk,
+                                            1,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+      */
 
       if (do_ic == _TRUE_) {
 
