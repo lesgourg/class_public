@@ -1006,54 +1006,58 @@ int input_read_parameters(
     class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
 
     class_read_double_one_of_two("b_dark","b_idr",pth->b_idr);
-  }
 
-  /* Read alpha_idm_dr or alpha_dark */
+    /* Read alpha_idm_dr or alpha_dark */
 
-  class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
-             errmsg,
-             errmsg);
-
-  /* try with the other syntax */
-  if (flag1 == _FALSE_) {
-    class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+    class_call(parser_read_list_of_doubles(pfc,"alpha_idm_dr",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
                errmsg,
                errmsg);
-  }
 
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+    /* try with the other syntax */
+    if (flag1 == _FALSE_) {
+      class_call(parser_read_list_of_doubles(pfc,"alpha_dark",&entries_read,&(ppt->alpha_idm_dr),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
     }
-  }
-  else{
-    class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
-  }
 
-  /* Read alpha_idm_dr or alpha_dark */
+    if(flag1 == _TRUE_){
+      if(entries_read != (ppr->l_max_idr-1)){
+        class_realloc(ppt->alpha_idm_dr,ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = ppt->alpha_idm_dr[entries_read-1];
+      }
+    }
+    else{
+      class_alloc(ppt->alpha_idm_dr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->alpha_idm_dr[n] = 1.5;
+    }
 
-  class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
-             errmsg,
-             errmsg);
+    /* Read alpha_idm_dr or alpha_dark */
 
-  /* try with the other syntax */
-  if (flag1 == _FALSE_) {
-    class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+    class_call(parser_read_list_of_doubles(pfc,"beta_idr",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
                errmsg,
                errmsg);
-  }
 
-  if(flag1 == _TRUE_){
-    if(entries_read != (ppr->l_max_idr-1)){
-      class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-      for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+    /* try with the other syntax */
+    if (flag1 == _FALSE_) {
+      class_call(parser_read_list_of_doubles(pfc,"beta_dark",&entries_read,&(ppt->beta_idr),&flag1,errmsg),
+                 errmsg,
+                 errmsg);
+    }
+
+    if(flag1 == _TRUE_){
+      if(entries_read != (ppr->l_max_idr-1)){
+        class_realloc(ppt->beta_idr,ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+        for(n=entries_read; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = ppt->beta_idr[entries_read-1];
+      }
+    }
+    else{
+      class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
+      for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
     }
   }
-  else{
-    class_alloc(ppt->beta_idr,(ppr->l_max_idr-1)*sizeof(double),errmsg);
-    for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
+  else {
+    ppt->alpha_idm_dr = NULL;
+    ppt->beta_idr = NULL;
   }
 
   /** - Omega_0_dcdmdr (DCDM) */
@@ -1663,10 +1667,15 @@ int input_read_parameters(
 
   }
 
-  /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
+  /* The following lines make sure that if perturbations are not computed, idm_dr and idr parameters are still freed */
+
   if(ppt->has_perturbations == _FALSE_) {
-    free(ppt->alpha_idm_dr);
-    free(ppt->beta_idr);
+
+    if (ppt->alpha_idm_dr != NULL)
+      free(ppt->alpha_idm_dr);
+
+    if (ppt->beta_idr != NULL)
+      free(ppt->beta_idr);
   }
 
   if (ppt->has_density_transfers == _TRUE_) {
