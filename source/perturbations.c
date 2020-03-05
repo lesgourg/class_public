@@ -934,9 +934,11 @@ int perturb_free(
     free(ppt->late_sources);
     free(ppt->ddlate_sources);
 
-    free(ppt->alpha_idm_dr);
+    if (ppt->alpha_idm_dr != NULL)
+      free(ppt->alpha_idm_dr);
 
-    free(ppt->beta_idr);
+    if (ppt->beta_idr != NULL)
+      free(ppt->beta_idr);
 
     /** Stuff related to perturbations output: */
 

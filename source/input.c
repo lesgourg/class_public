@@ -1055,6 +1055,10 @@ int input_read_parameters(
       for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
     }
   }
+  else {
+    ppt->alpha_idm_dr = NULL;
+    ppt->beta_idr = NULL;
+  }
 
   /** - Omega_0_dcdmdr (DCDM) */
   class_call(parser_read_double(pfc,"Omega_dcdmdr",&param1,&flag1,errmsg),
@@ -1663,10 +1667,15 @@ int input_read_parameters(
 
   }
 
-  /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
+  /* The following lines make sure that if perturbations are not computed, idm_dr and idr parameters are still freed */
+
   if(ppt->has_perturbations == _FALSE_) {
-    free(ppt->alpha_idm_dr);
-    free(ppt->beta_idr);
+
+    if (ppt->alpha_idm_dr != NULL)
+      free(ppt->alpha_idm_dr);
+
+    if (ppt->beta_idr != NULL)
+      free(ppt->beta_idr);
   }
 
   if (ppt->has_density_transfers == _TRUE_) {
