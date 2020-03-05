@@ -159,7 +159,7 @@ The purpose of CLASS is to simulate the evolution of linear perturbations in the
 <p>
 The use of CLASS is free provided that if you use it in a publication, you will cite at least the paper <a href="http://arxiv.org/abs/1104.2933">CLASS II: Approximation schemes</a> (reference below). You are welcome to cite any other CLASS paper if relevant!
 <p>
-  There are two ways to download CLASS. The simplest thing is to download a tar.gz archive of the latest released (master branch) version, v2.9.0, by cliking <a href="class_public-2.9.0.tar.gz" download="class_public-2.9.0.tar.gz">class_public-2.9.0.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
+  There are two ways to download CLASS. The simplest thing is to download a tar.gz archive of the latest released (master branch) version, v2.9.1, by cliking <a href="class_public-2.9.1.tar.gz" download="class_public-2.9.1.tar.gz">class_public-2.9.1.tar.gz</a>. But if you are familiar with <tt>git</tt> repositories, and you wish to do modifications to the code, or develop a new branch of the code, or see all public branches and/or old versions, you will prefer to clone it from the <a href="https://github.com/lesgourg/class_public" target="_blank">class_public</a> git repository.
 <br>
 <hr color=#d2b48c>
 <h2><a name="documentation">Documentation</a></h2>
@@ -284,6 +284,7 @@ In case you are interested in downloading an old version, go to the
         <ul>
           <li> two additional species: dark matter interacting with dark radiation <tt>idm_dr</tt>, and its partner: interacting dark radiation <tt>idr</tt>. Follows the  ETHOS framework described in <a href="https://arxiv.org/abs/1512.05344" target="_blank">1512.05344</a>. As a special case, can also take as input the parameters of the models of <a href="https://arxiv.org/abs/1507.04351" target="_blank">1507.04351</a> (with non-abelian dark matter, dark gluons...). See explanatory.ini for the parametrisation of both cases and <a href="https://arxiv.org/abs/1706.06870" target="_blank">1706.06870</a>, <a href="https://arxiv.org/abs/1907.01496" target="_blank">1907.01496</a> for more details. The new sector includes a tight-coupling approximation and a radiation streaming approximation that are useful for studying dark decoupling, dark acoustic oscillations, etc., without slowing down the code (credits M. Archidiacono, S. Bohr, D.C. Hooper)
           <li> new function <tt>nonlinear_pk_tilt_at_k_and_z()</tt> giving the effective logarithmic slope of the matter power spectrum at any given wavenumber and redhsift; useful in data likelihoods related to large scale structure (credits M. Archidiacono)
+          <li> 3.03.2020 (<tt>v2.9.1</tt>): restored better way to interpolate P(k,z) along k like before v2.8; fixed memory leak in <tt>idm_dr</tt> sector (credits D. Hooper)
         </ul>
       </td>
     </tr>
@@ -300,7 +301,7 @@ In case you are interested in downloading an old version, go to the
           <li> something relevant for developers but not for end-users: there was a major internal restructuring of the <tt>nonlinear.c</tt> and <tt>spectra.c</tt> modules, to avoid redundency, be more consistent and improve efficiency. Some functions are deprecated (but not suppressed), and some warnings alert the user when they should switch to newer and better functions. These <a href="text_v28.pdf" target="_blank">technical notes</a> explain the changes, their motivations, and how to get around with them when you merge you own branch forked from <=2.7 with >=2.8.
          <li> better visibility of precision parameters: their definitions, default values and descriptions are now all grouped in a unique file <tt>include/precisions.h</tt> that contains nothing else (credits N. Schoeneberg)
          <li> fixed several minor bugs (credits M. Archidiacono, S. Brieden, N. Schoeneberg, J. Torrado)
-         <li> 25.11.2019 (<tt>v2.8.1</tt>): further bug fixes: avoiding random rounding errors, restoring calculation of non-linear corrections for Cl's only (thanks to Antony Lewis)
+         <li> 25.11.2019 (<tt>v2.8.1</tt>): further bug fixes: avoiding random rounding errors, restoring calculation of non-linear corrections for Cls only (thanks to Antony Lewis)
          <li> 3.12.2019 (<tt>v2.8.2</tt>): better handling of classy version number, avoid memory leaks for extreme parameter values (useful especially for nested sampling) (credits Jesus Torrado)
         </ul>
       </td>
