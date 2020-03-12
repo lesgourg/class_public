@@ -635,6 +635,8 @@ cdef class Class:
                     performance_report["neural network input transformation"] = self.predictor.time_input_transformation
                     performance_report["neural network output transformation"] = self.predictor.time_output_transformation
                     performance_report["get all sources"] = time_get_sources
+                    for key, value in self.predictor.time_prediction_per_network.items():
+                        performance_report["indiv. network: '{}'".format(key)] = value
 
                 start_overwrite = time()
 
