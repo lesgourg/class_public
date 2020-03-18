@@ -11,6 +11,7 @@ extract cosmological parameters.
 # JL 14.06.2017: TODO: check whether we should free somewhere the allocated fc.filename and titles, data (4 times)
 
 """
+import time
 from math import exp,log
 import numpy as np
 cimport numpy as np
@@ -63,6 +64,40 @@ class CosmoComputationError(CosmoError):
     pass
 
 
+class Timer:
+    """
+    Simple help for performance measurements.
+    """
+    def __init__(self):
+        self._start = {}
+        self._end = {}
+        self._times = {}
+
+    def start(self, name):
+        if name in self._start:
+            print("WARNING: Overwriting measurement {}".format(name))
+        self._start[name] = time.perf_counter()
+
+    def end(self, name):
+        if name not in self._start:
+            raise ValueError(
+               "Measurement '{}' has not started; cannot end!".format(name)
+               )
+        if name in self._end:
+            print("WARNING: Overwriting measurement {}".format(name))
+        self._end[name] = time.perf_counter()
+        self._times[name] = self._end[name] - self._start[name]
+
+    @property
+    def times(self):
+        return self._times
+
+    def __getitem__(self, name):
+        return self._times[name]
+
+    def __setitem__(self, name, value):
+        self._times[name] = value
+
 cdef class Class:
     """
     Class wrapping, creates the glue between C and python
@@ -92,7 +127,7 @@ cdef class Class:
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
 
-    cpdef bint use_NN 
+    cpdef bint use_NN
     cpdef object predictor
 
     # Defining two new properties to recover, respectively, the parameters used
@@ -133,7 +168,7 @@ cdef class Class:
 
     def enable_NN(self, predictor):
         """
-        This function must be called if the user wants to use NNs to predict 
+        This function must be called if the user wants to use NNs to predict
         the source functions. In that case, a Predictor instance must be passed
         which will predict the source functions.
         """
@@ -283,13 +318,13 @@ cdef class Class:
         """
         This method will perform two things:
 
-        1. 
+        1.
         It will set 'bad' parameters for the perturbation module in order to
         'bypass' the full calculation but still initialize the structs, etc.
-        This needs to be done (TODO: for now...) when using NNs to predict 
+        This needs to be done (TODO: for now...) when using NNs to predict
         source functions.
 
-        2. 
+        2.
         It will set additional parameters (see below as `additional_params`) that
         are required for NN evaluation.
         """
@@ -315,8 +350,8 @@ cdef class Class:
         }
         self.set(bad_params)
 
-    cdef void overwrite_source_function(self, int index_md, int index_ic, 
-            int index_type, 
+    cdef void overwrite_source_function(self, int index_md, int index_ic,
+            int index_type,
             int k_NN_size, int tau_size, double[:, :] S):
         """
         This utility function overwrites a single source function specified by `index_type`
@@ -361,6 +396,10 @@ cdef class Class:
         """
         cdef ErrorMsg errmsg
 
+        timer = Timer()
+
+        timer.start("compute")
+
         # Append to the list level all the modules necessary to compute.
         level = self._check_task_dependency(level)
 
@@ -393,6 +432,7 @@ cdef class Class:
         # non-understood parameters asked to the wrapper is a problematic
         # situation.
         if "input" in level:
+            timer.start("input")
             if input_read_from_file(&self.fc, &self.pr, &self.ba, &self.th,
                                     &self.pt, &self.tr, &self.pm, &self.sp,
                                     &self.nl, &self.le, &self.sd, &self.op, errmsg) == _FAILURE_:
@@ -409,25 +449,30 @@ cdef class Class:
                 raise CosmoSevereError(
                     "Class did not read input parameter(s): %s\n" % ', '.join(
                     problematic_parameters))
+            timer.end("input")
 
         # The following list of computation is straightforward. If the "_init"
         # methods fail, call `struct_cleanup` and raise a CosmoComputationError
         # with the error message from the faulty module of CLASS.
         if "background" in level:
+            timer.start("background")
             if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
             self.ncp.add("background")
+            timer.end("background")
 
         if "thermodynamics" in level:
+            timer.start("thermodynamics")
             if thermodynamics_init(&(self.pr), &(self.ba),
                                    &(self.th)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
             self.ncp.add("thermodynamics")
+            timer.end("thermodynamics")
 
         # define objects for NN
-        cdef: 
+        cdef:
             int i_index_type, index_k, index_tau, i_k
             int k_NN_size, tau_NN_size
             double [:] k_CLASS
@@ -454,17 +499,20 @@ cdef class Class:
 
         if "perturb" in level:
 
+            timer.start("perturb")
+            timer.start("perturb_init")
+
             if perturb_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
+            timer.end("perturb_init")
 
             # flag for using NN
             if self.use_NN:
-                from time import time
-                start_complete = time()
-                start_initialize = time()
+                timer.start("neural network complete")
+                timer.start("neural network initialization")
 
                 index_md = self.pt.index_md_scalars;
                 k_size = self.pt.k_size[index_md];
@@ -504,7 +552,7 @@ cdef class Class:
                     index_types[4] = self.pt.index_tp_phi_plus_psi
                     index_types_mask[4] = 1
                     requested_index_types.append(self.pt.index_tp_phi_plus_psi)
-                
+
                 if self.pt.has_source_delta_m:
                     index_types[5] = self.pt.index_tp_delta_m
                     index_types_mask[5] = 1
@@ -529,94 +577,13 @@ cdef class Class:
                     names.append('psi')
                 '''
 
-                # NN_input, g_over_3, boost = co_nn.get_input_from_CLASS(
+                timer.end("neural network initialization")
 
-                ########################### MULTIPROCESSING ################################
-                # core_count = 4
-                # part_size = np.int(np.ceil(tau_size/core_count))
-                # split_indices = []
-                # for core in range(1,core_count):
-                #     split_indices.append(part_size*core)
-                # tau_list = np.split(tau_CLASS,split_indices)
-
-
-                # NN_sources = np.zeros((4,k_NN_size,tau_NN_size),dtype=np.float64)
-                # NN_sources = np.zeros((4,k_NN_size,tau_size),dtype=np.float64)
-                # with Pool(core_count) as pool:
-                #     NN_sources_tmp, g_over_3 = np.float64(
-                #                                     pool.map(
-                #                                         partial(co_nn.get_sources_from_NN,
-                #                                             CLASS_instance=self,
-                #                                             k_standard=self.k_NN,
-                #                                             means=self.means_NN,
-                #                                             stds=self.stds_NN,
-                #                                             model_t0=model_t0,
-                #                                             model_t1=model_t1,
-                #                                             model_t2=model_t2
-                #                                             ),
-                #                                         tau_list
-                #                                         )
-                #                                     )
-                # # NN_sources = np.zeros((4,k_NN_size,tau_NN_size),dtype=np.float64)
-                # NN_sources = np.zeros((4,k_NN_size,tau_size),dtype=np.float64)
-                # with Pool(4) as p:
-                #     NN_sources_tmp = np.float64(
-                #                         p.map(
-                #                             co_nn.get_sources_from_NN(
-                #                                 input_dict=NN_input,
-                #                                 model_t0=model_t0,
-                #                                 model_t1=model_t1,
-                #                                 model_t2=model_t2,
-                #                                 means=self.means_NN,
-                #                                 stds=self.stds_NN,
-                #                                 core_count=4
-                #                                 ),
-
-                #         #batch_size=tau_size
-                #     ))
-                # NN_sources[:,1:,:] = np.concatenate(NN_sources_tmp[0],NN_sources_tmp[1],NN_sources_tmp[2],NN_sources_tmp[3])
-
-                # # add source function values for k=0 (super hubble) for interpolation purposes
-                # NN_sources[0,0,:] = np.concatenate(g_over_3[0],g_over_3[1],g_over_3[2],g_over_3[3])
-                ########################### MULTIPROCESSING ################################
-
-                time_initialize = time() - start_initialize
-                if performance_report is not None:
-                    performance_report["neural network initialization"] = time_initialize
-
-                index_type_mapping = {
-                        self.pt.index_tp_t0: "t0",
-                        self.pt.index_tp_t1: "t1",
-                        self.pt.index_tp_t2: "t2",
-                        self.pt.index_tp_phi_plus_psi: "phi_plus_psi",
-                        self.pt.index_tp_delta_m: "delta_m"
-                        }
-
-                # start_get_sources = time()
-                # actually doing the prediction and storing the values. g/3 is necessary for the super-Hubble value of ST0
-                # , time_cossin, time_bessel, time_NN, time_get_input_from_class, time_step, time_create_dict
-                # NN_sources_tmp, g_over_3 = co_nn.get_sources_from_NN(
-                #     CLASS_instance=self,
-                #     tau_standard=np.asarray(tau_CLASS),
-                #     k_standard=self.k_NN,
-                #     means=self.means_NN,
-                #     stds=self.stds_NN,
-                #     model_t0=self.model_t0,
-                #     model_t1=self.model_t1,
-                #     model_t2=self.model_t2,
-                #     model_phi_plus_psi=self.model_phi_plus_psi,
-                #     # spline_j1=self.spline_j1,                        
-                #     # spline_j2=self.spline_j2
-                # )
-                # time_get_sources = time() - start_get_sources
-
-
-                start_get_sources = time()
+                timer.start("get all sources")
                 k_NN, NN_prediction = self.predictor.predict_all(self, np.asarray(tau_CLASS), add_k0=True)
-                time_get_sources = time() - start_get_sources
+                timer.end("get all sources")
 
-
-                start_copy_k = time()
+                timer.start("overwrite k array")
 
                 # Copy k values from NN
                 k_NN_size = len(k_NN)
@@ -627,18 +594,16 @@ cdef class Class:
                 self.pt.k_size[index_md] = k_NN_size
                 self.pt.k_size_cl[index_md] = k_NN_size
 
-                time_copy_k = time() - start_copy_k
+                timer.end("overwrite k array")
 
-                if performance_report is not None:
-                    performance_report["overwrite k array"] = time_copy_k
-                    performance_report["neural network evaluation"] = self.predictor.time_prediction
-                    performance_report["neural network input transformation"] = self.predictor.time_input_transformation
-                    performance_report["neural network output transformation"] = self.predictor.time_output_transformation
-                    performance_report["get all sources"] = time_get_sources
-                    for key, value in self.predictor.time_prediction_per_network.items():
-                        performance_report["indiv. network: '{}'".format(key)] = value
+                timer["neural network evaluation"] = self.predictor.time_prediction
+                timer["neural network input transformation"] = self.predictor.time_input_transformation
+                timer["neural network output transformation"] = self.predictor.time_output_transformation
 
-                start_overwrite = time()
+                for key, value in self.predictor.time_prediction_per_network.items():
+                    timer["indiv. network: '{}'".format(key)] = value
+
+                timer.start("overwrite source functions")
 
                 c_NN_sources = <double*>malloc(k_NN_size * tau_size * sizeof(double))
 
@@ -683,129 +648,73 @@ cdef class Class:
                             )
 
 
-                ############################################################
-                time_overwrite = time() - start_overwrite
-
-                if performance_report is not None:
-                    performance_report["overwrite source functions"] = time_overwrite
-                # import scipy.interpolate as sc
-                # k_NN_extended = np.zeros((k_NN_size))
-                # k_NN_extended[0] = 5e-6
-                # k_NN_extended[1:] = self.k_NN
-
-                # c_NN_sources = <double*>malloc(k_size*tau_size*sizeof(double))
-
-                # for i_index_type in range(tot_num_of_sources): 
-                #     if index_types_mask[i_index_type]:       
-                #         index_type = index_types[i_index_type]
-
-                #         interp = sc.RectBivariateSpline(k_NN_extended,tau_CLASS,NN_sources[i_index_type])
-                #         NN_sources_interp = interp(k_CLASS,tau_CLASS)
-
-                #         for index_tau in range(tau_size):
-                #             # interp = sc.CubicSpline(k_NN_extended,NN_sources[i_index_type,:,index_tau])
-                #             # NN_sources_interp = interp(k_CLASS)
-
-                #             for index_k in range(k_size):
-                        
-                #                 c_NN_sources[index_tau*k_size + index_k] = NN_sources_interp[index_k,index_tau]
-
-
-                #         free(self.pt.sources[index_md][index_ic*tp_size+index_type])
-                #         self.pt.sources[index_md][index_ic*tp_size+index_type] = <double*>malloc(k_size*tau_size*sizeof(double))
-                #         memcpy(self.pt.sources[index_md][index_ic*tp_size+index_type],c_NN_sources,k_size*tau_size*sizeof(double))
-
                 free(c_NN_sources)
-                time_complete = time() - start_complete
-                if performance_report is not None:
-                    performance_report["neural network total"] = time_complete
-                
-#                time_complete = time() - start_complete     
-#                print('Time to complete: {:.3f} seconds.'.format(time_complete))
-#                print('    Time to initialize: {:.3f} seconds.'.format(time_initialize))
-#                print('    Time to run get sources from NN: {:.3f} seconds.'.format(time_get_sources))
-#                print('        Time to get input from class: {:.3f} seconds.'.format(time_get_input_from_class))
-#                print('        Time to run cos/sin: {:.3f} seconds.'.format(time_cossin))
-#                print('        Time to run Bessel: {:.3f} seconds.'.format(time_bessel))
-#                print('        Time to run stepfunction: {:.3f} seconds.'.format(time_step))
-#                print('        Time to create dictionary + do manipulations of data other than cos/sin/Bessel: {:.3f} seconds.'.format(time_create_dict))
-#                print('        Time to predict (actually evaluating NN): {:.3f} seconds.'.format(time_NN))
-#                print('    Time to overwrite with new source function values: {:.3f} seconds.'.format(time_overwrite))
+                timer.end("overwrite source functions")
+                ############################################################
 
-                        # interp = sc_interp.RectBivariateSpline(self.k_NN,numpy_tau_CLASS,NN_sources[i_index_type], kx=3, ky=3)
-                        # NN_interpolated = interp(numpy_k_CLASS,numpy_tau_CLASS)
-                        
-                        # for index_tau in range(tau_size):
-                        
-                        #     # NN_interpolated = np.interp(numpy_k_CLASS,self.k_NN,NN_sources[i_index_type][:,index_tau])
+                timer.end("neural network complete")
 
-                        #     # interp = sc_interp.interp1d(self.k_NN,NN_sources[i_index_type][:,index_tau],fill_value='extrapolate',copy=False)
-                        #     # NN_interpolated = interp(numpy_k_CLASS)
-
-                        #     # tck = sc_interp.splrep(self.k_NN,NN_sources[i_index_type][:,index_tau])
-                        #     # NN_interpolated = sc_interp.splev(numpy_k_CLASS,tck)
-
-                        #     # d2source_dk2 = self.array_spline(
-
-                        #     #                 )
-
-                        #     for index_k in range(k_size):
-
-                        #         # array_interpolate_spline(
-                        #         #     self.k_NN,                     
-                        #         #     self.ba.bt_size,
-
-                        #         #     )
-
-                        #         self.pt.sources[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k] = NN_interpolated[index_k][index_tau]
-                        #         # self.pt.sources[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k] = NN_interpolated[index_k]
-
-
-
-
+            timer.end("perturb")
 
         if "primordial" in level:
+            timer.start("primordial")
             if primordial_init(&(self.pr), &(self.pt),
                                &(self.pm)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
             self.ncp.add("primordial")
+            timer.end("primordial")
 
         if "nonlinear" in level:
+            timer.start("nonlinear")
             if nonlinear_init(&self.pr, &self.ba, &self.th,
                               &self.pt, &self.pm, &self.nl) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.nl.error_message)
             self.ncp.add("nonlinear")
+            timer.end("nonlinear")
 
         if "transfer" in level:
+            timer.start("transfer")
             if transfer_init(&(self.pr), &(self.ba), &(self.th),
                              &(self.pt), &(self.nl), &(self.tr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
             self.ncp.add("transfer")
+            timer.end("transfer")
 
         if "spectra" in level:
+            timer.start("spectra")
             if spectra_init(&(self.pr), &(self.ba), &(self.pt),
                             &(self.pm), &(self.nl), &(self.tr),
                             &(self.sp)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
             self.ncp.add("spectra")
+            timer.end("spectra")
 
         if "lensing" in level:
+            timer.start("lensing")
             if lensing_init(&(self.pr), &(self.pt), &(self.sp),
                             &(self.nl), &(self.le)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
             self.ncp.add("lensing")
+            timer.end("lensing")
 
         if "distortions" in level:
+            timer.start("distortions")
             if distortions_init(&(self.pr), &(self.ba), &(self.th),
                                 &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sd.error_message)
             self.ncp.add("distortions")
+            timer.end("distortions")
+
+        timer.end("compute")
+
+        if performance_report is not None:
+            performance_report.update(timer.times)
 
         self.ready = True
         self.allocated = True
@@ -2239,7 +2148,7 @@ cdef class Class:
         -------
         k_array : numpy array containing k values.
         tau_array: numpy array containing tau values.
-        """      
+        """
         cdef:
             int i_k;
             int i_tau;
@@ -2256,7 +2165,7 @@ cdef class Class:
         for i_tau in range(tau_size):
             numpy_tau[i_tau] = tau[i_tau]
 
-        return np.asarray(numpy_k), np.asarray(numpy_tau)   
+        return np.asarray(numpy_k), np.asarray(numpy_tau)
 
     def get_quantities_at_RM_equality(self):
         return self.ba.tau_eq, self.ba.a_eq, self.ba.H_eq
@@ -2290,7 +2199,7 @@ cdef class Class:
         Return the comoving sound horizon of photons from the background module and the
         corresponding conformal time values.
         """
-        cdef: 
+        cdef:
             double * tau_bg = self.ba.tau_table;
             int index_tau;
             int bt_size = self.ba.bt_size;
@@ -2323,7 +2232,7 @@ cdef class Class:
         Return the photon comoving damping scale, visibility function, its conformal time
         derivative and the corresponding conformal time values.
         """
-        cdef: 
+        cdef:
             double tau;
             double * z_table = self.th.z_table;
             double * thermodynamics_table = self.th.thermodynamics_table;
@@ -2349,7 +2258,7 @@ cdef class Class:
             double [:] numpy_tau = np.zeros((tt_size));
 
         for index_z in range(tt_size):
-            
+
             if background_tau_of_z(&self.ba,z_table[index_z],&tau)==_FAILURE_:
                 raise CosmoSevereError(self.ba.error_message)
             numpy_tau[index_z] = tau
@@ -2508,7 +2417,7 @@ cdef class Class:
         """
         sources = {}
 
-        cdef: 
+        cdef:
             int index_k, index_tau, i_index_type;
             int index_type;
             int index_md = self.pt.index_md_scalars;
@@ -2520,14 +2429,14 @@ cdef class Class:
             int tp_size = self.pt.tp_size[index_md]
             double *** sources_ptr = self.pt.sources
             double data
-            double [:,:] tmparray = np.zeros((k_size, tau_size)) 
+            double [:,:] tmparray = np.zeros((k_size, tau_size))
             double [:] k_array = np.zeros(k_size)
             double [:] tau_array = np.zeros(tau_size)
 
         # names = np.array([
-        #     't0','t0_sw', 't0_isw', 
+        #     't0','t0_sw', 't0_isw',
         #     't1',
-        #     't2','t2_reco', 't2_reio', 
+        #     't2','t2_reco', 't2_reio',
         #     'p',
         #     'delta_m','delta_g','theta_m','phi','phi_plus_psi','phi_prime','psi'
         #     ])
@@ -2550,7 +2459,7 @@ cdef class Class:
                 self.pt.index_tp_t2, self.pt.index_tp_t2_reco, self.pt.index_tp_t2_reio
                 ])
             names.extend([
-                "t0", "t0_sw", "t0_isw", 
+                "t0", "t0_sw", "t0_isw",
                 "t0_reco", "t0_reio",
                 "t0_reco_no_isw", "t0_reio_no_isw",
                 "t1",
@@ -2582,7 +2491,7 @@ cdef class Class:
             names.append("psi")
 
         for index_type, name in zip(indices, names):
-            for index_k in range(k_size):                 
+            for index_k in range(k_size):
                 for index_tau in range(tau_size):
                     tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
 
@@ -2590,5 +2499,5 @@ cdef class Class:
             tmparray = np.zeros((k_size,tau_size))
 
         return (sources, np.asarray(k_array), np.asarray(tau_array))
-        
+
 

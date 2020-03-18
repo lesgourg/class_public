@@ -64,7 +64,7 @@ cdef extern from "class.h":
         double Omega0_scf
         double Omega0_k
         int bt_size
-        
+
         # Added for Neural Networks
         double * tau_table
         int index_tau
@@ -147,7 +147,7 @@ cdef extern from "class.h":
         int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
         int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]
 
-        # Added for access to source functions; Needed for training of 
+        # Added for access to source functions; Needed for training of
         # neural networks
         int has_source_t
         int has_source_p
@@ -183,7 +183,7 @@ cdef extern from "class.h":
         int index_tp_psi
 
         double eisw_lisw_split_z
-        
+
         double ** k
         double * tau_sampling
         int * k_size
