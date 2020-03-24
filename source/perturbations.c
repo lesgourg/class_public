@@ -6941,7 +6941,7 @@ int perturb_total_stress_energy(
 
     /* store delta_m in the current gauge. In perturb_einstein, this
        will be transformed later on into the gauge-independent variable D
-       = delta_m - 2H'/H \theta_m/k^2 .  */
+       = delta_m + 3 a H \theta_m/k^2 .  */
 
     if (ppt->has_source_delta_m == _TRUE_)
       ppw->delta_m = delta_rho_m/rho_m;
