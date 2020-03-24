@@ -807,7 +807,7 @@ int nonlinear_pks_at_kvec_and_zvec(
                  pnl->error_message,
                  pnl->error_message);
     }
-    if (pnl->has_pk_m) {
+    if (pnl->has_pk_cb) {
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
