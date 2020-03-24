@@ -1685,7 +1685,7 @@ cdef class Class:
             elif name == 'Omega_m':
                 value = self.ba.Omega0_m
             elif name == 'omega_m':
-                value = self.ba.Omega0_m/self.ba.h**2
+                value = self.ba.Omega0_m*self.ba.h**2
             elif name == 'xi_idr':
                 value = self.ba.T_idr/self.ba.T_cmb
             elif name == 'N_dg':
