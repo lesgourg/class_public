@@ -1547,10 +1547,14 @@ int input_read_parameters_general(struct file_content * pfc,
       pth->compute_damping_scale=_TRUE_;
     }
 
-    /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
+    /* The following lines make sure that if perturbations are not computed, idm_dr and idr parameters are still freed */
     if(ppt->has_perturbations == _FALSE_) {
-      free(ppt->alpha_idm_dr);
-      free(ppt->beta_idr);
+
+      if (ppt->alpha_idm_dr != NULL)
+        free(ppt->alpha_idm_dr);
+
+      if (ppt->beta_idr != NULL)
+        free(ppt->beta_idr);
     }
 
     /* Test */
@@ -2506,7 +2510,7 @@ int input_read_parameters_species(struct file_content * pfc,
 
     /** 7.2.e.3/4) */
     /* If the user passed Gamma_0_nadm, assume they want nadm parameterisation*/
-    if (flag3 == _TRUE_){ 
+    if (flag3 == _TRUE_){
       /** Simply set 7.2.e.3/4) */
       pth->nindex_idm_dr = 0;
       ppt->idr_nature = idr_fluid;
@@ -2594,6 +2598,10 @@ int input_read_parameters_species(struct file_content * pfc,
         for(n=0; n<(ppr->l_max_idr-1); n++) ppt->beta_idr[n] = 1.5;
       }
     }
+    else {
+      ppt->alpha_idm_dr = NULL;
+      ppt->beta_idr = NULL;
+    }
   }
 
   /** 7.4) DM interacting with baryons (IDM_B) DCH */
@@ -2645,7 +2653,7 @@ int input_read_parameters_species(struct file_content * pfc,
     pth->n_coeff_idm_b = cn_list[4+pth->n_index_idm_b];
     pth->u_idm_b = pth->cross_idm_b/pth->m_idm;
   }
- 
+
   /* ** ADDITIONAL SPECIES ** */
 
 
@@ -5588,4 +5596,3 @@ int class_version(
   sprintf(version,"%s",_VERSION_);
   return _SUCCESS_;
 }
-
