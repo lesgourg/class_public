@@ -392,7 +392,11 @@ int nonlinear_pk_at_k_and_z(
   double * ddout_pk_at_z;
   double * ddout_pk_ic_at_z;
   int last_index;
-  int index_ic_ic;
+  int index_ic1;
+  int index_ic2;
+  int index_ic1_ic1;
+  int index_ic2_ic2;
+  int index_ic1_ic2;
   double kmin;
   double * pk_primordial_k;
   double * pk_primordial_kmin;
@@ -417,8 +421,8 @@ int nonlinear_pk_at_k_and_z(
     *out_pk = 0.;
 
     if (do_ic == _TRUE_) {
-      for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-        out_pk_ic[index_ic_ic] = 0.;
+      for (index_ic1_ic2=0; index_ic1_ic2<pnl->ic_ic_size; index_ic1_ic2++) {
+        out_pk_ic[index_ic1_ic2] = 0.;
       }
     }
   }
@@ -426,8 +430,6 @@ int nonlinear_pk_at_k_and_z(
   /** - deal with 0 < k <= kmax */
 
   else {
-
-    /** --> First, get P(k) at the right z */
 
     class_alloc(out_pk_at_z,
                 pnl->k_size*sizeof(double),
@@ -439,22 +441,25 @@ int nonlinear_pk_at_k_and_z(
                   pnl->error_message);
     }
 
-    class_call(nonlinear_pk_at_z(pba,
-                                 pnl,
-                                 linear,
-                                 pk_output,
-                                 z,
-                                 index_pk,
-                                 out_pk_at_z,
-                                 out_pk_ic_at_z
-                                 ),
-               pnl->error_message,
-               pnl->error_message);
-
-    /** - deal with standard case kmin <= k <= kmax
-        (just need to interpolate at the right k) */
+    /** - deal with standard case kmin <= k <= kmax */
 
     if (k > exp(pnl->ln_k[0])) {
+
+      /** --> First, get P(k) at the right z (in logarithmic format for more accurate interpolation, and then convert to linear format) */
+
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   logarithmic,
+                                   pk_output,
+                                   z,
+                                   index_pk,
+                                   out_pk_at_z,
+                                   out_pk_ic_at_z
+                                   ),
+                 pnl->error_message,
+                 pnl->error_message);
+
+      /** --> interpolate total spectrum */
 
       class_alloc(ddout_pk_at_z,
                   pnl->k_size*sizeof(double),
@@ -484,6 +489,28 @@ int nonlinear_pk_at_k_and_z(
                  pnl->error_message);
 
       free(ddout_pk_at_z);
+
+      // uncomment this part if you prefer a linear interpolation
+
+      /*
+      class_call(array_interpolate_linear(pnl->ln_k,
+                                            pnl->k_size,
+                                            out_pk_at_z,
+                                            1,
+                                            log(k),
+                                            &last_index,
+                                            out_pk,
+                                            1,
+                                            pnl->error_message),
+                   pnl->error_message,
+                   pnl->error_message);
+      */
+
+      /** --> convert from logarithmic to linear format */
+
+      *out_pk = exp(*out_pk);
+
+      /** --> interpolate each ic component */
 
       if (do_ic == _TRUE_) {
 
@@ -515,6 +542,22 @@ int nonlinear_pk_at_k_and_z(
                    pnl->error_message);
 
         free(ddout_pk_ic_at_z);
+
+        /** --> convert each ic component from logarithmic to linear format */
+
+        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+          index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+          out_pk_ic[index_ic1_ic1] = exp(out_pk_ic[index_ic1_ic1]);
+        }
+        for (index_ic1=0; index_ic1 < pnl->ic_size; index_ic1++) {
+          for (index_ic2=index_ic1+1; index_ic2 < pnl->ic_size; index_ic2++) {
+            index_ic1_ic1 = index_symmetric_matrix(index_ic1,index_ic1,pnl->ic_size);
+            index_ic2_ic2 = index_symmetric_matrix(index_ic2,index_ic2,pnl->ic_size);
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+            out_pk_ic[index_ic1_ic2]
+              = out_pk_ic[index_ic1_ic2]*sqrt(out_pk_ic[index_ic1_ic1]*out_pk_ic[index_ic2_ic2]);
+          }
+        }
       }
     }
 
@@ -527,18 +570,32 @@ int nonlinear_pk_at_k_and_z(
      *    This is accurate for the synchronous gauge; TODO: write
      *    newtonian gauge case. Also, In presence of isocurvature
      *    modes, we assumes for simplicity that the mode with
-     *    index_ic_ic=0 dominates at small k: exact treatment should be
+     *    index_ic1_ic2=0 dominates at small k: exact treatment should be
      *    written if needed.
      */
 
     else {
 
+      /** --> First, get P(k) at the right z (in linear format) */
+
+      class_call(nonlinear_pk_at_z(pba,
+                                   pnl,
+                                   linear,
+                                   pk_output,
+                                   z,
+                                   index_pk,
+                                   out_pk_at_z,
+                                   out_pk_ic_at_z
+                                   ),
+                 pnl->error_message,
+                 pnl->error_message);
+
       /* get P(kmin) */
       *out_pk = out_pk_at_z[0];
 
       if (do_ic == _TRUE_) {
-        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-          out_pk_ic[index_ic_ic] = out_pk_ic_at_z[index_ic_ic];
+        for (index_ic1_ic2=0; index_ic1_ic2<pnl->ic_ic_size; index_ic1_ic2++) {
+          out_pk_ic[index_ic1_ic2] = out_pk_ic_at_z[index_ic1_ic2];
         }
       }
 
@@ -577,9 +634,9 @@ int nonlinear_pk_at_k_and_z(
       *out_pk *= (k*pk_primordial_k[0]/kmin/pk_primordial_kmin[0]);
 
       if (do_ic == _TRUE_) {
-        for (index_ic_ic=0; index_ic_ic<pnl->ic_ic_size; index_ic_ic++) {
-          out_pk_ic[index_ic_ic] *= (k*pk_primordial_k[index_ic_ic]
-                                     /kmin/pk_primordial_kmin[index_ic_ic]);
+        for (index_ic1_ic2=0; index_ic1_ic2<pnl->ic_ic_size; index_ic1_ic2++) {
+          out_pk_ic[index_ic1_ic2] *= (k*pk_primordial_k[index_ic1_ic2]
+                                     /kmin/pk_primordial_kmin[index_ic1_ic2]);
         }
       }
 
@@ -750,7 +807,7 @@ int nonlinear_pks_at_kvec_and_zvec(
                  pnl->error_message,
                  pnl->error_message);
     }
-    if (pnl->has_pk_m) {
+    if (pnl->has_pk_cb) {
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
