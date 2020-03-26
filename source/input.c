@@ -984,7 +984,7 @@ int input_get_guess(double *xguess,
       ba.H0 = ba.h *  1.e5 / _c_;
       break;
     case Omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
       /* *
        * This formula is exact in a Matter + Lambda Universe, but only for Omega_dcdm,
        * not the combined.
@@ -1003,7 +1003,7 @@ int input_get_guess(double *xguess,
       dxdy[index_guess] = 1./a_decay;
       break;
     case omega_dcdmdr:
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_dr+ba.Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -1036,7 +1036,7 @@ int input_get_guess(double *xguess,
       /* This works since correspondence is Omega_ini_dcdm -> Omega_dcdmdr and
          omega_ini_dcdm -> omega_dcdmdr */
       Omega0_dcdmdr *=pfzw->target_value[index_guess];
-      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_b+ba.Omega0_idm_dr+Omega0_dcdmdr+ba.Omega0_b;
+      Omega_M = ba.Omega0_cdm+ba.Omega0_idm_dr+Omega0_dcdmdr+ba.Omega0_b;
       gamma = ba.Gamma_dcdm/ba.H0;
       if (gamma < 1)
         a_decay = 1.0;
@@ -2476,7 +2476,7 @@ int input_read_parameters_species(struct file_content * pfc,
                errmsg,
                "You have requested interacting DM ith DR, this requires a non-zero density of interacting DR. Please set either N_idr or xi_idr");
     /** 7.2.d) */
-    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm);
+    class_read_double_one_of_two("m_idm","m_dm",pth->m_idm_dr);
 
     /** 7.2.e) */
     class_call(parser_read_double(pfc,"a_idm_dr",&param1,&flag1,errmsg),
@@ -2604,56 +2604,6 @@ int input_read_parameters_species(struct file_content * pfc,
     }
   }
 
-  /** 7.4) DM interacting with baryons (IDM_B) DCH */
-  // TODO DCH: beautify this
-  // TODO NS : Correct this
-  /** 7.4.a) Cross section and fraction */
-  /* Read */
-
-  class_read_double("cross_idm_b",pth->cross_idm_b); //read the cross section between DM and baryons
-  class_read_double("f_idm_b",pba->f_idm_b); //read fraction of interacting DM
-
-  /* Consistency checks */
-  class_test(((pba->f_idm_b > 1.0)||(pba->f_idm_b < 0.0)),
-             errmsg,
-             "The fraction of DM interacting with baryons has to be between 0 and 1, you passed f_idm_b = %e.", pba->f_idm_b); //check that the fraction of idm is consistent
-  class_test(((pba->f_idm_b > 0) && (pth->cross_idm_b == 0)),
-             errmsg,
-             "You asked for a non-zero fraction of interacting DM, You need to also give a non-zero cross section between DM and baryons."); //check that if IDM is called, there is some coupling
-  if (input_verbose > 0){
-    if ((pth->cross_idm_b >0) && (pba->f_idm_b == 0.0)){
-      printf("Warning: you have passed a non-zero cross section between DM and baryons, but set the fraction of interacting DM to 0. I will assume CDM.\n");
-    }
-  }
-
-  /** 7.4.b) Find Omega_idm_b from Omega_cdm and f_idm_b */
-
-  if (pba->f_idm_b > 0.0){
-    pba->Omega0_idm_b = pba->f_idm_b*pba->Omega0_cdm;
-    pba->Omega0_cdm = (1.-pba->f_idm_b)*pba->Omega0_cdm;
-
-    /* avoid Omega0_cdm =0 in synchronous gauge */
-    if ((ppt->gauge == synchronous) && (pba->Omega0_cdm==0)) {
-      pba->Omega0_cdm += ppr->Omega0_cdm_min_synchronous;
-      Omega_tot += ppr->Omega0_cdm_min_synchronous;
-      pba->Omega0_idm_dr -= ppr->Omega0_cdm_min_synchronous;
-    }
-  }
-
-  /** 7.4.c) Read other idm_b parameters */
-
-  if(pba->Omega0_idm_b > 0.0){ //read the other parameters needed for idm DCH
-    class_read_double("m_idm",pth->m_idm); //read the dark matter mass, in eV
-    class_read_double("n_index_idm_b",pth->n_index_idm_b); //read the index n for the dm-baryon interaction, sigma = cross_idm_b*v^n
-    class_test(((pth->n_index_idm_b > 4)||(pth->n_index_idm_b < -4)),
-               errmsg,
-               "The index for the DM-baryon interaction must be between -4 and 4."); //check that the index is in the accepted range
-    // the following lines set the coefficent cn. TODO: change this to the actual formula used in Dvorkin et al. (2013)
-    float cn_list[9] = {0.27, 0.33, 0.53, 1.0, 2.1, 5.0, 13.0, 35.0, 102.0};
-    pth->n_coeff_idm_b = cn_list[4+pth->n_index_idm_b];
-    pth->u_idm_b = pth->cross_idm_b/pth->m_idm;
-  }
-
   /* ** ADDITIONAL SPECIES ** */
 
 
@@ -2693,7 +2643,6 @@ int input_read_parameters_species(struct file_content * pfc,
   Omega_tot += pba->Omega0_b;
   Omega_tot += pba->Omega0_ur;
   Omega_tot += pba->Omega0_cdm;
-  Omega_tot += pba->Omega0_idm_b;
   Omega_tot += pba->Omega0_idm_dr;
   Omega_tot += pba->Omega0_idr;
   Omega_tot += pba->Omega0_ncdm_tot;
@@ -5202,29 +5151,16 @@ int input_default_params(struct background *pba,
   pth->a_idm_dr = 0.;
   pth->b_idr = 0.;
   pth->nindex_idm_dr = 4.;
-  pth->m_idm = 1.e11;
+  pth->m_idm_dr = 1.e11;
   /** 7.2.d) Approximation mode of idr */
   ppt->idr_nature=idr_free_streaming;
-
-  /** 7.4) DM interacting with baryons (IDM_B) DCH */
-  // TODO NS :: correct this
-  /** 7.4.a) Cross section and fraction */
-  pth->cross_idm_b = 0.;   /* dark matter-baryon cross section for idm DCH*/
-  pba->f_idm_b = 0;
-  /** 7.4.b) Omega_idm_b from Omega_cdm and f_idm_b */
-  pba->Omega0_idm_b = 0;
-  /** 7.4.c) Other idm_b parameters */
-  pth->m_idm = 1.e9;       /* dark matter mass for idm in eV DCH changed to pba for recfast*/
-  pth->u_idm_b = 1.;       /* ratio between cross section and mass, used for comparison purposes DCH */
-  pth->n_index_idm_b = 0.; /* dark matter index n for idm_b DCH*/
-  pth->n_coeff_idm_b = 0.; /* dark matter coefficient cn for idm_b DCH*/
 
   /* ** ADDITIONAL SPECIES ** */
 
   /** 9) Dark energy contributions */
   pba->Omega0_fld = 0.;
   pba->Omega0_scf = 0.;
-  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr+pba->Omega0_idr+pba->Omega0_idm_dr+pba->Omega0_idm_b;
+  pba->Omega0_lambda = 1.-pba->Omega0_k-pba->Omega0_g-pba->Omega0_ur-pba->Omega0_b-pba->Omega0_cdm-pba->Omega0_ncdm_tot-pba->Omega0_dcdmdr+pba->Omega0_idr+pba->Omega0_idm_dr;
   /** 8.a) Omega fluid */
   /** 8.a.1) PPF approximation */
   pba->use_ppf = _TRUE_;

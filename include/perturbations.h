@@ -237,7 +237,6 @@ struct perturbs
   short has_source_delta_g;    /**< do we need source for delta of gammas? */
   short has_source_delta_b;    /**< do we need source for delta of baryons? */
   short has_source_delta_cdm;  /**< do we need source for delta of cold dark matter? */
-  short has_source_delta_idm_b; /**< do we need source for delta interacting dark matter DCH*/
   short has_source_delta_idr;   /**< do we need source for delta of interacting dark radiation? */
   short has_source_delta_idm_dr;/**< do we need source for delta of interacting dark matter (with dr)? */
   short has_source_delta_dcdm;  /**< do we need source for delta of DCDM? */
@@ -252,7 +251,6 @@ struct perturbs
   short has_source_theta_g;    /**< do we need source for theta of gammas? */
   short has_source_theta_b;    /**< do we need source for theta of baryons? */
   short has_source_theta_cdm;  /**< do we need source for theta of cold dark matter? */
-  short has_source_theta_idm_b; /**< do we need source for theta interacting dark matter DCH*/
   short has_source_theta_idr;  /**< do we need source for theta of interacting dark radiation? */
   short has_source_theta_idm_dr; /**< do we need source for theta of interacting dark matter (with dr)? */
   short has_source_theta_dcdm; /**< do we need source for theta of DCDM? */
@@ -287,7 +285,6 @@ struct perturbs
   int index_tp_delta_g;   /**< index value for delta of gammas */
   int index_tp_delta_b;   /**< index value for delta of baryons */
   int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
-  int index_tp_delta_idm_b; /**< index value for delta of interacting dark matter DCH*/
   int index_tp_delta_dcdm;/**< index value for delta of DCDM */
   int index_tp_delta_fld;  /**< index value for delta of dark energy */
   int index_tp_delta_scf;  /**< index value for delta of scalar field */
@@ -311,7 +308,6 @@ struct perturbs
   int index_tp_theta_ur;    /**< index value for theta of ultra-relativistic neutrinos/relics */
   int index_tp_theta_idr;   /**< index value for theta of interacting dark radiation */
   int index_tp_theta_idm_dr;/**< index value for theta of interacting dark matter (with dr)*/
-  int index_tp_theta_idm_b; /**< index value for theta of interacting dark matter DCH */
   int index_tp_theta_dr;    /**< index value for F1 of decay radiation */
   int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
 
@@ -466,8 +462,6 @@ struct perturb_vector
   int index_pt_theta_b;   /**< baryon velocity */
   int index_pt_delta_cdm; /**< cdm density */
   int index_pt_theta_cdm; /**< cdm velocity */
-  int index_pt_delta_idm_b; /**< idm density DCH*/
-  int index_pt_theta_idm_b; /**< idm velocity DCH*/
   int index_pt_delta_idm_dr;/**< idm_dr density */
   int index_pt_theta_idm_dr;/**< idm_dr velocity */
   int index_pt_delta_dcdm; /**< dcdm density */

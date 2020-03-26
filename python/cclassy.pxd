@@ -73,7 +73,6 @@ cdef extern from "class.h":
         double T_idr
         double Omega0_idm_dr
         double Omega0_cdm
-        double Omega0_idm_b
         double Omega0_dcdm
         double Omega0_ncdm_tot
         double Omega0_lambda

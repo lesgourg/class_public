@@ -89,8 +89,6 @@ struct thermo
 
   short compute_damping_scale; /**< do we want to compute the simplest analytic approximation to the photon damping (or diffusion) scale? */
 
-  short has_idm_b; //DCH!!!
-
   /** parameters for reio_camb */
 
   double reionization_width; /**< width of H reionization */
@@ -166,6 +164,7 @@ struct thermo
   double a_idm_dr;      /**< strength of the coupling between interacting dark matter and interacting dark radiation (idm-idr) */
   double b_idr;         /**< strength of the self coupling for interacting dark radiation (idr-idr) */
   double nindex_idm_dr; /**< temperature dependence of the interaction between dark matter and dark radiation */
+  double m_idm_dr;      /**< dark matter mass for idm_dr */
 
   //@}
 
@@ -192,19 +191,13 @@ struct thermo
   int index_th_cidm_dr2;      /**< interacting dark matter squared sound speed \f$ c_{dm}^2 \f$ */
   int index_th_Tidm_dr;       /**< temperature of DM interacting with DR \f$ T_{idm_dr} \f$ */
   int index_th_Tb;            /**< baryon temperature \f$ T_b \f$ */
-  int index_th_dTb;           /**< derivative of baryon temperature DCH */
+  int index_th_dTb;           /**< derivative of baryon temperature */
   int index_th_wb;            /**< baryon equation of state parameter \f$ w_b = k_B T_b / \mu \f$ */
   int index_th_cb2;           /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
   int index_th_dcb2;          /**< derivative wrt conformal time of squared baryon sound speed \f$ d [c_b^2] / d \tau \f$ (only computed if some non-minimal tight-coupling schemes is requested) */
   int index_th_ddcb2;         /**< second derivative wrt conformal time of squared baryon sound speed  \f$ d^2 [c_b^2] / d \tau^2 \f$ (only computed if some non0-minimal tight-coupling schemes is requested) */
   int index_th_rate;          /**< maximum variation rate of \f$ exp^{-\kappa}\f$, g and \f$ (d g / d \tau) \f$, used for computing integration step in perturbation module */
   int index_th_r_d;           /**< simple analytic approximation to the photon comoving damping scale */
-
-  int index_th_T_idm_b;       /**< idm_b temperature \f$ T_idm \f$ DCH*/
-  int index_th_dT_idm_b;      /**< idm_b temperature derivative \f$ dT_idm \f$ DCH*/
-  int index_th_c_idm_b2;      /**< squared idm_b sound speed \f$ c_idm_b^2 \f$ DCH*/
-  int index_th_R_idm_b;       /**< DM-bar interaction coefficient DCH */
-  int index_th_R_idm_b_prime; /**< derivative of DM-bar interaction coefficient DCH */
 
   int th_size;                /**< size of thermodynamics vector */
 
@@ -281,20 +274,6 @@ struct thermo
   //@}
 
   /**
-   * @name - parameters needed for idm_b DCH
-   */
-
-  //@{
-
-  double cross_idm_b;    /**< dark matter-baryon cross section for idm_b */
-  double u_idm_b;        /* ratio between cross section and mass, used for comparison purposes DCH */
-  int n_index_idm_b;     /**< dark matter index n for idm_b */
-  double n_coeff_idm_b;  /**< dark matter coefficient cn for idm_b */
-  double m_idm;          /**< dark matter mass for idm */
-
-  //@}
-
-  /**
    *@name - some flags needed for thermodynamics functions
    */
 
@@ -348,7 +327,6 @@ struct thermo_vector {
   int index_x_He;       /**< index for helium fraction in y */
   //int index_Tmat;       /**< index for matter temperature fraction in y */
   int index_D_Tmat;
-  int index_T_idm_b;    /**< index for idm temperature fraction in y DCH */
 
   double * y;           /**< vector of quantities to be integrated */
   double * dy;          /**< time-derivative of the same vector */
@@ -377,12 +355,6 @@ struct thermo_diffeq_workspace {
 
   double Tmat;
   double dTmat;
-
-  double T_idm_b;       /**< idm_b temperature \f$ T_dm \f$ DCH*/
-  double dT_idm_b;      /**< idm_b temperature derivative \f$ dT_dm \f$ DCH*/
-  double c_idm_b2;      /**< squared idm_b sound speed \f$ c_idm_b^2 \f$ DCH*/
-  double R_idm_b;       /**< DM-bar interaction coefficient DCH */
-  double R_idm_b_prime; /**< derivative of DM-bar interaction coefficient DCH */
 
   int index_ap_brec; /**< index for approximation before recombination */
   int index_ap_He1;  /**< index for 1st He-recombination (HeIII) */
@@ -671,21 +643,6 @@ extern "C" {
                               struct thermo_workspace * ptw,
                               int current_ap);
 
-  int thermodynamics_solve_current_idm_b(struct background * pba,
-                                         double z,
-                                         double * y,
-                                         double * dy,
-                                         struct thermo * pth,
-                                         struct thermo_workspace * ptw,
-                                         double* pvecback
-                                         );
-
-  int input_obtain_idm_b_z_ini(
-                              struct precision * ppr,
-                              struct background *pba,
-                              struct thermo *pth
-                              );
-
 
 #ifdef __cplusplus
 }
@@ -715,7 +672,7 @@ extern "C" {
 #define _not4_ 3.9715         /**< Helium to Hydrogen mass ratio */
 #define _sigma_ 6.6524616e-29 /**< Thomson cross-section in m^2 */
 
-#define _RECFAST_INTEG_SIZE_ 4 /* changed from 3 for idm_b DCH */
+#define _RECFAST_INTEG_SIZE_ 3
 
 //@}
 
