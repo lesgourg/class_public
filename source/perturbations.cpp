@@ -25,7 +25,7 @@
  */
 
 #include "perturbations.h"
-
+#include "thread_pool.h"
 
 /**
  * Source function \f$ S^{X} (k, \tau) \f$ at a given conformal time tau.
@@ -474,29 +474,8 @@ int perturb_init(
   int index_k;
   /* running index for type of perturbation */
   int index_tp;
-  /* pointer to one struct perturb_workspace per thread (one if no openmp) */
-  struct perturb_workspace ** pppw;
   /* background quantities */
   double w_fld_ini, w_fld_0,dw_over_da_fld,integral_fld;
-  /* number of threads (always one if no openmp) */
-  int number_of_threads=1;
-  /* index of the thread (always 0 if no openmp) */
-  int thread=0;
-
-  /* This code can be optionally compiled with the openmp option for parallel computation.
-     Inside parallel regions, the use of the command "return" is forbidden.
-     For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
-     parallel region. */
-  int abort;
-
-  /* unsigned integer that will be set to the size of the workspace */
-  size_t sz;
-
-#ifdef _OPENMP
-  /* instrumentation times */
-  double tstart, tstop, tspent;
-#endif
 
   /** - perform preliminary checks */
 
@@ -679,56 +658,14 @@ int perturb_init(
 
   /** - create an array of workspaces in multi-thread case */
 
-#ifdef _OPENMP
-
-#pragma omp parallel
-  {
-    number_of_threads = omp_get_num_threads();
-  }
-#endif
-
-  class_alloc(pppw,number_of_threads * sizeof(struct perturb_workspace *),ppt->error_message);
-
   /** - loop over modes (scalar, tensors, etc). For each mode: */
+  Tools::TaskSystem task_system;
+  std::vector<std::future<int>> future_output;
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     if (ppt->perturbations_verbose > 1)
       printf("Evolving mode %d/%d\n",index_md+1,ppt->md_size);
-
-    abort = _FALSE_;
-
-    sz = sizeof(struct perturb_workspace);
-
-#pragma omp parallel                                            \
-  shared(pppw,ppr,pba,pth,ppt,index_md,abort,number_of_threads) \
-  private(thread)                                               \
-  num_threads(number_of_threads)
-
-    {
-
-#ifdef _OPENMP
-      thread=omp_get_thread_num();
-#endif
-
-      /** - --> (a) create a workspace (one per thread in multi-thread case) */
-
-      class_alloc_parallel(pppw[thread],sz,ppt->error_message);
-
-      /** - --> (b) initialize indices of vectors of perturbations with perturb_indices_of_current_vectors() */
-
-      class_call_parallel(perturb_workspace_init(ppr,
-                                                 pba,
-                                                 pth,
-                                                 ppt,
-                                                 index_md,
-                                                 pppw[thread]),
-                          ppt->error_message,
-                          ppt->error_message);
-
-    } /* end of parallel region */
-
-    if (abort == _TRUE_) return _FAILURE_;
 
     /** - --> (c) loop over initial conditions and wavenumbers; for each of them, evolve perturbations and compute source functions with perturb_solve() */
 
@@ -739,96 +676,54 @@ int perturb_init(
         printf("evolving %d wavenumbers\n",ppt->k_size[index_md]);
       }
 
-      abort = _FALSE_;
-
-#pragma omp parallel                                                    \
-  shared(pppw,ppr,pba,pth,ppt,index_md,index_ic,abort,number_of_threads) \
-  private(index_k,thread,tstart,tstop,tspent)                           \
-  num_threads(number_of_threads)
-
-      {
-
-#ifdef _OPENMP
-        thread=omp_get_thread_num();
-        tspent=0.;
-#endif
-
-#pragma omp for schedule (dynamic)
-
-        /* integrating backwards is slightly more optimal for parallel runs */
-        //for (index_k = 0; index_k < ppt->k_size; index_k++) {
-        for (index_k = ppt->k_size[index_md]-1; index_k >=0; index_k--) {
-
-          if ((ppt->perturbations_verbose > 2) && (abort == _FALSE_)) {
-            printf("evolving mode k=%e /Mpc  (%d/%d)",ppt->k[index_md][index_k],index_k+1,ppt->k_size[index_md]);
-            if (pba->sgnK != 0)
-              printf(" (for scalar modes, corresponds to nu=%e)",sqrt(ppt->k[index_md][index_k]*ppt->k[index_md][index_k]+pba->K)/sqrt(pba->sgnK*pba->K));
-            printf("\n");
-          }
-
-#ifdef _OPENMP
-          tstart = omp_get_wtime();
-#endif
-
-          class_call_parallel(perturb_solve(ppr,
-                                            pba,
-                                            pth,
-                                            ppt,
-                                            index_md,
-                                            index_ic,
-                                            index_k,
-                                            pppw[thread]),
+      /* integrating backwards is slightly more optimal for parallel runs */
+      for (index_k = ppt->k_size[index_md]-1; index_k >=0; index_k--) {
+        future_output.push_back(task_system.AsyncTask([ppr, pba, pth, ppt, index_md, index_ic, index_k] () {
+        if (ppt->perturbations_verbose > 2) {
+          printf("evolving mode k=%e /Mpc  (%d/%d)", ppt->k[index_md][index_k], index_k+1, ppt->k_size[index_md]);
+          if (pba->sgnK != 0)
+            printf(" (for scalar modes, corresponds to nu=%e)", sqrt(ppt->k[index_md][index_k]*ppt->k[index_md][index_k] + pba->K)/sqrt(pba->sgnK*pba->K));
+          printf("\n");
+        }
+        struct perturb_workspace pw;
+        class_call(perturb_workspace_init(
+            ppr,
+            pba,
+            pth,
+            ppt,
+            index_md,
+            &pw),
+          ppt->error_message,
+          ppt->error_message);
+        class_call(perturb_solve(
+            ppr,
+            pba,
+            pth,
+            ppt,
+            index_md,
+            index_ic,
+            index_k,
+            &pw),
+          ppt->error_message,
+          ppt->error_message);
+          class_call(perturb_workspace_free(ppt,index_md,&pw),
                               ppt->error_message,
                               ppt->error_message);
+          return 0;
+        }));
 
-#ifdef _OPENMP
-          tstop = omp_get_wtime();
+      } /* end of loop over wavenumbers */
 
-          tspent += tstop-tstart;
-#endif
-
-#pragma omp flush(abort)
-
-        } /* end of loop over wavenumbers */
-
-#ifdef _OPENMP
-        if (ppt->perturbations_verbose>2)
-          printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-                 __func__,tspent,omp_get_thread_num());
-#endif
-
-      } /* end of parallel region */
-
-      if (abort == _TRUE_) return _FAILURE_;
 
     } /* end of loop over initial conditions */
 
-    abort = _FALSE_;
-
-#pragma omp parallel                                \
-  shared(pppw,ppt,index_md,abort,number_of_threads) \
-  private(thread)                                   \
-  num_threads(number_of_threads)
-
-    {
-
-#ifdef _OPENMP
-      thread=omp_get_thread_num();
-#endif
-
-      class_call_parallel(perturb_workspace_free(ppt,index_md,pppw[thread]),
-                          ppt->error_message,
-                          ppt->error_message);
-
-    } /* end of parallel region */
-
-    if (abort == _TRUE_) return _FAILURE_;
-
   } /* end loop over modes */
-
-  free(pppw);
-
   /** - spline the source array with respect to the time variable */
+
+  for (std::future<int>& future : future_output) {
+      future.wait();
+  }
+  future_output.clear();
 
   if (ppt->ln_tau_size > 1) {
 
@@ -836,38 +731,29 @@ int perturb_init(
 
       for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-        abort = _FALSE_;
+        for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
+          future_output.push_back(task_system.AsyncTask([ppt, index_md, index_tp, index_ic] () {
+            class_call(array_spline_table_lines(ppt->ln_tau,
+                                                ppt->ln_tau_size,
+                                                ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
+                                                ppt->k_size[index_md],
+                                                ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
+                                                _SPLINE_EST_DERIV_,
+                                                ppt->error_message),
+                              ppt->error_message,
+                              ppt->error_message);
+            return 0;
+          }));
 
-#pragma omp parallel                                     \
-  shared(ppt,index_md,index_ic,abort,number_of_threads)  \
-  private(index_tp)                                      \
-  num_threads(number_of_threads)
-
-        {
-
-#pragma omp for schedule (dynamic)
-
-          for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
-
-            class_call_parallel(array_spline_table_lines(ppt->ln_tau,
-                                                         ppt->ln_tau_size,
-                                                         ppt->late_sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp],
-                                                         ppt->k_size[index_md],
-                                                         ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp],
-                                                         _SPLINE_EST_DERIV_,
-                                                         ppt->error_message),
-                                ppt->error_message,
-                                ppt->error_message);
-
-          }
-
-        } /* end of parallel region */
-
-        if (abort == _TRUE_) return _FAILURE_;
+        }
 
       } /* end of loop over initial condition */
 
     } /* end of loop over mode */
+
+    for (std::future<int>& future : future_output) {
+        future.wait();
+    }
 
   }
 
@@ -934,9 +820,9 @@ int perturb_free(
     free(ppt->late_sources);
     free(ppt->ddlate_sources);
 
-    free(ppt->alpha_idm_dr);
+    //free(ppt->alpha_idm_dr);
 
-    free(ppt->beta_idr);
+    //free(ppt->beta_idr);
 
     /** Stuff related to perturbations output: */
 
@@ -2661,8 +2547,6 @@ int perturb_workspace_free (
     }
   }
 
-  free(ppw);
-
   return _SUCCESS_;
 }
 
@@ -2749,15 +2633,8 @@ int perturb_solve(
 
   int n_ncdm,is_early_enough;
 
-  /* function pointer to ODE evolver and names of possible evolvers */
-
-  extern int evolver_rk();
-  extern int evolver_ndf15();
-  int (*generic_evolver)();
-
-
   /* Related to the perturbation output */
-  int (*perhaps_print_variables)();
+  int (*perhaps_print_variables)(double, double *, double *, void *, char *);
   int index_ikout;
 
   /** - initialize indices relevant for back/thermo tables search */
@@ -3016,12 +2893,11 @@ int perturb_solve(
 
     /** - --> (d) integrate the perturbations over the current interval. */
 
+    auto generic_evolver = &evolver_ndf15;
     if(ppr->evolver == rk){
-      generic_evolver = evolver_rk;
+        generic_evolver = &evolver_rk;
     }
-    else{
-      generic_evolver = evolver_ndf15;
-    }
+//    }
 
     class_call(generic_evolver(perturb_derivs,
                                interval_limit[index_interval],
@@ -6075,7 +5951,7 @@ int perturb_timescale(
   double * pvecthermo;
 
   /** - extract the fields of the parameter_and_workspace input structure */
-  pppaw = parameters_and_workspace;
+  pppaw = (struct perturb_parameters_and_workspace *) parameters_and_workspace;
   pba = pppaw->pba;
   pth = pppaw->pth;
   ppt = pppaw->ppt;
@@ -7133,7 +7009,7 @@ int perturb_sources(
 
   /** - rename structure fields (just to avoid heavy notations) */
 
-  pppaw = parameters_and_workspace;
+  pppaw = (struct perturb_parameters_and_workspace *) parameters_and_workspace;
   ppr = pppaw->ppr;
   pba = pppaw->pba;
   pth = pppaw->pth;
@@ -7740,7 +7616,7 @@ int perturb_print_variables(double tau,
 
   /** - rename structure fields (just to avoid heavy notations) */
 
-  pppaw = parameters_and_workspace;
+  pppaw = (struct perturb_parameters_and_workspace*) parameters_and_workspace;
   k = pppaw->k;
   index_md = pppaw->index_md;
 
@@ -8076,7 +7952,7 @@ int perturb_print_variables(double tau,
     }
     else{
       ppt->scalar_perturbations_data[ppw->index_ikout] =
-        realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
+        (double*) realloc(ppt->scalar_perturbations_data[ppw->index_ikout],
                 sizeof(double)*(ppt->size_scalar_perturbation_data[ppw->index_ikout]+ppt->number_of_scalar_titles));
     }
     storeidx = 0;
@@ -8186,7 +8062,7 @@ int perturb_print_variables(double tau,
     }
     else{
       ppt->tensor_perturbations_data[ppw->index_ikout] =
-        realloc(ppt->tensor_perturbations_data[ppw->index_ikout],
+        (double*) realloc(ppt->tensor_perturbations_data[ppw->index_ikout],
                 sizeof(double)*(ppt->size_tensor_perturbation_data[ppw->index_ikout]+ppt->number_of_tensor_titles));
     }
     storeidx = 0;
@@ -8362,7 +8238,7 @@ int perturb_derivs(double tau,
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
-  pppaw = parameters_and_workspace;
+  pppaw = (struct perturb_parameters_and_workspace*) parameters_and_workspace;
 
   k = pppaw->k;
   k2=k*k;
@@ -9499,7 +9375,7 @@ int perturb_tca_slip_and_shear(double * y,
 
   /** - rename the fields of the input structure (just to avoid heavy notations) */
 
-  pppaw = parameters_and_workspace;
+  pppaw = (struct perturb_parameters_and_workspace*) parameters_and_workspace;
 
   k = pppaw->k;
   k2=k*k;

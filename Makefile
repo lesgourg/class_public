@@ -9,7 +9,9 @@ WRKDIR = $(MDIR)/build
 	touch build/.base
 
 vpath %.c source:tools:main:test
+vpath %.cpp source:tools:main:test
 vpath %.o build
+vpath %.opp build
 vpath .base build
 
 ########################################################
@@ -18,6 +20,7 @@ vpath .base build
 
 # your C compiler:
 CC       = gcc
+CPP       = g++ -std=c++11 -Wno-write-strings
 #CC       = icc
 #CC       = pgcc
 
@@ -58,7 +61,7 @@ HYREC = hyrec
 CCFLAG += -D__CLASSDIR__='"$(MDIR)"'
 
 # where to find include files *.h
-INCLUDES = -I../include
+INCLUDES = -I../include -I../tools
 
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
@@ -71,13 +74,17 @@ CCFLAG += -DHYREC
 INCLUDES += -I../hyrec
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
 endif
+.SUFFIXES: .c .cpp .o .opp .h
 
-%.o:  %.c .base
+%.o: %.c .base
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
+
+%.opp: %.cpp .base
+	cd $(WRKDIR); $(CPP) $(OPTFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
 
-SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o
+SOURCE = input.o background.o thermodynamics.o perturbations.opp primordial.opp nonlinear.o transfer.opp spectra.opp lensing.o
 
 INPUT = input.o
 
@@ -87,13 +94,13 @@ BACKGROUND = background.o
 
 THERMO = thermodynamics.o
 
-PERTURBATIONS = perturbations.o
+PERTURBATIONS = perturbations.opp
 
-TRANSFER = transfer.o
+TRANSFER = transfer.opp
 
-PRIMORDIAL = primordial.o
+PRIMORDIAL = primordial.opp
 
-SPECTRA = spectra.o
+SPECTRA = spectra.opp
 
 NONLINEAR = nonlinear.o
 
@@ -144,13 +151,13 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
+	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_loops_omp: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS_OMP)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm

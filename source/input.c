@@ -1665,8 +1665,8 @@ int input_read_parameters(
 
   /* The following lines make sure that if perturbations are not computed, IDR parameters are still freed */
   if(ppt->has_perturbations == _FALSE_) {
-    free(ppt->alpha_idm_dr);
-    free(ppt->beta_idr);
+    //free(ppt->alpha_idm_dr);
+    //free(ppt->beta_idr);
   }
 
   if (ppt->has_density_transfers == _TRUE_) {

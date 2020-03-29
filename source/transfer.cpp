@@ -28,6 +28,7 @@
  */
 
 #include "transfer.h"
+#include "thread_pool.h"
 
 /**
  * Transfer function \f$ \Delta_l^{X} (q) \f$ at a given wavenumber q.
@@ -151,9 +152,6 @@ int transfer_init(
   */
   double *** sources_spline;
 
-  /* pointer on workspace (one per thread if openmp) */
-  struct transfer_workspace * ptw;
-
   /** - array with the correspondence between the index of sources in
       the perturbation module and in the transfer module,
       tp_of_tt[index_md][index_tt]
@@ -164,20 +162,6 @@ int transfer_init(
 
   HyperInterpStruct BIS;
   double xmax;
-
-  /* This code can be optionally compiled with the openmp option for parallel computation.
-     Inside parallel regions, the use of the command "return" is forbidden.
-     For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" just after leaving the
-     parallel region. */
-  int abort;
-
-#ifdef _OPENMP
-
-  /* instrumentation times */
-  double tstart, tstop, tspent;
-
-#endif
 
   /** - check whether any spectrum in harmonic space (i.e., any \f$C_l\f$'s) is actually requested */
 
@@ -304,54 +288,44 @@ int transfer_init(
              ptr->error_message,
              ptr->error_message);
 
-  /* (a.3.) workspace, allocated in a parallel zone since in openmp
-     version there is one workspace per thread */
-
-  /* initialize error management flag */
-  abort = _FALSE_;
-
-  /* beginning of parallel region */
-#pragma omp parallel                                                    \
-  shared(tau_size_max,ptr,ppr,pba,ppt,tp_of_tt,tau_rec,sources_spline,abort,BIS,tau0) \
-  private(ptw,index_q,tstart,tstop,tspent)
-  {
-
-#ifdef _OPENMP
-    tspent = 0.;
-#endif
-
-    /* allocate workspace */
-
-    ptw = NULL;
-
-    class_call_parallel(transfer_workspace_init(ptr,
-                                                ppr,
-                                                &ptw,
-                                                ppt->tau_size,
-                                                tau_size_max,
-                                                pba->K,
-                                                pba->sgnK,
-                                                tau0-pth->tau_cut,
-                                                &BIS),
-                        ptr->error_message,
-                        ptr->error_message);
-
+  Tools::TaskSystem task_system;
+  std::vector<std::future<int>> future_output;
     /** - loop over all wavenumbers (parallelized).*/
     /* For each wavenumber: */
-
-#pragma omp for schedule (dynamic)
-
-    for (index_q = 0; index_q < ptr->q_size; index_q++) {
-
-#ifdef _OPENMP
-      tstart = omp_get_wtime();
-#endif
+  struct transfer_workspace* ptw = NULL;
+  class_call(transfer_workspace_init(
+      ptr,
+      ppr,
+      &ptw,
+      ppt->tau_size,
+      tau_size_max,
+      pba->K,
+      pba->sgnK,
+      tau0 - pth->tau_cut,
+      &BIS),
+    ptr->error_message,
+    ptr->error_message);
+  for (index_q = 0; index_q < ptr->q_size; index_q++) {
+    future_output.push_back(task_system.AsyncTask([tau_size_max, ptr, ppr, pba, ppt, pth, tp_of_tt, tau_rec, sources_spline, &BIS, tau0, index_q, sources, window] () {
+      struct transfer_workspace* ptw = NULL;
+      class_call(transfer_workspace_init(
+          ptr,
+          ppr,
+          &ptw,
+          ppt->tau_size,
+          tau_size_max,
+          pba->K,
+          pba->sgnK,
+          tau0 - pth->tau_cut,
+          &BIS),
+        ptr->error_message,
+        ptr->error_message);
 
       if (ptr->transfer_verbose > 2)
         printf("Compute transfer for wavenumber [%d/%zu]\n",index_q,ptr->q_size-1);
 
       /* Update interpolation structure: */
-      class_call_parallel(transfer_update_HIS(ppr,
+      class_call(transfer_update_HIS(ppr,
                                               ptr,
                                               ptw,
                                               index_q,
@@ -359,7 +333,7 @@ int transfer_init(
                           ptr->error_message,
                           ptr->error_message);
 
-      class_call_parallel(transfer_compute_for_each_q(ppr,
+      class_call(transfer_compute_for_each_q(ppr,
                                                       pba,
                                                       ppt,
                                                       ptr,
@@ -373,32 +347,18 @@ int transfer_init(
                                                       ptw),
                           ptr->error_message,
                           ptr->error_message);
-
-#ifdef _OPENMP
-      tstop = omp_get_wtime();
-
-      tspent += tstop-tstart;
-#endif
-
-#pragma omp flush(abort)
-
-    } /* end of loop over wavenumber */
-
-    /* free workspace allocated inside parallel zone */
-    class_call_parallel(transfer_workspace_free(ptr,ptw),
-                        ptr->error_message,
-                        ptr->error_message);
-
-#ifdef _OPENMP
-    if (ptr->transfer_verbose>1)
-      printf("In %s: time spent in parallel region (loop over k's) = %e s for thread %d\n",
-             __func__,tspent,omp_get_thread_num());
-#endif
-
-  } /* end of parallel region */
-
-  if (abort == _TRUE_) return _FAILURE_;
-
+      /* free workspace allocated inside parallel zone */
+      class_call(
+        transfer_workspace_free(ptr, ptw),
+        ptr->error_message,
+        ptr->error_message);
+      return 0;
+    }));
+  } /* end of loop over wavenumber */
+  for (std::future<int>& future : future_output) {
+      future.wait();
+  }
+  future_output.clear();
   /** - finally, free arrays allocated outside parallel zone */
   free(window);
 
@@ -3801,11 +3761,11 @@ int transfer_radial_function(
   double rescale_argument;
   double rescale_amplitude;
   double * rescale_function;
-  int (*interpolate_Phi)();
-  int (*interpolate_dPhi)();
-  int (*interpolate_Phid2Phi)();
-  int (*interpolate_PhidPhi)();
-  int (*interpolate_PhidPhid2Phi)();
+  int (*interpolate_Phi)(HyperInterpStruct *, int, int, double *, double *, char *);
+  int (*interpolate_dPhi)(HyperInterpStruct *, int, int, double *, double *, char *);
+  int (*interpolate_Phid2Phi)(HyperInterpStruct *, int, int, double *, double *, double *, char *);
+  int (*interpolate_PhidPhi)(HyperInterpStruct *, int, int, double *, double *, double *, char *);
+  int (*interpolate_PhidPhid2Phi)(HyperInterpStruct *, int, int, double *, double *, double *, double *, char *);
   enum Hermite_Interpolation_Order HIorder;
 
   K = ptw->K;

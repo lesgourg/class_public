@@ -8,8 +8,8 @@
 #include "svnversion.h"
 #include <stdarg.h>
 
-#ifdef _OPENMP
-#include "omp.h"
+#ifdef __cplusplus
+#define typeof(a) __typeof__(a)
 #endif
 
 #ifndef __COMMON__
@@ -75,11 +75,6 @@ typedef char FileName[_FILENAMESIZE_];
 #define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? ((i2)+N*(i1)-((i1)*((i1)+1))/2) : ((i1)+N*(i2)-((i2)*((i2)+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without losing or double-counting any information */
 /* @endcond */
 // needed because of weird openmp bug on macosx lion...
-void class_protect_sprintf(char* dest, char* tpl,...);
-void class_protect_fprintf(FILE* dest, char* tpl,...);
-void* class_protect_memcpy(void* dest, void* from, size_t sz);
-
-int get_number_of_titles(char * titlestring);
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \
@@ -133,11 +128,11 @@ int get_number_of_titles(char * titlestring);
 
 /* macro for allocating memory and returning error if it failed */
 #define class_alloc(pointer, size, error_message_output)  {                                                      \
-  pointer=malloc(size);                                                                                          \
+  pointer= (typeof(pointer)) malloc(size);                                                                       \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
-    class_alloc_message(error_message_output,#pointer, size_int);                                                \
+    class_alloc_message((char*)error_message_output,#pointer, size_int);                                         \
     return _FAILURE_;                                                                                            \
   }                                                                                                              \
 }
@@ -146,7 +141,7 @@ int get_number_of_titles(char * titlestring);
 #define class_alloc_parallel(pointer, size, error_message_output)  {                                             \
   pointer=NULL;                                                                                                  \
   if (abort == _FALSE_) {                                                                                        \
-    pointer=malloc(size);                                                                                        \
+    pointer=(typeof(pointer)) malloc(size);                                                                      \
     if (pointer == NULL) {                                                                                       \
       int size_int;                                                                                              \
       size_int = size;                                                                                           \
@@ -158,7 +153,7 @@ int get_number_of_titles(char * titlestring);
 
 /* macro for allocating memory, initializing it with zeros/ and returning error if it failed */
 #define class_calloc(pointer, init,size, error_message_output)  {                                                \
-  pointer=calloc(init,size);                                                                                     \
+  pointer=(typeof(pointer))calloc(init,size);                                                                    \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -168,8 +163,8 @@ int get_number_of_titles(char * titlestring);
 }
 
 /* macro for re-allocating memory, returning error if it failed */
-#define class_realloc(pointer, newname, size, error_message_output)  {                                          \
-    pointer=realloc(newname,size);                                                                               \
+#define class_realloc(pointer, newname, size, error_message_output)  {                                           \
+    pointer=(typeof(pointer))realloc(newname,size);                                                              \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
     size_int = size;                                                                                             \
@@ -372,6 +367,16 @@ struct precision
   //@}
 
 };
+#ifdef __cplusplus
+extern "C" {
+#endif
+    void class_protect_sprintf(char* dest, char* tpl, ...);
+    void class_protect_fprintf(FILE* dest, char* tpl, ...);
+    void* class_protect_memcpy(void* dest, void* from, size_t sz);
+    int get_number_of_titles(char * titlestring);
+#ifdef __cplusplus
+}
+#endif
 
 
 

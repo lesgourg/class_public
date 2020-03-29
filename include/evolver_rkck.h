@@ -1,5 +1,5 @@
-#ifndef __EVO__
-#define __EVO__
+#ifndef __EVORKCK__
+#define __EVORKCK__
 
 #include "dei_rkck.h"
 

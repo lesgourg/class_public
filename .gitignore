@@ -14,3 +14,6 @@ RealSpaceInterface/cache/
 .DS_Store
 doc/manual/html
 doc/manual/latex
+ppCLASS.xcodeproj/project.xcworkspace
+ppCLASS.xcodeproj/xcshareddata
+ppCLASS.xcodeproj/xcuserdata

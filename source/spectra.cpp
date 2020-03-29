@@ -13,6 +13,7 @@
  */
 
 #include "spectra.h"
+#include "thread_pool.h"
 
 /**
  * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.
@@ -678,23 +679,6 @@ int spectra_cls(
   int index_ct;
   int cl_integrand_num_columns;
 
-  double * cl_integrand; /* array with argument cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct] */
-  double * transfer_ic1; /* array with argument transfer_ic1[index_tt] */
-  double * transfer_ic2; /* idem */
-  double * primordial_pk;  /* array with argument primordial_pk[index_ic_ic]*/
-
-  /* This code can be optionally compiled with the openmp option for parallel computation.
-     Inside parallel regions, the use of the command "return" is forbidden.
-     For error management, instead of "return _FAILURE_", we will set the variable below
-     to "abort = _TRUE_". This will lead to a "return _FAILURE_" jus after leaving the
-     parallel region. */
-  int abort;
-
-#ifdef _OPENMP
-  /* instrumentation times */
-  double tstart, tstop;
-#endif
-
   /** - allocate pointers to arrays where results will be stored */
 
   class_alloc(psp->l_size,sizeof(int)*psp->md_size,psp->error_message);
@@ -708,6 +692,9 @@ int spectra_cls(
   for (index_l=0; index_l < psp->l_size_max; index_l++) {
     psp->l[index_l] = (double)ptr->l[index_l];
   }
+
+  Tools::TaskSystem task_system;
+  std::vector<std::future<int>> future_output;
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
 
@@ -732,49 +719,39 @@ int spectra_cls(
         /* non-diagonal coefficients should be computed only if non-zero correlation */
         if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-          /* initialize error management flag */
-          abort = _FALSE_;
+          future_output.push_back(task_system.AsyncTask([pba, ptr, ppm, index_md, psp, ppt, cl_integrand_num_columns, index_ic1, index_ic2] () {
+            double * cl_integrand; /* array with argument cl_integrand[index_k*cl_integrand_num_columns+1+psp->index_ct] */
+            double * transfer_ic1; /* array with argument transfer_ic1[index_tt] */
+            double * transfer_ic2; /* idem */
+            double * primordial_pk;  /* array with argument primordial_pk[index_ic_ic]*/
 
-          /* beginning of parallel region */
 
-#pragma omp parallel                                                    \
-  shared(ptr,ppm,index_md,psp,ppt,cl_integrand_num_columns,index_ic1,index_ic2,abort) \
-  private(tstart,cl_integrand,primordial_pk,transfer_ic1,transfer_ic2,index_l,tstop)
-
-          {
-
-#ifdef _OPENMP
-            tstart = omp_get_wtime();
-#endif
-
-            class_alloc_parallel(cl_integrand,
+            class_alloc(cl_integrand,
                                  ptr->q_size*cl_integrand_num_columns*sizeof(double),
                                  psp->error_message);
 
-            class_alloc_parallel(primordial_pk,
+            class_alloc(primordial_pk,
                                  psp->ic_ic_size[index_md]*sizeof(double),
                                  psp->error_message);
 
-            class_alloc_parallel(transfer_ic1,
+            class_alloc(transfer_ic1,
                                  ptr->tt_size[index_md]*sizeof(double),
                                  psp->error_message);
 
-            class_alloc_parallel(transfer_ic2,
+            class_alloc(transfer_ic2,
                                  ptr->tt_size[index_md]*sizeof(double),
                                  psp->error_message);
-
-#pragma omp for schedule (dynamic)
 
             /** - ---> loop over l values defined in the transfer module.
                 For each l, compute the \f$ C_l\f$'s for all types (TT, TE, ...)
                 by convolving primordial spectra with transfer  functions.
                 This elementary task is assigned to spectra_compute_cl() */
 
-            for (index_l=0; index_l < ptr->l_size[index_md]; index_l++) {
+            for (int index_l=0; index_l < ptr->l_size[index_md]; index_l++) {
 
 #pragma omp flush(abort)
 
-              class_call_parallel(spectra_compute_cl(pba,
+              class_call(spectra_compute_cl(pba,
                                                      ppt,
                                                      ptr,
                                                      ppm,
@@ -793,12 +770,6 @@ int spectra_cls(
 
             } /* end of loop over l */
 
-#ifdef _OPENMP
-            tstop = omp_get_wtime();
-            if (psp->spectra_verbose > 1)
-              printf("In %s: time spent in parallel region (loop over l's) = %e s for thread %d\n",
-                     __func__,tstop-tstart,omp_get_thread_num());
-#endif
             free(cl_integrand);
 
             free(primordial_pk);
@@ -807,10 +778,9 @@ int spectra_cls(
 
             free(transfer_ic2);
 
-          } /* end of parallel region */
+            return 0;
 
-          if (abort == _TRUE_) return _FAILURE_;
-
+          }));
         }
         else {
 
@@ -826,6 +796,11 @@ int spectra_cls(
         }
       }
     }
+
+    for (std::future<int>& future : future_output) {
+        future.wait();
+    }
+    future_output.clear();
 
     /** - --> (d) now that for a given mode, all possible \f$ C_l\f$'s have been computed,
         compute second derivative of the array in which they are stored,

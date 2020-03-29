@@ -7,9 +7,6 @@
 #include "math.h"
 #include "string.h"
 #include "float.h"
-#ifdef _OPENMP
-#include "omp.h"
-#endif
 
 /* tools for class */
 #include "quadrature.h"
