@@ -3877,7 +3877,7 @@ int thermodynamics_derivs_with_recfast(
   double chi_ion_H;
   int last_index_back;
 
-  ptpaw = parameters_and_workspace;
+  ptpaw = (struct thermodynamics_parameters_and_workspace*)parameters_and_workspace;
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   preco = ptpaw->preco;

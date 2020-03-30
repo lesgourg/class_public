@@ -79,6 +79,9 @@ typedef struct {
 
 } REC_COSMOPARAMS;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param);
 double rec_HubbleConstant(REC_COSMOPARAMS *param, double z);
 double rec_Tmss(double xe, double Tr, double H, double fHe, double nH, double energy_rate);
@@ -96,3 +99,6 @@ void rec_build_history(REC_COSMOPARAMS *param, HRATEEFF *rate_table, TWO_PHOTON_
                        double *xe_output, double *Tm_output);
 
 double energy_injection_rate(REC_COSMOPARAMS *param, double z);
+#ifdef __cplusplus
+}
+#endif

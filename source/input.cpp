@@ -290,7 +290,7 @@ int input_init(
 
   /** - Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
-  fzw.required_computation_stage = 0;
+  fzw.required_computation_stage = (enum computation_stage)0;
   for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
     class_call(parser_read_double(pfc,
                                   target_namestrings[index_target],
@@ -304,7 +304,7 @@ int input_init(
           instance Omega_dcdmdr is set to 0.0.
       */
       class_call(input_auxillary_target_conditions(pfc,
-                                                   index_target,
+                                                   (enum target_names)index_target,
                                                    param1,
                                                    &aux_flag,
                                                    errmsg),
@@ -363,7 +363,7 @@ int input_init(
                  errmsg);
 
       // store name of target parameter
-      fzw.target_name[counter] = index_target;
+      fzw.target_name[counter] = (enum target_names)index_target;
       // store target value of target parameter
       fzw.target_value[counter] = param1;
       fzw.unknown_parameters_index[counter]=pfc->size+counter;

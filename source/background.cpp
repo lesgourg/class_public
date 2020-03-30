@@ -1124,7 +1124,7 @@ int background_ncdm_distribution(
   //int i;
 
   /** - extract from the input structure pbadist all the relevant information */
-  pbadist_local = pbadist;          /* restore actual format of pbadist */
+  pbadist_local = (struct background_parameters_for_distributions*) pbadist;          /* restore actual format of pbadist */
   pba = pbadist_local->pba;         /* extract the background structure from it */
   param = pba->ncdm_psd_parameters; /* extract the optional parameter list from it */
   n_ncdm = pbadist_local->n_ncdm;   /* extract index of ncdm species under consideration */
@@ -1351,8 +1351,8 @@ int background_ncdm_init(
                                pba->error_message),
                  pba->error_message,
                  pba->error_message);
-      pba->q_ncdm[k]=realloc(pba->q_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
-      pba->w_ncdm[k]=realloc(pba->w_ncdm[k],pba->q_size_ncdm[k]*sizeof(double));
+      pba->q_ncdm[k] = (double*)realloc(pba->q_ncdm[k], pba->q_size_ncdm[k]*sizeof(double));
+      pba->w_ncdm[k] = (double*)realloc(pba->w_ncdm[k], pba->q_size_ncdm[k]*sizeof(double));
 
 
       if (pba->background_verbose > 0)
@@ -1379,8 +1379,8 @@ int background_ncdm_init(
                  pba->error_message);
 
 
-      pba->q_ncdm_bg[k]=realloc(pba->q_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
-      pba->w_ncdm_bg[k]=realloc(pba->w_ncdm_bg[k],pba->q_size_ncdm_bg[k]*sizeof(double));
+      pba->q_ncdm_bg[k] = (double*)realloc(pba->q_ncdm_bg[k], pba->q_size_ncdm_bg[k]*sizeof(double));
+      pba->w_ncdm_bg[k] = (double*)realloc(pba->w_ncdm_bg[k], pba->q_size_ncdm_bg[k]*sizeof(double));
 
       /** - in verbose mode, inform user of number of sampled momenta
           for background quantities */
@@ -1401,7 +1401,7 @@ int background_ncdm_init(
                                       pba->w_ncdm[k],
                                       pba->q_size_ncdm[k],
                                       pba->ncdm_qmax[k],
-                                      pba->ncdm_quadrature_strategy[k],
+                                      (enum ncdm_quadrature_method)pba->ncdm_quadrature_strategy[k],
                                       pbadist.q,
                                       pbadist.tablesize,
                                       background_ncdm_distribution,
@@ -2389,7 +2389,7 @@ int background_derivs(
   struct background * pba;
   double * pvecback, a, H, rho_M;
 
-  pbpaw = parameters_and_workspace;
+  pbpaw = (struct background_parameters_and_workspace*)parameters_and_workspace;
   pba =  pbpaw->pba;
   pvecback = pbpaw->pvecback;
 

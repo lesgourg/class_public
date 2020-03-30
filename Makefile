@@ -61,7 +61,7 @@ HYREC = hyrec
 CCFLAG += -D__CLASSDIR__='"$(MDIR)"'
 
 # where to find include files *.h
-INCLUDES = -I../include -I../tools
+INCLUDES = -I../include -I../tools -I../source
 
 # automatically add external programs if needed. First, initialize to blank.
 EXTERNAL =
@@ -84,15 +84,15 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
 
-SOURCE = input.o background.o thermodynamics.o perturbations.opp primordial.opp nonlinear.o transfer.opp spectra.opp lensing.o
+SOURCE = input.opp background.opp thermodynamics.opp perturbations.opp primordial.opp nonlinear.opp transfer.opp spectra.opp lensing.opp
 
-INPUT = input.o
+INPUT = input.opp
 
 PRECISION = precision.o
 
-BACKGROUND = background.o
+BACKGROUND = background.opp
 
-THERMO = thermodynamics.o
+THERMO = thermodynamics.opp
 
 PERTURBATIONS = perturbations.opp
 
@@ -102,13 +102,13 @@ PRIMORDIAL = primordial.opp
 
 SPECTRA = spectra.opp
 
-NONLINEAR = nonlinear.o
+NONLINEAR = nonlinear.opp
 
-LENSING = lensing.o
+LENSING = lensing.opp
 
-OUTPUT = output.o
+OUTPUT = output.opp
 
-CLASS = class.o
+CLASS = class.opp
 
 TEST_LOOPS = test_loops.o
 

@@ -33,7 +33,7 @@
  	       errmsg,							\
 	       errmsg);							\
     if (flag1 == _TRUE_)						\
-      destination = int1;						\
+      destination = (__typeof__(destination))int1;			\
   } while(0);
 
 #define class_read_string(name,destination)				\

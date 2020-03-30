@@ -1,6 +1,6 @@
 #include "common.h"
 
-void class_protect_sprintf(char* dest, char* tpl,...) {
+void class_protect_sprintf(char* dest, const char* tpl,...) {
   va_list args;
   va_start(args,tpl);
   vsnprintf(dest, 2048,tpl,args);

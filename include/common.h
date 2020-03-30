@@ -7,6 +7,19 @@
 #include "float.h"
 #include "svnversion.h"
 #include <stdarg.h>
+#ifdef __cplusplus
+#include "exceptions.h"
+#endif
+
+#ifdef __cplusplus
+#include <string>
+#include <sstream>
+#include <stdexcept>
+#endif
+
+#ifdef __cplusplus
+#define typeof(a) __typeof__(a)
+#endif
 
 #ifdef __cplusplus
 #define typeof(a) __typeof__(a)
@@ -367,13 +380,14 @@ struct precision
   //@}
 
 };
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-    void class_protect_sprintf(char* dest, char* tpl, ...);
-    void class_protect_fprintf(FILE* dest, char* tpl, ...);
-    void* class_protect_memcpy(void* dest, void* from, size_t sz);
-    int get_number_of_titles(char * titlestring);
+  void class_protect_sprintf(char* dest, const char* tpl, ...);
+  void class_protect_fprintf(FILE* dest, char* tpl, ...);
+  void* class_protect_memcpy(void* dest, void* from, size_t sz);
+  int get_number_of_titles(char * titlestring);
 #ifdef __cplusplus
 }
 #endif
