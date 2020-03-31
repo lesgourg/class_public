@@ -2,6 +2,7 @@
  *
  * * Julien Lesgourgues, 17.04.2011
  * * routines related to ncdm written by T. Tram in 2011
+ * * new integration scheme written by N. Schoeneberg in 2020
  *
  * Deals with the cosmological background evolution.
  * This module has two purposes:
@@ -20,62 +21,95 @@
  *
  * 1. most background parameters that we will call {A}
  * (e.g. rho_gamma, ..) can be expressed as simple analytical
- * functions of a few variables that we will call {B} (in simplest
- * models, of the scale factor 'a'; in extended cosmologies, of 'a'
- * plus e.g. (phi, phidot) for quintessence, or some temperature for
- * exotic particles, etc...).
+ * functions of the scale factor 'a' plus a few variables that we will
+ * call {B} (e.g. (phi, phidot) for quintessence, or some temperature
+ * for exotic particles, etc...). [Side note: for simplicity, all variables
+ * {B} are declared redundently inside {A}.]
  *
- * 2. in turn, quantities {B} can be found as a function of conformal
- * time by integrating the background equations.
+ * 2. in turn, quantities {B} can be found as a function of the the
+ * scale factor [or rather (a/a_0)] by integrating the
+ * background equations. Thus {B} also includes the density of species
+ * which energy conservation equation must be integrated explicitely,
+ * like the density of fluids or of decaying dark matter.
  *
- * 3. some other quantities that we will call {C} (like e.g. the
- * sound horizon or proper time) also require an integration with
- * respect to time, that cannot be inferred analytically from
- * parameters {B}.
+ * 3. some other quantities that we will call {C} (like e.g. proper
+ * and conformal time, the sound horizon, the analytic scale-invariant
+ * growth factor) also require an explicit integration with respect to
+ * (a/a_0) [or rather log(a/a_p)], since they cannot be inferred
+ * analytically from (a/a_0) and parameters {B}. The difference
+ * between {B} and {C} parameters is that {C} parameters do not need
+ * to be known in order to get {A}.
  *
  * So, we define the following routines:
  *
- * - background_functions() returns all background
- *    quantities {A} as a function of quantities {B}.
+ * - background_functions() returns all background quantities {A} as a
+ *    function of (a/a_0) and of quantities {B}.
  *
  * - background_solve() integrates the quantities {B} and {C} with
- *    respect to conformal time; this integration requires many calls
- *    to background_functions().
+ *    respect to log(a/a_0); this integration requires many calls to
+ *    background_functions().
  *
  * - the result is stored in the form of a big table in the background
- *    structure. There is one column for conformal time 'tau'; one or
- *    more for quantities {B}; then several columns for quantities {A}
- *    and {C}.
+ *    structure. There is one column for the scale factor, and one for
+ *    each quantity {A} or {C} [Side note: we don;t include {B} here
+ *    because the {B} variables are already decalred redundently also
+ *    as {A} quantitites.]
  *
- * Later in the code, if we know the variables {B} and need some
- * quantity {A}, the quickest and most precise way is to call directly
- * background_functions() (for instance, in simple models, if we want
- * H at a given value of the scale factor). If we know 'tau' and want
- * any other quantity, we can call background_at_tau(), which
- * interpolates in the table and returns all values. Finally it can be
- * useful to get 'tau' for a given redshift 'z': this can be done with
- * background_tau_of_z(). So if we are somewhere in the code, knowing
- * z and willing to get background quantities, we should call first
- * background_tau_of_z() and then background_at_tau().
+ * Later in the code:
+ *
+ * - If we know the variables (a/a_0) + {B} and need some quantity {A}
+ *    (but not {C}), the quickest and most precise way is to call
+ *    directly background_functions() (for instance, in simple models,
+ *    if we want H at a given value of the scale factor).
+ *
+ * - If we know 'tau' and want any other quantity, we can call
+ *    background_at_tau(), which interpolates in the table and returns
+ *    all values.
+ *
+ * - If we know 'z' but not the {B} variables, or if we know 'z' and
+ *    we want {C} variables, we need to call background_at_z(), which
+ *    interpolates in the table and returns all values.
+ *
+ * - Finally, it can be useful to get 'tau' for a given redshift 'z'
+ *    or vice-versa: this can be done with background_tau_of_z() or
+ *    background_z_of_tau().
  *
  *
- * In order to save time, background_at_tau() can be called in three
- * modes: short_info, normal_info, long_info (returning only essential
- * quantities, or useful quantities, or rarely useful
- * quantities). Each line in the interpolation table is a vector whose
- * first few elements correspond to the short_info format; a larger
- * fraction contribute to the normal format; and the full vector
- * corresponds to the long format. The guideline is that short_info
- * returns only geometric quantities like a, H, H'; normal format
- * returns quantities strictly needed at each step in the integration
- * of perturbations; long_info returns quantities needed only
- * occasionally.
+ * In order to save time, background_at_tau() ans background_at_z()
+ * can be called in three modes: short_info, normal_info, long_info
+ * (returning only essential quantities, or useful quantities, or
+ * rarely useful quantities). Each line in the interpolation table is
+ * a vector whose first few elements correspond to the short_info
+ * format; a larger fraction contribute to the normal format; and the
+ * full vector corresponds to the long format. The guideline is that
+ * short_info returns only geometric quantities like a, H, H'; normal
+ * format returns quantities strictly needed at each step in the
+ * integration of perturbations; long_info returns quantities needed
+ * only occasionally.
  *
  * In summary, the following functions can be called from other modules:
  *
- * -# background_init() at the beginning
- * -# background_at_tau(), background_tau_of_z() at any later time
+ * -# background_init() at the beginning background_at_tau(),
+ * -# background_at_z(), background_tau_of_z(), background_z_of_tau() at any later time
  * -# background_free() at the end, when no more calls to the previous functions are needed
+ *
+ * For units and normalisation conventions, there are two guiding principles:
+ *
+ * 1) All quantities are expressed in natural units in which everything is in powers of Mpc, e.g.:
+ *
+ * - t stands for (cosmological or proper time)*c in Mpc
+ * - tau stands for (conformal time)*c in Mpc
+ * - H stands for (Hubble parameter)/c in \f$ Mpc^{-1} \f$
+ * - etc.
+ *
+ * 2) New since v3.0: all quantities that should normally scale with some power of
+ * a_0^n are renormalised by a_0^{-n}, in order to be independent of a_0, e.g.
+ *
+ * - a in the code stands for \f$ a/a_0 \f$ in reality
+ * - tau in the code stands for \f$ a_0 \tau c \f$ in Mpc
+ * - any prime in the code stands for \f$ (1/a_0) d/d\tau \f$
+ * - r stands for any comoving radius times a_0
+ * - etc.
  */
 
 #include "background.h"
@@ -320,26 +354,22 @@ int background_z_of_tau(
 }
 
 /**
- * Background quantities at given \f$ a \f$.
- *
  * Function evaluating all background quantities which can be computed
- * analytically as a function of {B} parameters such as the scale factor 'a'
- * (see discussion at the beginning of this file). In extended
- * cosmological models, the pvecback_B vector contains other input parameters than
- * just 'a', e.g. (phi, phidot) for quintessence, some temperature of
- * exotic relics, etc...
+ * analytically as a function of a and of {B} quantities (see
+ * discussion at the beginning of this file).
  *
  * @param pba           Input: pointer to background structure
- * @param pvecback_B    Input: vector containing all {B} type quantities (scale factor, ...)
+ * @param a             Input: scale factor (in fact, with our normalisation conventions, this is (a/a_0) )
+ * @param pvecback_B    Input: vector containing all {B} quantities
  * @param return_format Input: format of output vector
  * @param pvecback      Output: vector of background quantities (assumed to be already allocated)
  * @return the error status
  */
 
 int background_functions(
-                         struct background *pba,
-                         double a_rel,
-                         double * pvecback_B, /* Vector containing all {B} quantities. */
+                         struct background * pba,
+                         double a,
+                         double * pvecback_B, /* vector with argument pvecback[index_bi] */
                          short return_format,
                          double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
                          ) {
@@ -364,8 +394,6 @@ int background_functions(
   int n_ncdm;
   /* fluid's time-dependent equation of state parameter */
   double w_fld, dw_over_da, integral_fld;
-  /* scale factor */
-  double a;
   /* scalar field quantities */
   double phi, phi_prime;
   /* Since we only know a_prime_over_a after we have rho_tot,
@@ -375,8 +403,6 @@ int background_functions(
      Note: The scalar field contribution must be added in the end, as an exception!*/
   double dp_dloga;
 
-  a = a_rel*pba->a_today;
-
   /** - initialize local variables */
   rho_tot = 0.;
   p_tot = 0.;
@@ -384,27 +410,31 @@ int background_functions(
   rho_r=0.;
   rho_m=0.;
 
-  class_test(a_rel <= 0.,
+  class_test(a <= 0.,
              pba->error_message,
-             "a = %e instead of strictly positive",a_rel);
+             "a = %e instead of strictly positive",a);
+
+  /** - pass value of \f$ a\f$ to output */
+  pvecback[pba->index_bg_a] = a;
+
   /** - compute each component's density and pressure */
 
   /* photons */
-  pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
+  pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a,4);
   rho_tot += pvecback[pba->index_bg_rho_g];
   p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
   dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_g];
   rho_r += pvecback[pba->index_bg_rho_g];
 
   /* baryons */
-  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
+  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a,3);
   rho_tot += pvecback[pba->index_bg_rho_b];
   p_tot += 0;
   rho_m += pvecback[pba->index_bg_rho_b];
 
   /* cdm */
   if (pba->has_cdm == _TRUE_) {
-    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
+    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_cdm];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_cdm];
@@ -446,7 +476,7 @@ int background_functions(
     //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
     rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
     rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
-    //printf(" a= %e, Omega_scf = %f, \n ",a_rel, pvecback[pba->index_bg_rho_scf]/rho_tot );
+    //printf(" a= %e, Omega_scf = %f, \n ",a, pvecback[pba->index_bg_rho_scf]/rho_tot );
   }
 
   /* ncdm */
@@ -463,7 +493,7 @@ int background_functions(
                                          pba->q_size_ncdm_bg[n_ncdm],
                                          pba->M_ncdm[n_ncdm],
                                          pba->factor_ncdm[n_ncdm],
-                                         1./a_rel-1.,
+                                         1./a-1.,
                                          NULL,
                                          &rho_ncdm,
                                          &p_ncdm,
@@ -507,7 +537,7 @@ int background_functions(
     pvecback[pba->index_bg_w_fld] = w_fld;
 
     // Obsolete: at the beginning, we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0):
-    // pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
+    // pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a-1.));
     // But now everthing is integrated numerically for a given w_fld(a) defined in the function background_w_fld.
 
     rho_tot += pvecback[pba->index_bg_rho_fld];
@@ -517,7 +547,7 @@ int background_functions(
 
   /* relativistic neutrinos (and all relativistic relics) */
   if (pba->has_ur == _TRUE_) {
-    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a_rel,4);
+    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a,4);
     rho_tot += pvecback[pba->index_bg_rho_ur];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
     dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
@@ -526,7 +556,7 @@ int background_functions(
 
   /* interacting dark matter */
   if (pba->has_idm_dr == _TRUE_) {
-    pvecback[pba->index_bg_rho_idm_dr] = pba->Omega0_idm_dr * pow(pba->H0,2) / pow(a_rel,3);
+    pvecback[pba->index_bg_rho_idm_dr] = pba->Omega0_idm_dr * pow(pba->H0,2) / pow(a,3);
     rho_tot += pvecback[pba->index_bg_rho_idm_dr];
     p_tot += 0.;
     rho_m += pvecback[pba->index_bg_rho_idm_dr];
@@ -534,7 +564,7 @@ int background_functions(
 
   /* interacting dark radiation */
   if (pba->has_idr == _TRUE_) {
-    pvecback[pba->index_bg_rho_idr] = pba->Omega0_idr * pow(pba->H0,2) / pow(a_rel,4);
+    pvecback[pba->index_bg_rho_idr] = pba->Omega0_idr * pow(pba->H0,2) / pow(a,4);
     rho_tot += pvecback[pba->index_bg_rho_idr];
     p_tot += (1./3.) * pvecback[pba->index_bg_rho_idr];
     rho_r += pvecback[pba->index_bg_rho_idr];
@@ -582,6 +612,15 @@ int background_functions(
     /** - compute Omega_m */
     pvecback[pba->index_bg_Omega_m] = rho_m / rho_crit;
 
+    /** - cosmological time */
+    pvecback[pba->index_bg_time] = pvecback_B[pba->index_bi_time];
+
+    /** - comoving sound horizon */
+    pvecback[pba->index_bg_rs] = pvecback_B[pba->index_bi_rs];
+
+    /** - velocity growth factor */
+    pvecback[pba->index_bg_f] = pvecback_B[pba->index_bi_D_prime]/( pvecback_B[pba->index_bi_D]*a*pvecback[pba->index_bg_H]);
+
     /* one can put other variables here */
     /*  */
     /*  */
@@ -599,7 +638,7 @@ int background_functions(
  * be simple.
  *
  * @param pba            Input: pointer to background structure
- * @param a              Input: current value of scale factor
+ * @param a              Input: current value of scale factor (in fact, with our conventions, of (a/a_0))
  * @param w_fld          Output: equation of state parameter w_fld(a)
  * @param dw_over_da_fld Output: function dw_fld/da
  * @param integral_fld   Output: function \f$ \int_{a}^{a_0} da 3(1+w_{fld})/a \f$
@@ -621,7 +660,7 @@ int background_w_fld(
   /** - first, define the function w(a) */
   switch (pba->fluid_equation_of_state) {
   case CLP:
-    *w_fld = pba->w0_fld + pba->wa_fld * (1. - a / pba->a_today);
+    *w_fld = pba->w0_fld + pba->wa_fld * (1. - a);
     break;
   case EDE:
     // Omega_ede(a) taken from eq. (10) in 1706.00730
@@ -656,7 +695,7 @@ int background_w_fld(
       function, let's use it! */
   switch (pba->fluid_equation_of_state) {
   case CLP:
-    *dw_over_da_fld = - pba->wa_fld / pba->a_today;
+    *dw_over_da_fld = - pba->wa_fld;
     break;
   case EDE:
     d2Omega_ede_over_da2 = 0.;
@@ -679,7 +718,7 @@ int background_w_fld(
         fast, simple, and accurate enough. */
   switch (pba->fluid_equation_of_state) {
   case CLP:
-    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
+    *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(1./a) + pba->wa_fld*(a-1.));
     break;
   case EDE:
     class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
@@ -710,7 +749,7 @@ int background_init(
 
   /** Summary: */
 
-  /** - in verbose mode, provide some information */
+  /** - write class version */
   if (pba->background_verbose > 0) {
     printf("Running CLASS version %s\n",_VERSION_);
     printf("Computing background\n");
@@ -723,29 +762,27 @@ int background_init(
                     "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
                     pba->shooting_error);
 
-  /** - assign values to all indices in vectors of background quantities with background_indices()*/
+  /** - assign values to all indices in vectors of background quantities */
   class_call(background_indices(pba),
              pba->error_message,
              pba->error_message);
 
+  /** - check that input parameters make sense and write additional information about them */
+  class_call(background_check(ppr,pba),
+             pba->error_message,
+             pba->error_message);
 
-  if(pba->background_verbose>0){
-    class_call(background_info(pba,ppr),
-               pba->error_message,
-               pba->error_message);
-  }
-
-  /** - this function integrates the background over time, allocates
-      and fills the background table */
+  /** - integrate the background over log(a), allocate and fill the background table */
   class_call(background_solve(ppr,pba),
              pba->error_message,
              pba->error_message);
 
-  /** - this function finds and stores a few derived parameters at radiation-matter equality */
+  /** - find and store a few derived parameters at radiation-matter equality */
   class_call(background_find_equality(ppr,pba),
              pba->error_message,
              pba->error_message);
 
+  /* - write a summary of the budget of the universe */
   class_call(background_output_budget(pba),
              pba->error_message,
              pba->error_message);
@@ -755,7 +792,7 @@ int background_init(
 }
 
 /**
- * Free all memory space allocated by background_init().
+ * Free all memory space allocated by background_init() and by input_read_parameters().
  *
  *
  * @param pba Input: pointer to background structure (to be freed)
@@ -778,7 +815,8 @@ int background_free(
 }
 
 /**
- * Free only the memory space NOT allocated through input_read_parameters()
+ * Free only the memory space NOT allocated through
+ * input_read_parameters(), but through background_init()
  *
  * @param pba Input: pointer to background structure (to be freed)
  * @return the error status
@@ -1058,8 +1096,10 @@ int background_indices(
   class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
   class_define_index(pba->index_bi_phi_prime_scf,pba->has_scf,index_bi,1);
 
-  /* End of {B} variables, now continue with {C} variables */
+  /* End of {B} variables */
   pba->bi_B_size = index_bi;
+
+  /* now continue with {C} variables */
 
   /* -> proper time (for age of the Universe) */
   class_define_index(pba->index_bi_time,_TRUE_,index_bi,1);
@@ -1620,7 +1660,19 @@ int background_ncdm_M_from_Omega(
   return _SUCCESS_;
 }
 
-int background_info(struct background* pba, struct precision* ppr){
+/**
+ * Perform some check on the input background quantities, and send to
+ * standard output some information about them
+ *
+ * @param ppr Input: pointer to precision structure
+ * @param pba Input: pointer to initialized background structure
+ * @return the error status
+*/
+
+int background_check(
+                     struct precision* ppr,
+                     struct background* pba
+                     ){
 
   /** - define local variables */
   int n_ncdm;
@@ -1628,73 +1680,6 @@ int background_info(struct background* pba, struct precision* ppr){
   double Neff, N_dark;
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
-
-  if (pba->has_ncdm == _TRUE_) {
-    /* Inform the user about the species read from files and/or the total Neff */
-
-    Neff = pba->Omega0_ur/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-
-    /* loop over ncdm species */
-    for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
-
-      /* inform if p-s-d read in files */
-      if (pba->got_files[n_ncdm] == _TRUE_) {
-        printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
-        filenum++;
-      }
-
-      /* call this function to get rho_ncdm */
-      background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
-                              pba->w_ncdm_bg[n_ncdm],
-                              pba->q_size_ncdm_bg[n_ncdm],
-                              0.,
-                              pba->factor_ncdm[n_ncdm],
-                              0.,
-                              NULL,
-                              &rho_ncdm_rel,
-                              NULL,
-                              NULL,
-                              NULL);
-
-      /* inform user of the contribution of each species to
-         radiation density (in relativistic limit): should be
-         between 1.01 and 1.02 for each active neutrino species;
-         evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
-         density of one neutrino in the instantaneous decoupling
-         limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
-         from the definition of N_eff) */
-      rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
-        pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
-
-      printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives Delta N_eff = %g\n",
-             n_ncdm+1,
-             pba->q_size_ncdm_bg[n_ncdm],
-             pba->q_size_ncdm[n_ncdm],
-             rho_ncdm_rel/rho_nu_rel);
-
-      Neff += rho_ncdm_rel/rho_nu_rel;
-
-    }
-
-    /* contribution of interacting dark radiation _idr to N_eff */
-    if (pba->has_idr) {
-      N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
-      Neff += N_dark;
-      printf(" -> dark radiation Delta Neff %e\n",N_dark);
-    }
-
-    printf(" -> total N_eff = %g (sumed over all species which are ultra-relativistic at early times)\n",Neff);
-
-    /* in verbose mode, inform the user also about the value of the ncdm
-       masses in eV and about the ratio [m/omega_ncdm] in eV (the usual
-       93 point something)*/
-    for (n_ncdm=0; n_ncdm < pba->N_ncdm; n_ncdm++) {
-      printf(" -> non-cold dark matter species with i=%d has m_i = %e eV (so m_i / omega_i =%e eV)\n",
-             n_ncdm+1,
-             pba->m_ncdm_in_eV[n_ncdm],
-             pba->m_ncdm_in_eV[n_ncdm]*pba->deg_ncdm[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
-    }
-  }
 
   /** - control that cosmological parameter values make sense, otherwise inform user */
 
@@ -1704,6 +1689,7 @@ int background_info(struct background* pba, struct precision* ppr){
              pba->error_message,
              "H0=%g out of bounds (%g<H0<%g) \n",pba->H0,_H0_SMALL_,_H0_BIG_);*/
 
+  /* consistency between h and H0 */
   class_test(fabs(pba->h * 1.e5 / _c_  / pba->H0 -1.)>ppr->smallest_allowed_variation,
              pba->error_message,
              "inconsistency between Hubble and reduced Hubble parameters: you have H0=%f/Mpc=%fkm/s/Mpc, but h=%f",pba->H0,pba->H0/1.e5* _c_,pba->h);
@@ -1731,13 +1717,68 @@ int background_info(struct background* pba, struct precision* ppr){
                w_fld);
   }
 
-  /* check other quantities which would lead to problems if zero or negative */
-  class_test(pba->a_today <= 0,
-             pba->error_message,
-             "input a_today = %e instead of strictly positive",pba->a_today);
+  /** - in verbose mode, send to standard output some additional information on non-obvious background parameters */
+  if (pba->background_verbose > 0) {
+
+    if (pba->has_ncdm == _TRUE_) {
+
+      /* loop over ncdm species */
+      for (n_ncdm=0;n_ncdm<pba->N_ncdm; n_ncdm++) {
+
+        /* inform if p-s-d read in files */
+        if (pba->got_files[n_ncdm] == _TRUE_) {
+          printf(" -> ncdm species i=%d read from file %s\n",n_ncdm+1,pba->ncdm_psd_files+filenum*_ARGUMENT_LENGTH_MAX_);
+          filenum++;
+        }
+
+        /* inform the user also about the value of the ncdm
+           masses in eV and about */
+        printf(" -> non-cold dark matter species with i=%d has m_i = %e eV (so m_i / omega_i =%e eV)\n",
+               n_ncdm+1,
+               pba->m_ncdm_in_eV[n_ncdm],
+               pba->m_ncdm_in_eV[n_ncdm]*pba->deg_ncdm[n_ncdm]/pba->Omega0_ncdm[n_ncdm]/pba->h/pba->h);
+
+        /* call this function to get rho_ncdm */
+        background_ncdm_momenta(pba->q_ncdm_bg[n_ncdm],
+                                pba->w_ncdm_bg[n_ncdm],
+                                pba->q_size_ncdm_bg[n_ncdm],
+                                0.,
+                                pba->factor_ncdm[n_ncdm],
+                                0.,
+                                NULL,
+                                &rho_ncdm_rel,
+                                NULL,
+                                NULL,
+                                NULL);
+
+        /* inform user of the contribution of each species to
+           radiation density (in relativistic limit): should be
+           between 1.01 and 1.02 for each active neutrino species;
+           evaluated as rho_ncdm/rho_nu_rel where rho_nu_rel is the
+           density of one neutrino in the instantaneous decoupling
+           limit, i.e. assuming T_nu=(4/11)^1/3 T_gamma (this comes
+           from the definition of N_eff) */
+        rho_nu_rel = 56.0/45.0*pow(_PI_,6)*pow(4.0/11.0,4.0/3.0)*_G_/pow(_h_P_,3)/pow(_c_,7)*
+          pow(_Mpc_over_m_,2)*pow(pba->T_cmb*_k_B_,4);
+
+        printf(" -> ncdm species i=%d sampled with %d (resp. %d) points for purpose of background (resp. perturbation) integration. In the relativistic limit it gives Delta N_eff = %g\n",
+               n_ncdm+1,
+               pba->q_size_ncdm_bg[n_ncdm],
+               pba->q_size_ncdm[n_ncdm],
+               rho_ncdm_rel/rho_nu_rel);
+      }
+    }
+
+    /* contribution of interacting dark radiation _idr to N_eff */
+    if (pba->has_idr) {
+      N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
+      printf(" -> dark radiation Delta Neff %e\n",N_dark);
+    }
+  }
 
   return _SUCCESS_;
 }
+
 /**
  *  This function integrates the background over time, allocates and
  *  fills the background table
@@ -1766,25 +1807,25 @@ int background_solve(
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
   double comoving_radius=0.;
   /* conformal distance in Mpc (equal to comoving radius in flat case) */
-  double conf_dist;
+  double conformal_distance;
 
-  /* Evolver */
+  /* evolvers */
   extern int evolver_rk();
   extern int evolver_ndf15();
   int (*generic_evolver)();
 
-  /* Initial and final loga values */
+  /* initial and final loga values */
   double loga_ini, loga_final;
-  /* Array of loga values */
-  double *loga;
-  /* Growth factor today */
+  /* array of loga values */
+  double * loga;
+  /* growth factor today */
   double D_today;
-  /* Indices for the different structures */
+  /* indices for the different structures */
   int index_bi, index_loga, index_scf;
-  /* What parameters are used in the output? */
+  /* what parameters are used in the output? */
   int * used_in_output;
 
-  /* Background workspace setup */
+  /** - setup background workspace */
   bpaw.pba = pba;
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
   bpaw.pvecback = pvecback;
@@ -1798,7 +1839,7 @@ int background_solve(
              pba->error_message);
 
   /** - Determine output vector */
-  loga_final = 0.; //By definition log(a_today/a_today) = 0
+  loga_final = 0.; // with our conventions, loga is in fact log(a/a_0); we integrate until today, when log(a/a_0) = 0
   pba->bt_size = ppr->background_Nloga;
 
   /** - allocate background tables */
@@ -1814,11 +1855,13 @@ int background_solve(
 
   class_alloc(used_in_output, pba->bt_size*sizeof(int), pba->error_message);
 
+  /** - define values of loga at which results will be stored */
   for (index_loga=0; index_loga<pba->bt_size; index_loga++){
     pba->loga_table[index_loga] = loga_ini + index_loga*(loga_final-loga_ini)/(pba->bt_size-1);
     used_in_output[index_loga] = 1;
   }
 
+  /** - choose the right evolver */
   if(ppr->evolver == rk){
     generic_evolver = evolver_rk;
     if (pba->background_verbose > 1) {
@@ -1834,7 +1877,8 @@ int background_solve(
     }
   }
 
-  class_call(generic_evolver(background_derivs_loga,
+  /** - perform the integration */
+  class_call(generic_evolver(background_derivs,
                              loga_ini,
                              loga_final,
                              pvecback_integration,
@@ -1853,7 +1897,7 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - deduce age of the Universe */
+  /** - recover some quantities today */
   /* -> age in Gyears */
   pba->age = pvecback_integration[pba->index_bi_time]/_Gyr_over_Mpc_;
   /* -> conformal age in Mpc */
@@ -1865,19 +1909,25 @@ int background_solve(
   if (pba->has_dr == _TRUE_){
     pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
   }
-
-  /** - In a loop over lines, fill rest of background table using the result of the integration plus background_functions (these depend on the final outcome "conformal_age" and can thus not be pre-determined during background_sources) */
-  /** Recover some quantities today */
+  /* -> scale-invariant growth rate today */
   D_today = pvecback_integration[pba->index_bi_D];
+
+  /** - In a loop over lines, fill rest of background table for
+        quantities that depend on numbers like "conformal_age" or
+        "D_today" that were calculated just before */
   for (index_loga=0; index_loga < pba->bt_size; index_loga++) {
+
     pba->background_table[index_loga*pba->bg_size+pba->index_bg_D]*= 1./D_today;
-    conf_dist = pba->conformal_age - pba->tau_table[index_loga];
-    pba->background_table[index_loga*pba->bg_size+pba->index_bg_conf_distance] = conf_dist;
-    if (pba->sgnK == 0){ comoving_radius = conf_dist; }
-    else if (pba->sgnK == 1){ comoving_radius = sin(sqrt(pba->K)*conf_dist)/sqrt(pba->K); }
-    else if (pba->sgnK == -1){ comoving_radius = sinh(sqrt(-pba->K)*conf_dist)/sqrt(-pba->K); }
-    pba->background_table[index_loga*pba->bg_size+pba->index_bg_ang_distance] = pba->a_today*comoving_radius/(1.+pba->z_table[index_loga]);
-    pba->background_table[index_loga*pba->bg_size+pba->index_bg_lum_distance] = pba->a_today*comoving_radius*(1.+pba->z_table[index_loga]);
+
+    conformal_distance = pba->conformal_age - pba->tau_table[index_loga];
+    pba->background_table[index_loga*pba->bg_size+pba->index_bg_conf_distance] = conformal_distance;
+
+    if (pba->sgnK == 0){ comoving_radius = conformal_distance; }
+    else if (pba->sgnK == 1){ comoving_radius = sin(sqrt(pba->K)*conformal_distance)/sqrt(pba->K); }
+    else if (pba->sgnK == -1){ comoving_radius = sinh(sqrt(-pba->K)*conformal_distance)/sqrt(-pba->K); }
+
+    pba->background_table[index_loga*pba->bg_size+pba->index_bg_ang_distance] = comoving_radius/(1.+pba->z_table[index_loga]);
+    pba->background_table[index_loga*pba->bg_size+pba->index_bg_lum_distance] = comoving_radius*(1.+pba->z_table[index_loga]);
   }
 
   /** - fill tables of second derivatives (in view of spline interpolation) */
@@ -1891,7 +1941,6 @@ int background_solve(
              pba->error_message,
              pba->error_message);
 
-  /** - fill tables of second derivatives (in view of spline interpolation) */
   class_call(array_spline_table_lines(pba->tau_table,
                                       pba->bt_size,
                                       pba->z_table,
@@ -1925,14 +1974,14 @@ int background_solve(
                -pba->background_table[pba->index_bg_rho_g])
     /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
 
-  /** - done */
+  /** - send information to standard output */
   if (pba->background_verbose > 0) {
     printf(" -> age = %f Gyr\n",pba->age);
     printf(" -> conformal age = %f Mpc\n",pba->conformal_age);
+    printf(" -> N_eff = %g (summed over all species that are non-relativistic at early times) \n",pba->Neff);
   }
 
   if (pba->background_verbose > 2) {
-    printf(" -> pba->Neff = %f\n",pba->Neff);
     if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)){
       printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
       printf("     -> Omega0_dcdm = %f\n",pba->Omega0_dcdm);
@@ -1958,7 +2007,7 @@ int background_solve(
     }
   }
 
-  /**  - total matter, radiation, dark energy today */
+  /**  - store information in the background structure */
   pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
   pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
   pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
@@ -1971,26 +2020,13 @@ int background_solve(
 }
 
 /**
- * Only required for rkck, but not for ndf15 evolver
- */
-int background_timescale(
-                        double loga,
-                        void * parameters_and_workspace,
-                        double * timescale,
-                        ErrorMsg error_message
-                        ) {
-  *timescale = 1.;
-  return _SUCCESS_;
-}
-
-/**
  * Assign initial values to background integrated variables.
  *
  * @param ppr                  Input: pointer to precision structure
  * @param pba                  Input: pointer to background structure
  * @param pvecback             Input: vector of background quantities used as workspace
  * @param pvecback_integration Output: vector of background quantities to be integrated, returned with proper initial values
- * @param loga_ini             Output: value of loga at initial time
+ * @param loga_ini             Output: value of loga (in fact with our conventions log(a/a_0)) at initial time
  * @return the error status
  */
 
@@ -2017,7 +2053,7 @@ int background_initial_conditions(
   double w_fld,dw_over_da_fld,integral_fld;
 
   /** - fix initial value of \f$ a \f$ */
-  a = ppr->a_ini_over_a_today_default * pba->a_today;
+  a = ppr->a_ini_over_a_today_default;
 
   /**  If we have ncdm species, perhaps we need to start earlier
        than the standard value for the species to be relativistic.
@@ -2038,7 +2074,7 @@ int background_initial_conditions(
                                            pba->q_size_ncdm_bg[n_ncdm],
                                            pba->M_ncdm[n_ncdm],
                                            pba->factor_ncdm[n_ncdm],
-                                           pba->a_today/a-1.0,
+                                           1./a-1.0,
                                            NULL,
                                            &rho_ncdm,
                                            &p_ncdm,
@@ -2047,11 +2083,11 @@ int background_initial_conditions(
                    pba->error_message,
                    pba->error_message);
         rho_ncdm_rel_tot += 3.*p_ncdm;
-        if (fabs(p_ncdm/rho_ncdm-1./3.)>ppr->tol_ncdm_initial_w){
+        if (fabs(p_ncdm/rho_ncdm-1./3.)>ppr->tol_ncdm_initial_w) {
           is_early_enough = _FALSE_;
         }
       }
-      if (is_early_enough == _TRUE_){
+      if (is_early_enough == _TRUE_) {
         break;
       }
       else {
@@ -2065,37 +2101,37 @@ int background_initial_conditions(
 
   /* Set initial values of {B} variables: */
   Omega_rad = pba->Omega0_g;
-  if (pba->has_ur == _TRUE_){
+  if (pba->has_ur == _TRUE_) {
     Omega_rad += pba->Omega0_ur;
   }
-  if (pba->has_idr == _TRUE_){
+  if (pba->has_idr == _TRUE_) {
     Omega_rad += pba->Omega0_idr;
   }
-  rho_rad = Omega_rad*pow(pba->H0,2)/pow(a/pba->a_today,4);
-  if (pba->has_ncdm == _TRUE_){
+  rho_rad = Omega_rad*pow(pba->H0,2)/pow(a,4);
+  if (pba->has_ncdm == _TRUE_) {
     /** - We must add the relativistic contribution from NCDM species */
     rho_rad += rho_ncdm_rel_tot;
   }
-  if (pba->has_dcdm == _TRUE_){
+  if (pba->has_dcdm == _TRUE_) {
     /* Remember that the critical density today in CLASS conventions is H0^2 */
     pvecback_integration[pba->index_bi_rho_dcdm] =
-      pba->Omega_ini_dcdm*pba->H0*pba->H0*pow(pba->a_today/a,3);
+      pba->Omega_ini_dcdm*pba->H0*pba->H0*pow(a,-3);
     if (pba->background_verbose > 3)
-      printf("Density is %g. a_today=%g. Omega_ini=%g\n",pvecback_integration[pba->index_bi_rho_dcdm],pba->a_today,pba->Omega_ini_dcdm);
+      printf("Density is %g. Omega_ini=%g\n",pvecback_integration[pba->index_bi_rho_dcdm],pba->Omega_ini_dcdm);
   }
 
-  if (pba->has_dr == _TRUE_){
-    if (pba->has_dcdm == _TRUE_){
+  if (pba->has_dr == _TRUE_) {
+    if (pba->has_dcdm == _TRUE_) {
       /**  - f is the critical density fraction of DR. The exact solution is:
        *
-       * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
+       * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
        *
        * but it is not numerically stable for very small f which is always the case.
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
        */
-      f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
-      pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
+      f = 1./3.*pow(a,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
+      pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a,4);
     }
     else{
       /** There is also a space reserved for a future case where dr is not sourced by dcdm */
@@ -2103,7 +2139,7 @@ int background_initial_conditions(
     }
   }
 
-  if (pba->has_fld == _TRUE_){
+  if (pba->has_fld == _TRUE_) {
 
     /* rho_fld today */
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
@@ -2130,21 +2166,21 @@ int background_initial_conditions(
    * - Check equations and signs. Sign of phi_prime?
    * - is rho_ur all there is early on?
    */
-  if(pba->has_scf == _TRUE_){
+  if (pba->has_scf == _TRUE_) {
     scf_lambda = pba->scf_parameters[0];
-    if(pba->attractor_ic_scf == _TRUE_){
+    if (pba->attractor_ic_scf == _TRUE_) {
       pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
         log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
-      if (3.*pow(scf_lambda,2)-12. < 0){
+      if (3.*pow(scf_lambda,2)-12. < 0) {
         /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
         pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to do the work
-        if (pba->background_verbose > 0){
+        if (pba->background_verbose > 0) {
           printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
         }
       }
       pvecback_integration[pba->index_bi_phi_prime_scf] = 2.*a*sqrt(V_scf(pba,pvecback_integration[pba->index_bi_phi_scf]))*pba->phi_prime_ini_scf;
     }
-    else{
+    else {
       printf("Not using attractor initial conditions\n");
       /** - --> If no attractor initial conditions are assigned, gets the provided ones. */
       pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
@@ -2159,7 +2195,7 @@ int background_initial_conditions(
   }
 
   /* Infer pvecback from pvecback_integration */
-  class_call(background_functions(pba, a/pba->a_today, pvecback_integration, pba->normal_info, pvecback),
+  class_call(background_functions(pba, a, pvecback_integration, pba->normal_info, pvecback),
              pba->error_message,
              pba->error_message);
 
@@ -2192,7 +2228,8 @@ int background_initial_conditions(
   pvecback_integration[pba->index_bi_D] = a;
   pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
 
-  *loga_ini = log(a/pba->a_today);
+  /** - return the value finally chosen for the initial log(a) */
+  *loga_ini = log(a);
 
   return _SUCCESS_;
 
@@ -2209,7 +2246,8 @@ int background_initial_conditions(
 
 int background_find_equality(
                              struct precision *ppr,
-                             struct background *pba) {
+                             struct background *pba
+                             ) {
 
   double Omega_m_over_Omega_r=0.;
   int index_tau_minus = 0;
@@ -2260,7 +2298,7 @@ int background_find_equality(
 
   pba->a_eq = pvecback[pba->index_bg_a];
   pba->H_eq = pvecback[pba->index_bg_H];
-  pba->z_eq = pba->a_today/pba->a_eq -1.;
+  pba->z_eq = 1./pba->a_eq -1.;
   pba->tau_eq = tau_mid;
 
   if (pba->background_verbose > 0) {
@@ -2278,11 +2316,15 @@ int background_find_equality(
 /**
  * Subroutine for formatting background output
  *
+ * @param pba                  Input: pointer to background structure
+ * @param titles               Ouput: name of columns when printing the background table
+ * @return the error status
  */
 
-int background_output_titles(struct background * pba,
+int background_output_titles(
+                             struct background * pba,
                              char titles[_MAXTITLESTRINGLENGTH_]
-                             ){
+                             ) {
 
   /** - Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
@@ -2337,6 +2379,15 @@ int background_output_titles(struct background * pba,
   return _SUCCESS_;
 }
 
+/**
+ * Subroutine for writing the background output
+ *
+ * @param pba                  Input: pointer to background structure
+ * @param number_of_titles     Input: number of background quantities to print at each time step
+ * @param data                 Ouput: 1d array storing all the background table
+ * @return the error status
+ */
+
 int background_output_data(
                            struct background *pba,
                            int number_of_titles,
@@ -2350,7 +2401,7 @@ int background_output_data(
     pvecback = pba->background_table + index_tau*pba->bg_size;
     storeidx = 0;
 
-    class_store_double(dataptr,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_,storeidx);
+    class_store_double(dataptr,1./pvecback[pba->index_bg_a]-1.,_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_,storeidx);
     class_store_double(dataptr,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
     class_store_double(dataptr,pvecback[pba->index_bg_H],_TRUE_,storeidx);
@@ -2399,8 +2450,8 @@ int background_output_data(
 
 
 /**
- * Subroutine evaluating the derivative with respect to conformal time
- * of quantities which are integrated (a, t, etc).
+ * Subroutine evaluating the derivative with respect to loga
+ * of quantities which are integrated (tau, t, etc).
  *
  * This is one of the few functions in the code which is passed to
  * the generic_integrator() routine.  Since generic_integrator()
@@ -2416,21 +2467,22 @@ int background_output_data(
  * usual to pba->error_message, but to a generic error_message passed
  * in the list of arguments.
  *
- * @param tau                      Input: conformal time
+ * @param loga                     Input: current value of log(a)
  * @param y                        Input: vector of variable
  * @param dy                       Output: its derivative (already allocated)
  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
  * @param error_message            Output: error message
  */
-int background_derivs_loga(
-                            double loga,
-                            double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
-                            double* dy, /* vector with argument dy[index_bi]
-                                           (must be already allocated with
-                                           size pba->bi_size) */
-                            void * parameters_and_workspace,
-                            ErrorMsg error_message
-                            ) {
+
+int background_derivs(
+                      double loga,
+                      double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
+                      double* dy, /* vector with argument dy[index_bi]
+                                     (must be already allocated with
+                                     size pba->bi_size) */
+                      void * parameters_and_workspace,
+                      ErrorMsg error_message
+                      ) {
 
   /** Summary: */
 
@@ -2444,30 +2496,32 @@ int background_derivs_loga(
   pba =  pbpaw->pba;
   pvecback = pbpaw->pvecback;
 
-  /** - Short hand notation for RELATIVE scale factor */
-  a = exp(loga); //Relative a/a_today
+  /** - scale factor a (in fact, given our normalisation conventions, this stands for a/a_0) */
+  a = exp(loga);
 
   /** - calculate functions of \f$ a \f$ with background_functions() */
   class_call(background_functions(pba, a, y, pba->normal_info, pvecback),
              pba->error_message,
              error_message);
+
   /** - Short hand notation for Hubble */
   H = pvecback[pba->index_bg_H];
 
-  /** - calculate \f$ dt/dloga = 1/H \f$ */
+  /** - calculate derivative of cosmological time \f$ dt/dloga = 1/H \f$ */
   dy[pba->index_bi_time] = 1./H;
 
-  /** - calculate \f$ d\tau/dloga = 1/aH (conformal time) \f$ */
+  /** - calculate derivative of conformal time \f$ d\tau/dloga = 1/aH \f$ */
   dy[pba->index_bi_tau] = 1./a/H;
 
   class_test(pvecback[pba->index_bg_rho_g] <= 0.,
              error_message,
              "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
 
-  /** - calculate \f$ drs/dloga = drs/dtau *dtau/dloga = c_s/aH \f$*/
+  /** - calculate detivative of sound horizon \f$ drs/dloga = drs/dtau * dtau/dloga = c_s/aH \f$*/
   dy[pba->index_bi_rs] = 1./a/H/sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
 
-  /** - solve second order growth equation  \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
+  /** - solve second order growth equation \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$
+      written as \f$ dD/dloga = D' / (aH) \f$ and \f$ dD'/dloga = -D' + (3/2) (a/H) \rho_M D \f$ */
   rho_M = pvecback[pba->index_bg_rho_b];
   if (pba->has_cdm){
     rho_M += pvecback[pba->index_bg_rho_cdm];
@@ -2495,14 +2549,37 @@ int background_derivs_loga(
   }
 
   if (pba->has_scf == _TRUE_){
-    /** - Scalar field equation: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmic time) */
+    /** - Scalar field equation: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmological time)
+        written as \f$ d\phi/dlna = phi' / (aH) \f$ and \f$ d\phi'/dlna = -2*phi' - (a/H) dV \f$ */
     dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf]/a/H;
-    dy[pba->index_bi_phi_prime_scf] = - (2*y[pba->index_bi_phi_prime_scf] + a*dV_scf(pba,y[pba->index_bi_phi_scf]/H)) ;
+    dy[pba->index_bi_phi_prime_scf] = - 2*y[pba->index_bi_phi_prime_scf] - a*dV_scf(pba,y[pba->index_bi_phi_scf]/H) ;
   }
 
   return _SUCCESS_;
 
 }
+
+/**
+ * At some step during the integraton of the background equations,
+ * this function extracts the qantities that we want to keep memory
+ * of, and stores them in a row of the background table (as well as
+ * extra tables: z_table, tau_table).
+ *
+ * This is one of the few functions in the code which is passed to the generic_integrator() routine.
+ * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
+ * is a bit special:
+ * - fixed parameters and workspaces are passed through a generic pointer.
+ *   generic_integrator() doesn't know the content of this pointer.
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic
+ *   error_message passed in the list of arguments.
+ *
+ * @param loga                     Input: current value of log(a)
+ * @param y                        Input: current vector of integrated quantities (with index_bi)
+ * @param dy                       Input: current derivative of y w.r.t log(a)
+ * @param index_loga               Input: index of the log(a) value within the background_table
+ * @param timescale                Output: perturbation variation timescale (given the approximation used)
+ * @param error_message            Output: error message
+ */
 
 int background_sources(
                        double loga,
@@ -2518,31 +2595,78 @@ int background_sources(
   pbpaw = parameters_and_workspace;
   pba =  pbpaw->pba;
   int index_bi;
-  double a_rel;
+  double a;
   double * bg_table_row;
 
+  /** - localize the row inside background_table where the current values must be stored */
   bg_table_row = pba->background_table + index_loga*pba->bg_size;
-  a_rel = exp(loga);
 
-  /* -> establish correspondence between the integrated variable and the bg variables */
-  bg_table_row[pba->index_bg_time] = y[pba->index_bi_time];
-  bg_table_row[pba->index_bg_a] = a_rel*pba->a_today;
-  pba->z_table[index_loga] = MAX(0.,1./a_rel-1.);
-  bg_table_row[pba->index_bg_rs] = y[pba->index_bi_rs];
+  /** - scale factor a (in fact, given our normalisation conventions, this stands for a/a_0) */
+  a = exp(loga);
+
+  /** - corresponding redhsift 1/a-1 */
+  pba->z_table[index_loga] = MAX(0.,1./a-1.);
+
+  /** - corresponding conformal time */
   pba->tau_table[index_loga] = y[pba->index_bi_tau];
 
-  /* -> compute all other quantities depending only on {B} variables.
+  /* -> establish correspondence between the integrated variable and the bg variables */
+  //bg_table_row[pba->index_bg_time] = y[pba->index_bi_time];
+  //bg_table_row[pba->index_bg_a] = a;
+  //bg_table_row[pba->index_bg_rs] = y[pba->index_bi_rs];
+
+  /* -> compute all other quantities depending only on a + {B} variables and get them stored
+     in one row of background_table
      The value of {B} variables in pData are also copied to pvecback.*/
-  class_call(background_functions(pba, a_rel, y, pba->long_info, bg_table_row),
+  class_call(background_functions(pba, a, y, pba->long_info, bg_table_row),
              pba->error_message,
              pba->error_message);
 
 
   /* Construct f = D_prime/(aHD) */
-  bg_table_row[pba->index_bg_f] = y[pba->index_bi_D_prime]/( y[pba->index_bi_D]*bg_table_row[pba->index_bg_a]*bg_table_row[pba->index_bg_H]);
+  //bg_table_row[pba->index_bg_f] = y[pba->index_bi_D_prime]/( y[pba->index_bi_D]*bg_table_row[pba->index_bg_a]*bg_table_row[pba->index_bg_H]);
 
   return _SUCCESS_;
 
+}
+
+/**
+ * Evalute the typical timescale for the integration of he background
+ * over loga=log(a/a_0). This is only required for rkck, but not for
+ * the ndf15 evolver.
+ *
+ * The evolver will take steps equal to this value times
+ * ppr->background_integration_stepsize.  Since our variable of
+ * integration is loga, and the time steps are (delta a)/a, the
+ * reference timescale is precisely one, i.e., the code will take some
+ * steps such that (delta a)/a = ppr->background_integration_stepsize.
+ *
+ * The argument list is predetermined by the format of
+ * generic_evolver; however in this particular case, they are never
+ * used.
+ *
+ * This is one of the few functions in the code which is passed to the generic_integrator() routine.
+ * Since generic_integrator() should work with functions passed from various modules, the format of the arguments
+ * is a bit special:
+ * - fixed parameters and workspaces are passed through a generic pointer (void *).
+ *   generic_integrator() doesn't know the content of this pointer.
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic
+ *   error_message passed in the list of arguments.
+ *
+ * @param loga                     Input: current value of log(a/a_0)
+ * @param parameters_and_workspace Input: fixed parameters (e.g. indices), workspace, approximation used, etc.
+ * @param timescale                Output: perturbation variation timescale
+ * @param error_message            Output: error message
+ */
+
+int background_timescale(
+                         double loga,
+                         void * parameters_and_workspace,
+                         double * timescale,
+                         ErrorMsg error_message
+                         ) {
+  *timescale = 1.;
+  return _SUCCESS_;
 }
 
 /**

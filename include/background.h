@@ -476,10 +476,10 @@ extern "C" {
                                    int species
                                    );
 
-  int background_info(
-                      struct background *pba,
-                      struct precision * ppr
-                      );
+  int background_check(
+                       struct precision * ppr,
+                       struct background *pba
+                       );
 
   int background_solve(
                        struct precision *ppr,
@@ -525,13 +525,13 @@ extern "C" {
                            int number_of_titles,
                            double *data);
 
-  int background_derivs_loga(
-                             double loga,
-                             double * y,
-                             double * dy,
-                             void * parameters_and_workspace,
-                             ErrorMsg error_message
-                             );
+  int background_derivs(
+                        double loga,
+                        double * y,
+                        double * dy,
+                        void * parameters_and_workspace,
+                        ErrorMsg error_message
+                        );
 
   /** Scalar field potential and its derivatives **/
   double V_scf(
