@@ -10,10 +10,6 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
-//The name for this macro can be at most 30 characters total
-#define _class_print_species_(name,type) \
-printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
-
 /** list of possible types of spatial curvature */
 
 enum spatial_curvature {flat,open,closed};
@@ -22,8 +18,19 @@ enum spatial_curvature {flat,open,closed};
 
 enum equation_of_state {CLP,EDE};
 
+/** list of formats for the vector of background quantities */
+
+enum vecback_format {short_info, normal_info, long_info};
+
+/** list of interpolation methods: search location in table either
+    by bisection (inter_normal), or step by step starting from given
+    index (inter_closeby) */
+
+enum interpolation_method {inter_normal, inter_closeby};
+
 /**
- * All background parameters and evolution that other modules need to know.
+ * background structure containing all the background information that
+ * other modules need to know.
  *
  * Once initialized by the backgound_init(), contains all necessary
  * information on the background evolution (except thermodynamics),
@@ -141,7 +148,9 @@ struct background
 
   //@{
 
-  int index_bg_a;             /**< scale factor */
+  int index_bg_a;             /**< scale factor (in fact (a/a_0), see
+                                 normalisation conventions explained
+                                 at beginning of background.c) */
   int index_bg_H;             /**< Hubble parameter in \f$Mpc^{-1}\f$ */
   int index_bg_H_prime;       /**< its derivative w.r.t. conformal time */
 
@@ -202,9 +211,9 @@ struct background
 
   //@{
 
-  int bt_size;               /**< number of lines (i.e. time-steps) in the array */
-  double * loga_table;       /**< vector loga_table[index_loga] with values of \f$ log(a/a0) \f$ (logarithm of relative scale factor compared to today) */
-  double * tau_table;        /**< vector tau_table[index_loga] with values of \f$ \tau \f$ (conformal time) */
+  int bt_size;               /**< number of lines (i.e. time-steps) in the four following array */
+  double * loga_table;       /**< vector loga_table[index_loga] with values of log(a) (in fact \f$ log(a/a0) \f$, logarithm of relative scale factor compared to today) */
+  double * tau_table;        /**< vector tau_table[index_loga] with values of conformal time \f$ \tau \f$ (in fact \f$ a_0 c tau \f$, see normalisation conventions explained at beginning of background.c) */
   double * z_table;          /**< vector z_table[index_loga] with values of \f$ z \f$ (redshift) */
   double * background_table; /**< table background_table[index_tau*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
 
@@ -295,23 +304,6 @@ struct background
 
   //@}
 
-
-  /**
-   *@name - some flags needed for calling background functions
-   */
-
-  //@{
-
-  short short_info;  /**< flag for calling background_at_eta and return little information */
-  short normal_info; /**< flag for calling background_at_eta and return medium information */
-  short long_info;   /**< flag for calling background_at_eta and return all information */
-
-  short inter_normal;  /**< flag for calling background_at_eta and find position in interpolation table normally */
-  short inter_closeby; /**< flag for calling background_at_eta and find position in interpolation table starting from previous position in previous call */
-
-  //@}
-
-
   /** @name - technical parameters */
 
   //@{
@@ -373,11 +365,20 @@ struct background_parameters_for_distributions {
 extern "C" {
 #endif
 
+  int background_at_z(
+                      struct background *pba,
+                      double a_rel,
+                      enum vecback_format return_format,
+                      enum interpolation_method inter_mode,
+                      int * last_index,
+                      double * pvecback
+                      );
+
   int background_at_tau(
                         struct background *pba,
                         double tau,
-                        short return_format,
-                        short inter_mode,
+                        enum vecback_format return_format,
+                        enum interpolation_method inter_mode,
                         int * last_index,
                         double * pvecback
                         );
@@ -387,15 +388,6 @@ extern "C" {
                           double z,
                           double * tau
                           );
-
-  int background_at_a(
-                      struct background *pba,
-                      double a_rel,
-                      short return_format,
-                      short inter_mode,
-                      int * last_index,
-                      double * pvecback
-                      );
 
   int background_z_of_tau(
                           struct background *pba,
@@ -407,7 +399,7 @@ extern "C" {
                            struct background *pba,
                            double a_rel,
                            double * pvecback_B,
-                           short return_format,
+                           enum vecback_format return_format,
                            double * pvecback
                            );
 
@@ -427,13 +419,13 @@ extern "C" {
                       struct background *pba
                       );
 
-  int background_free_input(
-                            struct background *pba
-                            );
-
   int background_free_noinput(
                               struct background *pba
                               );
+
+  int background_free_input(
+                            struct background *pba
+                            );
 
   int background_indices(
                          struct background *pba
@@ -486,22 +478,6 @@ extern "C" {
                        struct background *pba
                        );
 
-  int background_sources(
-                         double loga,
-                         double * y,
-                         double * dy,
-                         int index_loga,
-                         void * parameters_and_workspace,
-                         ErrorMsg error_message
-                         );
-
-  int background_timescale(
-                          double loga,
-                          void * parameters_and_workspace,
-                          double * timescale,
-                          ErrorMsg error_message
-                          );
-
   int background_initial_conditions(
                                     struct precision *ppr,
                                     struct background *pba,
@@ -533,6 +509,26 @@ extern "C" {
                         ErrorMsg error_message
                         );
 
+  int background_sources(
+                         double loga,
+                         double * y,
+                         double * dy,
+                         int index_loga,
+                         void * parameters_and_workspace,
+                         ErrorMsg error_message
+                         );
+
+  int background_timescale(
+                          double loga,
+                          void * parameters_and_workspace,
+                          double * timescale,
+                          ErrorMsg error_message
+                          );
+
+  int background_output_budget(
+                               struct background* pba
+                               );
+
   /** Scalar field potential and its derivatives **/
   double V_scf(
                struct background *pba,
@@ -555,11 +551,6 @@ extern "C" {
                double phi,
                double phi_prime
                );
-
-  /** Budget equation output */
-  int background_output_budget(
-                               struct background* pba
-                               );
 
 #ifdef __cplusplus
 }

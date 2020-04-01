@@ -85,7 +85,7 @@ int thermodynamics_at_z(
                         struct background * pba,
                         struct thermo * pth,
                         double z,
-                        short inter_mode,
+                        enum interpolation_method inter_mode,
                         int * last_index,
                         double * pvecback,
                         double * pvecthermo
@@ -217,7 +217,7 @@ int thermodynamics_at_z(
     /* in the "normal" case, use spline interpolation */
     else {
 
-      if (inter_mode == pth->inter_normal) {
+      if (inter_mode == inter_normal) {
 
         class_call(array_interpolate_spline(pth->z_table,
                                             pth->tt_size,
@@ -233,7 +233,7 @@ int thermodynamics_at_z(
                    pth->error_message);
       }
 
-      if (inter_mode == pth->inter_closeby) {
+      if (inter_mode == inter_closeby) {
 
         class_call(array_interpolate_spline_growing_closeby(pth->z_table,
                                                             pth->tt_size,
@@ -558,10 +558,6 @@ int thermodynamics_indices(struct background * pba,
 
   ptrp->reio_num_params = index;
 
-  /* flags for calling the interpolation routine */
-  pth->inter_normal=0;
-  pth->inter_closeby=1;
-
   return _SUCCESS_;
 
 }
@@ -680,8 +676,8 @@ int thermodynamics_helium_from_bbn(struct precision * ppr,
 
   class_call(background_at_tau(pba,
                                tau_bbn,
-                               pba->long_info,
-                               pba->inter_normal,
+                               long_info,
+                               inter_normal,
                                &last_index,
                                pvecback),
              pba->error_message,
@@ -941,8 +937,8 @@ int thermodynamics_calculate_conformal_drag_time(struct background* pba,
 
     class_call(background_at_tau(pba,
                                  pth->tau_table[index_tau],
-                                 pba->normal_info,
-                                 pba->inter_closeby,
+                                 normal_info,
+                                 inter_closeby,
                                  last_index_back,
                                  pvecback),
                pba->error_message,
@@ -1023,8 +1019,8 @@ int thermodynamics_calculate_damping_scale(struct background* pba,
 
       class_call(background_at_tau(pba,
                                    tau_table_growing[index_tau],
-                                   pba->normal_info,
-                                   pba->inter_closeby,
+                                   normal_info,
+                                   inter_closeby,
                                    last_index_back,
                                    pvecback),
                  pba->error_message,
@@ -1258,8 +1254,8 @@ int thermodynamics_calculate_idm_dr_quantities(struct precision* ppr,
 
     class_call(background_at_tau(pba,
                                  pth->tau_table[index_tau],
-                                 pba->normal_info,
-                                 pba->inter_closeby,
+                                 normal_info,
+                                 inter_closeby,
                                  &last_index_back,
                                  pvecback),
                pba->error_message,
@@ -1385,7 +1381,7 @@ int thermodynamics_calculate_idm_dr_quantities(struct precision* ppr,
              pba->error_message,
              pth->error_message);
 
-  class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+  class_call(background_at_tau(pba,tau, short_info, inter_normal, &last_index_back, pvecback),
              pba->error_message,
              pth->error_message);
 
@@ -1434,7 +1430,7 @@ int thermodynamics_calculate_idm_dr_quantities(struct precision* ppr,
       class_call(background_tau_of_z(pba,z,&(tau)),
                  pba->error_message,
                  pth->error_message);
-      class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+      class_call(background_at_tau(pba,tau, short_info, inter_normal, &last_index_back, pvecback),
                  pba->error_message,
                  pth->error_message);
       dTdz_idm_dr =pba->T_idr;
@@ -1454,7 +1450,7 @@ int thermodynamics_calculate_idm_dr_quantities(struct precision* ppr,
         class_call(background_tau_of_z(pba,z,&(tau)),
                    pba->error_message,
                    pth->error_message);
-        class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+        class_call(background_at_tau(pba,tau, short_info, inter_normal, &last_index_back, pvecback),
                    pba->error_message,
                    pth->error_message);
         dTdz_idm_dr = 2.*pvecback[pba->index_bg_a]*T_idm_dr-Gamma_heat_idm_dr/(pvecback[pba->index_bg_H])*(T_idr-T_idm_dr);
@@ -1484,7 +1480,7 @@ int thermodynamics_calculate_idm_dr_quantities(struct precision* ppr,
           class_call(background_tau_of_z(pba,z,&(tau)),
                      pba->error_message,
                      pth->error_message);
-          class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+          class_call(background_at_tau(pba,tau, short_info, inter_normal, &last_index_back, pvecback),
                      pba->error_message,
                      pth->error_message);
           dTdz_idm_dr = 2.*pvecback[pba->index_bg_a]*T_idm_dr-Gamma_heat_idm_dr/(pvecback[pba->index_bg_H])*(T_idr-T_idm_dr);
@@ -1505,7 +1501,7 @@ int thermodynamics_calculate_idm_dr_quantities(struct precision* ppr,
       class_call(background_tau_of_z(pba,z,&(tau)),
                  pba->error_message,
                  pth->error_message);
-      class_call(background_at_tau(pba,tau, pba->short_info, pba->inter_normal, &last_index_back, pvecback),
+      class_call(background_at_tau(pba,tau, short_info, inter_normal, &last_index_back, pvecback),
                  pba->error_message,
                  pth->error_message);
       dTdz_idm_dr = 2./(1+z)*T_idm_dr;
@@ -1671,7 +1667,7 @@ int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
              pba->error_message,
              pth->error_message);
 
-  class_call(background_at_tau(pba,pth->tau_rec, pba->long_info, pba->inter_normal, last_index_back, pvecback),
+  class_call(background_at_tau(pba,pth->tau_rec, long_info, inter_normal, last_index_back, pvecback),
              pba->error_message,
              pth->error_message);
 
@@ -1759,7 +1755,7 @@ int thermodynamics_calculate_drag_quantities(struct precision* ppr,
              pba->error_message,
              pth->error_message);
 
-  class_call(background_at_tau(pba,pth->tau_d, pba->long_info, pba->inter_normal, last_index_back, pvecback),
+  class_call(background_at_tau(pba,pth->tau_d, long_info, inter_normal, last_index_back, pvecback),
              pba->error_message,
              pth->error_message);
 
@@ -2381,8 +2377,8 @@ int thermodynamics_solve_derivs(double mz,
 
   class_call(background_at_tau(pba,
                                tau,
-                               pba->long_info,
-                               pba->inter_normal,
+                               long_info,
+                               inter_normal,
                                &last_index_back,
                                pvecback),
              pba->error_message,

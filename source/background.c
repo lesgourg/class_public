@@ -115,25 +115,25 @@
 #include "background.h"
 
 /**
- * Background quantities at given relative scale factor.
+ * Background quantities at given redshift z.
  *
  * Evaluates all background quantities at a given value of
- * relative scale factor by reading the pre-computed table and interpolating.
+ * redshift by reading the pre-computed table and interpolating.
  *
  * @param pba           Input: pointer to background structure (containing pre-computed table)
- * @param a_rel         Input: value of relative scale factor
- * @param return_format Input: format of output vector (short, normal, long)
- * @param intermode     Input: interpolation mode (normal or closeby)
+ * @param z             Input: redshift
+ * @param return_format Input: format of output vector (short_info, normal_info, long_info)
+ * @param inter_mode     Input: interpolation mode (normal or closeby)
  * @param last_index    Input/Output: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
  * @param pvecback      Output: vector (assumed to be already allocated)
  * @return the error status
  */
 
-int background_at_a(
+int background_at_z(
                     struct background *pba,
-                    double a_rel,
-                    short return_format,
-                    short intermode,
+                    double z,
+                    enum vecback_format return_format,
+                    enum interpolation_method inter_mode,
                     int * last_index,
                     double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
                     ) {
@@ -144,26 +144,28 @@ int background_at_a(
 
   /* size of output vector, controlled by input parameter return_format */
   int pvecback_size;
+
+  /* log(a) (in fact, given our normalisation conventions, this is log(a/a_0)) */
   double loga;
 
-  /** - check that tau is in the pre-computed range */
-  loga = log(a_rel);
+  /** - check that log(a) = log(1/(1+z)) = -log(1+z) is in the pre-computed range */
+  loga = -log(1+z);
 
   class_test(loga < pba->loga_table[0],
              pba->error_message,
-             "out of range: a=%e < a_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",a_rel,exp(pba->loga_table[0]));
+             "out of range: a/a_0 = %e < a_min/a_0 = %e, you should decrease the precision parameter a_ini_over_a_today_default\n",1./(1.+z),exp(pba->loga_table[0]));
 
   class_test(loga > pba->loga_table[pba->bt_size-1],
              pba->error_message,
-             "out of range: a=%e > a_max=%e\n",a_rel,exp(pba->loga_table[pba->bt_size-1]));
+             "out of range: a/a_0 = %e > a_max/a_0 = %e\n",1./(1.+z),exp(pba->loga_table[pba->bt_size-1]));
 
   /** - deduce length of returned vector from format mode */
 
-  if (return_format == pba->normal_info) {
+  if (return_format == normal_info) {
     pvecback_size=pba->bg_size_normal;
   }
   else {
-    if (return_format == pba->short_info) {
+    if (return_format == short_info) {
       pvecback_size=pba->bg_size_short;
     }
     else {
@@ -176,7 +178,7 @@ int background_at_a(
       or array_interpolate_growing_closeby() (depending on
       interpolation mode) */
 
-  if (intermode == pba->inter_normal) {
+  if (inter_mode == inter_normal) {
     class_call(array_interpolate_spline(
                                         pba->loga_table,
                                         pba->bt_size,
@@ -191,7 +193,7 @@ int background_at_a(
                pba->error_message,
                pba->error_message);
   }
-  if (intermode == pba->inter_closeby) {
+  if (inter_mode == inter_closeby) {
     class_call(array_interpolate_spline_growing_closeby(
                                                         pba->loga_table,
                                                         pba->bt_size,
@@ -218,8 +220,8 @@ int background_at_a(
  *
  * @param pba           Input: pointer to background structure (containing pre-computed table)
  * @param tau           Input: value of conformal time
- * @param return_format Input: format of output vector (short, normal, long)
- * @param intermode     Input: interpolation mode (normal or closeby)
+ * @param return_format Input: format of output vector (short_info, normal_info, long_info)
+ * @param inter_mode     Input: interpolation mode (normal or closeby)
  * @param last_index    Input/Output: index of the previous/current point in the interpolation array (input only for closeby mode, output for both)
  * @param pvecback      Output: vector (assumed to be already allocated)
  * @return the error status
@@ -228,8 +230,8 @@ int background_at_a(
 int background_at_tau(
                       struct background *pba,
                       double tau,
-                      short return_format,
-                      short intermode,
+                      enum vecback_format return_format,
+                      enum interpolation_method inter_mode,
                       int * last_index,
                       double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
                       ) {
@@ -244,8 +246,8 @@ int background_at_tau(
              pba->error_message,
              pba->error_message);
 
-  /** - Get backgorund at corresponding relative scale factor */
-  class_call(background_at_a(pba,1./(1.+z),return_format,intermode,last_index,pvecback),
+  /** - Get background at corresponding relative scale factor */
+  class_call(background_at_z(pba,z,return_format,inter_mode,last_index,pvecback),
              pba->error_message,
              pba->error_message);
 
@@ -303,7 +305,7 @@ int background_tau_of_z(
   return _SUCCESS_;
 }
 /**
- * Redshift time at given conformal time.
+ * Redshift at given conformal time.
  *
  * Returns z(tau) by interpolation from pre-computed table.
  *
@@ -326,7 +328,7 @@ int background_z_of_tau(
   /* necessary for calling array_interpolate(), but never used */
   int last_index;
 
-  /** - check that \f$ z \f$ is in the pre-computed range */
+  /** - check that \f$ tau \f$ is in the pre-computed range */
   class_test(tau < pba->tau_table[0],
              pba->error_message,
              "out of range: tau=%e < tau_min=%e\n",tau,pba->tau_table[0]);
@@ -370,7 +372,7 @@ int background_functions(
                          struct background * pba,
                          double a,
                          double * pvecback_B, /* vector with argument pvecback[index_bi] */
-                         short return_format,
+                         enum vecback_format return_format,
                          double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
                          ) {
 
@@ -604,7 +606,7 @@ int background_functions(
   pvecback[pba->index_bg_Omega_r] = rho_r / rho_crit;
 
   /** - compute other quantities in the exhaustive, redundant format */
-  if (return_format == pba->long_info) {
+  if (return_format == long_info) {
 
     /** - store critical density */
     pvecback[pba->index_bg_rho_crit] = rho_crit;
@@ -1114,15 +1116,6 @@ int background_indices(
 
   /* -> end of indices in the vector of variables to integrate */
   pba->bi_size = index_bi;
-
-  /* flags for calling the interpolation routine */
-
-  pba->short_info=0;
-  pba->normal_info=1;
-  pba->long_info=2;
-
-  pba->inter_normal=0;
-  pba->inter_closeby=1;
 
   return _SUCCESS_;
 
@@ -1677,7 +1670,7 @@ int background_check(
   /** - define local variables */
   int n_ncdm;
   double rho_ncdm_rel,rho_nu_rel;
-  double Neff, N_dark;
+  double N_dark;
   double w_fld, dw_over_da, integral_fld;
   int filenum=0;
 
@@ -1802,8 +1795,6 @@ int background_solve(
   double * pvecback_integration;
   /* vector of all background quantities */
   double * pvecback;
-  /* necessary for calling array_interpolate(), but never used */
-  int last_index=0;
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
   double comoving_radius=0.;
   /* conformal distance in Mpc (equal to comoving radius in flat case) */
@@ -1816,12 +1807,10 @@ int background_solve(
 
   /* initial and final loga values */
   double loga_ini, loga_final;
-  /* array of loga values */
-  double * loga;
   /* growth factor today */
   double D_today;
-  /* indices for the different structures */
-  int index_bi, index_loga, index_scf;
+  /* indices for the different arrays */
+  int index_loga, index_scf;
   /* what parameters are used in the output? */
   int * used_in_output;
 
@@ -2195,7 +2184,7 @@ int background_initial_conditions(
   }
 
   /* Infer pvecback from pvecback_integration */
-  class_call(background_functions(pba, a, pvecback_integration, pba->normal_info, pvecback),
+  class_call(background_functions(pba, a, pvecback_integration, normal_info, pvecback),
              pba->error_message,
              pba->error_message);
 
@@ -2283,7 +2272,7 @@ int background_find_equality(
 
     tau_mid = 0.5*(tau_plus+tau_minus);
 
-    class_call(background_at_tau(pba,tau_mid,pba->long_info,pba->inter_closeby,&index_tau_minus,pvecback),
+    class_call(background_at_tau(pba,tau_mid,long_info,inter_closeby,&index_tau_minus,pvecback),
                pba->error_message,
                pba->error_message);
 
@@ -2500,7 +2489,7 @@ int background_derivs(
   a = exp(loga);
 
   /** - calculate functions of \f$ a \f$ with background_functions() */
-  class_call(background_functions(pba, a, y, pba->normal_info, pvecback),
+  class_call(background_functions(pba, a, y, normal_info, pvecback),
              pba->error_message,
              error_message);
 
@@ -2592,11 +2581,11 @@ int background_sources(
 
   struct background_parameters_and_workspace * pbpaw;
   struct background * pba;
-  pbpaw = parameters_and_workspace;
-  pba =  pbpaw->pba;
-  int index_bi;
   double a;
   double * bg_table_row;
+
+  pbpaw = parameters_and_workspace;
+  pba =  pbpaw->pba;
 
   /** - localize the row inside background_table where the current values must be stored */
   bg_table_row = pba->background_table + index_loga*pba->bg_size;
@@ -2610,21 +2599,12 @@ int background_sources(
   /** - corresponding conformal time */
   pba->tau_table[index_loga] = y[pba->index_bi_tau];
 
-  /* -> establish correspondence between the integrated variable and the bg variables */
-  //bg_table_row[pba->index_bg_time] = y[pba->index_bi_time];
-  //bg_table_row[pba->index_bg_a] = a;
-  //bg_table_row[pba->index_bg_rs] = y[pba->index_bi_rs];
-
-  /* -> compute all other quantities depending only on a + {B} variables and get them stored
+  /** -> compute all other quantities depending only on a + {B} variables and get them stored
      in one row of background_table
      The value of {B} variables in pData are also copied to pvecback.*/
-  class_call(background_functions(pba, a, y, pba->long_info, bg_table_row),
+  class_call(background_functions(pba, a, y, long_info, bg_table_row),
              pba->error_message,
              pba->error_message);
-
-
-  /* Construct f = D_prime/(aHD) */
-  //bg_table_row[pba->index_bg_f] = y[pba->index_bi_D_prime]/( y[pba->index_bi_D]*bg_table_row[pba->index_bg_a]*bg_table_row[pba->index_bg_H]);
 
   return _SUCCESS_;
 
@@ -2666,6 +2646,114 @@ int background_timescale(
                          ErrorMsg error_message
                          ) {
   *timescale = 1.;
+  return _SUCCESS_;
+}
+
+/**
+ * Function outputting the fractions Omega of the total critical density
+ * today, and also the reduced fractions omega=Omega*h*h
+ *
+ * It also prints the total budgets of non-relativistic, relativistic,
+ * and other contents, and of the total
+ *
+ * @param pba                      Input: Pointer to background structure
+ * @return the error status
+ */
+
+int background_output_budget(
+                             struct background* pba
+                             ) {
+
+  double budget_matter, budget_radiation, budget_other,budget_neutrino;
+  int index_ncdm;
+
+  budget_matter = 0;
+  budget_radiation = 0;
+  budget_other = 0;
+  budget_neutrino = 0;
+
+  //The name for the class_print_species macro can be at most 30 characters total
+  if(pba->background_verbose > 1){
+
+    printf(" ---------------------------- Budget equation ----------------------- \n");
+
+    printf(" ---> Nonrelativistic Species \n");
+    class_print_species("Bayrons",b);
+    budget_matter+=pba->Omega0_b;
+    if(pba->has_cdm){
+      class_print_species("Cold Dark Matter",cdm);
+      budget_matter+=pba->Omega0_cdm;
+    }
+    if(pba->has_idm_dr){
+      class_print_species("Interacting Dark Matter - DR ",idm_dr);
+      budget_matter+=pba->Omega0_idm_dr;
+    }
+    if(pba->has_dcdm){
+      class_print_species("Decaying Cold Dark Matter",dcdm);
+      budget_matter+=pba->Omega0_dcdm;
+    }
+
+
+    printf(" ---> Relativistic Species \n");
+    class_print_species("Photons",g);
+    budget_radiation+=pba->Omega0_g;
+    if(pba->has_ur){
+      class_print_species("Ultra-relativistic relics",ur);
+      budget_radiation+=pba->Omega0_ur;
+    }
+    if(pba->has_dr){
+      class_print_species("Dark Radiation (from decay)",dr);
+      budget_radiation+=pba->Omega0_dr;
+    }
+    if(pba->has_idr){
+      class_print_species("Interacting Dark Radiation",idr);
+      budget_radiation+=pba->Omega0_idr;
+    }
+
+    if(pba->N_ncdm > 0){
+      printf(" ---> Massive Neutrino Species \n");
+    }
+    if(pba->N_ncdm > 0){
+      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm){
+        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
+        budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
+      }
+    }
+
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+      printf(" ---> Other Content \n");
+    }
+    if(pba->has_lambda){
+      class_print_species("Cosmological Constant",lambda);
+      budget_other+=pba->Omega0_lambda;
+    }
+    if(pba->has_fld){
+      class_print_species("Dark Energy Fluid",fld);
+      budget_other+=pba->Omega0_fld;
+    }
+    if(pba->has_scf){
+      class_print_species("Scalar Field",scf);
+      budget_other+=pba->Omega0_scf;
+    }
+    if(pba->has_curvature){
+      class_print_species("Spatial Curvature",k);
+      budget_other+=pba->Omega0_k;
+    }
+
+    printf(" ---> Total budgets \n");
+    printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
+    printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
+    if(pba->N_ncdm > 0){
+      printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
+    }
+    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
+      printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
+    }
+    printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
+
+    printf(" -------------------------------------------------------------------- \n");
+  }
+
   return _SUCCESS_;
 }
 
@@ -2792,112 +2880,4 @@ double ddV_scf(
                struct background *pba,
                double phi) {
   return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
-}
-
-/**
- * Function outputting the fractions Omega of the total critical density
- * today, and also the reduced fractions omega=Omega*h*h
- *
- * It also prints the total budgets of non-relativistic, relativistic,
- * and other contents, and of the total
- *
- * @param pba                      Input: Pointer to background structure
- * @return the error status
- */
-
-int background_output_budget(
-                             struct background* pba
-                             ) {
-
-  double budget_matter, budget_radiation, budget_other,budget_neutrino;
-  int index_ncdm;
-
-  budget_matter = 0;
-  budget_radiation = 0;
-  budget_other = 0;
-  budget_neutrino = 0;
-
-  //The name for the _class_print_species_ macro can be at most 30 characters total
-  if(pba->background_verbose > 1){
-
-    printf(" ---------------------------- Budget equation ----------------------- \n");
-
-    printf(" ---> Nonrelativistic Species \n");
-    _class_print_species_("Bayrons",b);
-    budget_matter+=pba->Omega0_b;
-    if(pba->has_cdm){
-      _class_print_species_("Cold Dark Matter",cdm);
-      budget_matter+=pba->Omega0_cdm;
-    }
-    if(pba->has_idm_dr){
-      _class_print_species_("Interacting Dark Matter - DR ",idm_dr);
-      budget_matter+=pba->Omega0_idm_dr;
-    }
-    if(pba->has_dcdm){
-      _class_print_species_("Decaying Cold Dark Matter",dcdm);
-      budget_matter+=pba->Omega0_dcdm;
-    }
-
-
-    printf(" ---> Relativistic Species \n");
-    _class_print_species_("Photons",g);
-    budget_radiation+=pba->Omega0_g;
-    if(pba->has_ur){
-      _class_print_species_("Ultra-relativistic relics",ur);
-      budget_radiation+=pba->Omega0_ur;
-    }
-    if(pba->has_dr){
-      _class_print_species_("Dark Radiation (from decay)",dr);
-      budget_radiation+=pba->Omega0_dr;
-    }
-    if(pba->has_idr){
-      _class_print_species_("Interacting Dark Radiation",idr);
-      budget_radiation+=pba->Omega0_idr;
-    }
-
-    if(pba->N_ncdm > 0){
-      printf(" ---> Massive Neutrino Species \n");
-    }
-    if(pba->N_ncdm > 0){
-      for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm){
-        printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
-        budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
-      }
-    }
-
-    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
-      printf(" ---> Other Content \n");
-    }
-    if(pba->has_lambda){
-      _class_print_species_("Cosmological Constant",lambda);
-      budget_other+=pba->Omega0_lambda;
-    }
-    if(pba->has_fld){
-      _class_print_species_("Dark Energy Fluid",fld);
-      budget_other+=pba->Omega0_fld;
-    }
-    if(pba->has_scf){
-      _class_print_species_("Scalar Field",scf);
-      budget_other+=pba->Omega0_scf;
-    }
-    if(pba->has_curvature){
-      _class_print_species_("Spatial Curvature",k);
-      budget_other+=pba->Omega0_k;
-    }
-
-    printf(" ---> Total budgets \n");
-    printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
-    printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
-    if(pba->N_ncdm > 0){
-      printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
-    }
-    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature){
-      printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
-    }
-    printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
-
-    printf(" -------------------------------------------------------------------- \n");
-  }
-
-  return _SUCCESS_;
 }

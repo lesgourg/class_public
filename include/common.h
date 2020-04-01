@@ -310,6 +310,10 @@ int get_number_of_titles(char * titlestring);
       storage[dataindex++] = defaultvalue;                              \
 }
 
+//The name for this macro can be at most 30 characters total
+#define class_print_species(name,type) \
+printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
+
 /** parameters related to the precision of the code and to the method of calculation */
 
 /**

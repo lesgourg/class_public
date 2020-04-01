@@ -1547,7 +1547,7 @@ int nonlinear_init(
             /* send a warning to inform user about the corresponding value of redshift */
             if (pnl->nonlinear_verbose > 0) {
               class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
-              class_call(background_at_tau(pba,pnl->tau[index_tau],pba->short_info,pba->inter_normal,&last_index,pvecback),
+              class_call(background_at_tau(pba,pnl->tau[index_tau],short_info,inter_normal,&last_index,pvecback),
                          pba->error_message,
                          pnl->error_message);
               a = pvecback[pba->index_bg_a];
@@ -2617,7 +2617,7 @@ int nonlinear_halofit(
 
     class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
 
-    class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+    class_call(background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback),
                pba->error_message,
                pnl->error_message);
 
@@ -2716,7 +2716,7 @@ int nonlinear_halofit(
 
   }
 
-  class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback),
              pba->error_message,
              pnl->error_message);
 
@@ -3172,7 +3172,7 @@ int nonlinear_hmcode(
   /** Call all the relevant background parameters at this tau */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pnl->error_message);
 
-  class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
+  class_call(background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback),
              pba->error_message,
              pnl->error_message);
 
@@ -3698,7 +3698,7 @@ int nonlinear_hmcode_dark_energy_correction(
                pba->error_message,
                pnl->error_message);
 
-    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
+    class_call(background_at_tau(pba,tau_growth,long_info,inter_normal,&last_index,pvecback),
                pba->error_message,
                pnl->error_message);
 
@@ -3929,7 +3929,7 @@ int nonlinear_hmcode_fill_growtab(
 
     pnw->tautable[index_scalefactor] = tau_growth;
 
-    class_call(background_at_tau(pba,tau_growth,pba->long_info,pba->inter_normal,&last_index,pvecback),
+    class_call(background_at_tau(pba,tau_growth,long_info,inter_normal,&last_index,pvecback),
                pba->error_message,
                pnl->error_message);
 

@@ -465,7 +465,7 @@ extern "C" {
   int thermodynamics_at_z(struct background * pba,
                           struct thermo * pth,
                           double z,
-                          short inter_mode,
+                          enum interpolation_method inter_mode,
                           int * last_index,
                           double * pvecback,
                           double * pvecthermo);

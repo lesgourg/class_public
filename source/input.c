@@ -3369,8 +3369,8 @@ int input_prepare_pk_eq(struct precision * ppr,
                 pba->error_message);
     class_call(background_at_tau(pba,
                                  tau_of_z,
-                                 pba->long_info,
-                                 pba->inter_normal,
+                                 long_info,
+                                 inter_normal,
                                  &last_index,
                                  pvecback),
                pba->error_message, errmsg);

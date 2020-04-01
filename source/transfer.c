@@ -2913,8 +2913,8 @@ int transfer_selection_compute(
       /* get background quantities at this time */
       class_call(background_at_tau(pba,
                                    tau,
-                                   pba->long_info,
-                                   pba->inter_normal,
+                                   long_info,
+                                   inter_normal,
                                    &last_index,
                                    pvecback),
                  pba->error_message,
@@ -4754,8 +4754,8 @@ int transfer_precompute_selection(
         /* corresponding background quantities */
         class_call(background_at_tau(pba,
                                      tau,
-                                     pba->long_info,
-                                     pba->inter_normal,
+                                     long_info,
+                                     inter_normal,
                                      &last_index,
                                      pvecback),
                    pba->error_message,
@@ -5005,8 +5005,8 @@ int transfer_precompute_selection(
 
                 class_call(background_at_tau(pba,
                                              tau0-tau0_minus_tau_lensing_sources[index_tau_sources],
-                                             pba->long_info,
-                                             pba->inter_normal,
+                                             long_info,
+                                             inter_normal,
                                              &last_index,
                                              pvecback),
                            pba->error_message,
