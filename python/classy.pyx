@@ -2140,6 +2140,25 @@ cdef class Class:
     ################################################################################
     # utility functions for neural networks
     ################################################################################
+    def get_tau_source(self):
+        """
+        Return the tau array on which the source functions are sampled.
+
+        Returns
+        -------
+        tau: numpy array
+        """
+        cdef:
+            int i_tau;
+            double * tau = self.pt.tau_sampling;
+            int tau_size = self.pt.tau_size
+            double [:] numpy_tau = np.zeros(tau_size, dtype=np.double)
+
+        for i_tau in range(tau_size):
+            numpy_tau[i_tau] = tau[i_tau]
+
+        return np.asarray(numpy_tau)
+
     def get_k_tau(self):
         """
         Return the k, tau grid values of the source functions.
@@ -2200,20 +2219,38 @@ cdef class Class:
         corresponding conformal time values.
         """
         cdef:
-            double * tau_bg = self.ba.tau_table;
             int index_tau;
             int bt_size = self.ba.bt_size;
             int bg_size = self.ba.bg_size;
             int index_bg_rs = self.ba.index_bg_rs;
             double * background_table = self.ba.background_table;
-            double [:] numpy_r_s = np.zeros((bt_size));
-            double [:] numpy_tau_bg = np.zeros((bt_size));
+            double [:] r_s = np.zeros((bt_size));
+            double [:] rho_b = np.zeros((bt_size));
+            double [:] rho_g = np.zeros((bt_size));
+            double [:] tau_bg = np.zeros((bt_size));
+            double [:] a = np.zeros((bt_size));
+            double [:] H = np.zeros((bt_size));
+            double [:] D = np.zeros((bt_size));
 
         for index_tau in range(bt_size):
-            numpy_r_s[index_tau] = background_table[index_tau*bg_size+index_bg_rs]
-            numpy_tau_bg[index_tau] = tau_bg[index_tau]
+            tau_bg[index_tau] = self.ba.tau_table[index_tau]
 
-        return np.asarray(numpy_r_s), np.asarray(numpy_tau_bg)
+            r_s[index_tau] = background_table[index_tau*bg_size+index_bg_rs]
+            rho_b[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_rho_b];
+            rho_g[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_rho_g];
+            a[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_a];
+            H[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_H];
+            D[index_tau] = background_table[index_tau * bg_size + self.ba.index_bg_D];
+
+        return {
+                "tau": np.asarray(tau_bg),
+                "r_s": np.asarray(r_s),
+                "rho_b": np.asarray(rho_b),
+                "rho_g": np.asarray(rho_g),
+                "a": np.asarray(a),
+                "H": np.asarray(H),
+                "D": np.asarray(D),
+                }
 
     def tau_of_z(self,z):
         cdef double tau
@@ -2235,6 +2272,7 @@ cdef class Class:
         cdef:
             double tau;
             double * z_table = self.th.z_table;
+            double *tau_table = self.th.tau_table;
             double * thermodynamics_table = self.th.thermodynamics_table;
             int th_size = self.th.th_size;
             int index_z;
@@ -2259,9 +2297,10 @@ cdef class Class:
 
         for index_z in range(tt_size):
 
-            if background_tau_of_z(&self.ba,z_table[index_z],&tau)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
-            numpy_tau[index_z] = tau
+            # if background_tau_of_z(&self.ba,z_table[index_z],&tau)==_FAILURE_:
+            #     raise CosmoSevereError(self.ba.error_message)
+
+            numpy_tau[index_z] = tau_table[index_z]
             numpy_r_d[index_z] = thermodynamics_table[index_z*th_size + index_th_r_d]
             numpy_g[index_z] = thermodynamics_table[index_z*th_size + index_th_g]
             numpy_g_reco[index_z] = thermodynamics_table[index_z*th_size + self.th.index_th_g_reco]
@@ -2272,7 +2311,6 @@ cdef class Class:
             numpy_dkappa[index_z] = thermodynamics_table[index_z*th_size + index_th_dkappa]
             numpy_e_kappa[index_z] = thermodynamics_table[index_z*th_size + index_th_exp_m_kappa]
 
-        tau_arr = np.asarray(numpy_tau)
         g_reco = np.asarray(numpy_g_reco)
         g_reio = np.asarray(numpy_g_reio)
         g_reco_prime = np.asarray(numpy_dg_reco)

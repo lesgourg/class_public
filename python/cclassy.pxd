@@ -69,6 +69,8 @@ cdef extern from "class.h":
         double * tau_table
         int index_tau
         int index_bg_rs
+        int index_bg_rho_b
+        int index_bg_rho_g
         double * background_table
         int bg_size_short
         short short_info
@@ -113,6 +115,7 @@ cdef extern from "class.h":
         int index_th_exp_m_kappa
         int index_th_dkappa
         double * z_table
+        double * tau_table
         double * thermodynamics_table
 
     cdef struct perturbs:
