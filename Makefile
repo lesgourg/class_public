@@ -82,7 +82,7 @@ endif
 %.opp: %.cpp .base
 	cd $(WRKDIR); $(CPP) $(OPTFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
 
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o exceptions.opp
 
 SOURCE = input.opp background.opp thermodynamics.opp perturbations.opp primordial.opp nonlinear.opp transfer.opp spectra.opp lensing.opp
 
@@ -106,7 +106,7 @@ NONLINEAR = nonlinear.opp
 
 LENSING = lensing.opp
 
-OUTPUT = output.opp
+OUTPUT = output_module.opp
 
 CLASS = class.opp
 

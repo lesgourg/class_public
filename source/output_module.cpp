@@ -13,12 +13,17 @@
  * hence there is no output_free() routine like in other modules.
  */
 
-#include "output.h"
+#include "output_module.h"
+#include "exceptions.h"
 
-int output_total_cl_at_l(
-                         struct spectra * psp,
-                         struct lensing * ple,
-                         struct output * pop,
+OutputModule::OutputModule(const Input& input)
+: BaseModule(input) {
+
+  ThrowInvalidArgumentIf(output_init() != _SUCCESS_, error_message);
+}
+
+
+int OutputModule::output_total_cl_at_l(
                          int l,
                          double * cl
                          ){
@@ -32,21 +37,21 @@ int output_total_cl_at_l(
   int index_md;
 
   if (ple->has_lensed_cls == _TRUE_) {
-    class_call(lensing_cl_at_l(ple,
+    class_call(lensing_cl_at_l(const_cast<lensing *>(ple),
                                l,
                                cl),
                ple->error_message,
-               pop->error_message);
+               error_message);
   }
   else {
 
     class_alloc(cl_md_ic,
                 psp->md_size*sizeof(double *),
-                pop->error_message);
+                error_message);
 
     class_alloc(cl_md,
                 psp->md_size*sizeof(double *),
-                pop->error_message);
+                error_message);
 
     for (index_md = 0; index_md < psp->md_size; index_md++) {
 
@@ -63,13 +68,13 @@ int output_total_cl_at_l(
                     ple->error_message);
     }
 
-    class_call(spectra_cl_at_l(psp,
+    class_call(spectra_cl_at_l(const_cast<spectra *>(psp),
                                (double)l,
                                cl,
                                cl_md,
                                cl_md_ic),
                psp->error_message,
-               pop->error_message);
+               error_message);
 
     for (index_md = 0; index_md < psp->md_size; index_md++) {
 
@@ -105,17 +110,7 @@ int output_total_cl_at_l(
  * @param pop Input: pointer to output structure
  */
 
-int output_init(
-                struct background * pba,
-                struct thermo * pth,
-                struct perturbs * ppt,
-                struct primordial * ppm,
-                struct transfers * ptr,
-                struct spectra * psp,
-                struct nonlinear * pnl,
-                struct lensing * ple,
-                struct output * pop
-                ) {
+int OutputModule::output_init() {
 
   /** Summary: */
 
@@ -135,24 +130,24 @@ int output_init(
 
   if (ppt->has_cls == _TRUE_) {
 
-    class_call(output_cl(pba,ppt,psp,ple,pop),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_cl(),
+               error_message,
+               error_message);
   }
 
   /** - deal with all Fourier matter power spectra P(k)'s */
 
   if (ppt->has_pk_matter == _TRUE_) {
 
-    class_call(output_pk(pba,ppt,pnl,pop,pk_linear),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_pk(pk_linear),
+               error_message,
+               error_message);
 
     if (pnl->method != nl_none) {
 
-      class_call(output_pk(pba,ppt,pnl,pop,pk_nonlinear),
-                 pop->error_message,
-                 pop->error_message);
+      class_call(output_pk(pk_nonlinear),
+                 error_message,
+                 error_message);
 
     }
   }
@@ -161,9 +156,9 @@ int output_init(
 
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
-    class_call(output_tk(pba,ppt,pop),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_tk(),
+               error_message,
+               error_message);
 
   }
 
@@ -171,9 +166,9 @@ int output_init(
 
   if (pop->write_background == _TRUE_) {
 
-    class_call(output_background(pba,pop),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_background(),
+               error_message,
+               error_message);
 
   }
 
@@ -181,9 +176,9 @@ int output_init(
 
   if (pop->write_thermodynamics == _TRUE_) {
 
-    class_call(output_thermodynamics(pba,pth,pop),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_thermodynamics(),
+               error_message,
+               error_message);
 
   }
 
@@ -191,9 +186,9 @@ int output_init(
 
   if (pop->write_perturbations == _TRUE_) {
 
-    class_call(output_perturbations(pba,ppt,pop),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_perturbations(),
+               error_message,
+               error_message);
 
   }
 
@@ -201,9 +196,9 @@ int output_init(
 
   if (pop->write_primordial == _TRUE_) {
 
-    class_call(output_primordial(ppt,ppm,pop),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_primordial(),
+               error_message,
+               error_message);
 
   }
 
@@ -221,13 +216,7 @@ int output_init(
  * @param pop Input: pointer to output structure
  */
 
-int output_cl(
-              struct background * pba,
-              struct perturbs * ppt,
-              struct spectra * psp,
-              struct lensing * ple,
-              struct output * pop
-              ) {
+int OutputModule::output_cl() {
 
   /** Summary: */
 
@@ -265,25 +254,25 @@ int output_cl(
 
   class_alloc(out_md_ic,
               psp->md_size*sizeof(FILE * *),
-              pop->error_message);
+              error_message);
 
   class_alloc(cl_md_ic,
               psp->md_size*sizeof(double *),
-              pop->error_message);
+              error_message);
 
   class_alloc(out_md,
               psp->md_size*sizeof(FILE *),
-              pop->error_message);
+              error_message);
 
   class_alloc(cl_md,
               psp->md_size*sizeof(double *),
-              pop->error_message);
+              error_message);
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     class_alloc(out_md_ic[index_md],
                 psp->ic_ic_size[index_md]*sizeof(FILE *),
-                pop->error_message);
+                error_message);
 
   }
 
@@ -291,34 +280,30 @@ int output_cl(
 
   sprintf(file_name,"%s%s",pop->root,"cl.dat");
 
-  class_call(output_open_cl_file(psp,
-                                 pop,
-                                 &out,
+  class_call(output_open_cl_file(&out,
                                  file_name,
                                  "total [l(l+1)/2pi] C_l's",
                                  psp->l_max_tot
                                  ),
-             pop->error_message,
-             pop->error_message);
+             error_message,
+             error_message);
 
   class_alloc(cl_tot,
               psp->ct_size*sizeof(double),
-              pop->error_message);
+              error_message);
 
 
   if (ple->has_lensed_cls == _TRUE_) {
 
     sprintf(file_name,"%s%s",pop->root,"cl_lensed.dat");
 
-    class_call(output_open_cl_file(psp,
-                                   pop,
-                                   &out_lensed,
+    class_call(output_open_cl_file(&out_lensed,
                                    file_name,
                                    "total lensed [l(l+1)/2pi] C_l's",
                                    ple->l_lensed_max
                                    ),
-               pop->error_message,
-               pop->error_message);
+               error_message,
+               error_message);
   }
 
   if (ppt->md_size > 1) {
@@ -339,19 +324,17 @@ int output_cl(
 
       }
 
-      class_call(output_open_cl_file(psp,
-                                     pop,
-                                     &(out_md[index_md]),
+      class_call(output_open_cl_file(&(out_md[index_md]),
                                      file_name,
                                      first_line,
                                      psp->l_max[index_md]
                                      ),
-                 pop->error_message,
-                 pop->error_message);
+                 error_message,
+                 error_message);
 
       class_alloc(cl_md[index_md],
                   psp->ct_size*sizeof(double),
-                  pop->error_message);
+                  error_message);
 
     }
   }
@@ -476,7 +459,7 @@ int output_cl(
           if (_tensors_) {
 
             class_test(0==0,
-                       pop->error_message,
+                       error_message,
                        "Seems that we have mixed initial conditions for tensors? Should not happen!\n");
 
           }
@@ -485,15 +468,13 @@ int output_cl(
 
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-            class_call(output_open_cl_file(psp,
-                                           pop,
-                                           &(out_md_ic[index_md][index_ic1_ic2]),
+            class_call(output_open_cl_file(&(out_md_ic[index_md][index_ic1_ic2]),
                                            file_name,
                                            first_line,
                                            psp->l_max[index_md]
                                            ),
-                       pop->error_message,
-                       pop->error_message);
+                       error_message,
+                       error_message);
 
           }
         }
@@ -501,7 +482,7 @@ int output_cl(
 
       class_alloc(cl_md_ic[index_md],
                   psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
-                  pop->error_message);
+                  error_message);
     }
   }
 
@@ -511,34 +492,34 @@ int output_cl(
 
   for (l = 2; l <= psp->l_max_tot; l++) {
 
-    class_call(spectra_cl_at_l(psp,(double)l,cl_tot,cl_md,cl_md_ic),
+    class_call(spectra_cl_at_l(const_cast<spectra*>(psp),(double)l,cl_tot,cl_md,cl_md_ic),
                psp->error_message,
-               pop->error_message);
+               error_message);
 
-    class_call(output_one_line_of_cl(pba,psp,pop,out,(double)l,cl_tot,psp->ct_size),
-               pop->error_message,
-               pop->error_message);
+    class_call(output_one_line_of_cl(out,(double)l,cl_tot,psp->ct_size),
+               error_message,
+               error_message);
 
     if ((ple->has_lensed_cls == _TRUE_) && (l<=ple->l_lensed_max)) {
 
-      class_call(lensing_cl_at_l(ple,
+      class_call(lensing_cl_at_l(const_cast<lensing*>(ple),
                                  (double)l,
                                  cl_tot),
                  ple->error_message,
-                 pop->error_message);
+                 error_message);
 
-      class_call(output_one_line_of_cl(pba,psp,pop,out_lensed,l,cl_tot,psp->ct_size),
-                 pop->error_message,
-                 pop->error_message);
+      class_call(output_one_line_of_cl(out_lensed,l,cl_tot,psp->ct_size),
+                 error_message,
+                 error_message);
     }
 
     if (ppt->md_size > 1) {
       for (index_md = 0; index_md < ppt->md_size; index_md++) {
         if (l <= psp->l_max[index_md]) {
 
-          class_call(output_one_line_of_cl(pba,psp,pop,out_md[index_md],l,cl_md[index_md],psp->ct_size),
-                     pop->error_message,
-                     pop->error_message);
+          class_call(output_one_line_of_cl(out_md[index_md],l,cl_md[index_md],psp->ct_size),
+                     error_message,
+                     error_message);
         }
       }
     }
@@ -548,9 +529,9 @@ int output_cl(
         for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
-            class_call(output_one_line_of_cl(pba,psp,pop,out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*psp->ct_size]),psp->ct_size),
-                       pop->error_message,
-                       pop->error_message);
+            class_call(output_one_line_of_cl(out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*psp->ct_size]),psp->ct_size),
+                       error_message,
+                       error_message);
           }
         }
       }
@@ -603,13 +584,7 @@ int output_cl(
  * @param pk_output Input: pk_linear or pk_nonlinear
  */
 
-int output_pk(
-              struct background * pba,
-              struct perturbs * ppt,
-              struct nonlinear * pnl,
-              struct output * pop,
-              enum pk_outputs pk_output
-              ) {
+int OutputModule::output_pk(enum pk_outputs pk_output) {
 
   /** Summary: */
 
@@ -643,19 +618,19 @@ int output_pk(
 
   class_alloc(ln_pk,
               pnl->k_size*sizeof(double),
-              pop->error_message);
+              error_message);
 
   if (do_ic == _TRUE_) {
 
     class_alloc(ln_pk_ic,
                 pnl->k_size*pnl->ic_ic_size*sizeof(double),
-                pop->error_message);
+                error_message);
 
     /** - allocate pointer to output files */
 
     class_alloc(out_pk_ic,
                 pnl->ic_ic_size*sizeof(FILE *),
-                pop->error_message);
+                error_message);
   }
 
   /** - loop over pk type (_cb, _m) */
@@ -682,7 +657,7 @@ int output_pk(
       /** - first, check that requested redshift z_pk is consistent */
 
       class_test((pop->z_pk[index_z] > ppt->z_max_pk),
-                 pop->error_message,
+                 error_message,
                  "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
 
       if (pop->z_pk_num == 1)
@@ -694,16 +669,13 @@ int output_pk(
 
       sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,".dat");
 
-      class_call(output_open_pk_file(pba,
-                                     pnl,
-                                     pop,
-                                     &out_pk,
+      class_call(output_open_pk_file(&out_pk,
                                      file_name,
                                      "",
                                      pop->z_pk[index_z]
                                      ),
-                 pop->error_message,
-                 pop->error_message);
+                 error_message,
+                 error_message);
 
       if (do_ic == _TRUE_) {
 
@@ -790,16 +762,13 @@ int output_pk(
 
             if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
 
-              class_call(output_open_pk_file(pba,
-                                             pnl,
-                                             pop,
-                                             &(out_pk_ic[index_ic1_ic2]),
+              class_call(output_open_pk_file(&(out_pk_ic[index_ic1_ic2]),
                                              file_name,
                                              first_line,
                                              pop->z_pk[index_z]
                                              ),
-                         pop->error_message,
-                         pop->error_message);
+                         error_message,
+                         error_message);
             }
           }
         }
@@ -807,8 +776,8 @@ int output_pk(
 
       /** - third, compute P(k) for each k */
 
-      class_call(nonlinear_pk_at_z(pba,
-                                   pnl,
+      class_call(nonlinear_pk_at_z(const_cast<background*>(pba),
+                                   const_cast<nonlinear*>(pnl),
                                    logarithmic,
                                    pk_output,
                                    pop->z_pk[index_z],
@@ -817,7 +786,7 @@ int output_pk(
                                    ln_pk_ic
                                    ),
                  pnl->error_message,
-                 pop->error_message);
+                 error_message);
 
       /** - fourth, write in files */
 
@@ -827,8 +796,8 @@ int output_pk(
                                          exp(pnl->ln_k[index_k])/pba->h,
                                          exp(ln_pk[index_k])*pow(pba->h,3)
                                          ),
-                   pop->error_message,
-                   pop->error_message);
+                   error_message,
+                   error_message);
 
         if (do_ic == _TRUE_) {
 
@@ -839,8 +808,8 @@ int output_pk(
               class_call(output_one_line_of_pk(out_pk_ic[index_ic1_ic2],
                                                exp(pnl->ln_k[index_k])/pba->h,
                                                exp(ln_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2])*pow(pba->h,3)),
-                         pop->error_message,
-                         pop->error_message);
+                         error_message,
+                         error_message);
             }
           }
         }
@@ -880,11 +849,7 @@ int output_pk(
  * @param pop Input: pointer to output structure
  */
 
-int output_tk(
-              struct background * pba,
-              struct perturbs * ppt,
-              struct output * pop
-              ) {
+int OutputModule::output_tk() {
 
   /** Summary: */
 
@@ -912,22 +877,22 @@ int output_tk(
   if (pop->output_format == camb_format) {
 
     class_test(pba->N_ncdm>1,
-               pop->error_message,
+               error_message,
                "you wish to output the transfer functions in CMBFAST/CAMB format but you have more than one non-cold dark matter (ncdm) species. The two are not compatible (since CMBFAST/CAMB only have one ncdm species): switch to CLASS output format or keep only on ncdm species");
 
     class_test(ppt->has_velocity_transfers == _TRUE_,
-               pop->error_message,
+               error_message,
                "you wish to output the transfer functions in CMBFAST/CAMB format, but you requested velocity transfer functions. The two are not compatible (since CMBFAST/CAMB do not compute velocity transfer functions): switch to CLASS output format, or ask only for density transfer function");
   }
 
 
-  class_call(perturb_output_titles(pba,ppt,pop->output_format,titles),
+  class_call(perturb_output_titles(const_cast<background*>(pba), const_cast<perturbs*>(ppt), pop->output_format, titles),
              pba->error_message,
-             pop->error_message);
+             error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*ppt->k_size[index_md];
 
-  class_alloc(data, sizeof(double)*ppt->ic_size[index_md]*size_data, pop->error_message);
+  class_alloc(data, sizeof(double)*ppt->ic_size[index_md]*size_data, error_message);
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
@@ -936,7 +901,7 @@ int output_tk(
     /** - first, check that requested redshift z_pk is consistent */
 
     class_test((pop->z_pk[index_z] > ppt->z_max_pk),
-               pop->error_message,
+               error_message,
                "T_i(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1)
@@ -946,27 +911,27 @@ int output_tk(
 
     /** - second, open only the relevant files, and write a heading in each of them */
 
-    class_call(perturb_output_data(pba,
-                                      ppt,
+    class_call(perturb_output_data(const_cast<background*>(pba),
+                                      const_cast<perturbs*>(ppt),
                                       pop->output_format,
                                       pop->z_pk[index_z],
                                       number_of_titles,
                                       data
                                       ),
                ppt->error_message,
-               pop->error_message);
+               error_message);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
-      class_call(perturb_output_firstline_and_ic_suffix(ppt, index_ic, first_line, ic_suffix),
-                 ppt->error_message, pop->error_message);
+      class_call(perturb_output_firstline_and_ic_suffix(const_cast<perturbs*>(ppt), index_ic, first_line, ic_suffix),
+                 ppt->error_message, error_message);
 
       if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
         sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
       else
         sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_",ic_suffix,".dat");
 
-      class_open(tkfile, file_name, "w", pop->error_message);
+      class_open(tkfile, file_name, "w", error_message);
 
       if (pop->write_header == _TRUE_) {
         if (pop->output_format == class_format) {
@@ -1017,10 +982,7 @@ int output_tk(
 
 }
 
-int output_background(
-                      struct background * pba,
-                      struct output * pop
-                      ) {
+int OutputModule::output_background() {
 
   FILE * backfile;
   FileName file_name;
@@ -1029,20 +991,20 @@ int output_background(
   double * data;
   int size_data, number_of_titles;
 
-  class_call(background_output_titles(pba,titles),
+  class_call(background_output_titles(const_cast<background*>(pba), titles),
              pba->error_message,
-             pop->error_message);
+             error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*pba->bt_size;
-  class_alloc(data,sizeof(double)*size_data,pop->error_message);
-  class_call(background_output_data(pba,
+  class_alloc(data,sizeof(double)*size_data,error_message);
+  class_call(background_output_data(const_cast<background*>(pba),
                                     number_of_titles,
                                     data),
              pba->error_message,
-             pop->error_message);
+             error_message);
 
   sprintf(file_name,"%s%s",pop->root,"background.dat");
-  class_open(backfile,file_name,"w",pop->error_message);
+  class_open(backfile,file_name,"w",error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(backfile,"# Table of selected background quantities\n");
@@ -1068,11 +1030,7 @@ int output_background(
 
 }
 
-int output_thermodynamics(
-                          struct background * pba,
-                          struct thermo * pth,
-                          struct output * pop
-                          ) {
+int OutputModule::output_thermodynamics() {
 
   FileName file_name;
   FILE * thermofile;
@@ -1080,21 +1038,18 @@ int output_thermodynamics(
   double * data;
   int size_data, number_of_titles;
 
-  class_call(thermodynamics_output_titles(pba,pth,titles),
+  class_call(thermodynamics_output_titles(const_cast<background*>(pba), const_cast<thermo*>(pth), titles),
              pth->error_message,
-             pop->error_message);
+             error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*pth->tt_size;
-  class_alloc(data,sizeof(double)*size_data,pop->error_message);
-  class_call(thermodynamics_output_data(pba,
-                                        pth,
-                                        number_of_titles,
-                                        data),
+  class_alloc(data,sizeof(double)*size_data,error_message);
+  class_call(thermodynamics_output_data(const_cast<background*>(pba), const_cast<thermo*>(pth), number_of_titles, data),
              pth->error_message,
-             pop->error_message);
+             error_message);
 
   sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
-  class_open(thermofile,file_name,"w",pop->error_message);
+  class_open(thermofile, file_name, "w", error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
@@ -1134,11 +1089,7 @@ int output_thermodynamics(
 }
 
 
-int output_perturbations(
-                         struct background * pba,
-                         struct perturbs * ppt,
-                         struct output * pop
-                         ) {
+int OutputModule::output_perturbations() {
 
   FILE * out;
   FileName file_name;
@@ -1151,7 +1102,7 @@ int output_perturbations(
       index_md = ppt->index_md_scalars;
       k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_s.dat");
-      class_open(out, file_name, "w", ppt->error_message);
+      class_open(out, file_name, "w", error_message);
       fprintf(out,"#scalar perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
       output_print_data(out,
                         ppt->scalar_titles,
@@ -1164,7 +1115,7 @@ int output_perturbations(
       index_md = ppt->index_md_vectors;
       k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_v.dat");
-      class_open(out, file_name, "w", ppt->error_message);
+      class_open(out, file_name, "w", error_message);
       fprintf(out,"#vector perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
       output_print_data(out,
                         ppt->vector_titles,
@@ -1177,7 +1128,7 @@ int output_perturbations(
       index_md = ppt->index_md_tensors;
       k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_t.dat");
-      class_open(out, file_name, "w", ppt->error_message);
+      class_open(out, file_name, "w", error_message);
       fprintf(out,"#tensor perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
       output_print_data(out,
                         ppt->tensor_titles,
@@ -1193,11 +1144,7 @@ int output_perturbations(
 
 }
 
-int output_primordial(
-                      struct perturbs * ppt,
-                      struct primordial * ppm,
-                      struct output * pop
-                      ) {
+int OutputModule::output_primordial() {
   FileName file_name;
   FILE * out;
   char titles[_MAXTITLESTRINGLENGTH_]={0};
@@ -1206,20 +1153,17 @@ int output_primordial(
 
   sprintf(file_name,"%s%s",pop->root,"primordial_Pk.dat");
 
-  class_call(primordial_output_titles(ppt,ppm,titles),
+  class_call(primordial_output_titles(const_cast<perturbs*>(ppt), const_cast<primordial*>(ppm), titles),
              ppm->error_message,
-             pop->error_message);
+             error_message);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*ppm->lnk_size;
-  class_alloc(data,sizeof(double)*size_data,pop->error_message);
-  class_call(primordial_output_data(ppt,
-                                    ppm,
-                                    number_of_titles,
-                                    data),
+  class_alloc(data,sizeof(double)*size_data,error_message);
+  class_call(primordial_output_data(const_cast<perturbs*>(ppt), const_cast<primordial*>(ppm), number_of_titles, data),
              ppm->error_message,
-             pop->error_message);
+             error_message);
 
-  class_open(out,file_name,"w",pop->error_message);
+  class_open(out, file_name, "w", error_message);
   if (pop->write_header == _TRUE_) {
     fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
   }
@@ -1236,8 +1180,8 @@ int output_primordial(
 }
 
 
-int output_print_data(FILE *out,
-                      char titles[_MAXTITLESTRINGLENGTH_],
+int OutputModule::output_print_data(FILE *out,
+                      const char titles[_MAXTITLESTRINGLENGTH_],
                       double *dataptr,
                       int size_dataptr){
   int colnum=1, number_of_titles;
@@ -1286,9 +1230,7 @@ int output_print_data(FILE *out,
  * @return the error status
  */
 
-int output_open_cl_file(
-                        struct spectra * psp,
-                        struct output * pop,
+int OutputModule::output_open_cl_file(
                         FILE * * clfile,
                         FileName filename,
                         char * first_line,
@@ -1300,7 +1242,7 @@ int output_open_cl_file(
   int colnum = 1;
   char tmp[60]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
 
-  class_open(*clfile,filename,"w",pop->error_message);
+  class_open(*clfile, filename, "w", error_message);
 
   if (pop->write_header == _TRUE_) {
 
@@ -1434,10 +1376,7 @@ int output_open_cl_file(
  * @return the error status
  */
 
-int output_one_line_of_cl(
-                          struct background * pba,
-                          struct spectra * psp,
-                          struct output * pop,
+int OutputModule::output_one_line_of_cl(
                           FILE * clfile,
                           double l,
                           double * cl, /* array with argument cl[index_ct] */
@@ -1514,10 +1453,7 @@ int output_one_line_of_cl(
  * @return the error status
  */
 
-int output_open_pk_file(
-                        struct background * pba,
-                        struct nonlinear * pnl,
-                        struct output * pop,
+int OutputModule::output_open_pk_file(
                         FILE * * pkfile,
                         FileName filename,
                         char * first_line,
@@ -1525,7 +1461,7 @@ int output_open_pk_file(
                         ) {
 
   int colnum = 1;
-  class_open(*pkfile,filename,"w",pop->error_message);
+  class_open(*pkfile, filename, "w", error_message);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z);
@@ -1553,7 +1489,7 @@ int output_open_pk_file(
  * @return the error status
  */
 
-int output_one_line_of_pk(
+int OutputModule::output_one_line_of_pk(
                           FILE * pkfile,
                           double one_k,
                           double one_pk

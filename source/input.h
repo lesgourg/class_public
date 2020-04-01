@@ -16,6 +16,19 @@
 #include "lensing.h"
 #include "output.h"
 
+struct Input {
+  precision precision_;
+  background background_;
+  thermo thermodynamics_;
+  perturbs perturbations_;
+  transfers transfers_;
+  primordial primordial_;
+  spectra spectra_;
+  nonlinear nonlinear_;
+  lensing lensing_;
+  output output_;
+};
+
 /* macro for reading parameter values with routines from the parser */
 #define class_read_double(name,destination)				\
   do {									\

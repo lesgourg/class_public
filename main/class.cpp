@@ -3,20 +3,22 @@
  */
 
 #include "class.h"
+#include "output_module.h"
 
 int main(int argc, char **argv) {
 
-  struct precision pr;        /* for precision parameters */
-  struct background ba;       /* for cosmological background */
-  struct thermo th;           /* for thermodynamics */
-  struct perturbs pt;         /* for source functions */
-  struct primordial pm;       /* for primordial spectra */
-  struct nonlinear nl;        /* for non-linear spectra */
-  struct transfers tr;        /* for transfer functions */
-  struct spectra sp;          /* for output spectra */
-  struct lensing le;          /* for lensed spectra */
-  struct output op;           /* for output files */
-  ErrorMsg errmsg;            /* for error messages */
+  Input input;
+  precision& pr = input.precision_;      /* for precision parameters */
+  background& ba = input.background_;    /* for cosmological background */
+  thermo& th = input.thermodynamics_;    /* for thermodynamics */
+  perturbs& pt = input.perturbations_;   /* for source functions */
+  primordial& pm = input.primordial_;    /* for primordial spectra */
+  nonlinear& nl = input.nonlinear_;      /* for non-linear spectra */
+  transfers& tr = input.transfers_;      /* for transfer functions */
+  spectra& sp = input.spectra_;          /* for output spectra */
+  lensing& le = input.lensing_;          /* for lensed spectra */
+  output& op = input.output_;            /* for output files */
+  ErrorMsg errmsg;                       /* for error messages */
 
   if (input_init_from_arguments(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&op,errmsg) == _FAILURE_) {
     printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
@@ -63,10 +65,7 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (output_init(&ba,&th,&pt,&pm,&tr,&sp,&nl,&le,&op) == _FAILURE_) {
-    printf("\n\nError in output_init \n=>%s\n",op.error_message);
-    return _FAILURE_;
-  }
+  OutputModule output_module(input);
 
   /****** all calculations done, now free the structures ******/
 

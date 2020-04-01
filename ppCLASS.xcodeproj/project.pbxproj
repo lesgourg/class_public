@@ -21,7 +21,6 @@
 		AFDC68A2240D9F500044B5A3 /* nonlinear.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6898240D9F500044B5A3 /* nonlinear.cpp */; };
 		AFDC68A3240D9F500044B5A3 /* primordial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6899240D9F500044B5A3 /* primordial.cpp */; };
 		AFDC68A4240D9F500044B5A3 /* background.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC689A240D9F500044B5A3 /* background.cpp */; };
-		AFDC68A5240D9F500044B5A3 /* output.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC689B240D9F500044B5A3 /* output.cpp */; };
 		AFDC68B5240D9F6B0044B5A3 /* common.c in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68A7240D9F6B0044B5A3 /* common.c */; };
 		AFDC68B6240D9F6B0044B5A3 /* arrays.c in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68A8240D9F6B0044B5A3 /* arrays.c */; };
 		AFDC68B7240D9F6B0044B5A3 /* hyperspherical.c in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68AA240D9F6B0044B5A3 /* hyperspherical.c */; };
@@ -34,6 +33,7 @@
 		AFDC68BE240D9F6B0044B5A3 /* parser.c in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68B3240D9F6B0044B5A3 /* parser.c */; };
 		AFDC68BF240D9F6B0044B5A3 /* trigonometric_integrals.c in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68B4240D9F6B0044B5A3 /* trigonometric_integrals.c */; };
 		AFDC68C2240D9FB80044B5A3 /* class.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68C1240D9FB80044B5A3 /* class.cpp */; };
+		AFDE3E01242DF6290061A4DE /* output_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDE3E00242DF6290061A4DE /* output_module.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -80,7 +80,6 @@
 		AFDC6898240D9F500044B5A3 /* nonlinear.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nonlinear.cpp; sourceTree = "<group>"; };
 		AFDC6899240D9F500044B5A3 /* primordial.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = primordial.cpp; sourceTree = "<group>"; };
 		AFDC689A240D9F500044B5A3 /* background.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = background.cpp; sourceTree = "<group>"; };
-		AFDC689B240D9F500044B5A3 /* output.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = output.cpp; sourceTree = "<group>"; };
 		AFDC68A7240D9F6B0044B5A3 /* common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = common.c; sourceTree = "<group>"; };
 		AFDC68A8240D9F6B0044B5A3 /* arrays.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = arrays.c; sourceTree = "<group>"; };
 		AFDC68A9240D9F6B0044B5A3 /* hermite6_interpolation_csource.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hermite6_interpolation_csource.h; sourceTree = "<group>"; };
@@ -114,6 +113,9 @@
 		AFDE3DE6242BA2A80061A4DE /* trigonometric_integrals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = trigonometric_integrals.h; sourceTree = "<group>"; };
 		AFDE3DE7242BA2A80061A4DE /* dei_rkck.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dei_rkck.h; sourceTree = "<group>"; };
 		AFDE3DE8242BA2A80061A4DE /* precisions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = precisions.h; sourceTree = "<group>"; };
+		AFDE3DFC242DE3BB0061A4DE /* base_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base_module.h; sourceTree = "<group>"; };
+		AFDE3DFF242DF6290061A4DE /* output_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = output_module.h; sourceTree = "<group>"; };
+		AFDE3E00242DF6290061A4DE /* output_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = output_module.cpp; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -175,13 +177,15 @@
 		AFDC6891240D9F500044B5A3 /* source */ = {
 			isa = PBXGroup;
 			children = (
+				AFDE3E00242DF6290061A4DE /* output_module.cpp */,
+				AFDE3DFF242DF6290061A4DE /* output_module.h */,
 				AFB5F164241D17B6001B9B9C /* background.h */,
 				AFDC689A240D9F500044B5A3 /* background.cpp */,
+				AFDE3DFC242DE3BB0061A4DE /* base_module.h */,
 				AFDC6896240D9F500044B5A3 /* input.cpp */,
 				AFB5F161241D17B5001B9B9C /* input.h */,
 				AFDC6892240D9F500044B5A3 /* lensing.cpp */,
 				AFB5F163241D17B6001B9B9C /* lensing.h */,
-				AFDC689B240D9F500044B5A3 /* output.cpp */,
 				AFB5F15E241D17B5001B9B9C /* output.h */,
 				AFDC6898240D9F500044B5A3 /* nonlinear.cpp */,
 				AFB5F160241D17B5001B9B9C /* nonlinear.h */,
@@ -317,7 +321,6 @@
 				AFDC68A1240D9F500044B5A3 /* spectra.cpp in Sources */,
 				AFDC68A2240D9F500044B5A3 /* nonlinear.cpp in Sources */,
 				AFDC68B6240D9F6B0044B5A3 /* arrays.c in Sources */,
-				AFDC68A5240D9F500044B5A3 /* output.cpp in Sources */,
 				AFDC689E240D9F500044B5A3 /* transfer.cpp in Sources */,
 				AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */,
 				AFDC68BE240D9F6B0044B5A3 /* parser.c in Sources */,
@@ -337,6 +340,7 @@
 				AFDC68BB240D9F6B0044B5A3 /* quadrature.c in Sources */,
 				AFDC689D240D9F500044B5A3 /* perturbations.cpp in Sources */,
 				AFDC68A3240D9F500044B5A3 /* primordial.cpp in Sources */,
+				AFDE3E01242DF6290061A4DE /* output_module.cpp in Sources */,
 				AFDC68B7240D9F6B0044B5A3 /* hyperspherical.c in Sources */,
 				AFDC68B8240D9F6B0044B5A3 /* sparse.c in Sources */,
 				AFDC68A4240D9F500044B5A3 /* background.cpp in Sources */,
