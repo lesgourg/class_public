@@ -28,6 +28,8 @@ public:
   , ptr(&input.transfers_)
   , ple(&input.lensing_)
   , pop(&input.output_) {}
+  
+  mutable ErrorMsg error_message_;
 protected:
   const precision * const ppr;
   const background * const pba;
@@ -39,7 +41,6 @@ protected:
   const spectra * const psp;
   const lensing * const ple;
   const output * const pop;
-  ErrorMsg error_message;
 };
 
 

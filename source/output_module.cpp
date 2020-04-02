@@ -16,10 +16,11 @@
 #include "output_module.h"
 #include "exceptions.h"
 
-OutputModule::OutputModule(const Input& input)
-: BaseModule(input) {
+OutputModule::OutputModule(const Input& input, const LensingModule& lensing_module)
+: BaseModule(input)
+, lensing_module_(lensing_module) {
 
-  ThrowInvalidArgumentIf(output_init() != _SUCCESS_, error_message);
+  ThrowInvalidArgumentIf(output_init() != _SUCCESS_, error_message_);
 }
 
 
@@ -37,21 +38,19 @@ int OutputModule::output_total_cl_at_l(
   int index_md;
 
   if (ple->has_lensed_cls == _TRUE_) {
-    class_call(lensing_cl_at_l(const_cast<lensing *>(ple),
-                               l,
-                               cl),
-               ple->error_message,
-               error_message);
+    class_call(lensing_module_.lensing_cl_at_l(l, cl),
+               lensing_module_.error_message_,
+               error_message_);
   }
   else {
 
     class_alloc(cl_md_ic,
                 psp->md_size*sizeof(double *),
-                error_message);
+                error_message_);
 
     class_alloc(cl_md,
                 psp->md_size*sizeof(double *),
-                error_message);
+                error_message_);
 
     for (index_md = 0; index_md < psp->md_size; index_md++) {
 
@@ -59,13 +58,13 @@ int OutputModule::output_total_cl_at_l(
 
         class_alloc(cl_md[index_md],
                     psp->ct_size*sizeof(double),
-                    ple->error_message);
+                    error_message_);
 
       if (psp->ic_size[index_md] > 1)
 
         class_alloc(cl_md_ic[index_md],
                     psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
-                    ple->error_message);
+                    error_message_);
     }
 
     class_call(spectra_cl_at_l(const_cast<spectra *>(psp),
@@ -74,7 +73,7 @@ int OutputModule::output_total_cl_at_l(
                                cl_md,
                                cl_md_ic),
                psp->error_message,
-               error_message);
+               error_message_);
 
     for (index_md = 0; index_md < psp->md_size; index_md++) {
 
@@ -131,8 +130,8 @@ int OutputModule::output_init() {
   if (ppt->has_cls == _TRUE_) {
 
     class_call(output_cl(),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
   }
 
   /** - deal with all Fourier matter power spectra P(k)'s */
@@ -140,14 +139,14 @@ int OutputModule::output_init() {
   if (ppt->has_pk_matter == _TRUE_) {
 
     class_call(output_pk(pk_linear),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
     if (pnl->method != nl_none) {
 
       class_call(output_pk(pk_nonlinear),
-                 error_message,
-                 error_message);
+                 error_message_,
+                 error_message_);
 
     }
   }
@@ -157,8 +156,8 @@ int OutputModule::output_init() {
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)) {
 
     class_call(output_tk(),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
   }
 
@@ -167,8 +166,8 @@ int OutputModule::output_init() {
   if (pop->write_background == _TRUE_) {
 
     class_call(output_background(),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
   }
 
@@ -177,8 +176,8 @@ int OutputModule::output_init() {
   if (pop->write_thermodynamics == _TRUE_) {
 
     class_call(output_thermodynamics(),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
   }
 
@@ -187,8 +186,8 @@ int OutputModule::output_init() {
   if (pop->write_perturbations == _TRUE_) {
 
     class_call(output_perturbations(),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
   }
 
@@ -197,8 +196,8 @@ int OutputModule::output_init() {
   if (pop->write_primordial == _TRUE_) {
 
     class_call(output_primordial(),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
   }
 
@@ -254,25 +253,25 @@ int OutputModule::output_cl() {
 
   class_alloc(out_md_ic,
               psp->md_size*sizeof(FILE * *),
-              error_message);
+              error_message_);
 
   class_alloc(cl_md_ic,
               psp->md_size*sizeof(double *),
-              error_message);
+              error_message_);
 
   class_alloc(out_md,
               psp->md_size*sizeof(FILE *),
-              error_message);
+              error_message_);
 
   class_alloc(cl_md,
               psp->md_size*sizeof(double *),
-              error_message);
+              error_message_);
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     class_alloc(out_md_ic[index_md],
                 psp->ic_ic_size[index_md]*sizeof(FILE *),
-                error_message);
+                error_message_);
 
   }
 
@@ -285,12 +284,12 @@ int OutputModule::output_cl() {
                                  "total [l(l+1)/2pi] C_l's",
                                  psp->l_max_tot
                                  ),
-             error_message,
-             error_message);
+             error_message_,
+             error_message_);
 
   class_alloc(cl_tot,
               psp->ct_size*sizeof(double),
-              error_message);
+              error_message_);
 
 
   if (ple->has_lensed_cls == _TRUE_) {
@@ -300,10 +299,10 @@ int OutputModule::output_cl() {
     class_call(output_open_cl_file(&out_lensed,
                                    file_name,
                                    "total lensed [l(l+1)/2pi] C_l's",
-                                   ple->l_lensed_max
+                                   lensing_module_.l_lensed_max_
                                    ),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
   }
 
   if (ppt->md_size > 1) {
@@ -329,12 +328,12 @@ int OutputModule::output_cl() {
                                      first_line,
                                      psp->l_max[index_md]
                                      ),
-                 error_message,
-                 error_message);
+                 error_message_,
+                 error_message_);
 
       class_alloc(cl_md[index_md],
                   psp->ct_size*sizeof(double),
-                  error_message);
+                  error_message_);
 
     }
   }
@@ -459,7 +458,7 @@ int OutputModule::output_cl() {
           if (_tensors_) {
 
             class_test(0==0,
-                       error_message,
+                       error_message_,
                        "Seems that we have mixed initial conditions for tensors? Should not happen!\n");
 
           }
@@ -473,8 +472,8 @@ int OutputModule::output_cl() {
                                            first_line,
                                            psp->l_max[index_md]
                                            ),
-                       error_message,
-                       error_message);
+                       error_message_,
+                       error_message_);
 
           }
         }
@@ -482,7 +481,7 @@ int OutputModule::output_cl() {
 
       class_alloc(cl_md_ic[index_md],
                   psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
-                  error_message);
+                  error_message_);
     }
   }
 
@@ -494,23 +493,21 @@ int OutputModule::output_cl() {
 
     class_call(spectra_cl_at_l(const_cast<spectra*>(psp),(double)l,cl_tot,cl_md,cl_md_ic),
                psp->error_message,
-               error_message);
+               error_message_);
 
     class_call(output_one_line_of_cl(out,(double)l,cl_tot,psp->ct_size),
-               error_message,
-               error_message);
+               error_message_,
+               error_message_);
 
-    if ((ple->has_lensed_cls == _TRUE_) && (l<=ple->l_lensed_max)) {
+    if ((ple->has_lensed_cls == _TRUE_) && (l<=lensing_module_.l_lensed_max_)) {
 
-      class_call(lensing_cl_at_l(const_cast<lensing*>(ple),
-                                 (double)l,
-                                 cl_tot),
-                 ple->error_message,
-                 error_message);
+      class_call(lensing_module_.lensing_cl_at_l((double)l, cl_tot),
+                 lensing_module_.error_message_,
+                 error_message_);
 
       class_call(output_one_line_of_cl(out_lensed,l,cl_tot,psp->ct_size),
-                 error_message,
-                 error_message);
+                 error_message_,
+                 error_message_);
     }
 
     if (ppt->md_size > 1) {
@@ -518,8 +515,8 @@ int OutputModule::output_cl() {
         if (l <= psp->l_max[index_md]) {
 
           class_call(output_one_line_of_cl(out_md[index_md],l,cl_md[index_md],psp->ct_size),
-                     error_message,
-                     error_message);
+                     error_message_,
+                     error_message_);
         }
       }
     }
@@ -530,8 +527,8 @@ int OutputModule::output_cl() {
           if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
 
             class_call(output_one_line_of_cl(out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*psp->ct_size]),psp->ct_size),
-                       error_message,
-                       error_message);
+                       error_message_,
+                       error_message_);
           }
         }
       }
@@ -618,19 +615,19 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
 
   class_alloc(ln_pk,
               pnl->k_size*sizeof(double),
-              error_message);
+              error_message_);
 
   if (do_ic == _TRUE_) {
 
     class_alloc(ln_pk_ic,
                 pnl->k_size*pnl->ic_ic_size*sizeof(double),
-                error_message);
+                error_message_);
 
     /** - allocate pointer to output files */
 
     class_alloc(out_pk_ic,
                 pnl->ic_ic_size*sizeof(FILE *),
-                error_message);
+                error_message_);
   }
 
   /** - loop over pk type (_cb, _m) */
@@ -657,7 +654,7 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
       /** - first, check that requested redshift z_pk is consistent */
 
       class_test((pop->z_pk[index_z] > ppt->z_max_pk),
-                 error_message,
+                 error_message_,
                  "P(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
 
       if (pop->z_pk_num == 1)
@@ -674,8 +671,8 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
                                      "",
                                      pop->z_pk[index_z]
                                      ),
-                 error_message,
-                 error_message);
+                 error_message_,
+                 error_message_);
 
       if (do_ic == _TRUE_) {
 
@@ -767,8 +764,8 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
                                              first_line,
                                              pop->z_pk[index_z]
                                              ),
-                         error_message,
-                         error_message);
+                         error_message_,
+                         error_message_);
             }
           }
         }
@@ -786,7 +783,7 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
                                    ln_pk_ic
                                    ),
                  pnl->error_message,
-                 error_message);
+                 error_message_);
 
       /** - fourth, write in files */
 
@@ -796,8 +793,8 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
                                          exp(pnl->ln_k[index_k])/pba->h,
                                          exp(ln_pk[index_k])*pow(pba->h,3)
                                          ),
-                   error_message,
-                   error_message);
+                   error_message_,
+                   error_message_);
 
         if (do_ic == _TRUE_) {
 
@@ -808,8 +805,8 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
               class_call(output_one_line_of_pk(out_pk_ic[index_ic1_ic2],
                                                exp(pnl->ln_k[index_k])/pba->h,
                                                exp(ln_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2])*pow(pba->h,3)),
-                         error_message,
-                         error_message);
+                         error_message_,
+                         error_message_);
             }
           }
         }
@@ -877,22 +874,22 @@ int OutputModule::output_tk() {
   if (pop->output_format == camb_format) {
 
     class_test(pba->N_ncdm>1,
-               error_message,
+               error_message_,
                "you wish to output the transfer functions in CMBFAST/CAMB format but you have more than one non-cold dark matter (ncdm) species. The two are not compatible (since CMBFAST/CAMB only have one ncdm species): switch to CLASS output format or keep only on ncdm species");
 
     class_test(ppt->has_velocity_transfers == _TRUE_,
-               error_message,
+               error_message_,
                "you wish to output the transfer functions in CMBFAST/CAMB format, but you requested velocity transfer functions. The two are not compatible (since CMBFAST/CAMB do not compute velocity transfer functions): switch to CLASS output format, or ask only for density transfer function");
   }
 
 
   class_call(perturb_output_titles(const_cast<background*>(pba), const_cast<perturbs*>(ppt), pop->output_format, titles),
              pba->error_message,
-             error_message);
+             error_message_);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*ppt->k_size[index_md];
 
-  class_alloc(data, sizeof(double)*ppt->ic_size[index_md]*size_data, error_message);
+  class_alloc(data, sizeof(double)*ppt->ic_size[index_md]*size_data, error_message_);
 
   for (index_z = 0; index_z < pop->z_pk_num; index_z++) {
 
@@ -901,7 +898,7 @@ int OutputModule::output_tk() {
     /** - first, check that requested redshift z_pk is consistent */
 
     class_test((pop->z_pk[index_z] > ppt->z_max_pk),
-               error_message,
+               error_message_,
                "T_i(k,z) computed up to z=%f but requested at z=%f. Must increase z_max_pk in precision file.",ppt->z_max_pk,pop->z_pk[index_z]);
 
     if (pop->z_pk_num == 1)
@@ -919,19 +916,19 @@ int OutputModule::output_tk() {
                                       data
                                       ),
                ppt->error_message,
-               error_message);
+               error_message_);
 
     for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
       class_call(perturb_output_firstline_and_ic_suffix(const_cast<perturbs*>(ppt), index_ic, first_line, ic_suffix),
-                 ppt->error_message, error_message);
+                 ppt->error_message, error_message_);
 
       if ((ppt->has_ad == _TRUE_) && (ppt->ic_size[index_md] == 1) )
         sprintf(file_name,"%s%s%s",pop->root,redshift_suffix,"tk.dat");
       else
         sprintf(file_name,"%s%s%s%s%s",pop->root,redshift_suffix,"tk_",ic_suffix,".dat");
 
-      class_open(tkfile, file_name, "w", error_message);
+      class_open(tkfile, file_name, "w", error_message_);
 
       if (pop->write_header == _TRUE_) {
         if (pop->output_format == class_format) {
@@ -993,18 +990,18 @@ int OutputModule::output_background() {
 
   class_call(background_output_titles(const_cast<background*>(pba), titles),
              pba->error_message,
-             error_message);
+             error_message_);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*pba->bt_size;
-  class_alloc(data,sizeof(double)*size_data,error_message);
+  class_alloc(data, sizeof(double)*size_data, error_message_);
   class_call(background_output_data(const_cast<background*>(pba),
                                     number_of_titles,
                                     data),
              pba->error_message,
-             error_message);
+             error_message_);
 
   sprintf(file_name,"%s%s",pop->root,"background.dat");
-  class_open(backfile,file_name,"w",error_message);
+  class_open(backfile, file_name, "w", error_message_);
 
   if (pop->write_header == _TRUE_) {
     fprintf(backfile,"# Table of selected background quantities\n");
@@ -1040,16 +1037,16 @@ int OutputModule::output_thermodynamics() {
 
   class_call(thermodynamics_output_titles(const_cast<background*>(pba), const_cast<thermo*>(pth), titles),
              pth->error_message,
-             error_message);
+             error_message_);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*pth->tt_size;
-  class_alloc(data,sizeof(double)*size_data,error_message);
+  class_alloc(data, sizeof(double)*size_data, error_message_);
   class_call(thermodynamics_output_data(const_cast<background*>(pba), const_cast<thermo*>(pth), number_of_titles, data),
              pth->error_message,
-             error_message);
+             error_message_);
 
   sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");
-  class_open(thermofile, file_name, "w", error_message);
+  class_open(thermofile, file_name, "w", error_message_);
 
   if (pop->write_header == _TRUE_) {
     fprintf(thermofile,"# Table of selected thermodynamics quantities\n");
@@ -1102,7 +1099,7 @@ int OutputModule::output_perturbations() {
       index_md = ppt->index_md_scalars;
       k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_s.dat");
-      class_open(out, file_name, "w", error_message);
+      class_open(out, file_name, "w", error_message_);
       fprintf(out,"#scalar perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
       output_print_data(out,
                         ppt->scalar_titles,
@@ -1115,7 +1112,7 @@ int OutputModule::output_perturbations() {
       index_md = ppt->index_md_vectors;
       k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_v.dat");
-      class_open(out, file_name, "w", error_message);
+      class_open(out, file_name, "w", error_message_);
       fprintf(out,"#vector perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
       output_print_data(out,
                         ppt->vector_titles,
@@ -1128,7 +1125,7 @@ int OutputModule::output_perturbations() {
       index_md = ppt->index_md_tensors;
       k = ppt->k[index_md][ppt->index_k_output_values[index_md*ppt->k_output_values_num+index_ikout]];
       sprintf(file_name,"%s%s%d%s",pop->root,"perturbations_k",index_ikout,"_t.dat");
-      class_open(out, file_name, "w", error_message);
+      class_open(out, file_name, "w", error_message_);
       fprintf(out,"#tensor perturbations for mode k = %.*e Mpc^(-1)\n",_OUTPUTPRECISION_,k);
       output_print_data(out,
                         ppt->tensor_titles,
@@ -1155,15 +1152,15 @@ int OutputModule::output_primordial() {
 
   class_call(primordial_output_titles(const_cast<perturbs*>(ppt), const_cast<primordial*>(ppm), titles),
              ppm->error_message,
-             error_message);
+             error_message_);
   number_of_titles = get_number_of_titles(titles);
   size_data = number_of_titles*ppm->lnk_size;
-  class_alloc(data,sizeof(double)*size_data,error_message);
+  class_alloc(data, sizeof(double)*size_data, error_message_);
   class_call(primordial_output_data(const_cast<perturbs*>(ppt), const_cast<primordial*>(ppm), number_of_titles, data),
              ppm->error_message,
-             error_message);
+             error_message_);
 
-  class_open(out, file_name, "w", error_message);
+  class_open(out, file_name, "w", error_message_);
   if (pop->write_header == _TRUE_) {
     fprintf(out,"# Dimensionless primordial spectrum, equal to [k^3/2pi^2] P(k) \n");
   }
@@ -1242,7 +1239,7 @@ int OutputModule::output_open_cl_file(
   int colnum = 1;
   char tmp[60]; //A fixed number here is ok, since it should just correspond to the largest string which is printed to tmp.
 
-  class_open(*clfile, filename, "w", error_message);
+  class_open(*clfile, filename, "w", error_message_);
 
   if (pop->write_header == _TRUE_) {
 
@@ -1461,7 +1458,7 @@ int OutputModule::output_open_pk_file(
                         ) {
 
   int colnum = 1;
-  class_open(*pkfile, filename, "w", error_message);
+  class_open(*pkfile, filename, "w", error_message_);
 
   if (pop->write_header == _TRUE_) {
     fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z);

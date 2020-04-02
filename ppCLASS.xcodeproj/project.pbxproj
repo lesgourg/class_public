@@ -12,7 +12,7 @@
 		AF1078E3241D1F3B00A369F7 /* helium.c in Sources */ = {isa = PBXBuildFile; fileRef = AF1078D8241D1F3B00A369F7 /* helium.c */; };
 		AF1078E4241D1F3B00A369F7 /* hydrogen.c in Sources */ = {isa = PBXBuildFile; fileRef = AF1078DA241D1F3B00A369F7 /* hydrogen.c */; };
 		AF1078FA2424A86400A369F7 /* exceptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1078F92424A86400A369F7 /* exceptions.cpp */; };
-		AFDC689C240D9F500044B5A3 /* lensing.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6892240D9F500044B5A3 /* lensing.cpp */; };
+		AFDC689C240D9F500044B5A3 /* lensing_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6892240D9F500044B5A3 /* lensing_module.cpp */; };
 		AFDC689D240D9F500044B5A3 /* perturbations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6893240D9F500044B5A3 /* perturbations.cpp */; };
 		AFDC689E240D9F500044B5A3 /* transfer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6894240D9F500044B5A3 /* transfer.cpp */; };
 		AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */; };
@@ -71,7 +71,7 @@
 		AFB5F166241D17B6001B9B9C /* spectra.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = spectra.h; sourceTree = "<group>"; };
 		AFB5F167241D17B6001B9B9C /* thermodynamics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = thermodynamics.h; sourceTree = "<group>"; };
 		AFDC6886240D9EA00044B5A3 /* ppCLASS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ppCLASS; sourceTree = BUILT_PRODUCTS_DIR; };
-		AFDC6892240D9F500044B5A3 /* lensing.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lensing.cpp; sourceTree = "<group>"; };
+		AFDC6892240D9F500044B5A3 /* lensing_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lensing_module.cpp; sourceTree = "<group>"; };
 		AFDC6893240D9F500044B5A3 /* perturbations.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = perturbations.cpp; sourceTree = "<group>"; };
 		AFDC6894240D9F500044B5A3 /* transfer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = transfer.cpp; sourceTree = "<group>"; };
 		AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thermodynamics.cpp; sourceTree = "<group>"; };
@@ -116,6 +116,7 @@
 		AFDE3DFC242DE3BB0061A4DE /* base_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = base_module.h; sourceTree = "<group>"; };
 		AFDE3DFF242DF6290061A4DE /* output_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = output_module.h; sourceTree = "<group>"; };
 		AFDE3E00242DF6290061A4DE /* output_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = output_module.cpp; sourceTree = "<group>"; };
+		AFDE3E02242E244F0061A4DE /* lensing_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lensing_module.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -177,18 +178,19 @@
 		AFDC6891240D9F500044B5A3 /* source */ = {
 			isa = PBXGroup;
 			children = (
-				AFDE3E00242DF6290061A4DE /* output_module.cpp */,
-				AFDE3DFF242DF6290061A4DE /* output_module.h */,
 				AFB5F164241D17B6001B9B9C /* background.h */,
 				AFDC689A240D9F500044B5A3 /* background.cpp */,
 				AFDE3DFC242DE3BB0061A4DE /* base_module.h */,
 				AFDC6896240D9F500044B5A3 /* input.cpp */,
 				AFB5F161241D17B5001B9B9C /* input.h */,
-				AFDC6892240D9F500044B5A3 /* lensing.cpp */,
 				AFB5F163241D17B6001B9B9C /* lensing.h */,
-				AFB5F15E241D17B5001B9B9C /* output.h */,
+				AFDC6892240D9F500044B5A3 /* lensing_module.cpp */,
+				AFDE3E02242E244F0061A4DE /* lensing_module.h */,
 				AFDC6898240D9F500044B5A3 /* nonlinear.cpp */,
 				AFB5F160241D17B5001B9B9C /* nonlinear.h */,
+				AFB5F15E241D17B5001B9B9C /* output.h */,
+				AFDE3E00242DF6290061A4DE /* output_module.cpp */,
+				AFDE3DFF242DF6290061A4DE /* output_module.h */,
 				AFDC6893240D9F500044B5A3 /* perturbations.cpp */,
 				AFB5F15F241D17B5001B9B9C /* perturbations.h */,
 				AFDC6899240D9F500044B5A3 /* primordial.cpp */,
@@ -334,7 +336,7 @@
 				AF1078FA2424A86400A369F7 /* exceptions.cpp in Sources */,
 				AFDC68BF240D9F6B0044B5A3 /* trigonometric_integrals.c in Sources */,
 				AFDC68B5240D9F6B0044B5A3 /* common.c in Sources */,
-				AFDC689C240D9F500044B5A3 /* lensing.cpp in Sources */,
+				AFDC689C240D9F500044B5A3 /* lensing_module.cpp in Sources */,
 				AF1078DF241D1F3B00A369F7 /* history.c in Sources */,
 				AF1078E0241D1F3B00A369F7 /* hyrectools.c in Sources */,
 				AFDC68BB240D9F6B0044B5A3 /* quadrature.c in Sources */,

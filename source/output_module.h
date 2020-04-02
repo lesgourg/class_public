@@ -3,10 +3,11 @@
 
 #include "input.h"
 #include "base_module.h"
+#include "lensing_module.h"
 
 class OutputModule : public BaseModule {
 public:
-  OutputModule(const Input& input);
+  OutputModule(const Input& input, const LensingModule& lensing_module);
 private:
   int output_total_cl_at_l(int l, double* cl);
   int output_init();
@@ -22,6 +23,8 @@ private:
   int output_one_line_of_cl(FILE * clfile, double l, double * cl, int ct_size);
   int output_open_pk_file(FILE ** pkfile, FileName filename, char * first_line, double z);
   int output_one_line_of_pk(FILE * tkfile, double one_k, double one_pk);
+
+  const LensingModule& lensing_module_;
 };
 
 #endif //OUTPUT_MODULE_H

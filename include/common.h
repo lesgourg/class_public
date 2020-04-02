@@ -383,18 +383,6 @@ extern "C" {
   void class_protect_sprintf(char* dest, const char* tpl, ...);
   void class_protect_fprintf(FILE* dest, char* tpl, ...);
   void* class_protect_memcpy(void* dest, void* from, size_t sz);
-
-  int get_number_of_titles(char * titlestring);
-#ifdef __cplusplus
-}
-#endif
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-  void class_protect_sprintf(char* dest, const char* tpl, ...);
-  void class_protect_fprintf(FILE* dest, char* tpl, ...);
-  void* class_protect_memcpy(void* dest, void* from, size_t sz);
   int get_number_of_titles(char * titlestring);
 #ifdef __cplusplus
 }

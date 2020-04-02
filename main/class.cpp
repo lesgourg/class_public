@@ -60,19 +60,10 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (lensing_init(&pr,&pt,&sp,&nl,&le) == _FAILURE_) {
-    printf("\n\nError in lensing_init \n=>%s\n",le.error_message);
-    return _FAILURE_;
-  }
-
-  OutputModule output_module(input);
+  LensingModule lensing_module(input);
+  OutputModule output_module(input, lensing_module);
 
   /****** all calculations done, now free the structures ******/
-
-  if (lensing_free(&le) == _FAILURE_) {
-    printf("\n\nError in lensing_free \n=>%s\n",le.error_message);
-    return _FAILURE_;
-  }
 
   if (spectra_free(&sp) == _FAILURE_) {
     printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
