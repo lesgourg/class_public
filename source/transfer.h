@@ -5,51 +5,48 @@
 
 #include "nonlinear.h"
 #include "hyperspherical.h"
-#include <sys/shm.h>
-#include <sys/stat.h>
-#include "errno.h"
 
 /* macro: test if index_tt is in the range between index and index+num, while the flag is true */
 #define _index_tt_in_range_(index,num,flag) (flag == _TRUE_) && (index_tt >= index) && (index_tt < index+num)
 /* macro: test if index_tt corresponds to an integrated nCl/sCl contribution */
-#define _integrated_ncl_ (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))
+#define _integrated_ncl_ (_index_tt_in_range_(index_tt_lensing_, ppt->selection_num, ppt->has_cl_lensing_potential)) || \
+          (_index_tt_in_range_(index_tt_nc_lens_, ppt->selection_num, ppt->has_nc_lens)) || \
+          (_index_tt_in_range_(index_tt_nc_g4_,   ppt->selection_num, ppt->has_nc_gr)) || \
+          (_index_tt_in_range_(index_tt_nc_g5_,   ppt->selection_num, ppt->has_nc_gr))
 /* macro: test if index_tt corresponds to an non-integrated nCl/sCl contribution */
-#define _nonintegrated_ncl_ (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density)) || \
-          (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd)) || \
-          (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd)) || \
-          (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd)) || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))  || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))  || \
-          (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))
+#define _nonintegrated_ncl_ (_index_tt_in_range_(index_tt_density_, ppt->selection_num, ppt->has_nc_density)) || \
+          (_index_tt_in_range_(index_tt_rsd_,     ppt->selection_num, ppt->has_nc_rsd)) || \
+          (_index_tt_in_range_(index_tt_d0_,      ppt->selection_num, ppt->has_nc_rsd)) || \
+          (_index_tt_in_range_(index_tt_d1_,      ppt->selection_num, ppt->has_nc_rsd)) || \
+          (_index_tt_in_range_(index_tt_nc_g1_,   ppt->selection_num, ppt->has_nc_gr))  || \
+          (_index_tt_in_range_(index_tt_nc_g2_,   ppt->selection_num, ppt->has_nc_gr))  || \
+          (_index_tt_in_range_(index_tt_nc_g3_,   ppt->selection_num, ppt->has_nc_gr))
 /* macro: bin number associated to particular redshift bin and selection function for non-integrated contributions*/
 #define _get_bin_nonintegrated_ncl_(index_tt)                                                      \
-      if (_index_tt_in_range_(ptr->index_tt_density, ppt->selection_num, ppt->has_nc_density))     \
-        bin = index_tt - ptr->index_tt_density;                                                    \
-      if (_index_tt_in_range_(ptr->index_tt_rsd,     ppt->selection_num, ppt->has_nc_rsd))         \
-        bin = index_tt - ptr->index_tt_rsd;                                                        \
-      if (_index_tt_in_range_(ptr->index_tt_d0,      ppt->selection_num, ppt->has_nc_rsd))         \
-        bin = index_tt - ptr->index_tt_d0;                                                         \
-      if (_index_tt_in_range_(ptr->index_tt_d1,      ppt->selection_num, ppt->has_nc_rsd))         \
-        bin = index_tt - ptr->index_tt_d1;                                                         \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g1,   ppt->selection_num, ppt->has_nc_gr))          \
-        bin = index_tt - ptr->index_tt_nc_g1;                                                      \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g2,   ppt->selection_num, ppt->has_nc_gr))          \
-        bin = index_tt - ptr->index_tt_nc_g2;                                                      \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g3,   ppt->selection_num, ppt->has_nc_gr))          \
-        bin = index_tt - ptr->index_tt_nc_g3;
+      if (_index_tt_in_range_(index_tt_density_, ppt->selection_num, ppt->has_nc_density))     \
+        bin = index_tt - index_tt_density_;                                                    \
+      if (_index_tt_in_range_(index_tt_rsd_,     ppt->selection_num, ppt->has_nc_rsd))         \
+        bin = index_tt - index_tt_rsd_;                                                        \
+      if (_index_tt_in_range_(index_tt_d0_,      ppt->selection_num, ppt->has_nc_rsd))         \
+        bin = index_tt - index_tt_d0_;                                                         \
+      if (_index_tt_in_range_(index_tt_d1_,      ppt->selection_num, ppt->has_nc_rsd))         \
+        bin = index_tt - index_tt_d1_;                                                         \
+      if (_index_tt_in_range_(index_tt_nc_g1_,   ppt->selection_num, ppt->has_nc_gr))          \
+        bin = index_tt - index_tt_nc_g1_;                                                      \
+      if (_index_tt_in_range_(index_tt_nc_g2_,   ppt->selection_num, ppt->has_nc_gr))          \
+        bin = index_tt - index_tt_nc_g2_;                                                      \
+      if (_index_tt_in_range_(index_tt_nc_g3_,   ppt->selection_num, ppt->has_nc_gr))          \
+        bin = index_tt - index_tt_nc_g3_;
 /* macro: bin number associated to particular redshift bin and selection function for integrated contributions*/
 #define _get_bin_integrated_ncl_(index_tt)                                                               \
-      if (_index_tt_in_range_(ptr->index_tt_lensing, ppt->selection_num, ppt->has_cl_lensing_potential)) \
-        bin = index_tt - ptr->index_tt_lensing;                                                          \
-      if (_index_tt_in_range_(ptr->index_tt_nc_lens, ppt->selection_num, ppt->has_nc_lens))              \
-        bin = index_tt - ptr->index_tt_nc_lens;                                                          \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g4,   ppt->selection_num, ppt->has_nc_gr))                \
-        bin = index_tt - ptr->index_tt_nc_g4;                                                            \
-      if (_index_tt_in_range_(ptr->index_tt_nc_g5,   ppt->selection_num, ppt->has_nc_gr))                \
-        bin = index_tt - ptr->index_tt_nc_g5;
+      if (_index_tt_in_range_(index_tt_lensing_, ppt->selection_num, ppt->has_cl_lensing_potential)) \
+        bin = index_tt - index_tt_lensing_;                                                          \
+      if (_index_tt_in_range_(index_tt_nc_lens_, ppt->selection_num, ppt->has_nc_lens))              \
+        bin = index_tt - index_tt_nc_lens_;                                                          \
+      if (_index_tt_in_range_(index_tt_nc_g4_,   ppt->selection_num, ppt->has_nc_gr))                \
+        bin = index_tt - index_tt_nc_g4_;                                                            \
+      if (_index_tt_in_range_(index_tt_nc_g5_,   ppt->selection_num, ppt->has_nc_gr))                \
+        bin = index_tt - index_tt_nc_g5_;
 /**
  * Structure containing everything about transfer functions in
  * harmonic space \f$ \Delta_l^{X} (q) \f$ that other modules need to
@@ -96,98 +93,14 @@ struct transfers {
   short has_nz_file;     /**< Has dN/dz (selection function) input file? */
   short has_nz_analytic; /**< Use analytic form for dN/dz (selection function) distribution? */
   FileName nz_file_name; /**< dN/dz (selection function) input file name */
-  int nz_size;           /**< number of redshift values in input tabulated selection function */
-  double * nz_z;         /**< redshift values in input tabulated selection function */
-  double * nz_nz;        /**< input tabulated values of selection function */
-  double * nz_ddnz;      /**< second derivatives in splined selection function*/
 
   short has_nz_evo_file;      /**< Has dN/dz (evolution function) input file? */
   short has_nz_evo_analytic;  /**< Use analytic form for dN/dz (evolution function) distribution? */
   FileName nz_evo_file_name;  /**< dN/dz (evolution function) input file name */
-  int nz_evo_size;            /**< number of redshift values in input tabulated evolution function */
-  double * nz_evo_z;          /**< redshift values in input tabulated evolution function */
-  double * nz_evo_nz;         /**< input tabulated values of evolution function */
-  double * nz_evo_dlog_nz;    /**< log of tabulated values of evolution function */
-  double * nz_evo_dd_dlog_nz; /**< second derivatives in splined log of evolution function */
 
   //@}
 
-  /** @name - flag stating whether we need transfer functions at all */
 
-  //@{
-
-  short has_cls; /**< copy of same flag in perturbation structure */
-
-  //@}
-
-  /** @name - number of modes and transfer function types */
-
-  //@{
-
-  int md_size;       /**< number of modes included in computation */
-
-  int index_tt_t0;      /**< index for transfer type = temperature (j=0 term) */
-  int index_tt_t1;      /**< index for transfer type = temperature (j=1 term) */
-  int index_tt_t2;      /**< index for transfer type = temperature (j=2 term) */
-  int index_tt_e;       /**< index for transfer type = E-polarization */
-  int index_tt_b;       /**< index for transfer type = B-polarization */
-  int index_tt_lcmb;    /**< index for transfer type = CMB lensing */
-  int index_tt_density; /**< index for first bin of transfer type = matter density */
-  int index_tt_lensing; /**< index for first bin of transfer type = galaxy lensing */
-
-  int index_tt_rsd;     /**< index for first bin of transfer type = redshift space distortion of number count */
-  int index_tt_d0;      /**< index for first bin of transfer type = doppler effect for of number count (j=0 term) */
-  int index_tt_d1;      /**< index for first bin of transfer type = doppler effect for of number count (j=1 term) */
-  int index_tt_nc_lens; /**< index for first bin of transfer type = lensing for of number count */
-  int index_tt_nc_g1;   /**< index for first bin of transfer type = gravity term G1 for of number count */
-  int index_tt_nc_g2;   /**< index for first bin of transfer type = gravity term G2 for of number count */
-  int index_tt_nc_g3;   /**< index for first bin of transfer type = gravity term G3 for of number count */
-  int index_tt_nc_g4;   /**< index for first bin of transfer type = gravity term G3 for of number count */
-  int index_tt_nc_g5;   /**< index for first bin of transfer type = gravity term G3 for of number count */
-
-  int * tt_size;     /**< number of requested transfer types tt_size[index_md] for each mode */
-
-  //@}
-
-  /** @name - number and list of multipoles */
-
-  //@{
-
-  int ** l_size_tt;  /**< number of multipole values for which we effectively compute the transfer function,l_size_tt[index_md][index_tt] */
-
-  int * l_size;   /**< number of multipole values for each requested mode, l_size[index_md] */
-
-  int l_size_max; /**< greatest of all l_size[index_md] */
-
-  int * l;        /**< list of multipole values l[index_l] */
-
-  //int * l_size_bessel; /**< for each wavenumber, maximum value of l at which bessel functions must be evaluated */
-
-  double angular_rescaling; /**< correction between l and k space due to curvature (= comoving angular diameter distance to recombination / comoving radius to recombination) */
-
-  //@}
-
-  /** @name - number and list of wavenumbers */
-
-  //@{
-
-  size_t q_size; /**< number of wavenumber values */
-
-  double * q;  /**< list of wavenumber values, q[index_q] */
-
-  double ** k; /**< list of wavenumber values for each requested mode, k[index_md][index_q]. In flat universes k=q. In non-flat universes q and k differ through q2 = k2 + K(1+m), where m=0,1,2 for scalar, vector, tensor. q should be used throughout the transfer module, excepted when interpolating or manipulating the source functions S(k,tau): for a given value of q this should be done in k(q). */
-
-  int index_q_flat_approximation; /**< index of the first q value using the flat rescaling approximation */
-
-  //@}
-
-  /** @name - transfer functions */
-
-  //@{
-
-  double ** transfer; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * ptr->tt_size[index_md] + index_tt) * ptr->l_size[index_md] + index_l) * ptr->q_size + index_q] */
-
-  //@}
 
   /** @name - technical parameters */
 
@@ -196,8 +109,6 @@ struct transfers {
   short initialise_HIS_cache; /**< only true if we are using CLASS for setting up a cache of HIS structures */
 
   short transfer_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
-
-  ErrorMsg error_message; /**< zone for writing error messages */
 
   //@}
 };
@@ -286,448 +197,4 @@ typedef enum {SCALAR_TEMPERATURE_0,
 
 enum Hermite_Interpolation_Order {HERMITE3, HERMITE4, HERMITE6};
 
-/*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */
-/*
- * Boilerplate for C++
- */
-#ifdef __cplusplus
-extern "C" {
 #endif
-
-  int transfer_functions_at_q(
-                              struct transfers * ptr,
-                              int index_md,
-                              int index_ic,
-                              int index_type,
-                              int index_l,
-                              double q,
-                              double * ptransfer_local
-                              );
-
-  int transfer_init(
-                    struct precision * ppr,
-                    struct background * pba,
-                    struct thermo * pth,
-                    struct perturbs * ppt,
-                    struct nonlinear * pnl,
-                    struct transfers * ptr
-                    );
-
-  int transfer_free(
-                    struct transfers * ptr
-                    );
-
-  int transfer_indices_of_transfers(
-                                    struct precision * ppr,
-                                    struct perturbs * ppt,
-                                    struct transfers * ptr,
-                                    double q_period,
-                                    double K,
-                                    int sgnK
-                                    );
-
-  int transfer_perturbation_copy_sources_and_nl_corrections(
-                                                            struct perturbs * ppt,
-                                                            struct nonlinear * pnl,
-                                                            struct transfers * ptr,
-                                                            double *** sources
-                                                            );
-
-  int transfer_perturbation_source_spline(
-                                          struct perturbs * ppt,
-                                          struct transfers * ptr,
-                                          double *** sources,
-                                          double *** sources_spline
-                                          );
-
-  int transfer_perturbation_sources_free(
-                                         struct perturbs * ppt,
-                                         struct nonlinear * pnl,
-                                         struct transfers * ptr,
-                                         double *** sources
-                                         );
-
-  int transfer_perturbation_sources_spline_free(
-                                                struct perturbs * ppt,
-                                                struct transfers * ptr,
-                                                double *** sources_spline
-                                                );
-
-  int transfer_get_l_list(
-                          struct precision * ppr,
-                          struct perturbs * ppt,
-                          struct transfers * ptr
-                          );
-
-  int transfer_get_q_list(
-                          struct precision * ppr,
-                          struct perturbs * ppt,
-                          struct transfers * ptr,
-                          double q_period,
-                          double K,
-                          int sgnK
-                          );
-
-  int transfer_get_q_list_v1(
-                             struct precision * ppr,
-                             struct perturbs * ppt,
-                             struct transfers * ptr,
-                             double q_period,
-                             double K,
-                             int sgnK
-                             );
-
-  int transfer_get_k_list(
-                          struct perturbs * ppt,
-                          struct transfers * ptr,
-                          double K
-                          );
-
-  int transfer_get_source_correspondence(
-                                         struct perturbs * ppt,
-                                         struct transfers * ptr,
-                                         int ** tp_of_tt
-                                         );
-
-  int transfer_free_source_correspondence(
-                                          struct transfers * ptr,
-                                          int ** tp_of_tt
-                                          );
-
-  int transfer_source_tau_size_max(
-                                   struct precision * ppr,
-                                   struct background * pba,
-                                   struct perturbs * ppt,
-                                   struct transfers * ptr,
-                                   double tau_rec,
-                                   double tau0,
-                                   int * tau_size_max
-                                   );
-
-  int transfer_source_tau_size(
-                               struct precision * ppr,
-                               struct background * pba,
-                               struct perturbs * ppt,
-                               struct transfers * ptr,
-                               double tau_rec,
-                               double tau0,
-                               int index_md,
-                               int index_tt,
-                               int * tau_size
-                               );
-
-  int transfer_compute_for_each_q(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct perturbs * ppt,
-                                  struct transfers * ptr,
-                                  int ** tp_of_tt,
-                                  int index_q,
-                                  int tau_size_max,
-                                  double tau_rec,
-                                  double *** sources,
-                                  double *** sources_spline,
-                                  double * window,
-                                  struct transfer_workspace * ptw
-                                  );
-
-  int transfer_radial_coordinates(
-                                  struct transfers * ptr,
-                                  struct transfer_workspace * ptw,
-                                  int index_md,
-                                  int index_q
-                                  );
-
-  int transfer_interpolate_sources(
-                                   struct perturbs * ppt,
-                                   struct transfers * ptr,
-                                   int index_q,
-                                   int index_md,
-                                   int index_ic,
-                                   int index_type,
-                                   double * sources,
-                                   double * source_spline,
-                                   double * interpolated_sources
-                                   );
-
-  int transfer_sources(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct perturbs * ppt,
-                       struct transfers * ptr,
-                       double * interpolated_sources,
-                       double tau_rec,
-                       int index_q,
-                       int index_md,
-                       int index_tt,
-                       double * sources,
-                       double * window,
-                       int tau_size_max,
-                       double * tau0_minus_tau,
-                       double * delta_tau,
-                       int * tau_size_out
-                       );
-
-  int transfer_selection_function(
-                                  struct precision * ppr,
-                                  struct perturbs * ppt,
-                                  struct transfers * ptr,
-                                  int bin,
-                                  double z,
-                                  double * selection);
-
-  int transfer_dNdz_analytic(
-                             struct transfers * ptr,
-                             double z,
-                             double * dNdz,
-                             double * dln_dNdz_dz);
-
-  int transfer_selection_sampling(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct perturbs * ppt,
-                                  struct transfers * ptr,
-                                  int bin,
-                                  double * tau0_minus_tau,
-                                  int tau_size);
-
-  int transfer_lensing_sampling(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct perturbs * ppt,
-                                struct transfers * ptr,
-                                int bin,
-                                double tau0,
-                                double * tau0_minus_tau,
-                                int tau_size);
-
-  int transfer_source_resample(
-                               struct precision * ppr,
-                               struct background * pba,
-                               struct perturbs * ppt,
-                               struct transfers * ptr,
-                               int bin,
-                               double * tau0_minus_tau,
-                               int tau_size,
-                               int index_md,
-                               double tau0,
-                               double * interpolated_sources,
-                               double * sources);
-
-  int transfer_selection_times(
-                               struct precision * ppr,
-                               struct background * pba,
-                               struct perturbs * ppt,
-                               struct transfers * ptr,
-                               int bin,
-                               double * tau_min,
-                               double * tau_mean,
-                               double * tau_max);
-
-  int transfer_selection_compute(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct perturbs * ppt,
-                                 struct transfers * ptr,
-                                 double * selection,
-                                 double * tau0_minus_tau,
-                                 double * delta_tau,
-                                 int tau_size,
-                                 double * pvecback,
-                                 double tau0,
-                                 int bin);
-
-  int transfer_compute_for_each_l(
-                                  struct transfer_workspace * ptw,
-                                  struct precision * ppr,
-                                  struct perturbs * ppt,
-                                  struct transfers * ptr,
-                                  int index_q,
-                                  int index_md,
-                                  int index_ic,
-                                  int index_tt,
-                                  int index_l,
-                                  double l,
-                                  double q_max_bessel,
-                                  radial_function_type radial_type
-                                  );
-
-  int transfer_use_limber(
-                          struct precision * ppr,
-                          struct perturbs * ppt,
-                          struct transfers * ptr,
-                          double q_max_bessel,
-                          int index_md,
-                          int index_tt,
-                          double q,
-                          double l,
-                          short * use_limber
-                          );
-
-  int transfer_integrate(
-                         struct perturbs * ppt,
-                         struct transfers * ptr,
-                         struct transfer_workspace *ptw,
-                         int index_q,
-                         int index_md,
-                         int index_tt,
-                         double l,
-                         int index_l,
-                         double q,
-                         radial_function_type radial_type,
-                         double * trsf
-                         );
-
-  int transfer_limber(
-                      struct transfers * ptr,
-                      struct transfer_workspace * ptw,
-                      int index_md,
-                      int index_q,
-                      double l,
-                      double q,
-                      radial_function_type radial_type,
-                      double * trsf
-                      );
-
-  int transfer_limber_interpolate(
-                                  struct transfers * ptr,
-                                  double * tau0_minus_tau,
-                                  double * sources,
-                                  int tau_size,
-                                  double tau0_minus_tau_limber,
-                                  double * S
-                                  );
-
-  int transfer_limber2(
-                       int tau_size,
-                       struct transfers * ptr,
-                       int index_md,
-                       int index_q,
-                       double l,
-                       double q,
-                       double * tau0_minus_tau,
-                       double * sources,
-                       radial_function_type radial_type,
-                       double * trsf
-                       );
-
-  int transfer_can_be_neglected(
-                                struct precision * ppr,
-                                struct perturbs * ppt,
-                                struct transfers * ptr,
-                                int index_md,
-                                int index_ic,
-                                int index_tt,
-                                double ra_rec,
-                                double q,
-                                double l,
-                                short * neglect
-                                );
-
-  int transfer_late_source_can_be_neglected(
-                                            struct precision * ppr,
-                                            struct perturbs * ppt,
-                                            struct transfers * ptr,
-                                            int index_md,
-                                            int index_tt,
-                                            double l,
-                                            short * neglect);
-
-  int transfer_select_radial_function(
-                                      struct perturbs * ppt,
-                                      struct transfers * ptr,
-                                      int index_md,
-                                      int index_tt,
-                                      radial_function_type *radial_type
-                                      );
-
-  int transfer_radial_function(
-                               struct transfer_workspace * ptw,
-                               struct perturbs * ppt,
-                               struct transfers * ptr,
-                               double k,
-                               int index_q,
-                               int index_l,
-                               int x_size,
-                               double * radial_function,
-                               radial_function_type radial_type
-                               );
-
-  int transfer_init_HIS_from_bessel(
-                                    struct transfers * ptr,
-                                    HyperInterpStruct *pHIS
-                                    );
-
-  int transfer_global_selection_read(
-                                     struct transfers * ptr
-                                     );
-
-  int transfer_workspace_init(
-                              struct transfers * ptr,
-                              struct precision * ppr,
-                              struct transfer_workspace **ptw,
-                              int perturb_tau_size,
-                              int tau_size_max,
-                              double K,
-                              int sgnK,
-                              double tau0_minus_tau_cut,
-                              HyperInterpStruct * pBIS
-                              );
-
-  int transfer_workspace_free(
-                              struct transfers * ptr,
-                              struct transfer_workspace *ptw
-                              );
-
-  int transfer_update_HIS(
-                          struct precision * ppr,
-                          struct transfers * ptr,
-                          struct transfer_workspace * ptw,
-                          int index_q,
-                          double tau0
-                           );
-
-  int transfer_get_lmax(int (*get_xmin_generic)(int sgnK,
-                                                int l,
-                                                double nu,
-                                                double xtol,
-                                                double phiminabs,
-                                                double *x_nonzero,
-                                                int *fevals),
-                        int sgnK,
-                        double nu,
-                        int *lvec,
-                        int lsize,
-                        double phiminabs,
-                        double xmax,
-                        double xtol,
-                        int *index_l_left,
-                        int *index_l_right,
-                        ErrorMsg error_message);
-
-  int transfer_precompute_selection(
-                     struct precision * ppr,
-                     struct background * pba,
-                     struct perturbs * ppt,
-                     struct transfers * ptr,
-                     double tau_rec,
-                     int tau_size_max,
-                     double ** window
-                     );
-
-  int transfer_f_evo(
-                   struct background* pba,
-                   struct transfers * ptr,
-                   double* pvecback,
-                   int last_index,
-                   double cotKgen,
-                   double* f_evo
-                  );
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif
-/* @endcond */

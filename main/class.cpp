@@ -4,6 +4,7 @@
 
 #include "class.h"
 #include "output_module.h"
+#include "cosmology.h"
 
 int main(int argc, char **argv) {
 
@@ -50,21 +51,10 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (transfer_init(&pr,&ba,&th,&pt,&nl,&tr) == _FAILURE_) {
-    printf("\n\nError in transfer_init \n=>%s\n",tr.error_message);
-    return _FAILURE_;
-  }
-
-  SpectraModule spectra_module(input);
-  LensingModule lensing_module(input, spectra_module);
-  OutputModule output_module(input, spectra_module, lensing_module);
+  Cosmology cosmology = Cosmology(input);
+  OutputModule output_module(input, cosmology.GetSpectraModule(), cosmology.GetLensingModule());
 
   /****** all calculations done, now free the structures ******/
-
-  if (transfer_free(&tr) == _FAILURE_) {
-    printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);
-    return _FAILURE_;
-  }
 
   if (nonlinear_free(&nl) == _FAILURE_) {
     printf("\n\nError in nonlinear_free \n=>%s\n",nl.error_message);

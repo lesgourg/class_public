@@ -12,9 +12,10 @@
 		AF1078E3241D1F3B00A369F7 /* helium.c in Sources */ = {isa = PBXBuildFile; fileRef = AF1078D8241D1F3B00A369F7 /* helium.c */; };
 		AF1078E4241D1F3B00A369F7 /* hydrogen.c in Sources */ = {isa = PBXBuildFile; fileRef = AF1078DA241D1F3B00A369F7 /* hydrogen.c */; };
 		AF1078FA2424A86400A369F7 /* exceptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1078F92424A86400A369F7 /* exceptions.cpp */; };
+		AF14AFE924337B11005D2DE9 /* cosmology.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF14AFE724337B11005D2DE9 /* cosmology.cpp */; };
 		AFDC689C240D9F500044B5A3 /* lensing_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6892240D9F500044B5A3 /* lensing_module.cpp */; };
 		AFDC689D240D9F500044B5A3 /* perturbations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6893240D9F500044B5A3 /* perturbations.cpp */; };
-		AFDC689E240D9F500044B5A3 /* transfer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6894240D9F500044B5A3 /* transfer.cpp */; };
+		AFDC689E240D9F500044B5A3 /* transfer_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6894240D9F500044B5A3 /* transfer_module.cpp */; };
 		AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */; };
 		AFDC68A0240D9F500044B5A3 /* input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6896240D9F500044B5A3 /* input.cpp */; };
 		AFDC68A1240D9F500044B5A3 /* spectra_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6897240D9F500044B5A3 /* spectra_module.cpp */; };
@@ -59,6 +60,9 @@
 		AF1078DB241D1F3B00A369F7 /* hyrectools.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = hyrectools.h; sourceTree = "<group>"; };
 		AF1078F8241FB84F00A369F7 /* exceptions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = exceptions.h; sourceTree = "<group>"; };
 		AF1078F92424A86400A369F7 /* exceptions.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = exceptions.cpp; sourceTree = "<group>"; };
+		AF14AFE624334548005D2DE9 /* transfer_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = transfer_module.h; sourceTree = "<group>"; };
+		AF14AFE724337B11005D2DE9 /* cosmology.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cosmology.cpp; sourceTree = "<group>"; };
+		AF14AFE824337B11005D2DE9 /* cosmology.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cosmology.h; sourceTree = "<group>"; };
 		AFA9047D241D19FB009B7DEE /* class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = class.h; sourceTree = "<group>"; };
 		AFB5F15E241D17B5001B9B9C /* output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = output.h; sourceTree = "<group>"; };
 		AFB5F15F241D17B5001B9B9C /* perturbations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = perturbations.h; sourceTree = "<group>"; };
@@ -73,7 +77,7 @@
 		AFDC6886240D9EA00044B5A3 /* ppCLASS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ppCLASS; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFDC6892240D9F500044B5A3 /* lensing_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lensing_module.cpp; sourceTree = "<group>"; };
 		AFDC6893240D9F500044B5A3 /* perturbations.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = perturbations.cpp; sourceTree = "<group>"; };
-		AFDC6894240D9F500044B5A3 /* transfer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = transfer.cpp; sourceTree = "<group>"; };
+		AFDC6894240D9F500044B5A3 /* transfer_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = transfer_module.cpp; sourceTree = "<group>"; };
 		AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thermodynamics.cpp; sourceTree = "<group>"; };
 		AFDC6896240D9F500044B5A3 /* input.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = input.cpp; sourceTree = "<group>"; };
 		AFDC6897240D9F500044B5A3 /* spectra_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = spectra_module.cpp; sourceTree = "<group>"; };
@@ -179,6 +183,8 @@
 		AFDC6891240D9F500044B5A3 /* source */ = {
 			isa = PBXGroup;
 			children = (
+				AF14AFE724337B11005D2DE9 /* cosmology.cpp */,
+				AF14AFE824337B11005D2DE9 /* cosmology.h */,
 				AFB5F164241D17B6001B9B9C /* background.h */,
 				AFDC689A240D9F500044B5A3 /* background.cpp */,
 				AFDE3DFC242DE3BB0061A4DE /* base_module.h */,
@@ -201,7 +207,8 @@
 				AFB5F166241D17B6001B9B9C /* spectra.h */,
 				AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */,
 				AFB5F167241D17B6001B9B9C /* thermodynamics.h */,
-				AFDC6894240D9F500044B5A3 /* transfer.cpp */,
+				AFDC6894240D9F500044B5A3 /* transfer_module.cpp */,
+				AF14AFE624334548005D2DE9 /* transfer_module.h */,
 				AFB5F162241D17B5001B9B9C /* transfer.h */,
 			);
 			path = source;
@@ -325,7 +332,7 @@
 				AFDC68A1240D9F500044B5A3 /* spectra_module.cpp in Sources */,
 				AFDC68A2240D9F500044B5A3 /* nonlinear.cpp in Sources */,
 				AFDC68B6240D9F6B0044B5A3 /* arrays.c in Sources */,
-				AFDC689E240D9F500044B5A3 /* transfer.cpp in Sources */,
+				AFDC689E240D9F500044B5A3 /* transfer_module.cpp in Sources */,
 				AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */,
 				AFDC68BE240D9F6B0044B5A3 /* parser.c in Sources */,
 				AFDC68BC240D9F6B0044B5A3 /* evolver_rkck.c in Sources */,
@@ -347,6 +354,7 @@
 				AFDE3E01242DF6290061A4DE /* output_module.cpp in Sources */,
 				AFDC68B7240D9F6B0044B5A3 /* hyperspherical.c in Sources */,
 				AFDC68B8240D9F6B0044B5A3 /* sparse.c in Sources */,
+				AF14AFE924337B11005D2DE9 /* cosmology.cpp in Sources */,
 				AFDC68A4240D9F500044B5A3 /* background.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

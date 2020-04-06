@@ -2,11 +2,12 @@
 #define SPECTRA_MODULE_H
 
 #include "input.h"
+#include "transfer_module.h"
 #include "base_module.h"
 
 class SpectraModule : public BaseModule {
 public:
-  SpectraModule(const Input& input);
+  SpectraModule(const Input& input, const TransferModule& transfer_module);
   ~SpectraModule();
   int spectra_cl_at_l(double l, double * cl, double ** cl_md, double ** cl_md_ic) const;
 
@@ -92,6 +93,8 @@ private:
   /* deprecated functions (since v2.1) */
   int spectra_tk_at_z(double z, double * output);
   int spectra_tk_at_k_and_z(double k, double z, double * output);
+
+  const TransferModule& transfer_module_;
 
   int index_md_scalars_; /**< index for scalar modes */
 

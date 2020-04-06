@@ -5,6 +5,7 @@
 
 #include "input.h"
 #include "spectra_module.h"
+#include "cosmology.h"
 
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
@@ -3776,16 +3777,21 @@ int input_try_unknown_parameters(double * unknown_parameter,
                       primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
                       );
   }
-
+  Cosmology cosmology = Cosmology(input);
   if (pfzw->required_computation_stage >= cs_transfer){
     if (input_verbose>2)
       printf("Stage 6: transfer\n");
     tr.transfer_verbose = 0;
-    class_call_except(transfer_init(&pr,&ba,&th,&pt,&nl,&tr),
-                      tr.error_message,
-                      errmsg,
-                      nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
-                      );
+    try {
+      TransferModule transfer_module = cosmology.GetTransferModule();
+    } catch (...) {
+        //TODO: This will be made nicer later when we refactor the input module.
+        class_call_except(_FAILURE_,
+                          sp.error_message,
+                          errmsg,
+                          nonlinear_free(&nl); primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          );
+    }
   }
 
   if (pfzw->required_computation_stage >= cs_spectra){
@@ -3793,13 +3799,13 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
     try {
-      SpectraModule spectra_module(input);
+      SpectraModule spectra_module = cosmology.GetSpectraModule();
     } catch (...) {
         //TODO: This will be made nicer later when we refactor the input module.
         class_call_except(_FAILURE_,
                           sp.error_message,
                           errmsg,
-                          transfer_free(&tr);nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
+                          nonlinear_free(&nl); primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3848,9 +3854,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 
   /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_transfer){
-    class_call(transfer_free(&tr), tr.error_message, errmsg);
-  }
   if (pfzw->required_computation_stage >= cs_nonlinear){
     class_call(nonlinear_free(&nl), nl.error_message, errmsg);
   }
