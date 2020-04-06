@@ -55,20 +55,11 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp) == _FAILURE_) {
-    printf("\n\nError in spectra_init \n=>%s\n",sp.error_message);
-    return _FAILURE_;
-  }
-
-  LensingModule lensing_module(input);
-  OutputModule output_module(input, lensing_module);
+  SpectraModule spectra_module(input);
+  LensingModule lensing_module(input, spectra_module);
+  OutputModule output_module(input, spectra_module, lensing_module);
 
   /****** all calculations done, now free the structures ******/
-
-  if (spectra_free(&sp) == _FAILURE_) {
-    printf("\n\nError in spectra_free \n=>%s\n",sp.error_message);
-    return _FAILURE_;
-  }
 
   if (transfer_free(&tr) == _FAILURE_) {
     printf("\n\nError in transfer_free \n=>%s\n",tr.error_message);

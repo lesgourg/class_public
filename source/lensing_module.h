@@ -2,11 +2,12 @@
 #define LENSING_MODULE_H
 
 #include "input.h"
+#include "spectra_module.h"
 #include "base_module.h"
 
 class LensingModule : public BaseModule {
 public:
-  LensingModule(const Input& input);
+  LensingModule(const Input& input, const SpectraModule& spectra_module);
   ~LensingModule();
   int lensing_cl_at_l(int l, double * cl_lensed) const;
 
@@ -94,6 +95,7 @@ private:
   double * ddcl_lens_; /**< second derivatives for interpolation */
 
   //@}
+  const SpectraModule& spectra_module_;
 
 };
 

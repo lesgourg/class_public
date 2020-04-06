@@ -16,8 +16,9 @@
 #include "output_module.h"
 #include "exceptions.h"
 
-OutputModule::OutputModule(const Input& input, const LensingModule& lensing_module)
+OutputModule::OutputModule(const Input& input, const SpectraModule& spectra_module, const LensingModule& lensing_module)
 : BaseModule(input)
+, spectra_module_(spectra_module)
 , lensing_module_(lensing_module) {
 
   ThrowInvalidArgumentIf(output_init() != _SUCCESS_, error_message_);
@@ -30,7 +31,7 @@ int OutputModule::output_total_cl_at_l(
                          ){
 
   double ** cl_md_ic; /* array with argument
-                         cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*spectra_module_.ct_size_+index_ct] */
 
   double ** cl_md;    /* array with argument
                          cl_md[index_md][index_ct] */
@@ -45,42 +46,38 @@ int OutputModule::output_total_cl_at_l(
   else {
 
     class_alloc(cl_md_ic,
-                psp->md_size*sizeof(double *),
+                spectra_module_.md_size_*sizeof(double *),
                 error_message_);
 
     class_alloc(cl_md,
-                psp->md_size*sizeof(double *),
+                spectra_module_.md_size_*sizeof(double *),
                 error_message_);
 
-    for (index_md = 0; index_md < psp->md_size; index_md++) {
+    for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
 
-      if (psp->md_size > 1)
+      if (spectra_module_.md_size_ > 1)
 
         class_alloc(cl_md[index_md],
-                    psp->ct_size*sizeof(double),
+                    spectra_module_.ct_size_*sizeof(double),
                     error_message_);
 
-      if (psp->ic_size[index_md] > 1)
+      if (spectra_module_.ic_size_[index_md] > 1)
 
         class_alloc(cl_md_ic[index_md],
-                    psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
+                    spectra_module_.ic_ic_size_[index_md]*spectra_module_.ct_size_*sizeof(double),
                     error_message_);
     }
 
-    class_call(spectra_cl_at_l(const_cast<spectra *>(psp),
-                               (double)l,
-                               cl,
-                               cl_md,
-                               cl_md_ic),
+    class_call(spectra_module_.spectra_cl_at_l((double)l, cl, cl_md, cl_md_ic),
                psp->error_message,
                error_message_);
 
-    for (index_md = 0; index_md < psp->md_size; index_md++) {
+    for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
 
-      if (psp->md_size > 1)
+      if (spectra_module_.md_size_ > 1)
         free(cl_md[index_md]);
 
-      if (psp->ic_size[index_md] > 1)
+      if (spectra_module_.ic_size_[index_md] > 1)
         free(cl_md_ic[index_md]);
 
     }
@@ -234,7 +231,7 @@ int OutputModule::output_cl() {
   FILE * out_lensed;         /* (will contain total lensed cl's) */
 
   double ** cl_md_ic; /* array with argument
-                         cl_md_ic[index_md][index_ic1_ic2*psp->ct_size+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*spectra_module_.ct_size_+index_ct] */
 
   double ** cl_md;    /* array with argument
                          cl_md[index_md][index_ct] */
@@ -252,25 +249,25 @@ int OutputModule::output_cl() {
   /** - first, allocate all arrays of files and \f$ C_l\f$'s */
 
   class_alloc(out_md_ic,
-              psp->md_size*sizeof(FILE * *),
+              spectra_module_.md_size_*sizeof(FILE * *),
               error_message_);
 
   class_alloc(cl_md_ic,
-              psp->md_size*sizeof(double *),
+              spectra_module_.md_size_*sizeof(double *),
               error_message_);
 
   class_alloc(out_md,
-              psp->md_size*sizeof(FILE *),
+              spectra_module_.md_size_*sizeof(FILE *),
               error_message_);
 
   class_alloc(cl_md,
-              psp->md_size*sizeof(double *),
+              spectra_module_.md_size_*sizeof(double *),
               error_message_);
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
     class_alloc(out_md_ic[index_md],
-                psp->ic_ic_size[index_md]*sizeof(FILE *),
+                spectra_module_.ic_ic_size_[index_md]*sizeof(FILE *),
                 error_message_);
 
   }
@@ -282,13 +279,13 @@ int OutputModule::output_cl() {
   class_call(output_open_cl_file(&out,
                                  file_name,
                                  "total [l(l+1)/2pi] C_l's",
-                                 psp->l_max_tot
+                                 spectra_module_.l_max_tot_
                                  ),
              error_message_,
              error_message_);
 
   class_alloc(cl_tot,
-              psp->ct_size*sizeof(double),
+              spectra_module_.ct_size_*sizeof(double),
               error_message_);
 
 
@@ -326,13 +323,13 @@ int OutputModule::output_cl() {
       class_call(output_open_cl_file(&(out_md[index_md]),
                                      file_name,
                                      first_line,
-                                     psp->l_max[index_md]
+                                     spectra_module_.l_max_[index_md]
                                      ),
                  error_message_,
                  error_message_);
 
       class_alloc(cl_md[index_md],
-                  psp->ct_size*sizeof(double),
+                  spectra_module_.ct_size_*sizeof(double),
                   error_message_);
 
     }
@@ -463,14 +460,14 @@ int OutputModule::output_cl() {
 
           }
 
-          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,psp->ic_size[index_md]);
+          index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,spectra_module_.ic_size_[index_md]);
 
-          if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+          if (spectra_module_.is_non_zero_[index_md][index_ic1_ic2] == _TRUE_) {
 
             class_call(output_open_cl_file(&(out_md_ic[index_md][index_ic1_ic2]),
                                            file_name,
                                            first_line,
-                                           psp->l_max[index_md]
+                                           spectra_module_.l_max_[index_md]
                                            ),
                        error_message_,
                        error_message_);
@@ -480,7 +477,7 @@ int OutputModule::output_cl() {
       }
 
       class_alloc(cl_md_ic[index_md],
-                  psp->ic_ic_size[index_md]*psp->ct_size*sizeof(double),
+                  spectra_module_.ic_ic_size_[index_md]*spectra_module_.ct_size_*sizeof(double),
                   error_message_);
     }
   }
@@ -489,13 +486,13 @@ int OutputModule::output_cl() {
       by calling spectra_cl_at_l() and distribute the results to
       relevant files */
 
-  for (l = 2; l <= psp->l_max_tot; l++) {
+  for (l = 2; l <= spectra_module_.l_max_tot_; l++) {
 
-    class_call(spectra_cl_at_l(const_cast<spectra*>(psp),(double)l,cl_tot,cl_md,cl_md_ic),
+    class_call(spectra_module_.spectra_cl_at_l((double)l,cl_tot,cl_md,cl_md_ic),
                psp->error_message,
                error_message_);
 
-    class_call(output_one_line_of_cl(out,(double)l,cl_tot,psp->ct_size),
+    class_call(output_one_line_of_cl(out,(double)l,cl_tot,spectra_module_.ct_size_),
                error_message_,
                error_message_);
 
@@ -505,16 +502,16 @@ int OutputModule::output_cl() {
                  lensing_module_.error_message_,
                  error_message_);
 
-      class_call(output_one_line_of_cl(out_lensed,l,cl_tot,psp->ct_size),
+      class_call(output_one_line_of_cl(out_lensed,l,cl_tot,spectra_module_.ct_size_),
                  error_message_,
                  error_message_);
     }
 
     if (ppt->md_size > 1) {
       for (index_md = 0; index_md < ppt->md_size; index_md++) {
-        if (l <= psp->l_max[index_md]) {
+        if (l <= spectra_module_.l_max_[index_md]) {
 
-          class_call(output_one_line_of_cl(out_md[index_md],l,cl_md[index_md],psp->ct_size),
+          class_call(output_one_line_of_cl(out_md[index_md],l,cl_md[index_md],spectra_module_.ct_size_),
                      error_message_,
                      error_message_);
         }
@@ -522,11 +519,11 @@ int OutputModule::output_cl() {
     }
 
     for (index_md = 0; index_md < ppt->md_size; index_md++) {
-      if ((ppt->ic_size[index_md] > 1) && (l <= psp->l_max[index_md])) {
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
-          if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+      if ((ppt->ic_size[index_md] > 1) && (l <= spectra_module_.l_max_[index_md])) {
+        for (index_ic1_ic2 = 0; index_ic1_ic2 < spectra_module_.ic_ic_size_[index_md]; index_ic1_ic2++) {
+          if (spectra_module_.is_non_zero_[index_md][index_ic1_ic2] == _TRUE_) {
 
-            class_call(output_one_line_of_cl(out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*psp->ct_size]),psp->ct_size),
+            class_call(output_one_line_of_cl(out_md_ic[index_md][index_ic1_ic2],l,&(cl_md_ic[index_md][index_ic1_ic2*spectra_module_.ct_size_]),spectra_module_.ct_size_),
                        error_message_,
                        error_message_);
           }
@@ -539,8 +536,8 @@ int OutputModule::output_cl() {
 
   for (index_md = 0; index_md < ppt->md_size; index_md++) {
     if (ppt->ic_size[index_md] > 1) {
-      for (index_ic1_ic2 = 0; index_ic1_ic2 < psp->ic_ic_size[index_md]; index_ic1_ic2++) {
-        if (psp->is_non_zero[index_md][index_ic1_ic2] == _TRUE_) {
+      for (index_ic1_ic2 = 0; index_ic1_ic2 < spectra_module_.ic_ic_size_[index_md]; index_ic1_ic2++) {
+        if (spectra_module_.is_non_zero_[index_md][index_ic1_ic2] == _TRUE_) {
           fclose(out_md_ic[index_md][index_ic1_ic2]);
         }
       }
@@ -1261,7 +1258,7 @@ int OutputModule::output_open_cl_file(
 
     fprintf(*clfile,"# -> if you don't want to see such a header, set 'headers' to 'no' in input file\n");
 
-    if (psp->has_pp == _TRUE_) {
+    if (spectra_module_.has_pp_ == _TRUE_) {
       if (pop->output_format == class_format) {
         fprintf(*clfile,"# -> for CMB lensing (phi), these are C_l^phi-phi for the lensing potential.\n");
       }
@@ -1270,11 +1267,11 @@ int OutputModule::output_open_cl_file(
       }
     }
 
-    if (psp->has_ll == _TRUE_) {
+    if (spectra_module_.has_ll_ == _TRUE_) {
       fprintf(*clfile,"# -> for galaxy lensing (lens[i]), these are C_l^phi-phi for the lensing potential.\n");
     }
 
-    if (psp->has_pp == _TRUE_ || psp->has_ll == _TRUE_) {
+    if (spectra_module_.has_pp_ == _TRUE_ || spectra_module_.has_ll_ == _TRUE_) {
       fprintf(*clfile,"#    Remember the conversion factors:\n");
       fprintf(*clfile,"#    C_l^dd (deflection) = l(l+1) C_l^phi-phi\n");
       fprintf(*clfile,"#    C_l^gg (shear/convergence) = 1/4 (l(l+1))^2 C_l^phi-phi\n");
@@ -1291,63 +1288,63 @@ int OutputModule::output_open_cl_file(
       colnum++;
     }
     if (pop->output_format == class_format) {
-      class_fprintf_columntitle(*clfile,"TT",psp->has_tt,colnum);
-      class_fprintf_columntitle(*clfile,"EE",psp->has_ee,colnum);
-      class_fprintf_columntitle(*clfile,"TE",psp->has_te,colnum);
-      class_fprintf_columntitle(*clfile,"BB",psp->has_bb,colnum);
-      class_fprintf_columntitle(*clfile,"phiphi",psp->has_pp,colnum);
-      class_fprintf_columntitle(*clfile,"TPhi",psp->has_tp,colnum);
-      class_fprintf_columntitle(*clfile,"Ephi",psp->has_ep,colnum);
+      class_fprintf_columntitle(*clfile,"TT",spectra_module_.has_tt_,colnum);
+      class_fprintf_columntitle(*clfile,"EE",spectra_module_.has_ee_,colnum);
+      class_fprintf_columntitle(*clfile,"TE",spectra_module_.has_te_,colnum);
+      class_fprintf_columntitle(*clfile,"BB",spectra_module_.has_bb_,colnum);
+      class_fprintf_columntitle(*clfile,"phiphi",spectra_module_.has_pp_,colnum);
+      class_fprintf_columntitle(*clfile,"TPhi",spectra_module_.has_tp_,colnum);
+      class_fprintf_columntitle(*clfile,"Ephi",spectra_module_.has_ep_,colnum);
     }
     else if (pop->output_format == camb_format) {
-      class_fprintf_columntitle(*clfile,"TT",psp->has_tt,colnum);
-      class_fprintf_columntitle(*clfile,"EE",psp->has_ee,colnum);
-      class_fprintf_columntitle(*clfile,"BB",psp->has_bb,colnum);
-      class_fprintf_columntitle(*clfile,"TE",psp->has_te,colnum);
-      class_fprintf_columntitle(*clfile,"dd",psp->has_pp,colnum);
-      class_fprintf_columntitle(*clfile,"dT",psp->has_tp,colnum);
-      class_fprintf_columntitle(*clfile,"dE",psp->has_ep,colnum);
+      class_fprintf_columntitle(*clfile,"TT",spectra_module_.has_tt_,colnum);
+      class_fprintf_columntitle(*clfile,"EE",spectra_module_.has_ee_,colnum);
+      class_fprintf_columntitle(*clfile,"BB",spectra_module_.has_bb_,colnum);
+      class_fprintf_columntitle(*clfile,"TE",spectra_module_.has_te_,colnum);
+      class_fprintf_columntitle(*clfile,"dd",spectra_module_.has_pp_,colnum);
+      class_fprintf_columntitle(*clfile,"dT",spectra_module_.has_tp_,colnum);
+      class_fprintf_columntitle(*clfile,"dE",spectra_module_.has_ep_,colnum);
     }
 
     /** - Next deal with entries that are independent of format type */
 
-    if (psp->has_dd == _TRUE_){
-      for (index_d1=0; index_d1<psp->d_size; index_d1++){
-        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+    if (spectra_module_.has_dd_ == _TRUE_){
+      for (index_d1=0; index_d1<spectra_module_.d_size_; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,spectra_module_.d_size_-1); index_d2++){
           sprintf(tmp,"dens[%d]-dens[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
       }
     }
-    if (psp->has_td == _TRUE_){
-      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+    if (spectra_module_.has_td_ == _TRUE_){
+      for (index_d1=0; index_d1<spectra_module_.d_size_; index_d1++){
         sprintf(tmp,"T-dens[%d]",index_d1+1);
         class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
       }
     }
-    if (psp->has_pd == _TRUE_){
-      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+    if (spectra_module_.has_pd_ == _TRUE_){
+      for (index_d1=0; index_d1<spectra_module_.d_size_; index_d1++){
         sprintf(tmp,"phi-dens[%d]",index_d1+1);
         class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
       }
     }
-    if (psp->has_ll == _TRUE_){
-      for (index_d1=0; index_d1<psp->d_size; index_d1++){
-        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++){
+    if (spectra_module_.has_ll_ == _TRUE_){
+      for (index_d1=0; index_d1<spectra_module_.d_size_; index_d1++){
+        for (index_d2=index_d1; index_d2<=MIN(index_d1+psp->non_diag,spectra_module_.d_size_-1); index_d2++){
           sprintf(tmp,"lens[%d]-lens[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
       }
     }
-    if (psp->has_tl == _TRUE_){
-      for (index_d1=0; index_d1<psp->d_size; index_d1++){
+    if (spectra_module_.has_tl_ == _TRUE_){
+      for (index_d1=0; index_d1<spectra_module_.d_size_; index_d1++){
         sprintf(tmp,"T-lens[%d]",index_d1+1);
         class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
       }
     }
-    if (psp->has_dl == _TRUE_){
-      for (index_d1=0; index_d1<psp->d_size; index_d1++){
-        for (index_d2=MAX(index_d1-psp->non_diag,0); index_d2<=MIN(index_d1+psp->non_diag,psp->d_size-1); index_d2++) {
+    if (spectra_module_.has_dl_ == _TRUE_){
+      for (index_d1=0; index_d1<spectra_module_.d_size_; index_d1++){
+        for (index_d2=MAX(index_d1-psp->non_diag,0); index_d2<=MIN(index_d1+psp->non_diag,spectra_module_.d_size_-1); index_d2++) {
           sprintf(tmp,"dens[%d]-lens[%d]",index_d1+1,index_d2+1);
           class_fprintf_columntitle(*clfile,tmp,_TRUE_,colnum);
         }
@@ -1402,27 +1399,27 @@ int OutputModule::output_one_line_of_cl(
   }
 
   if (pop->output_format == camb_format) {
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_tt], psp->has_tt);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_ee], psp->has_ee);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_bb], psp->has_bb);
-    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[psp->index_ct_te], psp->has_te);
-    class_fprintf_double(clfile, l*(l+1)*factor*cl[psp->index_ct_pp], psp->has_pp);
-    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_tp], psp->has_tp);
-    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[psp->index_ct_ep], psp->has_ep);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[spectra_module_.index_ct_tt_], spectra_module_.has_tt_);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[spectra_module_.index_ct_ee_], spectra_module_.has_ee_);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[spectra_module_.index_ct_bb_], spectra_module_.has_bb_);
+    class_fprintf_double(clfile, factor*pow(pba->T_cmb*1.e6,2)*cl[spectra_module_.index_ct_te_], spectra_module_.has_te_);
+    class_fprintf_double(clfile, l*(l+1)*factor*cl[spectra_module_.index_ct_pp_], spectra_module_.has_pp_);
+    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[spectra_module_.index_ct_tp_], spectra_module_.has_tp_);
+    class_fprintf_double(clfile, sqrt(l*(l+1))*factor*pba->T_cmb*1.e6*cl[spectra_module_.index_ct_ep_], spectra_module_.has_ep_);
     index_ct_rest = 0;
-    if (psp->has_tt == _TRUE_)
+    if (spectra_module_.has_tt_ == _TRUE_)
       index_ct_rest++;
-    if (psp->has_ee == _TRUE_)
+    if (spectra_module_.has_ee_ == _TRUE_)
       index_ct_rest++;
-    if (psp->has_bb == _TRUE_)
+    if (spectra_module_.has_bb_ == _TRUE_)
       index_ct_rest++;
-    if (psp->has_te == _TRUE_)
+    if (spectra_module_.has_te_ == _TRUE_)
       index_ct_rest++;
-    if (psp->has_pp == _TRUE_)
+    if (spectra_module_.has_pp_ == _TRUE_)
       index_ct_rest++;
-    if (psp->has_tp == _TRUE_)
+    if (spectra_module_.has_tp_ == _TRUE_)
       index_ct_rest++;
-    if (psp->has_ep == _TRUE_)
+    if (spectra_module_.has_ep_ == _TRUE_)
       index_ct_rest++;
     /* Now print the remaining (if any) entries:*/
     for (index_ct=index_ct_rest; index_ct < ct_size; index_ct++) {

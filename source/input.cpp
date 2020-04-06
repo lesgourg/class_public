@@ -4,6 +4,7 @@
  */
 
 #include "input.h"
+#include "spectra_module.h"
 
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
@@ -3629,16 +3630,17 @@ int input_try_unknown_parameters(double * unknown_parameter,
   /** Summary:
    * - Call the structures*/
 
-  struct precision pr;        /* for precision parameters */
-  struct background ba;       /* for cosmological background */
-  struct thermo th;           /* for thermodynamics */
-  struct perturbs pt;         /* for source functions */
-  struct transfers tr;        /* for transfer functions */
-  struct primordial pm;       /* for primordial spectra */
-  struct spectra sp;          /* for output spectra */
-  struct nonlinear nl;        /* for non-linear spectra */
-  struct lensing le;          /* for lensed spectra */
-  struct output op;           /* for output files */
+  Input input;
+  precision& pr = input.precision_;      /* for precision parameters */
+  background& ba = input.background_;    /* for cosmological background */
+  thermo& th = input.thermodynamics_;    /* for thermodynamics */
+  perturbs& pt = input.perturbations_;   /* for source functions */
+  primordial& pm = input.primordial_;    /* for primordial spectra */
+  nonlinear& nl = input.nonlinear_;      /* for non-linear spectra */
+  transfers& tr = input.transfers_;      /* for transfer functions */
+  spectra& sp = input.spectra_;          /* for output spectra */
+  lensing& le = input.lensing_;          /* for lensed spectra */
+  struct output& op = input.output_;
 
   int i;
   double rho_dcdm_today, rho_dr_today;
@@ -3790,11 +3792,16 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
-    class_call_except(spectra_init(&pr,&ba,&pt,&pm,&nl,&tr,&sp),
-                      sp.error_message,
-                      errmsg,
-                      transfer_free(&tr);nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
-                      );
+    try {
+      SpectraModule spectra_module(input);
+    } catch (...) {
+        //TODO: This will be made nicer later when we refactor the input module.
+        class_call_except(_FAILURE_,
+                          sp.error_message,
+                          errmsg,
+                          transfer_free(&tr);nonlinear_free(&nl);primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
+                          );
+    }
   }
 
   /** - Get the corresponding shoot variable and put into output */
@@ -3841,9 +3848,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 
   /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_spectra){
-    class_call(spectra_free(&sp), sp.error_message, errmsg);
-  }
   if (pfzw->required_computation_stage >= cs_transfer){
     class_call(transfer_free(&tr), tr.error_message, errmsg);
   }
