@@ -1,7 +1,6 @@
 /** @file heating.c Documented heating module
  *
- * Initially written by:
- * Nils Schoeneberg and Matteo Lucca, 27.02.2019
+ * written by Nils Schoeneberg and Matteo Lucca, 27.02.2019
  *
  * The main goal of this module is to calculate the deposited energy in form of heating, ionization
  * and Lyman alpha processes. For more details see the description in the README file.
@@ -28,7 +27,7 @@ int heating_init(struct precision * ppr,
   struct heating* phe = &(pth->he);
   int index_inj, index_dep;
 
-  /** Initialize flags, indeces and parameters */
+  /** Initialize flags, indices and parameters */
   phe->has_exotic_injection = _FALSE_;
   phe->has_DM_ann = _FALSE_;
   phe->has_DM_dec = _FALSE_;
@@ -348,18 +347,22 @@ int heating_noninjected_workspace_free(struct heating* phe){
 
   return _SUCCESS_;
 }
+
 /**
  * Calculate the heating (first order only) at the given redshift.
- * If phe->to_store is set to true, also store the value in
- * a table of heatings, which can later be used to interpolate.
+ * the results are stored in the deposition vector
+ * pth->phe->pvecdeposition, and if phe->to_store is set to true, also
+ * in one line of the table pth->phe->deposition_table, which can
+ * later be used to interpolate.
  *
  * @param pba         Input: pointer to background structure
- * @param pth         Input: pointer to thermodynamics structure
+ * @param pth         Input/output: pointer to thermodynamics structure
  * @param x           Input: freaction of free electrons
  * @param z           Input: redshift
- * @param pvecback    Output: vector of background quantities
+ * @param pvecback    Input: vector of background quantities
  * @return the error status
  */
+
 int heating_calculate_at_z(struct background* pba,
                            struct thermo* pth,
                            double x,
@@ -368,7 +371,7 @@ int heating_calculate_at_z(struct background* pba,
                            double* pvecback){
 
   /** Define local variables */
-  struct heating* phe = &(pth->he);
+  struct heating * phe = &(pth->he);
   int index_dep, iz_store;
   double h,a,b;
   double dEdz_inj;

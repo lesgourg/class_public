@@ -71,9 +71,10 @@ struct thermo
 
   //@{
 
-  double YHe;  /**< \f$ Y_{He} \f$: primordial helium fraction */
+  double YHe;  /**< \f$ Y_{He} \f$: primordial helium mass fraction rho_He/(rho_H+rho_He),
+                  close but not exactly equal to the density fraction 4*n_He/(n_H+4*n_He) */
 
-  double fHe;  /**< \f$ f_{He} \f$: transformed primordial helium fraction */
+  double fHe;  /**< \f$ f_{He} \f$: primordial helium-to-hydrogen nucleon ratio 4*n_He/n_H */
 
   enum recombination_algorithm recombination; /**< recombination code */
 
@@ -297,26 +298,14 @@ struct thermo
 
 };
 
-struct thermo_heating_parameters {
-
-  double annihilation;           /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
-  double annihilation_variation; /**< if this parameter is non-zero, the function F(z)=(f <sigma*v>/m_cdm)(z) will be a parabola in
-                                      log-log scale between zmin and zmax, with a curvature given by annihlation_variation (must be
-                                      negative), and with a maximum in zmax; it will be constant outside this range */
-  double annihilation_z;         /**< if annihilation_variation is non-zero, this is the value of z at which the parameter annihilation is defined, i.e.
-                                      F(annihilation_z)=annihilation */
-  double annihilation_zmax;      /**< if annihilation_variation is non-zero, redshift above which annihilation rate is maximal */
-  double annihilation_zmin;      /**< if annihilation_variation is non-zero, redshift below which annihilation rate is constant */
-  double annihilation_f_halo;    /**< takes the contribution of DM annihilation in halos into account*/
-  double annihilation_z_halo;    /**< characteristic redshift for DM annihilation in halos*/
-
-  short has_on_the_spot;         /**< flag to specify if we want to use the on-the-spot approximation **/
-
-  double decay;                  /**< parameter describing CDM decay (f/tau, see e.g. 1109.6322)*/
-};
+/**
+ * Other structures that are used during the thermodynamics module
+ * execution (i.e. during thermodynamics_init()) but get erased later
+ * on: thus they cannot be accessed by other modules.
+ */
 
 /**
- * temporary  parameters and workspace passed to the thermodynamics_derivs function
+ * Vector of thermodynamical quantities to integrate over, and indices of this vector
  */
 
 struct thermo_vector {
@@ -335,82 +324,55 @@ struct thermo_vector {
 
 };
 
+/**
+ * Workspace for differential equation of thermodynamics
+ */
+
 struct thermo_diffeq_workspace {
 
-  struct thermo_vector * tv; /**< pointer to vector of integrated quantities and their time-derivatives */
-  struct thermohyrec * phyrec;
-  struct thermorecfast * precfast;
-
-  double x_H;  /**< Hydrogen ionization fraction */
-  double x_He; /**< Helium ionization fraction */
+  double x_H;      /**< Hydrogen ionization fraction */
+  double x_He;     /**< Helium ionization fraction */
   double x_noreio; /**< Electron ionization fraction, not taking into account reionization */
-  double x_reio; /**< Electron ionization fraction, taking into account reionization */
+  double x_reio;   /**< Electron ionization fraction, taking into account reionization */
 
-  double dx_H;
-  double dx_He;
-  double dx;
-  double dxdlna;
+  double dx_H;     /**< Hydrogen ionization fraction derivative */
+  double dx_He;    /**< Helium ionization fraction derivative */
+  double dx;       /**< Electron ionization fraction, not taking into account reionization derivative */
+  double dxdlna;   /**< Electron ionization fraction, taking into account reionization derivativ */
 
-  double x;
+  double x;        /**< total ionization fraction following usual CMB convention, n_free/n_H = x_H + fHe * x_He; */
 
-  double Tmat;
-  double dTmat;
+  double Tmat;     /**< matter temperature */
+  double dTmat;    /**< matter temperature derivative */
 
-  int index_ap_brec; /**< index for approximation before recombination */
-  int index_ap_He1;  /**< index for 1st He-recombination (HeIII) */
-  int index_ap_He1f; /**< index for approximation after 1st He recombination before 2nd */
-  int index_ap_He2;  /**< index for start of 2nd He-recombination (HeII) */
-  int index_ap_H;    /**< index for start of H-recombination (HI) */
-  int index_ap_frec; /**< index for full recombination */
-  int index_ap_reio; /**< index for reionization */
+  /* index of approximation schemes for the thermal history */
+  int index_ap_brec; /**< before H- and He-recombination */
+  int index_ap_He1;  /**< during 1st He-recombination (HeIII) */
+  int index_ap_He1f; /**< in between 1st and 2nd He recombination */
+  int index_ap_He2;  /**< beginning of 2nd He-recombination (HeII) */
+  int index_ap_H;    /**< beginning of H-recombination (HI) */
+  int index_ap_frec; /**< during and after full H- and HeII-recombination */
+  int index_ap_reio; /**< during reionization */
 
-  int ap_current;     /** current fixed approximation scheme index */
+  int ap_current;     /** current approximation scheme index */
   int ap_size;        /**< number of approximation intervals used during evolver loop */
   int ap_size_loaded; /**< number of all approximations  */
 
   double * ap_z_limits;       /**< vector storing ending limits of each approximation */
   double * ap_z_limits_delta; /**< vector storing smoothing deltas of each approximation */
 
-  int require_H;
-  int require_He;
+  int require_H;  /** in given approximation scheme, do we need to integrate hydrogen ionization fraction? */
+  int require_He; /** in given approximation scheme, do we need to integrate helium ionization fraction? */
+
+  struct thermo_vector * ptv;       /**< pointer to vector of integrated quantities and their time-derivatives */
+  struct thermohyrec * phyrec;     /**< pointer to wrapper of HyRec structure */
+  struct thermorecfast * precfast; /**< pointer to wrapper of RecFast structure */
 
 };
 
-struct thermo_workspace {
-
-  struct thermo_diffeq_workspace * ptdw;
-  struct thermo_reionization_parameters * ptrp;
-  struct thermo_heating_parameters * pthp;
-
-  /* Parameters derived directly from the differential equation */
-  int index_re_z;          /**< redshift \f$ z \f$ */
-  int index_re_xe;         /**< ionization fraction \f$ x_e \f$ */
-  int index_re_Tb;         /**< baryon temperature \f$ T_b \f$ */
-  int index_re_wb;         /**< baryon equation of state parameter \f$ w_b \f$ */
-  int index_re_cb2;        /**< squared baryon adiabatic sound speed \f$ c_b^2 \f$ */
-  int index_re_dkappadtau; /**< Thomson scattering rate \f$ d \kappa / d \tau\f$ (units 1/Mpc) */
-  int index_re_dkappadz;   /**< Thomson scattering rate with respect to redshift \f$ d \kappa / d z\f$ (units 1/Mpc) */
-  int index_re_d3kappadz3; /**< second derivative of previous quantity with respect to redshift */
-  int index_re_dTb;        /**< derivative baryon temperature \f$ dT_b \f$ */
-  int re_size;             /**< size of this vector */
-
-  // Number of z values
-  int Nz_reio;                 /**< number of redshift points of reionization during evolver loop*/
-  int Nz_reco;                 /**< number of redshifts for recombination during the evolver loop */
-  int Nz_reco_lin;             /**< number of redshifts linearly sampled for recombination during the evolver loop */
-  int Nz_reco_log;             /**< number of redshifts logarithmically sampled for recombination during the evolver loop */
-  int Nz_tot;
-
-  // Most important and useful parameters of evolution
-  double YHe;          /**< defined as in RECFAST */
-  double fHe;          /**< defined as in RECFAST */
-  double SIunit_H0;    /**< defined as in RECFAST */
-  double SIunit_nH0;   /**< defined as in RECFAST */
-  double Tcmb;
-  double x_limit_T;
-
-  double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
-};
+/**
+ * Workspace for reionization
+ */
 
 struct thermo_reionization_parameters{
 
@@ -440,6 +402,40 @@ struct thermo_reionization_parameters{
   int reio_num_params;              /**< length of vector reionization_parameters */
 };
 
+/**
+ * General parameters relevant to thermal history and pointers to few other more specialised worspaces
+ */
+
+struct thermo_workspace {
+
+  /* Number of z values */
+  int Nz_reco_lin;             /**< number of redshifts linearly sampled for recombination during the evolver loop */
+  int Nz_reco_log;             /**< number of redshifts logarithmically sampled for recombination during the evolver loop */
+  int Nz_reco;                 /**< number of redshifts for recombination during the evolver loop */
+  int Nz_reio;                 /**< number of redshift points of reionization during evolver loop*/
+  int Nz_tot;                  /**< total number of sampled redshifts */
+
+  /* Most important and useful parameters of evolution */
+  double YHe;          /**< defined as in RECFAST : primordial helium mass fraction */
+  double fHe;          /**< defined as in RECFAST : primordial helium-to-hydrogen nucleon ratio */
+  double SIunit_H0;    /**< defined as in RECFAST : Hubble parameter today in SI units */
+  double SIunit_nH0;   /**< defined as in RECFAST : Hydrogen number density today in SI units*/
+  double Tcmb;         /**< CMB temperature today in Kelvin */
+  double x_limit_T;    /**< value of ionization fraction below which temperature evolution equation is integrated */
+
+  double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
+
+  int last_index_back; /**< nearest location in background table */
+
+  struct thermo_diffeq_workspace * ptdw;        /**< pointer to workspace for differential equations */
+  struct thermo_reionization_parameters * ptrp; /**< pointer to workspace for reionization */
+
+};
+
+/**
+ * temporary  parameters and workspace passed to the thermodynamics_derivs function
+ */
+
 struct thermodynamics_parameters_and_workspace {
 
   /* structures containing fixed input parameters (indices, ...) */
@@ -450,7 +446,6 @@ struct thermodynamics_parameters_and_workspace {
   /* workspace */
   struct thermo_workspace * ptw;
   double * pvecback;
-
 };
 
 /**************************************************************/
@@ -519,11 +514,11 @@ extern "C" {
                            struct thermo_workspace* ptw,
                            double * pvecback);
 
-  int thermodynamics_solve_derivs(double mz,
-                                  double * y,
-                                  double * dy,
-                                  void * parameters_and_workspace,
-                                  ErrorMsg error_message);
+  int thermodynamics_derivs(double mz,
+                            double * y,
+                            double * dy,
+                            void * parameters_and_workspace,
+                            ErrorMsg error_message);
 
   int thermodynamics_solve_current_quantities(double z,
                                               double * y,
@@ -609,12 +604,10 @@ extern "C" {
 
   int thermodynamics_calculate_conformal_drag_time(struct background* pba,
                                                    struct thermo* pth,
-                                                   int* last_index_back,
                                                    double* pvecback);
 
   int thermodynamics_calculate_damping_scale(struct background* pba,
                                              struct thermo* pth,
-                                             int* last_index_back,
                                              double* pvecback);
 
   int thermodynamics_calculate_idm_dr_quantities(struct precision * ppr,
@@ -625,13 +618,11 @@ extern "C" {
   int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
                                                         struct background * pba,
                                                         struct thermo* pth,
-                                                        int* last_index_back,
                                                         double* pvecback);
 
   int thermodynamics_calculate_drag_quantities(struct precision* ppr,
                                                struct background * pba,
                                                struct thermo* pth,
-                                               int* last_index_back,
                                                double* pvecback);
 
   int thermodynamics_print_output(struct background* pba,

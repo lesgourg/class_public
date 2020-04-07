@@ -85,19 +85,19 @@ class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [
  */
 
 /**
- * The initial z for the recfast calculation of the recombination history, e.g. 10^4
+ * The initial z for the recfast calculation of the recombination history
  */
-class_precision_parameter(thermo_z_initial,double,5.0e6)
+class_precision_parameter(thermo_z_initial,double,5.e6)
 /**
  * The switch z for the recfast calculation towards linear sampling
  */
-class_precision_parameter(thermo_z_linear,double,10000.0)
+class_precision_parameter(thermo_z_linear,double,1.e4)
 /**
  * Number of recfast integration steps (linear sampling)
  */
 class_precision_parameter(thermo_Nz_lin,int,20000)
 /**
- * Number of recfast integration steps, e.g. if this is 1.10^4 and the previous one is 10^4, the step will be Delta z = 0.5
+ * Number of recfast integration steps (logarithmnic sampling)
  */
 class_precision_parameter(thermo_Nz_log,int,5000)
 /**
@@ -142,6 +142,15 @@ class_precision_parameter(recfast_z_He_2,double,5000.0) /**< from recfast 1.4, E
 class_precision_parameter(recfast_delta_z_He_2,double,100.0)/**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 class_precision_parameter(recfast_z_He_3,double,3500.0) /**< from recfast 1.4, Starting value of Helium recombination 2 */
 class_precision_parameter(recfast_delta_z_He_3,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+
+class_precision_parameter(recfast_z_early_H_recombination,double,2870.) /**< from class 3.0, redshift at beginning of early H-recombination (analytic approximation possible), replaces condition  */
+class_precision_parameter(recfast_delta_z_early_H_recombination,double,50.) /**< from class 3.0, smoothing radius delta z for beginning of early H-recombination period  */
+
+class_precision_parameter(recfast_z_full_H_recombination,double,1600.)  /**< from class 3.0, redshift at beignning of full H recombination (always use full equations), replaces condition x_H <  recfast_x_H0_trigger */
+class_precision_parameter(recfast_delta_z_full_H_recombination,double,50.)  /**< from class 3.0, smoothing radius delta z for full H-recombination period  */
+
+class_precision_parameter(recfast_delta_z_reio,double,2.)  /**< from class 3.0, smoothing radius delta z for reionization period  */
+
 class_precision_parameter(recfast_x_He0_trigger,double,0.995) /**< Switch for Helium full calculation during reco, raised from 0.99 to 0.995 for smoother Helium */
 class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /**< Switch for Helium full calculation during reco, for changing Helium flag, raised from 0.985 to same as previous one for smoother Helium */
 class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
