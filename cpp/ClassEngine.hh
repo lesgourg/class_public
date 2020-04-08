@@ -69,9 +69,9 @@ class ClassEngine : public Engine
 
 public:
   //constructors
-  ClassEngine(const ClassParams& pars);
+  ClassEngine(const ClassParams& pars, bool verbose=true );
   //with a class .pre file
-  ClassEngine(const ClassParams& pars,const string & precision_file);
+  ClassEngine(const ClassParams& pars, const string & precision_file, bool verbose=true);
   
 
   // destructor
@@ -91,12 +91,29 @@ public:
 	      std::vector<double>& clte, 
 	      std::vector<double>& clee, 
 	      std::vector<double>& clbb);
-
-  
   bool getLensing(const std::vector<unsigned>& lVec, //input 
 	      std::vector<double>& clphiphi, 
 	      std::vector<double>& cltphi, 
 	      std::vector<double>& clephi);
+
+  void call_perturb_sources_at_tau(
+                           int index_md,
+                           int index_ic,
+                           int index_tp,
+                           double tau,
+                           double * psource
+                           );
+
+  void getTk( double z, 
+        std::vector<double>& k,
+        std::vector<double>& d_cdm,
+        std::vector<double>& d_b,
+        std::vector<double>& d_ncdm,
+        std::vector<double>& d_tot,
+        std::vector<double>& t_cdm,
+        std::vector<double>& t_b,
+        std::vector<double>& t_ncdm,
+        std::vector<double>& t_tot );
 
  //for BAO
   inline double z_drag() const {return th.z_d;}
@@ -167,7 +184,5 @@ protected:
   
 };
 
-
-;
 #endif
 
