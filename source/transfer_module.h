@@ -2,11 +2,12 @@
 #define TRANSFER_MODULE_H
 
 #include "input.h"
+#include "nonlinear_module.h"
 #include "base_module.h"
 
 class TransferModule : public BaseModule {
 public:
-  TransferModule(const Input& input);
+  TransferModule(const Input& input, const NonlinearModule& nonlinear_module);
   ~TransferModule();
 
   /** @name - number of modes and transfer function types */
@@ -103,6 +104,8 @@ private:
                         int sgnK, double nu, int * lvec, int lsize, double phiminabs, double xmax, double xtol, int * index_l_left, int * index_l_right, ErrorMsg error_message);
   int transfer_precompute_selection(double tau_rec, int tau_size_max, double ** window);
   int transfer_f_evo(double * pvecback, int last_index, double cotKgen, double * f_evo);
+
+  const NonlinearModule& nonlinear_module_;
 
   short has_cls_; /**< copy of same flag in perturbation structure */
   int md_size_;       /**< number of modes included in computation */

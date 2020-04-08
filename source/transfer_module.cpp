@@ -30,8 +30,9 @@
 #include "transfer_module.h"
 #include "thread_pool.h"
 
-TransferModule::TransferModule(const Input& input)
-: BaseModule(input) {
+TransferModule::TransferModule(const Input& input, const NonlinearModule& nonlinear_module)
+: BaseModule(input)
+, nonlinear_module_(nonlinear_module) {
   ThrowInvalidArgumentIf(transfer_init() != _SUCCESS_, error_message_);
 }
 
@@ -580,30 +581,28 @@ int TransferModule::transfer_perturbation_copy_sources_and_nl_corrections(double
           for (index_tau=0; index_tau<ppt->tau_size; index_tau++) {
             for (index_k=0; index_k<ppt->k_size[index_md]; index_k++) {
               if (((ppt->has_source_delta_cb == _TRUE_) && (index_tp == ppt->index_tp_delta_cb)) ||
-                  ((ppt->has_source_theta_cb == _TRUE_) && (index_tp == ppt->index_tp_theta_cb))){
-                sources[index_md]
-                  [index_ic * ppt->tp_size[index_md] + index_tp]
-                  [index_tau * ppt->k_size[index_md] + index_k] =
-                  ppt->sources[index_md]
-                  [index_ic * ppt->tp_size[index_md] + index_tp]
-                  [index_tau * ppt->k_size[index_md] + index_k]
-                  * pnl->nl_corr_density[pnl->index_pk_cb][index_tau * ppt->k_size[index_md] + index_k];
+                  ((ppt->has_source_theta_cb == _TRUE_) && (index_tp == ppt->index_tp_theta_cb))) {
+                sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp][
+                  index_tau*ppt->k_size[index_md] + index_k
+                ] = ppt->sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp][
+                  index_tau*ppt->k_size[index_md] + index_k
+                ]*nonlinear_module_.nl_corr_density_[nonlinear_module_.index_pk_cb_][
+                  index_tau*ppt->k_size[index_md] + index_k];
               }
               else{
-                sources[index_md]
-                  [index_ic * ppt->tp_size[index_md] + index_tp]
-                  [index_tau * ppt->k_size[index_md] + index_k] =
-                  ppt->sources[index_md]
-                  [index_ic * ppt->tp_size[index_md] + index_tp]
-                  [index_tau * ppt->k_size[index_md] + index_k]
-                  * pnl->nl_corr_density[pnl->index_pk_m][index_tau * ppt->k_size[index_md] + index_k];
+                sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp][
+                  index_tau*ppt->k_size[index_md] + index_k
+                ] = ppt->sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp][
+                  index_tau*ppt->k_size[index_md] + index_k
+                ]*nonlinear_module_.nl_corr_density_[nonlinear_module_.index_pk_m_][
+                  index_tau*ppt->k_size[index_md] + index_k];
               }
             }
           }
         }
         else {
-          sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp] =
-            ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index_tp];
+          sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp] =
+          ppt->sources[index_md][index_ic*ppt->tp_size[index_md] + index_tp];
         }
       }
     }

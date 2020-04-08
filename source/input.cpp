@@ -3722,6 +3722,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
   }
 
+  Cosmology cosmology = Cosmology(input);
   /** - Shoot forward into class up to required stage */
   if (pfzw->required_computation_stage >= cs_background){
     if (input_verbose>2)
@@ -3771,25 +3772,28 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 5: nonlinear\n");
     nl.nonlinear_verbose = 0;
-    class_call_except(nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl),
-                      nl.error_message,
+    try {
+      const NonlinearModule& nonlinear_module = cosmology.GetNonlinearModule();
+    } catch (...) {
+    class_call_except(_FAILURE_,
+                      "TODO",
                       errmsg,
                       primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
                       );
+    }
   }
-  Cosmology cosmology = Cosmology(input);
   if (pfzw->required_computation_stage >= cs_transfer){
     if (input_verbose>2)
       printf("Stage 6: transfer\n");
     tr.transfer_verbose = 0;
     try {
-      TransferModule transfer_module = cosmology.GetTransferModule();
+      const TransferModule& transfer_module = cosmology.GetTransferModule();
     } catch (...) {
         //TODO: This will be made nicer later when we refactor the input module.
         class_call_except(_FAILURE_,
-                          sp.error_message,
+                          "TODO",
                           errmsg,
-                          nonlinear_free(&nl); primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3799,13 +3803,13 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
     try {
-      SpectraModule spectra_module = cosmology.GetSpectraModule();
+      const SpectraModule& spectra_module = cosmology.GetSpectraModule();
     } catch (...) {
         //TODO: This will be made nicer later when we refactor the input module.
         class_call_except(_FAILURE_,
                           sp.error_message,
                           errmsg,
-                          nonlinear_free(&nl); primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3847,16 +3851,14 @@ int input_try_unknown_parameters(double * unknown_parameter,
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     case sigma8:
-      output[i] = nl.sigma8[nl.index_pk_m]-pfzw->target_value[i];
+        const NonlinearModule& nl = cosmology.GetNonlinearModule();
+        output[i] = nl.sigma8_[nl.index_pk_m_] - pfzw->target_value[i];
       break;
     }
   }
 
 
   /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_nonlinear){
-    class_call(nonlinear_free(&nl), nl.error_message, errmsg);
-  }
   if (pfzw->required_computation_stage >= cs_primordial){
     class_call(primordial_free(&pm), pm.error_message, errmsg);
   }

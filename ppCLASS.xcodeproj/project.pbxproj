@@ -19,7 +19,7 @@
 		AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */; };
 		AFDC68A0240D9F500044B5A3 /* input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6896240D9F500044B5A3 /* input.cpp */; };
 		AFDC68A1240D9F500044B5A3 /* spectra_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6897240D9F500044B5A3 /* spectra_module.cpp */; };
-		AFDC68A2240D9F500044B5A3 /* nonlinear.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6898240D9F500044B5A3 /* nonlinear.cpp */; };
+		AFDC68A2240D9F500044B5A3 /* nonlinear_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6898240D9F500044B5A3 /* nonlinear_module.cpp */; };
 		AFDC68A3240D9F500044B5A3 /* primordial.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6899240D9F500044B5A3 /* primordial.cpp */; };
 		AFDC68A4240D9F500044B5A3 /* background.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC689A240D9F500044B5A3 /* background.cpp */; };
 		AFDC68B5240D9F6B0044B5A3 /* common.c in Sources */ = {isa = PBXBuildFile; fileRef = AFDC68A7240D9F6B0044B5A3 /* common.c */; };
@@ -63,6 +63,7 @@
 		AF14AFE624334548005D2DE9 /* transfer_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = transfer_module.h; sourceTree = "<group>"; };
 		AF14AFE724337B11005D2DE9 /* cosmology.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cosmology.cpp; sourceTree = "<group>"; };
 		AF14AFE824337B11005D2DE9 /* cosmology.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cosmology.h; sourceTree = "<group>"; };
+		AF14AFEA24347ECA005D2DE9 /* nonlinear_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nonlinear_module.h; sourceTree = "<group>"; };
 		AFA9047D241D19FB009B7DEE /* class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = class.h; sourceTree = "<group>"; };
 		AFB5F15E241D17B5001B9B9C /* output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = output.h; sourceTree = "<group>"; };
 		AFB5F15F241D17B5001B9B9C /* perturbations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = perturbations.h; sourceTree = "<group>"; };
@@ -81,7 +82,7 @@
 		AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thermodynamics.cpp; sourceTree = "<group>"; };
 		AFDC6896240D9F500044B5A3 /* input.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = input.cpp; sourceTree = "<group>"; };
 		AFDC6897240D9F500044B5A3 /* spectra_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = spectra_module.cpp; sourceTree = "<group>"; };
-		AFDC6898240D9F500044B5A3 /* nonlinear.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nonlinear.cpp; sourceTree = "<group>"; };
+		AFDC6898240D9F500044B5A3 /* nonlinear_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = nonlinear_module.cpp; sourceTree = "<group>"; };
 		AFDC6899240D9F500044B5A3 /* primordial.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = primordial.cpp; sourceTree = "<group>"; };
 		AFDC689A240D9F500044B5A3 /* background.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = background.cpp; sourceTree = "<group>"; };
 		AFDC68A7240D9F6B0044B5A3 /* common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = common.c; sourceTree = "<group>"; };
@@ -193,8 +194,9 @@
 				AFB5F163241D17B6001B9B9C /* lensing.h */,
 				AFDC6892240D9F500044B5A3 /* lensing_module.cpp */,
 				AFDE3E02242E244F0061A4DE /* lensing_module.h */,
-				AFDC6898240D9F500044B5A3 /* nonlinear.cpp */,
 				AFB5F160241D17B5001B9B9C /* nonlinear.h */,
+				AFDC6898240D9F500044B5A3 /* nonlinear_module.cpp */,
+				AF14AFEA24347ECA005D2DE9 /* nonlinear_module.h */,
 				AFB5F15E241D17B5001B9B9C /* output.h */,
 				AFDE3E00242DF6290061A4DE /* output_module.cpp */,
 				AFDE3DFF242DF6290061A4DE /* output_module.h */,
@@ -330,7 +332,7 @@
 			files = (
 				AFDC68A0240D9F500044B5A3 /* input.cpp in Sources */,
 				AFDC68A1240D9F500044B5A3 /* spectra_module.cpp in Sources */,
-				AFDC68A2240D9F500044B5A3 /* nonlinear.cpp in Sources */,
+				AFDC68A2240D9F500044B5A3 /* nonlinear_module.cpp in Sources */,
 				AFDC68B6240D9F6B0044B5A3 /* arrays.c in Sources */,
 				AFDC689E240D9F500044B5A3 /* transfer_module.cpp in Sources */,
 				AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */,

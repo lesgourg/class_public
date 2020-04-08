@@ -2,6 +2,7 @@
 #define COSMOLOGY_H
 
 #include "input.h"
+#include "nonlinear_module.h"
 #include "transfer_module.h"
 #include "spectra_module.h"
 #include "lensing_module.h"
@@ -14,12 +15,14 @@ public:
   Cosmology(const Input& input)
   : input_(input) {}
 
+  const NonlinearModule& GetNonlinearModule();
   const TransferModule& GetTransferModule();
   const SpectraModule& GetSpectraModule();
   const LensingModule& GetLensingModule();
 
 private:
   const Input& input_;
+  std::unique_ptr<NonlinearModule> nonlinear_module_ptr_;
   std::unique_ptr<TransferModule> transfer_module_ptr_;
   std::unique_ptr<SpectraModule> spectra_module_ptr_;
   std::unique_ptr<LensingModule> lensing_module_ptr_;

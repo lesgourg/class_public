@@ -84,7 +84,7 @@ endif
 
 TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o exceptions.opp
 
-SOURCE = input.opp background.opp thermodynamics.opp perturbations.opp primordial.opp nonlinear.opp transfer_module.opp spectra_module.opp lensing_module.opp cosmology.opp
+SOURCE = input.opp background.opp thermodynamics.opp perturbations.opp primordial.opp nonlinear_module.opp transfer_module.opp spectra_module.opp lensing_module.opp cosmology.opp
 
 INPUT = input.opp
 
@@ -102,7 +102,7 @@ PRIMORDIAL = primordial.opp
 
 SPECTRA = spectra_module.opp
 
-NONLINEAR = nonlinear.opp
+NONLINEAR = nonlinear_module.opp
 
 LENSING = lensing_module.opp
 

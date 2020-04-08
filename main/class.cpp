@@ -46,20 +46,10 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (nonlinear_init(&pr,&ba,&th,&pt,&pm,&nl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_init \n=>%s\n",nl.error_message);
-    return _FAILURE_;
-  }
-
   Cosmology cosmology = Cosmology(input);
-  OutputModule output_module(input, cosmology.GetSpectraModule(), cosmology.GetLensingModule());
+  OutputModule output_module(input, cosmology.GetNonlinearModule(), cosmology.GetSpectraModule(), cosmology.GetLensingModule());
 
   /****** all calculations done, now free the structures ******/
-
-  if (nonlinear_free(&nl) == _FAILURE_) {
-    printf("\n\nError in nonlinear_free \n=>%s\n",nl.error_message);
-    return _FAILURE_;
-  }
 
   if (primordial_free(&pm) == _FAILURE_) {
     printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);

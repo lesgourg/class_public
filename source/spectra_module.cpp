@@ -14,9 +14,9 @@
 
 #include "spectra_module.h"
 #include "thread_pool.h"
-
-SpectraModule::SpectraModule(const Input& input, const TransferModule& transfer_module)
+SpectraModule::SpectraModule(const Input& input, const NonlinearModule& nonlinear_module, const TransferModule& transfer_module)
 : BaseModule(input)
+, nonlinear_module_(nonlinear_module)
 , transfer_module_(transfer_module) {
   ThrowInvalidArgumentIf(spectra_init() != _SUCCESS_, error_message_);
 }
@@ -1223,23 +1223,20 @@ int SpectraModule::spectra_pk_at_z(enum linear_or_logarithmic mode,
                     double * output_tot,    /* array with argument output_tot[index_k] (must be already allocated) */
                     double * output_ic,     /* array with argument output_tot[index_k * ic_ic_size_[index_md] + index_ic1_ic2] (must be already allocated only if more than one initial condition) */
                     double * output_cb_tot, /* same as output_tot for the baryon+CDM only */
-                    double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */
-                    ) {
+                    double * output_cb_ic   /* same as output_ic  for the baryon+CDM only */ ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
-  class_call(nonlinear_pks_at_z(
-                                const_cast<background*>(pba),
-                                const_cast<nonlinear*>(pnl),
-                                mode,
-                                pk_linear,
-                                z,
-                                output_tot,
-                                output_ic,
-                                output_cb_tot,
-                                output_cb_ic
-                                ),
-             pnl->error_message,
+  class_call(nonlinear_module_.nonlinear_pks_at_z(
+                                                  mode,
+                                                  pk_linear,
+                                                  z,
+                                                  output_tot,
+                                                  output_ic,
+                                                  output_cb_tot,
+                                                  output_cb_ic
+                                                  ),
+             nonlinear_module_.error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1270,22 +1267,18 @@ int SpectraModule::spectra_pk_at_k_and_z(
                           double * pk_ic,     /* array of argument pk_ic[index_ic1_ic2]
                                                  (must be already allocated only if several initial conditions) */
                           double * pk_cb_tot, /* same as pk_tot for baryon+CDM part only */
-                          double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */
-                          ) {
+                          double * pk_cb_ic   /* same as pk_ic  for baryon+CDM part only */) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
 
-  class_call(nonlinear_pks_at_k_and_z(const_cast<background*>(pba),
-                                      const_cast<primordial*>(ppm),
-                                      const_cast<nonlinear*>(pnl),
-                                      pk_linear,
-                                      k,
-                                      z,
-                                      pk_tot,
-                                      pk_ic,
-                                      pk_cb_tot,
-                                      pk_cb_ic),
-             pnl->error_message,
+  class_call(nonlinear_module_.nonlinear_pks_at_k_and_z(pk_linear,
+                                                        k,
+                                                        z,
+                                                        pk_tot,
+                                                        pk_ic,
+                                                        pk_cb_tot,
+                                                        pk_cb_ic),
+             nonlinear_module_.error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1306,25 +1299,23 @@ int SpectraModule::spectra_pk_at_k_and_z(
  */
 
 int SpectraModule::spectra_pk_nl_at_z(
-                       enum linear_or_logarithmic mode,
-                       double z,
-                       double * output_tot,   /* array with argument output_tot[index_k] (must be already allocated) */
-                       double * output_cb_tot
-                       ) {
+                                      enum linear_or_logarithmic mode,
+                                      double z,
+                                      double * output_tot,   /* array with argument output_tot[index_k] (must be already allocated) */
+                                      double * output_cb_tot
+                                      ) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
-  class_call(nonlinear_pks_at_z(const_cast<background*>(pba),
-                                const_cast<nonlinear*>(pnl),
-                                mode,
-                                pk_nonlinear,
-                                z,
-                                output_tot,
-                                NULL,
-                                output_cb_tot,
-                                NULL
-                                ),
-             pnl->error_message,
+  class_call(nonlinear_module_.nonlinear_pks_at_z(mode,
+                                                  pk_nonlinear,
+                                                  z,
+                                                  output_tot,
+                                                  NULL,
+                                                  output_cb_tot,
+                                                  NULL
+                                                  ),
+             nonlinear_module_.error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1355,18 +1346,8 @@ int SpectraModule::spectra_pk_nl_at_k_and_z(
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_at_k_and_z() instead.\n");
 
-  class_call(nonlinear_pks_at_k_and_z(const_cast<background*>(pba),
-                                      const_cast<primordial*>(ppm),
-                                      const_cast<nonlinear*>(pnl),
-                                      pk_nonlinear,
-                                      k,
-                                      z,
-                                      pk_tot,
-                                      NULL,
-                                      pk_cb_tot,
-                                      NULL
-                                      ),
-             pnl->error_message,
+  class_call(nonlinear_module_.nonlinear_pks_at_k_and_z(pk_nonlinear, k, z, pk_tot, NULL, pk_cb_tot, NULL),
+             nonlinear_module_.error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1412,16 +1393,14 @@ int SpectraModule::spectra_fast_pk_at_kvec_and_zvec(
   else
     pk_output = pk_linear;
 
-  class_call(nonlinear_pks_at_kvec_and_zvec(const_cast<background*>(pba),
-                                            const_cast<struct nonlinear*>(pnl),
-                                            pk_output,
-                                            kvec,
-                                            kvec_size,
-                                            zvec,
-                                            zvec_size,
-                                            pk_tot_out,
-                                            pk_cb_tot_out),
-             pnl->error_message,
+  class_call(nonlinear_module_.nonlinear_pks_at_kvec_and_zvec(pk_output,
+                                                              kvec,
+                                                              kvec_size,
+                                                              zvec,
+                                                              zvec_size,
+                                                              pk_tot_out,
+                                                              pk_cb_tot_out),
+             nonlinear_module_.error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1442,24 +1421,18 @@ int SpectraModule::spectra_fast_pk_at_kvec_and_zvec(
  * @return the error status
  */
 
-int SpectraModule::spectra_sigma(
-                  double R,
-                  double z,
-                  double * sigma
-                  ) {
+int SpectraModule::spectra_sigma(double R, double z, double * sigma) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
 
-  if (pnl->has_pk_m) {
+  if (nonlinear_module_.has_pk_m_) {
 
-    class_call(nonlinear_sigma_at_z(const_cast<background*>(pba),
-                                    const_cast<nonlinear*>(pnl),
-                                    R,
-                                    z,
-                                    pnl->index_pk_m,
-                                    80., // hardcoded, yes, but the function is deprecated...
-                                    sigma),
-               pnl->error_message,
+    class_call(nonlinear_module_.nonlinear_sigma_at_z(R,
+                                                      z,
+                                                      nonlinear_module_.index_pk_m_,
+                                                      80., // hardcoded, yes, but the function is deprecated...
+                                                      sigma),
+               nonlinear_module_.error_message_,
                error_message_);
 
   }
@@ -1482,24 +1455,18 @@ int SpectraModule::spectra_sigma(
  * @return the error status
  */
 
-int SpectraModule::spectra_sigma_cb(
-                     double R,
-                     double z,
-                     double * sigma_cb
-                     ) {
+int SpectraModule::spectra_sigma_cb(double R, double z, double * sigma_cb) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
 
-  if (pnl->has_pk_cb) {
+  if (nonlinear_module_.has_pk_cb_) {
 
-    class_call(nonlinear_sigma_at_z(const_cast<background*>(pba),
-                                    const_cast<nonlinear*>(pnl),
-                                    R,
-                                    z,
-                                    pnl->index_pk_cb,
-                                    80., // hardcoded, yes, but the function is deprecated...
-                                    sigma_cb),
-               pnl->error_message,
+    class_call(nonlinear_module_.nonlinear_sigma_at_z(R,
+                                                      z,
+                                                      nonlinear_module_.index_pk_cb_,
+                                                      80., // hardcoded, yes, but the function is deprecated...
+                                                      sigma_cb),
+               nonlinear_module_.error_message_,
                error_message_);
   }
 
@@ -1520,10 +1487,9 @@ int SpectraModule::spectra_sigma_cb(
  */
 
 int SpectraModule::spectra_tk_at_z(
-                    double z,
-                    double * output /* array with argument output[(index_k*ic_size_[index_md]+index_ic)*psp->tr_size+index_tr] (must be already allocated) */
-                    ) {
-
+                                   double z,
+                                   double * output /* array with argument output[(index_k*ic_size_[index_md]+index_ic)*psp->tr_size+index_tr] (must be already allocated) */
+                                   ) {
 
   class_stop(error_message_,
              "The function spectra_tk_at_z() is obsolete, use instead perturb_sources_at_tau(), it does the same");
@@ -1545,10 +1511,10 @@ int SpectraModule::spectra_tk_at_z(
  */
 
 int SpectraModule::spectra_tk_at_k_and_z(
-                          double k,
-                          double z,
-                          double * output  /* array with argument output[index_ic*psp->tr_size+index_tr] (must be already allocated) */
-                          ) {
+                                         double k,
+                                         double z,
+                                         double * output  /* array with argument output[index_ic*psp->tr_size+index_tr] (must be already allocated) */
+                                         ) {
 
   class_stop(error_message_,
              "The function spectra_tk_at_k_and_z() is obsolete, use instead perturb_sources_at_tau(), it does the same provided that you interpolate its output at some wavenumber k");

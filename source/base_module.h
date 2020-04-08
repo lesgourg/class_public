@@ -28,6 +28,7 @@ public:
   , ptr(&input.transfers_)
   , ple(&input.lensing_)
   , pop(&input.output_) {}
+  BaseModule(const BaseModule&) = delete;
   
   mutable ErrorMsg error_message_;
 protected:

@@ -16,8 +16,9 @@
 #include "output_module.h"
 #include "exceptions.h"
 
-OutputModule::OutputModule(const Input& input, const SpectraModule& spectra_module, const LensingModule& lensing_module)
+OutputModule::OutputModule(const Input& input, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
 : BaseModule(input)
+, nonlinear_module_(nonlinear_module)
 , spectra_module_(spectra_module)
 , lensing_module_(lensing_module) {
 
@@ -587,7 +588,7 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
   FILE ** out_pk_ic = NULL;  /* out_pk_ic[index_ic1_ic2] is a pointer to a file with P(k) for each pair of ic */
   FILE * out_pk;             /* out_pk[index_pk] is a pointer to a file with total P(k) summed over ic */
 
-  double * ln_pk_ic = NULL;  /* array ln_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2] */
+  double * ln_pk_ic = NULL;  /* array ln_pk_ic[index_k * nonlinear_module_.ic_ic_size_ + index_ic1_ic2] */
   double * ln_pk;            /* array ln_pk[index_k] */
 
   int index_ic1,index_ic2;
@@ -605,39 +606,39 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
 
   /** - preliminary: check whether we need to output the decomposition into contributions from each initial condition */
 
-  if ((pk_output == pk_linear) && (pnl->ic_size > 1))
+  if ((pk_output == pk_linear) && (nonlinear_module_.ic_size_ > 1))
     do_ic = _TRUE_;
 
   /** - allocate arrays to store the P(k) */
 
   class_alloc(ln_pk,
-              pnl->k_size*sizeof(double),
+              nonlinear_module_.k_size_*sizeof(double),
               error_message_);
 
   if (do_ic == _TRUE_) {
 
     class_alloc(ln_pk_ic,
-                pnl->k_size*pnl->ic_ic_size*sizeof(double),
+                nonlinear_module_.k_size_*nonlinear_module_.ic_ic_size_*sizeof(double),
                 error_message_);
 
     /** - allocate pointer to output files */
 
     class_alloc(out_pk_ic,
-                pnl->ic_ic_size*sizeof(FILE *),
+                nonlinear_module_.ic_ic_size_*sizeof(FILE *),
                 error_message_);
   }
 
   /** - loop over pk type (_cb, _m) */
 
-  for (index_pk=0; index_pk<pnl->pk_size; index_pk++) {
+  for (index_pk=0; index_pk < nonlinear_module_.pk_size_; index_pk++) {
 
-    if ((pnl->has_pk_m == _TRUE_) && (index_pk == pnl->index_pk_m)) {
+    if ((nonlinear_module_.has_pk_m_ == _TRUE_) && (index_pk == nonlinear_module_.index_pk_m_)) {
       if (pk_output == pk_linear)
         sprintf(type_suffix,"pk");
       else
         sprintf(type_suffix,"pk_nl");
     }
-    if ((pnl->has_pk_cb == _TRUE_) && (index_pk == pnl->index_pk_cb)) {
+    if ((nonlinear_module_.has_pk_cb_ == _TRUE_) && (index_pk == nonlinear_module_.index_pk_cb_)) {
       if (pk_output == pk_linear)
         sprintf(type_suffix,"pk_cb");
       else
@@ -673,9 +674,9 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
 
       if (do_ic == _TRUE_) {
 
-        for (index_ic1 = 0; index_ic1 < pnl->ic_size; index_ic1++) {
+        for (index_ic1 = 0; index_ic1 < nonlinear_module_.ic_size_; index_ic1++) {
 
-          for (index_ic2 = index_ic1; index_ic2 < pnl->ic_size; index_ic2++) {
+          for (index_ic2 = index_ic1; index_ic2 < nonlinear_module_.ic_size_; index_ic2++) {
 
             if ((ppt->has_ad == _TRUE_) && (index_ic1 == ppt->index_ic_ad) && (index_ic2 == ppt->index_ic_ad)) {
               sprintf(file_name,"%s%s%s%s",pop->root,redshift_suffix,type_suffix,"_ad.dat");
@@ -752,9 +753,9 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
               strcpy(first_line,"for cross NIDxNIV mode ");
             }
 
-            index_ic1_ic2 = index_symmetric_matrix(index_ic1,index_ic2,pnl->ic_size);
+            index_ic1_ic2 = index_symmetric_matrix(index_ic1, index_ic2, nonlinear_module_.ic_size_);
 
-            if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+            if (nonlinear_module_.is_non_zero_[index_ic1_ic2] == _TRUE_) {
 
               class_call(output_open_pk_file(&(out_pk_ic[index_ic1_ic2]),
                                              file_name,
@@ -770,24 +771,16 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
 
       /** - third, compute P(k) for each k */
 
-      class_call(nonlinear_pk_at_z(const_cast<background*>(pba),
-                                   const_cast<nonlinear*>(pnl),
-                                   logarithmic,
-                                   pk_output,
-                                   pop->z_pk[index_z],
-                                   index_pk,
-                                   ln_pk,
-                                   ln_pk_ic
-                                   ),
-                 pnl->error_message,
+      class_call(nonlinear_module_.nonlinear_pk_at_z(logarithmic, pk_output, pop->z_pk[index_z], index_pk, ln_pk, ln_pk_ic),
+                 nonlinear_module_.error_message_,
                  error_message_);
 
       /** - fourth, write in files */
 
-      for (index_k=0; index_k<pnl->k_size; index_k++) {
+      for (index_k=0; index_k < nonlinear_module_.k_size_; index_k++) {
 
         class_call(output_one_line_of_pk(out_pk,
-                                         exp(pnl->ln_k[index_k])/pba->h,
+                                         exp(nonlinear_module_.ln_k_[index_k])/pba->h,
                                          exp(ln_pk[index_k])*pow(pba->h,3)
                                          ),
                    error_message_,
@@ -795,13 +788,13 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
 
         if (do_ic == _TRUE_) {
 
-          for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
+          for (index_ic1_ic2 = 0; index_ic1_ic2 < nonlinear_module_.ic_ic_size_; index_ic1_ic2++) {
 
-            if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+            if (nonlinear_module_.is_non_zero_[index_ic1_ic2] == _TRUE_) {
 
               class_call(output_one_line_of_pk(out_pk_ic[index_ic1_ic2],
-                                               exp(pnl->ln_k[index_k])/pba->h,
-                                               exp(ln_pk_ic[index_k * pnl->ic_ic_size + index_ic1_ic2])*pow(pba->h,3)),
+                                               exp(nonlinear_module_.ln_k_[index_k])/pba->h,
+                                               exp(ln_pk_ic[index_k*nonlinear_module_.ic_ic_size_ + index_ic1_ic2])*pow(pba->h,3)),
                          error_message_,
                          error_message_);
             }
@@ -814,8 +807,8 @@ int OutputModule::output_pk(enum pk_outputs pk_output) {
       fclose(out_pk);
 
       if (do_ic == _TRUE_) {
-        for (index_ic1_ic2 = 0; index_ic1_ic2 < pnl->ic_ic_size; index_ic1_ic2++) {
-          if (pnl->is_non_zero[index_ic1_ic2] == _TRUE_) {
+        for (index_ic1_ic2 = 0; index_ic1_ic2 < nonlinear_module_.ic_ic_size_; index_ic1_ic2++) {
+          if (nonlinear_module_.is_non_zero_[index_ic1_ic2] == _TRUE_) {
             fclose(out_pk_ic[index_ic1_ic2]);
           }
         }
@@ -906,12 +899,12 @@ int OutputModule::output_tk() {
     /** - second, open only the relevant files, and write a heading in each of them */
 
     class_call(perturb_output_data(const_cast<background*>(pba),
-                                      const_cast<perturbs*>(ppt),
-                                      pop->output_format,
-                                      pop->z_pk[index_z],
-                                      number_of_titles,
-                                      data
-                                      ),
+                                   const_cast<perturbs*>(ppt),
+                                   pop->output_format,
+                                   pop->z_pk[index_z],
+                                   number_of_titles,
+                                   data
+                                   ),
                ppt->error_message,
                error_message_);
 
@@ -1458,11 +1451,11 @@ int OutputModule::output_open_pk_file(
   class_open(*pkfile, filename, "w", error_message_);
 
   if (pop->write_header == _TRUE_) {
-    fprintf(*pkfile,"# Matter power spectrum P(k) %sat redshift z=%g\n",first_line,z);
-    fprintf(*pkfile,"# for k=%g to %g h/Mpc,\n",
-            exp(pnl->ln_k[0])/pba->h,
-            exp(pnl->ln_k[pnl->k_size-1])/pba->h);
-    fprintf(*pkfile,"# number of wavenumbers equal to %d\n",pnl->k_size);
+    fprintf(*pkfile, "# Matter power spectrum P(k) %sat redshift z=%g\n", first_line, z);
+    fprintf(*pkfile, "# for k=%g to %g h/Mpc,\n",
+            exp(nonlinear_module_.ln_k_[0])/pba->h,
+            exp(nonlinear_module_.ln_k_[nonlinear_module_.k_size_ - 1])/pba->h);
+    fprintf(*pkfile, "# number of wavenumbers equal to %d\n", nonlinear_module_.k_size_);
 
     fprintf(*pkfile,"#");
     class_fprintf_columntitle(*pkfile,"k (h/Mpc)",_TRUE_,colnum);
