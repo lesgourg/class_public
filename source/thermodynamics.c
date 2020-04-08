@@ -275,7 +275,20 @@ int thermodynamics_init(
   struct thermo_workspace * ptw;
 
   if (pth->thermodynamics_verbose > 0) {
-    printf("Computing thermodynamics\n");
+    switch (pth->recombination) {
+
+    case recfast:
+      printf("Computing thermodynamics using RecFast v1.5\n");
+      break;
+
+    case hyrec:
+      printf("Computing thermodynamics using HyRec 2012\n");
+      break;
+
+    default:
+      class_stop(pth->error_message,"pth->recombination=%d different from all known cases",pth->recombination);
+      break;
+    }
   }
 
   /** - compute and check primordial Helium mass fraction rho_He/(rho_H+rho_He) */
@@ -2210,12 +2223,14 @@ int thermodynamics_solve(
 
   /** - define time sampling: create a local array of minus z values
         called mz (from mz=-zinitial growing towards mz=0) */
+
   class_alloc(mz_output,pth->tt_size*sizeof(double), pth->error_message);
   for(i=0; i < pth->tt_size; ++i) {
     mz_output[i] = -pth->z_table[pth->tt_size-1-i];
   }
 
   /** - define intervals for each approximation scheme */
+
   /* create the array of interval limits */
   class_alloc(interval_limit,(ptw->ptdw->ap_size+1)*sizeof(double),pth->error_message);
   /* fix interval number to number of approximations */
@@ -2230,9 +2245,11 @@ int thermodynamics_solve(
 
   /** - loop over intervals over which approximation scheme is
         uniform. For each interval: */
+
   for (index_interval=0; index_interval<interval_number; index_interval++) {
 
     /** - --> (a) fix current approximation scheme. */
+
     ptw->ptdw->ap_current = index_interval;
 
     /** - --> (b) define the vector of quantities to be integrated
@@ -2240,7 +2257,10 @@ int thermodynamics_solve(
                   initial time zinitial, fill the vector with initial
                   conditions. If it starts from an approximation
                   switching point, redistribute correctly the values
-                  from the previous to the new vector. */
+                  from the previous to the new vector. The vector consists of:
+    - for RECFAST: Tmat, x_H, x_He, + others for exotic models
+    - for HyRec: Tmat only (because total x is integrated inside HyRec) + others for exotic models */
+
     class_call(thermodynamics_vector_init(ppr,
                                           pba,
                                           pth,
@@ -2338,10 +2358,11 @@ int thermodynamics_solve(
  * with respect to negative redshift mz=-z.
  *
  * Automatically recognizes the current approximation interval and
- * computes the needed derivatives for this interval: \f$ d T_{mat} /
- * dz , d x_H / dz, d x_{He} / dz \f$.
+ * computes the derivatives for this interval of the vector y, which contains:
+ *   - for RECFAST: Tmat, x_H, x_He, + others for exotic models
+ *   - for HyRec: Tmat only (because total x is integrated inside HyRec) + others for exotic models
  *
- * Derivatives are onbtained either by calling HyRec or by using
+ * Derivatives are obtained either by calling HyRec or by using
  * RECFAST version 1.4, modified by Daniel Meinert and Nils
  * Schoeneberg for better precision and smoothness at early times.
  *
@@ -2368,7 +2389,6 @@ int thermodynamics_derivs(
                           void * parameters_and_workspace,
                           ErrorMsg error_message
                           ) {
-
   /** Summary: */
 
   /** Define local variables */
@@ -2395,13 +2415,14 @@ int thermodynamics_derivs(
   struct thermo_vector * ptv;
   struct thermorecfast * precfast;
   struct thermohyrec * phyrec;
-  struct heating* phe;
+  struct heating * phe;
   int ap_current;
 
   /* Redshift */
   z = -mz;
 
   /** - rename structure fields (just to avoid heavy notations) */
+
   /* structures */
   ptpaw = parameters_and_workspace;
   ppr = ptpaw->ppr;
@@ -2420,27 +2441,43 @@ int thermodynamics_derivs(
   /* Approximation flag */
   ap_current = ptdw->ap_current;
 
-  /** - get background/thermo quantities in this point */
+  /** - Get background/thermo quantities in this point */
+
   class_call(background_at_z(pba,
                              z,
                              long_info,
-                             inter_closeby, // TODO: compare with inter_closeby
+                             inter_closeby,
                              &(ptw->last_index_back),
                              pvecback),
              pba->error_message,
              error_message);
 
-  /** Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs). Modify these for some non-trivial
-      background evolutions or CMB temperature changes */
+  /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs */
   Hz = pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+  /* Total number density of Hydrogen nuclei in SI units */
   nH = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
+
+  /* Photon temperature in Kelvins.  Modify this for some non-trivial photon temperature changes */
   Trad = ptw->Tcmb * (1.+z);
 
-  /** - Matter temperature and ionization fraction */
+  /* Thermodynamic variables like the matter temperature (Tmat) and
+     the ionization fractions (x, x_reio, x_noreio, x_H, x_He) should
+     be passed in input in the vector y. However, in some
+     approximation schemes, we want to overwrite these inputs and use
+     instead analytic approximations. The role of this funciton is to
+     assign them appropriately, using either the input vector y or
+     some analytic approximation. We also want to know the derivative
+     dx/dlna, because it is needed in order to compute the evolution
+     of Tmnat in some approximation schemes. For some approximation
+     schemes it can already be computed here by this function. For
+     other ones it will be computed later, in
+     thermodynamics_solve_current_dxdlna (Recfast scheme) or in
+     thermodynamics_hyrec_calculate_xe (HyRec scheme) */
+
   class_call(thermodynamics_solve_current_quantities(z,y,pth,ptw,ap_current),
              pth->error_message,
              pth->error_message);
-
 
   /* Save the output in local variables */
   x = ptdw->x_reio;
@@ -2448,16 +2485,19 @@ int thermodynamics_derivs(
   x_He = ptdw->x_He;
   Tmat = ptdw->Tmat;
 
-  /** - Calculate heating */
-  /* in case of energy injection, we currently neglect the contribution to helium ionization ! */
-  /* Calculate the energy injection INCLUDING reionization ! */
+  /** - If needed, calculate heating effects (i.e. any possible energy deposition rates
+        affecting the evolution equations for x and Tmat) */
+
+  /* In case of energy injection, we currently neglect the contribution to helium ionization ! */
+  /* Note that we calculate here the energy injection INCLUDING reionization ! */
   class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
              phe->error_message,
              error_message);
 
-  /* The following derivatives for x_H and x_He should be calculated using only the x from recombination.
-     Of course, the full treatment would involve the actual evolution equations for x_H and x_He during reionization,
-     but these are not yet fully implemented. */
+  /** - Use recombination equations to get dx/dlna from recombination
+     only (not from reionisation). Of course, the full treatment
+     would involve the actual evolution equations for x_H and x_He
+     during reionization, but these are not yet fully implemented. */
   x = ptdw->x_noreio;
 
   /** - HyRec */
@@ -2470,8 +2510,10 @@ int thermodynamics_derivs(
 
   /** - RecfastCLASS */
   if(pth->recombination == recfast) {
+
     /** - Hydrogen equations */
-    if(ptdw->require_H) {
+
+    if (ptdw->require_H) {
       class_call(thermodynamics_recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_H])),
                  precfast->error_message,
                  error_message);
@@ -2483,16 +2525,17 @@ int thermodynamics_derivs(
                  precfast->error_message,
                  error_message);
     }
+
   }
+
+class_call(thermodynamics_solve_current_dxdlna(z,y,dy,pth,ptw,ap_current),
+           pth->error_message,
+           pth->error_message);
+
+dxdlna = ptdw->dxdlna;
 
   /* Restore to the real x for the temperature equations. */
   x = ptdw->x_reio;
-
-  /* Get dxdlna */
-  class_call(thermodynamics_solve_current_dxdlna(z,y,dy,pth,ptw,ap_current),
-             pth->error_message,
-             pth->error_message);
-  dxdlna = ptdw->dxdlna;
 
   /** - Matter temperature equations */
   /* Tmat is always integrated */
@@ -2575,6 +2618,22 @@ int thermodynamics_derivs(
  * This routine computes for the different codes and approximations
  * the quantities x and Tmat and stores them within the workspace
  *
+ * Assign value of current thermodynamics variables using wither the
+ * vector y or, in some approximation schemes, some analytic
+ * approximations. The output of this function is located in ptw. We
+ * need to assign:
+ *
+ * - in the RecFast scheme only:
+ *   -- ptw->x_H, ptw-> x_He, ptw->x_noreio (all neglecting reionisation, which is accounted for later on);
+ *   -- ptw->dlnx/dlna whenever possible (if not, assigned later in another function);
+ *
+ * - in the HyRec scheme:
+ *   -- ptw->x_noreio
+ *
+ * - in both schemes:
+ *   -- ptw->Tmat
+ *   -- ptw->x_reio (if reionisation is going on; obtained by adding something to ptw->x_noreio)
+ *
  * @param z            Input: redshift
  * @param y            Input: vector of evolver quantities
  * @param pth          Input: pointer to thermodynamics structure
@@ -2604,13 +2663,14 @@ int thermodynamics_solve_current_quantities(
   double rhs, sqrt_val, drhs_dlna;
   /* Temporary quantities */
   double dx;
+  double dlnTmat_dlna;
 
   /** Set Tmat from the evolver (it is always evolved). */
   Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
 
   /* Note, dxdlna is always calculated from a steady-state solution of Tmat in 0th order,
    * i.e. approximating dlnTmat_dlna = dlnTrad_dlna = -1. */
-  double dlnTmat_dlna = -(1.+z)*(ptv->dy[ptv->index_D_Tmat] + ptw->Tcmb)/Tmat;//-1.; /* Steady state approximation to 0th order */
+  dlnTmat_dlna = -(1.+z)*(ptv->dy[ptv->index_D_Tmat] + ptw->Tcmb)/Tmat;//-1.; /* Steady state approximation to 0th order */
 
   /** Case RecfastCLASS :: */
 
