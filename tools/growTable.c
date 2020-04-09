@@ -62,8 +62,8 @@ int gt_add(
     self->sz=self->sz*_GT_FACTOR_;
   }
 
-  res=memcpy((void*) (self->buffer+ridx),(void*) data,(size_t) sz);
-  class_test(res!=self->buffer+ridx,
+  res=memcpy((void*) ((char*)self->buffer+ridx),(void*) data,(size_t) sz);
+  class_test(res!=(char*)self->buffer+ridx,
 	     self->error_message,
 	     "Cannot add data to growTable");
   self->csz=ridx+sz;
@@ -92,8 +92,8 @@ int gt_retrieve(
 	     self->error_message,
 	     "not enough data in growTable");
 
-  res=memcpy(data,self->buffer+idx,sz);
-  class_test(res!=self->buffer+idx,
+  res=memcpy(data,(char*)self->buffer+idx,sz);
+  class_test(res!=(char*)self->buffer+idx,
 	     self->error_message,
 	     "cannot retrieve data from the growTable");
 
