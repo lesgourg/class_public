@@ -1,7 +1,7 @@
 #include "parser.h"
 
 int parser_read_file(
-		     char * filename,
+		     const char * filename,
 		     struct file_content * pfc,
 		     ErrorMsg errmsg
 		     ){
@@ -50,7 +50,7 @@ int parser_read_file(
 int parser_init(
 		struct file_content * pfc,
 		int size,
-        char * filename,
+    const char * filename,
 		ErrorMsg errmsg
 		) {
 
