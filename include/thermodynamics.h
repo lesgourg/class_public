@@ -520,6 +520,42 @@ extern "C" {
                             void * parameters_and_workspace,
                             ErrorMsg error_message);
 
+  int thermodynamics_derivs_old(double mz,
+                                double * y,
+                                double * dy,
+                                void * parameters_and_workspace,
+                                ErrorMsg error_message);
+
+  int thermodynamics_ionisation_recfast(
+                                        double z,
+                                        double * y,
+                                        double * dy,
+                                        struct background * pba,
+                                        struct thermo * pth,
+                                        struct thermo_workspace * ptw,
+                                        int current_ap,
+                                        double nH,
+                                        double Hz,
+                                        double Trad,
+                                        double Tmat,
+                                        double * pvecback
+                                        );
+
+  int thermodynamics_ionisation_hyrec(
+                                      double z,
+                                      double * y,
+                                      double * dy,
+                                      struct background * pba,
+                                      struct thermo * pth,
+                                      struct thermo_workspace * ptw,
+                                      int current_ap,
+                                      double nH,
+                                      double Hz,
+                                      double Trad,
+                                      double Tmat,
+                                      double * pvecback
+                                      );
+
   int thermodynamics_solve_current_quantities(double z,
                                               double * y,
                                               struct thermo * pth,

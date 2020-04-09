@@ -43,7 +43,6 @@ struct thermohyrec{
   int izH0;
   double zH0;
 
-  // Purely for my own convenience
   double* xe_output;
   short to_store;
 

@@ -2382,13 +2382,13 @@ int thermodynamics_solve(
  * @param error_message            Output: error message
  */
 
-int thermodynamics_derivs(
-                          double mz,
-                          double * y,
-                          double * dy,
-                          void * parameters_and_workspace,
-                          ErrorMsg error_message
-                          ) {
+int thermodynamics_derivs_old(
+                              double mz,
+                              double * y,
+                              double * dy,
+                              void * parameters_and_workspace,
+                              ErrorMsg error_message
+                              ) {
   /** Summary: */
 
   /** Define local variables */
@@ -2479,6 +2479,7 @@ int thermodynamics_derivs(
              pth->error_message,
              pth->error_message);
 
+
   /* Save the output in local variables */
   x = ptdw->x_reio;
   x_H = ptdw->x_H;
@@ -2505,7 +2506,7 @@ int thermodynamics_derivs(
     class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
                phyrec->error_message,
                error_message);
-    x = ptdw->x_reio;
+
   }
 
   /** - RecfastCLASS */
@@ -2528,11 +2529,11 @@ int thermodynamics_derivs(
 
   }
 
-class_call(thermodynamics_solve_current_dxdlna(z,y,dy,pth,ptw,ap_current),
-           pth->error_message,
-           pth->error_message);
+  class_call(thermodynamics_solve_current_dxdlna(z,y,dy,pth,ptw,ap_current),
+             pth->error_message,
+             pth->error_message);
 
-dxdlna = ptdw->dxdlna;
+  dxdlna = ptdw->dxdlna;
 
   /* Restore to the real x for the temperature equations. */
   x = ptdw->x_reio;
@@ -2615,6 +2616,608 @@ dxdlna = ptdw->dxdlna;
 }
 
 /**
+ * Subroutine evaluating the derivative of thermodynamical quantities
+ * with respect to negative redshift mz=-z.
+ *
+ * Automatically recognizes the current approximation interval and
+ * computes the derivatives for this interval of the vector y, which contains:
+ *   - for RECFAST: Tmat, x_H, x_He, + others for exotic models
+ *   - for HyRec: Tmat only (because total x is integrated inside HyRec) + others for exotic models
+ *
+ * Derivatives are obtained either by calling HyRec or by using
+ * RECFAST version 1.4, modified by Daniel Meinert and Nils
+ * Schoeneberg for better precision and smoothness at early times.
+ *
+ * This is one of the few functions in the code which are passed to the generic_evolver routine.  Since generic_evolver
+ * should work with functions passed from various modules, the format of the arguments is a bit special:
+ *
+ * - fixed parameters and workspaces are passed through a generic pointer. Here, this pointer contains the precision, background
+ *   and thermo structures, plus a background vector, but generic_evolver doesn't know its precise structure.
+ *
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic error_message
+ *   passed in the list of arguments.
+ *
+ * @param mz                       Input: negative redshift mz = -z
+ * @param y                        Input: vector of variable to integrate
+ * @param dy                       Output: its derivative (already allocated)
+ * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices) and workspace (already allocated)
+ * @param error_message            Output: error message
+ */
+
+int thermodynamics_derivs(
+                          double mz,
+                          double * y,
+                          double * dy,
+                          void * parameters_and_workspace,
+                          ErrorMsg error_message
+                          ) {
+  /** Summary: */
+
+  /** Define local variables */
+  double z;
+  int index_y;
+  /* Shorthand notations */
+  double x,nH,Trad,Tmat,x_H,x_He,dx,dxdlna,Hz,eps,depsdlna,dHdlna;
+  /* Photon-Baryon interaction rate */
+  double R_g;
+
+  /* Heat capacity of the IGM */
+  double heat_capacity;
+  /* index for background interpolation */
+  int last_index_back;
+
+  /* Shorthand notations for all of the structs */
+  struct thermodynamics_parameters_and_workspace * ptpaw;
+  struct precision * ppr;
+  struct background * pba;
+  struct thermo * pth;
+  double * pvecback;
+  struct thermo_workspace * ptw;
+  struct thermo_diffeq_workspace * ptdw;
+  struct thermo_vector * ptv;
+  struct thermorecfast * precfast;
+  struct thermohyrec * phyrec;
+  struct heating * phe;
+  int ap_current;
+
+  /* Redshift */
+  z = -mz;
+
+  /** - rename structure fields (just to avoid heavy notations) */
+
+  /* structures */
+  ptpaw = parameters_and_workspace;
+  ppr = ptpaw->ppr;
+  pba = ptpaw->pba;
+  pth = ptpaw->pth;
+  phe = &(pth->he);
+  /* vector of background quantities */
+  pvecback = ptpaw->pvecback;
+  /* thermodynamics workspace & vector */
+  ptw = ptpaw->ptw;
+  ptdw = ptw->ptdw;
+  ptv = ptdw->ptv;
+  /* pointer to Recfast/HyRec wrappers */
+  precfast = ptdw->precfast;
+  phyrec = ptdw->phyrec;
+  /* Approximation flag */
+  ap_current = ptdw->ap_current;
+
+  /** - Get background/thermo quantities in this point */
+
+  class_call(background_at_z(pba,
+                             z,
+                             long_info,
+                             inter_closeby,
+                             &(ptw->last_index_back),
+                             pvecback),
+             pba->error_message,
+             error_message);
+
+  /* Hz is H in inverse seconds (while pvecback returns [H0/c] in inverse Mpcs */
+  Hz = pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+  /* Total number density of Hydrogen nuclei in SI units */
+  nH = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
+
+  /* Photon temperature in Kelvins.  Modify this for some non-trivial photon temperature changes */
+  Trad = ptw->Tcmb * (1.+z);
+
+  /** Set Tmat from the evolver (it is always evolved) and sotre it in workspace. */
+  Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
+  ptdw->Tmat = Tmat;
+
+  switch (pth->recombination) {
+
+  case recfast:
+    class_call(thermodynamics_ionisation_recfast(z,y,dy,pba,pth,ptw,ap_current,nH,Hz,Trad,Tmat,pvecback),
+               pth->error_message,
+               error_message);
+    break;
+
+  case hyrec:
+    class_call(thermodynamics_ionisation_hyrec(z,y,dy,pba,pth,ptw,ap_current,nH,Hz,Trad,Tmat,pvecback),
+               pth->error_message,
+               error_message);
+    break;
+  }
+
+  /* Take the newly computed Tmat, x and dxdlna into account */
+  x = ptdw->x_reio;
+  dxdlna = ptdw->dxdlna;
+
+  /** - Matter temperature equations */
+  /* Tmat is always integrated */
+  R_g = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_ );
+  heat_capacity = (3./2.)*_k_B_*nH*(1.+ptw->fHe+x);
+
+ /**
+  * A note on the temperature definition:
+  *
+  * All equations work with D_Tmat = Tmat - Trad
+  *
+  * Thus all derivatives are calculated as dD_Tmat/dz = dTmat/dz - Tcmb
+  **/
+
+ /**
+  * A note on the 'early' time steady state expansion (activated here before HeIII recombination):
+  *
+  * Note: dTr/dz = Tr/(1+z) = Tcmb
+  *
+  * The early system of CMB and matter is very tightly coupled anyway, so we can expand in the following way:
+  * The full equation is dTm/dz = (Tm-Tr)/e /(1+z) + 2 Tm/(1+z). Here e = H*(1+x+f)/(cT*Tr^4*x) << 1 at early times
+  *
+  * Find the first order solution in e, by multiplying in (1+z)*e, and approximate
+  *  e*(dTm/dz)*(1+z) ~ e*(dTr/dz)*(1+z) + O(e^2) ~ e * Tr
+  *
+  * You find e*Tr = (Tm-Tr) + 2 Tm * e
+  * Thus Tm = (1+2*e)/(1+e) * Tr = Tr/(1+e) + O(e^2)
+  *
+  * This is the steady state solution, which is the SAME as e.g. in HyRec
+  * In our notation, eps = e*Tr, so we get Tm = Tr - eps
+  *
+  * So, taking the derivative of the right hand side, we obtain dTm/dz = Tcmb - eps*(dln(eps)/dz)
+  *
+  * Now use the form of eps = Tr*e = H*(1+x+f)/(cT*Tr^3*x) to derive the remaining terms in the below formula
+  * => dln(eps)/dlna = dln(H)/dlna  - (1+f)/(1+x+f)*dln(x)/dlna + 3*dln(Tr)/dlna
+  * => dln(eps)/dz = -1/(1.+z)*dln(eps)/dlna
+  *
+  * With Tr ~ a^(-1) and dD_Tmat/dz = dTmat/dz - Tcmb , you find the terms as below
+  **/
+
+  if( ap_current == ptdw->index_ap_brec) {
+    dHdlna = (1.+z)*pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today * _c_ / _Mpc_over_m_;
+    eps =  Trad * Hz * (1.+x+ptw->fHe) / (R_g*x);
+    depsdlna = (1.+ptw->fHe)/(1.+ptw->fHe+x)*(dxdlna/x) - dHdlna/Hz - 3.;
+    /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
+    dy[ptdw->ptv->index_D_Tmat] = eps * dlnepsdlna / (1.+z); // includes sign correction by Nils on 9.04
+  }
+
+  else {
+    /* Full equations at later times */
+    dy[ptv->index_D_Tmat] =
+        + 2.*Tmat/(1.+z)                                                          /* Adiabatic expansion */
+        + R_g * x / (1.+x+ptw->fHe) * (Tmat-Trad) / (Hz*(1.+z))                   /* Coupling to photons*/
+        - phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z))  /* Heating from energy injection */
+        - ptw->Tcmb;                                                              /* dTrad/dz */
+
+  }
+
+  /*
+   * If we have extreme heatings, recombination does not fully happen
+   * and/or re-ionization happens before a redshift of reionization_z_start_max (default = 50).
+   *
+   * */
+  class_test(x>1.0 && ap_current != ptdw->index_ap_reio && z < ppr->z_end_reco_test,
+             pth->error_message,
+             "At redshift %.5g : Recombination did not complete by redshift %.5g, or re-ionization happened before %.5g.\nIf this is a desired behavior, please adjust z_end_reco_test and/or reionization_z_start_max.",
+             z,ppr->z_end_reco_test,ppr->reionization_z_start_max);
+
+
+  /* time-invert derivatives (As the evolver evolves with -z, not with +z) */
+  for(index_y=0;index_y<ptdw->ptv->tv_size;index_y++) {
+    dy[index_y]=-dy[index_y];
+  }
+
+  return _SUCCESS_;
+
+}
+
+/**
+ * Compute reionisation variables with the HyRec algorithm.
+ *
+ * When using HyRec, we do not explicitely integrate over ionization
+ * variables (this is done internally in HyRec). We only integrate
+ * over Tmat and possibly other variables whose equations of evolution
+ * are located in thermodynamics_derivs(). However we do need to know
+ * quantities like x and dx/dln(a) at each z in order to compute the
+ * temperature evolution, the optical depth, etc.  This function
+ * evaluates the current ionisation fraction x, either by
+ * interpolating within a table pre-computed by HyRec, or just using
+ * some analytic approximation formulas (at very high redhsift). The
+ * result is stored in the workspace as ptdw->x_noreio. During
+ * reionization, the function thermodynamics_reionization_function()
+ * is called to compute x and the result is stored in ptdw->reio. The
+ * function also computes dx/dln(a), which is useful for evolving the
+ * matter temperature, and stores the result in ptdw->dxdlna.
+ *
+ * This function is also the place where HyRec is called in order to
+ * evolve internally the system of equations giving x(z) inside each
+ * step [z_i, z_i+1], and to store the result in a temporary
+ * table. This task is not performed each time that
+ * thermodynamics_ionisation_derivs_hyrec() is called, but only when
+ * the code enters into a new interval [z_i, z_i+1].
+ *
+ * @param z             Input: redshift z
+ * @param y             Input: vector of quantities to integrate
+ * @param dy            Output: its derivative for ionisation variables (but in the HyRec case there are none)
+ * @param pba           Input: pointer to background structure
+ * @param pth           Input: pointer to thermodynamics structure
+ * @param ptw           Input/Output: pointer to thermodynamics workspace. Contains the output for x, dxdlna, ...
+ * @param current_ap    Input: index of current approximation scheme
+ * @param nH            Input: total number density of Hydrogen nuclei in SI units
+ * @param Hz            Input: Hubble parameter in inverse second
+ * @param Trad          Input: photon temperature in Kelvins
+ * @param Tmat          Input: baryon temeprature in Kelvins
+ * @param pvecback      Input: vector of background quantities
+ * @param error_message Output: error message
+*/
+
+int thermodynamics_ionisation_hyrec(
+                                    double z,
+                                    double * y,
+                                    double * dy,
+                                    struct background * pba,
+                                    struct thermo * pth,
+                                    struct thermo_workspace * ptw,
+                                    int current_ap,
+                                    double nH,
+                                    double Hz,
+                                    double Trad,
+                                    double Tmat,
+                                    double * pvecback
+                                    ) {
+
+  /** Summary: */
+
+  /** Define local variables */
+  struct thermo_diffeq_workspace * ptdw = ptw->ptdw;
+  struct thermorecfast * precfast = ptw->ptdw->precfast;
+  struct thermohyrec * phyrec = ptw->ptdw->phyrec;
+  struct thermo_vector * ptv = ptdw->ptv;
+
+  /* Thermo quantities */
+  double x, dx, dxdlna;
+
+  /** - evaluate x and dx/dln(a) */
+
+  /** - --> first regime: H and Helium fully ionized */
+  if(current_ap == ptdw->index_ap_brec) {
+
+    x = 1. + 2.*ptw->fHe;
+    dxdlna = 0.;
+
+  }
+  /** - --> all other regimes: interpolate in table pre-computed by
+            HyRec that covers the current interval [z_i, z_i+1] with
+            z_i < z < z_i+1 */
+  else{
+    class_call(thermodynamics_hyrec_get_xe(phyrec,z,&x,&dxdlna),
+               phyrec->error_message,
+               pth->error_message);
+  }
+
+  /** - store ionization fraction and its derivative (neglecting reionisation) in workspace */
+  ptdw->x_noreio = x;
+  ptdw->dxdlna = dxdlna;
+
+  /** - if z is during reionization, also calculate the reionized x and correct its derivative */
+
+  if(current_ap == ptdw->index_ap_reio) {
+
+    /* set x from the evolver (which is very low ~10^-4) as 'xe_before' */
+    ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = x;
+
+    /* compte x and dx/dz during reionisation */
+    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x,&dx),
+               pth->error_message,
+               pth->error_message);
+
+    ptdw->dxdlna = -(1.+z)*dx;
+  }
+
+  /** - store ionization fraction including reionisation in workspace */
+
+  ptdw->x_reio = x;
+
+  /** - If needed, calculate heating effects (i.e. any possible energy
+      deposition rates affecting the evolution equations for x_H and
+      Tmat). Note that we currently neglect the contribution of
+      heating to helium ionization. On the other hand, we calculate
+      here the energy injection rates including reionization. */
+
+  class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
+             pth->he.error_message,
+             pth->error_message);
+
+  /** - the flag phyrec->to_store is _TRUE_ when this function is
+        called from thermodynamics_sources() (always through
+        thermodynamics_derivs()), that is, when we have reached the
+        boundary of the interval [z_i, z_i+1] with z=z_i+1. This is
+        the right time for asking HyRec to evolve x(z) using its
+        internal system of differential equations over the next range
+        [z+i+1, z_i+2], and to store the result in a temporary
+        table. Technical note: the function Tmat(z) is needed in order
+        to compute x'(z) and solve the internal system in
+        HyRec. However, it has not yet been calculated. Our approach
+        consists in passing to HyRec a solution for Tmat(z) that is
+        extrapolated from the previous known solution at
+        z<z_i+1. Since HyRec only needs to evolve x(z) over a very
+        small interval, this is accurate enough. All these steps are
+        taking in the HyRec wrapper of CLASS. */
+
+  if (phyrec->to_store == _TRUE_) {
+    class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
+               phyrec->error_message,
+               pth->error_message);
+  }
+
+  return _SUCCESS_;
+}
+
+/**
+ * Compute reionisation variables with the RecFast algorithm.
+ *
+ * The function first evaluates the current reionisation variables
+ * x_H, x_He, x, taking them either from the input y vector, or from
+ * some analytic approximation formulas (borrowed from RecFast, with
+ * some small improvements at high redhsift). The results are stored
+ * in the workspace as ptdw->x_H, ptdw->x_He, ptdw->x_noreio. When the
+ * approximation scheme requires the integration of x_H and x_He, the
+ * Recfast wrapper is called to provide the derivatives d(x_H/)dz and
+ * d(x_He)/dz, that are stored dirtectly in the output dy
+ * vector. During reionization, the function
+ * thermodynamics_reionization_function() is called to compute x and
+ * the result is stored in ptdw->reio. The function also computes
+ * dx/dln(a), which is useful for evolving the matter temperature, and
+ * stores the result in ptdw->dxdlna.
+ *
+ * @param z             Input: redshift z
+ * @param y             Input: vector of quantities to integrate
+ * @param dy            Output: its derivative for ionisation variables (already allocated)
+ * @param pba           Input: pointer to background structure
+ * @param pth           Input: pointer to thermodynamics structure
+ * @param ptw           Input/Output: pointer to thermodynamics workspace. Contains the output for x, dxdlna, ...
+ * @param current_ap    Input: index of current approximation scheme
+ * @param nH            Input: total number density of Hydrogen nuclei in SI units
+ * @param Hz            Input: Hubble parameter in inverse second
+ * @param Trad          Input: photon temperature in Kelvins
+ * @param Tmat          Input: baryon temeprature in Kelvins
+ * @param pvecback      Input: vector of background quantities
+ * @param error_message Output: error message
+*/
+
+int thermodynamics_ionisation_recfast(
+                                      double z,
+                                      double * y,
+                                      double * dy,
+                                      struct background * pba,
+                                      struct thermo * pth,
+                                      struct thermo_workspace * ptw,
+                                      int current_ap,
+                                      double nH,
+                                      double Hz,
+                                      double Trad,
+                                      double Tmat,
+                                      double * pvecback
+                                      ) {
+
+  /** Summary: */
+
+  /** Define local variables */
+  struct thermo_diffeq_workspace * ptdw = ptw->ptdw;
+  struct thermorecfast * precfast = ptw->ptdw->precfast;
+  struct thermohyrec * phyrec = ptw->ptdw->phyrec;
+  struct thermo_vector * ptv = ptdw->ptv;
+
+  /* Thermo quantities */
+  double x_H, x_He, x, dx;
+  /* Analytical approximations */
+  double rhs, sqrt_val, drhs_dlna, dlnTmat_dlna, dx_H_dlna;
+
+  /** - compute the derivative dln(Tmat)/dlna, which is needed in
+      analytic approximations for dxdlna, but only over the first five
+      approximation schemes, thus before recombination. In this regime
+      we can safely use the approximation Tmat = Trad = Tcmb (a_0/a),
+      such that dlnTmat_dlna=-1. */
+
+  dlnTmat_dlna = -1.;
+
+  /** - Set the ionization fractions x, x_H, x_He for each
+      regime. Also compute dx/dln(a) whenever possible. If not, it
+      will be done later, at the end of this function. Store the
+      results for x_H, x_He, (dxdlna) in the wrokspace. */
+
+  /** - --> first regime: H and Helium fully ionized */
+  if(current_ap == ptdw->index_ap_brec) {
+
+    rhs = ptw->SIunit_nH0/exp( 1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He2/Tmat );
+    sqrt_val = sqrt(pow(1.-rhs*(1.+ptw->fHe),2) + 4.*rhs*(1.+2*ptw->fHe));
+
+    x = 2.*(1+2.*ptw->fHe)/(1.-rhs*(1.+ptw->fHe) + sqrt_val);
+
+    ptdw->x_H = 1.;
+    ptdw->x_He = 1.;
+    ptdw->dxdlna = 0.;
+
+  }
+  /** - --> second regime: first Helium recombination (analytic approximation) */
+  else if (current_ap == ptdw->index_ap_He1) {
+
+    rhs = exp( 1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He2/Tmat ) / ptw->SIunit_nH0;
+    drhs_dlna = rhs*((precfast->CB1_He2*dlnTmat_dlna/Tmat)+1.5*(dlnTmat_dlna+2.) );
+    sqrt_val = sqrt(pow((rhs-1.-ptw->fHe),2) + 4.*(1.+2.*ptw->fHe)*rhs);
+
+    x = 0.5*(sqrt_val - (rhs-1.-ptw->fHe));
+
+    ptdw->x_H = 1.;
+    ptdw->x_He = 1.;
+    ptdw->dxdlna = 0.5*(  ((rhs-1.-ptw->fHe) + 2.*(1.+2.*ptw->fHe))/sqrt_val   -   1.  )*drhs_dlna;
+
+  }
+  /** - --> third regime: first Helium recombination finished, H and Helium fully ionized */
+  else if (current_ap == ptdw->index_ap_He1f) {
+
+    rhs = 0.25*ptw->SIunit_nH0/exp( 1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He1/Tmat );
+    sqrt_val = sqrt(pow(1.-rhs,2) + 4.*rhs*(1.+ptw->fHe));
+
+    x = 2.*(1+ptw->fHe)/(1.-rhs + sqrt_val);
+
+    ptdw->x_H = 1.;
+    ptdw->x_He = 1.;
+    ptdw->dxdlna = 0.;
+
+  }
+  /** - --> fourth regime: second Helium recombination starts (analytic approximation) */
+  else if (current_ap == ptdw->index_ap_He2) {
+
+    rhs = 4.*exp(1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He1/Tmat ) / ptw->SIunit_nH0;
+    drhs_dlna = rhs*((precfast->CB1_He1*dlnTmat_dlna/Tmat)+1.5*(dlnTmat_dlna+2.) );
+    sqrt_val = sqrt(pow((rhs-1.),2) + 4.*(1.+ptw->fHe)*rhs );
+
+    x = 0.5*(sqrt_val - (rhs-1.));
+
+    ptdw->x_H = 1.;
+    ptdw->x_He = (x-1.)/ptw->fHe;
+    ptdw->dxdlna = 0.5*(  ((rhs-1.) + 2.*(1.+ ptw->fHe))/sqrt_val   -   1.  )*drhs_dlna;
+
+  }
+  /** - --> fifth regime: Hydrogen recombination starts (analytic approximation)
+      while Helium recombination continues (full equation) */
+  else if (current_ap == ptdw->index_ap_H) {
+
+    rhs = exp(1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1/Tmat)/ptw->SIunit_nH0;
+    sqrt_val = sqrt(pow(rhs,2)+4.*rhs);
+
+    x_H = 0.5*(sqrt_val - rhs);
+    x_He = y[ptv->index_x_He];
+    x = x_H + ptw->fHe * x_He;
+
+    ptdw->x_H = x_H;
+    ptdw->x_He = x_He;
+    /* ptdw->dxdlna will be set later */
+
+  }
+  /** - --> sixth regime: full Hydrogen and Helium equations */
+  else if (current_ap == ptdw->index_ap_frec) {
+
+    x_H = y[ptv->index_x_H];
+    x_He = y[ptv->index_x_He];
+    x = x_H + ptw->fHe * x_He;
+
+    ptdw->x_H = x_H;
+    ptdw->x_He = x_He;
+    /* dxdlna will be set later */
+
+  }
+  /** - --> seventh regime: reionization */
+  else if (current_ap == ptdw->index_ap_reio) {
+
+    x_H = y[ptv->index_x_H];
+    x_He = y[ptv->index_x_He];
+    x = x_H + ptw->fHe * x_He;
+
+    ptdw->x_H = x_H;
+    ptdw->x_He = x_He;
+    /* dxdlna will be set later */
+
+  }
+
+  /** - store ionization fraction neglecting reionisation in workspace */
+  ptdw->x_noreio = x;
+
+  /** - if z is during reionization, also calculate the reionized x and correct its derivative */
+  if(current_ap == ptdw->index_ap_reio) {
+
+    /* set x from the evolver (which is very low ~10^-4) as 'xe_before' */
+    ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = x;
+
+    /* compte x and dx/dz during reionisation */
+    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x,&dx),
+             pth->error_message,
+             pth->error_message);
+
+    ptdw->dxdlna = -(1.+z)*dx;
+  }
+
+  /** - store ionization fraction including reionisation in workspace */
+  ptdw->x_reio = x;
+
+  /** - If needed, calculate heating effects (i.e. any possible energy
+      deposition rates affecting the evolution equations for x_H and
+      Tmat). Note that we currently neglect the contribution of
+      heating to helium ionization. On the other hand, we calculate
+      here the energy injection rates including reionization. */
+
+  class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
+             pth->he.error_message,
+             pth->error_message);
+
+  /** - use Recfast to get the derivatives d(x_H)/dz and d(x_He)/dz,
+        and store the result directly in the vector dy. */
+
+  /* In input, we must take the ionisation fraction neglecting reionisation. */
+  x = ptdw->x_noreio;
+  x_H = ptdw->x_H;
+  x_He = ptdw->x_He;
+
+  /** - --> Hydrogen equations */
+
+  if (ptdw->require_H) {
+    class_call(thermodynamics_recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_H])),
+               precfast->error_message,
+               pth->error_message);
+  }
+
+  /** - --> Helium equations */
+  if(ptdw->require_He) {
+    class_call(thermodynamics_recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_He])),
+               precfast->error_message,
+               pth->error_message);
+  }
+
+  /** - finally, the knowledge of d(x_H)/dz and d(x_He)/dz allows us to
+        compute dx/dln(a) in cases where it could not be done
+        before. Results are stored in the workspace. */
+
+  /** - --> fifth regime: Hydrogen recombination starts (analytic approximation)
+      while Helium recombination continues (full equation) */
+  if (current_ap == ptdw->index_ap_H) {
+
+    drhs_dlna = rhs*((precfast->CB1*dlnTmat_dlna/Tmat)+1.5*(dlnTmat_dlna+2.) );
+    dx_H_dlna = 0.5*(  (rhs + 2.)/sqrt_val   -   1.  )*drhs_dlna;
+
+    ptdw->dxdlna = dx_H_dlna + ptw->fHe * (1.+z)*dy[ptv->index_x_He];
+
+  }
+  /** - --> sixth regime: full Hydrogen and Helium equations */
+  else if (current_ap == ptdw->index_ap_frec) {
+
+    ptdw->dxdlna = (1.+z)*(dy[ptv->index_x_H] + ptw->fHe * dy[ptv->index_x_He]);
+
+  }
+  /** - --> seventh regime: reionization */
+  else if (current_ap == ptdw->index_ap_reio) {
+
+    /* Add the part from background evolution */
+    ptdw->dxdlna += (1.+z)*(dy[ptv->index_x_H] + ptw->fHe * dy[ptv->index_x_He]);
+  }
+
+  return _SUCCESS_;
+}
+
+
+/**
  * This routine computes for the different codes and approximations
  * the quantities x and Tmat and stores them within the workspace
  *
@@ -2667,6 +3270,7 @@ int thermodynamics_solve_current_quantities(
 
   /** Set Tmat from the evolver (it is always evolved). */
   Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
+  ptdw->Tmat = Tmat; /// moved up, used to be below, was a bug
 
   /* Note, dxdlna is always calculated from a steady-state solution of Tmat in 0th order,
    * i.e. approximating dlnTmat_dlna = dlnTrad_dlna = -1. */
@@ -2825,7 +3429,6 @@ int thermodynamics_solve_current_quantities(
   }
 
   ptdw->x_noreio = x;
-  ptdw->Tmat = Tmat;
 
   /** In case of reionization, also calculate the reionized x */
   if(current_ap == ptdw->index_ap_reio) {
