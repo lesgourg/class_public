@@ -7,7 +7,27 @@
 #include "thermodynamics.h"
 #include "wrap_hyrec.h"
 
-//(phy->hyrec_Alpha_inf_file)
+/******************************************************************************************************/
+/*                           HYREC: Hydrogen and Helium Recombination Code                            */
+/*                      Written by Yacine Ali-Haimoud and Chris Hirata (Caltech)                      */
+/*                                                                                                    */
+/*         history.c: functions for recombination history                                             */
+/*                                                                                                    */
+/*         Version: October 2012                                                                      */
+/*                                                                                                    */
+/*         Revision history:                                                                          */
+/*            - written November 2010                                                                 */
+/*            - January 2011: changed various switches (notably for post-Saha expansions)             */
+/*                             so that they remain valid for arbitrary cosmologies                    */
+/*            - May 2012:   - added explicit dependence on fine structure constant and electron mass  */
+/*                          - modified call of rec_build_history                                      */
+/*                             and improved numerical radiative transfer equations                    */
+/*                             so the Lyman-lines spectrum can be extracted                           */
+/*                           - split some functions for more clarity                                  */
+/*             - October 2012: added some wrapper functions for running CAMB with HyRec               */
+/*                             (courtesy of Antony Lewis)                                             */
+/******************************************************************************************************/
+
 /* Boundaries and number of elements of temperature tables */
 #define TR_MIN 0.004            /* Tr parameters */
 #define TR_MAX 0.4
@@ -150,8 +170,7 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
 }
 
 int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
-                                      double z, double H_in, double T_b, double T_gamma,
-                                      double* x_e, double* dxe_dlna) {
+                                      double z, double H_in, double T_b, double T_gamma) {
 
   /** Define local variables */
   int iz;
@@ -185,15 +204,11 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
   /** Calculate the quantities until which the table should be extended */
   iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
-  z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
-  if(z_goal<0.){z_goal=0.;}
-
-  if( z > phy->zstart ){*x_e = 1.+2.*phy->fHe; *dxe_dlna = 0.; return _SUCCESS_;}
 
   /** Only add new indices if that is really required */
   if(iz_goal>phy->filled_until_index_z){
 
-    if(phy->thermohyrec_verbose > 1){printf("Filling [%i,%i] (%.10e to %.10e) \n",phy->filled_until_index_z+1,iz_goal,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,z_goal);}
+    if(phy->thermohyrec_verbose > 1){printf("Filling [%i,%i] (%.10e to %.10e) \n",phy->filled_until_index_z+1,iz_goal,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,MAX(0.,((1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.)));}
 
     for(iz=phy->filled_until_index_z+1;iz<=iz_goal;++iz){
       iz_in = iz-1;
@@ -460,26 +475,6 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
     phy->ion_prev = ion;
     phy->exclya_prev = exclya;
   }
-  z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
-  /**
-   * If the table is filled already, or after filling it to the desired value
-   *
-   * We want to take the values at iz_goal and iz_goal-1 to calculate
-   *  the free electron fraction x_e at this position
-   * Also obtain logarithmic derivative delta_xe/delta_lna
-   *  by numerical derivative
-   **/
-
-  frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
-  *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
-  *dxe_dlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
-
-  if(phy->thermohyrec_verbose > 3){
-    //printf("[%i] : %.10e , [%i] : %.10e -> %.10e \n",iz_goal,phy->xe_output[iz_goal],iz_goal-1,phy->xe_output[iz_goal-1],*dxedlna);
-    printf("x_e[%i,%.10e] : %.10e , x_e[%i,%.10e] : %.10e -> x_e[%.10e] : %.10e \n",iz_goal,z_goal,phy->xe_output[iz_goal],iz_goal-1,z_goalm1,phy->xe_output[iz_goal-1],z,*x_e);
-  }
-
-  phy->to_store = _FALSE_;
 
   return _SUCCESS_;
 }

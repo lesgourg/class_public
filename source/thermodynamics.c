@@ -302,7 +302,8 @@ int thermodynamics_init(
     printf(" -> with primordial helium mass fraction Y_He = %.4f\n",pth->YHe);
   }
 
-  /** - infer primordial helium-to-hydrogen nucleon ratio 4*n_He/n_H */
+  /** - infer primordial helium-to-hydrogen nucleon ratio n_He/n_H
+   * It is calculated via n_He/n_H = rho_He/(m_He/m_H * rho_H) = YHe * rho_b / (m_He/m_H * (1-YHe) rho_b) = YHe / (m_He/m_H * (1-YHe))*/
   pth->fHe = pth->YHe/(_not4_ *(1.-pth->YHe));
 
   /** - infer number of hydrogen nuclei today in m**-3 */
@@ -1898,6 +1899,219 @@ int thermodynamics_print_output(
 
 
 /**
+ * This subroutine contains the reionization function \f$ X_e(z) \f$ (one for each scheme) and gives x for a given z.
+ *
+ * @param z     Input: redshift
+ * @param pth   Input: pointer to thermo structure, to know which scheme is used
+ * @param preio Input: pointer to reionization parameters of the function \f$ X_e(z) \f$
+ * @param x     Output: \f$ X_e(z) \f$
+ */
+int thermodynamics_reionization_function(
+                                         double z,
+                                         struct thermo * pth,
+                                         struct thermo_reionization_parameters * preio,
+                                         double * x
+                                         ) {
+
+  /** Summary: */
+
+  /** - define local variables */
+  double argument,dargument;
+  int i;
+  double z_jump;
+
+  int jump;
+  double center,before, after,width,one_jump;
+  double z_min, z_max;
+
+
+  /** - implementation of ionization function similar to the one in CAMB */
+  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
+
+    /** - --> case z > z_reio_start */
+    if (z > preio->reionization_parameters[preio->index_reio_start]) {
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+    }
+    else {
+      /** - --> case z < z_reio_start: hydrogen contribution (tanh of complicated argument) */
+      argument = (pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                    preio->reionization_parameters[preio->index_reio_exponent])
+                   -pow((1.+z),preio->reionization_parameters[preio->index_reio_exponent]))
+                 /(preio->reionization_parameters[preio->index_reio_exponent]
+                 *pow((1.+preio->reionization_parameters[preio->index_reio_redshift]),
+                    (preio->reionization_parameters[preio->index_reio_exponent]-1.)))
+        /preio->reionization_parameters[preio->index_reio_width];
+
+      if (pth->reio_parametrization == reio_camb) {
+        *x = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+             *(tanh(argument)+1.)/2.
+             +preio->reionization_parameters[preio->index_reio_xe_before];
+      }
+      else {
+        *x = (preio->reionization_parameters[preio->index_reio_xe_after]
+               -preio->reionization_parameters[preio->index_reio_xe_before])
+             *tanh(argument)
+             +preio->reionization_parameters[preio->index_reio_xe_before];
+      }
+
+      /** - --> case z < z_reio_start: helium contribution (tanh of simpler argument) */
+      if (pth->reio_parametrization == reio_camb) {
+        argument = (preio->reionization_parameters[preio->index_helium_fullreio_redshift] - z)
+          /preio->reionization_parameters[preio->index_helium_fullreio_width];
+
+        *x += preio->reionization_parameters[preio->index_helium_fullreio_fraction]
+              *(tanh(argument)+1.)/2.;
+      }
+    }
+
+    return _SUCCESS_;
+
+  }
+
+  /** - implementation of binned ionization function similar to astro-ph/0606552 */
+  if (pth->reio_parametrization == reio_bins_tanh) {
+
+    /** - --> case z > z_reio_start */
+    if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+    }
+    else if (z < preio->reionization_parameters[preio->index_reio_first_z]) {
+      *x = preio->reionization_parameters[preio->index_reio_first_xe];
+    }
+    else {
+      i = 0;
+      while (preio->reionization_parameters[preio->index_reio_first_z+i+1]<z) i++;
+
+      /* fix the final xe to xe_before*/
+      preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1] = preio->reionization_parameters[preio->index_reio_xe_before];
+
+      /* This is the expression of the tanh-like jumps of the reio_bins_tanh scheme until the 10.06.2015. It appeared to be
+         not robust enough. It could lead to a kink in xe(z) near the maximum value of z at which reionisation is sampled. It has
+         been replaced by the simpler and more robust expression below.
+
+      *xe = preio->reionization_parameters[preio->index_reio_first_xe+i]
+        +0.5*(tanh((2.*(z-preio->reionization_parameters[preio->index_reio_first_z+i])
+                    /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+                      -preio->reionization_parameters[preio->index_reio_first_z+i])-1.)
+                   /preio->reionization_parameters[preio->index_reio_step_sharpness])
+              /tanh(1./preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+        *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+          -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+      */
+
+      /* compute the central redshift value of the tanh jump */
+      if(i == preio->reio_num_z-2) {
+        z_jump = preio->reionization_parameters[preio->index_reio_first_z+i]
+          + 0.5*(preio->reionization_parameters[preio->index_reio_first_z+i]
+                 -preio->reionization_parameters[preio->index_reio_first_z+i-1]);
+      }
+      else{
+        z_jump =  0.5*(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+                       + preio->reionization_parameters[preio->index_reio_first_z+i]);
+      }
+
+      /* implementation of the tanh jump */
+      *x = preio->reionization_parameters[preio->index_reio_first_xe+i]
+        +0.5*(tanh((z-z_jump)
+                   /preio->reionization_parameters[preio->index_reio_step_sharpness])+1.)
+        *(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+          -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+    }
+
+    return _SUCCESS_;
+
+  }
+
+  /** - implementation of many tanh jumps */
+  if(pth->reio_parametrization == reio_many_tanh) {
+
+    /** - --> case z > z_reio_start */
+    if(z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+    }
+    else if(z > preio->reionization_parameters[preio->index_reio_first_z]) {
+
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+
+      /* fix the final xe to xe_before*/
+      preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1] = preio->reionization_parameters[preio->index_reio_xe_before];
+
+      for (jump=1; jump<preio->reio_num_z-1; jump++) {
+
+        center = preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1-jump];
+
+        /* before and after are meant with respect to growing z, not growing time */
+        before = preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1-jump]
+          -preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-jump];
+        after = 0.;
+        width = preio->reionization_parameters[preio->index_reio_step_sharpness];
+
+        one_jump = before + (after-before)*(tanh((z-center)/width)+1.)/2.;
+
+        *x += one_jump;
+      }
+
+    }
+    else{
+      *x = preio->reionization_parameters[preio->index_reio_first_xe];
+    }
+
+    return _SUCCESS_;
+
+  }
+
+  /** - implementation of reio_inter */
+  if (pth->reio_parametrization == reio_inter) {
+
+    /** - --> case z > z_reio_start */
+    if (z > preio->reionization_parameters[preio->index_reio_first_z+preio->reio_num_z-1]) {
+      *x = preio->reionization_parameters[preio->index_reio_xe_before];
+    }
+    else{
+      i=0;
+      while (preio->reionization_parameters[preio->index_reio_first_z+i+1] < z) i++;
+
+      z_min = preio->reionization_parameters[preio->index_reio_first_z+i];
+      z_max = preio->reionization_parameters[preio->index_reio_first_z+i+1];
+
+      /* fix the final xe to xe_before*/
+      preio->reionization_parameters[preio->index_reio_first_xe+preio->reio_num_z-1] = preio->reionization_parameters[preio->index_reio_xe_before];
+
+      class_test(z<z_min,
+                 pth->error_message,
+                 "z out of range for reionization interpolation");
+
+      class_test(z>z_max,
+                 pth->error_message,
+                 "z out of range for reionization interpolation");
+
+      argument =(z-preio->reionization_parameters[preio->index_reio_first_z+i])
+        /(preio->reionization_parameters[preio->index_reio_first_z+i+1]
+          -preio->reionization_parameters[preio->index_reio_first_z+i]);
+
+      *x = preio->reionization_parameters[preio->index_reio_first_xe+i]
+        + argument*(preio->reionization_parameters[preio->index_reio_first_xe+i+1]
+             -preio->reionization_parameters[preio->index_reio_first_xe+i]);
+
+      class_test(*x<0.,
+                 pth->error_message,
+                 "Interpolation gives negative ionization fraction\n",
+                 argument,
+                 preio->reionization_parameters[preio->index_reio_first_xe+i],
+                 preio->reionization_parameters[preio->index_reio_first_xe+i+1]);
+    }
+
+    return _SUCCESS_;
+
+  }
+
+  class_stop(pth->error_message,
+             "value of reio_parametrization=%d unclear",pth->reio_parametrization);
+
+}
+
+/**
  * This subroutine contains the reionization function \f$ X_e(z) \f$ (one for each scheme) and gives x and dx for a given z.
  *
  * @param z     Input: redshift
@@ -1906,7 +2120,7 @@ int thermodynamics_print_output(
  * @param x     Output: \f$ X_e(z) \f$
  * @param dx    Output: \f$ dX_e(z)/dz \f$
  */
-int thermodynamics_reionization_function(
+int thermodynamics_reionization_function_old(
                                          double z,
                                          struct thermo * pth,
                                          struct thermo_reionization_parameters * preio,
@@ -2160,7 +2374,7 @@ int thermodynamics_reionization_function(
 /**
  * Integrate thermodynamics with your favorite recombination code. The default options are HyRec and Recfast.
  *
- * Integrate thermodynamics with HyRec or Recfas, allocate and fill part of the thermodynamics interpolation table (the rest is filled in
+ * Integrate thermodynamics with HyRec or Recfast, allocate and fill part of the thermodynamics interpolation table (the rest is filled in
  * thermodynamics_init).
  *
  * Version modified by Daniel Meinert and Nils Schoeneberg to use the ndf15 evolver or any other evolver inherent to CLASS,
@@ -2392,17 +2606,13 @@ int thermodynamics_derivs(
   /** Summary: */
 
   /** Define local variables */
-  double z;
+  /* Index for iterating over derivatives */
   int index_y;
-  /* Shorthand notations */
-  double x,nH,Trad,Tmat,x_H,x_He,dx,dxdlna,Hz,eps,depsdlna,dHdlna;
-  /* Photon-Baryon interaction rate */
-  double R_g;
-
-  /* Heat capacity of the IGM */
-  double heat_capacity;
-  /* index for background interpolation */
+  /* index for fast background interpolation */
   int last_index_back;
+
+  /* Shorthand notations */
+  double z,x,nH,Trad,Tmat,x_H,x_He,dx,Hz,eps,depsdlna,dHdlna,R_g,heat_capacity,rate_gamma_b;
 
   /* Shorthand notations for all of the structs */
   struct thermodynamics_parameters_and_workspace * ptpaw;
@@ -2442,7 +2652,6 @@ int thermodynamics_derivs(
   ap_current = ptdw->ap_current;
 
   /** - Get background/thermo quantities in this point */
-
   class_call(background_at_z(pba,
                              z,
                              long_info,
@@ -2458,27 +2667,20 @@ int thermodynamics_derivs(
   /* Total number density of Hydrogen nuclei in SI units */
   nH = ptw->SIunit_nH0 * (1.+z) * (1.+z) * (1.+z);
 
-  /* Photon temperature in Kelvins.  Modify this for some non-trivial photon temperature changes */
+  /* Photon temperature in Kelvins. Modify this for some non-trivial photon temperature changes */
   Trad = ptw->Tcmb * (1.+z);
 
-  /* Thermodynamic variables like the matter temperature (Tmat) and
-     the ionization fractions (x, x_reio, x_noreio, x_H, x_He) should
-     be passed in input in the vector y. However, in some
-     approximation schemes, we want to overwrite these inputs and use
-     instead analytic approximations. The role of this funciton is to
-     assign them appropriately, using either the input vector y or
-     some analytic approximation. We also want to know the derivative
-     dx/dlna, because it is needed in order to compute the evolution
-     of Tmnat in some approximation schemes. For some approximation
-     schemes it can already be computed here by this function. For
-     other ones it will be computed later, in
-     thermodynamics_solve_current_dxdlna (Recfast scheme) or in
-     thermodynamics_hyrec_calculate_xe (HyRec scheme) */
-
+  /* The input vector y contains thermodynamic variables like the matter temperature,
+     and depending on the approximation also others (x_H,x_He).
+     The goal of this function is to
+      1) Depending on the current approximation scheme and chosen code,
+         use either analytical approximations or numerical values of
+         the fractions x_H or x_He to calculate x_e
+      2) Compute re-ionization effects on x_e
+     It will store all of its outputs in the ptdw */
   class_call(thermodynamics_solve_current_quantities(z,y,pth,ptw,ap_current),
              pth->error_message,
              pth->error_message);
-
 
   /* Save the output in local variables */
   x = ptdw->x_reio;
@@ -2501,49 +2703,41 @@ int thermodynamics_derivs(
      during reionization, but these are not yet fully implemented. */
   x = ptdw->x_noreio;
 
-  /** - HyRec */
-  if(pth->recombination == hyrec && phyrec->to_store == _TRUE_) {
-    class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
-               phyrec->error_message,
+  /** - Hydrogen equations */
+  if (ptdw->require_H) {
+    class_call(thermodynamics_recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_H])),
+               precfast->error_message,
                error_message);
-
   }
 
-  /** - RecfastCLASS */
-  if(pth->recombination == recfast) {
-
-    /** - Hydrogen equations */
-
-    if (ptdw->require_H) {
-      class_call(thermodynamics_recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_H])),
-                 precfast->error_message,
-                 error_message);
-    }
-
-    /** - Helium equations */
-    if(ptdw->require_He) {
-      class_call(thermodynamics_recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_He])),
-                 precfast->error_message,
-                 error_message);
-    }
-
+  /** - Helium equations */
+  if(ptdw->require_He) {
+    class_call(thermodynamics_recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_He])),
+               precfast->error_message,
+               error_message);
   }
-
-  class_call(thermodynamics_solve_current_dxdlna(z,y,dy,pth,ptw,ap_current),
-             pth->error_message,
-             pth->error_message);
-
-  dxdlna = ptdw->dxdlna;
 
   /* Restore to the real x for the temperature equations. */
   x = ptdw->x_reio;
 
   /** - Matter temperature equations */
-  /* Tmat is always integrated */
-  R_g = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_ );
+  /* Using the following definitions and equations, we derive a few important quantities
+     Using n_e = x * n_H, n_He = f * n_H, rho_He ~ YHe * rho_b, rho_H ~ (1-YHe)*rho_b)
+     - Heat capacity of the IGM
+        heat_capacity = (3/2)*k_B*(n_H+n_He+n_e) = (3/2)*k_B*(1+f+x)*n_H
+     - Mean baryonic molecular mass
+        mu_bar = (rho_H + rho_He + rho_e)/(n_H + n_He + n_e) ~ ( (1. + YHe/(1+YHe) + 0.) * rho_H )/( (1. + f + x) * n_H) = m_H / (1+x+f) /(1-YHe)
+     - Photon-baryon momentum transfer rate
+        R_g = (4/3 * rho_g/rho_b) * (sigma_T * n_e) = (4/3 * rho_g * sigma_T ) * x * (1-YHe)/m_H
+     - Photon-Baryon interaction rate:
+        rate_gamma_b = 2 * mu_bar / m_e * R_g =  2 * (sigma_T/m_e) * (4/3 * rho_g) * x / (1. + f + x)
+  */
+  /* Photon-Baryon temperature change rate  */
+  rate_gamma_b = ( 2. * _sigma_/_m_e_/_c_ ) * ( 4./3. * pvecback[pba->index_bg_rho_g] * _Jm3_over_Mpc2_ ) * x / (1.+x+ptw->fHe);
+  /* Heat capacity of the IGM */
   heat_capacity = (3./2.)*_k_B_*nH*(1.+ptw->fHe+x);
 
- /**
+ /*
   * A note on the temperature definition:
   *
   * All equations work with D_Tmat = Tmat - Trad
@@ -2551,7 +2745,7 @@ int thermodynamics_derivs(
   * Thus all derivatives are calculated as dD_Tmat/dz = dTmat/dz - Tcmb
   **/
 
- /**
+ /*
   * A note on the 'early' time steady state expansion (activated here before HeIII recombination):
   *
   * Note: dTr/dz = Tr/(1+z) = Tcmb
@@ -2563,7 +2757,7 @@ int thermodynamics_derivs(
   *  e*(dTm/dz)*(1+z) ~ e*(dTr/dz)*(1+z) + O(e^2) ~ e * Tr
   *
   * You find e*Tr = (Tm-Tr) + 2 Tm * e
-  * Thus Tm = (1+2*e)/(1+e) * Tr = Tr/(1+e) + O(e^2)
+  * Thus Tm = (1+e)/(1+2*e) * Tr = Tr * (1-e) + O(e^2)
   *
   * This is the steady state solution, which is the SAME as e.g. in HyRec
   * In our notation, eps = e*Tr, so we get Tm = Tr - eps
@@ -2572,16 +2766,19 @@ int thermodynamics_derivs(
   *
   * Now use the form of eps = Tr*e = H*(1+x+f)/(cT*Tr^3*x) to derive the remaining terms in the below formula
   * => dln(eps)/dlna = dln(H)/dlna  - (1+f)/(1+x+f)*dln(x)/dlna + 3*dln(Tr)/dlna
-  * => dln(eps)/dz = -1/(1.+z)*dln(eps)/dlna
+  * 
+  * We also approximate dln(x)/dlna << 1, since we are before HeIII recombination, thus finding
+  * => dln(eps)/dlna ~ dln(H)/dlna + 3
   *
-  * With Tr ~ a^(-1) and dD_Tmat/dz = dTmat/dz - Tcmb , you find the terms as below
+  * dD_Tmat/dz = d(-eps)/dz = - eps * dln(eps)/dz = eps *dln(eps)/dlna /(1.+z)
   **/
 
   if( ap_current == ptdw->index_ap_brec) {
+    /* Early time steady state equation */
     dHdlna = (1.+z)*pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today * _c_ / _Mpc_over_m_;
-    eps =  Trad * Hz * (1.+x+ptw->fHe) / (R_g*x);
-    depsdlna = (1.+ptw->fHe)/(1.+ptw->fHe+x)*(dxdlna/x) - dHdlna/Hz - 3.;
-    /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
+    eps =  Trad * Hz / rate_gamma_b;
+    depsdlna = dHdlna/Hz + 3.;
+    /* Recfast v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
     dy[ptdw->ptv->index_D_Tmat] = eps * depsdlna / (1.+z);
   }
 
@@ -2589,17 +2786,16 @@ int thermodynamics_derivs(
     /* Full equations at later times */
     dy[ptv->index_D_Tmat] =
         + 2.*Tmat/(1.+z)                                                          /* Adiabatic expansion */
-        + R_g * x / (1.+x+ptw->fHe) * (Tmat-Trad) / (Hz*(1.+z))                   /* Coupling to photons*/
+        + rate_gamma_b * (Tmat-Trad) / (Hz*(1.+z))                                /* Coupling to photons*/
         - phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z))  /* Heating from energy injection */
         - ptw->Tcmb;                                                              /* dTrad/dz */
 
   }
 
-  /*
-   * If we have extreme heatings, recombination does not fully happen
+  /** If we have extreme heatings, recombination does not fully happen
    * and/or re-ionization happens before a redshift of reionization_z_start_max (default = 50).
-   *
-   * */
+   * This unphysical regime we want to catch, because it would lead to further errors (and/or unphysical calculations) within our recombination codes
+   */
   class_test(x>1.0 && ap_current != ptdw->index_ap_reio && z < ppr->z_end_reco_test,
              pth->error_message,
              "At redshift %.5g : Recombination did not complete by redshift %.5g, or re-ionization happened before %.5g.\nIf this is a desired behavior, please adjust z_end_reco_test and/or reionization_z_start_max.",
@@ -2919,7 +3115,7 @@ int thermodynamics_ionisation_hyrec(
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = x;
 
     /* compte x and dx/dz during reionisation */
-    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x,&dx),
+    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x),//,&dx), [Function does not accept this argument anymore]
                pth->error_message,
                pth->error_message);
 
@@ -2956,11 +3152,11 @@ int thermodynamics_ionisation_hyrec(
         small interval, this is accurate enough. All these steps are
         taking in the HyRec wrapper of CLASS. */
 
-  if (phyrec->to_store == _TRUE_) {
-    class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad,&x,&dxdlna),
+  //if (phyrec->to_store == _TRUE_) { [Currently this variable does not exist, also function does not output quantities anymore]
+    class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),//,&x,&dxdlna),
                phyrec->error_message,
                pth->error_message);
-  }
+  //}
 
   return _SUCCESS_;
 }
@@ -3143,7 +3339,7 @@ int thermodynamics_ionisation_recfast(
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = x;
 
     /* compte x and dx/dz during reionisation */
-    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x,&dx),
+    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x),//,&dx), [Function does not accept this argument anymore]
              pth->error_message,
              pth->error_message);
 
@@ -3263,46 +3459,18 @@ int thermodynamics_solve_current_quantities(
   /* Thermo quantities */
   double x_H, x_He, x, Tmat;
   /* Analytical quantities */
-  double rhs, sqrt_val, drhs_dlna;
-  /* Temporary quantities */
-  double dx;
-  double dlnTmat_dlna;
+  double rhs, sqrt_val;
 
   /** Set Tmat from the evolver (it is always evolved). */
   Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
-  ptdw->Tmat = Tmat; /// moved up, used to be below, was a bug
+  ptdw->Tmat = Tmat;
 
-  /* Note, dxdlna is always calculated from a steady-state solution of Tmat in 0th order,
-   * i.e. approximating dlnTmat_dlna = dlnTrad_dlna = -1. */
-  dlnTmat_dlna = -(1.+z)*(ptv->dy[ptv->index_D_Tmat] + ptw->Tcmb)/Tmat;//-1.; /* Steady state approximation to 0th order */
-
-  /** Case RecfastCLASS :: */
-
-  /**
-    *********************************************************************************************************************************
-    * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium, developed by Douglas Scott (dscott@astro.ubc.ca)
-    * based on calculations in the paper Seager, Sasselov & Scott (ApJ, 523, L1, 1999) and "fudge" updates in Wong, Moss & Scott (2008).
-    *
-    * Permission to use, copy, modify and distribute without fee or royalty at any tier, this software and its documentation, for any
-    * purpose and without fee or royalty is hereby granted, provided that you agree to comply with the following copyright notice and
-    * statements, including the disclaimer, and that the same appear on ALL copies of the software and documentation,
-    * including modifications that you make for internal use or for distribution:
-    *
-    * Copyright 1999-2010 by University of British Columbia.  All rights reserved.
-    *
-    * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
-    * BY WAY OF EXAMPLE, BUT NOT LIMITATION, U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY
-    * OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE
-    * ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
-    *********************************************************************************************************************************
-    *
-    * Version 1.5: includes extra fitting function from Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
-    */
-
-  if(pth->recombination == recfast) {
+  /** Task 1 :: Calculate x_noreio from Recfast/Hyrec in each approximation regime */
+  switch (pth->recombination) {
+    /** Case RecfastCLASS --> For credits, see external/wrap_recfast.c */
+    case recfast:
 
     /** Set the ionization fractions x_H, x_He and x for each regime. */
-
     /** - --> first regime: H and Helium fully ionized */
     if(current_ap == ptdw->index_ap_brec) {
 
@@ -3314,8 +3482,6 @@ int thermodynamics_solve_current_quantities(
 
       ptdw->x_H = 1.;
       ptdw->x_He = 1.;
-
-      ptdw->dxdlna = 0.;
 
     }
     /** - --> second regime: first Helium recombination (analytic approximation) */
@@ -3330,9 +3496,6 @@ int thermodynamics_solve_current_quantities(
       ptdw->x_H = 1.;
       ptdw->x_He = 1.;
 
-      drhs_dlna = rhs*((precfast->CB1_He2*dlnTmat_dlna/ptdw->Tmat)+1.5*(dlnTmat_dlna+2.) );
-      ptdw->dxdlna = 0.5*(  ((rhs-1.-ptw->fHe) + 2.*(1.+2.*ptw->fHe))/sqrt_val   -   1.  )*drhs_dlna;
-
     }
     /** - --> third regime: first Helium recombination finished, H and Helium fully ionized */
     else if (current_ap == ptdw->index_ap_He1f) {
@@ -3346,8 +3509,6 @@ int thermodynamics_solve_current_quantities(
       ptdw->x_H = 1.;
       ptdw->x_He = 1.;
 
-      ptdw->dxdlna = 0.;
-
     }
     /** - --> fourth regime: second Helium recombination starts (analytic approximation) */
     else if (current_ap == ptdw->index_ap_He2) {
@@ -3360,9 +3521,6 @@ int thermodynamics_solve_current_quantities(
 
       ptdw->x_H = 1.;
       ptdw->x_He = (x-1.)/ptw->fHe;
-
-      drhs_dlna = rhs*((precfast->CB1_He1*dlnTmat_dlna/ptdw->Tmat)+1.5*(dlnTmat_dlna+2.) );
-      ptdw->dxdlna = 0.5*(  ((rhs-1.) + 2.*(1.+ ptw->fHe))/sqrt_val   -   1.  )*drhs_dlna;
 
     }
     /** - --> fifth regime: Hydrogen recombination starts (analytic approximation)
@@ -3380,8 +3538,6 @@ int thermodynamics_solve_current_quantities(
       ptdw->x_H = x_H;
       ptdw->x_He = x_He;
 
-      /* dxdlna will be set later */
-
     }
     /** - --> sixth regime: full Hydrogen and Helium equations */
     else if (current_ap == ptdw->index_ap_frec) {
@@ -3392,8 +3548,6 @@ int thermodynamics_solve_current_quantities(
 
       ptdw->x_H = x_H;
       ptdw->x_He = x_He;
-
-      /* dxdlna will be set later */
 
     }
     /** - --> sixth regime: reionization */
@@ -3406,18 +3560,14 @@ int thermodynamics_solve_current_quantities(
       ptdw->x_H = x_H;
       ptdw->x_He = x_He;
 
-      /* dxdlna will be set later */
-
     }
-  }
-  /** Case HyRec :: */
-  else{
-
+    break;
+    /** Case Hyrec2012 --> For credits, see external/wrap_hyrec.c */
+    case hyrec:
     /** - --> first regime: H and Helium fully ionized */
     if(current_ap == ptdw->index_ap_brec) {
 
       x = 1. + 2.*ptw->fHe;
-      ptdw->dxdlna = 0.;
 
     }
     /** - --> all other regimes: hyrec solution */
@@ -3426,22 +3576,21 @@ int thermodynamics_solve_current_quantities(
                  phyrec->error_message,
                  pth->error_message);
     }
+    break;
   }
 
   ptdw->x_noreio = x;
 
-  /** In case of reionization, also calculate the reionized x */
+  /** Task 2 : In case of reionization, also calculate the reionized x */
   if(current_ap == ptdw->index_ap_reio) {
 
-    /* set x from the evolver (which is very low ~10^-4) as 'xe_before' */
+    /** - set x from the evolver (which is very low ~10^-4) as 'xe_before' */
     ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_xe_before] = x;
 
-    /* add the reionization function on top */
-    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x,&dx),
+    /** - add the reionization function on top */
+    class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x),
              pth->error_message,
              pth->error_message);
-
-    ptdw->dxdlna = -(1.+z)*dx;
   }
 
   ptdw->x_reio = x;
@@ -4749,9 +4898,8 @@ int thermodynamics_solve_store_sources(
   /** Summary: */
 
   /** Define local variables */
-  /* Redshift and ionization fraction/temperature */
-  double z;
-  double x,Tmat;
+  /* Shorthand notations */
+  double z,x,Tmat,Trad, Hz;
   /* Recfast smoothing */
   double x_previous, weight,s;
   /* Structures as shorthand_notation */
@@ -4762,6 +4910,7 @@ int thermodynamics_solve_store_sources(
   struct thermo_workspace * ptw;
   struct thermo_diffeq_workspace * ptdw;
   struct thermo_vector * ptv;
+  double* pvecback;
   int ap_current;
   struct thermorecfast * precfast;
   struct thermohyrec * phyrec;
@@ -4779,6 +4928,8 @@ int thermodynamics_solve_store_sources(
   ptw = ptpaw->ptw;
   ptdw = ptw->ptdw;
   ptv = ptdw->ptv;
+  /* vector of background quantities */
+  pvecback = ptpaw->pvecback;
   /* Recfast/HyRec */
   precfast = ptdw->precfast;
   phyrec = ptdw->phyrec;
@@ -4787,15 +4938,22 @@ int thermodynamics_solve_store_sources(
 
   /* Tell heating it should store the heating at this z in its internal table */
   (pth->he).to_store = _TRUE_;
-  if(pth->recombination == hyrec) {
-    phyrec->to_store = _TRUE_;
-  }
 
   /* Recalculate all quantities at this current redshift (they are all stored in ptdw) */
   class_call(thermodynamics_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
              error_message,
              error_message);
-  Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
+
+  /* Assign local variables (note, that pvecback is filled through derivs at this point already) */
+  Trad = ptw->Tcmb*(1.+z);
+  Tmat = y[ptv->index_D_Tmat] + Trad;
+  Hz = pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
+
+  if ( pth->recombination == hyrec ) {
+    class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
+               phyrec->error_message,
+               error_message);
+  }
 
   /* Make super sure that our x is correct and uses the current derivative (see current_quantities for further comments) */
   class_call(thermodynamics_solve_current_quantities(z,y,pth,ptw,ap_current),

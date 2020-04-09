@@ -1,5 +1,28 @@
 #include "wrap_recfast.h"
 #include "thermodynamics.h"
+
+
+/**
+  *********************************************************************************************************************************
+  * RECFAST is an integrator for Cosmic Recombination of Hydrogen and Helium, developed by Douglas Scott (dscott@astro.ubc.ca)
+  * based on calculations in the paper Seager, Sasselov & Scott (ApJ, 523, L1, 1999) and "fudge" updates in Wong, Moss & Scott (2008).
+  *
+  * Permission to use, copy, modify and distribute without fee or royalty at any tier, this software and its documentation, for any
+  * purpose and without fee or royalty is hereby granted, provided that you agree to comply with the following copyright notice and
+  * statements, including the disclaimer, and that the same appear on ALL copies of the software and documentation,
+  * including modifications that you make for internal use or for distribution:
+  *
+  * Copyright 1999-2010 by University of British Columbia.  All rights reserved.
+  *
+  * THIS SOFTWARE IS PROVIDED "AS IS", AND U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES, EXPRESS OR IMPLIED.
+  * BY WAY OF EXAMPLE, BUT NOT LIMITATION, U.B.C. MAKES NO REPRESENTATIONS OR WARRANTIES OF MERCHANTABILITY
+  * OR FITNESS FOR ANY PARTICULAR PURPOSE OR THAT THE USE OF THE LICENSED SOFTWARE OR DOCUMENTATION WILL NOT INFRINGE
+  * ANY THIRD PARTY PATENTS, COPYRIGHTS, TRADEMARKS OR OTHER RIGHTS.
+  *********************************************************************************************************************************
+  *
+  * Version 1.5: includes extra fitting function from Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
+  */
+
 int thermodynamics_recfast_init(struct precision* ppr,
                                 struct background* pba,
                                 struct thermo* pth,

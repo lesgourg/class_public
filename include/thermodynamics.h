@@ -505,6 +505,11 @@ extern "C" {
   int thermodynamics_reionization_function(double z,
                                            struct thermo * pth,
                                            struct thermo_reionization_parameters * preio,
+                                           double * x);
+
+  int thermodynamics_reionization_function_old(double z,
+                                           struct thermo * pth,
+                                           struct thermo_reionization_parameters * preio,
                                            double * x,
                                            double * dx);
 
