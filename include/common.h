@@ -168,7 +168,7 @@ int get_number_of_titles(char * titlestring);
 }
 
 /* macro for re-allocating memory, returning error if it failed */
-#define class_realloc(pointer, newname, size, error_message_output)  {                                          \
+#define class_realloc(pointer, newname, size, error_message_output)  {                                           \
     pointer=realloc(newname,size);                                                                               \
   if (pointer == NULL) {                                                                                         \
     int size_int;                                                                                                \
@@ -180,45 +180,45 @@ int get_number_of_titles(char * titlestring);
 
 // Testing
 
-#define class_test_message(err_out,extra,args...) {                                                              \
+#define class_test_message(err_out,extra,...) {                                                                  \
   ErrorMsg Optional_arguments;                                                                                   \
-  class_protect_sprintf(Optional_arguments,args);                                                                \
+  class_protect_sprintf(Optional_arguments,__VA_ARGS__);                                                         \
   class_build_error_string(err_out,"condition (%s) is true; %s",extra,Optional_arguments);                       \
 }
 
 /* macro for testing condition and returning error if condition is true;
    args is a variable list of optional arguments, e.g.: args="x=%d",x
    args cannot be empty, if there is nothing to pass use args="" */
-#define class_test_except(condition, error_message_output,list_of_commands, args...) {                           \
+#define class_test_except(condition, error_message_output,list_of_commands, ...) {                               \
   if (condition) {                                                                                               \
-    class_test_message(error_message_output,#condition, args);                                                   \
+    class_test_message(error_message_output,#condition, __VA_ARGS__);                                            \
     list_of_commands;                                                                                            \
     return _FAILURE_;                                                                                            \
   }                                                                                                              \
 }
 
-#define class_test(condition, error_message_output, args...) {                                                   \
+#define class_test(condition, error_message_output, ...) {                                                       \
   if (condition) {                                                                                               \
-    class_test_message(error_message_output,#condition, args);                                                   \
+    class_test_message(error_message_output,#condition, __VA_ARGS__);                                            \
     return _FAILURE_;                                                                                            \
   }                                                                                                              \
 }
 
-#define class_test_parallel(condition, error_message_output, args...) {                                          \
+#define class_test_parallel(condition, error_message_output, ...) {                                              \
   if (abort == _FALSE_) {                                                                                        \
     if (condition) {                                                                                             \
-      class_test_message(error_message_output,#condition, args);                                                 \
+      class_test_message(error_message_output,#condition, __VA_ARGS__);                                          \
       abort=_TRUE_;                                                                                              \
     }                                                                                                            \
-  }                                                                     \
+  }                                                                                                              \
 }
 
 /* macro for returning error message;
    args is a variable list of optional arguments, e.g.: args="x=%d",x
    args cannot be empty, if there is nothing to pass use args="" */
-#define class_stop(error_message_output,args...) {                                                               \
+#define class_stop(error_message_output,...) {                                                                   \
   ErrorMsg Optional_arguments;                                                                                   \
-  class_protect_sprintf(Optional_arguments,args);                                                                \
+  class_protect_sprintf(Optional_arguments,__VA_ARGS__);                                                         \
   class_build_error_string(error_message_output,"error; %s",Optional_arguments);                                 \
   return _FAILURE_;                                                                                              \
 }
