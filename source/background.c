@@ -526,7 +526,7 @@ int background_w_fld(
   double Omega_ede = 0.;
   double dOmega_ede_over_da = 0.;
   double d2Omega_ede_over_da2 = 0.;
-  double a_eq, Omega_r, Omega_m;
+  double a_eq = 0., Omega_r, Omega_m;
 
   /** - first, define the function w(a) */
   switch (pba->fluid_equation_of_state) {
