@@ -3,7 +3,8 @@
 #include"ClassEngine.hh"
 
 #include <iostream>
-#include<string>
+#include <fstream>
+#include <string>
 #include <stdexcept>
 
 using namespace std;
@@ -11,14 +12,12 @@ using namespace std;
 
 // example run: one can specify as a second argument a preicison file
 int main(int argc,char** argv){
-  
-  //jusqu'a ou en l
+
   const int l_max_scalars=1200;
 
   //CLASS config
   ClassParams pars;
-  
-  //pars.add("H0",70.3);
+
   pars.add("100*theta_s",1.04);
   pars.add("omega_b",0.0220);
   pars.add("omega_cdm",0.1116);
@@ -33,6 +32,14 @@ int main(int argc,char** argv){
   pars.add("l_max_scalars",l_max_scalars);
   pars.add("lensing",true); //note boolean
 
+  pars.add("background_verbose",1);
+  pars.add("thermodynamics_verbose",1);
+  pars.add("perturbations_verbose",1);
+  pars.add("transfer_verbose",1);
+  pars.add("primordial_verbose",1);
+  pars.add("spectra_verbose",1);
+  pars.add("nonlinear_verbose",1);
+  pars.add("lensing_verbose",1);
 
   ClassEngine* KKK(0);
 
@@ -45,12 +52,18 @@ int main(int argc,char** argv){
     else{
       KKK=new ClassEngine(pars);
     }
-    
-    cout.precision( 16 );
-    KKK->writeCls(cout);
+
+    //cout.precision( 16 );
+    //KKK->writeCls(cout);
+
+    ofstream outfile;
+    const char* outfile_name = "testKlass_Cl_lensed.dat";
+    outfile.open(outfile_name, ios::out | ios::trunc );
+    KKK->writeCls(outfile);
+    cout << "Cl's written in file " << outfile_name << endl;
   }
   catch (std::exception &e){
-    cout << "GIOSH" << e.what() << endl;
+    cout << "GOSH" << e.what() << endl;
   }
 
   delete KKK;

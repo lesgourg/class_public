@@ -1,4 +1,4 @@
-CXX ?= g++
+CXX = g++
 CFLAGS = -O2 -fopenmp -I../include
 CLASSMODULES = ../build/arrays.o ../build/background.o ../build/common.o \
 	../build/dei_rkck.o ../build/evolver_ndf15.o ../build/evolver_rkck.o \
