@@ -2382,13 +2382,13 @@ int thermodynamics_solve(
  * @param error_message            Output: error message
  */
 
-int thermodynamics_derivs_old(
-                              double mz,
-                              double * y,
-                              double * dy,
-                              void * parameters_and_workspace,
-                              ErrorMsg error_message
-                              ) {
+int thermodynamics_derivs(
+                          double mz,
+                          double * y,
+                          double * dy,
+                          void * parameters_and_workspace,
+                          ErrorMsg error_message
+                          ) {
   /** Summary: */
 
   /** Define local variables */
@@ -2582,7 +2582,7 @@ int thermodynamics_derivs_old(
     eps =  Trad * Hz * (1.+x+ptw->fHe) / (R_g*x);
     depsdlna = (1.+ptw->fHe)/(1.+ptw->fHe+x)*(dxdlna/x) - dHdlna/Hz - 3.;
     /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
-    dy[ptdw->ptv->index_D_Tmat] = -1./(1.+z)*eps*depsdlna;
+    dy[ptdw->ptv->index_D_Tmat] = eps * depsdlna / (1.+z);
   }
 
   else {
@@ -2644,13 +2644,13 @@ int thermodynamics_derivs_old(
  * @param error_message            Output: error message
  */
 
-int thermodynamics_derivs(
-                          double mz,
-                          double * y,
-                          double * dy,
-                          void * parameters_and_workspace,
-                          ErrorMsg error_message
-                          ) {
+int thermodynamics_derivs_alternative(
+                                      double mz,
+                                      double * y,
+                                      double * dy,
+                                      void * parameters_and_workspace,
+                                      ErrorMsg error_message
+                                      ) {
   /** Summary: */
 
   /** Define local variables */
@@ -2790,7 +2790,7 @@ int thermodynamics_derivs(
     eps =  Trad * Hz * (1.+x+ptw->fHe) / (R_g*x);
     depsdlna = (1.+ptw->fHe)/(1.+ptw->fHe+x)*(dxdlna/x) - dHdlna/Hz - 3.;
     /* v 1.5: like in camb, add here a smoothing term as suggested by Adam Moss */
-    dy[ptdw->ptv->index_D_Tmat] = eps * dlnepsdlna / (1.+z); // includes sign correction by Nils on 9.04
+    dy[ptdw->ptv->index_D_Tmat] = eps * depsdlna / (1.+z);
   }
 
   else {

@@ -520,11 +520,11 @@ extern "C" {
                             void * parameters_and_workspace,
                             ErrorMsg error_message);
 
-  int thermodynamics_derivs_old(double mz,
-                                double * y,
-                                double * dy,
-                                void * parameters_and_workspace,
-                                ErrorMsg error_message);
+  int thermodynamics_derivs_alternative(double mz,
+                                        double * y,
+                                        double * dy,
+                                        void * parameters_and_workspace,
+                                        ErrorMsg error_message);
 
   int thermodynamics_ionisation_recfast(
                                         double z,
