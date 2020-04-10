@@ -342,7 +342,6 @@ int perturb_output_titles(
       class_store_columntitle(titles,"eta",ppt->has_source_eta);
       class_store_columntitle(titles,"eta_prime",ppt->has_source_eta_prime);
       class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_H_T_Nb_prime);
-      class_store_columntitle(titles,"H_T_Nb_prime",ppt->has_source_k2gamma_Nb);
       class_store_columntitle(titles,"k2gamma_Nb",ppt->has_source_k2gamma_Nb);
     }
     if (ppt->has_velocity_transfers == _TRUE_) {
@@ -7299,22 +7298,32 @@ int perturb_sources(
 
     /* now, non-CMB sources */
 
-    /* H_T_prime in N-body gauge. (H_T=3zeta where zeta is the comoving curvature perturbation.).
-       See equation A.5 in 1811.00904.*/
-    if (ppt->has_source_H_T_Nb_prime == _TRUE_) {
+    if ((ppt->has_Nbody_gauge_transfers == _TRUE_) || (ppt->has_source_H_T_Nb_prime == _TRUE_) || (ppt->has_source_k2gamma_Nb == _TRUE_)) {
+
+      /* H_T_prime in N-body gauge. (H_T=3zeta where zeta is the comoving curvature perturbation.).
+         See equation A.5 in 1811.00904.*/
       H_T_Nb_prime = 3*a_prime_over_a/ppw->rho_plus_p_tot*(-ppw->delta_p+
-                                                      pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/ppw->rho_plus_p_tot/k/k+
-                                                      ppw->rho_plus_p_shear);
-      _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
-      /** gamma in Nbody gauge, see Eq. A.2 in 1811.00904. */
+                                                           pvecback[pba->index_bg_p_tot_prime]*ppw->rho_plus_p_theta/ppw->rho_plus_p_tot/k/k+
+                                                           ppw->rho_plus_p_shear);
+      if (ppt->has_source_H_T_Nb_prime == _TRUE_) {
+        _set_source_(ppt->index_tp_H_T_Nb_prime) = H_T_Nb_prime;
+      }
+
+      /** gamma in N-body gauge. Eq. A.2 in 1811.00904 gives k2gamma =
+          (a'/a)H_T' + k2(phi-psi) - H_T''. The last term is cubersome
+          to calculate (one would need finite derivatives) but usually
+          small. Here we only compute an approximate k2gamma without
+          this last term. If needed, the term could be restored: you
+          can see how T. Tram did it in a previous commit
+          beec79548877e1e43403d1f4de5ddee6741a3c16 (28.02.2019) - then
+          it had to go to spectra.c, now it could stay in this
+          module. Later this feature was removed for simplicity. Note
+          that to compute the transfer functions in the N-body gauge
+          we do not need k2gamma anyway. */
+
       if (ppt->has_source_k2gamma_Nb == _TRUE_){
         _set_source_(ppt->index_tp_k2gamma_Nb) = -a_prime_over_a*H_T_Nb_prime+9./2.*a2_rel*ppw->rho_plus_p_shear;
       }
-
-    }
-
-    if (ppt->has_source_k2gamma_Nb == _TRUE_) {
-	  class_stop(ppt->error_message,"We need to compute the derivative of H_T_Nb_prime numerically. Written by T. Tram but not yet propagated here. See devel branch prior to merging with hmcode branch");
     }
 
     /* Bardeen potential -PHI_H = phi in Newtonian gauge */
@@ -7395,7 +7404,7 @@ int perturb_sources(
 
     /* compute the corrections that have to be applied to each (delta_i, theta_i) in N-body gauge */
 	if (ppt->has_Nbody_gauge_transfers == _TRUE_){
-      theta_over_k2 = ppw->rho_plus_p_theta/(pvecback[pba->index_bg_rho_tot]+pvecback[pba->index_bg_p_tot])/k/k;
+      theta_over_k2 = ppw->rho_plus_p_theta/ppw->rho_plus_p_tot/k/k;
       theta_shift = H_T_Nb_prime;
       if (ppt->gauge == synchronous) theta_shift += pvecmetric[ppw->index_mt_alpha]*k*k;
 	}
@@ -9873,10 +9882,12 @@ int perturb_rsa_delta_and_theta(
   /* update total delta and theta given rsa approximation results */
 
   ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
+  ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_delta_g;
   ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*ppw->rsa_theta_g;
 
   if (pba->has_ur == _TRUE_) {
     ppw->delta_rho += ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_delta_ur;
+    ppw->delta_p += 1./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_delta_ur;
     ppw->rho_plus_p_theta += 4./3.*ppw->pvecback[pba->index_bg_rho_ur]*ppw->rsa_theta_ur;
   }
 

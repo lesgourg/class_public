@@ -348,14 +348,15 @@ int spectra_free(
       free(psp->cl);
       free(psp->ddcl);
     }
+
+    for (index_md=0; index_md < psp->md_size; index_md++)
+      free(psp->is_non_zero[index_md]);
+
+    free(psp->is_non_zero);
+    free(psp->ic_size);
+    free(psp->ic_ic_size);
+
   }
-
-  for (index_md=0; index_md < psp->md_size; index_md++)
-    free(psp->is_non_zero[index_md]);
-
-  free(psp->is_non_zero);
-  free(psp->ic_size);
-  free(psp->ic_ic_size);
 
   return _SUCCESS_;
 
