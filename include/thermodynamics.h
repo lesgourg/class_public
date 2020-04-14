@@ -57,15 +57,6 @@ enum reionization_z_or_tau {
 
 struct thermo
 {
-  /**
-   * @name - pointers to other structs
-   * */
-  //@{
-
-  struct heating he;
-
-  //@}
-
   /** @name - input parameters initialized by user in input module (all other quantities are computed in this module, given these parameters
    *   and the content of the 'precision' and 'background' structures) */
 
@@ -223,6 +214,16 @@ struct thermo
 
   //@}
 
+  /**
+   * @name - heating flag and structure
+   * */
+
+  //@{
+
+  short has_heating;
+  struct heating he;
+
+  //@}
 
   /** @name - characteristic quantities like redshift, conformal time and sound horizon at recombination */
 
@@ -338,7 +339,6 @@ struct thermo_diffeq_workspace {
   double dx_H;     /**< Hydrogen ionization fraction derivative */
   double dx_He;    /**< Helium ionization fraction derivative */
   double dx;       /**< Electron ionization fraction, not taking into account reionization derivative */
-  double dxdlna;   /**< Electron ionization fraction, taking into account reionization derivativ */
 
   double x;        /**< total ionization fraction following usual CMB convention, n_free/n_H = x_H + fHe * x_He; */
 
@@ -519,60 +519,21 @@ extern "C" {
                            struct thermo_workspace* ptw,
                            double * pvecback);
 
-  int thermodynamics_derivs(double mz,
+  int thermodynamics_derivs(
+                            double mz,
                             double * y,
                             double * dy,
                             void * parameters_and_workspace,
-                            ErrorMsg error_message);
+                            ErrorMsg error_message
+                            );
 
-  int thermodynamics_derivs_alternative(double mz,
-                                        double * y,
-                                        double * dy,
-                                        void * parameters_and_workspace,
-                                        ErrorMsg error_message);
-
-  int thermodynamics_ionisation_recfast(
-                                        double z,
-                                        double * y,
-                                        double * dy,
-                                        struct background * pba,
-                                        struct thermo * pth,
-                                        struct thermo_workspace * ptw,
-                                        int current_ap,
-                                        double nH,
-                                        double Hz,
-                                        double Trad,
-                                        double Tmat,
-                                        double * pvecback
-                                        );
-
-  int thermodynamics_ionisation_hyrec(
-                                      double z,
-                                      double * y,
-                                      double * dy,
-                                      struct background * pba,
-                                      struct thermo * pth,
-                                      struct thermo_workspace * ptw,
-                                      int current_ap,
-                                      double nH,
-                                      double Hz,
-                                      double Trad,
-                                      double Tmat,
-                                      double * pvecback
-                                      );
-
-  int thermodynamics_solve_current_quantities(double z,
-                                              double * y,
-                                              struct thermo * pth,
-                                              struct thermo_workspace * ptw,
-                                              int current_ap);
-
-  int thermodynamics_solve_current_dxdlna(double z,
+  int thermodynamics_ionization_fractions(
+                                          double z,
                                           double * y,
-                                          double * dy,
                                           struct thermo * pth,
                                           struct thermo_workspace * ptw,
-                                          int current_ap);
+                                          int current_ap
+                                          );
 
   int thermodynamics_vector_init(struct precision * ppr,
                                  struct background * pba,

@@ -479,7 +479,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e, double* dxdlna){
+int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e){
 
   int iz_goal;
   double z_goal,z_goalm1,frac,z_filled;
@@ -491,11 +491,11 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e,
   /* If we are at early enough times, skip everything */
   if( z >= phy->zstart ){
     *x_e = 1. + 2. * phy->fHe;
-    *dxdlna = 0.;
+    //*dxdlna = 0.;
     return _SUCCESS_;
   }
 
-  /* If we are outside of the range, TRY to extrapolate */
+  /* If we are beyond the range, TRY to extrapolate */
   z_filled = (1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z)) - 1.;
   if( z < z_filled ){
     class_test(phy->filled_until_index_z > phy->nz-1-_HYREC_N_EXTRAPOLATION_,
@@ -513,24 +513,33 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e,
     class_call(array_extrapolate_quadratic(x,y,z,_HYREC_N_EXTRAPOLATION_,x_e,&(dx_e_dz),phy->error_message),
                phy->error_message,
                phy->error_message);
-    *dxdlna = -(1.+z)*dx_e_dz;
-    return _SUCCESS_;
+    //*dxdlna = -(1.+z)*dx_e_dz;
   }
 
-  /* Otherwise interpolate in the already computed table */
-  iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
-  z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
+  /* If we are at the edge of the range, pick up value */
+  else if (z == z_filled) {
+    *x_e = phy->xe_output[iz_goal];
+    //*dxdlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
+  }
 
-  class_test(iz_goal>phy->filled_until_index_z,
-             phy->error_message,
-             "HyRec needs extrapolating beyond the filled range ( at %i, even though filled until %i) (%.10e > %.10e)",
-             iz_goal,phy->filled_until_index_z,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,z);
+  /* If we are inside the range, interpolate in the table*/
+  else {
 
-  z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
-  frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
+    iz_goal = (int)ceil(-log((1+z)/(1.+phy->zstart))/phy->dlna);
+    z_goal = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal)) - 1.;
 
-  *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
-  *dxdlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
+    class_test(iz_goal>phy->filled_until_index_z,
+               phy->error_message,
+               "HyRec needs extrapolating beyond the filled range ( at %i, even though filled until %i) (%.10e > %.10e)",
+               iz_goal,phy->filled_until_index_z,(1.+phy->zstart)*exp(-phy->dlna*(phy->filled_until_index_z))-1.,z);
+
+    z_goalm1 = (1.+phy->zstart)*exp(-phy->dlna*(iz_goal-1)) - 1.;
+    frac = ((1.+z)-(1.+z_goalm1))/((1.+z_goal)-(1.+z_goalm1));
+
+    *x_e = frac * phy->xe_output[iz_goal] + (1.-frac)* phy->xe_output[iz_goal-1];
+    //*dxdlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
+
+  }
 
   return _SUCCESS_;
 }

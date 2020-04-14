@@ -94,7 +94,7 @@ extern "C" {
   int thermodynamics_hyrec_calculate_xe(struct thermo * pth, struct thermohyrec * phy,
                                         double z, double H_in, double T_b, double T_gamma);
 
-  int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e, double* dxdlna);
+  int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e);
 
   int thermodynamics_hyrec_free(struct thermohyrec* phy);
 

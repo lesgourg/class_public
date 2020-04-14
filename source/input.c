@@ -2825,6 +2825,9 @@ int input_read_parameters_heating(struct file_content * pfc,
   class_read_double("DM_annihilation_cross_section",phe->DM_annihilation_cross_section);
   class_read_double("DM_annihilation_mass",phe->DM_annihilation_mass);
   class_read_double("DM_annihilation_fraction",phe->DM_annihilation_fraction);
+  if(phe->DM_annihilation_efficiency!=0){
+    pth->has_heating = _TRUE_;
+  }
   /* Test */
   class_test(phe->DM_annihilation_efficiency<0,
              errmsg,
@@ -2885,6 +2888,9 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 2.a) Fraction */
   /* Read */
   class_read_double("DM_decay_fraction",phe->DM_decay_fraction);
+  if(phe->DM_decay_fraction!=0){
+    pth->has_heating = _TRUE_;
+  }
   /* Test */
   class_test(phe->DM_decay_fraction<0,
              errmsg,
@@ -2899,6 +2905,9 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 3.a) Fraction */
   /* Read */
   class_read_double("PBH_evaporation_fraction",phe->PBH_evaporation_fraction);
+  if(phe->PBH_evaporation_fraction!=0){
+    pth->has_heating = _TRUE_;
+  }
   /* Test */
   class_test(phe->PBH_evaporation_fraction <0.,
              errmsg,
@@ -2923,6 +2932,9 @@ int input_read_parameters_heating(struct file_content * pfc,
   /** 4.a) Fraction */
   /* Read */
   class_read_double("PBH_accretion_fraction",phe->PBH_accretion_fraction);
+  if(phe->PBH_accretion_fraction!=0){
+    pth->has_heating = _TRUE_;
+  }
   /* Test */
   class_test(phe->PBH_accretion_fraction < 0.,
              errmsg,
@@ -5189,6 +5201,8 @@ int input_default_params(struct background *pba,
   /**
    * Deafult to input_read_parameters_heating
    */
+
+  pth->has_heating = _FALSE_;
 
   /** 1) DM annihilation */
   /** 1.a) Energy fraction absorbed by the gas */
