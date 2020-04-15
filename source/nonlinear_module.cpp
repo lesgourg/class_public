@@ -13,8 +13,9 @@
 
 #include "nonlinear_module.h"
 
-NonlinearModule::NonlinearModule(const Input& input)
-: BaseModule(input) {
+NonlinearModule::NonlinearModule(const Input& input, const PrimordialModule& primordial_module)
+: BaseModule(input)
+, primordial_module_(primordial_module) {
   ThrowInvalidArgumentIf(nonlinear_init() != _SUCCESS_, error_message_);
 }
 
@@ -546,12 +547,11 @@ int NonlinearModule::nonlinear_pk_at_k_and_z(
                   sizeof(double)*ic_ic_size_,
                   error_message_);
 
-      class_call(primordial_spectrum_at_k(const_cast<primordial*>(ppm),
-                                          index_md_scalars_,
-                                          linear,
-                                          k,
-                                          pk_primordial_k),
-                 ppm->error_message,
+      class_call(primordial_module_.primordial_spectrum_at_k(index_md_scalars_,
+                                                             linear,
+                                                             k,
+                                                             pk_primordial_k),
+                 primordial_module_.error_message_,
                  error_message_);
 
       /* compute P_primordial(kmin) */
@@ -562,12 +562,11 @@ int NonlinearModule::nonlinear_pk_at_k_and_z(
                   sizeof(double)*ic_ic_size_,
                   error_message_);
 
-      class_call(primordial_spectrum_at_k(const_cast<primordial*>(ppm),
-                                          index_md_scalars_,
-                                          linear,
-                                          kmin,
-                                          pk_primordial_kmin),
-                 ppm->error_message,
+      class_call(primordial_module_.primordial_spectrum_at_k(index_md_scalars_,
+                                                             linear,
+                                                             kmin,
+                                                             pk_primordial_kmin),
+                 primordial_module_.error_message_,
                  error_message_);
 
       /* finally, infer P(k) */
@@ -1554,11 +1553,11 @@ int NonlinearModule::nonlinear_indices() {
 
   /** - define indices for initial conditions (and allocate related arrays) */
   index_md_scalars_ = ppt->index_md_scalars;
-  ic_size_ = ppm->ic_size[index_md_scalars_];
-  ic_ic_size_ = ppm->ic_ic_size[index_md_scalars_];
+  ic_size_ = primordial_module_.ic_size_[index_md_scalars_];
+  ic_ic_size_ = primordial_module_.ic_ic_size_[index_md_scalars_];
   class_alloc(is_non_zero_, sizeof(short)*ic_ic_size_, error_message_);
   for (index_ic1_ic2 = 0; index_ic1_ic2 < ic_ic_size_; index_ic1_ic2++)
-    is_non_zero_[index_ic1_ic2] = ppm->is_non_zero[index_md_scalars_][index_ic1_ic2];
+    is_non_zero_[index_ic1_ic2] = primordial_module_.is_non_zero_[index_md_scalars_][index_ic1_ic2];
 
   /** - define flags indices for pk types (_m, _cb). Note: due to some
      dependencies in HMcode, when index_pk_cb_ exists, it must
@@ -1951,8 +1950,8 @@ int NonlinearModule::nonlinear_pk_linear(
   for (index_k=0; index_k<k_size; index_k++) {
 
     /** --> get primordial spectrum */
-    class_call(primordial_spectrum_at_k(const_cast<primordial*>(ppm), index_md_scalars_, logarithmic, ln_k_[index_k], primordial_pk),
-               ppm->error_message,
+    class_call(primordial_module_.primordial_spectrum_at_k(index_md_scalars_, logarithmic, ln_k_[index_k], primordial_pk),
+               primordial_module_.error_message_,
                error_message_);
 
     /** --> initialize a local variable for P_m(k) and P_cb(k) to zero */

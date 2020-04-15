@@ -1,8 +1,16 @@
 #include "cosmology.h"
 
+const PrimordialModule& Cosmology::GetPrimordialModule() {
+  if (computation_stage_ < cs_primordial) {
+    primordial_module_ptr_ = std::unique_ptr<PrimordialModule>(new PrimordialModule(input_));
+    computation_stage_ = cs_primordial;
+  }
+  return *primordial_module_ptr_;
+}
+
 const NonlinearModule& Cosmology::GetNonlinearModule() {
   if (computation_stage_ < cs_nonlinear) {
-    nonlinear_module_ptr_ = std::unique_ptr<NonlinearModule>(new NonlinearModule(input_));
+    nonlinear_module_ptr_ = std::unique_ptr<NonlinearModule>(new NonlinearModule(input_, GetPrimordialModule()));
     computation_stage_ = cs_nonlinear;
   }
   return *nonlinear_module_ptr_;
@@ -18,7 +26,7 @@ const TransferModule& Cosmology::GetTransferModule() {
 
 const SpectraModule& Cosmology::GetSpectraModule() {
   if (computation_stage_ < cs_spectra) {
-    spectra_module_ptr_ = std::unique_ptr<SpectraModule>(new SpectraModule(input_, GetNonlinearModule(), GetTransferModule()));
+    spectra_module_ptr_ = std::unique_ptr<SpectraModule>(new SpectraModule(input_, GetPrimordialModule(), GetNonlinearModule(), GetTransferModule()));
     computation_stage_ = cs_spectra;
   }
   return *spectra_module_ptr_;

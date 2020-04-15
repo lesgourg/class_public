@@ -93,8 +93,7 @@ struct primordial {
   double A_s;  /**< usual scalar amplitude = curvature power spectrum at pivot scale */
   double n_s;  /**< usual scalar tilt = [curvature power spectrum tilt at pivot scale -1] */
   double alpha_s; /**< usual scalar running */
-  double beta_s;  /**< running of running */
-
+  
   double r;    /**< usual tensor to scalar ratio of power spectra, \f$ r=A_T/A_S=P_h/P_R \f$*/
   double n_t;  /**< usual tensor tilt = [GW power spectrum tilt at pivot scale] */
   double alpha_t; /**< usual tensor running */
@@ -198,95 +197,6 @@ struct primordial {
 
   //@}
 
-  /** @name - pre-computed table of primordial spectra, and related quantities */
-
-  //@{
-
-  int md_size;      /**< number of modes included in computation */
-
-  int * ic_size;    /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
-
-  int * ic_ic_size; /**< number of ordered pairs of (index_ic1, index_ic2); this number is just N(N+1)/2  where N = ic_size[index_md] */
-
-  int lnk_size;    /**< number of ln(k) values */
-
-  double * lnk;    /**< list of ln(k) values lnk[index_k] */
-
-  double ** lnpk;  /**< depends on indices index_md, index_ic1, index_ic2, index_k as:
-                      lnpk[index_md][index_k*ppm->ic_ic_size[index_md]+index_ic1_ic2]
-                      where index_ic1_ic2 labels ordered pairs (index_ic1, index_ic2) (since
-                      the primordial spectrum is symmetric in (index_ic1, index_ic2)).
-                      - for diagonal elements (index_ic1 = index_ic2) this arrays contains
-                      ln[P(k)] where P(k) is positive by construction.
-                      - for non-diagonal elements this arrays contains the k-dependent
-                      cosine of the correlation angle, namely
-                      P(k )_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-                      This choice is convenient since the sign of the non-diagonal cross-correlation
-                      is arbitrary. For fully correlated or anti-correlated initial conditions,
-                      this non -diagonal element is independent on k, and equal to +1 or -1.
-                   */
-
-  double ** ddlnpk; /**< second derivative of above array, for spline interpolation. So:
-                       - for index_ic1 = index_ic, we spline ln[P(k)] vs. ln(k), which is
-                       good since this function is usually smooth.
-                       - for non-diagonal coefficients, we spline
-                       P(k)_(index_ic1, index_ic2)/sqrt[P(k)_index_ic1 P(k)_index_ic2]
-                       vs. ln(k), which is fine since this quantity is often assumed to be
-                       constant (e.g for fully correlated/anticorrelated initial conditions)
-                       or nearly constant, and with arbitrary sign.
-                    */
-
-  short ** is_non_zero; /**< is_non_zero[index_md][index_ic1_ic2] set to false if pair
-                           (index_ic1, index_ic2) is uncorrelated
-                           (ensures more precision and saves time with respect to the option
-                           of simply setting P(k)_(index_ic1, index_ic2) to zero) */
-
-  //@}
-
-  //@{
-
-  /** @name - parameters describing the case primordial_spec_type = analytic_Pk : amplitudes, tilts, runnings, cross-correlations, ... */
-
-  double ** amplitude; /**< all amplitudes in matrix form: amplitude[index_md][index_ic1_ic2] */
-  double ** tilt;      /**< all tilts in matrix form: tilt[index_md][index_ic1_ic2] */
-  double ** running;   /**< all runnings in matrix form: running[index_md][index_ic1_ic2] */
-
-  //@}
-
-  //@{
-
-  /** @name - for the inflation simulator, indices in vector of
-      background/perturbation */
-
-  int index_in_a;       /**< scale factor */
-  int index_in_phi;     /**< inflaton vev */
-  int index_in_dphi;    /**< its time derivative */
-  int index_in_ksi_re;  /**< Mukhanov variable (real part) */
-  int index_in_ksi_im;  /**< Mukhanov variable (imaginary part) */
-  int index_in_dksi_re; /**< Mukhanov variable (real part, time derivative) */
-  int index_in_dksi_im; /**< Mukhanov variable (imaginary part, time derivative) */
-  int index_in_ah_re;   /**< tensor perturbation (real part) */
-  int index_in_ah_im;   /**< tensor perturbation (imaginary part) */
-  int index_in_dah_re;  /**< tensor perturbation (real part, time derivative) */
-  int index_in_dah_im;  /**< tensor perturbation (imaginary part, time derivative) */
-  int in_bg_size;       /**< size of vector of background quantities only */
-  int in_size;          /**< full size of vector */
-
-  //@}
-
-  /** @name - derived parameters */
-
-  //@{
-
-  double phi_pivot;      /**< in inflationary module, value of
-                            phi_pivot (set to 0 for inflation_V,
-                            inflation_H; found by code for
-                            inflation_V_end) */
-  double phi_min;        /**< in inflationary module, value of phi when \f$ k_{min}=aH \f$*/
-  double phi_max;        /**< in inflationary module, value of phi when \f$ k_{max}=aH \f$*/
-  double phi_stop;       /**< in inflationary module, value of phi at the end of inflation */
-
-  //@}
 
   /** @name - technical parameters */
 
@@ -296,13 +206,13 @@ struct primordial {
 
   //@}
 
-  ErrorMsg error_message; /**< zone for writing error messages */
-
 };
 
+class PrimordialModule;
 struct primordial_inflation_parameters_and_workspace {
 
-  struct primordial * ppm;
+  const PrimordialModule* primordial_module;
+  const primordial* ppm;
   double N;
   double a2;
 
@@ -325,199 +235,6 @@ struct primordial_inflation_parameters_and_workspace {
   enum time_definition time;
 
 };
-
-
-/*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */
-/*
- * Boilerplate for C++
- */
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-  int primordial_spectrum_at_k(
-                               struct primordial * ppm,
-                               int index_md,
-                               enum linear_or_logarithmic mode,
-                               double k,
-                               double * pk
-                               );
-
-  int primordial_init(
-                      struct precision  * ppr,
-                      struct perturbs   * ppt,
-                      struct primordial * ppm
-                      );
-
-  int primordial_free(
-                      struct primordial * ppm
-                      );
-
-  int primordial_indices(
-                         struct perturbs   * ppt,
-                         struct primordial * ppm
-                         );
-
-  int primordial_get_lnk_list(
-                              struct primordial * ppm,
-                              double kmin,
-                              double kmax,
-                              double k_per_decade
-                              );
-
-  int primordial_analytic_spectrum_init(
-                                        struct perturbs   * ppt,
-                                        struct primordial * ppm
-                                        );
-
-  int primordial_analytic_spectrum(
-                                   struct primordial * ppm,
-                                   int index_md,
-                                   int index_ic1_ic2,
-                                   double k,
-                                   double * pk
-                                   );
-
-  int primordial_inflation_potential(
-                                     struct primordial * ppm,
-                                     double phi,
-                                     double * V,
-                                     double * dV,
-                                     double * ddV
-                                     );
-
-  int primordial_inflation_hubble(
-                                   struct primordial * ppm,
-                                   double phi,
-                                   double * H,
-                                   double * dH,
-                                   double * ddH,
-                                   double * dddH
-                                   );
-
-  int primordial_inflation_indices(
-                                   struct primordial * ppm
-                                   );
-
-  int primordial_inflation_solve_inflation(
-                                           struct perturbs * ppt,
-                                           struct primordial * ppm,
-                                           struct precision * ppr
-                                           );
-
-  int primordial_inflation_analytic_spectra(
-                                            struct perturbs * ppt,
-                                            struct primordial * ppm,
-                                            struct precision * ppr,
-                                            double * y_ini
-                                            );
-
-  int primordial_inflation_spectra(
-                                   struct perturbs * ppt,
-                                   struct primordial * ppm,
-                                   struct precision * ppr,
-                                   double * y_ini
-                                   );
-
-  int primordial_inflation_one_wavenumber(
-                                          struct perturbs * ppt,
-                                          struct primordial * ppm,
-                                          struct precision * ppr,
-                                          double * y_ini,
-                                          int index_k
-                                          );
-
-  int primordial_inflation_one_k(
-                                 struct primordial * ppm,
-                                 struct precision * ppr,
-                                 double k,
-                                 double * y,
-                                 double * dy,
-                                 double * curvature,
-                                 double * tensor
-                                 );
-
-  int primordial_inflation_find_attractor(
-                                          struct primordial * ppm,
-                                          struct precision * ppr,
-                                          double phi_0,
-                                          double precision,
-                                          double * y,
-                                          double * dy,
-                                          double * H_0,
-                                          double * dphidt_0
-                                          );
-
-  int primordial_inflation_evolve_background(
-                                             struct primordial * ppm,
-                                             struct precision * ppr,
-                                             double * y,
-                                             double * dy,
-                                             enum target_quantity target,
-                                             double stop,
-                                             short check_epsilon,
-                                             enum integration_direction direction,
-                                             enum time_definition time
-                                             );
-
-  int primordial_inflation_check_potential(
-                                           struct primordial * ppm,
-                                           double phi,
-                                           double * V,
-                                           double * dV,
-                                           double * ddV
-                                           );
-
-  int primordial_inflation_check_hubble(
-                                        struct primordial * ppm,
-                                        double phi,
-                                        double *H,
-                                        double * dH,
-                                        double * ddH,
-                                        double * dddH
-                                        );
-
-  int primordial_inflation_get_epsilon(
-                                       struct primordial * ppm,
-                                       double phi,
-                                       double * epsilon
-                                       );
-
-  int primordial_inflation_find_phi_pivot(
-                                          struct primordial * ppm,
-                                          struct precision * ppr,
-                                          double * y,
-                                          double * dy
-                                          );
-
-  int primordial_inflation_derivs(
-                                  double tau,
-                                  double * y,
-                                  double * dy,
-                                  void * parameters_and_workspace,
-                                  ErrorMsg error_message
-                                  );
-
-  int primordial_external_spectrum_init(
-                                        struct perturbs * ppt,
-                                        struct primordial * ppm
-                                        );
-
-  int primordial_output_titles(struct perturbs * ppt,
-                               struct primordial * ppm,
-                               char titles[_MAXTITLESTRINGLENGTH_]
-                               );
-
-  int primordial_output_data(struct perturbs * ppt,
-                             struct primordial * ppm,
-                             int number_of_titles,
-                             double *data);
-#ifdef __cplusplus
-}
-#endif
-
-/**************************************************************/
 
 /**
  * @name Some limits imposed on parameter values:

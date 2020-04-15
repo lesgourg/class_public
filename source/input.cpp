@@ -3761,11 +3761,15 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 4: primordial\n");
     pm.primordial_verbose = 0;
-    class_call_except(primordial_init(&pr,&pt,&pm),
-                      pm.error_message,
-                      errmsg,
-                      perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
-                      );
+    try {
+      const PrimordialModule& primordial_module = cosmology.GetPrimordialModule();
+    } catch (...) {
+      class_call_except(_FAILURE_,
+                        "TODO",
+                        errmsg,
+                        perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                        );
+    }
   }
 
   if (pfzw->required_computation_stage >= cs_nonlinear){
@@ -3775,11 +3779,11 @@ int input_try_unknown_parameters(double * unknown_parameter,
     try {
       const NonlinearModule& nonlinear_module = cosmology.GetNonlinearModule();
     } catch (...) {
-    class_call_except(_FAILURE_,
-                      "TODO",
-                      errmsg,
-                      primordial_free(&pm);perturb_free(&pt);thermodynamics_free(&th);background_free(&ba)
-                      );
+      class_call_except(_FAILURE_,
+                        "TODO",
+                        errmsg,
+                        perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                        );
     }
   }
   if (pfzw->required_computation_stage >= cs_transfer){
@@ -3793,7 +3797,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
         class_call_except(_FAILURE_,
                           "TODO",
                           errmsg,
-                          primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3809,7 +3813,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
         class_call_except(_FAILURE_,
                           sp.error_message,
                           errmsg,
-                          primordial_free(&pm); perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3859,9 +3863,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 
   /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_primordial){
-    class_call(primordial_free(&pm), pm.error_message, errmsg);
-  }
   if (pfzw->required_computation_stage >= cs_perturbations){
     class_call(perturb_free(&pt), pt.error_message, errmsg);
   }

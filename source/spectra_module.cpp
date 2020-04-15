@@ -14,8 +14,9 @@
 
 #include "spectra_module.h"
 #include "thread_pool.h"
-SpectraModule::SpectraModule(const Input& input, const NonlinearModule& nonlinear_module, const TransferModule& transfer_module)
+SpectraModule::SpectraModule(const Input& input, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const TransferModule& transfer_module)
 : BaseModule(input)
+, primordial_module_(primordial_module)
 , nonlinear_module_(nonlinear_module)
 , transfer_module_(transfer_module) {
   ThrowInvalidArgumentIf(spectra_init() != _SUCCESS_, error_message_);
@@ -385,13 +386,13 @@ int SpectraModule::spectra_indices() {
               error_message_);
 
   for (index_md = 0; index_md < md_size_; index_md++) {
-    ic_size_[index_md] = ppm->ic_size[index_md];
-    ic_ic_size_[index_md] = ppm->ic_ic_size[index_md];
+    ic_size_[index_md] = primordial_module_.ic_size_[index_md];
+    ic_ic_size_[index_md] = primordial_module_.ic_ic_size_[index_md];
     class_alloc(is_non_zero_[index_md],
                 sizeof(short)*ic_ic_size_[index_md],
                 error_message_);
     for (index_ic1_ic2=0; index_ic1_ic2 < ic_ic_size_[index_md]; index_ic1_ic2++)
-      is_non_zero_[index_md][index_ic1_ic2] = ppm->is_non_zero[index_md][index_ic1_ic2];
+      is_non_zero_[index_md][index_ic1_ic2] = primordial_module_.is_non_zero_[index_md][index_ic1_ic2];
   }
 
   if (ppt->has_cls == _TRUE_) {
@@ -841,8 +842,8 @@ int SpectraModule::spectra_compute_cl(int index_md,
 
     cl_integrand[index_q*cl_integrand_num_columns+0] = k;
 
-    class_call(primordial_spectrum_at_k(const_cast<primordial*>(ppm), index_md, linear, k, primordial_pk),
-               ppm->error_message,
+    class_call(primordial_module_.primordial_spectrum_at_k(index_md, linear, k, primordial_pk),
+               primordial_module_.error_message_,
                error_message_);
 
     /* above routine checks that k>0: no possible division by zero below */

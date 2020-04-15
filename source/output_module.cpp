@@ -16,8 +16,9 @@
 #include "output_module.h"
 #include "exceptions.h"
 
-OutputModule::OutputModule(const Input& input, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
+OutputModule::OutputModule(const Input& input, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
 : BaseModule(input)
+, primordial_module_(primordial_module)
 , nonlinear_module_(nonlinear_module)
 , spectra_module_(spectra_module)
 , lensing_module_(lensing_module) {
@@ -1140,14 +1141,14 @@ int OutputModule::output_primordial() {
 
   sprintf(file_name,"%s%s",pop->root,"primordial_Pk.dat");
 
-  class_call(primordial_output_titles(const_cast<perturbs*>(ppt), const_cast<primordial*>(ppm), titles),
-             ppm->error_message,
+  class_call(primordial_module_.primordial_output_titles(titles),
+             primordial_module_.error_message_,
              error_message_);
   number_of_titles = get_number_of_titles(titles);
-  size_data = number_of_titles*ppm->lnk_size;
-  class_alloc(data, sizeof(double)*size_data, error_message_);
-  class_call(primordial_output_data(const_cast<perturbs*>(ppt), const_cast<primordial*>(ppm), number_of_titles, data),
-             ppm->error_message,
+  size_data = number_of_titles*primordial_module_.lnk_size_;
+  class_alloc(data,sizeof(double)*size_data,error_message_);
+  class_call(primordial_module_.primordial_output_data(number_of_titles, data),
+             primordial_module_.error_message_,
              error_message_);
 
   class_open(out, file_name, "w", error_message_);

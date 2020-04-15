@@ -41,20 +41,10 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (primordial_init(&pr,&pt,&pm) == _FAILURE_) {
-    printf("\n\nError in primordial_init \n=>%s\n",pm.error_message);
-    return _FAILURE_;
-  }
-
   Cosmology cosmology = Cosmology(input);
-  OutputModule output_module(input, cosmology.GetNonlinearModule(), cosmology.GetSpectraModule(), cosmology.GetLensingModule());
+  OutputModule output_module(input, cosmology.GetPrimordialModule(), cosmology.GetNonlinearModule(), cosmology.GetSpectraModule(), cosmology.GetLensingModule());
 
   /****** all calculations done, now free the structures ******/
-
-  if (primordial_free(&pm) == _FAILURE_) {
-    printf("\n\nError in primordial_free \n=>%s\n",pm.error_message);
-    return _FAILURE_;
-  }
 
   if (perturb_free(&pt) == _FAILURE_) {
     printf("\n\nError in perturb_free \n=>%s\n",pt.error_message);
