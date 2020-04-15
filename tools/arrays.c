@@ -3464,3 +3464,56 @@ int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, d
   return _SUCCESS_;
 }
 
+/**
+ * Assuming that array is a vector with elements arranged in descending
+ * order, find i such that array[i] > value > array[i+1].
+ */
+
+int array_hunt_descending(
+                          double * array,
+                          int size,
+                          double value,
+                          int * index,
+                          ErrorMsg errmsg
+                          ) {
+  int i_inf,i_sup,i_mid;
+
+  i_inf=0;
+  i_sup=size-1;
+
+  fprintf(stderr,"Get there\n");
+
+  /* checks */
+  if (array[i_inf] < array[i_sup]) {
+    sprintf(errmsg,"%s(L:%d) array is not in descending order (checked only the boundaries)",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  if ((value > array[i_inf]) || (value < array[i_sup])) {
+    sprintf(errmsg,"%s(L:%d) %e is outside the range [%e, %e]",__func__,__LINE__,value,array[size-1],array[0]);
+    return _FAILURE_;
+  }
+
+  /* bisection */
+  while (i_sup-i_inf>1) {
+    i_mid = (i_sup+i_inf)/2;
+    if (value > array[i_mid])
+      i_sup=i_mid;
+    else
+      i_inf=i_mid;
+  }
+
+  /* result */
+  *index = i_inf;
+
+  /* check for debug */
+  fprintf(stderr,
+          "Check that array[%d]=%e>%e>array[%d]=%e\n",
+          *index,
+          array[*index],
+          value,
+          *index+1,
+          array[*index+1]);
+  return _FAILURE_;
+
+  return _SUCCESS_;
+}

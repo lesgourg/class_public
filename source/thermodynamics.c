@@ -2508,17 +2508,19 @@ int thermodynamics_solve(
        integration, instead of the full background and thermodynamics
        module */
     if(pth->reio_z_or_tau == reio_tau && index_interval == ptw->ptdw->index_ap_reio) {
-        class_call(thermodynamics_reionization_evolve_with_tau(&tpaw,
-                                                               interval_limit[index_interval],
-                                                               interval_limit[index_interval+1],
-                                                               mz_output,
-                                                               pth->tt_size),
-                   pth->error_message,
-                   pth->error_message);
+
+      class_call(thermodynamics_reionization_evolve_with_tau(&tpaw,
+                                                             interval_limit[index_interval],
+                                                             interval_limit[index_interval+1],
+                                                             mz_output,
+                                                             pth->tt_size),
+                 pth->error_message,
+                 pth->error_message);
     }
 
     /** --> (c2) otherwise, just integrate quantities over the current interval. */
     else{
+
       class_call(generic_evolver(thermodynamics_derivs,
                                  interval_limit[index_interval],
                                  interval_limit[index_interval+1],
@@ -4387,7 +4389,35 @@ int thermodynamics_solve_timescale(
                                    double * timescale,
                                    ErrorMsg error_message
                                    ) {
+
+  //int index_z;
+  //struct thermodynamics_parameters_and_workspace * ptpaw;
+
+  //fprintf(stderr,"Get here\n");
+
+  //ptpaw = thermo_parameters_and_workspace;
+
+  /* We could evaluate the timescale automatically, e.g, as [x / (dx/dz)]. */
+
+  /* But for simplicity, we assume that the array of values of z to
+     sample (pth->z_table) has been chosen in such way that the
+     quantities vary only by a small amount over each step. Thus we
+     define our step as delta(-z) = ((-z_i+1) - (-z_i)) = (z_i -
+     z_i+1) */
+
+  /* find index_z such that pth->z_table[index_z] > z > pth->z_table[index_z+1] */
+  /*
+  class_call(array_hunt_descending(ptpaw->pth->z_table,
+                                   ptpaw->pth->tt_size,
+                                   z,
+                                   &index_z,
+                                   error_message),
+             error_message,
+             error_message);
+  */
+  // *timescale = pth->z_table[index_z] - pth->z_table[index_z+1]
   *timescale = 1.;
+
   return _SUCCESS_;
 
 }
