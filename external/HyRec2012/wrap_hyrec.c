@@ -191,7 +191,9 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   double frac;
 
   /* Interpolated and exact quantities at EACH step */
-  double nH,TR,TM,H,xe_in, ion,exclya;
+  double nH,TR,TM,H,xe_in;
+  double ion=0.;
+  double exclya=0.;
 
   /* Something related to switching off modes or not depending on pion */
   double Pion_TR_rescaled,Pion_RLya,Pion_four_betaB,Pion;
@@ -222,8 +224,10 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
       TM = T_b * _k_B_/_eV_ * frac + (1.-frac)*phy->TM_prev;
       H = H_in * frac + (1.-frac)*phy->H_prev;
 
-      ion = phe->pvecdeposition[phe->index_dep_ionH]/(nH*1e6)/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
-      exclya = phe->pvecdeposition[phe->index_dep_lya]/(nH*1e6)/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
+      if (pth->has_heating == _TRUE_) {
+        ion = phe->pvecdeposition[phe->index_dep_ionH]/(nH*1e6)/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
+        exclya = phe->pvecdeposition[phe->index_dep_lya]/(nH*1e6)/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
+      }
 
       if(phy->stage == 0){
         /**

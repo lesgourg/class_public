@@ -495,6 +495,12 @@ int array_integrate_all_trapzd_or_spline(
                             int * index,
                             ErrorMsg errmsg);
 
+  int array_hunt_ascending(
+                           double * array,
+                           int size,
+                           double value,
+                           int * index,
+                           ErrorMsg errmsg);
 
 #ifdef __cplusplus
 }

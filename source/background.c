@@ -1852,19 +1852,23 @@ int background_solve(
   }
 
   /** - choose the right evolver */
-  if(ppr->evolver == rk) {
+  switch (ppr->background_evolver) {
+
+  case rk:
     generic_evolver = evolver_rk;
     if (pba->background_verbose > 1) {
       printf("%s\n", "Chose rk as generic_evolver");
       printf("generic_evolver arguments: ini=%g, final=%g, var=%g\n",loga_ini, loga_final, ppr->smallest_allowed_variation);
     }
-  }
-  else{
+    break;
+
+  case ndf15:
     generic_evolver = evolver_ndf15;
     if (pba->background_verbose > 1) {
       printf("%s\n", "Chose ndf15 as generic_evolver");
       printf("generic_evolver arguments: ini=%g, final=%g, var=%g\n",loga_ini, loga_final, ppr->smallest_allowed_variation);
     }
+    break;
   }
 
   /** - perform the integration */

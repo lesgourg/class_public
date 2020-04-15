@@ -14,13 +14,20 @@ class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
  */
 class_precision_parameter(background_Nloga,int,1000)
 /**
- * default step \f$ d \tau \f$ in background integration
+ * Evolver to be used for thermodynamics (rk, ndf15)
  */
-class_precision_parameter(background_integration_stepsize,double,0.5)
+class_type_parameter(background_evolver,int,enum evolver_type,ndf15)
 /**
  * Tolerance of the background integration, giving the allowed relative integration error.
+ * (used by both evolvers)
  */
 class_precision_parameter(tol_background_integration,double,1.e-2)
+/**
+ * Only relevant for rk evolver: the default integration step is given
+ * by this number multiplied by the timescale defined in
+ * background_timescale (given by the sampling step)
+ */
+class_precision_parameter(background_integration_stepsize,double,0.5)
 /**
  * Tolerance of the deviation of \f$ \Omega_r \f$ from 1 for which to start integration:
  * The starting point of integration will be chosen,
@@ -101,9 +108,20 @@ class_precision_parameter(thermo_Nz_lin,int,20000)
  */
 class_precision_parameter(thermo_Nz_log,int,5000)
 /**
+ * Evolver to be used for thermodynamics (rk, ndf15)
+ */
+class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
+/**
  * Tolerance of the relative value of integral during thermodynamical integration
+ * (used by both evolvers)
  */
 class_precision_parameter(tol_thermo_integration,double,1.0e-6)
+/**
+ * Only relevant for rk evolver: the default integration step is given
+ * by this number multiplied by the timescale defined in
+ * thermodynamics_timescale (given by the sampling step)
+ */
+class_precision_parameter(thermo_integration_stepsize,double,0.1)
 /**
  * Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards
  */

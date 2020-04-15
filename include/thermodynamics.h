@@ -591,10 +591,10 @@ extern "C" {
                                  int number_of_titles,
                                  double *data);
 
-  int thermodynamics_solve_timescale(double z,
-                                     void * thermo_parameters_and_workspace,
-                                     double * timescale,
-                                     ErrorMsg error_message);
+  int thermodynamics_timescale(double z,
+                               void * thermo_parameters_and_workspace,
+                               double * timescale,
+                               ErrorMsg error_message);
 
   int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
                                                     struct background * pba,

@@ -2425,11 +2425,13 @@ int thermodynamics_solve(
   int (*generic_evolver)();
 
   /** - choose evolver */
-  if(ppr->evolver == rk) {
+  switch (ppr->thermo_evolver) {
+  case rk:
     generic_evolver = evolver_rk;
-  }
-  else{
+    break;
+  case ndf15:
     generic_evolver = evolver_ndf15;
+    break;
   }
 
   /** - define the fields of the 'thermodynamics parameter and workspace' structure */
@@ -2530,8 +2532,8 @@ int thermodynamics_solve(
                                  &tpaw,
                                  ppr->tol_thermo_integration,
                                  ppr->smallest_allowed_variation,
-                                 thermodynamics_solve_timescale,  // timescale
-                                 1., // stepsize
+                                 thermodynamics_timescale,  // timescale
+                                 ppr->thermo_integration_stepsize, // stepsize = this number * timescale
                                  mz_output, // values of z for output
                                  pth->tt_size, // size of previous array
                                  thermodynamics_solve_store_sources, // function for output
@@ -3862,7 +3864,6 @@ int thermodynamics_reionization_evolve_with_tau(
   int evolves_xHe = (pth->recombination == recfast);
   int evolves_xH = (pth->recombination == recfast);
 
-
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
 
   /** - Start from no component, then add additional components */
@@ -3910,11 +3911,13 @@ int thermodynamics_reionization_evolve_with_tau(
   /* maximum possible starting redshift */
   ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = ppr->reionization_z_start_max;
 
-  if(ppr->evolver == rk) {
+  switch (ppr->thermo_evolver) {
+  case rk:
     generic_evolver = evolver_rk;
-  }
-  else{
+    break;
+  case ndf15:
     generic_evolver = evolver_ndf15;
+    break;
   }
 
   /* ptaw->ptw->last_index_back has been properly set according to the
@@ -3931,8 +3934,8 @@ int thermodynamics_reionization_evolve_with_tau(
                              ptpaw,
                              ppr->tol_thermo_integration,
                              ppr->smallest_allowed_variation,
-                             thermodynamics_solve_timescale,  // timescale
-                             1., // stepsize
+                             thermodynamics_timescale,  // timescale
+                             ppr->thermo_integration_stepsize, // stepsize
                              mz_output, // values of z for output
                              Nz, // size of previous array
                              thermodynamics_solve_store_sources, // function for output
@@ -3978,13 +3981,6 @@ int thermodynamics_reionization_evolve_with_tau(
       ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = pth->helium_fullreio_redshift+ppr->reionization_start_factor*pth->helium_fullreio_width;
   }
 
-  if(ppr->evolver == rk) {
-    generic_evolver = evolver_rk;
-  }
-  else{
-    generic_evolver = evolver_ndf15;
-  }
-
   /* reset ptaw->ptw->last_index_back to match the redshift z = -mz_inbi */
   ptpaw->ptw->last_index_back = last_index_back_mz_ini;
 
@@ -3998,8 +3994,8 @@ int thermodynamics_reionization_evolve_with_tau(
                              ptpaw,
                              ppr->tol_thermo_integration,
                              ppr->smallest_allowed_variation,
-                             thermodynamics_solve_timescale,  // timescale
-                             1., // stepsize
+                             thermodynamics_timescale,  // timescale
+                             ppr->thermo_integration_stepsize, // stepsize
                              mz_output, // values of z for output
                              Nz, // size of previous array
                              thermodynamics_solve_store_sources, // function for output
@@ -4067,8 +4063,8 @@ int thermodynamics_reionization_evolve_with_tau(
                                ptpaw,
                                ppr->tol_thermo_integration,
                                ppr->smallest_allowed_variation,
-                               thermodynamics_solve_timescale,  // timescale
-                               1., // stepsize
+                               thermodynamics_timescale,  // timescale
+                               ppr->thermo_integration_stepsize, // stepsize
                                mz_output, // values of z for output
                                Nz, // size of previous array
                                thermodynamics_solve_store_sources, // function for output
@@ -4383,19 +4379,17 @@ int thermodynamics_solve_store_sources(
  * @param error_message Output: possible errors are written here
  * @return the error status
  */
-int thermodynamics_solve_timescale(
-                                   double z,
+int thermodynamics_timescale(
+                                   double mz,
                                    void * thermo_parameters_and_workspace,
                                    double * timescale,
                                    ErrorMsg error_message
                                    ) {
 
-  //int index_z;
-  //struct thermodynamics_parameters_and_workspace * ptpaw;
+  int index_z;
+  struct thermodynamics_parameters_and_workspace * ptpaw;
 
-  //fprintf(stderr,"Get here\n");
-
-  //ptpaw = thermo_parameters_and_workspace;
+  ptpaw = thermo_parameters_and_workspace;
 
   /* We could evaluate the timescale automatically, e.g, as [x / (dx/dz)]. */
 
@@ -4406,17 +4400,16 @@ int thermodynamics_solve_timescale(
      z_i+1) */
 
   /* find index_z such that pth->z_table[index_z] > z > pth->z_table[index_z+1] */
-  /*
-  class_call(array_hunt_descending(ptpaw->pth->z_table,
+
+  class_call(array_hunt_ascending(ptpaw->pth->z_table,
                                    ptpaw->pth->tt_size,
-                                   z,
+                                   -mz,
                                    &index_z,
                                    error_message),
              error_message,
              error_message);
-  */
-  // *timescale = pth->z_table[index_z] - pth->z_table[index_z+1]
-  *timescale = 1.;
+
+  *timescale = (ptpaw->pth->z_table[index_z+1] - ptpaw->pth->z_table[index_z])/2.;
 
   return _SUCCESS_;
 
