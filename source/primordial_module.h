@@ -2,11 +2,12 @@
 #define PRIMORDIAL_MODULE_H
 
 #include "input.h"
+#include "perturbations_module.h"
 #include "base_module.h"
 
 class PrimordialModule : public BaseModule {
 public:
-  PrimordialModule(const Input& input);
+  PrimordialModule(const Input& input, const PerturbationsModule& perturbation_module);
   ~PrimordialModule();
 
   int primordial_spectrum_at_k(int index_md, enum linear_or_logarithmic mode, double k, double* pk) const;
@@ -46,6 +47,8 @@ private:
   int primordial_inflation_derivs_member(double tau, double* y, double* dy, void * parameters_and_workspace, ErrorMsg error_message) const;
   static int primordial_inflation_derivs(double tau, double* y, double* dy, void * parameters_and_workspace, ErrorMsg error_message);
   int primordial_external_spectrum_init();
+
+  const PerturbationsModule& perturbations_module_;
 
   double A_s_;
   double n_s_;

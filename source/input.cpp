@@ -3285,8 +3285,6 @@ int input_default_params(
 
   ppt->has_perturbed_recombination=_FALSE_;
   ppt->tensor_method = tm_massless_approximation;
-  ppt->evolve_tensor_ur = _FALSE_;
-  ppt->evolve_tensor_ncdm = _FALSE_;
 
   ppt->has_scalars=_TRUE_;
   ppt->has_vectors=_FALSE_;
@@ -3750,11 +3748,15 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
-    class_call_except(perturb_init(&pr,&ba,&th,&pt),
-                      pt.error_message,
+    try {
+      const PerturbationsModule& perturbations_module = cosmology.GetPerturbationsModule();
+    } catch (...) {
+      class_call_except(_FAILURE_,
+                      "TODO",
                       errmsg,
                       thermodynamics_free(&th);background_free(&ba)
                       );
+    }
   }
 
   if (pfzw->required_computation_stage >= cs_primordial){
@@ -3767,7 +3769,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       class_call_except(_FAILURE_,
                         "TODO",
                         errmsg,
-                        perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                        thermodynamics_free(&th); background_free(&ba)
                         );
     }
   }
@@ -3782,7 +3784,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       class_call_except(_FAILURE_,
                         "TODO",
                         errmsg,
-                        perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                        thermodynamics_free(&th); background_free(&ba)
                         );
     }
   }
@@ -3797,7 +3799,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
         class_call_except(_FAILURE_,
                           "TODO",
                           errmsg,
-                          perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3813,7 +3815,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
         class_call_except(_FAILURE_,
                           sp.error_message,
                           errmsg,
-                          perturb_free(&pt); thermodynamics_free(&th); background_free(&ba)
+                          thermodynamics_free(&th); background_free(&ba)
                           );
     }
   }
@@ -3863,9 +3865,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 
   /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_perturbations){
-    class_call(perturb_free(&pt), pt.error_message, errmsg);
-  }
   if (pfzw->required_computation_stage >= cs_thermodynamics){
     class_call(thermodynamics_free(&th), th.error_message, errmsg);
   }

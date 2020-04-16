@@ -7,11 +7,17 @@
 #include "evolver_ndf15.h"
 #include "evolver_rkck.h"
 
-#define _scalars_ ((ppt->has_scalars == _TRUE_) && (index_md == ppt->index_md_scalars))
-#define _vectors_ ((ppt->has_vectors == _TRUE_) && (index_md == ppt->index_md_vectors))
-#define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == ppt->index_md_tensors))
+#define _scalars_ ((ppt->has_scalars == _TRUE_) && (index_md == index_md_scalars_))
+#define _vectors_ ((ppt->has_vectors == _TRUE_) && (index_md == index_md_vectors_))
+#define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == index_md_tensors_))
 
-#define _set_source_(index) ppt->sources[index_md][index_ic * ppt->tp_size[index_md] + index][index_tau * ppt->k_size[index_md] + index_k]
+//TODO: Remove those when possible!
+#define _scalarsEXT_ ((ppt->has_scalars == _TRUE_) && (index_md == perturbations_module_.index_md_scalars_))
+#define _vectorsEXT_ ((ppt->has_vectors == _TRUE_) && (index_md == perturbations_module_.index_md_vectors_))
+#define _tensorsEXT_ ((ppt->has_tensors == _TRUE_) && (index_md == perturbations_module_.index_md_tensors_))
+
+
+#define _set_source_(index) sources_[index_md][index_ic*tp_size_[index_md] + index][index_tau*k_size_[index_md] + index_k]
 
 /**
  * flags for various approximation schemes
@@ -125,9 +131,6 @@ struct perturbs
   /** Neutrino contribution to tensors */
   enum tensor_methods tensor_method;  /**< way to treat neutrinos in tensor perturbations(neglect, approximate as massless, take exact equations) */
 
-  short evolve_tensor_ur;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
-  short evolve_tensor_ncdm;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
-
   short has_cl_cmb_temperature;       /**< do we need \f$ C_l \f$'s for CMB temperature? */
   short has_cl_cmb_polarization;      /**< do we need \f$ C_l \f$'s for CMB polarization? */
   short has_cl_cmb_lensing_potential; /**< do we need \f$ C_l \f$'s for CMB lensing potential? */
@@ -181,15 +184,6 @@ struct perturbs
 
   //@}
 
-  /** @name - useful flags inferred from the ones above */
-
-  //@{
-
-  short has_cmb; /**< do we need CMB-related sources (temperature, polarization) ? */
-  short has_lss; /**< do we need LSS-related sources (lensing potential, ...) ? */
-
-  //@}
-
   /** @name - gauge in which to perform the calculation */
 
   //@{
@@ -198,163 +192,11 @@ struct perturbs
 
   //@}
 
-  /** @name - indices running on modes (scalar, vector, tensor) */
-
-  //@{
-
-  int index_md_scalars; /**< index value for scalars */
-  int index_md_tensors; /**< index value for tensors */
-  int index_md_vectors; /**< index value for vectors */
-
-  int md_size; /**< number of modes included in computation */
-
-  //@}
-
-  /** @name - indices running on initial conditions (for scalars: ad, cdi, nid, niv; for tensors: only one) */
-
-  //@{
-
-  int index_ic_ad; /**< index value for adiabatic */
-  int index_ic_cdi; /**< index value for CDM isocurvature */
-  int index_ic_bi; /**< index value for baryon isocurvature */
-  int index_ic_nid; /**< index value for neutrino density isocurvature */
-  int index_ic_niv; /**< index value for neutrino velocity isocurvature */
-  int index_ic_ten; /**< index value for unique possibility for tensors */
-
-  int * ic_size;       /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
-
-  //@}
-
-  /** @name - flags and indices running on types (temperature, polarization, lensing, ...) */
-
-  //@{
-
-  short has_source_t;           /**< do we need source for CMB temperature? */
-  short has_source_p;           /**< do we need source for CMB polarization? */
-  short has_source_delta_m;     /**< do we need source for delta of total matter? */
-  short has_source_delta_cb;    /**< do we ALSO need source for delta of ONLY cdm and baryon? */
-  short has_source_delta_tot;   /**< do we need source for delta total? */
-  short has_source_delta_g;     /**< do we need source for delta of gammas? */
-  short has_source_delta_b;     /**< do we need source for delta of baryons? */
-  short has_source_delta_cdm;   /**< do we need source for delta of cold dark matter? */
-  short has_source_delta_dcdm;  /**< do we need source for delta of DCDM? */
-  short has_source_delta_fld;   /**< do we need source for delta of dark energy? */
-  short has_source_delta_scf;   /**< do we need source for delta from scalar field? */
-  short has_source_delta_dr;    /**< do we need source for delta of decay radiation? */
-  short has_source_delta_ur;    /**< do we need source for delta of ultra-relativistic neutrinos/relics? */
-  short has_source_delta_idr;   /**< do we need source for delta of interacting dark radiation? */
-  short has_source_delta_idm_dr;/**< do we need source for delta of interacting dark matter (with dr)? */
-  short has_source_delta_ncdm;  /**< do we need source for delta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_theta_m;     /**< do we need source for theta of total matter? */
-  short has_source_theta_cb;    /**< do we ALSO need source for theta of ONLY cdm and baryon? */
-  short has_source_theta_tot;   /**< do we need source for theta total? */
-  short has_source_theta_g;     /**< do we need source for theta of gammas? */
-  short has_source_theta_b;     /**< do we need source for theta of baryons? */
-  short has_source_theta_cdm;   /**< do we need source for theta of cold dark matter? */
-  short has_source_theta_dcdm;  /**< do we need source for theta of DCDM? */
-  short has_source_theta_fld;   /**< do we need source for theta of dark energy? */
-  short has_source_theta_scf;   /**< do we need source for theta of scalar field? */
-  short has_source_theta_dr;    /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_ur;    /**< do we need source for theta of ultra-relativistic neutrinos/relics? */
-  short has_source_theta_idr;   /**< do we need source for theta of interacting dark radiation? */
-  short has_source_theta_idm_dr;/**< do we need source for theta of interacting dark matter (with dr)? */
-  short has_source_theta_ncdm;  /**< do we need source for theta of all non-cold dark matter species (e.g. massive neutrinos)? */
-  short has_source_phi;         /**< do we need source for metric fluctuation phi? */
-  short has_source_phi_prime;   /**< do we need source for metric fluctuation phi'? */
-  short has_source_phi_plus_psi;/**< do we need source for metric fluctuation (phi+psi)? */
-  short has_source_psi;         /**< do we need source for metric fluctuation psi? */
-  short has_source_h;           /**< do we need source for metric fluctuation h? */
-  short has_source_h_prime;     /**< do we need source for metric fluctuation h'? */
-  short has_source_eta;         /**< do we need source for metric fluctuation eta? */
-  short has_source_eta_prime;   /**< do we need source for metric fluctuation eta'? */
-  short has_source_H_T_Nb_prime;/**< do we need source for metric fluctuation H_T_Nb'? */
-  short has_source_k2gamma_Nb;  /**< do we need source for metric fluctuation gamma in Nbody gauge? */
-
-  /* remember that the temperature source function includes three
-     terms that we call 0,1,2 (since the strategy in class v > 1.7 is
-     to avoid the integration by part that would reduce the source to
-     a single term) */
-  int index_tp_t0; /**< index value for temperature (j=0 term) */
-  int index_tp_t1; /**< index value for temperature (j=1 term) */
-  int index_tp_t2; /**< index value for temperature (j=2 term) */
-  int index_tp_p; /**< index value for polarization */
-  int index_tp_delta_m; /**< index value for matter density fluctuation */
-  int index_tp_delta_cb; /**< index value for delta cb */
-  int index_tp_delta_tot; /**< index value for total density fluctuation */
-  int index_tp_delta_g;   /**< index value for delta of gammas */
-  int index_tp_delta_b;   /**< index value for delta of baryons */
-  int index_tp_delta_cdm; /**< index value for delta of cold dark matter */
-  int index_tp_delta_dcdm;/**< index value for delta of DCDM */
-  int index_tp_delta_fld;  /**< index value for delta of dark energy */
-  int index_tp_delta_scf;  /**< index value for delta of scalar field */
-  int index_tp_delta_dr; /**< index value for delta of decay radiation */
-  int index_tp_delta_ur; /**< index value for delta of ultra-relativistic neutrinos/relics */
-  int index_tp_delta_idr; /**< index value for delta of interacting dark radiation */
-  int index_tp_delta_idm_dr;/**< index value for delta of interacting dark matter (with dr)*/
-  int index_tp_delta_ncdm1; /**< index value for delta of first non-cold dark matter species (e.g. massive neutrinos) */
-  int index_tp_perturbed_recombination_delta_temp;		/**< Gas temperature perturbation */
-  int index_tp_perturbed_recombination_delta_chi;		/**< Inionization fraction perturbation */
-
-  int index_tp_theta_m;     /**< index value for matter velocity fluctuation */
-  int index_tp_theta_cb;    /**< index value for theta cb */
-  int index_tp_theta_tot;   /**< index value for total velocity fluctuation */
-  int index_tp_theta_g;     /**< index value for theta of gammas */
-  int index_tp_theta_b;     /**< index value for theta of baryons */
-  int index_tp_theta_cdm;   /**< index value for theta of cold dark matter */
-  int index_tp_theta_dcdm;  /**< index value for theta of DCDM */
-  int index_tp_theta_fld;   /**< index value for theta of dark energy */
-  int index_tp_theta_scf;   /**< index value for theta of scalar field */
-  int index_tp_theta_ur;    /**< index value for theta of ultra-relativistic neutrinos/relics */
-  int index_tp_theta_idr;   /**< index value for theta of interacting dark radiation */
-  int index_tp_theta_idm_dr;/**< index value for theta of interacting dark matter (with dr)*/
-  int index_tp_theta_dr;    /**< index value for F1 of decay radiation */
-  int index_tp_theta_ncdm1; /**< index value for theta of first non-cold dark matter species (e.g. massive neutrinos) */
-
-  int index_tp_phi;          /**< index value for metric fluctuation phi */
-  int index_tp_phi_prime;    /**< index value for metric fluctuation phi' */
-  int index_tp_phi_plus_psi; /**< index value for metric fluctuation phi+psi */
-  int index_tp_psi;          /**< index value for metric fluctuation psi */
-  int index_tp_h;            /**< index value for metric fluctuation h */
-  int index_tp_h_prime;      /**< index value for metric fluctuation h' */
-  int index_tp_eta;          /**< index value for metric fluctuation eta */
-  int index_tp_eta_prime;    /**< index value for metric fluctuation eta' */
-  int index_tp_H_T_Nb_prime; /**< index value for metric fluctuation H_T_Nb' */
-  int index_tp_k2gamma_Nb;   /**< index value for metric fluctuation gamma times k^2 in Nbody gauge */
-
-  int * tp_size; /**< number of types tp_size[index_md] included in computation for each mode */
-
-  //@}
-
-  /** @name - list of k values for each mode */
-
-  //@{
-
-  int * k_size_cmb;  /**< k_size_cmb[index_md] number of k values used
-                        for CMB calculations, requiring a fine
-                        sampling in k-space */
-
-  int * k_size_cl;  /**< k_size_cl[index_md] number of k values used
-                       for non-CMB \f$ C_l \f$ calculations, requiring a coarse
-                       sampling in k-space. */
-
-  int * k_size;     /**< k_size[index_md] = total number of k
-                       values, including those needed for P(k) but not
-                       for \f$ C_l \f$'s */
-
-  double ** k;      /**< k[index_md][index_k] = list of values */
-
-  double k_min;     /**< minimum value (over all modes) */
-  double k_max;     /**< maximum value (over all modes) */
-
-  //@}
 
   /** @name - list of conformal time values in the source table
       (common to all modes and types) */
 
   //@{
-
-  double * tau_sampling;    /**< array of tau values */
-  int tau_size;             /**< number of values in this array */
 
   double selection_min_of_tau_min; /**< used in presence of selection functions (for matter density, cosmic shear...) */
   double selection_max_of_tau_max; /**< used in presence of selection functions (for matter density, cosmic shear...) */
@@ -364,65 +206,7 @@ struct perturbs
   double * selection_tau_min; /**< value of conformal time below which W(tau) is considered to vanish for each bin */
   double * selection_tau_max; /**< value of conformal time above which W(tau) is considered to vanish for each bin */
   double * selection_tau; /**< value of conformal time at the center of each bin */
-  double * selection_function; /**< selection function W(tau), normalized to \f$ \int W(tau) dtau=1 \f$, stored in selection_function[bin*ppt->tau_size+index_tau] */
-
-  //@}
-
-  /** @name - source functions interpolation table */
-
-  //@{
-
-  double *** sources; /**< Pointer towards the source interpolation table
-                         sources[index_md]
-                         [index_ic * ppt->tp_size[index_md] + index_tp]
-                         [index_tau * ppt->k_size + index_k] */
-
-  //@}
-
-  /** @name - arrays related to the interpolation table for sources at late times, corresponding to z < z_max_pk (used for Fourier transfer function and spectra output) */
-
-  //@{
-
-  double * ln_tau;     /**< log of the arrau tau_sampling, covering only the final time range required for the output of
-                            Fourier transfer functions (used for interpolations) */
-  int ln_tau_size;     /**< number of values in this array */
-
-  double *** late_sources; /**< Pointer towards the source interpolation table
-                                late_sources[index_md]
-                                            [index_ic * ppt->tp_size[index_md] + index_tp]
-                                            [index_tau * ppt->k_size + index_k]
-                                Note that this is not a replication of part of the sources table,
-                                it is just poiting towards the same memory zone, at the place where the late_sources actually start */
-
-  double *** ddlate_sources; /**< Pointer towards the splined source interpolation table with second derivatives with respect to time
-                              ddlate_sources[index_md]
-                                            [index_ic * ppt->tp_size[index_md] + index_tp]
-                                            [index_tau * ppt->k_size + index_k] */
-
-  //@}
-
-  /** @name - arrays storing the evolution of all sources for given k values, passed as k_output_values */
-
-  //@{
-
-   int * index_k_output_values; /**< List of indices corresponding to k-values close to k_output_values for each mode.
-                                     index_k_output_values[index_md*k_output_values_num+ik]*/
-
-  char scalar_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for scalar perturbation output files. */
-  char vector_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for vector perturbation output files. */
-  char tensor_titles[_MAXTITLESTRINGLENGTH_]; /**< _DELIMITER_ separated string of titles for tensor perturbation output files. */
-
-  int number_of_scalar_titles; /**< number of titles/columns in scalar perturbation output files */
-  int number_of_vector_titles; /**< number of titles/columns in vector perturbation output files*/
-  int number_of_tensor_titles; /**< number of titles/columns in tensor perturbation output files*/
-
-  double * scalar_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for scalars */
-  double * vector_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for vectors */
-  double * tensor_perturbations_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of double pointers to perturbation output for tensors */
-
-  int size_scalar_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of scalar double pointers  */
-  int size_vector_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of vector double pointers  */
-  int size_tensor_perturbation_data[_MAX_NUMBER_OF_K_FILES_]; /**< Array of sizes of tensor double pointers  */
+  double * selection_function; /**< selection function W(tau), normalized to \f$ \int W(tau) dtau=1 \f$, stored in selection_function[bin*tau_size_+index_tau] */
 
   //@}
 
@@ -431,8 +215,6 @@ struct perturbs
   //@{
 
   short perturbations_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
-
-  ErrorMsg error_message; /**< zone for writing error messages */
 
   //@}
 
@@ -637,289 +419,4 @@ struct perturb_workspace
 
 };
 
-/**
- * Structure pointing towards all what the function that perturb_derivs
- * needs to know: fixed input parameters and indices contained in the
- * various structures, workspace, etc.
- */
-
-struct perturb_parameters_and_workspace {
-
-  struct precision * ppr;         /**< pointer to the precision structure */
-  struct background * pba;        /**< pointer to the background structure */
-  struct thermo * pth;            /**< pointer to the thermodynamics structure */
-  struct perturbs * ppt;          /**< pointer to the precision structure */
-  int index_md;                   /**< index of mode (scalar/.../vector/tensor) */
-  int index_ic;			          /**< index of initial condition (adiabatic/isocurvature(s)/...) */
-  int index_k;			          /**< index of wavenumber */
-  double k;			              /**< current value of wavenumber in 1/Mpc */
-  struct perturb_workspace * ppw; /**< workspace defined above */
-
-};
-
-/*************************************************************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */
-/*
- * Boilerplate for C++
- */
-#ifdef __cplusplus
-extern "C" {
 #endif
-
-  int perturb_sources_at_tau(
-                             struct perturbs * ppt,
-                             int index_md,
-                             int index_ic,
-                             int index_tp,
-                             double tau,
-                             double * pvecsources
-                             );
-
-  int perturb_output_data(
-                          struct background * pba,
-                          struct perturbs * ppt,
-                          enum file_format output_format,
-                          double z,
-                          int number_of_titles,
-                          double *data
-                          );
-
-  int perturb_output_titles(
-                            struct background *pba,
-                            struct perturbs *ppt,
-                            enum file_format output_format,
-                            char titles[_MAXTITLESTRINGLENGTH_]
-                            );
-
-  int perturb_output_firstline_and_ic_suffix(
-                                      struct perturbs *ppt,
-                                      int index_ic,
-                                      char first_line[_LINE_LENGTH_MAX_],
-                                      FileName ic_suffix
-                                      );
-
-  int perturb_init(
-                   struct precision * ppr,
-                   struct background * pba,
-                   struct thermo * pth,
-                   struct perturbs * ppt
-                   );
-
-  int perturb_free(
-                   struct perturbs * ppt
-                   );
-
-  int perturb_indices_of_perturbs(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct thermo * pth,
-                                  struct perturbs * ppt
-                                  );
-
-  int perturb_timesampling_for_sources(
-                                       struct precision * ppr,
-                                       struct background * pba,
-                                       struct thermo * pth,
-                                       struct perturbs * ppt
-                                       );
-  int perturb_get_k_list(
-                         struct precision * ppr,
-                         struct background * pba,
-                         struct thermo * pth,
-                         struct perturbs * ppt
-                         );
-
-  int perturb_workspace_init(
-                             struct precision * ppr,
-                             struct background * pba,
-                             struct thermo * pth,
-                             struct perturbs * ppt,
-                             int index_md,
-                             struct perturb_workspace * ppw
-                             );
-
-  int perturb_workspace_free(
-                             struct perturbs * ppt,
-                             int index_md,
-                             struct perturb_workspace * ppw
-                             );
-
-  int perturb_solve(
-                    struct precision * ppr,
-                    struct background * pba,
-                    struct thermo * pth,
-                    struct perturbs * ppt,
-                    int index_md,
-                    int index_ic,
-                    int index_k,
-                    struct perturb_workspace * ppw
-                    );
-
-  int perturb_prepare_k_output(
-                               struct background * pba,
-                               struct perturbs * ppt
-                               );
-
-  int perturb_find_approximation_number(
-                                        struct precision * ppr,
-                                        struct background * pba,
-                                        struct thermo * pth,
-                                        struct perturbs * ppt,
-                                        int index_md,
-                                        double k,
-                                        struct perturb_workspace * ppw,
-                                        double tau_ini,
-                                        double tau_end,
-                                        int * interval_number,
-                                        int * interval_number_of
-                                        );
-
-  int perturb_find_approximation_switches(
-                                          struct precision * ppr,
-                                          struct background * pba,
-                                          struct thermo * pth,
-                                          struct perturbs * ppt,
-                                          int index_md,
-                                          double k,
-                                          struct perturb_workspace * ppw,
-                                          double tau_ini,
-                                          double tau_end,
-                                          double precision,
-                                          int interval_number,
-                                          int * interval_number_of,
-                                          double * interval_limit,
-                                          int ** interval_approx
-                                          );
-
-  int perturb_vector_init(
-                          struct precision * ppr,
-                          struct background * pba,
-                          struct thermo * pth,
-                          struct perturbs * ppt,
-                          int index_md,
-                          int index_ic,
-                          double k,
-                          double tau,
-                          struct perturb_workspace * ppw,
-                          int * pa_old
-                          );
-
-  int perturb_vector_free(
-                          struct perturb_vector * pv
-                          );
-
-  int perturb_initial_conditions(
-                                 struct precision * ppr,
-                                 struct background * pba,
-                                 struct perturbs * ppt,
-                                 int index_md,
-                                 int index_ic,
-                                 double k,
-                                 double tau,
-                                 struct perturb_workspace * ppw
-                                 );
-
-  int perturb_approximations(
-                             struct precision * ppr,
-                             struct background * pba,
-                             struct thermo * pth,
-                             struct perturbs * ppt,
-                             int index_md,
-                             double k,
-                             double tau,
-                             struct perturb_workspace * ppw
-                             );
-
-  int perturb_timescale(
-                        double tau,
-                        void * parameters_and_workspace,
-                        double * timescale,
-                        ErrorMsg error_message
-                        );
-
-  int perturb_einstein(
-                       struct precision * ppr,
-                       struct background * pba,
-                       struct thermo * pth,
-                       struct perturbs * ppt,
-                       int index_md,
-                       double k,
-                       double tau,
-                       double * y,
-                       struct perturb_workspace * ppw
-                       );
-
-  int perturb_total_stress_energy(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct thermo * pth,
-                                  struct perturbs * ppt,
-                                  int index_md,
-                                  double k,
-                                  double * y,
-                                  struct perturb_workspace * ppw
-                                  );
-
-  int perturb_sources(
-                      double tau,
-                      double * pvecperturbations,
-                      double * pvecderivs,
-                      int index_tau,
-                      void * parameters_and_workspace,
-                      ErrorMsg error_message
-                      );
-
-  int perturb_print_variables(
-                              double tau,
-                              double * y,
-                              double * dy,
-                              void * parameters_and_workspace,
-                              ErrorMsg error_message
-                              );
-
-  int perturb_derivs(
-                     double tau,
-                     double * y,
-                     double * dy,
-                     void * parameters_and_workspace,
-                     ErrorMsg error_message
-                     );
-
-  int perturb_tca_slip_and_shear(
-                                 double * y,
-                                 void * parameters_and_workspace,
-                                 ErrorMsg error_message
-                                 );
-
-  int perturb_rsa_delta_and_theta(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct thermo * pth,
-                                  struct perturbs * ppt,
-                                  double k,
-                                  double * y,
-                                  double a_prime_over_a,
-                                  double * pvecthermo,
-                                  struct perturb_workspace * ppw
-                                  );
-
-  int perturb_rsa_idr_delta_and_theta(
-                                  struct precision * ppr,
-                                  struct background * pba,
-                                  struct thermo * pth,
-                                  struct perturbs * ppt,
-                                  double k,
-                                  double * y,
-                                  double a_prime_over_a,
-                                  double * pvecthermo,
-                                  struct perturb_workspace * ppw
-                                  );
-
-#ifdef __cplusplus
-}
-#endif
-
-/**************************************************************/
-
-#endif
-/* @endcond */

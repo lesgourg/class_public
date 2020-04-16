@@ -13,8 +13,9 @@
 
 #include "nonlinear_module.h"
 
-NonlinearModule::NonlinearModule(const Input& input, const PrimordialModule& primordial_module)
+NonlinearModule::NonlinearModule(const Input& input, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module)
 : BaseModule(input)
+, perturbations_module_(perturbations_module)
 , primordial_module_(primordial_module) {
   ThrowInvalidArgumentIf(nonlinear_init() != _SUCCESS_, error_message_);
 }
@@ -1146,16 +1147,16 @@ int NonlinearModule::nonlinear_init() {
 
     /* If the user only wants z=0, then ln_tau_size_=1 and we go
        only through index_tau=0. However we must pick up the last
-       value of the source, index_tau_sources = ppt->tau_size-1. If
+       value of the source, index_tau_sources = perturbations_module_.tau_size_-1. If
        the user wants several values of z, they correspond to the last
-       ppt->ln_tau_size values of the sources (those that were also
-       part of the array ppt->late_sources in the perturbation
+       perturbations_module_.ln_tau_size_ values of the sources (those that were also
+       part of the array late_sources_ in the perturbation
        module). In all cases, the following formula gives the
        correspondance between index_tau in the current array and in
        the sources array:
     */
 
-    index_tau_sources = ppt->tau_size-ppt->ln_tau_size+index_tau;
+    index_tau_sources = perturbations_module_.tau_size_-perturbations_module_.ln_tau_size_ + index_tau;
 
     /** --> loop over required pk types (_m, _cb) */
 
@@ -1552,7 +1553,7 @@ int NonlinearModule::nonlinear_indices() {
   int index_pk;
 
   /** - define indices for initial conditions (and allocate related arrays) */
-  index_md_scalars_ = ppt->index_md_scalars;
+  index_md_scalars_ = perturbations_module_.index_md_scalars_;
   ic_size_ = primordial_module_.ic_size_[index_md_scalars_];
   ic_ic_size_ = primordial_module_.ic_ic_size_[index_md_scalars_];
   class_alloc(is_non_zero_, sizeof(short)*ic_ic_size_, error_message_);
@@ -1670,8 +1671,8 @@ int NonlinearModule::nonlinear_get_k_list() {
   double k_max,exponent;
   int index_k;
 
-  k_size_ = ppt->k_size[index_md_scalars_];
-  k_max = ppt->k[index_md_scalars_][k_size_ - 1];
+  k_size_ = perturbations_module_.k_size_[index_md_scalars_];
+  k_max = perturbations_module_.k_[index_md_scalars_][k_size_ - 1];
 
   /** - if k extrapolation necessary, compute number of required extra values */
   if (pnl->method == nl_HMcode){
@@ -1698,7 +1699,7 @@ int NonlinearModule::nonlinear_get_k_list() {
 
   /** - fill array of k (not extrapolated) */
   for (index_k=0; index_k<k_size_; index_k++) {
-    k = ppt->k[index_md_scalars_][index_k];
+    k = perturbations_module_.k_[index_md_scalars_][index_k];
     k_[index_k] = k;
     ln_k_[index_k] = log(k);
   }
@@ -1726,26 +1727,26 @@ int NonlinearModule::nonlinear_get_tau_list() {
   int index_tau;
 
   /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
-  ln_tau_size_ = ppt->ln_tau_size;
+  ln_tau_size_ = perturbations_module_.ln_tau_size_;
 
-  if (ppt->ln_tau_size > 1) {
+  if (perturbations_module_.ln_tau_size_ > 1) {
 
     class_alloc(ln_tau_, ln_tau_size_*sizeof(double), error_message_);
 
     for (index_tau = 0; index_tau < ln_tau_size_; index_tau++) {
-      ln_tau_[index_tau] = ppt->ln_tau[index_tau];
+      ln_tau_[index_tau] = perturbations_module_.ln_tau_[index_tau];
     }
   }
 
   /** -> for non-linear calculations: we wills store a correction factor for all times */
   if (pnl->method > nl_none) {
 
-    tau_size_ = ppt->tau_size;
+    tau_size_ = perturbations_module_.tau_size_;
 
     class_alloc(tau_, tau_size_*sizeof(double), error_message_);
 
     for (index_tau = 0; index_tau < tau_size_; index_tau++) {
-      tau_[index_tau] = ppt->tau_sampling[index_tau];
+      tau_[index_tau] = perturbations_module_.tau_sampling_[index_tau];
     }
   }
   return _SUCCESS_;
@@ -1776,7 +1777,7 @@ int NonlinearModule::nonlinear_get_source(int index_k, int index_ic, int index_t
 
   /** - use precomputed values */
   if (index_k < k_size_) {
-    *source = sources[index_ic*ppt->tp_size[index_md_scalars_] + index_tp][index_tau*k_size_ + index_k];
+    *source = sources[index_ic*perturbations_module_.tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + index_k];
   }
   /** - extrapolate **/
   else {
@@ -1787,13 +1788,13 @@ int NonlinearModule::nonlinear_get_source(int index_k, int index_ic, int index_t
      * --> Get last source and k, which are used in (almost) all methods
      */
     k_max = k_[k_size_ - 1];
-    source_max = sources[index_ic*ppt->tp_size[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 1];
+    source_max = sources[index_ic*perturbations_module_.tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 1];
 
     /**
      * --> Get previous source and k, which are used in best methods
      */
     k_previous = k_[k_size_ - 2];
-    source_previous = sources[index_ic*ppt->tp_size[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 2];
+    source_previous = sources[index_ic*perturbations_module_.tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 2];
 
     switch(pnl->extrapolation_method){
       /**
@@ -1936,10 +1937,10 @@ int NonlinearModule::nonlinear_pk_linear(
   class_alloc(pk_ic, ic_ic_size_*sizeof(double), error_message_);
 
   if ((has_pk_m_ == _TRUE_) && (index_pk == index_pk_m_)) {
-    index_tp = ppt->index_tp_delta_m;
+    index_tp = perturbations_module_.index_tp_delta_m_;
   }
   else if ((has_pk_cb_ == _TRUE_) && (index_pk == index_pk_cb_)) {
-    index_tp = ppt->index_tp_delta_cb;
+    index_tp = perturbations_module_.index_tp_delta_cb_;
   }
   else {
     class_stop(error_message_, "P(k) is set neither to total matter nor to cold dark matter + baryons");
@@ -1977,7 +1978,7 @@ int NonlinearModule::nonlinear_pk_linear(
                                       index_ic1,
                                       index_tp,
                                       index_tau,
-                                      ppt->sources[index_md_scalars_],
+                                      perturbations_module_.sources_[index_md_scalars_],
                                       &source_ic1),
                  error_message_,
                  error_message_);
@@ -2007,7 +2008,7 @@ int NonlinearModule::nonlinear_pk_linear(
                                           index_ic1,
                                           index_tp,
                                           index_tau,
-                                          ppt->sources[index_md_scalars_],
+                                          perturbations_module_.sources_[index_md_scalars_],
                                           &source_ic1),
                      error_message_,
                      error_message_);
@@ -2016,7 +2017,7 @@ int NonlinearModule::nonlinear_pk_linear(
                                           index_ic2,
                                           index_tp,
                                           index_tau,
-                                          ppt->sources[index_md_scalars_],
+                                          perturbations_module_.sources_[index_md_scalars_],
                                           &source_ic2),
                      error_message_,
                      error_message_);

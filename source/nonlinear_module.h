@@ -2,12 +2,13 @@
 #define NONLINEAR_MODULE_H
 
 #include "input.h"
+#include "perturbations_module.h"
 #include "primordial_module.h"
 #include "base_module.h"
 
 class NonlinearModule : public BaseModule {
 public:
-  NonlinearModule(const Input& input, const PrimordialModule& primordial_module);
+  NonlinearModule(const Input& input, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module);
   ~NonlinearModule();
 
   /* external functions (meant to be called from other modules) */
@@ -24,11 +25,11 @@ public:
   int nonlinear_sigma_at_z(double R, double z, int index_pk, double k_per_decade, double* result) const;
 
   int k_size_;      /**< k_size = total number of k values */
-  double* ln_k_;   /**< ln_k[index_k] = list of log(k) values */
+  double* ln_k_;    /**< ln_k[index_k] = list of log(k) values */
 
-  double** nl_corr_density_;   /**< nl_corr_density[index_pk][index_tau * ppt->k_size + index_k] */
+  double** nl_corr_density_;   /**< nl_corr_density[index_pk][index_tau * perturbations_module_.k_size_ + index_k] */
 
-  short * is_non_zero_; /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
+  short* is_non_zero_;  /**< for a given mode, is_non_zero[index_md][index_ic1_ic2] is set to true if the pair of initial conditions (index_ic1, index_ic2) are statistically correlated, or to false if they are uncorrelated */
   int ic_size_;         /**< for a given mode, ic_size[index_md] = number of initial conditions included in computation */
   int ic_ic_size_;      /**< for a given mode, ic_ic_size[index_md] = number of pairs of (index_ic1, index_ic2) with index_ic2 >= index_ic1; this number is just N(N+1)/2  where N = ic_size[index_md] */
   short has_pk_m_;  /**< do we want spectra for total matter? */
@@ -67,6 +68,7 @@ private:
   int nonlinear_hmcode_sigmadisp100_at_z(double z, double* sigma_disp_100, double* sigma_disp_100_cb, nonlinear_workspace* pnw);
   int nonlinear_hmcode_sigmaprime_at_z(double z, double* sigma_prime, double* sigma_prime_cb, nonlinear_workspace* pnw);
 
+  const PerturbationsModule& perturbations_module_;
   const PrimordialModule& primordial_module_;
 
   /** @name - arrays for the Fourier power spectra P(k,tau) */

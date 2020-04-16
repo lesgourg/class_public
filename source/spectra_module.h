@@ -2,13 +2,14 @@
 #define SPECTRA_MODULE_H
 
 #include "input.h"
+#include "perturbations_module.h"
 #include "primordial_module.h"
 #include "transfer_module.h"
 #include "base_module.h"
 
 class SpectraModule : public BaseModule {
 public:
-  SpectraModule(const Input& input, const PrimordialModule& primordial_module_, const NonlinearModule& nonlinear_module, const TransferModule& transfer_module);
+  SpectraModule(const Input& input, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module_, const NonlinearModule& nonlinear_module, const TransferModule& transfer_module);
   ~SpectraModule();
   int spectra_cl_at_l(double l, double * cl, double ** cl_md, double ** cl_md_ic) const;
 
@@ -95,6 +96,7 @@ private:
   int spectra_tk_at_z(double z, double * output);
   int spectra_tk_at_k_and_z(double k, double z, double * output);
 
+  const PerturbationsModule& perturbations_module_;
   const PrimordialModule& primordial_module_;
   const NonlinearModule& nonlinear_module_;
   const TransferModule& transfer_module_;

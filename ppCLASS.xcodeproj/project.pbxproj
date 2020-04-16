@@ -14,7 +14,7 @@
 		AF1078FA2424A86400A369F7 /* exceptions.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF1078F92424A86400A369F7 /* exceptions.cpp */; };
 		AF14AFE924337B11005D2DE9 /* cosmology.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AF14AFE724337B11005D2DE9 /* cosmology.cpp */; };
 		AFDC689C240D9F500044B5A3 /* lensing_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6892240D9F500044B5A3 /* lensing_module.cpp */; };
-		AFDC689D240D9F500044B5A3 /* perturbations.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6893240D9F500044B5A3 /* perturbations.cpp */; };
+		AFDC689D240D9F500044B5A3 /* perturbations_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6893240D9F500044B5A3 /* perturbations_module.cpp */; };
 		AFDC689E240D9F500044B5A3 /* transfer_module.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6894240D9F500044B5A3 /* transfer_module.cpp */; };
 		AFDC689F240D9F500044B5A3 /* thermodynamics.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */; };
 		AFDC68A0240D9F500044B5A3 /* input.cpp in Sources */ = {isa = PBXBuildFile; fileRef = AFDC6896240D9F500044B5A3 /* input.cpp */; };
@@ -65,6 +65,7 @@
 		AF14AFE824337B11005D2DE9 /* cosmology.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cosmology.h; sourceTree = "<group>"; };
 		AF14AFEA24347ECA005D2DE9 /* nonlinear_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = nonlinear_module.h; sourceTree = "<group>"; };
 		AF14AFEB2434BFC9005D2DE9 /* primordial_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = primordial_module.h; sourceTree = "<group>"; };
+		AF8EE425243B0B0700C3B509 /* perturbations_module.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = perturbations_module.h; sourceTree = "<group>"; };
 		AFA9047D241D19FB009B7DEE /* class.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = class.h; sourceTree = "<group>"; };
 		AFB5F15E241D17B5001B9B9C /* output.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = output.h; sourceTree = "<group>"; };
 		AFB5F15F241D17B5001B9B9C /* perturbations.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = perturbations.h; sourceTree = "<group>"; };
@@ -78,7 +79,7 @@
 		AFB5F167241D17B6001B9B9C /* thermodynamics.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = thermodynamics.h; sourceTree = "<group>"; };
 		AFDC6886240D9EA00044B5A3 /* ppCLASS */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = ppCLASS; sourceTree = BUILT_PRODUCTS_DIR; };
 		AFDC6892240D9F500044B5A3 /* lensing_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lensing_module.cpp; sourceTree = "<group>"; };
-		AFDC6893240D9F500044B5A3 /* perturbations.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = perturbations.cpp; sourceTree = "<group>"; };
+		AFDC6893240D9F500044B5A3 /* perturbations_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = perturbations_module.cpp; sourceTree = "<group>"; };
 		AFDC6894240D9F500044B5A3 /* transfer_module.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = transfer_module.cpp; sourceTree = "<group>"; };
 		AFDC6895240D9F500044B5A3 /* thermodynamics.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thermodynamics.cpp; sourceTree = "<group>"; };
 		AFDC6896240D9F500044B5A3 /* input.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = input.cpp; sourceTree = "<group>"; };
@@ -201,8 +202,9 @@
 				AFB5F15E241D17B5001B9B9C /* output.h */,
 				AFDE3E00242DF6290061A4DE /* output_module.cpp */,
 				AFDE3DFF242DF6290061A4DE /* output_module.h */,
-				AFDC6893240D9F500044B5A3 /* perturbations.cpp */,
 				AFB5F15F241D17B5001B9B9C /* perturbations.h */,
+				AFDC6893240D9F500044B5A3 /* perturbations_module.cpp */,
+				AF8EE425243B0B0700C3B509 /* perturbations_module.h */,
 				AFB5F165241D17B6001B9B9C /* primordial.h */,
 				AFDC6899240D9F500044B5A3 /* primordial_module.cpp */,
 				AF14AFEB2434BFC9005D2DE9 /* primordial_module.h */,
@@ -353,7 +355,7 @@
 				AF1078DF241D1F3B00A369F7 /* history.c in Sources */,
 				AF1078E0241D1F3B00A369F7 /* hyrectools.c in Sources */,
 				AFDC68BB240D9F6B0044B5A3 /* quadrature.c in Sources */,
-				AFDC689D240D9F500044B5A3 /* perturbations.cpp in Sources */,
+				AFDC689D240D9F500044B5A3 /* perturbations_module.cpp in Sources */,
 				AFDC68A3240D9F500044B5A3 /* primordial_module.cpp in Sources */,
 				AFDE3E01242DF6290061A4DE /* output_module.cpp in Sources */,
 				AFDC68B7240D9F6B0044B5A3 /* hyperspherical.c in Sources */,
