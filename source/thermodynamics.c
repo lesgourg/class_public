@@ -1928,7 +1928,6 @@ int thermodynamics_reionization_function(
   double center,before, after,width,one_jump;
   double z_min, z_max;
 
-
   /** - implementation of ionization function similar to the one in CAMB */
   if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)) {
 
@@ -2528,7 +2527,7 @@ int thermodynamics_solve(
                                  interval_limit[index_interval+1],
                                  ptw->ptdw->ptv->y,
                                  ptw->ptdw->ptv->used_in_output,
-                                 ptw->ptdw->ptv->tv_size,
+                                 ptw->ptdw->ptv->ti_size,
                                  &tpaw,
                                  ppr->tol_thermo_integration,
                                  ppr->smallest_allowed_variation,
@@ -2536,7 +2535,7 @@ int thermodynamics_solve(
                                  ppr->thermo_integration_stepsize, // stepsize = this number * timescale
                                  mz_output, // values of z for output
                                  pth->tt_size, // size of previous array
-                                 thermodynamics_solve_store_sources, // function for output
+                                 thermodynamics_sources, // function for output
                                  NULL, // print variables
                                  pth->error_message),
                    pth->error_message,
@@ -2614,7 +2613,7 @@ int thermodynamics_derivs(
 
   /** Define local variables */
   /* Index for iterating over derivatives */
-  int index_y;
+  int index_ti;
   /* index for fast background interpolation */
   int last_index_back;
 
@@ -2679,7 +2678,7 @@ int thermodynamics_derivs(
   Trad = ptw->Tcmb * (1.+z);
 
   /** Set Tmat from the evolver (it is always evolved) and store it in the workspace. */
-  Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
+  Tmat = y[ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
   ptdw->Tmat = Tmat; // Can we supress ptdw->Tmat completely?
 
   /** - The input vector y contains thermodynamic variables like the
@@ -2692,7 +2691,7 @@ int thermodynamics_derivs(
 
   class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current),
              pth->error_message,
-             pth->error_message);
+             error_message);
 
   /* Save the output in local variables */
   x = ptdw->x_reio;
@@ -2726,15 +2725,15 @@ int thermodynamics_derivs(
     x_He = ptdw->x_He;
 
     /* Hydrogen equations */
-    if (ptdw->require_H) {
-      class_call(thermodynamics_recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_H])),
+    if (ptdw->require_H == _TRUE_) {
+      class_call(thermodynamics_recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
                  precfast->error_message,
                  error_message);
     }
 
     /* Helium equations */
-    if(ptdw->require_He) {
-      class_call(thermodynamics_recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_x_He])),
+    if(ptdw->require_He == _TRUE_) {
+      class_call(thermodynamics_recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_He])),
                  precfast->error_message,
                  error_message);
     }
@@ -2810,18 +2809,18 @@ int thermodynamics_derivs(
     eps =  Trad * Hz / rate_gamma_b;
     depsdlna = dHdlna/Hz + 3.;
     /* Recfast v 1.5: add here a smoothing term as suggested by Adam Moss */
-    dy[ptdw->ptv->index_D_Tmat] = eps * depsdlna / (1.+z);
+    dy[ptdw->ptv->index_ti_D_Tmat] = eps * depsdlna / (1.+z);
   }
 
   else {
     /* Full equations at later times */
-    dy[ptv->index_D_Tmat] =
+    dy[ptv->index_ti_D_Tmat] =
       + 2.*Tmat/(1.+z)                                                          /* Adiabatic expansion */
       + rate_gamma_b * (Tmat-Trad) / (Hz*(1.+z))                                /* Coupling to photons*/
       - ptw->Tcmb;                                                              /* dTrad/dz */
 
     if (pth->has_heating == _TRUE_) {
-      dy[ptv->index_D_Tmat] -= phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z));  /* Heating from energy injection */
+      dy[ptv->index_ti_D_Tmat] -= phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z));  /* Heating from energy injection */
     }
   }
 
@@ -2832,14 +2831,14 @@ int thermodynamics_derivs(
    * (and/or unphysical calculations) within our recombination codes
    */
   class_test(x>1.0 && ap_current != ptdw->index_ap_reio && z < ppr->z_end_reco_test,
-             pth->error_message,
+             error_message,
              "At redshift %.5g : Recombination did not complete by redshift %.5g, or re-ionization happened before %.5g.\nIf this is a desired behavior, please adjust z_end_reco_test and/or reionization_z_start_max.",
              z,ppr->z_end_reco_test,ppr->reionization_z_start_max);
 
   /** - time-invertall derivatives (because the evolver evolves with -z, not with +z) */
 
-  for(index_y=0;index_y<ptdw->ptv->tv_size;index_y++) {
-    dy[index_y]=-dy[index_y];
+  for(index_ti=0;index_ti<ptdw->ptv->ti_size;index_ti++) {
+    dy[index_ti]=-dy[index_ti];
   }
 
   return _SUCCESS_;
@@ -2901,7 +2900,7 @@ int thermodynamics_ionization_fractions(
   case recfast:
 
     /* Set Tmat from the y vector (it is always evolved). */
-    Tmat = y[ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
+    Tmat = y[ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
 
     /** - --> first regime: H and Helium fully ionized */
     if(current_ap == ptdw->index_ap_brec) {
@@ -2959,7 +2958,7 @@ int thermodynamics_ionization_fractions(
       sqrt_val = sqrt(pow(rhs,2)+4.*rhs);
 
       x_H = 0.5*(sqrt_val - rhs);
-      x_He = y[ptv->index_x_He];
+      x_He = y[ptv->index_ti_x_He];
       x = x_H + ptw->fHe * x_He;
 
       ptdw->x_H = x_H;
@@ -2969,8 +2968,8 @@ int thermodynamics_ionization_fractions(
     /** - --> sixth regime: full Hydrogen and Helium equations */
     else if (current_ap == ptdw->index_ap_frec) {
 
-      x_H = y[ptv->index_x_H];
-      x_He = y[ptv->index_x_He];
+      x_H = y[ptv->index_ti_x_H];
+      x_He = y[ptv->index_ti_x_He];
       x = x_H + ptw->fHe * x_He;
 
       ptdw->x_H = x_H;
@@ -2981,8 +2980,8 @@ int thermodynamics_ionization_fractions(
         (i.e. x before taking reionisation into account) */
     else if (current_ap == ptdw->index_ap_reio) {
 
-      x_H = y[ptv->index_x_H];
-      x_He = y[ptv->index_x_He];
+      x_H = y[ptv->index_ti_x_H];
+      x_He = y[ptv->index_ti_x_He];
       x = x_H + ptw->fHe * x_He;
 
       ptdw->x_H = x_H;
@@ -3021,8 +3020,8 @@ int thermodynamics_ionization_fractions(
 
     /* compute x */
     class_call(thermodynamics_reionization_function(z,pth,ptw->ptrp,&x),
-             pth->error_message,
-             pth->error_message);
+               pth->error_message,
+               pth->error_message);
   }
 
   ptdw->x_reio = x;
@@ -3059,14 +3058,30 @@ int thermodynamics_vector_init(
   /** Summary: */
 
   /** Define local variables */
-  int index_tv;
+  int index_ti;
   /* ptdw->ptv unallocated if ap_current == index_ap_brec, allocated and filled otherwise */
   struct thermo_vector * ptv;
   struct thermo_diffeq_workspace * ptdw = ptw->ptdw;
 
   double z,x,Tmat;
-  int evolves_xHe = (pth->recombination == recfast);
-  int evolves_xH = (pth->recombination == recfast);
+
+  /* flags controlling which quantities must be evolved */
+
+  short evolves_xHe;
+  short evolves_xH;
+
+  /** - Set flags controlling which quantities must be evolved */
+
+  switch (pth->recombination) {
+  case recfast:
+    evolves_xHe = _TRUE_;
+    evolves_xH = _TRUE_;
+    break;
+  case hyrec:
+    evolves_xHe = _FALSE_;
+    evolves_xH = _FALSE_;
+    break;
+  }
 
   class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
 
@@ -3074,10 +3089,10 @@ int thermodynamics_vector_init(
   z = -mz;
 
   /* Start from no component */
-  index_tv = 0;
+  index_ti = 0;
 
   /* Add common indices (Have to be added before) */
-  class_define_index(ptv->index_D_Tmat,_TRUE_,index_tv,1);
+  class_define_index(ptv->index_ti_D_Tmat,_TRUE_,index_ti,1);
 
   /* Add all components that should be evolved */
   if(ptdw->ap_current == ptdw->index_ap_brec) {
@@ -3093,27 +3108,27 @@ int thermodynamics_vector_init(
     /* Nothing else to add */
   }
   else if(ptdw->ap_current == ptdw->index_ap_H) {
-    class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
+    class_define_index(ptv->index_ti_x_He,evolves_xHe,index_ti,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_frec) {
-    class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
-    class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
+    class_define_index(ptv->index_ti_x_He,evolves_xHe,index_ti,1);
+    class_define_index(ptv->index_ti_x_H,evolves_xH,index_ti,1);
   }
   else if(ptdw->ap_current == ptdw->index_ap_reio) {
-    class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
-    class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
+    class_define_index(ptv->index_ti_x_He,evolves_xHe,index_ti,1);
+    class_define_index(ptv->index_ti_x_H,evolves_xH,index_ti,1);
   }
 
   /* We have now obtained the full size */
-  ptv->tv_size = index_tv;
+  ptv->ti_size = index_ti;
 
   /* Allocate all arrays used during the evolution */
-  class_calloc(ptv->y,ptv->tv_size,sizeof(double),pth->error_message);
-  class_alloc(ptv->dy,ptv->tv_size*sizeof(double),pth->error_message);
-  class_alloc(ptv->used_in_output,ptv->tv_size*sizeof(int),pth->error_message);
+  class_calloc(ptv->y,ptv->ti_size,sizeof(double),pth->error_message);
+  class_alloc(ptv->dy,ptv->ti_size*sizeof(double),pth->error_message);
+  class_alloc(ptv->used_in_output,ptv->ti_size*sizeof(int),pth->error_message);
 
-  for (index_tv=0; index_tv<ptv->tv_size; index_tv++) {
-    ptv->used_in_output[index_tv] = _TRUE_;
+  for (index_ti=0; index_ti<ptv->ti_size; index_ti++) {
+    ptv->used_in_output[index_ti] = _TRUE_;
   }
 
   /* setting intial conditions for each approximation: */
@@ -3123,14 +3138,14 @@ int thermodynamics_vector_init(
     /* Initial initialization */
     if(ptdw->ap_current == ptdw->index_ap_brec) {
       ptdw->ptv = ptv;
-      ptdw->ptv->y[ptdw->ptv->index_D_Tmat] = 0.;
-      ptdw->ptv->dy[ptdw->ptv->index_D_Tmat] = 0.;
+      ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] = 0.;
+      ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat] = 0.;
     }
     /* Afterwards initialization */
     else{
       /* Free the old vector and its indices */
-      ptv->y[ptv->index_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_D_Tmat];
-      ptv->dy[ptv->index_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_D_Tmat];
+      ptv->y[ptv->index_ti_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat];
+      ptv->dy[ptv->index_ti_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat];
       class_call(thermodynamics_vector_free(ptdw->ptv),
                  pth->error_message,
                  pth->error_message);
@@ -3149,8 +3164,8 @@ int thermodynamics_vector_init(
       /* Set the new vector and its indices */
       ptdw->ptv = ptv;
 
-      ptdw->ptv->y[ptdw->ptv->index_D_Tmat] = 0.;
-      ptdw->ptv->dy[ptdw->ptv->index_D_Tmat] = 0.;
+      ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] = 0.;
+      ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat] = 0.;
 
       ptdw->require_H = _FALSE_;
       ptdw->require_He = _FALSE_;
@@ -3158,8 +3173,8 @@ int thermodynamics_vector_init(
     /* - in this scheme we start to evolve Helium and thus need to set its initial condition via the analytic function */
     else if(ptdw->ap_current == ptdw->index_ap_H) {
       /* Store Tmat in workspace for later use */
-      ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
-      ptdw->dTmat = -ptdw->ptv->dy[ptdw->ptv->index_D_Tmat] + ptw->Tcmb;
+      ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
+      ptdw->dTmat = -ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb;
 
       /* Obtain initial contents of new vector analytically, especially x_He */
       class_call(thermodynamics_ionization_fractions(z,ptdw->ptv->y,pth,ptw,ptdw->ap_current-1),
@@ -3167,10 +3182,10 @@ int thermodynamics_vector_init(
                  pth->error_message);
 
       /* Set the new vector and its indices */
-      ptv->y[ptv->index_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_D_Tmat];
-      ptv->dy[ptv->index_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_D_Tmat];
-      ptv->y[ptv->index_x_He] = ptdw->x_He;
-      ptv->dy[ptv->index_x_He] = -ptdw->dx_He;
+      ptv->y[ptv->index_ti_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat];
+      ptv->dy[ptv->index_ti_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat];
+      ptv->y[ptv->index_ti_x_He] = ptdw->x_He;
+      ptv->dy[ptv->index_ti_x_He] = -ptdw->dx_He;
 
       /* Free the old vector and its indices */
       class_call(thermodynamics_vector_free(ptdw->ptv),
@@ -3187,8 +3202,8 @@ int thermodynamics_vector_init(
          Tmat and x_He are solely taken from the previous scheme, x_H is set via the analytic function */
     else if(ptdw->ap_current == ptdw->index_ap_frec) {
       /* Store Tmat in workspace for later use */
-      ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
-      ptdw->dTmat = -ptdw->ptv->dy[ptdw->ptv->index_D_Tmat] + ptw->Tcmb;
+      ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
+      ptdw->dTmat = -ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb;
 
       /* Obtain initial contents of new vector analytically, especially x_H */
       class_call(thermodynamics_ionization_fractions(z,ptdw->ptv->y,pth,ptw,ptdw->ap_current-1),
@@ -3196,12 +3211,12 @@ int thermodynamics_vector_init(
                  pth->error_message);
 
       /* Set the new vector and its indices */
-      ptv->y[ptv->index_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_D_Tmat];
-      ptv->dy[ptv->index_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_D_Tmat];
-      ptv->y[ptv->index_x_H] = ptdw->x_H;
-      ptv->dy[ptv->index_x_H] = -ptdw->dx_H;
-      ptv->y[ptv->index_x_He] = ptdw->ptv->y[ptdw->ptv->index_x_He];
-      ptv->dy[ptv->index_x_He] = ptdw->ptv->dy[ptdw->ptv->index_x_He];
+      ptv->y[ptv->index_ti_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat];
+      ptv->dy[ptv->index_ti_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat];
+      ptv->y[ptv->index_ti_x_H] = ptdw->x_H;
+      ptv->dy[ptv->index_ti_x_H] = -ptdw->dx_H;
+      ptv->y[ptv->index_ti_x_He] = ptdw->ptv->y[ptdw->ptv->index_ti_x_He];
+      ptv->dy[ptv->index_ti_x_He] = ptdw->ptv->dy[ptdw->ptv->index_ti_x_He];
 
       /* Free the old vector and its indices */
       class_call(thermodynamics_vector_free(ptdw->ptv),
@@ -3219,12 +3234,12 @@ int thermodynamics_vector_init(
     else if(ptdw->ap_current == ptdw->index_ap_reio) {
 
       /* Set the new vector and its indices */
-      ptv->y[ptv->index_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_D_Tmat];
-      ptv->dy[ptv->index_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_D_Tmat];
-      ptv->y[ptv->index_x_H] = ptdw->ptv->y[ptdw->ptv->index_x_H];
-      ptv->dy[ptv->index_x_H] = ptdw->ptv->dy[ptdw->ptv->index_x_H];
-      ptv->y[ptv->index_x_He] = ptdw->ptv->y[ptdw->ptv->index_x_He];
-      ptv->dy[ptv->index_x_He] = ptdw->ptv->dy[ptdw->ptv->index_x_He];
+      ptv->y[ptv->index_ti_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat];
+      ptv->dy[ptv->index_ti_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat];
+      ptv->y[ptv->index_ti_x_H] = ptdw->ptv->y[ptdw->ptv->index_ti_x_H];
+      ptv->dy[ptv->index_ti_x_H] = ptdw->ptv->dy[ptdw->ptv->index_ti_x_H];
+      ptv->y[ptv->index_ti_x_He] = ptdw->ptv->y[ptdw->ptv->index_ti_x_He];
+      ptv->dy[ptv->index_ti_x_He] = ptdw->ptv->dy[ptdw->ptv->index_ti_x_He];
 
       /* Free the old vector and its indices */
       class_call(thermodynamics_vector_free(ptdw->ptv),
@@ -3241,12 +3256,12 @@ int thermodynamics_vector_init(
     /* - in all other approximations we only evolve Tmat and set its initial conditions from the previous scheme */
     else{
       /* Store Tmat in workspace for later use */
-      ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_D_Tmat] + ptw->Tcmb*(1.+z);
-      ptdw->dTmat = -ptdw->ptv->dy[ptdw->ptv->index_D_Tmat] + ptw->Tcmb;
+      ptdw->Tmat = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
+      ptdw->dTmat = -ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat] + ptw->Tcmb;
 
       /* Set the new vector and its indices */
-      ptv->y[ptv->index_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_D_Tmat];
-      ptv->dy[ptv->index_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_D_Tmat];
+      ptv->y[ptv->index_ti_D_Tmat] = ptdw->ptv->y[ptdw->ptv->index_ti_D_Tmat];
+      ptv->dy[ptv->index_ti_D_Tmat] = ptdw->ptv->dy[ptdw->ptv->index_ti_D_Tmat];
 
       /* Free the old vector and its indices */
       class_call(thermodynamics_vector_free(ptdw->ptv),
@@ -3810,24 +3825,31 @@ int thermodynamics_set_parameters_reionization(
 
 
 /**
- * This function is called in the evolvers loop if the input for reionization is tau_reio. Instead of the final evolution in the last
- * iteration, reionization is computed by this function instead. Instead of computing for a fixed z_reio, we find z_reio by bisection.
- * First we make an initial guess for z_reio with reionization_z_start_max and then find a z_reio which leads to the given tau_reio
- * (in the range of tolerance reionization_optical_depth_tol).
+ * If the input for reionization is tau_reio, thermodynamics_solve()
+ * calls this function instead of the evolver for dealing with the
+ * last era (the reionization era).
+ *
+ * Instead of computing the evolution of quantities during
+ * reionization for a fixed z_reio, as the evolver would do, this
+ * function finds z_reio by bisection. First we make an initial guess
+ * for z_reio with reionization_z_start_max and then find a z_reio
+ * which leads to the given tau_reio (in the range of tolerance
+ * reionization_optical_depth_tol).
  *
  * @param ptpaw      Input: pointer to parameters and workspace
  * @param mz_ini     Input: initial redshift
  * @param mz_end     Input: ending redshift
- * @param mz_output  Input: pointer to redshift array
- * @param Nz         Input: number of redshift values in array
+ * @param mz_output  Input: pointer to redshift array at which output should be written
+ * @param mz_size    Input: number of redshift values in this array
  * @return the error status
  */
+
 int thermodynamics_reionization_evolve_with_tau(
                                                 struct thermodynamics_parameters_and_workspace * ptpaw,
                                                 double mz_ini,
                                                 double mz_end,
                                                 double * mz_output,
-                                                int Nz
+                                                int mz_size
                                                 ) {
 
   /** Summary: */
@@ -3837,7 +3859,7 @@ int thermodynamics_reionization_evolve_with_tau(
   double z_sup,z_mid,z_inf;
   double tau_sup,tau_mid,tau_inf;
 
-  int index_tv;
+  int index_ti;
   int last_index_back_mz_ini;
 
   struct precision * ppr;
@@ -3850,66 +3872,37 @@ int thermodynamics_reionization_evolve_with_tau(
   extern int evolver_ndf15();
   int (*generic_evolver)();
 
+  /* flags controlling which quantities must be evolved */
+
+  short evolves_xHe;
+  short evolves_xH;
+
+  /* pointers towards two thermo vector stuctures (see below) */
+
+  struct thermo_vector * ptvs; // Vector for storing the initial conditions
+  struct thermo_vector * ptv; // Temporary vector as workspace
+
   /** - Remame fields to avoid heavy notations */
+
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   pth = ptpaw->pth;
   ptw = ptpaw->ptw;
 
-  /** - Initialize two thermo vectors, one to store initial conditions and one temporary vector for the calculations in the bisection */
-  struct thermo_vector * ptv; // Temporary vector as workspace
-  struct thermo_vector * ptvs; // Vector for storing the initial conditions
-  ptvs = ptw->ptdw->ptv;
+  /** - Set flags controlling which quantities must be evolved */
 
-  int evolves_xHe = (pth->recombination == recfast);
-  int evolves_xH = (pth->recombination == recfast);
-
-  class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
-
-  /** - Start from no component, then add additional components */
-  index_tv = 0;
-
-  class_define_index(ptv->index_D_Tmat,_TRUE_,index_tv,1);
-  class_define_index(ptv->index_x_He,evolves_xHe,index_tv,1);
-  class_define_index(ptv->index_x_H,evolves_xH,index_tv,1);
-
-  /* We have now obtained the full size */
-  ptv->tv_size = index_tv;
-
-  /* Allocate all arrays used during the evolution */
-  class_calloc(ptv->y,ptv->tv_size,sizeof(double),pth->error_message);
-  class_alloc(ptv->dy,ptv->tv_size*sizeof(double),pth->error_message);
-  class_alloc(ptv->used_in_output,ptv->tv_size*sizeof(int),pth->error_message);
-
-  for (index_tv=0; index_tv<ptv->tv_size; index_tv++) {
-    ptv->used_in_output[index_tv] = _TRUE_;
+  switch (pth->recombination) {
+  case recfast:
+    evolves_xHe = _TRUE_;
+    evolves_xH = _TRUE_;
+    break;
+  case hyrec:
+    evolves_xHe = _FALSE_;
+    evolves_xH = _FALSE_;
+    break;
   }
 
-  /** - Assign the temporary vector, then find upper and lower value of bisection */
-  ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
-  ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
-
-  if(evolves_xH) {
-    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
-  }
-  if(evolves_xHe) {
-    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
-  }
-
-  ptw->ptdw->ptv = ptv;
-
-  /* upper value */
-  z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
-  class_test(z_sup < 0.,
-             pth->error_message,
-             "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
-
-  /* maximum possible reionization redshift */
-  ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift] = z_sup;
-  /* maximum possible starting redshift */
-  ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = ppr->reionization_z_start_max;
+  /** - Choose evolver */
 
   switch (ppr->thermo_evolver) {
   case rk:
@@ -3919,6 +3912,62 @@ int thermodynamics_reionization_evolve_with_tau(
     generic_evolver = evolver_ndf15;
     break;
   }
+
+  /** - ptvs will be a pointer towards the same thermo vector that was
+        used in the previous approximation schemes; it contains values
+        that will serve here to set initial conditions. */
+
+  ptvs = ptw->ptdw->ptv;
+
+  /** - ptv is a pointer towards a whole new thermo vector used for
+        the calculations in the bisection, that we must allocate and
+        initialize */
+
+  class_alloc(ptv,sizeof(struct thermo_vector),pth->error_message);
+
+  /* allocate vector indices dynamically */
+  index_ti = 0;
+  class_define_index(ptv->index_ti_D_Tmat,_TRUE_,index_ti,1);
+  class_define_index(ptv->index_ti_x_He,evolves_xHe,index_ti,1);
+  class_define_index(ptv->index_ti_x_H,evolves_xH,index_ti,1);
+  ptv->ti_size = index_ti;
+
+  /* Allocate all arrays used during the evolution */
+  class_calloc(ptv->y,ptv->ti_size,sizeof(double),pth->error_message);
+  class_alloc(ptv->dy,ptv->ti_size*sizeof(double),pth->error_message);
+  class_alloc(ptv->used_in_output,ptv->ti_size*sizeof(int),pth->error_message);
+
+  for (index_ti=0; index_ti<ptv->ti_size; index_ti++) {
+    ptv->used_in_output[index_ti] = _TRUE_;
+  }
+
+  /** - Initialize the values of the temporary vector */
+
+  ptv->y[ptv->index_ti_D_Tmat] = ptvs->y[ptvs->index_ti_D_Tmat];
+  ptv->dy[ptv->index_ti_D_Tmat] = ptvs->dy[ptvs->index_ti_D_Tmat];
+
+  if (evolves_xH == _TRUE_) {
+    ptv->y[ptv->index_ti_x_H] = ptvs->y[ptvs->index_ti_x_H];
+    ptv->dy[ptv->index_ti_x_H] = ptvs->dy[ptvs->index_ti_x_H];
+  }
+  if (evolves_xHe == _TRUE_) {
+    ptv->y[ptv->index_ti_x_He] = ptvs->y[ptvs->index_ti_x_He];
+    ptv->dy[ptv->index_ti_x_He] = ptvs->dy[ptvs->index_ti_x_He];
+  }
+
+  ptw->ptdw->ptv = ptv;
+
+  /** - Evolve quantities through reionization assuming upper value of z_reio */
+
+  z_sup = ppr->reionization_z_start_max-ppr->reionization_start_factor*pth->reionization_width;
+  class_test(z_sup < 0.,
+             pth->error_message,
+             "parameters are such that reionization cannot take place before today while starting after z_start_max; need to increase z_start_max");
+
+  /* maximum possible reionization redshift */
+  ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift] = z_sup;
+  /* maximum possible starting redshift */
+  ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_start] = ppr->reionization_z_start_max;
 
   /* ptaw->ptw->last_index_back has been properly set according to the
      redshift z = -mz_inbi, we should keep memory of it */
@@ -3930,20 +3979,21 @@ int thermodynamics_reionization_evolve_with_tau(
                              mz_end,
                              ptv->y,
                              ptv->used_in_output,
-                             ptv->tv_size,
+                             ptv->ti_size,
                              ptpaw,
                              ppr->tol_thermo_integration,
                              ppr->smallest_allowed_variation,
                              thermodynamics_timescale,  // timescale
                              ppr->thermo_integration_stepsize, // stepsize
                              mz_output, // values of z for output
-                             Nz, // size of previous array
-                             thermodynamics_solve_store_sources, // function for output
+                             mz_size, // size of previous array
+                             thermodynamics_sources, // function for output
                              NULL, // print variables
                              pth->error_message),
              pth->error_message,
              pth->error_message);
 
+  /* infer corresponding tau_reio */
   class_call(thermodynamics_reionization_get_tau(ppr,
                                                  pba,
                                                  pth,
@@ -3957,20 +4007,22 @@ int thermodynamics_reionization_evolve_with_tau(
              pth->error_message,
              "parameters are such that reionization cannot start after z_start_max");
 
-  /* Restore initial conditions */
-  ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
-  ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
+  /** - Restore initial conditions */
 
-  if(evolves_xH) {
-    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+  ptv->y[ptv->index_ti_D_Tmat] = ptvs->y[ptvs->index_ti_D_Tmat];
+  ptv->dy[ptv->index_ti_D_Tmat] = ptvs->dy[ptvs->index_ti_D_Tmat];
+
+  if (evolves_xH == _TRUE_) {
+    ptv->y[ptv->index_ti_x_H] = ptvs->y[ptvs->index_ti_x_H];
+    ptv->dy[ptv->index_ti_x_H] = ptvs->dy[ptvs->index_ti_x_H];
   }
-  if(evolves_xHe) {
-    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  if (evolves_xHe == _TRUE_) {
+    ptv->y[ptv->index_ti_x_He] = ptvs->y[ptvs->index_ti_x_He];
+    ptv->dy[ptv->index_ti_x_He] = ptvs->dy[ptvs->index_ti_x_He];
   }
 
-  /* lower value */
+  /** - Evolve quantities through reionization assuming lower value of z_reio */
+
   z_inf = 0.;
 
   /* minimum possible reionization redshift */
@@ -3990,20 +4042,21 @@ int thermodynamics_reionization_evolve_with_tau(
                              mz_end,
                              ptv->y,
                              ptv->used_in_output,
-                             ptv->tv_size,
+                             ptv->ti_size,
                              ptpaw,
                              ppr->tol_thermo_integration,
                              ppr->smallest_allowed_variation,
                              thermodynamics_timescale,  // timescale
                              ppr->thermo_integration_stepsize, // stepsize
                              mz_output, // values of z for output
-                             Nz, // size of previous array
-                             thermodynamics_solve_store_sources, // function for output
+                             mz_size, // size of previous array
+                             thermodynamics_sources, // function for output
                              NULL, // print variables
                              pth->error_message),
              pth->error_message,
              pth->error_message);
 
+  /* infer corresponding tau_reio */
   class_call(thermodynamics_reionization_get_tau(ppr,
                                                  pba,
                                                  pth,
@@ -4017,20 +4070,22 @@ int thermodynamics_reionization_evolve_with_tau(
              pth->error_message,
              "CLASS cannot reach the low value of tau_reio that was selected, even when setting z_reio as low as 0.\nThis means that some additional physical component is requiring some minimal tau_reio_min = %.10e.\nThis is usually caused by strong energy injections or other modifications of the x_e(z) behaviour.",tau_inf);
 
-  /* Restore initial conditions */
-  ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
-  ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
+  /** - Restore initial conditions */
 
-  if(evolves_xH) {
-    ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-    ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
+  ptv->y[ptv->index_ti_D_Tmat] = ptvs->y[ptvs->index_ti_D_Tmat];
+  ptv->dy[ptv->index_ti_D_Tmat] = ptvs->dy[ptvs->index_ti_D_Tmat];
+
+  if (evolves_xH == _TRUE_) {
+    ptv->y[ptv->index_ti_x_H] = ptvs->y[ptvs->index_ti_x_H];
+    ptv->dy[ptv->index_ti_x_H] = ptvs->dy[ptvs->index_ti_x_H];
   }
-  if(evolves_xH) {
-    ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-    ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
+  if (evolves_xH == _TRUE_) {
+    ptv->y[ptv->index_ti_x_He] = ptvs->y[ptvs->index_ti_x_He];
+    ptv->dy[ptv->index_ti_x_He] = ptvs->dy[ptvs->index_ti_x_He];
   }
 
-  /** - try intermediate values by bisection */
+  /** - Evolve quantities through reionization, trying intermediate values of z_reio by bisection */
+
   counter=0;
   while ((tau_sup-tau_inf) > pth->tau_reio * ppr->reionization_optical_depth_tol) {
     z_mid=0.5*(z_sup+z_inf);
@@ -4059,33 +4114,21 @@ int thermodynamics_reionization_evolve_with_tau(
                                mz_end,
                                ptv->y,
                                ptv->used_in_output,
-                               ptv->tv_size,
+                               ptv->ti_size,
                                ptpaw,
                                ppr->tol_thermo_integration,
                                ppr->smallest_allowed_variation,
                                thermodynamics_timescale,  // timescale
                                ppr->thermo_integration_stepsize, // stepsize
                                mz_output, // values of z for output
-                               Nz, // size of previous array
-                               thermodynamics_solve_store_sources, // function for output
+                               mz_size, // size of previous array
+                               thermodynamics_sources, // function for output
                                NULL, // print variables
                                pth->error_message),
                pth->error_message,
                pth->error_message);
 
-    /* Restore initial conditions */
-    ptv->y[ptv->index_D_Tmat] = ptvs->y[ptvs->index_D_Tmat];
-    ptv->dy[ptv->index_D_Tmat] = ptvs->dy[ptvs->index_D_Tmat];
-
-    if(evolves_xH) {
-      ptv->y[ptv->index_x_H] = ptvs->y[ptvs->index_x_H];
-      ptv->dy[ptv->index_x_H] = ptvs->dy[ptvs->index_x_H];
-    }
-    if(evolves_xH) {
-      ptv->y[ptv->index_x_He] = ptvs->y[ptvs->index_x_He];
-      ptv->dy[ptv->index_x_He] = ptvs->dy[ptvs->index_x_He];
-    }
-
+    /* infer corresponding tau_reio */
     class_call(thermodynamics_reionization_get_tau(ppr,
                                                    pba,
                                                    pth,
@@ -4105,19 +4148,35 @@ int thermodynamics_reionization_evolve_with_tau(
         tau_inf=tau_mid;
     }
 
+    /* Restore initial conditions */
+    ptv->y[ptv->index_ti_D_Tmat] = ptvs->y[ptvs->index_ti_D_Tmat];
+    ptv->dy[ptv->index_ti_D_Tmat] = ptvs->dy[ptvs->index_ti_D_Tmat];
+
+    if(evolves_xH) {
+      ptv->y[ptv->index_ti_x_H] = ptvs->y[ptvs->index_ti_x_H];
+      ptv->dy[ptv->index_ti_x_H] = ptvs->dy[ptvs->index_ti_x_H];
+    }
+    if(evolves_xH) {
+      ptv->y[ptv->index_ti_x_He] = ptvs->y[ptvs->index_ti_x_He];
+      ptv->dy[ptv->index_ti_x_He] = ptvs->dy[ptvs->index_ti_x_He];
+    }
+
+    /* counter to avoid infinite loop */
     counter++;
     class_test(counter > _MAX_IT_,
                pth->error_message,
                "while searching for reionization_optical_depth, maximum number of iterations exceeded");
   }
 
-  /** - store the ionization redshift in the thermodynamics structure */
+  /** - Store the ionization redshift in the thermodynamics structure */
   pth->z_reio = ptw->ptrp->reionization_parameters[ptw->ptrp->index_reio_redshift];
 
+  /** - Free tempeoraty thermo vector */
   class_call(thermodynamics_vector_free(ptv),
              pth->error_message,
              pth->error_message);
 
+  /* point ptw->ptdw->ptv to same location as when entering the function */
   ptw->ptdw->ptv = ptvs;
 
  return _SUCCESS_;
@@ -4126,7 +4185,7 @@ int thermodynamics_reionization_evolve_with_tau(
 
 
 /**
- * Routine to get the optical depth of reionization
+ * Get the optical depth of reionization tau_reio for a given thermodynamical history.
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
@@ -4134,6 +4193,7 @@ int thermodynamics_reionization_evolve_with_tau(
  * @param ptw        Input: pointer to thermodynamics workspace
  * @return the error status
  */
+
 int thermodynamics_reionization_get_tau(
                                         struct precision * ppr,
                                         struct background * pba,
@@ -4145,38 +4205,45 @@ int thermodynamics_reionization_get_tau(
 
   /** Define local variables */
   /* running index inside thermodynamics table */
-  int i,integration_index;
+  int index_z,index_reio_start;
   double x_e_min;
 
-  x_e_min = 1e100;
+  x_e_min = _HUGE_;
 
   /**
-   * We are searching now for the start of re-ionization.
-   * Note, that the value reionization_parameters[index_reio_start]
-   * is only the start of the added re-ionization tanh,
-   * but not necessarily the total start of re-ionizatiom
+   * We are searching now for the start of reionization. This will be
+   * the time at which the optical depth tau_reio will be computed.
    *
-   * Re-ionization could be longer/shifted through energy injections.
+   * Note that the value reionization_parameters[index_reio_start] is
+   * only the start of the reionization function added manually, but
+   * not necessarily the total start of reionization. Reionization
+   * could be longer/shifted by energy injection.
    *
-   * Please note, that actually the definition of tau_reio is not
-   * clearly defined. We take it here to be the global minimum of
-   * the free electron fraction. Note, that this is a choice!
-   * */
-  for(i=0;i<pth->tt_size-1;++i) {
-    if(pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe]<x_e_min) {
-      x_e_min = pth->thermodynamics_table[i*pth->th_size+pth->index_th_xe];
-      integration_index = i;
+   * The actual the definition of tau_reio is not unique and
+   * unambiguous. We defined it here to be the optical depth up to the
+   * time at which there is a global minimum in the free electron
+   * fraction. We search for this time by iterating over the
+   * thermodynamics table, in order to find the corresponding
+   * index_reio_start.
+   */
+
+  for (index_z=0; index_z<pth->tt_size-1; index_z++) {
+    if (pth->thermodynamics_table[index_z*pth->th_size+pth->index_th_xe] < x_e_min) {
+      x_e_min = pth->thermodynamics_table[index_z*pth->th_size+pth->index_th_xe];
+      index_reio_start = index_z;
     }
   }
 
-  class_test(integration_index == pth->tt_size,
+  class_test(index_reio_start == pth->tt_size,
              pth->error_message,
-             "reionization start = %e > largest redshift in thermodynamics table",pth->z_table[i]);
+             "reionization start = %e > largest redshift in thermodynamics table",pth->z_table[index_reio_start]);
 
 
-  /** - --> spline \f$ d \tau / dz \f$ with respect to z in view of integrating for optical depth between 0 and the just found starting index */
+  /** - --> spline \f$ d \tau / dz \f$ with respect to z in view of
+            integrating for optical depth between 0 and the just found
+            starting index */
   class_call(array_spline_table_line_to_line(pth->tau_table,
-                                             integration_index,
+                                             index_reio_start,
                                              pth->thermodynamics_table,
                                              pth->th_size,
                                              pth->index_th_dkappa,
@@ -4188,7 +4255,7 @@ int thermodynamics_reionization_get_tau(
 
   /** - --> integrate for optical depth */
   class_call(array_integrate_all_spline_table_line_to_line(pth->tau_table,
-                                                           integration_index,
+                                                           index_reio_start,
                                                            pth->thermodynamics_table,
                                                            pth->th_size,
                                                            pth->index_th_dkappa,
@@ -4198,7 +4265,7 @@ int thermodynamics_reionization_get_tau(
              pth->error_message,
              pth->error_message);
 
-  ptw->reionization_optical_depth *= -1; // The tau sampling is inverted, so we have to correct for that here
+  ptw->reionization_optical_depth *= -1; // tau and z go in reverse order, so we must flip the sign
 
   return _SUCCESS_;
 
@@ -4206,10 +4273,15 @@ int thermodynamics_reionization_get_tau(
 
 
 /**
- * This function is passed to the generic evolver and is called whenever we want to store values for a given z that is passed in mz_output.
- * Depending on the current approximation scheme the ionization fraction is either computed analytically, semi-analytically or from the
- * (interpolated) output values of y. Moreover there is an automatic smoothing enabled which smoothes out the the ionization_fraction
- * after each approximation switch.
+ * This function is passed to the generic evolver and is called whenever we want to store values for a given mz.
+ *
+ * The ionization fraction is either computed within a call to
+ * thermodynamics_derivs(). Moreover there is an automatic smoothing
+ * enabled which smoothes out the the ionization_fraction after each
+ * approximation switch. This is also the place where HyRec is asked
+ * to evolve x(z) using its internal system of differential equations
+ * over the next range [z_i, z_i+1], and to store the result in a
+ * temporary table.
  *
  * This is one of the few functions in the code which is passed to the generic_evolver routine. Since generic_evolver
  * should work with functions passed from various modules, the format of the arguments is a bit special:
@@ -4223,22 +4295,23 @@ int thermodynamics_reionization_get_tau(
  * All quantities are computed by a simple call to thermodynamics_derivs, which computes all necessary quantities
  * and stores them in the ptdw thermo_diffeq_workspace structure
  *
- * @param mz                       Input: negative redshift
- * @param y                        Input: vector of thermodynamical quantities
- * @param dy                       Input: vector of redshift derivatives of theses quantities
+ * @param mz                       Input: negative redshift, belonging to array mz_output
+ * @param y                        Input: vector of evolved thermodynamical quantities
+ * @param dy                       Input: derivatives of this vector w.r.t redshift
  * @param index_z                  Input: index in the array mz_output
  * @param parameters_and_workspace Input/Output: in input, all parameters needed by thermodynamics_derivs; in output, recombination table
  * @param error_message            Output: error message
  * @return the error status
  */
-int thermodynamics_solve_store_sources(
-                                       double mz,
-                                       double * y,
-                                       double * dy,
-                                       int index_z,
-                                       void * thermo_parameters_and_workspace,
-                                       ErrorMsg error_message
-                                       ) {
+
+int thermodynamics_sources(
+                           double mz,
+                           double * y,
+                           double * dy,
+                           int index_z,
+                           void * thermo_parameters_and_workspace,
+                           ErrorMsg error_message
+                           ) {
 
   /** Summary: */
 
@@ -4263,7 +4336,8 @@ int thermodynamics_solve_store_sources(
   /* Redshift */
   z = -mz;
 
-  /** - rename structure fields (just to avoid heavy notations) */
+  /** - Rename structure fields (just to avoid heavy notations) */
+
   /* Structs */
   ptpaw = thermo_parameters_and_workspace;
   ppr = ptpaw->ppr;
@@ -4282,53 +4356,56 @@ int thermodynamics_solve_store_sources(
   ap_current = ptdw->ap_current;
 
   if (pth->has_heating == _TRUE_) {
-    /* Tell heating it should store the heating at this z in its internal table */
+    /* Tell heating module that it should store the heating at this z in its internal table */
     (pth->he).to_store = _TRUE_;
   }
 
-  /* Recalculate all quantities at this current redshift (they are all stored in ptdw) */
+  /** - Recalculate all quantities at this current redshift: we need
+        at least pvecback, ptdw->x_reio, dy[ptv->index_ti_D_Tmat] */
   class_call(thermodynamics_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
              error_message,
              error_message);
 
-  /* Assign local variables (note, that pvecback is filled through derivs at this point already) */
+  /* Assign local variables (note that pvecback is filled through derivs) */
   Trad = ptw->Tcmb*(1.+z);
-  Tmat = y[ptv->index_D_Tmat] + Trad;
+  Tmat = y[ptv->index_ti_D_Tmat] + Trad;
   Hz = pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
 
-  if ( pth->recombination == hyrec ) {
+  if (pth->recombination == hyrec) {
 
-    /* This is the right time for asking HyRec to evolve x(z) using its
-       internal system of differential equations over the next range
-       [z_i, z_i+1], and to store the result in a temporary
+    /** - This is the right time for asking HyRec to evolve x(z) using
+       its internal system of differential equations over the next
+       range [z_i, z_i+1], and to store the result in a temporary
        table. Technical note: the function Tmat(z) is needed in order
        to compute x'(z) and solve the internal system in
        HyRec. However, it has not yet been calculated. Our approach
        consists in passing to HyRec a solution for Tmat(z) that is
-       extrapolated from the previous known solution at
-       z<z_i+1. Since HyRec only needs to evolve x(z) over a very
-       small interval, this is accurate enough. All these steps are
-       takeng in the HyRec wrapper of CLASS. */
+       extrapolated from the previous known solution at z<z_i+1. Since
+       HyRec only needs to evolve x(z) over a very small interval,
+       this is accurate enough. All these steps are takeng in the
+       HyRec wrapper of CLASS. */
 
     class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
                phyrec->error_message,
                error_message);
   }
 
-  /* Make super sure that our x is correct and uses the current derivative (see current_quantities for further comments) */
+  /* Make super sure that our x is correct and uses the current
+     derivative. TODO: check whether this could be removed. */
   class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current),
              pth->error_message,
-             pth->error_message);
+             error_message);
+
   x = ptdw->x_reio;
 
   /** - In the recfast case, we manually smooth the results a bit */
   if(pth->recombination == recfast) {
     /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
-    if(ap_current != 0 && z > ptdw->ap_z_limits[ap_current-1]-2*ptdw->ap_z_limits_delta[ap_current]) {
+    if((ap_current != 0) && (z > ptdw->ap_z_limits[ap_current-1]-2*ptdw->ap_z_limits_delta[ap_current])) {
 
       class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current-1),
                  pth->error_message,
-                 pth->error_message);
+                 error_message);
 
       x_previous = ptdw->x_reio;
       // get s from 0 to 1
@@ -4338,11 +4415,9 @@ int thermodynamics_solve_store_sources(
 
       x = weight*x+(1.-weight)*x_previous;
     }
-
   }
 
-  /** - Store the results in the table */
-  /* results are obtained in order of decreasing z, and stored in order of growing z */
+  /** - Store the results in the table. Results are obtained in order of decreasing z, and stored in order of growing z */
 
   /* ionization fraction */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_xe] = x;
@@ -4351,7 +4426,7 @@ int thermodynamics_solve_store_sources(
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_Tb] = Tmat;
 
   /* Baryon temperature derivative */
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dTb] = dy[ptv->index_D_Tmat]+ptw->Tcmb;
+  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dTb] = dy[ptv->index_ti_D_Tmat]+ptw->Tcmb;
 
   /* wb = (k_B/mu) Tb */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_wb]
@@ -4359,7 +4434,7 @@ int thermodynamics_solve_store_sources(
 
   /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1 - 1/3 (1+z) dlnTb/d(-z)) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_cb2]
-    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. - (1.+z) * (dy[ptv->index_D_Tmat]+ptw->Tcmb) / Tmat / 3.);
+    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. - (1.+z) * (dy[ptv->index_ti_D_Tmat]+ptw->Tcmb) / Tmat / 3.);
 
   /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
@@ -4370,8 +4445,19 @@ int thermodynamics_solve_store_sources(
 }
 
 /**
- * This function is just for book-keeping of the evolvers. The rkck needs an actual timescale of the evolved quantities,
- * but the ndf15 does not.
+ * This function is relevant for the rk evolver, not ndf15. It
+ * estimates a timescale 'delta z' over which quantitites vary. The rk
+ * evolver divides large intervals in steps given by this timescale
+ * multiplied by ppr->thermo_integration_stepsize.
+ *
+ * This is one of the few functions in the code which is passed to the generic_evolver routine. Since generic_evolver
+ * should work with functions passed from various modules, the format of the arguments is a bit special:
+ *
+ * - fixed parameters and workspaces are passed through a generic pointer. generic_evolver doesn't know the content of this
+ *   pointer.
+ *
+ * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic error_message passed
+ *   in the list of arguments.
  *
  * @param z             Input: redshift
  * @param thermo_...    Input: pointer to parameters and workspace
@@ -4379,12 +4465,13 @@ int thermodynamics_solve_store_sources(
  * @param error_message Output: possible errors are written here
  * @return the error status
  */
+
 int thermodynamics_timescale(
-                                   double mz,
-                                   void * thermo_parameters_and_workspace,
-                                   double * timescale,
-                                   ErrorMsg error_message
-                                   ) {
+                             double mz,
+                             void * thermo_parameters_and_workspace,
+                             double * timescale,
+                             ErrorMsg error_message
+                             ) {
 
   int index_z;
   struct thermodynamics_parameters_and_workspace * ptpaw;
@@ -4400,7 +4487,6 @@ int thermodynamics_timescale(
      z_i+1) */
 
   /* find index_z such that pth->z_table[index_z] > z > pth->z_table[index_z+1] */
-
   class_call(array_hunt_ascending(ptpaw->pth->z_table,
                                    ptpaw->pth->tt_size,
                                    -mz,
@@ -4409,7 +4495,7 @@ int thermodynamics_timescale(
              error_message,
              error_message);
 
-  *timescale = (ptpaw->pth->z_table[index_z+1] - ptpaw->pth->z_table[index_z])/2.;
+  *timescale = ptpaw->pth->z_table[index_z+1] - ptpaw->pth->z_table[index_z];
 
   return _SUCCESS_;
 

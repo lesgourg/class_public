@@ -311,12 +311,12 @@ struct thermo
 
 struct thermo_vector {
 
-  int tv_size;          /**< size of thermo vector */
+  int ti_size;          /**< size of thermo vector (ti stands for thermodynamical, integrated) */
 
-  int index_x_H;        /**< index for hydrogen fraction in y */
-  int index_x_He;       /**< index for helium fraction in y */
-  //int index_Tmat;       /**< index for matter temperature fraction in y */
-  int index_D_Tmat;
+  int index_ti_x_H;        /**< index for hydrogen fraction in y */
+  int index_ti_x_He;       /**< index for helium fraction in y */
+  //int index_ti_Tmat;       /**< index for matter temperature fraction in y */
+  int index_ti_D_Tmat;
 
   double * y;           /**< vector of quantities to be integrated */
   double * dy;          /**< time-derivative of the same vector */
@@ -488,20 +488,6 @@ extern "C" {
                                      struct background * pba,
                                      struct thermo * pth);
 
-  int thermodynamics_solve_onthespot_energy_injection(struct precision * ppr,
-                                                      struct background * pba,
-                                                      struct thermo_workspace * ptw,
-                                                      double z,
-                                                      double * energy_rate,
-                                                      ErrorMsg error_message);
-
-  int thermodynamics_solve_energy_injection(struct precision * ppr,
-                                            struct background * pba,
-                                            struct thermo_workspace* ptw,
-                                            double z,
-                                            double * energy_rate,
-                                            ErrorMsg error_message);
-
   int thermodynamics_reionization_function(double z,
                                            struct thermo * pth,
                                            struct thermo_reionization_parameters * preio,
@@ -575,12 +561,12 @@ extern "C" {
                                               int* interval_number,
                                               double * interval_limit);
 
-  int thermodynamics_solve_store_sources(double mz,
-                                         double * y,
-                                         double * dy,
-                                         int index_z,
-                                         void * thermo_parameters_and_workspace,
-                                         ErrorMsg error_message);
+  int thermodynamics_sources(double mz,
+                             double * y,
+                             double * dy,
+                             int index_z,
+                             void * thermo_parameters_and_workspace,
+                             ErrorMsg error_message);
 
   int thermodynamics_output_titles(struct background * pba,
                                    struct thermo *pth,
