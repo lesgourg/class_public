@@ -23,11 +23,11 @@
   * Version 1.5: includes extra fitting function from Rubino-Martin et al. arXiv:0910.4383v1 [astro-ph.CO]
   */
 
-int thermodynamics_recfast_init(struct precision* ppr,
-                                struct background* pba,
-                                struct thermo* pth,
-                                struct thermorecfast * pre,
-                                double fHe) {
+int recfast_init(struct precision* ppr,
+                 struct background* pba,
+                 struct thermo* pth,
+                 struct thermorecfast * pre,
+                 double fHe) {
 
   /** Define local quantities */
   double Lalpha,Lalpha_He,DeltaB,DeltaB_He;
@@ -116,9 +116,9 @@ int thermodynamics_recfast_init(struct precision* ppr,
  * - 0 => Only take normal K_H
  * - 1 => Add simple corections to K_H from gaussian fit
  * */
-int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, double x, double nH,
-                                   double z, double Hz, double Tmat, double Trad,
-                                   double* dxH_dz) {
+int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, double x, double nH,
+                    double z, double Hz, double Tmat, double Trad,
+                    double* dxH_dz) {
 
   /** Define local variables */
   struct heating* phe = &(pth->he);
@@ -179,9 +179,9 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
  * - 5 => Add simple + triple + doppler corrections to K_He, but not triple doppler
  * - 6 => Add simple + triple + doppler + triple doppler corrections to K_He
  * */
-int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He, double x, double x_H, double nH,
-                                    double z, double Hz, double Tmat, double Trad,
-                                    double* dxHe_dz) {
+int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He, double x, double x_H, double nH,
+                     double z, double Hz, double Tmat, double Trad,
+                     double* dxHe_dz) {
 
   /** Define local variables */
   double Rdown_trip,Rup_trip,tauHe_s,pHe_s,tauHe_t,pHe_t,CL_PSt;

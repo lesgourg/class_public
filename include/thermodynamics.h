@@ -479,6 +479,8 @@ struct thermodynamics_parameters_and_workspace {
 extern "C" {
 #endif
 
+  /* external functions of the module*/
+
   int thermodynamics_at_z(struct background * pba,
                           struct thermo * pth,
                           double z,
@@ -491,35 +493,69 @@ extern "C" {
                           struct background * pba,
                           struct thermo * pth);
 
-  int thermodynamics_lists(struct precision * ppr,
-                           struct background* pba,
-                           struct thermo* pth,
-                           struct thermo_workspace* ptw);
-
-  int thermodynamics_checks(struct precision * ppr,
-                            struct background* pba,
-                            struct thermo * pth);
-
   int thermodynamics_free(struct thermo * pth);
 
-  int thermodynamics_indices(struct background * pba,
-                             struct thermo * pth,
-                             struct thermo_workspace* ptw);
+  /* internal functions of the module */
 
   int thermodynamics_helium_from_bbn(struct precision * ppr,
                                      struct background * pba,
                                      struct thermo * pth);
 
-  int thermodynamics_reionization_function(double z,
-                                           struct thermo * pth,
-                                           struct thermo_reionization_parameters * preio,
-                                           double * x);
+  int thermodynamics_checks(struct precision * ppr,
+                            struct background* pba,
+                            struct thermo * pth);
+
+  int thermodynamics_workspace_init(struct precision * ppr,
+                                    struct background * pba,
+                                    struct thermo * pth,
+                                    struct thermo_workspace * ptw);
+
+  int thermodynamics_indices(struct background * pba,
+                             struct thermo * pth,
+                             struct thermo_workspace* ptw);
+
+  int thermodynamics_lists(struct precision * ppr,
+                           struct background* pba,
+                           struct thermo* pth,
+                           struct thermo_workspace* ptw);
+
+  int thermodynamics_set_parameters_reionization(struct precision * ppr,
+                                                 struct background * pba,
+                                                 struct thermo * pth,
+                                                 struct thermo_reionization_parameters * preio);
 
   int thermodynamics_solve(struct precision * ppr,
                            struct background * pba,
                            struct thermo * pth,
                            struct thermo_workspace* ptw,
                            double * pvecback);
+
+  int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
+                                                    struct background * pba,
+                                                    struct thermo* pth,
+                                                    double* pvecback);
+
+  int thermodynamics_calculate_idm_dr_quantities(struct precision * ppr,
+                                                 struct background * pba,
+                                                 struct thermo * pth,
+                                                 double* pvecback);
+
+  int thermodynamics_output_summary(struct background* pba,
+                                    struct thermo* pth);
+
+  int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * ptw);
+
+  int thermodynamics_vector_init(struct precision * ppr,
+                                 struct background * pba,
+                                 struct thermo * pth,
+                                 double z,
+                                 struct thermo_workspace * ptw);
+
+  int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters_and_workspace * tpaw,
+                                                  double mz_ini,
+                                                  double mz_end,
+                                                  double * mz_output,
+                                                  int Nz);
 
   int thermodynamics_derivs(
                             double mz,
@@ -529,44 +565,10 @@ extern "C" {
                             ErrorMsg error_message
                             );
 
-  int thermodynamics_ionization_fractions(
-                                          double z,
-                                          double * y,
-                                          struct thermo * pth,
-                                          struct thermo_workspace * ptw,
-                                          int current_ap
-                                          );
-
-  int thermodynamics_vector_init(struct precision * ppr,
-                                 struct background * pba,
-                                 struct thermo * pth,
-                                 double z,
-                                 struct thermo_workspace * ptw);
-
-  int thermodynamics_vector_free(struct thermo_vector * tv);
-
-  int thermodynamics_workspace_init(struct precision * ppr,
-                                    struct background * pba,
-                                    struct thermo * pth,
-                                    struct thermo_workspace * ptw);
-
-  int thermodynamics_workspace_free(struct thermo* pth, struct thermo_workspace * ptw);
-
-  int thermodynamics_set_parameters_reionization(struct precision * ppr,
-                                                 struct background * pba,
-                                                 struct thermo * pth,
-                                                 struct thermo_reionization_parameters * preio);
-
-  int thermodynamics_reionization_evolve_with_tau(struct thermodynamics_parameters_and_workspace * tpaw,
-                                                  double mz_ini,
-                                                  double mz_end,
-                                                  double * mz_output,
-                                                  int Nz);
-
-  int thermodynamics_reionization_get_tau(struct precision * ppr,
-                                          struct background * pba,
-                                          struct thermo * pth,
-                                          struct thermo_workspace * ptw);
+  int thermodynamics_timescale(double z,
+                               void * thermo_parameters_and_workspace,
+                               double * timescale,
+                               ErrorMsg error_message);
 
   int thermodynamics_sources(double mz,
                              double * y,
@@ -575,27 +577,13 @@ extern "C" {
                              void * thermo_parameters_and_workspace,
                              ErrorMsg error_message);
 
-  int thermodynamics_output_titles(struct background * pba,
-                                   struct thermo *pth,
-                                   char titles[_MAXTITLESTRINGLENGTH_]);
+  int thermodynamics_reionization_get_tau(struct precision * ppr,
+                                          struct background * pba,
+                                          struct thermo * pth,
+                                          struct thermo_workspace * ptw);
 
-  int thermodynamics_output_data(struct background * pba,
-                                 struct thermo *pth,
-                                 int number_of_titles,
-                                 double *data);
+  int thermodynamics_vector_free(struct thermo_vector * tv);
 
-  int thermodynamics_timescale(double z,
-                               void * thermo_parameters_and_workspace,
-                               double * timescale,
-                               ErrorMsg error_message);
-
-  int thermodynamics_calculate_remaining_quantities(struct precision * ppr,
-                                                    struct background * pba,
-                                                    struct thermo* pth,
-                                                    double* pvecback);
-
-  int thermodynamics_calculate_opticals(struct precision* ppr,
-                                        struct thermo* pth);
 
   int thermodynamics_calculate_conformal_drag_time(struct background* pba,
                                                    struct thermo* pth,
@@ -605,10 +593,8 @@ extern "C" {
                                              struct thermo* pth,
                                              double* pvecback);
 
-  int thermodynamics_calculate_idm_dr_quantities(struct precision * ppr,
-                                                 struct background * pba,
-                                                 struct thermo * pth,
-                                                 double* pvecback);
+  int thermodynamics_calculate_opticals(struct precision* ppr,
+                                        struct thermo* pth);
 
   int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
                                                         struct background * pba,
@@ -620,9 +606,27 @@ extern "C" {
                                                struct thermo* pth,
                                                double* pvecback);
 
-  int thermodynamics_output_summary(struct background* pba,
-                                    struct thermo* pth);
+  int thermodynamics_ionization_fractions(
+                                          double z,
+                                          double * y,
+                                          struct thermo * pth,
+                                          struct thermo_workspace * ptw,
+                                          int current_ap
+                                          );
 
+  int thermodynamics_reionization_function(double z,
+                                           struct thermo * pth,
+                                           struct thermo_reionization_parameters * preio,
+                                           double * x);
+
+  int thermodynamics_output_titles(struct background * pba,
+                                   struct thermo *pth,
+                                   char titles[_MAXTITLESTRINGLENGTH_]);
+
+  int thermodynamics_output_data(struct background * pba,
+                                 struct thermo *pth,
+                                 int number_of_titles,
+                                 double *data);
 
 #ifdef __cplusplus
 }

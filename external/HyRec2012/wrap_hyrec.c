@@ -37,14 +37,14 @@
 #define NTM 40
 
 /* Forward-declare these just for convenience, so they are not in the .h file */
-int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII, double H, double TR, double nH, double* xH1s, double ion, double exclya);
-int thermodynamics_hyrec_readrates(struct thermohyrec* phy);
-int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy);
+int hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII, double H, double TR, double nH, double* xH1s, double ion, double exclya);
+int hyrec_readrates(struct thermohyrec* phy);
+int hyrec_readtwogparams(struct thermohyrec* phy);
 
 
 
 #define _HYREC_N_EXTRAPOLATION_ 30
-int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
+int hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
 
   if(phy->thermohyrec_verbose > 0){
     printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Feb2019)\n");
@@ -95,11 +95,11 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   phy->rate_table->logAlpha_tab[1] = create_2D_array(phy->N_TM, phy->N_TR);
   phy->rate_table->logR2p2s_tab = create_1D_array(NTR);
 
-  class_call(thermodynamics_hyrec_readrates(phy),
+  class_call(hyrec_readrates(phy),
              phy->error_message,
              phy->error_message);
 
-  class_call(thermodynamics_hyrec_readtwogparams(phy),
+  class_call(hyrec_readtwogparams(phy),
              phy->error_message,
              phy->error_message);
 
@@ -138,7 +138,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, 
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_free(struct thermohyrec* phy){
+int hyrec_free(struct thermohyrec* phy){
 
   int index_ly,index_virt,index_tm;
   for(index_ly=0;index_ly<phy->N_LY;++index_ly){
@@ -169,7 +169,7 @@ int thermodynamics_hyrec_free(struct thermohyrec* phy){
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
+int hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
                                       double z, double H_in, double T_b, double T_gamma) {
 
   /** Define local variables */
@@ -344,7 +344,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           /* If Hydrogen is still close to Saha equilibrium do a post-Saha expansion for Hydrogen */
           if(phy->saha_flag == _TRUE_){
-            class_call(thermodynamics_hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, phy->xHeII, H, TR, nH, &(phy->xH1s), ion, exclya),
+            class_call(hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, phy->xHeII, H, TR, nH, &(phy->xH1s), ion, exclya),
                        phy->error_message,
                        phy->error_message);
           }
@@ -398,7 +398,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
 
           /* If close to Saha equilibrium (with xHeII = 0), do a post-Saha expansion */
           if (phy->saha_flag == _TRUE_) {
-            class_call(thermodynamics_hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, 0., H, TR, nH, &(phy->xH1s), ion, exclya),
+            class_call(hyrec_rec_1Hs_post_saha(phy, iz_out, z_out, 0., H, TR, nH, &(phy->xH1s), ion, exclya),
                        phy->error_message,
                        phy->error_message);
             phy->xe_output[iz_out] = 1.-phy->xH1s;
@@ -483,7 +483,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e){
+int hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e){
 
   int iz_goal;
   double z_goal,z_goalm1,frac,z_filled;
@@ -548,7 +548,7 @@ int thermodynamics_hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e)
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII,
+int hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, double z_out, double xHeII,
                                            double H, double TR, double nH, double* xH1s, double ion, double exclya){
 
   double xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, Dxe;
@@ -591,7 +591,7 @@ int thermodynamics_hyrec_rec_1Hs_post_saha(struct thermohyrec* phy, int iz_out, 
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_readrates(struct thermohyrec* phy){
+int hyrec_readrates(struct thermohyrec* phy){
   FILE *fA;
   FILE *fR;
 
@@ -629,7 +629,7 @@ int thermodynamics_hyrec_readrates(struct thermohyrec* phy){
   return _SUCCESS_;
 }
 
-int thermodynamics_hyrec_readtwogparams(struct thermohyrec* phy){
+int hyrec_readtwogparams(struct thermohyrec* phy){
 
   FILE *fA = NULL;
   unsigned b;

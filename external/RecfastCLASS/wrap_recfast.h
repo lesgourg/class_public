@@ -25,7 +25,7 @@ struct thermorecfast {
   double CB1_He2; /**< defined as in RECFAST */
 
   double H0;
-  
+
   double AGauss1;
   double AGauss2;
   double zGauss1;
@@ -67,21 +67,21 @@ struct precision;
 extern "C" {
 #endif
 
-  int thermodynamics_recfast_init(struct precision* ppr,
-                                  struct background* pba,
-                                  struct thermo * pth,
-                                  struct thermorecfast * precfast,
-                                  double fHe);
+  int recfast_init(struct precision* ppr,
+                   struct background* pba,
+                   struct thermo * pth,
+                   struct thermorecfast * precfast,
+                   double fHe);
 
-  int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,
-                                     double x_H, double x, double n,
-                                     double z, double Hz, double Tmat, double Trad,
-                                     double* dxH_dz);
+  int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,
+                      double x_H, double x, double n,
+                      double z, double Hz, double Tmat, double Trad,
+                      double* dxH_dz);
 
-  int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre,
-                                      double x_He, double x, double x_H, double n,
-                                      double z, double Hz, double Tmat, double Trad,
-                                      double* dxHe_dz);
+  int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre,
+                       double x_He, double x, double x_H, double n,
+                       double z, double Hz, double Tmat, double Trad,
+                       double* dxHe_dz);
 #ifdef __cplusplus
 }
 #endif
