@@ -1437,7 +1437,9 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
-  /* temporary solution: will be improved */
+  /* TODO: temporary solution: will be removed once we have splitted
+     the heating structure in two parts, one for the thermodynamics
+     stucture and one for the distortion structure */
   if ((psd->has_distortions == _TRUE_) && (psd->only_exotic == _FALSE_)) {
     pth->has_noninjected_heating = _TRUE_;
   }

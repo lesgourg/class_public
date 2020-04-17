@@ -878,11 +878,11 @@ int background_free_input(
     free(pba->Omega0_ncdm);
     free(pba->m_ncdm_in_eV);
     free(pba->factor_ncdm);
-    if(pba->got_files!=NULL)
+    if (pba->got_files!=NULL)
       free(pba->got_files);
-    if(pba->ncdm_psd_files!=NULL)
+    if (pba->ncdm_psd_files!=NULL)
       free(pba->ncdm_psd_files);
-    if(pba->ncdm_psd_parameters!=NULL)
+    if (pba->ncdm_psd_parameters!=NULL)
       free(pba->ncdm_psd_parameters);
   }
 
@@ -1161,11 +1161,11 @@ int background_ncdm_distribution(
   if (pba->got_files[n_ncdm]==_TRUE_) {
 
     lastidx = pbadist_local->tablesize-1;
-    if(q<pbadist_local->q[0]) {
+    if (q<pbadist_local->q[0]) {
       //Handle q->0 case:
       *f0 = pbadist_local->f0[0];
     }
-    else if(q>pbadist_local->q[lastidx]) {
+    else if (q>pbadist_local->q[lastidx]) {
       //Handle q>qmax case (ensure continuous and derivable function with Boltzmann tail):
       qlast=pbadist_local->q[lastidx];
       f0last=pbadist_local->f0[lastidx];
@@ -1764,7 +1764,7 @@ int background_check(
     }
 
     /* contribution of interacting dark radiation _idr to N_eff */
-    if (pba->has_idr) {
+    if (pba->has_idr == _TRUE_) {
       N_dark = pba->Omega0_idr/7.*8./pow(4./11.,4./3.)/pba->Omega0_g;
       printf(" -> dark radiation Delta Neff %e\n",N_dark);
     }
@@ -1988,7 +1988,7 @@ int background_solve(
       printf("    Scalar field details:\n");
       printf("     -> Omega_scf = %g, wished %g\n",
              pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit], pba->Omega0_scf);
-      if(pba->has_lambda == _TRUE_) {
+      if (pba->has_lambda == _TRUE_) {
         printf("     -> Omega_Lambda = %g, wished %g\n",
                pvecback[pba->index_bg_rho_lambda]/pvecback[pba->index_bg_rho_crit], pba->Omega0_lambda);
       }
@@ -2519,10 +2519,10 @@ int background_derivs(
   /** - solve second order growth equation \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$
       written as \f$ dD/dloga = D' / (aH) \f$ and \f$ dD'/dloga = -D' + (3/2) (a/H) \rho_M D \f$ */
   rho_M = pvecback[pba->index_bg_rho_b];
-  if (pba->has_cdm) {
+  if (pba->has_cdm == _TRUE_) {
     rho_M += pvecback[pba->index_bg_rho_cdm];
   }
-  if (pba->has_idm_dr) {
+  if (pba->has_idm_dr == _TRUE_) {
     rho_M += pvecback[pba->index_bg_rho_idm_dr];
   }
 
@@ -2681,22 +2681,22 @@ int background_output_budget(
   budget_neutrino = 0;
 
   //The name for the class_print_species macro can be at most 30 characters total
-  if(pba->background_verbose > 1) {
+  if (pba->background_verbose > 1) {
 
     printf(" ---------------------------- Budget equation ----------------------- \n");
 
     printf(" ---> Nonrelativistic Species \n");
     class_print_species("Bayrons",b);
     budget_matter+=pba->Omega0_b;
-    if(pba->has_cdm) {
+    if (pba->has_cdm == _TRUE_) {
       class_print_species("Cold Dark Matter",cdm);
       budget_matter+=pba->Omega0_cdm;
     }
-    if(pba->has_idm_dr) {
+    if (pba->has_idm_dr == _TRUE_) {
       class_print_species("Interacting Dark Matter - DR ",idm_dr);
       budget_matter+=pba->Omega0_idm_dr;
     }
-    if(pba->has_dcdm) {
+    if (pba->has_dcdm == _TRUE_) {
       class_print_species("Decaying Cold Dark Matter",dcdm);
       budget_matter+=pba->Omega0_dcdm;
     }
@@ -2705,45 +2705,45 @@ int background_output_budget(
     printf(" ---> Relativistic Species \n");
     class_print_species("Photons",g);
     budget_radiation+=pba->Omega0_g;
-    if(pba->has_ur) {
+    if (pba->has_ur == _TRUE_) {
       class_print_species("Ultra-relativistic relics",ur);
       budget_radiation+=pba->Omega0_ur;
     }
-    if(pba->has_dr) {
+    if (pba->has_dr == _TRUE_) {
       class_print_species("Dark Radiation (from decay)",dr);
       budget_radiation+=pba->Omega0_dr;
     }
-    if(pba->has_idr) {
+    if (pba->has_idr == _TRUE_) {
       class_print_species("Interacting Dark Radiation",idr);
       budget_radiation+=pba->Omega0_idr;
     }
 
-    if(pba->N_ncdm > 0) {
+    if (pba->N_ncdm > 0) {
       printf(" ---> Massive Neutrino Species \n");
     }
-    if(pba->N_ncdm > 0) {
+    if (pba->N_ncdm > 0) {
       for(index_ncdm=0;index_ncdm<pba->N_ncdm;++index_ncdm) {
         printf("-> %-26s%-4d Omega = %-15g , omega = %-15g\n","Neutrino Species Nr.",index_ncdm+1,pba->Omega0_ncdm[index_ncdm],pba->Omega0_ncdm[index_ncdm]*pba->h*pba->h);
         budget_neutrino+=pba->Omega0_ncdm[index_ncdm];
       }
     }
 
-    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature) {
+    if ((pba->has_lambda == _TRUE_) || (pba->has_fld == _TRUE_) || (pba->has_scf == _TRUE_) || (pba->has_curvature == _TRUE_)) {
       printf(" ---> Other Content \n");
     }
-    if(pba->has_lambda) {
+    if (pba->has_lambda == _TRUE_) {
       class_print_species("Cosmological Constant",lambda);
       budget_other+=pba->Omega0_lambda;
     }
-    if(pba->has_fld) {
+    if (pba->has_fld == _TRUE_) {
       class_print_species("Dark Energy Fluid",fld);
       budget_other+=pba->Omega0_fld;
     }
-    if(pba->has_scf) {
+    if (pba->has_scf == _TRUE_) {
       class_print_species("Scalar Field",scf);
       budget_other+=pba->Omega0_scf;
     }
-    if(pba->has_curvature) {
+    if (pba->has_curvature == _TRUE_) {
       class_print_species("Spatial Curvature",k);
       budget_other+=pba->Omega0_k;
     }
@@ -2751,10 +2751,10 @@ int background_output_budget(
     printf(" ---> Total budgets \n");
     printf(" Radiation                        Omega = %-15g , omega = %-15g \n",budget_radiation,budget_radiation*pba->h*pba->h);
     printf(" Non-relativistic                 Omega = %-15g , omega = %-15g \n",budget_matter,budget_matter*pba->h*pba->h);
-    if(pba->N_ncdm > 0) {
+    if (pba->N_ncdm > 0) {
       printf(" Neutrinos                        Omega = %-15g , omega = %-15g \n",budget_neutrino,budget_neutrino*pba->h*pba->h);
     }
-    if(pba->has_lambda || pba->has_fld || pba->has_scf || pba->has_curvature) {
+    if ((pba->has_lambda == _TRUE_) || (pba->has_fld == _TRUE_) || (pba->has_scf == _TRUE_) || (pba->has_curvature == _TRUE_)) {
       printf(" Other Content                    Omega = %-15g , omega = %-15g \n",budget_other,budget_other*pba->h*pba->h);
     }
     printf(" TOTAL                            Omega = %-15g , omega = %-15g \n",budget_radiation+budget_matter+budget_neutrino+budget_other,(budget_radiation+budget_matter+budget_neutrino+budget_other)*pba->h*pba->h);
