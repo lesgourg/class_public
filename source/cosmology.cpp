@@ -1,15 +1,22 @@
 #include "cosmology.h"
 
+const BackgroundModule& Cosmology::GetBackgroundModule() {
+  if (!background_module_ptr_) {
+    background_module_ptr_ = std::unique_ptr<BackgroundModule>(new BackgroundModule(input_));
+  }
+  return *background_module_ptr_;
+}
+
 const ThermodynamicsModule& Cosmology::GetThermodynamicsModule() {
   if (!thermodynamics_module_ptr_) {
-    thermodynamics_module_ptr_ = std::unique_ptr<ThermodynamicsModule>(new ThermodynamicsModule(input_));
+    thermodynamics_module_ptr_ = std::unique_ptr<ThermodynamicsModule>(new ThermodynamicsModule(input_, GetBackgroundModule()));
   }
   return *thermodynamics_module_ptr_;
 }
 
 const PerturbationsModule& Cosmology::GetPerturbationsModule() {
   if (!perturbations_module_ptr_) {
-    perturbations_module_ptr_ = std::unique_ptr<PerturbationsModule>(new PerturbationsModule(input_, GetThermodynamicsModule()));
+    perturbations_module_ptr_ = std::unique_ptr<PerturbationsModule>(new PerturbationsModule(input_, GetBackgroundModule(), GetThermodynamicsModule()));
   }
   return *perturbations_module_ptr_;
 }
@@ -23,14 +30,14 @@ const PrimordialModule& Cosmology::GetPrimordialModule() {
 
 const NonlinearModule& Cosmology::GetNonlinearModule() {
   if (!nonlinear_module_ptr_) {
-    nonlinear_module_ptr_ = std::unique_ptr<NonlinearModule>(new NonlinearModule(input_, GetPerturbationsModule(), GetPrimordialModule()));
+    nonlinear_module_ptr_ = std::unique_ptr<NonlinearModule>(new NonlinearModule(input_, GetBackgroundModule(), GetPerturbationsModule(), GetPrimordialModule()));
   }
   return *nonlinear_module_ptr_;
 }
 
 const TransferModule& Cosmology::GetTransferModule() {
   if (!transfer_module_ptr_) {
-    transfer_module_ptr_ = std::unique_ptr<TransferModule>(new TransferModule(input_, GetThermodynamicsModule(), GetPerturbationsModule(), GetNonlinearModule()));
+    transfer_module_ptr_ = std::unique_ptr<TransferModule>(new TransferModule(input_, GetBackgroundModule(), GetThermodynamicsModule(), GetPerturbationsModule(), GetNonlinearModule()));
   }
   return *transfer_module_ptr_;
 }

@@ -3,11 +3,12 @@
 
 #include "input.h"
 #include "base_module.h"
+#include "background_module.h"
 #include "thermodynamics_module.h"
 
 class PerturbationsModule : public BaseModule {
 public:
-  PerturbationsModule(const Input& input, const ThermodynamicsModule& thermodynamics_module);
+  PerturbationsModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module);
   ~PerturbationsModule();
   int perturb_output_data(enum file_format output_format, double z, int number_of_titles, double* data) const;
   int perturb_output_titles(enum file_format output_format, char titles[_MAXTITLESTRINGLENGTH_]) const;
@@ -210,6 +211,7 @@ private:
   int perturb_rsa_delta_and_theta(double k, double* y, double a_prime_over_a, double* pvecthermo, perturb_workspace* ppw);
   int perturb_rsa_idr_delta_and_theta(double k, double* y, double a_prime_over_a, double* pvecthermo, perturb_workspace* ppw);
 
+  const BackgroundModule& background_module_;
   const ThermodynamicsModule& thermodynamics_module_;
 
   short evolve_tensor_ur_;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */

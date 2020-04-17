@@ -30,8 +30,9 @@
 #include "transfer_module.h"
 #include "thread_pool.h"
 
-TransferModule::TransferModule(const Input& input, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const NonlinearModule& nonlinear_module)
+TransferModule::TransferModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const NonlinearModule& nonlinear_module)
 : BaseModule(input)
+, background_module_(background_module)
 , thermodynamics_module_(thermodynamics_module)
 , perturbations_module_(perturbations_module)
 , nonlinear_module_(nonlinear_module) {
@@ -189,7 +190,7 @@ int TransferModule::transfer_init() {
       from background / thermodynamics structures
       (only place where these structures are used in this module) */
 
-  tau0 = pba->conformal_age;
+  tau0 = background_module_.conformal_age_;
   tau_rec = thermodynamics_module_.tau_rec_;
 
   /** - order of magnitude of the oscillation period of transfer functions */
@@ -1650,7 +1651,7 @@ int TransferModule::transfer_compute_for_each_q(int ** tp_of_tt, int index_q, in
             class_call(transfer_can_be_neglected(index_md,
                                                  index_ic,
                                                  index_tt,
-                                                 (pba->conformal_age - tau_rec)*thermodynamics_module_.angular_rescaling_,
+                                                 (background_module_.conformal_age_ - tau_rec)*thermodynamics_module_.angular_rescaling_,
                                                  q_[index_q],
                                                  l,
                                                  &neglect),
@@ -1920,7 +1921,7 @@ int TransferModule::transfer_sources(double * interpolated_sources, double tau_r
   }
 
   /* conformal time today */
-  tau0 = pba->conformal_age;
+  tau0 = background_module_.conformal_age_;
 
   /** - case where we need to redefine by a window function (or any
       function of the background and of k) */
@@ -2346,15 +2347,15 @@ int TransferModule::transfer_selection_sampling(int bin, double * tau0_minus_tau
     class_test(tau_size !=1,
                error_message_,
                "for Dirac selection function tau_size should be 1, not %d",tau_size);
-    tau0_minus_tau[0] = pba->conformal_age - tau_mean;
+    tau0_minus_tau[0] = background_module_.conformal_age_ - tau_mean;
   }
   /* for other cases (gaussian, tophat...) define new sampled values
      of (tau0-tau) with even spacing */
   else {
     for (index_tau=0; index_tau<tau_size-1; index_tau++) {
-      tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau_max-tau_min);
+      tau0_minus_tau[index_tau] = background_module_.conformal_age_ - tau_min - ((double)index_tau)/((double)tau_size - 1.)*(tau_max - tau_min);
     }
-    tau0_minus_tau[tau_size-1]=pba->conformal_age-tau_max;
+    tau0_minus_tau[tau_size - 1] = background_module_.conformal_age_ - tau_max;
   }
 
   return _SUCCESS_;
@@ -2392,7 +2393,7 @@ int TransferModule::transfer_lensing_sampling(int bin, double tau0, double * tau
              error_message_);
 
   for (index_tau=0; index_tau<tau_size; index_tau++) {
-    //tau0_minus_tau[index_tau]=pba->conformal_age-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
+    //tau0_minus_tau[index_tau]=background_module_.conformal_age_-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
     tau0_minus_tau[index_tau]=((double)(tau_size-1-index_tau))/((double)(tau_size-1))*(tau0-tau_min);
   }
 
@@ -2493,8 +2494,8 @@ int TransferModule::transfer_selection_times(int bin, double * tau_min, double *
     z = ppt->selection_mean[bin];
   }
 
-  class_call(background_tau_of_z(const_cast<background*>(pba), z, tau_min),
-             pba->error_message,
+  class_call(background_module_.background_tau_of_z(z, tau_min),
+             background_module_.error_message_,
              error_message_);
 
   /* higher edge of time interval for this bin */
@@ -2509,20 +2510,16 @@ int TransferModule::transfer_selection_times(int bin, double * tau_min, double *
     z = ppt->selection_mean[bin];
   }
 
-  class_call(background_tau_of_z(const_cast<background*>(pba),
-                                 z,
-                                 tau_max),
-             pba->error_message,
+  class_call(background_module_.background_tau_of_z(z, tau_max),
+             background_module_.error_message_,
              error_message_);
 
   /* central value of time interval for this bin */
 
   z = MAX(ppt->selection_mean[bin],0.);
 
-  class_call(background_tau_of_z(const_cast<background*>(pba),
-                                 z,
-                                 tau_mean),
-             pba->error_message,
+  class_call(background_module_.background_tau_of_z(z, tau_mean),
+             background_module_.error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -2572,17 +2569,12 @@ int TransferModule::transfer_selection_compute(double * selection, double * tau0
       tau = tau0 - tau0_minus_tau[index_tau];
 
       /* get background quantities at this time */
-      class_call(background_at_tau(const_cast<background*>(pba),
-                                   tau,
-                                   pba->long_info,
-                                   pba->inter_normal,
-                                   &last_index,
-                                   pvecback),
-                 pba->error_message,
+      class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+                 background_module_.error_message_,
                  error_message_);
 
       /* infer redshift */
-      z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+      z = pba->a_today/pvecback[background_module_.index_bg_a_] - 1.;
 
       /* get corresponding dN/dz(z,bin) */
       class_call(transfer_selection_function(bin, z, &(selection[index_tau])),
@@ -2590,7 +2582,7 @@ int TransferModule::transfer_selection_compute(double * selection, double * tau0
                  error_message_);
 
       /* get corresponding dN/dtau = dN/dz * dz/dtau = dN/dz * H */
-      selection[index_tau] *= pvecback[pba->index_bg_H];
+      selection[index_tau] *= pvecback[background_module_.index_bg_H_];
 
     }
 
@@ -4164,10 +4156,10 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
   class_alloc(selection, tau_size_max*sizeof(double), error_message_);
   class_alloc(w_trapz, tau_size_max*sizeof(double), error_message_);
   class_alloc((*window), tau_size_max*tt_size_[index_md]*sizeof(double), error_message_);
-  class_alloc(pvecback, pba->bg_size*sizeof(double), error_message_);
+  class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
 
   /* conformal time today */
-  tau0 = pba->conformal_age;
+  tau0 = background_module_.conformal_age_;
 
   /* Loop through different types to be precomputed */
   for (index_tt = 0; index_tt < tt_size_[index_md]; index_tt++) {
@@ -4228,13 +4220,8 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
         }
 
         /* corresponding background quantities */
-        class_call(background_at_tau(const_cast<background*>(pba),
-                                     tau,
-                                     pba->long_info,
-                                     pba->inter_normal,
-                                     &last_index,
-                                     pvecback),
-                   pba->error_message,
+        class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+                   background_module_.error_message_,
                    error_message_);
 
         /* Source evolution, used by nCl doppler and nCl gravity terms */
@@ -4265,23 +4252,23 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
         /* redshift space distortion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
 
         if (_index_tt_in_range_(index_tt_rsd_, ppt->selection_num, ppt->has_nc_rsd))
-          rescaling = selection[index_tau]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+          rescaling = selection[index_tau]/pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_a_];
 
         if (_index_tt_in_range_(index_tt_d0_, ppt->selection_num, ppt->has_nc_rsd))
-          rescaling = (f_evo-3.)*selection[index_tau]*pvecback[pba->index_bg_H]*pvecback[pba->index_bg_a];
+          rescaling = (f_evo - 3.)*selection[index_tau]*pvecback[background_module_.index_bg_H_]*pvecback[background_module_.index_bg_a_];
 
         if (_index_tt_in_range_(index_tt_d1_, ppt->selection_num, ppt->has_nc_rsd))
 
           rescaling = selection[index_tau]*(1.
-                                            +pvecback[pba->index_bg_H_prime]
-                                            /pvecback[pba->index_bg_a]
-                                            /pvecback[pba->index_bg_H]
-                                            /pvecback[pba->index_bg_H]
+                                            + pvecback[background_module_.index_bg_H_prime_]
+                                            /pvecback[background_module_.index_bg_a_]
+                                            /pvecback[background_module_.index_bg_H_]
+                                            /pvecback[background_module_.index_bg_H_]
                                             +(2.-5.*ptr->selection_magnification_bias[bin])
                                             // /tau0_minus_tau[index_tau] // in flat space
                                             *cotKgen_source  // in general case
-                                            /pvecback[pba->index_bg_a]
-                                            /pvecback[pba->index_bg_H]
+                                            /pvecback[background_module_.index_bg_a_]
+                                            /pvecback[background_module_.index_bg_H_]
                                             +5.*ptr->selection_magnification_bias[bin]
                                             -f_evo
                                             );
@@ -4293,20 +4280,20 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
         if (_index_tt_in_range_(index_tt_nc_g2_, ppt->selection_num, ppt->has_nc_gr))
 
           rescaling = -selection[index_tau]*(3.
-                                             +pvecback[pba->index_bg_H_prime]
-                                             /pvecback[pba->index_bg_a]
-                                             /pvecback[pba->index_bg_H]
-                                             /pvecback[pba->index_bg_H]
+                                             + pvecback[background_module_.index_bg_H_prime_]
+                                             /pvecback[background_module_.index_bg_a_]
+                                             /pvecback[background_module_.index_bg_H_]
+                                             /pvecback[background_module_.index_bg_H_]
                                              +(2.-5.*ptr->selection_magnification_bias[bin])
                                              // /tau0_minus_tau[index_tau]  // in flat space
                                              *cotKgen_source  // in general case
-                                             /pvecback[pba->index_bg_a]
-                                             /pvecback[pba->index_bg_H]
+                                             /pvecback[background_module_.index_bg_a_]
+                                             /pvecback[background_module_.index_bg_H_]
                                              -f_evo
                                              );
 
         if (_index_tt_in_range_(index_tt_nc_g3_, ppt->selection_num, ppt->has_nc_gr))
-          rescaling = selection[index_tau]/pvecback[pba->index_bg_a]/pvecback[pba->index_bg_H];
+          rescaling = selection[index_tau]/pvecback[background_module_.index_bg_a_]/pvecback[background_module_.index_bg_H_];
 
         /* finally store in array */
         (*window)[index_tt*tau_size_max+index_tau] = rescaling;
@@ -4465,13 +4452,12 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
 
                 /* background quantities at time tau_lensing_source */
 
-                class_call(background_at_tau(const_cast<background*>(pba),
-                                             tau0-tau0_minus_tau_lensing_sources[index_tau_sources],
-                                             pba->long_info,
-                                             pba->inter_normal,
-                                             &last_index,
-                                             pvecback),
-                           pba->error_message,
+                class_call(background_module_.background_at_tau(tau0 - tau0_minus_tau_lensing_sources[index_tau_sources],
+                                                                pba->long_info,
+                                                                pba->inter_normal,
+                                                                &last_index,
+                                                                pvecback),
+                           background_module_.error_message_,
                            error_message_);
 
                 /* Source evolution at time tau_lensing_source */
@@ -4483,15 +4469,15 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
 
                 rescaling +=
                   (1.
-                   + pvecback[pba->index_bg_H_prime]
-                   /pvecback[pba->index_bg_a]
-                   /pvecback[pba->index_bg_H]
-                   /pvecback[pba->index_bg_H]
+                   + pvecback[background_module_.index_bg_H_prime_]
+                   /pvecback[background_module_.index_bg_a_]
+                   /pvecback[background_module_.index_bg_H_]
+                   /pvecback[background_module_.index_bg_H_]
                    + (2.-5.*ptr->selection_magnification_bias[bin])
                    //  /tau0_minus_tau_lensing_sources[index_tau_sources]
                    * cotKgen_source
-                   /pvecback[pba->index_bg_a]
-                   /pvecback[pba->index_bg_H]
+                   /pvecback[background_module_.index_bg_a_]
+                   /pvecback[background_module_.index_bg_H_]
                    + 5.*ptr->selection_magnification_bias[bin]
                    - f_evo)
                   * selection[index_tau_sources]
@@ -4530,10 +4516,10 @@ int TransferModule::transfer_f_evo(double* pvecback, int last_index, double cotK
 
   if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
 
-    temp_f_evo = 2./pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a]*cotKgen
-      + pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_H]/pvecback[pba->index_bg_a];
+    temp_f_evo = 2./pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_a_]*cotKgen
+      + pvecback[background_module_.index_bg_H_prime_]/pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_a_];
 
-    z = pba->a_today/pvecback[pba->index_bg_a]-1.;
+    z = pba->a_today/pvecback[background_module_.index_bg_a_] - 1.;
 
     if (ptr->has_nz_evo_file ==_TRUE_) {
 
@@ -4567,7 +4553,7 @@ int TransferModule::transfer_f_evo(double* pvecback, int last_index, double cotK
                  error_message_);
     }
 
-    temp_f_evo -= dln_dNdz_dz/pvecback[pba->index_bg_a];
+    temp_f_evo -= dln_dNdz_dz/pvecback[background_module_.index_bg_a_];
   }
   else {
     temp_f_evo = 0.;

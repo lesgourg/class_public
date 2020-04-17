@@ -2,13 +2,14 @@
 #define NONLINEAR_MODULE_H
 
 #include "input.h"
+#include "background_module.h"
 #include "perturbations_module.h"
 #include "primordial_module.h"
 #include "base_module.h"
 
 class NonlinearModule : public BaseModule {
 public:
-  NonlinearModule(const Input& input, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module);
+  NonlinearModule(const Input& input, const BackgroundModule& background_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module);
   ~NonlinearModule();
 
   /* external functions (meant to be called from other modules) */
@@ -68,6 +69,7 @@ private:
   int nonlinear_hmcode_sigmadisp100_at_z(double z, double* sigma_disp_100, double* sigma_disp_100_cb, nonlinear_workspace* pnw);
   int nonlinear_hmcode_sigmaprime_at_z(double z, double* sigma_prime, double* sigma_prime_cb, nonlinear_workspace* pnw);
 
+  const BackgroundModule& background_module_;
   const PerturbationsModule& perturbations_module_;
   const PrimordialModule& primordial_module_;
 

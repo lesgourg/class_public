@@ -3,6 +3,7 @@
 
 #include "base_module.h"
 #include "input.h"
+#include "background_module.h"
 #include "thermodynamics_module.h"
 #include "perturbations_module.h"
 #include "nonlinear_module.h"
@@ -11,7 +12,7 @@
 
 class OutputModule : public BaseModule {
 public:
-  OutputModule(const Input& input, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module);
+  OutputModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module);
 private:
   int output_total_cl_at_l(int l, double* cl);
   int output_init();
@@ -28,6 +29,7 @@ private:
   int output_open_pk_file(FILE ** pkfile, FileName filename, char * first_line, double z);
   int output_one_line_of_pk(FILE * tkfile, double one_k, double one_pk);
 
+  const BackgroundModule& background_module_;
   const ThermodynamicsModule& thermodynamics_module_;
   const PerturbationsModule& perturbations_module_;
   const PrimordialModule& primordial_module_;

@@ -3,10 +3,11 @@
 
 #include "input.h"
 #include "base_module.h"
+#include "background_module.h"
 
 class ThermodynamicsModule : public BaseModule {
 public:
-  ThermodynamicsModule(const Input& input);
+  ThermodynamicsModule(const Input& input, const BackgroundModule& background_module);
   ~ThermodynamicsModule();
   int thermodynamics_output_titles(char titles[_MAXTITLESTRINGLENGTH_]) const;
   int thermodynamics_output_data(int number_of_titles, double* data) const;
@@ -87,6 +88,7 @@ private:
   int thermodynamics_merge_reco_and_reio(recombination* preco, reionization* preio);
   int thermodynamics_tanh(double x, double center, double before, double after, double width, double* result);
 
+  const BackgroundModule& background_module_;
   /** @name - characteristic quantities like redshift, conformal time and sound horizon at recombination */
 
   //@{

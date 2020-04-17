@@ -2,6 +2,7 @@
 #define COSMOLOGY_H
 
 #include "input.h"
+#include "background_module.h"
 #include "thermodynamics_module.h"
 #include "perturbations_module.h"
 #include "primordial_module.h"
@@ -18,6 +19,7 @@ public:
   Cosmology(const Input& input)
   : input_(input) {}
 
+  const BackgroundModule& GetBackgroundModule();
   const ThermodynamicsModule& GetThermodynamicsModule();
   const PerturbationsModule& GetPerturbationsModule();
   const PrimordialModule& GetPrimordialModule();
@@ -28,6 +30,7 @@ public:
 
 private:
   const Input& input_;
+  std::unique_ptr<BackgroundModule> background_module_ptr_;
   std::unique_ptr<ThermodynamicsModule> thermodynamics_module_ptr_;
   std::unique_ptr<PerturbationsModule> perturbations_module_ptr_;
   std::unique_ptr<PrimordialModule> primordial_module_ptr_;

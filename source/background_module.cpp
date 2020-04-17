@@ -78,7 +78,23 @@
  * -# background_free() at the end, when no more calls to the previous functions are needed
  */
 
-#include "background.h"
+#include "background_module.h"
+
+BackgroundModule::BackgroundModule(const Input& input)
+: BaseModule(input) {
+  ThrowInvalidArgumentIf(background_init() != _SUCCESS_, error_message_);
+}
+
+BackgroundModule::~BackgroundModule() {
+  background_free();
+}
+
+// Wrapper functions to pass non-static member functions
+int BackgroundModule::background_derivs(double z, double* y, double* dy, void* parameters_and_workspace, ErrorMsg error_message) {
+  auto pbpaw = static_cast<background_parameters_and_workspace*>(parameters_and_workspace);
+  return pbpaw->background_module->background_derivs_member(z, y, dy, parameters_and_workspace, error_message);
+}
+
 
 /**
  * Background quantities at given conformal time tau.
@@ -95,14 +111,12 @@
  * @return the error status
  */
 
-int background_at_tau(
-                      struct background *pba,
-                      double tau,
-                      short return_format,
-                      short intermode,
-                      int * last_index,
-                      double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
-                      ) {
+int BackgroundModule::background_at_tau(double tau,
+                                        short return_format,
+                                        short intermode,
+                                        int* last_index,
+                                        double* pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
+                                        ) const {
 
   /** Summary: */
 
@@ -113,25 +127,25 @@ int background_at_tau(
 
   /** - check that tau is in the pre-computed range */
 
-  class_test(tau < pba->tau_table[0],
-             pba->error_message,
-             "out of range: tau=%e < tau_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",tau,pba->tau_table[0]);
+  class_test(tau < tau_table_[0],
+             error_message_,
+             "out of range: tau=%e < tau_min=%e, you should decrease the precision parameter a_ini_over_a_today_default\n",tau,tau_table_[0]);
 
-  class_test(tau > pba->tau_table[pba->bt_size-1],
-             pba->error_message,
-             "out of range: tau=%e > tau_max=%e\n",tau,pba->tau_table[pba->bt_size-1]);
+  class_test(tau > tau_table_[bt_size_-1],
+             error_message_,
+             "out of range: tau=%e > tau_max=%e\n",tau,tau_table_[bt_size_-1]);
 
   /** - deduce length of returned vector from format mode */
 
   if (return_format == pba->normal_info) {
-    pvecback_size=pba->bg_size_normal;
+    pvecback_size=bg_size_normal_;
   }
   else {
     if (return_format == pba->short_info) {
-      pvecback_size=pba->bg_size_short;
+      pvecback_size=bg_size_short_;
     }
     else {
-      pvecback_size=pba->bg_size;
+      pvecback_size=bg_size_;
     }
   }
 
@@ -141,33 +155,33 @@ int background_at_tau(
 
   if (intermode == pba->inter_normal) {
     class_call(array_interpolate_spline(
-                                        pba->tau_table,
-                                        pba->bt_size,
-                                        pba->background_table,
-                                        pba->d2background_dtau2_table,
-                                        pba->bg_size,
+                                        tau_table_,
+                                        bt_size_,
+                                        background_table_,
+                                        d2background_dtau2_table_,
+                                        bg_size_,
                                         tau,
                                         last_index,
                                         pvecback,
                                         pvecback_size,
-                                        pba->error_message),
-               pba->error_message,
-               pba->error_message);
+                                        error_message_),
+               error_message_,
+               error_message_);
   }
   if (intermode == pba->inter_closeby) {
     class_call(array_interpolate_spline_growing_closeby(
-                                                        pba->tau_table,
-                                                        pba->bt_size,
-                                                        pba->background_table,
-                                                        pba->d2background_dtau2_table,
-                                                        pba->bg_size,
+                                                        tau_table_,
+                                                        bt_size_,
+                                                        background_table_,
+                                                        d2background_dtau2_table_,
+                                                        bg_size_,
                                                         tau,
                                                         last_index,
                                                         pvecback,
                                                         pvecback_size,
-                                                        pba->error_message),
-               pba->error_message,
-               pba->error_message);
+                                                        error_message_),
+               error_message_,
+               error_message_);
   }
 
   return _SUCCESS_;
@@ -184,11 +198,7 @@ int background_at_tau(
  * @return the error status
  */
 
-int background_tau_of_z(
-                        struct background *pba,
-                        double z,
-                        double * tau
-                        ) {
+int BackgroundModule::background_tau_of_z(double z, double* tau) const {
 
   /** Summary: */
 
@@ -198,28 +208,28 @@ int background_tau_of_z(
   int last_index;
 
   /** - check that \f$ z \f$ is in the pre-computed range */
-  class_test(z < pba->z_table[pba->bt_size-1],
-             pba->error_message,
-             "out of range: z=%e < z_min=%e\n",z,pba->z_table[pba->bt_size-1]);
+  class_test(z < z_table_[bt_size_ - 1],
+             error_message_,
+             "out of range: z=%e < z_min=%e\n", z, z_table_[bt_size_ - 1]);
 
-  class_test(z > pba->z_table[0],
-             pba->error_message,
-             "out of range: a=%e > a_max=%e\n",z,pba->z_table[0]);
+  class_test(z > z_table_[0],
+             error_message_,
+             "out of range: a=%e > a_max=%e\n", z, z_table_[0]);
 
   /** - interpolate from pre-computed table with array_interpolate() */
   class_call(array_interpolate_spline(
-                                      pba->z_table,
-                                      pba->bt_size,
-                                      pba->tau_table,
-                                      pba->d2tau_dz2_table,
+                                      z_table_,
+                                      bt_size_,
+                                      tau_table_,
+                                      d2tau_dz2_table_,
                                       1,
                                       z,
                                       &last_index,
                                       tau,
                                       1,
-                                      pba->error_message),
-             pba->error_message,
-             pba->error_message);
+                                      error_message_),
+             error_message_,
+             error_message_);
 
   return _SUCCESS_;
 }
@@ -241,12 +251,10 @@ int background_tau_of_z(
  * @return the error status
  */
 
-int background_functions(
-                         struct background *pba,
-                         double * pvecback_B, /* Vector containing all {B} quantities. */
-                         short return_format,
-                         double * pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
-                         ) {
+int BackgroundModule::background_functions(double* pvecback_B, /* Vector containing all {B} quantities. */
+                                           short return_format,
+                                           double* pvecback /* vector with argument pvecback[index_bg] (must be already allocated with a size compatible with return_format) */
+                                           ) {
 
   /** Summary: */
 
@@ -282,7 +290,7 @@ int background_functions(
   double dp_dloga;
 
   /** - initialize local variables */
-  a = pvecback_B[pba->index_bi_a];
+  a = pvecback_B[index_bi_a_];
   rho_tot = 0.;
   p_tot = 0.;
   dp_dloga = 0.;
@@ -291,72 +299,72 @@ int background_functions(
   a_rel = a / pba->a_today;
 
   class_test(a_rel <= 0.,
-             pba->error_message,
+             error_message_,
              "a = %e instead of strictly positive",a_rel);
 
   /** - pass value of \f$ a\f$ to output */
-  pvecback[pba->index_bg_a] = a;
+  pvecback[index_bg_a_] = a;
 
   /** - compute each component's density and pressure */
 
   /* photons */
-  pvecback[pba->index_bg_rho_g] = pba->Omega0_g * pow(pba->H0,2) / pow(a_rel,4);
-  rho_tot += pvecback[pba->index_bg_rho_g];
-  p_tot += (1./3.) * pvecback[pba->index_bg_rho_g];
-  dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_g];
-  rho_r += pvecback[pba->index_bg_rho_g];
+  pvecback[index_bg_rho_g_] = pba->Omega0_g*pow(pba->H0, 2)/pow(a_rel, 4);
+  rho_tot += pvecback[index_bg_rho_g_];
+  p_tot += 1./3.*pvecback[index_bg_rho_g_];
+  dp_dloga += -4./3.*pvecback[index_bg_rho_g_];
+  rho_r += pvecback[index_bg_rho_g_];
 
   /* baryons */
-  pvecback[pba->index_bg_rho_b] = pba->Omega0_b * pow(pba->H0,2) / pow(a_rel,3);
-  rho_tot += pvecback[pba->index_bg_rho_b];
+  pvecback[index_bg_rho_b_] = pba->Omega0_b*pow(pba->H0, 2)/pow(a_rel, 3);
+  rho_tot += pvecback[index_bg_rho_b_];
   p_tot += 0;
-  rho_m += pvecback[pba->index_bg_rho_b];
+  rho_m += pvecback[index_bg_rho_b_];
 
   /* cdm */
   if (pba->has_cdm == _TRUE_) {
-    pvecback[pba->index_bg_rho_cdm] = pba->Omega0_cdm * pow(pba->H0,2) / pow(a_rel,3);
-    rho_tot += pvecback[pba->index_bg_rho_cdm];
+    pvecback[index_bg_rho_cdm_] = pba->Omega0_cdm*pow(pba->H0, 2)/pow(a_rel, 3);
+    rho_tot += pvecback[index_bg_rho_cdm_];
     p_tot += 0.;
-    rho_m += pvecback[pba->index_bg_rho_cdm];
+    rho_m += pvecback[index_bg_rho_cdm_];
   }
 
   /* dcdm */
   if (pba->has_dcdm == _TRUE_) {
     /* Pass value of rho_dcdm to output */
-    pvecback[pba->index_bg_rho_dcdm] = pvecback_B[pba->index_bi_rho_dcdm];
-    rho_tot += pvecback[pba->index_bg_rho_dcdm];
+    pvecback[index_bg_rho_dcdm_] = pvecback_B[index_bi_rho_dcdm_];
+    rho_tot += pvecback[index_bg_rho_dcdm_];
     p_tot += 0.;
-    rho_m += pvecback[pba->index_bg_rho_dcdm];
+    rho_m += pvecback[index_bg_rho_dcdm_];
   }
 
   /* dr */
   if (pba->has_dr == _TRUE_) {
     /* Pass value of rho_dr to output */
-    pvecback[pba->index_bg_rho_dr] = pvecback_B[pba->index_bi_rho_dr];
-    rho_tot += pvecback[pba->index_bg_rho_dr];
-    p_tot += (1./3.)*pvecback[pba->index_bg_rho_dr];
-    dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_dr];
-    rho_r += pvecback[pba->index_bg_rho_dr];
+    pvecback[index_bg_rho_dr_] = pvecback_B[index_bi_rho_dr_];
+    rho_tot += pvecback[index_bg_rho_dr_];
+    p_tot += 1./3.*pvecback[index_bg_rho_dr_];
+    dp_dloga += -4./3.*pvecback[index_bg_rho_dr_];
+    rho_r += pvecback[index_bg_rho_dr_];
   }
 
   /* Scalar field */
   if (pba->has_scf == _TRUE_) {
-    phi = pvecback_B[pba->index_bi_phi_scf];
-    phi_prime = pvecback_B[pba->index_bi_phi_prime_scf];
-    pvecback[pba->index_bg_phi_scf] = phi; // value of the scalar field phi
-    pvecback[pba->index_bg_phi_prime_scf] = phi_prime; // value of the scalar field phi derivative wrt conformal time
-    pvecback[pba->index_bg_V_scf] = V_scf(pba,phi); //V_scf(pba,phi); //write here potential as function of phi
-    pvecback[pba->index_bg_dV_scf] = dV_scf(pba,phi); // dV_scf(pba,phi); //potential' as function of phi
-    pvecback[pba->index_bg_ddV_scf] = ddV_scf(pba,phi); // ddV_scf(pba,phi); //potential'' as function of phi
-    pvecback[pba->index_bg_rho_scf] = (phi_prime*phi_prime/(2*a*a) + V_scf(pba,phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
-    pvecback[pba->index_bg_p_scf] =(phi_prime*phi_prime/(2*a*a) - V_scf(pba,phi))/3.; // pressure of the scalar field
-    rho_tot += pvecback[pba->index_bg_rho_scf];
-    p_tot += pvecback[pba->index_bg_p_scf];
+    phi = pvecback_B[index_bi_phi_scf_];
+    phi_prime = pvecback_B[index_bi_phi_prime_scf_];
+    pvecback[index_bg_phi_scf_] = phi; // value of the scalar field phi
+    pvecback[index_bg_phi_prime_scf_] = phi_prime; // value of the scalar field phi derivative wrt conformal time
+    pvecback[index_bg_V_scf_] = V_scf(phi); //V_scf(phi); //write here potential as function of phi
+    pvecback[index_bg_dV_scf_] = dV_scf(phi); // dV_scf(phi); //potential' as function of phi
+    pvecback[index_bg_ddV_scf_] = ddV_scf(phi); // ddV_scf(phi); //potential'' as function of phi
+    pvecback[index_bg_rho_scf_] = (phi_prime*phi_prime/(2*a*a) + V_scf(phi))/3.; // energy of the scalar field. The field units are set automatically by setting the initial conditions
+    pvecback[index_bg_p_scf_] =(phi_prime*phi_prime/(2*a*a) - V_scf(phi))/3.; // pressure of the scalar field
+    rho_tot += pvecback[index_bg_rho_scf_];
+    p_tot += pvecback[index_bg_p_scf_];
     dp_dloga += 0.0; /** <-- This depends on a_prime_over_a, so we cannot add it now! */
     //divide relativistic & nonrelativistic (not very meaningful for oscillatory models)
-    rho_r += 3.*pvecback[pba->index_bg_p_scf]; //field pressure contributes radiation
-    rho_m += pvecback[pba->index_bg_rho_scf] - 3.* pvecback[pba->index_bg_p_scf]; //the rest contributes matter
-    //printf(" a= %e, Omega_scf = %f, \n ",a_rel, pvecback[pba->index_bg_rho_scf]/rho_tot );
+    rho_r += 3.*pvecback[index_bg_p_scf_]; //field pressure contributes radiation
+    rho_m += pvecback[index_bg_rho_scf_] - 3.*pvecback[index_bg_p_scf_]; //the rest contributes matter
+    //printf(" a= %e, Omega_scf = %f, \n ",a_rel, pvecback[index_bg_rho_scf_]/rho_tot );
   }
 
   /* ncdm */
@@ -379,14 +387,14 @@ int background_functions(
                                          &p_ncdm,
                                          NULL,
                                          &pseudo_p_ncdm),
-                 pba->error_message,
-                 pba->error_message);
+                 error_message_,
+                 error_message_);
 
-      pvecback[pba->index_bg_rho_ncdm1+n_ncdm] = rho_ncdm;
+      pvecback[index_bg_rho_ncdm1_ + n_ncdm] = rho_ncdm;
       rho_tot += rho_ncdm;
-      pvecback[pba->index_bg_p_ncdm1+n_ncdm] = p_ncdm;
+      pvecback[index_bg_p_ncdm1_ + n_ncdm] = p_ncdm;
       p_tot += p_ncdm;
-      pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
+      pvecback[index_bg_pseudo_p_ncdm1_ + n_ncdm] = pseudo_p_ncdm;
       /** See e.g. Eq. A6 in 1811.00904. */
       dp_dloga += (pseudo_p_ncdm - 5*p_ncdm);
 
@@ -401,96 +409,96 @@ int background_functions(
 
   /* Lambda */
   if (pba->has_lambda == _TRUE_) {
-    pvecback[pba->index_bg_rho_lambda] = pba->Omega0_lambda * pow(pba->H0,2);
-    rho_tot += pvecback[pba->index_bg_rho_lambda];
-    p_tot -= pvecback[pba->index_bg_rho_lambda];
+    pvecback[index_bg_rho_lambda_] = pba->Omega0_lambda*pow(pba->H0, 2);
+    rho_tot += pvecback[index_bg_rho_lambda_];
+    p_tot -= pvecback[index_bg_rho_lambda_];
   }
 
   /* fluid with w(a) and constant cs2 */
   if (pba->has_fld == _TRUE_) {
 
     /* get rho_fld from vector of integrated variables */
-    pvecback[pba->index_bg_rho_fld] = pvecback_B[pba->index_bi_rho_fld];
+    pvecback[index_bg_rho_fld_] = pvecback_B[index_bi_rho_fld_];
 
     /* get w_fld from dedicated function */
-    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
-    pvecback[pba->index_bg_w_fld] = w_fld;
+    class_call(background_w_fld(a, &w_fld, &dw_over_da, &integral_fld), error_message_, error_message_);
+    pvecback[index_bg_w_fld_] = w_fld;
 
     // Obsolete: at the beginning, we had here the analytic integral solution corresponding to the case w=w0+w1(1-a/a0):
-    // pvecback[pba->index_bg_rho_fld] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
+    // pvecback[index_bg_rho_fld_] = pba->Omega0_fld * pow(pba->H0,2) / pow(a_rel,3.*(1.+pba->w0_fld+pba->wa_fld)) * exp(3.*pba->wa_fld*(a_rel-1.));
     // But now everthing is integrated numerically for a given w_fld(a) defined in the function background_w_fld.
 
-    rho_tot += pvecback[pba->index_bg_rho_fld];
-    p_tot += w_fld * pvecback[pba->index_bg_rho_fld];
-    dp_dloga += (a*dw_over_da-3*(1+w_fld)*w_fld)*pvecback[pba->index_bg_rho_fld];
+    rho_tot += pvecback[index_bg_rho_fld_];
+    p_tot += w_fld*pvecback[index_bg_rho_fld_];
+    dp_dloga += (a*dw_over_da - 3*(1 + w_fld)*w_fld)*pvecback[index_bg_rho_fld_];
   }
 
   /* relativistic neutrinos (and all relativistic relics) */
   if (pba->has_ur == _TRUE_) {
-    pvecback[pba->index_bg_rho_ur] = pba->Omega0_ur * pow(pba->H0,2) / pow(a_rel,4);
-    rho_tot += pvecback[pba->index_bg_rho_ur];
-    p_tot += (1./3.) * pvecback[pba->index_bg_rho_ur];
-    dp_dloga += -(4./3.) * pvecback[pba->index_bg_rho_ur];
-    rho_r += pvecback[pba->index_bg_rho_ur];
+    pvecback[index_bg_rho_ur_] = pba->Omega0_ur*pow(pba->H0, 2)/pow(a_rel, 4);
+    rho_tot += pvecback[index_bg_rho_ur_];
+    p_tot += 1./3.*pvecback[index_bg_rho_ur_];
+    dp_dloga += -4./3.*pvecback[index_bg_rho_ur_];
+    rho_r += pvecback[index_bg_rho_ur_];
   }
 
   /* interacting dark matter */
   if (pba->has_idm_dr == _TRUE_) {
-    pvecback[pba->index_bg_rho_idm_dr] = pba->Omega0_idm_dr * pow(pba->H0,2) / pow(a_rel,3);
-    rho_tot += pvecback[pba->index_bg_rho_idm_dr];
+    pvecback[index_bg_rho_idm_dr_] = pba->Omega0_idm_dr*pow(pba->H0, 2)/pow(a_rel, 3);
+    rho_tot += pvecback[index_bg_rho_idm_dr_];
     p_tot += 0.;
-    rho_m += pvecback[pba->index_bg_rho_idm_dr];
+    rho_m += pvecback[index_bg_rho_idm_dr_];
   }
 
   /* interacting dark radiation */
   if (pba->has_idr == _TRUE_) {
-    pvecback[pba->index_bg_rho_idr] = pba->Omega0_idr * pow(pba->H0,2) / pow(a_rel,4);
-    rho_tot += pvecback[pba->index_bg_rho_idr];
-    p_tot += (1./3.) * pvecback[pba->index_bg_rho_idr];
-    rho_r += pvecback[pba->index_bg_rho_idr];
+    pvecback[index_bg_rho_idr_] = pba->Omega0_idr*pow(pba->H0, 2)/pow(a_rel, 4);
+    rho_tot += pvecback[index_bg_rho_idr_];
+    p_tot += 1./3.*pvecback[index_bg_rho_idr_];
+    rho_r += pvecback[index_bg_rho_idr_];
   }
 
   /** - compute expansion rate H from Friedmann equation: this is the
       only place where the Friedmann equation is assumed. Remember
       that densities are all expressed in units of \f$ [3c^2/8\pi G] \f$, ie
       \f$ \rho_{class} = [8 \pi G \rho_{physical} / 3 c^2]\f$ */
-  pvecback[pba->index_bg_H] = sqrt(rho_tot-pba->K/a/a);
+  pvecback[index_bg_H_] = sqrt(rho_tot-pba->K/a/a);
 
   /** - compute derivative of H with respect to conformal time */
-  pvecback[pba->index_bg_H_prime] = - (3./2.) * (rho_tot + p_tot) * a + pba->K/a;
+  pvecback[index_bg_H_prime_] = -3./2.*(rho_tot + p_tot)*a + pba->K/a;
 
   /* Total energy density*/
-  pvecback[pba->index_bg_rho_tot] = rho_tot;
+  pvecback[index_bg_rho_tot_] = rho_tot;
 
   /* Total pressure */
-  pvecback[pba->index_bg_p_tot] = p_tot;
+  pvecback[index_bg_p_tot_] = p_tot;
 
   /* Derivative of total pressure w.r.t. conformal time */
-  pvecback[pba->index_bg_p_tot_prime] = a*pvecback[pba->index_bg_H]*dp_dloga;
+  pvecback[index_bg_p_tot_prime_] = a*pvecback[index_bg_H_]*dp_dloga;
   if (pba->has_scf == _TRUE_){
     /** The contribution of scf was not added to dp_dloga, add p_scf_prime here: */
-    pvecback[pba->index_bg_p_prime_scf] = pvecback[pba->index_bg_phi_prime_scf]*
-      (-pvecback[pba->index_bg_phi_prime_scf]*pvecback[pba->index_bg_H]/a-2./3.*pvecback[pba->index_bg_dV_scf]);
-    pvecback[pba->index_bg_p_tot_prime] += pvecback[pba->index_bg_p_prime_scf];
+    pvecback[index_bg_p_prime_scf_] = pvecback[index_bg_phi_prime_scf_]*
+      (-pvecback[index_bg_phi_prime_scf_]*pvecback[index_bg_H_]/a - 2./3.*pvecback[index_bg_dV_scf_]);
+    pvecback[index_bg_p_tot_prime_] += pvecback[index_bg_p_prime_scf_];
   }
 
   /** - compute critical density */
   rho_crit = rho_tot-pba->K/a/a;
   class_test(rho_crit <= 0.,
-             pba->error_message,
+             error_message_,
              "rho_crit = %e instead of strictly positive",rho_crit);
 
   /** - compute relativistic density to total density ratio */
-  pvecback[pba->index_bg_Omega_r] = rho_r / rho_crit;
+  pvecback[index_bg_Omega_r_] = rho_r/rho_crit;
 
   /** - compute other quantities in the exhaustive, redundant format */
   if (return_format == pba->long_info) {
 
     /** - store critical density */
-    pvecback[pba->index_bg_rho_crit] = rho_crit;
+    pvecback[index_bg_rho_crit_] = rho_crit;
 
     /** - compute Omega_m */
-    pvecback[pba->index_bg_Omega_m] = rho_m / rho_crit;
+    pvecback[index_bg_Omega_m_] = rho_m/rho_crit;
 
     /* one can put other variables here */
     /*  */
@@ -516,12 +524,7 @@ int background_functions(
  * @return the error status
  */
 
-int background_w_fld(
-                     struct background * pba,
-                     double a,
-                     double * w_fld,
-                     double * dw_over_da_fld,
-                     double * integral_fld) {
+int BackgroundModule::background_w_fld(double a, double* w_fld, double* dw_over_da_fld, double* integral_fld) const {
 
   double Omega_ede = 0.;
   double dOmega_ede_over_da = 0.;
@@ -550,7 +553,7 @@ int background_w_fld(
     if (pba->has_cdm == _TRUE_) Omega_m += pba->Omega0_cdm;
     if (pba->has_idm_dr == _TRUE_) Omega_m += pba->Omega0_idm_dr;
     if (pba->has_dcdm == _TRUE_)
-      class_stop(pba->error_message,"Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
+      class_stop(error_message_, "Early Dark Energy not compatible with decaying Dark Matter because we omitted to code the calculation of a_eq in that case, but it would not be difficult to add it if necessary, should be a matter of 5 minutes");
     a_eq = Omega_r/Omega_m; // assumes a flat universe with a=1 today
 
     // w_ede(a) taken from eq. (11) in 1706.00730
@@ -592,7 +595,7 @@ int background_w_fld(
     *integral_fld = 3.*((1.+pba->w0_fld+pba->wa_fld)*log(pba->a_today/a) + pba->wa_fld*(a/pba->a_today-1.));
     break;
   case EDE:
-    class_stop(pba->error_message,"EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
+    class_stop(error_message_, "EDE implementation not finished: to finish it, read the comments in background.c just before this line\n");
     break;
   }
 
@@ -613,10 +616,7 @@ int background_w_fld(
  * @return the error status
  */
 
-int background_init(
-                    struct precision * ppr,
-                    struct background * pba
-                    ) {
+int BackgroundModule::background_init() {
 
   /** Summary: */
 
@@ -696,23 +696,23 @@ int background_init(
 
   /** - if shooting failed during input, catch the error here */
   class_test_except(pba->shooting_failed == _TRUE_,
-                    pba->error_message,
-                    background_free_input(pba),
+                    error_message_,
+                    background_free_input(const_cast<background*>(pba)),
                     "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
                     pba->shooting_error);
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
-  class_call(background_indices(pba),
-             pba->error_message,
-             pba->error_message);
+  class_call(background_indices(),
+             error_message_,
+             error_message_);
 
   /* fluid equation of state */
   if (pba->has_fld == _TRUE_) {
 
-    class_call(background_w_fld(pba,0.,&w_fld,&dw_over_da,&integral_fld), pba->error_message, pba->error_message);
+    class_call(background_w_fld(0., &w_fld, &dw_over_da, &integral_fld), error_message_, error_message_);
 
     class_test(w_fld >= 1./3.,
-               pba->error_message,
+               error_message_,
                "Your choice for w(a--->0)=%g is suspicious, since it is bigger than -1/3 there cannot be radiation domination at early times\n",
                w_fld);
   }
@@ -731,27 +731,21 @@ int background_init(
 
   /* check other quantities which would lead to segmentation fault if zero */
   class_test(pba->a_today <= 0,
-             pba->error_message,
+             error_message_,
              "input a_today = %e instead of strictly positive",pba->a_today);
 
   class_test(_Gyr_over_Mpc_ <= 0,
-             pba->error_message,
+             error_message_,
              "_Gyr_over_Mpc = %e instead of strictly positive",_Gyr_over_Mpc_);
 
   /** - this function integrates the background over time, allocates
       and fills the background table */
-  class_call(background_solve(ppr,pba),
-             pba->error_message,
-             pba->error_message);
+  class_call(background_solve(), error_message_, error_message_);
 
   /** - this function finds and stores a few derived parameters at radiation-matter equality */
-  class_call(background_find_equality(ppr,pba),
-             pba->error_message,
-             pba->error_message);
+  class_call(background_find_equality(), error_message_, error_message_);
 
-  class_call(background_output_budget(pba),
-             pba->error_message,
-             pba->error_message);
+  class_call(background_output_budget(), error_message_, error_message_);
 
   return _SUCCESS_;
 
@@ -765,17 +759,15 @@ int background_init(
  * @return the error status
  */
 
-int background_free(
-                    struct background *pba
-                    ) {
+int BackgroundModule::background_free() {
 
-  class_call(background_free_noinput(pba),
-              pba->error_message,
-              pba->error_message);
+  class_call(background_free_noinput(),
+              error_message_,
+              error_message_);
 
-  class_call(background_free_input(pba),
-              pba->error_message,
-              pba->error_message);
+  class_call(background_free_input(const_cast<background*>(pba)),
+              error_message_,
+              error_message_);
 
   return _SUCCESS_;
 }
@@ -787,15 +779,13 @@ int background_free(
  * @return the error status
  */
 
-int background_free_noinput(
-                            struct background *pba
-                            ) {
+int BackgroundModule::background_free_noinput() const {
 
-  free(pba->tau_table);
-  free(pba->z_table);
-  free(pba->d2tau_dz2_table);
-  free(pba->background_table);
-  free(pba->d2background_dtau2_table);
+  free(tau_table_);
+  free(z_table_);
+  free(d2tau_dz2_table_);
+  free(background_table_);
+  free(d2background_dtau2_table_);
 
   return _SUCCESS_;
 }
@@ -860,9 +850,7 @@ int background_free_input(
  * @return the error status
  */
 
-int background_indices(
-                       struct background *pba
-                       ) {
+int BackgroundModule::background_indices() {
 
   /** Summary: */
 
@@ -873,126 +861,79 @@ int background_indices(
   /* a running index for the vector of background quantities to be integrated */
   int index_bi;
 
-  /** - initialize all flags: which species are present? */
-
-  pba->has_cdm = _FALSE_;
-  pba->has_ncdm = _FALSE_;
-  pba->has_dcdm = _FALSE_;
-  pba->has_dr = _FALSE_;
-  pba->has_scf = _FALSE_;
-  pba->has_lambda = _FALSE_;
-  pba->has_fld = _FALSE_;
-  pba->has_ur = _FALSE_;
-  pba->has_idr = _FALSE_;
-  pba->has_idm_dr = _FALSE_;
-  pba->has_curvature = _FALSE_;
-
-  if (pba->Omega0_cdm != 0.)
-    pba->has_cdm = _TRUE_;
-
-  if (pba->Omega0_ncdm_tot != 0.)
-    pba->has_ncdm = _TRUE_;
-
-  if (pba->Omega0_dcdmdr != 0.){
-    pba->has_dcdm = _TRUE_;
-    if (pba->Gamma_dcdm != 0.)
-      pba->has_dr = _TRUE_;
-  }
-
-  if (pba->Omega0_scf != 0.)
-    pba->has_scf = _TRUE_;
-
-  if (pba->Omega0_lambda != 0.)
-    pba->has_lambda = _TRUE_;
-
-  if (pba->Omega0_fld != 0.)
-    pba->has_fld = _TRUE_;
-
-  if (pba->Omega0_ur != 0.)
-    pba->has_ur = _TRUE_;
-
-  if (pba->Omega0_idr != 0.)
-    pba->has_idr = _TRUE_;
-
-  if (pba->Omega0_idm_dr != 0.)
-    pba->has_idm_dr = _TRUE_;
-
-  if (pba->sgnK != 0)
-    pba->has_curvature = _TRUE_;
-
   /** - initialize all indices */
 
   index_bg=0;
 
   /* index for scale factor */
-  class_define_index(pba->index_bg_a,_TRUE_,index_bg,1);
+  class_define_index(index_bg_a_, _TRUE_, index_bg, 1);
 
   /* - indices for H and its conformal-time-derivative */
-  class_define_index(pba->index_bg_H,_TRUE_,index_bg,1);
-  class_define_index(pba->index_bg_H_prime,_TRUE_,index_bg,1);
+  class_define_index(index_bg_H_, _TRUE_, index_bg, 1);
+  class_define_index(index_bg_H_prime_, _TRUE_, index_bg, 1);
 
   /* - end of indices in the short vector of background values */
-  pba->bg_size_short = index_bg;
+  bg_size_short_ = index_bg;
 
   /* - index for rho_g (photon density) */
-  class_define_index(pba->index_bg_rho_g,_TRUE_,index_bg,1);
+  class_define_index(index_bg_rho_g_, _TRUE_, index_bg, 1);
 
   /* - index for rho_b (baryon density) */
-  class_define_index(pba->index_bg_rho_b,_TRUE_,index_bg,1);
+  class_define_index(index_bg_rho_b_, _TRUE_, index_bg, 1);
 
   /* - index for rho_cdm */
-  class_define_index(pba->index_bg_rho_cdm,pba->has_cdm,index_bg,1);
+  class_define_index(index_bg_rho_cdm_, pba->has_cdm, index_bg, 1);
 
   /* - indices for ncdm. We only define the indices for ncdm1
      (density, pressure, pseudo-pressure), the other ncdm indices
      are contiguous */
-  class_define_index(pba->index_bg_rho_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm);
-  class_define_index(pba->index_bg_p_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm);
-  class_define_index(pba->index_bg_pseudo_p_ncdm1,pba->has_ncdm,index_bg,pba->N_ncdm);
+  class_define_index(index_bg_rho_ncdm1_ ,pba->has_ncdm, index_bg, pba->N_ncdm);
+  class_define_index(index_bg_p_ncdm1_, pba->has_ncdm, index_bg, pba->N_ncdm);
+  class_define_index(index_bg_pseudo_p_ncdm1_, pba->has_ncdm, index_bg, pba->N_ncdm);
 
   /* - index for dcdm */
-  class_define_index(pba->index_bg_rho_dcdm,pba->has_dcdm,index_bg,1);
+  class_define_index(index_bg_rho_dcdm_, pba->has_dcdm, index_bg, 1);
 
   /* - index for dr */
-  class_define_index(pba->index_bg_rho_dr,pba->has_dr,index_bg,1);
+  class_define_index(index_bg_rho_dr_, pba->has_dr, index_bg, 1);
 
   /* - indices for scalar field */
-  class_define_index(pba->index_bg_phi_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_phi_prime_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_V_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_dV_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_ddV_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_rho_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_p_scf,pba->has_scf,index_bg,1);
-  class_define_index(pba->index_bg_p_prime_scf,pba->has_scf,index_bg,1);
+  class_define_index(index_bg_phi_scf_, pba->has_scf, index_bg, 1);
+  class_define_index(index_bg_phi_prime_scf_, pba->has_scf, index_bg, 1);
+  class_define_index(index_bg_V_scf_, pba->has_scf, index_bg, 1);
+  class_define_index(index_bg_dV_scf_, pba->has_scf,index_bg, 1);
+  class_define_index(index_bg_ddV_scf_, pba->has_scf,index_bg, 1);
+  class_define_index(index_bg_rho_scf_, pba->has_scf,index_bg, 1);
+  class_define_index(index_bg_p_scf_, pba->has_scf, index_bg, 1);
+  class_define_index(index_bg_p_prime_scf_, pba->has_scf, index_bg, 1);
 
   /* - index for Lambda */
-  class_define_index(pba->index_bg_rho_lambda,pba->has_lambda,index_bg,1);
+  class_define_index(index_bg_rho_lambda_, pba->has_lambda,index_bg, 1);
 
   /* - index for fluid */
-  class_define_index(pba->index_bg_rho_fld,pba->has_fld,index_bg,1);
-  class_define_index(pba->index_bg_w_fld,pba->has_fld,index_bg,1);
+  class_define_index(index_bg_rho_fld_, pba->has_fld, index_bg, 1);
+  class_define_index(index_bg_w_fld_, pba->has_fld, index_bg, 1);
 
   /* - index for ultra-relativistic neutrinos/species */
-  class_define_index(pba->index_bg_rho_ur,pba->has_ur,index_bg,1);
+  class_define_index(index_bg_rho_ur_, pba->has_ur, index_bg, 1);
 
   /* - index for total density */
-  class_define_index(pba->index_bg_rho_tot,_TRUE_,index_bg,1);
+  class_define_index(index_bg_rho_tot_, _TRUE_, index_bg, 1);
 
   /* - index for total pressure */
-  class_define_index(pba->index_bg_p_tot,_TRUE_,index_bg,1);
+  class_define_index(index_bg_p_tot_, _TRUE_, index_bg, 1);
 
   /* - index for derivative of total pressure */
-  class_define_index(pba->index_bg_p_tot_prime,_TRUE_,index_bg,1);
+  class_define_index(index_bg_p_tot_prime_, _TRUE_, index_bg, 1);
 
   /* - index for Omega_r (relativistic density fraction) */
-  class_define_index(pba->index_bg_Omega_r,_TRUE_,index_bg,1);
+  class_define_index(index_bg_Omega_r_, _TRUE_, index_bg, 1);
 
   /* - index interacting for dark radiation */
-  class_define_index(pba->index_bg_rho_idr,pba->has_idr,index_bg,1);
+  class_define_index(index_bg_rho_idr_, pba->has_idr, index_bg, 1);
 
   /* - index for interacting dark matter */
-  class_define_index(pba->index_bg_rho_idm_dr,pba->has_idm_dr,index_bg,1);
+  class_define_index(index_bg_rho_idm_dr_, pba->has_idm_dr, index_bg, 1);
 
   /* - put here additional ingredients that you want to appear in the
      normal vector */
@@ -1000,43 +941,43 @@ int background_indices(
   /*    */
 
   /* - end of indices in the normal vector of background values */
-  pba->bg_size_normal = index_bg;
+  bg_size_normal_ = index_bg;
 
   /* - indices in the long version : */
 
   /* -> critical density */
-  class_define_index(pba->index_bg_rho_crit,_TRUE_,index_bg,1);
+  class_define_index(index_bg_rho_crit_, _TRUE_, index_bg, 1);
 
   /* - index for Omega_m (non-relativistic density fraction) */
-  class_define_index(pba->index_bg_Omega_m,_TRUE_,index_bg,1);
+  class_define_index(index_bg_Omega_m_, _TRUE_, index_bg, 1);
 
   /* -> conformal distance */
-  class_define_index(pba->index_bg_conf_distance,_TRUE_,index_bg,1);
+  class_define_index(index_bg_conf_distance_, _TRUE_, index_bg, 1);
 
   /* -> angular diameter distance */
-  class_define_index(pba->index_bg_ang_distance,_TRUE_,index_bg,1);
+  class_define_index(index_bg_ang_distance_, _TRUE_, index_bg, 1);
 
   /* -> luminosity distance */
-  class_define_index(pba->index_bg_lum_distance,_TRUE_,index_bg,1);
+  class_define_index(index_bg_lum_distance_, _TRUE_, index_bg, 1);
 
   /* -> proper time (for age of the Universe) */
-  class_define_index(pba->index_bg_time,_TRUE_,index_bg,1);
+  class_define_index(index_bg_time_, _TRUE_, index_bg, 1);
 
   /* -> conformal sound horizon */
-  class_define_index(pba->index_bg_rs,_TRUE_,index_bg,1);
+  class_define_index(index_bg_rs_, _TRUE_, index_bg, 1);
 
   /* -> density growth factor in dust universe */
-  class_define_index(pba->index_bg_D,_TRUE_,index_bg,1);
+  class_define_index(index_bg_D_, _TRUE_, index_bg, 1);
 
   /* -> velocity growth factor in dust universe */
-  class_define_index(pba->index_bg_f,_TRUE_,index_bg,1);
+  class_define_index(index_bg_f_, _TRUE_, index_bg, 1);
 
   /* -> put here additional quantities describing background */
   /*    */
   /*    */
 
   /* -> end of indices in the long vector of background values */
-  pba->bg_size = index_bg;
+  bg_size_ = index_bg;
 
   /* - now, indices in vector of variables to integrate.
      First {B} variables, then {C} variables. */
@@ -1044,54 +985,45 @@ int background_indices(
   index_bi=0;
 
   /* -> scale factor */
-  class_define_index(pba->index_bi_a,_TRUE_,index_bi,1);
+  class_define_index(index_bi_a_, _TRUE_, index_bi, 1);
 
   /* -> energy density in DCDM */
-  class_define_index(pba->index_bi_rho_dcdm,pba->has_dcdm,index_bi,1);
+  class_define_index(index_bi_rho_dcdm_, pba->has_dcdm, index_bi, 1);
 
   /* -> energy density in DR */
-  class_define_index(pba->index_bi_rho_dr,pba->has_dr,index_bi,1);
+  class_define_index(index_bi_rho_dr_, pba->has_dr, index_bi, 1);
 
   /* -> energy density in fluid */
-  class_define_index(pba->index_bi_rho_fld,pba->has_fld,index_bi,1);
+  class_define_index(index_bi_rho_fld_, pba->has_fld, index_bi, 1);
 
   /* -> scalar field and its derivative wrt conformal time (Zuma) */
-  class_define_index(pba->index_bi_phi_scf,pba->has_scf,index_bi,1);
-  class_define_index(pba->index_bi_phi_prime_scf,pba->has_scf,index_bi,1);
+  class_define_index(index_bi_phi_scf_, pba->has_scf, index_bi, 1);
+  class_define_index(index_bi_phi_prime_scf_, pba->has_scf, index_bi, 1);
 
   /* End of {B} variables, now continue with {C} variables */
-  pba->bi_B_size = index_bi;
+  bi_B_size_ = index_bi;
 
   /* -> proper time (for age of the Universe) */
-  class_define_index(pba->index_bi_time,_TRUE_,index_bi,1);
+  class_define_index(index_bi_time_, _TRUE_, index_bi, 1);
 
   /* -> sound horizon */
-  class_define_index(pba->index_bi_rs,_TRUE_,index_bi,1);
+  class_define_index(index_bi_rs_, _TRUE_, index_bi, 1);
 
   /* -> Second order equation for growth factor */
-  class_define_index(pba->index_bi_D,_TRUE_,index_bi,1);
-  class_define_index(pba->index_bi_D_prime,_TRUE_,index_bi,1);
+  class_define_index(index_bi_D_, _TRUE_, index_bi, 1);
+  class_define_index(index_bi_D_prime_, _TRUE_, index_bi, 1);
 
   /* -> index for conformal time in vector of variables to integrate */
-  class_define_index(pba->index_bi_tau,_TRUE_,index_bi,1);
+  class_define_index(index_bi_tau_, _TRUE_, index_bi, 1);
 
   /* -> end of indices in the vector of variables to integrate */
-  pba->bi_size = index_bi;
+  bi_size_ = index_bi;
 
   /* index_bi_tau must be the last index, because tau is part of this vector for the purpose of being stored, */
   /* but it is not a quantity to be integrated (since integration is over tau itself) */
-  class_test(pba->index_bi_tau != index_bi-1,
-             pba->error_message,
+  class_test(index_bi_tau_ != index_bi - 1,
+             error_message_,
              "background integration requires index_bi_tau to be the last of all index_bi's");
-
-  /* flags for calling the interpolation routine */
-
-  pba->short_info=0;
-  pba->normal_info=1;
-  pba->long_info=2;
-
-  pba->inter_normal=0;
-  pba->inter_closeby=1;
 
   return _SUCCESS_;
 
@@ -1107,11 +1039,7 @@ int background_indices(
  * @param f0      Output: phase-space distribution
  */
 
-int background_ncdm_distribution(
-                                 void * pbadist,
-                                 double q,
-                                 double * f0
-                                 ) {
+int background_ncdm_distribution(void* pbadist, double q, double* f0) {
   struct background * pba;
   struct background_parameters_for_distributions * pbadist_local;
   int n_ncdm,lastidx;
@@ -1635,10 +1563,7 @@ int background_ncdm_M_from_Omega(
  * @param pba Input/Output: background structure
  */
 
-int background_solve(
-                     struct precision *ppr,
-                     struct background *pba
-                     ) {
+int BackgroundModule::background_solve() {
 
   /** Summary: */
 
@@ -1647,7 +1572,7 @@ int background_solve(
   /* contains all quantities relevant for the integration algorithm */
   struct generic_integrator_workspace gi;
   /* parameters and workspace for the background_derivs function */
-  struct background_parameters_and_workspace bpaw;
+  background_parameters_and_workspace bpaw{this};
   /* a growing table (since the number of time steps is not known a priori) */
   growTable gTable;
   /* needed for growing table */
@@ -1669,68 +1594,67 @@ int background_solve(
   /* comoving radius coordinate in Mpc (equal to conformal distance in flat case) */
   double comoving_radius=0.;
 
-  bpaw.pba = pba;
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+  class_alloc(pvecback,bg_size_*sizeof(double), error_message_);
   bpaw.pvecback = pvecback;
 
   /** - allocate vector of quantities to be integrated */
-  class_alloc(pvecback_integration,pba->bi_size*sizeof(double),pba->error_message);
+  class_alloc(pvecback_integration, bi_size_*sizeof(double), error_message_);
 
   /** - initialize generic integrator with initialize_generic_integrator() */
 
-  /* Size of vector to integrate is (pba->bi_size-1) rather than
-   * (pba->bi_size), since tau is not integrated.
+  /* Size of vector to integrate is (bi_size_ - 1) rather than
+   * (bi_size_), since tau is not integrated.
    */
-  class_call(initialize_generic_integrator((pba->bi_size-1),&gi),
+  class_call(initialize_generic_integrator(bi_size_ - 1, &gi),
              gi.error_message,
-             pba->error_message);
+             error_message_);
 
   /** - impose initial conditions with background_initial_conditions() */
-  class_call(background_initial_conditions(ppr,pba,pvecback,pvecback_integration),
-             pba->error_message,
-             pba->error_message);
+  class_call(background_initial_conditions(pvecback, pvecback_integration),
+             error_message_,
+             error_message_);
 
   /* here tau_end is in fact the initial time (in the next loop
      tau_start = tau_end) */
-  tau_end=pvecback_integration[pba->index_bi_tau];
+  tau_end=pvecback_integration[index_bi_tau_];
 
   /** - create a growTable with gt_init() */
   class_call(gt_init(&gTable),
              gTable.error_message,
-             pba->error_message);
+             error_message_);
 
   /* initialize the counter for the number of steps */
-  pba->bt_size=0;
+  bt_size_=0;
 
   /** - loop over integration steps: call background_functions(), find step size, save data in growTable with gt_add(), perform one step with generic_integrator(), store new value of tau */
 
-  while (pvecback_integration[pba->index_bi_a] < pba->a_today) {
+  while (pvecback_integration[index_bi_a_] < pba->a_today) {
 
     tau_start = tau_end;
 
     /* -> find step size (trying to adjust the last step as close as possible to the one needed to reach a=a_today; need not be exact, difference corrected later) */
-    class_call(background_functions(pba,pvecback_integration, pba->short_info, pvecback),
-               pba->error_message,
-               pba->error_message);
+    class_call(background_functions(pvecback_integration, pba->short_info, pvecback),
+               error_message_,
+               error_message_);
 
-    if ((pvecback_integration[pba->index_bi_a]*(1.+ppr->back_integration_stepsize)) < pba->a_today) {
-      tau_end = tau_start + ppr->back_integration_stepsize / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
+    if ((pvecback_integration[index_bi_a_]*(1. + ppr->back_integration_stepsize)) < pba->a_today) {
+      tau_end = tau_start + ppr->back_integration_stepsize/(pvecback_integration[index_bi_a_]*pvecback[index_bg_H_]);
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
     else {
-      tau_end = tau_start + (pba->a_today/pvecback_integration[pba->index_bi_a]-1.) / (pvecback_integration[pba->index_bi_a]*pvecback[pba->index_bg_H]);
+      tau_end = tau_start + (pba->a_today/pvecback_integration[index_bi_a_] - 1.)/(pvecback_integration[index_bi_a_]*pvecback[index_bg_H_]);
       /* no possible segmentation fault here: non-zeroness of "a" has been checked in background_functions() */
     }
 
     class_test((tau_end-tau_start)/tau_start < ppr->smallest_allowed_variation,
-               pba->error_message,
+               error_message_,
                "integration step: relative change in time =%e < machine precision : leads either to numerical error or infinite loop",(tau_end-tau_start)/tau_start);
 
     /* -> save data in growTable */
-    class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
+    class_call(gt_add(&gTable,_GT_END_, (void*) pvecback_integration, sizeof(double)*bi_size_),
                gTable.error_message,
-               pba->error_message);
-    pba->bt_size++;
+               error_message_);
+    bt_size_++;
 
     /* -> perform one step */
     class_call(generic_integrator(background_derivs,
@@ -1742,18 +1666,18 @@ int background_solve(
                                   ppr->smallest_allowed_variation,
                                   &gi),
                gi.error_message,
-               pba->error_message);
+               error_message_);
 
     /* -> store value of tau */
-    pvecback_integration[pba->index_bi_tau]=tau_end;
+    pvecback_integration[index_bi_tau_] = tau_end;
 
   }
 
   /** - save last data in growTable with gt_add() */
-  class_call(gt_add(&gTable,_GT_END_,(void *) pvecback_integration,sizeof(double)*pba->bi_size),
+  class_call(gt_add(&gTable, _GT_END_, (void*) pvecback_integration, sizeof(double)*bi_size_),
              gTable.error_message,
-             pba->error_message);
-  pba->bt_size++;
+             error_message_);
+  bt_size_++;
 
 
   /* integration finished */
@@ -1761,126 +1685,127 @@ int background_solve(
   /** - clean up generic integrator with cleanup_generic_integrator() */
   class_call(cleanup_generic_integrator(&gi),
              gi.error_message,
-             pba->error_message);
+             error_message_);
 
   /** - retrieve data stored in the growTable with gt_getPtr() */
   class_call(gt_getPtr(&gTable,(void**)&pData),
              gTable.error_message,
-             pba->error_message);
+             error_message_);
 
   /** - interpolate to get quantities precisely today with array_interpolate() */
   class_call(array_interpolate(
                                pData,
-                               pba->bi_size,
-                               pba->bt_size,
-                               pba->index_bi_a,
+                               bi_size_,
+                               bt_size_,
+                               index_bi_a_,
                                pba->a_today,
                                &last_index,
                                pvecback_integration,
-                               pba->bi_size,
-                               pba->error_message),
-             pba->error_message,
-             pba->error_message);
+                               bi_size_,
+                               error_message_),
+             error_message_,
+             error_message_);
 
   /* substitute last line with quantities today */
-  for (i=0; i<pba->bi_size; i++)
-    pData[(pba->bt_size-1)*pba->bi_size+i]=pvecback_integration[i];
+  for (i = 0; i < bi_size_; i++)
+    pData[(bt_size_ - 1)*bi_size_ + i] = pvecback_integration[i];
 
   /** - deduce age of the Universe */
   /* -> age in Gyears */
-  pba->age = pvecback_integration[pba->index_bi_time]/_Gyr_over_Mpc_;
+  age_ = pvecback_integration[index_bi_time_]/_Gyr_over_Mpc_;
   /* -> conformal age in Mpc */
-  pba->conformal_age = pvecback_integration[pba->index_bi_tau];
+  conformal_age_ = pvecback_integration[index_bi_tau_];
   /* -> contribution of decaying dark matter and dark radiation to the critical density today: */
   if (pba->has_dcdm == _TRUE_){
-    pba->Omega0_dcdm = pvecback_integration[pba->index_bi_rho_dcdm]/pba->H0/pba->H0;
+    Omega0_dcdm_ = pvecback_integration[index_bi_rho_dcdm_]/pba->H0/pba->H0;
   }
   if (pba->has_dr == _TRUE_){
-    pba->Omega0_dr = pvecback_integration[pba->index_bi_rho_dr]/pba->H0/pba->H0;
+    Omega0_dr_ = pvecback_integration[index_bi_rho_dr_]/pba->H0/pba->H0;
   }
 
   /** - allocate background tables */
-  class_alloc(pba->tau_table,pba->bt_size * sizeof(double),pba->error_message);
+  class_alloc(tau_table_, bt_size_*sizeof(double), error_message_);
 
-  class_alloc(pba->z_table,pba->bt_size * sizeof(double),pba->error_message);
+  class_alloc(z_table_, bt_size_*sizeof(double), error_message_);
 
-  class_alloc(pba->d2tau_dz2_table,pba->bt_size * sizeof(double),pba->error_message);
+  class_alloc(d2tau_dz2_table_, bt_size_*sizeof(double), error_message_);
 
-  class_alloc(pba->background_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
+  class_alloc(background_table_, bt_size_*bg_size_*sizeof(double), error_message_);
 
-  class_alloc(pba->d2background_dtau2_table,pba->bt_size * pba->bg_size * sizeof(double),pba->error_message);
+  class_alloc(d2background_dtau2_table_, bt_size_*bg_size_*sizeof(double), error_message_);
 
   /** - In a loop over lines, fill background table using the result of the integration plus background_functions() */
-  for (i=0; i < pba->bt_size; i++) {
+  for (i = 0; i < bt_size_; i++) {
 
     /* -> establish correspondence between the integrated variable and the bg variables */
 
-    pba->tau_table[i] = pData[i*pba->bi_size+pba->index_bi_tau];
+    tau_table_[i] = pData[i*bi_size_ + index_bi_tau_];
 
-    class_test(pData[i*pba->bi_size+pba->index_bi_a] <= 0.,
-               pba->error_message,
-               "a = %e instead of strictly positiv",pData[i*pba->bi_size+pba->index_bi_a]);
+    class_test(pData[i*bi_size_ + index_bi_a_] <= 0.,
+               error_message_,
+               "a = %e instead of strictly positiv",
+               pData[i*bi_size_ + index_bi_a_]);
 
-    pba->z_table[i] = pba->a_today/pData[i*pba->bi_size+pba->index_bi_a]-1.;
+    z_table_[i] = pba->a_today/pData[i*bi_size_ + index_bi_a_] - 1.;
 
-    pvecback[pba->index_bg_time] = pData[i*pba->bi_size+pba->index_bi_time];
-    pvecback[pba->index_bg_conf_distance] = pba->conformal_age - pData[i*pba->bi_size+pba->index_bi_tau];
+    pvecback[index_bg_time_] = pData[i*bi_size_ + index_bi_time_];
+    pvecback[index_bg_conf_distance_] = conformal_age_ - pData[i*bi_size_ + index_bi_tau_];
 
-    if (pba->sgnK == 0) comoving_radius = pvecback[pba->index_bg_conf_distance];
-    else if (pba->sgnK == 1) comoving_radius = sin(sqrt(pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(pba->K);
-    else if (pba->sgnK == -1) comoving_radius = sinh(sqrt(-pba->K)*pvecback[pba->index_bg_conf_distance])/sqrt(-pba->K);
+    if (pba->sgnK == 0) comoving_radius = pvecback[index_bg_conf_distance_];
+    else if (pba->sgnK == 1) comoving_radius = sin(sqrt(pba->K)*pvecback[index_bg_conf_distance_])/sqrt(pba->K);
+    else if (pba->sgnK == -1) comoving_radius = sinh(sqrt(-pba->K)*pvecback[index_bg_conf_distance_])/sqrt(-pba->K);
 
-    pvecback[pba->index_bg_ang_distance] = pba->a_today*comoving_radius/(1.+pba->z_table[i]);
-    pvecback[pba->index_bg_lum_distance] = pba->a_today*comoving_radius*(1.+pba->z_table[i]);
-    pvecback[pba->index_bg_rs] = pData[i*pba->bi_size+pba->index_bi_rs];
+    pvecback[index_bg_ang_distance_] = pba->a_today*comoving_radius/(1. + z_table_[i]);
+    pvecback[index_bg_lum_distance_] = pba->a_today*comoving_radius*(1. + z_table_[i]);
+    pvecback[index_bg_rs_] = pData[i*bi_size_ + index_bi_rs_];
 
     /* -> compute all other quantities depending only on {B} variables.
        The value of {B} variables in pData are also copied to pvecback.*/
-    class_call(background_functions(pba,pData+i*pba->bi_size, pba->long_info, pvecback),
-               pba->error_message,
-               pba->error_message);
+    class_call(background_functions(pData + i*bi_size_, pba->long_info, pvecback),
+               error_message_,
+               error_message_);
 
     /* -> compute growth functions (valid in dust universe) */
 
     /* Normalise D(z=0)=1 and construct f = D_prime/(aHD) */
-    pvecback[pba->index_bg_D] = pData[i*pba->bi_size+pba->index_bi_D]/pData[(pba->bt_size-1)*pba->bi_size+pba->index_bi_D];
-    pvecback[pba->index_bg_f] = pData[i*pba->bi_size+pba->index_bi_D_prime]/
-      (pData[i*pba->bi_size+pba->index_bi_D]*pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]);
+    pvecback[index_bg_D_] = pData[i*bi_size_ + index_bi_D_]/pData[(bt_size_ - 1)*bi_size_ + index_bi_D_];
+    pvecback[index_bg_f_] = pData[i*bi_size_ + index_bi_D_prime_]/
+      (pData[i*bi_size_ + index_bi_D_]*pvecback[index_bg_a_]*pvecback[index_bg_H_]);
 
     /* -> write in the table */
-    memcopy_result = memcpy(pba->background_table + i*pba->bg_size,pvecback,pba->bg_size*sizeof(double));
+    memcopy_result = memcpy(background_table_ + i*bg_size_, pvecback, bg_size_*sizeof(double));
 
-    class_test(memcopy_result != pba->background_table + i*pba->bg_size,
-               pba->error_message,
-               "cannot copy data back to pba->background_table");
+    class_test(memcopy_result != background_table_ + i*bg_size_,
+               error_message_,
+               "cannot copy data back to background_table_");
   }
 
   /** - free the growTable with gt_free() */
 
   class_call(gt_free(&gTable),
              gTable.error_message,
-             pba->error_message);
+             error_message_);
 
   /** - fill tables of second derivatives (in view of spline interpolation) */
-  class_call(array_spline_table_lines(pba->z_table,
-                                      pba->bt_size,
-                                      pba->tau_table,
+  class_call(array_spline_table_lines(z_table_,
+                                      bt_size_,
+                                      tau_table_,
                                       1,
-                                      pba->d2tau_dz2_table,
+                                      d2tau_dz2_table_,
                                       _SPLINE_EST_DERIV_,
-                                      pba->error_message),
-             pba->error_message,
-             pba->error_message);
+                                      error_message_),
+             error_message_,
+             error_message_);
 
-  class_call(array_spline_table_lines(pba->tau_table,
-                                      pba->bt_size,
-                                      pba->background_table,
-                                      pba->bg_size,
-                                      pba->d2background_dtau2_table,
+  class_call(array_spline_table_lines(tau_table_,
+                                      bt_size_,
+                                      background_table_,
+                                      bg_size_,
+                                      d2background_dtau2_table_,
                                       _SPLINE_EST_DERIV_,
-                                      pba->error_message),
-             pba->error_message,
-             pba->error_message);
+                                      error_message_),
+             error_message_,
+             error_message_);
 
   /** - compute remaining "related parameters" */
 
@@ -1890,34 +1815,29 @@ int background_solve(
       instantaneously-decoupled neutrinos accounting for the
       radiation density, beyond photons */
 
-  pba->Neff = (pba->background_table[pba->index_bg_Omega_r]
-               *pba->background_table[pba->index_bg_rho_crit]
-               -pba->background_table[pba->index_bg_rho_g])
-    /(7./8.*pow(4./11.,4./3.)*pba->background_table[pba->index_bg_rho_g]);
+  Neff_ = (background_table_[index_bg_Omega_r_]*background_table_[index_bg_rho_crit_] - background_table_[index_bg_rho_g_])
+    /(7./8.*pow(4./11.,4./3.)*background_table_[index_bg_rho_g_]);
 
   /** - done */
   if (pba->background_verbose > 0) {
-    printf(" -> age = %f Gyr\n",pba->age);
-    printf(" -> conformal age = %f Mpc\n",pba->conformal_age);
+    printf(" -> age = %f Gyr\n", age_);
+    printf(" -> conformal age = %f Mpc\n", conformal_age_);
   }
 
   if (pba->background_verbose > 2) {
-    printf(" -> pba->Neff = %f\n",pba->Neff);
+    printf(" -> Neff_ = %f\n", Neff_);
     if ((pba->has_dcdm == _TRUE_)&&(pba->has_dr == _TRUE_)){
       printf("    Decaying Cold Dark Matter details: (DCDM --> DR)\n");
-      printf("     -> Omega0_dcdm = %f\n",pba->Omega0_dcdm);
-      printf("     -> Omega0_dr = %f\n",pba->Omega0_dr);
-      printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n",
-             pba->Omega0_dr+pba->Omega0_dcdm,pba->Omega0_dcdmdr);
+      printf("     -> Omega0_dcdm = %f\n", Omega0_dcdm_);
+      printf("     -> Omega0_dr = %f\n", Omega0_dr_);
+      printf("     -> Omega0_dr+Omega0_dcdm = %f, input value = %f\n", Omega0_dr_ + Omega0_dcdm_, pba->Omega0_dcdmdr);
       printf("     -> Omega_ini_dcdm/Omega_b = %f\n",pba->Omega_ini_dcdm/pba->Omega0_b);
     }
     if (pba->has_scf == _TRUE_){
       printf("    Scalar field details:\n");
-      printf("     -> Omega_scf = %g, wished %g\n",
-             pvecback[pba->index_bg_rho_scf]/pvecback[pba->index_bg_rho_crit], pba->Omega0_scf);
+      printf("     -> Omega_scf = %g, wished %g\n", pvecback[index_bg_rho_scf_]/pvecback[index_bg_rho_crit_], pba->Omega0_scf);
       if(pba->has_lambda == _TRUE_)
-        printf("     -> Omega_Lambda = %g, wished %g\n",
-               pvecback[pba->index_bg_rho_lambda]/pvecback[pba->index_bg_rho_crit], pba->Omega0_lambda);
+        printf("     -> Omega_Lambda = %g, wished %g\n", pvecback[index_bg_rho_lambda_]/pvecback[index_bg_rho_crit_], pba->Omega0_lambda);
       printf("     -> parameters: [lambda, alpha, A, B] = \n");
       printf("                    [");
       for (i=0; i<pba->scf_parameters_size-1; i++){
@@ -1928,9 +1848,9 @@ int background_solve(
   }
 
   /**  - total matter, radiation, dark energy today */
-  pba->Omega0_m = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_m];
-  pba->Omega0_r = pba->background_table[(pba->bt_size-1)*pba->bg_size+pba->index_bg_Omega_r];
-  pba->Omega0_de = 1. - (pba->Omega0_m + pba->Omega0_r + pba->Omega0_k);
+  Omega0_m_ = background_table_[(bt_size_ - 1)*bg_size_ + index_bg_Omega_m_];
+  Omega0_r_ = background_table_[(bt_size_ - 1)*bg_size_ + index_bg_Omega_r_];
+  Omega0_de_ = 1. - (Omega0_m_ + Omega0_r_ + pba->Omega0_k);
 
   free(pvecback);
   free(pvecback_integration);
@@ -1949,12 +1869,9 @@ int background_solve(
  * @return the error status
  */
 
-int background_initial_conditions(
-                                  struct precision *ppr,
-                                  struct background *pba,
-                                  double * pvecback, /* vector with argument pvecback[index_bg] (must be already allocated, normal format is sufficient) */
-                                  double * pvecback_integration /* vector with argument pvecback_integration[index_bi] (must be already allocated with size pba->bi_size) */
-                                  ) {
+int BackgroundModule::background_initial_conditions(double* pvecback, /* vector with argument pvecback[index_bg] (must be already allocated, normal format is sufficient) */
+                                                    double* pvecback_integration /* vector with argument pvecback_integration[index_bi] (must be already allocated with size bi_size_) */
+                                                    ) {
 
   /** Summary: */
 
@@ -1998,8 +1915,8 @@ int background_initial_conditions(
                                            &p_ncdm,
                                            NULL,
                                            NULL),
-                   pba->error_message,
-                   pba->error_message);
+                   error_message_,
+                   error_message_);
         rho_ncdm_rel_tot += 3.*p_ncdm;
         if (fabs(p_ncdm/rho_ncdm-1./3.)>ppr->tol_ncdm_initial_w)
           is_early_enough = _FALSE_;
@@ -2010,11 +1927,11 @@ int background_initial_conditions(
         a *= _SCALE_BACK_;
     }
     class_test(counter == _MAX_IT_,
-               pba->error_message,
+               error_message_,
                "Search for initial scale factor a such that all ncdm species are relativistic failed.");
   }
 
-  pvecback_integration[pba->index_bi_a] = a;
+  pvecback_integration[index_bi_a_] = a;
 
   /* Set initial values of {B} variables: */
   Omega_rad = pba->Omega0_g;
@@ -2029,28 +1946,28 @@ int background_initial_conditions(
   }
   if (pba->has_dcdm == _TRUE_){
     /* Remember that the critical density today in CLASS conventions is H0^2 */
-    pvecback_integration[pba->index_bi_rho_dcdm] =
+    pvecback_integration[index_bi_rho_dcdm_] =
       pba->Omega_ini_dcdm*pba->H0*pba->H0*pow(pba->a_today/a,3);
     if (pba->background_verbose > 3)
-      printf("Density is %g. a_today=%g. Omega_ini=%g\n",pvecback_integration[pba->index_bi_rho_dcdm],pba->a_today,pba->Omega_ini_dcdm);
+      printf("Density is %g. a_today=%g. Omega_ini=%g\n", pvecback_integration[index_bi_rho_dcdm_], pba->a_today, pba->Omega_ini_dcdm);
   }
 
   if (pba->has_dr == _TRUE_){
     if (pba->has_dcdm == _TRUE_){
       /**  - f is the critical density fraction of DR. The exact solution is:
        *
-       * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
+       * `f = -Omega_rad+pow(pow(Omega_rad,3./2.)+0.5*pow(a/pba->a_today,6)*pvecback_integration[index_bi_rho_dcdm_]*pba->Gamma_dcdm/pow(pba->H0,3),2./3.);`
        *
        * but it is not numerically stable for very small f which is always the case.
        * Instead we use the Taylor expansion of this equation, which is equivalent to
        * ignoring f(a) in the Hubble rate.
        */
-      f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[pba->index_bi_rho_dcdm]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
-      pvecback_integration[pba->index_bi_rho_dr] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
+      f = 1./3.*pow(a/pba->a_today,6)*pvecback_integration[index_bi_rho_dcdm_]*pba->Gamma_dcdm/pow(pba->H0,3)/sqrt(Omega_rad);
+      pvecback_integration[index_bi_rho_dr_] = f*pba->H0*pba->H0/pow(a/pba->a_today,4);
     }
     else{
       /** There is also a space reserved for a future case where dr is not sourced by dcdm */
-      pvecback_integration[pba->index_bi_rho_dr] = 0.0;
+      pvecback_integration[index_bi_rho_dr_] = 0.0;
     }
   }
 
@@ -2060,7 +1977,7 @@ int background_initial_conditions(
     rho_fld_today = pba->Omega0_fld * pow(pba->H0,2);
 
     /* integrate rho_fld(a) from a_ini to a_0, to get rho_fld(a_ini) given rho_fld(a0) */
-    class_call(background_w_fld(pba,a,&w_fld,&dw_over_da_fld,&integral_fld), pba->error_message, pba->error_message);
+    class_call(background_w_fld(a, &w_fld, &dw_over_da_fld, &integral_fld), error_message_, error_message_);
 
     /* Note: for complicated w_fld(a) functions with no simple
        analytic integral, this is the place were you should compute
@@ -2069,7 +1986,7 @@ int background_initial_conditions(
        calling background_w_fld */
 
     /* rho_fld at initial time */
-    pvecback_integration[pba->index_bi_rho_fld] = rho_fld_today * exp(integral_fld);
+    pvecback_integration[index_bi_rho_fld_] = rho_fld_today*exp(integral_fld);
 
   }
 
@@ -2084,64 +2001,64 @@ int background_initial_conditions(
   if(pba->has_scf == _TRUE_){
     scf_lambda = pba->scf_parameters[0];
     if(pba->attractor_ic_scf == _TRUE_){
-      pvecback_integration[pba->index_bi_phi_scf] = -1/scf_lambda*
+      pvecback_integration[index_bi_phi_scf_] = -1./scf_lambda*
         log(rho_rad*4./(3*pow(scf_lambda,2)-12))*pba->phi_ini_scf;
       if (3.*pow(scf_lambda,2)-12. < 0){
         /** - --> If there is no attractor solution for scf_lambda, assign some value. Otherwise would give a nan.*/
-    	pvecback_integration[pba->index_bi_phi_scf] = 1./scf_lambda;//seems to the work
+    	pvecback_integration[index_bi_phi_scf_] = 1./scf_lambda;//seems to the work
         if (pba->background_verbose > 0)
           printf(" No attractor IC for lambda = %.3e ! \n ",scf_lambda);
       }
-      pvecback_integration[pba->index_bi_phi_prime_scf] = 2*pvecback_integration[pba->index_bi_a]*
-        sqrt(V_scf(pba,pvecback_integration[pba->index_bi_phi_scf]))*pba->phi_prime_ini_scf;
+      pvecback_integration[index_bi_phi_prime_scf_] = 2*pvecback_integration[index_bi_a_]*
+        sqrt(V_scf(pvecback_integration[index_bi_phi_scf_]))*pba->phi_prime_ini_scf;
     }
     else{
       printf("Not using attractor initial conditions\n");
       /** - --> If no attractor initial conditions are assigned, gets the provided ones. */
-      pvecback_integration[pba->index_bi_phi_scf] = pba->phi_ini_scf;
-      pvecback_integration[pba->index_bi_phi_prime_scf] = pba->phi_prime_ini_scf;
+      pvecback_integration[index_bi_phi_scf_] = pba->phi_ini_scf;
+      pvecback_integration[index_bi_phi_prime_scf_] = pba->phi_prime_ini_scf;
     }
-    class_test(!isfinite(pvecback_integration[pba->index_bi_phi_scf]) ||
-               !isfinite(pvecback_integration[pba->index_bi_phi_scf]),
-               pba->error_message,
+    class_test(!isfinite(pvecback_integration[index_bi_phi_scf_]) ||
+               !isfinite(pvecback_integration[index_bi_phi_scf_]),
+               error_message_,
                "initial phi = %e phi_prime = %e -> check initial conditions",
-               pvecback_integration[pba->index_bi_phi_scf],
-               pvecback_integration[pba->index_bi_phi_scf]);
+               pvecback_integration[index_bi_phi_scf_],
+               pvecback_integration[index_bi_phi_scf_]);
   }
 
   /* Infer pvecback from pvecback_integration */
-  class_call(background_functions(pba, pvecback_integration, pba->normal_info, pvecback),
-             pba->error_message,
-             pba->error_message);
+  class_call(background_functions(pvecback_integration, pba->normal_info, pvecback),
+             error_message_,
+             error_message_);
 
   /* Just checking that our initial time indeed is deep enough in the radiation
      dominated regime */
-  class_test(fabs(pvecback[pba->index_bg_Omega_r]-1.) > ppr->tol_initial_Omega_r,
-             pba->error_message,
+  class_test(fabs(pvecback[index_bg_Omega_r_] - 1.) > ppr->tol_initial_Omega_r,
+             error_message_,
              "Omega_r = %e, not close enough to 1. Decrease a_ini_over_a_today_default in order to start from radiation domination.",
-             pvecback[pba->index_bg_Omega_r]);
+             pvecback[index_bg_Omega_r_]);
 
   /** - compute initial proper time, assuming radiation-dominated
       universe since Big Bang and therefore \f$ t=1/(2H) \f$ (good
       approximation for most purposes) */
 
-  class_test(pvecback[pba->index_bg_H] <= 0.,
-             pba->error_message,
-             "H = %e instead of strictly positive",pvecback[pba->index_bg_H]);
+  class_test(pvecback[index_bg_H_] <= 0.,
+             error_message_,
+             "H = %e instead of strictly positive",pvecback[index_bg_H_]);
 
-  pvecback_integration[pba->index_bi_time] = 1./(2.* pvecback[pba->index_bg_H]);
+  pvecback_integration[index_bi_time_] = 1./(2.* pvecback[index_bg_H_]);
 
   /** - compute initial conformal time, assuming radiation-dominated
       universe since Big Bang and therefore \f$ \tau=1/(aH) \f$
       (good approximation for most purposes) */
-  pvecback_integration[pba->index_bi_tau] = 1./(a * pvecback[pba->index_bg_H]);
+  pvecback_integration[index_bi_tau_] = 1./(a*pvecback[index_bg_H_]);
 
   /** - compute initial sound horizon, assuming \f$ c_s=1/\sqrt{3} \f$ initially */
-  pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
+  pvecback_integration[index_bi_rs_] = pvecback_integration[index_bi_tau_]/sqrt(3.);
 
   /** - set initial value of D and D' in RD. D will be renormalised later, but D' must be correct. */
-  pvecback_integration[pba->index_bi_D] = a;
-  pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
+  pvecback_integration[index_bi_D_] = a;
+  pvecback_integration[index_bi_D_prime_] = 2*pvecback_integration[index_bi_D_]*pvecback[index_bg_H_];
 
   return _SUCCESS_;
 
@@ -2156,13 +2073,11 @@ int background_initial_conditions(
  * @return the error status
  */
 
-int background_find_equality(
-                             struct precision *ppr,
-                             struct background *pba) {
+int BackgroundModule::background_find_equality() {
 
   double Omega_m_over_Omega_r=0.;
   int index_tau_minus = 0;
-  int index_tau_plus = pba->bt_size-1;
+  int index_tau_plus = bt_size_ - 1;
   int index_tau_mid = 0;
   double tau_minus,tau_plus,tau_mid=0.;
   double * pvecback;
@@ -2173,8 +2088,7 @@ int background_find_equality(
 
     index_tau_mid = (int)(0.5*(index_tau_plus+index_tau_minus));
 
-    Omega_m_over_Omega_r = pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_m]
-      /pba->background_table[index_tau_mid*pba->bg_size+pba->index_bg_Omega_r];
+    Omega_m_over_Omega_r = background_table_[index_tau_mid*bg_size_ + index_bg_Omega_m_]/background_table_[index_tau_mid*bg_size_ + index_bg_Omega_r_];
 
     if (Omega_m_over_Omega_r > 1)
       index_tau_plus = index_tau_mid;
@@ -2185,20 +2099,20 @@ int background_find_equality(
 
   /* then get a better estimate within this range */
 
-  tau_minus = pba->tau_table[index_tau_minus];
-  tau_plus =  pba->tau_table[index_tau_plus];
+  tau_minus = tau_table_[index_tau_minus];
+  tau_plus =  tau_table_[index_tau_plus];
 
-  class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
+  class_alloc(pvecback, bg_size_*sizeof(double), error_message_);
 
   while ((tau_plus - tau_minus) > ppr->tol_tau_eq) {
 
     tau_mid = 0.5*(tau_plus+tau_minus);
 
-    class_call(background_at_tau(pba,tau_mid,pba->long_info,pba->inter_closeby,&index_tau_minus,pvecback),
-               pba->error_message,
-               pba->error_message);
+    class_call(background_at_tau(tau_mid, pba->long_info, pba->inter_closeby, &index_tau_minus, pvecback),
+               error_message_,
+               error_message_);
 
-    Omega_m_over_Omega_r = pvecback[pba->index_bg_Omega_m]/pvecback[pba->index_bg_Omega_r];
+    Omega_m_over_Omega_r = pvecback[index_bg_Omega_m_]/pvecback[index_bg_Omega_r_];
 
     if (Omega_m_over_Omega_r > 1)
       tau_plus = tau_mid;
@@ -2207,14 +2121,14 @@ int background_find_equality(
 
   }
 
-  pba->a_eq = pvecback[pba->index_bg_a];
-  pba->H_eq = pvecback[pba->index_bg_H];
-  pba->z_eq = pba->a_today/pba->a_eq -1.;
-  pba->tau_eq = tau_mid;
+  a_eq_ = pvecback[index_bg_a_];
+  H_eq_ = pvecback[index_bg_H_];
+  z_eq_ = pba->a_today/a_eq_ - 1.;
+  tau_eq_ = tau_mid;
 
   if (pba->background_verbose > 0) {
-    printf(" -> radiation/matter equality at z = %f\n",pba->z_eq);
-    printf("    corresponding to conformal time = %f Mpc\n",pba->tau_eq);
+    printf(" -> radiation/matter equality at z = %f\n", z_eq_);
+    printf("    corresponding to conformal time = %f Mpc\n", tau_eq_);
   }
 
   free(pvecback);
@@ -2229,9 +2143,7 @@ int background_find_equality(
  *
  */
 
-int background_output_titles(struct background * pba,
-                             char titles[_MAXTITLESTRINGLENGTH_]
-                             ){
+int BackgroundModule::background_output_titles(char titles[_MAXTITLESTRINGLENGTH_]) const {
 
   /** - Length of the column title should be less than _OUTPUTPRECISION_+6
       to be indented correctly, but it can be as long as . */
@@ -2286,61 +2198,58 @@ int background_output_titles(struct background * pba,
   return _SUCCESS_;
 }
 
-int background_output_data(
-                           struct background *pba,
-                           int number_of_titles,
-                           double *data){
+int BackgroundModule::background_output_data(int number_of_titles, double* data) const {
   int index_tau, storeidx, n;
   double *dataptr, *pvecback;
 
   /** Stores quantities */
-  for (index_tau=0; index_tau<pba->bt_size; index_tau++){
+  for (index_tau = 0; index_tau < bt_size_; index_tau++){
     dataptr = data + index_tau*number_of_titles;
-    pvecback = pba->background_table + index_tau*pba->bg_size;
+    pvecback = background_table_ + index_tau*bg_size_;
     storeidx = 0;
 
-    class_store_double(dataptr,pba->a_today/pvecback[pba->index_bg_a]-1.,_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_time]/_Gyr_over_Mpc_,_TRUE_,storeidx);
-    class_store_double(dataptr,pba->conformal_age-pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_H],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_conf_distance],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_ang_distance],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_lum_distance],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rs],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_g],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_b],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_cdm],pba->has_cdm,storeidx);
+    class_store_double(dataptr, pba->a_today/pvecback[index_bg_a_]-1., _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_time_]/_Gyr_over_Mpc_, _TRUE_, storeidx);
+    class_store_double(dataptr, conformal_age_-pvecback[index_bg_conf_distance_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_H_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_conf_distance_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_ang_distance_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_lum_distance_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rs_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_g_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_b_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_cdm_], pba->has_cdm, storeidx);
     if (pba->has_ncdm == _TRUE_){
       for (n=0; n<pba->N_ncdm; n++){
-        class_store_double(dataptr,pvecback[pba->index_bg_rho_ncdm1+n],_TRUE_,storeidx);
-        class_store_double(dataptr,pvecback[pba->index_bg_p_ncdm1+n],_TRUE_,storeidx);
+        class_store_double(dataptr, pvecback[index_bg_rho_ncdm1_+n], _TRUE_, storeidx);
+        class_store_double(dataptr, pvecback[index_bg_p_ncdm1_+n], _TRUE_, storeidx);
       }
     }
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_lambda],pba->has_lambda,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_fld],pba->has_fld,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_w_fld],pba->has_fld,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_ur],pba->has_ur,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_idr],pba->has_idr,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_idm_dr],pba->has_idm_dr,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_crit],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_dcdm],pba->has_dcdm,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_dr],pba->has_dr,storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_lambda_], pba->has_lambda, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_fld_], pba->has_fld, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_w_fld_], pba->has_fld, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_ur_], pba->has_ur, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_idr_], pba->has_idr, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_idm_dr_], pba->has_idm_dr, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_crit_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_dcdm_], pba->has_dcdm, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_dr_], pba->has_dr, storeidx);
 
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_p_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_p_prime_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_phi_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_phi_prime_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_V_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_dV_scf],pba->has_scf,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_ddV_scf],pba->has_scf,storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_p_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_p_prime_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_phi_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_phi_prime_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_V_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_dV_scf_], pba->has_scf, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_ddV_scf_], pba->has_scf, storeidx);
 
-    class_store_double(dataptr,pvecback[pba->index_bg_rho_tot],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_p_tot],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_p_tot_prime],_TRUE_,storeidx);
+    class_store_double(dataptr, pvecback[index_bg_rho_tot_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_p_tot_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_p_tot_prime_], _TRUE_, storeidx);
 
-    class_store_double(dataptr,pvecback[pba->index_bg_D],_TRUE_,storeidx);
-    class_store_double(dataptr,pvecback[pba->index_bg_f],_TRUE_,storeidx);
+    class_store_double(dataptr, pvecback[index_bg_D_], _TRUE_, storeidx);
+    class_store_double(dataptr, pvecback[index_bg_f_], _TRUE_, storeidx);
   }
 
   return _SUCCESS_;
@@ -2362,7 +2271,7 @@ int background_output_data(
  * its fine structure.
  *
  * - the error management is a bit special: errors are not written as
- * usual to pba->error_message, but to a generic error_message passed
+ * usual to error_message_, but to a generic error_message passed
  * in the list of arguments.
  *
  * @param tau                      Input: conformal time
@@ -2371,83 +2280,78 @@ int background_output_data(
  * @param parameters_and_workspace Input: pointer to fixed parameters (e.g. indices)
  * @param error_message            Output: error message
  */
-int background_derivs(
-                      double tau,
-                      double* y, /* vector with argument y[index_bi] (must be already allocated with size pba->bi_size) */
-                      double* dy, /* vector with argument dy[index_bi]
-                                     (must be already allocated with
-                                     size pba->bi_size) */
-                      void * parameters_and_workspace,
-                      ErrorMsg error_message
-                      ) {
+int BackgroundModule::background_derivs_member(
+                                               double tau,
+                                               double* y, /* vector with argument y[index_bi] (must be already allocated with size bi_size_) */
+                                               double* dy, /* vector with argument dy[index_bi]
+                                                            (must be already allocated with
+                                                            size bi_size_) */
+                                               void* parameters_and_workspace,
+                                               ErrorMsg error_message
+                                               ) {
 
   /** Summary: */
 
   /** - define local variables */
 
-  struct background_parameters_and_workspace * pbpaw;
-  struct background * pba;
   double * pvecback, a, H, rho_M;
 
-  pbpaw = (struct background_parameters_and_workspace*)parameters_and_workspace;
-  pba =  pbpaw->pba;
+  background_parameters_and_workspace* pbpaw = static_cast<background_parameters_and_workspace*>(parameters_and_workspace);
   pvecback = pbpaw->pvecback;
 
   /** - calculate functions of \f$ a \f$ with background_functions() */
-  class_call(background_functions(pba, y, pba->normal_info, pvecback),
-             pba->error_message,
+  class_call(background_functions(y, pba->normal_info, pvecback),
+             error_message_,
              error_message);
 
   /** - Short hand notation */
-  a = y[pba->index_bi_a];
-  H = pvecback[pba->index_bg_H];
+  a = y[index_bi_a_];
+  H = pvecback[index_bg_H_];
 
   /** - calculate \f$ a'=a^2 H \f$ */
-  dy[pba->index_bi_a] = y[pba->index_bi_a] * y[pba->index_bi_a] * pvecback[pba->index_bg_H];
+  dy[index_bi_a_] = y[index_bi_a_]*y[index_bi_a_]*pvecback[index_bg_H_];
 
   /** - calculate \f$ t' = a \f$ */
-  dy[pba->index_bi_time] = y[pba->index_bi_a];
+  dy[index_bi_time_] = y[index_bi_a_];
 
-  class_test(pvecback[pba->index_bg_rho_g] <= 0.,
+  class_test(pvecback[index_bg_rho_g_] <= 0.,
              error_message,
-             "rho_g = %e instead of strictly positive",pvecback[pba->index_bg_rho_g]);
+             "rho_g = %e instead of strictly positive", pvecback[index_bg_rho_g_]);
 
   /** - calculate \f$ rs' = c_s \f$*/
-  dy[pba->index_bi_rs] = 1./sqrt(3.*(1.+3.*pvecback[pba->index_bg_rho_b]/4./pvecback[pba->index_bg_rho_g]))*sqrt(1.-pba->K*y[pba->index_bi_rs]*y[pba->index_bi_rs]); // TBC: curvature correction
+  dy[index_bi_rs_] = 1./sqrt(3.*(1. + 3.*pvecback[index_bg_rho_b_]/4./pvecback[index_bg_rho_g_]))*sqrt(1. - pba->K*y[index_bi_rs_]*y[index_bi_rs_]); // TBC: curvature correction
 
   /** - solve second order growth equation  \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
-  rho_M = pvecback[pba->index_bg_rho_b];
+  rho_M = pvecback[index_bg_rho_b_];
   if (pba->has_cdm)
-    rho_M += pvecback[pba->index_bg_rho_cdm];
+    rho_M += pvecback[index_bg_rho_cdm_];
   if (pba->has_idm_dr)
-    rho_M += pvecback[pba->index_bg_rho_idm_dr];
+    rho_M += pvecback[index_bg_rho_idm_dr_];
 
-  dy[pba->index_bi_D] = y[pba->index_bi_D_prime];
-  dy[pba->index_bi_D_prime] = -a*H*y[pba->index_bi_D_prime] + 1.5*a*a*rho_M*y[pba->index_bi_D];
+  dy[index_bi_D_] = y[index_bi_D_prime_];
+  dy[index_bi_D_prime_] = -a*H*y[index_bi_D_prime_] + 1.5*a*a*rho_M*y[index_bi_D_];
 
   if (pba->has_dcdm == _TRUE_){
     /** - compute dcdm density \f$ \rho' = -3aH \rho - a \Gamma \rho \f$*/
-    dy[pba->index_bi_rho_dcdm] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dcdm]-
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
+    dy[index_bi_rho_dcdm_] = -3.*y[index_bi_a_]*pvecback[index_bg_H_]*y[index_bi_rho_dcdm_]-
+      y[index_bi_a_]*pba->Gamma_dcdm*y[index_bi_rho_dcdm_];
   }
 
   if ((pba->has_dcdm == _TRUE_) && (pba->has_dr == _TRUE_)){
     /** - Compute dr density \f$ \rho' = -4aH \rho - a \Gamma \rho \f$ */
-    dy[pba->index_bi_rho_dr] = -4.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*y[pba->index_bi_rho_dr]+
-      y[pba->index_bi_a]*pba->Gamma_dcdm*y[pba->index_bi_rho_dcdm];
+    dy[index_bi_rho_dr_] = -4.*y[index_bi_a_]*pvecback[index_bg_H_]*y[index_bi_rho_dr_]+
+      y[index_bi_a_]*pba->Gamma_dcdm*y[index_bi_rho_dcdm_];
   }
 
   if (pba->has_fld == _TRUE_) {
     /** - Compute fld density \f$ \rho' = -3aH (1+w_{fld}(a)) \rho \f$ */
-    dy[pba->index_bi_rho_fld] = -3.*y[pba->index_bi_a]*pvecback[pba->index_bg_H]*(1.+pvecback[pba->index_bg_w_fld])*y[pba->index_bi_rho_fld];
+    dy[index_bi_rho_fld_] = -3.*y[index_bi_a_]*pvecback[index_bg_H_]*(1. + pvecback[index_bg_w_fld_])*y[index_bi_rho_fld_];
   }
 
   if (pba->has_scf == _TRUE_){
     /** - Scalar field equation: \f$ \phi'' + 2 a H \phi' + a^2 dV = 0 \f$  (note H is wrt cosmic time) */
-    dy[pba->index_bi_phi_scf] = y[pba->index_bi_phi_prime_scf];
-    dy[pba->index_bi_phi_prime_scf] = - y[pba->index_bi_a]*
-      (2*pvecback[pba->index_bg_H]*y[pba->index_bi_phi_prime_scf]
-       + y[pba->index_bi_a]*dV_scf(pba,y[pba->index_bi_phi_scf])) ;
+    dy[index_bi_phi_scf_] = y[index_bi_phi_prime_scf_];
+    dy[index_bi_phi_prime_scf_] = -y[index_bi_a_]*(2*pvecback[index_bg_H_]*y[index_bi_phi_prime_scf_] + y[index_bi_a_]*dV_scf(y[index_bi_phi_scf_]));
   }
 
   return _SUCCESS_;
@@ -2480,9 +2384,7 @@ int background_derivs(
  and \f$ \rho^{class} \f$ has the proper dimension \f$ Mpc^-2 \f$.
 */
 
-double V_e_scf(struct background *pba,
-               double phi
-               ) {
+double BackgroundModule::V_e_scf(double phi) const {
   double scf_lambda = pba->scf_parameters[0];
   //  double scf_alpha  = pba->scf_parameters[1];
   //  double scf_A      = pba->scf_parameters[2];
@@ -2491,26 +2393,22 @@ double V_e_scf(struct background *pba,
   return  exp(-scf_lambda*phi);
 }
 
-double dV_e_scf(struct background *pba,
-                double phi
-                ) {
+double BackgroundModule::dV_e_scf(double phi) const {
   double scf_lambda = pba->scf_parameters[0];
   //  double scf_alpha  = pba->scf_parameters[1];
   //  double scf_A      = pba->scf_parameters[2];
   //  double scf_B      = pba->scf_parameters[3];
 
-  return -scf_lambda*V_scf(pba,phi);
+  return -scf_lambda*V_scf(phi);
 }
 
-double ddV_e_scf(struct background *pba,
-                 double phi
-                 ) {
+double BackgroundModule::ddV_e_scf(double phi) const {
   double scf_lambda = pba->scf_parameters[0];
   //  double scf_alpha  = pba->scf_parameters[1];
   //  double scf_A      = pba->scf_parameters[2];
   //  double scf_B      = pba->scf_parameters[3];
 
-  return pow(-scf_lambda,2)*V_scf(pba,phi);
+  return pow(-scf_lambda,2)*V_scf(phi);
 }
 
 
@@ -2524,9 +2422,7 @@ double ddV_e_scf(struct background *pba,
  * double scf_A = 0.01; (values for their Figure 2)
  */
 
-double V_p_scf(
-               struct background *pba,
-               double phi) {
+double BackgroundModule::V_p_scf(double phi) const {
   //  double scf_lambda = pba->scf_parameters[0];
   double scf_alpha  = pba->scf_parameters[1];
   double scf_A      = pba->scf_parameters[2];
@@ -2535,9 +2431,7 @@ double V_p_scf(
   return  pow(phi - scf_B,  scf_alpha) +  scf_A;
 }
 
-double dV_p_scf(
-                struct background *pba,
-                double phi) {
+double BackgroundModule::dV_p_scf(double phi) const {
 
   //  double scf_lambda = pba->scf_parameters[0];
   double scf_alpha  = pba->scf_parameters[1];
@@ -2547,9 +2441,7 @@ double dV_p_scf(
   return   scf_alpha*pow(phi -  scf_B,  scf_alpha - 1);
 }
 
-double ddV_p_scf(
-                 struct background *pba,
-                 double phi) {
+double BackgroundModule::ddV_p_scf(double phi) const {
   //  double scf_lambda = pba->scf_parameters[0];
   double scf_alpha  = pba->scf_parameters[1];
   //  double scf_A      = pba->scf_parameters[2];
@@ -2561,22 +2453,16 @@ double ddV_p_scf(
 /** Fianlly we can obtain the overall potential \f$ V = V_p*V_e \f$
  */
 
-double V_scf(
-             struct background *pba,
-             double phi) {
-  return  V_e_scf(pba,phi)*V_p_scf(pba,phi);
+double BackgroundModule::V_scf(double phi) const {
+  return  V_e_scf(phi)*V_p_scf(phi);
 }
 
-double dV_scf(
-              struct background *pba,
-              double phi) {
-  return dV_e_scf(pba,phi)*V_p_scf(pba,phi) + V_e_scf(pba,phi)*dV_p_scf(pba,phi);
+double BackgroundModule::dV_scf(double phi) const {
+  return dV_e_scf(phi)*V_p_scf(phi) + V_e_scf(phi)*dV_p_scf(phi);
 }
 
-double ddV_scf(
-               struct background *pba,
-               double phi) {
-  return ddV_e_scf(pba,phi)*V_p_scf(pba,phi) + 2*dV_e_scf(pba,phi)*dV_p_scf(pba,phi) + V_e_scf(pba,phi)*ddV_p_scf(pba,phi);
+double BackgroundModule::ddV_scf(double phi) const {
+  return ddV_e_scf(phi)*V_p_scf(phi) + 2*dV_e_scf(phi)*dV_p_scf(phi) + V_e_scf(phi)*ddV_p_scf(phi);
 }
 
 /**
@@ -2590,9 +2476,7 @@ double ddV_scf(
  * @return the error status
  */
 
-int background_output_budget(
-                             struct background* pba
-                             ) {
+int BackgroundModule::background_output_budget() {
 
   double budget_matter, budget_radiation, budget_other,budget_neutrino;
   int index_ncdm;
@@ -2619,8 +2503,8 @@ int background_output_budget(
       budget_matter+=pba->Omega0_idm_dr;
     }
     if(pba->has_dcdm){
-      _class_print_species_("Decaying Cold Dark Matter",dcdm);
-      budget_matter+=pba->Omega0_dcdm;
+      printf("-> %-30s Omega = %-15g , omega = %-15g\n", "Decaying Cold Dark Matter", Omega0_dcdm_, Omega0_dcdm_*pba->h*pba->h);
+      budget_matter += Omega0_dcdm_;
     }
 
 
@@ -2632,8 +2516,8 @@ int background_output_budget(
       budget_radiation+=pba->Omega0_ur;
     }
     if(pba->has_dr){
-      _class_print_species_("Dark Radiation (from decay)",dr);
-      budget_radiation+=pba->Omega0_dr;
+      printf("-> %-30s Omega = %-15g , omega = %-15g\n", "Dark Radiation (from decay)", Omega0_dr_, Omega0_dr_*pba->h*pba->h);
+      budget_radiation += Omega0_dr_;
     }
     if(pba->has_idr){
       _class_print_species_("Interacting Dark Radiation",idr);

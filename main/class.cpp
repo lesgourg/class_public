@@ -26,20 +26,10 @@ int main(int argc, char **argv) {
     return _FAILURE_;
   }
 
-  if (background_init(&pr,&ba) == _FAILURE_) {
-    printf("\n\nError running background_init \n=>%s\n",ba.error_message);
-    return _FAILURE_;
-  }
-
   Cosmology cosmology = Cosmology(input);
-  OutputModule output_module(input, cosmology.GetThermodynamicsModule(), cosmology.GetPerturbationsModule(), cosmology.GetPrimordialModule(), cosmology.GetNonlinearModule(), cosmology.GetSpectraModule(), cosmology.GetLensingModule());
+  OutputModule output_module(input, cosmology.GetBackgroundModule(), cosmology.GetThermodynamicsModule(), cosmology.GetPerturbationsModule(), cosmology.GetPrimordialModule(), cosmology.GetNonlinearModule(), cosmology.GetSpectraModule(), cosmology.GetLensingModule());
 
   /****** all calculations done, now free the structures ******/
-
-  if (background_free(&ba) == _FAILURE_) {
-    printf("\n\nError in background_free \n=>%s\n",ba.error_message);
-    return _FAILURE_;
-  }
 
   return _SUCCESS_;
 

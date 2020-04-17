@@ -3082,6 +3082,63 @@ int input_read_parameters(
 
   }
 
+  /** Moved from background.c.
+   - initialize all flags: which species are present? */
+
+  pba->has_cdm = _FALSE_;
+  pba->has_ncdm = _FALSE_;
+  pba->has_dcdm = _FALSE_;
+  pba->has_dr = _FALSE_;
+  pba->has_scf = _FALSE_;
+  pba->has_lambda = _FALSE_;
+  pba->has_fld = _FALSE_;
+  pba->has_ur = _FALSE_;
+  pba->has_idr = _FALSE_;
+  pba->has_idm_dr = _FALSE_;
+  pba->has_curvature = _FALSE_;
+
+  if (pba->Omega0_cdm != 0.)
+    pba->has_cdm = _TRUE_;
+
+  if (pba->Omega0_ncdm_tot != 0.)
+    pba->has_ncdm = _TRUE_;
+
+  if (pba->Omega0_dcdmdr != 0.){
+    pba->has_dcdm = _TRUE_;
+    if (pba->Gamma_dcdm != 0.)
+      pba->has_dr = _TRUE_;
+  }
+
+  if (pba->Omega0_scf != 0.)
+    pba->has_scf = _TRUE_;
+
+  if (pba->Omega0_lambda != 0.)
+    pba->has_lambda = _TRUE_;
+
+  if (pba->Omega0_fld != 0.)
+    pba->has_fld = _TRUE_;
+
+  if (pba->Omega0_ur != 0.)
+    pba->has_ur = _TRUE_;
+
+  if (pba->Omega0_idr != 0.)
+    pba->has_idr = _TRUE_;
+
+  if (pba->Omega0_idm_dr != 0.)
+    pba->has_idm_dr = _TRUE_;
+
+  if (pba->sgnK != 0)
+    pba->has_curvature = _TRUE_;
+
+  /* flags for calling the interpolation routine */
+  pba->short_info=0;
+  pba->normal_info=1;
+  pba->long_info=2;
+
+  pba->inter_normal=0;
+  pba->inter_closeby=1;
+
+
   /** - (i.5) special steps if we want Halofit with wa_fld non-zero:
       so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
 
@@ -3173,7 +3230,6 @@ int input_default_params(
   pba->Omega0_b = 0.022032/pow(pba->h,2);
   pba->Omega0_cdm = 0.12038/pow(pba->h,2);
   pba->Omega0_dcdmdr = 0.0;
-  pba->Omega0_dcdm = 0.0;
   pba->Gamma_dcdm = 0.0;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
@@ -3726,10 +3782,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    class_call(background_init(&pr,&ba),
-               ba.error_message,
-               errmsg
-               );
+    const BackgroundModule& background_module = cosmology.GetBackgroundModule();
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -3742,9 +3795,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     } catch (...) {
       class_call_except(_FAILURE_,
                         "TODO",
-                        errmsg,
-                        background_free(&ba)
-                        );
+                        errmsg,);
     }
   }
 
@@ -3757,9 +3808,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     } catch (...) {
       class_call_except(_FAILURE_,
                       "TODO",
-                      errmsg,
-                      background_free(&ba)
-                      );
+                      errmsg,);
     }
   }
 
@@ -3772,9 +3821,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     } catch (...) {
       class_call_except(_FAILURE_,
                         "TODO",
-                        errmsg,
-                        background_free(&ba)
-                        );
+                        errmsg,);
     }
   }
 
@@ -3787,9 +3834,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     } catch (...) {
       class_call_except(_FAILURE_,
                         "TODO",
-                        errmsg,
-                        background_free(&ba)
-                        );
+                        errmsg,);
     }
   }
   if (pfzw->required_computation_stage >= cs_transfer){
@@ -3802,9 +3847,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       //TODO: This will be made nicer later when we refactor the input module.
       class_call_except(_FAILURE_,
                         "TODO",
-                        errmsg,
-                        background_free(&ba)
-                        );
+                        errmsg,);
     }
   }
 
@@ -3818,9 +3861,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       //TODO: This will be made nicer later when we refactor the input module.
       class_call_except(_FAILURE_,
                         sp.error_message,
-                        errmsg,
-                        background_free(&ba)
-                        );
+                        errmsg,);
     }
   }
 
@@ -3828,40 +3869,47 @@ int input_try_unknown_parameters(double * unknown_parameter,
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
     case theta_s: {
-        const ThermodynamicsModule& thm = cosmology.GetThermodynamicsModule();
-        output[i] = 100.*thm.rs_rec_/thm.ra_rec_ - pfzw->target_value[i];
-        break;
-      }
-    case Omega_dcdmdr:
-      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
+      const ThermodynamicsModule& thm = cosmology.GetThermodynamicsModule();
+      output[i] = 100.*thm.rs_rec_/thm.ra_rec_ - pfzw->target_value[i];
+      break;
+    }
+    case Omega_dcdmdr: {
+      const BackgroundModule& bam = cosmology.GetBackgroundModule();
+      rho_dcdm_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dcdm_];
       if (ba.has_dr == _TRUE_)
-        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+        rho_dr_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dr_];
       else
         rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
       break;
-    case omega_dcdmdr:
-      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
+    }
+    case omega_dcdmdr: {
+      const BackgroundModule& bam = cosmology.GetBackgroundModule();
+      rho_dcdm_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dcdm_];
       if (ba.has_dr == _TRUE_)
-        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+        rho_dr_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dr_];
       else
         rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
       break;
-    case Omega_scf:
+    }
+    case Omega_scf: {
+    const BackgroundModule& bam = cosmology.GetBackgroundModule();
       /** - In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
-      output[i] = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_scf]/(ba.H0*ba.H0)
-        -ba.Omega0_scf;
+      output[i] = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_scf_]/(ba.H0*ba.H0) - ba.Omega0_scf;
       break;
+    }
     case Omega_ini_dcdm:
-    case omega_ini_dcdm:
-      rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
+    case omega_ini_dcdm: {
+      const BackgroundModule& bam = cosmology.GetBackgroundModule();
+      rho_dcdm_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dcdm_];
       if (ba.has_dr == _TRUE_)
-        rho_dr_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dr];
+        rho_dr_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dr_];
       else
         rho_dr_today = 0.;
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
+    }
     case sigma8:
         const NonlinearModule& nl = cosmology.GetNonlinearModule();
         output[i] = nl.sigma8_[nl.index_pk_m_] - pfzw->target_value[i];
@@ -3869,11 +3917,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
     }
   }
 
-
-  /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_background){
-    class_call(background_free(&ba), ba.error_message, errmsg);
-  }
 
   /** - Set filecontent to unread */
   for (i=0; i<pfzw->fc.size; i++) {
@@ -4255,14 +4298,15 @@ int input_prepare_pk_eq(
 
   /** - call the background module in order to fill a table of tau_i[z_i] */
 
-  class_call(background_init(ppr,pba), pba->error_message, errmsg);
+  Cosmology cosmology{input};
+  const BackgroundModule& background_module = cosmology.GetBackgroundModule();
   for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
     z[index_pk_eq_z] = exp(log(1.+ppr->pk_eq_z_max)/(pnl->pk_eq_tau_size-1)*index_pk_eq_z)-1.;
-    class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z),
+    class_call(background_module.background_tau_of_z(z[index_pk_eq_z], &tau_of_z),
                pba->error_message, errmsg);
     pnl->pk_eq_tau[index_pk_eq_z] = tau_of_z;
   }
-  class_call(background_free_noinput(pba), pba->error_message, errmsg);
+  class_call(const_cast<BackgroundModule&>(background_module).background_free_noinput(), pba->error_message, errmsg);
 
   /** - loop over z_i values. For each of them, we will call the
       background and thermodynamics module for fake models. The goal is
@@ -4285,7 +4329,6 @@ int input_prepare_pk_eq(
     pba->w0_fld = pba_input->w0_fld;
     pba->wa_fld = pba_input->wa_fld;
 
-    class_call(background_init(ppr,pba), pba->error_message, errmsg);
     Cosmology cosmology{input};
     const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
 
@@ -4296,13 +4339,12 @@ int input_prepare_pk_eq(
     pba->wa_fld = 0.;
 
     do {
-      class_call(background_free_noinput(pba), pba->error_message, errmsg);
-
-      class_call(background_init(ppr,pba), pba->error_message, errmsg);
-      class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z), pba->error_message, errmsg);
-
       Cosmology cosmology{input};
+      const BackgroundModule& background_module = cosmology.GetBackgroundModule();
       const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
+
+      class_call(background_module.background_tau_of_z(z[index_pk_eq_z], &tau_of_z), pba->error_message, errmsg);
+
 
       delta_tau_eq = tau_of_z - thermodynamics_module.tau_rec_;
 
@@ -4316,18 +4358,14 @@ int input_prepare_pk_eq(
 
     pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w] = pba->w0_fld;
 
-    class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
-    class_call(background_at_tau(pba,
-                                 tau_of_z,
-                                 pba->long_info,
-                                 pba->inter_normal,
-                                 &last_index,
-                                 pvecback),
-               pba->error_message, errmsg);
-    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_Omega_m] = pvecback[pba->index_bg_Omega_m];
+    class_alloc(pvecback, background_module.bg_size_*sizeof(double), pba->error_message);
+    class_call(background_module.background_at_tau(tau_of_z, pba->long_info, pba->inter_normal, &last_index, pvecback),
+               pba->error_message,
+               errmsg);
+    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z + pnl->index_pk_eq_Omega_m] = pvecback[background_module.index_bg_Omega_m_];
     free(pvecback);
 
-    class_call(background_free_noinput(pba), pba->error_message, errmsg);
+    class_call(const_cast<BackgroundModule&>(background_module).background_free_noinput(), pba->error_message, errmsg);
 
   }
 

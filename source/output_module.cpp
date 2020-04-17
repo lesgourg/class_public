@@ -16,8 +16,9 @@
 #include "output_module.h"
 #include "exceptions.h"
 
-OutputModule::OutputModule(const Input& input, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
+OutputModule::OutputModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
 : BaseModule(input)
+, background_module_(background_module)
 , thermodynamics_module_(thermodynamics_module)
 , perturbations_module_(perturbations_module)
 , primordial_module_(primordial_module)
@@ -976,16 +977,14 @@ int OutputModule::output_background() {
   double * data;
   int size_data, number_of_titles;
 
-  class_call(background_output_titles(const_cast<background*>(pba), titles),
-             pba->error_message,
+  class_call(background_module_.background_output_titles(titles),
+             background_module_.error_message_,
              error_message_);
   number_of_titles = get_number_of_titles(titles);
-  size_data = number_of_titles*pba->bt_size;
+  size_data = number_of_titles*background_module_.bt_size_;
   class_alloc(data, sizeof(double)*size_data, error_message_);
-  class_call(background_output_data(const_cast<background*>(pba),
-                                    number_of_titles,
-                                    data),
-             pba->error_message,
+  class_call(background_module_.background_output_data(number_of_titles, data),
+             background_module_.error_message_,
              error_message_);
 
   sprintf(file_name,"%s%s",pop->root,"background.dat");

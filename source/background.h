@@ -146,21 +146,9 @@ struct background
   //@{
 
   double h; /**< reduced Hubble parameter */
-  double age; /**< age in Gyears */
-  double conformal_age; /**< conformal age in Mpc */
   double K; /**< \f$ K \f$: Curvature parameter \f$ K=-\Omega0_k*a_{today}^2*H_0^2\f$; */
   int sgnK; /**< K/|K|: -1, 0 or 1 */
   double * m_ncdm_in_eV; /**< list of ncdm masses in eV (inferred from M_ncdm and other parameters above) */
-  double Neff; /**< so-called "effective neutrino number", computed at earliest time in interpolation table */
-  double Omega0_dcdm; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
-  double Omega0_dr; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
-  double Omega0_m;  /**< total non-relativistic matter today */
-  double Omega0_r;  /**< total ultra-relativistic radiation today */
-  double Omega0_de; /**< total dark energy density today, currently defined as 1 - Omega0_m - Omega0_r - Omega0_k */
-  double a_eq;      /**< scale factor at radiation/matter equality */
-  double H_eq;      /**< Hubble rate at radiation/matter equality [Mpc^-1] */
-  double z_eq;      /**< redshift at radiation/matter equality */
-  double tau_eq;    /**< conformal time at radiation/matter equality [Mpc] */
 
   //@}
 
@@ -169,118 +157,6 @@ struct background
   //@{
 
   double a_today; /**< scale factor today (arbitrary and irrelevant for most purposes) */
-
-  //@}
-
-  /** @name - all indices for the vector of background (=bg) quantities stored in table */
-
-  //@{
-
-  int index_bg_a;             /**< scale factor */
-  int index_bg_H;             /**< Hubble parameter in \f$Mpc^{-1}\f$ */
-  int index_bg_H_prime;       /**< its derivative w.r.t. conformal time */
-
-  /* end of vector in short format, now quantities in normal format */
-
-  int index_bg_rho_g;         /**< photon density */
-  int index_bg_rho_b;         /**< baryon density */
-  int index_bg_rho_cdm;       /**< cdm density */
-  int index_bg_rho_lambda;    /**< cosmological constant density */
-  int index_bg_rho_fld;       /**< fluid density */
-  int index_bg_w_fld;         /**< fluid equation of state */
-  int index_bg_rho_ur;        /**< relativistic neutrinos/relics density */
-  int index_bg_rho_idm_dr;    /**< density of dark matter interacting with dark radiation */
-  int index_bg_rho_idr;       /**< density of interacting dark radiation */
-  int index_bg_rho_dcdm;      /**< dcdm density */
-  int index_bg_rho_dr;        /**< dr density */
-
-  int index_bg_phi_scf;       /**< scalar field value */
-  int index_bg_phi_prime_scf; /**< scalar field derivative wrt conformal time */
-  int index_bg_V_scf;         /**< scalar field potential V */
-  int index_bg_dV_scf;        /**< scalar field potential derivative V' */
-  int index_bg_ddV_scf;       /**< scalar field potential second derivative V'' */
-  int index_bg_rho_scf;       /**< scalar field energy density */
-  int index_bg_p_scf;         /**< scalar field pressure */
-  int index_bg_p_prime_scf;         /**< scalar field pressure */
-
-  int index_bg_rho_ncdm1;     /**< density of first ncdm species (others contiguous) */
-  int index_bg_p_ncdm1;       /**< pressure of first ncdm species (others contiguous) */
-  int index_bg_pseudo_p_ncdm1;/**< another statistical momentum useful in ncdma approximation */
-
-  int index_bg_rho_tot;       /**< Total density */
-  int index_bg_p_tot;         /**< Total pressure */
-  int index_bg_p_tot_prime;   /**< Conf. time derivative of total pressure */
-
-  int index_bg_Omega_r;       /**< relativistic density fraction (\f$ \Omega_{\gamma} + \Omega_{\nu r} \f$) */
-
-  /* end of vector in normal format, now quantities in long format */
-
-  int index_bg_rho_crit;      /**< critical density */
-  int index_bg_Omega_m;       /**< non-relativistic density fraction (\f$ \Omega_b + \Omega_cdm + \Omega_{\nu nr} \f$) */
-  int index_bg_conf_distance; /**< conformal distance (from us) in Mpc */
-  int index_bg_ang_distance;  /**< angular diameter distance in Mpc */
-  int index_bg_lum_distance;  /**< luminosity distance in Mpc */
-  int index_bg_time;          /**< proper (cosmological) time in Mpc */
-  int index_bg_rs;            /**< comoving sound horizon in Mpc */
-
-  int index_bg_D;             /**< scale independent growth factor D(a) for CDM perturbations */
-  int index_bg_f;             /**< corresponding velocity growth factor [dlnD]/[dln a] */
-
-  int bg_size_short;  /**< size of background vector in the "short format" */
-  int bg_size_normal; /**< size of background vector in the "normal format" */
-  int bg_size;        /**< size of background vector in the "long format" */
-
-  //@}
-
-  /** @name - background interpolation tables */
-
-  //@{
-
-  int bt_size;               /**< number of lines (i.e. time-steps) in the array */
-  double * tau_table;        /**< vector tau_table[index_tau] with values of \f$ \tau \f$ (conformal time) */
-  double * z_table;          /**< vector z_table[index_tau] with values of \f$ z \f$ (redshift) */
-  double * background_table; /**< table background_table[index_tau*pba->bg_size+pba->index_bg] with all other quantities (array of size bg_size*bt_size) **/
-
-  //@}
-
-  /** @name - table of their second derivatives, used for spline interpolation */
-
-  //@{
-
-  double * d2tau_dz2_table; /**< vector d2tau_dz2_table[index_tau] with values of \f$ d^2 \tau / dz^2 \f$ (conformal time) */
-  double * d2background_dtau2_table; /**< table d2background_dtau2_table[index_tau*pba->bg_size+pba->index_bg] with values of \f$ d^2 b_i / d\tau^2 \f$ (conformal time) */
-
-  //@}
-
-
-  /** @name - all indices for the vector of background quantities to be integrated (=bi)
-   *
-   * Most background quantities can be immediately inferred from the
-   * scale factor. Only few of them require an integration with
-   * respect to conformal time (in the minimal case, only one quantity needs to
-   * be integrated with time: the scale factor, using the Friedmann
-   * equation). These indices refer to the vector of
-   * quantities to be integrated with time.
-   * {B} quantities are needed by background_functions() while {C} quantities are not.
-   */
-
-  //@{
-
-  int index_bi_a;       /**< {B} scale factor */
-  int index_bi_rho_dcdm;/**< {B} dcdm density */
-  int index_bi_rho_dr;  /**< {B} dr density */
-  int index_bi_rho_fld; /**< {B} fluid density */
-  int index_bi_phi_scf;       /**< {B} scalar field value */
-  int index_bi_phi_prime_scf; /**< {B} scalar field derivative wrt conformal time */
-
-  int index_bi_time;    /**< {C} proper (cosmological) time in Mpc */
-  int index_bi_rs;      /**< {C} sound horizon */
-  int index_bi_tau;     /**< {C} conformal time in Mpc */
-  int index_bi_D;       /**< {C} scale independent growth factor D(a) for CDM perturbations. */
-  int index_bi_D_prime; /**< {C} D satisfies \f$ [D''(\tau)=-aHD'(\tau)+3/2 a^2 \rho_M D(\tau) \f$ */
-
-  int bi_B_size;        /**< Number of {B} parameters */
-  int bi_size;          /**< Number of {B}+{C} parameters */
 
   //@}
 
@@ -359,20 +235,6 @@ struct background
 };
 
 /**
- * temporary parameters and workspace passed to the background_derivs function
- */
-
-struct background_parameters_and_workspace {
-
-  /* structures containing fixed input parameters (indices, ...) */
-  struct background * pba;
-
-  /* workspace */
-  double * pvecback;
-
-};
-
-/**
  * temporary parameters and workspace passed to phase space distribution function
  */
 
@@ -394,66 +256,15 @@ struct background_parameters_for_distributions {
   int last_index;
 
 };
-
-/**************************************************************/
-/* @cond INCLUDE_WITH_DOXYGEN */
 /*
  * Boilerplate for C++
  */
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-  int background_at_tau(
-			struct background *pba,
-			double tau,
-			short return_format,
-			short inter_mode,
-			int * last_index,
-			double * pvecback
-			);
-
-  int background_tau_of_z(
-                          struct background *pba,
-                          double z,
-                          double * tau
-                          );
-
-  int background_functions(
-			   struct background *pba,
-			   double * pvecback_B,
-			   short return_format,
-			   double * pvecback
-			   );
-
-  int background_w_fld(
-                       struct background * pba,
-                       double a,
-                       double * w_fld,
-                       double * dw_over_da_fld,
-                       double * integral_fld);
-
-  int background_init(
-		      struct precision *ppr,
-		      struct background *pba
-		      );
-
-  int background_free(
-		      struct background *pba
-		      );
-
   int background_free_input(
                             struct background *pba
                             );
-
-  int background_free_noinput(
-                    struct background *pba
-                    );
-
-  int background_indices(
-			 struct background *pba
-			 );
-
   int background_ncdm_distribution(
 				  void *pba,
 				  double q,
@@ -491,75 +302,9 @@ extern "C" {
 				    struct background *pba,
 					int species
 				    );
-
-  int background_solve(
-		       struct precision *ppr,
-		       struct background *pba
-		       );
-
-  int background_initial_conditions(
-				    struct precision *ppr,
-				    struct background *pba,
-				    double * pvecback,
-				    double * pvecback_integration
-				    );
-
-  int background_find_equality(
-                               struct precision *ppr,
-                               struct background *pba
-                               );
-
-  int background_output_titles(struct background * pba,
-                               char titles[_MAXTITLESTRINGLENGTH_]
-                               );
-
-  int background_output_data(
-                           struct background *pba,
-                           int number_of_titles,
-                           double *data);
-
-  int background_derivs(
-			 double z,
-			 double * y,
-			 double * dy,
-			 void * parameters_and_workspace,
-			 ErrorMsg error_message
-			 );
-
-  /** Scalar field potential and its derivatives **/
-  double V_scf(
-               struct background *pba,
-               double phi
-               );
-
-  double dV_scf(
-		struct background *pba,
-		double phi
-		);
-
-  double ddV_scf(
-                 struct background *pba,
-                 double phi
-                 );
-
-  /** Coupling between scalar field and matter **/
-  double Q_scf(
-               struct background *pba,
-               double phi,
-               double phi_prime
-               );
-
-  /** Budget equation output */
-  int background_output_budget(
-               struct background* pba
-               );
-
 #ifdef __cplusplus
 }
 #endif
-
-/**************************************************************/
-
 /**
  * @name Some conversion factors and fundamental constants needed by background module:
  */
