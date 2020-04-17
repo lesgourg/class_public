@@ -496,9 +496,9 @@ extern "C" {
                            struct thermo* pth,
                            struct thermo_workspace* ptw);
 
-  int thermodynamics_test_parameters(struct precision * ppr,
-                                     struct background* pba,
-                                     struct thermo * pth);
+  int thermodynamics_checks(struct precision * ppr,
+                            struct background* pba,
+                            struct thermo * pth);
 
   int thermodynamics_free(struct thermo * pth);
 
@@ -514,12 +514,6 @@ extern "C" {
                                            struct thermo * pth,
                                            struct thermo_reionization_parameters * preio,
                                            double * x);
-
-  int thermodynamics_reionization_function_old(double z,
-                                           struct thermo * pth,
-                                           struct thermo_reionization_parameters * preio,
-                                           double * x,
-                                           double * dx);
 
   int thermodynamics_solve(struct precision * ppr,
                            struct background * pba,
@@ -574,15 +568,6 @@ extern "C" {
                                           struct thermo * pth,
                                           struct thermo_workspace * ptw);
 
-  int thermodynamics_set_approximation_limits(struct precision * ppr,
-                                              struct background * pba,
-                                              struct thermo * pth,
-                                              struct thermo_workspace* ptw,
-                                              double mz_ini,
-                                              double mz_end,
-                                              int* interval_number,
-                                              double * interval_limit);
-
   int thermodynamics_sources(double mz,
                              double * y,
                              double * dy,
@@ -635,14 +620,8 @@ extern "C" {
                                                struct thermo* pth,
                                                double* pvecback);
 
-  int thermodynamics_print_output(struct background* pba,
-                                  struct thermo* pth);
-
-  int thermodynamics_x_analytic(double z,
-                              struct precision * ppr,
-                              struct thermo * pth,
-                              struct thermo_workspace * ptw,
-                              int current_ap);
+  int thermodynamics_output_summary(struct background* pba,
+                                    struct thermo* pth);
 
 
 #ifdef __cplusplus

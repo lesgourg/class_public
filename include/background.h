@@ -468,10 +468,10 @@ extern "C" {
                                    int species
                                    );
 
-  int background_check(
-                       struct precision * ppr,
-                       struct background *pba
-                       );
+  int background_checks(
+                        struct precision * ppr,
+                        struct background *pba
+                        );
 
   int background_solve(
                        struct precision *ppr,

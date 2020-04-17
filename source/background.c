@@ -771,7 +771,7 @@ int background_init(
              pba->error_message);
 
   /** - check that input parameters make sense and write additional information about them */
-  class_call(background_check(ppr,pba),
+  class_call(background_checks(ppr,pba),
              pba->error_message,
              pba->error_message);
 
@@ -1663,10 +1663,10 @@ int background_ncdm_M_from_Omega(
  * @return the error status
 */
 
-int background_check(
-                     struct precision* ppr,
-                     struct background* pba
-                     ) {
+int background_checks(
+                      struct precision* ppr,
+                      struct background* pba
+                      ) {
 
   /** - define local variables */
   int n_ncdm;

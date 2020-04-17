@@ -1923,8 +1923,15 @@ int input_read_parameters_general(struct file_content * pfc,
     }
   }
 
+  switch (pth->reio_parametrization) {
+
+  case reio_none:
+    /* nothing to be read*/
+    break;
+
   /** 8.a) Reionization parameters if reio_parametrization=reio_camb */
-  if ((pth->reio_parametrization == reio_camb) || (pth->reio_parametrization == reio_half_tanh)){
+  case reio_camb:
+  case reio_half_tanh:
     /* Read */
     class_call(parser_read_double(pfc,"z_reio",&param1,&flag1,errmsg),
                errmsg,
@@ -1949,34 +1956,38 @@ int input_read_parameters_general(struct file_content * pfc,
       pth->tau_reio=param2;
       pth->reio_z_or_tau=reio_tau;
     }
-  }
+    break;
 
-  if (pth->reio_parametrization == reio_bins_tanh){
     /** 8.b) Reionization parameters if reio_parametrization=reio_bins_tanh */
+  case reio_bins_tanh:
     /* Read */
     class_read_int("binned_reio_num",pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_z",pth->binned_reio_z,pth->binned_reio_num);
     class_read_list_of_doubles("binned_reio_xe",pth->binned_reio_xe,pth->binned_reio_num);
     class_read_double("binned_reio_step_sharpness",pth->binned_reio_step_sharpness);
-  }
+    break;
 
-  if (pth->reio_parametrization == reio_many_tanh){
     /** 8.c) reionization parameters if reio_parametrization=reio_many_tanh */
+  case reio_many_tanh:
     /* Read */
     class_read_int("many_tanh_num",pth->many_tanh_num);
     class_read_list_of_doubles("many_tanh_z",pth->many_tanh_z,pth->many_tanh_num);
     class_read_list_of_doubles("many_tanh_xe",pth->many_tanh_xe,pth->many_tanh_num);
     class_read_double("many_tanh_width",pth->many_tanh_width);
-  }
+    break;
 
-  if (pth->reio_parametrization == reio_inter){
     /** 8.d) reionization parameters if reio_parametrization=reio_many_tanh */
+  case reio_inter:
     /* Read */
     class_read_int("reio_inter_num",pth->reio_inter_num);
     class_read_list_of_doubles("reio_inter_z",pth->reio_inter_z,pth->reio_inter_num);
     class_read_list_of_doubles("reio_inter_xe",pth->reio_inter_xe,pth->reio_inter_num);
-  }
+    break;
 
+  default:
+    class_stop(pth->error_message,"pth->recombination=%d different from all known cases",pth->recombination);
+    break;
+  }
 
   /** 9) Damping scale */
   /* Read */
