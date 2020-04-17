@@ -27,8 +27,9 @@
 #include "perturbations_module.h"
 #include "thread_pool.h"
 
-PerturbationsModule::PerturbationsModule(const Input& input)
-: BaseModule(input) {
+PerturbationsModule::PerturbationsModule(const Input& input, const ThermodynamicsModule& thermodynamics_module)
+: BaseModule(input)
+, thermodynamics_module_(thermodynamics_module) {
   ThrowInvalidArgumentIf(perturb_init() != _SUCCESS_, error_message_);
 }
 
@@ -620,19 +621,19 @@ int PerturbationsModule::perturb_init() {
              error_message_);
 
 
-  if (ppt->z_max_pk > pth->z_rec) {
+  if (ppt->z_max_pk > thermodynamics_module_.z_rec_) {
 
     class_test(has_cmb_ == _TRUE_,
                error_message_,
                "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you don't ask for a calculation of the CMB source function(s). Remove any CMB from your output and try e.g. with 'output=mTk' or 'output=mTk,vTk'",
                ppt->z_max_pk,
-               pth->z_rec);
+               thermodynamics_module_.z_rec_);
 
     class_test(has_source_delta_m_ == _TRUE_,
                error_message_,
                "You requested a very high z_pk=%e, higher than z_rec=%e. This works very well when you ask only transfer functions, e.g. with 'output=mTk' or 'output=mTk,vTk'. But if you need the total matter (e.g. with 'mPk', 'dCl', etc.) there is an issue with the calculation of delta_m at very early times. By default, delta_m is a gauge-invariant variable (the density fluctuation in comoving gauge) and this quantity is hard to get accurately at very early times. The solution is to define delta_m as the density fluctuation in the current gauge, synchronous or newtonian. For the moment this must be done manually by commenting the line 'ppw->delta_m += 3. *ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H] * ppw->theta_m/k2;' in perturb_sources(). In the future there will be an option for doing it in an easier way.",
                ppt->z_max_pk,
-               pth->z_rec);
+               thermodynamics_module_.z_rec_);
 
   }
 
@@ -1275,7 +1276,7 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
   /** - allocate background/thermodynamics vectors */
 
   class_alloc(pvecback, pba->bg_size_short*sizeof(double), error_message_);
-  class_alloc(pvecthermo, pth->th_size*sizeof(double), error_message_);
+  class_alloc(pvecthermo, thermodynamics_module_.th_size_*sizeof(double), error_message_);
 
   /** - first, just count the number of sampling points in order to allocate the array containing all values */
 
@@ -1293,7 +1294,7 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
        to Hubble time scales tau_c/tau_h=aH/kappa' is equal to
        start_sources_at_tau_c_over_tau_h */
 
-    tau_lower = pth->tau_ini;
+    tau_lower = thermodynamics_module_.tau_ini_;
 
     class_call(background_at_tau(const_cast<background*>(pba),
                                  tau_lower,
@@ -1304,26 +1305,24 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                pba->error_message,
                error_message_);
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   pth->inter_normal,
-                                   &first_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                                          thermodynamics_module_.inter_normal_,
+                                                          &first_index_thermo,
+                                                          pvecback,
+                                                          pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
 
     class_test(pvecback[pba->index_bg_a]*
                pvecback[pba->index_bg_H]/
-               pvecthermo[pth->index_th_dkappa] >
+               pvecthermo[thermodynamics_module_.index_th_dkappa_] >
                ppr->start_sources_at_tau_c_over_tau_h,
                error_message_,
                "your choice of initial time for computing sources is inappropriate: it corresponds to an earlier time than the one at which the integration of thermodynamical variables started (tau=%g). You should increase either 'start_sources_at_tau_c_over_tau_h' or 'recfast_z_initial'\n",
                tau_lower);
 
 
-    tau_upper = pth->tau_rec;
+    tau_upper = thermodynamics_module_.tau_rec_;
 
     class_call(background_at_tau(const_cast<background*>(pba),
                                  tau_upper,
@@ -1334,20 +1333,15 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                pba->error_message,
                error_message_);
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   pth->inter_normal,
-                                   &first_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                          thermodynamics_module_.inter_normal_,
+                                                          &first_index_thermo,
+                                                          pvecback,
+                                                          pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
 
-    class_test(pvecback[pba->index_bg_a]*
-               pvecback[pba->index_bg_H]/
-               pvecthermo[pth->index_th_dkappa] <
-               ppr->start_sources_at_tau_c_over_tau_h,
+    class_test(pvecback[pba->index_bg_a]*pvecback[pba->index_bg_H]/pvecthermo[thermodynamics_module_.index_th_dkappa_] < ppr->start_sources_at_tau_c_over_tau_h,
                error_message_,
                "your choice of initial time for computing sources is inappropriate: it corresponds to a time after recombination. You should decrease 'start_sources_at_tau_c_over_tau_h'\n");
 
@@ -1364,20 +1358,18 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                  pba->error_message,
                  error_message_);
 
-      class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                     const_cast<thermo*>(pth),
-                                     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                     pth->inter_normal,
-                                     &first_index_thermo,
-                                     pvecback,
-                                     pvecthermo),
-                 pth->error_message,
+      class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                            thermodynamics_module_.inter_normal_,
+                                                            &first_index_thermo,
+                                                            pvecback,
+                                                            pvecthermo),
+                 thermodynamics_module_.error_message_,
                  error_message_);
 
 
       if (pvecback[pba->index_bg_a]*
           pvecback[pba->index_bg_H]/
-          pvecthermo[pth->index_th_dkappa] >
+          pvecthermo[thermodynamics_module_.index_th_dkappa_] >
           ppr->start_sources_at_tau_c_over_tau_h)
 
         tau_upper = tau_mid;
@@ -1401,7 +1393,7 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                error_message_);
 
     /* obsolete: previous choice was to start always at recombination time */
-    /* tau_ini = pth->tau_rec; */
+    /* tau_ini = thermodynamics_module_.tau_rec_; */
 
     /* set values of first_index_back/thermo */
     class_call(background_at_tau(const_cast<background*>(pba),
@@ -1413,14 +1405,12 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                pba->error_message,
                error_message_);
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   pth->inter_normal,
-                                   &first_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                          thermodynamics_module_.inter_normal_,
+                                                          &first_index_thermo,
+                                                          pvecback,
+                                                          pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
   }
 
@@ -1449,20 +1439,18 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                pba->error_message,
                error_message_);
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   pth->inter_closeby,
-                                   &last_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                                          thermodynamics_module_.inter_closeby_,
+                                                          &last_index_thermo,
+                                                          pvecback,
+                                                          pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
 
     if (has_cmb_ == _TRUE_) {
 
       /* variation rate of thermodynamics variables */
-      rate_thermo = pvecthermo[pth->index_th_rate];
+      rate_thermo = pvecthermo[thermodynamics_module_.index_th_rate_];
 
       /* variation rate of metric due to late ISW effect (important at late times) */
       a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
@@ -1532,20 +1520,18 @@ int PerturbationsModule::perturb_timesampling_for_sources() {
                pba->error_message,
                error_message_);
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   pth->inter_closeby,
-                                   &last_index_thermo,
-                                   pvecback,
-                                   pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
+                                                          thermodynamics_module_.inter_closeby_,
+                                                          &last_index_thermo,
+                                                          pvecback,
+                                                          pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
 
     if (has_cmb_ == _TRUE_) {
 
       /* variation rate of thermodynamics variables */
-      rate_thermo = pvecthermo[pth->index_th_rate];
+      rate_thermo = pvecthermo[thermodynamics_module_.index_th_rate_];
 
       /* variation rate of metric due to late ISW effect (important at late times) */
       a_prime_over_a = pvecback[pba->index_bg_H] * pvecback[pba->index_bg_a];
@@ -1692,7 +1678,7 @@ int PerturbationsModule::perturb_get_k_list() {
              error_message_,
              "stop to avoid division by zero");
 
-  class_test(pth->rs_rec == 0.,
+  class_test(thermodynamics_module_.rs_rec_ == 0.,
              error_message_,
              "stop to avoid division by zero");
 
@@ -1733,7 +1719,7 @@ int PerturbationsModule::perturb_get_k_list() {
       /* K<0 (open)  : start close to sqrt(-K)
          (in transfer modules, for scalars, this will correspond to q close to zero;
          for vectors and tensors, this value is even smaller than the minimum necessary value) */
-      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
+      k_min = sqrt(-pba->K + pow(ppr->k_min_tau0/pba->conformal_age/thermodynamics_module_.angular_rescaling_, 2));
 
     }
     else if (pba->sgnK == 1) {
@@ -1743,7 +1729,7 @@ int PerturbationsModule::perturb_get_k_list() {
 
     /** - --> find k_max (as well as k_max_cmb[index_md_scalars_], k_max_cl[index_md_scalars_]) */
 
-    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+    k_rec = 2.*_PI_/thermodynamics_module_.rs_rec_; /* comoving scale corresponding to sound horizon at recombination */
 
     k_max_cmb[index_md_scalars_] = k_min;
     k_max_cl[index_md_scalars_] = k_min;
@@ -1758,8 +1744,7 @@ int PerturbationsModule::perturb_get_k_list() {
          pi/lmax: this is equivalent to
          k_max_cl[index_md_scalars_]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[index_md_scalars_] = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max
-        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cmb[index_md_scalars_] = ppr->k_max_tau0_over_l_max*ppt->l_scalar_max/pba->conformal_age/thermodynamics_module_.angular_rescaling_;
       k_max_cl[index_md_scalars_] = k_max_cmb[index_md_scalars_];
       k_max = k_max_cmb[index_md_scalars_];
 
@@ -1942,7 +1927,7 @@ int PerturbationsModule::perturb_get_k_list() {
       /* K<0 (open)  : start close to sqrt(-K)
          (in transfer modules, for scalars, this will correspond to q close to zero;
          for vectors and tensors, this value is even smaller than the minimum necessary value) */
-      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
+      k_min = sqrt(-pba->K + pow(ppr->k_min_tau0/pba->conformal_age/thermodynamics_module_.angular_rescaling_, 2));
 
     }
     else if (pba->sgnK == 1) {
@@ -1952,7 +1937,7 @@ int PerturbationsModule::perturb_get_k_list() {
 
     /** - --> find k_max (as well as k_max_cmb[index_md_vectors_], k_max_cl[index_md_vectors_]) */
 
-    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+    k_rec = 2.*_PI_/thermodynamics_module_.rs_rec_; /* comoving scale corresponding to sound horizon at recombination */
 
     k_max_cmb[index_md_vectors_] = k_min;
     k_max_cl[index_md_vectors_] = k_min;
@@ -1967,8 +1952,7 @@ int PerturbationsModule::perturb_get_k_list() {
          pi/lmax: this is equivalent to
          k_max_cl*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[index_md_vectors_] = ppr->k_max_tau0_over_l_max*ppt->l_vector_max
-        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cmb[index_md_vectors_] = ppr->k_max_tau0_over_l_max*ppt->l_vector_max/pba->conformal_age/thermodynamics_module_.angular_rescaling_;
       k_max_cl[index_md_vectors_] = k_max_cmb[index_md_vectors_];
       k_max = k_max_cmb[index_md_vectors_];
     }
@@ -2076,7 +2060,7 @@ int PerturbationsModule::perturb_get_k_list() {
       /* K<0 (open)  : start close to sqrt(-K)
          (in transfer modules, for scalars, this will correspond to q close to zero;
          for vectors and tensors, this value is even smaller than the minimum necessary value) */
-      k_min=sqrt(-pba->K+pow(ppr->k_min_tau0/pba->conformal_age/pth->angular_rescaling,2));
+      k_min = sqrt(-pba->K + pow(ppr->k_min_tau0/pba->conformal_age/thermodynamics_module_.angular_rescaling_, 2));
 
     }
     else if (pba->sgnK == 1) {
@@ -2086,7 +2070,7 @@ int PerturbationsModule::perturb_get_k_list() {
 
     /** - --> find k_max (as well as k_max_cmb[index_md_tensors_], k_max_cl[index_md_tensors_]) */
 
-    k_rec = 2. * _PI_ / pth->rs_rec; /* comoving scale corresponding to sound horizon at recombination */
+    k_rec =2.*_PI_/thermodynamics_module_.rs_rec_; /* comoving scale corresponding to sound horizon at recombination */
 
     k_max_cmb[index_md_tensors_] = k_min;
     k_max_cl[index_md_tensors_] = k_min;
@@ -2101,8 +2085,7 @@ int PerturbationsModule::perturb_get_k_list() {
          pi/lmax: this is equivalent to
          k_max_cl[index_md_tensors_]*[comvoving.ang.diameter.distance] > l_max */
 
-      k_max_cmb[index_md_tensors_] = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max
-        /pba->conformal_age/pth->angular_rescaling;
+      k_max_cmb[index_md_tensors_] = ppr->k_max_tau0_over_l_max*ppt->l_tensor_max/pba->conformal_age/thermodynamics_module_.angular_rescaling_;
       k_max_cl[index_md_tensors_] = k_max_cmb[index_md_tensors_];
       k_max = k_max_cmb[index_md_tensors_];
     }
@@ -2401,7 +2384,7 @@ int PerturbationsModule::perturb_workspace_init(int index_md, perturb_workspace*
       quantities at a given time */
 
   class_alloc(ppw->pvecback, pba->bg_size_normal*sizeof(double), error_message_);
-  class_alloc(ppw->pvecthermo, pth->th_size*sizeof(double), error_message_);
+  class_alloc(ppw->pvecthermo, thermodynamics_module_.th_size_*sizeof(double), error_message_);
   class_alloc(ppw->pvecmetric, ppw->mt_size*sizeof(double), error_message_);
 
   /** - count number of approximations, initialize their indices, and allocate their flags */
@@ -2618,26 +2601,22 @@ int PerturbationsModule::perturb_solve(int index_md, int index_ic, int index_k, 
              pba->error_message,
              error_message_);
 
-  class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                 const_cast<thermo*>(pth),
-                                 1./ppw->pvecback[pba->index_bg_a]-1.,
-                                 pth->inter_normal,
-                                 &(ppw->last_index_thermo),
-                                 ppw->pvecback,
-                                 ppw->pvecthermo),
-             pth->error_message,
+  class_call(thermodynamics_module_.thermodynamics_at_z(1./ppw->pvecback[pba->index_bg_a]-1.,
+                                                        thermodynamics_module_.inter_normal_,
+                                                        &(ppw->last_index_thermo),
+                                                        ppw->pvecback,
+                                                        ppw->pvecthermo),
+             thermodynamics_module_.error_message_,
              error_message_);
 
   /* check that this initial time is indeed OK given imposed
      conditions on kappa' and on k/aH */
 
-  class_test(ppw->pvecback[pba->index_bg_a]*
-             ppw->pvecback[pba->index_bg_H]/
-             ppw->pvecthermo[pth->index_th_dkappa] >
+  class_test(ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H]/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_] >
              ppr->start_small_k_at_tau_c_over_tau_h, error_message_, "your choice of initial time for integrating wavenumbers is inappropriate: it corresponds to a time before that at which the background has been integrated. You should increase 'start_small_k_at_tau_c_over_tau_h' up to at least %g, or decrease 'a_ini_over_a_today_default'\n",
              ppw->pvecback[pba->index_bg_a]*
              ppw->pvecback[pba->index_bg_H]/
-             ppw->pvecthermo[pth->index_th_dkappa]);
+             ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]);
 
   class_test(k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] >
              ppr->start_large_k_at_tau_h_over_tau_k,
@@ -2687,22 +2666,17 @@ int PerturbationsModule::perturb_solve(int index_md, int index_ic, int index_k, 
     /* also check that the two conditions on (aH/kappa') and (aH/k) are fulfilled */
     if (is_early_enough == _TRUE_) {
 
-      class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                     const_cast<thermo*>(pth),
-                                     1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                     pth->inter_normal,
-                                     &(ppw->last_index_thermo),
-                                     ppw->pvecback,
-                                     ppw->pvecthermo),
-                 pth->error_message,
+      class_call(thermodynamics_module_.thermodynamics_at_z(1./ppw->pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                            thermodynamics_module_.inter_normal_,
+                                                            &(ppw->last_index_thermo),
+                                                            ppw->pvecback,
+                                                            ppw->pvecthermo),
+                 thermodynamics_module_.error_message_,
                  error_message_);
 
-      if ((ppw->pvecback[pba->index_bg_a]*
-           ppw->pvecback[pba->index_bg_H]/
-           ppw->pvecthermo[pth->index_th_dkappa] >
-           ppr->start_small_k_at_tau_c_over_tau_h) ||
-          (k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] >
-           ppr->start_large_k_at_tau_h_over_tau_k))
+      if ((ppw->pvecback[pba->index_bg_a]*ppw->pvecback[pba->index_bg_H]/
+           ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_] > ppr->start_small_k_at_tau_c_over_tau_h) ||
+          (k/ppw->pvecback[pba->index_bg_a]/ppw->pvecback[pba->index_bg_H] > ppr->start_large_k_at_tau_h_over_tau_k))
 
         is_early_enough = _FALSE_;
     }
@@ -3979,11 +3953,11 @@ int PerturbationsModule::perturb_vector_init(
            approximation is switched off) */
         ppv->y[ppv->index_pt_shear_g] = ppw->tca_shear_g;
 
-        ppv->y[ppv->index_pt_l3_g] = 6./7.*k/ppw->pvecthermo[pth->index_th_dkappa]*ppw->s_l[3]*ppv->y[ppv->index_pt_shear_g];        /* second-order tight-coupling approximation for l=3 */
+        ppv->y[ppv->index_pt_l3_g] = 6./7.*k/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*ppw->s_l[3]*ppv->y[ppv->index_pt_shear_g];        /* second-order tight-coupling approximation for l=3 */
         ppv->y[ppv->index_pt_pol0_g] = 2.5*ppv->y[ppv->index_pt_shear_g];                                                            /* first-order tight-coupling approximation for polarization, l=0 */
-        ppv->y[ppv->index_pt_pol1_g] = k/ppw->pvecthermo[pth->index_th_dkappa]*(5.-2.*ppw->s_l[2])/6.*ppv->y[ppv->index_pt_shear_g]; /* second-order tight-coupling approximation for polarization, l=1 */
+        ppv->y[ppv->index_pt_pol1_g] = k/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*(5. - 2.*ppw->s_l[2])/6.*ppv->y[ppv->index_pt_shear_g]; /* second-order tight-coupling approximation for polarization, l=1 */
         ppv->y[ppv->index_pt_pol2_g] = 0.5*ppv->y[ppv->index_pt_shear_g];                                                            /* first-order tight-coupling approximation for polarization, l=2 */
-        ppv->y[ppv->index_pt_pol3_g] = k/ppw->pvecthermo[pth->index_th_dkappa]*3.*ppw->s_l[3]/14.*ppv->y[ppv->index_pt_shear_g];     /* second-order tight-coupling approximation for polarization, l=3 */
+        ppv->y[ppv->index_pt_pol3_g] = k/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*3.*ppw->s_l[3]/14.*ppv->y[ppv->index_pt_shear_g];     /* second-order tight-coupling approximation for polarization, l=3 */
 
         if (pba->has_ur == _TRUE_) {
 
@@ -4346,7 +4320,7 @@ int PerturbationsModule::perturb_vector_init(
             /* idr is always free streaming if tca_idm_dr is on */
             if (ppt->idr_nature == idr_free_streaming){
               ppv->y[ppv->index_pt_shear_idr] = ppw->tca_shear_idm_dr;
-              ppv->y[ppv->index_pt_l3_idr] = 6./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[pth->index_th_dmu_idm_dr]/ppt->alpha_idm_dr[1];
+              ppv->y[ppv->index_pt_l3_idr] = 6./7.*k*ppv->y[ppv->index_pt_shear_idr]/ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_]/ppt->alpha_idm_dr[1];
             }
           }
 
@@ -4630,10 +4604,10 @@ int PerturbationsModule::perturb_vector_init(
           fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at tau=%e\n",k,tau);
 
         ppv->y[ppv->index_pt_delta_g] = 0.0; //TBC
-        //-4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        //-4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
         ppv->y[ppv->index_pt_pol0_g] = 0.0; //TBC
-        //1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        //1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_];
       }
 
       /* -- case of switching on radiation streaming
@@ -4719,9 +4693,9 @@ int PerturbationsModule::perturb_vector_init(
         if (ppt->perturbations_verbose>2)
           fprintf(stdout,"Mode k=%e: switch off tight-coupling approximation at tau=%e\n",k,tau);
 
-        ppv->y[ppv->index_pt_delta_g] = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        ppv->y[ppv->index_pt_delta_g] = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
-        ppv->y[ppv->index_pt_pol0_g] = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa];
+        ppv->y[ppv->index_pt_pol0_g] = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_];
       }
 
       /* -- case of switching on radiation streaming
@@ -5540,21 +5514,19 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
 
   if (_scalars_) {
 
-    /** - --> (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
+    /** - --> (a) evaluate thermodynamical quantities with thermodynamics_module_.thermodynamics_at_z() */
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   ppw->inter_mode,
-                                   &(ppw->last_index_thermo),
-                                   ppw->pvecback,
-                                   ppw->pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./ppw->pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                          ppw->inter_mode,
+                                                          &(ppw->last_index_thermo),
+                                                          ppw->pvecback,
+                                                          ppw->pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
 
     /** - ---> (b.1.) if \f$ \kappa'=0 \f$, recombination is finished; tight-coupling approximation must be off */
 
-    if (ppw->pvecthermo[pth->index_th_dkappa] == 0.) {
+    if (ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_] == 0.) {
 
       ppw->approx[ppw->index_ap_tca] = (int)tca_off;
 
@@ -5565,7 +5537,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
     else {
 
       /** - ----> (b.2.a) compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
-      tau_c = 1./ppw->pvecthermo[pth->index_th_dkappa];
+      tau_c = 1./ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
       class_test(tau_c < 0.,
                  error_message_,
@@ -5573,7 +5545,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
                  tau_c,
                  1./ppw->pvecback[pba->index_bg_a]-1.,
                  tau,
-                 ppw->pvecthermo[pth->index_th_xe]);
+                 ppw->pvecthermo[thermodynamics_module_.index_th_xe_]);
 
       /** - ----> (b.2.b) check whether tight-coupling approximation should be on */
 
@@ -5589,21 +5561,21 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
 
     if(pba->has_idm_dr == _TRUE_){
 
-      if(ppw->pvecthermo[pth->index_th_dmu_idm_dr] == 0.){
+      if(ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_] == 0.){
         ppw->approx[ppw->index_ap_tca_idm_dr] = (int)tca_idm_dr_off;
       }
       else{
 
-        class_test(1./ppw->pvecthermo[pth->index_th_dmu_idm_dr] < 0.,
+        class_test(1./ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_] < 0.,
                    error_message_,
                    "negative tau_idm_dr=1/dmu_idm_dr=%e at z=%e, conformal time=%e.\n",
-                   1./ppw->pvecthermo[pth->index_th_dmu_idm_dr],
+                   1./ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_],
                    1./ppw->pvecback[pba->index_bg_a]-1.,
                    tau);
 
-        if ((1./tau_h/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->idm_dr_tight_coupling_trigger_tau_c_over_tau_h) &&
-            (1./tau_k/ppw->pvecthermo[pth->index_th_dmu_idm_dr] < ppr->idm_dr_tight_coupling_trigger_tau_c_over_tau_k) &&
-            (pth->nindex_idm_dr>=2) && (ppt->idr_nature == idr_free_streaming)) {
+        if ((1./tau_h/ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_] < ppr->idm_dr_tight_coupling_trigger_tau_c_over_tau_h) &&
+            (1./tau_k/ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_] < ppr->idm_dr_tight_coupling_trigger_tau_c_over_tau_k) &&
+            (pth->nindex_idm_dr >= 2) && (ppt->idr_nature == idr_free_streaming)) {
           ppw->approx[ppw->index_ap_tca_idm_dr] = (int)tca_idm_dr_on;
         }
         else{
@@ -5616,7 +5588,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
     /** - --> (c) free-streaming approximations */
 
     if ((tau/tau_k > ppr->radiation_streaming_trigger_tau_over_tau_k) &&
-        (tau > pth->tau_free_streaming) &&
+        (tau > thermodynamics_module_.tau_free_streaming_) &&
         (ppr->radiation_streaming_approximation != rsa_none)) {
 
       ppw->approx[ppw->index_ap_rsa] = (int)rsa_on;
@@ -5631,7 +5603,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
       if(pba->has_idm_dr==_TRUE_){
 
         if ((tau/tau_k > ppr->idr_streaming_trigger_tau_over_tau_k) &&
-            ((tau > pth->tau_idr_free_streaming) && (pth->nindex_idm_dr>=2)) &&
+            ((tau > thermodynamics_module_.tau_idr_free_streaming_) && (pth->nindex_idm_dr >= 2)) &&
             (ppr->idr_streaming_approximation != rsa_idr_none)){
 
           ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
@@ -5644,7 +5616,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
 
       else{
         if ((tau/tau_k > ppr->idr_streaming_trigger_tau_over_tau_k) &&
-            (tau > pth->tau_idr_free_streaming) &&
+            (tau > thermodynamics_module_.tau_idr_free_streaming_) &&
             (ppr->idr_streaming_approximation != rsa_idr_none)){
 
           ppw->approx[ppw->index_ap_rsa_idr] = (int)rsa_idr_on;
@@ -5685,21 +5657,19 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
 
   if (_tensors_) {
 
-    /** - --> (a) evaluate thermodynamical quantities with thermodynamics_at_z() */
+    /** - --> (a) evaluate thermodynamical quantities with thermodynamics_module_.thermodynamics_at_z() */
 
-    class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                   const_cast<thermo*>(pth),
-                                   1./ppw->pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                   ppw->inter_mode,
-                                   &(ppw->last_index_thermo),
-                                   ppw->pvecback,
-                                   ppw->pvecthermo),
-               pth->error_message,
+    class_call(thermodynamics_module_.thermodynamics_at_z(1./ppw->pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                          ppw->inter_mode,
+                                                          &(ppw->last_index_thermo),
+                                                          ppw->pvecback,
+                                                          ppw->pvecthermo),
+               thermodynamics_module_.error_message_,
                error_message_);
 
     /** - ---> (b.1.) if \f$ \kappa'=0 \f$, recombination is finished; tight-coupling approximation must be off */
 
-    if (ppw->pvecthermo[pth->index_th_dkappa] == 0.) {
+    if (ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_] == 0.) {
 
       ppw->approx[ppw->index_ap_tca] = (int)tca_off;
 
@@ -5710,7 +5680,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
     else {
 
       /** - ----> (b.2.a) compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
-      tau_c = 1./ppw->pvecthermo[pth->index_th_dkappa];
+      tau_c = 1./ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
       /** - ----> (b.2.b) check whether tight-coupling approximation should be on */
       if ((tau_c/tau_h < ppr->tight_coupling_trigger_tau_c_over_tau_h) &&
@@ -5723,7 +5693,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
     }
 
     if ((tau/tau_k > ppr->radiation_streaming_trigger_tau_over_tau_k) &&
-        (tau > pth->tau_free_streaming) &&
+        (tau > thermodynamics_module_.tau_free_streaming_) &&
         (ppr->radiation_streaming_approximation != rsa_none)) {
 
       ppw->approx[ppw->index_ap_rsa] = (int)rsa_on;
@@ -5746,7 +5716,7 @@ int PerturbationsModule::perturb_approximations(int index_md, double k, double t
  * is a bit special:
  * - fixed parameters and workspaces are passed through a generic pointer.
  *   generic_integrator() doesn't know the content of this pointer.
- * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic
+ * - the error management is a bit special: errors are not written as usual to thermodynamics_module_.error_message_, but to a generic
  *   error_message passed in the list of arguments.
  *
  * @param tau                      Input: conformal time
@@ -5812,21 +5782,19 @@ int PerturbationsModule::perturb_timescale_member(double tau, void* parameters_a
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-      class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                     const_cast<thermo*>(pth),
-                                     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                     ppw->inter_mode,
-                                     &(ppw->last_index_thermo),
-                                     pvecback,
-                                     pvecthermo),
-                 pth->error_message,
+      class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                            ppw->inter_mode,
+                                                            &(ppw->last_index_thermo),
+                                                            pvecback,
+                                                            pvecthermo),
+                 thermodynamics_module_.error_message_,
                  error_message);
 
-      if (pvecthermo[pth->index_th_dkappa] != 0.) {
+      if (pvecthermo[thermodynamics_module_.index_th_dkappa_] != 0.) {
 
         /** - -->  compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
 
-        tau_c = 1./pvecthermo[pth->index_th_dkappa];
+        tau_c = 1./pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
         *timescale = MIN(tau_c,*timescale);
 
@@ -5843,21 +5811,19 @@ int PerturbationsModule::perturb_timescale_member(double tau, void* parameters_a
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-      class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                     const_cast<thermo*>(pth),
-                                     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                     ppw->inter_mode,
-                                     &(ppw->last_index_thermo),
-                                     pvecback,
-                                     pvecthermo),
-                 pth->error_message,
+      class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                            ppw->inter_mode,
+                                                            &(ppw->last_index_thermo),
+                                                            pvecback,
+                                                            pvecthermo),
+                 thermodynamics_module_.error_message_,
                  error_message);
 
-      if (pvecthermo[pth->index_th_dkappa] != 0.) {
+      if (pvecthermo[thermodynamics_module_.index_th_dkappa_] != 0.) {
 
         /** - -->  compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
 
-        tau_c = 1./pvecthermo[pth->index_th_dkappa];
+        tau_c = 1./pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
         *timescale = MIN(tau_c,*timescale);
 
@@ -5873,21 +5839,19 @@ int PerturbationsModule::perturb_timescale_member(double tau, void* parameters_a
 
     if (ppw->approx[ppw->index_ap_tca] == (int)tca_off) {
 
-      class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                     const_cast<thermo*>(pth),
-                                     1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                     ppw->inter_mode,
-                                     &(ppw->last_index_thermo),
-                                     pvecback,
-                                     pvecthermo),
-                 pth->error_message,
+      class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                            ppw->inter_mode,
+                                                            &(ppw->last_index_thermo),
+                                                            pvecback,
+                                                            pvecthermo),
+                 thermodynamics_module_.error_message_,
                  error_message);
 
-      if (pvecthermo[pth->index_th_dkappa] != 0.) {
+      if (pvecthermo[thermodynamics_module_.index_th_dkappa_] != 0.) {
 
         /** - --> compute recombination time scale for photons, \f$ \tau_{\gamma} = 1/ \kappa' \f$ */
 
-        tau_c = 1./pvecthermo[pth->index_th_dkappa];
+        tau_c = 1./pvecthermo[thermodynamics_module_.index_th_dkappa_];
 
         *timescale = MIN(tau_c,*timescale);
 
@@ -6027,7 +5991,7 @@ int PerturbationsModule::perturb_einstein(int index_md, double k, double tau, do
          shear, then correct the total shear */
       if (ppw->approx[ppw->index_ap_tca] == (int)tca_on) {
 
-        shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_g]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
+        shear_g = 16./45./ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*(y[ppw->pv->index_pt_theta_g] + k2*ppw->pvecmetric[ppw->index_mt_alpha]);
 
         ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_g]*shear_g;
 
@@ -6035,7 +5999,8 @@ int PerturbationsModule::perturb_einstein(int index_md, double k, double tau, do
 
       if ((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on)){
 
-        shear_idr = 0.5*8./15./ppw->pvecthermo[pth->index_th_dmu_idm_dr]/ppt->alpha_idm_dr[0]*(y[ppw->pv->index_pt_theta_idr]+k2*ppw->pvecmetric[ppw->index_mt_alpha]);
+        shear_idr = 0.5*8./15./ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_]/ppt->alpha_idm_dr[0]*
+        (y[ppw->pv->index_pt_theta_idr] + k2*ppw->pvecmetric[ppw->index_mt_alpha]);
 
         ppw->rho_plus_p_shear += 4./3.*ppw->pvecback[pba->index_bg_rho_idr]*shear_idr;
       }
@@ -6208,7 +6173,7 @@ int PerturbationsModule::perturb_total_stress_energy(int index_md, double k, dou
 
       /* first-order tight-coupling approximation for photon shear */
       if (ppt->gauge == newtonian) {
-        shear_g = 16./45./ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_g];
+        shear_g = 16./45./ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[ppw->pv->index_pt_theta_g];
       }
       else {
         shear_g = 0.; /* in the synchronous gauge, the expression of
@@ -6248,10 +6213,10 @@ int PerturbationsModule::perturb_total_stress_energy(int index_md, double k, dou
     /** - ---> (a.3.) baryon pressure perturbation */
 
     if ((ppt->has_perturbed_recombination == _TRUE_) &&(ppw->approx[ppw->index_ap_tca] == (int)tca_off)) {
-      delta_p_b_over_rho_b = ppw->pvecthermo[pth->index_th_wb]*(y[ppw->pv->index_pt_delta_b]+ y[ppw->pv->index_pt_perturbed_recombination_delta_temp]);
+      delta_p_b_over_rho_b = ppw->pvecthermo[thermodynamics_module_.index_th_wb_]*(y[ppw->pv->index_pt_delta_b] + y[ppw->pv->index_pt_perturbed_recombination_delta_temp]);
     }
     else {
-      delta_p_b_over_rho_b = ppw->pvecthermo[pth->index_th_cb2]*y[ppw->pv->index_pt_delta_b];
+      delta_p_b_over_rho_b = ppw->pvecthermo[thermodynamics_module_.index_th_cb2_]*y[ppw->pv->index_pt_delta_b];
     }
 
     /** - ---> (a.4.) interacting dark radiation */
@@ -6264,7 +6229,7 @@ int PerturbationsModule::perturb_total_stress_energy(int index_md, double k, dou
         if (ppt->idr_nature == idr_free_streaming){
           if((pba->has_idm_dr == _TRUE_)&&(ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_on)){
             if(ppt->gauge == newtonian)
-              shear_idr = 0.5*(8./15./ppw->pvecthermo[pth->index_th_dmu_idm_dr]/ppt->alpha_idm_dr[0]*(y[ppw->pv->index_pt_theta_idr]));
+              shear_idr = 0.5*(8./15./ppw->pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_]/ppt->alpha_idm_dr[0]*(y[ppw->pv->index_pt_theta_idr]));
             else
               shear_idr = 0.; /* this is set in perturb_einstein, so here it's set to 0 */
           }
@@ -6756,7 +6721,7 @@ int PerturbationsModule::perturb_total_stress_energy(int index_md, double k, dou
  * pointer.
  *
  * - the error management is a bit special: errors are not written as
- * usual to pth->error_message, but to a generic error_message passed
+ * usual to thermodynamics_module_.error_message_, but to a generic error_message passed
  * in the list of arguments.
  *
  * @param tau                      Input: conformal time
@@ -6824,14 +6789,12 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
 
   z = pba->a_today/pvecback[pba->index_bg_a]-1.;
 
-  class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                 const_cast<thermo*>(pth),
-                                 z,  /* redshift z=1/a-1 */
-                                 pth->inter_closeby,
-                                 &(ppw->last_index_thermo),
-                                 pvecback,
-                                 pvecthermo),
-             pth->error_message,
+  class_call(thermodynamics_module_.thermodynamics_at_z(z,
+                                                        thermodynamics_module_.inter_closeby_,
+                                                        &(ppw->last_index_thermo),
+                                                        pvecback,
+                                                        pvecthermo),
+             thermodynamics_module_.error_message_,
              error_message);
 
   a_rel = ppw->pvecback[pba->index_bg_a]/pba->a_today;
@@ -6883,9 +6846,9 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
       /* newtonian gauge: simplest form, not efficient numerically */
       /*
         if (ppt->gauge == newtonian) {
-        _set_source_(index_tp_t0_) = pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_phi_prime] + pvecthermo[pth->index_th_g] * delta_g / 4.;
-        _set_source_(index_tp_t1_) = pvecthermo[pth->index_th_exp_m_kappa] * k* pvecmetric[ppw->index_mt_psi] + pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b]/k;
-        _set_source_(index_tp_t2_) = pvecthermo[pth->index_th_g] * P;
+        _set_source_(index_tp_t0_) = pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_] * pvecmetric[ppw->index_mt_phi_prime] + pvecthermo[thermodynamics_module_.index_th_g_] * delta_g / 4.;
+        _set_source_(index_tp_t1_) = pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_] * k* pvecmetric[ppw->index_mt_psi] + pvecthermo[thermodynamics_module_.index_th_g_] * y[ppw->pv->index_pt_theta_b]/k;
+        _set_source_(index_tp_t2_) = pvecthermo[thermodynamics_module_.index_th_g_] * P;
         }
       */
 
@@ -6893,24 +6856,24 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
 
       if (ppt->gauge == newtonian) {
         _set_source_(index_tp_t0_) =
-          ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g / 4. + pvecmetric[ppw->index_mt_psi])
-          + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_phi]-pvecmetric[ppw->index_mt_psi])
-                          + pvecthermo[pth->index_th_exp_m_kappa] * 2. * pvecmetric[ppw->index_mt_phi_prime])
-          + ppt->switch_dop /k/k * (pvecthermo[pth->index_th_g] * dy[ppw->pv->index_pt_theta_b]
-                                    + pvecthermo[pth->index_th_dg] * y[ppw->pv->index_pt_theta_b]);
+          ppt->switch_sw*pvecthermo[thermodynamics_module_.index_th_g_]*(delta_g/4. + pvecmetric[ppw->index_mt_psi])
+          + switch_isw*(pvecthermo[thermodynamics_module_.index_th_g_]*(y[ppw->pv->index_pt_phi] - pvecmetric[ppw->index_mt_psi])
+                        + pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_]*2.*pvecmetric[ppw->index_mt_phi_prime])
+          + ppt->switch_dop/k/k*(pvecthermo[thermodynamics_module_.index_th_g_]*dy[ppw->pv->index_pt_theta_b]
+                                 + pvecthermo[thermodynamics_module_.index_th_dg_]*y[ppw->pv->index_pt_theta_b]);
 
-        _set_source_(index_tp_t1_) = switch_isw*pvecthermo[pth->index_th_exp_m_kappa]*k*(pvecmetric[ppw->index_mt_psi] - y[ppw->pv->index_pt_phi]);
+        _set_source_(index_tp_t1_) = switch_isw*pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_]*k*(pvecmetric[ppw->index_mt_psi] - y[ppw->pv->index_pt_phi]);
 
-        _set_source_(index_tp_t2_) = ppt->switch_pol*pvecthermo[pth->index_th_g]*P;
+        _set_source_(index_tp_t2_) = ppt->switch_pol*pvecthermo[thermodynamics_module_.index_th_g_]*P;
       }
 
 
       /* synchronous gauge: simplest form, not efficient numerically */
       /*
         if (ppt->gauge == synchronous) {
-        _set_source_(index_tp_t0_) = - pvecthermo[pth->index_th_exp_m_kappa] * pvecmetric[ppw->index_mt_h_prime] / 6. + pvecthermo[pth->index_th_g] / 4. * delta_g;
-        _set_source_(index_tp_t1_) = pvecthermo[pth->index_th_g] * y[ppw->pv->index_pt_theta_b] / k;
-        _set_source_(index_tp_t2_) = pvecthermo[pth->index_th_exp_m_kappa] * k*k* 2./3. * ppw->s_l[2] * pvecmetric[ppw->index_mt_alpha] + pvecthermo[pth->index_th_g] * P;
+        _set_source_(index_tp_t0_) = - pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_] * pvecmetric[ppw->index_mt_h_prime] / 6. + pvecthermo[thermodynamics_module_.index_th_g_] / 4. * delta_g;
+        _set_source_(index_tp_t1_) = pvecthermo[thermodynamics_module_.index_th_g_] * y[ppw->pv->index_pt_theta_b] / k;
+        _set_source_(index_tp_t2_) = pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_] * k*k* 2./3. * ppw->s_l[2] * pvecmetric[ppw->index_mt_alpha] + pvecthermo[thermodynamics_module_.index_th_g_] * P;
         }
       */
 
@@ -6919,23 +6882,23 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
       if (ppt->gauge == synchronous) {
 
         _set_source_(index_tp_t0_) =
-          ppt->switch_sw * pvecthermo[pth->index_th_g] * (delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
-          + switch_isw * (pvecthermo[pth->index_th_g] * (y[ppw->pv->index_pt_eta]
-                                                         - pvecmetric[ppw->index_mt_alpha_prime]
-                                                         - 2 * a_prime_over_a * pvecmetric[ppw->index_mt_alpha])
-                          + pvecthermo[pth->index_th_exp_m_kappa] * 2. * (pvecmetric[ppw->index_mt_eta_prime]
-                                                                          - a_prime_over_a_prime * pvecmetric[ppw->index_mt_alpha]
-                                                                          - a_prime_over_a * pvecmetric[ppw->index_mt_alpha_prime]))
-          + ppt->switch_dop * (pvecthermo[pth->index_th_g] * (dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime])
-                               +pvecthermo[pth->index_th_dg] * (y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]));
+          ppt->switch_sw*pvecthermo[thermodynamics_module_.index_th_g_]*(delta_g/4. + pvecmetric[ppw->index_mt_alpha_prime])
+          + switch_isw*(pvecthermo[thermodynamics_module_.index_th_g_]*(y[ppw->pv->index_pt_eta]
+                                                                        - pvecmetric[ppw->index_mt_alpha_prime]
+                                                                        - 2*a_prime_over_a * pvecmetric[ppw->index_mt_alpha])
+                        + pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_]*2.*(pvecmetric[ppw->index_mt_eta_prime]
+                                                                                       - a_prime_over_a_prime*pvecmetric[ppw->index_mt_alpha]
+                                                                                       - a_prime_over_a*pvecmetric[ppw->index_mt_alpha_prime]))
+          + ppt->switch_dop*(pvecthermo[thermodynamics_module_.index_th_g_]*(dy[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha_prime])
+                             + pvecthermo[thermodynamics_module_.index_th_dg_]*(y[ppw->pv->index_pt_theta_b]/k/k + pvecmetric[ppw->index_mt_alpha]));
 
         _set_source_(index_tp_t1_) =
-          switch_isw * pvecthermo[pth->index_th_exp_m_kappa] * k * (pvecmetric[ppw->index_mt_alpha_prime]
-                                                                    + 2. * a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
-                                                                    - y[ppw->pv->index_pt_eta]);
+          switch_isw*pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_]*k*(pvecmetric[ppw->index_mt_alpha_prime]
+                                                                                 + 2.*a_prime_over_a * pvecmetric[ppw->index_mt_alpha]
+                                                                                 - y[ppw->pv->index_pt_eta]);
 
         _set_source_(index_tp_t2_) =
-          ppt->switch_pol * pvecthermo[pth->index_th_g] * P;
+          ppt->switch_pol * pvecthermo[thermodynamics_module_.index_th_g_]*P;
       }
     }
 
@@ -6947,7 +6910,7 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
          plus sign to comply with the 'historical convention'
          established in CMBFAST and CAMB. */
 
-      _set_source_(index_tp_p_) = sqrt(6.)*pvecthermo[pth->index_th_g]*P;
+      _set_source_(index_tp_p_) = sqrt(6.)*pvecthermo[thermodynamics_module_.index_th_g_]*P;
 
     }
 
@@ -7294,7 +7257,7 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
 
       }
       else {
-        P = 2./5.*_SQRT6_*y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[pth->index_th_dkappa]; //TBC
+        P = 2./5.*_SQRT6_*y[ppw->pv->index_pt_gwdot]/ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]; //TBC
       }
     }
     else {
@@ -7303,7 +7266,7 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
 
     /* tensor temperature */
     if (has_source_t_ == _TRUE_) {
-      _set_source_(index_tp_t2_) = -y[ppw->pv->index_pt_gwdot]*pvecthermo[pth->index_th_exp_m_kappa] + pvecthermo[pth->index_th_g]*P;
+      _set_source_(index_tp_t2_) = -y[ppw->pv->index_pt_gwdot]*pvecthermo[thermodynamics_module_.index_th_exp_m_kappa_] + pvecthermo[thermodynamics_module_.index_th_g_]*P;
     }
 
     /* tensor polarization */
@@ -7314,7 +7277,7 @@ int PerturbationsModule::perturb_sources_member(double tau, double* y, double* d
          plus sign to comply with the 'historical convention'
          established in CMBFAST and CAMB. */
 
-      _set_source_(index_tp_p_) = sqrt(6.)*pvecthermo[pth->index_th_g]*P;
+      _set_source_(index_tp_p_) = sqrt(6.)*pvecthermo[thermodynamics_module_.index_th_g_]*P;
     }
   }
 
@@ -7406,14 +7369,12 @@ int PerturbationsModule::perturb_print_variables_member(double tau, double* y, d
              pba->error_message,
              error_message);
 
-  class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                 const_cast<thermo*>(pth),
-                                 1./pvecback[pba->index_bg_a]-1.,
-                                 pth->inter_closeby,
-                                 &(ppw->last_index_thermo),
-                                 pvecback,
-                                 pvecthermo),
-             pth->error_message,
+  class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,
+                                                        thermodynamics_module_.inter_closeby_,
+                                                        &(ppw->last_index_thermo),
+                                                        pvecback,
+                                                        pvecthermo),
+             thermodynamics_module_.error_message_,
              error_message);
 
   /** - update metric perturbations in this point */
@@ -7454,11 +7415,11 @@ int PerturbationsModule::perturb_print_variables_member(double tau, double* y, d
     if (ppw->approx[ppw->index_ap_rsa]==(int)rsa_off) {
       if (ppw->approx[ppw->index_ap_tca]==(int)tca_on) {
         shear_g = ppw->tca_shear_g;
-        //l3_g = 6./7.*k/pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+        //l3_g = 6./7.*k/pvecthermo[thermodynamics_module_.index_th_dkappa_]*ppw->tca_shear_g;
         pol0_g = 2.5*ppw->tca_shear_g;
-        pol1_g = 7./12.*6./7.*k/pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+        pol1_g = 7./12.*6./7.*k/pvecthermo[thermodynamics_module_.index_th_dkappa_]*ppw->tca_shear_g;
         pol2_g = 0.5*ppw->tca_shear_g;
-        //pol3_g = 0.25*6./7.*k/pvecthermo[pth->index_th_dkappa]*ppw->tca_shear_g;
+        //pol3_g = 0.25*6./7.*k/pvecthermo[thermodynamics_module_.index_th_dkappa_]*ppw->tca_shear_g;
       }
       else {
         shear_g = y[ppw->pv->index_pt_shear_g];
@@ -7787,10 +7748,10 @@ int PerturbationsModule::perturb_print_variables_member(double tau, double* y, d
         pol4_g = y[ppw->pv->index_pt_pol0_g+4];
       }
       else {
-        delta_g = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa]; //TBC
+        delta_g = -4./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[thermodynamics_module_.index_th_dkappa_]; //TBC
         shear_g = 0.;
         l4_g = 0.;
-        pol0_g = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[pth->index_th_dkappa]; //TBC
+        pol0_g = 1./3.*ppw->pv->y[ppw->pv->index_pt_gwdot]/pvecthermo[thermodynamics_module_.index_th_dkappa_]; //TBC
         pol2_g = 0.;
         pol4_g = 0.;
       }
@@ -7915,7 +7876,7 @@ int PerturbationsModule::perturb_print_variables_member(double tau, double* y, d
  * is a bit special:
  * - fixed parameters and workspaces are passed through a generic pointer.
  *   generic_integrator() doesn't know what the content of this pointer is.
- * - errors are not written as usual in pth->error_message, but in a generic
+ * - errors are not written as usual in thermodynamics_module_.error_message_, but in a generic
  *   error_message passed in the list of arguments.
  *
  * @param tau                      Input: conformal time
@@ -8009,14 +7970,12 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
              pba->error_message,
              error_message);
 
-  class_call(thermodynamics_at_z(const_cast<background*>(pba),
-                                 const_cast<thermo*>(pth),
-                                 1./pvecback[pba->index_bg_a]-1.,  /* redshift z=1/a-1 */
-                                 pth->inter_closeby,
-                                 &(ppw->last_index_thermo),
-                                 pvecback,
-                                 pvecthermo),
-             pth->error_message,
+  class_call(thermodynamics_module_.thermodynamics_at_z(1./pvecback[pba->index_bg_a] - 1.,  /* redshift z=1/a-1 */
+                                                        thermodynamics_module_.inter_closeby_,
+                                                        &(ppw->last_index_thermo),
+                                                        pvecback,
+                                                        pvecthermo),
+             thermodynamics_module_.error_message_,
              error_message);
 
   /** - get metric perturbations with perturb_einstein() */
@@ -8033,7 +7992,7 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
 
   if((pba->has_idm_dr==_TRUE_)){
     Sinv = 4./3. * pvecback[pba->index_bg_rho_idr]/ pvecback[pba->index_bg_rho_idm_dr];
-    dmu_idm_dr = pvecthermo[pth->index_th_dmu_idm_dr];
+    dmu_idm_dr = pvecthermo[thermodynamics_module_.index_th_dmu_idm_dr_];
     dmu_idr = pth->b_idr/pth->a_idm_dr*pba->Omega0_idr/pba->Omega0_idm_dr*dmu_idm_dr;
   }
 
@@ -8070,7 +8029,7 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
 
     delta_b = y[pv->index_pt_delta_b];
     theta_b = y[pv->index_pt_theta_b];
-    cb2 = pvecthermo[pth->index_th_cb2];
+    cb2 = pvecthermo[thermodynamics_module_.index_th_cb2_];
     delta_p_b_over_rho_b = cb2*delta_b; /* for baryons, (delta p)/rho with Ma & Bertschinger approximation: sound speed = adiabatic sound speed */
 
     /** - --> (b) perturbed recombination **/
@@ -8078,22 +8037,22 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
     if ((ppt->has_perturbed_recombination == _TRUE_)&&(ppw->approx[ppw->index_ap_tca]==(int)tca_off)){
 
       delta_temp= y[ppw->pv->index_pt_perturbed_recombination_delta_temp];
-      delta_p_b_over_rho_b = pvecthermo[pth->index_th_wb]*(delta_b+delta_temp); /* for baryons, (delta p)/rho with sound speed from arXiv:0707.2727 */
+      delta_p_b_over_rho_b = pvecthermo[thermodynamics_module_.index_th_wb_]*(delta_b + delta_temp); /* for baryons, (delta p)/rho with sound speed from arXiv:0707.2727 */
 
       delta_chi= y[ppw->pv->index_pt_perturbed_recombination_delta_chi];
-      chi=pvecthermo[pth->index_th_xe];
+      chi=pvecthermo[thermodynamics_module_.index_th_xe_];
 
       // Conversion of H0 in inverse seconds (pba->H0 is [H0/c] in inverse Mpcs)
       H0 = pba->H0 * _c_ / _Mpc_over_m_;
 
       //Computation of Nnow in SI units
-      Nnow = 3.*H0*H0*pba->Omega0_b*(1.-pth->YHe)/(8.*_PI_*_G_*_m_H_);
+      Nnow = 3.*H0*H0*pba->Omega0_b*(1. - thermodynamics_module_.YHe_)/(8.*_PI_*_G_*_m_H_);
 
       // total amount of hydrogen today
       n_H = (pba->a_today/a)*(pba->a_today/a)*(pba->a_today/a)* Nnow;
 
       // Helium-to-hydrogen ratio
-      fHe = pth->YHe / (_not4_*(1-pth->YHe));
+      fHe = thermodynamics_module_.YHe_/(_not4_*(1 - thermodynamics_module_.YHe_));
 
       // The constant such that rho_gamma = a_rad * T^4
       a_rad = 8./15.*pow(_PI_,5)*pow(_k_B_,4)/pow(_c_*_h_P_,3);
@@ -8102,7 +8061,7 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
       Compton_CR = 8./3. *_sigma_ * a_rad /(_m_e_ * _c_ *_c_) *_Mpc_over_m_   ;
 
       // Temperature is already in Kelvin
-      Tb_in_K = pvecthermo[pth->index_th_Tb];
+      Tb_in_K = pvecthermo[thermodynamics_module_.index_th_Tb_];
 
       // Alpha in m^3/s, cf. Recfast paper
       alpha_rec = 1.14 * 4.309e-19*pow((Tb_in_K * 1e-4),-0.6166)/(1+0.6703*pow((Tb_in_K * 1e-4),0.53)) ;
@@ -8185,7 +8144,7 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
         - a_prime_over_a*theta_b
         + metric_euler
         + k2*delta_p_b_over_rho_b
-        + R*pvecthermo[pth->index_th_dkappa]*(theta_g-theta_b);
+        + R*pvecthermo[thermodynamics_module_.index_th_dkappa_]*(theta_g - theta_b);
 
     }
 
@@ -8220,66 +8179,66 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
         dy[pv->index_pt_theta_g] =
           k2*(delta_g/4.-s2_squared*y[pv->index_pt_shear_g])
           + metric_euler
-          + pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
+          + pvecthermo[thermodynamics_module_.index_th_dkappa_]*(theta_b - theta_g);
 
         /** - -----> photon temperature shear */
         dy[pv->index_pt_shear_g] =
-          0.5*(8./15.*(theta_g+metric_shear)
-               -3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_l3_g]
-               -pvecthermo[pth->index_th_dkappa]*(2.*y[pv->index_pt_shear_g]-4./5./s_l[2]*P0));
+          0.5*(8./15.*(theta_g + metric_shear)
+               - 3./5.*k*s_l[3]/s_l[2]*y[pv->index_pt_l3_g]
+               - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(2.*y[pv->index_pt_shear_g] - 4./5./s_l[2]*P0));
 
         /** - -----> photon temperature l=3 */
 
         l = 3;
         dy[pv->index_pt_l3_g] = k/(2.0*l+1.0)*
           (l*s_l[l]*2.*s_l[2]*y[pv->index_pt_shear_g]-(l+1.)*s_l[l+1]*y[pv->index_pt_l3_g+1])
-          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_l3_g];
 
         /** - -----> photon temperature l>3 */
         for (l = 4; l < pv->l_max_g; l++) {
 
           dy[pv->index_pt_delta_g+l] = k/(2.0*l+1.0)*
             (l*s_l[l]*y[pv->index_pt_delta_g+l-1]-(l+1)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
-            - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+            - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_delta_g + l];
         }
 
         /** - -----> photon temperature lmax */
         l = pv->l_max_g; /* l=lmax */
         dy[pv->index_pt_delta_g+l] =
           k*(s_l[l]*y[pv->index_pt_delta_g+l-1]-(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
-          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_delta_g + l];
 
         /** - -----> photon polarization l=0 */
 
         dy[pv->index_pt_pol0_g] =
           -k*y[pv->index_pt_pol0_g+1]
-          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-4.*P0);
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(y[pv->index_pt_pol0_g] - 4.*P0);
 
         /** - -----> photon polarization l=1 */
 
         dy[pv->index_pt_pol1_g] =
           k/3.*(y[pv->index_pt_pol1_g-1]-2.*s_l[2]*y[pv->index_pt_pol1_g+1])
-          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol1_g];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol1_g];
 
         /** - -----> photon polarization l=2 */
 
         dy[pv->index_pt_pol2_g] =
           k/5.*(2.*s_l[2]*y[pv->index_pt_pol2_g-1]-3.*s_l[3]*y[pv->index_pt_pol2_g+1])
-          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol2_g]-4./5.*P0);
+          -pvecthermo[thermodynamics_module_.index_th_dkappa_]*(y[pv->index_pt_pol2_g] - 4./5.*P0);
 
         /** - -----> photon polarization l>2 */
 
         for (l=3; l < pv->l_max_pol_g; l++)
           dy[pv->index_pt_pol0_g+l] = k/(2.*l+1)*
             (l*s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+            - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol0_g + l];
 
         /** - -----> photon polarization lmax_pol */
 
         l = pv->l_max_pol_g;
         dy[pv->index_pt_pol0_g+l] =
           k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]-(l+1)*cotKgen*y[pv->index_pt_pol0_g+l])
-          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol0_g + l];
 
       }
 
@@ -8331,17 +8290,17 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
       if (ppw->approx[ppw->index_ap_tca_idm_dr] == (int)tca_idm_dr_off) {
 
         dy[pv->index_pt_theta_idm_dr] = - a_prime_over_a*y[pv->index_pt_theta_idm_dr] + metric_euler; /* idm_dr velocity */
-        dy[pv->index_pt_theta_idm_dr] -= (Sinv*dmu_idm_dr*(y[pv->index_pt_theta_idm_dr] - theta_idr) - k2*pvecthermo[pth->index_th_cidm_dr2]*y[pv->index_pt_delta_idm_dr]);
+        dy[pv->index_pt_theta_idm_dr] -= (Sinv*dmu_idm_dr*(y[pv->index_pt_theta_idm_dr] - theta_idr) - k2*pvecthermo[thermodynamics_module_.index_th_cidm_dr2_]*y[pv->index_pt_delta_idm_dr]);
       }
       else{
 
         tca_slip_idm_dr = (pth->nindex_idm_dr-2./(1.+Sinv))*a_prime_over_a*(y[pv->index_pt_theta_idm_dr]-theta_idr) + 1./(1.+Sinv)/dmu_idm_dr*
           (-(pvecback[pba->index_bg_H_prime] * a + 2. * a_prime_over_a * a_prime_over_a) *y[pv->index_pt_theta_idm_dr] - a_prime_over_a *
-           (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[pth->index_th_cidm_dr2]*dy[pv->index_pt_delta_idm_dr] - 1./4.*dy[pv->index_pt_delta_idr]));
+           (.5*k2*delta_idr + metric_euler) + k2*(pvecthermo[thermodynamics_module_.index_th_cidm_dr2_]*dy[pv->index_pt_delta_idm_dr] - 1./4.*dy[pv->index_pt_delta_idr]));
 
         ppw->tca_shear_idm_dr = 0.5*8./15./dmu_idm_dr/ppt->alpha_idm_dr[0]*(y[pv->index_pt_theta_idm_dr]+metric_shear);
 
-        dy[pv->index_pt_theta_idm_dr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm_dr] + k2*pvecthermo[pth->index_th_cidm_dr2]*
+        dy[pv->index_pt_theta_idm_dr] = 1./(1. + Sinv)*(-a_prime_over_a*y[pv->index_pt_theta_idm_dr] + k2*pvecthermo[thermodynamics_module_.index_th_cidm_dr2_]*
                                                    y[pv->index_pt_delta_idm_dr] + k2*Sinv*(delta_idr/4. - ppw->tca_shear_idm_dr)) + metric_euler + Sinv/(1.+Sinv)*tca_slip_idm_dr;
       }
     }
@@ -8355,9 +8314,9 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
       dy[ppw->pv->index_pt_perturbed_recombination_delta_chi] = - alpha_rec* a * chi*n_H  *(delta_alpha_rec + delta_chi + delta_b) * _Mpc_over_m_ / _c_ ;
 
       /* see the documentation for this formula */
-      dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3. * dy[ppw->pv->index_pt_delta_b] - a * Compton_CR
-        * pow(pba->T_cmb/a, 4) * chi / (1.+chi+fHe) * ( (1.-pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb])*(delta_g + delta_chi*(1.+fHe)/(1.+chi+fHe))
-                                                        + pba->T_cmb*pba->a_today/a/pvecthermo[pth->index_th_Tb] *(delta_temp - 1./4. * delta_g) );
+      dy[ppw->pv->index_pt_perturbed_recombination_delta_temp] =  2./3.*dy[ppw->pv->index_pt_delta_b] - a*Compton_CR*pow(pba->T_cmb/a, 4)*chi/(1. + chi+fHe)*
+      ((1. - pba->T_cmb*pba->a_today/a/pvecthermo[thermodynamics_module_.index_th_Tb_])*(delta_g + delta_chi*(1. + fHe)/(1. + chi+fHe))
+       + pba->T_cmb*pba->a_today/a/pvecthermo[thermodynamics_module_.index_th_Tb_]*(delta_temp - 1./4.*delta_g));
 
     }
 
@@ -8509,8 +8468,9 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
           }
         }
         else{
-          dy[pv->index_pt_theta_idr] = 1./(1.+Sinv)*(- a_prime_over_a*y[pv->index_pt_theta_idm_dr] + k2*pvecthermo[pth->index_th_cidm_dr2]*y[pv->index_pt_delta_idm_dr]
-                                                     + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_idm_dr)) + metric_euler - 1./(1.+Sinv)*tca_slip_idm_dr;
+          dy[pv->index_pt_theta_idr] = 1./(1. + Sinv)*(-a_prime_over_a*y[pv->index_pt_theta_idm_dr]
+                                                       + k2*pvecthermo[thermodynamics_module_.index_th_cidm_dr2_]*y[pv->index_pt_delta_idm_dr]
+                                                       + k2*Sinv*(1./4.*y[pv->index_pt_delta_idr] - ppw->tca_shear_idm_dr)) + metric_euler - 1./(1.+Sinv)*tca_slip_idm_dr;
 
         }
       }
@@ -8758,21 +8718,21 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
     fprintf(stderr,"we are in vectors\n");
 
     ssqrt3 = sqrt(1.-2.*pba->K/k2);
-    cb2 = pvecthermo[pth->index_th_cb2];
+    cb2 = pvecthermo[thermodynamics_module_.index_th_cb2_];
 
     /** - --> baryon velocity */
 
     if (ppt->gauge == synchronous) {
 
       dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b]
-        - pvecthermo[pth->index_th_dkappa]*(_SQRT2_/4.*delta_g + y[pv->index_pt_theta_b]);
+        - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(_SQRT2_/4.*delta_g + y[pv->index_pt_theta_b]);
 
     }
 
     else if (ppt->gauge == newtonian) {
 
       dy[pv->index_pt_theta_b] = -(1-3.*cb2)*a_prime_over_a*y[pv->index_pt_theta_b]
-        - _SQRT2_/4.*pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+        - _SQRT2_/4.*pvecthermo[thermodynamics_module_.index_th_dkappa_]*(delta_g + 2.*_SQRT2_*y[pv->index_pt_theta_b])
         + pvecmetric[ppw->index_mt_V_prime]+(1.-3.*cb2)*a_prime_over_a*y[pv->index_pt_V];
 
     }
@@ -8801,12 +8761,12 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
       /* photon density (delta_g = F_0) */
       dy[pv->index_pt_delta_g] =
         -4./3.*theta_g
-        -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b]);
+        - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(delta_g + 2.*_SQRT2_*y[pv->index_pt_theta_b]);
 
       /* photon velocity (theta_g = (3k/4)*F_1) */
       dy[pv->index_pt_theta_g] =
         k2*(delta_g/4.-s_l[2]*shear_g)
-        -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1)
+        - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(theta_g + 4.0/_SQRT6_*P1)
         +4.0/(3.0*_SQRT2_)*ssqrt3*y[pv->index_pt_hv_prime];
 
     }
@@ -8816,58 +8776,58 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
       /* photon density (delta_g = F_0) */
       dy[pv->index_pt_delta_g] =
         -4./3.*theta_g
-        -pvecthermo[pth->index_th_dkappa]*(delta_g+2.*_SQRT2_*y[pv->index_pt_theta_b])
+        -pvecthermo[thermodynamics_module_.index_th_dkappa_]*(delta_g + 2.*_SQRT2_*y[pv->index_pt_theta_b])
         -2.*_SQRT2_*pvecmetric[ppw->index_mt_V_prime];
 
       /* photon velocity (theta_g = (3k/4)*F_1) */
       dy[pv->index_pt_theta_g] =
         k2*(delta_g/4.-s_l[2]*shear_g)
-        -pvecthermo[pth->index_th_dkappa]*(theta_g+4.0/_SQRT6_*P1);
+        - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(theta_g + 4.0/_SQRT6_*P1);
 
     }
 
     /* photon shear (shear_g = F_2/2) */
     dy[pv->index_pt_shear_g] =
       4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[pv->index_pt_shear_g+1]
-      -pvecthermo[pth->index_th_dkappa]*shear_g;
+      -pvecthermo[thermodynamics_module_.index_th_dkappa_]*shear_g;
 
     /* photon l=3 */
     dy[pv->index_pt_l3_g] =
       k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[pv->index_pt_l3_g+1])
-      -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
+      -pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_l3_g];
 
     /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
     for (l=4; l < pv->l_max_g; l++)
       dy[pv->index_pt_delta_g+l] =
         k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_delta_g+l-1]
                      -(l+1.)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
-        -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+        -pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_delta_g + l];
 
     /* l=lmax */
     l = pv->l_max_g;
     dy[pv->index_pt_delta_g+l] =
       k*(s_l[l]*y[pv->index_pt_delta_g+l-1]
          -(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
-      - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+      - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_delta_g + l];
 
     /* photon polarization, l=0 (pol0_g = G_0)*/
     dy[pv->index_pt_pol0_g] =
       -k*y[pv->index_pt_pol0_g+1]
-      -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P1);
+      - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(y[pv->index_pt_pol0_g] - _SQRT6_*P1);
 
     /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
     for (l=1; l < pv->l_max_pol_g; l++)
       dy[pv->index_pt_pol0_g+l] =
         k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_pol0_g+l-1]
                      -(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
-        -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+        - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol0_g + l];
 
     /* l=lmax */
     l = pv->l_max_pol_g;
     dy[pv->index_pt_pol0_g+l] =
       k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]
          -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
-      -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+      - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol0_g + l];
 
     /*
       }
@@ -8925,57 +8885,57 @@ int PerturbationsModule::perturb_derivs_member(double tau, double* y, double* dy
         /* photon density (delta_g = F_0) */
         dy[pv->index_pt_delta_g] =
           -4./3.*theta_g
-          -pvecthermo[pth->index_th_dkappa]*(delta_g+_SQRT6_*P2)
+          -pvecthermo[thermodynamics_module_.index_th_dkappa_]*(delta_g + _SQRT6_*P2)
           //+y[pv->index_pt_gwdot];
           +_SQRT6_*y[pv->index_pt_gwdot];  //TBC
 
         /* photon velocity (theta_g = (3k/4)*F_1) */
         dy[pv->index_pt_theta_g] =
           k2*(delta_g/4.-s_l[2]*shear_g)
-          -pvecthermo[pth->index_th_dkappa]*theta_g;
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*theta_g;
 
         /* photon shear (shear_g = F_2/2) */
         dy[pv->index_pt_shear_g] =
           4./15.*s_l[2]*theta_g-3./10.*k*s_l[3]*y[pv->index_pt_shear_g+1]
-          -pvecthermo[pth->index_th_dkappa]*shear_g;
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*shear_g;
 
         /* photon l=3 */
         dy[pv->index_pt_l3_g] =
           k/7.*(6.*s_l[3]*shear_g-4.*s_l[4]*y[pv->index_pt_l3_g+1])
-          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_l3_g];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_l3_g];
 
         /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
         for (l=4; l < pv->l_max_g; l++)
           dy[pv->index_pt_delta_g+l] =
             k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_delta_g+l-1]
                          -(l+1.)*s_l[l+1]*y[pv->index_pt_delta_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+            - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_delta_g + l];
 
         /* l=lmax */
         l = pv->l_max_g;
         dy[pv->index_pt_delta_g+l] =
           k*(s_l[l]*y[pv->index_pt_delta_g+l-1]
              -(1.+l)*cotKgen*y[pv->index_pt_delta_g+l])
-          - pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_delta_g+l];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_delta_g + l];
 
         /* photon polarization, l=0 (pol0_g = G_0)*/
         dy[pv->index_pt_pol0_g] =
           -k*y[pv->index_pt_pol0_g+1]
-          -pvecthermo[pth->index_th_dkappa]*(y[pv->index_pt_pol0_g]-_SQRT6_*P2);
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*(y[pv->index_pt_pol0_g] - _SQRT6_*P2);
 
         /* additional momenta in Boltzmann hierarchy (beyond l=0,1,2,3,4) */
         for (l=1; l < pv->l_max_pol_g; l++)
           dy[pv->index_pt_pol0_g+l] =
             k/(2.*l+1.)*(l*s_l[l]*y[pv->index_pt_pol0_g+l-1]
                          -(l+1.)*s_l[l+1]*y[pv->index_pt_pol0_g+l+1])
-            -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+            - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol0_g + l];
 
         /* l=lmax */
         l = pv->l_max_pol_g;
         dy[pv->index_pt_pol0_g+l] =
           k*(s_l[l]*y[pv->index_pt_pol0_g+l-1]
              -(l+1.)*cotKgen*y[pv->index_pt_pol0_g+l])
-          -pvecthermo[pth->index_th_dkappa]*y[pv->index_pt_pol0_g+l];
+          - pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[pv->index_pt_pol0_g + l];
 
       }
     }
@@ -9131,20 +9091,20 @@ int PerturbationsModule::perturb_tca_slip_and_shear(double* y, void* parameters_
   }
   delta_b = y[pv->index_pt_delta_b];
   theta_b = y[pv->index_pt_theta_b];
-  cb2 = pvecthermo[pth->index_th_cb2];
+  cb2 = pvecthermo[thermodynamics_module_.index_th_cb2_];
   /* during TCA one can show that sound speed = adiabatic sound speed,
      so no need to take into account corrections from perturbed
      recombination here */
 
   /** - --> (b) define short-cut notations used only in tight-coupling approximation */
-  tau_c = 1./pvecthermo[pth->index_th_dkappa]; /* inverse of opacity */
-  dtau_c = -pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c; /* its first derivative wrt conformal time */
+  tau_c = 1./pvecthermo[thermodynamics_module_.index_th_dkappa_]; /* inverse of opacity */
+  dtau_c = -pvecthermo[thermodynamics_module_.index_th_ddkappa_]*tau_c*tau_c; /* its first derivative wrt conformal time */
   F = tau_c/(1+R); /* F = tau_c/(1+R) */
   if (ppr->tight_coupling_approximation >= (int)second_order_CLASS) {
     F_prime = dtau_c/(1+R)+tau_c*a_prime_over_a*R/(1+R)/(1+R); /*F' needed by second_order_CLASS and compromise_CLASS */
     if (ppr->tight_coupling_approximation == (int)second_order_CLASS) {
-      F_prime_prime =(- pvecthermo[pth->index_th_dddkappa]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
-                      + 2.*pvecthermo[pth->index_th_ddkappa]*pvecthermo[pth->index_th_ddkappa]*tau_c*tau_c*tau_c)/(1+R)
+      F_prime_prime =(-pvecthermo[thermodynamics_module_.index_th_dddkappa_]*tau_c*tau_c /* F'' needed by second_order_CLASS only */
+                      + 2.*pvecthermo[thermodynamics_module_.index_th_ddkappa_]*pvecthermo[thermodynamics_module_.index_th_ddkappa_]*tau_c*tau_c*tau_c)/(1 + R)
         +2.*dtau_c*a_prime_over_a*R/(1+R)/(1+R)
         +tau_c*((a_primeprime_over_a-2.*a_prime_over_a*a_prime_over_a)+2.*a_prime_over_a*a_prime_over_a*R/(1+R))*R/(1+R)/(1+R);
     }
@@ -9218,7 +9178,7 @@ int PerturbationsModule::perturb_tca_slip_and_shear(double* y, void* parameters_
     slip=(dtau_c/tau_c-2.*a_prime_over_a/(1.+R))*(theta_b-theta_g)
       +F*(-a_primeprime_over_a*theta_b
           +k2*(-a_prime_over_a*delta_g/2.
-               +pvecthermo[pth->index_th_dcb2]*delta_b
+               +pvecthermo[thermodynamics_module_.index_th_dcb2_]*delta_b
                +cb2*(-theta_b-metric_continuity)
                -4./3.*(-theta_g-metric_continuity)/4.)
           -a_prime_over_a*metric_euler);
@@ -9260,15 +9220,15 @@ int PerturbationsModule::perturb_tca_slip_and_shear(double* y, void* parameters_
         -pvecmetric[ppw->index_mt_h_prime_prime];
 
       /* monster expression for slip at second-order in tight-coupling */
-      slip=(-2./(1.+R)*a_prime_over_a-pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa])*(theta_b-theta_g)
+      slip=(-2./(1. + R)*a_prime_over_a-pvecthermo[thermodynamics_module_.index_th_ddkappa_]/pvecthermo[thermodynamics_module_.index_th_dkappa_])*(theta_b - theta_g)
         +(-a_primeprime_over_a*theta_b
           -k2*a_prime_over_a*(delta_g/2.-2.*shear_g)
           +k2*(cb2*(-theta_b-metric_continuity)
                -4./3.*(-theta_g-metric_continuity)/4.
                +shear_g_prime)
-          )/pvecthermo[pth->index_th_dkappa]/(1.+R)
+          )/pvecthermo[thermodynamics_module_.index_th_dkappa_]/(1. + R)
         -2.*R*(3.*a_prime_over_a*a_prime_over_a*cb2+(1.+R)*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)-3.*a_prime_over_a*a_prime_over_a)
-        /(1.+R)/(1.+R)/(1.+R)*(theta_b-theta_g)/pvecthermo[pth->index_th_dkappa]
+        /(1. + R)/(1. + R)/(1. + R)*(theta_b - theta_g)/pvecthermo[thermodynamics_module_.index_th_dkappa_]
         +(
           a_primeprime_over_a*a_prime_over_a*((2.-3.*cb2)*R-2.)*theta_b/(1.+R)
           +a_prime_over_a*k2*(1.-3.*cb2)*theta_b/3./(1.+R)
@@ -9283,9 +9243,14 @@ int PerturbationsModule::perturb_tca_slip_and_shear(double* y, void* parameters_
           +k2*k2*(3.*cb2-1.)*y[pv->index_pt_eta]/3.
           +2.*a_prime_over_a*k2*(3.*cb2-1.)*pvecmetric[ppw->index_mt_eta_prime]
           +k2*(1.-3.*cb2)*Delta/6.
-          )/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/(1.+R)/(1.+R)
-        -(4.*a_primeprime_over_a*theta_b-4.*k2*cb2*(-theta_b-metric_continuity)+2.*a_prime_over_a*k2*delta_g+k2*4./3.*(-theta_g-metric_continuity))/2./(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]
-        +4.*a_prime_over_a*R/(1.+R)/(1.+R)*pvecthermo[pth->index_th_ddkappa]/pvecthermo[pth->index_th_dkappa]/pvecthermo[pth->index_th_dkappa]*(theta_b-theta_g);
+          )/pvecthermo[thermodynamics_module_.index_th_dkappa_]/pvecthermo[thermodynamics_module_.index_th_dkappa_]/(1. + R)/(1. + R)
+        - (4.*a_primeprime_over_a*theta_b - 4.*k2*cb2*(-theta_b - metric_continuity)
+           + 2.*a_prime_over_a*k2*delta_g + k2*4./3.*(-theta_g - metric_continuity))/2./(1. + R)/(1. + R)*
+          pvecthermo[thermodynamics_module_.index_th_ddkappa_]/pvecthermo[thermodynamics_module_.index_th_dkappa_]/
+          pvecthermo[thermodynamics_module_.index_th_dkappa_]/pvecthermo[thermodynamics_module_.index_th_dkappa_]
+        + 4.*a_prime_over_a*R/(1. + R)/(1. + R)*
+        pvecthermo[thermodynamics_module_.index_th_ddkappa_]/pvecthermo[thermodynamics_module_.index_th_dkappa_]/
+        pvecthermo[thermodynamics_module_.index_th_dkappa_]*(theta_b - theta_g);
 
       /* second-order correction to shear */
       shear_g = (1.-11./6.*dtau_c)*shear_g-11./6.*tau_c*16./45.*tau_c*(theta_prime+k2*pvecmetric[ppw->index_mt_alpha_prime]);
@@ -9307,14 +9272,18 @@ int PerturbationsModule::perturb_tca_slip_and_shear(double* y, void* parameters_
 
       /* zero order for theta_b'' = theta_g'' */
       theta_prime_prime = ((R-1.)*a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b
-                           +k2*(pvecthermo[pth->index_th_dcb2]*delta_b+cb2*(-theta_b-metric_continuity)-a_prime_over_a*R/4.*delta_g+R/4.*4./3.*(-theta_g-metric_continuity)))/(1.+R);
+                           +k2*(pvecthermo[thermodynamics_module_.index_th_dcb2_]*delta_b
+                                + cb2*(-theta_b - metric_continuity) - a_prime_over_a*R/4.*delta_g+R/4.*4./3.*(-theta_g - metric_continuity)))/(1. + R);
 
       /* zero-order quantities g0, g0', go'' */
       g0 = -a_prime_over_a*theta_b + k2*(cb2*delta_b-delta_g/4.);
-      g0_prime = -a_prime_over_a*theta_prime-(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_b+k2*(pvecthermo[pth->index_th_dcb2]*delta_b+(1./3.-cb2)*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime]));
+      g0_prime = -a_prime_over_a*theta_prime - (a_primeprime_over_a - a_prime_over_a*a_prime_over_a)*theta_b
+        + k2*(pvecthermo[thermodynamics_module_.index_th_dcb2_]*delta_b + (1./3. - cb2)*(theta_b + 0.5*pvecmetric[ppw->index_mt_h_prime]));
       g0_prime_prime = -a_prime_over_a*theta_prime_prime-2.*(a_primeprime_over_a-a_prime_over_a*a_prime_over_a)*theta_prime
-        -(2.*a_prime_over_a*a_prime_over_a*a_prime_over_a-3.*a_primeprime_over_a*a_prime_over_a)*theta_b
-        +k2*(pvecthermo[pth->index_th_ddcb2]*delta_b-2.*pvecthermo[pth->index_th_dcb2]*(theta_b+0.5*pvecmetric[ppw->index_mt_h_prime])+(1./3.-cb2)*(theta_prime+0.5*pvecmetric[ppw->index_mt_h_prime_prime]));
+        - (2.*a_prime_over_a*a_prime_over_a*a_prime_over_a - 3.*a_primeprime_over_a*a_prime_over_a)*theta_b
+        + k2*(pvecthermo[thermodynamics_module_.index_th_ddcb2_]*delta_b
+              - 2.*pvecthermo[thermodynamics_module_.index_th_dcb2_]*(theta_b + 0.5*pvecmetric[ppw->index_mt_h_prime])
+              + (1./3. - cb2)*(theta_prime + 0.5*pvecmetric[ppw->index_mt_h_prime_prime]));
 
       /* slip at second order */
       slip = (1.-2*a_prime_over_a*F)*slip + F*k2*s2_squared*(2.*a_prime_over_a*shear_g+shear_g_prime)
@@ -9392,15 +9361,14 @@ int PerturbationsModule::perturb_rsa_delta_and_theta(double k, double* y, double
 
     if (ppr->radiation_streaming_approximation == rsa_MD_with_reio) {
 
-      ppw->rsa_delta_g +=
-        -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*y[ppw->pv->index_pt_theta_b];
+      ppw->rsa_delta_g += -4./k2*ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*y[ppw->pv->index_pt_theta_b];
 
       ppw->rsa_theta_g +=
-        3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*y[ppw->pv->index_pt_theta_b]
-               +ppw->pvecthermo[pth->index_th_dkappa]*
+        3./k2*(ppw->pvecthermo[thermodynamics_module_.index_th_ddkappa_]*y[ppw->pv->index_pt_theta_b]
+               + ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*
                (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
-                +ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
-                +k2*y[ppw->pv->index_pt_phi]));
+                + ppw->pvecthermo[thermodynamics_module_.index_th_cb2_]*k2*y[ppw->pv->index_pt_delta_b]
+                + k2*y[ppw->pv->index_pt_phi]));
     }
 
     if (pba->has_ur == _TRUE_) {
@@ -9433,15 +9401,15 @@ int PerturbationsModule::perturb_rsa_delta_and_theta(double k, double* y, double
     if (ppr->radiation_streaming_approximation == rsa_MD_with_reio) {
 
       ppw->rsa_delta_g +=
-        -4./k2*ppw->pvecthermo[pth->index_th_dkappa]*(y[ppw->pv->index_pt_theta_b]+0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
+        -4./k2*ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*(y[ppw->pv->index_pt_theta_b] + 0.5*ppw->pvecmetric[ppw->index_mt_h_prime]);
 
       ppw->rsa_theta_g +=
-        3./k2*(ppw->pvecthermo[pth->index_th_ddkappa]*
+        3./k2*(ppw->pvecthermo[thermodynamics_module_.index_th_ddkappa_]*
                (y[ppw->pv->index_pt_theta_b]
                 +0.5*ppw->pvecmetric[ppw->index_mt_h_prime])
-               +ppw->pvecthermo[pth->index_th_dkappa]*
+               + ppw->pvecthermo[thermodynamics_module_.index_th_dkappa_]*
                (-a_prime_over_a*y[ppw->pv->index_pt_theta_b]
-                + ppw->pvecthermo[pth->index_th_cb2]*k2*y[ppw->pv->index_pt_delta_b]
+                + ppw->pvecthermo[thermodynamics_module_.index_th_cb2_]*k2*y[ppw->pv->index_pt_delta_b]
                 -a_prime_over_a*ppw->pvecmetric[ppw->index_mt_h_prime]
                 +k2*y[ppw->pv->index_pt_eta]));
     }

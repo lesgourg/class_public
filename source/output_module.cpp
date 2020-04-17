@@ -16,8 +16,9 @@
 #include "output_module.h"
 #include "exceptions.h"
 
-OutputModule::OutputModule(const Input& input, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
+OutputModule::OutputModule(const Input& input, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const SpectraModule& spectra_module, const LensingModule& lensing_module)
 : BaseModule(input)
+, thermodynamics_module_(thermodynamics_module)
 , perturbations_module_(perturbations_module)
 , primordial_module_(primordial_module)
 , nonlinear_module_(nonlinear_module)
@@ -1022,14 +1023,14 @@ int OutputModule::output_thermodynamics() {
   double * data;
   int size_data, number_of_titles;
 
-  class_call(thermodynamics_output_titles(const_cast<background*>(pba), const_cast<thermo*>(pth), titles),
-             pth->error_message,
+  class_call(thermodynamics_module_.thermodynamics_output_titles(titles),
+             thermodynamics_module_.error_message_,
              error_message_);
   number_of_titles = get_number_of_titles(titles);
-  size_data = number_of_titles*pth->tt_size;
+  size_data = number_of_titles*thermodynamics_module_.tt_size_;
   class_alloc(data, sizeof(double)*size_data, error_message_);
-  class_call(thermodynamics_output_data(const_cast<background*>(pba), const_cast<thermo*>(pth), number_of_titles, data),
-             pth->error_message,
+  class_call(thermodynamics_module_.thermodynamics_output_data(number_of_titles, data),
+             thermodynamics_module_.error_message_,
              error_message_);
 
   sprintf(file_name,"%s%s",pop->root,"thermodynamics.dat");

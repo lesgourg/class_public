@@ -30,8 +30,9 @@
 #include "transfer_module.h"
 #include "thread_pool.h"
 
-TransferModule::TransferModule(const Input& input, const PerturbationsModule& perturbations_module, const NonlinearModule& nonlinear_module)
+TransferModule::TransferModule(const Input& input, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const NonlinearModule& nonlinear_module)
 : BaseModule(input)
+, thermodynamics_module_(thermodynamics_module)
 , perturbations_module_(perturbations_module)
 , nonlinear_module_(nonlinear_module) {
   ThrowInvalidArgumentIf(transfer_init() != _SUCCESS_, error_message_);
@@ -189,11 +190,11 @@ int TransferModule::transfer_init() {
       (only place where these structures are used in this module) */
 
   tau0 = pba->conformal_age;
-  tau_rec = pth->tau_rec;
+  tau_rec = thermodynamics_module_.tau_rec_;
 
   /** - order of magnitude of the oscillation period of transfer functions */
 
-  q_period = 2.*_PI_/(tau0 - tau_rec)*pth->angular_rescaling;
+  q_period = 2.*_PI_/(tau0 - tau_rec)*thermodynamics_module_.angular_rescaling_;
 
   /** - initialize all indices in the transfers structure and
       allocate all its arrays using transfer_indices_of_transfers() */
@@ -290,14 +291,14 @@ int TransferModule::transfer_init() {
                                      tau_size_max,
                                      pba->K,
                                      pba->sgnK,
-                                     tau0-pth->tau_cut,
+                                     tau0 - thermodynamics_module_.tau_cut_,
                                      &BIS),
   error_message_,
   error_message_);
   for (index_q = 0; index_q < q_size_; index_q++) {
     future_output.push_back(task_system.AsyncTask([this, tau_size_max, tp_of_tt, tau_rec, sources_spline, &BIS, tau0, index_q, sources, window] () {
       struct transfer_workspace* ptw = NULL;
-      class_call(transfer_workspace_init(&ptw, perturbations_module_.tau_size_, tau_size_max, pba->K, pba->sgnK, tau0-pth->tau_cut, &BIS),
+      class_call(transfer_workspace_init(&ptw, perturbations_module_.tau_size_, tau_size_max, pba->K, pba->sgnK, tau0 - thermodynamics_module_.tau_cut_, &BIS),
         error_message_,
         error_message_);
 
@@ -714,9 +715,9 @@ int TransferModule::transfer_get_l_list() {
   /** Summary: */
   /*
     fprintf(stderr,"rescaling %e logstep %e linstep %e\n",
-    pth->angular_rescaling,
-    pow(ppr->l_logstep, pth->angular_rescaling),
-    ppr->l_linstep*pth->angular_rescaling);
+    thermodynamics_module_.angular_rescaling_,
+    pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_),
+    ppr->l_linstep*thermodynamics_module_.angular_rescaling_);
   */
 
   /* check that largests need value of l_max */
@@ -746,21 +747,20 @@ int TransferModule::transfer_get_l_list() {
 
   index_l = 0;
   current_l = 2;
-  increment = MAX((int)(current_l*(pow(ppr->l_logstep, pth->angular_rescaling) - 1.)), 1);
+  increment = MAX((int)(current_l*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
 
-  while (((current_l+increment) < l_max) &&
-         (increment < ppr->l_linstep*pth->angular_rescaling)) {
+  while (((current_l + increment) < l_max) && (increment < ppr->l_linstep*thermodynamics_module_.angular_rescaling_)) {
 
     index_l ++;
     current_l += increment;
-    increment = MAX((int)(current_l*(pow(ppr->l_logstep, pth->angular_rescaling) - 1.)), 1);
+    increment = MAX((int)(current_l*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
 
   }
 
   /** - when the logarithmic step becomes larger than some linear step,
       stick to this linear step till l_max */
 
-  increment = ppr->l_linstep*pth->angular_rescaling;
+  increment = ppr->l_linstep*thermodynamics_module_.angular_rescaling_;
 
   while ((current_l+increment) <= l_max) {
 
@@ -787,18 +787,17 @@ int TransferModule::transfer_get_l_list() {
 
   index_l = 0;
   l_[0] = 2;
-  increment = MAX((int)(l_[0]*(pow(ppr->l_logstep, pth->angular_rescaling) - 1.)), 1);
+  increment = MAX((int)(l_[0]*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
 
-  while (((l_[index_l]+increment) < l_max) &&
-         (increment < ppr->l_linstep*pth->angular_rescaling)) {
+  while (((l_[index_l] + increment) < l_max) && (increment < ppr->l_linstep*thermodynamics_module_.angular_rescaling_)) {
 
     index_l ++;
     l_[index_l] = l_[index_l - 1] + increment;
-    increment = MAX((int)(l_[index_l]*(pow(ppr->l_logstep, pth->angular_rescaling) - 1.)), 1);
+    increment = MAX((int)(l_[index_l]*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
 
   }
 
-  increment = ppr->l_linstep*pth->angular_rescaling;
+  increment = ppr->l_linstep*thermodynamics_module_.angular_rescaling_;
 
   while ((l_[index_l] + increment) <= l_max) {
 
@@ -956,7 +955,7 @@ int TransferModule::transfer_get_q_list(double q_period, double K, int sgnK) {
 
   /* adjust the parameter governing the log step size to curvature */
 
-  q_logstep_spline = ppr->q_logstep_spline/pow(pth->angular_rescaling, ppr->q_logstep_open);
+  q_logstep_spline = ppr->q_logstep_spline/pow(thermodynamics_module_.angular_rescaling_, ppr->q_logstep_open);
   q_logstep_trapzd = ppr->q_logstep_trapzd;
 
   /* very conservative estimate of number of values */
@@ -1651,7 +1650,7 @@ int TransferModule::transfer_compute_for_each_q(int ** tp_of_tt, int index_q, in
             class_call(transfer_can_be_neglected(index_md,
                                                  index_ic,
                                                  index_tt,
-                                                 (pba->conformal_age - tau_rec)*pth->angular_rescaling,
+                                                 (pba->conformal_age - tau_rec)*thermodynamics_module_.angular_rescaling_,
                                                  q_[index_q],
                                                  l,
                                                  &neglect),
@@ -3302,7 +3301,7 @@ int TransferModule::transfer_late_source_can_be_neglected(int index_md, int inde
 
   *neglect = _FALSE_;
 
-  if (l > ppr->transfer_neglect_late_source*pth->angular_rescaling) {
+  if (l > ppr->transfer_neglect_late_source*thermodynamics_module_.angular_rescaling_) {
 
     /* sources at late times can be neglected for CMB, excepted when
        there is a LISW: this means for tt_t1, t2, e */

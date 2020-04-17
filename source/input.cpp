@@ -3737,11 +3737,15 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 2: thermodynamics\n");
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
-    class_call_except(thermodynamics_init(&pr,&ba,&th),
-                      th.error_message,
-                      errmsg,
-                      background_free(&ba)
-                      );
+    try {
+      const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
+    } catch (...) {
+      class_call_except(_FAILURE_,
+                        "TODO",
+                        errmsg,
+                        background_free(&ba)
+                        );
+    }
   }
 
   if (pfzw->required_computation_stage >= cs_perturbations){
@@ -3754,7 +3758,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       class_call_except(_FAILURE_,
                       "TODO",
                       errmsg,
-                      thermodynamics_free(&th);background_free(&ba)
+                      background_free(&ba)
                       );
     }
   }
@@ -3769,7 +3773,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       class_call_except(_FAILURE_,
                         "TODO",
                         errmsg,
-                        thermodynamics_free(&th); background_free(&ba)
+                        background_free(&ba)
                         );
     }
   }
@@ -3784,7 +3788,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       class_call_except(_FAILURE_,
                         "TODO",
                         errmsg,
-                        thermodynamics_free(&th); background_free(&ba)
+                        background_free(&ba)
                         );
     }
   }
@@ -3795,12 +3799,12 @@ int input_try_unknown_parameters(double * unknown_parameter,
     try {
       const TransferModule& transfer_module = cosmology.GetTransferModule();
     } catch (...) {
-        //TODO: This will be made nicer later when we refactor the input module.
-        class_call_except(_FAILURE_,
-                          "TODO",
-                          errmsg,
-                          thermodynamics_free(&th); background_free(&ba)
-                          );
+      //TODO: This will be made nicer later when we refactor the input module.
+      class_call_except(_FAILURE_,
+                        "TODO",
+                        errmsg,
+                        background_free(&ba)
+                        );
     }
   }
 
@@ -3811,21 +3815,23 @@ int input_try_unknown_parameters(double * unknown_parameter,
     try {
       const SpectraModule& spectra_module = cosmology.GetSpectraModule();
     } catch (...) {
-        //TODO: This will be made nicer later when we refactor the input module.
-        class_call_except(_FAILURE_,
-                          sp.error_message,
-                          errmsg,
-                          thermodynamics_free(&th); background_free(&ba)
-                          );
+      //TODO: This will be made nicer later when we refactor the input module.
+      class_call_except(_FAILURE_,
+                        sp.error_message,
+                        errmsg,
+                        background_free(&ba)
+                        );
     }
   }
 
   /** - Get the corresponding shoot variable and put into output */
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
-    case theta_s:
-      output[i] = 100.*th.rs_rec/th.ra_rec-pfzw->target_value[i];
-      break;
+    case theta_s: {
+        const ThermodynamicsModule& thm = cosmology.GetThermodynamicsModule();
+        output[i] = 100.*thm.rs_rec_/thm.ra_rec_ - pfzw->target_value[i];
+        break;
+      }
     case Omega_dcdmdr:
       rho_dcdm_today = ba.background_table[(ba.bt_size-1)*ba.bg_size+ba.index_bg_rho_dcdm];
       if (ba.has_dr == _TRUE_)
@@ -3865,9 +3871,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 
   /** - Free structures */
-  if (pfzw->required_computation_stage >= cs_thermodynamics){
-    class_call(thermodynamics_free(&th), th.error_message, errmsg);
-  }
   if (pfzw->required_computation_stage >= cs_background){
     class_call(background_free(&ba), ba.error_message, errmsg);
   }
@@ -4201,9 +4204,9 @@ int compare_doubles(const void *a,const void *b) {
  */
 
 int input_prepare_pk_eq(
-                        struct precision * ppr,
-                        struct background *pba,
-                        struct thermo *pth,
+                        const struct precision* ppr_input,
+                        const struct background* pba_input,
+                        const struct thermo* pth_input,
                         struct nonlinear *pnl,
                         int input_verbose,
                         ErrorMsg errmsg
@@ -4221,18 +4224,16 @@ int input_prepare_pk_eq(
   int last_index=0;
   int index_pk_eq_z;
   int index_eq;
-  int true_background_verbose;
-  int true_thermodynamics_verbose;
-  double true_w0_fld;
-  double true_wa_fld;
   double * z;
 
-  /** - store the true cosmological parameters (w0, wa) somwhere before using temporarily some fake ones in this function */
-
-  true_background_verbose = pba->background_verbose;
-  true_thermodynamics_verbose = pth->thermodynamics_verbose;
-  true_w0_fld = pba->w0_fld;
-  true_wa_fld = pba->wa_fld;
+  // TODO: It is probably nicer to pass the input structure as a const reference, make a local copy, and modify that. We shall think about that when we get to the input module.
+  Input input;
+  input.precision_ = *ppr_input;
+  input.background_ = *pba_input;
+  input.thermodynamics_ = *pth_input;
+  precision* ppr = &input.precision_;
+  background* pba = &input.background_;
+  thermo* pth = &input.thermodynamics_;
 
   /** - the fake calls of the background and thermodynamics module will be done in non-verbose mode */
 
@@ -4281,30 +4282,32 @@ int input_prepare_pk_eq(
 
     /* get chi = (tau[z_i] - tau_rec) in true model */
 
-    pba->w0_fld = true_w0_fld;
-    pba->wa_fld = true_wa_fld;
+    pba->w0_fld = pba_input->w0_fld;
+    pba->wa_fld = pba_input->wa_fld;
 
     class_call(background_init(ppr,pba), pba->error_message, errmsg);
-    class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
+    Cosmology cosmology{input};
+    const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
 
-    delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - pth->tau_rec;
+    delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - thermodynamics_module.tau_rec_;
 
     /* launch iterations in order to coverge to effective model with wa=0 but the same chi = (tau[z_i] - tau_rec) */
 
-    pba->wa_fld=0.;
+    pba->wa_fld = 0.;
 
     do {
       class_call(background_free_noinput(pba), pba->error_message, errmsg);
-      class_call(thermodynamics_free(pth), pth->error_message, errmsg);
 
       class_call(background_init(ppr,pba), pba->error_message, errmsg);
       class_call(background_tau_of_z(pba,z[index_pk_eq_z],&tau_of_z), pba->error_message, errmsg);
-      class_call(thermodynamics_init(ppr,pba,pth), pth->error_message, errmsg);
 
-      delta_tau_eq = tau_of_z - pth->tau_rec;
+      Cosmology cosmology{input};
+      const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
 
-      error = 1.-delta_tau_eq/delta_tau;
-      pba->w0_fld = pba->w0_fld*pow(1.+error,10.);
+      delta_tau_eq = tau_of_z - thermodynamics_module.tau_rec_;
+
+      error = 1. - delta_tau_eq/delta_tau;
+      pba->w0_fld = pba->w0_fld*pow(1. + error, 10.);
 
     }
     while(fabs(error) > ppr->pk_eq_tol);
@@ -4325,16 +4328,8 @@ int input_prepare_pk_eq(
     free(pvecback);
 
     class_call(background_free_noinput(pba), pba->error_message, errmsg);
-    class_call(thermodynamics_free(pth), pth->error_message, errmsg);
 
   }
-
-  /** - restore cosmological parameters (w0, wa) to their true values before main call to CLASS modules */
-
-  pba->background_verbose = true_background_verbose;
-  pth->thermodynamics_verbose = true_thermodynamics_verbose;
-  pba->w0_fld = true_w0_fld;
-  pba->wa_fld = true_wa_fld;
 
   /* in verbose mode, report the results */
 

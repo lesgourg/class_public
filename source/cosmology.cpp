@@ -1,8 +1,15 @@
 #include "cosmology.h"
 
+const ThermodynamicsModule& Cosmology::GetThermodynamicsModule() {
+  if (!thermodynamics_module_ptr_) {
+    thermodynamics_module_ptr_ = std::unique_ptr<ThermodynamicsModule>(new ThermodynamicsModule(input_));
+  }
+  return *thermodynamics_module_ptr_;
+}
+
 const PerturbationsModule& Cosmology::GetPerturbationsModule() {
   if (!perturbations_module_ptr_) {
-    perturbations_module_ptr_ = std::unique_ptr<PerturbationsModule>(new PerturbationsModule(input_));
+    perturbations_module_ptr_ = std::unique_ptr<PerturbationsModule>(new PerturbationsModule(input_, GetThermodynamicsModule()));
   }
   return *perturbations_module_ptr_;
 }
@@ -23,7 +30,7 @@ const NonlinearModule& Cosmology::GetNonlinearModule() {
 
 const TransferModule& Cosmology::GetTransferModule() {
   if (!transfer_module_ptr_) {
-    transfer_module_ptr_ = std::unique_ptr<TransferModule>(new TransferModule(input_, GetPerturbationsModule(), GetNonlinearModule()));
+    transfer_module_ptr_ = std::unique_ptr<TransferModule>(new TransferModule(input_, GetThermodynamicsModule(), GetPerturbationsModule(), GetNonlinearModule()));
   }
   return *transfer_module_ptr_;
 }
