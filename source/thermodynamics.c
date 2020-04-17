@@ -2041,7 +2041,10 @@ int thermodynamics_output_summary(
   switch (pth->reio_parametrization) {
 
   case reio_none:
-    printf(" -> no reionization requested\n");
+    /* the information returned by this line could be interesting when
+       using reio_none + exotic energy ionjection, since there could
+       still be a global minimum of x_e(z) */
+    printf(" -> no reionization requested, optical depth = %f\n",pth->tau_reio);
     break;
 
   case reio_camb:
