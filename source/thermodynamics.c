@@ -339,6 +339,10 @@ int thermodynamics_init(
              pth->error_message);
 
   /** - assign all heating-related properties and indices (that are not temporary) */
+  if ((pth->has_exotic_injections == _TRUE_) || (pth->has_noninjected_heating == _TRUE_)) {
+    pth->has_heating = _TRUE_;
+  }
+
   if (pth->has_heating == _TRUE_) {
     class_call(heating_init(ppr,
                             pba,
@@ -2819,7 +2823,7 @@ int thermodynamics_derivs(
       + rate_gamma_b * (Tmat-Trad) / (Hz*(1.+z))                                /* Coupling to photons*/
       - ptw->Tcmb;                                                              /* dTrad/dz */
 
-    if (pth->has_heating == _TRUE_) {
+    if (pth->has_exotic_injections == _TRUE_) {
       dy[ptv->index_ti_D_Tmat] -= phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z));  /* Heating from energy injection */
     }
   }
@@ -4362,6 +4366,7 @@ int thermodynamics_sources(
 
   /** - Recalculate all quantities at this current redshift: we need
         at least pvecback, ptdw->x_reio, dy[ptv->index_ti_D_Tmat] */
+
   class_call(thermodynamics_derivs(mz,y,dy,thermo_parameters_and_workspace,error_message),
              error_message,
              error_message);
@@ -4371,35 +4376,44 @@ int thermodynamics_sources(
   Tmat = y[ptv->index_ti_D_Tmat] + Trad;
   Hz = pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
 
-  if (pth->recombination == hyrec) {
+  /* For the local variable x we must take different steps for the different recombination algorithms */
+  switch (pth->recombination) {
+
+  case hyrec:
 
     /** - This is the right time for asking HyRec to evolve x(z) using
-       its internal system of differential equations over the next
-       range [z_i, z_i+1], and to store the result in a temporary
-       table. Technical note: the function Tmat(z) is needed in order
-       to compute x'(z) and solve the internal system in
-       HyRec. However, it has not yet been calculated. Our approach
-       consists in passing to HyRec a solution for Tmat(z) that is
-       extrapolated from the previous known solution at z<z_i+1. Since
-       HyRec only needs to evolve x(z) over a very small interval,
-       this is accurate enough. All these steps are takeng in the
-       HyRec wrapper of CLASS. */
+        its internal system of differential equations over the next
+        range [z_i, z_i+1], and to store the result in a temporary
+        table. Technical note: the function Tmat(z) is needed in order
+        to compute x'(z) and solve the internal system in
+        HyRec. However, it has not yet been calculated. Our approach
+        consists in passing to HyRec a solution for Tmat(z) that is
+        extrapolated from the previous known solution at z<z_i+1. Since
+        HyRec only needs to evolve x(z) over a very small interval,
+        this is accurate enough. All these steps are takeng in the
+        HyRec wrapper of CLASS. */
 
     class_call(thermodynamics_hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
                phyrec->error_message,
                error_message);
-  }
 
-  /* Make super sure that our x is correct and uses the current
-     derivative. TODO: check whether this could be removed. */
-  class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current),
-             pth->error_message,
-             error_message);
+    /* Check that we use the latest HyRec prediction for ptdw->x_reio (this
+       call is not so important) */
+    class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current),
+               pth->error_message,
+               error_message);
 
-  x = ptdw->x_reio;
+    /* get x */
+    x = ptdw->x_reio;
+    break;
 
-  /** - In the recfast case, we manually smooth the results a bit */
-  if(pth->recombination == recfast) {
+  case recfast:
+
+    /* get x */
+    x = ptdw->x_reio;
+
+    /** - In the recfast case, we manually smooth the results a bit */
+
     /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
     if((ap_current != 0) && (z > ptdw->ap_z_limits[ap_current-1]-2*ptdw->ap_z_limits_delta[ap_current])) {
 
@@ -4413,8 +4427,10 @@ int thermodynamics_sources(
       // infer f2(x) = smooth function interpolating from 0 to 1
       weight = f2(s);
 
+      /* get smoothed x */
       x = weight*x+(1.-weight)*x_previous;
     }
+    break;
   }
 
   /** - Store the results in the table. Results are obtained in order of decreasing z, and stored in order of growing z */

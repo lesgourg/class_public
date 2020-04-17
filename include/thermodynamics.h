@@ -121,6 +121,25 @@ struct thermo
 
   /** parameters for energy injection */
 
+  short has_exotic_injections; /**< true if some exotic mechanism
+                                  injects energy and affects the
+                                  evolution of ionization and/or
+                                  temperature and/or other
+                                  thermodynamics variables that are
+                                  relevant for the calculation of CMB
+                                  anisotropies (and spectral
+                                  distorsions if requested). */
+
+  short has_noninjected_heating; /**< true if we need to compute the
+                                    heating term due to other
+                                    mechanism than exotic energy
+                                    injection (e.g. adiabatic cooling
+                                    of electrons and baryons,
+                                    dissipation of acoustic waves)
+                                    that are relevant for the
+                                    calculation of spectral
+                                    distorsions (if requested). */
+
   double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
 
   short has_on_the_spot; /**< flag to specify if we want to use the on-the-spot approximation **/
@@ -220,7 +239,10 @@ struct thermo
 
   //@{
 
-  short has_heating;
+  short has_heating; /**< true if we need to compute heating terms
+                        (either fot exotic injections or noninjected
+                        heating */
+
   struct heating he;
 
   //@}

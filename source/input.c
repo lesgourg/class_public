@@ -1437,6 +1437,11 @@ int input_read_parameters(struct file_content * pfc,
              errmsg,
              errmsg);
 
+  /* temporary solution: will be improved */
+  if ((psd->has_distortions == _TRUE_) && (psd->only_exotic == _FALSE_)) {
+    pth->has_noninjected_heating = _TRUE_;
+  }
+
   /** Read obsolete parameters */
   class_call(input_read_parameters_additional(pfc,ppr,pba,pth,
                                               errmsg),
@@ -2826,7 +2831,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   class_read_double("DM_annihilation_mass",phe->DM_annihilation_mass);
   class_read_double("DM_annihilation_fraction",phe->DM_annihilation_fraction);
   if(phe->DM_annihilation_efficiency!=0){
-    pth->has_heating = _TRUE_;
+    pth->has_exotic_injections = _TRUE_;
   }
   /* Test */
   class_test(phe->DM_annihilation_efficiency<0,
@@ -2889,7 +2894,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   /* Read */
   class_read_double("DM_decay_fraction",phe->DM_decay_fraction);
   if(phe->DM_decay_fraction!=0){
-    pth->has_heating = _TRUE_;
+    pth->has_exotic_injections = _TRUE_;
   }
   /* Test */
   class_test(phe->DM_decay_fraction<0,
@@ -2906,7 +2911,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   /* Read */
   class_read_double("PBH_evaporation_fraction",phe->PBH_evaporation_fraction);
   if(phe->PBH_evaporation_fraction!=0){
-    pth->has_heating = _TRUE_;
+    pth->has_exotic_injections = _TRUE_;
   }
   /* Test */
   class_test(phe->PBH_evaporation_fraction <0.,
@@ -2933,7 +2938,7 @@ int input_read_parameters_heating(struct file_content * pfc,
   /* Read */
   class_read_double("PBH_accretion_fraction",phe->PBH_accretion_fraction);
   if(phe->PBH_accretion_fraction!=0){
-    pth->has_heating = _TRUE_;
+    pth->has_exotic_injections = _TRUE_;
   }
   /* Test */
   class_test(phe->PBH_accretion_fraction < 0.,
@@ -4588,7 +4593,6 @@ int input_read_parameters_distortions(struct file_content * pfc,
   /** 2) Only calculate non-LCDM contributions to heating? */
   class_read_flag("sd_only_exotic",psd->only_exotic);
 
-
   /** 3) Include g distortions? */
   class_read_flag("sd_include_g_distortion",psd->include_g_distortion);
 
@@ -5202,6 +5206,8 @@ int input_default_params(struct background *pba,
    * Deafult to input_read_parameters_heating
    */
 
+  pth->has_exotic_injections = _FALSE_;
+  pth->has_noninjected_heating = _FALSE_;
   pth->has_heating = _FALSE_;
 
   /** 1) DM annihilation */

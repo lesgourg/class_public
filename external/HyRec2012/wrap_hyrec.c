@@ -224,7 +224,7 @@ int thermodynamics_hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * p
       TM = T_b * _k_B_/_eV_ * frac + (1.-frac)*phy->TM_prev;
       H = H_in * frac + (1.-frac)*phy->H_prev;
 
-      if (pth->has_heating == _TRUE_) {
+      if (pth->has_exotic_injections == _TRUE_) {
         ion = phe->pvecdeposition[phe->index_dep_ionH]/(nH*1e6)/(_E_H_ion_*_eV_) * frac + (1.-frac)*phy->ion_prev;
         exclya = phe->pvecdeposition[phe->index_dep_lya]/(nH*1e6)/(_E_H_lya_*_eV_) * frac + (1.-frac)*phy->exclya_prev;
       }

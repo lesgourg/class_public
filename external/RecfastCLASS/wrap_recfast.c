@@ -158,7 +158,7 @@ int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pr
   *dxH_dz = (x*x_H*nH*Rdown - Rup*(1.-x_H)*exp(-pre->CL/Tmat)) * C / (Hz*(1.+z));
 
   /** - Energy injection */
-  if (pth->has_heating == _TRUE_) {
+  if (pth->has_exotic_injections == _TRUE_) {
     ion_H = phe->pvecdeposition[phe->index_dep_ionH];
     ion_He = phe->pvecdeposition[phe->index_dep_ionHe];
     ion_lya = phe->pvecdeposition[phe->index_dep_lya];
