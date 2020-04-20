@@ -300,7 +300,7 @@ int nonlinear_pks_at_z(
                        double * out_pk_cb_ic // array out_pk_cb_ic[index_k * pnl->ic_ic_size + index_ic1_ic2]
                        ) {
 
-  if (pnl->has_pk_cb) {
+  if (pnl->has_pk_cb == _TRUE_) {
 
     class_call(nonlinear_pk_at_z(pba,
                                  pnl,
@@ -315,7 +315,7 @@ int nonlinear_pks_at_z(
                pnl->error_message);
   }
 
-  if (pnl->has_pk_m) {
+  if (pnl->has_pk_m == _TRUE_) {
 
     class_call(nonlinear_pk_at_z(pba,
                                  pnl,
@@ -686,7 +686,7 @@ int nonlinear_pks_at_k_and_z(
                              double * out_pk_cb_ic // array P__cb_ic(k)of index [index_ic1_ic2]
                              ) {
 
-  if (pnl->has_pk_cb) {
+  if (pnl->has_pk_cb == _TRUE_) {
 
     class_call(nonlinear_pk_at_k_and_z(pba,
                                        ppm,
@@ -701,7 +701,7 @@ int nonlinear_pks_at_k_and_z(
                pnl->error_message,
                pnl->error_message);
   }
-  if (pnl->has_pk_m) {
+  if (pnl->has_pk_m == _TRUE_) {
 
     class_call(nonlinear_pk_at_k_and_z(pba,
                                        ppm,
@@ -778,13 +778,13 @@ int nonlinear_pks_at_kvec_and_zvec(
   class_alloc(ln_kvec, sizeof(double)*kvec_size,
               pnl->error_message);
 
-  if (pnl->has_pk_m) {
+  if (pnl->has_pk_m == _TRUE_) {
     class_alloc(ln_pk_table, sizeof(double)*pnl->k_size*zvec_size,
                 pnl->error_message);
     class_alloc(ddln_pk_table, sizeof(double)*pnl->k_size*zvec_size,
                 pnl->error_message);
   }
-  if (pnl->has_pk_cb) {
+  if (pnl->has_pk_cb == _TRUE_) {
     class_alloc(ln_pk_cb_table, sizeof(double)*pnl->k_size*zvec_size,
                 pnl->error_message);
     class_alloc(ddln_pk_cb_table, sizeof(double)*pnl->k_size*zvec_size,
@@ -795,7 +795,7 @@ int nonlinear_pks_at_kvec_and_zvec(
 
   for (index_zvec=0; index_zvec<zvec_size; index_zvec++){
 
-    if (pnl->has_pk_m) {
+    if (pnl->has_pk_m == _TRUE_) {
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
@@ -807,7 +807,7 @@ int nonlinear_pks_at_kvec_and_zvec(
                  pnl->error_message,
                  pnl->error_message);
     }
-    if (pnl->has_pk_cb) {
+    if (pnl->has_pk_cb == _TRUE_) {
       class_call(nonlinear_pk_at_z(pba,
                                    pnl,
                                    logarithmic,
@@ -823,7 +823,7 @@ int nonlinear_pks_at_kvec_and_zvec(
 
   /** - Spline it for interpolation along k */
 
-  if (pnl->has_pk_m) {
+  if (pnl->has_pk_m == _TRUE_) {
 
     class_call(array_spline_table_columns2(pnl->ln_k,
                                            pnl->k_size,
@@ -835,7 +835,7 @@ int nonlinear_pks_at_kvec_and_zvec(
                pnl->error_message,
                pnl->error_message);
   }
-  if (pnl->has_pk_cb) {
+  if (pnl->has_pk_cb == _TRUE_) {
 
     class_call(array_spline_table_columns2(pnl->ln_k,
                                            pnl->k_size,
@@ -863,8 +863,8 @@ int nonlinear_pks_at_kvec_and_zvec(
 
     /* deal with k<k_min */
     for (index_zvec = 0; index_zvec < zvec_size; index_zvec++) {
-      if (pnl->has_pk_m)     out_pk[index_zvec*kvec_size+index_kvec] = 0.;
-      if (pnl->has_pk_cb) out_pk_cb[index_zvec*kvec_size+index_kvec] = 0.;
+      if (pnl->has_pk_m == _TRUE_)     out_pk[index_zvec*kvec_size+index_kvec] = 0.;
+      if (pnl->has_pk_cb == _TRUE_) out_pk_cb[index_zvec*kvec_size+index_kvec] = 0.;
       /* (If needed, one could add instead some extrapolation here) */
     }
   }
@@ -886,7 +886,7 @@ int nonlinear_pks_at_kvec_and_zvec(
 
       for (index_zvec = 0; index_zvec < zvec_size; index_zvec++) {
 
-        if (pnl->has_pk_m) {
+        if (pnl->has_pk_m == _TRUE_) {
 
           out_pk[index_zvec*kvec_size+index_kvec] =
             exp(
@@ -897,7 +897,7 @@ int nonlinear_pks_at_kvec_and_zvec(
                 *h*h/6.0
                 );
         }
-        if (pnl->has_pk_cb) {
+        if (pnl->has_pk_cb == _TRUE_) {
 
           out_pk_cb[index_zvec*kvec_size+index_kvec] =
             exp(
@@ -918,19 +918,19 @@ int nonlinear_pks_at_kvec_and_zvec(
   while (index_kvec < kvec_size) {
 
     for (index_zvec = 0; index_zvec < zvec_size; index_zvec++) {
-      if (pnl->has_pk_m)     out_pk[index_zvec*kvec_size+index_kvec] = 0.;
-      if (pnl->has_pk_cb) out_pk_cb[index_zvec*kvec_size+index_kvec] = 0.;
+      if (pnl->has_pk_m == _TRUE_)     out_pk[index_zvec*kvec_size+index_kvec] = 0.;
+      if (pnl->has_pk_cb == _TRUE_) out_pk_cb[index_zvec*kvec_size+index_kvec] = 0.;
       /* (If needed, one could add instead some extrapolation here) */
     }
     index_kvec++;
   }
 
   free(ln_kvec);
-  if (pnl->has_pk_m) {
+  if (pnl->has_pk_m == _TRUE_) {
     free(ln_pk_table);
     free(ddln_pk_table);
   }
-  if (pnl->has_pk_cb) {
+  if (pnl->has_pk_cb == _TRUE_) {
     free(ln_pk_cb_table);
     free(ddln_pk_cb_table);
   }
@@ -1146,7 +1146,7 @@ int nonlinear_k_nl_at_z(
 
   /** - if needed, do the same for the baryon part only */
 
-  if (pnl->has_pk_cb) {
+  if (pnl->has_pk_cb == _TRUE_) {
 
     if (pnl->tau_size == 1) {
       *k_nl_cb = pnl->k_nl[pnl->index_pk_cb][0];
@@ -1246,13 +1246,13 @@ int nonlinear_init(
   /** --> check applicability of Halofit and HMcode */
   if (pnl->method > nl_none) {
 
-    if (pba->has_ncdm) {
+    if (pba->has_ncdm == _TRUE_) {
       for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
         if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
           fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
       }
     }
-    if (pba->has_idm_dr){
+    if (pba->has_idm_dr == _TRUE_){
       fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But you have requested interacting dark matter (idm_dr), which makes the use of Halofit or HMCode unreliable.\n");
     }
   }
@@ -4186,7 +4186,7 @@ int nonlinear_hmcode_sigma8_at_z(
   }
 
 
-  if (pba->has_ncdm){
+  if (pba->has_ncdm == _TRUE_){
 
     if (pnl->tau_size == 1) {
       *sigma_8_cb = pnw->sigma_8[pnl->index_pk_cb][0];
@@ -4263,7 +4263,7 @@ int nonlinear_hmcode_sigmadisp_at_z(
                pnl->error_message);
   }
 
-  if (pba->has_ncdm){
+  if (pba->has_ncdm == _TRUE_){
 
     if (pnl->tau_size == 1) {
       *sigma_disp_cb = pnw->sigma_disp[pnl->index_pk_cb][0];
@@ -4340,7 +4340,7 @@ int nonlinear_hmcode_sigmadisp100_at_z(
                pnl->error_message);
   }
 
-  if (pba->has_ncdm){
+  if (pba->has_ncdm == _TRUE_){
 
     if (pnl->tau_size == 1) {
       *sigma_disp_100_cb = pnw->sigma_disp_100[pnl->index_pk_cb][0];
@@ -4416,7 +4416,7 @@ int nonlinear_hmcode_sigmaprime_at_z(
                pnl->error_message);
   }
 
-  if (pba->has_ncdm){
+  if (pba->has_ncdm == _TRUE_){
 
     if (pnl->tau_size == 1) {
       *sigma_prime_cb = pnw->sigma_prime[pnl->index_pk_cb][0];

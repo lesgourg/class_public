@@ -1303,7 +1303,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
                "w",
                pop->error_message);
 
-    if(pop->write_header){
+    if(pop->write_header == _TRUE_){
       fprintf(out_injection,"# Table of energy injection and deposition from exotic processes \n");
       fprintf(out_injection,"# Heat is dE/dt|dep_h\n");
     }
@@ -1345,7 +1345,7 @@ int output_heating(struct injection* pin, struct noninjection* pni, struct outpu
                "w",
                pop->error_message);
 
-    if(pop->write_header){
+    if(pop->write_header == _TRUE_){
       fprintf(out_noninjection,"# Table of non-injected energy influencing the photon spectral distortions \n");
     }
 
@@ -1405,7 +1405,7 @@ int output_distortions(
                "w",
                pop->error_message);
 
-    if(pop->write_header){
+    if(pop->write_header == _TRUE_){
       fprintf(out_heat,"# Heat is d(Q/rho)/dz\n");
       fprintf(out_heat,"# LHeat is d(Q/rho)/dlnz\n");
       fprintf(out_heat,"#\n");
@@ -1444,7 +1444,7 @@ int output_distortions(
                "w",
                pop->error_message);
 
-    if(pop->write_header){
+    if(pop->write_header == _TRUE_){
       fprintf(out_distortion,"# SD_tot is the amplitude of the overall spectral distortion (SD)\n");
       fprintf(out_distortion,"# The SD[i] are the amplitudes of the individual SDs\n");
       fprintf(out_distortion,"# The SDs are given in units [10^-26 W m^-2 Hz^-1 sr^-1] \n");

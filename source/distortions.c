@@ -99,7 +99,7 @@ int distortions_free(struct distortions * psd) {
     free(psd->x_weights);
 
     /** Delete noise file */
-    if(psd->has_detector_file){
+    if(psd->has_detector_file == _TRUE_){
       free(psd->delta_Ic_array);
     }
 
@@ -262,12 +262,12 @@ int distortions_set_detector(struct precision * ppr,
         }
         found_detector = _TRUE_;
 
-        if(has_detector_noise_file){
+        if(has_detector_noise_file == _TRUE_){
           if (psd->distortions_verbose > 1){
             printf(" -> Properties:    Noise file name = %s \n",
                         detector_noise_file_name);
           }
-         if(psd->has_detector_file){
+          if(psd->has_detector_file == _TRUE_){
             class_test(strcmp(psd->sd_detector_file_name,detector_noise_file_name) != 0,
                        psd->error_message,
                        "Noise file path (sd_detector_file_name) disagrees between stored detector '%s' and input ->  %s (input) vs %s (stored)",
@@ -286,7 +286,7 @@ int distortions_set_detector(struct precision * ppr,
                         nu_min, nu_max, nu_delta, N_bins, delta_Ic);
           }
           /* If the user has defined the detector, check that their and our definitions agree */
-          if(psd->user_defined_detector){
+          if(psd->user_defined_detector == _TRUE_){
             class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
                        psd->error_message,
                        "Minimal frequency (sd_detector_nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
@@ -329,7 +329,7 @@ int distortions_set_detector(struct precision * ppr,
   /* If the detector has not been found, either the user has specified the settings and we create a new one,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
-    if(psd->user_defined_detector || psd->has_detector_file){
+    if(psd->user_defined_detector==_TRUE_ || psd->has_detector_file==_TRUE_){
       if(psd->distortions_verbose > 0){
         printf(" -> Generating detector '%s' \n",psd->sd_detector_name);
       }
@@ -346,7 +346,7 @@ int distortions_set_detector(struct precision * ppr,
   }
 
 
-  if(psd->has_detector_file){
+  if(psd->has_detector_file == _TRUE_){
     class_call(distortions_read_detector_noisefile(ppr,psd),
                psd->error_message,
                psd->error_message);
@@ -386,7 +386,7 @@ int distortions_generate_detector(struct precision * ppr,
     printf(" -> Executing the PCA generator\n");
   }
 
-  if(psd->has_detector_file){
+  if(psd->has_detector_file == _TRUE_){
     sprintf(temporary_string,"python %s %s %s %s %.10e %.10e %i %i %.10e %.10e %.10e",
             psd->sd_PCA_file_generator,
             psd->sd_detector_name,
@@ -510,7 +510,7 @@ int distortions_get_xz_lists(struct precision * ppr,
     }
 
   }
-  else if(!psd->has_detector_file){
+  else if(psd->has_detector_file == _FALSE_){
     psd->x_min = psd->sd_detector_nu_min/psd->x_to_nu;
     psd->x_max = psd->sd_detector_nu_max/psd->x_to_nu;
     psd->x_delta = psd->sd_detector_nu_delta/psd->x_to_nu;
@@ -720,7 +720,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
   double H, a, rho_g;
   double bb_vis;
 
-  if( ! psd->only_exotic ){
+  if( psd->only_exotic == _FALSE_ ){
     /** Update heating table with second order contributions */
     class_call(noninjection_init(ppr,pba,pth,ppt,ppm,pni),
                pni->error_message,
@@ -775,7 +775,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
 
   free(pvecback);
 
-  if( ! psd->only_exotic ){
+  if( psd->only_exotic == _FALSE_ ){
     /** Update heating table with second order contributions */
     class_call(noninjection_free(pni),
                pni->error_message,
@@ -950,7 +950,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
 
     for(index_type=0;index_type<psd->type_size;++index_type){
       if(index_type==psd->index_type_g){
-        if(psd->include_g_distortion){
+        if(psd->include_g_distortion == _TRUE_){
           g = psd->sd_parameter_table[psd->index_type_g];
           psd->sd_table[index_type][index_x] = (1.+g)*g*psd->sd_shape_table[psd->index_type_g][index_x]+
                                                  g*g*0.5*psd->sd_shape_table[psd->index_type_mu][index_x];
@@ -997,7 +997,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
                        psd->sd_parameter_table[psd->index_type_mu]/1.401+
                        psd->epsilon;
 
-  if(psd->include_g_distortion){
+  if(psd->include_g_distortion == _TRUE_){
      psd->Drho_over_rho += psd->sd_parameter_table[psd->index_type_g]*4.;
   }
 

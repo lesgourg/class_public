@@ -309,7 +309,7 @@ int injection_calculate_at_z(struct background* pba,
 
   /** - Test if and where the new values should be stored in the injection table */
   /* If this value is important, store it */
-  if(pin->to_store){
+  if(pin->to_store == _TRUE_){
     /* Calculate where to store the value */
     if(fabs(b-1) < pin->tol_z_table){
       pin->index_z_store = pin->index_z_store+1;
@@ -345,7 +345,7 @@ int injection_calculate_at_z(struct background* pba,
   }
 
   /** - Store z values in table */
-  if(pin->to_store){
+  if(pin->to_store == _TRUE_){
     for(index_dep = 0; index_dep < pin->dep_size; ++index_dep){
       pin->deposition_table[index_dep][pin->index_z_store] = pin->pvecdeposition[index_dep];
     }
