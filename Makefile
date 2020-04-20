@@ -29,12 +29,12 @@ AR        = ar rv
 # In order to use Python 3, you can manually
 # substitute python3 to python in the line below, or you can simply
 # add a compilation option on the terminal command line:
-# "PYTHON=python3 make all" (THanks to Marius Millea for pyhton3
+# "PYTHON=python3 make all" (Thanks to Marius Millea for pyhton3
 # compatibility)
 PYTHON ?= python
 
 # your optimization flag
-OPTFLAG = -O3 #-march=native
+OPTFLAG = -O3
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
@@ -221,3 +221,4 @@ clean: .base
 	rm -f libclass.a
 	rm -f $(MDIR)/python/classy.c
 	rm -rf $(MDIR)/python/build
+	rm -f python/autosetup.py
