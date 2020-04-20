@@ -612,7 +612,9 @@ int input_shooting(struct file_content * pfc,
                      shooting_failed=_TRUE_);
 
       /* Store xzero */
-      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
+      // This needs to be done with enough accuracy. A standard double has a relative
+      // precision of around 1e-16, so 1e-20 should be good enough for the shooting
+      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%.20e",xzero);
       if (input_verbose > 0) {
         fprintf(stdout," -> found '%s = %s'\n",
                 fzw.fc.name[fzw.unknown_parameters_index[0]],
