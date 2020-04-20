@@ -335,16 +335,12 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
-  /** - assign all heating-related properties and indices (that are not temporary) */
-  if ((pth->has_exotic_injections == _TRUE_) || (pth->has_noninjected_heating == _TRUE_)) {
-    pth->has_heating = _TRUE_;
-  }
-
-  if (pth->has_heating == _TRUE_) {
-    class_call(heating_init(ppr,
-                            pba,
-                            pth),
-               (pth->he).error_message,
+  /** - initialize injection struct (not temporary) */
+  if (pth->has_exotic_injection == _TRUE_) {
+    class_call(injection_init(ppr,
+                              pba,
+                              pth),
+               (pth->in).error_message,
                pth->error_message);
   }
 
@@ -402,10 +398,10 @@ int thermodynamics_free(
                         struct thermo * pth
                         ) {
 
-  if (pth->has_heating == _TRUE_) {
-    /* Free all heating-related functions */
-    class_call(heating_free(pth),
-               (pth->he).error_message,
+  if (pth->has_exotic_injection == _TRUE_) {
+    /* Free all injection-related functions */
+    class_call(injection_free(pth),
+               (pth->in).error_message,
                pth->error_message);
   }
 
@@ -2825,7 +2821,7 @@ int thermodynamics_derivs(
   struct thermo_diffeq_workspace * ptdw;
   struct thermo_vector * ptv;
   struct thermorecfast * precfast;
-  struct heating * phe;
+  struct injection * pin;
   int ap_current;
 
   /* Redshift */
@@ -2838,7 +2834,7 @@ int thermodynamics_derivs(
   ppr = ptpaw->ppr;
   pba = ptpaw->pba;
   pth = ptpaw->pth;
-  phe = &(pth->he);
+  pin = &(pth->in);
   /* vector of background quantities */
   pvecback = ptpaw->pvecback;
   /* thermodynamics workspace & vector */
@@ -2892,11 +2888,11 @@ int thermodynamics_derivs(
   /** - If needed, calculate heating effects (i.e. any possible energy deposition rates
         affecting the evolution equations for x and Tmat) */
 
-  if (pth->has_heating == _TRUE_) {
+  if (pth->has_exotic_injection == _TRUE_) {
     /* In case of energy injection, we currently neglect the contribution to helium ionization ! */
     /* Note that we calculate here the energy injection INCLUDING reionization ! */
-    class_call(heating_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
-               phe->error_message,
+    class_call(injection_calculate_at_z(pba,pth,x,z,Tmat,pvecback),
+               pin->error_message,
                error_message);
   }
 
@@ -3014,8 +3010,8 @@ int thermodynamics_derivs(
       + rate_gamma_b * (Tmat-Trad) / (Hz*(1.+z))                                /* Coupling to photons*/
       - ptw->Tcmb;                                                              /* dTrad/dz */
 
-    if (pth->has_exotic_injections == _TRUE_) {
-      dy[ptv->index_ti_D_Tmat] -= phe->pvecdeposition[phe->index_dep_heat] / heat_capacity / (Hz*(1.+z));  /* Heating from energy injection */
+    if (pth->has_exotic_injection == _TRUE_) {
+      dy[ptv->index_ti_D_Tmat] -= pin->pvecdeposition[pin->index_dep_heat] / heat_capacity / (Hz*(1.+z));  /* Heating from energy injection */
     }
   }
 
@@ -3175,9 +3171,9 @@ int thermodynamics_sources(
   /* Approximation flag */
   ap_current = ptdw->ap_current;
 
-  if (pth->has_heating == _TRUE_) {
+  if (pth->has_exotic_injection == _TRUE_) {
     /* Tell heating module that it should store the heating at this z in its internal table */
-    (pth->he).to_store = _TRUE_;
+    (pth->in).to_store = _TRUE_;
   }
 
   /** - Recalculate all quantities at this current redshift: we need

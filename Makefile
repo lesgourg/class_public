@@ -77,7 +77,7 @@ HEADERFILES += $(wildcard ./$(RECFAST)/*.h)
 vpath %.c $(HEATING)
 #CCFLAG += -DHEATING
 INCLUDES += -I../$(HEATING)
-EXTERNAL += heating.o
+EXTERNAL += injection.o noninjection.o
 HEADERFILES += $(wildcard ./$(HEATING)/*.h)
 
 # eventually update flags for including HyRec

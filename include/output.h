@@ -49,7 +49,8 @@ struct output {
   short write_thermodynamics; /**< flag for outputing thermodynamical evolution in file */
   short write_perturbations; /**< flag for outputing perturbations of selected wavenumber(s) in file(s) */
   short write_primordial; /**< flag for outputing scalar/tensor primordial spectra in files */
-  short write_heating; /**< flag for outputing spectral distortions in files */
+  short write_exotic_injection; /**< flag for outputing exotic energy injection/deposition in files */
+  short write_noninjection; /**< flag for outputing non-injected contributions in files */
   short write_distortions; /**< flag for outputing spectral distortions in files */
 
   //@}
@@ -141,7 +142,8 @@ extern "C" {
                         );
 
   int output_heating(
-                     struct heating* phe,
+                     struct injection* pin,
+                     struct noninjection* pni,
                      struct output * pop
                      );
 

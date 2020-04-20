@@ -55,13 +55,6 @@ struct thermorecfast {
 
 /**************************************************************/
 
-/* *
- * Putting this down here is important, because of the special nature of this wrapper
- * */
-struct thermo;
-struct background;
-struct precision;
-
 /* Boilerplate for C++ */
 #ifdef __cplusplus
 extern "C" {

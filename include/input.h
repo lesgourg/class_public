@@ -6,19 +6,6 @@
 #include "common.h"
 #include "parser.h"
 
-/* Declare the structs this module refers to */
-struct precision;
-struct background;
-struct thermo;
-struct perturbs;
-struct transfers;
-struct primordial;
-struct spectra;
-struct nonlinear;
-struct lensing;
-struct output;
-struct distortions;
-
 #define _N_FILEROOT_ 100 /* Number of files that will be not overwritten for a given root */
 
 /* macro for checking if string begins with certain character */
@@ -390,10 +377,10 @@ extern "C" {
                                     int input_verbose,
                                     ErrorMsg errmsg);
 
-  int input_read_parameters_heating(struct file_content * pfc,
-                                    struct precision * ppr,
-                                    struct thermo * pth,
-                                    ErrorMsg errmsg);
+  int input_read_parameters_injection(struct file_content * pfc,
+                                      struct precision * ppr,
+                                      struct thermo * pth,
+                                      ErrorMsg errmsg);
 
   int input_read_parameters_nonlinear(struct file_content * pfc,
                                       struct precision * ppr,

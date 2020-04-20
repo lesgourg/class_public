@@ -208,11 +208,12 @@ int output_init(
                pop->error_message);
 
   }
-  /** - deal with heating [NS]*/
 
-  if (pop->write_heating == _TRUE_) {
+  /** - deal with heating */
 
-    class_call(output_heating(&(pth->he),pop),
+  if (pop->write_exotic_injection == _TRUE_ || pop->write_noninjection == _TRUE_) {
+
+    class_call(output_heating(&(pth->in),&(psd->ni),pop),
                pop->error_message,
                pop->error_message);
   }
@@ -1254,56 +1255,106 @@ int output_primordial(
   return _SUCCESS_;
 }
 
-int output_heating(struct heating* phe, struct output * pop) {
+int output_heating(struct injection* pin, struct noninjection* pni, struct output * pop) {
 
   /** Local variables*/
-  FileName file_name_heat;
-  FILE * out_heat;
+  FileName file_name_injection;
+  FILE * out_injection;
+  FileName file_name_noninjection;
+  FILE * out_noninjection;
 
-  char titles_heat[_MAXTITLESTRINGLENGTH_]={0};
+  char titles_injection[_MAXTITLESTRINGLENGTH_]={0};
 
-  double * data_heat;
-  int size_data_heat;
-  int number_of_titles_heat;
+  double * data_injection;
+  int size_data_injection;
+  int number_of_titles_injection;
 
-  if(pop->write_heating==_TRUE_){
+  char titles_noninjection[_MAXTITLESTRINGLENGTH_]={0};
+
+  double * data_noninjection;
+  int size_data_noninjection;
+  int number_of_titles_noninjection;
+
+  if(pop->write_exotic_injection == _TRUE_){
 
     /* File name */
-    sprintf(file_name_heat,"%s%s",pop->root,"heating.dat");
+    sprintf(file_name_injection,"%s%s",pop->root,"exotic_injection.dat");
 
     /* Titles */
-    class_call(heating_output_titles(phe,titles_heat),
-               phe->error_message,
-               phe->error_message);
-    number_of_titles_heat = get_number_of_titles(titles_heat);
+    class_call(injection_output_titles(pin,titles_injection),
+               pin->error_message,
+               pin->error_message);
+    number_of_titles_injection = get_number_of_titles(titles_injection);
 
     /* Data array */
-    size_data_heat = number_of_titles_heat*phe->z_size;
-    class_alloc(data_heat,
-                sizeof(double)*size_data_heat,
+    size_data_injection = number_of_titles_injection*pin->z_size;
+    class_alloc(data_injection,
+                sizeof(double)*size_data_injection,
                 pop->error_message);
-    class_call(heating_output_data(phe,
-                                   number_of_titles_heat,
-                                   data_heat),
-               phe->error_message,
+    class_call(injection_output_data(pin,
+                                     number_of_titles_injection,
+                                     data_injection),
+               pin->error_message,
                pop->error_message);
 
     /* File IO */
-    class_open(out_heat,
-               file_name_heat,
+    class_open(out_injection,
+               file_name_injection,
                "w",
                pop->error_message);
 
     if(pop->write_header){
-      fprintf(out_heat,"# Heat is dE/dt|dep_h\n");
+      fprintf(out_injection,"# Table of energy injection and deposition from exotic processes \n");
+      fprintf(out_injection,"# Heat is dE/dt|dep_h\n");
     }
 
-    output_print_data(out_heat,
-                      titles_heat,
-                      data_heat,
-                      size_data_heat);
-    free(data_heat);
-    fclose(out_heat);
+    output_print_data(out_injection,
+                      titles_injection,
+                      data_injection,
+                      size_data_injection);
+    free(data_injection);
+    fclose(out_injection);
+
+  }
+
+  if(pop->write_noninjection == _TRUE_){
+
+    /* File name */
+    sprintf(file_name_noninjection,"%s%s",pop->root,"photon_noninjection.dat");
+
+    /* Titles */
+    class_call(noninjection_output_titles(pni,titles_noninjection),
+               pni->error_message,
+               pni->error_message);
+    number_of_titles_noninjection = get_number_of_titles(titles_noninjection);
+
+    /* Data array */
+    size_data_noninjection = number_of_titles_noninjection*pin->z_size;
+    class_alloc(data_noninjection,
+                sizeof(double)*size_data_noninjection,
+                pop->error_message);
+    class_call(noninjection_output_data(pni,
+                                        number_of_titles_noninjection,
+                                        data_noninjection),
+               pni->error_message,
+               pop->error_message);
+
+    /* File IO */
+    class_open(out_noninjection,
+               file_name_noninjection,
+               "w",
+               pop->error_message);
+
+    if(pop->write_header){
+      fprintf(out_noninjection,"# Table of non-injected energy influencing the photon spectral distortions \n");
+    }
+
+    output_print_data(out_noninjection,
+                      titles_noninjection,
+                      data_noninjection,
+                      size_data_noninjection);
+    free(data_noninjection);
+    fclose(out_noninjection);
 
   }
 

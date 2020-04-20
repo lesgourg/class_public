@@ -67,7 +67,7 @@ int distortions_init(struct precision * ppr,
              psd->error_message);
 
   /** Define heating function */
-  class_call(distortions_compute_heating_rate(pba,pth,ppt,ppm,psd),
+  class_call(distortions_compute_heating_rate(ppr,pba,pth,ppt,ppm,psd),
              psd->error_message,
              psd->error_message);
 
@@ -703,14 +703,15 @@ int distortions_compute_branching_ratios(struct precision * ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
-int distortions_compute_heating_rate(struct background* pba,
+int distortions_compute_heating_rate(struct precision* ppr,
+                                     struct background* pba,
                                      struct thermo * pth,
                                      struct perturbs * ppt,
                                      struct primordial * ppm,
                                      struct distortions * psd){
 
   /** Define local variables */
-  struct heating* phe = &(pth->he);
+  struct noninjection* pni = &(psd->ni);
   int index_z;
   double tau;
   int last_index_back;
@@ -721,8 +722,8 @@ int distortions_compute_heating_rate(struct background* pba,
 
   if( ! psd->only_exotic ){
     /** Update heating table with second order contributions */
-    class_call(heating_add_noninjected(pba,pth,ppt,ppm),
-               phe->error_message,
+    class_call(noninjection_init(ppr,pba,pth,ppt,ppm,pni),
+               pni->error_message,
                psd->error_message);
   }
 
@@ -762,10 +763,10 @@ int distortions_compute_heating_rate(struct background* pba,
     bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));                                              // [-]
 
     /** Import quantities from heating structure */
-    class_call(heating_photon_at_z(pth,
-                                   psd->z[index_z],
-                                   &heat),                                                          // [J/(m^3 s)]
-               phe->error_message,
+    class_call(noninjection_photon_heating_at_z(pni,
+                                                psd->z[index_z],
+                                                &heat),                                             // [J/(m^3 s)]
+               pni->error_message,
                psd->error_message);
 
     /** Calculate total heating rate */
@@ -773,6 +774,13 @@ int distortions_compute_heating_rate(struct background* pba,
   }
 
   free(pvecback);
+
+  if( ! psd->only_exotic ){
+    /** Update heating table with second order contributions */
+    class_call(noninjection_free(pni),
+               pni->error_message,
+               psd->error_message);
+  }
 
   return _SUCCESS_;
 }

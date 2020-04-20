@@ -78,12 +78,6 @@ struct thermohyrec{
 
 /**************************************************************/
 
-/* *
- * Putting this down here is important, because of the special nature of this wrapper
- * */
-
-struct thermo* pth;
-
 /* Boilerplate for C++ */
 #ifdef __cplusplus
 extern "C" {

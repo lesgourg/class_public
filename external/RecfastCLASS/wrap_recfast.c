@@ -121,7 +121,7 @@ int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, 
                     double* dxH_dz) {
 
   /** Define local variables */
-  struct heating* phe = &(pth->he);
+  struct injection* pin = &(pth->in);
   /* new in recfast 1.4: */
   double Rup,Rdown,K,C,C_nofudge;
   double ion_H,ion_He,ion_lya;
@@ -158,10 +158,10 @@ int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, 
   *dxH_dz = (x*x_H*nH*Rdown - Rup*(1.-x_H)*exp(-pre->CL/Tmat)) * C / (Hz*(1.+z));
 
   /** - Energy injection */
-  if (pth->has_exotic_injections == _TRUE_) {
-    ion_H = phe->pvecdeposition[phe->index_dep_ionH];
-    ion_He = phe->pvecdeposition[phe->index_dep_ionHe];
-    ion_lya = phe->pvecdeposition[phe->index_dep_lya];
+  if (pth->has_exotic_injection == _TRUE_) {
+    ion_H = pin->pvecdeposition[pin->index_dep_ionH];
+    ion_He = pin->pvecdeposition[pin->index_dep_ionHe];
+    ion_lya = pin->pvecdeposition[pin->index_dep_lya];
 
     *dxH_dz += -1./nH*((ion_H+ion_He)/(_E_H_ion_*_eV_)+ion_lya*(1.-C_nofudge)/(_E_H_lya_*_eV_))/(Hz*(1.+z));
   }

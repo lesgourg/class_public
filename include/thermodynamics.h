@@ -8,7 +8,7 @@
 #include "evolver_rkck.h"
 #include "wrap_hyrec.h"
 #include "wrap_recfast.h"
-#include "heating.h"
+#include "injection.h"
 
 /**
  * List of possible recombination algorithms.
@@ -121,7 +121,7 @@ struct thermo
 
   /** parameters for energy injection */
 
-  short has_exotic_injections; /**< true if some exotic mechanism
+  short has_exotic_injection; /**< true if some exotic mechanism
                                   injects energy and affects the
                                   evolution of ionization and/or
                                   temperature and/or other
@@ -130,15 +130,7 @@ struct thermo
                                   anisotropies (and spectral
                                   distorsions if requested). */
 
-  short has_noninjected_heating; /**< true if we need to compute the
-                                    heating term due to other
-                                    mechanism than exotic energy
-                                    injection (e.g. adiabatic cooling
-                                    of electrons and baryons,
-                                    dissipation of acoustic waves)
-                                    that are relevant for the
-                                    calculation of spectral
-                                    distorsions (if requested). */
+  struct injection in; /**< structure to store exotic energy injections and their energy deposition */
 
   double annihilation; /**< parameter describing CDM annihilation (f <sigma*v> / m_cdm, see e.g. 0905.0003) */
 
@@ -230,20 +222,6 @@ struct thermo
   //@{
 
   double * d2thermodynamics_dz2_table; /**< table d2thermodynamics_dz2_table[index_z*pth->tt_size+pba->index_th] with values of \f$ d^2 t_i / dz^2 \f$ (array of size th_size*tt_size) */
-
-  //@}
-
-  /**
-   * @name - heating flag and structure
-   * */
-
-  //@{
-
-  short has_heating; /**< true if we need to compute heating terms
-                        (either fot exotic injections or noninjected
-                        heating */
-
-  struct heating he;
 
   //@}
 

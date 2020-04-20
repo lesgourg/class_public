@@ -314,6 +314,18 @@ int get_number_of_titles(char * titlestring);
 #define class_print_species(name,type) \
 printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
 
+/* Forward-Declare the structs of CLASS */
+struct background;
+struct thermo;
+struct perturbs;
+struct transfers;
+struct primordial;
+struct spectra;
+struct nonlinear;
+struct lensing;
+struct distortions;
+struct output;
+
 /** parameters related to the precision of the code and to the method of calculation */
 
 /**

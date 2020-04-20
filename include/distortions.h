@@ -11,6 +11,7 @@
 #include "thermodynamics.h"
 #include "perturbations.h"
 #include "primordial.h"
+#include "noninjection.h"
 
 #define _MAX_DETECTOR_NAME_LENGTH_ 100
 typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
@@ -166,6 +167,9 @@ struct distortions
 
   short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
+  int has_noninjected;
+  struct noninjection ni;
+
   ErrorMsg error_message;    /**< zone for writing error messages */
 
   //@}
@@ -218,7 +222,8 @@ extern "C" {
   int distortions_compute_branching_ratios(struct precision * ppr,
                                            struct distortions* psd);
 
-  int distortions_compute_heating_rate(struct background* pba,
+  int distortions_compute_heating_rate(struct precision* ppr,
+                                       struct background* pba,
                                        struct thermo * pth,
                                        struct perturbs * ppt,
                                        struct primordial * ppm,
