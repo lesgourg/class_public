@@ -138,6 +138,14 @@ class_precision_parameter(primordial_black_hole_Nz,int,75000)
  * Number of sampling points in the case of the coarse sampling in noninjection.c in ln(1+z)
  */
 class_precision_parameter(noninjection_Nz_log,int,1000)
+/**
+ * Number of discrete wavenumbers for dissipation of acoustic waves (found to be giving a reasonable precision)
+ */
+class_precision_parameter(noninjection_Nk_acc_diss,int,500)
+class_precision_parameter(k_min_acc_diss,double,0.12) /**< Minimum wavenumber for dissipation of acoustic waves */
+class_precision_parameter(k_max_acc_diss,double,1.e6) /**< Maximum wavenumber for dissipation of acoustic waves */
+class_precision_parameter(z_wkb_acc_diss,double,1.e6) /**< Redshift of the WKB approximation for diss. of acoustic waves */
+
 /*
  * Recfast 1.4/1.5 parameters
  */

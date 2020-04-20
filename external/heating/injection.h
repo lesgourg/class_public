@@ -70,28 +70,23 @@ struct injection{
   double Omega0_b;
   double Omega0_cdm;
   double rho0_cdm;
-  /* Redshift dependent, i.e. defined in injection_calculate_at_z or injection_at_z_second_order */
+  /* Redshift dependent, i.e. defined in injection_calculate_at_z */
   double H;
   double a;
   double t;
-  double R;
   double rho_g;
   double rho_b;
   double rho_cdm;
-  double rho_dcdm;
 
   /* Parameters from thermodynamics structure */
   /* Redshift independent, i.e. defined in injection_init */
-  double Y_He;
   double fHe;
-  double heat_capacity;
   double N_e0;
-  double nH;
-  /* Redshift dependent, i.e. defined in injection_calculate_at_z or injection_at_z_second_order */
+  /* Redshift dependent, i.e. defined in injection_calculate_at_z */
+  double heat_capacity;
   double T_b;
-  double T_g;
   double x_e;
-  double dkappa;
+  double nH;
 
   //@}
 

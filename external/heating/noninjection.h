@@ -23,29 +23,28 @@ struct noninjection{
   double* z_table_coarse;
   int z_size_coarse;
   double logz_max;
-  double * injected_deposition;
-  double * ddinjected_deposition;
+  double * noninjection_table;
+  double * ddnoninjection_table;
 
   int z_size;
   double* z_table;
-
-  double tol_z_table;
-  int filled_until_index_z;
-  double filled_until_z;
   int last_index_z;
 
   /* Temporary quantities */
+  // WKB approximation quantities
   double f_nu_wkb;
   double dkD_dz;
   double kD;
-
+  // Fixed thermodynamic quantities
   double T_g0;
-  double heat_capacity;
   double N_e0;
-  double rho_g;
-  double nH;
+  // Varying background quantities
   double H;
   double a;
+  double rho_g;
+  // Varying thermodynamic quantities
+  double heat_capacity;
+  double nH;
   double T_b;
   double T_g;
   double x_e;

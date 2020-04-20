@@ -21,12 +21,13 @@ int injection_init(struct precision * ppr,
                    struct background* pba,
                    struct thermo* pth){
 
-  /** Define local variable */
+  /** Summary: */
+
+  /** - Define local variable */
   struct injection* pin = &(pth->in);
   int index_inj, index_dep;
 
-  /** Initialize flags, indices and parameters */
-  pin->has_exotic_injection = _FALSE_;
+  /** - Initialize flags, indices and parameters */
   pin->has_DM_ann = _FALSE_;
   pin->has_DM_dec = _FALSE_;
   pin->has_PBH_eva = _FALSE_;
@@ -35,13 +36,12 @@ int injection_init(struct precision * ppr,
   pin->last_index_z_chi = 0;
   pin->last_index_z_feff = 0;
 
-  /** Import qunatities from other structures */
+  /** - Import quantities from other structures */
   /* Precision structure */
   pin->Nz_size = ppr->thermo_Nz_lin;
   pin->z_initial = ppr->thermo_z_initial;
   pin->z_start_chi_approx = ppr->z_start_chi_approx;
   pin->Nz_PBH = ppr->primordial_black_hole_Nz;
-
 
   /* Background structure */
   pin->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
@@ -54,17 +54,16 @@ int injection_init(struct precision * ppr,
   pin->fHe = pth->fHe;                                                                              // [-]
   pin->N_e0 = pth->n_e;                                                                             // [1/m^3]
 
-  /** Define redshift tables */
+  /** - Define redshift tables */
   pin->z_size = pth->tt_size;
-  /* class_alloc(pin->z_table,
+  class_alloc(pin->z_table,
               pin->z_size*sizeof(double),
               pin->error_message);
   memcpy(pin->z_table,
          pth->z_table,
-         pin->z_size*sizeof(double));*/
-  pin->z_table = pth->z_table;
+         pin->z_size*sizeof(double));
 
-  /** Define additional book-keeping variables for the z table */
+  /** - Define additional book-keeping variables for the z table */
   pin->tol_z_table = 1e-10;
   pin->filled_until_index_z = pin->z_size-1;
   pin->filled_until_z = pin->z_table[pin->filled_until_index_z];
@@ -74,13 +73,13 @@ int injection_init(struct precision * ppr,
   pin->last_index_z = 0;
   pin->index_z_store = 0;
 
-  /** Define indeces of tables */
+  /** - Define indices of tables */
   pin->to_store = _FALSE_;
   class_call(injection_indices(pth),
              pin->error_message,
              pin->error_message);
 
-  /** Initialize energy injection table */
+  /** - Initialize energy injection table */
   /* Allocate space */
   class_alloc(pin->injection_table,
               pin->inj_size*sizeof(double*),
@@ -98,7 +97,7 @@ int injection_init(struct precision * ppr,
                pin->error_message);
   }
 
-  /** Initialize injection efficiency */
+  /** - Initialize injection efficiency */
   /* Read from external file, if needed */
   if(pin->f_eff_type == f_eff_from_file){
     class_call(injection_read_feff_from_file(ppr,pin,
@@ -107,7 +106,7 @@ int injection_init(struct precision * ppr,
                pin->error_message);
   }
 
-  /** Initialize deposition function */
+  /** - Initialize deposition function */
   /* Allocate space */
   class_alloc(pin->chi,
               pin->dep_size*sizeof(double),
@@ -133,7 +132,7 @@ int injection_init(struct precision * ppr,
                pin->error_message);
   }
 
-  /** Initialize energy deposition table */
+  /** - Initialize energy deposition table */
   /* Allocate space */
   class_alloc(pin->deposition_table,
               pin->dep_size*sizeof(double*),
@@ -153,22 +152,19 @@ int injection_init(struct precision * ppr,
 
 
 /**
- * Initialize indeces of injection table.
+ * Initialize indices of injection table.
  *
  * @param pth   Input: pointer to thermodynamics structure
  * @return the error status
  */
 int injection_indices(struct thermo* pth){
 
-  /** Define local variable */
+  /** - Define local variables */
   struct injection* pin = &(pth->in);
   int index_dep,index_inj;
 
 
   /* Check energy injection */
-  if(pin->DM_annihilation_efficiency!=0 || pin->DM_decay_fraction!=0 || pin->PBH_evaporation_fraction!=0 || pin->PBH_accretion_fraction!=0){
-    pin->has_exotic_injection = _TRUE_;
-  }
   if(pin->DM_annihilation_efficiency!=0){
     pin->has_DM_ann = _TRUE_;
   }
@@ -182,7 +178,7 @@ int injection_indices(struct thermo* pth){
     pin->has_PBH_acc = _TRUE_;
   }
 
-  /** Indices for injection table */
+  /** - Indices for injection table */
   index_inj = 0;
   class_define_index(pin->index_inj_DM_ann  , pin->has_DM_ann  , index_inj, 1);
   class_define_index(pin->index_inj_DM_dec  , pin->has_DM_dec  , index_inj, 1);
@@ -191,7 +187,7 @@ int injection_indices(struct thermo* pth){
   class_define_index(pin->index_inj_tot     , _TRUE_           , index_inj, 1);
   pin->inj_size = index_inj;
 
-  /** Indices for deposition (and chi) table */
+  /** - Indices for deposition (and chi) table */
   index_dep = 0;
   class_define_index(pin->index_dep_heat , _TRUE_, index_dep, 1);
   class_define_index(pin->index_dep_ionH , _TRUE_, index_dep, 1);
@@ -212,12 +208,12 @@ int injection_indices(struct thermo* pth){
  */
 int injection_free(struct thermo* pth){
 
-  /** Define local variables */
+  /** - Define local variables */
   struct injection* pin = &(pth->in);
   int index_inj, index_dep;
 
   /* Redshift */
-  //free(pin->z_table);
+  free(pin->z_table);
 
   /* Energy injection */
   for(index_inj=0;index_inj<pin->inj_size;++index_inj){
@@ -280,20 +276,20 @@ int injection_calculate_at_z(struct background* pba,
                              double Tmat,
                              double* pvecback){
 
-  /** Define local variables */
+  /** - Define local variables */
   struct injection * pin = &(pth->in);
   int index_dep, iz_store;
   double h,a,b;
   double dEdz_inj;
 
-  /** Redefine input parameters */
+  /** - Store input parameters in struct */
   pin->T_b = Tmat;                                                                                  // [K]
   pin->x_e = x;                                                                                     // [-]
   pin->nH = pin->N_e0*pow(1.+z,3);                                                                  // [1/m^3]
   pin->heat_capacity = (3./2.)*_k_B_*pin->nH*(1.+pin->fHe+pin->x_e);                                // [J/(K m^3)]
   dEdz_inj = 0.;
 
-  /** Import varying quantities from background structure */
+  /** - Import varying quantities from background structure, convert to SI units */
   pin->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
   pin->a = pvecback[pba->index_bg_a];                                                               // [-]
   pin->t = pvecback[pba->index_bg_time]/_s_over_Mpc_;                                               // [s]
@@ -301,7 +297,7 @@ int injection_calculate_at_z(struct background* pba,
   pin->rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                       // [J/m^3]
   pin->rho_b = pvecback[pba->index_bg_rho_b]*_Jm3_over_Mpc2_;                                       // [J/m^3]
 
-  /** Hunt within the redshift table for the given index of deposition */
+  /** - Hunt within the redshift table for the given index of deposition */
   class_call(array_spline_hunt(pin->z_table,
                                pin->z_size,
                                z,
@@ -311,7 +307,7 @@ int injection_calculate_at_z(struct background* pba,
              pin->error_message,
              pin->error_message);
 
-  /** Test if and where the new values should be stored in the injection table */
+  /** - Test if and where the new values should be stored in the injection table */
   /* If this value is important, store it */
   if(pin->to_store){
     /* Calculate where to store the value */
@@ -329,26 +325,26 @@ int injection_calculate_at_z(struct background* pba,
     }
   }
 
-  /** Get the injected energy that needs to be deposited (i.e. excluding adiabatic terms) */
+  /** - Get the injected energy that needs to be deposited (i.e. excluding adiabatic terms) */
   class_call(injection_energy_injection_at_z(pin,
                                              z,
                                              &dEdz_inj),
              pin->error_message,
              pin->error_message);
 
-  /** Get the deposition and the efficiency functions */
+  /** - Get the deposition and the efficiency functions */
   class_call(injection_deposition_function_at_z(pin,
                                                 x,
                                                 z),
              pin->error_message,
              pin->error_message);
 
-  /** Put result into deposition vector */
+  /** - Put result into deposition vector */
   for(index_dep = 0; index_dep < pin->dep_size; ++index_dep){
     pin->pvecdeposition[index_dep] = pin->chi[index_dep]*dEdz_inj;
   }
 
-  /** Store z values in table */
+  /** - Store z values in table */
   if(pin->to_store){
     for(index_dep = 0; index_dep < pin->dep_size; ++index_dep){
       pin->deposition_table[index_dep][pin->index_z_store] = pin->pvecdeposition[index_dep];
@@ -379,7 +375,7 @@ int injection_energy_injection_at_z(struct injection* pin,
                                     double z,
                                     double* dEdz_inj){
 
-  /** Define local variable */
+  /** - Define local variable */
   double dEdz, rate;
   double h,a,b;
   int index_inj, iz_store;
@@ -387,7 +383,7 @@ int injection_energy_injection_at_z(struct injection* pin,
   /* Initialize local variables */
   dEdz = 0.;
 
-  /** Test if the values are already within the table */
+  /** - Test if the values are already within the table */
   if(z > pin->filled_until_z == _TRUE_){
     /* If the value is already within the table, just interpolate */
     class_call(array_spline_hunt(pin->z_table,
@@ -405,12 +401,11 @@ int injection_energy_injection_at_z(struct injection* pin,
 
     *dEdz_inj = dEdz;
 
-    return _SUCCESS_;
   }
 
-  /** Exotic energy injection mechanisms */
-  if(pin->has_exotic_injection == _TRUE_){
+  else {
 
+    /** - Exotic energy injection mechanisms */
     /* DM annihilation */
     if(pin->has_DM_ann == _TRUE_){
       class_call(injection_rate_DM_annihilation(pin,
@@ -462,18 +457,19 @@ int injection_energy_injection_at_z(struct injection* pin,
       }
       dEdz += rate;
     }
+
+    /** Total energy injection */
+    if(pin->to_store == _TRUE_){
+      pin->injection_table[pin->index_inj_tot][pin->index_z_store] = dEdz;
+
+      class_test(pin->index_z_store < pin->filled_until_index_z-1,
+                 pin->error_message,
+                 "Skipping too far ahead in z_table. Check that the injection and thermodynamics modules agree in their z sampling.");
+    }
+
+    *dEdz_inj = dEdz;
+
   }
-
-  /** Total energy injection */
-  if(pin->to_store == _TRUE_){
-    pin->injection_table[pin->index_inj_tot][pin->index_z_store] = dEdz;
-
-    class_test(pin->index_z_store < pin->filled_until_index_z-1,
-               pin->error_message,
-               "Skipping too far ahead in z_table. Check that the injection and thermodynamics modules agree in their z sampling.");
-  }
-
-  *dEdz_inj = dEdz;
 
   return _SUCCESS_;
 }
@@ -491,11 +487,11 @@ int injection_deposition_function_at_z(struct injection* pin,
                                        double x,
                                        double z){
 
-  /** Define local variables */
+  /** - Define local variables */
   int index_dep;
 
   if(z > pin->z_start_chi_approx){
-    /** In the verz early universe, whole energy goes into injection */
+    /** - In the verz early universe, whole energy goes into injection */
     pin->chi[pin->index_dep_heat]  = 1.;
     pin->chi[pin->index_dep_ionH]  = 0.;
     pin->chi[pin->index_dep_ionHe] = 0.;
@@ -503,7 +499,7 @@ int injection_deposition_function_at_z(struct injection* pin,
     pin->chi[pin->index_dep_lowE]  = 0.;
   }
   else{
-    /** Read the deposition factors for each channel */
+    /** - Use the deposition factors for each channel */
     /* Old approximation from Chen and Kamionkowski */
     if(pin->chi_type == chi_CK){
       if(x<1.){
@@ -618,7 +614,7 @@ int injection_deposition_function_at_z(struct injection* pin,
     }
   }
 
-  /** Read the correction factor f_eff */
+  /** - Read the correction factor f_eff */
   /* For the on the spot, we take the user input */
   if(pin->f_eff_type == f_eff_on_the_spot){
     pin->f_eff = 1.;
@@ -663,12 +659,12 @@ int injection_deposition_function_at_z(struct injection* pin,
 int injection_deposition_at_z(struct thermo* pth,
                               double z){
 
-  /** Define local variables */
+  /** - Define local variables */
   struct injection* pin = &(pth->in);
   int index_dep;
   double h,a,b;
 
-  /** Interpolate at required z in the table */
+  /** - Interpolate at required z in the table */
   class_test(z < pin->filled_until_z,
              pin->error_message,
              "injection is not yet calculated beyond %.10e (asked for at %.10e)",pin->filled_until_z,z);
@@ -705,10 +701,10 @@ int injection_rate_DM_annihilation(struct injection * pin,
                                    double z,
                                    double * energy_rate){
 
-  /** Define local variables */
+  /** - Define local variables */
   double annihilation_at_z, boost_factor;
 
-  /** Calculate chamge in the annihilation efficiency */
+  /** - Calculate change in the annihilation efficiency */
   if (z>pin->DM_annihilation_zmax) {
     annihilation_at_z = pin->DM_annihilation_efficiency*
                         exp(-pin->DM_annihilation_variation*pow(log((pin->DM_annihilation_z+1.)/(pin->DM_annihilation_zmax+1.)),2));
@@ -724,7 +720,7 @@ int injection_rate_DM_annihilation(struct injection * pin,
                                          +pow(log((pin->DM_annihilation_zmin+1.)/(pin->DM_annihilation_zmax+1.)),2)));
   }
 
-  /** Calculate boost factor due to annihilation in halos */
+  /** - Calculate boost factor due to annihilation in halos */
   if(pin->DM_annihilation_z_halo > 0.){
     boost_factor = pin->DM_annihilation_f_halo * erfc((1+z)/(1+pin->DM_annihilation_z_halo)) / pow(1.+z,3);
   }
@@ -732,7 +728,7 @@ int injection_rate_DM_annihilation(struct injection * pin,
     boost_factor = 0;
   }
 
-  /** Calculate injection rates */
+  /** - Calculate injection rates */
   *energy_rate = pow(pin->rho_cdm,2.)*pin->DM_annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
 
   return _SUCCESS_;
@@ -751,7 +747,7 @@ int injection_rate_DM_decay(struct injection * pin,
                             double z,
                             double * energy_rate){
 
-  /** Calculate injection rates */
+  /** - Calculate injection rates */
   *energy_rate = pin->rho_cdm*pin->DM_decay_fraction*pin->DM_decay_Gamma*
                  exp(-pin->DM_decay_Gamma*pin->t);                                                  // [J/(m^3 s)]
 
@@ -770,7 +766,7 @@ int injection_rate_DM_decay(struct injection * pin,
 int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
                                                   struct injection * pin){
 
-  /** Define local variables */
+  /** - Define local variables */
   double * pvecback_loop;
   int last_index_back_loop;
   int i_step;
@@ -778,7 +774,7 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
   double f_EM, f_nu, f_q, f_pi, f_bos, f;
   double loop_z, loop_tau, time_now, time_prev, dt, dlnz, lnz_ini;
 
-  /** Set initial parameters */
+  /** - Set initial parameters */
   current_mass = pin->PBH_evaporation_mass;                                                         // [g]
   pin->PBH_z_evaporation = 0;
   lnz_ini = log(1+pin->z_initial);
@@ -786,12 +782,12 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
   loop_z = pin->z_initial*1.0001;
   time_prev = 0.;                                                                                   // [s]
 
-  /** Alloate local variables */
+  /** - Alloate local variables */
   class_alloc(pvecback_loop,
               pba->bg_size*sizeof(double),
               pin->error_message);
 
-  /** Alloate variables for PBH mass evolution */
+  /** - Alloate variables for PBH mass evolution */
   class_alloc(pin->PBH_table_z,
               pin->Nz_PBH*sizeof(double),
               pin->error_message);
@@ -808,7 +804,7 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
               pin->Nz_PBH*sizeof(double),
               pin->error_message);
 
-  /** Fill tables with PBH mass evolution */
+  /** - Fill tables with PBH mass evolution */
   /* For the parametrization of F(M) we follow PRD44 (1991) 376 with
    * the additional modification that we dress the "free QCD-particles"
    * (gluons and quarks) with an sigmoid-activation function (in log10-space:
@@ -819,7 +815,7 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
    * given energy. */
   for(i_step = 0; i_step<pin->Nz_PBH; i_step++) {
 
-    /** Find value of f(M) */
+    /** - Find value of f(M) */
     current_pbh_temperature = 1.06e13/current_mass;                                                 // [GeV]
     pin->PBH_QCD_activation = 1./(1.+exp(-(log(current_pbh_temperature)-log(0.3))/(log(10.)*0.1))); // [-] see Eq. (4.6) of Stoecker et al. 2018
 
@@ -845,18 +841,13 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
             +1.*0.267*exp(-(current_mass*125.1)/(2.66*1.06e13));                                   // h
     f = f_EM+f_nu+f_q+f_pi+f_bos;
 
-    /** Find current time value */
-    class_call(background_tau_of_z(pba,
-                                   loop_z,
-                                   &loop_tau),
-               pba->error_message,
-               pin->error_message);
-    class_call(background_at_tau(pba,
-                                 loop_tau,
-                                 long_info,
-                                 inter_normal,
-                                 &last_index_back_loop,
-                                 pvecback_loop),
+    /** - Find current time value */
+    class_call(background_at_z(pba,
+                               loop_z,
+                               long_info,
+                               inter_normal,
+                               &last_index_back_loop,
+                               pvecback_loop),
                pba->error_message,
                pin->error_message);
     time_now = pvecback_loop[pba->index_bg_time]/(_c_/_Mpc_over_m_);                                // [s]
@@ -877,7 +868,7 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
       }
     }
 
-    /** Fill tables */
+    /** - Fill tables */
     pin->PBH_table_z[i_step] = loop_z;
     pin->PBH_table_mass[i_step] = current_mass;                                                     // [g]
     pin->PBH_table_F[i_step] = f;                                                                   // [-]
@@ -885,10 +876,10 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
 
   }
 
-  /** Free allocated space */
+  /** - Free local variables */
   free(pvecback_loop);
 
-  /** Spline mass and F(M) evolution in z */
+  /** - Spline mass and F(M) evolution in z */
   class_call(array_spline_table_lines(pin->PBH_table_z,
                                       pin->Nz_PBH,
                                       pin->PBH_table_mass,
@@ -926,12 +917,12 @@ int injection_rate_PBH_evaporation(struct injection * pin,
                                    double z,
                                    double * energy_rate){
 
-  /** Define local variables */
+  /** - Define local variables */
   int last_index_back;
   double mass, f;
   double dMdt, f_em;
 
-  /** Interpolate the PBH mass evolution */
+  /** - Interpolate the PBH mass evolution */
   class_call(array_interpolate_spline(pin->PBH_table_z,
                                       pin->Nz_PBH,
                                       pin->PBH_table_mass,
@@ -958,7 +949,7 @@ int injection_rate_PBH_evaporation(struct injection * pin,
              pin->error_message,
              pin->error_message);
 
-  /** Calculate injection rates */
+  /** - Calculate injection rates */
   if(mass <= 0.0001*pin->PBH_evaporation_mass || f <= 0 || z < pin->PBH_z_evaporation){
     *energy_rate = 0.;                                                                                // [J/(m^3 s)]
   }
@@ -984,7 +975,7 @@ int injection_rate_PBH_accretion(struct injection * pin,
                                  double z,
                                  double * energy_rate){
 
-  /** Define local variables */
+  /** - Define local variables */
   double tau, * pvecback;
   int last_index_back;
   double L_ed, M_ed_dot, M_crit, v_B, v_l, v_eff, r_B, t_B;
@@ -995,7 +986,7 @@ int injection_rate_PBH_accretion(struct injection * pin,
   double T_ion, T_s, Y_s, theta_s;
   double lambda_1, lambda_2, lambda_ad, lambda_iso, J;
 
-  /** Initialize local variables */
+  /** - Initialize local variables */
   /* Eddington luminosity */
   L_ed = 4.*_PI_*_G_*(pin->PBH_accretion_mass*_Sun_mass_)*_m_p_/_sigma_*_c_;                        // [W]
   M_ed_dot= 10.*L_ed/pow(_c_,2.);                                                                   // [kg/s]
@@ -1019,7 +1010,7 @@ int injection_rate_PBH_accretion(struct injection * pin,
   r_B = _G_*(pin->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,2.);                                     // [m]
   t_B = _G_*(pin->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,3.);                                     // [s]
 
-  /** Disk accretion from Poulin et al. 1707.04206 */
+  /** - Disk accretion from Poulin et al. 1707.04206 */
   if(pin->PBH_accretion_recipe == disk_accretion){
 
     lambda = pin->PBH_accretion_eigenvalue;                                                         // [-]
@@ -1093,7 +1084,7 @@ int injection_rate_PBH_accretion(struct injection * pin,
     L_acc = epsilon*M_b_dot*pow(_c_,2.);                                                            // [W]
   }
 
-  /** Spherical accretion from Ali-Haimoud et al. 1612.05644 */
+  /** - Spherical accretion from Ali-Haimoud et al. 1612.05644 */
   else if(pin->PBH_accretion_recipe == spherical_accretion){
 
     beta_compton_drag = 4./3.*pin->x_e*_sigma_*pin->rho_g*t_B/_m_p_/_c_;                            // [-] Eq. (7)
@@ -1143,7 +1134,7 @@ int injection_read_feff_from_file(struct precision* ppr,
                                   struct injection* pin,
                                   char* f_eff_file){
 
-  /** Define local variables */
+  /** - Define local variables */
   FILE * fA;
   char line[_LINE_LENGTH_MAX_];
   char * left;
@@ -1152,6 +1143,7 @@ int injection_read_feff_from_file(struct precision* ppr,
 
   pin->feff_z_size = 0;
 
+  /** - Read file header */
   /* The file is assumed to contain:
    *    - The number of lines of the file
    *    - The columns ( z, f(z) ) where f(z) represents the "effective" fraction of energy deposited
@@ -1188,6 +1180,7 @@ int injection_read_feff_from_file(struct precision* ppr,
     }
   }
 
+  /** - Read file */
   for(index_z=0;index_z<pin->feff_z_size;++index_z){
     /* Read coefficients */
     class_test(fscanf(fA,"%lg %lg",
@@ -1201,6 +1194,7 @@ int injection_read_feff_from_file(struct precision* ppr,
 
   fclose(fA);
 
+  /** - Spline file contents */
   /* Spline in one dimension */
   class_call(array_spline(pin->feff_table,
                           3,
@@ -1331,6 +1325,7 @@ int injection_read_chi_x_from_file(struct precision* ppr,
 
   pin->chix_size = 0;
 
+  /** - Read file header */
   /* The file is assumed to contain:
    *    - The number of lines of the file
    *    - The columns (xe , chi_heat, chi_Lya, chi_H, chi_He, chi_lowE) where chi_i represents the
@@ -1368,6 +1363,7 @@ int injection_read_chi_x_from_file(struct precision* ppr,
     }
   }
 
+  /** - Read file */
   for(index_x = 0; index_x < pin->chix_size;++index_x){
     /* Read coefficients */
     class_test(fscanf(fA,"%lg %lg %lg %lg %lg %lg",
@@ -1385,6 +1381,7 @@ int injection_read_chi_x_from_file(struct precision* ppr,
 
   fclose(fA);
 
+  /** - Spline file contents */
   /* Spline in one dimension */
   for(index_dep=0;index_dep<pin->dep_size;++index_dep){
     class_call(array_spline(pin->chix_table,
@@ -1415,7 +1412,6 @@ int injection_output_titles(struct injection * pin, char titles[_MAXTITLESTRINGL
   class_store_columntitle(titles,"IonH [-]",_TRUE_);
   class_store_columntitle(titles,"IonHe [-]",_TRUE_);
   class_store_columntitle(titles,"Lya [-]",_TRUE_);
-  class_store_columntitle(titles,"LH [-]",_TRUE_);
 
   return _SUCCESS_;
 }
@@ -1435,7 +1431,6 @@ int injection_output_data(struct injection * pin,
     class_store_double(dataptr, pin->deposition_table[pin->index_dep_ionH][index_z], _TRUE_, storeidx);
     class_store_double(dataptr, pin->deposition_table[pin->index_dep_ionHe][index_z], _TRUE_, storeidx);
     class_store_double(dataptr, pin->deposition_table[pin->index_dep_lya][index_z], _TRUE_, storeidx);
-    class_store_double(dataptr, pin->deposition_table[pin->index_dep_heat][index_z]*(1.+pin->z_table[index_z]), _TRUE_, storeidx);
   }
 
   return _SUCCESS_;

@@ -9,6 +9,17 @@
 #include "primordial.h"
 #include "noninjection.h"
 
+/**
+ * Initialize the noninjection structure.
+ *
+ * @param ppr   Input: pointer to precision structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input: pointer to thermodynamics structure
+ * @param ppt   Input: pointer to perturbation structure
+ * @param ppm   Input: pointer to primordial structure
+ * @param pni   Input: pointer to noninjection structure
+ * @return the error status
+ */
 int noninjection_init(struct precision* ppr,
                       struct background* pba,
                       struct thermo* pth,
@@ -16,7 +27,9 @@ int noninjection_init(struct precision* ppr,
                       struct primordial* ppm,
                       struct noninjection* pni){
 
-  /** Define local variables */
+  /** Summary: */
+
+  /** - Define local variables */
   int index_k,index_z;
   double tau;
   int last_index_back, last_index_thermo, last_index_coarse = 0;
@@ -33,27 +46,29 @@ int noninjection_init(struct precision* ppr,
 
   /* z-table */
   pni->z_size = pth->tt_size;
-  /* class_alloc(pni->z_table,
+  class_alloc(pni->z_table,
               pni->z_size*sizeof(double),
               pni->error_message);
   memcpy(pni->z_table,
          pth->z_table,
-         pni->z_size*sizeof(double));*/
-  pni->z_table = pth->z_table;
+         pni->z_size*sizeof(double));
 
+  /* Photon non-injected table */
   class_alloc(pni->photon_dep_table,
               pni->z_size*sizeof(double),
               pni->error_message);
+  /* Initialize to zero */
   for(index_z = 0; index_z < pni->z_size; ++index_z){
     pni->photon_dep_table[index_z] = 0.;
   }
+  /* Add terms from exotic injections from the injection.c struct */
   if( pth->has_exotic_injection == _TRUE_ ) {
     for(index_z = 0; index_z < pni->z_size; ++index_z){
       pni->photon_dep_table[index_z] += pin->deposition_table[pin->index_dep_heat][pin->index_z_store]; /* All of the injection deposited into baryons also heats the photons */
     }
   }
 
-  /** Allocate new storage space that is a bit coarser in z as to reduce computational costs */
+  /** - Allocate new storage space that is a bit coarser in z as to reduce computational costs */
   pni->logz_max = log(1.+pni->z_table[pni->z_size-1]);
   pni->z_size_coarse = ppr->noninjection_Nz_log; /* This table is only going to be filled after the initial run anyway */
   class_alloc(pni->z_table_coarse,
@@ -64,17 +79,17 @@ int noninjection_init(struct precision* ppr,
   }
   pni->z_table_coarse[pni->z_size_coarse-1] = pni->z_table[pni->z_size-1];
 
-  class_alloc(pni->injected_deposition,
+  class_alloc(pni->noninjection_table,
               pni->z_size_coarse*sizeof(double),
               pni->error_message);
-  class_alloc(pni->ddinjected_deposition,
+  class_alloc(pni->ddnoninjection_table,
               pni->z_size_coarse*sizeof(double),
               pni->error_message);
 
-  /** Allocate qunatities from primordial structure */
-  pni->k_max = 1.e6;
-  pni->k_min = 0.12;
-  pni->k_size = 500;        /* Found to be reasonable for the integral of acoustic dissipation, TODO :: make precision variable */
+  /** - Allocate qunatities from primordial structure */
+  pni->k_max = ppr->k_min_acc_diss;
+  pni->k_min = ppr->k_min_acc_diss;
+  pni->k_size = ppr->noninjection_Nk_acc_diss;
   class_alloc(pni->k,
               pni->k_size*sizeof(double),
               pni->error_message);
@@ -85,7 +100,7 @@ int noninjection_init(struct precision* ppr,
               pni->k_size*sizeof(double),
               pni->error_message);
 
-  /** Import primordial spectrum */
+  /** - Import primordial spectrum */
   for (index_k=0; index_k<pni->k_size; index_k++) {
     pni->k[index_k] = exp(log(pni->k_min)+(log(pni->k_max)-log(pni->k_min))/(pni->k_size)*index_k);
     class_call(primordial_spectrum_at_k(ppm,
@@ -97,6 +112,7 @@ int noninjection_init(struct precision* ppr,
                pni->error_message);
   }
 
+  /** - Prepare wavenumber integration */
   class_call(array_trapezoidal_weights(pni->k,
                                        pni->k_size,
                                        pni->k_weights,
@@ -108,7 +124,7 @@ int noninjection_init(struct precision* ppr,
               pni->k_size*sizeof(double),
               pni->error_message);
 
-  /** Allocate backgorund and thermodynamcis vectors */
+  /** - Allocate backgorund and thermodynamcis vectors */
   last_index_back = 0;
   last_index_thermo = 0;
   class_alloc(pvecback,
@@ -118,45 +134,33 @@ int noninjection_init(struct precision* ppr,
               pth->tt_size*sizeof(double),
               pni->error_message);
 
-  /** Calculate WKB approximation ampltidue factor f_nu at early times */
-  z_wkb = 1.0e6;              /* Found to be reasonable for wkb approximation */
-  class_call(background_tau_of_z(pba,
-                                 z_wkb,
-                                 &tau_wkb),
-             pba->error_message,
-             pni->error_message);
-
-  class_call(background_at_tau(pba,
-                               tau_wkb,
-                               long_info,
-                               inter_normal,
-                               &last_index_back,
-                               pvecback),
+  /** - Calculate WKB approximation ampltidue factor f_nu at early times */
+  z_wkb = ppr->z_wkb_acc_diss;
+  class_call(background_at_z(pba,
+                             z_wkb,
+                             long_info,
+                             inter_normal,
+                             &last_index_back,
+                             pvecback),
              pba->error_message,
              pni->error_message);
 
   pni->f_nu_wkb = (1.-pvecback[pba->index_bg_rho_g]/(pvecback[pba->index_bg_Omega_r]*pvecback[pba->index_bg_rho_crit]));
 
   dEdt = 0.;
-  /* Loop over z and calculate the heating at each point */
+  /** - Loop over z and calculate the heating at each point */
   for(index_z=0; index_z<pni->z_size_coarse; ++index_z){
 
     z_coarse = pni->z_table_coarse[index_z];
-    pni->injected_deposition[index_z] = 0.;
+    pni->noninjection_table[index_z] = 0.;
 
-    /** Import quantities from background and thermodynamics structure */
-    class_call(background_tau_of_z(pba,
-                                   z_coarse,
-                                   &tau),
-               pba->error_message,
-               pni->error_message);
-
-    class_call(background_at_tau(pba,
-                                 tau,
-                                 long_info,
-                                 inter_closeby,
-                                 &last_index_back,
-                                 pvecback),
+    /* Import quantities from background and thermodynamics structure */
+    class_call(background_at_z(pba,
+                               z_coarse,
+                               long_info,
+                               inter_closeby,
+                               &last_index_back,
+                               pvecback),
                pba->error_message,
                pni->error_message);
 
@@ -177,21 +181,21 @@ int noninjection_init(struct precision* ppr,
                pni->error_message);
 
     dkappa = pvecthermo[pth->index_th_dkappa];                                                      // [1/Mpc]
-    pni->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));   // [Mpc^2]
-    pni->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                               // [1/Mpc]
+    pni->dkD_dz = 1./(pvecback[pba->index_bg_H]*dkappa)*(16./15.+pow(R,2.)/(1.+R))/(6.*(1.0+R));    // [Mpc^2]
+    pni->kD = 2.*_PI_/pvecthermo[pth->index_th_r_d];                                                // [1/Mpc]
     pni->T_b = pvecthermo[pth->index_th_Tb];                                                        // [K]
-    pni->T_g = pni->T_g0*pow(pni->a,-1);                                                            // [K]
+    pni->T_g = pni->T_g0/pni->a;                                                                    // [K]
     pni->x_e = pvecthermo[pth->index_th_xe];                                                        // [-]
     pni->heat_capacity = (3./2.)*_k_B_*pni->nH*(1.+pni->fHe+pni->x_e);                              // [J/(K m^3)]
 
-    /** Injected energy that does not need to be deposited (i.e. adiabatic terms) */
+    /* Include all non-injected energy that does not need to be deposited (i.e. adiabatic terms as below) */
     /* First order cooling of photons due to adiabatic interaction with baryons */
     class_call(noninjection_rate_adiabatic_cooling(pni,
                                                    z_coarse,
                                                    &dEdt),
                pni->error_message,
                pni->error_message);
-    pni->injected_deposition[index_z]+=dEdt;
+    pni->noninjection_table[index_z]+=dEdt;
 
     /* Second order acoustic dissipation of BAO */
     class_call(noninjection_rate_acoustic_diss(pni,
@@ -199,19 +203,21 @@ int noninjection_init(struct precision* ppr,
                                                &dEdt),
                pni->error_message,
                pni->error_message);
-    pni->injected_deposition[index_z]+=dEdt;
+    pni->noninjection_table[index_z]+=dEdt;
   }
 
+  /** - Spline coarse z table in view of interpolation */
   class_call(array_spline_table_columns2(pni->z_table_coarse,
                                          pni->z_size_coarse,
-                                         pni->injected_deposition,
+                                         pni->noninjection_table,
                                          1,
-                                         pni->ddinjected_deposition,
+                                         pni->ddnoninjection_table,
                                          _SPLINE_EST_DERIV_,
                                          pni->error_message),
              pni->error_message,
              pni->error_message);
 
+  /** - Evaluate the spline coarse table at the fine-grained z samples */
   for(index_z=0;index_z<pni->z_size;++index_z){
     class_call(array_spline_hunt(pni->z_table_coarse,
                                  pni->z_size_coarse,
@@ -222,23 +228,30 @@ int noninjection_init(struct precision* ppr,
                pni->error_message,
                pni->error_message);
 
-    temp_injection = array_interpolate_spline_hunt(pni->injected_deposition,
-                                                   pni->ddinjected_deposition,
+    temp_injection = array_interpolate_spline_hunt(pni->noninjection_table,
+                                                   pni->ddnoninjection_table,
                                                    last_index_coarse,
                                                    last_index_coarse+1,
                                                    h,a,b);
     pni->photon_dep_table[index_z]+=temp_injection;
   }
 
-  /* Free allocated space */
+  /** - Free temporary variables */
   free(pvecback);
   free(pvecthermo);
 
   return _SUCCESS_;
 }
 
+/**
+ * Free the noninjection structure.
+ *
+ * @param pni   Input: pointer to noninjection structure
+ * @return the error status
+ */
 int noninjection_free(struct noninjection* pni){
 
+  free(pni->z_table);
   free(pni->photon_dep_table);
 
   free(pni->k);
@@ -246,8 +259,8 @@ int noninjection_free(struct noninjection* pni){
   free(pni->pk_primordial_k);
 
   free(pni->z_table_coarse);
-  free(pni->injected_deposition);
-  free(pni->ddinjected_deposition);
+  free(pni->noninjection_table);
+  free(pni->ddnoninjection_table);
 
   free(pni->integrand_approx);
 
@@ -258,8 +271,9 @@ int noninjection_free(struct noninjection* pni){
 /**
  * Interpolates photon injection from precomputed table at a given value of z.
  *
- * @param pth         Input: pointer to thermodynamics structure
+ * @param pni         Input: pointer to noninjected structure
  * @param z           Input: redshift
+ * @param heat        Output: photon heating at given redshift
  * @return the error status
  */
 int noninjection_photon_heating_at_z(struct noninjection* pni,
@@ -269,11 +283,6 @@ int noninjection_photon_heating_at_z(struct noninjection* pni,
   /** Define local variables */
   int index_dep;
   double h,a,b;
-
-  /** Interpolate at required z in the table */
-  class_test(z < pni->filled_until_z,
-             pni->error_message,
-             "Heating is not yet calculated beyond %.10e (asked for at %.10e)",pni->filled_until_z,z);
 
   class_call(array_spline_hunt(pni->z_table,
                                pni->z_size,
@@ -294,9 +303,9 @@ int noninjection_photon_heating_at_z(struct noninjection* pni,
 /**
  * Calculate heating from adiabatic cooling of electrons and baryons.
  *
- * @param pni        Input: pointer to noninjection structure
- * @param ppt        Input: pointer to the perturbations structure
- * @param ppm        Input: pointer to the primordial structure
+ * @param pni           Input: pointer to noninjection structure
+ * @param z             Input: redshift
+ * @param energy_rate   Output: energy rate of non-injection process at given redshift
  * @return the error status
  */
 int noninjection_rate_adiabatic_cooling(struct noninjection * pni,
@@ -307,8 +316,7 @@ int noninjection_rate_adiabatic_cooling(struct noninjection * pni,
   double R_g;
 
   /** Calculate heating rates */
-  R_g = (2.*_sigma_/_m_e_/_c_)*(4./3.*pni->rho_g);
-
+  //R_g = (2.*_sigma_/_m_e_/_c_)*(4./3.*pni->rho_g);
   //*energy_rate = R_g*pni->x_e/(1.+pni->x_e+pni->fHe)*(pni->T_b-pni->T_g)*pni->heat_capacity;      // [J/(m^3 s)]
   *energy_rate = -pni->heat_capacity*pni->H*pni->T_g;                                               // [J/(m^3 s)]
 
@@ -322,7 +330,7 @@ int noninjection_rate_adiabatic_cooling(struct noninjection * pni,
  *
  * @param pni            Input: pointer to noninjection structure
  * @param z              Input: redshift
- * @param energy_rate    Output: energy density injection rate
+ * @param energy_rate    Output: energy rate of non-injection process at given redshift
  * @return the error status
   */
 int noninjection_rate_acoustic_diss(struct noninjection * pni,

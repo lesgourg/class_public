@@ -2808,7 +2808,8 @@ int input_read_parameters_species(struct file_content * pfc,
 
 
 /**
- * Read the parameters of injection and noninjection structure.
+ * Read the parameters of injection structure
+ * (These are all exotic processes of energy injection)
  *
  * @param pfc     Input: pointer to local structure
  * @param ppr     Input: pointer to precision structure
