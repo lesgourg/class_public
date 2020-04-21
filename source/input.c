@@ -5487,6 +5487,7 @@ int input_default_params(struct background *pba,
   pop->write_primordial = _FALSE_;
   /** 1.h) Exotic energy injection function */
   pop->write_exotic_injection = _FALSE_;
+  pop->write_noninjection = _FALSE_;
   /** 1.i) Spectral distortions */
   pop->write_distortions = _FALSE_;
 

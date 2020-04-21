@@ -52,6 +52,7 @@ int noninjection_init(struct precision* ppr,
   memcpy(pni->z_table,
          pth->z_table,
          pni->z_size*sizeof(double));
+  pni->last_index_z = 0;
 
   /* Photon non-injected table */
   class_alloc(pni->photon_dep_table,
