@@ -364,12 +364,6 @@ int thermodynamics_init(
              pth->error_message,
              pth->error_message);
 
-  if (pba->has_idr == _TRUE_) {
-    class_call(thermodynamics_calculate_idm_dr_quantities(ppr,pba,pth,pvecback),
-               pth->error_message,
-               pth->error_message);
-  }
-
   /** - send to standard outpout information on thermal history */
   if (pth->thermodynamics_verbose > 0) {
     class_call(thermodynamics_output_summary(pba,pth),
@@ -1601,6 +1595,12 @@ int thermodynamics_calculate_remaining_quantities(
   class_call(thermodynamics_calculate_opticals(ppr,pth),
              pth->error_message,
              pth->error_message);
+
+  if (pba->has_idr == _TRUE_) {
+    class_call(thermodynamics_calculate_idm_dr_quantities(ppr,pba,pth,pvecback),
+               pth->error_message,
+               pth->error_message);
+  }
 
   /** - fill tables of second derivatives with respect to z (in view of spline interpolation) */
   class_call(array_spline_table_lines(pth->z_table,
