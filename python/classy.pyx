@@ -345,8 +345,10 @@ cdef class Class:
             "radiation_streaming_trigger_tau_over_tau_k": 0.01,
             "radiation_streaming_trigger_tau_c_over_tau": 0.2,
             "ur_fluid_approximation": 0,
-            "ur_fluid_trigger_tau_over_tau_k": 0.3
+            "ur_fluid_trigger_tau_over_tau_k": 0.3,
             # "neglect_CMB_sources_below_visibility": 1e5
+
+            "perform_NN_skip":"yes"
         }
         self.set(bad_params)
 
@@ -362,7 +364,7 @@ cdef class Class:
         cdef int index_tau
         cdef int index_k
 
-        free(self.pt.sources[index_md][index_ic * tp_size + index_type])
+        ## -> Not reuqired if perform_NN_skip is true : free(self.pt.sources[index_md][index_ic * tp_size + index_type])
         # Allocate memory for source function
         self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
 

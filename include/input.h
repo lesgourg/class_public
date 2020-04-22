@@ -420,6 +420,7 @@ extern "C" {
                                     struct transfers * ptr,
                                     struct spectra * psp,
                                     struct output * pop,
+                                    int input_verbose,
                                     ErrorMsg errmsg);
 
   int input_read_parameters_lensing(struct file_content * pfc,

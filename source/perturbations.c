@@ -287,6 +287,10 @@ int perturb_init(
              ppt->error_message,
              ppt->error_message);
 
+  if ( ppt->perform_NN_skip == _TRUE_){
+    return _SUCCESS_;
+  }
+
   /** - if we want to store perturbations, write titles and allocate storage, should be called after perturb_indices_of_perturbs */
   class_call(perturb_prepare_output(pba,ppt),
              ppt->error_message,
@@ -468,6 +472,8 @@ int perturb_free(
 
     for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
+      if(!ppt->perform_NN_skip){
+
       for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
         for (index_type = 0; index_type < ppt->tp_size[index_md]; index_type++) {
@@ -475,6 +481,8 @@ int perturb_free(
           free(ppt->sources[index_md][index_ic*ppt->tp_size[index_md]+index_type]);
 
         }
+
+      }
 
       }
 
@@ -499,6 +507,8 @@ int perturb_free(
     free(ppt->k_size);
 
     free(ppt->sources);
+
+    if(ppt->perform_NN_skip){return _SUCCESS_;}
 
     /** Stuff related to perturbations output: */
 
@@ -1270,6 +1280,8 @@ int perturb_timesampling_for_sources(
 
   free(pvecback);
   free(pvecthermo);
+
+  if(ppt->perform_NN_skip){return _SUCCESS_;}
 
   /** - loop over modes, initial conditions and types. For each of
       them, allocate array of source functions. */

@@ -28,6 +28,7 @@ int distortions_init(struct precision * ppr,
   int index_br;
   int index_x;
 
+  if(ppt->perform_NN_skip == _TRUE_){psd->has_distortions = _FALSE_; return _SUCCESS_;}
   if(psd->has_distortions == _FALSE_){
     return _SUCCESS_;
   }

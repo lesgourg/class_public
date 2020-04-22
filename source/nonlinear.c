@@ -135,6 +135,7 @@ int nonlinear_init(
 
   /** Define flags and indices (so few that no dedicated routine needed) */
 
+  if(ppt->perform_NN_skip == _TRUE_){pnl->method = nl_none; return _SUCCESS_;}
   pnl->has_pk_m = _TRUE_;
   if (pba->has_ncdm == _TRUE_) {
     pnl->has_pk_cb = _TRUE_;

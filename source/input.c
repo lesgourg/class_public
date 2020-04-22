@@ -1416,7 +1416,8 @@ int input_read_parameters(struct file_content * pfc,
 
   /** Read parameters for spectra quantities */
   class_call(input_read_parameters_spectra(pfc,ppr,pba,ppt,ptr,psp,pop,
-                                           errmsg),
+                                         input_verbose,
+                                         errmsg),
              errmsg,
              errmsg);
 
@@ -3743,6 +3744,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
                                   struct transfers * ptr,
                                   struct spectra *psp,
                                   struct output * pop,
+                                  int input_verbose,
                                   ErrorMsg errmsg){
 
   /** Summary: */
@@ -4032,6 +4034,11 @@ int input_read_parameters_spectra(struct file_content * pfc,
     psp->z_max_pk = ppt->z_max_pk;
   }
 
+  /* Very special parameter for the neural network version of CLASS, skipping the perturbations module */
+  class_read_flag("perform_NN_skip",ppt->perform_NN_skip);
+  if(ppt->perform_NN_skip && input_verbose>0){
+    printf("WARNING :: DANGEROUS NEURAL NETWORK FLAG (perform_NN_skip=yes) HAS BEEN USED\n --> SKIPPING ALL MODULES AFTER PERTURBATIONS!\n USE AT YOUR OWN RISK!\n");
+  }
   return _SUCCESS_;
 
 }
@@ -5000,6 +5007,8 @@ int input_default_params(struct background *pba,
   /** 2.c) Source number counts evolution */
   ptr->has_nz_evo_analytic = _FALSE_;
   ptr->has_nz_evo_file = _FALSE_;
+  /* Extra flag for NN */
+  ppt->perform_NN_skip = _FALSE_;
 
   /** 3) Power spectrum P(k) */
   /** 3.a) Maximum k in P(k) */

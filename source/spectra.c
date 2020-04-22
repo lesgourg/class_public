@@ -1535,6 +1535,7 @@ int spectra_init(
 
   /** - check that we really want to compute at least one spectrum */
 
+  if(ppt->perform_NN_skip == _TRUE_){psp->md_size = 0; return _SUCCESS_;}
   if ((ppt->has_cls == _FALSE_) &&
       (ppt->has_pk_matter == _FALSE_) &&
       (ppt->has_density_transfers == _FALSE_) &&
@@ -1811,11 +1812,13 @@ int spectra_free(
     }
   }
 
+  if(psp->md_size > 0){
   for (index_md=0; index_md < psp->md_size; index_md++)
     free(psp->is_non_zero[index_md]);
   free(psp->is_non_zero);
   free(psp->ic_size);
   free(psp->ic_ic_size);
+  }
 
   return _SUCCESS_;
 

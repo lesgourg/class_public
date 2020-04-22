@@ -181,6 +181,7 @@ int transfer_init(
 
   /** - check whether any spectrum in harmonic space (i.e., any \f$C_l\f$'s) is actually requested */
 
+  if(ppt->perform_NN_skip == _TRUE_){ptr->has_cls = _FALSE_; return _SUCCESS_;}
   if (ppt->has_cls == _FALSE_) {
     ptr->has_cls = _FALSE_;
     if (ptr->transfer_verbose > 0)

@@ -203,6 +203,7 @@ int primordial_init(
 
   /** - check that we really need to compute the primordial spectra */
 
+  if(ppt->perform_NN_skip == _TRUE_){ppm->lnk_size = 0; return _SUCCESS_;}
   if (ppt->has_perturbations == _FALSE_) {
     ppm->lnk_size=0;
     if (ppm->primordial_verbose > 0)
