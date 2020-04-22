@@ -12,6 +12,7 @@
  */
 
 #include "nonlinear_module.h"
+#include "non_cold_dark_matter.h"
 
 NonlinearModule::NonlinearModule(const Input& input, const BackgroundModule& background_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module)
 : BaseModule(input)
@@ -1121,8 +1122,9 @@ int NonlinearModule::nonlinear_init() {
 
     if (pba->has_ncdm) {
       for (index_ncdm=0;index_ncdm < pba->N_ncdm; index_ncdm++){
-        if (pba->m_ncdm_in_eV[index_ncdm] >  _M_EV_TOO_BIG_FOR_HALOFIT_)
-          fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n",pba->m_ncdm_in_eV[index_ncdm]);
+        double m_ncdm_in_electronvolt = pba->ncdm->GetMassInElectronvolt(index_ncdm);
+        if (m_ncdm_in_electronvolt >  _M_EV_TOO_BIG_FOR_HALOFIT_)
+          fprintf(stdout,"Warning: Halofit and HMcode are proved to work for CDM, and also with a small HDM component. But it sounds like you are running with a WDM component of mass %f eV, which makes the use of Halofit suspicious.\n", m_ncdm_in_electronvolt);
       }
     }
     if (pba->has_idm_dr){

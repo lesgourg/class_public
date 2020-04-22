@@ -6,6 +6,7 @@
 #include "input.h"
 #include "spectra_module.h"
 #include "cosmology.h"
+#include "non_cold_dark_matter.h"
 
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
@@ -1100,139 +1101,16 @@ int input_read_parameters(
   }
 
   /** - non-cold relics (ncdm) */
-  class_read_int("N_ncdm",N_ncdm);
-  if ((flag1 == _TRUE_) && (N_ncdm > 0)){
-    pba->N_ncdm = N_ncdm;
-
-    if (ppt->gauge == synchronous)
-      ppr->tol_ncdm = ppr->tol_ncdm_synchronous;
-    if (ppt->gauge == newtonian)
-      ppr->tol_ncdm = ppr->tol_ncdm_newtonian;
-
-    /* Quadrature modes, 0 is qm_auto. */
-    class_read_list_of_integers_or_default("Quadrature strategy",pba->ncdm_quadrature_strategy,0,N_ncdm);
-    /* Number of momentum bins */
-    class_read_list_of_integers_or_default("Number of momentum bins",pba->ncdm_input_q_size,-1,N_ncdm);
-
-    /* qmax, if relevant */
-    class_read_list_of_doubles_or_default("Maximum q",pba->ncdm_qmax,15,N_ncdm);
-
-    /* Read temperatures: */
-    class_read_list_of_doubles_or_default("T_ncdm",pba->T_ncdm,pba->T_ncdm_default,N_ncdm);
-
-    /* Read chemical potentials: */
-    class_read_list_of_doubles_or_default("ksi_ncdm",pba->ksi_ncdm,pba->ksi_ncdm_default,N_ncdm);
-
-    /* Read degeneracy of each ncdm species: */
-    class_read_list_of_doubles_or_default("deg_ncdm",pba->deg_ncdm,pba->deg_ncdm_default,N_ncdm);
-
-    /* Read mass of each ncdm species: */
-    class_read_list_of_doubles_or_default("m_ncdm",pba->m_ncdm_in_eV,0.0,N_ncdm);
-
-    /* Read Omega of each ncdm species: */
-    class_read_list_of_doubles_or_default("Omega_ncdm",pba->Omega0_ncdm,0.0,N_ncdm);
-
-    /* Read omega of each ncdm species: (Use pba->M_ncdm temporarily)*/
-    class_read_list_of_doubles_or_default("omega_ncdm",pba->M_ncdm,0.0,N_ncdm);
-
-    /* Check for duplicate Omega/omega entries, missing mass definition and
-       update pba->Omega0_ncdm:*/
-    for(n=0; n<N_ncdm; n++){
-      /* pba->M_ncdm holds value of omega */
-      if (pba->M_ncdm[n]!=0.0){
-        class_test(pba->Omega0_ncdm[n]!=0,errmsg,
-                   "Nonzero values for both Omega and omega for ncdm species %d are specified!",n);
-        pba->Omega0_ncdm[n] = pba->M_ncdm[n]/pba->h/pba->h;
-      }
-      if ((pba->Omega0_ncdm[n]==0.0) && (pba->m_ncdm_in_eV[n]==0.0)) {
-        /* this is the right place for passing the default value of
-           the mass (all parameters must have a default value; most of
-           them are defined in input_default_params{}, but the ncdm mass
-           is a bit special and there is no better place for setting its
-           default value). We put an arbitrary value m << 10^-3 eV,
-           i.e. the ultra-relativistic limit.*/
-        pba->m_ncdm_in_eV[n]=1.e-5;
-      }
-    }
-
-    /* Check if filenames for interpolation tables are given: */
-    class_read_list_of_integers_or_default("use_ncdm_psd_files",pba->got_files,_FALSE_,N_ncdm);
-
-    if (flag1==_TRUE_){
-      for(n=0,fileentries=0; n<N_ncdm; n++){
-        if (pba->got_files[n] == _TRUE_) fileentries++;
-      }
-
-      if (fileentries > 0) {
-
-        /* Okay, read filenames.. */
-        class_call(parser_read_list_of_strings(pfc,"ncdm_psd_filenames",
-                                               &entries_read,&(pba->ncdm_psd_files),&flag2,errmsg),
-                   errmsg,
-                   errmsg);
-        class_test(flag2 == _FALSE_,errmsg,
-                   "Input use_ncdm_files is found, but no filenames found!");
-        class_test(entries_read != fileentries,errmsg,
-                   "Number of filenames found, %d, does not match number of _TRUE_ values in use_ncdm_files, %d",
-                   entries_read,fileentries);
-      }
-    }
-    /* Read (optional) p.s.d.-parameters:*/
-    parser_read_list_of_doubles(pfc,
-                                "ncdm_psd_parameters",
-                                &entries_read,
-                                &(pba->ncdm_psd_parameters),
-                                &flag2,
-                                errmsg);
-
-    class_call(background_ncdm_init(ppr,pba),
-               pba->error_message,
-               errmsg);
-
-    /* We must calculate M from omega or vice versa if one of them is missing.
-       If both are present, we must update the degeneracy parameter to
-       reflect the implicit normalization of the distribution function.*/
-    for (n=0; n < N_ncdm; n++){
-      if (pba->m_ncdm_in_eV[n] != 0.0){
-        /* Case of only mass or mass and Omega/omega: */
-        pba->M_ncdm[n] = pba->m_ncdm_in_eV[n]/_k_B_*_eV_/pba->T_ncdm[n]/pba->T_cmb;
-        class_call(background_ncdm_momenta(pba->q_ncdm_bg[n],
-                                           pba->w_ncdm_bg[n],
-                                           pba->q_size_ncdm_bg[n],
-                                           pba->M_ncdm[n],
-                                           pba->factor_ncdm[n],
-                                           0.,
-                                           NULL,
-                                           &rho_ncdm,
-                                           NULL,
-                                           NULL,
-                                           NULL),
-                   pba->error_message,
-                   errmsg);
-        if (pba->Omega0_ncdm[n] == 0.0){
-          pba->Omega0_ncdm[n] = rho_ncdm/pba->H0/pba->H0;
-        }
-        else{
-          fnu_factor = (pba->H0*pba->H0*pba->Omega0_ncdm[n]/rho_ncdm);
-          pba->factor_ncdm[n] *= fnu_factor;
-          /* dlnf0dlnq is already computed, but it is
-             independent of any normalization of f0.
-             We don't need the factor anymore, but we
-             store it nevertheless:*/
-          pba->deg_ncdm[n] *=fnu_factor;
-        }
-      }
-      else{
-        /* Case of only Omega/omega: */
-        class_call(background_ncdm_M_from_Omega(ppr,pba,n),
-                   pba->error_message,
-                   errmsg);
-        //printf("M_ncdm:%g\n",pba->M_ncdm[n]);
-        pba->m_ncdm_in_eV[n] = _k_B_/_eV_*pba->T_ncdm[n]*pba->M_ncdm[n]*pba->T_cmb;
-      }
-      pba->Omega0_ncdm_tot += pba->Omega0_ncdm[n];
-      //printf("Adding %g to total Omega..\n",pba->Omega0_ncdm[n]);
-    }
+  NcdmSettings ncdm_settings;
+  ncdm_settings.h = pba->h;
+  ncdm_settings.T_cmb = pba->T_cmb;
+  ncdm_settings.tol_ncdm = ppr->tol_ncdm;
+  ncdm_settings.tol_ncdm_bg = ppr->tol_ncdm_bg;
+  ncdm_settings.tol_M_ncdm = ppr->tol_M_ncdm;
+  pba->ncdm = NonColdDarkMatter::Create(pfc, ncdm_settings);
+  if (pba->ncdm) {
+    pba->N_ncdm = pba->ncdm->N_ncdm_;
+    pba->Omega0_ncdm_tot = pba->ncdm->GetOmega0();
   }
   Omega_tot += pba->Omega0_ncdm_tot;
 
@@ -1370,17 +1248,25 @@ int input_read_parameters(
   /* Additional SCF parameters: */
   if (pba->Omega0_scf != 0.){
     /** - Read parameters describing scalar field potential */
+    double* scf_parameters = nullptr;
+    int scf_parameters_size;
     class_call(parser_read_list_of_doubles(pfc,
                                            "scf_parameters",
-                                           &(pba->scf_parameters_size),
-                                           &(pba->scf_parameters),
+                                           &scf_parameters_size,
+                                           &scf_parameters,
                                            &flag1,
                                            errmsg),
                errmsg,errmsg);
+    if (scf_parameters && (flag1 == _TRUE_) && (scf_parameters_size > 0)) {
+      pba->scf_parameters.assign(scf_parameters, scf_parameters + scf_parameters_size);
+      free(scf_parameters);
+    }
     class_read_int("scf_tuning_index",pba->scf_tuning_index);
-    class_test(pba->scf_tuning_index >= pba->scf_parameters_size,
+    class_test(pba->scf_tuning_index >= pba->scf_parameters.size(),
                errmsg,
-               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",pba->scf_tuning_index,pba->scf_parameters_size);
+               "Tuning index scf_tuning_index = %d is larger than the number of entries %d in scf_parameters. Check your .ini file.",
+               pba->scf_tuning_index,
+               pba->scf_parameters.size());
     /** - Assign shooting parameter */
     class_read_double("scf_shooting_parameter",pba->scf_parameters[pba->scf_tuning_index]);
 
@@ -1402,11 +1288,11 @@ int input_read_parameters(
       }
       else{
         pba->attractor_ic_scf = _FALSE_;
-        class_test(pba->scf_parameters_size<2,
+        class_test(pba->scf_parameters.size() < 2,
                    errmsg,
                    "Since you are not using attractor initial conditions, you must specify phi and its derivative phi' as the last two entries in scf_parameters. See explanatory.ini for more details.");
-        pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters_size-2];
-        pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters_size-1];
+        pba->phi_ini_scf = pba->scf_parameters[pba->scf_parameters.size() - 2];
+        pba->phi_prime_ini_scf = pba->scf_parameters[pba->scf_parameters.size() - 1];
       }
     }
   }
@@ -3233,19 +3119,9 @@ int input_default_params(
   pba->Gamma_dcdm = 0.0;
   pba->N_ncdm = 0;
   pba->Omega0_ncdm_tot = 0.;
-  pba->ksi_ncdm_default = 0.;
-  pba->ksi_ncdm = NULL;
-  pba->T_ncdm_default = 0.71611; /* this value gives m/omega = 93.14 eV b*/
-  pba->T_ncdm = NULL;
-  pba->deg_ncdm_default = 1.;
-  pba->deg_ncdm = NULL;
-  pba->ncdm_psd_parameters = NULL;
-  pba->ncdm_psd_files = NULL;
 
   pba->Omega0_scf = 0.; /* Scalar field defaults */
   pba->attractor_ic_scf = _TRUE_;
-  pba->scf_parameters = NULL;
-  pba->scf_parameters_size = 0;
   pba->scf_tuning_index = 0;
   //MZ: initial conditions are as multiplicative factors of the radiation attractor values
   pba->phi_ini_scf = 1;
@@ -4085,9 +3961,6 @@ int input_get_guess(double *xguess,
   for (i=0; i<pfzw->fc.size; i++) {
     pfzw->fc.read[i] = _FALSE_;
   }
-
-  /** - Deallocate everything allocated by input_read_parameters */
-  background_free_input(&ba);
 
   return _SUCCESS_;
 }

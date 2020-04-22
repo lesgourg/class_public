@@ -10,6 +10,11 @@
 #include "dei_rkck.h"
 #include "parser.h"
 
+#include <memory>
+#include <vector>
+
+class NonColdDarkMatter;
+
 //The name for this macro can be at most 30 characters total
 #define _class_print_species_(name,type) \
 printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
@@ -97,50 +102,15 @@ struct background
   short attractor_ic_scf;   /**< whether the scalar field has attractor initial conditions */
   double phi_ini_scf;       /**< \f$ \phi(t_0) \f$: scalar field initial value */
   double phi_prime_ini_scf; /**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
-  double * scf_parameters;  /**< list of parameters describing the scalar field potential */
-  int scf_parameters_size;  /**< size of scf_parameters */
+  std::vector<double> scf_parameters;  /**< list of parameters describing the scalar field potential */
   int scf_tuning_index;     /**< index in scf_parameters used for tuning */
-  //double scf_lambda; /**< \f$ \lambda \f$ : scalar field exponential potential slope */
-  //double scf_alpha;  /**< \f$ \alpha \f$ : Albrecht-Skordis polynomial slope */
-  //double scf_B; /**< \f$ \alpha \f$ : Albrecht-Skordis field shift */
-  //double scf_A; /**< \f$ \alpha \f$ : Albrecht-Skordis offset */
-
+  
   double Omega0_k; /**< \f$ \Omega_{0_k} \f$: curvature contribution */
 
   int N_ncdm;                            /**< Number of distinguishable ncdm species */
-  double * M_ncdm;                       /**< vector of masses of non-cold relic:
-                                             dimensionless ratios m_ncdm/T_ncdm */
-  double * Omega0_ncdm, Omega0_ncdm_tot; /**< Omega0_ncdm for each species and for the total Omega0_ncdm */
-  double * deg_ncdm, deg_ncdm_default;   /**< vector of degeneracy parameters in factor
-                                             of p-s-d: 1 for one family of neutrinos
-                                             (= one neutrino plus its anti-neutrino,
-                                             total g*=1+1=2, so deg = 0.5 g*); and its
-					     default value */
+  double Omega0_ncdm_tot; /**< Omega0_ncdm for each species and for the total Omega0_ncdm */
 
-  /* the following parameters help to define the analytical ncdm phase space distributions (p-s-d) */
-  double * T_ncdm,T_ncdm_default;       /**< list of 1st parameters in
-					     p-s-d of non-cold relics:
-					     relative temperature
-					     T_ncdm1/T_gamma; and its
-					     default value */
-  double * ksi_ncdm, ksi_ncdm_default;  /**< list of 2nd parameters in
-					     p-s-d of non-cold relics:
-					     relative chemical potential
-					     ksi_ncdm1/T_ncdm1; and its
-					     default value */
-  double * ncdm_psd_parameters;         /**< list of parameters for specifying/modifying
-                                             ncdm p.s.d.'s, to be customized for given model
-                                             (could be e.g. mixing angles) */
-  /* end of parameters for analytical ncdm p-s-d */
-
-  /* the following parameters help to define tabulated ncdm p-s-d passed in file */
-  int * got_files;                      /**< list of flags for each species, set to true if
-					     p-s-d is passed through file */
-  char * ncdm_psd_files;                /**< list of filenames for tabulated p-s-d */
-  /* end of parameters for tabulated ncdm p-s-d */
-
-  //@}
-
+  std::shared_ptr<NonColdDarkMatter> ncdm;
   /** @name - related parameters */
 
   //@{
@@ -148,8 +118,7 @@ struct background
   double h; /**< reduced Hubble parameter */
   double K; /**< \f$ K \f$: Curvature parameter \f$ K=-\Omega0_k*a_{today}^2*H_0^2\f$; */
   int sgnK; /**< K/|K|: -1, 0 or 1 */
-  double * m_ncdm_in_eV; /**< list of ncdm masses in eV (inferred from M_ncdm and other parameters above) */
-
+  
   //@}
 
   /** @name - other background parameters */
@@ -185,26 +154,6 @@ struct background
   //@}
 
   /**
-   *@name - arrays related to sampling and integration of ncdm phase space distributions
-   */
-
-
-  //@{
-  int * ncdm_quadrature_strategy; /**< Vector of integers according to quadrature strategy. */
-  int * ncdm_input_q_size; /**< Vector of numbers of q bins */
-  double * ncdm_qmax;   /**< Vector of maximum value of q */
-  double ** q_ncdm_bg;  /**< Pointers to vectors of background sampling in q */
-  double ** w_ncdm_bg;  /**< Pointers to vectors of corresponding quadrature weights w */
-  double ** q_ncdm;     /**< Pointers to vectors of perturbation sampling in q */
-  double ** w_ncdm;     /**< Pointers to vectors of corresponding quadrature weights w */
-  double ** dlnf0_dlnq_ncdm; /**< Pointers to vectors of logarithmic derivatives of p-s-d */
-  int * q_size_ncdm_bg; /**< Size of the q_ncdm_bg arrays */
-  int * q_size_ncdm;    /**< Size of the q_ncdm arrays */
-  double * factor_ncdm; /**< List of normalization factors for calculating energy density etc.*/
-
-  //@}
-
-  /**
    *@name - some flags needed for calling background functions
    */
 
@@ -235,100 +184,6 @@ struct background
 };
 
 /**
- * temporary parameters and workspace passed to phase space distribution function
- */
-
-struct background_parameters_for_distributions {
-
-  /* structures containing fixed input parameters (indices, ...) */
-  struct background * pba;
-
-  /* Additional parameters */
-
-  /* Index of current distribution function */
-  int n_ncdm;
-
-  /* Used for interpolating in file of tabulated p-s-d: */
-  int tablesize;
-  double *q;
-  double *f0;
-  double *d2f0;
-  int last_index;
-
-};
-/*
- * Boilerplate for C++
- */
-#ifdef __cplusplus
-extern "C" {
-#endif
-  int background_free_input(
-                            struct background *pba
-                            );
-  int background_ncdm_distribution(
-				  void *pba,
-				  double q,
-				  double * f0
-				  );
-
-  int background_ncdm_test_function(
-				     void *pba,
-				     double q,
-				     double * test
-				     );
-
-  int background_ncdm_init(
-			    struct precision *ppr,
-			    struct background *pba
-			    );
-
-
-  int background_ncdm_momenta(
-                             double * qvec,
-                             double * wvec,
-                             int qsize,
-                             double M,
-                             double factor,
-                             double z,
-                             double * n,
-		             double * rho,
-                             double * p,
-                             double * drho_dM,
-			     double * pseudo_p
-                             );
-
-  int background_ncdm_M_from_Omega(
-				    struct precision *ppr,
-				    struct background *pba,
-					int species
-				    );
-#ifdef __cplusplus
-}
-#endif
-/**
- * @name Some conversion factors and fundamental constants needed by background module:
- */
-
-//@{
-
-#define _Mpc_over_m_ 3.085677581282e22  /**< conversion factor from meters to megaparsecs */
-/* remark: CAMB uses 3.085678e22: good to know if you want to compare  with high accuracy */
-
-#define _Gyr_over_Mpc_ 3.06601394e2 /**< conversion factor from megaparsecs to gigayears
-				         (c=1 units, Julian years of 365.25 days) */
-#define _c_ 2.99792458e8            /**< c in m/s */
-#define _G_ 6.67428e-11             /**< Newton constant in m^3/Kg/s^2 */
-#define _eV_ 1.602176487e-19        /**< 1 eV expressed in J */
-
-/* parameters entering in Stefan-Boltzmann constant sigma_B */
-#define _k_B_ 1.3806504e-23
-#define _h_P_ 6.62606896e-34
-/* remark: sigma_B = 2 pi^5 k_B^4 / (15h^3c^2) = 5.670400e-8
-                   = Stefan-Boltzmann constant in W/m^2/K^4 = Kg/K^4/s^3 */
-
-//@}
-
-/**
  * @name Some limits on possible background parameters
  */
 
@@ -351,11 +206,6 @@ extern "C" {
 			     for an initial scale factor at which ncdm
 			     are still relativistic */
 
-#define _PSD_DERIVATIVE_EXP_MIN_ -30 /**< for ncdm, for accurate computation of dlnf0/dlnq, q step is varied in range specified by these parameters */
-#define _PSD_DERIVATIVE_EXP_MAX_ 2  /**< for ncdm, for accurate computation of dlnf0/dlnq, q step is varied in range specified by these parameters */
-
-#define _zeta3_ 1.2020569031595942853997381615114499907649862923404988817922 /**< for quandrature test function */
-#define _zeta5_ 1.0369277551433699263313654864570341680570809195019128119741 /**< for quandrature test function */
 
 //@}
 
