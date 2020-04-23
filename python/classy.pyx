@@ -605,7 +605,11 @@ cdef class Class:
 
                 timer.start("allocate unused source functions")
                 for index_type in range(tp_size):
-                    self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> calloc(k_NN_size * tau_size,  sizeof(double))
+                    # Using malloc instead of calloc here will cause the splining
+                    # in transfer.c to explode, but that doesn't seem to be an issue.
+                    # Using malloc over calloc saves about a factor of 10 in runtime.
+                    # self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> calloc(k_NN_size * tau_size,  sizeof(double))
+                    self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
                 timer.end("allocate unused source functions")
 
                 timer["neural network evaluation"] = self.predictor.time_prediction
