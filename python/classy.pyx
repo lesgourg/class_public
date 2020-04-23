@@ -362,7 +362,9 @@ cdef class Class:
         cdef int index_tau
         cdef int index_k
 
-        ## -> Not reuqired if perform_NN_skip is true : free(self.pt.sources[index_md][index_ic * tp_size + index_type])
+        ## -> Not reuqired if perform_NN_skip is true :
+        # Required again because all source functions have been allocated earlier
+        free(self.pt.sources[index_md][index_ic * tp_size + index_type])
         # Allocate memory for source function
         self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
 
@@ -502,6 +504,9 @@ cdef class Class:
             timer.start("perturb")
             timer.start("perturb_init")
 
+
+            # Allocate memory for ALL source functions (since transfer.c iterates over them)
+
             if self.use_NN:
               self.pt.perform_NN_skip = _TRUE_
             if perturb_init(&(self.pr), &(self.ba),
@@ -597,6 +602,11 @@ cdef class Class:
                 self.pt.k_size_cl[index_md] = k_NN_size
 
                 timer.end("overwrite k array")
+
+                timer.start("allocate unused source functions")
+                for index_type in range(tp_size):
+                    self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> calloc(k_NN_size * tau_size,  sizeof(double))
+                timer.end("allocate unused source functions")
 
                 timer["neural network evaluation"] = self.predictor.time_prediction
                 timer["neural network input transformation"] = self.predictor.time_input_transformation
