@@ -163,7 +163,6 @@ int lensing_init(
 
   /** - check that we really want to compute at least one spectrum */
 
-  if(ppt->perform_NN_skip == _TRUE_){ple->has_lensed_cls = _FALSE_; return _SUCCESS_;}
   if (ple->has_lensed_cls == _FALSE_) {
     if (ple->lensing_verbose > 0)
       printf("No lensing requested. Lensing module skipped.\n");
