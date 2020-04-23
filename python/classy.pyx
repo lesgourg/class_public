@@ -347,8 +347,6 @@ cdef class Class:
             "ur_fluid_approximation": 0,
             "ur_fluid_trigger_tau_over_tau_k": 0.3,
             # "neglect_CMB_sources_below_visibility": 1e5
-
-            "perform_NN_skip":"yes"
         }
         self.set(bad_params)
 
@@ -504,6 +502,8 @@ cdef class Class:
             timer.start("perturb")
             timer.start("perturb_init")
 
+            if self.use_NN:
+              self.pt.perform_NN_skip = _TRUE_
             if perturb_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()

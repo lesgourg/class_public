@@ -124,6 +124,8 @@ cdef extern from "class.h":
         short has_vectors
         short has_tensors
 
+        short perform_NN_skip
+
         short has_density_transfers
         short has_velocity_transfers
 

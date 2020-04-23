@@ -4035,7 +4035,7 @@ int input_read_parameters_spectra(struct file_content * pfc,
   }
 
   /* Very special parameter for the neural network version of CLASS, skipping the perturbations module */
-  class_read_flag("perform_NN_skip",ppt->perform_NN_skip);
+  // This flag is too dangerous to ever be read ! class_read_flag("perform_NN_skip",ppt->perform_NN_skip);
   if(ppt->perform_NN_skip && input_verbose>0){
     printf("WARNING :: DANGEROUS NEURAL NETWORK FLAG (perform_NN_skip=yes) HAS BEEN USED\n --> SKIPPING ALL MODULES AFTER PERTURBATIONS!\n USE AT YOUR OWN RISK!\n");
   }
