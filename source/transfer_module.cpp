@@ -27,15 +27,19 @@
  * hence the routine transfer_functions_at_q() is actually never called.
  */
 
+#include "background_module.h"
+#include "thermodynamics_module.h"
+#include "perturbations_module.h"
+#include "nonlinear_module.h"
 #include "transfer_module.h"
 #include "thread_pool.h"
 
-TransferModule::TransferModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const NonlinearModule& nonlinear_module)
+TransferModule::TransferModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, NonlinearModulePtr nonlinear_module)
 : BaseModule(input)
-, background_module_(background_module)
-, thermodynamics_module_(thermodynamics_module)
-, perturbations_module_(perturbations_module)
-, nonlinear_module_(nonlinear_module) {
+, background_module_(std::move(background_module))
+, thermodynamics_module_(std::move(thermodynamics_module))
+, perturbations_module_(std::move(perturbations_module))
+, nonlinear_module_(std::move(nonlinear_module)) {
   ThrowInvalidArgumentIf(transfer_init() != _SUCCESS_, error_message_);
 }
 
@@ -146,14 +150,14 @@ int TransferModule::transfer_init() {
 
   /* array of sources S(k,tau), just taken from perturbation module,
      or transformed if non-linear corrections are needed
-     sources[index_md][index_ic * perturbations_module_.tp_size_[index_md] + index_tp][index_tau * perturbations_module_.k_size_[index_md] + index_k]
+     sources[index_md][index_ic * perturbations_module_->tp_size_[index_md] + index_tp][index_tau * perturbations_module_->k_size_[index_md] + index_k]
   */
   double *** sources;
 
   /* array of source derivatives S''(k,tau)
      (second derivative with respect to k, not tau!),
      used to interpolate sources at the right values of k,
-     sources_spline[index_md][index_ic * perturbations_module_.tp_size_[index_md] + index_tp][index_tau * perturbations_module_.k_size_[index_md] + index_k]
+     sources_spline[index_md][index_ic * perturbations_module_->tp_size_[index_md] + index_tp][index_tau * perturbations_module_->k_size_[index_md] + index_k]
   */
   double *** sources_spline;
 
@@ -184,18 +188,18 @@ int TransferModule::transfer_init() {
 
   /** - get number of modes (scalars, tensors...) */
 
-  md_size_ = perturbations_module_.md_size_;
+  md_size_ = perturbations_module_->md_size_;
 
   /** - get conformal age / recombination time
       from background / thermodynamics structures
       (only place where these structures are used in this module) */
 
-  tau0 = background_module_.conformal_age_;
-  tau_rec = thermodynamics_module_.tau_rec_;
+  tau0 = background_module_->conformal_age_;
+  tau_rec = thermodynamics_module_->tau_rec_;
 
   /** - order of magnitude of the oscillation period of transfer functions */
 
-  q_period = 2.*_PI_/(tau0 - tau_rec)*thermodynamics_module_.angular_rescaling_;
+  q_period = 2.*_PI_/(tau0 - tau_rec)*thermodynamics_module_->angular_rescaling_;
 
   /** - initialize all indices in the transfers structure and
       allocate all its arrays using transfer_indices_of_transfers() */
@@ -264,7 +268,7 @@ int TransferModule::transfer_init() {
 
   /*
     fprintf(stderr,"tau:%d   l:%d   q:%d\n",
-    perturbations_module_.tau_size_,
+    perturbations_module_->tau_size_,
     l_size_max_,
     q_size_
     );
@@ -288,18 +292,18 @@ int TransferModule::transfer_init() {
     /* For each wavenumber: */
   struct transfer_workspace* ptw = NULL;
   class_call(transfer_workspace_init(&ptw,
-                                     perturbations_module_.tau_size_,
+                                     perturbations_module_->tau_size_,
                                      tau_size_max,
                                      pba->K,
                                      pba->sgnK,
-                                     tau0 - thermodynamics_module_.tau_cut_,
+                                     tau0 - thermodynamics_module_->tau_cut_,
                                      &BIS),
   error_message_,
   error_message_);
   for (index_q = 0; index_q < q_size_; index_q++) {
     future_output.push_back(task_system.AsyncTask([this, tau_size_max, tp_of_tt, tau_rec, sources_spline, &BIS, tau0, index_q, sources, window] () {
       struct transfer_workspace* ptw = NULL;
-      class_call(transfer_workspace_init(&ptw, perturbations_module_.tau_size_, tau_size_max, pba->K, pba->sgnK, tau0 - thermodynamics_module_.tau_cut_, &BIS),
+      class_call(transfer_workspace_init(&ptw, perturbations_module_->tau_size_, tau_size_max, pba->K, pba->sgnK, tau0 - thermodynamics_module_->tau_cut_, &BIS),
         error_message_,
         error_message_);
 
@@ -453,7 +457,7 @@ int TransferModule::transfer_indices_of_transfers(double q_period, double K, int
     class_define_index(index_tt_nc_g5_,   ppt->has_nc_gr,                    index_tt, ppt->selection_num);
     class_define_index(index_tt_lensing_, ppt->has_cl_lensing_potential,     index_tt, ppt->selection_num);
 
-    tt_size_[perturbations_module_.index_md_scalars_] = index_tt;
+    tt_size_[perturbations_module_->index_md_scalars_] = index_tt;
 
   }
 
@@ -466,7 +470,7 @@ int TransferModule::transfer_indices_of_transfers(double q_period, double K, int
     class_define_index(index_tt_t1_, ppt->has_cl_cmb_temperature,  index_tt, 1);
     class_define_index(index_tt_b_,  ppt->has_cl_cmb_polarization, index_tt, 1);
 
-    tt_size_[perturbations_module_.index_md_vectors_] = index_tt;
+    tt_size_[perturbations_module_->index_md_vectors_] = index_tt;
 
   }
 
@@ -478,7 +482,7 @@ int TransferModule::transfer_indices_of_transfers(double q_period, double K, int
 
     class_define_index(index_tt_b_, ppt->has_cl_cmb_polarization, index_tt, 1);
 
-    tt_size_[perturbations_module_.index_md_tensors_] = index_tt;
+    tt_size_[perturbations_module_->index_md_tensors_] = index_tt;
 
   }
 
@@ -542,7 +546,7 @@ int TransferModule::transfer_indices_of_transfers(double q_period, double K, int
 
     /** - allocate arrays of transfer functions, (transfer_[index_md])[index_ic][index_tt][index_l][index_k] */
     class_alloc(transfer_[index_md],
-                perturbations_module_.ic_size_[index_md]*tt_size_[index_md]*l_size_[index_md]*q_size_*sizeof(double),
+                perturbations_module_->ic_size_[index_md]*tt_size_[index_md]*l_size_[index_md]*q_size_*sizeof(double),
                 error_message_);
 
   }
@@ -561,48 +565,48 @@ int TransferModule::transfer_perturbation_copy_sources_and_nl_corrections(double
   for (index_md = 0; index_md < md_size_; index_md++) {
 
     class_alloc(sources[index_md],
-                perturbations_module_.ic_size_[index_md]*perturbations_module_.tp_size_[index_md]*sizeof(double*),
+                perturbations_module_->ic_size_[index_md]*perturbations_module_->tp_size_[index_md]*sizeof(double*),
                 error_message_);
 
-    for (index_ic = 0; index_ic < perturbations_module_.ic_size_[index_md]; index_ic++) {
+    for (index_ic = 0; index_ic < perturbations_module_->ic_size_[index_md]; index_ic++) {
 
-      for (index_tp = 0; index_tp < perturbations_module_.tp_size_[index_md]; index_tp++) {
+      for (index_tp = 0; index_tp < perturbations_module_->tp_size_[index_md]; index_tp++) {
 
         if ((pnl->method != nl_none) && (_scalarsEXT_) &&
-            (((perturbations_module_.has_source_delta_m_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_delta_m_)) ||
-             ((perturbations_module_.has_source_delta_cb_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_delta_cb_)) ||
-             ((perturbations_module_.has_source_theta_m_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_theta_m_)) ||
-             ((perturbations_module_.has_source_theta_cb_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_theta_cb_)) ||
-             ((perturbations_module_.has_source_phi_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_phi_)) ||
-             ((perturbations_module_.has_source_phi_prime_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_phi_prime_)) ||
-             ((perturbations_module_.has_source_phi_plus_psi_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_phi_plus_psi_)) ||
-             ((perturbations_module_.has_source_psi_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_psi_)))) {
+            (((perturbations_module_->has_source_delta_m_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_delta_m_)) ||
+             ((perturbations_module_->has_source_delta_cb_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_delta_cb_)) ||
+             ((perturbations_module_->has_source_theta_m_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_theta_m_)) ||
+             ((perturbations_module_->has_source_theta_cb_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_theta_cb_)) ||
+             ((perturbations_module_->has_source_phi_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_phi_)) ||
+             ((perturbations_module_->has_source_phi_prime_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_phi_prime_)) ||
+             ((perturbations_module_->has_source_phi_plus_psi_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_phi_plus_psi_)) ||
+             ((perturbations_module_->has_source_psi_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_psi_)))) {
 
-          class_alloc(sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp],
-                      perturbations_module_.k_size_[index_md]*perturbations_module_.tau_size_*sizeof(double),
+          class_alloc(sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp],
+                      perturbations_module_->k_size_[index_md]*perturbations_module_->tau_size_*sizeof(double),
                       error_message_);
 
-          for (index_tau = 0; index_tau < perturbations_module_.tau_size_; index_tau++) {
-            for (index_k = 0; index_k < perturbations_module_.k_size_[index_md]; index_k++) {
-              if (((perturbations_module_.has_source_delta_cb_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_delta_cb_)) ||
-                  ((perturbations_module_.has_source_theta_cb_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_theta_cb_))) {
-                sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp][index_tau*perturbations_module_.k_size_[index_md] + index_k] =
-                  perturbations_module_.sources_[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp][
-                    index_tau*perturbations_module_.k_size_[index_md] + index_k
-                  ]*nonlinear_module_.nl_corr_density_[nonlinear_module_.index_pk_cb_][index_tau*perturbations_module_.k_size_[index_md] + index_k];
+          for (index_tau = 0; index_tau < perturbations_module_->tau_size_; index_tau++) {
+            for (index_k = 0; index_k < perturbations_module_->k_size_[index_md]; index_k++) {
+              if (((perturbations_module_->has_source_delta_cb_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_delta_cb_)) ||
+                  ((perturbations_module_->has_source_theta_cb_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_theta_cb_))) {
+                sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp][index_tau*perturbations_module_->k_size_[index_md] + index_k] =
+                  perturbations_module_->sources_[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp][
+                    index_tau*perturbations_module_->k_size_[index_md] + index_k
+                  ]*nonlinear_module_->nl_corr_density_[nonlinear_module_->index_pk_cb_][index_tau*perturbations_module_->k_size_[index_md] + index_k];
               }
               else{
-                sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp][index_tau*perturbations_module_.k_size_[index_md] + index_k] =
-                  perturbations_module_.sources_[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp][
-                    index_tau*perturbations_module_.k_size_[index_md] + index_k
-                  ]*nonlinear_module_.nl_corr_density_[nonlinear_module_.index_pk_m_][index_tau*perturbations_module_.k_size_[index_md] + index_k];
+                sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp][index_tau*perturbations_module_->k_size_[index_md] + index_k] =
+                  perturbations_module_->sources_[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp][
+                    index_tau*perturbations_module_->k_size_[index_md] + index_k
+                  ]*nonlinear_module_->nl_corr_density_[nonlinear_module_->index_pk_m_][index_tau*perturbations_module_->k_size_[index_md] + index_k];
               }
             }
           }
         }
         else {
-          sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp] =
-            perturbations_module_.sources_[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp];
+          sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp] =
+            perturbations_module_->sources_[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp];
         }
       }
     }
@@ -621,22 +625,22 @@ int TransferModule::transfer_perturbation_source_spline(double *** sources, doub
   for (index_md = 0; index_md < md_size_; index_md++) {
 
     class_alloc(sources_spline[index_md],
-                perturbations_module_.ic_size_[index_md]*perturbations_module_.tp_size_[index_md]*sizeof(double*),
+                perturbations_module_->ic_size_[index_md]*perturbations_module_->tp_size_[index_md]*sizeof(double*),
                 error_message_);
 
-    for (index_ic = 0; index_ic < perturbations_module_.ic_size_[index_md]; index_ic++) {
+    for (index_ic = 0; index_ic < perturbations_module_->ic_size_[index_md]; index_ic++) {
 
-      for (index_tp = 0; index_tp < perturbations_module_.tp_size_[index_md]; index_tp++) {
+      for (index_tp = 0; index_tp < perturbations_module_->tp_size_[index_md]; index_tp++) {
 
-        class_alloc(sources_spline[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp],
-                    perturbations_module_.k_size_[index_md]*perturbations_module_.tau_size_*sizeof(double),
+        class_alloc(sources_spline[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp],
+                    perturbations_module_->k_size_[index_md]*perturbations_module_->tau_size_*sizeof(double),
                     error_message_);
 
-        class_call(array_spline_table_columns2(perturbations_module_.k_[index_md],
-                                               perturbations_module_.k_size_[index_md],
-                                               sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp],
-                                               perturbations_module_.tau_size_,
-                                               sources_spline[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp],
+        class_call(array_spline_table_columns2(perturbations_module_->k_[index_md],
+                                               perturbations_module_->k_size_[index_md],
+                                               sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp],
+                                               perturbations_module_->tau_size_,
+                                               sources_spline[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp],
                                                _SPLINE_EST_DERIV_,
                                                error_message_),
                    error_message_,
@@ -656,19 +660,19 @@ int TransferModule::transfer_perturbation_sources_free(double *** sources) {
   int index_tp;
 
   for (index_md = 0; index_md < md_size_; index_md++) {
-    for (index_ic = 0; index_ic < perturbations_module_.ic_size_[index_md]; index_ic++) {
-      for (index_tp = 0; index_tp < perturbations_module_.tp_size_[index_md]; index_tp++) {
+    for (index_ic = 0; index_ic < perturbations_module_->ic_size_[index_md]; index_ic++) {
+      for (index_tp = 0; index_tp < perturbations_module_->tp_size_[index_md]; index_tp++) {
         if ((pnl->method != nl_none) && (_scalarsEXT_) &&
-            (((perturbations_module_.has_source_delta_m_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_delta_m_)) ||
-             ((perturbations_module_.has_source_theta_m_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_theta_m_)) ||
-             ((perturbations_module_.has_source_delta_cb_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_delta_cb_)) ||
-             ((perturbations_module_.has_source_theta_cb_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_theta_cb_)) ||
-             ((perturbations_module_.has_source_phi_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_phi_)) ||
-             ((perturbations_module_.has_source_phi_prime_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_phi_prime_)) ||
-             ((perturbations_module_.has_source_phi_plus_psi_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_phi_plus_psi_)) ||
-             ((perturbations_module_.has_source_psi_ == _TRUE_) && (index_tp == perturbations_module_.index_tp_psi_)))) {
+            (((perturbations_module_->has_source_delta_m_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_delta_m_)) ||
+             ((perturbations_module_->has_source_theta_m_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_theta_m_)) ||
+             ((perturbations_module_->has_source_delta_cb_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_delta_cb_)) ||
+             ((perturbations_module_->has_source_theta_cb_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_theta_cb_)) ||
+             ((perturbations_module_->has_source_phi_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_phi_)) ||
+             ((perturbations_module_->has_source_phi_prime_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_phi_prime_)) ||
+             ((perturbations_module_->has_source_phi_plus_psi_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_phi_plus_psi_)) ||
+             ((perturbations_module_->has_source_psi_ == _TRUE_) && (index_tp == perturbations_module_->index_tp_psi_)))) {
 
-          free(sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp]);
+          free(sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp]);
         }
       }
     }
@@ -685,9 +689,9 @@ int TransferModule::transfer_perturbation_sources_spline_free(double *** sources
   int index_tp;
 
   for (index_md = 0; index_md < md_size_; index_md++) {
-    for (index_ic = 0; index_ic < perturbations_module_.ic_size_[index_md]; index_ic++) {
-      for (index_tp = 0; index_tp < perturbations_module_.tp_size_[index_md]; index_tp++) {
-        free(sources_spline[index_md][index_ic*perturbations_module_.tp_size_[index_md] + index_tp]);
+    for (index_ic = 0; index_ic < perturbations_module_->ic_size_[index_md]; index_ic++) {
+      for (index_tp = 0; index_tp < perturbations_module_->tp_size_[index_md]; index_tp++) {
+        free(sources_spline[index_md][index_ic*perturbations_module_->tp_size_[index_md] + index_tp]);
       }
     }
     free(sources_spline[index_md]);
@@ -716,9 +720,9 @@ int TransferModule::transfer_get_l_list() {
   /** Summary: */
   /*
     fprintf(stderr,"rescaling %e logstep %e linstep %e\n",
-    thermodynamics_module_.angular_rescaling_,
-    pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_),
-    ppr->l_linstep*thermodynamics_module_.angular_rescaling_);
+    thermodynamics_module_->angular_rescaling_,
+    pow(ppr->l_logstep, thermodynamics_module_->angular_rescaling_),
+    ppr->l_linstep*thermodynamics_module_->angular_rescaling_);
   */
 
   /* check that largests need value of l_max */
@@ -748,20 +752,20 @@ int TransferModule::transfer_get_l_list() {
 
   index_l = 0;
   current_l = 2;
-  increment = MAX((int)(current_l*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
+  increment = MAX((int)(current_l*(pow(ppr->l_logstep, thermodynamics_module_->angular_rescaling_) - 1.)), 1);
 
-  while (((current_l + increment) < l_max) && (increment < ppr->l_linstep*thermodynamics_module_.angular_rescaling_)) {
+  while (((current_l + increment) < l_max) && (increment < ppr->l_linstep*thermodynamics_module_->angular_rescaling_)) {
 
     index_l ++;
     current_l += increment;
-    increment = MAX((int)(current_l*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
+    increment = MAX((int)(current_l*(pow(ppr->l_logstep, thermodynamics_module_->angular_rescaling_) - 1.)), 1);
 
   }
 
   /** - when the logarithmic step becomes larger than some linear step,
       stick to this linear step till l_max */
 
-  increment = ppr->l_linstep*thermodynamics_module_.angular_rescaling_;
+  increment = ppr->l_linstep*thermodynamics_module_->angular_rescaling_;
 
   while ((current_l+increment) <= l_max) {
 
@@ -788,17 +792,17 @@ int TransferModule::transfer_get_l_list() {
 
   index_l = 0;
   l_[0] = 2;
-  increment = MAX((int)(l_[0]*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
+  increment = MAX((int)(l_[0]*(pow(ppr->l_logstep, thermodynamics_module_->angular_rescaling_) - 1.)), 1);
 
-  while (((l_[index_l] + increment) < l_max) && (increment < ppr->l_linstep*thermodynamics_module_.angular_rescaling_)) {
+  while (((l_[index_l] + increment) < l_max) && (increment < ppr->l_linstep*thermodynamics_module_->angular_rescaling_)) {
 
     index_l ++;
     l_[index_l] = l_[index_l - 1] + increment;
-    increment = MAX((int)(l_[index_l]*(pow(ppr->l_logstep, thermodynamics_module_.angular_rescaling_) - 1.)), 1);
+    increment = MAX((int)(l_[index_l]*(pow(ppr->l_logstep, thermodynamics_module_->angular_rescaling_) - 1.)), 1);
 
   }
 
-  increment = ppr->l_linstep*thermodynamics_module_.angular_rescaling_;
+  increment = ppr->l_linstep*thermodynamics_module_->angular_rescaling_;
 
   while ((l_[index_l] + increment) <= l_max) {
 
@@ -819,7 +823,7 @@ int TransferModule::transfer_get_l_list() {
      l_max can be smaller). Also, maximize this size for each mode to
      find l_size[index_md]. */
 
-  for (index_md = 0; index_md < perturbations_module_.md_size_; index_md++) {
+  for (index_md = 0; index_md < perturbations_module_->md_size_; index_md++) {
 
     l_size_[index_md] = 0;
 
@@ -915,11 +919,11 @@ int TransferModule::transfer_get_q_list(double q_period, double K, int sgnK) {
   /* first and last value in flat case*/
 
   if (sgnK == 0) {
-    q_min = perturbations_module_.k_min_;
+    q_min = perturbations_module_->k_min_;
 
     q_max = 0.;
-    for (index_md = 0; index_md < perturbations_module_.md_size_; index_md++) {
-      q_max = MAX(q_max, perturbations_module_.k_[index_md][perturbations_module_.k_size_cl_[index_md] - 1]);
+    for (index_md = 0; index_md < perturbations_module_->md_size_; index_md++) {
+      q_max = MAX(q_max, perturbations_module_->k_[index_md][perturbations_module_->k_size_cl_[index_md] - 1]);
     }
 
     K=0;
@@ -928,11 +932,11 @@ int TransferModule::transfer_get_q_list(double q_period, double K, int sgnK) {
   /* first and last value in open case*/
 
   else if (sgnK == -1) {
-    q_min = sqrt(perturbations_module_.k_min_*perturbations_module_.k_min_ + K);
+    q_min = sqrt(perturbations_module_->k_min_*perturbations_module_->k_min_ + K);
 
     k_max = 0.;
-    for (index_md = 0; index_md < perturbations_module_.md_size_; index_md++) {
-      k_max = MAX(k_max, perturbations_module_.k_[index_md][perturbations_module_.k_size_cl_[index_md] - 1]);
+    for (index_md = 0; index_md < perturbations_module_->md_size_; index_md++) {
+      k_max = MAX(k_max, perturbations_module_->k_[index_md][perturbations_module_->k_size_cl_[index_md] - 1]);
     }
 
     q_max = sqrt(k_max*k_max+K);
@@ -949,14 +953,14 @@ int TransferModule::transfer_get_q_list(double q_period, double K, int sgnK) {
     q_min = nu_min * sqrt(K);
 
     q_max = 0.;
-    for (index_md = 0; index_md < perturbations_module_.md_size_; index_md++) {
-      q_max = MAX(q_max, perturbations_module_.k_[index_md][perturbations_module_.k_size_cl_[index_md] - 1]);
+    for (index_md = 0; index_md < perturbations_module_->md_size_; index_md++) {
+      q_max = MAX(q_max, perturbations_module_->k_[index_md][perturbations_module_->k_size_cl_[index_md] - 1]);
     }
   }
 
   /* adjust the parameter governing the log step size to curvature */
 
-  q_logstep_spline = ppr->q_logstep_spline/pow(thermodynamics_module_.angular_rescaling_, ppr->q_logstep_open);
+  q_logstep_spline = ppr->q_logstep_spline/pow(thermodynamics_module_->angular_rescaling_, ppr->q_logstep_open);
   q_logstep_trapzd = ppr->q_logstep_trapzd;
 
   /* very conservative estimate of number of values */
@@ -1149,33 +1153,33 @@ int TransferModule::transfer_get_k_list(double K) {
       k_[index_md][index_q] = sqrt(q_[index_q]*q_[index_q] - K*(m + 1.));
     }
 
-    if (k_[index_md][0] < perturbations_module_.k_[index_md][0]){
-      /* If k_[index_md][0] < perturbations_module_.k_[index_md][0] at the level of rounding,
+    if (k_[index_md][0] < perturbations_module_->k_[index_md][0]){
+      /* If k_[index_md][0] < perturbations_module_->k_[index_md][0] at the level of rounding,
          adjust first value of k_list to avoid interpolation errors: */
-      if ((perturbations_module_.k_[index_md][0] - k_[index_md][0]) < 10.*DBL_EPSILON) {
-        k_[index_md][0] = perturbations_module_.k_[index_md][0];
+      if ((perturbations_module_->k_[index_md][0] - k_[index_md][0]) < 10.*DBL_EPSILON) {
+        k_[index_md][0] = perturbations_module_->k_[index_md][0];
       }
       else{
         class_stop(error_message_,
                    "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
-                   perturbations_module_.k_[0][0],
+                   perturbations_module_->k_[0][0],
                    index_md,
                    k_[index_md][0]);
       }
     }
 
     /*
-      class_test(k_[index_md][0] < perturbations_module_.k_[index_md][0],
+      class_test(k_[index_md][0] < perturbations_module_->k_[index_md][0],
       error_message_,
       "bug in k_list calculation: in perturbation module k_min=%e, in transfer module k_min[mode=%d]=%e, interpolation impossible",
-      perturbations_module_.k_[0][0],
+      perturbations_module_->k_[0][0],
       index_md,
       k_[index_md][0]);
     */
-    class_test(k_[index_md][q_size_ - 1] > perturbations_module_.k_[0][perturbations_module_.k_size_cl_[0] - 1],
+    class_test(k_[index_md][q_size_ - 1] > perturbations_module_->k_[0][perturbations_module_->k_size_cl_[0] - 1],
                error_message_,
                "bug in k_list calculation: in perturbation module k_max=%e, in transfer module k_max[mode=%d]=%e, interpolation impossible",
-               perturbations_module_.k_[0][perturbations_module_.k_size_cl_[0]],
+               perturbations_module_->k_[0][perturbations_module_->k_size_cl_[0]],
                index_md,
                k_[index_md][q_size_ - 1]);
 
@@ -1216,82 +1220,82 @@ int TransferModule::transfer_get_source_correspondence(int ** tp_of_tt) {
       if (_scalarsEXT_) {
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == index_tt_t0_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_t0_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_t0_;
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == index_tt_t1_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_t1_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_t1_;
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == index_tt_t2_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_t2_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_t2_;
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == index_tt_e_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_p_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_p_;
 
         if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == index_tt_lcmb_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_plus_psi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_plus_psi_;
 
         if (_index_tt_in_range_(index_tt_density_, ppt->selection_num, ppt->has_nc_density))
           /* use here delta_cb rather than delta_m if density number counts calculated only for cold dark matter + baryon */
           /* (this important comment is referenced in a WARNING message in perturbations.c) */
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_delta_m_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_delta_m_;
 
         if (_index_tt_in_range_(index_tt_rsd_,     ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_theta_m_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_theta_m_;
 
         if (_index_tt_in_range_(index_tt_d0_,      ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_theta_m_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_theta_m_;
 
         if (_index_tt_in_range_(index_tt_d1_,      ppt->selection_num, ppt->has_nc_rsd))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_theta_m_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_theta_m_;
 
         if (_index_tt_in_range_(index_tt_nc_lens_, ppt->selection_num, ppt->has_nc_lens))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_plus_psi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_plus_psi_;
 
         if (_index_tt_in_range_(index_tt_nc_g1_,   ppt->selection_num, ppt->has_nc_gr))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_psi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_psi_;
 
         if (_index_tt_in_range_(index_tt_nc_g2_,   ppt->selection_num, ppt->has_nc_gr))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_;
 
         if (_index_tt_in_range_(index_tt_nc_g3_,   ppt->selection_num, ppt->has_nc_gr))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_prime_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_prime_;
 
         if (_index_tt_in_range_(index_tt_nc_g4_,   ppt->selection_num, ppt->has_nc_gr))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_plus_psi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_plus_psi_;
 
         if (_index_tt_in_range_(index_tt_nc_g5_,   ppt->selection_num, ppt->has_nc_gr))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_plus_psi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_plus_psi_;
 
         if ((ppt->has_cl_lensing_potential == _TRUE_) && (index_tt >= index_tt_lensing_) && (index_tt < index_tt_lensing_+ppt->selection_num))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_phi_plus_psi_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_phi_plus_psi_;
 
       }
 
       if (_vectorsEXT_) {
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == index_tt_t1_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_t1_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_t1_;
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == index_tt_t2_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_t2_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_t2_;
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == index_tt_e_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_p_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_p_;
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == index_tt_b_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_p_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_p_;
       }
 
       if (_tensorsEXT_) {
 
         if ((ppt->has_cl_cmb_temperature == _TRUE_) && (index_tt == index_tt_t2_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_t2_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_t2_;
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == index_tt_e_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_p_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_p_;
 
         if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == index_tt_b_))
-          tp_of_tt[index_md][index_tt] = perturbations_module_.index_tp_p_;
+          tp_of_tt[index_md][index_tt] = perturbations_module_->index_tp_p_;
       }
     }
   }
@@ -1381,21 +1385,21 @@ int TransferModule::transfer_source_tau_size(double tau_rec, double tau0, int in
     /* scalar temperature */
     if ((ppt->has_cl_cmb_temperature == _TRUE_) &&
         ((index_tt == index_tt_t0_) || (index_tt == index_tt_t1_) || (index_tt == index_tt_t2_)))
-      *tau_size = perturbations_module_.tau_size_;
+      *tau_size = perturbations_module_->tau_size_;
 
     /* scalar polarization */
     if ((ppt->has_cl_cmb_polarization == _TRUE_) && (index_tt == index_tt_e_))
-      *tau_size = perturbations_module_.tau_size_;
+      *tau_size = perturbations_module_->tau_size_;
 
     /* cmb lensing potential */
     if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == index_tt_lcmb_)) {
 
       /* find times before recombination, that will be thrown away */
       index_tau_min=0;
-      while (perturbations_module_.tau_sampling_[index_tau_min] <= tau_rec) index_tau_min++;
+      while (perturbations_module_->tau_sampling_[index_tau_min] <= tau_rec) index_tau_min++;
 
       /* infer number of time steps after removing early times */
-      *tau_size = perturbations_module_.tau_size_ - index_tau_min;
+      *tau_size = perturbations_module_->tau_size_ - index_tau_min;
     }
 
     /* density Cl's */
@@ -1505,7 +1509,7 @@ int TransferModule::transfer_source_tau_size(double tau_rec, double tau0, int in
   if (_tensorsEXT_) {
 
     /* for all tensor types */
-    *tau_size = perturbations_module_.tau_size_;
+    *tau_size = perturbations_module_->tau_size_;
   }
 
   return _SUCCESS_;
@@ -1573,12 +1577,12 @@ int TransferModule::transfer_compute_for_each_q(int ** tp_of_tt, int index_q, in
 
     /* if we reached q_max for this mode, there is nothing to be done */
 
-    if (k_[index_md][index_q] <= perturbations_module_.k_[index_md][perturbations_module_.k_size_cl_[index_md] - 1]) {
+    if (k_[index_md][index_q] <= perturbations_module_->k_[index_md][perturbations_module_->k_size_cl_[index_md] - 1]) {
 
       /** - loop over initial conditions. */
       /* For each of them: */
 
-      for (index_ic = 0; index_ic < perturbations_module_.ic_size_[index_md]; index_ic++) {
+      for (index_ic = 0; index_ic < perturbations_module_->ic_size_[index_md]; index_ic++) {
 
         /* initialize the previous type index */
         previous_type=-1;
@@ -1597,8 +1601,8 @@ int TransferModule::transfer_compute_for_each_q(int ** tp_of_tt, int index_q, in
                                                     index_md,
                                                     index_ic,
                                                     tp_of_tt[index_md][index_tt],
-                                                    pert_sources[index_md][index_ic*perturbations_module_.tp_size_[index_md] + tp_of_tt[index_md][index_tt]],
-                                                    pert_sources_spline[index_md][index_ic*perturbations_module_.tp_size_[index_md] + tp_of_tt[index_md][index_tt]],
+                                                    pert_sources[index_md][index_ic*perturbations_module_->tp_size_[index_md] + tp_of_tt[index_md][index_tt]],
+                                                    pert_sources_spline[index_md][index_ic*perturbations_module_->tp_size_[index_md] + tp_of_tt[index_md][index_tt]],
                                                     interpolated_sources),
                        error_message_,
                        error_message_);
@@ -1651,7 +1655,7 @@ int TransferModule::transfer_compute_for_each_q(int ** tp_of_tt, int index_q, in
             class_call(transfer_can_be_neglected(index_md,
                                                  index_ic,
                                                  index_tt,
-                                                 (background_module_.conformal_age_ - tau_rec)*thermodynamics_module_.angular_rescaling_,
+                                                 (background_module_->conformal_age_ - tau_rec)*thermodynamics_module_->angular_rescaling_,
                                                  q_[index_q],
                                                  l,
                                                  &neglect),
@@ -1721,7 +1725,7 @@ int TransferModule::transfer_compute_for_each_q(int ** tp_of_tt, int index_q, in
 
     else {
 
-      for (index_ic = 0; index_ic < perturbations_module_.ic_size_[index_md]; index_ic++) {
+      for (index_ic = 0; index_ic < perturbations_module_->ic_size_[index_md]; index_ic++) {
         for (index_tt = 0; index_tt < tt_size_[index_md]; index_tt++) {
           for (index_l = 0; index_l < l_size_[index_md]; index_l++) {
 
@@ -1796,9 +1800,9 @@ int TransferModule::transfer_interpolate_sources(int index_q,
                                  int index_md,
                                  int index_ic,
                                  int index_type,
-                                 double* pert_source,       /* array with argument pert_source[index_tau*perturbations_module_.k_size_[index_md]+index_k] (must be allocated) */
-                                 double* pert_source_spline, /* array with argument pert_source_spline[index_tau*perturbations_module_.k_size_[index_md]+index_k] (must be allocated) */
-                                 double* interpolated_sources /* array with argument interpolated_sources[index_q*perturbations_module_.tau_size_+index_tau] (must be allocated) */
+                                 double* pert_source,       /* array with argument pert_source[index_tau*perturbations_module_->k_size_[index_md]+index_k] (must be allocated) */
+                                 double* pert_source_spline, /* array with argument pert_source_spline[index_tau*perturbations_module_->k_size_[index_md]+index_k] (must be allocated) */
+                                 double* interpolated_sources /* array with argument interpolated_sources[index_q*perturbations_module_->tau_size_+index_tau] (must be allocated) */
                                  ) {
 
   /** Summary: */
@@ -1818,28 +1822,28 @@ int TransferModule::transfer_interpolate_sources(int index_q,
       spline interpolation algorithm. */
 
   index_k = 0;
-  h = perturbations_module_.k_[index_md][index_k + 1] - perturbations_module_.k_[index_md][index_k];
+  h = perturbations_module_->k_[index_md][index_k + 1] - perturbations_module_->k_[index_md][index_k];
 
-  while (((index_k + 1) < perturbations_module_.k_size_[index_md]) &&
-         (perturbations_module_.k_[index_md][index_k + 1] < k_[index_md][index_q])) {
+  while (((index_k + 1) < perturbations_module_->k_size_[index_md]) &&
+         (perturbations_module_->k_[index_md][index_k + 1] < k_[index_md][index_q])) {
     index_k++;
-    h = perturbations_module_.k_[index_md][index_k + 1] - perturbations_module_.k_[index_md][index_k];
+    h = perturbations_module_->k_[index_md][index_k + 1] - perturbations_module_->k_[index_md][index_k];
   }
 
   class_test(h==0.,
              error_message_,
              "stop to avoid division by zero");
 
-  b = (k_[index_md][index_q] - perturbations_module_.k_[index_md][index_k])/h;
+  b = (k_[index_md][index_q] - perturbations_module_->k_[index_md][index_k])/h;
   a = 1.-b;
 
-  for (index_tau = 0; index_tau < perturbations_module_.tau_size_; index_tau++) {
+  for (index_tau = 0; index_tau < perturbations_module_->tau_size_; index_tau++) {
 
     interpolated_sources[index_tau] =
-      a * pert_source[index_tau*perturbations_module_.k_size_[index_md] + index_k]
-      + b * pert_source[index_tau*perturbations_module_.k_size_[index_md] + index_k + 1]
-      + ((a*a*a - a) * pert_source_spline[index_tau*perturbations_module_.k_size_[index_md] + index_k]
-         +(b*b*b - b) * pert_source_spline[index_tau*perturbations_module_.k_size_[index_md] + index_k + 1])*h*h/6.0;
+      a * pert_source[index_tau*perturbations_module_->k_size_[index_md] + index_k]
+      + b * pert_source[index_tau*perturbations_module_->k_size_[index_md] + index_k + 1]
+      + ((a*a*a - a) * pert_source_spline[index_tau*perturbations_module_->k_size_[index_md] + index_k]
+         +(b*b*b - b) * pert_source_spline[index_tau*perturbations_module_->k_size_[index_md] + index_k + 1])*h*h/6.0;
 
   }
 
@@ -1921,7 +1925,7 @@ int TransferModule::transfer_sources(double * interpolated_sources, double tau_r
   }
 
   /* conformal time today */
-  tau0 = background_module_.conformal_age_;
+  tau0 = background_module_->conformal_age_;
 
   /** - case where we need to redefine by a window function (or any
       function of the background and of k) */
@@ -1942,13 +1946,13 @@ int TransferModule::transfer_sources(double * interpolated_sources, double tau_r
       if ((ppt->has_cl_cmb_lensing_potential == _TRUE_) && (index_tt == index_tt_lcmb_)) {
 
         /* first time step after removing early times */
-        index_tau_min =  perturbations_module_.tau_size_ - tau_size;
+        index_tau_min =  perturbations_module_->tau_size_ - tau_size;
 
         /* loop over time and rescale */
-        for (index_tau = index_tau_min; index_tau < perturbations_module_.tau_size_; index_tau++) {
+        for (index_tau = index_tau_min; index_tau < perturbations_module_->tau_size_; index_tau++) {
 
           /* conformal time */
-          tau = perturbations_module_.tau_sampling_[index_tau];
+          tau = perturbations_module_->tau_sampling_[index_tau];
 
           /* lensing source =  - W(tau) (phi(k,tau) + psi(k,tau)) Heaviside(tau-tau_rec)
              with
@@ -1959,7 +1963,7 @@ int TransferModule::transfer_sources(double * interpolated_sources, double tau_r
              regulated anyway by Bessel).
           */
 
-          if (index_tau == perturbations_module_.tau_size_ - 1) {
+          if (index_tau == perturbations_module_->tau_size_ - 1) {
             rescaling=0.;
           }
           else {
@@ -2015,7 +2019,7 @@ int TransferModule::transfer_sources(double * interpolated_sources, double tau_r
                    error_message_,
                    error_message_);
 
-        class_test(tau0 - tau0_minus_tau[0] > perturbations_module_.tau_sampling_[perturbations_module_.tau_size_ - 1],
+        class_test(tau0 - tau0_minus_tau[0] > perturbations_module_->tau_sampling_[perturbations_module_->tau_size_ - 1],
                    error_message_,
                    "this should not happen, there was probably a rounding error, if this error occurred, then this must be coded more carefully");
 
@@ -2110,16 +2114,16 @@ int TransferModule::transfer_sources(double * interpolated_sources, double tau_r
   else {
 
     /* number of sampled time values */
-    tau_size = perturbations_module_.tau_size_;
+    tau_size = perturbations_module_->tau_size_;
 
     /* plain copy from input array to output array */
     memcpy(sources,
            interpolated_sources,
-           perturbations_module_.tau_size_*sizeof(double));
+           perturbations_module_->tau_size_*sizeof(double));
 
     /* store values of (tau0-tau) */
-    for (index_tau=0; index_tau < perturbations_module_.tau_size_; index_tau++) {
-      tau0_minus_tau[index_tau] = tau0 - perturbations_module_.tau_sampling_[index_tau];
+    for (index_tau=0; index_tau < perturbations_module_->tau_size_; index_tau++) {
+      tau0_minus_tau[index_tau] = tau0 - perturbations_module_->tau_sampling_[index_tau];
     }
 
     /* Compute trapezoidal weights for integration over tau */
@@ -2347,15 +2351,15 @@ int TransferModule::transfer_selection_sampling(int bin, double * tau0_minus_tau
     class_test(tau_size !=1,
                error_message_,
                "for Dirac selection function tau_size should be 1, not %d",tau_size);
-    tau0_minus_tau[0] = background_module_.conformal_age_ - tau_mean;
+    tau0_minus_tau[0] = background_module_->conformal_age_ - tau_mean;
   }
   /* for other cases (gaussian, tophat...) define new sampled values
      of (tau0-tau) with even spacing */
   else {
     for (index_tau=0; index_tau<tau_size-1; index_tau++) {
-      tau0_minus_tau[index_tau] = background_module_.conformal_age_ - tau_min - ((double)index_tau)/((double)tau_size - 1.)*(tau_max - tau_min);
+      tau0_minus_tau[index_tau] = background_module_->conformal_age_ - tau_min - ((double)index_tau)/((double)tau_size - 1.)*(tau_max - tau_min);
     }
-    tau0_minus_tau[tau_size - 1] = background_module_.conformal_age_ - tau_max;
+    tau0_minus_tau[tau_size - 1] = background_module_->conformal_age_ - tau_max;
   }
 
   return _SUCCESS_;
@@ -2393,7 +2397,7 @@ int TransferModule::transfer_lensing_sampling(int bin, double tau0, double * tau
              error_message_);
 
   for (index_tau=0; index_tau<tau_size; index_tau++) {
-    //tau0_minus_tau[index_tau]=background_module_.conformal_age_-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
+    //tau0_minus_tau[index_tau]=background_module_->conformal_age_-tau_min-((double)index_tau)/((double)tau_size-1.)*(tau0-tau_min);
     tau0_minus_tau[index_tau]=((double)(tau_size-1-index_tau))/((double)(tau_size-1))*(tau0-tau_min);
   }
 
@@ -2437,12 +2441,12 @@ int TransferModule::transfer_source_resample(int bin, double * tau0_minus_tau, i
   /* interpolate the sources linearly at the new time values */
   for (index_tau=0; index_tau<tau_size; index_tau++) {
 
-    class_call(array_interpolate_two(perturbations_module_.tau_sampling_,
+    class_call(array_interpolate_two(perturbations_module_->tau_sampling_,
                                      1,
                                      0,
                                      interpolated_sources,
                                      1,
-                                     perturbations_module_.tau_size_,
+                                     perturbations_module_->tau_size_,
                                      tau0-tau0_minus_tau[index_tau],
                                      source_at_tau,
                                      1,
@@ -2494,8 +2498,8 @@ int TransferModule::transfer_selection_times(int bin, double * tau_min, double *
     z = ppt->selection_mean[bin];
   }
 
-  class_call(background_module_.background_tau_of_z(z, tau_min),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, tau_min),
+             background_module_->error_message_,
              error_message_);
 
   /* higher edge of time interval for this bin */
@@ -2510,16 +2514,16 @@ int TransferModule::transfer_selection_times(int bin, double * tau_min, double *
     z = ppt->selection_mean[bin];
   }
 
-  class_call(background_module_.background_tau_of_z(z, tau_max),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, tau_max),
+             background_module_->error_message_,
              error_message_);
 
   /* central value of time interval for this bin */
 
   z = MAX(ppt->selection_mean[bin],0.);
 
-  class_call(background_module_.background_tau_of_z(z, tau_mean),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, tau_mean),
+             background_module_->error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -2569,12 +2573,12 @@ int TransferModule::transfer_selection_compute(double * selection, double * tau0
       tau = tau0 - tau0_minus_tau[index_tau];
 
       /* get background quantities at this time */
-      class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
-                 background_module_.error_message_,
+      class_call(background_module_->background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+                 background_module_->error_message_,
                  error_message_);
 
       /* infer redshift */
-      z = pba->a_today/pvecback[background_module_.index_bg_a_] - 1.;
+      z = pba->a_today/pvecback[background_module_->index_bg_a_] - 1.;
 
       /* get corresponding dN/dz(z,bin) */
       class_call(transfer_selection_function(bin, z, &(selection[index_tau])),
@@ -2582,7 +2586,7 @@ int TransferModule::transfer_selection_compute(double * selection, double * tau0
                  error_message_);
 
       /* get corresponding dN/dtau = dN/dz * dz/dtau = dN/dz * H */
-      selection[index_tau] *= pvecback[background_module_.index_bg_H_];
+      selection[index_tau] *= pvecback[background_module_->index_bg_H_];
 
     }
 
@@ -3293,7 +3297,7 @@ int TransferModule::transfer_late_source_can_be_neglected(int index_md, int inde
 
   *neglect = _FALSE_;
 
-  if (l > ppr->transfer_neglect_late_source*thermodynamics_module_.angular_rescaling_) {
+  if (l > ppr->transfer_neglect_late_source*thermodynamics_module_->angular_rescaling_) {
 
     /* sources at late times can be neglected for CMB, excepted when
        there is a LISW: this means for tt_t1, t2, e */
@@ -4148,7 +4152,7 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
 
 
   /* Setup initial variables and arrays*/
-  int index_md = perturbations_module_.index_md_scalars_;
+  int index_md = perturbations_module_->index_md_scalars_;
   int index_tt;
 
   /* allocate temporary arrays for storing selections, weights, times, and output; and for calling background */
@@ -4156,10 +4160,10 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
   class_alloc(selection, tau_size_max*sizeof(double), error_message_);
   class_alloc(w_trapz, tau_size_max*sizeof(double), error_message_);
   class_alloc((*window), tau_size_max*tt_size_[index_md]*sizeof(double), error_message_);
-  class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
+  class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
 
   /* conformal time today */
-  tau0 = background_module_.conformal_age_;
+  tau0 = background_module_->conformal_age_;
 
   /* Loop through different types to be precomputed */
   for (index_tt = 0; index_tt < tt_size_[index_md]; index_tt++) {
@@ -4179,7 +4183,7 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
                  error_message_,
                  error_message_);
 
-      class_test(tau0 - tau0_minus_tau[0] > perturbations_module_.tau_sampling_[perturbations_module_.tau_size_ - 1],
+      class_test(tau0 - tau0_minus_tau[0] > perturbations_module_->tau_sampling_[perturbations_module_->tau_size_ - 1],
                  error_message_,
                  "this should not happen, there was probably a rounding error, if this error occurred, then this must be coded more carefully");
 
@@ -4220,8 +4224,8 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
         }
 
         /* corresponding background quantities */
-        class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
-                   background_module_.error_message_,
+        class_call(background_module_->background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+                   background_module_->error_message_,
                    error_message_);
 
         /* Source evolution, used by nCl doppler and nCl gravity terms */
@@ -4252,23 +4256,23 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
         /* redshift space distortion source = - [- (dz/dtau) W(z)] * (k/H) * theta(k,tau) */
 
         if (_index_tt_in_range_(index_tt_rsd_, ppt->selection_num, ppt->has_nc_rsd))
-          rescaling = selection[index_tau]/pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_a_];
+          rescaling = selection[index_tau]/pvecback[background_module_->index_bg_H_]/pvecback[background_module_->index_bg_a_];
 
         if (_index_tt_in_range_(index_tt_d0_, ppt->selection_num, ppt->has_nc_rsd))
-          rescaling = (f_evo - 3.)*selection[index_tau]*pvecback[background_module_.index_bg_H_]*pvecback[background_module_.index_bg_a_];
+          rescaling = (f_evo - 3.)*selection[index_tau]*pvecback[background_module_->index_bg_H_]*pvecback[background_module_->index_bg_a_];
 
         if (_index_tt_in_range_(index_tt_d1_, ppt->selection_num, ppt->has_nc_rsd))
 
           rescaling = selection[index_tau]*(1.
-                                            + pvecback[background_module_.index_bg_H_prime_]
-                                            /pvecback[background_module_.index_bg_a_]
-                                            /pvecback[background_module_.index_bg_H_]
-                                            /pvecback[background_module_.index_bg_H_]
+                                            + pvecback[background_module_->index_bg_H_prime_]
+                                            /pvecback[background_module_->index_bg_a_]
+                                            /pvecback[background_module_->index_bg_H_]
+                                            /pvecback[background_module_->index_bg_H_]
                                             +(2.-5.*ptr->selection_magnification_bias[bin])
                                             // /tau0_minus_tau[index_tau] // in flat space
                                             *cotKgen_source  // in general case
-                                            /pvecback[background_module_.index_bg_a_]
-                                            /pvecback[background_module_.index_bg_H_]
+                                            /pvecback[background_module_->index_bg_a_]
+                                            /pvecback[background_module_->index_bg_H_]
                                             +5.*ptr->selection_magnification_bias[bin]
                                             -f_evo
                                             );
@@ -4280,20 +4284,20 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
         if (_index_tt_in_range_(index_tt_nc_g2_, ppt->selection_num, ppt->has_nc_gr))
 
           rescaling = -selection[index_tau]*(3.
-                                             + pvecback[background_module_.index_bg_H_prime_]
-                                             /pvecback[background_module_.index_bg_a_]
-                                             /pvecback[background_module_.index_bg_H_]
-                                             /pvecback[background_module_.index_bg_H_]
+                                             + pvecback[background_module_->index_bg_H_prime_]
+                                             /pvecback[background_module_->index_bg_a_]
+                                             /pvecback[background_module_->index_bg_H_]
+                                             /pvecback[background_module_->index_bg_H_]
                                              +(2.-5.*ptr->selection_magnification_bias[bin])
                                              // /tau0_minus_tau[index_tau]  // in flat space
                                              *cotKgen_source  // in general case
-                                             /pvecback[background_module_.index_bg_a_]
-                                             /pvecback[background_module_.index_bg_H_]
+                                             /pvecback[background_module_->index_bg_a_]
+                                             /pvecback[background_module_->index_bg_H_]
                                              -f_evo
                                              );
 
         if (_index_tt_in_range_(index_tt_nc_g3_, ppt->selection_num, ppt->has_nc_gr))
-          rescaling = selection[index_tau]/pvecback[background_module_.index_bg_a_]/pvecback[background_module_.index_bg_H_];
+          rescaling = selection[index_tau]/pvecback[background_module_->index_bg_a_]/pvecback[background_module_->index_bg_H_];
 
         /* finally store in array */
         (*window)[index_tt*tau_size_max+index_tau] = rescaling;
@@ -4452,12 +4456,12 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
 
                 /* background quantities at time tau_lensing_source */
 
-                class_call(background_module_.background_at_tau(tau0 - tau0_minus_tau_lensing_sources[index_tau_sources],
+                class_call(background_module_->background_at_tau(tau0 - tau0_minus_tau_lensing_sources[index_tau_sources],
                                                                 pba->long_info,
                                                                 pba->inter_normal,
                                                                 &last_index,
                                                                 pvecback),
-                           background_module_.error_message_,
+                           background_module_->error_message_,
                            error_message_);
 
                 /* Source evolution at time tau_lensing_source */
@@ -4469,15 +4473,15 @@ int TransferModule::transfer_precompute_selection(double tau_rec, int tau_size_m
 
                 rescaling +=
                   (1.
-                   + pvecback[background_module_.index_bg_H_prime_]
-                   /pvecback[background_module_.index_bg_a_]
-                   /pvecback[background_module_.index_bg_H_]
-                   /pvecback[background_module_.index_bg_H_]
+                   + pvecback[background_module_->index_bg_H_prime_]
+                   /pvecback[background_module_->index_bg_a_]
+                   /pvecback[background_module_->index_bg_H_]
+                   /pvecback[background_module_->index_bg_H_]
                    + (2.-5.*ptr->selection_magnification_bias[bin])
                    //  /tau0_minus_tau_lensing_sources[index_tau_sources]
                    * cotKgen_source
-                   /pvecback[background_module_.index_bg_a_]
-                   /pvecback[background_module_.index_bg_H_]
+                   /pvecback[background_module_->index_bg_a_]
+                   /pvecback[background_module_->index_bg_H_]
                    + 5.*ptr->selection_magnification_bias[bin]
                    - f_evo)
                   * selection[index_tau_sources]
@@ -4516,10 +4520,10 @@ int TransferModule::transfer_f_evo(double* pvecback, int last_index, double cotK
 
   if ((ptr->has_nz_evo_file == _TRUE_) || (ptr->has_nz_evo_analytic == _TRUE_)){
 
-    temp_f_evo = 2./pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_a_]*cotKgen
-      + pvecback[background_module_.index_bg_H_prime_]/pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_H_]/pvecback[background_module_.index_bg_a_];
+    temp_f_evo = 2./pvecback[background_module_->index_bg_H_]/pvecback[background_module_->index_bg_a_]*cotKgen
+      + pvecback[background_module_->index_bg_H_prime_]/pvecback[background_module_->index_bg_H_]/pvecback[background_module_->index_bg_H_]/pvecback[background_module_->index_bg_a_];
 
-    z = pba->a_today/pvecback[background_module_.index_bg_a_] - 1.;
+    z = pba->a_today/pvecback[background_module_->index_bg_a_] - 1.;
 
     if (ptr->has_nz_evo_file ==_TRUE_) {
 
@@ -4553,7 +4557,7 @@ int TransferModule::transfer_f_evo(double* pvecback, int last_index, double cotK
                  error_message_);
     }
 
-    temp_f_evo -= dln_dNdz_dz/pvecback[background_module_.index_bg_a_];
+    temp_f_evo -= dln_dNdz_dz/pvecback[background_module_->index_bg_a_];
   }
   else {
     temp_f_evo = 0.;

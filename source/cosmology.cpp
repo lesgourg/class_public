@@ -1,57 +1,67 @@
 #include "cosmology.h"
+#include "background_module.h"
+#include "thermodynamics_module.h"
+#include "perturbations_module.h"
+#include "primordial_module.h"
+#include "nonlinear_module.h"
+#include "transfer_module.h"
+#include "spectra_module.h"
+#include "lensing_module.h"
+#include "output_module.h"
 
-const BackgroundModule& Cosmology::GetBackgroundModule() {
+
+BackgroundModulePtr& Cosmology::GetBackgroundModule() {
   if (!background_module_ptr_) {
-    background_module_ptr_ = std::unique_ptr<BackgroundModule>(new BackgroundModule(input_));
+    background_module_ptr_ = BackgroundModulePtr(new BackgroundModule(input_));
   }
-  return *background_module_ptr_;
+  return background_module_ptr_;
 }
 
-const ThermodynamicsModule& Cosmology::GetThermodynamicsModule() {
+ThermodynamicsModulePtr& Cosmology::GetThermodynamicsModule() {
   if (!thermodynamics_module_ptr_) {
-    thermodynamics_module_ptr_ = std::unique_ptr<ThermodynamicsModule>(new ThermodynamicsModule(input_, GetBackgroundModule()));
+    thermodynamics_module_ptr_ = ThermodynamicsModulePtr(new ThermodynamicsModule(input_, GetBackgroundModule()));
   }
-  return *thermodynamics_module_ptr_;
+  return thermodynamics_module_ptr_;
 }
 
-const PerturbationsModule& Cosmology::GetPerturbationsModule() {
+PerturbationsModulePtr& Cosmology::GetPerturbationsModule() {
   if (!perturbations_module_ptr_) {
-    perturbations_module_ptr_ = std::unique_ptr<PerturbationsModule>(new PerturbationsModule(input_, GetBackgroundModule(), GetThermodynamicsModule()));
+    perturbations_module_ptr_ = PerturbationsModulePtr(new PerturbationsModule(input_, GetBackgroundModule(), GetThermodynamicsModule()));
   }
-  return *perturbations_module_ptr_;
+  return perturbations_module_ptr_;
 }
 
-const PrimordialModule& Cosmology::GetPrimordialModule() {
+PrimordialModulePtr& Cosmology::GetPrimordialModule() {
   if (!primordial_module_ptr_) {
-    primordial_module_ptr_ = std::unique_ptr<PrimordialModule>(new PrimordialModule(input_, GetPerturbationsModule()));
+    primordial_module_ptr_ = PrimordialModulePtr(new PrimordialModule(input_, GetPerturbationsModule()));
   }
-  return *primordial_module_ptr_;
+  return primordial_module_ptr_;
 }
 
-const NonlinearModule& Cosmology::GetNonlinearModule() {
+NonlinearModulePtr& Cosmology::GetNonlinearModule() {
   if (!nonlinear_module_ptr_) {
-    nonlinear_module_ptr_ = std::unique_ptr<NonlinearModule>(new NonlinearModule(input_, GetBackgroundModule(), GetPerturbationsModule(), GetPrimordialModule()));
+    nonlinear_module_ptr_ = NonlinearModulePtr(new NonlinearModule(input_, GetBackgroundModule(), GetPerturbationsModule(), GetPrimordialModule()));
   }
-  return *nonlinear_module_ptr_;
+  return nonlinear_module_ptr_;
 }
 
-const TransferModule& Cosmology::GetTransferModule() {
+TransferModulePtr& Cosmology::GetTransferModule() {
   if (!transfer_module_ptr_) {
-    transfer_module_ptr_ = std::unique_ptr<TransferModule>(new TransferModule(input_, GetBackgroundModule(), GetThermodynamicsModule(), GetPerturbationsModule(), GetNonlinearModule()));
+    transfer_module_ptr_ = TransferModulePtr(new TransferModule(input_, GetBackgroundModule(), GetThermodynamicsModule(), GetPerturbationsModule(), GetNonlinearModule()));
   }
-  return *transfer_module_ptr_;
+  return transfer_module_ptr_;
 }
 
-const SpectraModule& Cosmology::GetSpectraModule() {
+SpectraModulePtr& Cosmology::GetSpectraModule() {
   if (!spectra_module_ptr_) {
-    spectra_module_ptr_ = std::unique_ptr<SpectraModule>(new SpectraModule(input_, GetPerturbationsModule(), GetPrimordialModule(), GetNonlinearModule(), GetTransferModule()));
+    spectra_module_ptr_ = SpectraModulePtr(new SpectraModule(input_, GetPerturbationsModule(), GetPrimordialModule(), GetNonlinearModule(), GetTransferModule()));
   }
-  return *spectra_module_ptr_;
+  return spectra_module_ptr_;
 }
 
-const LensingModule& Cosmology::GetLensingModule() {
+LensingModulePtr& Cosmology::GetLensingModule() {
   if (!lensing_module_ptr_) {
-    lensing_module_ptr_ = std::unique_ptr<LensingModule>(new LensingModule(input_, GetSpectraModule()));
+    lensing_module_ptr_ = LensingModulePtr(new LensingModule(input_, GetSpectraModule()));
   }
-  return *lensing_module_ptr_;
+  return lensing_module_ptr_;
 }

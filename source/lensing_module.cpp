@@ -15,9 +15,8 @@
  * -# lensing_free() at the end
  */
 
+#include "spectra_module.h"
 #include "lensing_module.h"
-#include "exceptions.h"
-#include <time.h>
 
 /**
  * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.
@@ -37,9 +36,9 @@
  * @return the error status
  */
 
-LensingModule::LensingModule(const Input& input, const SpectraModule& spectra_module)
+LensingModule::LensingModule(const Input& input, SpectraModulePtr spectra_module)
 : BaseModule(input)
-, spectra_module_(spectra_module) {
+, spectra_module_(std::move(spectra_module)) {
   ThrowInvalidArgumentIf(lensing_init() != _SUCCESS_, error_message_);
 }
 
@@ -153,7 +152,7 @@ int LensingModule::lensing_init() {
   double * sqrt5;
 
   double ** cl_md_ic; /* array with argument
-                         cl_md_ic[index_md][index_ic1_ic2*spectra_module_.ct_size_+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*spectra_module_->ct_size_+index_ct] */
 
   double ** cl_md;    /* array with argument
                          cl_md[index_md][index_ct] */
@@ -419,7 +418,7 @@ int LensingModule::lensing_init() {
               error_message_);
 
   class_alloc(cl_unlensed,
-              spectra_module_.ct_size_*sizeof(double),
+              spectra_module_->ct_size_*sizeof(double),
               error_message_);
 
 
@@ -446,30 +445,30 @@ int LensingModule::lensing_init() {
               error_message_);
 
   class_alloc(cl_md_ic,
-              spectra_module_.md_size_*sizeof(double *),
+              spectra_module_->md_size_*sizeof(double *),
               error_message_);
 
   class_alloc(cl_md,
-              spectra_module_.md_size_*sizeof(double *),
+              spectra_module_->md_size_*sizeof(double *),
               error_message_);
 
-  for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
+  for (index_md = 0; index_md < spectra_module_->md_size_; index_md++) {
 
-    if (spectra_module_.md_size_ > 1)
+    if (spectra_module_->md_size_ > 1)
 
       class_alloc(cl_md[index_md],
-                  spectra_module_.ct_size_*sizeof(double),
+                  spectra_module_->ct_size_*sizeof(double),
                   error_message_);
 
-    if (spectra_module_.ic_size_[index_md] > 1)
+    if (spectra_module_->ic_size_[index_md] > 1)
 
       class_alloc(cl_md_ic[index_md],
-                  spectra_module_.ic_ic_size_[index_md]*spectra_module_.ct_size_*sizeof(double),
+                  spectra_module_->ic_ic_size_[index_md]*spectra_module_->ct_size_*sizeof(double),
                   error_message_);
   }
 
   for (l=2; l<=l_unlensed_max_; l++) {
-    class_call(spectra_module_.spectra_cl_at_l(l, cl_unlensed, cl_md, cl_md_ic),
+    class_call(spectra_module_->spectra_cl_at_l(l, cl_unlensed, cl_md, cl_md_ic),
                psp->error_message,
                error_message_);
     cl_tt[l] = cl_unlensed[index_lt_tt_];
@@ -483,12 +482,12 @@ int LensingModule::lensing_init() {
     }
   }
 
-  for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
+  for (index_md = 0; index_md < spectra_module_->md_size_; index_md++) {
 
-    if (spectra_module_.md_size_ > 1)
+    if (spectra_module_->md_size_ > 1)
       free(cl_md[index_md]);
 
-    if (spectra_module_.ic_size_[index_md] > 1)
+    if (spectra_module_->ic_size_[index_md] > 1)
       free(cl_md_ic[index_md]);
 
   }
@@ -836,7 +835,7 @@ int LensingModule::lensing_indices(){
   int index_l;
 
   double ** cl_md_ic; /* array with argument
-                         cl_md_ic[index_md][index_ic1_ic2*spectra_module_.ct_size_+index_ct] */
+                         cl_md_ic[index_md][index_ic1_ic2*spectra_module_->ct_size_+index_ct] */
 
   double ** cl_md;    /* array with argument
                          cl_md[index_md][index_ct] */
@@ -846,97 +845,97 @@ int LensingModule::lensing_indices(){
 
   /* indices of all Cl types (lensed and unlensed) */
 
-  if (spectra_module_.has_tt_ == _TRUE_) {
+  if (spectra_module_->has_tt_ == _TRUE_) {
     has_tt_ = _TRUE_;
-    index_lt_tt_ = spectra_module_.index_ct_tt_;
+    index_lt_tt_ = spectra_module_->index_ct_tt_;
   }
   else {
     has_tt_ = _FALSE_;
   }
 
-  if (spectra_module_.has_ee_ == _TRUE_) {
+  if (spectra_module_->has_ee_ == _TRUE_) {
     has_ee_ = _TRUE_;
-    index_lt_ee_ = spectra_module_.index_ct_ee_;
+    index_lt_ee_ = spectra_module_->index_ct_ee_;
   }
   else {
     has_ee_ = _FALSE_;
   }
 
-  if (spectra_module_.has_te_ == _TRUE_) {
+  if (spectra_module_->has_te_ == _TRUE_) {
     has_te_ = _TRUE_;
-    index_lt_te_ = spectra_module_.index_ct_te_;
+    index_lt_te_ = spectra_module_->index_ct_te_;
   }
   else {
     has_te_ = _FALSE_;
   }
 
-  if (spectra_module_.has_bb_ == _TRUE_) {
+  if (spectra_module_->has_bb_ == _TRUE_) {
     has_bb_ = _TRUE_;
-    index_lt_bb_ = spectra_module_.index_ct_bb_;
+    index_lt_bb_ = spectra_module_->index_ct_bb_;
   }
   else {
     has_bb_ = _FALSE_;
   }
 
-  if (spectra_module_.has_pp_ == _TRUE_) {
+  if (spectra_module_->has_pp_ == _TRUE_) {
     has_pp_ = _TRUE_;
-    index_lt_pp_ = spectra_module_.index_ct_pp_;
+    index_lt_pp_ = spectra_module_->index_ct_pp_;
   }
   else {
     has_pp_ = _FALSE_;
   }
 
-  if (spectra_module_.has_tp_ == _TRUE_) {
+  if (spectra_module_->has_tp_ == _TRUE_) {
     has_tp_ = _TRUE_;
-    index_lt_tp_ = spectra_module_.index_ct_tp_;
+    index_lt_tp_ = spectra_module_->index_ct_tp_;
   }
   else {
     has_tp_ = _FALSE_;
   }
 
-  if (spectra_module_.has_dd_ == _TRUE_) {
+  if (spectra_module_->has_dd_ == _TRUE_) {
     has_dd_ = _TRUE_;
-    index_lt_dd_ = spectra_module_.index_ct_dd_;
+    index_lt_dd_ = spectra_module_->index_ct_dd_;
   }
   else {
     has_dd_ = _FALSE_;
   }
 
-  if (spectra_module_.has_td_ == _TRUE_) {
+  if (spectra_module_->has_td_ == _TRUE_) {
     has_td_ = _TRUE_;
-    index_lt_td_ = spectra_module_.index_ct_td_;
+    index_lt_td_ = spectra_module_->index_ct_td_;
   }
   else {
     has_td_ = _FALSE_;
   }
 
-  if (spectra_module_.has_ll_ == _TRUE_) {
+  if (spectra_module_->has_ll_ == _TRUE_) {
     has_ll_ = _TRUE_;
-    index_lt_ll_ = spectra_module_.index_ct_ll_;
+    index_lt_ll_ = spectra_module_->index_ct_ll_;
   }
   else {
     has_ll_ = _FALSE_;
   }
 
-  if (spectra_module_.has_tl_ == _TRUE_) {
+  if (spectra_module_->has_tl_ == _TRUE_) {
     has_tl_ = _TRUE_;
-    index_lt_tl_ = spectra_module_.index_ct_tl_;
+    index_lt_tl_ = spectra_module_->index_ct_tl_;
   }
   else {
     has_tl_ = _FALSE_;
   }
 
-  lt_size_ = spectra_module_.ct_size_;
+  lt_size_ = spectra_module_->ct_size_;
 
   /* number of multipoles */
 
-  l_unlensed_max_ = spectra_module_.l_max_tot_;
+  l_unlensed_max_ = spectra_module_->l_max_tot_;
 
   l_lensed_max_ = l_unlensed_max_ - ppr->delta_l_max;
 
-  for (index_l = 0; (index_l < spectra_module_.l_size_max_) && (spectra_module_.l_[index_l] <= l_lensed_max_); index_l++);
+  for (index_l = 0; (index_l < spectra_module_->l_size_max_) && (spectra_module_->l_[index_l] <= l_lensed_max_); index_l++);
 
-  if (index_l < spectra_module_.l_size_max_) index_l++; /* one more point in order to be able to interpolate till l_lensed_max_ */
+  if (index_l < spectra_module_->l_size_max_) index_l++; /* one more point in order to be able to interpolate till l_lensed_max_ */
 
   l_size_ = index_l+1;
 
@@ -944,7 +943,7 @@ int LensingModule::lensing_indices(){
 
   for (index_l=0; index_l < l_size_; index_l++) {
 
-    l_[index_l] = spectra_module_.l_[index_l];
+    l_[index_l] = spectra_module_->l_[index_l];
 
   }
 
@@ -961,42 +960,42 @@ int LensingModule::lensing_indices(){
   /* fill with unlensed cls */
 
   class_alloc(cl_md_ic,
-              spectra_module_.md_size_*sizeof(double *),
+              spectra_module_->md_size_*sizeof(double *),
               error_message_);
 
   class_alloc(cl_md,
-              spectra_module_.md_size_*sizeof(double *),
+              spectra_module_->md_size_*sizeof(double *),
               error_message_);
 
-  for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
+  for (index_md = 0; index_md < spectra_module_->md_size_; index_md++) {
 
-    if (spectra_module_.md_size_ > 1)
+    if (spectra_module_->md_size_ > 1)
 
       class_alloc(cl_md[index_md],
-                  spectra_module_.ct_size_*sizeof(double),
+                  spectra_module_->ct_size_*sizeof(double),
                   error_message_);
 
-    if (spectra_module_.ic_size_[index_md] > 1)
+    if (spectra_module_->ic_size_[index_md] > 1)
 
       class_alloc(cl_md_ic[index_md],
-                  spectra_module_.ic_ic_size_[index_md]*spectra_module_.ct_size_*sizeof(double),
+                  spectra_module_->ic_ic_size_[index_md]*spectra_module_->ct_size_*sizeof(double),
                   error_message_);
   }
 
   for (index_l=0; index_l<l_size_; index_l++) {
 
-    class_call(spectra_module_.spectra_cl_at_l(l_[index_l], &(cl_lens_[index_l*lt_size_]), cl_md, cl_md_ic),
+    class_call(spectra_module_->spectra_cl_at_l(l_[index_l], &(cl_lens_[index_l*lt_size_]), cl_md, cl_md_ic),
                psp->error_message,
                error_message_);
 
   }
 
-  for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
+  for (index_md = 0; index_md < spectra_module_->md_size_; index_md++) {
 
-    if (spectra_module_.md_size_ > 1)
+    if (spectra_module_->md_size_ > 1)
       free(cl_md[index_md]);
 
-    if (spectra_module_.ic_size_[index_md] > 1)
+    if (spectra_module_->ic_size_[index_md] > 1)
       free(cl_md_ic[index_md]);
 
   }
@@ -1014,11 +1013,11 @@ int LensingModule::lensing_indices(){
   class_alloc(l_max_lt_, lt_size_*sizeof(double), error_message_);
   for (index_lt = 0; index_lt < lt_size_; index_lt++) {
     l_max_lt_[index_lt] = 0.;
-    for (index_md = 0; index_md < spectra_module_.md_size_; index_md++) {
-      l_max_lt_[index_lt] = MAX(l_max_lt_[index_lt], spectra_module_.l_max_ct_[index_md][index_lt]);
+    for (index_md = 0; index_md < spectra_module_->md_size_; index_md++) {
+      l_max_lt_[index_lt] = MAX(l_max_lt_[index_lt], spectra_module_->l_max_ct_[index_md][index_lt]);
 
       if ((has_bb_ == _TRUE_) && (has_ee_ == _TRUE_) && (index_lt == index_lt_bb_)) {
-        l_max_lt_[index_lt] = MAX(l_max_lt_[index_lt], spectra_module_.l_max_ct_[index_md][index_lt_ee_]);
+        l_max_lt_[index_lt] = MAX(l_max_lt_[index_lt], spectra_module_->l_max_ct_[index_md][index_lt_ee_]);
       }
 
     }

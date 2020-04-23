@@ -3,8 +3,8 @@
  */
 
 #include "class.h"
-#include "output_module.h"
 #include "cosmology.h"
+#include "output_module.h"
 
 int main(int argc, char **argv) {
 

@@ -17,7 +17,7 @@
 #include "primordial_module.h"
 #include "thread_pool.h"
 
-PrimordialModule::PrimordialModule(const Input& input, const PerturbationsModule& perturbation_module)
+PrimordialModule::PrimordialModule(const Input& input, PerturbationsModulePtr perturbation_module)
 : BaseModule(input)
 , perturbations_module_(perturbation_module) {
   ThrowInvalidArgumentIf(primordial_init() != _SUCCESS_, error_message_);
@@ -228,8 +228,8 @@ int PrimordialModule::primordial_init() {
 
   /** - get kmin and kmax from perturbation structure. Test that they make sense. */
 
-  k_min = perturbations_module_.k_min_; /* first value, inferred from perturbations structure */
-  k_max = perturbations_module_.k_max_; /* last value, inferred from perturbations structure */
+  k_min = perturbations_module_->k_min_; /* first value, inferred from perturbations structure */
+  k_max = perturbations_module_->k_max_; /* last value, inferred from perturbations structure */
 
   class_test(k_min <= 0.,
              error_message_,
@@ -283,7 +283,7 @@ int PrimordialModule::primordial_init() {
 
       k=exp(lnk_[index_k]);
 
-      for (index_md = 0; index_md < perturbations_module_.md_size_; index_md++) {
+      for (index_md = 0; index_md < perturbations_module_->md_size_; index_md++) {
         for (index_ic1 = 0; index_ic1 < ic_size_[index_md]; index_ic1++) {
           for (index_ic2 = index_ic1; index_ic2 < ic_size_[index_md]; index_ic2++) {
 
@@ -433,14 +433,14 @@ int PrimordialModule::primordial_init() {
 
     if (ppt->has_scalars == _TRUE_) {
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_scalars_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_scalars_,
                                           logarithmic,
                                           log(ppm->k_pivot),
                                           &lnpk_pivot),
                  error_message_,
                  error_message_);
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_scalars_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_scalars_,
                                           logarithmic,
                                           log(ppm->k_pivot)+dlnk,
 
@@ -448,7 +448,7 @@ int PrimordialModule::primordial_init() {
                  error_message_,
                  error_message_);
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_scalars_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_scalars_,
                                           logarithmic,
                                           log(ppm->k_pivot)-dlnk,
                                           &lnpk_minus),
@@ -469,7 +469,7 @@ int PrimordialModule::primordial_init() {
 
       **/
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_scalars_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_scalars_,
                                           logarithmic,
                                           log(ppm->k_pivot)+2.*dlnk,
 
@@ -477,7 +477,7 @@ int PrimordialModule::primordial_init() {
                  error_message_,
                  error_message_);
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_scalars_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_scalars_,
                                           logarithmic,
                                           log(ppm->k_pivot)-2.*dlnk,
                                           &lnpk_minusminus),
@@ -501,21 +501,21 @@ int PrimordialModule::primordial_init() {
 
     if (ppt->has_tensors == _TRUE_) {
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_tensors_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_tensors_,
                                           logarithmic,
                                           log(ppm->k_pivot),
                                           &lnpk_pivot),
                  error_message_,
                  error_message_);
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_tensors_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_tensors_,
                                           logarithmic,
                                           log(ppm->k_pivot)+dlnk,
                                           &lnpk_plus),
                  error_message_,
                  error_message_);
 
-      class_call(primordial_spectrum_at_k(perturbations_module_.index_md_tensors_,
+      class_call(primordial_spectrum_at_k(perturbations_module_->index_md_tensors_,
                                           logarithmic,
                                           log(ppm->k_pivot)-dlnk,
                                           &lnpk_minus),
@@ -597,21 +597,21 @@ int PrimordialModule::primordial_indices() {
 
   int index_md;
 
-  md_size_ = perturbations_module_.md_size_;
+  md_size_ = perturbations_module_->md_size_;
 
-  class_alloc(lnpk_, perturbations_module_.md_size_*sizeof(double*), error_message_);
+  class_alloc(lnpk_, perturbations_module_->md_size_*sizeof(double*), error_message_);
 
-  class_alloc(ddlnpk_, perturbations_module_.md_size_*sizeof(double*), error_message_);
+  class_alloc(ddlnpk_, perturbations_module_->md_size_*sizeof(double*), error_message_);
 
-  class_alloc(ic_size_, perturbations_module_.md_size_*sizeof(int*), error_message_);
+  class_alloc(ic_size_, perturbations_module_->md_size_*sizeof(int*), error_message_);
 
-  class_alloc(ic_ic_size_, perturbations_module_.md_size_*sizeof(int*), error_message_);
+  class_alloc(ic_ic_size_, perturbations_module_->md_size_*sizeof(int*), error_message_);
 
   class_alloc(is_non_zero_, md_size_*sizeof(short*), error_message_);
 
-  for (index_md = 0; index_md < perturbations_module_.md_size_; index_md++) {
+  for (index_md = 0; index_md < perturbations_module_->md_size_; index_md++) {
 
-    ic_size_[index_md] = perturbations_module_.ic_size_[index_md];
+    ic_size_[index_md] = perturbations_module_->ic_size_[index_md];
 
     ic_ic_size_[index_md] = (ic_size_[index_md]*(ic_size_[index_md] + 1))/2;
 
@@ -720,31 +720,31 @@ int PrimordialModule::primordial_analytic_spectrum_init() {
 
       if (_scalarsEXT_) {
 
-        if ((ppt->has_ad == _TRUE_) && (index_ic1 == perturbations_module_.index_ic_ad_)) {
+        if ((ppt->has_ad == _TRUE_) && (index_ic1 == perturbations_module_->index_ic_ad_)) {
           one_amplitude = A_s_;
           one_tilt = n_s_;
           one_running = alpha_s_;
         }
 
-        if ((ppt->has_bi == _TRUE_) && (index_ic1 == perturbations_module_.index_ic_bi_)) {
+        if ((ppt->has_bi == _TRUE_) && (index_ic1 == perturbations_module_->index_ic_bi_)) {
           one_amplitude = A_s_*ppm->f_bi*ppm->f_bi;
           one_tilt = ppm->n_bi;
           one_running = ppm->alpha_bi;
         }
 
-        if ((ppt->has_cdi == _TRUE_) && (index_ic1 == perturbations_module_.index_ic_cdi_)) {
+        if ((ppt->has_cdi == _TRUE_) && (index_ic1 == perturbations_module_->index_ic_cdi_)) {
           one_amplitude = A_s_*ppm->f_cdi*ppm->f_cdi;
           one_tilt = ppm->n_cdi;
           one_running = ppm->alpha_cdi;
         }
 
-        if ((ppt->has_nid == _TRUE_) && (index_ic1 == perturbations_module_.index_ic_nid_)) {
+        if ((ppt->has_nid == _TRUE_) && (index_ic1 == perturbations_module_->index_ic_nid_)) {
           one_amplitude = A_s_*ppm->f_nid*ppm->f_nid;
           one_tilt = ppm->n_nid;
           one_running = ppm->alpha_nid;
         }
 
-        if ((ppt->has_niv == _TRUE_) && (index_ic1 == perturbations_module_.index_ic_niv_)) {
+        if ((ppt->has_niv == _TRUE_) && (index_ic1 == perturbations_module_->index_ic_niv_)) {
           one_amplitude = A_s_*ppm->f_niv*ppm->f_niv;
           one_tilt = ppm->n_niv;
           one_running = ppm->alpha_niv;
@@ -753,7 +753,7 @@ int PrimordialModule::primordial_analytic_spectrum_init() {
 
       if (_tensorsEXT_) {
 
-        if (index_ic1 == perturbations_module_.index_ic_ten_) {
+        if (index_ic1 == perturbations_module_->index_ic_ten_) {
           one_amplitude = A_s_*r_;
           one_tilt = n_t_ + 1.; /* +1 to match usual definition of n_t (equivalent to n_s - 1) */
           one_running = alpha_t_;
@@ -781,80 +781,80 @@ int PrimordialModule::primordial_analytic_spectrum_init() {
         if (_scalarsEXT_) {
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_bi == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_ad_) && (index_ic2 == perturbations_module_.index_ic_bi_)) ||
-               ((index_ic1 == perturbations_module_.index_ic_ad_) && (index_ic1 == perturbations_module_.index_ic_bi_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_ad_) && (index_ic2 == perturbations_module_->index_ic_bi_)) ||
+               ((index_ic1 == perturbations_module_->index_ic_ad_) && (index_ic1 == perturbations_module_->index_ic_bi_)))) {
             one_correlation = ppm->c_ad_bi;
             one_tilt = ppm->n_ad_bi;
             one_running = ppm->alpha_ad_bi;
           }
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_ad_) && (index_ic2 == perturbations_module_.index_ic_cdi_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_ad_) && (index_ic1 == perturbations_module_.index_ic_cdi_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_ad_) && (index_ic2 == perturbations_module_->index_ic_cdi_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_ad_) && (index_ic1 == perturbations_module_->index_ic_cdi_)))) {
             one_correlation = ppm->c_ad_cdi;
             one_tilt = ppm->n_ad_cdi;
             one_running = ppm->alpha_ad_cdi;
           }
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_ad_) && (index_ic2 == perturbations_module_.index_ic_nid_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_ad_) && (index_ic1 == perturbations_module_.index_ic_nid_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_ad_) && (index_ic2 == perturbations_module_->index_ic_nid_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_ad_) && (index_ic1 == perturbations_module_->index_ic_nid_)))) {
             one_correlation = ppm->c_ad_nid;
             one_tilt = ppm->n_ad_nid;
             one_running = ppm->alpha_ad_nid;
           }
 
           if ((ppt->has_ad == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_ad_) && (index_ic2 == perturbations_module_.index_ic_niv_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_ad_) && (index_ic1 == perturbations_module_.index_ic_niv_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_ad_) && (index_ic2 == perturbations_module_->index_ic_niv_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_ad_) && (index_ic1 == perturbations_module_->index_ic_niv_)))) {
             one_correlation = ppm->c_ad_niv;
             one_tilt = ppm->n_ad_niv;
             one_running = ppm->alpha_ad_niv;
           }
 
           if ((ppt->has_bi == _TRUE_) && (ppt->has_cdi == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_bi_) && (index_ic2 == perturbations_module_.index_ic_cdi_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_bi_) && (index_ic1 == perturbations_module_.index_ic_cdi_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_bi_) && (index_ic2 == perturbations_module_->index_ic_cdi_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_bi_) && (index_ic1 == perturbations_module_->index_ic_cdi_)))) {
             one_correlation = ppm->c_bi_cdi;
             one_tilt = ppm->n_bi_cdi;
             one_running = ppm->alpha_bi_cdi;
           }
 
           if ((ppt->has_bi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_bi_) && (index_ic2 == perturbations_module_.index_ic_nid_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_bi_) && (index_ic1 == perturbations_module_.index_ic_nid_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_bi_) && (index_ic2 == perturbations_module_->index_ic_nid_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_bi_) && (index_ic1 == perturbations_module_->index_ic_nid_)))) {
             one_correlation = ppm->c_bi_nid;
             one_tilt = ppm->n_bi_nid;
             one_running = ppm->alpha_bi_nid;
           }
 
           if ((ppt->has_bi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_bi_) && (index_ic2 == perturbations_module_.index_ic_niv_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_bi_) && (index_ic1 == perturbations_module_.index_ic_niv_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_bi_) && (index_ic2 == perturbations_module_->index_ic_niv_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_bi_) && (index_ic1 == perturbations_module_->index_ic_niv_)))) {
             one_correlation = ppm->c_bi_niv;
             one_tilt = ppm->n_bi_niv;
             one_running = ppm->alpha_bi_niv;
           }
 
           if ((ppt->has_cdi == _TRUE_) && (ppt->has_nid == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_cdi_) && (index_ic2 == perturbations_module_.index_ic_nid_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_cdi_) && (index_ic1 == perturbations_module_.index_ic_nid_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_cdi_) && (index_ic2 == perturbations_module_->index_ic_nid_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_cdi_) && (index_ic1 == perturbations_module_->index_ic_nid_)))) {
             one_correlation = ppm->c_cdi_nid;
             one_tilt = ppm->n_cdi_nid;
             one_running = ppm->alpha_cdi_nid;
           }
 
           if ((ppt->has_cdi == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_cdi_) && (index_ic2 == perturbations_module_.index_ic_niv_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_cdi_) && (index_ic1 == perturbations_module_.index_ic_niv_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_cdi_) && (index_ic2 == perturbations_module_->index_ic_niv_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_cdi_) && (index_ic1 == perturbations_module_->index_ic_niv_)))) {
             one_correlation = ppm->c_cdi_niv;
             one_tilt = ppm->n_cdi_niv;
             one_running = ppm->alpha_cdi_niv;
           }
 
           if ((ppt->has_nid == _TRUE_) && (ppt->has_niv == _TRUE_) &&
-              (((index_ic1 == perturbations_module_.index_ic_nid_) && (index_ic2 == perturbations_module_.index_ic_niv_)) ||
-               ((index_ic2 == perturbations_module_.index_ic_nid_) && (index_ic1 == perturbations_module_.index_ic_niv_)))) {
+              (((index_ic1 == perturbations_module_->index_ic_nid_) && (index_ic2 == perturbations_module_->index_ic_niv_)) ||
+               ((index_ic2 == perturbations_module_->index_ic_nid_) && (index_ic1 == perturbations_module_->index_ic_niv_)))) {
             one_correlation = ppm->c_nid_niv;
             one_tilt = ppm->n_nid_niv;
             one_running = ppm->alpha_nid_niv;
@@ -1499,12 +1499,12 @@ int PrimordialModule::primordial_inflation_analytic_spectra(double * y_ini) {
     tensors = pow(dV/V,2)/_PI_*128.*_PI_/3.*pow(V,3)/pow(dV,2);
 
     /** - store the obtained result for curvature and tensor perturbations */
-    lnpk_[perturbations_module_.index_md_scalars_][index_k] = log(curvature);
-    lnpk_[perturbations_module_.index_md_tensors_][index_k] = log(tensors);
+    lnpk_[perturbations_module_->index_md_scalars_][index_k] = log(curvature);
+    lnpk_[perturbations_module_->index_md_tensors_][index_k] = log(tensors);
   }
 
-  is_non_zero_[perturbations_module_.index_md_scalars_][perturbations_module_.index_ic_ad_] = _TRUE_;
-  is_non_zero_[perturbations_module_.index_md_tensors_][perturbations_module_.index_ic_ten_] = _TRUE_;
+  is_non_zero_[perturbations_module_->index_md_scalars_][perturbations_module_->index_ic_ad_] = _TRUE_;
+  is_non_zero_[perturbations_module_->index_md_tensors_][perturbations_module_->index_ic_ten_] = _TRUE_;
 
   return _SUCCESS_;
 }
@@ -1540,8 +1540,8 @@ int PrimordialModule::primordial_inflation_spectra(double * y_ini) {
   future_output.clear();
 
 
-  is_non_zero_[perturbations_module_.index_md_scalars_][perturbations_module_.index_ic_ad_] = _TRUE_;
-  is_non_zero_[perturbations_module_.index_md_tensors_][perturbations_module_.index_ic_ten_] = _TRUE_;
+  is_non_zero_[perturbations_module_->index_md_scalars_][perturbations_module_->index_ic_ad_] = _TRUE_;
+  is_non_zero_[perturbations_module_->index_md_tensors_][perturbations_module_->index_ic_ten_] = _TRUE_;
 
   return _SUCCESS_;
 
@@ -1614,14 +1614,14 @@ int PrimordialModule::primordial_inflation_one_wavenumber(double * y_ini, int in
              "negative tensor spectrum");
 
   /** - store the obtained result for curvature and tensor perturbations */
-  lnpk_[perturbations_module_.index_md_scalars_][index_k] = log(curvature);
-  lnpk_[perturbations_module_.index_md_tensors_][index_k] = log(tensors);
+  lnpk_[perturbations_module_->index_md_scalars_][index_k] = log(curvature);
+  lnpk_[perturbations_module_->index_md_tensors_][index_k] = log(tensors);
 
   /* uncomment if you want to print here the spectra for testing */
   /* fprintf(stderr,"%e %e %e\n", */
   /* 	    lnk_[index_k], */
-  /* 	    lnpk_[perturbations_module_.index_md_scalars_][index_k], */
-  /* 	    lnpk_[perturbations_module_.index_md_tensors_][index_k]); */
+  /* 	    lnpk_[perturbations_module_->index_md_scalars_][index_k], */
+  /* 	    lnpk_[perturbations_module_->index_md_tensors_][index_k]); */
 
   return _SUCCESS_;
 }
@@ -3151,16 +3151,16 @@ int PrimordialModule::primordial_external_spectrum_init() {
              "The attempt to launch the external command was unsuccessful. "
              "Try doing it by hand to check for errors.");
   /* Test limits of the k's */
-  class_test(k[1] > perturbations_module_.k_min_,
+  class_test(k[1] > perturbations_module_->k_min_,
              error_message_,
              "Your table for the primordial spectrum does not have "
              "at least 2 points before the minimum value of k: %e . "
-             "The splines interpolation would not be safe.", perturbations_module_.k_min_);
-  class_test(k[n_data-2] < perturbations_module_.k_max_,
+             "The splines interpolation would not be safe.", perturbations_module_->k_min_);
+  class_test(k[n_data-2] < perturbations_module_->k_max_,
              error_message_,
              "Your table for the primordial spectrum does not have "
              "at least 2 points after the maximum value of k: %e . "
-             "The splines interpolation would not be safe.", perturbations_module_.k_max_);
+             "The splines interpolation would not be safe.", perturbations_module_->k_max_);
 
   /** - Store the read results into CLASS structures */
   lnk_size_ = n_data;
@@ -3169,36 +3169,36 @@ int PrimordialModule::primordial_external_spectrum_init() {
                 lnk_,
                 lnk_size_*sizeof(double),
                 error_message_);
-  class_realloc(lnpk_[perturbations_module_.index_md_scalars_],
-                lnpk_[perturbations_module_.index_md_scalars_],
+  class_realloc(lnpk_[perturbations_module_->index_md_scalars_],
+                lnpk_[perturbations_module_->index_md_scalars_],
                 lnk_size_*sizeof(double),
                 error_message_);
-  class_realloc(ddlnpk_[perturbations_module_.index_md_scalars_],
-                ddlnpk_[perturbations_module_.index_md_scalars_],
+  class_realloc(ddlnpk_[perturbations_module_->index_md_scalars_],
+                ddlnpk_[perturbations_module_->index_md_scalars_],
                 lnk_size_*sizeof(double),
                 error_message_);
   if (ppt->has_tensors == _TRUE_) {
-    class_realloc(lnpk_[perturbations_module_.index_md_tensors_],
-                  lnpk_[perturbations_module_.index_md_tensors_],
+    class_realloc(lnpk_[perturbations_module_->index_md_tensors_],
+                  lnpk_[perturbations_module_->index_md_tensors_],
                   lnk_size_*sizeof(double),
                   error_message_);
-    class_realloc(ddlnpk_[perturbations_module_.index_md_tensors_],
-                  ddlnpk_[perturbations_module_.index_md_tensors_],
+    class_realloc(ddlnpk_[perturbations_module_->index_md_tensors_],
+                  ddlnpk_[perturbations_module_->index_md_tensors_],
                   lnk_size_*sizeof(double),
                   error_message_);
   };
   /** - Store values */
   for (index_k = 0; index_k < lnk_size_; index_k++) {
     lnk_[index_k] = log(k[index_k]);
-    lnpk_[perturbations_module_.index_md_scalars_][index_k] = log(pks[index_k]);
+    lnpk_[perturbations_module_->index_md_scalars_][index_k] = log(pks[index_k]);
     if (ppt->has_tensors == _TRUE_)
-      lnpk_[perturbations_module_.index_md_tensors_][index_k] = log(pkt[index_k]);
+      lnpk_[perturbations_module_->index_md_tensors_][index_k] = log(pkt[index_k]);
     /* DEBUG (with tensors)
        fprintf(stderr,"Storing[%d(+1) of %d]: \n k = %g == %g\n pks = %g == %g\n pkt = %g == %g\n",
        index_k, n_data,
        lnk_[index_k], log(k[index_k]),
-       lnpk_[perturbations_module_.index_md_scalars_][index_k], log(pks[index_k]),
-       lnpk_[perturbations_module_.index_md_tensors_][index_k], log(pkt[index_k]));
+       lnpk_[perturbations_module_->index_md_scalars_][index_k], log(pks[index_k]),
+       lnpk_[perturbations_module_->index_md_tensors_][index_k], log(pkt[index_k]));
     */
   };
   /** - Release the memory used locally */
@@ -3207,9 +3207,9 @@ int PrimordialModule::primordial_external_spectrum_init() {
   if (ppt->has_tensors == _TRUE_)
     free(pkt);
   /** - Tell CLASS that there are scalar (and tensor) modes */
-  is_non_zero_[perturbations_module_.index_md_scalars_][perturbations_module_.index_ic_ad_] = _TRUE_;
+  is_non_zero_[perturbations_module_->index_md_scalars_][perturbations_module_->index_ic_ad_] = _TRUE_;
   if (ppt->has_tensors == _TRUE_)
-    is_non_zero_[perturbations_module_.index_md_tensors_][perturbations_module_.index_ic_ten_] = _TRUE_;
+    is_non_zero_[perturbations_module_->index_md_tensors_][perturbations_module_->index_ic_ten_] = _TRUE_;
 
   return _SUCCESS_;
 }
@@ -3233,8 +3233,8 @@ int PrimordialModule::primordial_output_data(int number_of_titles, double *data)
     storeidx = 0;
 
     class_store_double(dataptr, exp(lnk_[index_k]), _TRUE_, storeidx);
-    class_store_double(dataptr, exp(lnpk_[perturbations_module_.index_md_scalars_][index_k]), _TRUE_, storeidx);
-    class_store_double(dataptr, exp(lnpk_[perturbations_module_.index_md_tensors_][index_k]), ppt->has_tensors, storeidx);
+    class_store_double(dataptr, exp(lnpk_[perturbations_module_->index_md_scalars_][index_k]), _TRUE_, storeidx);
+    class_store_double(dataptr, exp(lnpk_[perturbations_module_->index_md_tensors_][index_k]), ppt->has_tensors, storeidx);
   }
 
 

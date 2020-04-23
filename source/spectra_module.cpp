@@ -12,14 +12,19 @@
  * -# spectra_free() at the end
  */
 
+#include "perturbations_module.h"
+#include "primordial_module.h"
+#include "nonlinear_module.h"
+#include "transfer_module.h"
 #include "spectra_module.h"
 #include "thread_pool.h"
-SpectraModule::SpectraModule(const Input& input, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module, const NonlinearModule& nonlinear_module, const TransferModule& transfer_module)
+
+SpectraModule::SpectraModule(const Input& input, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, TransferModulePtr transfer_module)
 : BaseModule(input)
-, perturbations_module_(perturbations_module)
-, primordial_module_(primordial_module)
-, nonlinear_module_(nonlinear_module)
-, transfer_module_(transfer_module) {
+, perturbations_module_(std::move(perturbations_module))
+, primordial_module_(std::move(primordial_module))
+, nonlinear_module_(std::move(nonlinear_module))
+, transfer_module_(std::move(transfer_module)) {
   ThrowInvalidArgumentIf(spectra_init() != _SUCCESS_, error_message_);
 }
 
@@ -370,9 +375,9 @@ int SpectraModule::spectra_indices() {
   int index_md;
   int index_ic1_ic2;
 
-  md_size_ = perturbations_module_.md_size_;
+  md_size_ = perturbations_module_->md_size_;
   if (ppt->has_scalars == _TRUE_)
-    index_md_scalars_ = perturbations_module_.index_md_scalars_;
+    index_md_scalars_ = perturbations_module_->index_md_scalars_;
 
   class_alloc(ic_size_,
               sizeof(int)*md_size_,
@@ -387,13 +392,13 @@ int SpectraModule::spectra_indices() {
               error_message_);
 
   for (index_md = 0; index_md < md_size_; index_md++) {
-    ic_size_[index_md] = primordial_module_.ic_size_[index_md];
-    ic_ic_size_[index_md] = primordial_module_.ic_ic_size_[index_md];
+    ic_size_[index_md] = primordial_module_->ic_size_[index_md];
+    ic_ic_size_[index_md] = primordial_module_->ic_ic_size_[index_md];
     class_alloc(is_non_zero_[index_md],
                 sizeof(short)*ic_ic_size_[index_md],
                 error_message_);
     for (index_ic1_ic2=0; index_ic1_ic2 < ic_ic_size_[index_md]; index_ic1_ic2++)
-      is_non_zero_[index_md][index_ic1_ic2] = primordial_module_.is_non_zero_[index_md][index_ic1_ic2];
+      is_non_zero_[index_md][index_ic1_ic2] = primordial_module_->is_non_zero_[index_md][index_ic1_ic2];
   }
 
   if (ppt->has_cls == _TRUE_) {
@@ -564,12 +569,12 @@ int SpectraModule::spectra_indices() {
 
       /* spectra computed up to l_scalar_max */
 
-      if (has_tt_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_scalars_][index_ct_tt_] = ppt->l_scalar_max;
-      if (has_ee_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_scalars_][index_ct_ee_] = ppt->l_scalar_max;
-      if (has_te_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_scalars_][index_ct_te_] = ppt->l_scalar_max;
-      if (has_pp_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_scalars_][index_ct_pp_] = ppt->l_scalar_max;
-      if (has_tp_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_scalars_][index_ct_tp_] = ppt->l_scalar_max;
-      if (has_ep_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_scalars_][index_ct_ep_] = ppt->l_scalar_max;
+      if (has_tt_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_scalars_][index_ct_tt_] = ppt->l_scalar_max;
+      if (has_ee_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_scalars_][index_ct_ee_] = ppt->l_scalar_max;
+      if (has_te_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_scalars_][index_ct_te_] = ppt->l_scalar_max;
+      if (has_pp_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_scalars_][index_ct_pp_] = ppt->l_scalar_max;
+      if (has_tp_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_scalars_][index_ct_tp_] = ppt->l_scalar_max;
+      if (has_ep_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_scalars_][index_ct_ep_] = ppt->l_scalar_max;
 
       /* spectra computed up to l_lss_max */
 
@@ -577,47 +582,47 @@ int SpectraModule::spectra_indices() {
         for (index_ct = index_ct_dd_;
              index_ct < index_ct_dd_ + (d_size_*(d_size_ + 1) - (d_size_ - psp->non_diag)*(d_size_ - 1 - psp->non_diag))/2;
              index_ct++)
-          l_max_ct_[perturbations_module_.index_md_scalars_][index_ct] = ppt->l_lss_max;
+          l_max_ct_[perturbations_module_->index_md_scalars_][index_ct] = ppt->l_lss_max;
 
       if (has_td_ == _TRUE_)
         for (index_ct = index_ct_td_;
              index_ct < index_ct_td_ + d_size_;
              index_ct++)
-          l_max_ct_[perturbations_module_.index_md_scalars_][index_ct] = MIN(ppt->l_scalar_max, ppt->l_lss_max);
+          l_max_ct_[perturbations_module_->index_md_scalars_][index_ct] = MIN(ppt->l_scalar_max, ppt->l_lss_max);
 
       if (has_pd_ == _TRUE_)
         for (index_ct = index_ct_pd_;
              index_ct < index_ct_pd_ + d_size_;
              index_ct++)
-          l_max_ct_[perturbations_module_.index_md_scalars_][index_ct] = MIN(ppt->l_scalar_max, ppt->l_lss_max);
+          l_max_ct_[perturbations_module_->index_md_scalars_][index_ct] = MIN(ppt->l_scalar_max, ppt->l_lss_max);
 
       if (has_ll_ == _TRUE_)
         for (index_ct = index_ct_ll_;
              index_ct < index_ct_ll_ + (d_size_*(d_size_ + 1) - (d_size_ - psp->non_diag)*(d_size_ - 1-psp->non_diag))/2;
              index_ct++)
-          l_max_ct_[perturbations_module_.index_md_scalars_][index_ct] = ppt->l_lss_max;
+          l_max_ct_[perturbations_module_->index_md_scalars_][index_ct] = ppt->l_lss_max;
 
       if (has_tl_ == _TRUE_)
         for (index_ct = index_ct_tl_;
              index_ct < index_ct_tl_ + d_size_;
              index_ct++)
-          l_max_ct_[perturbations_module_.index_md_scalars_][index_ct] = MIN(ppt->l_scalar_max, ppt->l_lss_max);
+          l_max_ct_[perturbations_module_->index_md_scalars_][index_ct] = MIN(ppt->l_scalar_max, ppt->l_lss_max);
 
       if (has_dl_ == _TRUE_)
         for (index_ct = index_ct_dl_;
              index_ct < index_ct_dl_ + (d_size_*d_size_ - (d_size_ - psp->non_diag)*(d_size_ - 1 - psp->non_diag));
              index_ct++)
-          l_max_ct_[perturbations_module_.index_md_scalars_][index_ct] = ppt->l_lss_max;
+          l_max_ct_[perturbations_module_->index_md_scalars_][index_ct] = ppt->l_lss_max;
 
     }
     if (ppt->has_tensors == _TRUE_) {
 
       /* spectra computed up to l_tensor_max */
 
-      if (has_tt_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_tensors_][index_ct_tt_] = ppt->l_tensor_max;
-      if (has_ee_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_tensors_][index_ct_ee_] = ppt->l_tensor_max;
-      if (has_te_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_tensors_][index_ct_te_] = ppt->l_tensor_max;
-      if (has_bb_ == _TRUE_) l_max_ct_[perturbations_module_.index_md_tensors_][index_ct_bb_] = ppt->l_tensor_max;
+      if (has_tt_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_tensors_][index_ct_tt_] = ppt->l_tensor_max;
+      if (has_ee_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_tensors_][index_ct_ee_] = ppt->l_tensor_max;
+      if (has_te_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_tensors_][index_ct_te_] = ppt->l_tensor_max;
+      if (has_bb_ == _TRUE_) l_max_ct_[perturbations_module_->index_md_tensors_][index_ct_bb_] = ppt->l_tensor_max;
     }
 
     /* maximizations */
@@ -664,12 +669,12 @@ int SpectraModule::spectra_cls() {
   class_alloc(cl_, sizeof(double *)*md_size_, error_message_);
   class_alloc(ddcl_, sizeof(double *)*md_size_, error_message_);
 
-  l_size_max_ = transfer_module_.l_size_max_;
+  l_size_max_ = transfer_module_->l_size_max_;
   class_alloc(l_, sizeof(double)*l_size_max_,error_message_);
 
   /** - store values of l */
   for (index_l = 0; index_l < l_size_max_; index_l++) {
-    l_[index_l] = (double)transfer_module_.l_[index_l];
+    l_[index_l] = (double)transfer_module_->l_[index_l];
   }
 
   Tools::TaskSystem task_system;
@@ -681,7 +686,7 @@ int SpectraModule::spectra_cls() {
 
     /** - --> (a) store number of l values for this mode */
 
-    l_size_[index_md] = transfer_module_.l_size_[index_md];
+    l_size_[index_md] = transfer_module_->l_size_[index_md];
 
     /** - --> (b) allocate arrays where results will be stored */
 
@@ -705,17 +710,17 @@ int SpectraModule::spectra_cls() {
             double * primordial_pk;  /* array with argument primordial_pk[index_ic_ic]*/
 
 
-            class_alloc(cl_integrand, transfer_module_.q_size_*cl_integrand_num_columns*sizeof(double), error_message_);
+            class_alloc(cl_integrand, transfer_module_->q_size_*cl_integrand_num_columns*sizeof(double), error_message_);
             class_alloc(primordial_pk, ic_ic_size_[index_md]*sizeof(double), error_message_);
-            class_alloc(transfer_ic1, transfer_module_.tt_size_[index_md]*sizeof(double), error_message_);
-            class_alloc(transfer_ic2, transfer_module_.tt_size_[index_md]*sizeof(double), error_message_);
+            class_alloc(transfer_ic1, transfer_module_->tt_size_[index_md]*sizeof(double), error_message_);
+            class_alloc(transfer_ic2, transfer_module_->tt_size_[index_md]*sizeof(double), error_message_);
 
             /** - ---> loop over l values defined in the transfer module.
                 For each l, compute the \f$ C_l\f$'s for all types (TT, TE, ...)
                 by convolving primordial spectra with transfer  functions.
                 This elementary task is assigned to spectra_compute_cl() */
 
-            for (int index_l = 0; index_l < transfer_module_.l_size_[index_md]; index_l++) {
+            for (int index_l = 0; index_l < transfer_module_->l_size_[index_md]; index_l++) {
 
 #pragma omp flush(abort)
 
@@ -750,7 +755,7 @@ int SpectraModule::spectra_cls() {
 
           /* set non-diagonal coefficients to zero if pair of ic's uncorrelated */
 
-          for (index_l = 0; index_l < transfer_module_.l_size_[index_md]; index_l++) {
+          for (index_l = 0; index_l < transfer_module_->l_size_[index_md]; index_l++) {
             for (index_ct = 0; index_ct < ct_size_; index_ct++) {
               cl_[index_md][(index_l*ic_ic_size_[index_md] + index_ic1_ic2)*ct_size_ + index_ct] = 0.;
             }
@@ -837,34 +842,34 @@ int SpectraModule::spectra_compute_cl(int index_md,
     class_alloc(transfer_ic2_nc, d_size_*sizeof(double), error_message_);
   }
 
-  for (index_q = 0; index_q < transfer_module_.q_size_; index_q++) {
+  for (index_q = 0; index_q < transfer_module_->q_size_; index_q++) {
 
-    k = transfer_module_.k_[index_md][index_q];
+    k = transfer_module_->k_[index_md][index_q];
 
     cl_integrand[index_q*cl_integrand_num_columns+0] = k;
 
-    class_call(primordial_module_.primordial_spectrum_at_k(index_md, linear, k, primordial_pk),
-               primordial_module_.error_message_,
+    class_call(primordial_module_->primordial_spectrum_at_k(index_md, linear, k, primordial_pk),
+               primordial_module_->error_message_,
                error_message_);
 
     /* above routine checks that k>0: no possible division by zero below */
 
-    for (index_tt = 0; index_tt < transfer_module_.tt_size_[index_md]; index_tt++) {
+    for (index_tt = 0; index_tt < transfer_module_->tt_size_[index_md]; index_tt++) {
 
       transfer_ic1[index_tt] =
-        transfer_module_.transfer_[index_md]
-        [((index_ic1*transfer_module_.tt_size_[index_md] + index_tt)
-          *transfer_module_.l_size_[index_md] + index_l)
-         *transfer_module_.q_size_ + index_q];
+        transfer_module_->transfer_[index_md]
+        [((index_ic1*transfer_module_->tt_size_[index_md] + index_tt)
+          *transfer_module_->l_size_[index_md] + index_l)
+         *transfer_module_->q_size_ + index_q];
 
       if (index_ic1 == index_ic2) {
         transfer_ic2[index_tt] = transfer_ic1[index_tt];
       }
       else {
-        transfer_ic2[index_tt] = transfer_module_.transfer_[index_md]
-          [((index_ic2*transfer_module_.tt_size_[index_md] + index_tt)
-            *transfer_module_.l_size_[index_md] + index_l)
-           *transfer_module_.q_size_ + index_q];
+        transfer_ic2[index_tt] = transfer_module_->transfer_[index_md]
+          [((index_ic2*transfer_module_->tt_size_[index_md] + index_tt)
+            *transfer_module_->l_size_[index_md] + index_l)
+           *transfer_module_->q_size_ + index_q];
       }
     }
 
@@ -874,22 +879,22 @@ int SpectraModule::spectra_compute_cl(int index_md,
 
       if (_scalarsEXT_) {
 
-        transfer_ic1_temp = transfer_ic1[transfer_module_.index_tt_t0_] + transfer_ic1[transfer_module_.index_tt_t1_] + transfer_ic1[transfer_module_.index_tt_t2_];
-        transfer_ic2_temp = transfer_ic2[transfer_module_.index_tt_t0_] + transfer_ic2[transfer_module_.index_tt_t1_] + transfer_ic2[transfer_module_.index_tt_t2_];
+        transfer_ic1_temp = transfer_ic1[transfer_module_->index_tt_t0_] + transfer_ic1[transfer_module_->index_tt_t1_] + transfer_ic1[transfer_module_->index_tt_t2_];
+        transfer_ic2_temp = transfer_ic2[transfer_module_->index_tt_t0_] + transfer_ic2[transfer_module_->index_tt_t1_] + transfer_ic2[transfer_module_->index_tt_t2_];
 
       }
 
       if (_vectorsEXT_) {
 
-        transfer_ic1_temp = transfer_ic1[transfer_module_.index_tt_t1_] + transfer_ic1[transfer_module_.index_tt_t2_];
-        transfer_ic2_temp = transfer_ic2[transfer_module_.index_tt_t1_] + transfer_ic2[transfer_module_.index_tt_t2_];
+        transfer_ic1_temp = transfer_ic1[transfer_module_->index_tt_t1_] + transfer_ic1[transfer_module_->index_tt_t2_];
+        transfer_ic2_temp = transfer_ic2[transfer_module_->index_tt_t1_] + transfer_ic2[transfer_module_->index_tt_t2_];
 
       }
 
       if (_tensorsEXT_) {
 
-        transfer_ic1_temp = transfer_ic1[transfer_module_.index_tt_t2_];
-        transfer_ic2_temp = transfer_ic2[transfer_module_.index_tt_t2_];
+        transfer_ic1_temp = transfer_ic1[transfer_module_->index_tt_t2_];
+        transfer_ic2_temp = transfer_ic2[transfer_module_->index_tt_t2_];
 
       }
     }
@@ -902,39 +907,39 @@ int SpectraModule::spectra_compute_cl(int index_md,
         transfer_ic2_nc[index_d1] = 0.;
 
         if (ppt->has_nc_density == _TRUE_) {
-          transfer_ic1_nc[index_d1] += transfer_ic1[transfer_module_.index_tt_density_ + index_d1];
-          transfer_ic2_nc[index_d1] += transfer_ic2[transfer_module_.index_tt_density_ + index_d1];
+          transfer_ic1_nc[index_d1] += transfer_ic1[transfer_module_->index_tt_density_ + index_d1];
+          transfer_ic2_nc[index_d1] += transfer_ic2[transfer_module_->index_tt_density_ + index_d1];
         }
 
         if (ppt->has_nc_rsd     == _TRUE_) {
           transfer_ic1_nc[index_d1]
-            += transfer_ic1[transfer_module_.index_tt_rsd_ + index_d1]
-            + transfer_ic1[transfer_module_.index_tt_d0_ + index_d1]
-            + transfer_ic1[transfer_module_.index_tt_d1_ + index_d1];
+            += transfer_ic1[transfer_module_->index_tt_rsd_ + index_d1]
+            + transfer_ic1[transfer_module_->index_tt_d0_ + index_d1]
+            + transfer_ic1[transfer_module_->index_tt_d1_ + index_d1];
           transfer_ic2_nc[index_d1]
-            += transfer_ic2[transfer_module_.index_tt_rsd_ + index_d1]
-            + transfer_ic2[transfer_module_.index_tt_d0_ + index_d1]
-            + transfer_ic2[transfer_module_.index_tt_d1_ + index_d1];
+            += transfer_ic2[transfer_module_->index_tt_rsd_ + index_d1]
+            + transfer_ic2[transfer_module_->index_tt_d0_ + index_d1]
+            + transfer_ic2[transfer_module_->index_tt_d1_ + index_d1];
         }
 
         if (ppt->has_nc_lens == _TRUE_) {
-          transfer_ic1_nc[index_d1] += l_[index_l]*(l_[index_l] + 1.)*transfer_ic1[transfer_module_.index_tt_nc_lens_ + index_d1];
-          transfer_ic2_nc[index_d1] += l_[index_l]*(l_[index_l] + 1.)*transfer_ic2[transfer_module_.index_tt_nc_lens_ + index_d1];
+          transfer_ic1_nc[index_d1] += l_[index_l]*(l_[index_l] + 1.)*transfer_ic1[transfer_module_->index_tt_nc_lens_ + index_d1];
+          transfer_ic2_nc[index_d1] += l_[index_l]*(l_[index_l] + 1.)*transfer_ic2[transfer_module_->index_tt_nc_lens_ + index_d1];
         }
 
         if (ppt->has_nc_gr == _TRUE_) {
           transfer_ic1_nc[index_d1]
-            += transfer_ic1[transfer_module_.index_tt_nc_g1_ + index_d1]
-            + transfer_ic1[transfer_module_.index_tt_nc_g2_ + index_d1]
-            + transfer_ic1[transfer_module_.index_tt_nc_g3_ + index_d1]
-            + transfer_ic1[transfer_module_.index_tt_nc_g4_ + index_d1]
-            + transfer_ic1[transfer_module_.index_tt_nc_g5_ + index_d1];
+            += transfer_ic1[transfer_module_->index_tt_nc_g1_ + index_d1]
+            + transfer_ic1[transfer_module_->index_tt_nc_g2_ + index_d1]
+            + transfer_ic1[transfer_module_->index_tt_nc_g3_ + index_d1]
+            + transfer_ic1[transfer_module_->index_tt_nc_g4_ + index_d1]
+            + transfer_ic1[transfer_module_->index_tt_nc_g5_ + index_d1];
           transfer_ic2_nc[index_d1]
-            += transfer_ic2[transfer_module_.index_tt_nc_g1_ + index_d1]
-            + transfer_ic2[transfer_module_.index_tt_nc_g2_ + index_d1]
-            + transfer_ic2[transfer_module_.index_tt_nc_g3_ + index_d1]
-            + transfer_ic2[transfer_module_.index_tt_nc_g4_ + index_d1]
-            + transfer_ic2[transfer_module_.index_tt_nc_g5_ + index_d1];
+            += transfer_ic2[transfer_module_->index_tt_nc_g1_ + index_d1]
+            + transfer_ic2[transfer_module_->index_tt_nc_g2_ + index_d1]
+            + transfer_ic2[transfer_module_->index_tt_nc_g3_ + index_d1]
+            + transfer_ic2[transfer_module_->index_tt_nc_g4_ + index_d1]
+            + transfer_ic2[transfer_module_->index_tt_nc_g5_ + index_d1];
         }
 
       }
@@ -995,43 +1000,43 @@ int SpectraModule::spectra_compute_cl(int index_md,
     if (has_ee_ == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_ee_] =
         primordial_pk[index_ic1_ic2]
-        * transfer_ic1[transfer_module_.index_tt_e_]
-        * transfer_ic2[transfer_module_.index_tt_e_]
+        * transfer_ic1[transfer_module_->index_tt_e_]
+        * transfer_ic2[transfer_module_->index_tt_e_]
         * factor;
 
     if (has_te_ == _TRUE_)
       cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_te_] =
         primordial_pk[index_ic1_ic2]
-        *0.5*(transfer_ic1_temp*transfer_ic2[transfer_module_.index_tt_e_] +
-              transfer_ic1[transfer_module_.index_tt_e_]*transfer_ic2_temp)
+        *0.5*(transfer_ic1_temp*transfer_ic2[transfer_module_->index_tt_e_] +
+              transfer_ic1[transfer_module_->index_tt_e_]*transfer_ic2_temp)
         * factor;
 
     if (_tensorsEXT_ && (has_bb_ == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_bb_] =
         primordial_pk[index_ic1_ic2]
-        * transfer_ic1[transfer_module_.index_tt_b_]
-        * transfer_ic2[transfer_module_.index_tt_b_]
+        * transfer_ic1[transfer_module_->index_tt_b_]
+        * transfer_ic2[transfer_module_->index_tt_b_]
         * factor;
 
     if (_scalarsEXT_ && (has_pp_ == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_pp_] =
         primordial_pk[index_ic1_ic2]
-        * transfer_ic1[transfer_module_.index_tt_lcmb_]
-        * transfer_ic2[transfer_module_.index_tt_lcmb_]
+        * transfer_ic1[transfer_module_->index_tt_lcmb_]
+        * transfer_ic2[transfer_module_->index_tt_lcmb_]
         * factor;
 
     if (_scalarsEXT_ && (has_tp_ == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_tp_] =
         primordial_pk[index_ic1_ic2]
-        *0.5*(transfer_ic1_temp*transfer_ic2[transfer_module_.index_tt_lcmb_] +
-              transfer_ic1[transfer_module_.index_tt_lcmb_]*transfer_ic2_temp)
+        *0.5*(transfer_ic1_temp*transfer_ic2[transfer_module_->index_tt_lcmb_] +
+              transfer_ic1[transfer_module_->index_tt_lcmb_]*transfer_ic2_temp)
         * factor;
 
     if (_scalarsEXT_ && (has_ep_ == _TRUE_))
       cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_ep_] =
         primordial_pk[index_ic1_ic2]
-        *0.5*(transfer_ic1[transfer_module_.index_tt_e_]*transfer_ic2[transfer_module_.index_tt_lcmb_] +
-              transfer_ic1[transfer_module_.index_tt_lcmb_]*transfer_ic2[transfer_module_.index_tt_e_])
+        *0.5*(transfer_ic1[transfer_module_->index_tt_e_]*transfer_ic2[transfer_module_->index_tt_lcmb_] +
+              transfer_ic1[transfer_module_->index_tt_lcmb_]*transfer_ic2[transfer_module_->index_tt_e_])
         * factor;
 
     if (_scalarsEXT_ && (has_dd_ == _TRUE_)) {
@@ -1062,8 +1067,8 @@ int SpectraModule::spectra_compute_cl(int index_md,
       for (index_d1 = 0; index_d1 < d_size_; index_d1++) {
         cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_pd_ + index_d1]=
           primordial_pk[index_ic1_ic2]
-          *0.5*(transfer_ic1[transfer_module_.index_tt_lcmb_]*transfer_ic2_nc[index_d1] +
-                transfer_ic1_nc[index_d1]*transfer_ic2[transfer_module_.index_tt_lcmb_])
+          *0.5*(transfer_ic1[transfer_module_->index_tt_lcmb_]*transfer_ic2_nc[index_d1] +
+                transfer_ic1_nc[index_d1]*transfer_ic2[transfer_module_->index_tt_lcmb_])
           * factor;
       }
     }
@@ -1074,8 +1079,8 @@ int SpectraModule::spectra_compute_cl(int index_md,
         for (index_d2 = index_d1; index_d2 <= MIN(index_d1 + psp->non_diag, d_size_ - 1); index_d2++) {
           cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_ll_ + index_ct] =
             primordial_pk[index_ic1_ic2]
-            * transfer_ic1[transfer_module_.index_tt_lensing_ + index_d1]
-            * transfer_ic2[transfer_module_.index_tt_lensing_ + index_d2]
+            * transfer_ic1[transfer_module_->index_tt_lensing_ + index_d1]
+            * transfer_ic2[transfer_module_->index_tt_lensing_ + index_d2]
             * factor;
           index_ct++;
         }
@@ -1086,8 +1091,8 @@ int SpectraModule::spectra_compute_cl(int index_md,
       for (index_d1 = 0; index_d1 < d_size_; index_d1++) {
         cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_tl_ + index_d1] =
           primordial_pk[index_ic1_ic2]
-          *0.5*(transfer_ic1_temp*transfer_ic2[transfer_module_.index_tt_lensing_ + index_d1] +
-                transfer_ic1[transfer_module_.index_tt_lensing_ + index_d1]*transfer_ic2_temp)
+          *0.5*(transfer_ic1_temp*transfer_ic2[transfer_module_->index_tt_lensing_ + index_d1] +
+                transfer_ic1[transfer_module_->index_tt_lensing_ + index_d1]*transfer_ic2_temp)
           * factor;
       }
     }
@@ -1098,7 +1103,7 @@ int SpectraModule::spectra_compute_cl(int index_md,
         for (index_d2 = MAX(index_d1 - psp->non_diag, 0); index_d2 <= MIN(index_d1 + psp->non_diag, d_size_ - 1); index_d2++) {
           cl_integrand[index_q*cl_integrand_num_columns + 1 + index_ct_dl_ + index_ct] =
             primordial_pk[index_ic1_ic2]
-            *transfer_ic1_nc[index_d1]*transfer_ic2[transfer_module_.index_tt_lensing_ + index_d2]
+            *transfer_ic1_nc[index_d1]*transfer_ic2[transfer_module_->index_tt_lensing_ + index_d2]
             * factor;
           index_ct++;
         }
@@ -1132,7 +1137,7 @@ int SpectraModule::spectra_compute_cl(int index_md,
 
       class_call(array_spline(cl_integrand,
                               cl_integrand_num_columns,
-                              transfer_module_.q_size_,
+                              transfer_module_->q_size_,
                               0,
                               1+index_ct,
                               1 + ct_size_ + index_ct,
@@ -1149,20 +1154,20 @@ int SpectraModule::spectra_compute_cl(int index_md,
          discrete jumps. This makes the spline routine less accurate
          than a trapezoidal integral with finer sampling. So, in the
          closed case, we set index_q_spline to
-         transfer_module_.index_q_flat_approximation_, to tell the integration
+         transfer_module_->index_q_flat_approximation_, to tell the integration
          routine that below this index, it should treat the integral
          as a trapezoidal one. For testing, one is free to set
          index_q_spline to 0, to enforce spline integration
-         everywhere, or to (transfer_module_.q_size_-1), to enforce trapezoidal
+         everywhere, or to (transfer_module_->q_size_-1), to enforce trapezoidal
          integration everywhere. */
 
       if (pba->sgnK == 1) {
-        index_q_spline = transfer_module_.index_q_flat_approximation_;
+        index_q_spline = transfer_module_->index_q_flat_approximation_;
       }
 
       class_call(array_integrate_all_trapzd_or_spline(cl_integrand,
                                                       cl_integrand_num_columns,
-                                                      transfer_module_.q_size_,
+                                                      transfer_module_->q_size_,
                                                       index_q_spline,
                                                       0,
                                                       1+index_ct,
@@ -1183,7 +1188,7 @@ int SpectraModule::spectra_compute_cl(int index_md,
       */
 
       if (pba->sgnK == 1) {
-        clvalue += cl_integrand[1+index_ct]*transfer_module_.q_[0]/transfer_module_.k_[0][0]*sqrt(pba->K)/2.;
+        clvalue += cl_integrand[1 + index_ct]*transfer_module_->q_[0]/transfer_module_->k_[0][0]*sqrt(pba->K)/2.;
       }
 
       /* we have the correct C_l now. We can store it in the transfer structure. */
@@ -1229,7 +1234,7 @@ int SpectraModule::spectra_pk_at_z(enum linear_or_logarithmic mode,
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
-  class_call(nonlinear_module_.nonlinear_pks_at_z(
+  class_call(nonlinear_module_->nonlinear_pks_at_z(
                                                   mode,
                                                   pk_linear,
                                                   z,
@@ -1238,7 +1243,7 @@ int SpectraModule::spectra_pk_at_z(enum linear_or_logarithmic mode,
                                                   output_cb_tot,
                                                   output_cb_ic
                                                   ),
-             nonlinear_module_.error_message_,
+             nonlinear_module_->error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1273,14 +1278,14 @@ int SpectraModule::spectra_pk_at_k_and_z(
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_linear_at_k_and_z() instead.\n");
 
-  class_call(nonlinear_module_.nonlinear_pks_at_k_and_z(pk_linear,
+  class_call(nonlinear_module_->nonlinear_pks_at_k_and_z(pk_linear,
                                                         k,
                                                         z,
                                                         pk_tot,
                                                         pk_ic,
                                                         pk_cb_tot,
                                                         pk_cb_ic),
-             nonlinear_module_.error_message_,
+             nonlinear_module_->error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1309,7 +1314,7 @@ int SpectraModule::spectra_pk_nl_at_z(
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_z() which is deprecated since v2.8. Try using nonlinear_pk_at_z() instead.\n");
 
-  class_call(nonlinear_module_.nonlinear_pks_at_z(mode,
+  class_call(nonlinear_module_->nonlinear_pks_at_z(mode,
                                                   pk_nonlinear,
                                                   z,
                                                   output_tot,
@@ -1317,7 +1322,7 @@ int SpectraModule::spectra_pk_nl_at_z(
                                                   output_cb_tot,
                                                   NULL
                                                   ),
-             nonlinear_module_.error_message_,
+             nonlinear_module_->error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1348,8 +1353,8 @@ int SpectraModule::spectra_pk_nl_at_k_and_z(
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_pk_nl_at_k_and_z() which is deprecated since v2.8. Try using nonlinear_pk_at_k_and_z() instead.\n");
 
-  class_call(nonlinear_module_.nonlinear_pks_at_k_and_z(pk_nonlinear, k, z, pk_tot, NULL, pk_cb_tot, NULL),
-             nonlinear_module_.error_message_,
+  class_call(nonlinear_module_->nonlinear_pks_at_k_and_z(pk_nonlinear, k, z, pk_tot, NULL, pk_cb_tot, NULL),
+             nonlinear_module_->error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1395,14 +1400,14 @@ int SpectraModule::spectra_fast_pk_at_kvec_and_zvec(
   else
     pk_output = pk_linear;
 
-  class_call(nonlinear_module_.nonlinear_pks_at_kvec_and_zvec(pk_output,
+  class_call(nonlinear_module_->nonlinear_pks_at_kvec_and_zvec(pk_output,
                                                               kvec,
                                                               kvec_size,
                                                               zvec,
                                                               zvec_size,
                                                               pk_tot_out,
                                                               pk_cb_tot_out),
-             nonlinear_module_.error_message_,
+             nonlinear_module_->error_message_,
              error_message_);
 
   return _SUCCESS_;
@@ -1427,14 +1432,14 @@ int SpectraModule::spectra_sigma(double R, double z, double * sigma) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
 
-  if (nonlinear_module_.has_pk_m_) {
+  if (nonlinear_module_->has_pk_m_) {
 
-    class_call(nonlinear_module_.nonlinear_sigma_at_z(R,
+    class_call(nonlinear_module_->nonlinear_sigma_at_z(R,
                                                       z,
-                                                      nonlinear_module_.index_pk_m_,
+                                                      nonlinear_module_->index_pk_m_,
                                                       80., // hardcoded, yes, but the function is deprecated...
                                                       sigma),
-               nonlinear_module_.error_message_,
+               nonlinear_module_->error_message_,
                error_message_);
 
   }
@@ -1461,14 +1466,14 @@ int SpectraModule::spectra_sigma_cb(double R, double z, double * sigma_cb) {
 
   fprintf(stderr," -> [WARNING:] You are calling the function spectra_sigma_cb() which is deprecated since v2.8. Try using nonlinear_sigmas_at_z() instead.\n");
 
-  if (nonlinear_module_.has_pk_cb_) {
+  if (nonlinear_module_->has_pk_cb_) {
 
-    class_call(nonlinear_module_.nonlinear_sigma_at_z(R,
+    class_call(nonlinear_module_->nonlinear_sigma_at_z(R,
                                                       z,
-                                                      nonlinear_module_.index_pk_cb_,
+                                                      nonlinear_module_->index_pk_cb_,
                                                       80., // hardcoded, yes, but the function is deprecated...
                                                       sigma_cb),
-               nonlinear_module_.error_message_,
+               nonlinear_module_->error_message_,
                error_message_);
   }
 

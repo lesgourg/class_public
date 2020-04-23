@@ -12,9 +12,9 @@
 #define _tensors_ ((ppt->has_tensors == _TRUE_) && (index_md == index_md_tensors_))
 
 //TODO: Remove those when possible!
-#define _scalarsEXT_ ((ppt->has_scalars == _TRUE_) && (index_md == perturbations_module_.index_md_scalars_))
-#define _vectorsEXT_ ((ppt->has_vectors == _TRUE_) && (index_md == perturbations_module_.index_md_vectors_))
-#define _tensorsEXT_ ((ppt->has_tensors == _TRUE_) && (index_md == perturbations_module_.index_md_tensors_))
+#define _scalarsEXT_ ((ppt->has_scalars == _TRUE_) && (index_md == perturbations_module_->index_md_scalars_))
+#define _vectorsEXT_ ((ppt->has_vectors == _TRUE_) && (index_md == perturbations_module_->index_md_vectors_))
+#define _tensorsEXT_ ((ppt->has_tensors == _TRUE_) && (index_md == perturbations_module_->index_md_tensors_))
 
 
 #define _set_source_(index) sources_[index_md][index_ic*tp_size_[index_md] + index][index_tau*k_size_[index_md] + index_k]

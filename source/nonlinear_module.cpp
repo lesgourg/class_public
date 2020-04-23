@@ -11,14 +11,17 @@
  *
  */
 
+#include "background_module.h"
+#include "perturbations_module.h"
+#include "primordial_module.h"
 #include "nonlinear_module.h"
 #include "non_cold_dark_matter.h"
 
-NonlinearModule::NonlinearModule(const Input& input, const BackgroundModule& background_module, const PerturbationsModule& perturbations_module, const PrimordialModule& primordial_module)
+NonlinearModule::NonlinearModule(const Input& input, BackgroundModulePtr background_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module)
 : BaseModule(input)
-, background_module_(background_module)
-, perturbations_module_(perturbations_module)
-, primordial_module_(primordial_module) {
+, background_module_(std::move(background_module))
+, perturbations_module_(std::move(perturbations_module))
+, primordial_module_(std::move(primordial_module)) {
   ThrowInvalidArgumentIf(nonlinear_init() != _SUCCESS_, error_message_);
 }
 
@@ -126,7 +129,7 @@ int NonlinearModule::nonlinear_pk_at_z(
                "You are asking for the matter power spectrum at z=%e but the code was asked to store it only at z=0. You probably forgot to pass the input parameter z_max_pk (see explanatory.ini)",z);
 
     /** --> get value of contormal time tau */
-    class_call(background_module_.background_tau_of_z(z, &tau), background_module_.error_message_, error_message_);
+    class_call(background_module_->background_tau_of_z(z, &tau), background_module_->error_message_, error_message_);
 
     ln_tau = log(tau);
     last_index = ln_tau_size_-1;
@@ -546,11 +549,11 @@ int NonlinearModule::nonlinear_pk_at_k_and_z(
                   sizeof(double)*ic_ic_size_,
                   error_message_);
 
-      class_call(primordial_module_.primordial_spectrum_at_k(index_md_scalars_,
+      class_call(primordial_module_->primordial_spectrum_at_k(index_md_scalars_,
                                                              linear,
                                                              k,
                                                              pk_primordial_k),
-                 primordial_module_.error_message_,
+                 primordial_module_->error_message_,
                  error_message_);
 
       /* compute P_primordial(kmin) */
@@ -561,11 +564,11 @@ int NonlinearModule::nonlinear_pk_at_k_and_z(
                   sizeof(double)*ic_ic_size_,
                   error_message_);
 
-      class_call(primordial_module_.primordial_spectrum_at_k(index_md_scalars_,
+      class_call(primordial_module_->primordial_spectrum_at_k(index_md_scalars_,
                                                              linear,
                                                              kmin,
                                                              pk_primordial_kmin),
-                 primordial_module_.error_message_,
+                 primordial_module_->error_message_,
                  error_message_);
 
       /* finally, infer P(k) */
@@ -997,8 +1000,8 @@ int NonlinearModule::nonlinear_k_nl_at_z(double z, double * k_nl, double * k_nl_
 
   /** - convert input redshift into a conformal time */
 
-  class_call(background_module_.background_tau_of_z(z,&tau),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z,&tau),
+             background_module_->error_message_,
              error_message_);
 
   /** - interpolate the precomputed k_nl array at the needed valuetime */
@@ -1144,16 +1147,16 @@ int NonlinearModule::nonlinear_init() {
 
     /* If the user only wants z=0, then ln_tau_size_=1 and we go
        only through index_tau=0. However we must pick up the last
-       value of the source, index_tau_sources = perturbations_module_.tau_size_-1. If
+       value of the source, index_tau_sources = perturbations_module_->tau_size_-1. If
        the user wants several values of z, they correspond to the last
-       perturbations_module_.ln_tau_size_ values of the sources (those that were also
+       perturbations_module_->ln_tau_size_ values of the sources (those that were also
        part of the array late_sources_ in the perturbation
        module). In all cases, the following formula gives the
        correspondance between index_tau in the current array and in
        the sources array:
     */
 
-    index_tau_sources = perturbations_module_.tau_size_-perturbations_module_.ln_tau_size_ + index_tau;
+    index_tau_sources = perturbations_module_->tau_size_-perturbations_module_->ln_tau_size_ + index_tau;
 
     /** --> loop over required pk types (_m, _cb) */
 
@@ -1381,11 +1384,11 @@ int NonlinearModule::nonlinear_init() {
 
             /* send a warning to inform user about the corresponding value of redshift */
             if (pnl->nonlinear_verbose > 0) {
-              class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
-              class_call(background_module_.background_at_tau(tau_[index_tau], pba->short_info, pba->inter_normal, &last_index,pvecback),
-                         background_module_.error_message_,
+              class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
+              class_call(background_module_->background_at_tau(tau_[index_tau], pba->short_info, pba->inter_normal, &last_index,pvecback),
+                         background_module_->error_message_,
                          error_message_);
-              a = pvecback[background_module_.index_bg_a_];
+              a = pvecback[background_module_->index_bg_a_];
               z = pba->a_today/a-1.;
               fprintf(stdout,
                       " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
@@ -1550,12 +1553,12 @@ int NonlinearModule::nonlinear_indices() {
   int index_pk;
 
   /** - define indices for initial conditions (and allocate related arrays) */
-  index_md_scalars_ = perturbations_module_.index_md_scalars_;
-  ic_size_ = primordial_module_.ic_size_[index_md_scalars_];
-  ic_ic_size_ = primordial_module_.ic_ic_size_[index_md_scalars_];
+  index_md_scalars_ = perturbations_module_->index_md_scalars_;
+  ic_size_ = primordial_module_->ic_size_[index_md_scalars_];
+  ic_ic_size_ = primordial_module_->ic_ic_size_[index_md_scalars_];
   class_alloc(is_non_zero_, sizeof(short)*ic_ic_size_, error_message_);
   for (index_ic1_ic2 = 0; index_ic1_ic2 < ic_ic_size_; index_ic1_ic2++)
-    is_non_zero_[index_ic1_ic2] = primordial_module_.is_non_zero_[index_md_scalars_][index_ic1_ic2];
+    is_non_zero_[index_ic1_ic2] = primordial_module_->is_non_zero_[index_md_scalars_][index_ic1_ic2];
 
   /** - define flags indices for pk types (_m, _cb). Note: due to some
      dependencies in HMcode, when index_pk_cb_ exists, it must
@@ -1668,8 +1671,8 @@ int NonlinearModule::nonlinear_get_k_list() {
   double k_max,exponent;
   int index_k;
 
-  k_size_ = perturbations_module_.k_size_[index_md_scalars_];
-  k_max = perturbations_module_.k_[index_md_scalars_][k_size_ - 1];
+  k_size_ = perturbations_module_->k_size_[index_md_scalars_];
+  k_max = perturbations_module_->k_[index_md_scalars_][k_size_ - 1];
 
   /** - if k extrapolation necessary, compute number of required extra values */
   if (pnl->method == nl_HMcode){
@@ -1696,7 +1699,7 @@ int NonlinearModule::nonlinear_get_k_list() {
 
   /** - fill array of k (not extrapolated) */
   for (index_k=0; index_k<k_size_; index_k++) {
-    k = perturbations_module_.k_[index_md_scalars_][index_k];
+    k = perturbations_module_->k_[index_md_scalars_][index_k];
     k_[index_k] = k;
     ln_k_[index_k] = log(k);
   }
@@ -1724,26 +1727,26 @@ int NonlinearModule::nonlinear_get_tau_list() {
   int index_tau;
 
   /** -> for linear calculations: only late times are considered, given the value z_max_pk inferred from the ionput */
-  ln_tau_size_ = perturbations_module_.ln_tau_size_;
+  ln_tau_size_ = perturbations_module_->ln_tau_size_;
 
-  if (perturbations_module_.ln_tau_size_ > 1) {
+  if (perturbations_module_->ln_tau_size_ > 1) {
 
     class_alloc(ln_tau_, ln_tau_size_*sizeof(double), error_message_);
 
     for (index_tau = 0; index_tau < ln_tau_size_; index_tau++) {
-      ln_tau_[index_tau] = perturbations_module_.ln_tau_[index_tau];
+      ln_tau_[index_tau] = perturbations_module_->ln_tau_[index_tau];
     }
   }
 
   /** -> for non-linear calculations: we wills store a correction factor for all times */
   if (pnl->method > nl_none) {
 
-    tau_size_ = perturbations_module_.tau_size_;
+    tau_size_ = perturbations_module_->tau_size_;
 
     class_alloc(tau_, tau_size_*sizeof(double), error_message_);
 
     for (index_tau = 0; index_tau < tau_size_; index_tau++) {
-      tau_[index_tau] = perturbations_module_.tau_sampling_[index_tau];
+      tau_[index_tau] = perturbations_module_->tau_sampling_[index_tau];
     }
   }
   return _SUCCESS_;
@@ -1774,7 +1777,7 @@ int NonlinearModule::nonlinear_get_source(int index_k, int index_ic, int index_t
 
   /** - use precomputed values */
   if (index_k < k_size_) {
-    *source = sources[index_ic*perturbations_module_.tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + index_k];
+    *source = sources[index_ic*perturbations_module_->tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + index_k];
   }
   /** - extrapolate **/
   else {
@@ -1785,13 +1788,13 @@ int NonlinearModule::nonlinear_get_source(int index_k, int index_ic, int index_t
      * --> Get last source and k, which are used in (almost) all methods
      */
     k_max = k_[k_size_ - 1];
-    source_max = sources[index_ic*perturbations_module_.tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 1];
+    source_max = sources[index_ic*perturbations_module_->tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 1];
 
     /**
      * --> Get previous source and k, which are used in best methods
      */
     k_previous = k_[k_size_ - 2];
-    source_previous = sources[index_ic*perturbations_module_.tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 2];
+    source_previous = sources[index_ic*perturbations_module_->tp_size_[index_md_scalars_] + index_tp][index_tau*k_size_ + k_size_ - 2];
 
     switch(pnl->extrapolation_method){
       /**
@@ -1839,7 +1842,7 @@ int NonlinearModule::nonlinear_get_source(int index_k, int index_ic, int index_t
        */
     case extrap_hmcode:
       {
-        scaled_factor = 1.8/(13.41*background_module_.a_eq_*background_module_.H_eq_);
+        scaled_factor = 1.8/(13.41*background_module_->a_eq_*background_module_->H_eq_);
         *source = source_max*(log(_E_+scaled_factor*k)/log(_E_+scaled_factor*k_max));
         break;
       }
@@ -1934,10 +1937,10 @@ int NonlinearModule::nonlinear_pk_linear(
   class_alloc(pk_ic, ic_ic_size_*sizeof(double), error_message_);
 
   if ((has_pk_m_ == _TRUE_) && (index_pk == index_pk_m_)) {
-    index_tp = perturbations_module_.index_tp_delta_m_;
+    index_tp = perturbations_module_->index_tp_delta_m_;
   }
   else if ((has_pk_cb_ == _TRUE_) && (index_pk == index_pk_cb_)) {
-    index_tp = perturbations_module_.index_tp_delta_cb_;
+    index_tp = perturbations_module_->index_tp_delta_cb_;
   }
   else {
     class_stop(error_message_, "P(k) is set neither to total matter nor to cold dark matter + baryons");
@@ -1948,8 +1951,8 @@ int NonlinearModule::nonlinear_pk_linear(
   for (index_k=0; index_k<k_size; index_k++) {
 
     /** --> get primordial spectrum */
-    class_call(primordial_module_.primordial_spectrum_at_k(index_md_scalars_, logarithmic, ln_k_[index_k], primordial_pk),
-               primordial_module_.error_message_,
+    class_call(primordial_module_->primordial_spectrum_at_k(index_md_scalars_, logarithmic, ln_k_[index_k], primordial_pk),
+               primordial_module_->error_message_,
                error_message_);
 
     /** --> initialize a local variable for P_m(k) and P_cb(k) to zero */
@@ -1975,7 +1978,7 @@ int NonlinearModule::nonlinear_pk_linear(
                                       index_ic1,
                                       index_tp,
                                       index_tau,
-                                      perturbations_module_.sources_[index_md_scalars_],
+                                      perturbations_module_->sources_[index_md_scalars_],
                                       &source_ic1),
                  error_message_,
                  error_message_);
@@ -2005,7 +2008,7 @@ int NonlinearModule::nonlinear_pk_linear(
                                           index_ic1,
                                           index_tp,
                                           index_tau,
-                                          perturbations_module_.sources_[index_md_scalars_],
+                                          perturbations_module_->sources_[index_md_scalars_],
                                           &source_ic1),
                      error_message_,
                      error_message_);
@@ -2014,7 +2017,7 @@ int NonlinearModule::nonlinear_pk_linear(
                                           index_ic2,
                                           index_tp,
                                           index_tau,
-                                          perturbations_module_.sources_[index_md_scalars_],
+                                          perturbations_module_->sources_[index_md_scalars_],
                                           &source_ic2),
                      error_message_,
                      error_message_);
@@ -2379,10 +2382,10 @@ int NonlinearModule::nonlinear_halofit(
 
   double * w_and_Omega;
 
-  class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
+  class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
 
   if ((has_pk_m_ == _TRUE_) && (index_pk == index_pk_m_)) {
-    fnu = pba->Omega0_ncdm_tot/background_module_.Omega0_m_;
+    fnu = pba->Omega0_ncdm_tot/background_module_->Omega0_m_;
   }
   else if ((has_pk_cb_ == _TRUE_) && (index_pk == index_pk_cb_)) {
     fnu = 0.;
@@ -2396,14 +2399,14 @@ int NonlinearModule::nonlinear_halofit(
     /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
        all required by HALFIT fitting formulas */
 
-    class_call(background_module_.background_w_fld(pba->a_today, &w0, &dw_over_da_fld, &integral_fld), background_module_.error_message_, error_message_);
+    class_call(background_module_->background_w_fld(pba->a_today, &w0, &dw_over_da_fld, &integral_fld), background_module_->error_message_, error_message_);
 
-    class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
-               background_module_.error_message_,
+    class_call(background_module_->background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+               background_module_->error_message_,
                error_message_);
 
-    Omega_m = pvecback[background_module_.index_bg_Omega_m_];
-    Omega_v = 1. - pvecback[background_module_.index_bg_Omega_m_] - pvecback[background_module_.index_bg_Omega_r_];
+    Omega_m = pvecback[background_module_->index_bg_Omega_m_];
+    Omega_v = 1. - pvecback[background_module_->index_bg_Omega_m_] - pvecback[background_module_->index_bg_Omega_r_];
 
   }
   else {
@@ -2497,15 +2500,15 @@ int NonlinearModule::nonlinear_halofit(
 
   }
 
-  class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
-             background_module_.error_message_,
+  class_call(background_module_->background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+             background_module_->error_message_,
              error_message_);
 
-  Omega_m = pvecback[background_module_.index_bg_Omega_m_];
-  Omega_v = 1. - pvecback[background_module_.index_bg_Omega_m_] - pvecback[background_module_.index_bg_Omega_r_];
+  Omega_m = pvecback[background_module_->index_bg_Omega_m_];
+  Omega_v = 1. - pvecback[background_module_->index_bg_Omega_m_] - pvecback[background_module_->index_bg_Omega_r_];
 
   // for debugging:
-  //printf("Call Halofit at z=%e\n", pba->a_today/pvecback[background_module_.index_bg_a_] - 1.);
+  //printf("Call Halofit at z=%e\n", pba->a_today/pvecback[background_module_->index_bg_a_] - 1.);
 
   /* minimum value of R such that the integral giving sigma_R is
      converged.  The parameter halofit_sigma_precision should be
@@ -2554,7 +2557,7 @@ int NonlinearModule::nonlinear_halofit(
     free(pvecback);free(integrand_array),
     "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
     k_[k_size_-1],
-    pba->a_today/pvecback[background_module_.index_bg_a_]-1.);
+    pba->a_today/pvecback[background_module_->index_bg_a_]-1.);
   */
 
   if (sigma < 1.) {
@@ -2739,7 +2742,7 @@ int NonlinearModule::nonlinear_halofit(
 
       y=(rk/rknl);
       pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
-      pk_halo=pk_halo/(1 + xmu*pow(y, -1) + xnu*pow(y, -2))*(1 + fnu*(0.977 - 18.015*(background_module_.Omega0_m_ - 0.3)));
+      pk_halo = pk_halo/(1 + xmu*pow(y, -1) + xnu*pow(y, -2))*(1 + fnu*(0.977 - 18.015*(background_module_->Omega0_m_ - 0.3)));
       // rk is in 1/Mpc, 47.48and 1.5 in Mpc**-2, so we need an h**2 here (Credits Antonio J. Cuesta)
       pk_linaa=pk_lin*(1+fnu*47.48*pow(rk/pba->h,2)/(1+1.5*pow(rk/pba->h,2)));
       pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);
@@ -2928,7 +2931,7 @@ int NonlinearModule::nonlinear_hmcode(
 
   /** Compute background quantitites today */
 
-  Omega0_m = background_module_.Omega0_m_;
+  Omega0_m = background_module_->Omega0_m_;
   fnu      = pba->Omega0_ncdm_tot/Omega0_m;
 
   /** If index_pk_cb, choose Omega0_cb as the matter density parameter.
@@ -2940,17 +2943,17 @@ int NonlinearModule::nonlinear_hmcode(
   anorm    = 1./(2*pow(_PI_,2));
 
   /** Call all the relevant background parameters at this tau */
-  class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
+  class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
 
-  class_call(background_module_.background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
-             background_module_.error_message_,
+  class_call(background_module_->background_at_tau(tau, pba->long_info, pba->inter_normal, &last_index, pvecback),
+             background_module_->error_message_,
              error_message_);
 
-  Omega_m = pvecback[background_module_.index_bg_Omega_m_];//TBC (i.e. check if for P_cb here we should use Omega_cb) here the total time varying Omega_m is used for delta_c and for Delta_v according to the Mead fit of the Massara simulations.
+  Omega_m = pvecback[background_module_->index_bg_Omega_m_];//TBC (i.e. check if for P_cb here we should use Omega_cb) here the total time varying Omega_m is used for delta_c and for Delta_v according to the Mead fit of the Massara simulations.
 
-  growth = pvecback[background_module_.index_bg_D_];
+  growth = pvecback[background_module_->index_bg_D_];
 
-  z_at_tau = 1./pvecback[background_module_.index_bg_a_] - 1.;
+  z_at_tau = 1./pvecback[background_module_->index_bg_a_] - 1.;
 
   /* The number below is the critical density today, rho_c = 3 * H0^2 / 8*pi*G, in units of M_sun over Mpc^3 */
   rho_crit_today_in_msun_mpc3 = 3.*pow(1.e5*pba->h, 2)/8./_PI_/_G_*_Mpc_over_m_/_M_SUN_;
@@ -3246,7 +3249,7 @@ int NonlinearModule::nonlinear_hmcode(
       p1h_integrand[index_mass*index_ncol+index_nu] = nu_arr[index_mass];
 
       p1h_integrand[index_mass*index_ncol+index_y] = mass[index_mass]*gst*pow(window_nfw, 2.);
-      //if ((tau==background_module_.conformal_age_) && (index_k == 0)) {
+      //if ((tau==background_module_->conformal_age_) && (index_k == 0)) {
       //fprintf(stdout, "%d %e %e\n", index_cut, p1h_integrand[index_mass*index_ncol+index_nu], p1h_integrand[index_mass*index_ncol+index_y]);
       //}
     }
@@ -3296,7 +3299,7 @@ int NonlinearModule::nonlinear_hmcode(
   }
 
   // print parameter values
-  if ((pnl->nonlinear_verbose > 1 && tau == background_module_.conformal_age_) || pnl->nonlinear_verbose > 3){
+  if ((pnl->nonlinear_verbose > 1 && tau == background_module_->conformal_age_) || pnl->nonlinear_verbose > 3){
     fprintf(stdout, " -> Parameters at redshift z = %e:\n", z_at_tau);
     fprintf(stdout, "    fnu:		%e\n", fnu);
     fprintf(stdout, "    sigd [Mpc/h]:	%e\n", sigma_disp*pba->h);
@@ -3439,18 +3442,18 @@ int NonlinearModule::nonlinear_hmcode_dark_energy_correction(struct nonlinear_wo
 
   if (pba->has_fld==_TRUE_){
 
-    class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
+    class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
 
-    class_call(background_module_.background_tau_of_z(pnl->z_infinity, &tau_growth),
-               background_module_.error_message_,
+    class_call(background_module_->background_tau_of_z(pnl->z_infinity, &tau_growth),
+               background_module_->error_message_,
                error_message_);
 
-    class_call(background_module_.background_at_tau(tau_growth, pba->long_info, pba->inter_normal, &last_index, pvecback),
-               background_module_.error_message_,
+    class_call(background_module_->background_at_tau(tau_growth, pba->long_info, pba->inter_normal, &last_index, pvecback),
+               background_module_->error_message_,
                error_message_);
 
-    class_call(background_module_.background_w_fld(pba->a_today, &w0, &dw_over_da_fld, &integral_fld),
-               background_module_.error_message_,
+    class_call(background_module_->background_w_fld(pba->a_today, &w0, &dw_over_da_fld, &integral_fld),
+               background_module_->error_message_,
                error_message_);
 
     class_call(nonlinear_hmcode_growint(1./(1. + pnl->z_infinity), -1., 0., &g_lcdm),
@@ -3643,7 +3646,7 @@ int NonlinearModule::nonlinear_hmcode_fill_growtab(struct nonlinear_workspace * 
 
   last_index = 0;
 
-  class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
+  class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
 
   for (index_scalefactor=0;index_scalefactor<ng;index_scalefactor++){
     scalefactor = ainit+(amax-ainit)*(index_scalefactor)/(ng-1);
@@ -3651,16 +3654,16 @@ int NonlinearModule::nonlinear_hmcode_fill_growtab(struct nonlinear_workspace * 
 
     pnw->ztable[index_scalefactor] = z;
 
-    class_call(background_module_.background_tau_of_z(z, &tau_growth),
-               background_module_.error_message_, error_message_);
+    class_call(background_module_->background_tau_of_z(z, &tau_growth),
+               background_module_->error_message_, error_message_);
 
     pnw->tautable[index_scalefactor] = tau_growth;
 
-    class_call(background_module_.background_at_tau(tau_growth, pba->long_info, pba->inter_normal, &last_index, pvecback),
-               background_module_.error_message_,
+    class_call(background_module_->background_at_tau(tau_growth, pba->long_info, pba->inter_normal, &last_index, pvecback),
+               background_module_->error_message_,
                error_message_);
 
-    pnw->growtable[index_scalefactor] = pvecback[background_module_.index_bg_D_];
+    pnw->growtable[index_scalefactor] = pvecback[background_module_->index_bg_D_];
 
   }
 
@@ -3705,7 +3708,7 @@ int NonlinearModule::nonlinear_hmcode_growint(double a, double w0, double wa, do
   index_gcol = i;
 
   class_alloc(integrand, ng*index_gcol*sizeof(double), error_message_);
-  class_alloc(pvecback, background_module_.bg_size_*sizeof(double), error_message_);
+  class_alloc(pvecback, background_module_->bg_size_*sizeof(double), error_message_);
 
   if (ainit == amax) {
     *growth = 1.;
@@ -3719,8 +3722,8 @@ int NonlinearModule::nonlinear_hmcode_growint(double a, double w0, double wa, do
 
       /* This will compute Omega_m(z) for the input values of w0 and wa, to let the user compare the wCDM and LCDM cases. This is why we cannot extract Omega_m(z) fromn the background module in this place. */
       X_de = pow(scalefactor, -3.*(1.+w0+wa))*exp(-3.*wa*(1.-scalefactor));
-      Hubble2 = background_module_.Omega0_m_*pow((1. + z), 3) + pba->Omega0_k*pow((1. + z), 2) + background_module_.Omega0_de_*X_de;
-      Omega_m = background_module_.Omega0_m_*pow((1. + z), 3)/Hubble2;
+      Hubble2 = background_module_->Omega0_m_*pow((1. + z), 3) + pba->Omega0_k*pow((1. + z), 2) + background_module_->Omega0_de_*X_de;
+      Omega_m = background_module_->Omega0_m_*pow((1. + z), 3)/Hubble2;
       /* Samuel brieden: TBC: check that the matching between the
          background quantity and this fitting formula improves by
          using Omega_cb (as it is done in background). Carefull:
@@ -3867,8 +3870,8 @@ int NonlinearModule::nonlinear_hmcode_sigma8_at_z(double z, double * sigma_8, do
 
   double tau;
 
-  class_call(background_module_.background_tau_of_z(z, &tau),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, &tau),
+             background_module_->error_message_,
              error_message_);
 
   if (tau_size_ == 1) {
@@ -3936,8 +3939,8 @@ int NonlinearModule::nonlinear_hmcode_sigmadisp_at_z(double z, double * sigma_di
 
   double tau;
 
-  class_call(background_module_.background_tau_of_z(z, &tau),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, &tau),
+             background_module_->error_message_,
              error_message_);
 
   if (tau_size_ == 1) {
@@ -4004,8 +4007,8 @@ int NonlinearModule::nonlinear_hmcode_sigmadisp100_at_z(double z, double * sigma
 
   double tau;
 
-  class_call(background_module_.background_tau_of_z(z, &tau),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, &tau),
+             background_module_->error_message_,
              error_message_);
 
   if (tau_size_ == 1) {
@@ -4071,8 +4074,8 @@ int NonlinearModule::nonlinear_hmcode_sigmaprime_at_z(double z, double * sigma_p
 
   double tau;
 
-  class_call(background_module_.background_tau_of_z(z, &tau),
-             background_module_.error_message_,
+  class_call(background_module_->background_tau_of_z(z, &tau),
+             background_module_->error_message_,
              error_message_);
 
   if (tau_size_ == 1) {

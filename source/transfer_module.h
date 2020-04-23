@@ -2,15 +2,11 @@
 #define TRANSFER_MODULE_H
 
 #include "input.h"
-#include "background_module.h"
-#include "thermodynamics_module.h"
-#include "perturbations_module.h"
-#include "nonlinear_module.h"
 #include "base_module.h"
 
 class TransferModule : public BaseModule {
 public:
-  TransferModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module, const PerturbationsModule& perturbations_module, const NonlinearModule& nonlinear_module);
+  TransferModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, NonlinearModulePtr nonlinear_module);
   ~TransferModule();
 
   /** @name - number of modes and transfer function types */
@@ -55,7 +51,7 @@ public:
   //@}
   /** @name - transfer functions */
   //@{
-  double ** transfer_; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * transfer_module_.tt_size_[index_md] + index_tt) * transfer_module_.l_size_[index_md] + index_l) * transfer_module_.q_size_ + index_q] */
+  double ** transfer_; /**< table of transfer functions for each mode, initial condition, type, multipole and wavenumber, with argument transfer[index_md][((index_ic * transfer_module_->tt_size_[index_md] + index_tt) * transfer_module_->l_size_[index_md] + index_l) * transfer_module_->q_size_ + index_q] */
   //@}
 
 
@@ -108,10 +104,10 @@ private:
   int transfer_precompute_selection(double tau_rec, int tau_size_max, double ** window);
   int transfer_f_evo(double * pvecback, int last_index, double cotKgen, double * f_evo);
 
-  const BackgroundModule& background_module_;
-  const ThermodynamicsModule& thermodynamics_module_;
-  const PerturbationsModule& perturbations_module_;
-  const NonlinearModule& nonlinear_module_;
+  BackgroundModulePtr background_module_;
+  ThermodynamicsModulePtr thermodynamics_module_;
+  PerturbationsModulePtr perturbations_module_;
+  NonlinearModulePtr nonlinear_module_;
 
   short has_cls_; /**< copy of same flag in perturbation structure */
   int md_size_;       /**< number of modes included in computation */

@@ -3,16 +3,14 @@
 
 #include "input.h"
 #include "base_module.h"
-#include "background_module.h"
-#include "thermodynamics_module.h"
 
 class PerturbationsModule : public BaseModule {
 public:
-  PerturbationsModule(const Input& input, const BackgroundModule& background_module, const ThermodynamicsModule& thermodynamics_module);
+  PerturbationsModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module);
   ~PerturbationsModule();
   int perturb_output_data(enum file_format output_format, double z, int number_of_titles, double* data) const;
   int perturb_output_titles(enum file_format output_format, char titles[_MAXTITLESTRINGLENGTH_]) const;
-  int perturb_output_firstline_and_ic_suffix( int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix) const;
+  int perturb_output_firstline_and_ic_suffix(int index_ic, char first_line[_LINE_LENGTH_MAX_], FileName ic_suffix) const;
 
   /** @name - indices running on modes (scalar, vector, tensor) */
   //@{
@@ -153,8 +151,8 @@ public:
 
   double*** sources_; /**< Pointer towards the source interpolation table
                          sources[index_md]
-                         [index_ic * perturbations_module_.tp_size_[index_md] + index_tp]
-                         [index_tau * perturbations_module_.k_size_ + index_k] */
+                         [index_ic * perturbations_module_->tp_size_[index_md] + index_tp]
+                         [index_tau * perturbations_module_->k_size_ + index_k] */
 
   //@}
   /** @name - arrays related to the interpolation table for sources at late times, corresponding to z < z_max_pk (used for Fourier transfer function and spectra output) */
@@ -211,8 +209,8 @@ private:
   int perturb_rsa_delta_and_theta(double k, double* y, double a_prime_over_a, double* pvecthermo, perturb_workspace* ppw);
   int perturb_rsa_idr_delta_and_theta(double k, double* y, double a_prime_over_a, double* pvecthermo, perturb_workspace* ppw);
 
-  const BackgroundModule& background_module_;
-  const ThermodynamicsModule& thermodynamics_module_;
+  BackgroundModulePtr background_module_;
+  ThermodynamicsModulePtr thermodynamics_module_;
 
   short evolve_tensor_ur_;             /**< will we evolve ur tensor perturbations (either because we have ur species, or we have ncdm species with massless approximation) ? */
   short evolve_tensor_ncdm_;             /**< will we evolve ncdm tensor perturbations (if we have ncdm species and we use the exact method) ? */
@@ -229,15 +227,15 @@ private:
 
   double*** late_sources_; /**< Pointer towards the source interpolation table
                                 late_sources[index_md]
-                                            [index_ic * perturbations_module_.tp_size_[index_md] + index_tp]
-                                            [index_tau * perturbations_module_.k_size_ + index_k]
+                                            [index_ic * perturbations_module_->tp_size_[index_md] + index_tp]
+                                            [index_tau * perturbations_module_->k_size_ + index_k]
                                 Note that this is not a replication of part of the sources table,
                                 it is just poiting towards the same memory zone, at the place where the late_sources actually start */
 
   double*** ddlate_sources_; /**< Pointer towards the splined source interpolation table with second derivatives with respect to time
                               ddlate_sources[index_md]
-                                            [index_ic * perturbations_module_.tp_size_[index_md] + index_tp]
-                                            [index_tau * perturbations_module_.k_size_ + index_k] */
+                                            [index_ic * perturbations_module_->tp_size_[index_md] + index_tp]
+                                            [index_tau * perturbations_module_->k_size_ + index_k] */
 
   //@}
   int number_of_scalar_titles_; /**< number of titles/columns in scalar perturbation output files */

@@ -7,7 +7,7 @@
 
 class PrimordialModule : public BaseModule {
 public:
-  PrimordialModule(const Input& input, const PerturbationsModule& perturbation_module);
+  PrimordialModule(const Input& input, PerturbationsModulePtr perturbation_module);
   ~PrimordialModule();
 
   int primordial_spectrum_at_k(int index_md, enum linear_or_logarithmic mode, double k, double* pk) const;
@@ -48,7 +48,7 @@ private:
   static int primordial_inflation_derivs(double tau, double* y, double* dy, void * parameters_and_workspace, ErrorMsg error_message);
   int primordial_external_spectrum_init();
 
-  const PerturbationsModule& perturbations_module_;
+  PerturbationsModulePtr perturbations_module_;
 
   double A_s_;
   double n_s_;

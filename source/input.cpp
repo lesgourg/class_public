@@ -4,10 +4,15 @@
  */
 
 #include "input.h"
-#include "spectra_module.h"
 #include "cosmology.h"
 #include "non_cold_dark_matter.h"
-
+#include "background_module.h"
+#include "thermodynamics_module.h"
+#include "perturbations_module.h"
+#include "primordial_module.h"
+#include "nonlinear_module.h"
+#include "lensing_module.h"
+#include "spectra_module.h"
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
  * and/or 'xxx.pre'. They can be the arguments of the main() routine.
@@ -3658,7 +3663,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     if (input_verbose>2)
       printf("Stage 1: background\n");
     ba.background_verbose = 0;
-    const BackgroundModule& background_module = cosmology.GetBackgroundModule();
+    BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
   }
 
   if (pfzw->required_computation_stage >= cs_thermodynamics){
@@ -3667,7 +3672,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pr.recfast_Nz0 = 10000;
     th.thermodynamics_verbose = 0;
     try {
-      const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
+      ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
     } catch (...) {
       class_call_except(_FAILURE_,
                         "TODO",
@@ -3680,7 +3685,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 3: perturbations\n");
     pt.perturbations_verbose = 0;
     try {
-      const PerturbationsModule& perturbations_module = cosmology.GetPerturbationsModule();
+      PerturbationsModulePtr perturbations_module = cosmology.GetPerturbationsModule();
     } catch (...) {
       class_call_except(_FAILURE_,
                       "TODO",
@@ -3693,7 +3698,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 4: primordial\n");
     pm.primordial_verbose = 0;
     try {
-      const PrimordialModule& primordial_module = cosmology.GetPrimordialModule();
+      PrimordialModulePtr primordial_module = cosmology.GetPrimordialModule();
     } catch (...) {
       class_call_except(_FAILURE_,
                         "TODO",
@@ -3706,7 +3711,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 5: nonlinear\n");
     nl.nonlinear_verbose = 0;
     try {
-      const NonlinearModule& nonlinear_module = cosmology.GetNonlinearModule();
+      NonlinearModulePtr nonlinear_module = cosmology.GetNonlinearModule();
     } catch (...) {
       class_call_except(_FAILURE_,
                         "TODO",
@@ -3718,7 +3723,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 6: transfer\n");
     tr.transfer_verbose = 0;
     try {
-      const TransferModule& transfer_module = cosmology.GetTransferModule();
+      TransferModulePtr transfer_module = cosmology.GetTransferModule();
     } catch (...) {
       //TODO: This will be made nicer later when we refactor the input module.
       class_call_except(_FAILURE_,
@@ -3732,7 +3737,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
       printf("Stage 7: spectra\n");
     sp.spectra_verbose = 0;
     try {
-      const SpectraModule& spectra_module = cosmology.GetSpectraModule();
+      SpectraModulePtr spectra_module = cosmology.GetSpectraModule();
     } catch (...) {
       //TODO: This will be made nicer later when we refactor the input module.
       class_call_except(_FAILURE_,
@@ -3745,50 +3750,50 @@ int input_try_unknown_parameters(double * unknown_parameter,
   for (i=0; i < pfzw->target_size; i++) {
     switch (pfzw->target_name[i]) {
     case theta_s: {
-      const ThermodynamicsModule& thm = cosmology.GetThermodynamicsModule();
-      output[i] = 100.*thm.rs_rec_/thm.ra_rec_ - pfzw->target_value[i];
+      ThermodynamicsModulePtr thm = cosmology.GetThermodynamicsModule();
+      output[i] = 100.*thm->rs_rec_/thm->ra_rec_ - pfzw->target_value[i];
       break;
     }
     case Omega_dcdmdr: {
-      const BackgroundModule& bam = cosmology.GetBackgroundModule();
-      rho_dcdm_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dcdm_];
+      BackgroundModulePtr bam = cosmology.GetBackgroundModule();
+      rho_dcdm_today = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_dcdm_];
       if (ba.has_dr == _TRUE_)
-        rho_dr_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dr_];
+        rho_dr_today = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_dr_];
       else
         rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i];
       break;
     }
     case omega_dcdmdr: {
-      const BackgroundModule& bam = cosmology.GetBackgroundModule();
-      rho_dcdm_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dcdm_];
+      BackgroundModulePtr bam = cosmology.GetBackgroundModule();
+      rho_dcdm_today = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_dcdm_];
       if (ba.has_dr == _TRUE_)
-        rho_dr_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dr_];
+        rho_dr_today = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_dr_];
       else
         rho_dr_today = 0.;
       output[i] = (rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)-pfzw->target_value[i]/ba.h/ba.h;
       break;
     }
     case Omega_scf: {
-    const BackgroundModule& bam = cosmology.GetBackgroundModule();
+    BackgroundModulePtr bam = cosmology.GetBackgroundModule();
       /** - In case scalar field is used to fill, pba->Omega0_scf is not equal to pfzw->target_value[i].*/
-      output[i] = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_scf_]/(ba.H0*ba.H0) - ba.Omega0_scf;
+      output[i] = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_scf_]/(ba.H0*ba.H0) - ba.Omega0_scf;
       break;
     }
     case Omega_ini_dcdm:
     case omega_ini_dcdm: {
-      const BackgroundModule& bam = cosmology.GetBackgroundModule();
-      rho_dcdm_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dcdm_];
+      BackgroundModulePtr bam = cosmology.GetBackgroundModule();
+      rho_dcdm_today = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_dcdm_];
       if (ba.has_dr == _TRUE_)
-        rho_dr_today = bam.background_table_[(bam.bt_size_ - 1)*bam.bg_size_ + bam.index_bg_rho_dr_];
+        rho_dr_today = bam->background_table_[(bam->bt_size_ - 1)*bam->bg_size_ + bam->index_bg_rho_dr_];
       else
         rho_dr_today = 0.;
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     }
     case sigma8:
-        const NonlinearModule& nl = cosmology.GetNonlinearModule();
-        output[i] = nl.sigma8_[nl.index_pk_m_] - pfzw->target_value[i];
+        NonlinearModulePtr nl = cosmology.GetNonlinearModule();
+        output[i] = nl->sigma8_[nl->index_pk_m_] - pfzw->target_value[i];
       break;
     }
   }
@@ -4172,14 +4177,14 @@ int input_prepare_pk_eq(
   /** - call the background module in order to fill a table of tau_i[z_i] */
 
   Cosmology cosmology{input};
-  const BackgroundModule& background_module = cosmology.GetBackgroundModule();
+  BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
   for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
     z[index_pk_eq_z] = exp(log(1.+ppr->pk_eq_z_max)/(pnl->pk_eq_tau_size-1)*index_pk_eq_z)-1.;
-    class_call(background_module.background_tau_of_z(z[index_pk_eq_z], &tau_of_z),
+    class_call(background_module->background_tau_of_z(z[index_pk_eq_z], &tau_of_z),
                pba->error_message, errmsg);
     pnl->pk_eq_tau[index_pk_eq_z] = tau_of_z;
   }
-  class_call(const_cast<BackgroundModule&>(background_module).background_free_noinput(), pba->error_message, errmsg);
+  class_call(background_module->background_free_noinput(), pba->error_message, errmsg);
 
   /** - loop over z_i values. For each of them, we will call the
       background and thermodynamics module for fake models. The goal is
@@ -4203,9 +4208,9 @@ int input_prepare_pk_eq(
     pba->wa_fld = pba_input->wa_fld;
 
     Cosmology cosmology{input};
-    const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
+    ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
 
-    delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - thermodynamics_module.tau_rec_;
+    delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - thermodynamics_module->tau_rec_;
 
     /* launch iterations in order to coverge to effective model with wa=0 but the same chi = (tau[z_i] - tau_rec) */
 
@@ -4213,13 +4218,13 @@ int input_prepare_pk_eq(
 
     do {
       Cosmology cosmology{input};
-      const BackgroundModule& background_module = cosmology.GetBackgroundModule();
-      const ThermodynamicsModule& thermodynamics_module = cosmology.GetThermodynamicsModule();
+      BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
+      ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
 
-      class_call(background_module.background_tau_of_z(z[index_pk_eq_z], &tau_of_z), pba->error_message, errmsg);
+      class_call(background_module->background_tau_of_z(z[index_pk_eq_z], &tau_of_z), pba->error_message, errmsg);
 
 
-      delta_tau_eq = tau_of_z - thermodynamics_module.tau_rec_;
+      delta_tau_eq = tau_of_z - thermodynamics_module->tau_rec_;
 
       error = 1. - delta_tau_eq/delta_tau;
       pba->w0_fld = pba->w0_fld*pow(1. + error, 10.);
@@ -4231,14 +4236,14 @@ int input_prepare_pk_eq(
 
     pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w] = pba->w0_fld;
 
-    class_alloc(pvecback, background_module.bg_size_*sizeof(double), pba->error_message);
-    class_call(background_module.background_at_tau(tau_of_z, pba->long_info, pba->inter_normal, &last_index, pvecback),
+    class_alloc(pvecback, background_module->bg_size_*sizeof(double), pba->error_message);
+    class_call(background_module->background_at_tau(tau_of_z, pba->long_info, pba->inter_normal, &last_index, pvecback),
                pba->error_message,
                errmsg);
-    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z + pnl->index_pk_eq_Omega_m] = pvecback[background_module.index_bg_Omega_m_];
+    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z + pnl->index_pk_eq_Omega_m] = pvecback[background_module->index_bg_Omega_m_];
     free(pvecback);
 
-    class_call(const_cast<BackgroundModule&>(background_module).background_free_noinput(), pba->error_message, errmsg);
+    class_call(background_module->background_free_noinput(), pba->error_message, errmsg);
 
   }
 

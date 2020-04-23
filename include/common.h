@@ -12,13 +12,31 @@
 #endif
 
 #ifdef __cplusplus
+#define typeof(a) __typeof__(a)
+
+#include <memory>
 #include <string>
 #include <sstream>
 #include <stdexcept>
-#endif
+#include <utility>
 
-#ifdef __cplusplus
-#define typeof(a) __typeof__(a)
+class BackgroundModule;
+class ThermodynamicsModule;
+class PerturbationsModule;
+class PrimordialModule;
+class NonlinearModule;
+class TransferModule;
+class SpectraModule;
+class LensingModule;
+
+typedef std::shared_ptr<const BackgroundModule> BackgroundModulePtr;
+typedef std::shared_ptr<const ThermodynamicsModule> ThermodynamicsModulePtr;
+typedef std::shared_ptr<const PerturbationsModule> PerturbationsModulePtr;
+typedef std::shared_ptr<const PrimordialModule> PrimordialModulePtr;
+typedef std::shared_ptr<const NonlinearModule> NonlinearModulePtr;
+typedef std::shared_ptr<const TransferModule> TransferModulePtr;
+typedef std::shared_ptr<const SpectraModule> SpectraModulePtr;
+typedef std::shared_ptr<const LensingModule> LensingModulePtr;
 #endif
 
 #ifndef __COMMON__
