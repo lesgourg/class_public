@@ -88,7 +88,7 @@ int noninjection_init(struct precision* ppr,
               pni->error_message);
 
   /** - Allocate qunatities from primordial structure */
-  pni->k_max = ppr->k_min_acc_diss;
+  pni->k_max = ppr->k_max_acc_diss;
   pni->k_min = ppr->k_min_acc_diss;
   pni->k_size = ppr->noninjection_Nk_acc_diss;
   class_alloc(pni->k,
@@ -104,6 +104,7 @@ int noninjection_init(struct precision* ppr,
   /** - Import primordial spectrum */
   for (index_k=0; index_k<pni->k_size; index_k++) {
     pni->k[index_k] = exp(log(pni->k_min)+(log(pni->k_max)-log(pni->k_min))/(pni->k_size)*index_k);
+
     class_call(primordial_spectrum_at_k(ppm,
                                         ppt->index_md_scalars,
                                         linear,
@@ -148,8 +149,20 @@ int noninjection_init(struct precision* ppr,
 
   pni->f_nu_wkb = (1.-pvecback[pba->index_bg_rho_g]/(pvecback[pba->index_bg_Omega_r]*pvecback[pba->index_bg_rho_crit]));
 
-  dEdt = 0.;
+  /** - Import quantities from other structures */
+  /* Background structure */
+  pni->H0 = pba->H0*_c_/_Mpc_over_m_;                                                               // [1/s]
+  pni->T_g0 = pba->T_cmb;                                                                           // [K]
+  pni->Omega0_b = pba->Omega0_b;                                                                    // [-]
+  pni->Omega0_cdm = pba->Omega0_cdm;                                                                // [-]
+  pni->rho0_cdm = pba->Omega0_cdm*pow(pin->H0,2)*3/8./_PI_/_G_*_c_*_c_;                             // [J/m^3]
+
+  /* Thermodynamics structure */
+  pni->fHe = pth->fHe;                                                                              // [-]
+  pni->N_e0 = pth->n_e;                                                                             // [1/m^3]
+
   /** - Loop over z and calculate the heating at each point */
+  dEdt = 0.;
   for(index_z=0; index_z<pni->z_size_coarse; ++index_z){
 
     z_coarse = pni->z_table_coarse[index_z];
@@ -300,7 +313,6 @@ int noninjection_photon_heating_at_z(struct noninjection* pni,
 }
 
 
-
 /**
  * Calculate heating from adiabatic cooling of electrons and baryons.
  *
@@ -317,8 +329,6 @@ int noninjection_rate_adiabatic_cooling(struct noninjection * pni,
   double R_g;
 
   /** Calculate heating rates */
-  //R_g = (2.*_sigma_/_m_e_/_c_)*(4./3.*pni->rho_g);
-  //*energy_rate = R_g*pni->x_e/(1.+pni->x_e+pni->fHe)*(pni->T_b-pni->T_g)*pni->heat_capacity;      // [J/(m^3 s)]
   *energy_rate = -pni->heat_capacity*pni->H*pni->T_g;                                               // [J/(m^3 s)]
 
   return _SUCCESS_;

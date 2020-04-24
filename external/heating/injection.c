@@ -163,7 +163,6 @@ int injection_indices(struct thermo* pth){
   struct injection* pin = &(pth->in);
   int index_dep,index_inj;
 
-
   /* Check energy injection */
   if(pin->DM_annihilation_efficiency!=0){
     pin->has_DM_ann = _TRUE_;
@@ -268,7 +267,6 @@ int injection_free(struct thermo* pth){
  * @param pvecback    Input: vector of background quantities
  * @return the error status
  */
-
 int injection_calculate_at_z(struct background* pba,
                              struct thermo* pth,
                              double x,
@@ -404,7 +402,6 @@ int injection_energy_injection_at_z(struct injection* pin,
   }
 
   else {
-
     /** - Exotic energy injection mechanisms */
     /* DM annihilation */
     if(pin->has_DM_ann == _TRUE_){

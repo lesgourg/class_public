@@ -132,8 +132,8 @@ with open(os.path.join(dir_path,readfile)) as f:
     x_arr = np.linspace(sd_detector_nu_min/x_to_nu,sd_detector_nu_max/x_to_nu,Nx_arr)
 
   # Define visibility function
-  bb_vis = np.exp(-(z_arr/2.021e6)**2.5)
-  #bb_vis = np.exp(-(z_arr/z_th)**2.5)
+  #bb_vis = np.exp(-(z_arr/2.021e6)**2.5)
+  bb_vis = np.exp(-(z_arr/z_th)**2.5)
 
   # The Gth file of Chluba subtracts away some part of the G_T distortion into a shift from T_ini to T_last
   # Here we calculate backwards, and obtain the shift of f_g due to the internal dT

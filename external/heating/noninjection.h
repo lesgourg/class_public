@@ -36,7 +36,13 @@ struct noninjection{
   double dkD_dz;
   double kD;
   // Fixed thermodynamic quantities
+  double H0;
   double T_g0;
+  double Omega0_b;
+  double Omega0_cdm;
+  double rho0_cdm;
+  // Fixed thermodynamic quantities
+  double fHe;
   double N_e0;
   // Varying background quantities
   double H;
@@ -48,7 +54,6 @@ struct noninjection{
   double T_b;
   double T_g;
   double x_e;
-  double fHe;
 
   //@}
 
@@ -68,7 +73,7 @@ struct noninjection{
   ErrorMsg error_message;
 
   //@}
-  
+
 };
 
 /* @cond INCLUDE_WITH_DOXYGEN */

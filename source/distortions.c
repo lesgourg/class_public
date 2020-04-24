@@ -1,6 +1,13 @@
 /** @file distortions.c Documented module on spectral distortions
  * Matteo Lucca, 31.10.2018
  * Nils Schoeneberg, 18.02.2019
+ *
+ * When using this module please consider citing:
+ * Lucca et al. 2019 (JCAP02(2020)026, arXiv:1910.04619)
+ * as well as other related works such as:
+ * Chluba & Sunyaev 2012 (MNRAS419(2012)1294-1314, arXiv:1109.6552)
+ * Chluba 2013 (MNRAS434(2013)352, arXiv:1304.6120)
+ * Clube & Jeong 2014 (MNRAS438(2014)2065–2082, arXiv:1306.5751)
  */
 
 #include "distortions.h"
@@ -1418,7 +1425,7 @@ int distortions_read_br_data(struct precision * ppr,
  */
 int distortions_spline_br_data(struct distortions* psd){
 
-  /** Allocate second derivatievs */
+  /** Allocate second derivatives */
   class_alloc(psd->ddf_g_exact,
               psd->br_exact_Nz*sizeof(double),
               psd->error_message);
