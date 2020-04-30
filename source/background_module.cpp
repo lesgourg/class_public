@@ -81,8 +81,8 @@
 #include "background_module.h"
 #include "non_cold_dark_matter.h"
 
-BackgroundModule::BackgroundModule(const Input& input)
-: BaseModule(input) {
+BackgroundModule::BackgroundModule(InputModulePtr input_module)
+: BaseModule(input_module) {
   ThrowInvalidArgumentIf(background_init() != _SUCCESS_, error_message_);
 }
 
@@ -617,11 +617,9 @@ int BackgroundModule::background_init() {
   /** Summary: */
 
   /** - define local variables */
-  int n_ncdm;
-  double rho_ncdm_rel,rho_nu_rel;
+  double rho_nu_rel;
   double Neff, N_dark;
   double w_fld, dw_over_da, integral_fld;
-  int filenum=0;
 
   /** - in verbose mode, provide some information */
   if (pba->background_verbose > 0) {
@@ -651,13 +649,6 @@ int BackgroundModule::background_init() {
 
     }
   }
-
-  /** - if shooting failed during input, catch the error here */
-  class_test_except(pba->shooting_failed == _TRUE_,
-                    error_message_,
-                    ,
-                    "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s",
-                    pba->shooting_error);
 
   /** - assign values to all indices in vectors of background quantities with background_indices()*/
   class_call(background_indices(),
@@ -1839,7 +1830,6 @@ double BackgroundModule::ddV_scf(double phi) const {
 int BackgroundModule::background_output_budget() {
 
   double budget_matter, budget_radiation, budget_other,budget_neutrino;
-  int index_ncdm;
 
   budget_matter = 0;
   budget_radiation = 0;

@@ -22,8 +22,8 @@
 #include "spectra_module.h"
 #include "output_module.h"
 
-OutputModule::OutputModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, SpectraModulePtr spectra_module, LensingModulePtr lensing_module)
-: BaseModule(input)
+OutputModule::OutputModule(InputModulePtr input_module, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, SpectraModulePtr spectra_module, LensingModulePtr lensing_module)
+: BaseModule(std::move(input_module))
 , background_module_(std::move(background_module))
 , thermodynamics_module_(std::move(thermodynamics_module))
 , perturbations_module_(std::move(perturbations_module))

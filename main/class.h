@@ -17,7 +17,7 @@
 
 /* class modules */
 #include "common.h"
-#include "input.h"
+#include "input_module.h"
 #include "background.h"
 #include "thermodynamics.h"
 #include "perturbations.h"

@@ -2,11 +2,11 @@
 #define OUTPUT_MODULE_H
 
 #include "base_module.h"
-#include "input.h"
+#include "input_module.h"
 
 class OutputModule : public BaseModule {
 public:
-  OutputModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, SpectraModulePtr spectra_module, LensingModulePtr lensing_module);
+  OutputModule(InputModulePtr input_module, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, SpectraModulePtr spectra_module, LensingModulePtr lensing_module);
 private:
   int output_total_cl_at_l(int l, double* cl);
   int output_init();

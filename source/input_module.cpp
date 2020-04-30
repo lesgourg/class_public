@@ -3,7 +3,7 @@
  * Julien Lesgourgues, 27.08.2010
  */
 
-#include "input.h"
+#include "input_module.h"
 #include "cosmology.h"
 #include "non_cold_dark_matter.h"
 #include "background_module.h"
@@ -22,32 +22,16 @@
  * through a 'file_content' structure.
  */
 
-int input_init_from_arguments(
-                              int argc,
-                              char **argv,
-                              struct precision * ppr,
-                              struct background *pba,
-                              struct thermo *pth,
-                              struct perturbs *ppt,
-                              struct transfers *ptr,
-                              struct primordial *ppm,
-                              struct spectra *psp,
-                              struct nonlinear * pnl,
-                              struct lensing *ple,
-                              struct output *pop,
-                              ErrorMsg errmsg
-                              ) {
+int InputModule::file_content_from_arguments(int argc, char **argv, FileContent& fc, ErrorMsg errmsg) {
 
   /** Summary: */
 
   /** - define local variables */
-
-  struct file_content fc;             /** - --> the final structure with all parameters */
-  struct file_content fc_input;       /** - --> a temporary structure with all input parameters */
-  struct file_content fc_precision;   /** - --> a temporary structure with all precision parameters */
-  struct file_content fc_root;        /** - --> a temporary structure with only the root name */
-  struct file_content fc_inputroot;   /** - --> sum of fc_inoput and fc_root */
-  struct file_content * pfc_input;    /** - --> a pointer to either fc_root or fc_inputroot */
+  FileContent fc_input;       /** - --> a temporary structure with all input parameters */
+  FileContent fc_precision;   /** - --> a temporary structure with all precision parameters */
+  FileContent fc_root;        /** - --> a temporary structure with only the root name */
+  FileContent fc_inputroot;   /** - --> sum of fc_inoput and fc_root */
+  FileContent * pfc_input;    /** - --> a pointer to either fc_root or fc_inputroot */
 
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
@@ -141,8 +125,6 @@ int input_init_from_arguments(
       class_call(parser_cat(&fc_input,&fc_root,&fc_inputroot,errmsg),
                  errmsg,
                  errmsg);
-      class_call(parser_free(&fc_input),errmsg,errmsg);
-      class_call(parser_free(&fc_root),errmsg,errmsg);
       pfc_input = &fc_inputroot;
     }
   }
@@ -164,31 +146,17 @@ int input_init_from_arguments(
                errmsg,
                errmsg);
 
-  class_call(parser_free(pfc_input),errmsg,errmsg);
-  class_call(parser_free(&fc_precision),errmsg,errmsg);
-
-  /** - Finally, initialize all parameters given the input 'file_content'
-      structure.  If its size is null, all parameters take their
-      default values. */
-
-  class_call(input_init(&fc,
-                        ppr,
-                        pba,
-                        pth,
-                        ppt,
-                        ptr,
-                        ppm,
-                        psp,
-                        pnl,
-                        ple,
-                        pop,
-                        errmsg),
-             errmsg,
-             errmsg);
-
-  class_call(parser_free(&fc),errmsg,errmsg);
-
   return _SUCCESS_;
+}
+
+InputModule::InputModule(FileContent& fc)
+: file_content_(fc)
+, shooting_workspace_(file_content_) {
+  for (int i = 0; i < file_content_.size; ++i) {
+    file_content_.read[i] = _FALSE_;
+  }
+  int status = input_init();
+  ThrowInvalidArgumentIf(status != _SUCCESS_, error_message_);
 }
 
 /**
@@ -199,25 +167,13 @@ int input_init_from_arguments(
  *
  */
 
-int input_init(
-               struct file_content * pfc,
-               struct precision * ppr,
-               struct background *pba,
-               struct thermo *pth,
-               struct perturbs *ppt,
-               struct transfers *ptr,
-               struct primordial *ppm,
-               struct spectra *psp,
-               struct nonlinear * pnl,
-               struct lensing *ple,
-               struct output *pop,
-               ErrorMsg errmsg
-               ) {
+int InputModule::input_init() {
+  char* errmsg = error_message_;
+  FileContent* pfc = &file_content_;
 
   int flag1;
   double param1;
   int counter, index_target, i;
-  double * unknown_parameter;
   int unknown_parameters_size;
   int fevals=0;
   double xzero;
@@ -230,8 +186,6 @@ int input_init(
   char param_output_name[_LINE_LENGTH_MAX_];
   char param_unused_name[_LINE_LENGTH_MAX_];
 
-  struct fzerofun_workspace fzw;
-
   /**
    * Before getting into the assignment of parameters,
    * and before the shooting, we want to already fix our precision parameters.
@@ -240,20 +194,9 @@ int input_init(
    *
    */
 
-  class_call(input_read_precisions(pfc,
-                                   ppr,
-                                   pba,
-                                   pth,
-                                   ppt,
-                                   ptr,
-                                   ppm,
-                                   psp,
-                                   pnl,
-                                   ple,
-                                   pop,
-                                   errmsg),
-             errmsg,
-             errmsg);
+  class_call(input_read_precisions(),
+             error_message_,
+             error_message_);
 
 
 
@@ -291,14 +234,14 @@ int input_init(
   enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
                                         cs_background, cs_background, cs_background, cs_nonlinear};
 
-  int input_verbose = 0, int1, aux_flag, shooting_failed=_FALSE_;
+  int input_verbose = 0, int1, aux_flag;
 
   class_read_int("input_verbose",input_verbose);
   if (input_verbose >0) printf("Reading input parameters\n");
 
   /** - Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
-  fzw.required_computation_stage = (enum computation_stage)0;
+  shooting_workspace_.required_computation_stage = (enum computation_stage)0;
   for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
     class_call(parser_read_double(pfc,
                                   target_namestrings[index_target],
@@ -320,7 +263,7 @@ int input_init(
       if (aux_flag == _TRUE_){
         //printf("Found target: %s\n",target_namestrings[index_target]);
         target_indices[unknown_parameters_size] = index_target;
-        fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
+        shooting_workspace_.required_computation_stage = MAX(shooting_workspace_.required_computation_stage,target_cs[index_target]);
         unknown_parameters_size++;
       }
     }
@@ -332,31 +275,24 @@ int input_init(
    * Here we start shooting (see above for explanation of shooting)
    *
    *  */
-  if (unknown_parameters_size > 0) {
+  if ((unknown_parameters_size > 0) && !file_content_.is_shooting) {
 
-    /* Create file content structure with additional entries */
-    class_call(parser_init(&(fzw.fc),
-                           pfc->size+unknown_parameters_size,
-                           pfc->filename,
-                           errmsg),
-               errmsg,errmsg);
-    /* Copy input file content to the new file content structure: */
-    memcpy(fzw.fc.name, pfc->name, pfc->size*sizeof(FileArg));
-    memcpy(fzw.fc.value, pfc->value, pfc->size*sizeof(FileArg));
-    memcpy(fzw.fc.read, pfc->read, pfc->size*sizeof(short));
+    // Push unknown parameters to the end of file_content_
+    file_content_.size += unknown_parameters_size;
+    file_content_.name = (FileArg*) realloc(file_content_.name, file_content_.size*sizeof(FileArg));
+    file_content_.value = (FileArg*) realloc(file_content_.value, file_content_.size*sizeof(FileArg));
+    file_content_.read = (short*) realloc(file_content_.read, file_content_.size*sizeof(short));
+    file_content_.is_shooting = true;
 
-    class_alloc(unknown_parameter,
-                unknown_parameters_size*sizeof(double),
-                errmsg);
-    class_alloc(fzw.unknown_parameters_index,
+    class_alloc(shooting_workspace_.unknown_parameters_index,
                 unknown_parameters_size*sizeof(int),
                 errmsg);
-    fzw.target_size = unknown_parameters_size;
-    class_alloc(fzw.target_name,
-                fzw.target_size*sizeof(enum target_names),
+    shooting_workspace_.target_size = unknown_parameters_size;
+    class_alloc(shooting_workspace_.target_name,
+                shooting_workspace_.target_size*sizeof(enum target_names),
                 errmsg);
-    class_alloc(fzw.target_value,
-                fzw.target_size*sizeof(double),
+    class_alloc(shooting_workspace_.target_value,
+                shooting_workspace_.target_size*sizeof(double),
                 errmsg);
 
     /** - --> go through all cases with unknown parameters: */
@@ -371,40 +307,40 @@ int input_init(
                  errmsg);
 
       // store name of target parameter
-      fzw.target_name[counter] = (enum target_names)index_target;
+      shooting_workspace_.target_name[counter] = (enum target_names)index_target;
       // store target value of target parameter
-      fzw.target_value[counter] = param1;
-      fzw.unknown_parameters_index[counter]=pfc->size+counter;
-      // substitute the name of the target parameter with the name of the corresponding unknown parameter
-      strcpy(fzw.fc.name[fzw.unknown_parameters_index[counter]],unknown_namestrings[index_target]);
+      shooting_workspace_.target_value[counter] = param1;
+      shooting_workspace_.unknown_parameters_index[counter] = file_content_.size - unknown_parameters_size + counter;
+      // Set the name and value of the unknown parameter. The value will be overwritten in get_guess().
+      strcpy(file_content_.name[shooting_workspace_.unknown_parameters_index[counter]], unknown_namestrings[index_target]);
+      strcpy(file_content_.value[shooting_workspace_.unknown_parameters_index[counter]], "1234.56789");
+
       //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
     }
 
+    int status = _SUCCESS_;
     if (unknown_parameters_size == 1){
+      // 1d root finding
       if (input_verbose > 0) {
         fprintf(
                 stdout,
                 "Computing unknown input parameter '%s' using input parameter '%s'\n",
-                fzw.fc.name[fzw.unknown_parameters_index[0]],
-                target_namestrings[fzw.target_name[0]]
+                file_content_.name[shooting_workspace_.unknown_parameters_index[0]],
+                target_namestrings[shooting_workspace_.target_name[0]]
                 );
       }
-      /* We can do 1 dimensional root finding */
-      /* If shooting fails, postpone error to background module to play nice with MontePython. */
-      class_call_try(input_find_root(&xzero,
-                                     &fevals,
-                                     &fzw,
-                                     errmsg),
-                     errmsg,
-                     pba->shooting_error,
-                     shooting_failed=_TRUE_);
+      status = input_find_root(&xzero, &fevals, &shooting_workspace_, error_message_);
 
       /* Store xzero */
-      sprintf(fzw.fc.value[fzw.unknown_parameters_index[0]],"%e",xzero);
+      sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[0]],"%e",xzero);
+      double fzero_value;
+      input_fzerofun_1d(xzero, (void*)(&shooting_workspace_), &fzero_value, error_message_);
+      printf("f(%g) = %g\n", xzero, fzero_value);
+
       if (input_verbose > 0) {
         fprintf(stdout," -> found '%s = %s'\n",
-                fzw.fc.name[fzw.unknown_parameters_index[0]],
-                fzw.fc.value[fzw.unknown_parameters_index[0]]);
+                file_content_.name[shooting_workspace_.unknown_parameters_index[0]],
+                file_content_.value[shooting_workspace_.unknown_parameters_index[0]]);
       }
     }
     else{
@@ -421,31 +357,28 @@ int input_init(
                   errmsg);
       class_call(input_get_guess(x_inout,
                                  dxdF,
-                                 &fzw,
+                                 &shooting_workspace_,
                                  errmsg),
                  errmsg, errmsg);
 
-      class_call_try(fzero_Newton(input_try_unknown_parameters,
-                                  x_inout,
-                                  dxdF,
-                                  unknown_parameters_size,
-                                  1e-4,
-                                  1e-6,
-                                  &fzw,
-                                  &fevals,
-                                  errmsg),
-                     errmsg, pba->shooting_error,shooting_failed=_TRUE_);
-
-
+      status = fzero_Newton(input_try_unknown_parameters,
+                            x_inout,
+                            dxdF,
+                            unknown_parameters_size,
+                            1e-4,
+                            1e-6,
+                            &shooting_workspace_,
+                            &fevals,
+                            errmsg);
 
       /* Store xzero */
       for (counter = 0; counter < unknown_parameters_size; counter++){
-        sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
+        sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[counter]],
                 "%e",x_inout[counter]);
         if (input_verbose > 0) {
           fprintf(stdout," -> found '%s = %s'\n",
-                  fzw.fc.name[fzw.unknown_parameters_index[counter]],
-                  fzw.fc.value[fzw.unknown_parameters_index[counter]]);
+                  file_content_.name[shooting_workspace_.unknown_parameters_index[counter]],
+                  file_content_.value[shooting_workspace_.unknown_parameters_index[counter]]);
         }
       }
 
@@ -453,66 +386,16 @@ int input_init(
       free(dxdF);
     }
 
+    ThrowInvalidArgumentIf(status != _SUCCESS_, "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s", error_message_);
     if (input_verbose > 1) {
       fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
     }
 
-
-    /** - --> Read all parameters from tuned pfc */
-    class_call(input_read_parameters(&(fzw.fc),
-                                     ppr,
-                                     pba,
-                                     pth,
-                                     ppt,
-                                     ptr,
-                                     ppm,
-                                     psp,
-                                     pnl,
-                                     ple,
-                                     pop,
-                                     errmsg),
-               errmsg,
-               errmsg);
-
-    /** - --> Set status of shooting */
-    pba->shooting_failed = shooting_failed;
-
-    /* all parameters read in fzw must be considered as read in
-       pfc. At the same time the parameters read before in pfc (like
-       theta_s,...) must still be considered as read (hence we could
-       not do a memcopy) */
-    for (i=0; i < pfc->size; i ++) {
-      if (fzw.fc.read[i] == _TRUE_)
-        pfc->read[i] = _TRUE_;
-    }
-
-    // Free tuned pfc
-    parser_free(&(fzw.fc));
-    /** - --> Free arrays allocated*/
-    free(unknown_parameter);
-    free(fzw.unknown_parameters_index);
-    free(fzw.target_name);
-    free(fzw.target_value);
   }
-  /** - case with no unknown parameters */
-  else{
-
-    /** - --> just read all parameters from input pfc: */
-    class_call(input_read_parameters(pfc,
-                                     ppr,
-                                     pba,
-                                     pth,
-                                     ppt,
-                                     ptr,
-                                     ppm,
-                                     psp,
-                                     pnl,
-                                     ple,
-                                     pop,
-                                     errmsg),
-               errmsg,
-               errmsg);
-  }
+  /** - -->  read all parameters from input pfc: */
+  class_call(input_read_parameters(),
+             errmsg,
+             errmsg);
 
   /** - eventually write all the read parameters in a file, unread parameters in another file, and warnings about unread parameters */
 
@@ -522,6 +405,7 @@ int input_init(
 
   if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
+    output* pop = &output_;
     sprintf(param_output_name,"%s%s",pop->root,"parameters.ini");
     sprintf(param_unused_name,"%s%s",pop->root,"unused_parameters");
 
@@ -566,26 +450,16 @@ int input_init(
   return _SUCCESS_;
 
 }
-int input_read_precisions(
-                          struct file_content * pfc,
-                          struct precision * ppr,
-                          struct background *pba,
-                          struct thermo *pth,
-                          struct perturbs *ppt,
-                          struct transfers *ptr,
-                          struct primordial *ppm,
-                          struct spectra *psp,
-                          struct nonlinear * pnl,
-                          struct lensing *ple,
-                          struct output *pop,
-                          ErrorMsg errmsg
-                          ) {
+int InputModule::input_read_precisions() {
+  FileContent* pfc = &file_content_;
+  precision* ppr = &precision_;
+  char* errmsg = error_message_;
   /** - set all precision parameters to default values */
 
   /**
    * Declare initial params to read into
    * */
-  class_call(input_default_precision(ppr),
+  class_call(input_default_precision(),
              errmsg,
              errmsg);
 
@@ -604,31 +478,29 @@ int input_read_precisions(
 
   return _SUCCESS_;
 }
-int input_read_parameters(
-                          struct file_content * pfc,
-                          struct precision * ppr,
-                          struct background *pba,
-                          struct thermo *pth,
-                          struct perturbs *ppt,
-                          struct transfers *ptr,
-                          struct primordial *ppm,
-                          struct spectra *psp,
-                          struct nonlinear * pnl,
-                          struct lensing *ple,
-                          struct output *pop,
-                          ErrorMsg errmsg
-                          ) {
+int InputModule::input_read_parameters() {
 
   /** Summary: */
 
   /** - define local variables */
+  char* errmsg = error_message_;
+  FileContent* pfc = &file_content_;
+  precision* ppr = &precision_;      /* for precision parameters */
+  background* pba = &background_;    /* for cosmological background */
+  thermo* pth = &thermodynamics_;    /* for thermodynamics */
+  perturbs* ppt = &perturbations_;   /* for source functions */
+  primordial* ppm = &primordial_;    /* for primordial spectra */
+  nonlinear* pnl = &nonlinear_;      /* for non-linear spectra */
+  transfers* ptr = &transfers_;      /* for transfer functions */
+  spectra* psp = &spectra_;          /* for output spectra */
+  lensing* ple = &lensing_;          /* for lensed spectra */
+  output* pop = &output_;
 
   int flag1,flag2,flag3;
   double param1,param2,param3;
-  int N_ncdm=0,n,entries_read;
-  int int1,fileentries;
+  int n, entries_read;
+  int int1;
   double scf_lambda;
-  double fnu_factor;
   double * pointer1;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_ARGUMENT_LENGTH_MAX_];
@@ -652,7 +524,6 @@ int input_read_parameters(
 
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
-  double rho_ncdm;
   double R0,R1,R2,R3,R4;
   double PSR0,PSR1,PSR2,PSR3,PSR4;
   double HSR0,HSR1,HSR2,HSR3,HSR4;
@@ -665,17 +536,9 @@ int input_read_parameters(
 
   /** - set all input parameters to default values */
 
-  class_call(input_default_params(pba,
-                                  pth,
-                                  ppt,
-                                  ptr,
-                                  ppm,
-                                  psp,
-                                  pnl,
-                                  ple,
-                                  pop),
-             errmsg,
-             errmsg);
+  class_call(input_default_params(),
+             error_message_,
+             error_message_);
 
   /** - if entries passed in file_content structure, carefully read
       and interpret each of them, and tune the relevant input
@@ -3046,17 +2909,6 @@ int input_read_parameters(
     }
   }
 
-  if (pnl->has_pk_eq == _TRUE_) {
-
-    if (input_verbose > 0) {
-      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
-      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
-    }
-    class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
-               errmsg,
-               errmsg);
-  }
-
   return _SUCCESS_;
 
 }
@@ -3076,17 +2928,17 @@ int input_read_parameters(
  * @return the error status
  */
 
-int input_default_params(
-                         struct background *pba,
-                         struct thermo *pth,
-                         struct perturbs *ppt,
-                         struct transfers *ptr,
-                         struct primordial *ppm,
-                         struct spectra *psp,
-                         struct nonlinear * pnl,
-                         struct lensing *ple,
-                         struct output *pop
-                         ) {
+int InputModule::input_default_params() {
+  precision* ppr = &precision_;      /* for precision parameters */
+  background* pba = &background_;    /* for cosmological background */
+  thermo* pth = &thermodynamics_;    /* for thermodynamics */
+  perturbs* ppt = &perturbations_;   /* for source functions */
+  primordial* ppm = &primordial_;    /* for primordial spectra */
+  nonlinear* pnl = &nonlinear_;      /* for non-linear spectra */
+  transfers* ptr = &transfers_;      /* for transfer functions */
+  spectra* psp = &spectra_;          /* for output spectra */
+  lensing* ple = &lensing_;          /* for lensed spectra */
+  output* pop = &output_;
 
   double sigma_B; /* Stefan-Boltzmann constant in \f$ W/m^2/K^4 = Kg/K^4/s^3 \f$*/
 
@@ -3145,8 +2997,6 @@ int input_default_params(
   pba->wa_fld = 0.;
   pba->Omega_EDE = 0.;
   pba->cs2_fld = 1.;
-
-  pba->shooting_failed = _FALSE_;
 
   /** - thermodynamics structure */
 
@@ -3401,14 +3251,14 @@ int input_default_params(
  *
  */
 
-int input_default_precision ( struct precision * ppr ) {
+int InputModule::input_default_precision () {
+
+  precision* ppr = &precision_;      /* for precision parameters */
 
   /**
    * - automatic estimate of machine precision
    */
   ppr->smallest_allowed_variation=DBL_EPSILON;
-
-  //get_machine_precision(&(ppr->smallest_allowed_variation));
 
   class_test(ppr->smallest_allowed_variation < 0,
              ppr->error_message,
@@ -3431,36 +3281,7 @@ int class_version(
   return _SUCCESS_;
 }
 
-/**
- * Automatically computes the machine precision.
- *
- * @param smallest_allowed_variation a pointer to the smallest allowed variation
- *
- * Returns the smallest
- * allowed variation (minimum epsilon * _TOLVAR_)
- */
-
-int get_machine_precision(double * smallest_allowed_variation) {
-  double one, meps, sum;
-
-  one = 1.0;
-  meps = 1.0;
-  do {
-    meps /= 2.0;
-    sum = one + meps;
-  } while (sum != one);
-  meps *= 2.0;
-
-  *smallest_allowed_variation = meps * _TOLVAR_;
-
-  return _SUCCESS_;
-
-}
-
-int input_fzerofun_1d(double input,
-                      void* pfzw,
-                      double *output,
-                      ErrorMsg error_message){
+int InputModule::input_fzerofun_1d(double input, void* pfzw, double* output, ErrorMsg error_message) {
 
   class_call(input_try_unknown_parameters(&input,
                                           1,
@@ -3473,16 +3294,8 @@ int input_fzerofun_1d(double input,
   return _SUCCESS_;
 }
 
-int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg error_message),
-                       double x1,
-                       double x2,
-                       double xtol,
-                       void *param,
-                       double *Fx1,
-                       double *Fx2,
-                       double *xzero,
-                       int *fevals,
-                       ErrorMsg error_message){
+int InputModule::class_fzero_ridder(int (*func)(double x, void* param, double* y, ErrorMsg error_message),
+                              double x1, double x2, double xtol, void* param, double* Fx1, double* Fx2, double* xzero, int* fevals, ErrorMsg error_message){
   /**Using Ridders' method, return the root of a function func known to
      lie between x1 and x2. The root, returned as zriddr, will be found to
      an approximate accuracy xtol.
@@ -3558,25 +3371,9 @@ int class_fzero_ridder(int (*func)(double x, void *param, double *y, ErrorMsg er
   class_stop(error_message,"Failure in int.");
 }
 
-int input_try_unknown_parameters(double * unknown_parameter,
-                                 int unknown_parameters_size,
-                                 void * voidpfzw,
-                                 double * output,
-                                 ErrorMsg errmsg){
+int InputModule::input_try_unknown_parameters(double* unknown_parameter, int unknown_parameters_size, void* voidpfzw, double* output, ErrorMsg errmsg) {
   /** Summary:
    * - Call the structures*/
-
-  Input input;
-  precision& pr = input.precision_;      /* for precision parameters */
-  background& ba = input.background_;    /* for cosmological background */
-  thermo& th = input.thermodynamics_;    /* for thermodynamics */
-  perturbs& pt = input.perturbations_;   /* for source functions */
-  primordial& pm = input.primordial_;    /* for primordial spectra */
-  nonlinear& nl = input.nonlinear_;      /* for non-linear spectra */
-  transfers& tr = input.transfers_;      /* for transfer functions */
-  spectra& sp = input.spectra_;          /* for output spectra */
-  lensing& le = input.lensing_;          /* for lensed spectra */
-  struct output& op = input.output_;
 
   int i;
   double rho_dcdm_today, rho_dr_today;
@@ -3593,35 +3390,16 @@ int input_try_unknown_parameters(double * unknown_parameter,
             "%e",unknown_parameter[i]);
   }
 
-  class_call(input_read_precisions(&(pfzw->fc),
-                                   &pr,
-                                   &ba,
-                                   &th,
-                                   &pt,
-                                   &tr,
-                                   &pm,
-                                   &sp,
-                                   &nl,
-                                   &le,
-                                   &op,
-                                   errmsg),
-             errmsg,
-             errmsg);
-
-  class_call(input_read_parameters(&(pfzw->fc),
-                                   &pr,
-                                   &ba,
-                                   &th,
-                                   &pt,
-                                   &tr,
-                                   &pm,
-                                   &sp,
-                                   &nl,
-                                   &le,
-                                   &op,
-                                   errmsg),
-             errmsg,
-             errmsg);
+  std::unique_ptr<InputModule> input_module{new InputModule(pfzw->fc)};
+  precision& pr = input_module->precision_;      /* for precision parameters */
+  background& ba = input_module->background_;    /* for cosmological background */
+  thermo& th = input_module->thermodynamics_;    /* for thermodynamics */
+  perturbs& pt = input_module->perturbations_;   /* for source functions */
+  primordial& pm = input_module->primordial_;    /* for primordial spectra */
+  nonlinear& nl = input_module->nonlinear_;      /* for non-linear spectra */
+  transfers& tr = input_module->transfers_;      /* for transfer functions */
+  spectra& sp = input_module->spectra_;          /* for output spectra */
+  lensing& le = input_module->lensing_;          /* for lensed spectra */
 
   class_call(parser_read_int(&(pfzw->fc),
                              "input_verbose",
@@ -3657,94 +3435,20 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
   }
 
-  Cosmology cosmology = Cosmology(input);
-  /** - Shoot forward into class up to required stage */
-  if (pfzw->required_computation_stage >= cs_background){
-    if (input_verbose>2)
-      printf("Stage 1: background\n");
-    ba.background_verbose = 0;
-    BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
-  }
+  // Zero the verbose flags
+  ba.background_verbose = 0;
+  th.thermodynamics_verbose = 0;
+  pt.perturbations_verbose = 0;
+  pm.primordial_verbose = 0;
+  nl.nonlinear_verbose = 0;
+  tr.transfer_verbose = 0;
+  sp.spectra_verbose = 0;
+  le.lensing_verbose = 0;
 
-  if (pfzw->required_computation_stage >= cs_thermodynamics){
-    if (input_verbose>2)
-      printf("Stage 2: thermodynamics\n");
-    pr.recfast_Nz0 = 10000;
-    th.thermodynamics_verbose = 0;
-    try {
-      ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
-    } catch (...) {
-      class_call_except(_FAILURE_,
-                        "TODO",
-                        errmsg,);
-    }
-  }
+  // Optimise some precision flags:
+  pr.recfast_Nz0 = 10000;
 
-  if (pfzw->required_computation_stage >= cs_perturbations){
-    if (input_verbose>2)
-      printf("Stage 3: perturbations\n");
-    pt.perturbations_verbose = 0;
-    try {
-      PerturbationsModulePtr perturbations_module = cosmology.GetPerturbationsModule();
-    } catch (...) {
-      class_call_except(_FAILURE_,
-                      "TODO",
-                      errmsg,);
-    }
-  }
-
-  if (pfzw->required_computation_stage >= cs_primordial){
-    if (input_verbose>2)
-      printf("Stage 4: primordial\n");
-    pm.primordial_verbose = 0;
-    try {
-      PrimordialModulePtr primordial_module = cosmology.GetPrimordialModule();
-    } catch (...) {
-      class_call_except(_FAILURE_,
-                        "TODO",
-                        errmsg,);
-    }
-  }
-
-  if (pfzw->required_computation_stage >= cs_nonlinear){
-    if (input_verbose>2)
-      printf("Stage 5: nonlinear\n");
-    nl.nonlinear_verbose = 0;
-    try {
-      NonlinearModulePtr nonlinear_module = cosmology.GetNonlinearModule();
-    } catch (...) {
-      class_call_except(_FAILURE_,
-                        "TODO",
-                        errmsg,);
-    }
-  }
-  if (pfzw->required_computation_stage >= cs_transfer){
-    if (input_verbose>2)
-      printf("Stage 6: transfer\n");
-    tr.transfer_verbose = 0;
-    try {
-      TransferModulePtr transfer_module = cosmology.GetTransferModule();
-    } catch (...) {
-      //TODO: This will be made nicer later when we refactor the input module.
-      class_call_except(_FAILURE_,
-                        "TODO",
-                        errmsg,);
-    }
-  }
-
-  if (pfzw->required_computation_stage >= cs_spectra){
-    if (input_verbose>2)
-      printf("Stage 7: spectra\n");
-    sp.spectra_verbose = 0;
-    try {
-      SpectraModulePtr spectra_module = cosmology.GetSpectraModule();
-    } catch (...) {
-      //TODO: This will be made nicer later when we refactor the input module.
-      class_call_except(_FAILURE_,
-                        sp.error_message,
-                        errmsg,);
-    }
-  }
+  Cosmology cosmology{std::move(input_module)};
 
   /** - Get the corresponding shoot variable and put into output */
   for (i=0; i < pfzw->target_size; i++) {
@@ -3791,76 +3495,26 @@ int input_try_unknown_parameters(double * unknown_parameter,
       output[i] = -(rho_dcdm_today+rho_dr_today)/(ba.H0*ba.H0)+ba.Omega0_dcdmdr;
       break;
     }
-    case sigma8:
-        NonlinearModulePtr nl = cosmology.GetNonlinearModule();
-        output[i] = nl->sigma8_[nl->index_pk_m_] - pfzw->target_value[i];
+    case sigma8: {
+      NonlinearModulePtr nl = cosmology.GetNonlinearModule();
+      output[i] = nl->sigma8_[nl->index_pk_m_] - pfzw->target_value[i];
       break;
     }
-  }
-
-
-  /** - Set filecontent to unread */
-  for (i=0; i<pfzw->fc.size; i++) {
-    pfzw->fc.read[i] = _FALSE_;
+    }
   }
 
   return _SUCCESS_;
 }
 
-int input_get_guess(double *xguess,
-                    double *dxdy,
-                    struct fzerofun_workspace * pfzw,
-                    ErrorMsg errmsg){
+int InputModule::input_get_guess(double* xguess, double* dxdy, fzerofun_workspace* pfzw, ErrorMsg errmsg) {
 
-  struct precision pr;        /* for precision parameters */
-  struct background ba;       /* for cosmological background */
-  struct thermo th;           /* for thermodynamics */
-  struct perturbs pt;         /* for source functions */
-  struct transfers tr;        /* for transfer functions */
-  struct primordial pm;       /* for primordial spectra */
-  struct spectra sp;          /* for output spectra */
-  struct nonlinear nl;        /* for non-linear spectra */
-  struct lensing le;          /* for lensed spectra */
-  struct output op;           /* for output files */
   int i;
 
   double Omega_M, a_decay, gamma, Omega0_dcdmdr=1.0;
   int index_guess;
 
-  /* Cheat to read only known parameters: */
-  pfzw->fc.size -= pfzw->target_size;
-
-  class_call(input_read_precisions(&(pfzw->fc),
-                                   &pr,
-                                   &ba,
-                                   &th,
-                                   &pt,
-                                   &tr,
-                                   &pm,
-                                   &sp,
-                                   &nl,
-                                   &le,
-                                   &op,
-                                   errmsg),
-             errmsg,
-             errmsg);
-
-  class_call(input_read_parameters(&(pfzw->fc),
-                                   &pr,
-                                   &ba,
-                                   &th,
-                                   &pt,
-                                   &tr,
-                                   &pm,
-                                   &sp,
-                                   &nl,
-                                   &le,
-                                   &op,
-                                   errmsg),
-             errmsg,
-             errmsg);
-
-  pfzw->fc.size += pfzw->target_size;
+  std::shared_ptr<InputModule> input_module = std::make_shared<InputModule>(pfzw->fc);
+  background& ba = input_module->background_;    /* for cosmological background */
   /** Summary: */
   /** - Here we should write reasonable guesses for the unknown parameters.
       Also estimate dxdy, i.e. how the unknown parameter responds to the known.
@@ -3963,17 +3617,10 @@ int input_get_guess(double *xguess,
     //printf("xguess = %g\n",xguess[index_guess]);
   }
 
-  for (i=0; i<pfzw->fc.size; i++) {
-    pfzw->fc.read[i] = _FALSE_;
-  }
-
   return _SUCCESS_;
 }
 
-int input_find_root(double *xzero,
-                    int *fevals,
-                    struct fzerofun_workspace *pfzw,
-                    ErrorMsg errmsg){
+int InputModule::input_find_root(double* xzero, int* fevals, fzerofun_workspace* pfzw, ErrorMsg errmsg){
   double x1, x2, f1, f2, dxdy, dx;
   int iter, iter2;
   int return_function;
@@ -4047,7 +3694,7 @@ int input_find_root(double *xzero,
   return _SUCCESS_;
 }
 
-int file_exists(const char *fname){
+int InputModule::file_exists(const char *fname){
   FILE *file = fopen(fname, "r");
   if (file != NULL){
     fclose(file);
@@ -4056,18 +3703,8 @@ int file_exists(const char *fname){
   return _FALSE_;
 }
 
-int input_auxillary_target_conditions(struct file_content * pfc,
-                                      enum target_names target_name,
-                                      double target_value,
-                                      int * aux_flag,
-                                      ErrorMsg errmsg){
+int InputModule::input_auxillary_target_conditions(FileContent* pfc, enum target_names target_name, double target_value, int* aux_flag, ErrorMsg errmsg) {
   *aux_flag = _TRUE_;
-  /*
-    double param1;
-    int int1, flag1;
-    int input_verbose = 0;
-    class_read_int("input_verbose",input_verbose);
-  */
   switch (target_name){
   case Omega_dcdmdr:
   case omega_dcdmdr:
@@ -4086,15 +3723,7 @@ int input_auxillary_target_conditions(struct file_content * pfc,
   return _SUCCESS_;
 }
 
-int compare_integers (const void * elem1, const void * elem2) {
-  int f = *((int*)elem1);
-  int s = *((int*)elem2);
-  if (f > s) return  1;
-  if (f < s) return -1;
-  return 0;
-}
-
-int compare_doubles(const void *a,const void *b) {
+int InputModule::compare_doubles(const void* a, const void* b) {
   double *x = (double *) a;
   double *y = (double *) b;
   if (*x < *y)
@@ -4104,26 +3733,6 @@ int compare_doubles(const void *a,const void *b) {
   return 0;
 }
 
-
-/**
- * Perform preliminary steps fur using the method called Pk_equal,
- * described in 0810.0190 and 1601.07230, extending the range of
- * validity of HALOFIT from constant w to (w0,wa) models. In that
- * case, one must compute here some effective values of w0_eff(z_i)
- * and Omega_m_eff(z_i), that will be interpolated later at arbitrary
- * redshift in the non-linear module.
- *
- * Returns table of values [z_i, tau_i, w0_eff_i, Omega_m_eff_i]
- * stored in nonlinear structure.
- *
- * @param ppr           Input: pointer to precision structure
- * @param pba           Input: pointer to background structure
- * @param pth           Input: pointer to thermodynamics structure
- * @param pnl    Input/Output: pointer to nonlinear structure
- * @param input_verbose Input: verbosity of this input module
- * @param errmsg  Input/Ouput: error message
- */
-
 int input_prepare_pk_eq(
                         const struct precision* ppr_input,
                         const struct background* pba_input,
@@ -4132,152 +3741,6 @@ int input_prepare_pk_eq(
                         int input_verbose,
                         ErrorMsg errmsg
                         ) {
-
-  /** Summary: */
-
-  /** - define local variables */
-
-  double tau_of_z;
-  double delta_tau;
-  double error;
-  double delta_tau_eq;
-  double * pvecback;
-  int last_index=0;
-  int index_pk_eq_z;
-  int index_eq;
-  double * z;
-
-  // TODO: It is probably nicer to pass the input structure as a const reference, make a local copy, and modify that. We shall think about that when we get to the input module.
-  Input input;
-  input.precision_ = *ppr_input;
-  input.background_ = *pba_input;
-  input.thermodynamics_ = *pth_input;
-  precision* ppr = &input.precision_;
-  background* pba = &input.background_;
-  thermo* pth = &input.thermodynamics_;
-
-  /** - the fake calls of the background and thermodynamics module will be done in non-verbose mode */
-
-  pba->background_verbose = 0;
-  pth->thermodynamics_verbose = 0;
-
-  /** - allocate indices and arrays for storing the results */
-
-  pnl->pk_eq_tau_size = 10;
-  class_alloc(pnl->pk_eq_tau,pnl->pk_eq_tau_size*sizeof(double),errmsg);
-  class_alloc(z,pnl->pk_eq_tau_size*sizeof(double),errmsg);
-
-  index_eq = 0;
-  class_define_index(pnl->index_pk_eq_w,_TRUE_,index_eq,1);
-  class_define_index(pnl->index_pk_eq_Omega_m,_TRUE_,index_eq,1);
-  pnl->pk_eq_size = index_eq;
-  class_alloc(pnl->pk_eq_w_and_Omega,pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),errmsg);
-  class_alloc(pnl->pk_eq_ddw_and_ddOmega,pnl->pk_eq_tau_size*pnl->pk_eq_size*sizeof(double),errmsg);
-
-  /** - call the background module in order to fill a table of tau_i[z_i] */
-
-  Cosmology cosmology{input};
-  BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
-  for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
-    z[index_pk_eq_z] = exp(log(1.+ppr->pk_eq_z_max)/(pnl->pk_eq_tau_size-1)*index_pk_eq_z)-1.;
-    class_call(background_module->background_tau_of_z(z[index_pk_eq_z], &tau_of_z),
-               pba->error_message, errmsg);
-    pnl->pk_eq_tau[index_pk_eq_z] = tau_of_z;
-  }
-  class_call(background_module->background_free_noinput(), pba->error_message, errmsg);
-
-  /** - loop over z_i values. For each of them, we will call the
-      background and thermodynamics module for fake models. The goal is
-      to find, for each z_i, and effective w0_eff[z_i] and
-      Omega_m_eff{z_i], such that: the true model with (w0,wa) and the
-      equivalent model with (w0_eff[z_i],0) have the same conformal
-      distance between z_i and z_recombination, namely chi = tau[z_i] -
-      tau_rec. It is thus necessary to call both the background and
-      thermodynamics module for each fake model and to re-compute
-      tau_rec for each of them. Once the eqauivalent model is found we
-      compute and store Omega_m_effa(z_i) of the equivalent model */
-
-  for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
-
-    if (input_verbose > 2)
-      printf("    * computing Pk_equal parameters at z=%e\n",z[index_pk_eq_z]);
-
-    /* get chi = (tau[z_i] - tau_rec) in true model */
-
-    pba->w0_fld = pba_input->w0_fld;
-    pba->wa_fld = pba_input->wa_fld;
-
-    Cosmology cosmology{input};
-    ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
-
-    delta_tau = pnl->pk_eq_tau[index_pk_eq_z] - thermodynamics_module->tau_rec_;
-
-    /* launch iterations in order to coverge to effective model with wa=0 but the same chi = (tau[z_i] - tau_rec) */
-
-    pba->wa_fld = 0.;
-
-    do {
-      Cosmology cosmology{input};
-      BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
-      ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
-
-      class_call(background_module->background_tau_of_z(z[index_pk_eq_z], &tau_of_z), pba->error_message, errmsg);
-
-
-      delta_tau_eq = tau_of_z - thermodynamics_module->tau_rec_;
-
-      error = 1. - delta_tau_eq/delta_tau;
-      pba->w0_fld = pba->w0_fld*pow(1. + error, 10.);
-
-    }
-    while(fabs(error) > ppr->pk_eq_tol);
-
-    /* Equivalent model found. Store w0(z) in that model. Find Omega_m(z) in that model and store it. */
-
-    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w] = pba->w0_fld;
-
-    class_alloc(pvecback, background_module->bg_size_*sizeof(double), pba->error_message);
-    class_call(background_module->background_at_tau(tau_of_z, pba->long_info, pba->inter_normal, &last_index, pvecback),
-               pba->error_message,
-               errmsg);
-    pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z + pnl->index_pk_eq_Omega_m] = pvecback[background_module->index_bg_Omega_m_];
-    free(pvecback);
-
-    class_call(background_module->background_free_noinput(), pba->error_message, errmsg);
-
-  }
-
-  /* in verbose mode, report the results */
-
-  if (input_verbose > 1) {
-
-    fprintf(stdout,"    Effective parameters for Pk_equal:\n");
-
-    for (index_pk_eq_z=0; index_pk_eq_z<pnl->pk_eq_tau_size; index_pk_eq_z++) {
-
-      fprintf(stdout,"    * at z=%e, tau=%e w=%e Omega_m=%e\n",
-              z[index_pk_eq_z],
-              pnl->pk_eq_tau[index_pk_eq_z],
-              pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_w],
-              pnl->pk_eq_w_and_Omega[pnl->pk_eq_size*index_pk_eq_z+pnl->index_pk_eq_Omega_m]
-              );
-    }
-  }
-
-  free(z);
-
-  /** - spline the table for later interpolation */
-
-  class_call(array_spline_table_lines(
-                                      pnl->pk_eq_tau,
-                                      pnl->pk_eq_tau_size,
-                                      pnl->pk_eq_w_and_Omega,
-                                      pnl->pk_eq_size,
-                                      pnl->pk_eq_ddw_and_ddOmega,
-                                      _SPLINE_NATURAL_,
-                                      errmsg),
-             errmsg,errmsg);
-
   return _SUCCESS_;
 
 }

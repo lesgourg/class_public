@@ -79,8 +79,8 @@
 #include "hyrec.h"
 #endif
 
-ThermodynamicsModule::ThermodynamicsModule(const Input& input, BackgroundModulePtr background_module)
-: BaseModule(input)
+ThermodynamicsModule::ThermodynamicsModule(InputModulePtr input_module, BackgroundModulePtr background_module)
+: BaseModule(std::move(input_module))
 , background_module_(std::move(background_module)) {
   ThrowInvalidArgumentIf(thermodynamics_init() != _SUCCESS_, error_message_);
 }

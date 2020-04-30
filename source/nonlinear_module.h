@@ -1,12 +1,12 @@
 #ifndef NONLINEAR_MODULE_H
 #define NONLINEAR_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class NonlinearModule : public BaseModule {
 public:
-  NonlinearModule(const Input& input, BackgroundModulePtr background_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module);
+  NonlinearModule(InputModulePtr input_module, BackgroundModulePtr background_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module);
   ~NonlinearModule();
 
   /* external functions (meant to be called from other modules) */
@@ -65,6 +65,7 @@ private:
   int nonlinear_hmcode_sigmadisp_at_z(double z, double* sigma_disp, double* sigma_disp_cb, nonlinear_workspace* pnw);
   int nonlinear_hmcode_sigmadisp100_at_z(double z, double* sigma_disp_100, double* sigma_disp_100_cb, nonlinear_workspace* pnw);
   int nonlinear_hmcode_sigmaprime_at_z(double z, double* sigma_prime, double* sigma_prime_cb, nonlinear_workspace* pnw);
+  int prepare_pk_eq();
 
   BackgroundModulePtr background_module_;
   PerturbationsModulePtr perturbations_module_;
@@ -169,6 +170,20 @@ private:
 
   double c_min_;      /** for HMcode: minimum concentration in Bullock 2001 mass-concentration relation */
   double eta_0_;      /** for HMcode: halo bloating parameter */
+
+  //@}
+
+  /** @name - parameters for the pk_eq method */
+
+  //@{
+
+  int index_pk_eq_w_;                /**< index of w in table pk_eq_w_and_Omega */
+  int index_pk_eq_Omega_m_;          /**< index of Omega_m in table pk_eq_w_and_Omega */
+  int pk_eq_size_;                   /**< number of indices in table pk_eq_w_and_Omega */
+  int pk_eq_tau_size_;               /**< number of times (and raws in table pk_eq_w_and_Omega) */
+  double* pk_eq_tau_;                /**< table of time values */
+  double* pk_eq_w_and_Omega_;        /**< table of background quantites */
+  double* pk_eq_ddw_and_ddOmega_;    /**< table of second derivatives */
 
   //@}
 

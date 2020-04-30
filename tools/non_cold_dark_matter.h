@@ -3,7 +3,7 @@
 
 #include "common.h"
 #include "parser.h"
-#include "input.h"
+#include "input_module.h"
 #include "arrays.h"
 #include "quadrature.h"
 
@@ -24,7 +24,7 @@ struct NcdmSettings {
 
 class NonColdDarkMatter {
 public:
-  static std::shared_ptr<NonColdDarkMatter> Create(file_content* pfc, const NcdmSettings&);
+  static std::shared_ptr<NonColdDarkMatter> Create(FileContent* pfc, const NcdmSettings&);
   ~NonColdDarkMatter();
   int background_ncdm_momenta(int n_ncdm, double z, double* n, double* rho, double* p, double* drho_dM, double* pseudo_p) const;
   double GetOmega0() const;
@@ -46,8 +46,8 @@ public:
 
 private:
 
-  NonColdDarkMatter(file_content* pfc, const NcdmSettings&);
-  int background_ncdm_init(file_content* pfc, const NcdmSettings&);
+  NonColdDarkMatter(FileContent* pfc, const NcdmSettings&);
+  int background_ncdm_init(FileContent* pfc, const NcdmSettings&);
   int background_ncdm_momenta_mass(int n_ncdm, double M, double z, double* n, double* rho, double* p, double* drho_dM, double* pseudo_p) const;
   double background_ncdm_M_from_Omega(int n_ncdm, double H0, double Omega0, double tol_M_ncdm);
   static int background_ncdm_distribution(void* pba, double q, double* f0);

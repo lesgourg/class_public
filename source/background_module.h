@@ -1,12 +1,12 @@
 #ifndef BACKGROUND_MODULE_H
 #define BACKGROUND_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class BackgroundModule : public BaseModule {
 public:
-  BackgroundModule(const Input& input);
+  BackgroundModule(InputModulePtr input_module);
   ~BackgroundModule();
   int background_output_titles(char titles[_MAXTITLESTRINGLENGTH_]) const;
   int background_output_data(int number_of_titles, double* data) const;

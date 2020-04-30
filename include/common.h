@@ -20,6 +20,7 @@
 #include <stdexcept>
 #include <utility>
 
+class InputModule;
 class BackgroundModule;
 class ThermodynamicsModule;
 class PerturbationsModule;
@@ -29,6 +30,7 @@ class TransferModule;
 class SpectraModule;
 class LensingModule;
 
+typedef std::shared_ptr<const InputModule> InputModulePtr;
 typedef std::shared_ptr<const BackgroundModule> BackgroundModulePtr;
 typedef std::shared_ptr<const ThermodynamicsModule> ThermodynamicsModulePtr;
 typedef std::shared_ptr<const PerturbationsModule> PerturbationsModulePtr;

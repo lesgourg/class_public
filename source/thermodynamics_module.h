@@ -1,12 +1,12 @@
 #ifndef THERMODYNAMICS_MODULE_H
 #define THERMODYNAMICS_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class ThermodynamicsModule : public BaseModule {
 public:
-  ThermodynamicsModule(const Input& input, BackgroundModulePtr background_module);
+  ThermodynamicsModule(InputModulePtr input_module, BackgroundModulePtr background_module);
   ~ThermodynamicsModule();
   int thermodynamics_output_titles(char titles[_MAXTITLESTRINGLENGTH_]) const;
   int thermodynamics_output_data(int number_of_titles, double* data) const;

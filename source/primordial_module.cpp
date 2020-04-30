@@ -17,8 +17,8 @@
 #include "primordial_module.h"
 #include "thread_pool.h"
 
-PrimordialModule::PrimordialModule(const Input& input, PerturbationsModulePtr perturbation_module)
-: BaseModule(input)
+PrimordialModule::PrimordialModule(InputModulePtr input_module, PerturbationsModulePtr perturbation_module)
+: BaseModule(std::move(input_module))
 , perturbations_module_(perturbation_module) {
   ThrowInvalidArgumentIf(primordial_init() != _SUCCESS_, error_message_);
 }

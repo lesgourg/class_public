@@ -1,6 +1,6 @@
 #include "non_cold_dark_matter.h"
 
-std::shared_ptr<NonColdDarkMatter> NonColdDarkMatter::Create(file_content* pfc, const NcdmSettings& ncdm_settings) {
+std::shared_ptr<NonColdDarkMatter> NonColdDarkMatter::Create(FileContent* pfc, const NcdmSettings& ncdm_settings) {
   int flag1;
   int N_ncdm;
   ErrorMsg error_message;
@@ -18,7 +18,7 @@ std::shared_ptr<NonColdDarkMatter> NonColdDarkMatter::Create(file_content* pfc, 
   }
 }
 
-NonColdDarkMatter::NonColdDarkMatter(file_content* pfc, const NcdmSettings& ncdm_settings) {
+NonColdDarkMatter::NonColdDarkMatter(FileContent* pfc, const NcdmSettings& ncdm_settings) {
   rho_nu_rel_ = 56.0/45.0*pow(_PI_, 6)*pow(4.0/11.0, 4.0/3.0)*_G_/pow(_h_P_, 3)/pow(_c_, 7)*pow(_Mpc_over_m_, 2)*pow(ncdm_settings.T_cmb*_k_B_, 4);
   int return_value = background_ncdm_init(pfc, ncdm_settings);
   ThrowInvalidArgumentIf(return_value == _FAILURE_, error_message_);
@@ -210,7 +210,7 @@ int NonColdDarkMatter::background_ncdm_test_function(
  * @param pba Input/Output: background structure
  */
 
-int NonColdDarkMatter::background_ncdm_init(file_content* pfc, const NcdmSettings& ncdm_settings) {
+int NonColdDarkMatter::background_ncdm_init(FileContent* pfc, const NcdmSettings& ncdm_settings) {
   int n;
   int int1;
   int flag1;
@@ -484,11 +484,6 @@ int NonColdDarkMatter::background_ncdm_init(file_content* pfc, const NcdmSetting
       /3./pow(_h_P_/2./_PI_, 3)/pow(_c_, 7)*_Mpc_over_m_*_Mpc_over_m_;
 
     /* If allocated, deallocate interpolation table:  */
-    if ((got_files_ != NULL) && (got_files_[k] == _TRUE_)){
-      free(pbadist.q);
-      free(pbadist.f0);
-      free(pbadist.d2f0);
-    }
   }
 
   /* We must calculate M from omega or vice versa if one of them is missing.

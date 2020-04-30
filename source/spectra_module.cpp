@@ -19,8 +19,8 @@
 #include "spectra_module.h"
 #include "thread_pool.h"
 
-SpectraModule::SpectraModule(const Input& input, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, TransferModulePtr transfer_module)
-: BaseModule(input)
+SpectraModule::SpectraModule(InputModulePtr input_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module, NonlinearModulePtr nonlinear_module, TransferModulePtr transfer_module)
+: BaseModule(std::move(input_module))
 , perturbations_module_(std::move(perturbations_module))
 , primordial_module_(std::move(primordial_module))
 , nonlinear_module_(std::move(nonlinear_module))
@@ -327,6 +327,10 @@ int SpectraModule::spectra_init() {
  */
 
 int SpectraModule::spectra_free() {
+
+  if (ppt->has_cls == _FALSE_) {
+    return _SUCCESS_;
+  }
 
   int index_md;
 

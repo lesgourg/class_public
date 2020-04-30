@@ -1,12 +1,12 @@
 #ifndef LENSING_MODULE_H
 #define LENSING_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class LensingModule : public BaseModule {
 public:
-  LensingModule(const Input& input, SpectraModulePtr spectra_module);
+  LensingModule(InputModulePtr input_module, SpectraModulePtr spectra_module);
   ~LensingModule();
   int lensing_cl_at_l(int l, double * cl_lensed) const;
 

@@ -2,7 +2,7 @@
 
 int parser_read_file(
 		     char * filename,
-		     struct file_content * pfc,
+		     FileContent* pfc,
 		     ErrorMsg errmsg
 		     ){
   FILE * inputfile;
@@ -48,7 +48,7 @@ int parser_read_file(
 }
 
 int parser_init(
-		struct file_content * pfc,
+		FileContent* pfc,
 		int size,
         char * filename,
 		ErrorMsg errmsg
@@ -61,20 +61,6 @@ int parser_init(
     class_alloc(pfc->name,size*sizeof(FileArg),errmsg);
     class_alloc(pfc->value,size*sizeof(FileArg),errmsg);
     class_alloc(pfc->read,size*sizeof(short),errmsg);
-  }
-
-  return _SUCCESS_;
-}
-
-int parser_free(
-		struct file_content * pfc
-		) {
-
-  if (pfc->size > 0) {
-    free(pfc->name);
-    free(pfc->value);
-    free(pfc->read);
-    free(pfc->filename);
   }
 
   return _SUCCESS_;
@@ -169,7 +155,7 @@ int parser_read_line(
 }
 
 int parser_read_int(
-		    struct file_content * pfc,
+		    FileContent* pfc,
 		    char * name,
 		    int * value,
 		    int * found,
@@ -221,13 +207,12 @@ int parser_read_int(
 }
 
 int parser_read_double(
-		       struct file_content * pfc,
-		       char * name,
-		       double * value,
-		       int * found,
-		       ErrorMsg errmsg
-		       ) {
-  int index;
+                       FileContent* pfc,
+                       char * name,
+                       double * value,
+                       int * found,
+                       ErrorMsg errmsg
+                       ) {
   int i;
 
   /* intialize the 'found' flag to false */
@@ -236,7 +221,7 @@ int parser_read_double(
 
   /* search parameter */
 
-  index=0;
+  int index = 0;
   while ((index < pfc->size) && (strcmp(pfc->name[index],name) != 0))
     index++;
 
@@ -273,7 +258,7 @@ int parser_read_double(
 }
 
 int parser_read_double_and_position(
-		       struct file_content * pfc,
+		       FileContent* pfc,
 		       char * name,
 		       double * value,
                int * position,
@@ -328,7 +313,7 @@ int parser_read_double_and_position(
 }
 
 int parser_read_string(
-		       struct file_content * pfc,
+		       FileContent* pfc,
 		       char * name,
 		       FileArg * value,
 		       int * found,
@@ -378,7 +363,7 @@ int parser_read_string(
 }
 
 int parser_read_list_of_doubles(
-				struct file_content * pfc,
+				FileContent* pfc,
 				char * name,
 				int * size,
 				double ** pointer_to_list,
@@ -468,7 +453,7 @@ int parser_read_list_of_doubles(
 }
 
 int parser_read_list_of_integers(
-				 struct file_content * pfc,
+				 FileContent* pfc,
 				 char * name,
 				 int * size,
 				 int ** pointer_to_list,
@@ -558,7 +543,7 @@ int parser_read_list_of_integers(
 }
 
 int parser_read_list_of_strings(
-				struct file_content * pfc,
+				FileContent* pfc,
 				char * name,
 				int * size,
 				char ** pointer_to_list,
@@ -639,9 +624,9 @@ int parser_read_list_of_strings(
 }
 
 int parser_cat(
-	       struct file_content * pfc1,
-	       struct file_content * pfc2,
-	       struct file_content * pfc3,
+	       const FileContent* pfc1,
+	       const FileContent* pfc2,
+	       FileContent* pfc3,
 	       ErrorMsg errmsg
 	       ) {
 

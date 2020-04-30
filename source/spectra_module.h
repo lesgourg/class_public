@@ -1,12 +1,12 @@
 #ifndef SPECTRA_MODULE_H
 #define SPECTRA_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class SpectraModule : public BaseModule {
 public:
-  SpectraModule(const Input& input, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module_, NonlinearModulePtr nonlinear_module, TransferModulePtr transfer_module);
+  SpectraModule(InputModulePtr input_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module_, NonlinearModulePtr nonlinear_module, TransferModulePtr transfer_module);
   ~SpectraModule();
   int spectra_cl_at_l(double l, double * cl, double ** cl_md, double ** cl_md_ic) const;
 

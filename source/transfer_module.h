@@ -1,12 +1,12 @@
 #ifndef TRANSFER_MODULE_H
 #define TRANSFER_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class TransferModule : public BaseModule {
 public:
-  TransferModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, NonlinearModulePtr nonlinear_module);
+  TransferModule(InputModulePtr input_module, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, NonlinearModulePtr nonlinear_module);
   ~TransferModule();
 
   /** @name - number of modes and transfer function types */

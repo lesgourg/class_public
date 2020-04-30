@@ -12,13 +12,15 @@
  */
 
 #include "background_module.h"
+#include "thermodynamics_module.h"
 #include "perturbations_module.h"
 #include "primordial_module.h"
 #include "nonlinear_module.h"
 #include "non_cold_dark_matter.h"
+#include "cosmology.h"
 
-NonlinearModule::NonlinearModule(const Input& input, BackgroundModulePtr background_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module)
-: BaseModule(input)
+NonlinearModule::NonlinearModule(InputModulePtr input_module, BackgroundModulePtr background_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module)
+: BaseModule(std::move(input_module))
 , background_module_(std::move(background_module))
 , perturbations_module_(std::move(perturbations_module))
 , primordial_module_(std::move(primordial_module)) {
@@ -1120,6 +1122,15 @@ int NonlinearModule::nonlinear_init() {
       printf("Computing linear Fourier spectra.\n");
   }
 
+  if (pnl->has_pk_eq == _TRUE_) {
+
+    if (pnl->nonlinear_verbose > 0) {
+      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
+      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
+    }
+    class_call(prepare_pk_eq(), error_message_, error_message_);
+  }
+
   /** --> check applicability of Halofit and HMcode */
   if (pnl->method > nl_none) {
 
@@ -1488,8 +1499,10 @@ int NonlinearModule::nonlinear_free() {
 
     free(k_);
     free(ln_k_);
-    free(ln_tau_);
-
+    if (ppt->z_max_pk != 0.) {
+      free(ln_tau_);
+    }
+    
     for (index_pk = 0; index_pk < pk_size_; index_pk++) {
       free(ln_pk_ic_l_[index_pk]);
       free(ln_pk_l_[index_pk]);
@@ -1527,9 +1540,9 @@ int NonlinearModule::nonlinear_free() {
   }
 
   if (pnl->has_pk_eq == _TRUE_) {
-    free(pnl->pk_eq_tau);
-    free(pnl->pk_eq_w_and_Omega);
-    free(pnl->pk_eq_ddw_and_ddOmega);
+    free(pk_eq_tau_);
+    free(pk_eq_w_and_Omega_);
+    free(pk_eq_ddw_and_ddOmega_);
   }
 
   return _SUCCESS_;
@@ -2420,24 +2433,24 @@ int NonlinearModule::nonlinear_halofit(
        within tabulated arrays, to get them at the
        current tau value. */
 
-    class_alloc(w_and_Omega, pnl->pk_eq_size*sizeof(double), error_message_);
+    class_alloc(w_and_Omega, pk_eq_size_*sizeof(double), error_message_);
 
     class_call(array_interpolate_spline(
-                                        pnl->pk_eq_tau,
-                                        pnl->pk_eq_tau_size,
-                                        pnl->pk_eq_w_and_Omega,
-                                        pnl->pk_eq_ddw_and_ddOmega,
-                                        pnl->pk_eq_size,
+                                        pk_eq_tau_,
+                                        pk_eq_tau_size_,
+                                        pk_eq_w_and_Omega_,
+                                        pk_eq_ddw_and_ddOmega_,
+                                        pk_eq_size_,
                                         tau,
                                         &last_index,
                                         w_and_Omega,
-                                        pnl->pk_eq_size,
+                                        pk_eq_size_,
                                         error_message_),
                error_message_,
                error_message_);
 
-    w0 = w_and_Omega[pnl->index_pk_eq_w];
-    Omega_m = w_and_Omega[pnl->index_pk_eq_Omega_m];
+    w0 = w_and_Omega[index_pk_eq_w_];
+    Omega_m = w_and_Omega[index_pk_eq_Omega_m_];
     Omega_v = 1.-Omega_m;
 
     free(w_and_Omega);
@@ -4123,4 +4136,161 @@ int NonlinearModule::nonlinear_hmcode_sigmaprime_at_z(double z, double * sigma_p
 
 
   return _SUCCESS_;
+}
+
+/**
+ * Perform preliminary steps fur using the method called Pk_equal,
+ * described in 0810.0190 and 1601.07230, extending the range of
+ * validity of HALOFIT from constant w to (w0,wa) models. In that
+ * case, one must compute here some effective values of w0_eff(z_i)
+ * and Omega_m_eff(z_i), that will be interpolated later at arbitrary
+ * redshift in the non-linear module.
+ *
+ * Returns table of values [z_i, tau_i, w0_eff_i, Omega_m_eff_i]
+ * stored in nonlinear structure.
+ *
+ * @param ppr           Input: pointer to precision structure
+ * @param pba           Input: pointer to background structure
+ * @param pth           Input: pointer to thermodynamics structure
+ * @param pnl    Input/Output: pointer to nonlinear structure
+ * @param input_verbose Input: verbosity of this input module
+ * @param errmsg  Input/Ouput: error message
+ */
+
+int NonlinearModule::prepare_pk_eq() {
+
+  /** Summary: */
+
+  /** - define local variables */
+
+  double tau_of_z;
+  double delta_tau;
+  double error;
+  double delta_tau_eq;
+  double * pvecback;
+  int last_index = 0;
+  int index_pk_eq_z;
+  int index_eq;
+  double * z;
+
+  /** - allocate indices and arrays for storing the results */
+
+  pk_eq_tau_size_ = 10;
+  class_alloc(pk_eq_tau_, pk_eq_tau_size_*sizeof(double), error_message_);
+  class_alloc(z, pk_eq_tau_size_*sizeof(double), error_message_);
+
+  index_eq = 0;
+  class_define_index(index_pk_eq_w_, _TRUE_, index_eq, 1);
+  class_define_index(index_pk_eq_Omega_m_, _TRUE_, index_eq, 1);
+  pk_eq_size_ = index_eq;
+  class_alloc(pk_eq_w_and_Omega_, pk_eq_tau_size_*pk_eq_size_*sizeof(double), error_message_);
+  class_alloc(pk_eq_ddw_and_ddOmega_, pk_eq_tau_size_*pk_eq_size_*sizeof(double), error_message_);
+
+  /** - call the background module in order to fill a table of tau_i[z_i] */
+  std::unique_ptr<InputModule> input{new InputModule(input_module_->file_content_)};
+  /** - the fake calls of the background and thermodynamics module will be done in non-verbose mode */
+  input->background_.background_verbose = 0;
+  input->thermodynamics_.thermodynamics_verbose = 0;
+  Cosmology cosmology{std::move(input)};
+  BackgroundModulePtr background_module = cosmology.GetBackgroundModule();
+  ThermodynamicsModulePtr thermodynamics_module = cosmology.GetThermodynamicsModule();
+
+  for (index_pk_eq_z = 0; index_pk_eq_z < pk_eq_tau_size_; index_pk_eq_z++) {
+    z[index_pk_eq_z] = exp(log(1. + ppr->pk_eq_z_max)/(pk_eq_tau_size_ - 1)*index_pk_eq_z) - 1.;
+    class_call(background_module->background_tau_of_z(z[index_pk_eq_z], &tau_of_z),
+               background_module->error_message_, error_message_);
+    pk_eq_tau_[index_pk_eq_z] = tau_of_z;
+  }
+
+  /** - loop over z_i values. For each of them, we will call the
+      background and thermodynamics module for fake models. The goal is
+      to find, for each z_i, an effective w0_eff[z_i] and
+      Omega_m_eff[z_i], such that: the true model with (w0, wa) and the
+      equivalent model with (w0_eff[z_i], 0) have the same conformal
+      distance between z_i and z_recombination, namely chi = tau[z_i] -
+      tau_rec. It is thus necessary to call both the background and
+      thermodynamics module for each fake model and to re-compute
+      tau_rec for each of them. Once the eqauivalent model is found we
+      compute and store Omega_m_effa[z_i] of the equivalent model */
+
+  for (index_pk_eq_z = 0; index_pk_eq_z < pk_eq_tau_size_; index_pk_eq_z++) {
+
+    if (pnl->nonlinear_verbose > 2)
+      printf("    * computing Pk_equal parameters at z=%e\n", z[index_pk_eq_z]);
+
+    /* get chi = (tau[z_i] - tau_rec) in true model */
+    delta_tau = pk_eq_tau_[index_pk_eq_z] - thermodynamics_module->tau_rec_;
+
+    /* launch iterations in order to coverge to effective model with wa=0 but the same chi = (tau[z_i] - tau_rec) */
+
+    double w0_fld = pba->w0_fld;
+    do {
+      input.reset(new InputModule(input_module_->file_content_));
+      input->background_.background_verbose = 0;
+      input->thermodynamics_.thermodynamics_verbose = 0;
+      input->background_.w0_fld = w0_fld;
+      input->background_.wa_fld = 0.0;
+
+      Cosmology cosmology{std::move(input)};
+      background_module = cosmology.GetBackgroundModule();
+      thermodynamics_module = cosmology.GetThermodynamicsModule();
+
+      class_call(background_module->background_tau_of_z(z[index_pk_eq_z], &tau_of_z), background_module->error_message_, error_message_);
+
+      delta_tau_eq = tau_of_z - thermodynamics_module->tau_rec_;
+
+      error = 1. - delta_tau_eq/delta_tau;
+      w0_fld *= pow(1. + error, 10.);
+
+    }
+    while(fabs(error) > ppr->pk_eq_tol);
+
+    /* Equivalent model found. Store w0(z) in that model. Find Omega_m(z) in that model and store it. */
+
+    pk_eq_w_and_Omega_[pk_eq_size_*index_pk_eq_z + index_pk_eq_w_] = w0_fld;
+
+    class_alloc(pvecback, background_module->bg_size_*sizeof(double), background_module->error_message_);
+    class_call(background_module->background_at_tau(tau_of_z, pba->long_info, pba->inter_normal, &last_index, pvecback),
+               background_module->error_message_,
+               error_message_);
+    pk_eq_w_and_Omega_[pk_eq_size_*index_pk_eq_z + index_pk_eq_Omega_m_] = pvecback[background_module->index_bg_Omega_m_];
+    free(pvecback);
+
+    class_call(background_module->background_free_noinput(), background_module->error_message_, error_message_);
+
+  }
+
+  /* in verbose mode, report the results */
+
+  if (pnl->nonlinear_verbose > 1) {
+
+    fprintf(stdout,"    Effective parameters for Pk_equal:\n");
+
+    for (index_pk_eq_z=0; index_pk_eq_z<pk_eq_tau_size_; index_pk_eq_z++) {
+
+      fprintf(stdout,"    * at z=%e, tau=%e w=%e Omega_m=%e\n",
+              z[index_pk_eq_z],
+              pk_eq_tau_[index_pk_eq_z],
+              pk_eq_w_and_Omega_[pk_eq_size_*index_pk_eq_z+index_pk_eq_w_],
+              pk_eq_w_and_Omega_[pk_eq_size_*index_pk_eq_z+index_pk_eq_Omega_m_]
+              );
+    }
+  }
+
+  free(z);
+
+  /** - spline the table for later interpolation */
+
+  class_call(array_spline_table_lines(
+                                      pk_eq_tau_,
+                                      pk_eq_tau_size_,
+                                      pk_eq_w_and_Omega_,
+                                      pk_eq_size_,
+                                      pk_eq_ddw_and_ddOmega_,
+                                      _SPLINE_NATURAL_,
+                                      error_message_),
+             error_message_,error_message_);
+
+  return _SUCCESS_;
+
 }

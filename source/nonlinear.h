@@ -51,30 +51,7 @@ struct nonlinear {
 
   //@}
 
-
-
-
-
-
-
-
-  /** @name - parameters for the pk_eq method */
-
-  //@{
-
   short has_pk_eq;               /**< flag: will we use the pk_eq method? */
-
-  int index_pk_eq_w;                /**< index of w in table pk_eq_w_and_Omega */
-  int index_pk_eq_Omega_m;          /**< index of Omega_m in table pk_eq_w_and_Omega */
-  int pk_eq_size;                   /**< number of indices in table pk_eq_w_and_Omega */
-
-  int pk_eq_tau_size;               /**< number of times (and raws in table pk_eq_w_and_Omega) */
-
-  double * pk_eq_tau;               /**< table of time values */
-  double * pk_eq_w_and_Omega;       /**< table of background quantites */
-  double * pk_eq_ddw_and_ddOmega;   /**< table of second derivatives */
-
-  //@}
 
   /** @name - technical parameters */
 

@@ -1,12 +1,12 @@
 #ifndef PERTURBATIONS_MODULE_H
 #define PERTURBATIONS_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "base_module.h"
 
 class PerturbationsModule : public BaseModule {
 public:
-  PerturbationsModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module);
+  PerturbationsModule(InputModulePtr input_module, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module);
   ~PerturbationsModule();
   int perturb_output_data(enum file_format output_format, double z, int number_of_titles, double* data) const;
   int perturb_output_titles(enum file_format output_format, char titles[_MAXTITLESTRINGLENGTH_]) const;

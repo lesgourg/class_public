@@ -142,9 +142,8 @@ int evolver_ndf15(
   tempvec1 =yppinterp+neqp;
   tempvec2 =tempvec1+neqp;
 
-  interpidx=(int*)(tempvec2+neqp);
 
-  dif      =(double**)(interpidx+neqp);
+  dif      =(double**)(tempvec2+neqp);
   dif[1]   =(double*)(dif+neqp);
   for(j=2;j<=neq;j++) dif[j] = dif[j-1]+7; /* Set row pointers... */
   dif[0] = NULL;
@@ -171,7 +170,7 @@ int evolver_ndf15(
   /* 	class_alloc(tempvec1,sizeof(double)*neqp,error_message); */
   /* 	class_alloc(tempvec2,sizeof(double)*neqp,error_message); */
 
-  /* 	class_alloc(interpidx,sizeof(int)*neqp,error_message); */
+  class_alloc(interpidx, sizeof(int)*neqp, error_message);
 
   /* Allocate vector of pointers to rows of dif:*/
   /* 	class_alloc(dif,sizeof(double*)*neqp,error_message);  */

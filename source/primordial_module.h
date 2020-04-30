@@ -1,13 +1,13 @@
 #ifndef PRIMORDIAL_MODULE_H
 #define PRIMORDIAL_MODULE_H
 
-#include "input.h"
+#include "input_module.h"
 #include "perturbations_module.h"
 #include "base_module.h"
 
 class PrimordialModule : public BaseModule {
 public:
-  PrimordialModule(const Input& input, PerturbationsModulePtr perturbation_module);
+  PrimordialModule(InputModulePtr input_module, PerturbationsModulePtr perturbation_module);
   ~PrimordialModule();
 
   int primordial_spectrum_at_k(int index_md, enum linear_or_logarithmic mode, double k, double* pk) const;

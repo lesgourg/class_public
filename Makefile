@@ -82,11 +82,11 @@ endif
 %.opp: %.cpp .base
 	cd $(WRKDIR); $(CPP) $(OPTFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
 
-TOOLS = non_cold_dark_matter.opp growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o exceptions.opp
+TOOLS = non_cold_dark_matter.opp growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.opp quadrature.o hyperspherical.o common.o trigonometric_integrals.o exceptions.opp
 
-SOURCE = input.opp background_module.opp thermodynamics_module.opp perturbations_module.opp primordial_module.opp nonlinear_module.opp transfer_module.opp spectra_module.opp lensing_module.opp cosmology.opp
+SOURCE = input_module.opp background_module.opp thermodynamics_module.opp perturbations_module.opp primordial_module.opp nonlinear_module.opp transfer_module.opp spectra_module.opp lensing_module.opp cosmology.opp
 
-INPUT = input.opp
+INPUT = input_module.opp
 
 PRECISION = precision.o
 

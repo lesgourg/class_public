@@ -30,8 +30,8 @@
 #include "perturbations_module.h"
 #include "thread_pool.h"
 
-PerturbationsModule::PerturbationsModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module)
-: BaseModule(input)
+PerturbationsModule::PerturbationsModule(InputModulePtr input_module, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module)
+: BaseModule(std::move(input_module))
 , background_module_(std::move(background_module))
 , thermodynamics_module_(std::move(thermodynamics_module)) {
   ThrowInvalidArgumentIf(perturb_init() != _SUCCESS_, error_message_);

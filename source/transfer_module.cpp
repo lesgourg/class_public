@@ -34,8 +34,8 @@
 #include "transfer_module.h"
 #include "thread_pool.h"
 
-TransferModule::TransferModule(const Input& input, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, NonlinearModulePtr nonlinear_module)
-: BaseModule(input)
+TransferModule::TransferModule(InputModulePtr input_module, BackgroundModulePtr background_module, ThermodynamicsModulePtr thermodynamics_module, PerturbationsModulePtr perturbations_module, NonlinearModulePtr nonlinear_module)
+: BaseModule(std::move(input_module))
 , background_module_(std::move(background_module))
 , thermodynamics_module_(std::move(thermodynamics_module))
 , perturbations_module_(std::move(perturbations_module))
