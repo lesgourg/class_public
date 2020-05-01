@@ -1464,8 +1464,8 @@ cdef class Class:
             raise CosmoSevereError(self.pm.error_message)
 
         tmp = <bytes> titles
-        names = tmp.split("\t")[:-1]
         tmp = str(tmp.decode())
+        names = tmp.split("\t")[:-1]
         number_of_titles = len(names)
         timesteps = self.pm.lnk_size
 
