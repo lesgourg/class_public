@@ -32,8 +32,35 @@ public:
   double tau_cut_; /**< at at which the visibility goes below a fixed fraction of the maximum visibility, used for an approximation in perturbation module */
 
 
+  double tau_reionization_;
+  double z_reionization_;
+  double n_e_; /**< total number density of electrons today (free or not) */
+
+  /** @name - characteristic quantities like redshift, conformal time and sound horizon at recombination */
+
+  //@{
+
+  double ds_rec_;  /**< physical sound horizon at recombination */
+  double da_rec_;  /**< physical angular diameter distance to recombination */
+  double rd_rec_;  /**< comoving photon damping scale at recombination */
   double rs_rec_;  /**< comoving sound horizon at recombination */
   double ra_rec_;  /**< conformal angular diameter distance to recombination */
+
+  double rs_star_; /**< comoving sound horizon at z_star */
+  double ra_star_;  /**< conformal angular diameter distance to z_star */
+  double z_star_;  /**< redshift at which photon optical depth crosses one */
+  double tau_star_;/**< conformal time at which photon optical depth crosses one */
+  double ds_star_; /**< physical sound horizon at z_star */
+  double da_star_;  /**< physical angular diameter distance to z_star */
+  double rd_star_;  /**< comoving photon damping scale at z_star */
+
+  double z_d_;     /**< baryon drag redshift */
+  double tau_d_;   /**< baryon drag time */
+  double rs_d_;    /**< comoving sound horizon at baryon drag */
+  double ds_d_;    /**< physical sound horizon at baryon drag */
+
+
+  //@}
 
   /** @name - all indices for the vector of thermodynamical (=th) quantities stored in table */
 
@@ -88,33 +115,6 @@ private:
   int thermodynamics_tanh(double x, double center, double before, double after, double width, double* result);
 
   BackgroundModulePtr background_module_;
-  /** @name - characteristic quantities like redshift, conformal time and sound horizon at recombination */
-
-  //@{
-
-  double ds_rec_;  /**< physical sound horizon at recombination */
-  double da_rec_;  /**< physical angular diameter distance to recombination */
-  double rd_rec_;  /**< comoving photon damping scale at recombination */
-
-  double z_star_;  /**< redshift at which photon optical depth crosses one */
-  double tau_star_;/**< confirmal time at which photon optical depth crosses one */
-  double rs_star_; /**< comoving sound horizon at z_star */
-  double ds_star_; /**< physical sound horizon at z_star */
-  double ra_star_;  /**< conformal angular diameter distance to z_star */
-  double da_star_;  /**< physical angular diameter distance to z_star */
-  double rd_star_;  /**< comoving photon damping scale at z_star */
-
-  double z_d_;     /**< baryon drag redshift */
-  double tau_d_;   /**< baryon drag time */
-  double ds_d_;    /**< physical sound horizon at baryon drag */
-  double rs_d_;    /**< comoving sound horizon at baryon drag */
-
-
-  //@}
-  double tau_reionization_;
-  double z_reionization_;
-  double n_e_; /**< total number density of electrons today (free or not) */
-
 
   /** @name - thermodynamics interpolation tables */
 

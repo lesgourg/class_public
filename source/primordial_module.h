@@ -22,6 +22,24 @@ public:
                           of simply setting P(k)_(index_ic1, index_ic2) to zero) */
   int lnk_size_;    /**< number of ln(k) values */
 
+  /** @name - derived parameters */
+  //@{
+  double phi_pivot_;      /**< in inflationary module, value of
+                            phi_pivot (set to 0 for inflation_V,
+                            inflation_H; found by code for
+                            inflation_V_end) */
+  double phi_min_;        /**< in inflationary module, value of phi when \f$ k_{min}=aH \f$*/
+  double phi_max_;        /**< in inflationary module, value of phi when \f$ k_{max}=aH \f$*/
+  double phi_stop_;       /**< in inflationary module, value of phi at the end of inflation */
+  //@}
+  double A_s_;
+  double n_s_;
+  double alpha_s_;
+  double beta_s_;
+  double r_;
+  double n_t_;
+  double alpha_t_;
+
 
 private:
   int primordial_init();
@@ -49,14 +67,6 @@ private:
   int primordial_external_spectrum_init();
 
   PerturbationsModulePtr perturbations_module_;
-
-  double A_s_;
-  double n_s_;
-  double alpha_s_;
-  double beta_s_;
-  double r_;
-  double n_t_;
-  double alpha_t_;
 
   /** @name - pre-computed table of primordial spectra, and related quantities */
 
@@ -113,16 +123,6 @@ private:
   int in_size_;          /**< full size of vector */
   //@}
 
-  /** @name - derived parameters */
-  //@{
-  double phi_pivot_;      /**< in inflationary module, value of
-                            phi_pivot (set to 0 for inflation_V,
-                            inflation_H; found by code for
-                            inflation_V_end) */
-  double phi_min_;        /**< in inflationary module, value of phi when \f$ k_{min}=aH \f$*/
-  double phi_max_;        /**< in inflationary module, value of phi when \f$ k_{max}=aH \f$*/
-  double phi_stop_;       /**< in inflationary module, value of phi at the end of inflation */
-  //@}
 };
 
 #endif //PRIMORDIAL_MODULE_H

@@ -23,9 +23,9 @@ public:
   , pth(&input_module->thermodynamics_)
   , ppt(&input_module->perturbations_)
   , ppm(&input_module->primordial_)
-  , psp(&input_module->spectra_)
   , pnl(&input_module->nonlinear_)
   , ptr(&input_module->transfers_)
+  , psp(&input_module->spectra_)
   , ple(&input_module->lensing_)
   , pop(&input_module->output_) {
     input_module_ = std::move(input_module);

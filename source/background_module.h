@@ -86,6 +86,13 @@ public:
   double Omega0_m_;  /**< total non-relativistic matter today */
   double Omega0_de_; /**< total dark energy density today, currently defined as 1 - Omega0_m - Omega0_r - Omega0_k */
 
+  double age_; /**< age in Gyears */
+  double Omega0_r_;  /**< total ultra-relativistic radiation today */
+  double z_eq_;      /**< redshift at radiation/matter equality */
+  double tau_eq_;    /**< conformal time at radiation/matter equality [Mpc] */
+  double Omega0_dcdm_; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
+  double Omega0_dr_; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
+
 private:
   int background_functions(double* pvecback_B, short return_format, double* pvecback);
   int background_init();
@@ -156,14 +163,6 @@ private:
   double* d2background_dtau2_table_; /**< table d2background_dtau2_table[index_tau*bg_size_+pba->index_bg] with values of \f$ d^2 b_i / d\tau^2 \f$ (conformal time) */
 
   //@}
-  
-  double age_; /**< age in Gyears */
-  double Omega0_r_;  /**< total ultra-relativistic radiation today */
-  double z_eq_;      /**< redshift at radiation/matter equality */
-  double tau_eq_;    /**< conformal time at radiation/matter equality [Mpc] */
-  double Omega0_dcdm_; /**< \f$ \Omega_{0 dcdm} \f$: decaying cold dark matter */
-  double Omega0_dr_; /**< \f$ \Omega_{0 dr} \f$: decay radiation */
-
 };
 
 /**
