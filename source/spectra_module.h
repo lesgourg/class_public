@@ -4,11 +4,18 @@
 #include "input_module.h"
 #include "base_module.h"
 
+#include <map>
+#include <string>
+#include <vector>
+
 class SpectraModule : public BaseModule {
 public:
   SpectraModule(InputModulePtr input_module, PerturbationsModulePtr perturbations_module, PrimordialModulePtr primordial_module_, NonlinearModulePtr nonlinear_module, TransferModulePtr transfer_module);
   ~SpectraModule();
   int spectra_cl_at_l(double l, double * cl, double ** cl_md, double ** cl_md_ic) const;
+  std::map<std::string, int> cl_output_index_map() const;
+  std::map<std::string, std::vector<double>> cl_output(int lmax) const;
+  void cl_output_no_copy(int lmax, std::vector<double*>& output_pointers) const;
 
   /** @name - information on number of modes and pairs of initial conditions */
 

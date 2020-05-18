@@ -46,6 +46,48 @@ LensingModule::~LensingModule() {
   lensing_free();
 }
 
+std::map<std::string, std::vector<double>> LensingModule::cl_output(int lmax) const {
+
+  ThrowRuntimeErrorIf((lmax > l_lensed_max_) || (lmax < 0), "Error: lmax = %d is outside the allowed range [0, %d]\n", lmax, l_lensed_max_);
+
+  std::map<std::string, int> index_map;
+
+  if (has_tt_) index_map["tt"] = index_lt_tt_;
+  if (has_ee_) index_map["ee"] = index_lt_ee_;
+  if (has_te_) index_map["te"] = index_lt_te_;
+  if (has_bb_) index_map["bb"] = index_lt_bb_;
+  if (has_pp_) index_map["pp"] = index_lt_pp_;
+  if (has_tp_) index_map["tp"] = index_lt_tp_;
+
+  // Create vectors for fast iteration in nested loop below.
+  std::vector<std::vector<double>> data_vectors;
+  std::vector<int> indices;
+  std::vector<std::string> keys;
+
+  for (const auto& element : index_map) {
+    data_vectors.push_back(std::vector<double>(lmax + 1, 0.0));
+    indices.push_back(element.second);
+    keys.push_back(element.first);
+  }
+
+  double cl_lensed[lt_size_];
+  for (int l = 2; l <= lmax; l++) {
+    int status = lensing_cl_at_l(l, cl_lensed);
+    ThrowRuntimeErrorIf(status != _SUCCESS_, "Error in LensingModule::cl_output: %s", error_message_);
+    for (int i = 0; i < data_vectors.size(); ++i) {
+      data_vectors[i][l] = cl_lensed[indices[i]];
+    }
+  }
+  // Now move vectors into map. We could have created the vectors inside the map directly, but that would
+  // lead to many unnecessary map-lookups in the l-loop above.
+  std::map<std::string, std::vector<double>> output;
+  for (int i = 0; i < data_vectors.size(); ++i) {
+    output[keys[i]] = std::move(data_vectors[i]);
+  }
+
+  return output;
+}
+
 int LensingModule::lensing_cl_at_l(int l, double * cl_lensed) const {
   int last_index;
   int index_lt;

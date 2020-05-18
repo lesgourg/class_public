@@ -32,6 +32,164 @@ SpectraModule::~SpectraModule() {
   spectra_free();
 }
 
+std::map<std::string, int> SpectraModule::cl_output_index_map() const {
+
+  std::map<std::string, int> index_map;
+  if (has_tt_) index_map["tt"] = index_ct_tt_;
+  if (has_ee_) index_map["ee"] = index_ct_ee_;
+  if (has_te_) index_map["te"] = index_ct_te_;
+  if (has_bb_) index_map["bb"] = index_ct_bb_;
+  if (has_pp_) index_map["pp"] = index_ct_pp_;
+  if (has_tp_) index_map["tp"] = index_ct_tp_;
+  if (has_ep_) index_map["ep"] = index_ct_ep_;
+
+  int index = static_cast<int>(index_map.size());
+  if (has_dd_ == _TRUE_) {
+    for (int index_d1 = 0; index_d1 < d_size_; index_d1++) {
+      for (int index_d2 = index_d1; index_d2 <= MIN(index_d1 + psp->non_diag, d_size_ - 1); index_d2++) {
+        std::string key = "dens[" + std::to_string(index_d1 + 1) + "]-dens[" + std::to_string(index_d2 + 1) + "]";
+        index_map[key] = index++;
+      }
+    }
+  }
+  if (has_td_ == _TRUE_) {
+    for (int index_d1 = 0; index_d1 < d_size_; index_d1++) {
+      std::string key = "T-dens[" + std::to_string(index_d1 + 1) + "]";
+      index_map[key] = index++;
+    }
+  }
+  if (has_pd_ == _TRUE_) {
+    for (int index_d1 = 0; index_d1 < d_size_; index_d1++) {
+      std::string key = "phi-dens[" + std::to_string(index_d1 + 1) + "]";
+      index_map[key] = index++;
+    }
+  }
+  if (has_ll_ == _TRUE_) {
+    for (int index_d1 = 0; index_d1 < d_size_; index_d1++) {
+      for (int index_d2 = index_d1; index_d2 <= MIN(index_d1 + psp->non_diag, d_size_ - 1); index_d2++){
+        std::string key = "lens[" + std::to_string(index_d1 + 1) + "]-lens[" + std::to_string(index_d2 + 1) + "]";
+        index_map[key] = index++;
+      }
+    }
+  }
+  if (has_tl_ == _TRUE_) {
+    for (int index_d1 = 0; index_d1 < d_size_; index_d1++) {
+      std::string key = "T-lens[" + std::to_string(index_d1 + 1) + "]";
+      index_map[key] = index++;
+    }
+  }
+  if (has_dl_ == _TRUE_) {
+    for (int index_d1 = 0; index_d1 < d_size_; index_d1++) {
+      for (int index_d2 = MAX(index_d1-psp->non_diag, 0); index_d2 <= MIN(index_d1 + psp->non_diag, d_size_ - 1); index_d2++) {
+        std::string key = "dens[" + std::to_string(index_d1 + 1) + "]-lens[" + std::to_string(index_d2 + 1) + "]";
+        index_map[key] = index++;
+      }
+    }
+  }
+  return index_map;
+}
+
+void SpectraModule::cl_output_no_copy(int lmax, std::vector<double*>& output_pointers) const {
+
+  ThrowRuntimeErrorIf((lmax > l_max_tot_) || (lmax < 0), "Error: lmax = %d is outside the allowed range [0, %d]\n", lmax, l_max_tot_);
+  ThrowRuntimeErrorIf(output_pointers.size() != ct_size_, "Error: Size of input vector (%d) does not match ct_size = %d\n", output_pointers.size(), ct_size_);
+
+ cl_output_index_map();
+
+  double* cl_md[md_size_];
+  double cl_md_data[md_size_][ct_size_];
+  for (int index_md = 0; index_md < md_size_; index_md++) {
+    cl_md[index_md] = &(cl_md_data[index_md][0]);
+  }
+
+  int cl_md_ic_size = 0;
+  if (md_size_ > 1) {
+    for (int index_md = 0; index_md < md_size_; index_md++) {
+      if (perturbations_module_->ic_size_[index_md] > 1) {
+        cl_md_ic_size += ic_ic_size_[index_md]*ct_size_;
+      }
+    }
+  }
+  std::vector<double> cl_md_ic_data(cl_md_ic_size, 0.0);
+  double* cl_md_ic[md_size_];
+  int cl_md_ic_index = 0;
+  for (int index_md = 0; index_md < md_size_; index_md++) {
+    cl_md_ic[index_md] = &cl_md_ic_data[cl_md_ic_index];
+    if (perturbations_module_->ic_size_[index_md] > 1) {
+      cl_md_ic_index += ic_ic_size_[index_md]*ct_size_;
+    }
+  }
+
+  double cl_tot[ct_size_];
+  for (int l = 0; l <= lmax; l++) {
+    if (l < 2) {
+      for (auto& output_pointer : output_pointers) {
+        output_pointer[l] = 0.0;
+      }
+    }
+    else {
+      int status = spectra_cl_at_l(l, cl_tot, cl_md, cl_md_ic);
+      ThrowRuntimeErrorIf(status != _SUCCESS_, "Error in SpectraModule::cl_output: %s", error_message_);
+      for (int index_ct = 0; index_ct < ct_size_; ++index_ct) {
+        output_pointers[index_ct][l] = cl_tot[index_ct];
+      }
+    }
+  }
+}
+
+std::map<std::string, std::vector<double>> SpectraModule::cl_output(int lmax) const {
+
+  ThrowRuntimeErrorIf((lmax > l_max_tot_) || (lmax < 0), "Error: lmax = %d is outside the allowed range [0, %d]\n", lmax, l_max_tot_);
+  std::map<std::string, int> index_map = cl_output_index_map();
+
+  double* cl_md[md_size_];
+  double cl_md_data[md_size_][ct_size_];
+  for (int index_md = 0; index_md < md_size_; index_md++) {
+    cl_md[index_md] = &(cl_md_data[index_md][0]);
+  }
+
+  int cl_md_ic_size = 0;
+  if (md_size_ > 1) {
+    for (int index_md = 0; index_md < md_size_; index_md++) {
+      if (perturbations_module_->ic_size_[index_md] > 1) {
+        cl_md_ic_size += ic_ic_size_[index_md]*ct_size_;
+      }
+    }
+  }
+  double* cl_md_ic[md_size_];
+  if (cl_md_ic_size > 0) {
+    std::vector<double> cl_md_ic_data(cl_md_ic_size, 0.0);
+    int cl_md_ic_index = 0;
+    for (int index_md = 0; index_md < md_size_; index_md++) {
+      cl_md_ic[index_md] = &cl_md_ic_data[cl_md_ic_index];
+      if (perturbations_module_->ic_size_[index_md] > 1) {
+        cl_md_ic_index += ic_ic_size_[index_md]*ct_size_;
+      }
+    }
+  }
+
+  std::vector<double> data_vectors[ct_size_];
+  for (int i = 0; i < ct_size_; ++i) {
+    data_vectors[i] = std::vector<double>(lmax + 1, 0.0);
+  }
+  double cl_tot[ct_size_];
+  for (int l = 2; l <= lmax; l++) {
+    int status = spectra_cl_at_l(l, cl_tot, cl_md, cl_md_ic);
+    ThrowRuntimeErrorIf(status != _SUCCESS_, "Error in SpectraModule::cl_output: %s", error_message_);
+    for (int i = 0; i < ct_size_; ++i) {
+      data_vectors[i][l] = cl_tot[i];
+    }
+  }
+  // Now move vectors into map. We could have created the vectors inside the map directly, but that would
+  // lead to many unnecessary map-lookups in the l-loop above.
+  std::map<std::string, std::vector<double>> output;
+  for (const auto& element : index_map) {
+    output[element.first] = std::move(data_vectors[element.second]);
+  }
+
+  return output;
+}
+
 
 /**
  * Anisotropy power spectra \f$ C_l\f$'s for all types, modes and initial conditions.

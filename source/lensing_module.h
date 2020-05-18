@@ -4,10 +4,15 @@
 #include "input_module.h"
 #include "base_module.h"
 
+#include <map>
+#include <string>
+#include <vector>
+
 class LensingModule : public BaseModule {
 public:
   LensingModule(InputModulePtr input_module, SpectraModulePtr spectra_module);
   ~LensingModule();
+  std::map<std::string, std::vector<double>> cl_output(int lmax) const;
   int lensing_cl_at_l(int l, double * cl_lensed) const;
 
   int l_unlensed_max_;    /**< last multipole in all calculations (same as in spectra module)*/
