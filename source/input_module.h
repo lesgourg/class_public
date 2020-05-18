@@ -16,9 +16,10 @@
 #include "lensing.h"
 #include "output.h"
 
+#include <string>
+#include <vector>
+
 enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
-enum computation_stage {cs_input, cs_background, cs_thermodynamics, cs_perturbations,
-                        cs_primordial, cs_nonlinear, cs_transfer, cs_spectra, cs_lensing};
 #define _NUM_TARGETS_ 7 //Keep this number as number of target_names
 
 
@@ -53,9 +54,13 @@ private:
     enum target_names* target_name = nullptr;
     double* target_value = nullptr;
     int target_size;
-    enum computation_stage required_computation_stage;
   };
+  static const std::vector<std::string> kTargetNamestrings_;
+  static const std::vector<std::string> kUnknownNamestrings_;
 
+
+  int FixUnknownParameters(int input_verbose, int unknown_parameters_size, int* target_indices);
+    
   int input_init();
   int input_read_parameters();
   int input_read_precisions();

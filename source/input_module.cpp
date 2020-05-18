@@ -22,6 +22,23 @@
  * through a 'file_content' structure.
  */
 
+const std::vector<std::string> InputModule::kTargetNamestrings_{
+  "100*theta_s",
+  "Omega_dcdmdr",
+  "omega_dcdmdr",
+  "Omega_scf",
+  "Omega_ini_dcdm",
+  "omega_ini_dcdm",
+  "sigma8"};
+const std::vector<std::string> InputModule::kUnknownNamestrings_{
+  "h",
+  "Omega_ini_dcdm",
+  "Omega_ini_dcdm",
+  "scf_shooting_parameter",
+  "Omega_dcdmdr",
+  "omega_dcdmdr",
+  "A_s"};
+
 int InputModule::file_content_from_arguments(int argc, char **argv, FileContent& fc, ErrorMsg errmsg) {
 
   /** Summary: */
@@ -161,6 +178,131 @@ InputModule::InputModule(FileContent& fc)
   }
 }
 
+int InputModule::FixUnknownParameters(int input_verbose, int unknown_parameters_size, int* target_indices) {
+
+  // Push unknown parameters to the end of file_content_
+  file_content_.size += unknown_parameters_size;
+  file_content_.name = (FileArg*) realloc(file_content_.name, file_content_.size*sizeof(FileArg));
+  file_content_.value = (FileArg*) realloc(file_content_.value, file_content_.size*sizeof(FileArg));
+  file_content_.read = (short*) realloc(file_content_.read, file_content_.size*sizeof(short));
+  file_content_.is_shooting = true;
+
+  class_alloc(shooting_workspace_.unknown_parameters_index,
+              unknown_parameters_size*sizeof(int),
+              error_message_);
+  shooting_workspace_.target_size = unknown_parameters_size;
+  class_alloc(shooting_workspace_.target_name,
+              shooting_workspace_.target_size*sizeof(enum target_names),
+              error_message_);
+  class_alloc(shooting_workspace_.target_value,
+              shooting_workspace_.target_size*sizeof(double),
+              error_message_);
+
+  /** - --> go through all cases with unknown parameters: */
+  for (int counter = 0; counter < unknown_parameters_size; counter++){
+    int index_target = target_indices[counter];
+    int flag1;
+    double param1;
+    class_call(parser_read_double(&file_content_,
+                                  kTargetNamestrings_[index_target].c_str(),
+                                  &param1,
+                                  &flag1,
+                                  error_message_),
+               error_message_,
+               error_message_);
+
+    // store name of target parameter
+    shooting_workspace_.target_name[counter] = (enum target_names)index_target;
+    // store target value of target parameter
+    shooting_workspace_.target_value[counter] = param1;
+    shooting_workspace_.unknown_parameters_index[counter] = file_content_.size - unknown_parameters_size + counter;
+    // Set the name and value of the unknown parameter. The value will be overwritten in get_guess().
+    strcpy(file_content_.name[shooting_workspace_.unknown_parameters_index[counter]], kUnknownNamestrings_[index_target].c_str());
+    strcpy(file_content_.value[shooting_workspace_.unknown_parameters_index[counter]], "1234.56789");
+
+    //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
+  }
+
+  int fevals = 0;
+  int status = _SUCCESS_;
+  if (unknown_parameters_size == 1){
+    // 1d root finding
+    if (input_verbose > 0) {
+      fprintf(
+              stdout,
+              "Computing unknown input parameter '%s' using input parameter '%s'\n",
+              file_content_.name[shooting_workspace_.unknown_parameters_index[0]],
+              kTargetNamestrings_[shooting_workspace_.target_name[0]].c_str()
+              );
+    }
+    double xzero;
+    class_call(input_find_root(&xzero, &fevals, &shooting_workspace_, error_message_),
+               error_message_, error_message_);
+
+    /* Store xzero */
+    sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[0]],"%e",xzero);
+    double fzero_value;
+    input_fzerofun_1d(xzero, (void*)(&shooting_workspace_), &fzero_value, error_message_);
+    printf("f(%g) = %g\n", xzero, fzero_value);
+
+    if (input_verbose > 0) {
+      fprintf(stdout, " -> found '%s = %s'\n",
+              file_content_.name [shooting_workspace_.unknown_parameters_index[0]],
+              file_content_.value[shooting_workspace_.unknown_parameters_index[0]]);
+    }
+  }
+  else{
+    /* We need to do multidimensional root finding */
+
+    if (input_verbose > 0) {
+      fprintf(stdout,"Computing unknown input parameters\n");
+    }
+    double* x_inout;
+    double* dxdF;
+    class_alloc(x_inout,
+                sizeof(double)*unknown_parameters_size,
+                error_message_);
+    class_alloc(dxdF,
+                sizeof(double)*unknown_parameters_size,
+                error_message_);
+    class_call(input_get_guess(x_inout,
+                               dxdF,
+                               &shooting_workspace_,
+                               error_message_),
+               error_message_, error_message_);
+
+    class_call(fzero_Newton(input_try_unknown_parameters,
+                            x_inout,
+                            dxdF,
+                            unknown_parameters_size,
+                            1e-4,
+                            1e-6,
+                            &shooting_workspace_,
+                            &fevals,
+                            error_message_),
+               error_message_, error_message_);
+
+    /* Store xzero */
+    for (int counter = 0; counter < unknown_parameters_size; counter++){
+      sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[counter]],
+              "%e",x_inout[counter]);
+      if (input_verbose > 0) {
+        fprintf(stdout," -> found '%s = %s'\n",
+                file_content_.name [shooting_workspace_.unknown_parameters_index[counter]],
+                file_content_.value[shooting_workspace_.unknown_parameters_index[counter]]);
+      }
+    }
+
+    free(x_inout);
+    free(dxdF);
+  }
+
+  if (input_verbose > 1) {
+    fprintf(stdout, "Shooting completed using %d function evaluations\n", fevals);
+  }
+  return _SUCCESS_;
+}
+
 /**
  * Initialize each parameter, first to its default values, and then
  * from what can be interpreted from the values passed in the input
@@ -229,24 +371,15 @@ int InputModule::input_init() {
    *
    */
 
-  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
-                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
-  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
-  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
-                                        cs_background, cs_background, cs_background, cs_nonlinear};
-
   int input_verbose = 0, int1, aux_flag;
-
   class_read_int("input_verbose",input_verbose);
   if (input_verbose >0) printf("Reading input parameters\n");
 
   /** - Do we need to fix unknown parameters? */
   unknown_parameters_size = 0;
-  shooting_workspace_.required_computation_stage = (enum computation_stage)0;
   for (index_target = 0; index_target < _NUM_TARGETS_; index_target++){
     class_call(parser_read_double(pfc,
-                                  target_namestrings[index_target],
+                                  kTargetNamestrings_[index_target].c_str(),
                                   &param1,
                                   &flag1,
                                   errmsg),
@@ -265,7 +398,6 @@ int InputModule::input_init() {
       if (aux_flag == _TRUE_){
         //printf("Found target: %s\n",target_namestrings[index_target]);
         target_indices[unknown_parameters_size] = index_target;
-        shooting_workspace_.required_computation_stage = MAX(shooting_workspace_.required_computation_stage,target_cs[index_target]);
         unknown_parameters_size++;
       }
     }
@@ -278,120 +410,8 @@ int InputModule::input_init() {
    *
    *  */
   if ((unknown_parameters_size > 0) && !file_content_.is_shooting) {
-
-    // Push unknown parameters to the end of file_content_
-    file_content_.size += unknown_parameters_size;
-    file_content_.name = (FileArg*) realloc(file_content_.name, file_content_.size*sizeof(FileArg));
-    file_content_.value = (FileArg*) realloc(file_content_.value, file_content_.size*sizeof(FileArg));
-    file_content_.read = (short*) realloc(file_content_.read, file_content_.size*sizeof(short));
-    file_content_.is_shooting = true;
-
-    class_alloc(shooting_workspace_.unknown_parameters_index,
-                unknown_parameters_size*sizeof(int),
-                errmsg);
-    shooting_workspace_.target_size = unknown_parameters_size;
-    class_alloc(shooting_workspace_.target_name,
-                shooting_workspace_.target_size*sizeof(enum target_names),
-                errmsg);
-    class_alloc(shooting_workspace_.target_value,
-                shooting_workspace_.target_size*sizeof(double),
-                errmsg);
-
-    /** - --> go through all cases with unknown parameters: */
-    for (counter = 0; counter < unknown_parameters_size; counter++){
-      index_target = target_indices[counter];
-      class_call(parser_read_double(pfc,
-                                    target_namestrings[index_target],
-                                    &param1,
-                                    &flag1,
-                                    errmsg),
-                 errmsg,
-                 errmsg);
-
-      // store name of target parameter
-      shooting_workspace_.target_name[counter] = (enum target_names)index_target;
-      // store target value of target parameter
-      shooting_workspace_.target_value[counter] = param1;
-      shooting_workspace_.unknown_parameters_index[counter] = file_content_.size - unknown_parameters_size + counter;
-      // Set the name and value of the unknown parameter. The value will be overwritten in get_guess().
-      strcpy(file_content_.name[shooting_workspace_.unknown_parameters_index[counter]], unknown_namestrings[index_target]);
-      strcpy(file_content_.value[shooting_workspace_.unknown_parameters_index[counter]], "1234.56789");
-
-      //printf("%d, %d: %s\n",counter,index_target,target_namestrings[index_target]);
-    }
-
-    int status = _SUCCESS_;
-    if (unknown_parameters_size == 1){
-      // 1d root finding
-      if (input_verbose > 0) {
-        fprintf(
-                stdout,
-                "Computing unknown input parameter '%s' using input parameter '%s'\n",
-                file_content_.name[shooting_workspace_.unknown_parameters_index[0]],
-                target_namestrings[shooting_workspace_.target_name[0]]
-                );
-      }
-      status = input_find_root(&xzero, &fevals, &shooting_workspace_, error_message_);
-
-      /* Store xzero */
-      sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[0]],"%e",xzero);
-      double fzero_value;
-      input_fzerofun_1d(xzero, (void*)(&shooting_workspace_), &fzero_value, error_message_);
-      printf("f(%g) = %g\n", xzero, fzero_value);
-
-      if (input_verbose > 0) {
-        fprintf(stdout," -> found '%s = %s'\n",
-                file_content_.name[shooting_workspace_.unknown_parameters_index[0]],
-                file_content_.value[shooting_workspace_.unknown_parameters_index[0]]);
-      }
-    }
-    else{
-      /* We need to do multidimensional root finding */
-
-      if (input_verbose > 0) {
-        fprintf(stdout,"Computing unknown input parameters\n");
-      }
-      class_alloc(x_inout,
-                  sizeof(double)*unknown_parameters_size,
-                  errmsg);
-      class_alloc(dxdF,
-                  sizeof(double)*unknown_parameters_size,
-                  errmsg);
-      class_call(input_get_guess(x_inout,
-                                 dxdF,
-                                 &shooting_workspace_,
-                                 errmsg),
-                 errmsg, errmsg);
-
-      status = fzero_Newton(input_try_unknown_parameters,
-                            x_inout,
-                            dxdF,
-                            unknown_parameters_size,
-                            1e-4,
-                            1e-6,
-                            &shooting_workspace_,
-                            &fevals,
-                            errmsg);
-
-      /* Store xzero */
-      for (counter = 0; counter < unknown_parameters_size; counter++){
-        sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[counter]],
-                "%e",x_inout[counter]);
-        if (input_verbose > 0) {
-          fprintf(stdout," -> found '%s = %s'\n",
-                  file_content_.name[shooting_workspace_.unknown_parameters_index[counter]],
-                  file_content_.value[shooting_workspace_.unknown_parameters_index[counter]]);
-        }
-      }
-
-      free(x_inout);
-      free(dxdF);
-    }
-
-    if (input_verbose > 1) {
-      fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
-    }
-
+    class_call(FixUnknownParameters(input_verbose, unknown_parameters_size, target_indices),
+               error_message_, error_message_);
   }
   /** - -->  read all parameters from input pfc: */
   class_call(input_read_parameters(),
@@ -2440,7 +2460,7 @@ int InputModule::input_read_parameters() {
                errmsg,
                errmsg);
 
-    if ((flag1 == _TRUE_)) {
+    if (flag1 == _TRUE_) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_analytic = _TRUE_;
       }
@@ -2458,7 +2478,7 @@ int InputModule::input_read_parameters() {
                errmsg,
                errmsg);
 
-    if ((flag1 == _TRUE_)) {
+    if (flag1 == _TRUE_) {
       if ((strstr(string1,"analytic") != NULL)){
         ptr->has_nz_evo_analytic = _TRUE_;
       }

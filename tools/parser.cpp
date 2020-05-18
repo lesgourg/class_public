@@ -208,7 +208,7 @@ int parser_read_int(
 
 int parser_read_double(
                        FileContent* pfc,
-                       char * name,
+                       const char* name,
                        double * value,
                        int * found,
                        ErrorMsg errmsg
