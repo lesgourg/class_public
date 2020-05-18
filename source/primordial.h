@@ -210,9 +210,8 @@ struct primordial {
 
 class PrimordialModule;
 struct primordial_inflation_parameters_and_workspace {
-
+  primordial_inflation_parameters_and_workspace(PrimordialModule* p_m) : primordial_module(p_m) {}
   const PrimordialModule* primordial_module;
-  const primordial* ppm;
   double N;
   double a2;
 

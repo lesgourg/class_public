@@ -1652,14 +1652,12 @@ int PrimordialModule::primordial_inflation_one_k(double k, double * y, double * 
   double curvature_new;
   double dlnPdN;
 
-  struct primordial_inflation_parameters_and_workspace pipaw;
+  struct primordial_inflation_parameters_and_workspace pipaw{this};
   struct generic_integrator_workspace gi;
 
   /** - initialize the generic integrator (same integrator already used
       in background, thermodynamics and perturbation modules) */
 
-  pipaw.primordial_module = this;
-  pipaw.ppm = ppm;
   pipaw.N = in_size_;
   pipaw.integrate = forward;
   pipaw.time = conformal;
@@ -1936,7 +1934,7 @@ int PrimordialModule::primordial_inflation_evolve_background(double * y,
                                                              enum time_definition time
                                                              ) {
 
-  struct primordial_inflation_parameters_and_workspace pipaw;
+  struct primordial_inflation_parameters_and_workspace pipaw{this};
   struct generic_integrator_workspace gi;
   double tau_start,tau_end,dtau=0.;
   double H,dH,ddH,dddH;
@@ -1944,8 +1942,6 @@ int PrimordialModule::primordial_inflation_evolve_background(double * y,
   double quantity=0.;
   double V,dV,ddV;
   double sign_dtau=0.;
-
-  pipaw.ppm = ppm;
 
   pipaw.N = in_bg_size_;
 
