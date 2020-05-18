@@ -34,7 +34,7 @@ PerturbationsModule::PerturbationsModule(InputModulePtr input_module, Background
 : BaseModule(std::move(input_module))
 , background_module_(std::move(background_module))
 , thermodynamics_module_(std::move(thermodynamics_module)) {
-  ThrowInvalidArgumentIf(perturb_init() != _SUCCESS_, error_message_);
+  ThrowRuntimeErrorIf(perturb_init() != _SUCCESS_, error_message_);
 }
 
 PerturbationsModule::~PerturbationsModule() {

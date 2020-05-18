@@ -20,7 +20,7 @@
 PrimordialModule::PrimordialModule(InputModulePtr input_module, PerturbationsModulePtr perturbation_module)
 : BaseModule(std::move(input_module))
 , perturbations_module_(perturbation_module) {
-  ThrowInvalidArgumentIf(primordial_init() != _SUCCESS_, error_message_);
+  ThrowRuntimeErrorIf(primordial_init() != _SUCCESS_, error_message_);
 }
 
 PrimordialModule::~PrimordialModule() {

@@ -24,7 +24,7 @@ NonlinearModule::NonlinearModule(InputModulePtr input_module, BackgroundModulePt
 , background_module_(std::move(background_module))
 , perturbations_module_(std::move(perturbations_module))
 , primordial_module_(std::move(primordial_module)) {
-  ThrowInvalidArgumentIf(nonlinear_init() != _SUCCESS_, error_message_);
+  ThrowRuntimeErrorIf(nonlinear_init() != _SUCCESS_, error_message_);
 }
 
 NonlinearModule::~NonlinearModule() {

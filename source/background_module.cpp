@@ -83,7 +83,7 @@
 
 BackgroundModule::BackgroundModule(InputModulePtr input_module)
 : BaseModule(input_module) {
-  ThrowInvalidArgumentIf(background_init() != _SUCCESS_, error_message_);
+  ThrowRuntimeErrorIf(background_init() != _SUCCESS_, error_message_);
 }
 
 BackgroundModule::~BackgroundModule() {

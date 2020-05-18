@@ -156,7 +156,9 @@ InputModule::InputModule(FileContent& fc)
     file_content_.read[i] = _FALSE_;
   }
   int status = input_init();
-  ThrowInvalidArgumentIf(status != _SUCCESS_, error_message_);
+  if (status == _FAILURE_) {
+    throw std::invalid_argument(error_message_);
+  }
 }
 
 /**
@@ -386,7 +388,6 @@ int InputModule::input_init() {
       free(dxdF);
     }
 
-    ThrowInvalidArgumentIf(status != _SUCCESS_, "Shooting failed, try optimising input_get_guess(). Error message:\n\n%s", error_message_);
     if (input_verbose > 1) {
       fprintf(stdout,"Shooting completed using %d function evaluations\n",fevals);
     }

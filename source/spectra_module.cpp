@@ -25,7 +25,7 @@ SpectraModule::SpectraModule(InputModulePtr input_module, PerturbationsModulePtr
 , primordial_module_(std::move(primordial_module))
 , nonlinear_module_(std::move(nonlinear_module))
 , transfer_module_(std::move(transfer_module)) {
-  ThrowInvalidArgumentIf(spectra_init() != _SUCCESS_, error_message_);
+  ThrowRuntimeErrorIf(spectra_init() != _SUCCESS_, error_message_);
 }
 
 SpectraModule::~SpectraModule() {

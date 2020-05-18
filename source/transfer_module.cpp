@@ -40,7 +40,7 @@ TransferModule::TransferModule(InputModulePtr input_module, BackgroundModulePtr 
 , thermodynamics_module_(std::move(thermodynamics_module))
 , perturbations_module_(std::move(perturbations_module))
 , nonlinear_module_(std::move(nonlinear_module)) {
-  ThrowInvalidArgumentIf(transfer_init() != _SUCCESS_, error_message_);
+  ThrowRuntimeErrorIf(transfer_init() != _SUCCESS_, error_message_);
 }
 
 TransferModule::~TransferModule() {

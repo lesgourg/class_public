@@ -21,7 +21,7 @@ std::shared_ptr<NonColdDarkMatter> NonColdDarkMatter::Create(FileContent* pfc, c
 NonColdDarkMatter::NonColdDarkMatter(FileContent* pfc, const NcdmSettings& ncdm_settings) {
   rho_nu_rel_ = 56.0/45.0*pow(_PI_, 6)*pow(4.0/11.0, 4.0/3.0)*_G_/pow(_h_P_, 3)/pow(_c_, 7)*pow(_Mpc_over_m_, 2)*pow(ncdm_settings.T_cmb*_k_B_, 4);
   int return_value = background_ncdm_init(pfc, ncdm_settings);
-  ThrowInvalidArgumentIf(return_value == _FAILURE_, error_message_);
+  ThrowRuntimeErrorIf(return_value == _FAILURE_, error_message_);
 }
 
 NonColdDarkMatter::~NonColdDarkMatter() {
@@ -625,7 +625,7 @@ double NonColdDarkMatter::background_ncdm_M_from_Omega(int n_ncdm, double H0, do
       return M;
     }
   }
-  ThrowInvalidArgument("Newton iteration could not converge on a mass for some reason.");
+  ThrowRuntimeError("Newton iteration could not converge on a mass for some reason.");
   return 0.;
 }
 
