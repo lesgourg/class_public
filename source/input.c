@@ -1667,13 +1667,13 @@ int input_read_parameters_general(struct file_content * pfc,
     class_read_flag_or_deprecated("extra_metric_transfer_functions","extra metric transfer functions",ppt->has_metricpotential_transfers);
   }
 
-
-  /** 2) Perturbed recombination */
   if (ppt->has_perturbations == _TRUE_) {
+
+    /** 2) Perturbed recombination */
     /* Read */
     class_read_flag_or_deprecated("perturbed_recombination","perturbed recombination",ppt->has_perturbed_recombination);
 
-    /** 2.a) Modes */
+    /** 3) Modes */
     /* Read */
     class_call(parser_read_string(pfc,"modes",&string1,&flag1,errmsg),
                errmsg,
@@ -1714,7 +1714,7 @@ int input_read_parameters_general(struct file_content * pfc,
                  "Inconsistent input: you asked for tensors, so you should have at least one non-zero tensor source type (temperature or polarization). Please adjust your input.");
     }
 
-    /** 2.a.1) List of initial conditions for scalars */
+    /** 3.a) List of initial conditions for scalars */
     if (ppt->has_scalars == _TRUE_) {
       /* Read */
       class_call(parser_read_string(pfc,"ic",&string1,&flag1,errmsg),
@@ -1761,7 +1761,7 @@ int input_read_parameters_general(struct file_content * pfc,
                  "Inconsistency: you want P(k) of matter, but no scalar modes\n");
     }
 
-    /** 2.a.1) List of initial conditions for scalars */
+    /** 3.b) List of initial conditions for scalars */
     if (ppt->has_tensors == _TRUE_) {
       /* Read */
       class_call(parser_read_string(pfc,"tensor_method",&string1,&flag1,errmsg),
@@ -1793,8 +1793,8 @@ int input_read_parameters_general(struct file_content * pfc,
   }
 
 
-  /** 3) Gauge */
-  /** 3.a) Set gauge */
+  /** 4) Gauge */
+  /** 4.a) Set gauge */
   /* Read */
   class_call(parser_read_string(pfc,"gauge",&string1,&flag1,errmsg),
              errmsg,
@@ -1813,19 +1813,13 @@ int input_read_parameters_general(struct file_content * pfc,
     }
   }
 
-  /** 3.a) Do we want density and velocity transfer functions in Nbody gauge? */
+  /** 4.b) Do we want density and velocity transfer functions in Nbody gauge? */
   if ((ppt->has_density_transfers == _TRUE_) || (ppt->has_velocity_transfers == _TRUE_)){
 
     /* Read */
     class_read_flag_or_deprecated("nbody_gauge_transfer_functions","Nbody gauge transfer functions",ppt->has_Nbody_gauge_transfers);
 
   }
-
-
-  /** 4) Scale factor today (arbitrary) */
-  /* Read */
-  class_read_double("a_today", pba->a_today);
-
 
   /** 5) h in [-] and H_0/c in [1/Mpc = h/2997.9 = h*10^5/c] */
   /* Read */
@@ -2320,7 +2314,7 @@ int input_read_parameters_species(struct file_content * pfc,
   /* Read */
   class_read_double("Omega_k",pba->Omega0_k);
   /* Complete set of parameters */
-  pba->K = -pba->Omega0_k*pow(pba->a_today*pba->H0,2);
+  pba->K = -pba->Omega0_k*pow(pba->H0,2);
   if (pba->K > 0.){
     pba->sgnK = 1;
   }
@@ -5024,28 +5018,25 @@ int input_default_params(struct background *pba,
 
   /** 2) Perturbed recombination */
   ppt->has_perturbed_recombination=_FALSE_;
-  /** 2.a) Modes */
+  /** 3) Modes */
   ppt->has_scalars=_TRUE_;
   ppt->has_vectors=_FALSE_;
   ppt->has_tensors=_FALSE_;
-  /** 2.a.1) Initial conditions for scalars */
+  /** 3.a) Initial conditions for scalars */
   ppt->has_ad=_TRUE_;
   ppt->has_bi=_FALSE_;
   ppt->has_cdi=_FALSE_;
   ppt->has_nid=_FALSE_;
   ppt->has_niv=_FALSE_;
-  /** 2.a.2) Initial conditions for tensors */
+  /** 3.b) Initial conditions for tensors */
   ppt->tensor_method = tm_massless_approximation;
   ppt->evolve_tensor_ur = _FALSE_;
   ppt->evolve_tensor_ncdm = _FALSE_;
 
-  /** 3.a) Gauge */
+  /** 4.a) Gauge */
   ppt->gauge=synchronous;
-  /** 3.b) N-body gauge */
+  /** 4.b) N-body gauge */
   ppt->has_Nbody_gauge_transfers = _FALSE_;
-
-  /** 4) Scale factor today */
-  pba->a_today = 1.;
 
   /** 5) Hubble parameter */
   pba->h = 0.67556;

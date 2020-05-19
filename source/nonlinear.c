@@ -1551,7 +1551,8 @@ int nonlinear_init(
                          pba->error_message,
                          pnl->error_message);
               a = pvecback[pba->index_bg_a];
-              z = pba->a_today/a-1.;
+              /* redshift (remeber that a in the code stands for (a/a_0)) */
+              z = 1./a-1.;
               fprintf(stdout,
                       " -> [WARNING:] Non-linear corrections could not be computed at redshift z=%5.2f and higher.\n    This is because k_max is too small for the algorithm (Halofit or HMcode) to be able to compute the scale k_NL at this redshift.\n    If non-linear corrections at such high redshift really matter for you,\n    just try to increase one of the parameters P_k_max_h/Mpc or P_k_max_1/Mpc or halofit_min_k_max (the code will take the max of these parameters) until reaching desired z.\n",z);
 
@@ -2615,7 +2616,7 @@ int nonlinear_halofit(
     /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
        all required by HALFIT fitting formulas */
 
-    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+    class_call(background_w_fld(pba,1.,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
 
     class_call(background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback),
                pba->error_message,
@@ -2724,7 +2725,7 @@ int nonlinear_halofit(
   Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
 
   // for debugging:
-  //printf("Call Halofit at z=%e\n",pba->a_today/pvecback[pba->index_bg_a]-1.);
+  //printf("Call Halofit at z=%e\n",1./pvecback[pba->index_bg_a]-1.);
 
   /* minimum value of R such that the integral giving sigma_R is
      converged.  The parameter halofit_sigma_precision should be
@@ -2774,7 +2775,7 @@ int nonlinear_halofit(
     free(pvecback);free(integrand_array),
     "Your k_max=%g 1/Mpc is too small for Halofit to find the non-linearity scale z_nl at z=%g. Increase input parameter P_k_max_h/Mpc or P_k_max_1/Mpc",
     pnl->k[pnl->k_size-1],
-    pba->a_today/pvecback[pba->index_bg_a]-1.);
+    1./pvecback[pba->index_bg_a]-1.);
   */
 
   if (sigma < 1.) {
@@ -3702,7 +3703,7 @@ int nonlinear_hmcode_dark_energy_correction(
                pba->error_message,
                pnl->error_message);
 
-    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld),
+    class_call(background_w_fld(pba,1.,&w0,&dw_over_da_fld,&integral_fld),
                pba->error_message,
                pnl->error_message);
 

@@ -117,8 +117,6 @@ struct background
   double phi_prime_ini_scf;/**< \f$ d\phi(t_0)/d\tau \f$: scalar field initial derivative wrt conformal time */
   int scf_parameters_size; /**< size of scf_parameters */
 
-  double a_today; /**< scale factor today (arbitrary and irrelevant for most purposes) */
-
   //@}
 
 

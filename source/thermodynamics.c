@@ -2626,7 +2626,7 @@ int thermodynamics_derivs(
 
   if ( ap_current == ptdw->index_ap_brec) {
     /* Early time steady state equation */
-    dHdlna = (1.+z)*pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H]/pba->a_today * _c_ / _Mpc_over_m_;
+    dHdlna = (1.+z)*pvecback[pba->index_bg_H_prime]/pvecback[pba->index_bg_H] * _c_ / _Mpc_over_m_;
     eps =  Trad * Hz / rate_gamma_b;
     depsdlna = dHdlna/Hz + 3.;
     /* Recfast v 1.5: add here a smoothing term as suggested by Adam Moss */
@@ -3792,9 +3792,9 @@ int thermodynamics_calculate_recombination_quantities(
              pth->error_message);
 
   pth->rs_rec=pvecback[pba->index_bg_rs];
-  pth->ds_rec=pth->rs_rec*pba->a_today/(1.+pth->z_rec);
+  pth->ds_rec=pth->rs_rec/(1.+pth->z_rec);
   pth->da_rec=pvecback[pba->index_bg_ang_distance];
-  pth->ra_rec=pth->da_rec*(1.+pth->z_rec)/pba->a_today;
+  pth->ra_rec=pth->da_rec*(1.+pth->z_rec);
   pth->angular_rescaling=pth->ra_rec/(pba->conformal_age-pth->tau_rec);
 
   /** - find damping scale at recombination (using linear interpolation) */
@@ -3880,7 +3880,7 @@ int thermodynamics_calculate_drag_quantities(
              pth->error_message);
 
   pth->rs_d=pvecback[pba->index_bg_rs];
-  pth->ds_d=pth->rs_d*pba->a_today/(1.+pth->z_d);
+  pth->ds_d=pth->rs_d/(1.+pth->z_d);
 
   return _SUCCESS_;
 }
