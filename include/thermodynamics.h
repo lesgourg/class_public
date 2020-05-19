@@ -65,8 +65,6 @@ struct thermo
   double YHe;  /**< \f$ Y_{He} \f$: primordial helium mass fraction rho_He/(rho_H+rho_He),
                   close but not exactly equal to the density fraction 4*n_He/(n_H+4*n_He) */
 
-  double fHe;  /**< \f$ f_{He} \f$: primordial helium-to-hydrogen nucleon ratio 4*n_He/n_H */
-
   enum recombination_algorithm recombination; /**< recombination code */
 
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
@@ -267,11 +265,12 @@ struct thermo
 
   //@}
 
-  /** @name - total number density of electrons today (free or not) */
+  /** @name - other thermodynamical quantities */
 
   //@{
 
-  double n_e; /**< total number density of electrons today (free or not) */
+  double fHe;  /**< \f$ f_{He} \f$: primordial helium-to-hydrogen nucleon ratio 4*n_He/n_H */
+  double n_e;  /**< total number density of electrons today (free or not) */
 
   //@}
 
@@ -378,28 +377,28 @@ struct thermo_reionization_parameters{
 
   /* parameters used by reio_camb */
 
-  int index_reio_redshift;  /**< hydrogen reionization redshift */
-  int index_reio_exponent;  /**< an exponent used in the function x_e(z) in the reio_camb scheme */
-  int index_reio_width;     /**< a width defining the duration of hydrogen reionization in the reio_camb scheme */
-  int index_reio_xe_before; /**< ionization fraction at redshift 'reio_start' */
-  int index_reio_xe_after;  /**< ionization fraction after full reionization */
-  int index_helium_fullreio_fraction; /**< helium full reionization fraction inferred from primordial helium fraction */
-  int index_helium_fullreio_redshift; /**< helium full reionization redshift */
-  int index_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
+  int index_re_reio_redshift;  /**< hydrogen reionization redshift */
+  int index_re_reio_exponent;  /**< an exponent used in the function x_e(z) in the reio_camb scheme */
+  int index_re_reio_width;     /**< a width defining the duration of hydrogen reionization in the reio_camb scheme */
+  int index_re_xe_before; /**< ionization fraction at redshift 'reio_start' */
+  int index_re_xe_after;  /**< ionization fraction after full reionization */
+  int index_re_helium_fullreio_fraction; /**< helium full reionization fraction inferred from primordial helium fraction */
+  int index_re_helium_fullreio_redshift; /**< helium full reionization redshift */
+  int index_re_helium_fullreio_width;    /**< a width defining the duration of helium full reionization in the reio_camb scheme */
 
   /* parameters used by reio_bins_tanh, reio_many_tanh, reio_inter */
 
-  int reio_num_z;                /**< number of reionization jumps */
-  int index_reio_first_z;        /**< redshift at which we start to impose reionization function */
-  int index_reio_first_xe;       /**< ionization fraction at redshift first_z (inferred from recombination code) */
-  int index_reio_step_sharpness; /**< sharpness of tanh jump */
+  int re_z_size;                /**< number of reionization jumps */
+  int index_re_first_z;        /**< redshift at which we start to impose reionization function */
+  int index_re_first_xe;       /**< ionization fraction at redshift first_z (inferred from recombination code) */
+  int index_re_step_sharpness; /**< sharpness of tanh jump */
 
   /* parameters used by all schemes */
 
-  int index_reio_start;     /**< redshift above which hydrogen reionization neglected */
+  int index_re_reio_start;     /**< redshift above which hydrogen reionization neglected */
 
   double * reionization_parameters; /**< vector containing all reionization parameters necessary to compute xe(z) */
-  int reio_num_params;              /**< length of vector reionization_parameters */
+  int re_size;              /**< length of vector reionization_parameters */
 };
 
 /**
@@ -433,7 +432,7 @@ struct thermo_workspace {
 };
 
 /**
- * temporary  parameters and workspace passed to the thermodynamics_derivs function
+ * temporary parameters and workspace passed to the thermodynamics_derivs function
  */
 
 struct thermodynamics_parameters_and_workspace {
@@ -513,11 +512,6 @@ extern "C" {
                                                     struct thermo* pth,
                                                     double* pvecback);
 
-  int thermodynamics_calculate_idm_dr_quantities(struct precision * ppr,
-                                                 struct background * pba,
-                                                 struct thermo * pth,
-                                                 double* pvecback);
-
   int thermodynamics_output_summary(struct background* pba,
                                     struct thermo* pth);
 
@@ -574,6 +568,11 @@ extern "C" {
   int thermodynamics_calculate_opticals(struct precision* ppr,
                                         struct thermo* pth);
 
+  int thermodynamics_calculate_idm_dr_quantities(struct precision * ppr,
+                                                 struct background * pba,
+                                                 struct thermo * pth,
+                                                 double* pvecback);
+
   int thermodynamics_calculate_recombination_quantities(struct precision* ppr,
                                                         struct background * pba,
                                                         struct thermo* pth,
@@ -618,7 +617,7 @@ extern "C" {
 
 //@{
 
-#define _YHE_BBN_ -1
+#define _YHE_BBN_ -1 /**< value assigned to the parameter pth->YHe by the input module when this parameter must be computed using BBN tables */
 
 //@}
 
@@ -639,7 +638,7 @@ extern "C" {
 //@}
 
 /**
- * @name Some physical constants
+ * @name Some other physical constants
  */
 
 //@{
@@ -656,9 +655,8 @@ extern "C" {
 
 //@}
 
-
-
 /* @endcond */
+
 /**
  * @name Some limits imposed on cosmological parameter values:
  */

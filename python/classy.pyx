@@ -1198,6 +1198,10 @@ cdef class Class:
         self.compute(["background"])
         return self.ba.a_eq*self.ba.H_eq
 
+    def z_eq(self):
+        self.compute(["background"])
+        return 1./self.ba.a_eq-1.
+
     def sigma8(self):
         self.compute(["nonlinear"])
         return self.nl.sigma8[self.nl.index_pk_m]
@@ -1602,8 +1606,8 @@ cdef class Class:
             raise CosmoSevereError(self.pm.error_message)
 
         tmp = <bytes> titles
-        names = tmp.split("\t")[:-1]
         tmp = str(tmp.decode())
+        names = tmp.split("\t")[:-1]
         number_of_titles = len(names)
         timesteps = self.pm.lnk_size
 
