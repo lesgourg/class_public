@@ -16,6 +16,7 @@
 #define __COMMON__
 
 #define _VERSION_ "v3.0.0"
+
 /* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
@@ -73,13 +74,24 @@ typedef char FileName[_FILENAMESIZE_];
 #define SIGN(a) (((a)>0) ? 1. : -1. )
 #define NRSIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? ((i2)+N*(i1)-((i1)*((i1)+1))/2) : ((i1)+N*(i2)-((i2)*((i2)+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without losing or double-counting any information */
+
 /* @endcond */
-// needed because of weird openmp bug on macosx lion...
+
+/* needed because of weird openmp bug on macosx lion... */
+
 void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
 void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
+/* some general functions */
+
 int get_number_of_titles(char * titlestring);
+int file_exists(const char *fname);
+int compare_doubles(const void * a,
+                    const void * b);
+int string_begins_with(char* thestring, char beginchar);
+
+/* general CLASS macros */
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \
@@ -363,8 +375,9 @@ enum file_format {class_format,camb_format};
 struct precision
 {
   /**
-   * Define (allocate) all precision parameters
-   *
+   * Define (allocate) all precision parameters (these very concise
+   * lines declare all precision parameters thanks to the macros
+   * defined in macros_precision.h)
    */
 
   #define __ALLOCATE_PRECISION_PARAMETER__
@@ -388,7 +401,5 @@ struct precision
   //@}
 
 };
-
-
 
 #endif

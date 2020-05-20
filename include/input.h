@@ -8,10 +8,8 @@
 
 #define _N_FILEROOT_ 100 /* Number of files that will be not overwritten for a given root */
 
-/* macro for checking if string begins with certain character */
-int string_begins_with(char* thestring,char beginchar);
-
 /* macro for reading parameter values with routines from the parser */
+
 #define class_read_double(name,destination)                                     \
   do {                                                                          \
     double param_temp; int flag_temp;                                           \
@@ -202,17 +200,18 @@ int string_begins_with(char* thestring,char beginchar);
   } while(0);
 
 /**
- * temporary parameters for background fzero function
+ * For shooting method: definition of the possible targets
  */
 
-#define _NUM_TARGETS_ 7 //Keep this number as number of target_names
 enum target_names {theta_s, Omega_dcdmdr, omega_dcdmdr, Omega_scf, Omega_ini_dcdm, omega_ini_dcdm, sigma8};
+/* Important: Keep this number equal to the number of target_names */
+#define _NUM_TARGETS_ 7
+/* Important: add one for each new target_names */
 enum computation_stage {cs_background, cs_thermodynamics, cs_perturbations, cs_primordial, cs_nonlinear, cs_transfer, cs_spectra};
 
-struct input_pprpba{
-  struct precision * ppr;
-  struct background * pba;
-};
+/**
+ * Structure for all temporary parameters for background fzero function
+ */
 
 struct fzerofun_workspace {
   int * unknown_parameters_index;
@@ -233,6 +232,7 @@ extern "C" {
 #endif
 
   /* Main functions */
+
   int input_init(int argc,
                  char **argv,
                  struct precision * ppr,
@@ -248,6 +248,8 @@ extern "C" {
                  struct output *pop,
                  ErrorMsg errmsg);
 
+  /* Note that the input module does not require an input_free() */
+
   int input_find_file(int argc,
                       char ** argv,
                       struct file_content * fc,
@@ -257,8 +259,6 @@ extern "C" {
                      struct file_content** ppfc_input,
                      struct file_content* pfc_setroot,
                      ErrorMsg errmsg);
-
-  int file_exists(const char *fname);
 
   int input_read_from_file(struct file_content * pfc,
                            struct precision * ppr,
@@ -274,7 +274,8 @@ extern "C" {
                            struct output *pop,
                            ErrorMsg errmsg);
 
-  /* Shooting */
+  /* Functions related to shooting */
+
   int input_shooting(struct file_content * pfc,
                      struct precision * ppr,
                      struct background * pba,
@@ -307,7 +308,7 @@ extern "C" {
                         double * output,
                         ErrorMsg error_message);
 
-  int class_fzero_ridder(int (*func)(double x,
+  int input_fzero_ridder(int (*func)(double x,
                                      void * param,
                                      double * y,
                                      ErrorMsg error_message),
@@ -333,6 +334,7 @@ extern "C" {
                                    ErrorMsg errmsg);
 
   /* Read from precision.h */
+
   int input_read_precisions(struct file_content * pfc,
                             struct precision * ppr,
                             struct background * pba,
@@ -348,6 +350,7 @@ extern "C" {
                             ErrorMsg errmsg);
 
   /* Read from .ini file */
+
   int input_read_parameters(struct file_content * pfc,
                             struct precision * ppr,
                             struct background * pba,
@@ -444,10 +447,8 @@ extern "C" {
                                    struct output *pop,
                                    ErrorMsg errmsg);
 
-  int compare_doubles(const void * a,
-                      const void * b);
-
   /* Set default parameters */
+
   int input_default_params(struct background *pba,
                            struct thermo *pth,
                            struct perturbs *ppt,
@@ -459,6 +460,9 @@ extern "C" {
                            struct distortions *psd,
                            struct output *pop);
 
+  /* get version number */
+
+  int class_version( char * version);
 
 #ifdef __cplusplus
 }

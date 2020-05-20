@@ -1,13 +1,18 @@
 /** @file input.c Documented input module.
  *
  * Julien Lesgourgues, 27.08.2010
- *
- * Restructured structs by:
- * Nils Schoeneberg and Matteo Lucca, 07.03.2019
+ * * internal organization of the module structured and improved by Nils Schoeneberg and Matteo Lucca, 07.03.2019
  *
  */
 
 #include "input.h"
+
+/* The input module fills variables belonging to the structures of
+   essentially all other modules. Thus we need to include all the
+   headers. New in v3.0: These #include fit better here than in
+   input.h, to avoid complictaed dependencies slowing down
+   compilation. */
+
 #include "quadrature.h"
 #include "background.h"
 #include "thermodynamics.h"
@@ -19,7 +24,6 @@
 #include "lensing.h"
 #include "distortions.h"
 #include "output.h"
-
 
 /**
  * Initialize input parameters from external file.
@@ -37,8 +41,10 @@
  * @param pnl     Input: pointer to nonlinear structure
  * @param ple     Input: pointer to lensing structure
  * @param pop     Input: pointer to output structure
- * @param errmsg  Input: Error message
+ * @param errmsg  Input/Output: Error message
+ * @return the error status
  */
+
 int input_init(int argc,
                char **argv,
                struct precision * ppr,
@@ -91,8 +97,10 @@ int input_init(int argc,
  * @param argc    Input: Number of command line arguments
  * @param argv    Input: Command line argument strings
  * @param pfc     Output: pointer to local file_content structure
- * @param errmsg  Input: Error message
+ * @param errmsg  Input/Output: Error message
+ * @return the error status
  */
+
 int input_find_file(int argc,
                     char **argv,
                     struct file_content * fc,
@@ -196,30 +204,17 @@ int input_find_file(int argc,
 
 }
 
-
 /**
- * Defines wether or not a file exists.
- *
- * @param fname  Input: File name
- */
-int file_exists(const char *fname){
-  FILE *file = fopen(fname, "r");
-  if (file != NULL){
-    fclose(file);
-    return _TRUE_;
-  }
-
-  return _FALSE_;
-
-}
-
-/**
- * Sets the 'root' variable in the input file content
+ * Sets the 'root' variable in the input file content (this will be
+ * the beginning of the name of all output files for the current CLASS
+ * run)
  *
  * @param input_file      Input: filename of the input file
  * @param ppfc_input      Input/Output: pointer to (pointer to input file structure)
  * @param errmsg          Input/Output: the error message
- * */
+ * @return the error status
+ */
+
 int input_set_root(char* input_file, struct file_content** ppfc_input, struct file_content * pfc_setroot, ErrorMsg errmsg){
 
   /** Define local variables */
@@ -377,8 +372,10 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, struct fi
  * @param pnl     Input: pointer to nonlinear structure
  * @param ple     Input: pointer to lensing structure
  * @param pop     Input: pointer to output structure
- * @param errmsg  Input: Error message
+ * @param errmsg  Input/Output: Error message
+ * @return the error status
  */
+
 int input_read_from_file(struct file_content * pfc,
                          struct precision * ppr,
                          struct background *pba,
@@ -435,25 +432,23 @@ int input_read_from_file(struct file_content * pfc,
 
 
 /**
- * In CLASS, we can do something we call 'shooting', where a variable, which is
- * not directly given is calculated by another variable through successive runs
- * of class.
- * This is needed for variables which do not immediately follow from other input
- * parameters. An example is theta_s, the angular scale of the sound horizon
- * giving us the horizontal peak positions. This quantity can only replace the
- * hubble parameter h, if we run all the way into class through to
- * thermodynamics to figure out how h and theta_s relate numerically.
- * A default parameter for h is chosen, and then we shoot through CLASS, finding
- * what the corresponding theta_s is. We adjust our initial h, and shoot again,
- * repeating this process until a suitable value for h is found which gives the
- * correct 00*theta_s value.
- * These two arrays must contain the strings of names to be searched for and the
- * corresponding new parameter The third array contains the module inside of
- * which the old parameter is calculated.
+ * In CLASS, we call 'shooting' the process of doing preliminary runs
+ * of parts of the code in order to find numerically the value of an
+ * input variable which cannot be inferred analytically from other
+ * input variables passed by the user.
  *
- * See input_try_unknown_parameters for the actual shooting.
+ * A typical example is when the user passes theta_s, the angular
+ * scale of the sound horizon at decoupling. This quantity be passed
+ * instead of the hubble parameter h, but only if we run CLASS until
+ * the thermodynamics module to figure out how h and theta_s relate
+ * numerically. The code starts from a guess for h, and runs to find
+ * the corresponding theta_s. It adjusts h, shoots again, and repeats
+ * this process until it finds some h giving the correct theta_s
+ * within some tolerance.
  *
- * @param pfc               Input: pointer to local structure
+ * This function contains the overall structure to handle these steps.
+ *
+ * @param pfc               Input/Output: pointer to file content, with input parameters before/after the shooting
  * @param ppr               Input: pointer to precision structure
  * @param pba               Input: pointer to background structure
  * @param pth               Input: pointer to thermodynamics structure
@@ -463,11 +458,14 @@ int input_read_from_file(struct file_content * pfc,
  * @param psp               Input: pointer to spectra structure
  * @param pnl               Input: pointer to nonlinear structure
  * @param ple               Input: pointer to lensing structure
+ * @param psd               Input: pointer to distorsion structure
  * @param pop               Input: pointer to output structure
  * @param input_verbose     Input: Verbosity of input
- * @param has_shooting      Output: Presence or absence of shooting
- * @param errmsg            Input: Error message
+ * @param has_shooting      Output: do we need shooting?
+ * @param errmsg            Input/Output: Error message
+ * @return the error status
  */
+
 int input_shooting(struct file_content * pfc,
                    struct precision * ppr,
                    struct background *pba,
@@ -496,15 +494,37 @@ int input_shooting(struct file_content * pfc,
   double xzero;
   double *dxdF, *x_inout;
   int target_indices[_NUM_TARGETS_];
-  int int1, aux_flag;
+  int int1, needs_shooting;
   int shooting_failed=_FALSE_;
 
-  char * const target_namestrings[] = {"100*theta_s","Omega_dcdmdr","omega_dcdmdr",
-                                       "Omega_scf","Omega_ini_dcdm","omega_ini_dcdm","sigma8"};
-  char * const unknown_namestrings[] = {"h","Omega_ini_dcdm","Omega_ini_dcdm",
-                                        "scf_shooting_parameter","Omega_dcdmdr","omega_dcdmdr","A_s"};
-  enum computation_stage target_cs[] = {cs_thermodynamics, cs_background, cs_background,
-                                        cs_background, cs_background, cs_background, cs_spectra};
+  /* array of parameters passed by the user for which we need shooting (= target parameters) */
+  char * const target_namestrings[] = {"100*theta_s",
+                                       "Omega_dcdmdr",
+                                       "omega_dcdmdr",
+                                       "Omega_scf",
+                                       "Omega_ini_dcdm",
+                                       "omega_ini_dcdm",
+                                       "sigma8"};
+
+  /* array of corresponding parameters that must be adjusted in order to meet the target (= unknown parameters) */
+  char * const unknown_namestrings[] = {"h",                        /* unknown param for target '100*theta_s' */
+                                        "Omega_ini_dcdm",           /* unknown param for target 'Omega_dcdmd' */
+                                        "Omega_ini_dcdm",           /* unknown param for target 'omega_dcdmdr"' */
+                                        "scf_shooting_parameter",   /* unknown param for target 'Omega_scf' */
+                                        "Omega_dcdmdr",             /* unknown param for target 'Omega_ini_dcdm' */
+                                        "omega_dcdmdr",             /* unknown param for target 'omega_ini_dcdm' */
+                                        "A_s"};                     /* unknown param for target 'sigma8' */
+
+  /* for each target, module up to which we need to run CLASS in order
+     to compute the targetted quantities (not running the whole code
+     each time to saves a lot of time) */
+  enum computation_stage target_cs[] = {cs_thermodynamics, /* computation stage for target '100*theta_s' */
+                                        cs_background,     /* computation stage for target 'Omega_dcdmdr' */
+                                        cs_background,     /* computation stage for target 'omega_dcdmdr' */
+                                        cs_background,     /* computation stage for target 'Omega_scf' */
+                                        cs_background,     /* computation stage for target 'Omega_ini_dcdm' */
+                                        cs_background,     /* computation stage for target 'omega_ini_dcdm' */
+                                        cs_spectra};       /* computation stage for target 'sigma8' */
 
   struct fzerofun_workspace fzw;
 
@@ -523,12 +543,12 @@ int input_shooting(struct file_content * pfc,
       class_call(input_needs_shooting_for_target(pfc,
                                                 index_target,
                                                 param1,
-                                                &aux_flag,
+                                                &needs_shooting,
                                                 errmsg),
                  errmsg,
                  errmsg);
 
-      if (aux_flag == _TRUE_){
+      if (needs_shooting == _TRUE_){
         target_indices[unknown_parameters_size] = index_target;
         fzw.required_computation_stage = MAX(fzw.required_computation_stage,target_cs[index_target]);
         unknown_parameters_size++;
@@ -710,23 +730,27 @@ int input_shooting(struct file_content * pfc,
 
 
 /**
- * Checking out auxillary conditions (i.e. that any of the
- * non-standard Omega are defined and nonzero)
- * Then additional checks need to be made within the shooting method
+ * Related to 'shooting': for each target, check whether it is
+ * sufficient to stick to the default value of the unkown parameter
+ * (for instance: if the target parameter is a density and the target
+ * value is zero, the unkown parameter should remain zero like in the
+ * default)
  *
  * @param pfc             Input: pointer to local structure
  * @param target_names    Input: list of possible target names
  * @param target_value    Input: list of possible target values
- * @param aux_flag        Output: Presence or absence of flags
- * @param errmsg          Input: Error message
+ * @param needs_shooting  Output: needs shooting?
+ * @param errmsg          Input/Output: Error message
+ * @return the error status
  */
+
 int input_needs_shooting_for_target(struct file_content * pfc,
                                     enum target_names target_name,
                                     double target_value,
-                                    int * aux_flag,
+                                    int * needs_shooting,
                                     ErrorMsg errmsg){
 
-  *aux_flag = _TRUE_;
+  *needs_shooting = _TRUE_;
   switch (target_name){
     case Omega_dcdmdr:
     case omega_dcdmdr:
@@ -735,17 +759,30 @@ int input_needs_shooting_for_target(struct file_content * pfc,
     case omega_ini_dcdm:
       /* Check that Omega's or omega's are nonzero: */
       if (target_value == 0.)
-        *aux_flag = _FALSE_;
+        *needs_shooting = _FALSE_;
       break;
     default:
       /* Default is no additional checks */
-      *aux_flag = _TRUE_;
+      *needs_shooting = _TRUE_;
       break;
   }
 
   return _SUCCESS_;
 
 }
+
+/**
+ * Related to 'shooting': Find the root of a one-dimensional
+ * function. This function starts from a first guess, then uses a few
+ * steps to bracket the root, and then calls another function to
+ * actually get the root.
+ *
+ * @param xzero  Output: root x such that f(x)=0 up to tolerance (f(x) = input_fzerofun_1d)
+ * @param fevals Output: number of iterations (that is, of CLASS runs) needed to find the root
+ * @param pfzw   Input : pointer to workspace containing targets, unkown parameters and other relevant information
+ * @param errmsg Input/Output: Error message
+ * @return the error status
+*/
 
 int input_find_root(double *xzero,
                     int *fevals,
@@ -798,8 +835,8 @@ int input_find_root(double *xzero,
     f1 = f2;
   }
 
-  /** Find root using Ridders method. (Exchange for bisection if you are old-school.)*/
-  class_call(class_fzero_ridder(input_fzerofun_1d,
+  /** Find root using Ridders method (Exchange for bisection if you are old-school) */
+  class_call(input_fzero_ridder(input_fzerofun_1d,
                                 x1,
                                 x2,
                                 1e-5*MAX(fabs(x1),fabs(x2)),
@@ -815,6 +852,18 @@ int input_find_root(double *xzero,
 
 }
 
+/**
+ * Related to 'shooting': defines 1d function of which we want to find
+ * the root during the shooting.  The function is simply: "prediction
+ * of CLASS for a target parameter y given a parameter x - targeted
+ * value of y"
+ *
+ * @param input  Input: value of x
+ * @param pfzw   Input : pointer to workspace containing targets, unkown parameters and other relevant information
+ * @param output Ouput: f(x) = y - y_targeted
+ * @param errmsg Input/Output: Error message
+ * @return the error status
+*/
 
 int input_fzerofun_1d(double input,
                       void* pfzw,
@@ -835,11 +884,25 @@ int input_fzerofun_1d(double input,
 
 
 /**
- * Using Ridders' method, return the root of a function func known to
- * lie between x1 and x2. The root, returned as zriddr, will be found to
- * an approximate accuracy xtol.
+ * Related to 'shooting': using Ridders' method, return the root x of
+ * a function f(x) known to lie between x1 and x2, up to some
+ * tolerance. Note that this function is very generic and could easily
+ * be moved to the tools (and be used in other modules).
+ *
+ * @param func   Input: function y=f(x), with arguments: x, pointer to y, and another pointer containing several fixed parameters
+ * @param x1     Input: lower boundary x1<x
+ * @param x2     Input: upper boundary x<x2
+ * @param xtol   Input: tolerance: |x- true root|<xtol
+ * @param param  Input: fixed parameters passed to f(x)
+ * @param Fx1    Input: f(x1)
+ * @param Fx2    Input: f(x2)
+ * @param xzero  Output: root x
+ * @param fevals Output: number of iterations (that is, of CLASS runs) needed to find the root
+ * @param errmsg Input/Output: Error message
+ * @return the error status
  */
-int class_fzero_ridder(int (*func)(double x,
+
+int input_fzero_ridder(int (*func)(double x,
                                    void *param,
                                    double *y,
                                    ErrorMsg error_message),
@@ -934,10 +997,19 @@ int class_fzero_ridder(int (*func)(double x,
 
 
 /**
- * Here we should write reasonable guesses for the unknown parameters.
- * Also estimate dxdy, i.e. how the unknown parameter responds to the known.
- * This can simply be estimated as the derivative of the guess formula.
+ * Related to 'shooting': we define here a reasonable analytic guess
+ * for each unknown parameter as a function of its target
+ * parameter. We must also estimate dxdy, i.e. how the unknown
+ * parameter responds to the target parameter.  This can simply be
+ * estimated as the derivative of the guess formula.
+ *
+ * @param xguess Output: guess for unkown parameter x given target parameter y
+ * @param dxdy   Output: guess for derivative dx/dy
+ * @param pfzw   Input : pointer to workspace containing targets, unkown parameters and other relevant information
+ * @param errmsg Input/Output: Error message
+ * @return the error status
  */
+
 int input_get_guess(double *xguess,
                     double *dxdy,
                     struct fzerofun_workspace * pfzw,
@@ -1070,6 +1142,19 @@ int input_get_guess(double *xguess,
 
 }
 
+/**
+ * Related to 'shooting': when there is one or more targets, call
+ * CLASS up to the highest needed computation stage, for a given set
+ * of unknown parameters; obtain the corresponding target parameters;
+ * and return the vector of each [target - targeted_value].
+ *
+ * @param unkown_parameter       Input: vector of unkownn parameters x
+ * @param unkown_parameters_size Input: size of this vector
+ * @param voidpfzw               Input: pointer to workspace containing targets, unkown parameters and other relevant information
+ * @param output                 Output: vector of target parameters y
+ * @param errmsg                 Input/Output: Error message
+ * @return the error status
+*/
 
 int input_try_unknown_parameters(double * unknown_parameter,
                                  int unknown_parameters_size,
@@ -1270,7 +1355,6 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
 }
 
-
 /**
  * Initialize the precision parameter structure.
  *
@@ -1289,7 +1373,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
  * @param ple     Input: pointer to lensing structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_precisions(struct file_content * pfc,
                           struct precision * ppr,
                           struct background *pba,
@@ -1320,12 +1406,16 @@ int input_read_precisions(struct file_content * pfc,
              "smallest_allowed_variation = %e < 0",
              ppr->smallest_allowed_variation);
 
-  /* Assign the default precision settings */
+  /* Assign the default precision settings (these very concise lines
+     assign all precision parameters thanks to the macros defined in
+     macros_precision.h) */
   #define __ASSIGN_DEFAULT_PRECISION__
   #include "precisions.h"
   #undef __ASSIGN_DEFAULT_PRECISION__
 
-  /** Read all precision parameters from input */
+  /** Read all precision parameters from input (these very concise
+      lines parse all precision parameters thanks to the macros
+      defined in macros_precision.h) */
   #define __PARSE_PRECISION_PARAMETER__
   #include "precisions.h"
   #undef __PARSE_PRECISION_PARAMETER__
@@ -1352,7 +1442,9 @@ int input_read_precisions(struct file_content * pfc,
  * @param ple     Input: pointer to lensing structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters(struct file_content * pfc,
                           struct precision * ppr,
                           struct background *pba,
@@ -1467,7 +1559,9 @@ int input_read_parameters(struct file_content * pfc,
  * @param pth     Input: pointer to thermodynamics structure
  * @param ppt     Input: pointer to perturbation structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_general(struct file_content * pfc,
                                   struct background * pba,
                                   struct thermo * pth,
@@ -1996,7 +2090,9 @@ int input_read_parameters_general(struct file_content * pfc,
  * @param ppt            Input: pointer to perturbation structure
  * @param input_verbose  Input: verbosity of input
  * @param errmsg         Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_species(struct file_content * pfc,
                                   struct precision * ppr,
                                   struct background * pba,
@@ -2811,7 +2907,9 @@ int input_read_parameters_species(struct file_content * pfc,
  * @param ppr     Input: pointer to precision structure
  * @param pth     Input: pointer to thermodynamics structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_injection(struct file_content * pfc,
                                     struct precision * ppr,
                                     struct thermo * pth,
@@ -3096,7 +3194,9 @@ int input_read_parameters_injection(struct file_content * pfc,
  * @param pnl            Input: pointer to nonlinear structure
  * @param input_verbose  Input: verbosity of input
  * @param errmsg         Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_nonlinear(struct file_content * pfc,
                                     struct precision * ppr,
                                     struct background * pba,
@@ -3238,7 +3338,9 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
  * @param pnl           Input/Output: pointer to nonlinear structure
  * @param input_verbose Input: verbosity of this input module
  * @param errmsg        Input/Ouput: error message
+ * @return the error status
  */
+
 int input_prepare_pk_eq(struct precision * ppr,
                         struct background *pba,
                         struct thermo *pth,
@@ -3437,7 +3539,9 @@ int input_prepare_pk_eq(struct precision * ppr,
  * @param ppt     Input: pointer to perturbations structure
  * @param ppm     Input: pointer to primordial structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_primordial(struct file_content * pfc,
                                      struct perturbs * ppt,
                                      struct primordial * ppm,
@@ -4040,7 +4144,9 @@ int input_read_parameters_primordial(struct file_content * pfc,
  * @param psp     Input: pointer to spectra structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_spectra(struct file_content * pfc,
                                   struct precision * ppr,
                                   struct background * pba,
@@ -4374,7 +4480,9 @@ int input_read_parameters_spectra(struct file_content * pfc,
  * @param ptr     Input: pointer to transfer structure
  * @param ple     Input: pointer to lensing structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_lensing(struct file_content * pfc,
                                   struct precision * ppr,
                                   struct perturbs * ppt,
@@ -4427,7 +4535,9 @@ int input_read_parameters_lensing(struct file_content * pfc,
  * @param ppr     Input: pointer to precision structure
  * @param psd     Input: pointer to distortions structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_distortions(struct file_content * pfc,
                                       struct precision * ppr,
                                       struct distortions * psd,
@@ -4632,7 +4742,9 @@ int input_read_parameters_distortions(struct file_content * pfc,
  * @param pba     Input: pointer to background structure
  * @param pth     Input: pointer to thermo structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_additional(struct file_content* pfc,
                                      struct precision* ppr,
                                      struct background* pba,
@@ -4647,8 +4759,8 @@ int input_read_parameters_additional(struct file_content* pfc,
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /**
-   * Here we can place all obsolete (deprecated) names for the precision parameters,
-   * but these will still be read as of the current version.
+   * Here we can place all obsolete (deprecated) names for the precision parameters
+   * that will still be read as of the current version.
    * There is however, no guarantee that this will be true for future versions as well.
    * The new parameter names should be used preferrably.
    * */
@@ -4742,7 +4854,9 @@ int input_read_parameters_additional(struct file_content* pfc,
  * @param ple     Input: pointer to lensing structure
  * @param pop     Input: pointer to output structure
  * @param errmsg  Input: Error message
+ * @return the error status
  */
+
 int input_read_parameters_output(struct file_content * pfc,
                                  struct background *pba,
                                  struct thermo *pth,
@@ -4927,18 +5041,6 @@ int input_read_parameters_output(struct file_content * pfc,
 
 }
 
-int compare_doubles(const void *a,
-                    const void *b){
-  double *x = (double *) a;
-  double *y = (double *) b;
-  if (*x < *y)
-    return -1;
-  else if
-    (*x > *y) return 1;
-  return 0;
-}
-
-
 /**
  * All default parameter values (for input parameters)
  *
@@ -4952,7 +5054,9 @@ int compare_doubles(const void *a,
  * @param ple Input: pointer to lensing structure
  * @param pop Input: pointer to output structure
  * @return the error status
+ * @return the error status
  */
+
 int input_default_params(struct background *pba,
                          struct thermo *pth,
                          struct perturbs *ppt,
@@ -5500,33 +5604,12 @@ int input_default_params(struct background *pba,
 
 }
 
-
 /**
- * This function detects if a string begins with a character,
- * ignoring whitespaces during its search
+ * Get version number
  *
- * returns the result, NOT the _SUCCESS_ or _FAILURE_ codes.
- * (This is done such that it can be used inside of an if statement)
- * */
-int string_begins_with(char* thestring, char beginchar){
-
-  /** Define temporary variables */
-  int int_temp=0;
-  int strlength = strlen((thestring));
-  int result = _FALSE_;
-
-  /** Check through the beginning of the string to see if the beginchar is met */
-  for(int_temp=0;int_temp<strlength;++int_temp){
-    /* Skip over whitespaces (very important) */
-    if(thestring[int_temp]==' ' || thestring[int_temp]=='\t'){continue;}
-    /* If the beginchar is met, everything is good */
-    else if(thestring[int_temp]==beginchar){result=_TRUE_;}
-    /* If something else is met, cancel */
-    else{break;}
-  }
-
-  return result;
-}
+ * @param fname  Input: File name
+ * @return the error status
+ */
 
 int class_version(
                   char * version
