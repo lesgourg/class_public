@@ -1357,6 +1357,20 @@ cdef class Class:
         self.compute(["thermodynamics"])
         return self.th.rs_d
 
+    def rs_drag_nn(self):
+        """
+        Same as `self.rs_drag()`, but doesn't invoke `self.compute()`.
+        The reason is the following: If NNs are enabled, `self.compute()`
+        will call the NN code during the perturbation module; the NN code will
+        call `rs_drag()`, which in turn will call `self.compute(["thermodynamics"])`;
+        however,  since `self.ready` is not yet set to `True` during the perturbation
+        module, this will recompute the thermodynamics (and waste time).
+        For this reason, this method assumes that thermodynamics has been run already
+        WITHOUT checking the `self.ready` flag.
+        """
+        assert "thermodynamics" in self.ncp
+        return self.th.rs_d
+
     def angular_distance(self, z):
         """
         angular_distance(z)
