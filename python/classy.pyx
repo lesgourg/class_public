@@ -1,42 +1,49 @@
+# distutils: language = c++
 """
 .. module:: classy
     :synopsis: Python wrapper around CLASS
 .. moduleauthor:: Karim Benabed <benabed@iap.fr>
 .. moduleauthor:: Benjamin Audren <benjamin.audren@epfl.ch>
 .. moduleauthor:: Julien Lesgourgues <lesgourg@cern.ch>
+.. moduleauthor:: Thomas Tram <thomas.tram@phys.au.dk>
 
 This module defines a class called Class. It is used with Monte Python to
 extract cosmological parameters.
 
-# JL 14.06.2017: TODO: check whether we should free somewhere the allocated fc.filename and titles, data (4 times)
-
 """
-from math import exp,log
-import numpy as np
-cimport numpy as np
-from libc.stdlib cimport *
-from libc.stdio cimport *
-from libc.string cimport *
+DEF _FALSE_ = 0
+DEF _FAILURE_ = 1
+DEF _MAXTITLESTRINGLENGTH_ = 8000
+
+from libc.math cimport exp, log
+from libc.stdlib cimport malloc, calloc, free
+from libc.stdio cimport sprintf
+
+from libcpp cimport bool
+from libcpp.memory cimport nullptr
+from libcpp.memory cimport unique_ptr
+from libcpp.memory cimport shared_ptr
+from libcpp.map cimport map
+from libcpp.pair cimport pair
+from libcpp.string cimport string
+from libcpp.vector cimport vector
+
+from numpy.math cimport EULER, LOGE2
+
 import cython
 cimport cython
+from cython.operator cimport dereference as deref
 
-# Nils : Added for python 3.x and python 2.x compatibility
+import numpy as np
+cimport numpy as np
 import sys
-def viewdictitems(d):
+from cclassy cimport *
+# Nils : Added for python 3.x and python 2.x compatibility
+cdef viewdictitems(dict d):
     if sys.version_info >= (3,0):
         return d.items()
     else:
         return d.viewitems()
-
-ctypedef np.float_t DTYPE_t
-ctypedef np.int_t DTYPE_i
-
-# Import the .pxd containing definitions
-from cclassy cimport *
-
-DEF _MAXTITLESTRINGLENGTH_ = 8000
-
-__version__ = _VERSION_.decode("utf-8")
 
 # Implement a specific Exception (this might not be optimally designed, nor
 # even acceptable for python standards. It, however, does the job).
@@ -45,8 +52,17 @@ __version__ = _VERSION_.decode("utf-8")
 # the unused_parameters file), or a NameError in other cases. This allows
 # MontePython to handle things differently.
 class CosmoError(Exception):
-    def __init__(self, message=""):
-        self.message = message.decode() if isinstance(message,bytes) else message
+    def __init__(self, message=None):
+        if message is None:
+            message = ''
+        elif isinstance(message, bytes):
+            try:
+                # If message has garbage inside, decode may fail.
+                message = message.decode()
+            except:
+                pass
+
+        self.message = message
 
     def __str__(self):
         return '\n\nError in Class: ' + self.message
@@ -70,41 +86,69 @@ class CosmoComputationError(CosmoError):
     This will be caught by the parameter extraction code to give an extremely
     unlikely value to this point
     """
+
+cdef int raise_my_py_error() except *:
+    cdef:
+        pair[string, string] cpp_exception
+        str cpp_exception_type
+    cpp_exception = get_my_py_error_message()
+    cpp_exception_type = cpp_exception.first.decode()
+    if "invalid_argument" in cpp_exception_type:
+        raise CosmoSevereError(cpp_exception.second)
+    elif "runtime_error" in cpp_exception_type:
+        raise CosmoComputationError(cpp_exception.second)
+    else:
+        raise NotImplementedError(cpp_exception.second)
+
+cdef extern from "cosmology.h":
+    ctypedef shared_ptr[const InputModule] InputModulePtr
+    ctypedef shared_ptr[const BackgroundModule] BackgroundModulePtr
+    ctypedef shared_ptr[const ThermodynamicsModule] ThermodynamicsModulePtr
+    ctypedef shared_ptr[const PerturbationsModule] PerturbationsModulePtr
+    ctypedef shared_ptr[const PrimordialModule] PrimordialModulePtr
+    ctypedef shared_ptr[const NonlinearModule] NonlinearModulePtr
+    ctypedef shared_ptr[const TransferModule] TransferModulePtr
+    ctypedef shared_ptr[const SpectraModule] SpectraModulePtr
+    ctypedef shared_ptr[const LensingModule] LensingModulePtr
+
+    cdef cppclass Cosmology:
+        Cosmology(FileContent& fc) except +raise_my_py_error
+        InputModulePtr& GetInputModule()
+        BackgroundModulePtr& GetBackgroundModule() except +raise_my_py_error
+        ThermodynamicsModulePtr& GetThermodynamicsModule() except +raise_my_py_error
+        PerturbationsModulePtr& GetPerturbationsModule() except +raise_my_py_error
+        PrimordialModulePtr& GetPrimordialModule() except +raise_my_py_error
+        NonlinearModulePtr& GetNonlinearModule() except +raise_my_py_error
+        TransferModulePtr& GetTransferModule() except +raise_my_py_error
+        SpectraModulePtr& GetSpectraModule() except +raise_my_py_error
+        LensingModulePtr& GetLensingModule() except +raise_my_py_error
+
+# To support the legacy name Class for the cosmology class.
+cdef class Class(PyCosmology):
     pass
 
-
-cdef class Class:
-    """
-    Class wrapping, creates the glue between C and python
-
-    The actual Class wrapping, the only class we will call from MontePython
-    (indeed the only one we will import, with the command:
-    from classy import Class
+cdef class PyCosmology:
 
     """
-    # List of used structures, defined in the header file. They have to be
-    # "cdefined", because they correspond to C structures
-    cdef precision pr
-    cdef background ba
-    cdef thermo th
-    cdef perturbs pt
-    cdef primordial pm
-    cdef nonlinear nl
-    cdef transfers tr
-    cdef spectra sp
-    cdef output op
-    cdef lensing le
-    cdef file_content fc
+    Cython wrapper class for C++ class Cosmology
+    """
 
-    cpdef int computed # Flag to see if classy has already computed with the given pars
-    cpdef int allocated # Flag to see if classy structs are allocated already
-    cpdef object _pars # Dictionary of the parameters
-    cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef unique_ptr[Cosmology] _thisptr
+    cdef dict _pars
+    cdef bool parameters_changed
+    cdef FileContent _fc
 
-    # Defining two new properties to recover, respectively, the parameters used
-    # or the age (set after computation). Follow this syntax if you want to
-    # access other quantities. Alternatively, you can also define a method, and
-    # call it (see _T_cmb method, at the very bottom).
+    cdef const precision* pr
+    cdef const background* ba
+    cdef const thermo* th
+    cdef const perturbs* pt
+    cdef const primordial* pm
+    cdef const nonlinear* nl
+    cdef const transfers* tr
+    cdef const spectra* sp
+    cdef const lensing* le
+    cdef const output* op
+
     property pars:
         def __get__(self):
             return self._pars
@@ -118,634 +162,270 @@ cdef class Class:
         def __get__(self):
             return self.nl.method
 
-    def set_default(self):
-        _pars = {
-            "output":"tCl mPk",}
-        self.set(**_pars)
+    def __init__(self, input_parameters=None):
+        if input_parameters is None:
+            input_parameters = {}
+        self._pars = input_parameters
+        self.reset()
 
-    def __cinit__(self, default=False):
-        cpdef char* dumc
-        self.allocated = False
-        self.computed = False
-        self._pars = {}
-        self.fc.size=0
-        self.fc.filename = <char*>malloc(sizeof(char)*30)
-        assert(self.fc.filename!=NULL)
-        dumc = "NOFILE"
-        sprintf(self.fc.filename,"%s",dumc)
-        self.ncp = set()
-        if default: self.set_default()
+    cdef reset(self):
+        self._update_fc_from_pars()
+        self.parameters_changed = False
+        self._thisptr.reset(new Cosmology(self._fc))
 
-    def __dealloc__(self):
-        if self.allocated:
-          self.struct_cleanup()
-        self.empty()
-        # Reset all the fc to zero if its not already done
-        if self.fc.size !=0:
-            self.fc.size=0
-            free(self.fc.name)
-            free(self.fc.value)
-            free(self.fc.read)
-            free(self.fc.filename)
+        input_module = deref(self._thisptr).GetInputModule()
+        self.pr = &deref(input_module).precision_
+        self.ba = &deref(input_module).background_
+        self.th = &deref(input_module).thermodynamics_
+        self.pt = &deref(input_module).perturbations_
+        self.pm = &deref(input_module).primordial_
+        self.nl = &deref(input_module).nonlinear_
+        self.tr = &deref(input_module).transfers_
+        self.sp = &deref(input_module).spectra_
+        self.le = &deref(input_module).lensing_
+        self.op = &deref(input_module).output_
 
-    # Set up the dictionary
-    def set(self,*pars,**kars):
-        oldpars = self._pars.copy()
-        if len(pars)==1:
-            self._pars.update(dict(pars[0]))
-        elif len(pars)!=0:
-            raise CosmoSevereError("bad call")
-        self._pars.update(kars)
-        if viewdictitems(self._pars) <= viewdictitems(oldpars):
-          return # Don't change the computed states, if the new dict was already contained in the previous dict
-        self.computed=False
-        return True
+    cdef _update_fc_from_pars(self):
+        cdef:
+            FileContent new_file_content
+            char* dumc
+            int i
 
-    def empty(self):
-        self._pars = {}
-        self.computed = False
-
-    # Create an equivalent of the parameter file. Non specified values will be
-    # taken at their default (in Class)
-    def _fillparfile(self):
-        cdef char* dumc
-
-        if self.fc.size!=0:
-            free(self.fc.name)
-            free(self.fc.value)
-            free(self.fc.read)
-        self.fc.size = len(self._pars)
-        self.fc.name = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
-        assert(self.fc.name!=NULL)
-
-        self.fc.value = <FileArg*> malloc(sizeof(FileArg)*len(self._pars))
-        assert(self.fc.value!=NULL)
-
-        self.fc.read = <short*> malloc(sizeof(short)*len(self._pars))
-        assert(self.fc.read!=NULL)
+        # _fc will be cleaned up by its destructor
+        self._fc = new_file_content
+        self._fc.size = len(self._pars)
+        self._fc.name = <FileArg*> malloc(sizeof(FileArg)*self._fc.size)
+        assert(self._fc.name != nullptr)
+        self._fc.value = <FileArg*> malloc(sizeof(FileArg)*self._fc.size)
+        assert(self._fc.value != nullptr)
+        self._fc.read = <short*> malloc(sizeof(short)*self._fc.size)
+        assert(self._fc.read != nullptr)
 
         # fill parameter file
-        i = 0
-        for kk in self._pars:
-
-            dumcp = kk.encode()
+        for i, (name, value) in enumerate(self._pars.items()):
+            dumcp = name.encode()
             dumc = dumcp
-            sprintf(self.fc.name[i],"%s",dumc)
-            dumcp = str(self._pars[kk]).encode()
+            sprintf(self._fc.name[i], "%s", dumc)
+
+            dumcp = str(value).encode()
             dumc = dumcp
-            sprintf(self.fc.value[i],"%s",dumc)
-            self.fc.read[i] = _FALSE_
-            i+=1
+            sprintf(self._fc.value[i], "%s", dumc)
+            self._fc.read[i] = 0
 
-    # Called at the end of a run, to free memory
-    def struct_cleanup(self):
-        if(self.allocated != True):
-          return
-        if "lensing" in self.ncp:
-            lensing_free(&self.le)
-        if "spectra" in self.ncp:
-            spectra_free(&self.sp)
-        if "transfer" in self.ncp:
-            transfer_free(&self.tr)
-        if "nonlinear" in self.ncp:
-            nonlinear_free(&self.nl)
-        if "primordial" in self.ncp:
-            primordial_free(&self.pm)
-        if "perturb" in self.ncp:
-            perturb_free(&self.pt)
-        if "thermodynamics" in self.ncp:
-            thermodynamics_free(&self.th)
-        if "background" in self.ncp:
-            background_free(&self.ba)
-        self.allocated = False
-        self.computed = False
-
-    def _check_task_dependency(self, level):
-        """
-        Fill the level list with all the needed modules
-
-        .. warning::
-
-            the ordering of modules is obviously dependent on CLASS module order
-            in the main.c file. This has to be updated in case of a change to
-            this file.
-
-        Parameters
-        ----------
-
-        level : list
-            list of strings, containing initially only the last module required.
-            For instance, to recover all the modules, the input should be
-            ['lensing']
-
-        """
-        if "distortions" in level:
-            if "lensing" not in level:
-                level.append("lensing")
-        if "lensing" in level:
-            if "spectra" not in level:
-                level.append("spectra")
-        if "spectra" in level:
-            if "transfer" not in level:
-                level.append("transfer")
-        if "transfer" in level:
-            if "nonlinear" not in level:
-                level.append("nonlinear")
-        if "nonlinear" in level:
-            if "primordial" not in level:
-                level.append("primordial")
-        if "primordial" in level:
-            if "perturb" not in level:
-                level.append("perturb")
-        if "perturb" in level:
-            if "thermodynamics" not in level:
-                level.append("thermodynamics")
-        if "thermodynamics" in level:
-            if "background" not in level:
-                level.append("background")
-        if len(level)!=0 :
-            if "input" not in level:
-                level.append("input")
-        return level
-
-    def _pars_check(self, key, value, contains=False, add=""):
-        val = ""
-        if key in self._pars:
-            val = self._pars[key]
-            if contains:
-                if value in val:
-                    return True
-            else:
-                if value==val:
-                    return True
-        if add:
-            sep = " "
-            if isinstance(add,str):
-                sep = add
-
-            if contains and val:
-                    self.set({key:val+sep+value})
-            else:
-                self.set({key:value})
-            return True
-        return False
-
-    def compute(self, level=["lensing"]):
-        """
-        compute(level=["lensing"])
-
-        Main function, execute all the _init methods for all desired modules.
-        This is called in MontePython, and this ensures that the Class instance
-        of this class contains all the relevant quantities. Then, one can deduce
-        Pk, Cl, etc...
-
-        Parameters
-        ----------
-        level : list
-                list of the last module desired. The internal function
-                _check_task_dependency will then add to this list all the
-                necessary modules to compute in order to initialize this last
-                one. The default last module is "lensing".
-
-        .. warning::
-
-            level default value should be left as an array (it was creating
-            problem when casting as a set later on, in _check_task_dependency)
-
-        """
-        cdef ErrorMsg errmsg
-
-        # Append to the list level all the modules necessary to compute.
-        level = self._check_task_dependency(level)
-
-        # Check if this function ran before (self.computed should be true), and
-        # if no other modules were requested, i.e. if self.ncp contains (or is
-        # equivalent to) level. If it is the case, simply stop the execution of
-        # the function.
-        if self.computed and self.ncp.issuperset(level):
-            return
-
-        # Check if already allocated to prevent memory leaks
-        if self.allocated:
-            self.struct_cleanup()
-
-        # Otherwise, proceed with the normal computation.
-        self.computed = False
-
-        # Equivalent of writing a parameter file
-        self._fillparfile()
-
-        # self.ncp will contain the list of computed modules (under the form of
-        # a set, instead of a python list)
-        self.ncp=set()
-        # Up until the empty set, all modules are allocated
-        # (And then we successively keep track of the ones we allocate additionally)
-        self.allocated = True
-
-        # --------------------------------------------------------------------
-        # Check the presence for all CLASS modules in the list 'level'. If a
-        # module is found in level, executure its "_init" method.
-        # --------------------------------------------------------------------
-        # The input module should raise a CosmoSevereError, because
-        # non-understood parameters asked to the wrapper is a problematic
-        # situation.
-        if "input" in level:
-            if input_init(&self.fc, &self.pr, &self.ba, &self.th,
-                          &self.pt, &self.tr, &self.pm, &self.sp,
-                          &self.nl, &self.le, &self.op, errmsg) == _FAILURE_:
-                raise CosmoSevereError(errmsg)
-            self.ncp.add("input")
-            # This part is done to list all the unread parameters, for debugging
-            problem_flag = False
-            problematic_parameters = []
-            for i in range(self.fc.size):
-                if self.fc.read[i] == _FALSE_:
-                    problem_flag = True
-                    problematic_parameters.append(self.fc.name[i].decode())
-            if problem_flag:
-                raise CosmoSevereError(
-                    "Class did not read input parameter(s): %s\n" % ', '.join(
-                    problematic_parameters))
-
-        # The following list of computation is straightforward. If the "_init"
-        # methods fail, call `struct_cleanup` and raise a CosmoComputationError
-        # with the error message from the faulty module of CLASS.
-        if "background" in level:
-            if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.ba.error_message)
-            self.ncp.add("background")
-
-        if "thermodynamics" in level:
-            if thermodynamics_init(&(self.pr), &(self.ba),
-                                   &(self.th)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.th.error_message)
-            self.ncp.add("thermodynamics")
-
-        if "perturb" in level:
-            if perturb_init(&(self.pr), &(self.ba),
-                            &(self.th), &(self.pt)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.pt.error_message)
-            self.ncp.add("perturb")
-
-        if "primordial" in level:
-            if primordial_init(&(self.pr), &(self.pt),
-                               &(self.pm)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.pm.error_message)
-            self.ncp.add("primordial")
-
-        if "nonlinear" in level:
-            if nonlinear_init(&self.pr, &self.ba, &self.th,
-                              &self.pt, &self.pm, &self.nl) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.nl.error_message)
-            self.ncp.add("nonlinear")
-
-        if "transfer" in level:
-            if transfer_init(&(self.pr), &(self.ba), &(self.th),
-                             &(self.pt), &(self.nl), &(self.tr)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.tr.error_message)
-            self.ncp.add("transfer")
-
-        if "spectra" in level:
-            if spectra_init(&(self.pr), &(self.ba), &(self.pt),
-                            &(self.pm), &(self.nl), &(self.tr),
-                            &(self.sp)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.sp.error_message)
-            self.ncp.add("spectra")
-
-        if "lensing" in level:
-            if lensing_init(&(self.pr), &(self.pt), &(self.sp),
-                            &(self.nl), &(self.le)) == _FAILURE_:
-                self.struct_cleanup()
-                raise CosmoComputationError(self.le.error_message)
-            self.ncp.add("lensing")
-
-        self.computed = True
-
-        # At this point, the cosmological instance contains everything needed. The
-        # following functions are only to output the desired numbers
+    # The functions struct_cleanup(), empty(), set() and compute() are not neccessary, but they are here to support
+    # legacy code and MontePython.
+    cpdef struct_cleanup(self):
         return
 
-    def raw_cl(self, lmax=-1, nofail=False):
-        """
-        raw_cl(lmax=-1, nofail=False)
+    cpdef empty(self):
+        self._pars = {}
+        self.parameters_changed = True
 
-        Return a dictionary of the primary C_l
+    cpdef set(self, input_parameters):
+        if viewdictitems(input_parameters) <= viewdictitems(self._pars):
+            return
+        self._pars.update(input_parameters)
+        self.parameters_changed = True
 
-        Parameters
-        ----------
-        lmax : int, optional
-                Define the maximum l for which the C_l will be returned
-                (inclusively). This number will be checked against the maximum l
-                at which they were actually computed by CLASS, and an error will
-                be raised if the desired lmax is bigger than what CLASS can
-                give.
-        nofail: bool, optional
-                Check and enforce the computation of the spectra module
-                beforehand, with the desired lmax.
+    cpdef compute(self, level=None):
+        if level is None:
+            level = ['lensing']
+        if self.parameters_changed:
+            self.reset()
+        final_level = level[0].lower()
+        if final_level == 'background':
+            deref(self._thisptr).GetBackgroundModule()
+        elif final_level == 'thermodynamics':
+            deref(self._thisptr).GetThermodynamicsModule()
+        elif final_level == 'perturb':
+            deref(self._thisptr).GetPerturbationsModule()
+        elif final_level == 'primordial':
+            deref(self._thisptr).GetPrimordialModule()
+        elif final_level == 'nonlinear':
+            deref(self._thisptr).GetNonlinearModule()
+        elif final_level == 'transfer':
+            deref(self._thisptr).GetTransferModule()
+        elif final_level == 'spectra':
+            deref(self._thisptr).GetSpectraModule()
+        elif final_level == 'lensing':
+            deref(self._thisptr).GetLensingModule()
 
-        Returns
-        -------
-        cl : dict
-                Dictionary that contains the power spectrum for 'tt', 'te', etc... The
-                index associated with each is defined wrt. Class convention, and are non
-                important from the python point of view. It also returns now the
-                ell array.
-        """
-        cdef int lmaxR
-        cdef double *rcl = <double*> calloc(self.sp.ct_size,sizeof(double))
+    cpdef get_input_precision(self):
+        return deref(self.pr)
 
-        # Quantities for tensor modes
-        cdef double **cl_md = <double**> calloc(self.sp.md_size, sizeof(double*))
-        for index_md in range(self.sp.md_size):
-            cl_md[index_md] = <double*> calloc(self.sp.ct_size, sizeof(double))
+    cpdef get_input_background(self):
+        return deref(self.ba)
 
-        # Quantities for isocurvature modes
-        cdef double **cl_md_ic = <double**> calloc(self.sp.md_size, sizeof(double*))
-        for index_md in range(self.sp.md_size):
-            cl_md_ic[index_md] = <double*> calloc(self.sp.ct_size*self.sp.ic_ic_size[index_md], sizeof(double))
+    cpdef get_input_thermodynamics(self):
+        return deref(self.th)
 
-        # Define a list of integers, refering to the flags and indices of each
-        # possible output Cl. It allows for a clear and concise way of looping
-        # over them, checking if they are defined or not.
-        has_flags = [
-            (self.sp.has_tt, self.sp.index_ct_tt, 'tt'),
-            (self.sp.has_ee, self.sp.index_ct_ee, 'ee'),
-            (self.sp.has_te, self.sp.index_ct_te, 'te'),
-            (self.sp.has_bb, self.sp.index_ct_bb, 'bb'),
-            (self.sp.has_pp, self.sp.index_ct_pp, 'pp'),
-            (self.sp.has_tp, self.sp.index_ct_tp, 'tp'),]
-        spectra = []
+    cpdef get_input_perturbations(self):
+        return deref(self.pt)
 
-        for flag, index, name in has_flags:
-            if flag:
-                spectra.append(name)
+    cpdef get_input_transfers(self):
+        return deref(self.tr)
 
-        if not spectra:
-            raise CosmoSevereError("No Cl computed")
-        lmaxR = self.sp.l_max_tot
+    cpdef get_input_primordial(self):
+        return deref(self.pm)
+
+    cpdef get_input_spectra(self):
+        return deref(self.sp)
+
+    cpdef get_input_nonlinear(self):
+        return deref(self.nl)
+
+    cpdef get_input_lensing(self):
+        return deref(self.le)
+
+    cpdef get_input_output(self):
+        return deref(self.op)
+
+    cdef general_cl(self, int lmax, bool is_lensed):
+        cdef:
+            dict out_dict
+            int lmax_computed
+            int lmaxpp
+            map[string, vector[double]] cl_data
+
+        if is_lensed:
+            le = deref(self._thisptr).GetLensingModule()
+            lmax_computed = deref(le).l_lensed_max_
+            if lmax == -1:
+                lmax = lmax_computed
+            if self.le.has_lensed_cls == _FALSE_:
+                raise CosmoSevereError("Lensing Cls not computed, add 'lensing':'yes' to your input.")
+            if lmax > lmax_computed:
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmax_computed)
+            cl_data = deref(le).cl_output(lmax)
+        else:
+            sp = deref(self._thisptr).GetSpectraModule()
+            lmax_computed = deref(sp).l_max_tot_
+            if lmax == -1:
+                lmax = lmax_computed
+            if lmax > lmax_computed:
+                raise CosmoSevereError("Can only compute up to lmax=%d"%lmax_computed)
+            cl_data = deref(sp).cl_output(lmax)
+        lmaxpp = lmax + 1
+
+        out_dict = {}
+        for element in cl_data:
+            key = <bytes> element.first
+            key = str(key.decode())
+            out_dict[key] = np.asarray(<double[:lmaxpp]> &element.second[0]).copy()
+        out_dict['ell'] = np.arange(lmax + 1)
+        return out_dict
+
+    cpdef raw_cl_no_copy(self, int lmax=-1):
+        cdef:
+            dict out_dict
+            double[::1] double_view
+            int ct_size
+            int lmax_computed
+            map[string, int] index_map
+            vector[double*] output_pointers
+
+        sp = deref(self._thisptr).GetSpectraModule()
+        lmax_computed = deref(sp).l_max_tot_
         if lmax == -1:
-            lmax = lmaxR
-        if lmax > lmaxR:
-            if nofail:
-                self._pars_check("l_max_scalars",lmax)
-                self.compute(["lensing"])
-            else:
-                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
+            lmax = lmax_computed
+        if lmax > lmax_computed:
+            raise CosmoSevereError("Can only compute up to lmax=%d"%lmax_computed)
 
-        # Initialise all the needed Cls arrays
-        cl = {}
-        for elem in spectra:
-            cl[elem] = np.zeros(lmax+1, dtype=np.double)
+        ct_size = deref(sp).ct_size_
+        index_map = deref(sp).cl_output_index_map()
+        output_pointers.resize(ct_size)
+        out_dict = {}
+        for element in index_map:
+            key = <bytes> element.first
+            key = str(key.decode())
+            out_dict[key] = np.empty(lmax + 1, dtype=np.double)
+            double_view = out_dict[key]
+            output_pointers[element.second] = &double_view[0]
 
-        # Recover for each ell the information from CLASS
-        for ell from 2<=ell<lmax+1:
-            if spectra_cl_at_l(&self.sp, ell, rcl, cl_md, cl_md_ic) == _FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
-            for flag, index, name in has_flags:
-                if name in spectra:
-                    cl[name][ell] = rcl[index]
-        cl['ell'] = np.arange(lmax+1)
+        deref(sp).cl_output_no_copy(lmax, output_pointers)
+        out_dict['ell'] = np.arange(lmax + 1)
+        return out_dict
 
-        free(rcl)
-        for index_md in range(self.sp.md_size):
-            free(cl_md[index_md])
-            free(cl_md_ic[index_md])
-        free(cl_md)
-        free(cl_md_ic)
+    cpdef raw_cl(self, int lmax=-1):
+        return self.general_cl(lmax, False)
 
-        return cl
+    cpdef lensed_cl(self, int lmax=-1):
+        return self.general_cl(lmax, True)
 
-    def lensed_cl(self, lmax=-1,nofail=False):
-        """
-        lensed_cl(lmax=-1, nofail=False)
+    cpdef z_of_r (self, double[::1] z_array):
+        cdef:
+            double tau
+            int last_index
+            int bg_size
+            short long_info
+            short inter_normal
+            int index_bg_conf_distance
+            int index_bg_H
+            Py_ssize_t i
+            Py_ssize_t z_array_size
+            double z
+            int status
+            vector[double] pvecback
+            double[::1] r
+            double[::1] dzdr
 
-        Return a dictionary of the lensed C_l, computed by CLASS, without the
-        density C_ls. They must be asked separately with the function aptly
-        named density_cl
+        z_array_size = z_array.shape[0]
+        r_arr = np.empty(z_array_size, np.double)
+        r = r_arr
+        dzdr_arr = np.empty(z_array_size, np.double)
+        dzdr = dzdr_arr
 
-        Parameters
-        ----------
-        lmax : int, optional
-                Define the maximum l for which the C_l will be returned (inclusively)
-        nofail: bool, optional
-                Check and enforce the computation of the lensing module beforehand
+        long_info = self.ba.long_info
+        inter_normal = self.ba.inter_normal
 
-        Returns
-        -------
-        cl : dict
-                Dictionary that contains the power spectrum for 'tt', 'te', etc... The
-                index associated with each is defined wrt. Class convention, and are non
-                important from the python point of view.
-        """
-        cdef int lmaxR
-        cdef double *lcl = <double*> calloc(self.le.lt_size,sizeof(double))
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        bg_size = deref(background_module).bg_size_
+        index_bg_conf_distance = deref(background_module).index_bg_conf_distance_
+        index_bg_H = deref(background_module).index_bg_H_
 
-        # Define a list of integers, refering to the flags and indices of each
-        # possible output Cl. It allows for a clear and concise way of looping
-        # over them, checking if they are defined or not.
-        has_flags = [
-            (self.le.has_tt, self.le.index_lt_tt, 'tt'),
-            (self.le.has_ee, self.le.index_lt_ee, 'ee'),
-            (self.le.has_te, self.le.index_lt_te, 'te'),
-            (self.le.has_bb, self.le.index_lt_bb, 'bb'),
-            (self.le.has_pp, self.le.index_lt_pp, 'pp'),
-            (self.le.has_tp, self.le.index_lt_tp, 'tp'),]
-        spectra = []
+        pvecback.resize(bg_size)
 
-        for flag, index, name in has_flags:
-            if flag:
-                spectra.append(name)
+        for i in range(z_array_size):
+            z = z_array[i]
+            status = deref(background_module).background_tau_of_z(z, &tau)
+            if (status == _FAILURE_):
+                raise CosmoSevereError(deref(background_module).error_message_)
 
-        if not spectra:
-            raise CosmoSevereError("No lensed Cl computed")
-        lmaxR = self.le.l_lensed_max
-
-        if lmax == -1:
-            lmax = lmaxR
-        if lmax > lmaxR:
-            if nofail:
-                self._pars_check("l_max_scalars",lmax)
-                self.compute(["lensing"])
-            else:
-                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
-
-        cl = {}
-        # Simple Cls, for temperature and polarisation, are not so big in size
-        for elem in spectra:
-            cl[elem] = np.zeros(lmax+1, dtype=np.double)
-        for ell from 2<=ell<lmax+1:
-            if lensing_cl_at_l(&self.le,ell,lcl) == _FAILURE_:
-                raise CosmoSevereError(self.le.error_message)
-            for flag, index, name in has_flags:
-                if name in spectra:
-                    cl[name][ell] = lcl[index]
-        cl['ell'] = np.arange(lmax+1)
-
-        free(lcl)
-        return cl
-
-    def density_cl(self, lmax=-1, nofail=False):
-        """
-        density_cl(lmax=-1, nofail=False)
-
-        Return a dictionary of the primary C_l for the matter
-
-        Parameters
-        ----------
-        lmax : int, optional
-            Define the maximum l for which the C_l will be returned (inclusively)
-        nofail: bool, optional
-            Check and enforce the computation of the lensing module beforehand
-
-        Returns
-        -------
-        cl : numpy array of numpy.ndarrays
-            Array that contains the list (in this order) of self correlation of
-            1st bin, then successive correlations (set by non_diagonal) to the
-            following bins, then self correlation of 2nd bin, etc. The array
-            starts at index_ct_dd.
-        """
-        cdef int lmaxR
-        cdef double *dcl = <double*> calloc(self.sp.ct_size,sizeof(double))
-
-        # Quantities for tensor modes
-        cdef double **cl_md = <double**> calloc(self.sp.md_size, sizeof(double*))
-        for index_md in range(self.sp.md_size):
-            cl_md[index_md] = <double*> calloc(self.sp.ct_size, sizeof(double))
-
-        # Quantities for isocurvature modes
-        cdef double **cl_md_ic = <double**> calloc(self.sp.md_size, sizeof(double*))
-        for index_md in range(self.sp.md_size):
-            cl_md_ic[index_md] = <double*> calloc(self.sp.ct_size*self.sp.ic_ic_size[index_md], sizeof(double))
-
-        lmaxR = self.pt.l_lss_max
-        has_flags = [
-            (self.sp.has_dd, self.sp.index_ct_dd, 'dd'),
-            (self.sp.has_td, self.sp.index_ct_td, 'td'),
-            (self.sp.has_ll, self.sp.index_ct_ll, 'll'),
-            (self.sp.has_dl, self.sp.index_ct_dl, 'dl'),
-            (self.sp.has_tl, self.sp.index_ct_tl, 'tl')]
-        spectra = []
-
-        for flag, index, name in has_flags:
-            if flag:
-                spectra.append(name)
-                l_max_flag = self.sp.l_max_ct[self.sp.index_md_scalars][index]
-                if l_max_flag < lmax and lmax > 0:
-                    raise CosmoSevereError(
-                        "the %s spectrum was computed until l=%i " % (
-                            name.upper(), l_max_flag) +
-                        "but you asked a l=%i" % lmax)
-
-        if not spectra:
-            raise CosmoSevereError("No density Cl computed")
-        if lmax == -1:
-            lmax = lmaxR
-        if lmax > lmaxR:
-            if nofail:
-                self._pars_check("l_max_lss",lmax)
-                self._pars_check("output",'nCl')
-                self.compute()
-            else:
-                raise CosmoSevereError("Can only compute up to lmax=%d"%lmaxR)
-
-        cl = {}
-
-        # For density Cls, the size is bigger (different redshfit bins)
-        # computes the size, given the number of correlations needed to be computed
-        size = (self.sp.d_size*(self.sp.d_size+1)-(self.sp.d_size-self.sp.non_diag)*
-                (self.sp.d_size-1-self.sp.non_diag))/2;
-        for elem in ['dd', 'll', 'dl']:
-            if elem in spectra:
-                cl[elem] = {}
-                for index in range(size):
-                    cl[elem][index] = np.zeros(
-                        lmax+1, dtype=np.double)
-        for elem in ['td', 'tl']:
-            if elem in spectra:
-                cl[elem] = np.zeros(lmax+1, dtype=np.double)
-
-        for ell from 2<=ell<lmax+1:
-            if spectra_cl_at_l(&self.sp, ell, dcl, cl_md, cl_md_ic) == _FAILURE_:
-                raise CosmoSevereError(self.sp.error_message)
-            if 'dd' in spectra:
-                for index in range(size):
-                    cl['dd'][index][ell] = dcl[self.sp.index_ct_dd+index]
-            if 'll' in spectra:
-                for index in range(size):
-                    cl['ll'][index][ell] = dcl[self.sp.index_ct_ll+index]
-            if 'dl' in spectra:
-                for index in range(size):
-                    cl['dl'][index][ell] = dcl[self.sp.index_ct_dl+index]
-            if 'td' in spectra:
-                cl['td'][ell] = dcl[self.sp.index_ct_td]
-            if 'tl' in spectra:
-                cl['tl'][ell] = dcl[self.sp.index_ct_tl]
-        cl['ell'] = np.arange(lmax+1)
-
-        free(dcl)
-        for index_md in range(self.sp.md_size):
-            free(cl_md[index_md])
-            free(cl_md_ic[index_md])
-        free(cl_md)
-        free(cl_md_ic)
-
-        return cl
-
-    def z_of_r (self,z_array):
-        cdef double tau=0.0
-        cdef int last_index=0 #junk
-        cdef double * pvecback
-        r = np.zeros(len(z_array),'float64')
-        dzdr = np.zeros(len(z_array),'float64')
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        i = 0
-        for redshift in z_array:
-            if background_tau_of_z(&self.ba,redshift,&tau)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
-
-            if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-                raise CosmoSevereError(self.ba.error_message)
+            status = deref(background_module).background_at_tau(tau, long_info, inter_normal, &last_index, &pvecback[0])
+            if (status == _FAILURE_):
+                raise CosmoSevereError(deref(background_module).error_message_)
 
             # store r
-            r[i] = pvecback[self.ba.index_bg_conf_distance]
+            r[i] = pvecback[index_bg_conf_distance]
             # store dz/dr = H
-            dzdr[i] = pvecback[self.ba.index_bg_H]
+            dzdr[i] = pvecback[index_bg_H]
 
-            i += 1
+        return r_arr, dzdr_arr
 
-        free(pvecback)
-        return r[:],dzdr[:]
-
-    def luminosity_distance(self, z):
+    cpdef luminosity_distance(self, double z):
         """
         luminosity_distance(z)
         """
-        cdef double tau=0.0
-        cdef int last_index = 0  # junk
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+        cdef int index_bg_lum_distance
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        index_bg_lum_distance = deref(background_module).index_bg_lum_distance_
+        return self.get_background_value_at_z(z, index_bg_lum_distance)
 
-        if background_tau_of_z(&self.ba, z, &tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
+    cdef pk_general(self, double k, double z, int index_pk, pk_outputs linear_or_nonlinear):
+        cdef:
+            double pk
+            int status
 
-        if background_at_tau(&self.ba, tau, self.ba.long_info,
-                self.ba.inter_normal, &last_index, pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-        lum_distance = pvecback[self.ba.index_bg_lum_distance]
-        free(pvecback)
-        return lum_distance
+        if (self.pt.has_pk_matter == _FALSE_):
+            raise CosmoSevereError("Power spectrum not computed. You must add mPk to the list of outputs.")
 
-    # Gives the total matter pk for a given (k,z)
-    def pk(self,double k,double z):
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        status = deref(nonlinear_module).nonlinear_pk_at_k_and_z(linear_or_nonlinear, k, z, index_pk, &pk, NULL)
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(nonlinear_module).error_message_)
+        return pk
+
+    cpdef pk(self, double k, double z):
         """
         Gives the total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -755,22 +435,22 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
-        cdef double pk
+        cdef:
+            int index_pk_m
+            pk_outputs linear_or_nonlinear
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if (self.nl.method == nl_none):
-            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
+        if self.nl.method == nl_none:
+            linear_or_nonlinear = pk_linear
         else:
-            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
+            linear_or_nonlinear = pk_nonlinear
 
-        return pk
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_m = deref(nonlinear_module).index_pk_m_
+
+        return self.pk_general(k, z, index_pk_m, linear_or_nonlinear)
 
     # Gives the cdm+b pk for a given (k,z)
-    def pk_cb(self,double k,double z):
+    cpdef pk_cb(self, double k, double z):
         """
         Gives the cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z (will be non linear if requested to Class, linear otherwise)
 
@@ -780,24 +460,27 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
-        cdef double pk_cb
+        cdef:
+            int index_pk_cb
+            pk_outputs linear_or_nonlinear
+            short has_pk_cb
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-        if (self.nl.has_pk_cb == _FALSE_):
+        if self.nl.method == nl_none:
+            linear_or_nonlinear = pk_linear
+        else:
+            linear_or_nonlinear = pk_nonlinear
+
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_cb = deref(nonlinear_module).index_pk_cb_
+        has_pk_cb = deref(nonlinear_module).has_pk_cb_
+
+        if (has_pk_cb == _FALSE_):
             raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
 
-        if (self.nl.method == nl_none):
-            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_cb,&pk_cb,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
-        else:
-            if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_nonlinear,k,z,self.nl.index_pk_cb,&pk_cb,NULL)==_FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
-
-        return pk_cb
+        self.pk_general(k, z, index_pk_cb, linear_or_nonlinear)
 
     # Gives the total matter pk for a given (k,z)
-    def pk_lin(self,double k,double z):
+    cpdef pk_lin(self, double k, double z):
         """
         Gives the linear total matter pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -807,18 +490,14 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
-        cdef double pk_lin
+        cdef int index_pk_m
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_m = deref(nonlinear_module).index_pk_m_
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
-
-        if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk_lin,NULL)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
-
-        return pk_lin
+        return self.pk_general(k, z, index_pk_m, pk_linear)
 
     # Gives the cdm+b pk for a given (k,z)
-    def pk_cb_lin(self,double k,double z):
+    cpdef pk_cb_lin(self,double k,double z):
         """
         Gives the linear cdm+b pk (in Mpc**3) for a given k (in 1/Mpc) and z
 
@@ -828,132 +507,101 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
-        cdef double pk_cb_lin
+        cdef:
+            int index_pk_cb
+            short has_pk_cb
+
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_cb = deref(nonlinear_module).index_pk_cb_
+        has_pk_cb = deref(nonlinear_module).has_pk_cb_
+
+        if (has_pk_cb == _FALSE_):
+            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
+        return self.pk_general(k, z, index_pk_cb, pk_linear)
+
+    cdef get_pk_general(self, double[:,:,::1] k, double[::1] z, Py_ssize_t k_size, Py_ssize_t z_size, Py_ssize_t mu_size, Py_ssize_t index_pk, pk_outputs linear_or_nonlinear):
+        cdef:
+            Py_ssize_t index_k
+            Py_ssize_t index_z
+            Py_ssize_t index_mu
+            double pk_val
+            double[:,:,::1] pk
 
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
+            raise CosmoSevereError("Power spectrum not computed. You must add mPk to the list of outputs.")
 
-        if (self.nl.has_pk_cb == _FALSE_):
-            raise CosmoSevereError("P_cb not computed by CLASS (probably because there are no massive neutrinos)")
+        pk_arr = np.empty((k_size, z_size, mu_size), np.double)
+        pk = pk_arr
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        # TODO: Consider prange for outer loop
+        for index_k in range(k_size):
+            for index_z in range(z_size):
+                for index_mu in range(mu_size):
+                    pk[index_k, index_z, index_mu] = self.pk_general(k[index_k, index_z, index_mu], z[index_z], index_pk, linear_or_nonlinear)
 
-        if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_cb,&pk_cb_lin,NULL)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
+        return pk_arr
 
-        return pk_cb_lin
-
-    def get_pk(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+    cpdef get_pk(self, double[:,:,::1] k, double[::1] z, Py_ssize_t k_size, Py_ssize_t z_size, Py_ssize_t mu_size):
         """ Fast function to get the power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
-        cdef int index_k, index_z, index_mu
+        cdef:
+            int index_pk_m
+            pk_outputs linear_or_nonlinear
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
-                    pk[index_k,index_z,index_mu] = self.pk(k[index_k,index_z,index_mu],z[index_z])
-        return pk
+        if self.nl.method == nl_none:
+            linear_or_nonlinear = pk_linear
+        else:
+            linear_or_nonlinear = pk_nonlinear
 
-    def get_pk_cb(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_m = deref(nonlinear_module).index_pk_m_
+        return self.get_pk_general(k, z, k_size, z_size, mu_size, index_pk_m, linear_or_nonlinear)
+
+    cpdef get_pk_cb(self, double[:,:,::1] k, double[::1] z, int k_size, int z_size, int mu_size):
         """ Fast function to get the power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
-        cdef int index_k, index_z, index_mu
+        cdef:
+            int index_pk_cb
+            short has_pk_cb
+            pk_outputs linear_or_nonlinear
 
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
-                    pk_cb[index_k,index_z,index_mu] = self.pk_cb(k[index_k,index_z,index_mu],z[index_z])
-        return pk_cb
-
-    def get_pk_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get the linear power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=3] pk = np.zeros((k_size,z_size,mu_size),'float64')
-        cdef int index_k, index_z, index_mu
-
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
-                    pk[index_k,index_z,index_mu] = self.pk_lin(k[index_k,index_z,index_mu],z[index_z])
-        return pk
-
-    def get_pk_cb_lin(self, np.ndarray[DTYPE_t,ndim=3] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, int mu_size):
-        """ Fast function to get the linear power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=3] pk_cb = np.zeros((k_size,z_size,mu_size),'float64')
-        cdef int index_k, index_z, index_mu
-
-        for index_k in xrange(k_size):
-            for index_z in xrange(z_size):
-                for index_mu in xrange(mu_size):
-                    pk_cb[index_k,index_z,index_mu] = self.pk_cb_lin(k[index_k,index_z,index_mu],z[index_z])
-        return pk_cb
-
-    def get_pk_and_k_and_z(self, nonlinear=True, only_clustering_species = False):
-        """
-        Returns a grid of matter power spectrum values and the z and k
-        at which it has been fully computed. Useful for creating interpolators.
-
-        Parameters
-        ----------
-        nonlinear : bool
-                Whether the returned power spectrum values are linear or non-linear (default)
-        nonlinear : bool
-                Whether the returned power spectrum is for galaxy clustering and excludes massive neutrinos, or always includes evrything (default)
-        """
-        cdef np.ndarray[DTYPE_t,ndim=2] pk_at_k_z = np.zeros((self.nl.k_size, self.nl.ln_tau_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] k = np.zeros((self.nl.k_size),'float64')
-        cdef np.ndarray[DTYPE_t,ndim=1] z = np.zeros((self.nl.ln_tau_size),'float64')
-        cdef int index_k, index_tau, index_pk
-        cdef double z_max_nonlinear, z_max_requested
-
-        # consistency checks
-
-        if self.nl.has_pk_matter == False:
-            raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations; add 'mPk' in 'output'")
-
-        if nonlinear == True and self.nl.method == nl_none:
-            raise CosmoSevereError("You ask classy to return an array of nonlinear P(k,z) values, but the input parameters sent to CLASS did not require any non-linear P(k,z) calculations; add e.g. 'halofit' or 'HMcode' in 'nonlinear'")
-
-        # check wich type of P(k) to return (total or clustering only, i.e. without massive neutrino contribution)
-        if (only_clustering_species == True):
-            index_pk = self.nl.index_pk_cluster
+        if self.nl.method == nl_none:
+            linear_or_nonlinear = pk_linear
         else:
-            index_pk = self.nl.index_pk_total
+            linear_or_nonlinear = pk_nonlinear
 
-        # get list of redshfits
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_cb = deref(nonlinear_module).index_pk_cb_
+        has_pk_cb = deref(nonlinear_module).has_pk_cb_
 
-        if self.nl.ln_tau_size == 1:
-            raise CosmoSevereError("You ask classy to return an array of P(k,z) values, but the input parameters sent to CLASS did not require any P(k,z) calculations for z>0; pass either a list of z in 'z_pk' or one non-zero value in 'z_max_pk'")
-        else:
-            for index_tau in xrange(self.nl.ln_tau_size):
-                if index_tau == self.nl.ln_tau_size-1:
-                    z[index_tau] = 0.
-                else:
-                    z[index_tau] = self.z_of_tau(np.exp(self.nl.ln_tau[index_tau]))
+        if (has_pk_cb == _FALSE_):
+            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
 
-        # check consitency of the list of redshifts
+        return self.get_pk_general(k, z, k_size, z_size, mu_size, index_pk_cb, linear_or_nonlinear)
 
-        if nonlinear == True:
-            z_max_nonlinear = self.z_of_tau(self.nl.tau[self.nl.index_tau_min_nl])
-            z_max_requested = z[0]
-            if ((self.nl.tau_size - self.nl.ln_tau_size) < self.nl.index_tau_min_nl):
-                raise CosmoSevereError("get_pk_and_k_and_z() is trying to return P(k,z) up to z_max=%e (to encompass your requested maximum value of z); but the input parameters sent to CLASS were such that the non-linear P(k,z) could only be consistently computed up to z=%e; increase the input parameter 'P_k_max_h/Mpc' or 'P_k_max_1/Mpc', or increase the precision parameters 'halofit_min_k_max' and/or 'hmcode_min_k_max', or decrease your requested z_max"%(z_max_requested,z_max_nonlinear))
+    cpdef get_pk_lin(self, double[:,:,::1] k, double[::1] z, int k_size, int z_size, int mu_size):
+        """ Fast function to get the linear power spectrum on a k and z array """
+        cdef int index_pk_m
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_m = deref(nonlinear_module).index_pk_m_
 
-        # get list of k
+        return self.get_pk_general(k, z, k_size, z_size, mu_size, index_pk_m, pk_linear)
 
-        for index_k in xrange(self.nl.k_size):
-            k[index_k] = self.nl.k[index_k]
+    cpdef get_pk_cb_lin(self, double[:,:,::1] k, double[::1] z, int k_size, int z_size, int mu_size):
+        """ Fast function to get the linear power spectrum on a k and z array """
+        cdef:
+            int index_pk_cb
+            short has_pk_cb
 
-        # get P(k,z) array
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_cb = deref(nonlinear_module).index_pk_cb_
+        has_pk_cb = deref(nonlinear_module).has_pk_cb_
 
-        for index_tau in xrange(self.nl.ln_tau_size):
-            for index_k in xrange(self.nl.k_size):
-                if nonlinear == True:
-                    pk_at_k_z[index_k, index_tau] = np.exp(self.nl.ln_pk_nl[index_pk][index_tau * self.nl.k_size + index_k])
-                else:
-                    pk_at_k_z[index_k, index_tau] = np.exp(self.nl.ln_pk_l[index_pk][index_tau * self.nl.k_size + index_k])
+        if (has_pk_cb == _FALSE_):
+            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
 
-        return pk_at_k_z, k, z
+        return self.get_pk_general(k, z, k_size, z_size, mu_size, index_pk_cb, pk_linear)
 
     # Gives sigma(R,z) for a given (R,z)
-    def sigma(self,double R,double z):
+    cpdef sigma(self, double R, double z):
         """
         Gives sigma (total matter) for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
@@ -965,21 +613,26 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
-        cdef double sigma
+        cdef:
+            double sigma
+            int index_pk_m
+            int status
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
-
-        if (self.pt.k_max_for_pk < self.ba.h):
+        if self.pt.has_pk_matter == _FALSE_:
+            raise CosmoSevereError("Power spectrum not computed. In order to get sigma(R, z) you must add mPk to the list of outputs.")
+        if self.pt.k_max_for_pk < self.ba.h:
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if nonlinear_sigmas_at_z(&self.pr,&self.ba,&self.nl,R,z,self.nl.index_pk_m,out_sigma,&sigma)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_m = deref(nonlinear_module).index_pk_m_
+        status = deref(nonlinear_module).nonlinear_sigmas_at_z(R, z, index_pk_m, out_sigma, &sigma)
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(nonlinear_module).error_message_)
 
         return sigma
 
-    # Gives sigma_cb(R,z) for a given (R,z)
-    def sigma_cb(self,double R,double z):
+    # Gives sigma(R, z) for a given (R, z)
+    cpdef sigma_cb(self, double R, double z):
         """
         Gives sigma (cdm+b) for a given R and z
         (R is the radius in units of Mpc, so if R=8/h this will be the usual sigma8(z)
@@ -991,24 +644,30 @@ cdef class Class:
             because otherwise a segfault will occur
 
         """
-        cdef double sigma_cb
+        cdef:
+            double sigma_cb
+            int index_pk_cb
+            int status
 
-        if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
-
-        if (self.nl.has_pk_cb == _FALSE_):
-            raise CosmoSevereError("sigma_cb not computed by CLASS (probably because there are no massive neutrinos)")
-
-        if (self.pt.k_max_for_pk < self.ba.h):
+        if self.pt.has_pk_matter == _FALSE_:
+            raise CosmoSevereError("Power spectrum not computed. In order to get sigma(R,z) you must add mPk to the list of outputs.")
+        if self.pt.k_max_for_pk < self.ba.h:
             raise CosmoSevereError("In order to get sigma(R,z) you must set 'P_k_max_h/Mpc' to 1 or bigger, in order to have k_max > 1 h/Mpc.")
 
-        if nonlinear_sigmas_at_z(&self.pr,&self.ba,&self.nl,R,z,self.nl.index_pk_cb,out_sigma,&sigma_cb)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        index_pk_cb = deref(nonlinear_module).index_pk_cb_
+        has_pk_cb = deref(nonlinear_module).has_pk_cb_
+        if (has_pk_cb == _FALSE_):
+            raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
+
+        status = deref(nonlinear_module).nonlinear_sigmas_at_z(R, z, index_pk_cb, out_sigma, &sigma_cb)
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(nonlinear_module).error_message_)
 
         return sigma_cb
 
     # Gives effective logarithmic slope of P_L(k,z) (total matter) for a given (k,z)
-    def pk_tilt(self,double k,double z):
+    cpdef pk_tilt(self, double k, double z):
         """
         Gives effective logarithmic slope of P_L(k,z) (total matter) for a given k and z
         (k is the wavenumber in units of 1/Mpc, z is the redshift, the output is dimensionless)
@@ -1018,98 +677,174 @@ cdef class Class:
             there is an additional check to verify whether output contains `mPk` and whether k is in the right range
 
         """
-        cdef double pk_tilt
+        cdef:
+            double ln_k
+            double pk_tilt
+            double* ln_k_vec
+            int index_pk_m
+            int k_size
+            int status
 
         if (self.pt.has_pk_matter == _FALSE_):
-            raise CosmoSevereError("No power spectrum computed. In order to get pk_tilt(k,z) you must add mPk to the list of outputs.")
+            raise CosmoSevereError("Power spectrum not computed. In order to get pk_tilt(k, z) you must add mPk to the list of outputs.")
 
-        if (k < self.nl.k[1] or k > self.nl.k[self.nl.k_size-2]):
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        ln_k = log(k)
+        ln_k_vec = deref(nonlinear_module).ln_k_
+        k_size = deref(nonlinear_module).k_size_
+        index_pk_m = deref(nonlinear_module).index_pk_m_
+        if (k_size < 2 or not (ln_k_vec[1] <= ln_k <= ln_k_vec[k_size - 2])):
             raise CosmoSevereError("In order to get pk_tilt at k=%e 1/Mpc, you should compute P(k,z) in a wider range of k's"%k)
-
-        if nonlinear_pk_tilt_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_total,&pk_tilt)==_FAILURE_:
-            raise CosmoSevereError(self.nl.error_message)
-
+        status = deref(nonlinear_module).nonlinear_pk_tilt_at_k_and_z(pk_linear, k, z, index_pk_m, &pk_tilt)
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(nonlinear_module).error_message_)
         return pk_tilt
 
-    #calculates the hmcode window_function of the Navarrow Frenk White Profile
-    def nonlinear_hmcode_window_nfw(self,double k,double rv,double c):
-        """
-        Gives window_nfw for a given wavevector k, virial radius rv and concentration c
 
-        """
-        cdef double window_nfw
+    cpdef age(self):
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        return deref(background_module).age_
 
-
-        if nonlinear_hmcode_window_nfw(&self.nl,k,rv,c,&window_nfw)==_FAILURE_:
-                 raise CosmoSevereError(self.sp.error_message)
-
-        return window_nfw
-
-    def age(self):
-        self.compute(["background"])
-        return self.ba.age
-
-    def h(self):
+    cpdef h(self):
         return self.ba.h
 
-    def n_s(self):
-        return self.pm.n_s
+    cpdef n_s(self):
+        primordial_module = deref(self._thisptr).GetPrimordialModule()
+        return deref(primordial_module).n_s_
 
-    def tau_reio(self):
-        return self.th.tau_reio
+    cpdef A_s(self):
+        primordial_module = deref(self._thisptr).GetPrimordialModule()
+        return deref(primordial_module).A_s_
 
-    def Omega_m(self):
-        return self.ba.Omega0_m
+    cpdef tau_reio(self):
+        thm = deref(self._thisptr).GetThermodynamicsModule()
+        return deref(thm).tau_reionization_
 
-    def Omega_r(self):
-        return self.ba.Omega0_r
+    cpdef Omega_m(self):
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        return deref(background_module).Omega0_m_
 
-    def theta_s_100(self):
-        return 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+    cpdef Omega_r(self):
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        return deref(background_module).Omega0_r_
 
-    def theta_star_100(self):
-        return 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
+    cpdef theta_s_100(self):
+        thm = deref(self._thisptr).GetThermodynamicsModule()
+        return 100.*deref(thm).rs_rec_/deref(thm).ra_rec_
 
-    def Omega_Lambda(self):
+    cpdef theta_star_100(self):
+        thm = deref(self._thisptr).GetThermodynamicsModule()
+        return 100.*deref(thm).rs_star_/deref(thm).ra_star_
+
+    cpdef Omega_Lambda(self):
         return self.ba.Omega0_lambda
 
-    def Omega_g(self):
+    cpdef Omega_g(self):
         return self.ba.Omega0_g
 
-    def Omega_b(self):
+    cpdef Omega_b(self):
         return self.ba.Omega0_b
 
-    def omega_b(self):
-        return self.ba.Omega0_b * self.ba.h * self.ba.h
+    cpdef omega_b(self):
+        return self.ba.Omega0_b*self.ba.h*self.ba.h
 
-    def Neff(self):
-        return self.ba.Neff
+    cpdef Neff(self):
+        bam = deref(self._thisptr).GetBackgroundModule()
+        return deref(bam).Neff_
 
-    def k_eq(self):
-        self.compute(["background"])
-        return self.ba.a_eq*self.ba.H_eq
+    cpdef k_eq(self):
+        bam = deref(self._thisptr).GetBackgroundModule()
+        return deref(bam).a_eq_*deref(bam).H_eq_
 
-    def sigma8(self):
-        self.compute(["nonlinear"])
-        return self.nl.sigma8[self.nl.index_pk_m]
+    cpdef sigma8(self):
+        cdef int index_pk_m
+        nlm = deref(self._thisptr).GetNonlinearModule()
+        index_pk_m = deref(nlm).index_pk_m_
+        return deref(nlm).sigma8_[index_pk_m]
 
-    #def neff(self):
-    #    self.compute(["spectra"])
-    #    return self.sp.neff
+    cpdef sigma8_cb(self):
+        cdef int index_pk_cb
+        nlm = deref(self._thisptr).GetNonlinearModule()
+        index_pk_cb = deref(nlm).index_pk_cb_
+        return deref(nlm).sigma8_[index_pk_cb]
 
-    def sigma8_cb(self):
-        self.compute(["nonlinear"])
-        return self.nl.sigma8[self.nl.index_pk_cb]
+    cpdef rs_drag(self):
+        thm = deref(self._thisptr).GetThermodynamicsModule()
+        return deref(thm).rs_d_
 
-    def rs_drag(self):
-        self.compute(["thermodynamics"])
-        return self.th.rs_d
+    cpdef z_reio(self):
+        thm = deref(self._thisptr).GetThermodynamicsModule()
+        return deref(thm).z_reionization_
 
-    def z_reio(self):
-        self.compute(["thermodynamics"])
-        return self.th.z_reio
+    cdef get_background_value_at_z(self, double z, int index_bg):
+        cdef:
+            double output_value
+            double tau
+            int bg_size
+            int last_index
+            int status
+            short inter_normal
+            short long_info
+            vector[double] pvecback
 
-    def angular_distance(self, z):
+        long_info = self.ba.long_info
+        inter_normal = self.ba.inter_normal
+
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        bg_size = deref(background_module).bg_size_
+
+        pvecback.resize(bg_size)
+        status = deref(background_module).background_tau_of_z(z, &tau)
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
+        status = deref(background_module).background_at_tau(tau, long_info, inter_normal, &last_index, &pvecback[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
+        output_value = pvecback[index_bg]
+        return output_value
+
+    cdef get_thermodynamics_value_at_z(self, double z, int index_th):
+        cdef:
+            double tau
+            int last_index
+            vector[double] pvecback
+            vector[double] pvecthermo
+            int status
+            short long_info
+            short inter_normal
+            int bg_size
+            int th_size
+            short inter_mode
+            double output_value
+
+        long_info = self.ba.long_info
+        inter_normal = self.ba.inter_normal
+
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+        bg_size = deref(background_module).bg_size_
+        th_size = deref(thermodynamics_module).th_size_
+
+        pvecback.resize(bg_size)
+        pvecthermo.resize(th_size)
+
+        inter_mode = deref(thermodynamics_module).inter_normal_
+
+        status = deref(background_module).background_tau_of_z(z, &tau)
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
+        status = deref(background_module).background_at_tau(tau, long_info, inter_normal, &last_index, &pvecback[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
+
+        status = deref(thermodynamics_module).thermodynamics_at_z(z, inter_mode, &last_index, &pvecback[0], &pvecthermo[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(thermodynamics_module).error_message_)
+
+        output_value = pvecthermo[index_th]
+        return output_value
+
+    cpdef angular_distance(self, double z):
         """
         angular_distance(z)
 
@@ -1121,25 +856,12 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
+        cdef int index_bg_ang_distance
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        index_bg_ang_distance = deref(background_module).index_bg_ang_distance_
+        return self.get_background_value_at_z(z, index_bg_ang_distance)
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        D_A = pvecback[self.ba.index_bg_ang_distance]
-
-        free(pvecback)
-
-        return D_A
-
-    def scale_independent_growth_factor(self, z):
+    cpdef scale_independent_growth_factor(self, z):
         """
         scale_independent_growth_factor(z)
 
@@ -1151,25 +873,12 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
+        cdef int index_bg_D
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        index_bg_D = deref(background_module).index_bg_D_
+        return self.get_background_value_at_z(z, index_bg_D)
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        D = pvecback[self.ba.index_bg_D]
-
-        free(pvecback)
-
-        return D
-
-    def scale_independent_growth_factor_f(self, z):
+    cpdef scale_independent_growth_factor_f(self, z):
         """
         scale_independent_growth_factor_f(z)
 
@@ -1181,25 +890,13 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
+        cdef int index_bg_f
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        index_bg_f = deref(background_module).index_bg_f_
+        return self.get_background_value_at_z(z, index_bg_f)
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        f = pvecback[self.ba.index_bg_f]
-
-        free(pvecback)
-
-        return f
-
-    def z_of_tau(self, tau):
+    @cython.cdivision(True)
+    cpdef z_of_tau(self, double tau):
         """
         Redshift corresponding to a given conformal time.
 
@@ -1208,22 +905,32 @@ cdef class Class:
         tau : float
                 Conformal time
         """
-        cdef double z
-        cdef int last_index #junk
-        cdef double * pvecback
+        cdef:
+            double output_value
+            double z
+            int bg_size_short
+            int index_bg_a
+            int last_index
+            int status
+            short inter_normal
+            short short_info
+            vector[double] pvecback
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
+        short_info = self.ba.short_info
+        inter_normal = self.ba.inter_normal
 
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        bg_size_short = deref(background_module).bg_size_short_
+        index_bg_a = deref(background_module).index_bg_a_
 
-        z = 1./pvecback[self.ba.index_bg_a]-1.
-
-        free(pvecback)
-
+        pvecback.resize(bg_size_short)
+        status = deref(background_module).background_at_tau(tau, short_info, inter_normal, &last_index, &pvecback[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
+        z = 1./pvecback[index_bg_a] - 1.
         return z
 
-    def Hubble(self, z):
+    cpdef Hubble(self, double z):
         """
         Hubble(z)
 
@@ -1235,25 +942,12 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
+        cdef int index_bg_H
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        index_bg_H = deref(background_module).index_bg_H_
+        return self.get_background_value_at_z(z, index_bg_H)
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        H = pvecback[self.ba.index_bg_H]
-
-        free(pvecback)
-
-        return H
-
-    def Om_m(self, z):
+    cpdef Om_m(self, double z):
         """
         Omega_m(z)
 
@@ -1265,26 +959,13 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        Om_m = pvecback[self.ba.index_bg_Omega_m]
-
-        free(pvecback)
-
-        return Om_m
+        cdef int index_bg_Omega_m
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        index_bg_Omega_m = deref(background_module).index_bg_Omega_m_
+        return self.get_background_value_at_z(z, index_bg_Omega_m)
 
 
-    def ionization_fraction(self, z):
+    cpdef ionization_fraction(self, double z):
         """
         ionization_fraction(z)
 
@@ -1295,31 +976,12 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
-        cdef double * pvecthermo
+        cdef int index_th_xe
+        thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+        index_th_xe = deref(thermodynamics_module).index_th_xe_
+        return self.get_thermodynamics_value_at_z(z, index_th_xe)
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-        pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
-            raise CosmoSevereError(self.th.error_message)
-
-        xe = pvecthermo[self.th.index_th_xe]
-
-        free(pvecback)
-        free(pvecthermo)
-
-        return xe
-
-    def baryon_temperature(self, z):
+    cpdef baryon_temperature(self, double z):
         """
         baryon_temperature(z)
 
@@ -1330,31 +992,12 @@ cdef class Class:
         z : float
                 Desired redshift
         """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
-        cdef double * pvecthermo
+        cdef int index_th_Tb
+        thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+        index_th_Tb = deref(thermodynamics_module).index_th_Tb_
+        return self.get_thermodynamics_value_at_z(z, index_th_Tb)
 
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-        pvecthermo = <double*> calloc(self.th.th_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if thermodynamics_at_z(&self.ba,&self.th,z,self.th.inter_normal,&last_index,pvecback,pvecthermo) == _FAILURE_:
-            raise CosmoSevereError(self.th.error_message)
-
-        Tb = pvecthermo[self.th.index_th_Tb]
-
-        free(pvecback)
-        free(pvecthermo)
-
-        return Tb
-
-    def T_cmb(self):
+    cpdef T_cmb(self):
         """
         Return the CMB temperature
         """
@@ -1362,13 +1005,13 @@ cdef class Class:
 
     # redundent with a previous Omega_m() funciton,
     # but we leave it not to break compatibility
-    def Omega0_m(self):
+    cpdef Omega0_m(self):
         """
         Return the sum of Omega0 for all non-relativistic components
         """
-        return self.ba.Omega0_m
+        return self.Omega_m()
 
-    def get_background(self):
+    cpdef get_background(self):
         """
         Return an array of the background quantities at all times.
 
@@ -1379,36 +1022,41 @@ cdef class Class:
         -------
         background : dictionary containing background.
         """
-        cdef char *titles
-        cdef double* data
-        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+        cdef:
+            dict background
+            double[:,::1] view
+            int i
+            int number_of_titles
+            int status
+            int timesteps
+            string titles
+            vector[double] data
 
-        if background_output_titles(&self.ba, titles)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
+        background_module = deref(self._thisptr).GetBackgroundModule()
+        titles.resize(_MAXTITLESTRINGLENGTH_)
+        status = deref(background_module).background_output_titles(<char*> titles.c_str())
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
 
-        tmp = <bytes> titles
+        tmp = <bytes> titles.c_str()
         tmp = str(tmp.decode())
-        names = tmp.split("\t")[:-1]
+        names = tmp.strip("\t").split("\t")
         number_of_titles = len(names)
-        timesteps = self.ba.bt_size
+        timesteps = deref(background_module).bt_size_
 
-        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
-
-        if background_output_data(&self.ba, number_of_titles, data)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
+        data.resize(timesteps*number_of_titles)
+        status = deref(background_module).background_output_data(number_of_titles, &data[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(background_module).error_message_)
 
         background = {}
-
+        view = <double[:timesteps,:number_of_titles]> &data[0]
         for i in range(number_of_titles):
-            background[names[i]] = np.zeros(timesteps, dtype=np.double)
-            for index in range(timesteps):
-                background[names[i]][index] = data[index*number_of_titles+i]
+            background[names[i]] = np.asarray(view[:, i]).copy()
 
-        free(titles)
-        free(data)
         return background
 
-    def get_thermodynamics(self):
+    cpdef get_thermodynamics(self):
         """
         Return the thermodynamics quantities.
 
@@ -1416,37 +1064,43 @@ cdef class Class:
         -------
         thermodynamics : dictionary containing thermodynamics.
         """
-        cdef char *titles
-        cdef double* data
+        cdef:
+            dict thermodynamics
+            double[:,::1] view
+            int i
+            int number_of_titles
+            int status
+            int timesteps
+            string titles
+            vector[double] data
 
-        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+        thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
 
-        if thermodynamics_output_titles(&self.ba, &self.th, titles)==_FAILURE_:
-            raise CosmoSevereError(self.th.error_message)
+        titles.resize(_MAXTITLESTRINGLENGTH_)
+        status = deref(thermodynamics_module).thermodynamics_output_titles(<char*> titles.c_str())
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(thermodynamics_module).error_message_)
 
-        tmp = <bytes> titles
+        tmp = <bytes> titles.c_str()
         tmp = str(tmp.decode())
-        names = tmp.split("\t")[:-1]
+        names = tmp.strip("\t").split("\t")
         number_of_titles = len(names)
-        timesteps = self.th.tt_size
+        timesteps = deref(thermodynamics_module).tt_size_
 
-        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
+        data.resize(timesteps*number_of_titles)
 
-        if thermodynamics_output_data(&self.ba, &self.th, number_of_titles, data)==_FAILURE_:
-            raise CosmoSevereError(self.th.error_message)
+        status = deref(thermodynamics_module).thermodynamics_output_data(number_of_titles, &data[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(thermodynamics_module).error_message_)
 
         thermodynamics = {}
-
+        view = <double[:timesteps,:number_of_titles]> &data[0]
         for i in range(number_of_titles):
-            thermodynamics[names[i]] = np.zeros(timesteps, dtype=np.double)
-            for index in range(timesteps):
-                thermodynamics[names[i]][index] = data[index*number_of_titles+i]
+            thermodynamics[names[i]] = np.asarray(view[:, i]).copy()
 
-        free(titles)
-        free(data)
         return thermodynamics
 
-    def get_primordial(self):
+    cpdef get_primordial(self):
         """
         Return the primordial scalar and/or tensor spectrum depending on 'modes'.
         'output' must be set to something, e.g. 'tCl'.
@@ -1455,34 +1109,40 @@ cdef class Class:
         -------
         primordial : dictionary containing k-vector and primordial scalar and tensor P(k).
         """
-        cdef char *titles
-        cdef double* data
+        cdef:
+            string titles
+            vector[double] data
+            int status
+            int timesteps
+            int number_of_titles
+            double[:,::1] view
+            dict primordial
+            int i
 
-        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+        primordial_module = deref(self._thisptr).GetPrimordialModule()
 
-        if primordial_output_titles(&self.pt, &self.pm, titles)==_FAILURE_:
-            raise CosmoSevereError(self.pm.error_message)
+        titles.resize(_MAXTITLESTRINGLENGTH_)
 
-        tmp = <bytes> titles
-        names = tmp.split("\t")[:-1]
+        status = deref(primordial_module).primordial_output_titles(<char*> titles.c_str())
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(primordial_module).error_message_)
+
+        tmp = <bytes> titles.c_str()
         tmp = str(tmp.decode())
+        names = tmp.strip("\t").split("\t")
         number_of_titles = len(names)
-        timesteps = self.pm.lnk_size
+        timesteps = deref(primordial_module).lnk_size_
 
-        data = <double*>malloc(sizeof(double)*timesteps*number_of_titles)
-
-        if primordial_output_data(&self.pt, &self.pm, number_of_titles, data)==_FAILURE_:
-            raise CosmoSevereError(self.pm.error_message)
+        data.resize(timesteps*number_of_titles)
+        status = deref(primordial_module).primordial_output_data(number_of_titles, &data[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(primordial_module).error_message_)
 
         primordial = {}
-
+        view = <double[:timesteps,:number_of_titles]> &data[0]
         for i in range(number_of_titles):
-            primordial[names[i]] = np.zeros(timesteps, dtype=np.double)
-            for index in range(timesteps):
-                primordial[names[i]][index] = data[index*number_of_titles+i]
+            primordial[names[i]] = np.asarray(view[:, i]).copy()
 
-        free(titles)
-        free(data)
         return primordial
 
 
@@ -1491,7 +1151,7 @@ cdef class Class:
     @cython.boundscheck(False)
     @cython.cdivision(True)
     @cython.ccall
-    def get_perturbations(self):
+    cpdef get_perturbations(self):
         """
         Return scalar, vector and/or tensor perturbations as arrays for requested
         k-values.
@@ -1515,51 +1175,53 @@ cdef class Class:
             return perturbations
 
         cdef:
-            Py_ssize_t j
             Py_ssize_t i
+            Py_ssize_t j
+            Py_ssize_t k_size
             Py_ssize_t number_of_titles
             Py_ssize_t timesteps
+            dict tmpdict
+            double** thedata
+            double[:,::1] view
+            int* thesizes
             list names
             list tmparray
-            dict tmpdict
-            double[:,::1] data_mv
-            double ** thedata
-            int * thesizes
 
-        # Doing the exact same thing 3 times, for scalar, vector and tensor. Sorry
-        # for copy-and-paste here, but I don't know what else to do.
+        perturbation_module = deref(self._thisptr).GetPerturbationsModule()
+        k_size = self.pt.k_output_values_num
         for mode in ['scalar','vector','tensor']:
             if mode=='scalar' and self.pt.has_scalars:
-                thetitles = <bytes> self.pt.scalar_titles
-                thedata = self.pt.scalar_perturbations_data
-                thesizes = self.pt.size_scalar_perturbation_data
+                thetitles = <bytes> deref(perturbation_module).scalar_titles_
+                thedata = <double**> deref(perturbation_module).scalar_perturbations_data_
+                thesizes = <int*> deref(perturbation_module).size_scalar_perturbation_data_
             elif mode=='vector' and self.pt.has_vectors:
-                thetitles = <bytes> self.pt.vector_titles
-                thedata = self.pt.vector_perturbations_data
-                thesizes = self.pt.size_vector_perturbation_data
+                thetitles = <bytes> deref(perturbation_module).vector_titles_
+                thedata = <double**> deref(perturbation_module).vector_perturbations_data_
+                thesizes = <int*> deref(perturbation_module).size_vector_perturbation_data_
             elif mode=='tensor' and self.pt.has_tensors:
-                thetitles = <bytes> self.pt.tensor_titles
-                thedata = self.pt.tensor_perturbations_data
-                thesizes = self.pt.size_tensor_perturbation_data
+                thetitles = <bytes> deref(perturbation_module).tensor_titles_
+                thedata = <double**> deref(perturbation_module).tensor_perturbations_data_
+                thesizes = <int*> deref(perturbation_module).size_tensor_perturbation_data_
             else:
                 continue
             thetitles = str(thetitles.decode())
-            names = thetitles.split("\t")[:-1]
+            names = thetitles.strip("\t").split("\t")
             number_of_titles = len(names)
             tmparray = []
-            if number_of_titles != 0:
-                for j in range(self.pt.k_output_values_num):
-                    timesteps = thesizes[j]//number_of_titles
-                    tmpdict={}
-                    data_mv = <double[:timesteps,:number_of_titles]> thedata[j]
-                    for i in range(number_of_titles):
-                        tmpdict[names[i]] = np.asarray(data_mv[:,i])
-                    tmparray.append(tmpdict)
+            if number_of_titles == 0:
+                continue
+            for j in range(k_size):
+                timesteps = thesizes[j]//number_of_titles
+                tmpdict = {}
+                view = <double[:timesteps,:number_of_titles]> thedata[j]
+                for i in range(number_of_titles):
+                    tmpdict[names[i]] = np.asarray(view[:,i])
+                tmparray.append(tmpdict)
             perturbations[mode] = tmparray
 
         return perturbations
 
-    def get_transfer(self, z=0., output_format='class'):
+    cpdef get_transfer(self, double z=0., output_format='class'):
         """
         Return the density and/or velocity transfer functions for all initial
         conditions today. You must include 'mTk' and/or 'vCTk' in the list of
@@ -1576,11 +1238,22 @@ cdef class Class:
         -------
         tk : dictionary containing transfer functions.
         """
-        cdef char *titles
-        cdef double* data
-        cdef char ic_info[1024]
-        cdef FileName ic_suffix
-        cdef file_format outf
+        cdef:
+            string titles
+            vector[double] data
+            char ic_info[1024]
+            FileName ic_suffix
+            file_format outf
+            int status
+            Py_ssize_t number_of_titles
+            Py_ssize_t timesteps
+            Py_ssize_t size_ic_data
+            Py_ssize_t ic_num
+            dict tmpdict
+            dict transfers
+            double[:,:,::1] view
+            int index_ic
+            int i
 
         if (not self.pt.has_density_transfers) and (not self.pt.has_velocity_transfers):
             return {}
@@ -1590,50 +1263,76 @@ cdef class Class:
         else:
             outf = class_format
 
-        index_md = self.pt.index_md_scalars;
-        titles = <char*>calloc(_MAXTITLESTRINGLENGTH_,sizeof(char))
+        perturbations_module = deref(self._thisptr).GetPerturbationsModule()
+        index_md = deref(perturbations_module).index_md_scalars_
+        titles.resize(_MAXTITLESTRINGLENGTH_)
 
-        if perturb_output_titles(&self.ba,&self.pt, outf, titles)==_FAILURE_:
-            raise CosmoSevereError(self.pt.error_message)
+        status = deref(perturbations_module).perturb_output_titles(outf, <char*> titles.c_str())
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(perturbations_module).error_message_)
 
         tmp = <bytes> titles
         tmp = str(tmp.decode())
-        names = tmp.split("\t")[:-1]
+        names = tmp.strip("\t").split("\t")
         number_of_titles = len(names)
-        timesteps = self.pt.k_size[index_md]
+        timesteps = deref(perturbations_module).k_size_[index_md]
 
-        size_ic_data = timesteps*number_of_titles;
-        ic_num = self.pt.ic_size[index_md];
+        size_ic_data = timesteps*number_of_titles
+        ic_num = deref(perturbations_module).ic_size_[index_md]
 
-        data = <double*>malloc(sizeof(double)*size_ic_data*ic_num)
+        data.resize(size_ic_data*ic_num)
 
-        if perturb_output_data(&self.ba, &self.pt, outf, <double> z, number_of_titles, data)==_FAILURE_:
-            raise CosmoSevereError(self.pt.error_message)
+        status = deref(perturbations_module).perturb_output_data(outf, z, number_of_titles, &data[0])
+        if status == _FAILURE_:
+            raise CosmoSevereError(deref(perturbations_module).error_message_)
 
         transfers = {}
+        view = <double[:ic_num,:timesteps,:number_of_titles]> &data[0]
 
         for index_ic in range(ic_num):
-            if perturb_output_firstline_and_ic_suffix(&self.pt, index_ic, ic_info, ic_suffix)==_FAILURE_:
-                raise CosmoSevereError(self.pt.error_message)
+            status = deref(perturbations_module).perturb_output_firstline_and_ic_suffix(index_ic, ic_info, ic_suffix)
+            if status == _FAILURE_:
+                raise CosmoSevereError(deref(perturbations_module).error_message_)
             ic_key = <bytes> ic_suffix
+            ic_key = str(ic_key.decode())
 
             tmpdict = {}
             for i in range(number_of_titles):
-                tmpdict[names[i]] = np.zeros(timesteps, dtype=np.double)
-                for index in range(timesteps):
-                    tmpdict[names[i]][index] = data[index_ic*size_ic_data+index*number_of_titles+i]
+                tmpdict[names[i]] = np.asarray(view[index_ic, :, i]).copy()
 
-            if ic_num==1:
+            if ic_num == 1:
                 transfers = tmpdict
             else:
                 transfers[ic_key] = tmpdict
 
-        free(titles)
-        free(data)
-
         return transfers
 
-    def get_current_derived_parameters(self, names):
+    @cython.cdivision(True)
+    cdef get_slowroll_parameters(self):
+        cdef:
+            (double, double, double) epsilons
+            double C
+            double alpha_s
+            double eps1
+            double eps2
+            double eps23
+            double n_s
+            double r
+
+        primordial_module = deref(self._thisptr).GetPrimordialModule()
+        r = deref(primordial_module).r_
+        n_s = deref(primordial_module).n_s_
+        alpha_s = deref(primordial_module).alpha_s_
+        C = EULER + LOGE2 - 2.0
+
+        eps1 = r*(1./16. + C/16.*(r/8. + n_s - 1.))
+        eps2 = -n_s + 1. + C*alpha_s - r*(1./8. + 1./8.*(n_s - 1.)*(C - 1.5)) - (r/8.)**2*(C - 1.)
+        eps23 = 1./8.*(r**2/8. + (n_s - 1.)*r - 8.*alpha_s)
+        epsilons = eps1, eps2, eps23
+        return epsilons
+
+    @cython.cdivision(True)
+    cpdef get_current_derived_parameters(self, names):
         """
         get_current_derived_parameters(names)
 
@@ -1659,7 +1358,15 @@ cdef class Class:
             with the new argument, will raise an AttributeError.
 
         """
-        if type(names) != type([]):
+        cdef:
+            dict derived
+            double value
+            double eps1
+            double eps2
+            double eps23
+            (double, double, double) epsilons
+
+        if not isinstance(names, list):
             raise TypeError("Deprecated")
 
         derived = {}
@@ -1673,19 +1380,22 @@ cdef class Class:
             elif name == 'Omega0_fld':
                 value = self.ba.Omega0_fld
             elif name == 'age':
-                value = self.ba.age
+                value = self.age()
             elif name == 'conformal_age':
-                value = self.ba.conformal_age
-            elif name == 'm_ncdm_in_eV':
-                value = self.ba.m_ncdm_in_eV[0]
+                background_module = deref(self._thisptr).GetBackgroundModule()
+                value = deref(background_module).conformal_age_
+            #TODO: Need to wrap NCDM class to get the masses
+            #elif name == 'm_ncdm_in_eV':
+            #    value = self.ba.m_ncdm_in_eV[0]
             elif name == 'm_ncdm_tot':
+                # TODO: Is this really what we want??
                 value = self.ba.Omega0_ncdm_tot*self.ba.h*self.ba.h*93.14
             elif name == 'Neff':
-                value = self.ba.Neff
+                value = self.Neff()
             elif name == 'Omega_m':
-                value = self.ba.Omega0_m
+                value = self.Omega_m()
             elif name == 'omega_m':
-                value = self.ba.Omega0_m/self.ba.h**2
+                value = self.Omega_m()/self.ba.h/self.ba.h
             elif name == 'xi_idr':
                 value = self.ba.T_idr/self.ba.T_cmb
             elif name == 'N_dg':
@@ -1695,85 +1405,120 @@ cdef class Class:
             elif name == 'a_dark':
                 value = self.th.a_idm_dr
             elif name == 'tau_reio':
-                value = self.th.tau_reio
+                value = self.tau_reio()
             elif name == 'z_reio':
-                value = self.th.z_reio
+                value = self.z_reio()
             elif name == 'z_rec':
-                value = self.th.z_rec
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).z_rec_
             elif name == 'tau_rec':
-                value = self.th.tau_rec
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).tau_rec_
             elif name == 'rs_rec':
-                value = self.th.rs_rec
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).rs_rec_
             elif name == 'rs_rec_h':
-                value = self.th.rs_rec*self.ba.h
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).rs_rec_*self.ba.h
             elif name == 'ds_rec':
-                value = self.th.ds_rec
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ds_rec_
             elif name == 'ds_rec_h':
-                value = self.th.ds_rec*self.ba.h
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ds_rec_*self.ba.h
             elif name == 'ra_rec':
-                value = self.th.da_rec*(1.+self.th.z_rec)
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ra_rec_
             elif name == 'ra_rec_h':
-                value = self.th.da_rec*(1.+self.th.z_rec)*self.ba.h
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ra_rec_*self.ba.h
             elif name == 'da_rec':
-                value = self.th.da_rec
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).da_rec_
             elif name == 'da_rec_h':
-                value = self.th.da_rec*self.ba.h
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).da_rec_*self.ba.h
             elif name == 'z_star':
-                value = self.th.z_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).z_star_
             elif name == 'tau_star':
-                value = self.th.tau_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).tau_star_
             elif name == 'rs_star':
-                value = self.th.rs_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).rs_star_
             elif name == 'ds_star':
-                value = self.th.ds_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ds_star_
             elif name == 'ra_star':
-                value = self.th.ra_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ra_star_
             elif name == 'da_star':
-                value = self.th.da_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).da_star_
             elif name == 'rd_star':
-                value = self.th.rd_star
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).rd_star_
             elif name == 'z_d':
-                value = self.th.z_d
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).z_d_
             elif name == 'tau_d':
-                value = self.th.tau_d
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).tau_d_
             elif name == 'ds_d':
-                value = self.th.ds_d
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ds_d_
             elif name == 'ds_d_h':
-                value = self.th.ds_d*self.ba.h
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).ds_d_*self.ba.h
             elif name == 'rs_d':
-                value = self.th.rs_d
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).rs_d_
             elif name == 'rs_d_h':
-                value = self.th.rs_d*self.ba.h
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                rs_d = deref(thermodynamics_module).rs_d_
+                value = rs_d*self.ba.h
             elif name == '100*theta_s':
-                value = 100.*self.th.rs_rec/self.th.da_rec/(1.+self.th.z_rec)
+                value = self.theta_s_100()
             elif name == '100*theta_star':
-                value = 100.*self.th.rs_star/self.th.da_star/(1.+self.th.z_star)
+                value = self.theta_star_100()
             elif name == 'YHe':
-                value = self.th.YHe
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).YHe_
             elif name == 'n_e':
-                value = self.th.n_e
+                thermodynamics_module = deref(self._thisptr).GetThermodynamicsModule()
+                value = deref(thermodynamics_module).n_e_
             elif name == 'A_s':
-                value = self.pm.A_s
+                value = self.A_s()
             elif name == 'ln10^{10}A_s':
-                value = log(1.e10*self.pm.A_s)
+                value = log(1.e10*self.A_s())
             elif name == 'n_s':
-                value = self.pm.n_s
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).n_s_
             elif name == 'alpha_s':
-                value = self.pm.alpha_s
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).alpha_s_
             elif name == 'beta_s':
-                value = self.pm.beta_s
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).beta_s_
             elif name == 'r':
                 # This is at the pivot scale
-                value = self.pm.r
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).r_
             elif name == 'r_0002':
                 # at k_pivot = 0.002/Mpc
-                value = self.pm.r*(0.002/self.pm.k_pivot)**(
-                    self.pm.n_t-self.pm.n_s-1+0.5*self.pm.alpha_s*log(
-                        0.002/self.pm.k_pivot))
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                r = deref(primordial_module).r_
+                n_s = deref(primordial_module).n_s_
+                n_t = deref(primordial_module).n_t_
+                alpha_s = deref(primordial_module).alpha_s_
+                value = r*(0.002/self.pm.k_pivot)**(n_t - n_s - 1 + 0.5*alpha_s*log(0.002/self.pm.k_pivot))
             elif name == 'n_t':
-                value = self.pm.n_t
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).n_t_
             elif name == 'alpha_t':
-                value = self.pm.alpha_t
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).alpha_t_
             elif name == 'V_0':
                 value = self.pm.V0
             elif name == 'V_1':
@@ -1785,38 +1530,37 @@ cdef class Class:
             elif name == 'V_4':
                 value = self.pm.V4
             elif name == 'epsilon_V':
-                eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
-                eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
-                value = eps1*((1.-eps1/3.+eps2/6.)/(1.-eps1/3.))**2
+                epsilons = self.get_slowroll_parameters()
+                eps1, eps2, eps23 = epsilons
+                value = eps1*((1. - eps1/3. + eps2/6.)/(1. - eps1/3.))**2
             elif name == 'eta_V':
-                eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
-                eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
-                eps23 = 1./8.*(self.pm.r**2/8.+(self.pm.n_s-1.)*self.pm.r-8.*self.pm.alpha_s)
-                value = (2.*eps1-eps2/2.-2./3.*eps1**2+5./6.*eps1*eps2-eps2**2/12.-eps23/6.)/(1.-eps1/3.)
+                epsilons = self.get_slowroll_parameters()
+                eps1, eps2, eps23 = epsilons
+                value = (2.*eps1 - eps2/2. - 2./3.*eps1**2 + 5./6.*eps1*eps2 - eps2**2/12. - eps23/6.)/(1. - eps1/3.)
             elif name == 'ksi_V^2':
-                eps1 = self.pm.r*(1./16.-0.7296/16.*(self.pm.r/8.+self.pm.n_s-1.))
-                eps2 = -self.pm.n_s+1.-0.7296*self.pm.alpha_s-self.pm.r*(1./8.+1./8.*(self.pm.n_s-1.)*(-0.7296-1.5))-(self.pm.r/8.)**2*(-0.7296-1.)
-                eps23 = 1./8.*(self.pm.r**2/8.+(self.pm.n_s-1.)*self.pm.r-8.*self.pm.alpha_s)
-                value = 2.*(1.-eps1/3.+eps2/6.)*(2.*eps1**2-3./2.*eps1*eps2+eps23/4.)/(1.-eps1/3.)**2
+                epsilons = self.get_slowroll_parameters()
+                eps1, eps2, eps23 = epsilons
+                value = 2.*(1. - eps1/3. + eps2/6.)*(2.*eps1**2 - 3./2.*eps1*eps2 + eps23/4.)/(1. - eps1/3.)**2
             elif name == 'exp_m_2_tau_As':
-                value = exp(-2.*self.th.tau_reio)*self.pm.A_s
+                value = exp(-2*self.tau_reio())*self.A_s()
             elif name == 'phi_min':
-                value = self.pm.phi_min
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).phi_min_
             elif name == 'phi_max':
-                value = self.pm.phi_max
+                primordial_module = deref(self._thisptr).GetPrimordialModule()
+                value = deref(primordial_module).phi_max_
             elif name == 'sigma8':
-                value = self.nl.sigma8[self.nl.index_pk_m]
+                value = self.sigma8()
             elif name == 'sigma8_cb':
-                value = self.nl.sigma8[self.nl.index_pk_cb]
+                value = self.sigma8_cb()
             elif name == 'k_eq':
-                value = self.ba.a_eq*self.ba.H_eq
-
+                value = self.k_eq()
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value
         return derived
 
-    def nonlinear_scale(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    cpdef nonlinear_scale(self, double[::1] z, Py_ssize_t z_size):
         """
         nonlinear_scale(z, z_size)
 
@@ -1830,21 +1574,28 @@ cdef class Class:
         z_size : int
                 Size of the redshift array
         """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
-        #cdef double *k_nl
-        #k_nl = <double*> calloc(z_size,sizeof(double))
+        cdef:
+            Py_ssize_t index_z
+            int status
+            double k_nl_val
+            double k_nl_cb_val
+            double[:] k_nl
+
+        k_nl_arr = np.empty(z_size, np.double)
+        k_nl = k_nl_arr
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z],&k_nl_cb[index_z]) == _FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
+            status = deref(nonlinear_module).nonlinear_k_nl_at_z(z[index_z], &k_nl_val, &k_nl_cb_val)
+            if status == _FAILURE_:
+                raise CosmoSevereError(deref(nonlinear_module).error_message_)
+            k_nl[index_z] = k_nl_val
 
-        return k_nl
+        return k_nl_arr
 
-    def nonlinear_scale_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
+    cpdef nonlinear_scale_cb(self, double[::1] z, Py_ssize_t z_size):
         """
 
-make        nonlinear_scale_cb(z, z_size)
+        nonlinear_scale_cb(z, z_size)
 
         Return the nonlinear scale for all the redshift specified in z, of size
 
@@ -1857,200 +1608,23 @@ make        nonlinear_scale_cb(z, z_size)
         z_size : int
                 Size of the redshift array
         """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] k_nl = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] k_nl_cb = np.zeros(z_size,'float64')
-        #cdef double *k_nl
-        #k_nl = <double*> calloc(z_size,sizeof(double))
-        if (self.ba.Omega0_ncdm_tot == 0.):
-            raise CosmoSevereError(
-                "No massive neutrinos. You must use pk, rather than pk_cb."
-                )
+        cdef:
+            Py_ssize_t index_z
+            int status
+            double k_nl_val
+            double k_nl_cb_val
+            double[:] k_nl_cb
+
+        k_nl_cb_arr = np.empty(z_size, np.double)
+        k_nl_cb = k_nl_cb_arr
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
         for index_z in range(z_size):
-            if nonlinear_k_nl_at_z(&self.ba,&self.nl,z[index_z],&k_nl[index_z],&k_nl_cb[index_z]) == _FAILURE_:
-                raise CosmoSevereError(self.nl.error_message)
+            status = deref(nonlinear_module).nonlinear_k_nl_at_z(z[index_z], &k_nl_val, &k_nl_cb_val)
+            if status == _FAILURE_:
+                raise CosmoSevereError(deref(nonlinear_module).error_message_)
+            k_nl_cb[index_z] = k_nl_cb_val
 
-        return k_nl_cb
-
-    def nonlinear_hmcode_sigma8(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigma8(z, z_size)
-
-        Return sigma_8 for all the redshift specified in z, of size
-
-        """
-        cdef int index_z
-
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigma8_at_z(&self.ba,&self.nl,z[index_z],&sigma_8[index_z],&sigma_8_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_8
-
-    def nonlinear_hmcode_sigma8_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigma8(z, z_size)
-
-        Return sigma_8 for all the redshift specified in z, of size
-
-        """
-        cdef int index_z
-
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_8_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigma8_at_z(&self.ba,&self.nl,z[index_z],&sigma_8[index_z],&sigma_8_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_8_cb
-
-    def nonlinear_hmcode_sigmadisp(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigmadisp(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigmadisp_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp[index_z],&sigma_disp_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_disp
-
-    def nonlinear_hmcode_sigmadisp_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigmadisp(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigmadisp_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp[index_z],&sigma_disp_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_disp_cb
-
-    def nonlinear_hmcode_sigmadisp100(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigmadisp100(z, z_size)
-
-        Return sigma_disp_100 for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigmadisp100_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp_100[index_z],&sigma_disp_100_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_disp_100
-
-    def nonlinear_hmcode_sigmadisp100_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigmadisp100(z, z_size)
-
-        Return sigma_disp_100 for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100 = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_disp_100_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigmadisp100_at_z(&self.ba,&self.nl,z[index_z],&sigma_disp_100[index_z],&sigma_disp_100_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_disp_100_cb
-
-    def nonlinear_hmcode_sigmaprime(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigmaprime(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigmaprime_at_z(&self.ba,&self.nl,z[index_z],&sigma_prime[index_z],&sigma_prime_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_prime
-
-    def nonlinear_hmcode_sigmaprime_cb(self, np.ndarray[DTYPE_t,ndim=1] z, int z_size):
-        """
-        nonlinear_hmcode_sigmaprime(z, z_size)
-
-        Return sigma_disp for all the redshift specified in z, of size
-        z_size
-
-        Parameters
-        ----------
-        z : numpy array
-                Array of requested redshifts
-        z_size : int
-                Size of the redshift array
-        """
-        cdef int index_z
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime = np.zeros(z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] sigma_prime_cb = np.zeros(z_size,'float64')
-
-#        for index_z in range(z_size):
-#            if nonlinear_hmcode_sigmaprime_at_z(&self.ba,&self.nl,z[index_z],&sigma_prime[index_z],&sigma_prime_cb[index_z]) == _FAILURE_:
-#                raise CosmoSevereError(self.nl.error_message)
-
-        return sigma_prime_cb
+        return k_nl_cb_arr
 
     def __call__(self, ctx):
         """
@@ -2065,13 +1639,10 @@ make        nonlinear_scale_cb(z, z_size)
         """
         data = ctx.get('data')  # recover data from the context
 
-        # If the module has already been called once, clean-up
-        if self.state:
-            self.struct_cleanup()
-
         # Set the module to the current values
-        self.set(data.cosmo_arguments)
-        self.compute(["lensing"])
+        self._pars = data.cosmo_arguments
+        self.reset()
+        self.compute()
 
         # Compute the derived paramter value and store them
         params = ctx.getData()
@@ -2086,35 +1657,37 @@ make        nonlinear_scale_cb(z, z_size)
         # Store itself into the context, to be accessed by the likelihoods
         ctx.add('cosmo', self)
 
-    def get_pk_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
+    cdef get_pk_array_general(self, double[::1] k,  double[::1] z, int k_size, int z_size, nonlinear):
         """ Fast function to get the power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
-
+        cdef:
+            cdef double[::1] pk
+            cdef double[::1] pk_cb
+            int status
+            pk_outputs linear_or_nonlinear
         if nonlinear == 0:
-            nonlinear_pks_at_kvec_and_zvec(&self.ba, &self.nl, pk_linear, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data)
-
+            linear_or_nonlinear = pk_linear
         else:
-            nonlinear_pks_at_kvec_and_zvec(&self.ba, &self.nl, pk_nonlinear, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data)
+            linear_or_nonlinear = pk_nonlinear
 
-        return pk
+        pk_arr = np.empty(k_size*z_size, np.double)
+        pk = pk_arr
+        pk_cb_arr = np.empty(k_size*z_size, np.double)
+        pk_cb = pk_cb_arr
 
-    def get_pk_cb_array(self, np.ndarray[DTYPE_t,ndim=1] k, np.ndarray[DTYPE_t,ndim=1] z, int k_size, int z_size, nonlinear):
-        """ Fast function to get the power spectrum on a k and z array """
-        cdef np.ndarray[DTYPE_t, ndim=1] pk = np.zeros(k_size*z_size,'float64')
-        cdef np.ndarray[DTYPE_t, ndim=1] pk_cb = np.zeros(k_size*z_size,'float64')
+        nonlinear_module = deref(self._thisptr).GetNonlinearModule()
+        deref(nonlinear_module).nonlinear_pks_at_kvec_and_zvec(pk_linear, &k[0], k_size, &z[0], z_size, &pk[0],  &pk_cb[0])
 
-        if nonlinear == 0:
-            nonlinear_pks_at_kvec_and_zvec(&self.ba, &self.nl, pk_linear, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data)
+        return pk_arr, pk_cb_arr
 
-        else:
-            nonlinear_pks_at_kvec_and_zvec(&self.ba, &self.nl, pk_nonlinear, <double*> k.data, k_size, <double*> z.data, z_size, <double*> pk.data, <double*> pk_cb.data)
+    cpdef get_pk_array(self, double[::1] k,  double[::1] z, int k_size, int z_size, nonlinear):
+        return self.get_pk_array_general(k, z, k_size, z_size, nonlinear)[0]
 
-        return pk_cb
+    cpdef get_pk_cb_array(self, double[::1] k,  double[::1] z, int k_size, int z_size, nonlinear):
+        return self.get_pk_array_general(k, z, k_size, z_size, nonlinear)[1]
 
-    def Omega0_k(self):
+    cpdef Omega0_k(self):
         """ Curvature contribution """
         return self.ba.Omega0_k
 
-    def Omega0_cdm(self):
+    cpdef Omega0_cdm(self):
         return self.ba.Omega0_cdm

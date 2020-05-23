@@ -243,7 +243,6 @@ int InputModule::FixUnknownParameters(int input_verbose, int unknown_parameters_
     sprintf(file_content_.value[shooting_workspace_.unknown_parameters_index[0]],"%e",xzero);
     double fzero_value;
     input_fzerofun_1d(xzero, (void*)(&shooting_workspace_), &fzero_value, error_message_);
-    printf("f(%g) = %g\n", xzero, fzero_value);
 
     if (input_verbose > 0) {
       fprintf(stdout, " -> found '%s = %s'\n",

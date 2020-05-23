@@ -3,6 +3,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <cstdarg>
+#include <typeinfo>
 
 void ThrowRuntimeErrorIf(bool condition, std::string string_for_printf, ...) {
   if (condition) {

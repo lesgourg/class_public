@@ -48,6 +48,7 @@ LensingModule::~LensingModule() {
 
 std::map<std::string, std::vector<double>> LensingModule::cl_output(int lmax) const {
 
+  ThrowRuntimeErrorIf(ple->has_lensed_cls == _FALSE_, "No lensed Cls was computed, adjust your inputs.\n");
   ThrowRuntimeErrorIf((lmax > l_lensed_max_) || (lmax < 0), "Error: lmax = %d is outside the allowed range [0, %d]\n", lmax, l_lensed_max_);
 
   std::map<std::string, int> index_map;

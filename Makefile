@@ -8,6 +8,7 @@ WRKDIR = $(MDIR)/build
 	if ! [ -e $(WRKDIR) ]; then mkdir $(WRKDIR) ; mkdir $(WRKDIR)/lib; fi;
 	touch build/.base
 
+vpath %.h source:tools:main:include
 vpath %.c source:tools:main:test
 vpath %.cpp source:tools:main:test
 vpath %.o build
@@ -19,10 +20,8 @@ vpath .base build
 ########################################################
 
 # your C compiler:
-CC       = gcc
-CPP       = g++ -std=c++11 -Wno-write-strings
-#CC       = icc
-#CC       = pgcc
+CC        = gcc
+CXX       = g++
 
 # your tool for creating static libraries:
 AR        = ar rv
@@ -36,18 +35,13 @@ AR        = ar rv
 PYTHON ?= python
 
 # your optimization flag
-OPTFLAG = -O4 -ffast-math #-march=native
-#OPTFLAG = -Ofast -ffast-math #-march=native
-#OPTFLAG = -fast
-
-# your openmp flag (comment for compiling without openmp)
-OMPFLAG   = -fopenmp
-#OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
-#OMPFLAG   = -openmp
+OPTFLAG = -O3 -ffast-math #-march=native
 
 # all other compilation flags
 CCFLAG = -g -fPIC
+CXXFLAG = $(CCFLAG) -std=c++11 -Wno-write-strings
 LDFLAG = -g -fPIC
+LIBRARIES = -lm -lpthread
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. hyrec or ../hyrec)
@@ -76,35 +70,25 @@ EXTERNAL += hyrectools.o helium.o hydrogen.o history.o
 endif
 .SUFFIXES: .c .cpp .o .opp .h
 
-%.o: %.c .base
-	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
+# We could let gcc generate dependency information automatically, see this link:
+# https://make.mad-scientist.net/papers/advanced-auto-dependency-generation/
+# However, a clean build of CLASS is so fast that we just rebuild everything if *any*
+# .h-file changed.
+H_ALL = $(notdir $(wildcard include/*.h) $(wildcard tools/*.h) $(wildcard source/*.h))
 
-%.opp: %.cpp .base
-	cd $(WRKDIR); $(CPP) $(OPTFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.opp
+%.o: %.c .base $(H_ALL)
+	cd $(WRKDIR);$(CC) $(OPTFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = non_cold_dark_matter.opp growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.opp quadrature.o hyperspherical.o common.o trigonometric_integrals.o exceptions.opp
+%.opp: %.cpp .base $(H_ALL)
+	cd $(WRKDIR); $(CXX) $(OPTFLAG) $(CXXFLAG) $(INCLUDES) -c ../$< -o $*.opp
+
+TOOLS_O = growTable.o dei_rkck.o sparse.o evolver_rkck.o evolver_ndf15.o arrays.o parser.opp quadrature.o hyperspherical.o common.o trigonometric_integrals.o
+
+TOOLS_OPP = non_cold_dark_matter.opp exceptions.opp
+
+TOOLS = $(TOOLS_O) $(TOOLS_OPP)
 
 SOURCE = input_module.opp background_module.opp thermodynamics_module.opp perturbations_module.opp primordial_module.opp nonlinear_module.opp transfer_module.opp spectra_module.opp lensing_module.opp cosmology.opp
-
-INPUT = input_module.opp
-
-PRECISION = precision.o
-
-BACKGROUND = background_module.opp
-
-THERMO = thermodynamics.opp
-
-PERTURBATIONS = perturbations_module.opp
-
-TRANSFER = transfer_module.opp
-
-PRIMORDIAL = primordial_module.opp
-
-SPECTRA = spectra_module.opp
-
-NONLINEAR = nonlinear_module.opp
-
-LENSING = lensing_module.opp
 
 OUTPUT = output_module.opp
 
@@ -134,76 +118,60 @@ TEST_HYPERSPHERICAL = test_hyperspherical.o
 
 TEST_STEPHANE = test_stephane.o
 
-C_TOOLS =  $(addprefix tools/, $(addsuffix .c,$(basename $(TOOLS))))
-C_SOURCE = $(addprefix source/, $(addsuffix .c,$(basename $(SOURCE) $(OUTPUT))))
-C_TEST = $(addprefix test/, $(addsuffix .c,$(basename $(TEST_DEGENERACY) $(TEST_LOOPS) $(TEST_TRANSFER) $(TEST_NONLINEAR) $(TEST_PERTURBATIONS) $(TEST_THERMODYNAMICS))))
-C_MAIN = $(addprefix main/, $(addsuffix .c,$(basename $(CLASS))))
-C_ALL = $(C_MAIN) $(C_TOOLS) $(C_SOURCE)
-H_ALL = $(addprefix include/, common.h svnversion.h $(addsuffix .h, $(basename $(notdir $(C_ALL)))))
-PRE_ALL = cl_ref.pre clt_permille.pre
-INI_ALL = explanatory.ini lcdm.ini
-MISC_FILES = Makefile CPU psd_FD_single.dat myselection.dat myevolution.dat README bbn/sBBN.dat external_Pk/* cpp
-PYTHON_FILES = python/classy.pyx python/setup.py python/cclassy.pxd python/test_class.py
-
 all: class libclass.a classy
 
 libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 	$(AR)  $@ $(addprefix build/, $(TOOLS) $(SOURCE) $(EXTERNAL))
 
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(OPTFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
-	$(CPP) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CXX) $(OPTFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_loops_omp: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS_OMP)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_stephane: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_STEPHANE)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_degeneracy: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_DEGENERACY)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_spectra: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_SPECTRA)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_transfer: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_TRANSFER)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_nonlinear: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_NONLINEAR)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_perturbations: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_PERTURBATIONS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_thermodynamics: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_THERMODYNAMICS)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_background: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_BACKGROUND)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
 test_hyperspherical: $(TOOLS) $(TEST_HYPERSPHERICAL)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_hyperspherical $(addprefix build/,$(notdir $^)) -lm
+	$(CC) $(OPTFLAG) $(LDFLAG) -o test_hyperspherical $(addprefix build/,$(notdir $^)) $(LIBRARIES)
 
-
-tar: $(C_ALL) $(C_TEST) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
-	tar czvf class.tar.gz $(C_ALL) $(H_ALL) $(PRE_ALL) $(INI_ALL) $(MISC_FILES) $(HYREC) $(PYTHON_FILES)
+python/cclassy.pxd: $(H_ALL)
+	$(PYTHON) python/generate_wrapper.py
 
 classy: libclass.a python/classy.pyx python/cclassy.pxd
-ifdef OMPFLAG
-	cp python/setup.py python/autosetup.py
-else
-	grep -v "lgomp" python/setup.py > python/autosetup.py
-endif
-	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
-	rm python/autosetup.py
+	rm -f python/classy.cpp
+	cd python; export CC=$(CC); export CXX=$(CXX); $(PYTHON) setup.py install || $(PYTHON) setup.py install --user
 
 clean: .base
 	rm -rf $(WRKDIR);
 	rm -f libclass.a
-	rm -f $(MDIR)/python/classy.c
+	rm -f $(MDIR)/python/classy.cpp
+	rm -f $(MDIR)/python/cclassy.pxd
 	rm -rf $(MDIR)/python/build

@@ -17,3 +17,7 @@ doc/manual/latex
 ppCLASS.xcodeproj/project.xcworkspace
 ppCLASS.xcodeproj/xcshareddata
 ppCLASS.xcodeproj/xcuserdata
+include/tmp
+python/classy.cpp
+.ipynb_checkpoints/*
+python/cclassy.pxd
