@@ -1994,6 +1994,25 @@ int input_read_parameters_general(struct file_content * pfc,
     }
   }
 
+  /** 7.a) Photo-ionization dependence for recfast */
+  /* Read */
+  if(pth->recombination == recfast){
+    class_call(parser_read_string(pfc,"recfast_photoion_dependence",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    if (flag1 == _TRUE_){
+      if((strstr(string1,"Tmat") != NULL) || (strstr(string1,"tmat") != NULL ) || (strstr(string1,"TMAT") !=NULL)){
+        pth->recfast_photoion_mode = recfast_photoion_Tmat;
+      }
+      else if((strstr(string1,"Trad") != NULL) || (strstr(string1,"trad") != NULL ) || (strstr(string1,"TRAD") !=NULL)){
+        pth->recfast_photoion_mode = recfast_photoion_Trad;
+      }
+      else{
+        class_stop(errmsg,
+                   "You specified 'recfast_photoion_dependence' as '%s'. It has to be one of {'Tmat','Trad'}.",string1);
+      }
+    }
+  }
 
   /** 8) Reionization parametrization */
   /* Read */
@@ -5163,6 +5182,7 @@ int input_default_params(struct background *pba,
 
   /** 7) Recombination algorithm */
   pth->recombination=recfast;
+  pth->recfast_photoion_mode=recfast_photoion_Trad;
 
   /** 8) Parametrization of reionization */
   pth->reio_parametrization=reio_camb;

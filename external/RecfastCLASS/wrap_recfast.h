@@ -3,6 +3,10 @@
 
 #include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 
+// By default, recfast assumes photo-ionization coefficients depending on Tmat
+// However, this is an approximation (see e.g. arXiV:1605.03928 page 10, arXiV:1503.04827 page 2, right column)
+// We thus also give the user the ability to use the dependence on Tgamma = T_photon(z) = Tcmb * (1+z) instead
+enum recfast_photoion_modes {recfast_photoion_Tmat, recfast_photoion_Trad};
 
 struct thermorecfast {
 
@@ -48,6 +52,8 @@ struct thermorecfast {
   double Bfact;
   double CT;
 
+  enum recfast_photoion_modes photoion_mode;
+
   ErrorMsg error_message;
 
 };
@@ -64,6 +70,7 @@ extern "C" {
                    struct background* pba,
                    struct thermo * pth,
                    struct thermorecfast * precfast,
+                   enum recfast_photoion_modes recfast_photoion_mode,
                    double fHe);
 
   int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,

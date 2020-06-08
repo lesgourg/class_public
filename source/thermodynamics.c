@@ -781,7 +781,7 @@ int thermodynamics_workspace_init(
                 sizeof(struct thermorecfast),
                 pth->error_message);
 
-    class_call(recfast_init(ppr,pba,pth,ptw->ptdw->precfast,ptw->fHe),
+    class_call(recfast_init(ppr,pba,pth,ptw->ptdw->precfast,pth->recfast_photoion_mode,ptw->fHe),
                ptw->ptdw->precfast->error_message,
                pth->error_message);
     break;

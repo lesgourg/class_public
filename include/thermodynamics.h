@@ -67,6 +67,8 @@ struct thermo
 
   enum recombination_algorithm recombination; /**< recombination code */
 
+  enum recfast_photoion_modes recfast_photoion_mode; /**< photo-ionization coefficient mode of the recfast algorithm */
+
   enum reionization_parametrization reio_parametrization; /**< reionization scheme */
 
   enum reionization_z_or_tau reio_z_or_tau; /**< is the input parameter the reionization redshift or optical depth? */

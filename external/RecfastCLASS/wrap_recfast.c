@@ -27,10 +27,15 @@ int recfast_init(struct precision* ppr,
                  struct background* pba,
                  struct thermo* pth,
                  struct thermorecfast * pre,
+                 enum recfast_photoion_modes recfast_photoion_mode,
                  double fHe) {
 
   /** Define local quantities */
   double Lalpha,Lalpha_He,DeltaB,DeltaB_He;
+
+  /** - Import some thermodynamical quantities */
+  pre->fHe = fHe;
+  pre->photoion_mode = recfast_photoion_mode;
 
   /** - read a few precision/cosmological parameters */
   pre->AGauss1 = ppr->recfast_AGauss1;
@@ -50,7 +55,6 @@ int recfast_init(struct precision* ppr,
   pre->x_H_limit_CfHe_t = 0.99999;
   pre->max_exp_boltz = 680.;
   pre->x_He_trigger_small = 5.0e-9;
-  pre->fHe = fHe;
 
   pre->z_switch_late = ppr->recfast_z_switch_late;
 
@@ -82,6 +86,8 @@ int recfast_init(struct precision* ppr,
   /* Helium 2s->2p transition temperature*/
   pre->CDB_He2s2p = (_E_He_2p_-_E_He_2s_)*_eV_/_k_B_;
 
+  /** - The above formulas are not accurate enough,
+        and thus we use the below formulas for higher precison */
   Lalpha = 1./_L_H_alpha_;
   Lalpha_He = 1./_L_He_2p_;
   pre->CDB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_)/_k_B_;
@@ -128,9 +134,14 @@ int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, 
 
   /** - Get necessary coefficients */
   Rdown = 1.e-19*_a_PPB_*pow((Tmat/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Tmat/1.e4),_d_PPB_));
-  //Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
-  Rup = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB/Trad);
-
+  switch (pre->photoion_mode){
+    case recfast_photoion_Tmat:
+      Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
+    break;
+    case recfast_photoion_Trad:
+      Rup = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB/Trad);
+    break;
+  }
   K = pre->CK/Hz;
 
   /* following is from recfast 1.5 */
@@ -199,9 +210,14 @@ int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He
   sq_1 = sqrt(Tmat/_T_1_);
 
   Rdown_He = _a_VF_/(sq_0 * pow((1.+sq_0),(1.-_b_VF_)) * pow((1. + sq_1),(1. + _b_VF_)));
-  //Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
-  Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_))) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
-
+  switch (pre->photoion_mode){
+    case recfast_photoion_Tmat:
+      Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
+      break;
+    case recfast_photoion_Trad:
+      Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_))) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
+      break;
+  }
 
   /** - The K_He is calculated up to the required accuracy  */
   if ((x_He < pre->x_He_trigger_small) || (x_He > pre->x_He0_trigger2)){
@@ -228,11 +244,7 @@ int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He
     if (((Heflag == 2) || (Heflag >= 5)) && (x_H < pre->x_H_limit_KHe)) {
 
       Doppler = 2.*_k_B_*Tmat/(_m_H_*_not4_*_c_*_c_);
-      //Doppler = (_E_He_2p_*_eV_/_h_P_)*sqrt(Doppler);
       Doppler = _c_*_L_He_2p_*sqrt(Doppler);
-      //gamma_2Ps = 3.*_A2P_s_*pre->fHe*(1.-x_He)*_c_*_c_
-      //  /(sqrt(_PI_)*_sigma_He_2Ps_*8.*_PI_*Doppler*(1.-x_H))
-      //  /pow(_E_He_2p_*_eV_/_h_P_,2);
       gamma_2Ps = 3.*_A2P_s_*pre->fHe*(1.-x_He)*_c_*_c_
           /(sqrt(_PI_)*_sigma_He_2Ps_*8.*_PI_*Doppler*(1.-x_H))
           /pow(_c_*_L_He_2p_,2);
@@ -245,9 +257,14 @@ int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He
     /* In modes where triple He is added (>=3), calculate the triple He CfHe_t */
     if (Heflag >= 3) {
       Rdown_trip = _a_trip_/(sq_0*pow((1.+sq_0),(1.-_b_trip_)) * pow((1.+sq_1),(1.+_b_trip_)));
-      //Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
-      Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_))) *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
-
+      switch (pre->photoion_mode){
+        case recfast_photoion_Tmat:
+          Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
+          break;
+        case recfast_photoion_Trad:
+          Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_))) *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Trad))*pow(pre->CR*Trad,1.5)*4./3.;
+          break;
+      }
       tauHe_t = _A2P_t_*n_He*(1.-x_He)*3./(8.*_PI_*Hz*pow(_L_He_2Pt_,3));
       pHe_t = (1. - exp(-tauHe_t))/tauHe_t;
       CL_PSt = _h_P_*_c_*(_L_He_2Pt_ - _L_He_2St_)/_k_B_;
