@@ -713,7 +713,7 @@ int thermodynamics_workspace_init(
               sizeof(struct thermo_diffeq_workspace),
               pth->error_message);
 
-  // Initialize ionisation fraction. TODO :: is this necessary?
+  // Initialize ionisation fraction.
   ptw->ptdw->x_reio = 1.+2.*ptw->fHe;
   ptw->ptdw->x_noreio = 1.+2.*ptw->fHe;
 
@@ -2563,7 +2563,7 @@ int thermodynamics_derivs(
     /** --> Nothing to be done in the Hyrec case: then, ionization
        fractions are not integrated by the evolver. They are
        integrated within HyRec: see the function
-       thermodynamnics_hbyrec_calculate_xe() */
+       thermodynamnics_hyrec_calculate_xe() */
     break;
   }
 
@@ -2832,7 +2832,7 @@ int thermodynamics_sources(
         consists in passing to HyRec a solution for Tmat(z) that is
         extrapolated from the previous known solution at z<z_i+1. Since
         HyRec only needs to evolve x(z) over a very small interval,
-        this is accurate enough. All these steps are takeng in the
+        this is accurate enough. All these steps are taken in the
         HyRec wrapper of CLASS. */
 
     class_call(hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
@@ -3281,7 +3281,6 @@ int thermodynamics_calculate_opticals(
 
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] = expmkappa;
-    //printf("exp(-k)[%i] = %.10e \n",index_tau,expmkappa);
 
     /** - ---> compute g' (the plus sign of the second term is correct, see def of -kappa in thermodynamics module!) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dg] =
