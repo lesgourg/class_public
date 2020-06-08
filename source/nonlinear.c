@@ -890,22 +890,22 @@ int nonlinear_pks_at_kvec_and_zvec(
 
           out_pk[index_zvec*kvec_size+index_kvec] =
             exp(
-                a * ln_pk_table[index_zvec * pnl->k_size + index_k]
-                + b * ln_pk_table[index_zvec * pnl->k_size + index_k+1]
-                + ((a*a*a-a) * ddln_pk_table[index_zvec * pnl->k_size + index_k]
-                   +(b*b*b-b) * ddln_pk_table[index_zvec * pnl->k_size + index_k+1])
-                *h*h/6.0
+                array_spline_eval(ln_pk_table,
+                                  ddln_pk_table,
+                                  (index_zvec * pnl->k_size + index_k),
+                                  (index_zvec * pnl->k_size + index_k+1),
+                                  h,a,b)
                 );
         }
         if (pnl->has_pk_cb == _TRUE_) {
 
           out_pk_cb[index_zvec*kvec_size+index_kvec] =
             exp(
-                a * ln_pk_cb_table[index_zvec * pnl->k_size + index_k]
-                + b * ln_pk_cb_table[index_zvec * pnl->k_size + index_k+1]
-                + ((a*a*a-a) * ddln_pk_cb_table[index_zvec * pnl->k_size + index_k]
-                   +(b*b*b-b) * ddln_pk_cb_table[index_zvec * pnl->k_size + index_k+1])
-                *h*h/6.0
+                array_spline_eval(ln_pk_cb_table,
+                                  ddln_pk_cb_table,
+                                  (index_zvec * pnl->k_size + index_k),
+                                  (index_zvec * pnl->k_size + index_k+1),
+                                  h,a,b)
                 );
         }
       }
