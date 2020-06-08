@@ -455,8 +455,8 @@ int thermodynamics_helium_from_bbn(
   /** - Infer effective number of neutrinos at the time of BBN */
   class_alloc(pvecback,pba->bg_size*sizeof(double),pba->error_message);
 
-  /** - 8.6173e-11 converts from Kelvin to MeV. We randomly choose 0.1 MeV to be the temperature of BBN */
-  z_bbn = 0.1/(8.6173e-11*pba->T_cmb)-1.0;
+  /** - We randomly choose 0.1 MeV to be the temperature of BBN */
+  z_bbn = 0.1*1e6/(_eV_over_Kelvin_*pba->T_cmb)-1.0;
 
   class_call(background_at_z(pba,
                              z_bbn,
@@ -4325,8 +4325,8 @@ int thermodynamics_output_titles(
   //class_store_columntitle(titles,"g''",_TRUE_);
   class_store_columntitle(titles,"Tb [K]",_TRUE_);
   class_store_columntitle(titles,"dTb [K]",_TRUE_);
-  class_store_columntitle(titles,"c_b^2",_TRUE_);
   class_store_columntitle(titles,"w_b",_TRUE_);
+  class_store_columntitle(titles,"c_b^2",_TRUE_);
   if (pba->has_idm_dr == _TRUE_) {
     class_store_columntitle(titles,"dmu_idm_dr",_TRUE_);
     //class_store_columntitle(titles,"ddmu_idm_dr",_TRUE_);

@@ -649,7 +649,7 @@ extern "C" {
 #define _GeVcm3_over_Mpc2_ 94.7024726  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in GeV/cm^3 (rho in GeV/cm^3=const*CLASS_rho) */
 #define _Jm3_over_Mpc2_ 0.0151730087  /**< conversion factor from  CLASS_rho 1/Mpc^2 to rho in Joule/m^3 (rho in Joule/m^3=const*CLASS_rho) */
 #define _Sun_mass_ 1.98855e30 /**< sun mass in kg */
-#define _eV_over_Kelvin_ 8.626e-5   /**< kB in eV/K */
+#define _eV_over_Kelvin_ 8.61733034e-5   /**< kB in eV/K */
 #define _eV_over_joules_ 6.24150647996e+18 /**< eV/J */
 
 
