@@ -276,7 +276,7 @@ int injection_calculate_at_z(struct background* pba,
 
   /** - Define local variables */
   struct injection * pin = &(pth->in);
-  int index_dep, iz_store;
+  int index_dep;
   double h,a,b;
   double dEdz_inj;
 
@@ -376,13 +376,13 @@ int injection_energy_injection_at_z(struct injection* pin,
   /** - Define local variable */
   double dEdz, rate;
   double h,a,b;
-  int index_inj, iz_store;
+  int index_inj;
 
   /* Initialize local variables */
   dEdz = 0.;
 
   /** - Test if the values are already within the table */
-  if(z > pin->filled_until_z == _TRUE_){
+  if(z > pin->filled_until_z){
     /* If the value is already within the table, just interpolate */
     class_call(array_spline_hunt(pin->z_table,
                                  pin->z_size,
@@ -726,14 +726,14 @@ int injection_rate_DM_annihilation(struct injection * pin,
   }
 
   /** - Calculate injection rates */
-  *energy_rate = pow(pin->rho_cdm,2.)*pin->DM_annihilation_efficiency*(1.+boost_factor);           // [J/(m^3 s)]
+  *energy_rate = pow(pin->rho_cdm,2.)*annihilation_at_z*(1.+boost_factor);           // [J/(m^3 s)]
 
   return _SUCCESS_;
 }
 
 
 /**
- * Calculate injection from DM annihilation.
+ * Calculate injection from DM decay.
  *
  * @param pin            Input: pointer to injection structure
  * @param z              Input: redshift
@@ -769,7 +769,7 @@ int injection_rate_PBH_evaporation_mass_evolution(struct background * pba,
   int i_step;
   double current_mass, current_pbh_temperature;
   double f_EM, f_nu, f_q, f_pi, f_bos, f;
-  double loop_z, loop_tau, time_now, time_prev, dt, dlnz, lnz_ini;
+  double loop_z, time_now, time_prev, dt, dlnz, lnz_ini;
 
   /** - Set initial parameters */
   current_mass = pin->PBH_evaporation_mass;                                                         // [g]
@@ -973,8 +973,6 @@ int injection_rate_PBH_accretion(struct injection * pin,
                                  double * energy_rate){
 
   /** - Define local variables */
-  double tau, * pvecback;
-  int last_index_back;
   double L_ed, M_ed_dot, M_crit, v_B, v_l, v_eff, r_B, t_B;
   double lambda, M_b_dot;
   double Value_min, Value_med, Value_max, a=0, epsilon_0=0.1, epsilon;
@@ -1007,8 +1005,9 @@ int injection_rate_PBH_accretion(struct injection * pin,
   r_B = _G_*(pin->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,2.);                                     // [m]
   t_B = _G_*(pin->PBH_accretion_mass*_Sun_mass_)/pow(v_eff,3.);                                     // [s]
 
-  /** - Disk accretion from Poulin et al. 1707.04206 */
-  if(pin->PBH_accretion_recipe == disk_accretion){
+  switch(pin->PBH_accretion_recipe){
+    /** - Disk accretion from Poulin et al. 1707.04206 */
+    case disk_accretion:
 
     lambda = pin->PBH_accretion_eigenvalue;                                                         // [-]
     M_b_dot = 4.*_PI_*lambda*(pin->rho_b/pow(_c_,2.))*pow(r_B,2.)*v_eff;                            // [kg/s]
@@ -1079,10 +1078,10 @@ int injection_rate_PBH_accretion(struct injection * pin,
 
     epsilon = epsilon_0*pow(M_b_dot/M_crit,a);                                                      // [-]
     L_acc = epsilon*M_b_dot*pow(_c_,2.);                                                            // [W]
-  }
+  break;
 
-  /** - Spherical accretion from Ali-Haimoud et al. 1612.05644 */
-  else if(pin->PBH_accretion_recipe == spherical_accretion){
+    /** - Spherical accretion from Ali-Haimoud et al. 1612.05644 */
+    case spherical_accretion:
 
     beta_compton_drag = 4./3.*pin->x_e*_sigma_*pin->rho_g*t_B/_m_p_/_c_;                            // [-] Eq. (7)
     gamma_cooling = 2.*(_m_p_/_m_e_)/(1+pin->x_e)*beta_compton_drag;                                // [-] Eq. (8)
@@ -1111,6 +1110,9 @@ int injection_rate_PBH_accretion(struct injection * pin,
     }
 
     L_acc = 1./137.*(T_s*_k_B_)/(_m_p_*pow(_c_,2.))*J*pow(M_b_dot*_c_*_c_,2.)/L_ed;                 // [W] Eq. (57)
+    break;
+    default:
+      class_stop(pin->error_message,"Invalid PBH_accretion_recipe");
   }
 
   *energy_rate = pin->rho_cdm*pin->PBH_accretion_fraction/

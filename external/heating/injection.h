@@ -37,7 +37,7 @@ struct injection{
 
   double PBH_accretion_fraction;
   double PBH_accretion_mass;
-  double PBH_accretion_recipe;
+  enum PBH_accretion_approx PBH_accretion_recipe;
   double PBH_accretion_relative_velocities;
   double PBH_accretion_ADAF_delta;
   double PBH_accretion_eigenvalue;

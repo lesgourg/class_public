@@ -31,7 +31,7 @@ int recfast_init(struct precision* ppr,
                  double fHe) {
 
   /** Define local quantities */
-  double Lalpha,Lalpha_He,DeltaB,DeltaB_He;
+  double Lalpha,Lalpha_He;
 
   /** - Import some thermodynamical quantities */
   pre->fHe = fHe;
@@ -138,6 +138,7 @@ int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre, double x_H, 
     case recfast_photoion_Tmat:
       Rup = Rdown * pow((pre->CR*Tmat),1.5)*exp(-pre->CDB/Tmat);
     break;
+    default:
     case recfast_photoion_Trad:
       Rup = 1.e-19*_a_PPB_*pow((Trad/1.e4),_b_PPB_)/(1.+_c_PPB_*pow((Trad/1.e4),_d_PPB_)) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB/Trad);
     break;
@@ -204,6 +205,10 @@ int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He
   double n_He;
   int Heflag;
 
+  /* This is just to prevent the compiler complaining:
+     Technically Rdown_trip/Rup_trip should always be fine */
+  Rdown_trip = 0.; Rup_trip = 0.;
+
   /** - Local variables and coefficients */
   n_He = pre->fHe * nH;
   sq_0 = sqrt(Tmat/_T_0_);
@@ -215,6 +220,7 @@ int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He
       Rup_He = 4.*Rdown_He*pow((pre->CR*Tmat),1.5)*exp(-pre->CDB_He/Tmat);
       break;
     case recfast_photoion_Trad:
+    default:
       Rup_He = 4.*_a_VF_/(sqrt(Trad/_T_0_) * pow((1.+sqrt(Trad/_T_0_)),(1.-_b_VF_)) * pow((1. + sqrt(Trad/_T_1_)),(1. + _b_VF_))) * pow((pre->CR*Trad),1.5)*exp(-pre->CDB_He/Trad);
       break;
   }
@@ -262,6 +268,7 @@ int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre, double x_He
           Rup_trip = Rdown_trip*exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Tmat))*pow(pre->CR*Tmat,1.5)*4./3.;
           break;
         case recfast_photoion_Trad:
+        default:
           Rup_trip = _a_trip_/(sqrt(Trad/_T_0_)*pow((1.+sqrt(Trad/_T_0_)),(1.-_b_trip_)) * pow((1.+sqrt(Trad/_T_1_)),(1.+_b_trip_))) *exp(-_h_P_*_c_*_L_He2St_ion_/(_k_B_*Trad))*pow(pre->CR*Trad,1.5)*4./3.;
           break;
       }

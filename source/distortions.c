@@ -30,11 +30,6 @@ int distortions_init(struct precision * ppr,
                      struct primordial * ppm,
                      struct distortions * psd) {
 
-  /** Define local variables */
-  int last_index = 0;
-  int index_br;
-  int index_x;
-
   if(psd->has_distortions == _FALSE_){
     return _SUCCESS_;
   }
@@ -96,7 +91,7 @@ int distortions_init(struct precision * ppr,
 int distortions_free(struct distortions * psd) {
 
   /** Define local variables */
-  int index_type,index_ht;
+  int index_type;
 
   if(psd->has_distortions == _TRUE_){
     /** Delete lists */
@@ -208,7 +203,6 @@ int distortions_set_detector(struct precision * ppr,
   int N_bins;
   char * left;
   int headlines = 0;
-  int i,j;
   int found_detector;
 
   has_detector_noise_file = _FALSE_;
@@ -725,7 +719,6 @@ int distortions_compute_heating_rate(struct precision* ppr,
   double *pvecback;
   double heat;
   double H, a, rho_g;
-  double bb_vis;
 
   if( psd->only_exotic == _FALSE_ ){
     /** Update heating table with second order contributions */
@@ -765,9 +758,6 @@ int distortions_compute_heating_rate(struct precision* ppr,
     H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                                 // [1/s]
     a = pvecback[pba->index_bg_a];                                                                  // [-]
     rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                          // [J/m^3]
-
-    /* Black body visibility function */
-    bb_vis = exp(-pow(psd->z[index_z]/psd->z_th,2.5));                                              // [-]
 
     /** Import quantities from heating structure */
     class_call(noninjection_photon_heating_at_z(pni,
@@ -813,8 +803,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   /** Define local variables */
   double * S;
   int last_index = 0;
-  int index_type, index_z, index_x, index_k;
-  double * integrand;
+  int index_type, index_x, index_k;
   double sum_S, sum_G;
   double g;
   double y_reio, DI_reio;
@@ -1150,7 +1139,8 @@ int distortions_add_effects_reio(struct background * pba,
 
   /** Kinematic SZ effect (kSZ) */
   /* Calculated according to Nozawa et al. 2005 */
-  if(psd->sd_reio_type == sd_reio_Nozawa){
+  switch(psd->sd_reio_type){
+    case sd_reio_Nozawa:
     Y_0 = -4.
           +x_tilde;
     Y_1 = -10.
@@ -1218,7 +1208,7 @@ int distortions_add_effects_reio(struct background * pba,
     D_1 = -4.
           +12.*x_tilde
           -6.*pow(x_tilde,2.)
-          +19.*pow(S_tilde,2.)/30.;
+          +19.*pow(x_tilde,3.)/30.
           +pow(S_tilde,2.)*(-3.
                             +19.*x_tilde/15.);
    D_2 = -10.
@@ -1226,7 +1216,7 @@ int distortions_add_effects_reio(struct background * pba,
           -843.*pow(x_tilde,2.)/5.
           +10603.*pow(x_tilde,3.)/140.
           -409.*pow(x_tilde,4.)/35.
-          +23.*pow(x_tilde,4.)/42.
+          +23.*pow(x_tilde,5.)/42.
           +pow(S_tilde,2.)*(-843./10.
                             +10603.*x_tilde/70.
                             -4499.*pow(x_tilde,2.)/70.
@@ -1257,9 +1247,9 @@ int distortions_add_effects_reio(struct background * pba,
     M_low = G_T*(B_0+theta_e*B_1+pow(theta_e,2.)*B_2+pow(theta_e,3.)*B_3);
     D_low = G_T*(C_0+theta_e*C_1+pow(theta_e,2.)*C_2+pow(theta_e,3.)*C_3);
     Q_low = G_T*(D_0+theta_e*D_1+pow(theta_e,2.)*D_2+pow(theta_e,3.)*D_3);
-  }
+    break;
   /* Calculated according to Chluba et al. 2012 */
-  else if(psd->sd_reio_type == sd_reio_Chluba){
+    case sd_reio_Chluba:
     /* Low temperature approximation */
     if(T_e < 10.){
       double d[7][3] = {{-2./5., -1./5.,   407./140.},
@@ -1324,6 +1314,9 @@ int distortions_add_effects_reio(struct background * pba,
       D_low = 0.;
       Q_low = 0.;
     }
+    break;
+    default:
+      class_stop(psd->error_message,"Unrecognized sd_reio_type='%i'.",psd->sd_reio_type);
   }
 
   DI_kSZ = Dtau*beta*(beta*M_low+P_1*D_low+beta*P_2*Q_low);
@@ -1868,7 +1861,7 @@ int distortions_read_detector_noisefile(struct precision * ppr,
                       "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->x[index_x] = nu_temp/psd->x_to_nu;
     class_test(fscanf(infile, "%le",
-                      &(psd->delta_Ic_array[index_x]))!=1,                            // [-]
+                      &(delta_Ic_temp))!=1,                            // [-]
                       psd->error_message,
                       "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
     psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;

@@ -31,12 +31,11 @@ int noninjection_init(struct precision* ppr,
 
   /** - Define local variables */
   int index_k,index_z;
-  double tau;
   int last_index_back, last_index_thermo, last_index_coarse = 0;
   double *pvecback, *pvecthermo;
   double R, dkappa;
   double dEdt;
-  double z_wkb, tau_wkb;
+  double z_wkb;
   double h,a,b;
   double temp_injection;
   double z_coarse;
@@ -295,7 +294,6 @@ int noninjection_photon_heating_at_z(struct noninjection* pni,
                                      double* heat){
 
   /** Define local variables */
-  int index_dep;
   double h,a,b;
 
   class_call(array_spline_hunt(pni->z_table,
@@ -324,9 +322,6 @@ int noninjection_photon_heating_at_z(struct noninjection* pni,
 int noninjection_rate_adiabatic_cooling(struct noninjection * pni,
                                         double z,
                                         double * energy_rate){
-
-  /** Define local variables */
-  double R_g;
 
   /** Calculate heating rates */
   *energy_rate = -pni->heat_capacity*pni->H*pni->T_g;                                               // [J/(m^3 s)]

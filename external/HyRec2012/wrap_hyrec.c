@@ -51,7 +51,6 @@ int hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, dou
     printf("    implements HyRec version Oct2012 by Yacine Ali-Haimoud and Chris Hirata\n");
   }
 
-  int index_virt,index_ly,iz;
   double dN_safety;
 
   phy->N_LY = 3;
@@ -179,9 +178,6 @@ int hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
   double z_in,z_out;
   /* For the whole call */
   int iz_goal;
-  double z_goal;
-  /* For the final interpolation */
-  double z_goalm1;
 
   /* Intermediate quantities that are used at some points locally */
   double xHeIISaha,dxHeIISaha_dlna,xH1s_p,xH1s_m,Dxe,DdxHeIIdlna_Dxe;
@@ -200,6 +196,9 @@ int hyrec_calculate_xe(struct thermo* pth, struct thermohyrec * phy,
 
   /* Switch off radiative transfer calculation if needed */
   int model;
+
+  /* This is just to make the compiler be silent about uninitialized variables */
+  Pion=0; H=0; TM=0; TR=0;
 
   /* Heating/Energy injection */
   struct injection* pin = &(pth->in);
@@ -522,8 +521,8 @@ int hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e){
 
   /* If we are at the edge of the range, pick up value */
   else if (z == z_filled) {
-    *x_e = phy->xe_output[iz_goal];
-    //*dxdlna = (phy->xe_output[iz_goal] - phy->xe_output[iz_goal-1])/(phy->dlna);
+    *x_e = phy->xe_output[phy->filled_until_index_z];
+    //*dxdlna = (phy->xe_output[phy->filled_until_index_z] - phy->xe_output[phy->filled_until_index_z-1])/(phy->dlna);
   }
 
   /* If we are inside the range, interpolate in the table*/

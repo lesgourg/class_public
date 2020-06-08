@@ -116,7 +116,6 @@ int input_find_file(int argc,
 
   int i;
   char extension[5];
-  int flag1;
   char input_file[_ARGUMENT_LENGTH_MAX_];
   char precision_file[_ARGUMENT_LENGTH_MAX_];
 
@@ -218,8 +217,8 @@ int input_find_file(int argc,
 int input_set_root(char* input_file, struct file_content** ppfc_input, struct file_content * pfc_setroot, ErrorMsg errmsg){
 
   /** Define local variables */
-  int flag1, flag2, filenum, iextens;
-  int index_root_in_fc_input;
+  int flag1, filenum, iextens;
+  int index_root_in_fc_input = -1;
   int overwrite_root;
   int found_filenum;
 
@@ -232,7 +231,6 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, struct fi
   struct file_content fc_root;             // Temporary structure with only the root name
 
   FileArg string1;                         //Is ignored
-  char string2[_ARGUMENT_LENGTH_MAX_];
 
   int n_extensions = 7;                    //Keep this as the length of the below list
   char* output_extensions[7] = {"cl.dat","pk.dat","tk.dat","parameters.ini","background.dat","thermodynamics.dat","perturbations_k0.dat"};
@@ -394,7 +392,6 @@ int input_read_from_file(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
-  int int1,flag1;
   int input_verbose = 0;
   int has_shooting;
 
@@ -505,7 +502,7 @@ int input_shooting(struct file_content * pfc,
   double xzero;
   double *dxdF, *x_inout;
   int target_indices[_NUM_TARGETS_];
-  int int1, needs_shooting;
+  int needs_shooting;
   int shooting_failed=_FALSE_;
 
   /* array of parameters passed by the user for which we need shooting (= target parameters) */
@@ -1414,10 +1411,6 @@ int input_read_precisions(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
-  int int1;
-  int flag1;
-  double param1;
-  char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** - Automatic estimate of machine precision */
   ppr->smallest_allowed_variation = DBL_EPSILON;
@@ -1483,9 +1476,6 @@ int input_read_parameters(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, int1;
-  double param1;
-  char string1[_ARGUMENT_LENGTH_MAX_];
   int input_verbose=0;
 
   /** Set all input parameters to default values */
@@ -1593,8 +1583,8 @@ int input_read_parameters_general(struct file_content * pfc,
   /** Summary: */
 
   /** - Define local variables */
-  int flag1,flag2,flag3;
-  double param1,param2,param3;
+  int flag1,flag2;
+  double param1,param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char * options_output[33] =  {"tCl","pCl","lCl","nCl","dCl","sCl","mPk","mTk","dTk","vTk","sd",
                                 "TCl","PCl","LCl","NCl","DCl","SCl","MPk","MTk","DTk","VTk","Sd",
@@ -2147,7 +2137,7 @@ int input_read_parameters_species(struct file_content * pfc,
   int flag1, flag2, flag3;
   double param1, param2, param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  int int1, fileentries;
+  int fileentries;
   int N_ncdm=0, n, entries_read;
   double rho_ncdm;
   double scf_lambda;
@@ -2534,7 +2524,7 @@ int input_read_parameters_species(struct file_content * pfc,
                "You need to enter a decay constant for the decaying DM 'Gamma_dcdm > 0.'");
   }
 
-  /** 7.2) Interacting dark matter & dark radiation, ETHOS-parametrization/NADM parametrization, see explanatory.ini
+  /** 7.2) Interacting dark matter & dark radiation, ETHOS-parametrization/NADM parametrization, see explanatory.ini */
   /** 7.2.a) Omega_0_idr  */
 
   /* Read */
@@ -2959,8 +2949,7 @@ int input_read_parameters_injection(struct file_content * pfc,
 
   /** - Define local variables */
   struct injection* pin = &(pth->in);
-  int flag1, flag2, flag3;
-  double param1, param2, param3;
+  int flag1;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) DM annihilation */
@@ -3248,7 +3237,7 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
   /** Define local variables */
   int flag1,flag2,flag3;
-  double param1,param2,param3;
+  double param2,param3;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) Non-linearity */
@@ -3382,7 +3371,6 @@ int input_prepare_pk_eq(struct precision * ppr,
   /** Summary: */
 
   /** Define local variables */
-  struct injection* pin = &(pth->in);
   double tau_of_z;
   double delta_tau;
   double error;
@@ -3394,7 +3382,6 @@ int input_prepare_pk_eq(struct precision * ppr,
   int true_background_verbose;
   int true_thermodynamics_verbose;
   int true_hyrec_verbose;
-  int true_injection_verbose;
   double true_w0_fld;
   double true_wa_fld;
   double * z;
@@ -3581,8 +3568,8 @@ int input_read_parameters_primordial(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2, flag3;
-  double param1, param2, param3;
+  int flag1, flag2;
+  double param1, param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
   char string2[_ARGUMENT_LENGTH_MAX_];
   double R0,R1,R2,R3,R4;
@@ -4191,8 +4178,8 @@ int input_read_parameters_spectra(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1, flag2, flag3;
-  double param1, param2, param3;
+  int flag1, flag2;
+  double param1, param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
   int int1;
   double * pointer1;
@@ -4526,7 +4513,6 @@ int input_read_parameters_lensing(struct file_content * pfc,
   /** Define local variables */
   int flag1;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  double param1;
 
   /** 1) Lensed spectra? */
   /* Read */
@@ -4580,9 +4566,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
   int flag1, flag2;
   char string1[_ARGUMENT_LENGTH_MAX_];
   double param1, param2;
-  int int1;
   double updated_nu_max;
-  struct noninjection* pni = &(psd->ni);
 
   /** 1) Branching ratio approximation */
   /* Read */
@@ -4904,11 +4888,8 @@ int input_read_parameters_output(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  struct injection* pin = &(pth->in);
-  int flag1, flag2, flag3;
-  double param1, param2, param3;
+  int flag1, flag2;
   char string1[_ARGUMENT_LENGTH_MAX_];
-  char string2[_ARGUMENT_LENGTH_MAX_];
   int int1;
   double * pointer1;
   int i;

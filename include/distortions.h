@@ -45,7 +45,7 @@ struct distortions
   int sd_detector_bin_number;
   double sd_detector_delta_Ic;
 
-  int sd_reio_type;
+  enum reio_approx sd_reio_type;
 
   double sd_add_y;
   double sd_add_mu;

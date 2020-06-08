@@ -1722,8 +1722,7 @@ int array_interpolate_spline_transposed(double * array,
                                         double * result,
                                         ErrorMsg errmsg) {
 
-  int inf,sup,mid,i;
-  double weight;
+  int inf,sup,mid;
   double h,a,b;
 
   inf=0;
