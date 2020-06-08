@@ -2221,9 +2221,9 @@ int background_initial_conditions(
   /** - compute initial sound horizon, assuming \f$ c_s=1/\sqrt{3} \f$ initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
-  /** - set initial value of D and D' in RD. D and D' need only be set up to an overall constant, since they will later be re-normalized. From the Meszaros equation, one obtains D ~ (1 + 3/2 * a/a_eq) , thus we can set (up to proportionality) D(aini) ~= 1, and D'(aini) = 3/2*H*a^2/a_eq). The latter we can approximate as 0, creating only a negligible decaying mode at early times */
+  /** - set initial value of D and D' in RD. D and D' need only be set up to an overall constant, since they will later be re-normalized. From Ma&Bertschinger, one can derive D ~ (ktau)^2 at early times, from which one finds D'/D = 2 aH (assuming aH=1/tau during RD) */
   pvecback_integration[pba->index_bi_D] = 1.;
-  pvecback_integration[pba->index_bi_D_prime] = 0.;
+  pvecback_integration[pba->index_bi_D_prime] = 2.*a*pvecback[pba->index_bg_H];
 
   /** - return the value finally chosen for the initial log(a) */
   *loga_ini = log(a);
