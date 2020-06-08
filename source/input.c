@@ -5615,18 +5615,3 @@ int input_default_params(struct background *pba,
   return _SUCCESS_;
 
 }
-
-/**
- * Get version number
- *
- * @param fname  Input: File name
- * @return the error status
- */
-
-int class_version(
-                  char * version
-                  ) {
-
-  sprintf(version,"%s",_VERSION_);
-  return _SUCCESS_;
-}
