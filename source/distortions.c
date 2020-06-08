@@ -1517,28 +1517,28 @@ int distortions_interpolate_br_data(struct distortions* psd,
              psd->error_message);
 
   /** Evaluate corresponding values for the branching ratios */
-  *f_g = 4*array_interpolate_spline_hunt(psd->f_g_exact,
-                                         psd->ddf_g_exact,
-                                         index,
-                                         index+1,
-                                         h,a,b);
-  *f_y = 4*array_interpolate_spline_hunt(psd->f_y_exact,
-                                         psd->ddf_y_exact,
-                                         index,
-                                         index+1,
-                                         h,a,b);
-  *f_mu = 1./1.401*array_interpolate_spline_hunt(psd->f_mu_exact,
-                                                 psd->ddf_mu_exact,
-                                                 index,
-                                                 index+1,
-                                                 h,a,b);
+  *f_g = 4*array_spline_eval(psd->f_g_exact,
+                             psd->ddf_g_exact,
+                             index,
+                             index+1,
+                             h,a,b);
+  *f_y = 4*array_spline_eval(psd->f_y_exact,
+                             psd->ddf_y_exact,
+                             index,
+                             index+1,
+                             h,a,b);
+  *f_mu = 1./1.401*array_spline_eval(psd->f_mu_exact,
+                                     psd->ddf_mu_exact,
+                                     index,
+                                     index+1,
+                                     h,a,b);
 
   for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
-    f_E[index_k] = array_interpolate_spline_hunt(psd->E_vec+index_k*psd->br_exact_Nz,
-                                                 psd->ddE_vec+index_k*psd->br_exact_Nz,
-                                                 index,
-                                                 index+1,
-                                                 h,a,b);
+    f_E[index_k] = array_spline_eval(psd->E_vec+index_k*psd->br_exact_Nz,
+                                     psd->ddE_vec+index_k*psd->br_exact_Nz,
+                                     index,
+                                     index+1,
+                                     h,a,b);
   }
 
   *last_index = index;
@@ -1757,28 +1757,28 @@ int distortions_interpolate_sd_data(struct distortions* psd,
              psd->error_message);
 
   /** Evaluate corresponding values for the branching ratios */
-  *G_T = array_interpolate_spline_hunt(psd->PCA_G_T,
-                                       psd->ddPCA_G_T,
-                                       last_index,
-                                       last_index+1,
-                                       h,a,b);
-  *Y_SZ = array_interpolate_spline_hunt(psd->PCA_Y_SZ,
-                                        psd->ddPCA_Y_SZ,
-                                        last_index,
-                                        last_index+1,
-                                        h,a,b);
-  *M_mu = array_interpolate_spline_hunt(psd->PCA_M_mu,
-                                        psd->ddPCA_M_mu,
-                                        last_index,
-                                        last_index+1,
-                                        h,a,b);
+  *G_T = array_spline_eval(psd->PCA_G_T,
+                           psd->ddPCA_G_T,
+                           last_index,
+                           last_index+1,
+                           h,a,b);
+  *Y_SZ = array_spline_eval(psd->PCA_Y_SZ,
+                            psd->ddPCA_Y_SZ,
+                            last_index,
+                            last_index+1,
+                            h,a,b);
+  *M_mu = array_spline_eval(psd->PCA_M_mu,
+                            psd->ddPCA_M_mu,
+                            last_index,
+                            last_index+1,
+                            h,a,b);
 
   for(index_k=0; index_k<psd->sd_PCA_size; ++index_k){
-    S[index_k] = array_interpolate_spline_hunt(psd->S_vec+index_k*psd->PCA_Nnu,
-                                               psd->ddS_vec+index_k*psd->PCA_Nnu,
-                                               last_index,
-                                               last_index+1,
-                                               h,a,b);
+    S[index_k] = array_spline_eval(psd->S_vec+index_k*psd->PCA_Nnu,
+                                   psd->ddS_vec+index_k*psd->PCA_Nnu,
+                                   last_index,
+                                   last_index+1,
+                                   h,a,b);
   }
 
   *index = last_index;

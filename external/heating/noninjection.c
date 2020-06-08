@@ -242,11 +242,11 @@ int noninjection_init(struct precision* ppr,
                pni->error_message,
                pni->error_message);
 
-    temp_injection = array_interpolate_spline_hunt(pni->noninjection_table,
-                                                   pni->ddnoninjection_table,
-                                                   last_index_coarse,
-                                                   last_index_coarse+1,
-                                                   h,a,b);
+    temp_injection = array_spline_eval(pni->noninjection_table,
+                                       pni->ddnoninjection_table,
+                                       last_index_coarse,
+                                       last_index_coarse+1,
+                                       h,a,b);
     pni->photon_dep_table[index_z]+=temp_injection;
   }
 
