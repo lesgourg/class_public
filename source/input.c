@@ -535,7 +535,7 @@ int input_shooting(struct file_content * pfc,
                                         cs_background,     /* computation stage for target 'Omega_scf' */
                                         cs_background,     /* computation stage for target 'Omega_ini_dcdm' */
                                         cs_background,     /* computation stage for target 'omega_ini_dcdm' */
-                                        cs_spectra};       /* computation stage for target 'sigma8' */
+                                        cs_nonlinear};       /* computation stage for target 'sigma8' */
 
   struct fzerofun_workspace fzw;
 
