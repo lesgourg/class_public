@@ -300,6 +300,7 @@ extern "C" {
 
   int input_find_root(double * xzero,
                       int * fevals,
+                      double tol_x_rel,
                       struct fzerofun_workspace * pfzw,
                       ErrorMsg errmsg);
 

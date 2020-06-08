@@ -418,6 +418,7 @@ int input_read_from_file(struct file_content * pfc,
                             errmsg),
              errmsg,
              errmsg);
+
   /** If no shooting is necessary, initialize read parameters without it */
   if(has_shooting == _FALSE_){
     class_call(input_read_parameters(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,
@@ -625,6 +626,7 @@ int input_shooting(struct file_content * pfc,
       /* If shooting fails, postpone error to background module to play nice with MontePython. */
       class_call_try(input_find_root(&xzero,
                                      &fevals,
+                                     ppr->tol_shooting_deltax_rel,
                                      &fzw,
                                      errmsg),
                      errmsg,
@@ -668,8 +670,8 @@ int input_shooting(struct file_content * pfc,
                                   x_inout,
                                   dxdF,
                                   unknown_parameters_size,
-                                  1e-4,
-                                  1e-6,
+                                  ppr->tol_shooting_deltax,
+                                  ppr->tol_shooting_deltaF,
                                   &fzw,
                                   &fevals,
                                   errmsg),
@@ -678,9 +680,11 @@ int input_shooting(struct file_content * pfc,
                      shooting_failed=_TRUE_);
 
       /* Store xzero */
+      // This needs to be done with enough accuracy. A standard double has a relative
+      // precision of around 1e-16, so 1e-20 should be good enough for the shooting
       for (counter = 0; counter < unknown_parameters_size; counter++){
         sprintf(fzw.fc.value[fzw.unknown_parameters_index[counter]],
-                "%e",x_inout[counter]);
+                "%.20e",x_inout[counter]);
         if (input_verbose > 0) {
           fprintf(stdout," -> found '%s = %s'\n",
                   fzw.fc.name[fzw.unknown_parameters_index[counter]],
@@ -777,15 +781,17 @@ int input_needs_shooting_for_target(struct file_content * pfc,
  * steps to bracket the root, and then calls another function to
  * actually get the root.
  *
- * @param xzero  Output: root x such that f(x)=0 up to tolerance (f(x) = input_fzerofun_1d)
- * @param fevals Output: number of iterations (that is, of CLASS runs) needed to find the root
- * @param pfzw   Input : pointer to workspace containing targets, unkown parameters and other relevant information
- * @param errmsg Input/Output: Error message
+ * @param xzero     Output: root x such that f(x)=0 up to tolerance (f(x) = input_fzerofun_1d)
+ * @param fevals    Output: number of iterations (that is, of CLASS runs) needed to find the root
+ * @param tol_x_rel Input : Relative tolerance compared to bracket of root that is used to find root.
+ * @param pfzw      Input : pointer to workspace containing targets, unkown parameters and other relevant information
+ * @param errmsg    Input/Output: Error message
  * @return the error status
 */
 
 int input_find_root(double *xzero,
                     int *fevals,
+                    double tol_x_rel,
                     struct fzerofun_workspace *pfzw,
                     ErrorMsg errmsg){
 
@@ -839,7 +845,7 @@ int input_find_root(double *xzero,
   class_call(input_fzero_ridder(input_fzerofun_1d,
                                 x1,
                                 x2,
-                                1e-5*MAX(fabs(x1),fabs(x2)),
+                                tol_x_rel*MAX(fabs(x1),fabs(x2)),
                                 pfzw,
                                 &f1,
                                 &f2,
@@ -1186,8 +1192,10 @@ int input_try_unknown_parameters(double * unknown_parameter,
 
   pfzw = (struct fzerofun_workspace *) voidpfzw;
   /** Read input parameters */
+  // This needs to be done with enough accuracy. A standard double has a relative
+  // precision of around 1e-16, so 1e-20 should be good enough for the shooting
   for (i=0; i < unknown_parameters_size; i++) {
-    sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],"%e",unknown_parameter[i]);
+    sprintf(pfzw->fc.value[pfzw->unknown_parameters_index[i]],"%.20e",unknown_parameter[i]);
   }
 
   class_call(input_read_precisions(&(pfzw->fc),&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,
@@ -1215,8 +1223,9 @@ int input_try_unknown_parameters(double * unknown_parameter,
       compute_sigma8 = _TRUE_;
     }
   }
+  /* Sigma8 depends on linear P(k), so no need to run anything except linear P(k) during shooting */
   if (compute_sigma8 == _TRUE_) {
-    pt.k_max_for_pk=1.0;
+    pt.k_max_for_pk=10.0;
     pt.has_pk_matter=_TRUE_;
     pt.has_perturbations = _TRUE_;
     pt.has_cl_cmb_temperature = _FALSE_;

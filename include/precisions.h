@@ -76,6 +76,18 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  */
 class_precision_parameter(Omega0_cdm_min_synchronous,double,1.e-10)
 
+/**
+ * Absolute tolerance of root x during shooting
+ */
+class_precision_parameter(tol_shooting_deltax,double,1.e-4)
+/**
+ * Absolute tolerance of function value F during shooting
+ */
+class_precision_parameter(tol_shooting_deltaF,double,1.e-6)
+/**
+ * Relative tolerance of root x during shooting (only 1d case)
+ */
+class_precision_parameter(tol_shooting_deltax_rel,double,1.e-5)
 /*
  * Currently unused parameter.
  */
