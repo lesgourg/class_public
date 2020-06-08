@@ -507,7 +507,8 @@ class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance requir
                                whcih defines the wavenumber of
                                non-linearity, k_nl=1./R_nl */
 
-class_precision_parameter(pk_eq_z_max,double,5.0) /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_z_max,double,5.0)  /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_Nzlog,int,10)      /**< Number of logarithmically spaced redshift values for the pk_eq method */
 class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq method for finding the pk */
 
 /** Parameters relevant for HMcode computation */

@@ -3393,7 +3393,7 @@ int input_prepare_pk_eq(struct precision * ppr,
   pth->hyrec_verbose = 0;
 
   /** Allocate indices and arrays for storing the results */
-  pnl->pk_eq_tau_size = 10;
+  pnl->pk_eq_tau_size = ppr->pk_eq_Nzlog;
   class_alloc(pnl->pk_eq_tau,
               pnl->pk_eq_tau_size*sizeof(double),
               errmsg);
