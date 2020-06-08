@@ -427,6 +427,16 @@ int input_read_from_file(struct file_content * pfc,
                errmsg);
   }
 
+  if (pnl->has_pk_eq == _TRUE_) {
+    if (input_verbose > 0) {
+      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
+      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
+    }
+    class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
+               errmsg,
+               errmsg);
+  }
+
   return _SUCCESS_;
 
 }
@@ -1236,6 +1246,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pt.has_cl_lensing_potential=_FALSE_;
     pt.has_density_transfers=_FALSE_;
     pt.has_velocity_transfers=_FALSE_;
+    nl.has_pk_eq=_FALSE_;
+    nl.method=nl_none;
   }
 
   /** Shoot forward into class up to required stage */
@@ -3315,15 +3327,6 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
       so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
   if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
     pnl->has_pk_eq = _TRUE_;
-  }
-  if (pnl->has_pk_eq == _TRUE_) {
-    if (input_verbose > 0) {
-      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
-      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
-    }
-    class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
-               errmsg,
-               errmsg);
   }
 
   return _SUCCESS_;
