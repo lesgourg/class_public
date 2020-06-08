@@ -246,7 +246,7 @@ int background_at_tau(
              pba->error_message,
              pba->error_message);
 
-  /** - Get background at corresponding relative scale factor */
+  /** - Get background at corresponding redshift */
   class_call(background_at_z(pba,z,return_format,inter_mode,last_index,pvecback),
              pba->error_message,
              pba->error_message);
@@ -619,6 +619,9 @@ int background_functions(
 
     /** - comoving sound horizon */
     pvecback[pba->index_bg_rs] = pvecback_B[pba->index_bi_rs];
+
+    /** - growth factor */
+    pvecback[pba->index_bg_D] = pvecback_B[pba->index_bi_D];
 
     /** - velocity growth factor */
     pvecback[pba->index_bg_f] = pvecback_B[pba->index_bi_D_prime]/( pvecback_B[pba->index_bi_D]*a*pvecback[pba->index_bg_H]);
@@ -2218,9 +2221,9 @@ int background_initial_conditions(
   /** - compute initial sound horizon, assuming \f$ c_s=1/\sqrt{3} \f$ initially */
   pvecback_integration[pba->index_bi_rs] = pvecback_integration[pba->index_bi_tau]/sqrt(3.);
 
-  /** - set initial value of D and D' in RD. D will be renormalised later, but D' must be correct. */
-  pvecback_integration[pba->index_bi_D] = a;
-  pvecback_integration[pba->index_bi_D_prime] = 2*pvecback_integration[pba->index_bi_D]*pvecback[pba->index_bg_H];
+  /** - set initial value of D and D' in RD. D and D' need only be set up to an overall constant, since they will later be re-normalized. From the Meszaros equation, one obtains D ~ (1 + 3/2 * a/a_eq) , thus we can set (up to proportionality) D(aini) ~= 1, and D'(aini) = 3/2*H*a^2/a_eq). The latter we can approximate as 0, creating only a negligible decaying mode at early times */
+  pvecback_integration[pba->index_bi_D] = 1.;
+  pvecback_integration[pba->index_bi_D_prime] = 0.;
 
   /** - return the value finally chosen for the initial log(a) */
   *loga_ini = log(a);
