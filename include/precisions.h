@@ -21,7 +21,7 @@ class_type_parameter(background_evolver,int,enum evolver_type,ndf15)
  * Tolerance of the background integration, giving the allowed relative integration error.
  * (used by both evolvers)
  */
-class_precision_parameter(tol_background_integration,double,1.e-2)
+class_precision_parameter(tol_background_integration,double,1.e-7)
 /**
  * Only relevant for rk evolver: the default integration step is given
  * by this number multiplied by the timescale defined in
