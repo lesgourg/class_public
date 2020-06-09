@@ -4625,7 +4625,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     /** 1.a.3) Detector specifics */
     /** 1.a.3.1) From file */
     /* Read */
-    class_call(parser_read_string(pfc,"sd_detector_file_name",&string1,&flag1,errmsg),
+    class_call(parser_read_string(pfc,"sd_detector_file",&string1,&flag1,errmsg),
                errmsg,
                errmsg);
     /* Complete set of parameters */
