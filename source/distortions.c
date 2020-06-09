@@ -346,13 +346,6 @@ int distortions_set_detector(struct precision * ppr,
     }
   }
 
-
-  if(psd->has_detector_file == _TRUE_){
-    class_call(distortions_read_detector_noisefile(ppr,psd),
-               psd->error_message,
-               psd->error_message);
-  }
-
   return _SUCCESS_;
 }
 
@@ -1800,78 +1793,6 @@ int distortions_free_sd_data(struct distortions * psd){
 
   return _SUCCESS_;
 }
-
-
-/**
- * Reads the external detector noise file containing the
- * array of frequencies and the detector accuracies
- * Assumed to be in units of [GHz] and [10^-26 W/m^2/Hz/sr] respectively
- *
- * @param ppr        Input: pointer to the precisions structure
- * @param psd        Input: pointer to the distortions structure
- * @return the error status
- */
-int distortions_read_detector_noisefile(struct precision * ppr,
-                                        struct distortions * psd){
-
-  /** Define local variables */
-  int index_x;
-  double nu_temp,delta_Ic_temp;
-  FILE * infile;
-  char line[_LINE_LENGTH_MAX_];
-  char * left;
-  int headlines = 0;
-  int numcols;
-
-  /** Open file */
-  sprintf(psd->sd_detector_noise_file,"%s/%s",ppr->sd_external_path,psd->sd_detector_file_name);
-  class_open(infile, psd->sd_detector_noise_file, "r", psd->error_message);
-
-  /** Read header */
-  psd->br_exact_Nz = 0;
-  while (fgets(line,_LINE_LENGTH_MAX_-1,infile) != NULL) {
-    headlines++;
-
-    /* Eliminate blank spaces at beginning of line */
-    left=line;
-    while (left[0]==' ') {
-        left++;
-    }
-
-    if (left[0] > 39) {
-      /** Read number of lines, infer size of arrays and allocate them */
-      class_test(sscanf(line,"%d %d", &psd->x_size, &numcols) != 2,
-                 psd->error_message,
-                 "could not header (number of lines, number of columns) at line %i in file '%s' \n",headlines,psd->sd_detector_noise_file);
-      class_test(numcols !=2,
-                 psd->error_message,
-                 "Incorrect number of columns in the detector noise file '%s'",psd->sd_detector_noise_file);
-
-      class_alloc(psd->x, psd->x_size*sizeof(double), psd->error_message);
-      class_alloc(psd->delta_Ic_array, psd->x_size*sizeof(double), psd->error_message);
-      break;
-    }
-  }
-
-  /** Read parameters */
-  for(index_x=0; index_x<psd->x_size; ++index_x){
-    class_test(fscanf(infile, "%le",
-                      &(nu_temp))!=1,                                                 // [-]
-                      psd->error_message,
-                      "Could not read nu at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
-    psd->x[index_x] = nu_temp/psd->x_to_nu;
-    class_test(fscanf(infile, "%le",
-                      &(delta_Ic_temp))!=1,                            // [-]
-                      psd->error_message,
-                      "Could not read delta_Ic(nu) at line %i in file '%s'",index_x+headlines,psd->sd_detector_noise_file);
-    psd->delta_Ic_array[index_x] = delta_Ic_temp*1e-26;
-  }
-
-  fclose(infile);
-
-  return _SUCCESS_;
-}
-
 
 /**
  * Outputs
