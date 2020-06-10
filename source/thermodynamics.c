@@ -751,6 +751,9 @@ int thermodynamics_init(
     g = pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_dkappa] *
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
 
+    /* for some very extreme models, in the last line, the exponential of a large negative number could go beyond the range covered by the "double" representation numbers, and be set to zero. To avoid a division by zero in the next steps, it is then better to set it to the minimum non-zero double (this has no impact on observables). */
+    if (g==0.) g=DBL_MIN;
+
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] =
       exp(pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]);
@@ -1008,7 +1011,7 @@ int thermodynamics_init(
              pth->error_message,
              "found a recombination redshift greater or equal to the maximum value imposed in thermodynamics.h, z_rec_max=%g",_Z_REC_MAX_);
 
-  while (pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g] <
+  while (pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g] <=
          pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]) {
     index_tau--;
   }
