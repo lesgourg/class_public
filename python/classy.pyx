@@ -19,6 +19,7 @@ from libc.stdlib cimport *
 from libc.stdio cimport *
 from libc.string cimport *
 import cython
+from cython.parallel import prange
 cimport cython
 
 ctypedef np.float_t DTYPE_t
@@ -2294,6 +2295,7 @@ cdef class Class:
     def get_tau_split_eisw_lisw(self):
         return self.tau_of_z(self.get_z_split_eisw_lisw())
 
+    @cython.boundscheck(False)
     def get_thermos_for_NN(self):
         """
         Return the photon comoving damping scale, visibility function, its conformal time
@@ -2325,7 +2327,7 @@ cdef class Class:
             double [:] numpy_dkappa = np.zeros((tt_size));
             double [:] numpy_tau = np.zeros((tt_size));
 
-        for index_z in range(tt_size):
+        for index_z in prange(tt_size, nogil=True):
 
             # if background_tau_of_z(&self.ba,z_table[index_z],&tau)==_FAILURE_:
             #     raise CosmoSevereError(self.ba.error_message)
@@ -2345,7 +2347,7 @@ cdef class Class:
         g_reio = np.asarray(numpy_g_reio)
         g_reco_prime = np.asarray(numpy_dg_reco)
         g_reio_prime = np.asarray(numpy_dg_reio)
-        return {
+        ret = {
                 "r_d": np.asarray(numpy_r_d),
                 "g": np.asarray(numpy_g),
                 "g_prime": np.asarray(numpy_dg),
@@ -2357,6 +2359,7 @@ cdef class Class:
                 "tau": np.asarray(numpy_tau),
                 "dkappa": np.asarray(numpy_dkappa),
                 }
+        return ret
 
     def scale_independent_growth_factor(self, z):
         """
