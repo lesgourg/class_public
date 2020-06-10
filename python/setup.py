@@ -42,6 +42,10 @@ setup(
     description='Python interface to the Cosmological Boltzmann code CLASS',
     url='http://www.class-code.net',
     cmdclass={'build_ext': build_ext},
+    package_dir={
+        "classynet": os.path.join(classy_folder, "nn"),
+    },
+    packages=["classynet"],
     ext_modules=[Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
                            include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
                            libraries=liblist,
