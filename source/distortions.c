@@ -1059,7 +1059,7 @@ int distortions_add_effects_reio(struct background * pba,
   /** Define local variables */
   double theta_e, cos_theta, P_1, P_2, x_tilde, S_tilde;
   double G_T, Y_SZ;
-  double Y_k, M_low, M_k, D_low, D_k, Q_low, Q_k;
+  double M_low, M_k, D_low, D_k, Q_low, Q_k;
   int index_k, index_n;
   double Y_0, Y_1, Y_2;
   double B_0, B_1, B_2, B_3;
@@ -1078,26 +1078,26 @@ int distortions_add_effects_reio(struct background * pba,
   G_T = pow(x,4.)*exp(-x)/pow(1.-exp(-x),2.);
   Y_SZ = G_T*(x_tilde-4.);
 
-  double Delta_x[8] = {-G_T,
-                        G_T*x_tilde,
-                       -G_T*        (pow(x_tilde,2.)
+  double Delta_x[8] = {-1.,
+                       x_tilde,
+                       -(pow(x_tilde,2.)
                                      +pow(S_tilde,2.)/2.),
-                        G_T*x_tilde*(pow(x_tilde,2.)
+                       x_tilde*(pow(x_tilde,2.)
                                      +pow(S_tilde,2.)*2.),
-                       -G_T*        (pow(x_tilde,2.)*pow(S_tilde,2.)*11./2.
-                                     +pow(x_tilde,4.)
+                       -(pow(x_tilde,4.)
+                                     +pow(x_tilde,2.)*pow(S_tilde,2.)*11./2.
                                      +pow(S_tilde,4.)),
-                        G_T*x_tilde*(pow(x_tilde,2.)*pow(S_tilde,2.)*13.
-                                     +pow(x_tilde,4.)
+                       x_tilde*(pow(x_tilde,4.)
+                                     +pow(x_tilde,2.)*pow(S_tilde,2.)*13.
                                      +pow(S_tilde,4.)*17./2.),
-                        G_T*        (pow(x_tilde,4.)*pow(S_tilde,2.)*57./2.
+                       -(pow(x_tilde,6.)
+                                     +pow(x_tilde,4.)*pow(S_tilde,2.)*57./2.
                                      +pow(x_tilde,2.)*pow(S_tilde,4.)*45.
-                                     +pow(x_tilde,4.)
-                                     +pow(S_tilde,4.)*17./4.),
-                        G_T*x_tilde*(pow(x_tilde,4.)*pow(S_tilde,2.)*60.
+                                     +pow(S_tilde,6.)*17./4.),
+                       x_tilde*(pow(x_tilde,6.)
+                                     +pow(x_tilde,4.)*pow(S_tilde,2.)*60.
                                      +pow(x_tilde,2.)*pow(S_tilde,4.)*192.
-                                     +pow(x_tilde,4.)
-                                     +pow(S_tilde,4.)*65.)};
+                                     +pow(S_tilde,6.)*62.)};
 
   /** Thermal SZ effect (TSZ) */
  /* Fill coefficient tables from appendix A1 of Chluba et al. 2012 */
@@ -1108,24 +1108,22 @@ int distortions_add_effects_reio(struct background * pba,
                     {0., 0.,     44./5.},
                     {0., 0.,     11./30.}};
 
-  /** Non-relativistic TSZ */
-  DI_tSZ_non_rel = 0.;
-  for(index_k=0; index_k<1; ++index_k){
-    Y_k = 0.;
+  double Y_k[3] = {0., 0., 0.};
+
+  for(index_k=0; index_k<3; ++index_k){
+    Y_k[index_k] = 0.;
     for(index_n=0; index_n<2*index_k+2; ++index_n){
-      Y_k += a[index_n][index_k]*Delta_x[index_n];
+      Y_k[index_k]+=a[index_n][index_k]*Delta_x[index_n];
     }
-    DI_tSZ_non_rel += Dtau*pow(theta_e,index_k+1)*Y_k;
   }
+
+  /** Non-relativistic TSZ */
+  DI_tSZ_non_rel = Dtau*theta_e*G_T*Y_k[0];
 
   /** Relativistic TSZ */
   DI_tSZ_rel = 0.;
   for(index_k=1; index_k<3; ++index_k){
-    Y_k = 0.;
-    for(index_n=0; index_n<2*index_k+2; ++index_n){
-      Y_k += a[index_n][index_k]*Delta_x[index_n];
-    }
-    DI_tSZ_rel += Dtau*pow(theta_e,index_k+1)*Y_k;
+    DI_tSZ_rel += Dtau*pow(theta_e,index_k+1)*G_T*Y_k[index_k];
   }
 
   DI_tSZ = DI_tSZ_non_rel+DI_tSZ_rel;
@@ -1134,26 +1132,9 @@ int distortions_add_effects_reio(struct background * pba,
   /* Calculated according to Nozawa et al. 2005 */
   switch(psd->sd_reio_type){
     case sd_reio_Nozawa:
-    Y_0 = -4.
-          +x_tilde;
-    Y_1 = -10.
-          +47.*x_tilde/2.
-          -42.*pow(x_tilde,2.)/5.
-          +7.*pow(x_tilde,3.)/10.
-          +pow(S_tilde,2.)*(-21./5.
-                            +7.*x_tilde/5.);
-    Y_2 = -15./2.
-          +1023.*x_tilde/8.
-          -868.*pow(x_tilde,2.)/5.
-          +329.*pow(x_tilde,3.)/5.
-          -44.*pow(x_tilde,4.)/5.
-          +11.*pow(x_tilde,5.)/30.
-          +pow(S_tilde,2.)*(-434./5.
-                            +658.*x_tilde/5.
-                            -242.*pow(x_tilde,2.)/5.
-                            +143.*pow(x_tilde,3.)/30.)
-          +pow(S_tilde,4.)*(-44./5.
-                            +187.*x_tilde/60.);
+    Y_0 = Y_k[0];
+    Y_1 = Y_k[1];
+    Y_2 = Y_k[2];
 
     B_0 = 1.*Y_0/3.;
     B_1 = 5.*Y_0/6.
@@ -1272,7 +1253,7 @@ int distortions_add_effects_reio(struct background * pba,
                          );
         }
         M_k *= 1./3.;
-        M_low += pow(theta_e,index_k+1)*M_k;
+        M_low += pow(theta_e,index_k+1)*M_k*G_T;
       }
 
       D_low = G_T;
@@ -1284,7 +1265,7 @@ int distortions_add_effects_reio(struct background * pba,
                           Delta_x[index_n+1]
                          );
         }
-        D_low += pow(theta_e,index_k+1)*D_k;
+        D_low += pow(theta_e,index_k+1)*D_k*G_T;
       }
 
       Q_low = 11./30.*(x_tilde*G_T);
@@ -1298,7 +1279,7 @@ int distortions_add_effects_reio(struct background * pba,
                          );
         }
         Q_k *= 1./3.;
-        Q_low += pow(theta_e,index_k+1)*Q_k;
+        Q_low += pow(theta_e,index_k+1)*Q_k*G_T;
       }
     }
     /* High temperature approximation (not implemented yet) */
