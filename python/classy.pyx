@@ -184,6 +184,7 @@ cdef class PyCosmology:
         self.sp = &deref(input_module).spectra_
         self.le = &deref(input_module).lensing_
         self.op = &deref(input_module).output_
+        return self
 
     cdef _update_fc_from_pars(self):
         cdef:
@@ -211,6 +212,7 @@ cdef class PyCosmology:
             dumc = dumcp
             sprintf(self._fc.value[i], "%s", dumc)
             self._fc.read[i] = 0
+        return self
 
     # The functions struct_cleanup(), empty(), set() and compute() are not neccessary, but they are here to support
     # legacy code and MontePython.
@@ -220,12 +222,14 @@ cdef class PyCosmology:
     cpdef empty(self):
         self._pars = {}
         self.parameters_changed = True
+        return self
 
     cpdef set(self, input_parameters):
         if viewdictitems(input_parameters) <= viewdictitems(self._pars):
             return
         self._pars.update(input_parameters)
         self.parameters_changed = True
+        return self
 
     cpdef compute(self, level=None):
         if level is None:
@@ -249,6 +253,7 @@ cdef class PyCosmology:
             deref(self._thisptr).GetSpectraModule()
         elif final_level == 'lensing':
             deref(self._thisptr).GetLensingModule()
+        return self
 
     cpdef get_input_precision(self):
         return deref(self.pr)
@@ -477,7 +482,7 @@ cdef class PyCosmology:
         if (has_pk_cb == _FALSE_):
             raise CosmoSevereError("P_cb not computed (probably because there are no massive neutrinos) so you cannot ask for it")
 
-        self.pk_general(k, z, index_pk_cb, linear_or_nonlinear)
+        return self.pk_general(k, z, index_pk_cb, linear_or_nonlinear)
 
     # Gives the total matter pk for a given (k,z)
     cpdef pk_lin(self, double k, double z):
