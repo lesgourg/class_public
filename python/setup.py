@@ -44,8 +44,11 @@ setup(
     cmdclass={'build_ext': build_ext},
     package_dir={
         "classynet": os.path.join(classy_folder, "nn"),
+        "classynet.generate": os.path.join(classy_folder, "nn", "generate"),
+        "classynet.training": os.path.join(classy_folder, "nn", "training"),
+        "classynet.models": os.path.join(classy_folder, "nn", "models"),
     },
-    packages=["classynet"],
+    packages=["classynet", "classynet.generate", "classynet.training", "classynet.models"],
     ext_modules=[Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
                            include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
                            libraries=liblist,
