@@ -8,7 +8,7 @@
  * Tolerance parameter setting the accuracy of the shooting method in the input module,
  * when there is only one parameter requiring shooting.
  */
-class_precision_parameter(tol_shooting_1d,double,1e-8)
+class_precision_parameter(tol_shooting_1d,double,1.e-6)
 /**
  * Default initial value of scale factor used in the integration of background quantities.
  * For models like ncdm, the code may decide to start the integration earlier.
