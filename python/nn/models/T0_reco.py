@@ -8,20 +8,15 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from skopt.space import Real, Integer, Categorical
-
-import interface
-
-import models.common as common
-
-import k_standard
-
-import pytorch_spline
-import models.modules as modules
-
-import utils
 import pandas as pd
 
+import pytorch_spline
+
+from .model import Model
+# import classynet.models.common as common
+from . import common
+from .. import utils
+from .. import time_slicing
 
 PLOT_MODE = False
 
@@ -35,13 +30,13 @@ class BasisDecompositionNet(nn.Module):
             "relu_slope_basis": 0.3,
             }
 
-    def __init__(self, n_inputs_cosmo, n_inputs_tau, n_k, hp=None):
+    def __init__(self, k, n_inputs_cosmo, n_inputs_tau, n_k, hp=None):
         super().__init__()
 
         if hp is None:
             hp = BasisDecompositionNet.HYPERPARAMETERS_DEFAULTS
 
-        self.k = nn.Parameter(torch.from_numpy(k_standard.K_STANDARD).float(), requires_grad=False)
+        self.k = k
 
         # 3x for cos, 2x for sin
         self.n_phases = 3 + 2
@@ -70,7 +65,7 @@ class BasisDecompositionNet(nn.Module):
         assert self.k_spline[0] <= self.spline_range[0]
         assert self.k_spline[-1] >= self.spline_range[1]
 
-        self.spline_value_net_cosmo = nn.Linear(4, 10 + 30)
+        self.spline_value_net_cosmo = nn.Linear(n_inputs_cosmo, 10 + 30)
         self.spline_value_net_tau = nn.Linear(1, 90)
         self.spline_value_net = nn.Sequential(
                 nn.ReLU(inplace=True),
@@ -81,7 +76,7 @@ class BasisDecompositionNet(nn.Module):
 
         # TODO rename lin_cosmo_coeff because it is not only used for coefficients
         self.lin_cosmo = nn.Linear(n_inputs_cosmo, 20)
-        self.lin_tau = nn.Linear(n_inputs_cosmo, 80)
+        self.lin_tau = nn.Linear(n_inputs_tau, 80)
 
         self.lin_parameters = nn.Sequential(
                 nn.LeakyReLU(0.3),
@@ -103,8 +98,6 @@ class BasisDecompositionNet(nn.Module):
 
         cosmo = common.get_inputs_cosmo(x)
         tau_g = common.get_inputs_tau_reco(x)
-
-        inputs_cosmo_tau = torch.cat((cosmo, tau_g), axis=1)
 
         # compute parameters
         parameter_inputs = torch.cat((
@@ -169,7 +162,7 @@ class BasisDecompositionNet(nn.Module):
             plt.figure(figsize=(12, 8))
             plt.xlabel("$k [Mpc^{-1}]$")
             plt.title("$\\tau = {:.3f} \\tau_{{rec}}$".format(10**x["tau_relative_to_reco"][i_tau]))
-            k = k_standard.K_STANDARD
+            k = self.k
             plt.semilogx(k, result[0, i_tau], label=r"$\cos(\varphi_0^{cos} + k r_s (1 + \delta r_s^{cos}) + \varphi_2^{cos} k^2)$")
             plt.semilogx(k, result[1, i_tau], label=r"$\sin(\varphi_0^{sin} + k r_s (1 + \delta r_s^{sin}) + \varphi_2^{sin} k^2)/(k r_s)$")
             ln, = plt.semilogx(k, B[i_tau], label="spline")
@@ -189,7 +182,7 @@ class BasisDecompositionNet(nn.Module):
             from plotting.plot_source_function import plot_source_function
             plot_source_function(
                 plt.gca(),
-                k_standard.K_STANDARD,
+                self.k,
                 10**x["tau_relative_to_reco"].cpu().numpy(),
                 B.T.cpu().numpy(),
                 levels=50
@@ -237,10 +230,10 @@ class BasisDecompositionNet(nn.Module):
         values = values[:, None, :]
         arg_cos = values[..., 0] + arg * (1 + values[..., 1]) + k_2 * values[..., 2]
         arg_sin = arg * (1 + values[..., 3]) + k_2 * values[..., 4]
-        out = torch.empty((2,) + arg.shape)
-        torch.cos(arg_cos, out=out[0])
-        torch.sin(arg_sin, out=out[1])
-        out[1] *= arg_inv
+        out = torch.stack((
+            torch.cos(arg_cos),
+            torch.sin(arg_sin) * arg_inv
+        ))
 
         return out
 
@@ -308,11 +301,11 @@ class Net_ST0_Reco(Model):
     def __init__(self, k, hp=None):
         super().__init__(k)
 
-        n_inputs_cosmo = 4
+        n_inputs_cosmo = len(common.INPUTS_COSMO)
         n_inputs_tau = 4
-        n_k = 568
+        n_k = len(self.k)
 
-        self.net_basis = BasisDecompositionNet(n_inputs_cosmo, n_inputs_tau, n_k, hp=hp)
+        self.net_basis = BasisDecompositionNet(self.k, n_inputs_cosmo, n_inputs_tau, n_k, hp=hp)
         self.net_correction = CorrectionNet(n_inputs_cosmo, n_inputs_tau, n_k, hp=hp)
 
         if hp is None:
@@ -320,7 +313,7 @@ class Net_ST0_Reco(Model):
 
         self.learning_rate = hp["learning_rate"]
 
-        weight = torch.ones_like(k)
+        weight = torch.ones_like(self.k)
         weight[self.k < 5e-3] *= 10
         # rescale so that total weight is the same
         self.loss_weight = nn.Parameter(weight / weight.sum() * len(k), requires_grad=False)
@@ -339,7 +332,7 @@ class Net_ST0_Reco(Model):
 
             plot_source_function(
                 axes[0, 0],
-                k_standard.K_STANDARD,
+                self.k,
                 10**x["tau_relative_to_reco"].cpu().numpy(),
                 linear_combination.sum(dim=0).cpu().numpy().T,
                 levels=50,
@@ -347,7 +340,7 @@ class Net_ST0_Reco(Model):
             )
             plot_source_function(
                 axes[0, 1],
-                k_standard.K_STANDARD,
+                self.k,
                 10**x["tau_relative_to_reco"].cpu().numpy(),
                 correction.cpu().numpy().T,
                 levels=50,
@@ -355,7 +348,7 @@ class Net_ST0_Reco(Model):
             )
             plot_source_function(
                 axes[1, 0],
-                k_standard.K_STANDARD,
+                self.k,
                 10**x["tau_relative_to_reco"].cpu().numpy(),
                 (linear_combination.sum(dim=0) + correction).cpu().numpy().T,
                 levels=50,
@@ -366,8 +359,12 @@ class Net_ST0_Reco(Model):
 
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
+
         return result
         # return linear_combination + correction
+
+    def epochs(self):
+        return 25
 
     def optimizer(self):
         basis_params = list(self.net_basis.parameters())
@@ -402,6 +399,9 @@ class Net_ST0_Reco(Model):
 
     def source_functions(self):
         return ["t0_reco_no_isw"]
+
+    def slicing(self):
+        return time_slicing.TimeSlicingReco(4)
 
     def criterion(self):
         """Returns the loss function."""

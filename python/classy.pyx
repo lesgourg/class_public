@@ -12,6 +12,7 @@ extract cosmological parameters.
 
 """
 import time
+import os
 from math import exp,log
 import numpy as np
 cimport numpy as np
@@ -21,6 +22,11 @@ from libc.string cimport *
 import cython
 from cython.parallel import prange
 cimport cython
+
+# TODO conditional import?
+# TODO relative import?
+import classynet.workspace
+import classynet.predictors
 
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
@@ -173,6 +179,7 @@ cdef class Class:
         the source functions. In that case, a Predictor instance must be passed
         which will predict the source functions.
         """
+        raise DeprecationWarning()
         self.use_NN = True
         self.predictor = predictor
         # If using neural networks, set 'bad' parameters
@@ -189,13 +196,22 @@ cdef class Class:
 
         self._pars.update(kars)
         self.ready=False
+
+        # TODO if pars contains NN enable, load models here?
+        # TODO if pars contains NN enable, set use_NN
+
         return True
+
+    def use_nn(self):
+        """
+        Utility methods that returns whether neural networks are enabled
+        by checking whether 'neural network path' is in the input parameters.
+        """
+        return "neural network path" in self._pars
 
     def empty(self):
         self._pars = {}
         self.ready = False
-        self.use_NN = False
-        self.predictor = None
 
     # Create an equivalent of the parameter file. Non specified values will be
     # taken at their default (in Class)
@@ -329,6 +345,7 @@ cdef class Class:
         It will set additional parameters (see below as `additional_params`) that
         are required for NN evaluation.
         """
+        raise DeprecationWarning()
 
         bad_params = {
             "l_max_g": 4,
@@ -444,10 +461,17 @@ cdef class Class:
             # This part is done to list all the unread parameters, for debugging
             problem_flag = False
             problematic_parameters = []
+            # GS: added this because neural network arguments are not relevant
+            # to the C code.
+            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug"])
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
+                    name = self.fc.name[i].decode()
+                    # GS: if parameter is an exception, do not raise problem flag
+                    if name in problematic_exceptions:
+                        continue
                     problem_flag = True
-                    problematic_parameters.append(self.fc.name[i].decode())
+                    problematic_parameters.append(name)
             if problem_flag:
                 raise CosmoSevereError(
                     "Class did not read input parameter(s): %s\n" % ', '.join(
@@ -492,8 +516,6 @@ cdef class Class:
             # int tp_size = 0
             int tp_size
             int tot_num_of_sources = 11
-            int [:] index_types = np.zeros(tot_num_of_sources,dtype=np.int32)
-            int [:] index_types_mask = np.zeros((tot_num_of_sources),dtype=np.int32)
             # double [:,:] NN_interpolated
             # double [:] NN_interpolated
             # TODO remove some of the unused ones here
@@ -508,8 +530,9 @@ cdef class Class:
 
             # Allocate memory for ALL source functions (since transfer.c iterates over them)
 
-            if self.use_NN:
+            if self.use_nn() and not self.nn_cheat_enabled():
               self.pt.perform_NN_skip = _TRUE_
+
             if perturb_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
@@ -518,9 +541,13 @@ cdef class Class:
             timer.end("perturb_init")
 
             # flag for using NN
-            if self.use_NN:
+            if self.use_nn():
                 timer.start("neural network complete")
                 timer.start("neural network initialization")
+
+                # cosmological parameters for neural network
+                # TODO don't do it here?
+                nn_cosmo_params = self.nn_cosmological_parameters()
 
                 index_md = self.pt.index_md_scalars;
                 k_size = self.pt.k_size[index_md];
@@ -541,31 +568,34 @@ cdef class Class:
                 requested_index_types = []
 
                 # add all sources that class calculates to the list for predicting
+                source_names = []
                 if self.pt.has_source_t:
-                    index_types[0] = self.pt.index_tp_t0
-                    index_types[1] = self.pt.index_tp_t1
-                    index_types[2] = self.pt.index_tp_t2
-                    index_types_mask[0:3] = 1
                     requested_index_types.extend([
                         self.pt.index_tp_t0,
                         self.pt.index_tp_t1,
                         self.pt.index_tp_t2,
                         ])
-                if self.pt.has_source_p:
-                    index_types[3] = self.pt.index_tp_p
-                    index_types_mask[3] = 1
-                    # TODO Explicitly add self.pt.index_tp_p to requested_index_types
-                    # or compute from ST2 here later?
+                    source_names.extend(["t0", "t1", "t2"])
+
+                    if self.nn_debug_enabled():
+                        requested_index_types.extend([
+                            self.pt.index_tp_t0_reco_no_isw,
+                            self.pt.index_tp_t0_reio_no_isw,
+                            self.pt.index_tp_t0_isw,
+                            self.pt.index_tp_t2_reco,
+                            self.pt.index_tp_t2_reio,
+                            ])
+                        source_names.extend([
+                            "t0_reco_no_isw", "t0_reio_no_isw", "t0_isw",
+                            "t2_reco", "t2_reio"
+                        ])
                 if self.pt.has_source_phi_plus_psi:
-                    index_types[4] = self.pt.index_tp_phi_plus_psi
-                    index_types_mask[4] = 1
                     requested_index_types.append(self.pt.index_tp_phi_plus_psi)
+                    source_names.append("phi_plus_psi")
 
                 if self.pt.has_source_delta_m:
-                    index_types[5] = self.pt.index_tp_delta_m
-                    index_types_mask[5] = 1
-
                     requested_index_types.append(self.pt.index_tp_delta_m)
+                    source_names.append("delta_m")
 
                 '''
                 if self.pt.has_source_delta_g:
@@ -588,7 +618,8 @@ cdef class Class:
                 timer.end("neural network initialization")
 
                 timer.start("get all sources")
-                k_NN, NN_prediction = self.predictor.predict_all(self, np.asarray(tau_CLASS), add_k0=True)
+                predictor = classynet.predictors.build_predictor(self)
+                k_NN, NN_prediction = predictor.predict_many(source_names, np.asarray(tau_CLASS))
                 timer.end("get all sources")
 
                 timer.start("overwrite k array")
@@ -599,6 +630,7 @@ cdef class Class:
                 self.pt.k[index_md] = <double*>malloc(k_NN_size * sizeof(double))
                 for i_k in range(k_NN_size):
                     self.pt.k[index_md][i_k] = k_NN[i_k]
+
                 self.pt.k_size[index_md] = k_NN_size
                 self.pt.k_size_cl[index_md] = k_NN_size
 
@@ -613,59 +645,64 @@ cdef class Class:
                     self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
                 timer.end("allocate unused source functions")
 
-                timer["neural network evaluation"] = self.predictor.time_prediction
-                timer["neural network input transformation"] = self.predictor.time_input_transformation
-                timer["neural network output transformation"] = self.predictor.time_output_transformation
+                timer["neural network evaluation"] = predictor.time_prediction
+                timer["neural network input transformation"] = predictor.time_input_transformation
+                timer["neural network output transformation"] = predictor.time_output_transformation
 
-                for key, value in self.predictor.time_prediction_per_network.items():
+                for key, value in predictor.time_prediction_per_network.items():
                     timer["indiv. network: '{}'".format(key)] = value
 
                 timer.start("overwrite source functions")
 
-                c_NN_sources = <double*>malloc(k_NN_size * tau_size * sizeof(double))
-
+                for i, index_tp_x in enumerate(requested_index_types):
+                    self.overwrite_source_function(
+                            index_md, index_ic,
+                            index_tp_x,
+                            k_NN_size, tau_size, NN_prediction[i, :, :]
+                            )
 
                 ############################################################
-                if self.pt.has_source_t:
-                    self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_t0,
-                            k_NN_size, tau_size, NN_prediction[0, :, :]
-                            )
-                    self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_t1,
-                            k_NN_size, tau_size, NN_prediction[1, :, :]
-                            )
-                    self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_t2,
-                            k_NN_size, tau_size, NN_prediction[2, :, :]
-                            )
+                # if self.pt.has_source_t:
+                #     self.overwrite_source_function(
+                #             index_md, index_ic,
+                #             self.pt.index_tp_t0,
+                #             k_NN_size, tau_size, NN_prediction[0, :, :]
+                #             )
+                #     self.overwrite_source_function(
+                #             index_md, index_ic,
+                #             self.pt.index_tp_t1,
+                #             k_NN_size, tau_size, NN_prediction[1, :, :]
+                #             )
+                #     self.overwrite_source_function(
+                #             index_md, index_ic,
+                #             self.pt.index_tp_t2,
+                #             k_NN_size, tau_size, NN_prediction[2, :, :]
+                #             )
 
                 if self.pt.has_source_p:
+                    assert "t2" in source_names
+                    array_index = source_names.index("t2")
                     self.overwrite_source_function(
                             index_md, index_ic,
                             self.pt.index_tp_p,
-                            k_NN_size, tau_size, np.sqrt(6) * NN_prediction[2, :, :]
+                            k_NN_size, tau_size, np.sqrt(6) * NN_prediction[array_index, :, :]
                             )
 
-                if self.pt.has_source_phi_plus_psi:
-                    self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_phi_plus_psi,
-                            k_NN_size, tau_size, NN_prediction[3, :, :]
-                            )
+                # if self.pt.has_source_phi_plus_psi:
+                #     self.overwrite_source_function(
+                #             index_md, index_ic,
+                #             self.pt.index_tp_phi_plus_psi,
+                #             k_NN_size, tau_size, NN_prediction[3, :, :]
+                #             )
 
-                if self.pt.has_source_delta_m:
-                    self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_delta_m,
-                            k_NN_size, tau_size, NN_prediction[4, :, :]
-                            )
+                # if self.pt.has_source_delta_m:
+                #     self.overwrite_source_function(
+                #             index_md, index_ic,
+                #             self.pt.index_tp_delta_m,
+                #             k_NN_size, tau_size, NN_prediction[4, :, :]
+                #             )
 
 
-                free(c_NN_sources)
                 timer.end("overwrite source functions")
                 ############################################################
 
@@ -2519,49 +2556,43 @@ cdef class Class:
         for index_tau in range(tau_size):
             tau_array[index_tau] = tau[index_tau]
 
-        indices = []
+        # indices = []
+        indices = {}
 
         if self.pt.has_source_t:
-            indices.extend([
-                self.pt.index_tp_t0, self.pt.index_tp_t0_sw, self.pt.index_tp_t0_isw,
-                self.pt.index_tp_t0_reco, self.pt.index_tp_t0_reio,
-                self.pt.index_tp_t0_reco_no_isw, self.pt.index_tp_t0_reio_no_isw,
-                self.pt.index_tp_t1,
-                self.pt.index_tp_t2, self.pt.index_tp_t2_reco, self.pt.index_tp_t2_reio
-                ])
-            names.extend([
-                "t0", "t0_sw", "t0_isw",
-                "t0_reco", "t0_reio",
-                "t0_reco_no_isw", "t0_reio_no_isw",
-                "t1",
-                "t2", "t2_reco", "t2_reio"
-                ])
+            indices.update({
+                "t0": self.pt.index_tp_t0,
+                # "t0_sw": self.pt.index_tp_t0_sw,
+                "t0_isw": self.pt.index_tp_t0_isw,
+                # "t0_reco": self.pt.index_tp_t0_reco,
+                # "t0_reio": self.pt.index_tp_t0_reio,
+                "t0_reco_no_isw": self.pt.index_tp_t0_reco_no_isw,
+                "t0_reio_no_isw": self.pt.index_tp_t0_reio_no_isw,
+                "t1": self.pt.index_tp_t1,
+                "t2": self.pt.index_tp_t2,
+                "t2_reco": self.pt.index_tp_t2_reco,
+                "t2_reio": self.pt.index_tp_t2_reio
+            })
         if self.pt.has_source_p:
-            indices.append(self.pt.index_tp_p)
-            names.append("p")
+            indices["p"] = self.pt.index_tp_p
         if self.pt.has_source_delta_m:
-            indices.append(self.pt.index_tp_delta_m)
-            names.append("delta_m")
+            indices["delta_m"] = self.pt.index_tp_delta_m
         if self.pt.has_source_delta_g:
-            indices.append(self.pt.index_tp_delta_g)
-            names.append("delta_g")
+            indices["delta_g"] = self.pt.index_tp_delta_g
         if self.pt.has_source_theta_m:
-            indices.append(self.pt.index_tp_theta_m)
-            names.append("theta_m")
+            indices["theta_m"] = self.pt.index_tp_theta_m
+        if self.pt.has_source_theta_b:
+            indices["theta_b"] = self.pt.index_tp_theta_b
         if self.pt.has_source_phi:
-            indices.append(self.pt.index_tp_phi)
-            names.append("phi")
+            indices["phi"] = self.pt.index_tp_phi
         if self.pt.has_source_phi_plus_psi:
-            indices.append(self.pt.index_tp_phi_plus_psi)
-            names.append("phi_plus_psi")
+            indices["phi_plus_psi"] = self.pt.index_tp_phi_plus_psi
         if self.pt.has_source_phi_prime:
-            indices.append(self.pt.index_tp_phi_prime)
-            names.append("phi_prime")
+            indices["phi_prime"] = self.pt.index_tp_phi_prime
         if self.pt.has_source_psi:
-            indices.append(self.pt.index_tp_psi)
-            names.append("psi")
+            indices["psi"] = self.pt.index_tp_psi
 
-        for index_type, name in zip(indices, names):
+        for name, index_type in indices.items():
             for index_k in range(k_size):
                 for index_tau in range(tau_size):
                     tmparray[index_k][index_tau] = sources_ptr[index_md][index_ic*tp_size+index_type][index_tau*k_size + index_k];
@@ -2571,4 +2602,43 @@ cdef class Class:
 
         return (sources, np.asarray(k_array), np.asarray(tau_array))
 
+    def nn_workspace(self):
+        # TODO don't do this here
+        workspace = self._pars["neural network path"]
+        if any(isinstance(workspace, t) for t in [str, bytes, os.PathLike]):
+            workspace = classynet.workspace.Workspace(workspace)
+        return workspace
 
+    def nn_cosmological_parameters(self):
+        manifest = self.nn_workspace().loader().manifest()
+        names = manifest["cosmological_parameters"]
+        # TODO this isn't stable when some parameters have not explicitly
+        # been set!
+        return {name: self._pars[name] for name in names}
+
+    def nn_cheat_enabled(self):
+        return "nn_cheat" in self._pars
+
+    def nn_cheat_sources(self):
+        return self._pars["nn_cheat"]
+
+    def nn_debug_enabled(self):
+        return bool(self._pars.get("nn_debug", False))
+
+    def k_min(self):
+        """
+        k_min as determined by K (see perturbations.c:perturb_get_k_list)
+        """
+        if self.ba.sgnK == 0:
+            # K<0 (flat)  : start close to zero
+            return self.pr.k_min_tau0 / self.ba.conformal_age
+        elif self.ba.sgnK == -1:
+            # K<0 (open)  : start close to sqrt(-K)
+            # (in transfer modules, for scalars, this will correspond to q close to zero;
+            # for vectors and tensors, this value is even smaller than the minimum necessary value)
+            return np.sqrt(-self.ba.K + pow(self.pr.k_min_tau0 / self.ba.conformal_age / self.th.angular_rescaling, 2))
+        elif self.ba.sgnK == 1:
+            # K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K)
+            return np.sqrt((8.-1.e-4) * self.ba.K);
+        else:
+            raise ValueError("Unrecognized value of K = {}!".format(self.ba.K))

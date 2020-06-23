@@ -10,6 +10,7 @@ import numpy as np
 import h5py as h5
 from tqdm import tqdm
 
+import classy
 from classy import Class
 
 from .generate_cosmological_parameters import sample_cosmological_parameters
@@ -21,7 +22,12 @@ GiB = 1024**3
 # training file will occupy on disk.
 FILE_SIZE_ESTIMATE = 30 * MiB
 
-def generate_data(count, domain, fixed_params, directory, processes=None):
+def generate_parameters_and_data(count, domain, fixed_params, directory, processes=None):
+    # sample cosmological parameters...
+    varying = sample_cosmological_parameters(domain, count)
+    generate_data(count, varying, fixed_params, directory, processes=processes)
+
+def generate_data(varying, fixed_params, directory, processes=None):
     """
     Generate training/validation/testing set of size `count` by sampling the `domain` of cosmological parameters.
 
@@ -42,6 +48,7 @@ def generate_data(count, domain, fixed_params, directory, processes=None):
     # Create output directory if it doesn't exist
     os.makedirs(directory, exist_ok=True)
     # Check whether there is enough space available
+    count = len(varying)
     expected_size = count * FILE_SIZE_ESTIMATE
     usage = shutil.disk_usage(directory)
     if usage.free < expected_size:
@@ -51,9 +58,6 @@ def generate_data(count, domain, fixed_params, directory, processes=None):
             "however, there are only {:.3f} GiB available!".format(
                 count, expected_size / GiB, usage.free / GiB
             ))
-
-    # sample cosmological parameters...
-    varying = sample_cosmological_parameters(domain, count)
     # ...and generate training/validation/testing data.
     minima, maxima = generate_source_functions_for(fixed_params, varying, directory, processes=processes)
     # save minima and maxima
@@ -89,8 +93,16 @@ def generate_source_functions_for(fixed_params, varying_params, directory, proce
 
     minima = None
     maxima = None
+
+    failures = []
     with multiprocessing.Pool(processes) as pool:
-        for (mins, maxs) in tqdm(pool.imap_unordered(generate_source_function, args), total=count):
+        for exc, (mins, maxs) in tqdm(pool.imap_unordered(generate_source_function, args), total=count):
+            if exc:
+                print("WARNING: CLASS failure:", exc)
+                failures.append(exc)
+                print("{} CLASS failures so far.".format(len(failures)))
+                continue
+
             if minima is None:
                 minima = mins
                 maxima = maxs
@@ -113,20 +125,16 @@ def generate_source_function(args):
 
     params = params.copy()
     params.update(cosmo_params)
-    # TODO don't do this here!
-    # Set reasonably high k value
-    params["P_k_max_1/Mpc"] = 10.0
-    # Make sure that the lowest k value produced by CLASS is _always_ below
-    # the lowest k value of our standard k sampling; for this, we set the
-    # k_min_tau0 value (the smallest value of k * tau0) to 0.1 of its default
-    # value
-    params["k_min_tau0"] = 0.01
 
+    print(params)
     cosmo.set(**params)
 
     # run CLASS
     logger.debug("Computing source functions...", end="")
-    cosmo.compute(level=['perturb'])
+    try:
+        cosmo.compute(level=['perturb'])
+    except classy.CosmoComputationError as exc:
+        return exc, (None, None)
     logger.debug("done!")
 
     # get sources from class
@@ -256,4 +264,4 @@ def generate_source_function(args):
     cosmo.struct_cleanup()
     cosmo.empty()
 
-    return minima, maxima
+    return None, (minima, maxima)

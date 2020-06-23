@@ -29,6 +29,7 @@ cdef extern from "class.h":
 
     cdef struct precision:
         ErrorMsg error_message
+        double k_min_tau0
 
     cdef struct background:
         ErrorMsg error_message
@@ -63,7 +64,11 @@ cdef extern from "class.h":
         double Omega0_dcdmdr
         double Omega0_scf
         double Omega0_k
+        double a_today
         int bt_size
+        double K
+        int sgnK
+
 
         # Added for Neural Networks
         double * tau_table
@@ -117,6 +122,7 @@ cdef extern from "class.h":
         double * z_table
         double * tau_table
         double * thermodynamics_table
+        double angular_rescaling
 
     cdef struct perturbs:
         ErrorMsg error_message
@@ -159,6 +165,7 @@ cdef extern from "class.h":
         int has_source_delta_m
         int has_source_delta_g
         int has_source_theta_m
+        int has_source_theta_b
         int has_source_phi
         int has_source_phi_prime
         int has_source_phi_plus_psi
@@ -186,6 +193,7 @@ cdef extern from "class.h":
         int index_tp_phi_plus_psi
         int index_tp_phi_prime
         int index_tp_psi
+        int index_tp_theta_b
 
         double eisw_lisw_split_z
 
