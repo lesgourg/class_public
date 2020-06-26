@@ -17,89 +17,97 @@
 typedef char DetectorName[_MAX_DETECTOR_NAME_LENGTH_];
 typedef char DetectorFileName[_FILENAMESIZE_+_MAX_DETECTOR_NAME_LENGTH_+256];
 
-/**
- * All deistortions parameters and evolution that other modules need to know.
- */
+/** List of possible branching ratio approximations */
+
 enum br_approx {bra_sharp_sharp,bra_sharp_soft,bra_soft_soft,bra_soft_soft_cons,bra_exact};
+
+/** List of possible schemes to compute relativistic contribution from
+    reionization and structure formatio */
+
 enum reio_approx {sd_reio_Nozawa, sd_reio_Chluba};
 
+/**
+ * distorsions structure, containing all the distortion-related parameters and
+ * evolution that other modules need to know.
+ */
 
 struct distortions
 {
-  /** @name - input parameters initialized by user in input module (all other quantities are computed in this module,
-   *   given these parameters and the content of the 'precision', 'background', 'thermodynamics' and
-   *  'primordial' structures) */
+  /** @name - input parameters initialized by user in input module
+   *   (all other quantities are computed in this module, given these
+   *   parameters and the content of the 'precision', 'background',
+   *   'thermodynamics' and 'primordial' structures) */
 
   //@{
 
-  int sd_branching_approx;                      /* Which approximation to use for the branching ratios? */
+  int sd_branching_approx;                      /**< Which approximation to use for the branching ratios? */
 
-  int sd_PCA_size;
+  int sd_PCA_size;                              /**< JLTBF */
 
-  FileName sd_detector_file_name;               /* Name of detector list file */
+  FileName sd_detector_file_name;               /**< Name of detector list file */
 
-  DetectorName sd_detector_name;                /* Name of detector */
-  double sd_detector_nu_min;                    /* Minimum frequency of chosen detector */
-  double sd_detector_nu_max;                    /* Maximum frequency of chosen detector */
-  double sd_detector_nu_delta;                  /* Bin size of chosen detector */
-  int sd_detector_bin_number;
-  double sd_detector_delta_Ic;
+  DetectorName sd_detector_name;                /**< Name of detector */
+  double sd_detector_nu_min;                    /**< Minimum frequency of chosen detector */
+  double sd_detector_nu_max;                    /**< Maximum frequency of chosen detector */
+  double sd_detector_nu_delta;                  /**< Bin size of chosen detector */
+  int sd_detector_bin_number;                   /**< JLTBF */
+  double sd_detector_delta_Ic;                  /**< JLTBF */
 
-  enum reio_approx sd_reio_type;
+  enum reio_approx sd_reio_type;                /**< JLTBF */
 
-  double sd_add_y;
-  double sd_add_mu;
+  double sd_add_y;                              /**< JLTBF */
+  double sd_add_mu;                             /**< JLTBF */
 
   //@}
-
 
   /** @name - Public tables and parameters */
 
   //@{
 
-  /* Precision parameters */
-  double z_muy;
-  double z_th;
+  /* Precision parameters JLTBF: precise this comment (user should not think that these are precision parameters loike those in ppr, but more that they are parameters defining the format of the table) */
+  double z_muy;                              /**< JLTBF */
+  double z_th;                               /**< JLTBF */
 
-  double z_min;                              /* Minimum redshift */
-  double z_max;                              /* Maximum redshift */
-  int z_size;                                /* Lenght of redshift array */
-  double z_delta;                            /* Redshift intervals */
-  double * z;                                /* z[index_z] = list of values */
+  double z_min;                              /**< Minimum redshift */
+  double z_max;                              /**< Maximum redshift */
+  int z_size;                                /**< Lenght of redshift array */
+  double z_delta;                            /**< Redshift intervals */
+  double * z;                                /**< z[index_z] = list of values */
 
-  double * z_weights;
+  double * z_weights;                        /**< JLTBF */
 
   /* Can be specified if no noisefile */
-  double x_min;                              /* Minimum dimentionless frequency */
-  double x_max;                              /* Maximum dimentionless frequency */
-  double x_delta;                            /* dimentionless frequency intervals */
-  /* Will always be specified */
-  int x_size;                                /* Lenght of dimentionless frequency array */
-  double * x;                                /* x[index_x] = list of values */
+  double x_min;                              /**< Minimum dimentionless frequency */
+  double x_max;                              /**< Maximum dimentionless frequency */
+  double x_delta;                            /**< dimentionless frequency intervals */
 
-  double * x_weights;
+  /* Will always be specified */
+  int x_size;                                /**< Lenght of dimentionless frequency array */
+  double * x;                                /**< x[index_x] = list of values */
+  double * x_weights;                        /**< JLTBF x_weights[index_x] */
 
   /* Unit conversions */
-  double x_to_nu;                            /* Conversion factor nu[GHz] = x_to_nu * x */
-  double DI_units;                           /* Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
+  double x_to_nu;                            /**< Conversion factor nu[GHz] = x_to_nu * x */
+  double DI_units;                           /**< Conversion from unitless DI to DI[10^26 W m^-2 Hz^-1 sr^-1] */
 
   /* File names for the PCA */
-  DetectorFileName sd_detector_noise_file;              /* Full path of detector noise file */
-  DetectorFileName sd_PCA_file_generator;               /* Full path of PCA generator file */
-  DetectorFileName sd_detector_list_file;               /* Full path of detector list file */
+  DetectorFileName sd_detector_noise_file;              /**< Full path of detector noise file */
+  DetectorFileName sd_PCA_file_generator;               /**< Full path of PCA generator file */
+  DetectorFileName sd_detector_list_file;               /**< Full path of detector list file */
 
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
-  double ** br_table;
-  double * sd_parameter_table;
-  double ** sd_shape_table;
-  double ** sd_table;
+  double ** br_table;              /**< branching ratios br_table[index_type][index_z] */
+  double * sd_parameter_table;     /**< JLTBF (adding index order and format like in example above) */
+  double ** sd_shape_table;        /**< JLTBF (adding the same) */
+  double ** sd_table;              /**< JLTBF (adding the same) */
 
-  int index_type_g;
-  int index_type_mu;
-  int index_type_y;
-  int index_type_PCA;
-  int type_size;
+  /* indices for the type of distortion */
+  int index_type_g;                /**< JLTBF */
+  int index_type_mu;               /**< JLTBF */
+  int index_type_y;                /**< JLTBF */
+  int index_type_PCA;              /**< JLTBF */
+  int type_size;                   /**< JLTBF */
 
   /* Total distortion amplitude for residual distortions */
   double epsilon;
@@ -111,40 +119,40 @@ struct distortions
   double Drho_over_rho;
 
   /* Total spectral distortion */
-  double * DI;                               /* DI[index_x] = list of values */
+  double * DI;                               /**< DI[index_x] = list of values */
 
   /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
-  double * br_exact_z;
-  int br_exact_Nz;
+  double * br_exact_z;                       /**< JLTBF br_exact_z[JLTBF] */
+  int br_exact_Nz;                           /**< JLTBF */
 
-  double * f_g_exact;
-  double * ddf_g_exact;
-  double * f_y_exact;
-  double * ddf_y_exact;
-  double * f_mu_exact;
-  double * ddf_mu_exact;
+  double * f_g_exact;                        /**< JLTBF f_g_exact[JLTBF] */
+  double * ddf_g_exact;                      /**< JLTBF ddf_g_exact[JLTBF] */
+  double * f_y_exact;                        /**< JLTBF f_y_exact[JLTBF] */
+  double * ddf_y_exact;                      /**< JLTBF ddf_y_exact[JLTBF] */
+  double * f_mu_exact;                       /**< JLTBF f_mu_exact[JLTBF] */
+  double * ddf_mu_exact;                     /**< JLTBF ddf_mu_exact[JLTBF] */
 
-  double * E_vec;                            /* E_vec[index_e][index_z] with index_e=1-8 */
-  double * ddE_vec;
-  int E_vec_size;
+  double * E_vec;                            /**< JLTBF E_vec[index_e][index_z] with index_e=1-8 */
+  double * ddE_vec;                          /**< JLTBF ddE_vec[JLTBF] */
+  int E_vec_size;                            /**< JLTBF */
 
   /* Variable to read, allocate and interpolate external file PCA_distortions_schape.dat */
-  double * PCA_nu;
-  int PCA_Nnu;
+  double * PCA_nu;                           /**< JLTBF PCA_nu[JLTBF] */
+  int PCA_Nnu;                               /**< JLTBF */
 
-  double * PCA_G_T;
-  double * ddPCA_G_T;
-  double * PCA_Y_SZ;
-  double * ddPCA_Y_SZ;
-  double * PCA_M_mu;
-  double * ddPCA_M_mu;
+  double * PCA_G_T;                          /**< JLTBF PCA_G_T[JLTBF] */
+  double * ddPCA_G_T;                        /**< JLTBF ddPCA_G_T[JLTBF] */
+  double * PCA_Y_SZ;                         /**< JLTBF PCA_Y_SZ[JLTBF] */
+  double * ddPCA_Y_SZ;                       /**< JLTBF ddPCA_Y_SZ[JLTBF] */
+  double * PCA_M_mu;                         /**< JLTBF PCA_M_mu[JLTBF] */
+  double * ddPCA_M_mu;                       /**< JLTBF ddPCA_M_mu[JLTBF] */
 
-  double * S_vec;                            /* S_vec[index_s][index_x] with index_e=1-8 */
-  double * ddS_vec;
-  int S_vec_size;
+  double * S_vec;                            /**< JLTBF S_vec[index_s][index_x] with index_e=1-8 */
+  double * ddS_vec;                          /**< JLTBF ddS_vec[index_s][index_x] with index_e=1-8 */
+  int S_vec_size;                            /**< JLTBF */
 
 
-  double * delta_Ic_array;                   /* delta_Ic[index_x] for detectors with given sensitivity in each bin */
+  double * delta_Ic_array;                   /**< delta_Ic[index_x] for detectors with given sensitivity in each bin */
 
   //@}
 
@@ -153,22 +161,23 @@ struct distortions
 
   //@{
 
-  int has_distortions;
+  int has_distortions;                      /**< do we need to compute spectral distortions? */
 
-  int user_defined_detector;
-  int user_defined_name;
+  int user_defined_detector;                /**< do we ... JLTBF ? [please rename as has_user_defined_detector] */
+  int user_defined_name;                    /**< do we ... JLTBF ? [please rename as has_user_defined_name] */
 
-  int has_detector_file;
+  int has_detector_file;                    /**< do we ... JLTBF ? */
 
-  int has_SZ_effect;
+  int has_SZ_effect;                        /**< do we ... JLTBF ? */
 
-  int only_exotic; /**< flag specifying whether to only take exotic injection contributions */
-  int include_g_distortion; /**< flag specifying whether to include the g distortion in the total distortion */
+  int only_exotic;                          /**< [JLTBF: please rename as has_only_exotic or include_only_exotic] shall we only take exotic injection contributions? */
+  int include_g_distortion;                 /**< shall we include the g distortion in the total distortion ?  */
 
-  short distortions_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
+  int has_noninjected;                      /**< do we ... JLTBF ? */
 
-  int has_noninjected;
-  struct noninjection ni;
+  struct noninjection ni;                   /**< JLTBF */
+
+  short distortions_verbose;                /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   ErrorMsg error_message;    /**< zone for writing error messages */
 

@@ -4,7 +4,7 @@
  *
  * When using this module please consider citing:
  * Lucca et al. 2019 (JCAP02(2020)026, arXiv:1910.04619)
- * as well as other related works such as:
+ * as well as related pioneering works such as:
  * Chluba & Sunyaev 2012 (MNRAS419(2012)1294-1314, arXiv:1109.6552)
  * Chluba 2013 (MNRAS434(2013)352, arXiv:1304.6120)
  * Clube & Jeong 2014 (MNRAS438(2014)2065–2082, arXiv:1306.5751)
@@ -17,12 +17,13 @@
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
- * @param ppt        Input: pointer to the perturbations structure
  * @param pth        Input: pointer to the thermodynamics structure
+ * @param ppt        Input: pointer to the perturbations structure
  * @param ppm        Input: pointer to the primordial structure
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
+
 int distortions_init(struct precision * ppr,
                      struct background * pba,
                      struct thermo * pth,
@@ -81,13 +82,13 @@ int distortions_init(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Free all memory space allocated by distortions_init()
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
  */
+
 int distortions_free(struct distortions * psd) {
 
   /** Define local variables */
@@ -132,23 +133,24 @@ int distortions_free(struct distortions * psd) {
   return _SUCCESS_;
 }
 
-
 /**
  * Calculate physical constant.
  *
+ * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to thermodynamics structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_constants(struct precision * ppr,
                           struct background * pba,
                           struct thermo * pth,
                           struct distortions * psd){
 
   /** Define unit conventions */
-  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;                                                      // [GHz]
-  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);                                    // [W/(m^2 Hz sr)]
+  psd->x_to_nu = (_k_B_*pba->T_cmb/_h_P_)/1e9;                    // [GHz]
+  psd->DI_units = 2.*pow(_k_B_*pba->T_cmb,3.)/pow(_h_P_*_c_,2.);  // [W/(m^2 Hz sr)]
 
   /** Define transition redshifts z_muy and z_th */
   psd->z_muy = 5.e4;
@@ -162,7 +164,6 @@ int distortions_constants(struct precision * ppr,
 
   return _SUCCESS_;
 }
-
 
 /**
  * Check wether the detector name and the detector properties
@@ -190,6 +191,7 @@ int distortions_constants(struct precision * ppr,
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
+
 int distortions_set_detector(struct precision * ppr,
                              struct distortions * psd){
 
@@ -349,7 +351,6 @@ int distortions_set_detector(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Evaluate branching ratios, spectral shapes, E and S vectors for a given detector as
  * described in external/distortions/README using generate_PCA_files.py.
@@ -358,6 +359,7 @@ int distortions_set_detector(struct precision * ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_generate_detector(struct precision * ppr,
                                   struct distortions * psd){
 
@@ -420,13 +422,13 @@ int distortions_generate_detector(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Assign value to each relevant index in vectors of distortions quantities.
  *
  * @param psd     Input: pointer to distortions structure
  * @return the error status
  */
+
 int distortions_indices(struct distortions * psd) {
 
   /** Define local variables */
@@ -445,15 +447,16 @@ int distortions_indices(struct distortions * psd) {
   return _SUCCESS_;
 }
 
-
 /**
  * Calculate redshift and frequency vectors and weights for redshift integral.
  *
+ * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
  * @param pth        Input: pointer to the thermodynamics structure
  * @param psd        Input/Output: pointer to initialized distortions structure
  * @return the error status
  */
+
 int distortions_get_xz_lists(struct precision * ppr,
                              struct background * pba,
                              struct thermo * pth,
@@ -534,7 +537,6 @@ int distortions_get_xz_lists(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Calculate branching ratios.
  *
@@ -559,6 +561,7 @@ int distortions_get_xz_lists(struct precision * ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_compute_branching_ratios(struct precision * ppr,
                                          struct distortions* psd){
 
@@ -685,18 +688,18 @@ int distortions_compute_branching_ratios(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Import heating rates from heating structure.
  *
  * @param ppr        Input: pointer to precision structure
  * @param pba        Input: pointer to background structure
- * @param ppt        Input: pointer to the perturbations structure
  * @param pth        Input: pointer to the thermodynamics structure
+ * @param ppt        Input: pointer to the perturbations structure
  * @param ppm        Input: pointer to the primordial structure
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_compute_heating_rate(struct precision* ppr,
                                      struct background* pba,
                                      struct thermo * pth,
@@ -748,19 +751,19 @@ int distortions_compute_heating_rate(struct precision* ppr,
                                  pvecback),
                pba->error_message,
                psd->error_message);
-    H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                                 // [1/s]
-    a = pvecback[pba->index_bg_a];                                                                  // [-]
-    rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;                                          // [J/m^3]
+    H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;               // [1/s]
+    a = pvecback[pba->index_bg_a];                                // [-]
+    rho_g = pvecback[pba->index_bg_rho_g]*_Jm3_over_Mpc2_;        // [J/m^3]
 
     /** Import quantities from heating structure */
     class_call(noninjection_photon_heating_at_z(pni,
                                                 psd->z[index_z],
-                                                &heat),                                             // [J/(m^3 s)]
+                                                &heat),           // [J/(m^3 s)]
                pni->error_message,
                psd->error_message);
 
     /** Calculate total heating rate */
-    psd->dQrho_dz_tot[index_z] = heat*a/(H*rho_g);                                                  // [-]
+    psd->dQrho_dz_tot[index_z] = heat*a/(H*rho_g);                // [-]
   }
 
   free(pvecback);
@@ -775,7 +778,6 @@ int distortions_compute_heating_rate(struct precision* ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Calculate spectral amplitudes and corresponding distortions.
  *
@@ -788,6 +790,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_compute_spectral_shapes(struct precision * ppr,
                                         struct background * pba,
                                         struct thermo * pth,
@@ -1026,7 +1029,6 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Compute relativistic contribution from reionization and structure formation according to
  *        1) Nozawa et al. 2005 (up to order 3 in theta_e) or
@@ -1045,6 +1047,7 @@ int distortions_compute_spectral_shapes(struct precision * ppr,
  * @param DI_reio    Output: spectral distortion
  * @return the error status
  */
+
 int distortions_add_effects_reio(struct background * pba,
                                  struct thermo * pth,
                                  struct distortions * psd,
@@ -1302,7 +1305,6 @@ int distortions_add_effects_reio(struct background * pba,
   return _SUCCESS_;
 }
 
-
 /**
  * Reads the external file branching_ratios calculated according to Chluba & Jeong 2014
  *
@@ -1310,6 +1312,7 @@ int distortions_add_effects_reio(struct background * pba,
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_read_br_data(struct precision * ppr,
                              struct distortions * psd){
 
@@ -1383,13 +1386,13 @@ int distortions_read_br_data(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Spline the quantitites read in distortions_read_br_data
  *
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_spline_br_data(struct distortions* psd){
 
   /** Allocate second derivatives */
@@ -1447,7 +1450,6 @@ int distortions_spline_br_data(struct distortions* psd){
   return _SUCCESS_;
 }
 
-
 /**
  * Interpolate the quantitites splined in distortions_spline_br_data
  *
@@ -1457,9 +1459,10 @@ int distortions_spline_br_data(struct distortions* psd){
  * @param f_y        Output: branching ratio for y distortions
  * @param f_mu       Output: branching ratio for mu-distortions
  * @param f_E        Output: branching ratio for residuals (multipole expansion)
- * @param index      Output: multipole of PCA expansion for f_E
+ * @param last_index Output: multipole of PCA expansion for f_E
  * @return the error status
  */
+
 int distortions_interpolate_br_data(struct distortions* psd,
                                     double z,
                                     double * f_g,
@@ -1513,13 +1516,13 @@ int distortions_interpolate_br_data(struct distortions* psd,
   return _SUCCESS_;
 }
 
-
 /**
  * Free from distortions_read_br_data and distortions_spline_br_data
  *
  * @param psd     Input: pointer to distortions structure (to be freed)
  * @return the error status
  */
+
 int distortions_free_br_data(struct distortions * psd){
 
   free(psd->br_exact_z);
@@ -1535,7 +1538,6 @@ int distortions_free_br_data(struct distortions * psd){
   return _SUCCESS_;
 }
 
-
 /**
  * Reads the external file distortions_shapes calculated according to Chluba & Jeong 2014
  *
@@ -1543,6 +1545,7 @@ int distortions_free_br_data(struct distortions * psd){
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_read_sd_data(struct precision * ppr,
                              struct distortions * psd){
 
@@ -1621,13 +1624,13 @@ int distortions_read_sd_data(struct precision * ppr,
   return _SUCCESS_;
 }
 
-
 /**
  * Spline the quantitites read in distortions_read_sd_data
  *
  * @param psd        Input: pointer to the distortions structure
  * @return the error status
  */
+
 int distortions_spline_sd_data(struct distortions* psd){
 
   /** Allocate second derivatievs */
@@ -1685,7 +1688,6 @@ int distortions_spline_sd_data(struct distortions* psd){
   return _SUCCESS_;
 }
 
-
 /**
  * Interpolate the quantitites splined in distortions_spline_sd_data
  *
@@ -1698,6 +1700,7 @@ int distortions_spline_sd_data(struct distortions* psd){
  * @param index      Output: multipole of PCA expansion for S
  * @return the error status
  */
+
 int distortions_interpolate_sd_data(struct distortions* psd,
                                     double nu,
                                     double * G_T,
@@ -1753,13 +1756,13 @@ int distortions_interpolate_sd_data(struct distortions* psd,
   return _SUCCESS_;
 }
 
-
 /**
  * Free from distortions_read_sd_data and distortions_spline_sd_data
  *
- * @param psd     Input: pointer to distortions structure (to be freed)
+ * @param psd     Input: pointer to distortions structure (in which some fields should be freed)
  * @return the error status
  */
+
 int distortions_free_sd_data(struct distortions * psd){
 
   free(psd->PCA_nu);
@@ -1776,9 +1779,14 @@ int distortions_free_sd_data(struct distortions * psd){
 }
 
 /**
- * Outputs
+ * Define title of columns in the heat output
+ *
+ * @param psd     Input: pointer to distortions structure
+ * @param titles  Output: title of each column in the output
  */
-int distortions_output_heat_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]){
+
+int distortions_output_heat_titles(struct distortions * psd,
+                                   char titles[_MAXTITLESTRINGLENGTH_]){
 
   class_store_columntitle(titles,"Redshift z",_TRUE_);
   class_store_columntitle(titles,"Heat  [-]",_TRUE_);
@@ -1786,6 +1794,15 @@ int distortions_output_heat_titles(struct distortions * psd, char titles[_MAXTIT
 
   return _SUCCESS_;
 }
+
+/**
+ * Store data in the heat output
+ *
+ * @param psd             Input/Output: pointer to distortions structure
+ * @param number_of_title Input: numbert of column in the output
+ * @param data            Input: data to be stored
+ */
+
 int distortions_output_heat_data(struct distortions * psd,
                                  int number_of_titles,
                                  double * data){
@@ -1804,7 +1821,15 @@ int distortions_output_heat_data(struct distortions * psd,
   return _SUCCESS_;
 }
 
-int distortions_output_sd_titles(struct distortions * psd, char titles[_MAXTITLESTRINGLENGTH_]){
+/**
+ * Define title of columns in the spectral distortion output
+ *
+ * @param psd     Input: pointer to distortions structure
+ * @param titles  Output: title of each column in the output
+ */
+
+int distortions_output_sd_titles(struct distortions * psd,
+                                 char titles[_MAXTITLESTRINGLENGTH_]){
 
   char temp_title[256];
   int index_type;
@@ -1829,6 +1854,15 @@ int distortions_output_sd_titles(struct distortions * psd, char titles[_MAXTITLE
 
   return _SUCCESS_;
 }
+
+/**
+ * Store data in the distortion output
+ *
+ * @param psd             Input/Output: pointer to distortions structure
+ * @param number_of_title Input: numbert of column in the output
+ * @param data            Input: data to be stored
+ */
+
 int distortions_output_sd_data(struct distortions * psd,
                                int number_of_titles,
                                double * data){
