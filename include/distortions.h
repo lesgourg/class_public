@@ -42,7 +42,7 @@ struct distortions
 
   int sd_branching_approx;                      /**< Which approximation to use for the branching ratios? */
 
-  int sd_PCA_size;                              /**< JLTBF */
+  int sd_PCA_size;                              /**< Number of PCA components for the calculation of residual distortions */
 
   FileName sd_detector_file_name;               /**< Name of detector list file */
 
@@ -50,13 +50,13 @@ struct distortions
   double sd_detector_nu_min;                    /**< Minimum frequency of chosen detector */
   double sd_detector_nu_max;                    /**< Maximum frequency of chosen detector */
   double sd_detector_nu_delta;                  /**< Bin size of chosen detector */
-  int sd_detector_bin_number;                   /**< JLTBF */
-  double sd_detector_delta_Ic;                  /**< JLTBF */
+  int sd_detector_bin_number;                   /**< Number of frequency bins of chosen detector */
+  double sd_detector_delta_Ic;                  /**< Sensitivity of the chosen detector */
 
-  enum reio_approx sd_reio_type;                /**< JLTBF */
+  enum reio_approx sd_reio_type;                /**< Calculation method for Sunyaev Zeldovich contributions from re-ionization */
 
-  double sd_add_y;                              /**< JLTBF */
-  double sd_add_mu;                             /**< JLTBF */
+  double sd_add_y;                              /**< Possible additional y contribution (manually) to the SD signal */
+  double sd_add_mu;                             /**< Possible additional mu contribution (manually) to the SD signal */
 
   //@}
 
@@ -64,17 +64,17 @@ struct distortions
 
   //@{
 
-  /* Precision parameters JLTBF: precise this comment (user should not think that these are precision parameters loike those in ppr, but more that they are parameters defining the format of the table) */
-  double z_muy;                              /**< JLTBF */
-  double z_th;                               /**< JLTBF */
+  /* Parameters related to redshift (z) sampling */
+  double z_muy;                              /**< Redshift of the transition of mu to y era */
+  double z_th;                               /**< Redshift of the transition from thermal shift to mu era */
 
   double z_min;                              /**< Minimum redshift */
   double z_max;                              /**< Maximum redshift */
   int z_size;                                /**< Lenght of redshift array */
   double z_delta;                            /**< Redshift intervals */
-  double * z;                                /**< z[index_z] = list of values */
+  double * z;                                /**< Redshift list z[index_z] = list of values */
 
-  double * z_weights;                        /**< JLTBF */
+  double * z_weights;                        /**< Weights for integration over z */
 
   /* Can be specified if no noisefile */
   double x_min;                              /**< Minimum dimentionless frequency */
@@ -83,8 +83,8 @@ struct distortions
 
   /* Will always be specified */
   int x_size;                                /**< Lenght of dimentionless frequency array */
-  double * x;                                /**< x[index_x] = list of values */
-  double * x_weights;                        /**< JLTBF x_weights[index_x] */
+  double * x;                                /**< Dimensionless frequency x[index_x] = list of values */
+  double * x_weights;                        /**< Weights for integration over x */
 
   /* Unit conversions */
   double x_to_nu;                            /**< Conversion factor nu[GHz] = x_to_nu * x */
@@ -97,17 +97,17 @@ struct distortions
 
 
   /* Tables storing branching ratios, distortions amplitudes and spectral distoritons for all types of distortios */
-  double ** br_table;              /**< branching ratios br_table[index_type][index_z] */
-  double * sd_parameter_table;     /**< JLTBF (adding index order and format like in example above) */
-  double ** sd_shape_table;        /**< JLTBF (adding the same) */
-  double ** sd_table;              /**< JLTBF (adding the same) */
+  double ** br_table;              /**< Branching ratios br_table[index_type][index_z] */
+  double * sd_parameter_table;     /**< Spectral Distortion parameters (g,mu,y,r) sd_parameter_table[index_type] */
+  double ** sd_shape_table;        /**< Spectral Distortion shapes (G,M,Y,R) sd_shape_table[index_type][index_x] */
+  double ** sd_table;              /**< Spectral Distortion Intensities (final deltaI seperated by component) sd_table[index_type][index_x] */
 
   /* indices for the type of distortion */
-  int index_type_g;                /**< JLTBF */
-  int index_type_mu;               /**< JLTBF */
-  int index_type_y;                /**< JLTBF */
-  int index_type_PCA;              /**< JLTBF */
-  int type_size;                   /**< JLTBF */
+  int index_type_g;                /**< temperature shift/g type distortion */
+  int index_type_mu;               /**< mu type distortion */
+  int index_type_y;                /**< y type distortion */
+  int index_type_PCA;              /**< PCA type distortion (first index) */
+  int type_size;                   /**< Number of total components for the type array */
 
   /* Total distortion amplitude for residual distortions */
   double epsilon;
@@ -122,34 +122,34 @@ struct distortions
   double * DI;                               /**< DI[index_x] = list of values */
 
   /* Variables to read, allocate and interpolate external file branching_ratios_exact.dat */
-  double * br_exact_z;                       /**< JLTBF br_exact_z[JLTBF] */
-  int br_exact_Nz;                           /**< JLTBF */
+  double * br_exact_z;                       /**< Redshift array for reading from file br_exact_z[index_z] */
+  int br_exact_Nz;                           /**< Number of redshift values for reading from file */
 
-  double * f_g_exact;                        /**< JLTBF f_g_exact[JLTBF] */
-  double * ddf_g_exact;                      /**< JLTBF ddf_g_exact[JLTBF] */
-  double * f_y_exact;                        /**< JLTBF f_y_exact[JLTBF] */
-  double * ddf_y_exact;                      /**< JLTBF ddf_y_exact[JLTBF] */
-  double * f_mu_exact;                       /**< JLTBF f_mu_exact[JLTBF] */
-  double * ddf_mu_exact;                     /**< JLTBF ddf_mu_exact[JLTBF] */
+  double * f_g_exact;                        /**< temperature shift/g distortion branching ratio f_g_exact[index_z] */
+  double * ddf_g_exact;                      /**< second derivative of the above ddf_g_exact[index_z] */
+  double * f_y_exact;                        /**< y distortion branching ratio f_y_exact[index_z] */
+  double * ddf_y_exact;                      /**< second derivative of the above ddf_y_exact[index_z] */
+  double * f_mu_exact;                       /**< mu distortion shape branching ratio f_mu_exact[index_z] */
+  double * ddf_mu_exact;                     /**< second derivative of the above ddf_mu_exact[index_z] */
 
-  double * E_vec;                            /**< JLTBF E_vec[index_e][index_z] with index_e=1-8 */
-  double * ddE_vec;                          /**< JLTBF ddE_vec[JLTBF] */
-  int E_vec_size;                            /**< JLTBF */
+  double * E_vec;                            /**< PCA component E branching ratio for reading from file E_vec[index_e*br_exact_Nz+index_z] with index_e=[1..8] */
+  double * ddE_vec;                          /**< second derivative of the above ddE_vec[index_e*br_exact_Nz+index_z] */
+  int E_vec_size;                            /**< number of PCA component E branching ratios */
 
   /* Variable to read, allocate and interpolate external file PCA_distortions_schape.dat */
-  double * PCA_nu;                           /**< JLTBF PCA_nu[JLTBF] */
-  int PCA_Nnu;                               /**< JLTBF */
+  double * PCA_nu;                           /**< Frquency array for reading from file PCA_nu[index_nu] */
+  int PCA_Nnu;                               /**< Number of frequency values for reading from file */
 
-  double * PCA_G_T;                          /**< JLTBF PCA_G_T[JLTBF] */
-  double * ddPCA_G_T;                        /**< JLTBF ddPCA_G_T[JLTBF] */
-  double * PCA_Y_SZ;                         /**< JLTBF PCA_Y_SZ[JLTBF] */
-  double * ddPCA_Y_SZ;                       /**< JLTBF ddPCA_Y_SZ[JLTBF] */
-  double * PCA_M_mu;                         /**< JLTBF PCA_M_mu[JLTBF] */
-  double * ddPCA_M_mu;                       /**< JLTBF ddPCA_M_mu[JLTBF] */
+  double * PCA_G_T;                          /**< temperature shift/g distortion shape PCA_G_T[index_nu] */
+  double * ddPCA_G_T;                        /**< second derivative of the above ddPCA_G_T[index_nu] */
+  double * PCA_Y_SZ;                         /**< y distortion shape PCA_Y_SZ[index_nu] */
+  double * ddPCA_Y_SZ;                       /**< second derivative of the above ddPCA_Y_SZ[index_nu] */
+  double * PCA_M_mu;                         /**< mu distortion shape PCA_M_mu[index_nu] */
+  double * ddPCA_M_mu;                       /**< second derivative of the above ddPCA_M_mu[index_nu] */
 
-  double * S_vec;                            /**< JLTBF S_vec[index_s][index_x] with index_e=1-8 */
-  double * ddS_vec;                          /**< JLTBF ddS_vec[index_s][index_x] with index_e=1-8 */
-  int S_vec_size;                            /**< JLTBF */
+  double * S_vec;                            /**< PCA component S shape for reading from file S_vec[index_s*S_vec_size+index_x] with index_s=[1..8] */
+  double * ddS_vec;                          /**< second derivative of the above ddS_vec[index_s*S_vec_size+index_x] */
+  int S_vec_size;                            /**< number of PCA component S spectral shapes */
 
 
   double * delta_Ic_array;                   /**< delta_Ic[index_x] for detectors with given sensitivity in each bin */
@@ -163,19 +163,19 @@ struct distortions
 
   int has_distortions;                      /**< do we need to compute spectral distortions? */
 
-  int user_defined_detector;                /**< do we ... JLTBF ? [please rename as has_user_defined_detector] */
-  int user_defined_name;                    /**< do we ... JLTBF ? [please rename as has_user_defined_name] */
+  int has_user_defined_detector;            /**< does the user specify their own detector? */
+  int has_user_defined_name;                /**< does the user specify the name of their detector? */
 
-  int has_detector_file;                    /**< do we ... JLTBF ? */
+  int has_detector_file;                    /**< do we have a file for the detector specification? */
 
-  int has_SZ_effect;                        /**< do we ... JLTBF ? */
+  int has_SZ_effect;                        /**< do we include the SZ effect? */
 
-  int only_exotic;                          /**< [JLTBF: please rename as has_only_exotic or include_only_exotic] shall we only take exotic injection contributions? */
+  int include_only_exotic;                  /**< shall we only take exotic injection contributions? */
   int include_g_distortion;                 /**< shall we include the g distortion in the total distortion ?  */
 
-  int has_noninjected;                      /**< do we ... JLTBF ? */
+  int has_noninjected;                      /**< do we have terms that are not injected (like dissipation of acoustic waves)? */
 
-  struct noninjection ni;                   /**< JLTBF */
+  struct noninjection ni;                   /**< noninjection file structure */
 
   short distortions_verbose;                /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 

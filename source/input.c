@@ -4619,7 +4619,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
       strcpy(psd->sd_detector_name,string1);
-      psd->user_defined_name = _TRUE_;
+      psd->has_user_defined_name = _TRUE_;
     }
 
     /** 1.a.3) Detector specifics */
@@ -4642,7 +4642,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
       psd->sd_detector_nu_min = param1;
-      psd->user_defined_detector = _TRUE_;
+      psd->has_user_defined_detector = _TRUE_;
     }
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_max",&param1,&flag1,errmsg),
@@ -4651,7 +4651,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
       psd->sd_detector_nu_max = param1;
-      psd->user_defined_detector = _TRUE_;
+      psd->has_user_defined_detector = _TRUE_;
     }
     /* Read */
     class_call(parser_read_double(pfc,"sd_detector_nu_delta",&param1,&flag1,errmsg),
@@ -4669,12 +4669,12 @@ int input_read_parameters_distortions(struct file_content * pfc,
     if(flag1 == _TRUE_){
       psd->sd_detector_nu_delta = param1;
       psd->sd_detector_bin_number = ((int)ceil((psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param1));
-      psd->user_defined_detector = _TRUE_;
+      psd->has_user_defined_detector = _TRUE_;
     }
     if(flag2 == _TRUE_){
       psd->sd_detector_nu_delta = (psd->sd_detector_nu_max-psd->sd_detector_nu_min)/param2;
       psd->sd_detector_bin_number = param2;
-      psd->user_defined_detector = _TRUE_;
+      psd->has_user_defined_detector = _TRUE_;
    }
     /* Update value of nu_max, given the number of bins */
     updated_nu_max = psd->sd_detector_nu_min+psd->sd_detector_nu_delta*psd->sd_detector_bin_number;
@@ -4689,7 +4689,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
     /* Complete set of parameters */
     if(flag1 == _TRUE_){
       psd->sd_detector_delta_Ic = 1.0e-26*param1;
-      psd->user_defined_detector = _TRUE_;
+      psd->has_user_defined_detector = _TRUE_;
     }
   }
 
@@ -4697,7 +4697,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
   class_test(psd->sd_branching_approx != bra_exact && psd->sd_PCA_size > 0,
              errmsg,
              "The PCA expansion is possible only for 'branching_approx = exact'");
-  class_test(psd->has_detector_file && psd->user_defined_detector,
+  class_test(psd->has_detector_file && psd->has_user_defined_detector,
              errmsg,
              "You can only enter the noise file {'%s'} or the specifications {'%s','%s'/'%s','%s'}.",
              "sd_detector_file","sd_detector_nu_min","sd_detector_nu_max",
@@ -4705,7 +4705,7 @@ int input_read_parameters_distortions(struct file_content * pfc,
 
 
   /** 2) Only calculate exotic energy injections and no LCDM processes for spectral distortions ? */
-  class_read_flag("sd_only_exotic",psd->only_exotic);
+  class_read_flag("sd_only_exotic",psd->include_only_exotic);
 
   /** 3) Include g distortions? */
   class_read_flag("sd_include_g_distortion",psd->include_g_distortion);
@@ -5538,8 +5538,8 @@ int input_default_params(struct background *pba,
   /** 1.a.2) Detector noise file name */
   psd->has_detector_file = _FALSE_;
   /** 1.a.3) Detector name */
-  psd->user_defined_name = _FALSE_;
-  psd->user_defined_detector = _FALSE_;
+  psd->has_user_defined_name = _FALSE_;
+  psd->has_user_defined_detector = _FALSE_;
   sprintf(psd->sd_detector_name,"PIXIE");
   /** 1.3.a.1) Detector nu min */
   psd->sd_detector_nu_min = 30.;
@@ -5552,7 +5552,7 @@ int input_default_params(struct background *pba,
   psd->sd_detector_delta_Ic = 5.e-26;
 
   /** 2) Only exotic species? */
-  psd->only_exotic = _FALSE_;
+  psd->include_only_exotic = _FALSE_;
 
   /** 3) Include g distortion in total calculation? */
   psd->include_g_distortion = _FALSE_;

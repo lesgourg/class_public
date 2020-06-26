@@ -209,9 +209,9 @@ int distortions_set_detector(struct precision * ppr,
 
   has_detector_noise_file = _FALSE_;
 
-  if(psd->user_defined_name == _FALSE_){
+  if(psd->has_user_defined_name == _FALSE_){
     /* The user wants the default */
-    if(psd->user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_){
+    if(psd->has_user_defined_detector == _FALSE_ && psd->has_detector_file == _FALSE_){
       if(psd->distortions_verbose > 0){
         printf(" -> Using the default (%s) detector\n",psd->sd_detector_name);
       }
@@ -261,7 +261,7 @@ int distortions_set_detector(struct precision * ppr,
       /* Detector has been found */
       if(strcmp(psd->sd_detector_name,detector_name)==0){
         if(psd->distortions_verbose > 0){
-          printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->user_defined_detector?"TRUE":"FALSE"));
+          printf(" -> Found detector %s (user defined = %s)\n",detector_name,(psd->has_user_defined_detector?"TRUE":"FALSE"));
         }
         found_detector = _TRUE_;
 
@@ -276,7 +276,7 @@ int distortions_set_detector(struct precision * ppr,
                        "Noise file path (sd_detector_file_name) disagrees between stored detector '%s' and input ->  %s (input) vs %s (stored)",
                        detector_name,psd->sd_detector_file_name,detector_noise_file_name);
           }
-          class_test(psd->user_defined_detector,
+          class_test(psd->has_user_defined_detector,
                      psd->error_message,
                      "Detector property type disagrees between stored detector '%s' and input  ->  Userdefined (input) vs Noisefile (stored)",
                      detector_name);
@@ -289,7 +289,7 @@ int distortions_set_detector(struct precision * ppr,
                         nu_min, nu_max, nu_delta, N_bins, delta_Ic);
           }
           /* If the user has defined the detector, check that their and our definitions agree */
-          if(psd->user_defined_detector == _TRUE_){
+          if(psd->has_user_defined_detector == _TRUE_){
             class_test(fabs(psd->sd_detector_nu_min-nu_min)>ppr->tol_sd_detector,
                        psd->error_message,
                        "Minimal frequency (sd_detector_nu_min) disagrees between stored detector '%s' and input ->  %.10e (input) vs %.10e (stored)",
@@ -332,7 +332,7 @@ int distortions_set_detector(struct precision * ppr,
   /* If the detector has not been found, either the user has specified the settings and we create a new one,
    * or the user hasn't specified the settings and we have to stop */
   if(found_detector == _FALSE_){
-    if(psd->user_defined_detector==_TRUE_ || psd->has_detector_file==_TRUE_){
+    if(psd->has_user_defined_detector==_TRUE_ || psd->has_detector_file==_TRUE_){
       if(psd->distortions_verbose > 0){
         printf(" -> Generating detector '%s' \n",psd->sd_detector_name);
       }
@@ -716,7 +716,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
   double heat;
   double H, a, rho_g;
 
-  if( psd->only_exotic == _FALSE_ ){
+  if( psd->include_only_exotic == _FALSE_ ){
     /** Update heating table with second order contributions */
     class_call(noninjection_init(ppr,pba,pth,ppt,ppm,pni),
                pni->error_message,
@@ -768,7 +768,7 @@ int distortions_compute_heating_rate(struct precision* ppr,
 
   free(pvecback);
 
-  if( psd->only_exotic == _FALSE_ ){
+  if( psd->include_only_exotic == _FALSE_ ){
     /** Update heating table with second order contributions */
     class_call(noninjection_free(pni),
                pni->error_message,
