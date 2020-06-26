@@ -8,6 +8,7 @@ import torch
 from tabulate import tabulate
 
 from ..timer import Timer
+from .. import training_dashboard
 
 class Phase(enum.Enum):
     Training = 0
@@ -81,6 +82,12 @@ class MultiTrainer:
                 self.target_slices.append(slice(current_index, current_index + size))
             current_index += len(function_names)
 
+        # Find the net with the biggest number of epochs to train
+        self.max_epochs = max(n.net.epochs() for n in self.nets)
+
+        # Dict[str, List[float]]
+        self.history = {c.net.name(): [] for c in self.nets}
+
     def train(self, training_dataset, validation_dataset, loader_workers=0):
         # arguments for the torch.utils.data.DataLoader instance
         print("Training with {} data loader workers.".format(loader_workers))
@@ -99,28 +106,32 @@ class MultiTrainer:
         train_loader = torch.utils.data.DataLoader(training_dataset, **loader_args)
         val_loader = torch.utils.data.DataLoader(validation_dataset, **loader_args)
 
-        # Find the net with the biggest number of epochs to train
-        max_epochs = max(n.net.epochs() for n in self.nets)
-
         histories = [[] for _ in self.nets]
 
-        for epoch in range(max_epochs):
-            loss = self.run_epoch(Phase.Training, train_loader, epoch)
-            val_loss = self.run_epoch(Phase.Validation, val_loader, epoch)
+        with training_dashboard.SimpleDashboard() as dashboard:
+            self.dashboard = dashboard
 
-            # Log the losses to file
-            for container, loss_col, val_loss_col, hist in zip(self.nets, loss.T, val_loss.T, histories):
-                # Skip models that have finished training
-                if epoch >= container.net.epochs():
-                    continue
-                # Save the updated history to file indicated by the
-                # current workspace
-                row = np.array([epoch, np.mean(loss_col), np.mean(val_loss_col)])
-                hist.append(row)
-                np.savetxt(self.workspace.history_for(container.net.name()), hist)
+            for epoch in range(self.max_epochs):
+                loss = self.run_epoch(Phase.Training, train_loader, epoch)
+                val_loss = self.run_epoch(Phase.Validation, val_loader, epoch)
 
-                # Also advance the LR scheduler
-                container.lr_scheduler.step()
+                # Log the losses to file
+                for container, loss_col, val_loss_col, hist in zip(self.nets, loss.T, val_loss.T, histories):
+                    name = container.net.name()
+                    # Skip models that have finished training
+                    if epoch >= container.net.epochs():
+                        # Copy last validation loss
+                        self.history[name].append(self.history[name][-1])
+                        continue
+                    self.history[name].append(np.mean(val_loss_col))
+                    # Save the updated history to file indicated by the
+                    # current workspace
+                    row = np.array([epoch, np.mean(loss_col), np.mean(val_loss_col)])
+                    hist.append(row)
+                    np.savetxt(self.workspace.history_for(container.net.name()), hist)
+
+                    # Also advance the LR scheduler
+                    container.lr_scheduler.step()
 
         # Finally, save the models.
         for cont in self.nets:
@@ -130,7 +141,7 @@ class MultiTrainer:
             torch.save(net.state_dict(), path)
 
 
-    def run_epoch(self, phase, loader, epoch, print_interval=20):
+    def run_epoch(self, phase, loader, epoch, print_interval=100):
         timer = Timer()
 
         # Prepare arrays keeping track of loss
@@ -148,42 +159,60 @@ class MultiTrainer:
                 info.net.eval()
 
         for i in range(len(loader)):
-            with timer("multibatch"):
-                with timer("load data"):
-                    x, y_true = next(loader_iter)
+            with timer("load data"):
+                x, y_true = next(loader_iter)
 
-                    # If we are training a single network with a single input,
-                    # add a dummy channel axis so the slicing code below
-                    # doesn't break
-                    if y_true.ndim == 2:
-                        y_true = y_true[:, :, None]
+                # If we are training a single network with a single input,
+                # add a dummy channel axis so the slicing code below
+                # doesn't break
+                if y_true.ndim == 2:
+                    y_true = y_true[:, :, None]
 
-                    x = {k: v.to(self.device) for k, v in x.items()}
-                    y_true = y_true.to(self.device)
+                x = {k: v.to(self.device) for k, v in x.items()}
+                y_true = y_true.to(self.device)
 
-                # iterate over networks
-                for j, current in enumerate(self.nets):
-                    # check if current model has finished training;
-                    # if so, skip it
-                    if epoch >= current.net.epochs():
-                        continue
-                    # Perform the forward pass through the network
-                    with timer(("forward", current.net.name())):
-                        y_net = current.net(x)
-                        y_sliced = y_true[:, :, self.target_slices[j]]
-                        losses[i, j] = loss = current.criterion(y_net, y_sliced)
-                        running_loss[j] += loss.item()
-                    # If we are training, perform backward pass + optimization step
-                    if phase == Phase.Training:
-                        with timer(("backward", current.net.name())):
-                            current.optimizer.zero_grad()
-                            loss.backward()
-                            current.optimizer.step()
+            # iterate over networks
+            stats = []
+            for j, current in enumerate(self.nets):
+                name = current.net.name()
+                # check if current model has finished training;
+                # if so, skip it
+                if epoch >= current.net.epochs():
+                    continue
+                stat_dict = {"network": name}
+                # Perform the forward pass through the network
+                with timer(("forward", name)):
+                    y_net = current.net(x)
+                    y_sliced = y_true[:, :, self.target_slices[j]]
+                    losses[i, j] = loss = current.criterion(y_net, y_sliced)
+                    stat_dict["loss"] = loss.item()
+                    running_loss[j] += loss.item()
+                stat_dict["forward"] = timer.times[("forward", name)]
+                # If we are training, perform backward pass + optimization step
+                if phase == Phase.Training:
+                    with timer(("backward", name)):
+                        current.optimizer.zero_grad()
+                        loss.backward()
+                        current.optimizer.step()
+                    stat_dict["backward"] = timer.times[("backward", name)]
+                else:
+                    stat_dict["backward"] = 0
+                stats.append(stat_dict)
 
-            if self.verbose and i % print_interval == print_interval - 1:
-                running_loss /= print_interval
-                self.print_info(phase, epoch, i, len(loader), running_loss, timer)
-                running_loss = np.zeros(len(self.nets))
+            if self.dashboard and i % print_interval == 0:
+                self.dashboard.update(
+                    phase,
+                    epoch, self.max_epochs,
+                    i, len(loader),
+                    loading_time=timer.times["load data"],
+                    live=stats,
+                    history=self.history
+                )
+
+            # if self.verbose and i % print_interval == print_interval - 1:
+            #     running_loss /= print_interval
+            #     self.print_info(phase, epoch, i, len(loader), running_loss, timer)
+            #     running_loss = np.zeros(len(self.nets))
 
         return losses
 

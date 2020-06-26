@@ -26,7 +26,7 @@ FIXED = {
 # set when networks are evaluated.
 FIXED_TRAINING_ONLY = {
     # to avoid interpolation artifacts at the edges
-    "k_min_tau0": 1e-9,
+    "k_min_tau0": 1e-4,
 }
 
 
@@ -43,7 +43,7 @@ FIXED_TRAINING_ONLY = {
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
 generations = {
-    "Net_ST0_Reco": 2,
+    "Net_ST0_Reco": 5,
     "Net_ST0_Reio": 2,
     "Net_ST0_ISW": 2,
     "Net_ST1": 2,
@@ -79,15 +79,18 @@ print({k: v[0] for k, v in validation.items()})
 
 ## Training: any subset of models can be trained at once
 # workspace.trainer().train_all_models(workers=18)
-# from classynet.models import Net_ST0_Reco
-from ..models import Net_ST0_ISW
+
+from ..models import Net_ST0_Reco
+workspace.trainer().train_model(Net_ST0_Reco, workers=18)
+
+# from ..models import Net_ST0_ISW
 # workspace.trainer().train_model(Net_ST0_ISW, workers=18)
 # import sys; sys.exit(0)
 
 ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
 # import pudb; pu.db
-# tester.test(50, processes=1)
+tester.test(50, processes=1)
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
 plotter = workspace.plotter()
