@@ -29,6 +29,7 @@ public:
   , ple(&input_module->lensing_)
   , pop(&input_module->output_) {
     input_module_ = std::move(input_module);
+    error_message_[0] = '\n';
   }
   BaseModule(const BaseModule&) = delete;
   

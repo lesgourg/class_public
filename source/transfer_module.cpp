@@ -40,7 +40,9 @@ TransferModule::TransferModule(InputModulePtr input_module, BackgroundModulePtr 
 , thermodynamics_module_(std::move(thermodynamics_module))
 , perturbations_module_(std::move(perturbations_module))
 , nonlinear_module_(std::move(nonlinear_module)) {
-  ThrowRuntimeErrorIf(transfer_init() != _SUCCESS_, error_message_);
+  if (transfer_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 TransferModule::~TransferModule() {
@@ -281,26 +283,19 @@ int TransferModule::transfer_init() {
              error_message_);
 
   /** - precompute window function for integrated nCl/sCl quantities*/
-  double* window;
-  class_call(transfer_precompute_selection(tau_rec, tau_size_max, &window),
-             error_message_,
-             error_message_);
-
+  double* window = nullptr;
+  if (ppt->has_scalars == _TRUE_) {
+    // transfer_precompute_selection() assumes perturbations_module_->index_md_scalars_ to be valid.
+    // window will only be used for scalar modes and only for certain sources.
+    class_call(transfer_precompute_selection(tau_rec, tau_size_max, &window),
+               error_message_,
+               error_message_);
+  }
   Tools::TaskSystem task_system;
   std::vector<std::future<int>> future_output;
     /** - loop over all wavenumbers (parallelized).*/
     /* For each wavenumber: */
-  struct transfer_workspace* ptw = NULL;
-  class_call(transfer_workspace_init(&ptw,
-                                     perturbations_module_->tau_size_,
-                                     tau_size_max,
-                                     pba->K,
-                                     pba->sgnK,
-                                     tau0 - thermodynamics_module_->tau_cut_,
-                                     &BIS),
-  error_message_,
-  error_message_);
-  for (index_q = 0; index_q < q_size_; index_q++) {
+    for (index_q = 0; index_q < q_size_; index_q++) {
     future_output.push_back(task_system.AsyncTask([this, tau_size_max, tp_of_tt, tau_rec, sources_spline, &BIS, tau0, index_q, sources, window] () {
       struct transfer_workspace* ptw = NULL;
       class_call(transfer_workspace_init(&ptw, perturbations_module_->tau_size_, tau_size_max, pba->K, pba->sgnK, tau0 - thermodynamics_module_->tau_cut_, &BIS),
@@ -322,11 +317,11 @@ int TransferModule::transfer_init() {
       class_call(transfer_workspace_free(ptw),
                            error_message_,
                            error_message_);
-      return 0;
+      return _SUCCESS_;
     }));
   } /* end of loop over wavenumber */
   for (std::future<int>& future : future_output) {
-      future.wait();
+      if (future.get() != _SUCCESS_) return _FAILURE_;
   }
   future_output.clear();
   /** - finally, free arrays allocated outside parallel zone */

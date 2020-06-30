@@ -17,26 +17,26 @@ jobs:
       run: cd main_class && ./class explanatory.ini
 
   test_classy:
-      runs-on: [self-hosted, linux, light]
+    runs-on: [self-hosted, linux, light]
 
-      steps:
-        - name: Checkout 🛎
-          uses: actions/checkout@v2
-          with:
-            path: main_class
-        - name: Run test 🤖
-          run: |
-              docker run --rm \
-              -v "${GITHUB_WORKSPACE}"/main_class:/github \
-              python:latest bash -c ': \
-                  && pip install cython six numpy \
-                  && cp -rf /github /class_tmp \
-                  && cd /class_tmp \
-                  && make -j class \
-                  && ./class explanatory \
-                  && make -j \
-                  && python -c "import classy" \
-                '
+    steps:
+      - name: Checkout 🛎
+        uses: actions/checkout@v2
+        with:
+          path: main_class
+      - name: Run test 🤖
+        run: |
+          docker run --rm \
+          -v "${GITHUB_WORKSPACE}"/main_class:/github \
+          python:latest bash -c ': \
+            && pip install cython six numpy \
+            && cp -rf /github /class_tmp \
+            && cd /class_tmp \
+            && make -j class \
+            && ./class explanatory \
+            && make -j \
+            && python -c "import classy" \
+          '
 
   nose_tests_lvl1:
     runs-on: [self-hosted, linux, heavy]

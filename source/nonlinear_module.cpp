@@ -24,7 +24,9 @@ NonlinearModule::NonlinearModule(InputModulePtr input_module, BackgroundModulePt
 , background_module_(std::move(background_module))
 , perturbations_module_(std::move(perturbations_module))
 , primordial_module_(std::move(primordial_module)) {
-  ThrowRuntimeErrorIf(nonlinear_init() != _SUCCESS_, error_message_);
+  if (nonlinear_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 NonlinearModule::~NonlinearModule() {
@@ -1098,20 +1100,20 @@ int NonlinearModule::nonlinear_init() {
 
   /** - preliminary tests */
 
+  has_pk_matter_ = ppt->has_pk_matter;
   /** --> This module only makes sense for dealing with scalar
       perturbations, so it should do nothing if there are no
       scalars */
   if (ppt->has_scalars == _FALSE_) {
     //TODO: See #20, modifying the input is not the proper way to do this.
     const_cast<nonlinear*>(pnl)->method = nl_none;
-    printf("No scalar modes requested. Nonlinear module skipped.\n");
+    if (pnl->nonlinear_verbose > 0) {
+      printf("No scalar modes requested. Nonlinear module skipped.\n");
+    }
     return _SUCCESS_;
   }
 
   /** --> Nothing to be done if we don't want the matter power spectrum */
-
-  has_pk_matter_ = ppt->has_pk_matter;
-
   if ((has_pk_matter_ == _FALSE_) && (pnl->method == nl_none)) {
     if (pnl->nonlinear_verbose > 0)
       printf("No Fourier spectra nor nonlinear corrections requested. Nonlinear module skipped.\n");

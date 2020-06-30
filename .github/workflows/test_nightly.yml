@@ -19,14 +19,14 @@ jobs:
       run: cd main_class && make -j
     - name: Testing 🤖
       run: |
-          source venv/bin/activate
-          cd main_class/python
-          COMPARE_OUTPUT_GAUGE=1 COMPARE_OUTPUT_REF=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py
+        source venv/bin/activate
+        cd main_class/python
+        COMPARE_OUTPUT_GAUGE=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py
     - name: Upload plots 📤
       uses: actions/upload-artifact@v2
       with:
-          name: ComparePlots
-          path: main_class/python/faulty_figs
+        name: ComparePlots
+        path: main_class/python/faulty_figs
     - name: Remove virtual Python environment
       run: rm -rf venv
 
@@ -46,10 +46,20 @@ jobs:
       run: |
         source venv/bin/activate
         cd main_class/python
-        TEST_LEVEL=2 nosetests -a dump_ini_files test_class.py
+        TEST_LEVEL=2 CLASS_VERBOSE=1 nosetests -a dump_ini_files test_class.py
+    - name: Remove virtual Python environment
+      run: rm -rf venv
     - name: Valgrind 🤖
       run: |
         cd main_class/python/faulty_figs
         rm -rf output && mkdir output
+        rm -rf valgrind_output && mkdir valgrind_output
         cp ../../class .
-        echo *.ini | xargs -n 1 -P 6 -t valgrind --quiet --leak-check=full --error-exitcode=31 ./class
+        ls *.ini | xargs -I {} -n 1 -P 6 bash -c ': \
+          && (valgrind --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok")
+          || (echo {} "...fail" && cp {}.* valgrind_output && exit 3)'
+    - name: Upload errors 📤
+      uses: actions/upload-artifact@v2
+      with:
+        name: ValgrindOutput
+        path: main_class/python/faulty_figs/valgrind_output

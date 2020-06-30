@@ -32,7 +32,9 @@ OutputModule::OutputModule(InputModulePtr input_module, BackgroundModulePtr back
 , spectra_module_(std::move(spectra_module))
 , lensing_module_(std::move(lensing_module)) {
 
-  ThrowRuntimeErrorIf(output_init() != _SUCCESS_, error_message_);
+  if (output_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 

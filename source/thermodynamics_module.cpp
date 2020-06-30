@@ -82,7 +82,9 @@
 ThermodynamicsModule::ThermodynamicsModule(InputModulePtr input_module, BackgroundModulePtr background_module)
 : BaseModule(std::move(input_module))
 , background_module_(std::move(background_module)) {
-  ThrowRuntimeErrorIf(thermodynamics_init() != _SUCCESS_, error_message_);
+  if (thermodynamics_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 ThermodynamicsModule::~ThermodynamicsModule() {

@@ -39,7 +39,9 @@
 LensingModule::LensingModule(InputModulePtr input_module, SpectraModulePtr spectra_module)
 : BaseModule(std::move(input_module))
 , spectra_module_(std::move(spectra_module)) {
-  ThrowRuntimeErrorIf(lensing_init() != _SUCCESS_, error_message_);
+  if (lensing_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 LensingModule::~LensingModule() {

@@ -34,7 +34,9 @@ PerturbationsModule::PerturbationsModule(InputModulePtr input_module, Background
 : BaseModule(std::move(input_module))
 , background_module_(std::move(background_module))
 , thermodynamics_module_(std::move(thermodynamics_module)) {
-  ThrowRuntimeErrorIf(perturb_init() != _SUCCESS_, error_message_);
+  if (perturb_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 PerturbationsModule::~PerturbationsModule() {
@@ -693,7 +695,7 @@ int PerturbationsModule::perturb_init() {
           class_call(perturb_workspace_free(index_md, &pw),
                     error_message_,
                     error_message_);
-          return 0;
+          return _SUCCESS_;
         }));
 
       } /* end of loop over wavenumbers */
@@ -705,7 +707,7 @@ int PerturbationsModule::perturb_init() {
   /** - spline the source array with respect to the time variable */
 
   for (std::future<int>& future : future_output) {
-      future.wait();
+      if (future.get() != _SUCCESS_) return _FAILURE_;
   }
   future_output.clear();
 
@@ -726,7 +728,7 @@ int PerturbationsModule::perturb_init() {
                                                 error_message_),
                               error_message_,
                               error_message_);
-            return 0;
+            return _SUCCESS_;
           }));
 
         }
@@ -736,7 +738,7 @@ int PerturbationsModule::perturb_init() {
     } /* end of loop over mode */
 
     for (std::future<int>& future : future_output) {
-        future.wait();
+        if (future.get() != _SUCCESS_) return _FAILURE_;
     }
 
   }

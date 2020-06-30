@@ -20,7 +20,9 @@
 PrimordialModule::PrimordialModule(InputModulePtr input_module, PerturbationsModulePtr perturbation_module)
 : BaseModule(std::move(input_module))
 , perturbations_module_(perturbation_module) {
-  ThrowRuntimeErrorIf(primordial_init() != _SUCCESS_, error_message_);
+  if (primordial_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 PrimordialModule::~PrimordialModule() {
@@ -1531,11 +1533,11 @@ int PrimordialModule::primordial_inflation_spectra(double * y_ini) {
       class_call(primordial_inflation_one_wavenumber(y_ini, index_k),
                         error_message_,
                         error_message_);
-      return 0;
+      return _SUCCESS_;
     }));
   }
   for (std::future<int>& future : future_output) {
-      future.wait();
+      if (future.get() != _SUCCESS_) return _FAILURE_;
   }
   future_output.clear();
 

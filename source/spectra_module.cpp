@@ -25,7 +25,9 @@ SpectraModule::SpectraModule(InputModulePtr input_module, PerturbationsModulePtr
 , primordial_module_(std::move(primordial_module))
 , nonlinear_module_(std::move(nonlinear_module))
 , transfer_module_(std::move(transfer_module)) {
-  ThrowRuntimeErrorIf(spectra_init() != _SUCCESS_, error_message_);
+  if (spectra_init() != _SUCCESS_) {
+    throw std::runtime_error(error_message_);
+  }
 }
 
 SpectraModule::~SpectraModule() {
@@ -138,7 +140,7 @@ void SpectraModule::cl_output_no_copy(int lmax, std::vector<double*>& output_poi
 }
 
 std::map<std::string, std::vector<double>> SpectraModule::cl_output(int lmax) const {
-
+  ThrowRuntimeErrorIf(ppt->has_cls == _FALSE_, "Error: Cls have not been computed! lmax = %d\n", lmax);
   ThrowRuntimeErrorIf((lmax > l_max_tot_) || (lmax < 0), "Error: lmax = %d is outside the allowed range [0, %d]\n", lmax, l_max_tot_);
   std::map<std::string, int> index_map = cl_output_index_map();
 
@@ -149,7 +151,7 @@ std::map<std::string, std::vector<double>> SpectraModule::cl_output(int lmax) co
   }
 
   int cl_md_ic_size = 0;
-  if (md_size_ > 1) {
+  if (md_size_ > 0) {
     for (int index_md = 0; index_md < md_size_; index_md++) {
       if (perturbations_module_->ic_size_[index_md] > 1) {
         cl_md_ic_size += ic_ic_size_[index_md]*ct_size_;
@@ -157,8 +159,9 @@ std::map<std::string, std::vector<double>> SpectraModule::cl_output(int lmax) co
     }
   }
   double* cl_md_ic[md_size_];
+  std::vector<double> cl_md_ic_data;
   if (cl_md_ic_size > 0) {
-    std::vector<double> cl_md_ic_data(cl_md_ic_size, 0.0);
+    cl_md_ic_data.resize(cl_md_ic_size);
     int cl_md_ic_index = 0;
     for (int index_md = 0; index_md < md_size_; index_md++) {
       cl_md_ic[index_md] = &cl_md_ic_data[cl_md_ic_index];
@@ -909,7 +912,7 @@ int SpectraModule::spectra_cls() {
 
             free(transfer_ic2);
 
-            return 0;
+            return _SUCCESS_;
 
           }));
         }
@@ -927,7 +930,7 @@ int SpectraModule::spectra_cls() {
     }
 
     for (std::future<int>& future : future_output) {
-        future.wait();
+        if (future.get() != _SUCCESS_) return _FAILURE_;
     }
     future_output.clear();
 

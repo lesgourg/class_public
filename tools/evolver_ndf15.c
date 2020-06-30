@@ -694,7 +694,7 @@ int evolver_ndf15(
   /* 	free(tempvec1); */
   /* 	free(tempvec2); */
 
-  /* 	free(interpidx); */
+  free(interpidx);
   /* 	free(dif[1]); */
   /* 	free(dif); */
 
