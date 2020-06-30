@@ -1,0 +1,59 @@
+name: Build on Linux
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux, light]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: make
+      run: cd main_class && make -j class
+    - name: run class
+      run: cd main_class && ./class explanatory.ini
+
+  test_classy:
+      runs-on: [self-hosted, linux, light]
+
+      steps:
+        - name: Checkout 🛎
+          uses: actions/checkout@v2
+          with:
+            path: main_class
+        - name: Run test 🤖
+          run: |
+              docker run --rm \
+              -v "${GITHUB_WORKSPACE}"/main_class:/github \
+              python:latest bash -c ': \
+                  && pip install cython six numpy \
+                  && cp -rf /github /class_tmp \
+                  && cd /class_tmp \
+                  && make -j class \
+                  && ./class explanatory \
+                  && make -j \
+                  && python -c "import classy" \
+                '
+
+  nose_tests_lvl1:
+    runs-on: [self-hosted, linux, heavy]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create virtual Python environment
+      run: rm -rf venv && virtualenv venv --system-site-packages
+    - name: make
+      run: cd main_class && make -j
+    - name: Testing 🤖
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        TEST_LEVEL=1 COMPARE_OUTPUT_REF=1 nosetests -v -a test_scenario test_class.py
+    - name: Remove virtual Python environment
+      run: rm -rf venv

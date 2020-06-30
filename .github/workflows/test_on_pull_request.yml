@@ -1,0 +1,41 @@
+name: Nosetests
+
+on: [pull_request]
+
+jobs:
+  nose_tests_lvl2:
+    runs-on: [self-hosted, linux, heavy]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Checkout reference 🛎
+      uses: actions/checkout@v2
+      with:
+        ref: master
+        path: ref_class
+    - name: Create virtual Python environment
+      run: rm -rf venv && virtualenv venv --system-site-packages
+    - name: make
+      run: source venv/bin/activate && cd main_class && make -j
+    - name: make reference
+      run: |
+        source venv/bin/activate
+        cd ref_class
+        sed -i.bak "s/'classy'/'classyref'/g" python/setup.py
+        sed -i.bak 's/"classy"/"classyref"/g' python/setup.py
+        make -j
+    - name: Testing 🤖
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        COMPARE_OUTPUT_REF=1 TEST_LEVEL=2 nosetests -v -a test_scenario test_class.py
+    - name: Remove virtual Python environment
+      run: rm -rf venv
+    - name: Upload plots 📤
+      uses: actions/upload-artifact@v2
+      with:
+          name: NewtonianVsSynchronousPlots
+          path: python/faulty_figs

@@ -21,3 +21,5 @@ include/tmp
 python/classy.cpp
 .ipynb_checkpoints/*
 python/cclassy.pxd
+python/faulty_figs
+.ipynb_checkpoints

@@ -1,0 +1,55 @@
+name: Nosetests
+
+on:
+  schedule:
+    - cron: '0 1 * * *'  # Daily at 01:00
+
+jobs:
+  nose_tests_lvl3:
+    runs-on: [self-hosted, linux, heavy]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create virtual Python environment
+      run: rm -rf venv && virtualenv venv --system-site-packages
+    - name: make
+      run: cd main_class && make -j
+    - name: Testing 🤖
+      run: |
+          source venv/bin/activate
+          cd main_class/python
+          COMPARE_OUTPUT_GAUGE=1 COMPARE_OUTPUT_REF=1 TEST_LEVEL=3 nosetests -v -a test_scenario test_class.py
+    - name: Upload plots 📤
+      uses: actions/upload-artifact@v2
+      with:
+          name: ComparePlots
+          path: main_class/python/faulty_figs
+    - name: Remove virtual Python environment
+      run: rm -rf venv
+
+  valgrind:
+    runs-on: [self-hosted, linux, heavy]
+
+    steps:
+    - name: Checkout 🛎
+      uses: actions/checkout@v2
+      with:
+        path: main_class
+    - name: Create virtual Python environment
+      run: rm -rf venv && virtualenv venv --system-site-packages
+    - name: make
+      run: cd main_class && make -j
+    - name: Generate input files
+      run: |
+        source venv/bin/activate
+        cd main_class/python
+        TEST_LEVEL=2 nosetests -a dump_ini_files test_class.py
+    - name: Valgrind 🤖
+      run: |
+        cd main_class/python/faulty_figs
+        rm -rf output && mkdir output
+        cp ../../class .
+        echo *.ini | xargs -n 1 -P 6 -t valgrind --quiet --leak-check=full --error-exitcode=31 ./class

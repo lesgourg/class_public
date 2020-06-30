@@ -169,9 +169,24 @@ cdef class PyCosmology:
         self.reset()
 
     cdef reset(self):
+        cdef:
+            Py_ssize_t i
+            bool problem_flag
         self._update_fc_from_pars()
         self.parameters_changed = False
         self._thisptr.reset(new Cosmology(self._fc))
+        # This part is done to list all the unread parameters, for debugging
+        problem_flag = False
+        problematic_parameters = []
+        for i in range(self._fc.size):
+            if self._fc.read[i] == _FALSE_:
+                problem_flag = True
+                problematic_parameters.append(self._fc.name[i].decode())
+        if problem_flag:
+            raise CosmoSevereError(
+                "Class did not read input parameter(s): {}\n"
+                .format(', '.join(problematic_parameters))
+            )
 
         input_module = deref(self._thisptr).GetInputModule()
         self.pr = &deref(input_module).precision_
@@ -291,6 +306,9 @@ cdef class PyCosmology:
             int lmax_computed
             int lmaxpp
             map[string, vector[double]] cl_data
+
+        if self.pt.has_cls == _FALSE_:
+            raise CosmoSevereError("No Cls computed")
 
         if is_lensed:
             le = deref(self._thisptr).GetLensingModule()
