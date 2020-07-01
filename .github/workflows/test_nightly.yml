@@ -2,7 +2,7 @@ name: Nosetests
 
 on:
   schedule:
-    - cron: '0 1 * * *'  # Daily at 01:00
+    - cron: '0 16 * * 1-5'  # On weekdays at UTC 16:00
 
 jobs:
   nose_tests_lvl3:
@@ -32,6 +32,7 @@ jobs:
 
   valgrind:
     runs-on: [self-hosted, linux, heavy]
+    timeout-minutes: 720
 
     steps:
     - name: Checkout 🛎
@@ -56,7 +57,7 @@ jobs:
         rm -rf valgrind_output && mkdir valgrind_output
         cp ../../class .
         ls *.ini | xargs -I {} -n 1 -P 6 bash -c ': \
-          && (valgrind --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok")
+          && (valgrind --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
           || (echo {} "...fail" && cp {}.* valgrind_output && exit 3)'
     - name: Upload errors 📤
       uses: actions/upload-artifact@v2
