@@ -65,27 +65,27 @@ class BasisDecompositionNet(nn.Module):
         assert self.k_spline[0] <= self.spline_range[0]
         assert self.k_spline[-1] >= self.spline_range[1]
 
-        self.spline_value_net_cosmo = nn.Linear(n_inputs_cosmo, 10 + 30)
-        self.spline_value_net_tau = nn.Linear(1, 90)
+        self.spline_value_net_cosmo = nn.Linear(n_inputs_cosmo, 100)
+        self.spline_value_net_tau = nn.Linear(1, 200)
         self.spline_value_net = nn.Sequential(
-                nn.ReLU(inplace=True),
-                nn.Linear((10 + 30) + 90, 25),
-                nn.ReLU(inplace=True),
-                nn.Linear(25, n_spline_points),
-                )
+            nn.PReLU(),
+            nn.Linear(100 + 200, 100),
+            nn.PReLU(),
+            nn.Linear(100, n_spline_points),
+        )
 
         # TODO rename lin_cosmo_coeff because it is not only used for coefficients
-        self.lin_cosmo = nn.Linear(n_inputs_cosmo, 20)
-        self.lin_tau = nn.Linear(n_inputs_tau, 80)
+        self.lin_cosmo = nn.Linear(n_inputs_cosmo, 50)
+        self.lin_tau = nn.Linear(n_inputs_tau, 200)
 
         self.lin_parameters = nn.Sequential(
-                nn.LeakyReLU(0.3),
-                nn.Linear(20 + 80, 220),
-                nn.ReLU(True),
-                nn.Linear(220, 100),
-                nn.ReLU(True),
-                nn.Linear(100, self.parameter_count),
-                )
+            nn.PReLU(),
+            nn.Linear(self.lin_cosmo.out_features + self.lin_tau.out_features, 250),
+            nn.PReLU(),
+            nn.Linear(250, 100),
+            nn.PReLU(),
+            nn.Linear(100, self.parameter_count),
+        )
 
     def spline_parameters(self):
         yield from self.spline_value_net_cosmo.parameters()
@@ -240,7 +240,7 @@ class BasisDecompositionNet(nn.Module):
 class CorrectionNet(nn.Module):
 
     HYPERPARAMETERS_DEFAULTS = {
-            "lin_cosmo_corr": 10,
+            "lin_cosmo_corr": 50,
             "lin_tau_corr": 240,
             "lin_corr_1": 410,
             "lin_corr_2": 200,
@@ -392,8 +392,8 @@ class Net_ST0_Reco(Model):
     def lr_scheduler(self, optimizer):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, [
             lambda epoch: np.exp(-epoch / 5),
-            lambda epoch: np.exp(-epoch / 5) if epoch < 5 else 0,
-            lambda epoch: 0 if epoch < 5 else np.exp(-(epoch - 5) / 5)
+            lambda epoch: np.exp(-epoch / 5) if epoch < 3 else 0,
+            lambda epoch: 0 if epoch < 3 else np.exp(-(epoch - 3) / 5)
             ]
             )
 
