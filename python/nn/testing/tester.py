@@ -1,4 +1,5 @@
 import multiprocessing
+import random
 
 import numpy as np
 import matplotlib as mpl
@@ -25,7 +26,7 @@ class Tester:
 
         self.init_plots()
 
-    def test(self, count, processes=None, cheat=None, prefix=None):
+    def test(self, count=None, cheat=None, prefix=None):
         """
         test the performance of the trained networks by computing the observables
         (Cl's and P(k)) for `count` cosmological scenarios.
@@ -38,33 +39,87 @@ class Tester:
         This aids in isolating networks which may not perform well.
         """
 
-        print("Evaluating network predictions for {} cosmologies.".format(count))
         _, params = self.workspace.loader().cosmological_parameters()
-        params = {k: v[:count] for k, v in params.items()}
+        validation_size = len(params[next(iter(params))])
+        if count is None:
+            count = validation_size
+
+        if count > validation_size:
+            print("WARNING: You requested a validation same count of {0}, \
+                  but there are only {1}! Proceeding with {1}".format(count, validation_size))
+            count = validation_size
+
+        selection = random.sample(range(validation_size), count)
+        print("Evaluating network predictions for {} cosmologies.".format(count))
+
+        cosmo_params = [{k: v[i] for k, v in params.items()} for i in selection]
         # params = sample_cosmological_parameters(self.domain, count)
 
-        # with multiprocessing.Pool(processes) as pool:
-        #     iter_ = pool.imap_unordered(self.run_class_for, self.parameter_dicts(params, cheat=cheat))
-        iter_ = map(self.run_class_for, self.parameter_dicts(params, cheat=cheat))
-        for _ in range(1):
-            for exc, pair in tqdm(iter_, total=count):
-                if exc:
-                    print("An exception occured:")
-                    print(str(exc))
-                    print("continuing...")
-                    continue
-                (cl_true, pk_true), (cl_nn, pk_nn) = pair
+        class_params = list(map(self.get_class_parameters, cosmo_params))
+        class_params_nn = list(map(self.get_class_parameters_nn, cosmo_params))
 
-                self.update_plots(cl_true, cl_nn, pk_true, pk_nn)
+        # for recording cl/pk errors as functions of cosmological parameters
+        stats = []
 
+        class_pair_iter = map(self.run_class_for, zip(class_params, class_params_nn))
+        counter = 0
+        for cosmo_param_dict, (exc, pair) in zip(cosmo_params, class_pair_iter):
+            if exc:
+                print("An exception occured:")
+                print(str(exc))
+                print("continuing...")
+                continue
+            (cl_true, k_pk, pk_true), (cl_nn, _, pk_nn) = pair
+            counter += 1
+            print("PROGRESS: {}".format(counter))
+
+            self.update_plots(cl_true, cl_nn, k_pk, pk_true, pk_nn)
+            self.update_stats(stats, cosmo_param_dict, cl_true, cl_nn, k_pk, pk_true, pk_nn)
+
+        self.save_stats(stats, prefix=prefix)
         self.save_plots(prefix=prefix)
+
+    def update_stats(self, stats, cosmo_params, cl_true, cl_nn, k_pk, pk_true, pk_nn):
+        cl_err = {key: cl_nn[key] - cl_true[key] for key in cl_true}
+        pk_err = pk_nn - pk_true
+
+        cl_err_relative = {key: (cl_nn[key] - cl_true[key]) / cl_true[key] for key in cl_true}
+        pk_err_relative = (pk_nn - pk_true) / pk_true
+
+        stat_dict = {
+            "parameters": cosmo_params,
+            "cl_error": cl_err,
+            "k_pk": k_pk,
+            "pk_error": pk_err,
+            "cl_error_relative": cl_err_relative,
+            "pk_error_relative": pk_err_relative
+        }
+
+        # stat_dict = {k: v if not isinstance(v, np.ndarray) else list(v) for k, v in stat_dict.items()}
+        stats.append(stat_dict)
+
+    def get_class_parameters(self, cosmo_params):
+        """ add fixed parameters (no nn) """
+        params = {}
+        params.update(cosmo_params)
+        params.update(self.fixed)
+        return params
+
+    def get_class_parameters_nn(self, cosmo_params, cheat=None):
+        """ add fixed parameters (with nn) """
+        params = self.get_class_parameters(cosmo_params)
+        params["neural network path"] = self.workspace
+        # if cheating is enabled, we need to notify classy of the quantities
+        if cheat:
+            params["nn_cheat"] = cheat
+        return params
 
     def parameter_dicts(self, cosmo_params, cheat=None):
         """
         iterator over tuples of `(params_without_nn, params_with_nn)` for
         given domain.
         """
-        count = len(cosmo_params[next(iter(cosmo_params))])
+        count = len(cosmo_params)
         for i in range(count):
             params = {}
             params.update(self.fixed)
@@ -92,6 +147,12 @@ class Tester:
 
         return exc, ret
 
+    def k_pk(self, cosmo):
+        k_min = cosmo.k_min()
+        k = self.k[self.k > k_min]
+        k = np.insert(k, 0, k_min)
+        return k
+
     def run_class(self, params):
         """
         Run CLASS for the given `params` and return the Cls and mPk.
@@ -100,10 +161,13 @@ class Tester:
         cosmo.set(params)
         cosmo.compute()
         cls = truncate(cosmo.raw_cl())
-        pk = np.vectorize(cosmo.pk)(self.k, 0.0)
+        k_pk = self.k_pk(cosmo)
+        # TODO maybe insert this check also into cosmo.pk?
+        assert np.all(k_pk >= cosmo.k_min())
+        pk = np.vectorize(cosmo.pk)(k_pk, 0.0)
         cosmo.struct_cleanup()
 
-        return cls, pk
+        return cls, k_pk, pk
 
     def init_plots(self):
         self.figs = {
@@ -132,7 +196,7 @@ class Tester:
             ylabel=r"$(P_{NN}(k)-P_{CLASS}(k))/P_{CLASS}(k)$",
         )
 
-    def update_plots(self, cl_true, cl_nn, pk_true, pk_nn):
+    def update_plots(self, cl_true, cl_nn, k_pk, pk_true, pk_nn):
         ell = cl_true["ell"]
 
         for _, ax in self.figs.values():
@@ -150,7 +214,20 @@ class Tester:
 
         # P(k)
         pk_relerr = (pk_nn - pk_true) / pk_true
-        self.figs["pk"][1].semilogx(self.k, pk_relerr, **LINESTYLE)
+        self.figs["pk"][1].semilogx(k_pk, pk_relerr, **LINESTYLE)
+
+    def save_stats(self, stats, prefix=None):
+        import pickle
+        fname =  "errors.pickle"
+        if not prefix:
+            path = self.workspace.plots / fname
+        else:
+            dir_path = self.workspace.plots / prefix
+            dir_path.mkdir(parents=True, exist_ok=True)
+            path = dir_path / fname
+        print("Writing Cl/Pk error stats to '{}'".format(path))
+        with open(path, "wb") as out:
+            pickle.dump(stats, out)
 
     def save_plots(self, prefix=None):
         for name, (fig, _) in self.figs.items():
