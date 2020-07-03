@@ -1501,6 +1501,7 @@ int NonlinearModule::nonlinear_free() {
 
     free(k_);
     free(ln_k_);
+    free(is_non_zero_);
     if (ppt->z_max_pk != 0.) {
       free(ln_tau_);
     }
