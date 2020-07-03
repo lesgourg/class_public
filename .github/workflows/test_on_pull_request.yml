@@ -33,8 +33,10 @@ jobs:
         cd main_class/python
         COMPARE_OUTPUT_REF=1 TEST_LEVEL=2 nosetests -v -a test_scenario test_class.py
     - name: Remove virtual Python environment
+      if: success() || failure()
       run: rm -rf venv
     - name: Upload plots 📤
+      if: success() || failure()
       uses: actions/upload-artifact@v2
       with:
           name: NewtonianVsSynchronousPlots

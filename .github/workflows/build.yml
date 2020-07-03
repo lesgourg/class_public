@@ -56,4 +56,5 @@ jobs:
         cd main_class/python
         TEST_LEVEL=1 COMPARE_OUTPUT_REF=1 nosetests -v -a test_scenario test_class.py
     - name: Remove virtual Python environment
+      if: success() || failure()
       run: rm -rf venv
