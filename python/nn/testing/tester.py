@@ -14,6 +14,7 @@ from ..generate.generate_cosmological_parameters import sample_cosmological_para
 
 # style for error plots
 LINESTYLE = dict(ls="-", lw=0.5, alpha=0.4, color="r")
+LINESTYLE_2 = dict(ls="-", lw=0.5, alpha=0.4, color="g")
 
 class Tester:
     def __init__(self, workspace):
@@ -141,7 +142,7 @@ class Tester:
         try:
             ret = self.run_class(params), self.run_class(params_nn)
             exc = None
-        except classy.CosmoComputationError as e:
+        except (classy.CosmoSevereError, classy.CosmoComputationError) as e:
             ret = None
             exc = e
 
@@ -174,7 +175,8 @@ class Tester:
             "tt": plt.subplots(),
             "ee": plt.subplots(),
             "te": plt.subplots(),
-            "pk": plt.subplots()
+            "pk": plt.subplots(),
+            "pk_abs": plt.subplots()
         }
 
         for _, ax in self.figs.values():
@@ -196,6 +198,12 @@ class Tester:
             ylabel=r"$(P_{NN}(k)-P_{CLASS}(k))/P_{CLASS}(k)$",
         )
 
+        self.figs["pk_abs"][0].tight_layout()
+        self.figs["pk_abs"][1].set(
+            xlabel=r"$k$ [Mpc${}^{-1}$]",
+            ylabel=r"$(P_{NN}(k)$",
+        )
+
     def update_plots(self, cl_true, cl_nn, k_pk, pk_true, pk_nn):
         ell = cl_true["ell"]
 
@@ -215,6 +223,9 @@ class Tester:
         # P(k)
         pk_relerr = (pk_nn - pk_true) / pk_true
         self.figs["pk"][1].semilogx(k_pk, pk_relerr, **LINESTYLE)
+
+        self.figs["pk_abs"][1].loglog(k_pk, pk_nn, **LINESTYLE)
+        self.figs["pk_abs"][1].loglog(k_pk, pk_true, **LINESTYLE_2)
 
     def save_stats(self, stats, prefix=None):
         import pickle

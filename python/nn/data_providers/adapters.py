@@ -55,6 +55,8 @@ class SourceFileAdapter:
 
         container.tau_source = f["sampling/tau"][()]
 
+        container.scalars.k_min = f["sampling/k"][()][0]
+
         ###################################################################
         # 2) process cosmological_parameters
         ###################################################################
@@ -161,7 +163,7 @@ class CLASSAdapter:
         container.thermo.g_reio = thermos["g_reio"]
         container.thermo.g_reio_prime = thermos["g_reio_prime"]
 
-
+        container.scalars.k_min = self.cosmo.k_min()
         container.tau_source = self.cosmo.get_tau_source()
 
         ###################################################################

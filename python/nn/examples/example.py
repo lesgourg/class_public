@@ -16,7 +16,8 @@ FIXED = {
     "deg_ncdm": 3,
     "Omega_Lambda": 0,
 
-    "P_k_max_1/Mpc": 10.0,
+    "P_k_max_1/Mpc": 100.0,
+    "l_max_scalars": 3000,
 
     "compute damping scale": "yes",
 }
@@ -43,13 +44,13 @@ FIXED_TRAINING_ONLY = {
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
 generations = {
-    "Net_ST0_Reco": 5,
-    "Net_ST0_Reio": 2,
-    "Net_ST0_ISW": 2,
-    "Net_ST1": 2,
-    "Net_ST2_Reco": 2,
-    "Net_ST2_Reio": 2,
-    "Net_phi_plus_psi": 2
+    "Net_ST0_Reco": 7,
+    "Net_ST0_Reio": 3,
+    "Net_ST0_ISW": 3,
+    "Net_ST1": 3,
+    "Net_ST2_Reco": 3,
+    "Net_ST2_Reio": 3,
+    "Net_phi_plus_psi": 4
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -69,7 +70,6 @@ print({k: v[0] for k, v in validation.items()})
 #     validation=validation,
 #     fixed_training_only=FIXED_TRAINING_ONLY,
 #     processes=8)
-# import sys; sys.exit(0)
 
 # workspace.generator().write_manifest(FIXED, training.keys())
 
@@ -77,11 +77,16 @@ print({k: v[0] for k, v in validation.items()})
 # workspace.generator().generate_data(FIXED, DOMAIN, training=5, validation=2, processes=8)
 # workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=2000, processes=18)
 
-## Training: any subset of models can be trained at once
-# workspace.trainer().train_all_models(workers=18)
+# Training: any subset of models can be trained at once
+# workspace.trainer().train_all_models(workers=36)
 
-from ..models import Net_ST0_Reco
-workspace.trainer().train_model(Net_ST0_Reco, workers=18)
+# from ..models import Net_ST0_Reco
+# workspace.trainer().train_model(Net_ST0_Reco, workers=18)
+# import sys; sys.exit(0)
+
+# from ..models import Net_phi_plus_psi
+# workspace.trainer().train_model(Net_phi_plus_psi, workers=36)
+# import sys; sys.exit(0)
 
 # from ..models import Net_ST0_ISW
 # workspace.trainer().train_model(Net_ST0_ISW, workers=18)
@@ -90,19 +95,22 @@ workspace.trainer().train_model(Net_ST0_Reco, workers=18)
 ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
 # import pudb; pu.db
-tester.test(50, processes=1)
+
+# tester.test(count=1000)
+
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
 plotter = workspace.plotter()
-plotter.plot_source_functions()
-plotter.plot_slice("t0_isw")
+# plotter.plot_source_functions()
+plotter.plot_training_histories()
+# plotter.plot_slice("t0_isw")
 
 # plotter.plot_training_histories()
 
 # Compute Cl's with all source functions computed by CLASS _except_ one
-if True:
+if False:
     ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
     for i, select in enumerate(ALL_SOURCES):
         cheat = set(ALL_SOURCES) - set([select])
-        workspace.tester().test(50, processes=1, prefix=f"only_{select}", cheat=cheat)
+        workspace.tester().test(1000, prefix=f"only_{select}", cheat=cheat)
 

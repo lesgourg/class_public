@@ -67,6 +67,8 @@ class Net_phi_plus_psi(Model):
         self.current = {}
 
     def forward(self, x):
+        self.k_min = x["k_min"][0]
+
         tau = x["tau"]
         k_eq = x["k_eq"]
 
@@ -141,18 +143,25 @@ class Net_phi_plus_psi(Model):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def criterion(self):
-        # iterations = 0
+        iterations = 0
         # weight = self.loss_weight[None, :, None]**2
         def loss(prediction, truth):
+
             # nonlocal iterations
-            # if iterations == 5000:
+            # if iterations % 100 == 0:
+            #     import matplotlib; matplotlib.use("qt4agg")
             #     import matplotlib.pyplot as plt
             #     plt.loglog(self.k.cpu().detach(), -prediction[-1, :, 1].cpu().detach(), label="pred")
             #     plt.loglog(self.k.cpu().detach(), -truth[-1, :, 1].cpu().detach(), label="truth")
+            #     plt.axvline(self.k_min, c="k", ls="--", label="k_min")
+            #     plt.grid()
+            #     plt.legend()
             #     plt.show()
             # iterations += 1
+
             # return torch.mean((prediction - truth)**2)
-            return torch.mean(((prediction - truth) / truth)**2)
+            mask = self.k > self.k_min
+            return torch.mean(mask[None, :, None] * ((prediction - truth) / truth)**2)
         return loss
 
     def cosmo_inputs(self):
@@ -160,6 +169,7 @@ class Net_phi_plus_psi(Model):
 
     def required_inputs(self):
         return self.cosmo_inputs() | set([
+            "k_min",
             "raw_cosmos/h", "raw_cosmos/omega_b", "raw_cosmos/omega_cdm",
             "D",
             "tau", "k_eq",

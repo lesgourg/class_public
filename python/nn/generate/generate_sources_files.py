@@ -133,7 +133,7 @@ def generate_source_function(args):
     logger.debug("Computing source functions...", end="")
     try:
         cosmo.compute(level=['perturb'])
-    except classy.CosmoComputationError as exc:
+    except (classy.CosmoSevereError, classy.CosmoComputationError) as exc:
         return exc, (None, None)
     logger.debug("done!")
 

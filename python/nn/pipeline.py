@@ -287,16 +287,17 @@ class CanonicalInputNormalizer(Normalizer, InputTransformer):
             raise ValueError("Unknown: {}".format(key))
 
     def _should_pass_trough(self, key):
-        return key in (
-                "k",
-                "r_s",
-                "k_eq",
-                "k_d",
-                "rs_drag",
-                "t0_reco_approx_6",
-                "t0_reco_approx_7",
-                "t0_reco_approx_8",
-                ) or key.startswith("test_")
+        return key in set((
+            "k",
+            "k_min",
+            "r_s",
+            "k_eq",
+            "k_d",
+            "rs_drag",
+            "t0_reco_approx_6",
+            "t0_reco_approx_7",
+            "t0_reco_approx_8",
+        )) or key.startswith("test_")
 
     def _is_already_normalized(self, key):
         return key.startswith("raw") or key in (

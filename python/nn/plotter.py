@@ -24,7 +24,7 @@ class SourceFunctionPlotter:
 
         epoch, loss, val_loss = np.genfromtxt(self.workspace.history_for(name), unpack=True)
         ln, = ax.semilogy(epoch + 1, loss, marker="o", label="Loss")
-        ax.semilogy(epoch + 1, val_loss, marker="o", color=ln.get_color(), label="Loss")
+        ax.semilogy(epoch + 1, val_loss, marker="x", color=ln.get_color(), ls="--", label="Val. Loss")
         ax.set(xlabel="Epoch")
         ax.grid()
         ax.legend()
