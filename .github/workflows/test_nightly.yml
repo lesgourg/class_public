@@ -78,7 +78,7 @@ jobs:
           && printf "\nk_step_sub = 10.0\nk_step_super = 0.4\nk_per_decade_for_pk = 2\nk_per_decade_for_bao = 5\n" >> {}'
         find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 6 bash -c ': \
           && (valgrind --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
-          || (echo {} "...fail" && cp {}.* valgrind_output && exit 3)'
+          || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
     - name: Upload errors 📤
       if: success() || failure()
       uses: actions/upload-artifact@v2
@@ -116,7 +116,7 @@ jobs:
         cp ../../class .
         find . -name "*.ini" -type f -print0 | xargs -0 -I {} -n 1 -P 6 bash -c ': \
           && (valgrind --leak-check=full --error-exitcode=3 ./class {} &> {}.out && echo {} "...ok") \
-          || (echo {} "...fail" && cp {}.* valgrind_output && exit 3)'
+          || (echo {} "...fail" && cp {}* valgrind_output && exit 3)'
     - name: Upload errors 📤
       if: success() || failure()
       uses: actions/upload-artifact@v2

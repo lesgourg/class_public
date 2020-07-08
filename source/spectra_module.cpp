@@ -1064,7 +1064,7 @@ int SpectraModule::spectra_compute_cl(int index_md,
       }
     }
 
-    if (ppt->has_cl_number_count == _TRUE_) {
+    if ((_scalarsEXT_) && (ppt->has_cl_number_count == _TRUE_)) {
 
       for (index_d1 = 0; index_d1 < d_size_; index_d1++) {
 
