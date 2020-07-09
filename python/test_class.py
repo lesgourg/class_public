@@ -166,9 +166,13 @@ if TEST_LEVEL > 2:
 
     CLASS_INPUT['Inflation'] = (
         [{'P_k_ini type': 'inflation_V'},
-        {'P_k_ini type': 'inflation_H'},
-        {'P_k_ini type': 'inflation_V_end'}],
+        {'P_k_ini type': 'inflation_H'}],
         'normal')
+    # CLASS_INPUT['Inflation'] = (
+    #     [{'P_k_ini type': 'inflation_V'},
+    #     {'P_k_ini type': 'inflation_H'},
+    #     {'P_k_ini type': 'inflation_V_end'}],
+    #     'normal')
 
 if POWER_ALL:
     for k, v in iteritems(CLASS_INPUT):

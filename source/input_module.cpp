@@ -186,6 +186,11 @@ int InputModule::FixUnknownParameters(int input_verbose, int unknown_parameters_
   file_content_.value = (FileArg*) realloc(file_content_.value, file_content_.size*sizeof(FileArg));
   file_content_.read = (short*) realloc(file_content_.read, file_content_.size*sizeof(short));
   file_content_.is_shooting = true;
+  for (int i = file_content_.size - unknown_parameters_size; i < file_content_.size; ++i) {
+    file_content_.name[i][0] = '\n';
+    file_content_.value[i][0] = '\n';
+    file_content_.read[i] = _FALSE_;
+  }
 
   class_alloc(shooting_workspace_.unknown_parameters_index,
               unknown_parameters_size*sizeof(int),
