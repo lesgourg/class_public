@@ -101,10 +101,16 @@ class Net_phi_plus_psi(Model):
         # TODO CHANGE IF NORMALIZATION CHANGES!
         tau = self.current_tau = 10**tau
 
-        result = (1 + correction) * factors[:, None, :] * approx_stack[None, :, :]
-        result_f_only = factors[:, None, :] * approx_stack[None, :, :]
+        # result_delta_m = (1 + correction[..., 1]) * factors[:, None, 1] * approx_k2
+        # result_phi_plus_psi = (1 + correction[..., 0]) * factors[:, None, 0] * approx
+        # result = torch.stack((result_phi_plus_psi, result_delta_m), dim=2)
+
+        # correction = 1 + correction - torch.mean(correction, dim=1)[:, None, :]
+        # result = correction * factors[:, None, :] * approx_stack[None, :, :]
+        result = correction * approx_stack[None, :, :]
 
         if False:
+            # result_f_only = factors[:, None, :] * approx_stack[None, :, :]
             import matplotlib
             matplotlib.use("qt5agg")
             import matplotlib.pyplot as plt
@@ -146,13 +152,15 @@ class Net_phi_plus_psi(Model):
         iterations = 0
         # weight = self.loss_weight[None, :, None]**2
         def loss(prediction, truth):
+            nonlocal iterations
 
-            # nonlocal iterations
-            # if iterations % 100 == 0:
+            # if iterations % 1000 == 0:
+            #     pdm0 = prediction[-1, :, 1]
+            #     tdm0 = truth[-1, :, 1]
             #     import matplotlib; matplotlib.use("qt4agg")
             #     import matplotlib.pyplot as plt
-            #     plt.loglog(self.k.cpu().detach(), -prediction[-1, :, 1].cpu().detach(), label="pred")
-            #     plt.loglog(self.k.cpu().detach(), -truth[-1, :, 1].cpu().detach(), label="truth")
+            #     plt.semilogx(self.k.cpu().detach(), pdm0.cpu().detach(), label="pred")
+            #     plt.semilogx(self.k.cpu().detach(), tdm0.cpu().detach(), label="truth")
             #     plt.axvline(self.k_min, c="k", ls="--", label="k_min")
             #     plt.grid()
             #     plt.legend()
@@ -161,7 +169,10 @@ class Net_phi_plus_psi(Model):
 
             # return torch.mean((prediction - truth)**2)
             mask = self.k > self.k_min
-            return torch.mean(mask[None, :, None] * ((prediction - truth) / truth)**2)
+            weight = torch.ones((truth.shape[0], 2)).to(truth.device)
+            weight[-1] = 50
+            # return torch.mean(weight[:, None, :] * mask[None, :, None] * (prediction - truth)**2)
+            return torch.mean(weight[:, None, :] * mask[None, :, None] * ((prediction - truth) / truth)**2)
         return loss
 
     def cosmo_inputs(self):

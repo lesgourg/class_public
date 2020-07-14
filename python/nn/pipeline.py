@@ -181,7 +181,6 @@ class CanonicalTargetTransformer(TargetTransformer):
         D = self.inputs["D"]
         k_eq = self._get_k_eq()
 
-        # TODO REENABLE THIS AFTER TESTING?!!!
         return value / D[:, None]
 
         k_th = self._get_k_th(k_eq)
@@ -198,8 +197,6 @@ class CanonicalTargetTransformer(TargetTransformer):
         k = self.k
         D = self.inputs["D"]
 
-
-        # TODO REENABLE THIS AFTER TESTING?!!!
         return value * D[None, :]
 
         k_eq = self._get_k_eq()
@@ -301,6 +298,7 @@ class CanonicalInputNormalizer(Normalizer, InputTransformer):
 
     def _is_already_normalized(self, key):
         return key.startswith("raw") or key in (
+            "delta_m",
                 "rho_b",
                 "rho_g",
                 "R",

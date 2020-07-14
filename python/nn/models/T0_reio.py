@@ -97,7 +97,7 @@ class Net_ST0_Reio(Model):
         return linear_combination + correction
 
     def epochs(self):
-        return 20
+        return 40
 
     def slicing(self):
         return time_slicing.TimeSlicingReio(0.6)
@@ -106,7 +106,7 @@ class Net_ST0_Reio(Model):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 
     def lr_scheduler(self, opt):
-        return torch.optim.lr_scheduler.LambdaLR(opt, lambda epoch: np.exp(-epoch / 5))
+        return torch.optim.lr_scheduler.LambdaLR(opt, lambda epoch: np.exp(-epoch / 8))
 
     def required_inputs(self):
         return set(common.INPUTS_COSMO + [

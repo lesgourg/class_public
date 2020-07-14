@@ -51,7 +51,7 @@ class Net_ST2_Reio(Model):
         return x["g_reio"][:, None] * y
 
     def epochs(self):
-        return 20
+        return 40
 
     def slicing(self):
         return time_slicing.TimeSlicingReio(0.6)
@@ -68,7 +68,7 @@ class Net_ST2_Reio(Model):
         return tau_training
 
     def lr_scheduler(self, optimizer):
-        return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: np.exp(-epoch / 5))
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: np.exp(-epoch / 8))
 
     def source_functions(self):
         return ["t2_reio"]

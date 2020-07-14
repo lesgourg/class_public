@@ -76,11 +76,11 @@ class Net_ST0_ISW(Model):
         return torch.optim.Adam(self.parameters(), lr=1e-3)
 
     def epochs(self):
-        return 20
+        return 40
 
     def lr_scheduler(self, optimizer):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, [
-            lambda epoch: np.exp(-epoch / 5),
+            lambda epoch: np.exp(-epoch / 8),
             ])
 
     def required_inputs(self):

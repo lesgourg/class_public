@@ -94,7 +94,7 @@ class Net_ST2_Reco(Model):
         return add
 
     def epochs(self):
-        return 20
+        return 40
 
     def slicing(self):
         return time_slicing.TimeSlicingReco(4)
@@ -117,7 +117,7 @@ class Net_ST2_Reco(Model):
         # return tau_training
 
     def lr_scheduler(self, optimizer):
-        return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: np.exp(-epoch / 5))
+        return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: np.exp(-epoch / 8))
         # return torch.optim.lr_scheduler.LambdaLR(optimizer, [
         #     lambda epoch: np.exp(-epoch / 5),
         #     lambda epoch: 0 if epoch < 3 else np.exp(-(epoch - 3) / 5)

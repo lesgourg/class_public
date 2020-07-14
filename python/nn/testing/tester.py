@@ -15,6 +15,7 @@ from ..generate.generate_cosmological_parameters import sample_cosmological_para
 # style for error plots
 LINESTYLE = dict(ls="-", lw=0.5, alpha=0.4, color="r")
 LINESTYLE_2 = dict(ls="-", lw=0.5, alpha=0.4, color="g")
+LINESTYLE_3 = dict(ls="-", lw=0.5, alpha=0.4, color="b")
 
 class Tester:
     def __init__(self, workspace):
@@ -173,6 +174,8 @@ class Tester:
     def init_plots(self):
         self.figs = {
             "tt": plt.subplots(),
+            # cosmic variance
+            "tt_cv": plt.subplots(),
             "ee": plt.subplots(),
             "te": plt.subplots(),
             "pk": plt.subplots(),
@@ -182,12 +185,13 @@ class Tester:
         for _, ax in self.figs.values():
             ax.grid()
 
-        for q in ("tt", "te", "ee"):
+        for q in ("tt", "tt_cv", "te", "ee"):
             fig, ax = self.figs[q]
             fig.tight_layout()
             ax.set_xlabel(r"$\ell$")
 
         self.figs["tt"][1].set_ylabel(r"$\Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
+        self.figs["tt_cv"][1].set_ylabel(r"$\sqrt{\frac{2\mathrm{min}(\ell, 2000)+1}{2}} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
         ll1 = r"$\ell (\ell + 1) "
         self.figs["te"][1].set_ylabel(ll1 + r"\Delta C_\ell^{TE}$")
         self.figs["ee"][1].set_ylabel(ll1 + r"\Delta C_\ell^{EE}$")
@@ -213,12 +217,21 @@ class Tester:
         # TT
         tt_relerr = (cl_nn["tt"] - cl_true["tt"]) / cl_true["tt"]
         self.figs["tt"][1].semilogx(ell, tt_relerr, **LINESTYLE)
+        cosmic_variance = np.sqrt(2 / (2 * np.minimum(ell, 2000) + 1))
+        tt_relerr_cv = tt_relerr / cosmic_variance
+        self.figs["tt_cv"][1].semilogx(ell, tt_relerr_cv, **LINESTYLE)
+        self.figs["tt_cv"][1].set_ylim(-0.05, 0.05)
 
         # TE + EE
         for q in ("ee", "te"):
             err = (cl_nn[q] - cl_true[q])
-            err_relmax = err / cl_true[q].max()
+            # err_relmax = err / cl_true[q].max()
+            self.figs[q][1].semilogx(ell, ell * (ell + 1) * cl_true[q] / 100.0, **LINESTYLE_3)
+            self.figs[q][1].semilogx(ell, ell * (ell + 1) * cl_true[q] / 1000.0, **LINESTYLE_2)
             self.figs[q][1].semilogx(ell, ell * (ell + 1) * err, **LINESTYLE)
+            y = ell * (ell + 1) * cl_true[q] / 100.0
+            lim = np.abs(y).max() * 1.2
+            self.figs[q][1].set_ylim(-lim, lim)
 
         # P(k)
         pk_relerr = (pk_nn - pk_true) / pk_true

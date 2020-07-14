@@ -44,13 +44,13 @@ FIXED_TRAINING_ONLY = {
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
 generations = {
-    "Net_ST0_Reco": 7,
-    "Net_ST0_Reio": 3,
-    "Net_ST0_ISW": 3,
-    "Net_ST1": 3,
-    "Net_ST2_Reco": 3,
-    "Net_ST2_Reio": 3,
-    "Net_phi_plus_psi": 4
+    "Net_ST0_Reco":     8,
+    "Net_ST0_Reio":     4,
+    "Net_ST0_ISW":      4,
+    "Net_ST1":          4,
+    "Net_ST2_Reco":     4,
+    "Net_ST2_Reio":     4,
+    "Net_phi_plus_psi": 8
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -70,6 +70,8 @@ print({k: v[0] for k, v in validation.items()})
 #     validation=validation,
 #     fixed_training_only=FIXED_TRAINING_ONLY,
 #     processes=8)
+
+# import sys; sys.exit(0)
 
 # workspace.generator().write_manifest(FIXED, training.keys())
 
@@ -94,14 +96,12 @@ print({k: v[0] for k, v in validation.items()})
 
 ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
-# import pudb; pu.db
-
-# tester.test(count=1000)
+tester.test(count=500)
 
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
 plotter = workspace.plotter()
-# plotter.plot_source_functions()
+plotter.plot_source_functions()
 plotter.plot_training_histories()
 # plotter.plot_slice("t0_isw")
 

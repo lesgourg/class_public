@@ -70,7 +70,7 @@ class Net_ST1(Model):
     #     return x["e_kappa"][:, None] * self.k[None, :] * (approximation + correction)
 
     def epochs(self):
-        return 15
+        return 40
 
     def optimizer(self):
 
@@ -94,8 +94,7 @@ class Net_ST1(Model):
         return ["t1"]
 
     def lr_scheduler(self, opt):
-
-        return torch.optim.lr_scheduler.LambdaLR(opt, lambda epoch: np.exp(-epoch / 5))
+        return torch.optim.lr_scheduler.LambdaLR(opt, lambda epoch: np.exp(-epoch / 8))
 
         # return torch.optim.lr_scheduler.LambdaLR(opt, [
         #     lambda epoch: np.exp(-epoch / 5),

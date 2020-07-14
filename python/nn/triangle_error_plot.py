@@ -27,7 +27,7 @@ PRETTY_LABELS = {
 def get_pretty_label(name):
     return PRETTY_LABELS.get(name, name)
 
-def triangle_plot(param_names, param_values, errors):
+def triangle_plot(param_names, param_values, errors, rasterized=True):
     """
     param_names: List[str]
     param_values: List[List[float]] <- inner list must have same order as param_names
@@ -61,7 +61,7 @@ def triangle_plot(param_names, param_values, errors):
         if i == j:
             x = param_values[:, j]
             ax_t = ax.twinx()
-            ax_t.scatter(x, errors, c=err_color)
+            ax_t.scatter(x, errors, c=err_color, rasterized=rasterized)
             ax.set_xlim(x.min(), x.max())
             if i == 0:
                 ax.set_ylim(x.min(), x.max())
@@ -70,12 +70,21 @@ def triangle_plot(param_names, param_values, errors):
         else:
             x = param_values[:, j]
             y = param_values[:, i]
-            ax.scatter(x, y, c=err_color)
+            ax.scatter(x, y, c=err_color, rasterized=rasterized)
             ax.set_xlim(x.min(), x.max())
             ax.set_ylim(y.min(), y.max())
 
     return fig
 
+
+def get_plotter(param_names, param_values):
+    def plot(qty, title, path):
+        print("creating plot for ", title)
+        fig = triangle_plot(param_names, param_values, qty)
+        fig.suptitle(title)
+        print("writing plot to", path)
+        fig.savefig(path, bbox_inches="tight")
+    return plot
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -98,24 +107,49 @@ if __name__ == "__main__":
         }
     """
 
+    ell = np.arange(2, 3000 + 1)
+    cv = np.sqrt(2 / (2 * ell + 1))
+
     errors = load_errors(args.filename)
     params0 = errors[0]["parameters"]
     param_names = list(sorted(params0))
 
     param_values = np.array([[d["parameters"][key] for key in param_names] for d in errors])
 
-    cl_tt_rel_err_rms = np.array([np.sqrt(np.mean(np.square(d["cl_error_relative"]["tt"]))) for d in errors])
-    cl_tt_rel_err_max = np.array([np.max(np.abs(d["cl_error_relative"]["tt"])) for d in errors])
+    plot = get_plotter(param_names, param_values)
+    plot(
+        np.log10(np.array([np.sqrt(np.mean(np.square(d["cl_error_relative"]["tt"]))) for d in errors])),
+        title="RMS relative error of $C_\ell^{TT}$ (log10)",
+        path=output_dir / "cl_tt_rel_err_rms.pdf"
+    )
 
-    print("creating plots")
-    fig = triangle_plot(param_names, param_values, np.log10(cl_tt_rel_err_rms))
-    fig.suptitle("RMS relative error of $C_\ell^{TT}$ (log10)")
-    figpath = output_dir / "cl_tt_rel_err_rms.pdf"
-    print("writing plot to", figpath)
-    fig.savefig(figpath, bbox_inches="tight")
+    plot(
+        np.log10(np.array([np.sqrt(np.mean(np.square(d["cl_error_relative"]["tt"] / cv))) for d in errors])),
+        title="RMS relative error relative to cosmic variance of $C_\ell^{TT}$ (log10)",
+        path=output_dir / "cl_tt_rel_err_cv_rms.pdf"
+    )
 
-    fig = triangle_plot(param_names, param_values, np.log10(cl_tt_rel_err_max))
-    fig.suptitle("max. relative error (over all $\\ell$) of $C_\\ell^{TT}$ (log10)")
-    figpath = output_dir / "cl_tt_rel_err_max.pdf"
-    print("writing plot to", figpath)
-    fig.savefig(figpath, bbox_inches="tight")
+    plot(
+        np.log10(np.array([np.max(np.abs(d["cl_error_relative"]["tt"])) for d in errors])),
+        title="max. relative error (over all $\\ell$) of $C_\\ell^{TT}$ (log10)",
+        path=output_dir / "cl_tt_rel_err_max.pdf"
+    )
+
+    plot(
+        np.log10(np.array([np.max(np.abs(d["cl_error_relative"]["tt"] / cv)) for d in errors])),
+        title="max. relative error relative to cosmic variance (over all $\\ell$) of $C_\\ell^{TT}$ (log10)",
+        path=output_dir / "cl_tt_rel_err_cv_max.pdf"
+    )
+
+    plot(
+        np.log10(np.array([np.sqrt(np.mean(np.square(d["pk_error_relative"]))) for d in errors])),
+        title="RMS of relative error (over all $k$) of $P(k)$ (log10)",
+        path=output_dir / "pk_rel_err_rms.pdf"
+    )
+
+    plot(
+        np.log10(np.array([np.max(np.abs(d["pk_error_relative"])) for d in errors])),
+        title="max. relative error (over all $k$) of $P(k)$ (log10)",
+        path=output_dir / "pk_rel_err_max.pdf"
+    )
+

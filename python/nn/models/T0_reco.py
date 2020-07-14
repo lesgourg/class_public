@@ -364,7 +364,7 @@ class Net_ST0_Reco(Model):
         # return linear_combination + correction
 
     def epochs(self):
-        return 25
+        return 40
 
     def optimizer(self):
         basis_params = list(self.net_basis.parameters())
@@ -391,9 +391,9 @@ class Net_ST0_Reco(Model):
 
     def lr_scheduler(self, optimizer):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, [
-            lambda epoch: np.exp(-epoch / 5),
-            lambda epoch: np.exp(-epoch / 5) if epoch < 3 else 0,
-            lambda epoch: 0 if epoch < 3 else np.exp(-(epoch - 3) / 5)
+            lambda epoch: np.exp(-epoch / 8),
+            lambda epoch: np.exp(-epoch / 8) if epoch < 5 else 0,
+            lambda epoch: 0 if epoch < 5 else np.exp(-(epoch - 5) / 8)
             ]
             )
 
