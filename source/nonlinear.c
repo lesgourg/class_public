@@ -1638,7 +1638,7 @@ int nonlinear_init(
  * Free all memory space allocated by nonlinear_init().
  *
  *
- * @param pnl Input: pointer to nonlineard structure (to be freed)
+ * @param pnl Input: pointer to nonlinear structure (to be freed)
  * @return the error status
  */
 
@@ -1699,7 +1699,7 @@ int nonlinear_free(
 }
 
 /**
- * Define indices in the nonlinear array, and when possible, allocate
+ * Define indices in the nonlinear structure, and when possible, allocate
  * arrays in this structure given the index sizes found here
  *
  * @param ppr Input: pointer to precision structure
