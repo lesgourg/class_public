@@ -18,6 +18,8 @@ class SourceFileAdapter:
         # tau sampling of the thermodynamics quantities
         container.tau_th = thermos["conf_time_th"][()]
 
+        container.background.z = background["z"][()]
+
         # Load some characteristic times
         container.scalars.tau_rec = thermos["tau_rec"][()]
         container.scalars.tau_reio = thermos["tau_reio"][()]
@@ -148,6 +150,7 @@ class CLASSAdapter:
         rho_g = bg_nn["rho_g"]
 
         container.tau_bg = tau_bg
+        container.background.z = z_bg
         container.background.r_s = r_s
         container.background.rho_b = rho_b
         container.background.rho_g = rho_g
