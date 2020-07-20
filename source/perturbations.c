@@ -634,12 +634,12 @@ int perturb_init(
              _omegab_BIG_);
   */
 
-  /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
+  /** - initialize all indices and lists in perturbs structure using perturb_indices() */
 
-  class_call(perturb_indices_of_perturbs(ppr,
-                                         pba,
-                                         pth,
-                                         ppt),
+  class_call(perturb_indices(ppr,
+                             pba,
+                             pth,
+                             ppt),
              ppt->error_message,
              ppt->error_message);
 
@@ -972,12 +972,12 @@ int perturb_free(
  * @return the error status
  */
 
-int perturb_indices_of_perturbs(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct thermo * pth,
-                                struct perturbs * ppt
-                                ) {
+int perturb_indices(
+                    struct precision * ppr,
+                    struct background * pba,
+                    struct thermo * pth,
+                    struct perturbs * ppt
+                    ) {
 
   /** Summary: */
 
