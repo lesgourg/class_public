@@ -52,7 +52,7 @@ int main(int argc, char **argv) {
 
   /****** output the transfer functions ******/
 
-  double z,k_nl,k;
+  double z,k_nl,k_nl_cb,k;
   FILE * output;
   double * pvecback;
   int index_tau,index_k;
@@ -64,21 +64,21 @@ int main(int argc, char **argv) {
     printf("Non-linear scale k_NL found by halofit:\n");
 
     z=0.;
-    if (nonlinear_k_nl_at_z(&ba,&nl,z,&k_nl) == _FAILURE_) {
+    if (nonlinear_k_nl_at_z(&ba,&nl,z,&k_nl,&k_nl_cb) == _FAILURE_) {
       printf("\n\nError in nonlinear_k_nl_at_z \n=>%s\n",nl.error_message);
       return _FAILURE_;
     }
     printf("  z=%f   k_nl=%e\n",z,k_nl);
 
     z=0.5;
-    if (nonlinear_k_nl_at_z(&ba,&nl,z,&k_nl) == _FAILURE_) {
+    if (nonlinear_k_nl_at_z(&ba,&nl,z,&k_nl,&k_nl_cb) == _FAILURE_) {
       printf("\n\nError in nonlinear_k_nl_at_z \n=>%s\n",nl.error_message);
       return _FAILURE_;
     }
     printf("  z=%f   k_nl=%e\n",z,k_nl);
 
     z=1.0;
-    if (nonlinear_k_nl_at_z(&ba,&nl,z,&k_nl) == _FAILURE_) {
+    if (nonlinear_k_nl_at_z(&ba,&nl,z,&k_nl,&k_nl_cb) == _FAILURE_) {
       printf("\n\nError in nonlinear_k_nl_at_z \n=>%s\n",nl.error_message);
       return _FAILURE_;
     }
@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
       for (index_k=0; index_k<nl.k_size; index_k++) {
 
         k=nl.k[index_k];
-        r_nl = nl.nl_corr_density[index_tau * nl.k_size + index_k];
+        r_nl = nl.nl_corr_density[nl.index_pk_m][index_tau * nl.k_size + index_k];
 
         fprintf(output,"%e  %e  %e\n",z,k,r_nl);
       }
