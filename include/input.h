@@ -277,6 +277,7 @@ extern "C" {
   int input_find_root(double *xzero,
                       int *fevals,
                       struct fzerofun_workspace *pfzw,
+                      double tol,
                       ErrorMsg errmsg);
 
   int file_exists(const char *fname);

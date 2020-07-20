@@ -386,6 +386,7 @@ int input_init(
       class_call_try(input_find_root(&xzero,
                                      &fevals,
                                      &fzw,
+                                     ppr->tol_shooting_1d,
                                      errmsg),
                      errmsg,
                      pba->shooting_error,
@@ -553,6 +554,18 @@ int input_init(
       if (pfc->read[i] == _FALSE_)
         fprintf(stdout,"[WARNING: input line not recognized and not taken into account: '%s=%s']\n",pfc->name[i],pfc->value[i]);
     }
+  }
+
+  if (pnl->has_pk_eq == _TRUE_) {
+
+    if (input_verbose > 0) {
+      printf(" -> since you want to use Halofit with a non-zero wa_fld and the Pk_equal method,\n");
+      printf("    calling background module to extract the effective w(tau), Omega_m(tau) parameters");
+      printf("    required by this method\n");
+    }
+    class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
+               errmsg,
+               errmsg);
   }
 
   return _SUCCESS_;
@@ -3092,28 +3105,19 @@ int input_read_parameters(
   /** - (i.5) special steps if we want Halofit with wa_fld non-zero:
       so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
 
-  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
+  if (pnl->method == nl_halofit) {
 
     class_call(parser_read_string(pfc,"pk_eq",&string1,&flag1,errmsg),
-             errmsg,
-             errmsg);
+               errmsg,
+               errmsg);
 
     if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
 
-      pnl->has_pk_eq = _TRUE_;
+      if ((pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
 
+        pnl->has_pk_eq = _TRUE_;
+      }
     }
-  }
-
-  if (pnl->has_pk_eq == _TRUE_) {
-
-    if (input_verbose > 0) {
-      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
-      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
-    }
-    class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
-               errmsg,
-               errmsg);
   }
 
   return _SUCCESS_;
@@ -3714,7 +3718,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
     }
   }
   if (compute_sigma8 == _TRUE_) {
-    pt.k_max_for_pk=1.0;
+    pt.k_max_for_pk=10.0; // increased in June 2020 for higher accuracy
     pt.has_pk_matter=_TRUE_;
     pt.has_perturbations = _TRUE_;
     pt.has_cl_cmb_temperature = _FALSE_;
@@ -3725,7 +3729,8 @@ int input_try_unknown_parameters(double * unknown_parameter,
     pt.has_cl_lensing_potential=_FALSE_;
     pt.has_density_transfers=_FALSE_;
     pt.has_velocity_transfers=_FALSE_;
-
+    nl.has_pk_eq=_FALSE_; // not needed since sigma8 is derived from linear P(k)
+    nl.method=nl_none;    // not needed since sigma8 is derived from linear P(k)
   }
 
   /** - Shoot forward into class up to required stage */
@@ -4049,6 +4054,7 @@ int input_get_guess(double *xguess,
 int input_find_root(double *xzero,
                     int *fevals,
                     struct fzerofun_workspace *pfzw,
+                    double tol,
                     ErrorMsg errmsg){
   double x1, x2, f1, f2, dxdy, dx;
   int iter, iter2;
@@ -4111,7 +4117,7 @@ int input_find_root(double *xzero,
   class_call(class_fzero_ridder(input_fzerofun_1d,
                                 x1,
                                 x2,
-                                1e-5*MAX(fabs(x1),fabs(x2)),
+                                tol*MAX(fabs(x1),fabs(x2)),
                                 pfzw,
                                 &f1,
                                 &f2,

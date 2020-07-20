@@ -618,6 +618,7 @@ int perturb_init(
     }
   }
 
+  /*
   class_test((pba->h > _h_BIG_) || (pba->h < _h_SMALL_),
              ppt->error_message,
              "Your value of pba->h=%e is out of the bounds [%e , %e] and could cause a crash of the perturbation ODE integration. If you want to force this barrier, you may comment it out in perturbation.c",
@@ -631,13 +632,14 @@ int perturb_init(
              pba->Omega0_b*pba->h*pba->h,
              _omegab_SMALL_,
              _omegab_BIG_);
+  */
 
-  /** - initialize all indices and lists in perturbs structure using perturb_indices_of_perturbs() */
+  /** - initialize all indices and lists in perturbs structure using perturb_indices() */
 
-  class_call(perturb_indices_of_perturbs(ppr,
-                                         pba,
-                                         pth,
-                                         ppt),
+  class_call(perturb_indices(ppr,
+                             pba,
+                             pth,
+                             ppt),
              ppt->error_message,
              ppt->error_message);
 
@@ -970,12 +972,12 @@ int perturb_free(
  * @return the error status
  */
 
-int perturb_indices_of_perturbs(
-                                struct precision * ppr,
-                                struct background * pba,
-                                struct thermo * pth,
-                                struct perturbs * ppt
-                                ) {
+int perturb_indices(
+                    struct precision * ppr,
+                    struct background * pba,
+                    struct thermo * pth,
+                    struct perturbs * ppt
+                    ) {
 
   /** Summary: */
 

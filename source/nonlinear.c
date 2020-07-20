@@ -1638,7 +1638,7 @@ int nonlinear_init(
  * Free all memory space allocated by nonlinear_init().
  *
  *
- * @param pnl Input: pointer to nonlineard structure (to be freed)
+ * @param pnl Input: pointer to nonlinear structure (to be freed)
  * @return the error status
  */
 
@@ -1699,7 +1699,7 @@ int nonlinear_free(
 }
 
 /**
- * Define indices in the nonlinear array, and when possible, allocate
+ * Define indices in the nonlinear structure, and when possible, allocate
  * arrays in this structure given the index sizes found here
  *
  * @param ppr Input: pointer to precision structure
@@ -2555,7 +2555,7 @@ int nonlinear_halofit(
                       short * nl_corr_not_computable_at_this_k
                       ) {
 
-  double Omega_m,Omega_v,fnu,w0, dw_over_da_fld, integral_fld;
+  double Omega_m,Omega_v,fnu,w, dw_over_da_fld, integral_fld;
 
   /** Determine non linear ratios (from pk) **/
 
@@ -2612,10 +2612,7 @@ int nonlinear_halofit(
 
   if (pnl->has_pk_eq == _FALSE_) {
 
-    /* default method to compute w0 = w_fld today, Omega_m(tau) and Omega_v=Omega_DE(tau),
-       all required by HALFIT fitting formulas */
-
-    class_call(background_w_fld(pba,pba->a_today,&w0,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+    /* default method: compute w(tau) = w_fld(tau), Omega_m(tau) and Omega_v=Omega_DE(tau), all required by HALFIT fitting formulas */
 
     class_call(background_at_tau(pba,tau,pba->long_info,pba->inter_normal,&last_index,pvecback),
                pba->error_message,
@@ -2624,13 +2621,16 @@ int nonlinear_halofit(
     Omega_m = pvecback[pba->index_bg_Omega_m];
     Omega_v = 1.-pvecback[pba->index_bg_Omega_m]-pvecback[pba->index_bg_Omega_r];
 
+    /* until v2.9.2 this function was called at a_0=1 instead of a=pvecback[pba->index_bg_a] */
+    class_call(background_w_fld(pba,pvecback[pba->index_bg_a],&w,&dw_over_da_fld,&integral_fld), pba->error_message, pnl->error_message);
+
   }
   else {
 
     /* alternative method called Pk_equal, described in 0810.0190 and
        1601.07230, extending the range of validity of
        HALOFIT from constant w to (w0,wa) models. In that
-       case, some effective values of w0(tau_i) and
+       case, some effective values of w(tau_i) and
        Omega_m(tau_i) have been pre-computed in the
        input module, and we just ned to interpolate
        within tabulated arrays, to get them at the
@@ -2652,7 +2652,7 @@ int nonlinear_halofit(
                pnl->error_message,
                pnl->error_message);
 
-    w0 = w_and_Omega[pnl->index_pk_eq_w];
+    w = w_and_Omega[pnl->index_pk_eq_w];
     Omega_m = w_and_Omega[pnl->index_pk_eq_Omega_m];
     Omega_v = 1.-Omega_m;
 
@@ -2934,9 +2934,9 @@ int nonlinear_halofit(
        * based on the results of Takahashi 2012, (arXiv:1208.2701).
        */
       gam=0.1971-0.0843*rneff+0.8460*rncur;
-      a=1.5222+2.8553*rneff+2.3706*rneff*rneff+0.9903*rneff*rneff*rneff+ 0.2250*rneff*rneff*rneff*rneff-0.6038*rncur+0.1749*Omega_v*(1.+w0);
+      a=1.5222+2.8553*rneff+2.3706*rneff*rneff+0.9903*rneff*rneff*rneff+ 0.2250*rneff*rneff*rneff*rneff-0.6038*rncur+0.1749*Omega_v*(1.+w);
       a=pow(10,a);
-      b=pow(10, (-0.5642+0.5864*rneff+0.5716*rneff*rneff-1.5474*rncur+0.2279*Omega_v*(1.+w0)));
+      b=pow(10, (-0.5642+0.5864*rneff+0.5716*rneff*rneff-1.5474*rncur+0.2279*Omega_v*(1.+w)));
       c=pow(10, 0.3698+2.0404*rneff+0.8161*rneff*rneff+0.5869*rncur);
       xmu=0.;
       xnu=pow(10,5.2105+3.6902*rneff);
@@ -2963,7 +2963,12 @@ int nonlinear_halofit(
 
       y=(rk/rknl);
       pk_halo = a*pow(y,f1*3.)/(1.+b*pow(y,f2)+pow(f3*c*y,3.-gam));
-      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*(0.977-18.015*(pba->Omega0_m-0.3)));
+      pk_halo=pk_halo/(1+xmu*pow(y,-1)+xnu*pow(y,-2))*(1+fnu*0.977);
+      /* until v2.9.2 pk_halo did contain an additional correction
+         coming from Simeon Bird: the last factor was
+         (1+fnu*(0.977-18.015*(pba->Omega0_m-0.3))). It seems that Bird
+         gave it up later in his CAMB implementation and thus we also
+         removed it. */
       // rk is in 1/Mpc, 47.48and 1.5 in Mpc**-2, so we need an h**2 here (Credits Antonio J. Cuesta)
       pk_linaa=pk_lin*(1+fnu*47.48*pow(rk/pba->h,2)/(1+1.5*pow(rk/pba->h,2)));
       pk_quasi=pk_lin*pow((1+pk_linaa),beta)/(1+pk_linaa*alpha)*exp(-y/4.0-pow(y,2)/8.0);

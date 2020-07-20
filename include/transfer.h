@@ -318,14 +318,14 @@ extern "C" {
                     struct transfers * ptr
                     );
 
-  int transfer_indices_of_transfers(
-                                    struct precision * ppr,
-                                    struct perturbs * ppt,
-                                    struct transfers * ptr,
-                                    double q_period,
-                                    double K,
-                                    int sgnK
-                                    );
+  int transfer_indices(
+                       struct precision * ppr,
+                       struct perturbs * ppt,
+                       struct transfers * ptr,
+                       double q_period,
+                       double K,
+                       int sgnK
+                       );
 
   int transfer_perturbation_copy_sources_and_nl_corrections(
                                                             struct perturbs * ppt,
