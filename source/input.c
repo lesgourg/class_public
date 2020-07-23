@@ -4523,7 +4523,8 @@ int input_read_parameters_lensing(struct file_content * pfc,
   /** Summary: */
 
   /** Define local variables */
-  int flag1;
+  int flag1,flag2;
+  double param1,param2;
   char string1[_ARGUMENT_LENGTH_MAX_];
 
   /** 1) Lensed spectra? */
@@ -4544,10 +4545,28 @@ int input_read_parameters_lensing(struct file_content * pfc,
   }
 
 
-  /** 2) Should the lensed spectra be rescaled (with amplitude, and tilt compared to pivot k-scale) */
+  /** 2) Should the lensed spectra be rescaled (either with just A_L, or otherwise with amplitude, and tilt and pivot scale in k space) */
   /* Read */
   if ((ppt->has_scalars == _TRUE_) && (ppt->has_cl_cmb_lensing_potential == _TRUE_)) {
-    class_read_double("lcmb_rescale",ptr->lcmb_rescale);
+
+    class_call(parser_read_double(pfc,"A_L",&param1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+    class_call(parser_read_double(pfc,"lcmb_rescale",&param2,&flag2,errmsg),
+               errmsg,
+               errmsg);
+
+    if ((flag1 == _TRUE_) && (flag2 == _TRUE_)) {
+      class_stop(errmsg,"You cannot pass both A_l and lcdmb_rescale, choose one");
+    }
+    else {
+      if (flag1 == _TRUE_) {
+        ptr->lcmb_rescale = sqrt(param1);
+      }
+      if (flag2 == _TRUE_) {
+        ptr->lcmb_rescale = param2;
+      }
+    }
     class_read_double("lcmb_tilt",ptr->lcmb_tilt);
     class_read_double("lcmb_pivot",ptr->lcmb_pivot);
   }
