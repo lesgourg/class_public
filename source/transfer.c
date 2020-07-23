@@ -96,7 +96,7 @@ int transfer_functions_at_q(
  * Main steps:
  *
  * - initialize all indices in the transfers structure
- *   and allocate all its arrays using transfer_indices_of_transfers().
+ *   and allocate all its arrays using transfer_indices().
  *
  * - for each thread (in case of parallel run), initialize the fields of a memory zone called the transfer_workspace with transfer_workspace_init()
  *
@@ -214,9 +214,9 @@ int transfer_init(
   q_period = 2.*_PI_/(tau0-tau_rec)*ptr->angular_rescaling;
 
   /** - initialize all indices in the transfers structure and
-      allocate all its arrays using transfer_indices_of_transfers() */
+      allocate all its arrays using transfer_indices() */
 
-  class_call(transfer_indices_of_transfers(ppr,ppt,ptr,q_period,pba->K,pba->sgnK),
+  class_call(transfer_indices(ppr,ppt,ptr,q_period,pba->K,pba->sgnK),
              ptr->error_message,
              ptr->error_message);
 
@@ -487,14 +487,14 @@ int transfer_free(
  * @return the error status
  */
 
-int transfer_indices_of_transfers(
-                                  struct precision * ppr,
-                                  struct perturbs * ppt,
-                                  struct transfers * ptr,
-                                  double q_period,
-                                  double K,
-                                  int sgnK
-                                  ) {
+int transfer_indices(
+                     struct precision * ppr,
+                     struct perturbs * ppt,
+                     struct transfers * ptr,
+                     double q_period,
+                     double K,
+                     int sgnK
+                     ) {
 
   /** Summary: */
 

@@ -3333,8 +3333,20 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
   /** - special steps if we want Halofit with wa_fld non-zero:
       so-called "Pk_equal method" of 0810.0190 and 1601.07230 */
-  if ((pnl->method == nl_halofit) && (pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
-    pnl->has_pk_eq = _TRUE_;
+
+  if (pnl->method == nl_halofit) {
+
+    class_call(parser_read_string(pfc,"pk_eq",&string1,&flag1,errmsg),
+               errmsg,
+               errmsg);
+
+    if ((flag1 == _TRUE_) && ((strstr(string1,"y") != NULL) || (strstr(string1,"Y") != NULL))) {
+
+      if ((pba->Omega0_fld != 0.) && (pba->wa_fld != 0.)){
+
+        pnl->has_pk_eq = _TRUE_;
+      }
+    }
   }
 
   return _SUCCESS_;

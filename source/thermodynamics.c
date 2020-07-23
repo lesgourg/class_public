@@ -3279,6 +3279,9 @@ int thermodynamics_calculate_opticals(
     /** - ---> compute g */
     g = dkappa * expmkappa;
 
+    /* for some very extreme models, in the last line, the exponential of a large negative number could go beyond the range covered by the "double" representation numbers, and be set to zero. To avoid a division by zero in the next steps, it is then better to set it to the minimum non-zero double (this has no impact on observables). */
+    if (g==0.) g=DBL_MIN;
+
     /** - ---> compute exp(-kappa) */
     pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_exp_m_kappa] = expmkappa;
 
@@ -3755,7 +3758,7 @@ int thermodynamics_calculate_recombination_quantities(
              pth->error_message,
              "The visibility function is not increasing at redshift _Z_REC_MAX_=%g, which is the value imposed in thermodynamics.h\n This implies that recombination must have already happened at a too early time.",_Z_REC_MAX_);
 
-  while (pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g] <
+  while (pth->thermodynamics_table[(index_tau+1)*pth->th_size+pth->index_th_g] <=
          pth->thermodynamics_table[index_tau*pth->th_size+pth->index_th_g]) {
     index_tau--;
   }
