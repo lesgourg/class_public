@@ -24,6 +24,7 @@ int class(
           struct transfers * ptr,
           struct spectra * psp,
           struct lensing * ple,
+          struct distortions * psd,
           struct output * pop,
           int l_max,
           double ** cl,
@@ -31,7 +32,7 @@ int class(
 
   int l;
 
-  class_call(input_init(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,pop,errmsg),
+  class_call(input_read_from_file(pfc,ppr,pba,pth,ppt,ptr,ppm,psp,pnl,ple,psd,pop,errmsg),
              errmsg,
              errmsg);
 
@@ -229,6 +230,7 @@ int main() {
     struct spectra sp;          /* for output spectra */
     struct nonlinear nl;        /* for non-linear spectra */
     struct lensing le;          /* for lensed spectra */
+    struct distortions sd;      /* for spectral distortions */
     struct output op;           /* for output files */
     ErrorMsg errmsg;            /* for error messages */
 
@@ -267,7 +269,7 @@ int main() {
         cl[i][l]=malloc(num_ct_max*sizeof(double));
 
       /* calls class and return the C_l's*/
-      if (class(&fc_local,&pr,&ba,&th,&pt,&pm,&nl,&tr,&sp,&le,&op,l_max,cl[i],errmsg) == _FAILURE_) {
+      if (class(&fc_local,&pr,&ba,&th,&pt,&pm,&nl,&tr,&sp,&le,&sd,&op,l_max,cl[i],errmsg) == _FAILURE_) {
         printf("\n\nError in class \n=>%s\n",errmsg);
         //return _FAILURE_;
       }
