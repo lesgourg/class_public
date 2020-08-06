@@ -40,6 +40,7 @@ class Net_ST2_Reio(Model):
         self.learning_rate = hp["learning_rate"]
 
     def forward(self, x):
+        self.k_min = x["k_min"][0]
         y = self.net_merge(torch.cat((
             self.net_cosmo(common.get_inputs_cosmo(x)),
             self.net_tau(x["tau_relative_to_reio"][:, None]),
@@ -60,7 +61,12 @@ class Net_ST2_Reio(Model):
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
 
     def required_inputs(self):
-        return set(common.INPUTS_COSMO + ["tau_relative_to_reio", "g_reio"])
+        return set(common.INPUTS_COSMO + ["k_min", "tau_relative_to_reio", "g_reio"])
+
+    def criterion(self):
+        def loss(prediction, truth):
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
+        return loss
 
     def tau_training(self):
         with h5.File(os.path.join(os.path.expandvars("$CLASSNET_DATA"), "tau_t0_reio.h5"), "r") as f:

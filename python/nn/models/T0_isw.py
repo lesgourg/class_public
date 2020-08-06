@@ -55,11 +55,17 @@ class Net_ST0_ISW(Model):
 
     def criterion(self):
         """Returns the loss function."""
+        # TODO loss weight?
         def loss(prediction, truth):
-            return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
 
+        # def loss(prediction, truth):
+        #     return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+        # return loss
+
     def forward(self, x):
+        self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = torch.stack((x["tau"], x["D"]), dim=1)
 
@@ -85,6 +91,7 @@ class Net_ST0_ISW(Model):
 
     def required_inputs(self):
         return set(common.INPUTS_COSMO + [
+            "k_min",
             "tau",
             "D",
             # "tau_relative_to_reco",

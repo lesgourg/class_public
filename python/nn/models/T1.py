@@ -38,6 +38,7 @@ class Net_ST1(Model):
 
 
     def forward(self, x):
+        self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = x["tau"][:, None]
 
@@ -72,6 +73,11 @@ class Net_ST1(Model):
     def epochs(self):
         return 40
 
+    def criterion(self):
+        def loss(prediction, truth):
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
+        return loss
+
     def optimizer(self):
 
         return torch.optim.Adam(self.parameters(), lr=self.learning_rate)
@@ -82,7 +88,7 @@ class Net_ST1(Model):
         #     ], lr=self.learning_rate)
 
     def required_inputs(self):
-        return set(common.INPUTS_COSMO + ["k", "r_s", "k_d", "tau", "e_kappa"])
+        return set(common.INPUTS_COSMO + ["k_min", "k", "r_s", "k_d", "tau", "e_kappa"])
 
     def tau_training(self):
         return None

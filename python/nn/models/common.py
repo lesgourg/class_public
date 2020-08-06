@@ -19,6 +19,17 @@ def get_inputs_tau_reio(x):
     fields = ("tau_relative_to_reio", "g_reio", "g_reio_prime", "e_kappa")
     return get_fields(x, fields)
 
-
 def get_inputs_tau_isw(x):
     return get_fields(x, ("tau", "e_kappa"))
+
+def mse_truncate(k, k_min):
+    mask = k >= k_min
+    def loss(prediction, truth):
+        return torch.mean((prediction - truth)[:, mask, ...]**2)
+    return loss
+
+def mse_rel_truncate(k, k_min):
+    mask = k >= k_min
+    def loss(prediction, truth):
+        return torch.mean(((prediction - truth) / truth)[:, mask, ...]**2)
+    return loss

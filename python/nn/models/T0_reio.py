@@ -91,6 +91,7 @@ class Net_ST0_Reio(Model):
         self.net_correction = CorrectionNet(n_inputs_cosmo, n_inputs_tau, n_k)
 
     def forward(self, x):
+        self.k_min = x["k_min"][0]
         linear_combination = self.net_basis(x)
         correction = self.net_correction(x)
 
@@ -110,6 +111,7 @@ class Net_ST0_Reio(Model):
 
     def required_inputs(self):
         return set(common.INPUTS_COSMO + [
+            "k_min",
             "tau_relative_to_reio",
             "e_kappa",
             "g_reio", "g_reio_prime",
@@ -123,6 +125,11 @@ class Net_ST0_Reio(Model):
 
     def source_functions(self):
         return ["t0_reio_no_isw"]
+
+    def criterion(self):
+        def loss(prediction, truth):
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
+        return loss
 
 if __name__ == "__main__":
     iface = interface.TrainingInterface(Net_ST0_Reio)

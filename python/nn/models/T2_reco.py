@@ -42,6 +42,7 @@ class Net_ST2_Reco(Model):
         self.learning_rate = hp["learning_rate"]
 
     def forward(self, x):
+        self.k_min = x["k_min"][0]
         inputs_cosmo = common.get_inputs_cosmo(x)
         inputs_tau = x["tau_relative_to_reco"][:, None]
 
@@ -106,8 +107,13 @@ class Net_ST2_Reco(Model):
             # {"params": self.net_correction.parameters()}
             ], lr=self.learning_rate)
 
+    def criterion(self):
+        def loss(prediction, truth):
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
+        return loss
+
     def required_inputs(self):
-        return set(common.INPUTS_COSMO + ["k", "r_s", "k_d", "tau_relative_to_reco", "g_reco"])
+        return set(common.INPUTS_COSMO + ["k_min", "k", "r_s", "k_d", "tau_relative_to_reco", "g_reco"])
 
     def tau_training(self):
         return None

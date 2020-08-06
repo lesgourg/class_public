@@ -319,6 +319,8 @@ class Net_ST0_Reco(Model):
         self.loss_weight = nn.Parameter(weight / weight.sum() * len(k), requires_grad=False)
 
     def forward(self, x):
+        self.k_min = x["k_min"][0]
+
         linear_combination = self.net_basis(x)
         correction = self.net_correction(x)
 
@@ -360,6 +362,13 @@ class Net_ST0_Reco(Model):
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
 
+        # import matplotlib
+        # matplotlib.use("agg")
+        # import matplotlib.pyplot as plt
+        # plt.figure()
+        # plt.semilogx(self.k.cpu().detach(), result[153])
+        # plt.savefig("/home/samaras/deleteme/t0_reco_slice.png", dpi=250)
+
         return result
         # return linear_combination + correction
 
@@ -379,6 +388,7 @@ class Net_ST0_Reco(Model):
 
     def required_inputs(self):
         return set(common.INPUTS_COSMO + [
+            "k_min",
             "tau_relative_to_reco", "e_kappa",
             "r_s", "k_d", "tau_relative_to_reco", "g_reco", "g_reco_prime"
         ])
@@ -405,6 +415,10 @@ class Net_ST0_Reco(Model):
 
     def criterion(self):
         """Returns the loss function."""
+        # TODO self.loss_weight?
         def loss(prediction, truth):
-            return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
+        # def loss(prediction, truth):
+        #     return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+        # return loss

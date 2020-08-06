@@ -325,6 +325,10 @@ class Approximations:
         return g_reco
 
     @graph.register
+    def raw_tau(tau):
+        return tau
+
+    @graph.register
     def raw_g_reco_prime(g_reco_prime):
         return g_reco_prime
 

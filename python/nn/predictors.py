@@ -87,26 +87,48 @@ class BasePredictor:
             return 0
 
     def predict(self, quantity, tau, provider=None, cache=None):
+        """
+        Get the network prediction for the given `quantity` and `tau` array.
+        The result will be sampled on the `k` array obtained from `self.get_k()` and
+        thus have the shape `(len(self.get_k()), len(tau))`
+        """
         # TODO re-add the code that you moron deleted
         result, raw_inputs = self._predict(quantity, tau, provider, cache)
 
         # Here, we should check that in our sampling, the lowest k value
         # is not below cosmo.k_min(), otherwise we might give physically meaningless
         # data to CLASS
-        # This is only relevant in scenarios where Omega_k != 0; those put a lower bound
-        # on k_min
         k = self.k
         cosmo = self.cosmo
         k_min_class = cosmo.k_min()
 
-        if k_min_class > k[0]:
-            k_idx = np.searchsorted(k, k_min_class) + 1
-            k_slice = k[:k_idx]
-            spline = scipy.interpolate.RectBivariateSpline(k[:k_idx], tau, result[:k_idx, :], kx=1, ky=1)
-            row = spline(np.array([k_min_class]), tau)
-            result_new = np.insert(result[k_idx:, :], 0, row, 0)
+        # result has shape (len(k), len(tau))
 
-            result = result_new
+        if k_min_class > k[0]:
+            k_idx = np.searchsorted(k, k_min_class, side="right")
+            assert k_idx > 0
+            assert k_min_class < k[k_idx]
+            assert k_min_class >= k[k_idx - 1]
+
+            # k_spline = np.array([k[k_idx -1], k[k_idx]])
+            # spline = scipy.interpolate.RectBivariateSpline(k_spline, tau, result[k_idx - 1:k_idx + 1], kx=1, ky=1)
+            # interpolated = spline(np.array([k_min_class]), tau)
+            # # add interpolated row (for k=k_min_class) at beginning
+            # # of result array along k axis (0)
+
+            result = np.insert(result[k_idx:], 0, result[k_idx - 1], 0)
+
+            # TODO is this okay for delta_m?
+
+            # import ipdb; ipdb.set_trace()
+            # # Fit y = a * exp(b * k) between the two points
+            # # surrounding k_min_class
+            # b = np.log(result[k_idx] / result[k_idx - 1]) / (k[k_idx] - k[k_idx - 1])
+            # a = result[k_idx] / np.exp(b * k[k_idx])
+            # import ipdb; ipdb.set_trace()
+            # # Get the value of `result` at `k_min_class`
+            # result_at_k_min = a * np.exp(b * k_min_class)
+            # result = np.insert(result[k_idx:], 0, result_at_k_min, 0)
 
         # if add_k0:
             # raw_inputs_only_g = cache.get_raw_inputs(["g"])
@@ -132,23 +154,23 @@ class BasePredictor:
         """
         raise NotImplementedError
 
-    def get_k(self, k_min=5e-6):
+    def get_k(self):
+        # return self.k
+        # TODO ??????
         k = self.k
         k_min_class = self.cosmo.k_min()
+
         if k_min_class > k[0]:
-            k_idx = np.searchsorted(k, k_min_class) + 1
+            k_idx = np.searchsorted(k, k_min_class)
+            assert k_idx > 0
+            assert k_min_class <= k[k_idx]
+            assert k_min_class > k[k_idx - 1]
             k_new = np.insert(k[k_idx:], 0, k_min_class)
             return k_new
         else:
             return self.k
 
-        # assert False
-        # if add_k0:
-        #     return np.insert(self.k, 0, k_min)
-        # else:
-        #     return self.k
-
-    def predict_many(self, quantities, tau, use_multiprocessing=False):
+    def predict_many(self, quantities, tau):
         """
         Predict the source functions whose names are given as the list `quantities`.
         This will return a numpy array of shape (len(quantities), len(k) + 1, len(tau)).
@@ -156,7 +178,6 @@ class BasePredictor:
         row to the S array corresponding to k -> 0.
         This is needed so that CLASS does not have to extrapolate for low k.
         """
-
         # TODO use self.provider?
         provider = CLASSDataProvider(self.cosmo)
 
@@ -170,26 +191,18 @@ class BasePredictor:
 
         self.time_input_transformation += perf_counter() - start
 
-        # Perform predictions for all requested quantities
-        if use_multiprocessing:
-            raise NotImplementedError("not yet working; CLASS serialization?")
-            with multiprocessing.Pool(min(len(quantities), os.cpu_count())) as pool:
-                function = functools.partial(self.predict, cosmo=cosmo, tau=tau)
-                predictions = {qty: value for qty, value in zip(quantities, pool.map(function, quantities))}
-        else:
-            predictions = {qty: self.predict(qty, tau, provider, cache=cache) for qty in quantities}
+        predictions = {qty: self.predict(qty, tau, provider, cache=cache) for qty in quantities}
 
-        k_len = len(self.get_k())
-        result = np.zeros((len(quantities), k_len, len(tau)))
+        k = self.get_k()
+        k_len = len(k)
+        result = np.zeros((len(quantities), len(k), len(tau)))
 
         # Store predictions in array
         for i, quantity in enumerate(quantities):
             S = predictions[quantity]
             result[i, :, :] = S
 
-        # Add k close to 0, if requested
-        k_return = self.get_k()
-        return k_return, result
+        return k, result
 
     def predict_all(self, tau):
         return self.predict_many(["t0", "t1", "t2", "phi_plus_psi", "delta_m"], tau)

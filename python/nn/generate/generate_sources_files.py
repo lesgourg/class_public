@@ -178,14 +178,16 @@ def generate_source_function(args):
 
     thermos_NN = cosmo.get_thermos_for_NN()
 
-    thermodynamic_parameters = cosmo.get_current_derived_parameters(['tau_rec',
-                                                                        'rs_rec',
-                                                                        'ds_rec',
-                                                                        'ra_rec',
-                                                                        'da_rec',
-                                                                        'rd_rec',
-                                                                        'z_reio'
-                                                                        ])
+    thermodynamic_parameters = cosmo.get_current_derived_parameters([
+        'z_d',
+        'tau_rec',
+        'rs_rec',
+        'ds_rec',
+        'ra_rec',
+        'da_rec',
+        'rd_rec',
+        'z_reio'
+    ])
 
     file.create_dataset('thermos/tau_reio',data=cosmo.tau_of_z(thermodynamic_parameters['z_reio']))
     file.create_dataset('thermos/tau_rec',data=thermodynamic_parameters['tau_rec'])
@@ -194,6 +196,7 @@ def generate_source_function(args):
     file.create_dataset('thermos/ra_rec',data=thermodynamic_parameters['ra_rec'])
     file.create_dataset('thermos/da_rec',data=thermodynamic_parameters['da_rec'])
     file.create_dataset('thermos/rd_rec',data=thermodynamic_parameters['rd_rec'])
+    file.create_dataset('thermos/z_d',data=thermodynamic_parameters['z_d'])
 
     file.create_dataset('thermos/rs_drag',data=cosmo.rs_drag())
 

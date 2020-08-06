@@ -44,6 +44,53 @@ class Generator:
             self.workspace.validation_data, processes=processes
         )
 
+    def generate_k_array(self):
+        import glob
+        import numpy as np
+        import h5py as h5
+        from tqdm import tqdm
+        import matplotlib.pyplot as plt
+
+        files = glob.glob(str(self.workspace.training_data / "sources_*.h5"))
+
+        print("Creating standard k array...")
+        ks = []
+        for fn in tqdm(files):
+            with h5.File(fn, "r") as f:
+                k = f["sampling/k"][()]
+                ks.append(k)
+
+        k_mins = np.array([k[0] for k in ks])
+        k_maxs = np.array([k[-1] for k in ks])
+        extra = np.geomspace(k_mins.min(), k_mins.max(), 30)
+
+        k_longest = max(ks, key=len)
+        k = np.unique(np.sort(np.concatenate((extra, k_longest, np.array([k_maxs.max()])))))
+
+        print("created k sampling of {} points with k.min() = {}, k.max() = {}.".format(
+            len(k), k[0], k[-1]))
+        print("saving to {}.".format(self.workspace.k))
+        np.save(self.workspace.data / "k.npy", k)
+
+        # create a histogram
+        fig, ax = plt.subplots()
+        bins = np.geomspace(k[0], k[-1], 50)
+        ax.hist(k, bins=bins, histtype="step")
+        ax.set_xscale("log")
+        ax.set_xlabel("$k [Mpc^{-1}]$")
+        fig.savefig(self.workspace.data / "k_hist.png", dpi=200)
+
+        # create a scatter plot
+        fig, ax = plt.subplots()
+        ax.scatter(k, np.zeros_like(k), label="k_std")
+        ax.scatter(k_mins, 1 + np.zeros_like(k_mins), label="k_mins")
+        ax.set_xlim(1e-7, 2e-4)
+        ax.set_xscale("log")
+        ax.set_xlabel("$k [Mpc^{-1}]$")
+        fig.savefig(self.workspace.data / "k_scatter.png", dpi=200)
+
+
+
     def write_manifest(self, fixed, varying_names):
         # Save the manifest declaring the fixed and variable inputs
         # the data has been generated for

@@ -29,6 +29,7 @@ class SourceFileAdapter:
         container.scalars.tau_eisw_lisw_120 = background["tau_eisw_lisw_120"]
 
         container.scalars.rs_drag = thermos["rs_drag"][()]
+        container.scalars.z_d = thermos["z_d"][()]
 
         # values at equality
         container.scalars.a_eq = thermos['a_eq'][()]
@@ -40,6 +41,7 @@ class SourceFileAdapter:
 
         container.background.r_s = thermos["r_s"][()]
         container.background.D = thermos["D"][()]
+        container.background.H = thermos["H"][()]
 
         container.background.rho_b = background["rho_b"]
         container.background.rho_g = background["rho_g"]
@@ -115,6 +117,7 @@ class CLASSAdapter:
         container.tau_th = thermos["tau"]
 
         thermos_params = cosmo.get_current_derived_parameters([
+            "z_d",
             "tau_rec",
             "z_reio",
             "rs_rec",
@@ -141,6 +144,7 @@ class CLASSAdapter:
         container.scalars.H_eq = H_eq
 
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
+        container.scalars.rs_drag = self.cosmo.rs_drag_nn()
 
         bg_nn = cosmo.get_backgrounds_for_NN()
 
@@ -155,6 +159,7 @@ class CLASSAdapter:
         container.background.rho_b = rho_b
         container.background.rho_g = rho_g
         container.background.D = bg_nn["D"]
+        container.background.H = bg_nn["H"]
 
         container.thermo.e_kappa = thermos["e_kappa"]
         container.thermo.r_d = thermos["r_d"]

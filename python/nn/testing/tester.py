@@ -152,22 +152,37 @@ class Tester:
     def k_pk(self, cosmo):
         k_min = cosmo.k_min()
         k = self.k[self.k > k_min]
+        # TODO don't hardcode limit?
         k = np.insert(k, 0, k_min)
+        k = k[k < 100]
         return k
 
     def run_class(self, params):
         """
         Run CLASS for the given `params` and return the Cls and mPk.
         """
+        import time
         cosmo = Class()
         cosmo.set(params)
-        cosmo.compute()
+        start = time.perf_counter()
+        report = {}
+        cosmo.compute(performance_report=report)
+        end = time.perf_counter()
+        elapsed = end - start
+        print("running class took {}s [parameters: {}]".format(elapsed, params))
+        print("-"*80)
+        from pprint import pprint
+        pprint(report)
+        print("-"*80)
         cls = truncate(cosmo.raw_cl())
         k_pk = self.k_pk(cosmo)
-        # TODO maybe insert this check also into cosmo.pk?
         assert np.all(k_pk >= cosmo.k_min())
         pk = np.vectorize(cosmo.pk)(k_pk, 0.0)
+
+        sources, k, tau = cosmo.get_sources()
+
         cosmo.struct_cleanup()
+
 
         return cls, k_pk, pk
 
@@ -220,7 +235,6 @@ class Tester:
         cosmic_variance = np.sqrt(2 / (2 * np.minimum(ell, 2000) + 1))
         tt_relerr_cv = tt_relerr / cosmic_variance
         self.figs["tt_cv"][1].semilogx(ell, tt_relerr_cv, **LINESTYLE)
-        self.figs["tt_cv"][1].set_ylim(-0.05, 0.05)
 
         # TE + EE
         for q in ("ee", "te"):
@@ -230,8 +244,6 @@ class Tester:
             self.figs[q][1].semilogx(ell, ell * (ell + 1) * cl_true[q] / 1000.0, **LINESTYLE_2)
             self.figs[q][1].semilogx(ell, ell * (ell + 1) * err, **LINESTYLE)
             y = ell * (ell + 1) * cl_true[q] / 100.0
-            lim = np.abs(y).max() * 1.2
-            self.figs[q][1].set_ylim(-lim, lim)
 
         # P(k)
         pk_relerr = (pk_nn - pk_true) / pk_true

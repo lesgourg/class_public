@@ -298,7 +298,6 @@ class CanonicalInputNormalizer(Normalizer, InputTransformer):
 
     def _is_already_normalized(self, key):
         return key.startswith("raw") or key in (
-            "delta_m",
                 "rho_b",
                 "rho_g",
                 "R",
@@ -322,6 +321,11 @@ class CanonicalInputNormalizer(Normalizer, InputTransformer):
                 "phi_prime",
                 "psi",
                 "psi_minus_phi",
+            "z",
+            "a_eq",
+            "k_eq",
+            "H",
+            "z_d",
                 )
 
     def _should_normalize_by_maximum(self, key):
@@ -360,7 +364,11 @@ class CanonicalInputNormalizer(Normalizer, InputTransformer):
 
     def _normalize_cosmological_parameter(self, key, value):
         # _, key = key.split("/")
-        result = (value - self.minima[key]) / (self.maxima[key] - self.minima[key])
+        diff = self.maxima[key] - self.minima[key]
+        if diff < 1e-10:
+            return value
+        else:
+            result = (value - self.minima[key]) / diff
         # shift from range (0, 1) to (-1, 1)
         result = 2 * result - 1
         return result

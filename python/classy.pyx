@@ -531,7 +531,8 @@ cdef class Class:
             # Allocate memory for ALL source functions (since transfer.c iterates over them)
 
             if self.use_nn() and not self.nn_cheat_enabled():
-              self.pt.perform_NN_skip = _TRUE_
+                print("Using neural networks; skipping regular perturbation module.")
+                self.pt.perform_NN_skip = _TRUE_
 
             if perturb_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
@@ -2540,14 +2541,6 @@ cdef class Class:
             double [:,:] tmparray = np.zeros((k_size, tau_size))
             double [:] k_array = np.zeros(k_size)
             double [:] tau_array = np.zeros(tau_size)
-
-        # names = np.array([
-        #     't0','t0_sw', 't0_isw',
-        #     't1',
-        #     't2','t2_reco', 't2_reio',
-        #     'p',
-        #     'delta_m','delta_g','theta_m','phi','phi_plus_psi','phi_prime','psi'
-        #     ])
 
         names = []
 

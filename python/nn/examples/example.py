@@ -43,14 +43,25 @@ FIXED_TRAINING_ONLY = {
 # WORKSPACE_DIR = "/scratch/work/samaras/delete_me/example/"
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
+# those are the ones with Omega_k set to 0
+# generations = {
+#     "Net_ST0_Reco":     9,
+#     "Net_ST0_Reio":     5,
+#     "Net_ST0_ISW":      5,
+#     "Net_ST1":          5,
+#     "Net_ST2_Reco":     5,
+#     "Net_ST2_Reio":     5,
+#     "Net_phi_plus_psi": 10
+# }
+
 generations = {
-    "Net_ST0_Reco":     8,
-    "Net_ST0_Reio":     4,
-    "Net_ST0_ISW":      4,
-    "Net_ST1":          4,
-    "Net_ST2_Reco":     4,
-    "Net_ST2_Reio":     4,
-    "Net_phi_plus_psi": 8
+    "Net_ST0_Reco":     11,
+    "Net_ST0_Reio":      7,
+    "Net_ST0_ISW":       7,
+    "Net_ST1":           7,
+    "Net_ST2_Reco":      7,
+    "Net_ST2_Reio":      7,
+    "Net_phi_plus_psi": 13
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -61,7 +72,7 @@ domain = EllipsoidDomain(**domain_data)
 # import ipdb; ipdb.set_trace()
 
 training, validation = workspace.loader().cosmological_parameters()
-print({k: v[0] for k, v in validation.items()})
+
 
 # # Generating training data
 # workspace.generator().generate_data_for(
@@ -69,13 +80,12 @@ print({k: v[0] for k, v in validation.items()})
 #     training=training,
 #     validation=validation,
 #     fixed_training_only=FIXED_TRAINING_ONLY,
-#     processes=8)
-
+#     processes=9)
+# workspace.generator().generate_k_array()
 # import sys; sys.exit(0)
 
 # workspace.generator().write_manifest(FIXED, training.keys())
 
-# TODO generate k array
 # workspace.generator().generate_data(FIXED, DOMAIN, training=5, validation=2, processes=8)
 # workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=2000, processes=18)
 
@@ -94,23 +104,24 @@ print({k: v[0] for k, v in validation.items()})
 # workspace.trainer().train_model(Net_ST0_ISW, workers=18)
 # import sys; sys.exit(0)
 
-## Run CLASS for n cosmologies with and without NNs and produce error plots
+# ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
 tester.test(count=500)
-
-# workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
 plotter = workspace.plotter()
 plotter.plot_source_functions()
 plotter.plot_training_histories()
 # plotter.plot_slice("t0_isw")
 
+import sys; sys.exit(0)
+# workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
+
 # plotter.plot_training_histories()
 
 # Compute Cl's with all source functions computed by CLASS _except_ one
-if False:
+if True:
     ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
     for i, select in enumerate(ALL_SOURCES):
         cheat = set(ALL_SOURCES) - set([select])
-        workspace.tester().test(1000, prefix=f"only_{select}", cheat=cheat)
+        workspace.tester().test(100, prefix=f"only_{select}", cheat=cheat)
 
