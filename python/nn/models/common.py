@@ -22,14 +22,32 @@ def get_inputs_tau_reio(x):
 def get_inputs_tau_isw(x):
     return get_fields(x, ("tau", "e_kappa"))
 
-def mse_truncate(k, k_min):
+########################## LOSS FUNCTIONS ####################################
+
+def mse_truncate_(k, k_min):
     mask = k >= k_min
     def loss(prediction, truth):
         return torch.mean((prediction - truth)[:, mask, ...]**2)
     return loss
 
-def mse_rel_truncate(k, k_min):
+def mse_():
+    def loss(prediction, truth):
+        return torch.mean((prediction - truth)**2)
+    return loss
+
+def mse_truncate(k, k_min):
+    return mse_()
+
+def mse_rel_():
+    def loss(prediction, truth):
+        return torch.mean(((prediction - truth) / truth)**2)
+    return loss
+
+def mse_rel_truncate_(k, k_min):
     mask = k >= k_min
     def loss(prediction, truth):
         return torch.mean(((prediction - truth) / truth)[:, mask, ...]**2)
     return loss
+
+def mse_rel_truncate(k, k_min):
+    return mse_rel_()

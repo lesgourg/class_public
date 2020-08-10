@@ -56,13 +56,13 @@ class Net_ST0_ISW(Model):
     def criterion(self):
         """Returns the loss function."""
         # TODO loss weight?
-        def loss(prediction, truth):
-            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
-        return loss
-
         # def loss(prediction, truth):
-        #     return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+        #     return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         # return loss
+
+        def loss(prediction, truth):
+            return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+        return loss
 
     def forward(self, x):
         self.k_min = x["k_min"][0]
