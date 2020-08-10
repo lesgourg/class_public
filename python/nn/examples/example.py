@@ -55,13 +55,13 @@ WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 # }
 
 generations = {
-    "Net_ST0_Reco":     11,
-    "Net_ST0_Reio":      7,
-    "Net_ST0_ISW":       7,
-    "Net_ST1":           7,
-    "Net_ST2_Reco":      7,
-    "Net_ST2_Reio":      7,
-    "Net_phi_plus_psi": 13
+    "Net_ST0_Reco":     12,
+    "Net_ST0_Reio":      8,
+    "Net_ST0_ISW":       8,
+    "Net_ST1":           8,
+    "Net_ST2_Reco":      8,
+    "Net_ST2_Reio":      8,
+    "Net_phi_plus_psi": 14
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -90,7 +90,7 @@ training, validation = workspace.loader().cosmological_parameters()
 # workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=2000, processes=18)
 
 # Training: any subset of models can be trained at once
-# workspace.trainer().train_all_models(workers=36)
+workspace.trainer().train_all_models(workers=36)
 
 # from ..models import Net_ST0_Reco
 # workspace.trainer().train_model(Net_ST0_Reco, workers=18)
