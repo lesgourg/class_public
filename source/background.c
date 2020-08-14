@@ -272,7 +272,7 @@ int background_functions(
   double a;
   /* scalar field quantities */
   double phi, phi_prime;
-  /* Since we only know a_prime_over_a after we have rho_tot, 
+  /* Since we only know a_prime_over_a after we have rho_tot,
      it is not possible to simply sum up p_tot_prime directly.
      Instead we sum up dp_dloga = p_prime/a_prime_over_a. The formula is
      p_prime = a_prime_over_a * dp_dloga = a_prime_over_a * Sum [ (w_prime/a_prime_over_a -3(1+w)w)rho].
@@ -387,7 +387,7 @@ int background_functions(
       pvecback[pba->index_bg_pseudo_p_ncdm1+n_ncdm] = pseudo_p_ncdm;
       /** See e.g. Eq. A6 in 1811.00904. */
       dp_dloga += (pseudo_p_ncdm - 5*p_ncdm);
-      
+
       /* (3 p_ncdm1) is the "relativistic" contribution to rho_ncdm1 */
       rho_r += 3.* p_ncdm;
 
@@ -443,7 +443,7 @@ int background_functions(
 
   /* Total energy density*/
   pvecback[pba->index_bg_rho_tot] = rho_tot;
-  
+
   /* Total pressure */
   pvecback[pba->index_bg_p_tot] = p_tot;
 
@@ -2372,6 +2372,12 @@ int background_derivs(
   rho_M = pvecback[pba->index_bg_rho_b];
   if (pba->has_cdm)
     rho_M += pvecback[pba->index_bg_rho_cdm];
+  if (pba->has_ncdm) {
+      int n_ncdm;
+      for(n_ncdm=0; n_ncdm<pba->N_ncdm; n_ncdm++) {
+          rho_M += pvecback[pba->index_bg_rho_ncdm1+n_ncdm];
+      }
+  }
   dy[pba->index_bi_D] = y[pba->index_bi_D_prime];
   dy[pba->index_bi_D_prime] = -a*H*y[pba->index_bi_D_prime] + 1.5*a*a*rho_M*y[pba->index_bi_D];
 
