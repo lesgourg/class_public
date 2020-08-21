@@ -158,7 +158,9 @@ class Net_phi_plus_psi(Model):
         # perform correction for N_ur != 0
         F = (1 + 0.2271 * (3.046 + N_ur)) / (1 + 0.2271 * 3.046)
 
-        h = x["raw_cosmos/h"][0] / torch.sqrt(F)
+        H0 = x["raw_cosmos/H0"][0]
+        h = (H0 / 100) / torch.sqrt(F)
+        # h = x["raw_cosmos/h"][0] / torch.sqrt(F)
         Omega_b = x["raw_cosmos/omega_b"][0] / h**2 / F
         Omega_ncdm = x["raw_cosmos/omega_ncdm"][0] / h**2 / F
         Omega_cdm = x["raw_cosmos/omega_cdm"][0] / h**2 / F
@@ -265,8 +267,7 @@ class Net_phi_plus_psi(Model):
 
             iterations += 1
 
-            return torch.mean(((prediction - truth) / truth)**2)
-            # TODO the stuff below is not necessary, i think
+            # return torch.mean(((prediction - truth) / truth)**2)
 
             # Since in cases with Omega_k != 0, we don't go as low as
             # self.k[0], we need to treat those cases specially.
@@ -289,23 +290,35 @@ class Net_phi_plus_psi(Model):
             # the value for self.k[0] will be incorrect but will be correct
             # for self.k_min.
 
-            import ipdb; ipdb.set_trace()
-            k_eff = self.k[self.k >= self.k_min]
-            k_eff = torch.insert(k_eff, 0, self.k_min, 1)
+            idx_k_min = torch.searchsorted(self.k, self.k_min)
+
+            p_phipsi = prediction[:, : 0]
+            p_dm     = prediction[:, :, 1]
+
+            # interpolation parameter
+            x = (k_min - self.k[idx_k_min - 1]) / (self.k[idx_k_min] - self.k[idx_k_min - 1])
+            # interpolate predicted value of delta_m at k_min between the two points
+            # that surround k_min
+            p_dm_log = torch.log(-p_dm)
+            p_dm_log_interp = x * p_dm_log[:, idx_k_min - 1] + (1 - x) * p_dm_log[:, idx_k_min]
+            p_dm_interp = -torch.exp(p_dm_log_interp)
+
+            # similarly for phi+psi (albeit without log)
+            p_phipsi_interp = x * p_phipsi[:, idx_k_min - 1] + (1 - x) * p_phipsi[:, idx_k_min]
 
             prediction_eff = prediction[self.k >= self.k_min]
-            prediction_eff = torch.insert(prediction, 0, prediction[:, 0], 1)
+            prediction_eff = torch.insert(prediction, 0, torch.stack((p_phipsi_interp, p_dm_interp), axis=1), 1)
 
             truth_eff = truth[self.k >= self.k_min]
-            truth_eff = torch.insert(truth_eff, 0, truth[:, 0], 1)
+            # in the training data, the value for k_min can be found at [idx_k_min - 1] because
+            # the preprocessing does nearest neighbor extrapolation
+            truth_eff = torch.insert(truth_eff, 0, truth[:, idx_k_min - 1], 1)
 
-            # return torch.mean((prediction - truth)**2)
-            mask = self.k > self.k_min
-            weight = torch.ones((truth.shape[0], 2)).to(truth.device)
+            return torch.mean(((prediction_eff - truth_eff) / truth_eff)**2)
             # weight[-1] = 50
             # return torch.mean(weight[:, None, :] * mask[None, :, None] * (prediction - truth)**2)
             # return torch.mean(weight[:, None, :] * mask[None, :, None] * ((prediction - truth) / truth)**2)
-            return torch.mean(weight[:, None, :] * ((prediction - truth) / truth)[:, mask, :]**2)
+            # return torch.mean(((prediction - truth) / truth)[:, mask, :]**2)
         return loss
 
     def cosmo_inputs(self):
@@ -319,7 +332,7 @@ class Net_phi_plus_psi(Model):
             "k_min",
             "raw_tau",
             "a_eq",
-            "raw_cosmos/h", "raw_cosmos/omega_b", "raw_cosmos/omega_cdm",
+            "raw_cosmos/H0", "raw_cosmos/omega_b", "raw_cosmos/omega_cdm",
             "raw_cosmos/N_ur", "raw_cosmos/omega_ncdm", "raw_cosmos/Omega_k",
             "D",
             "tau", "k_eq",
