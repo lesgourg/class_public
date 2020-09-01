@@ -526,8 +526,6 @@ int spectra_indices(
       psp->has_pd = _FALSE_;
     }
 
-    psp->has_td = _FALSE_;
-
     if ((ppt->has_cl_lensing_potential == _TRUE_) && (ppt->has_scalars == _TRUE_)) {
       psp->has_ll = _TRUE_;
       psp->index_ct_ll=index_ct;
