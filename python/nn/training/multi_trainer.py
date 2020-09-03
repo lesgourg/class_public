@@ -133,13 +133,20 @@ class MultiTrainer:
                     # Also advance the LR scheduler
                     container.lr_scheduler.step()
 
+                self.save_models(checkpoint=epoch)
+
         # Finally, save the models.
+        self.save_models()
+
+    def save_models(self, checkpoint=None):
         for cont in self.nets:
             net = cont.net
-            path = self.workspace.model_path(net.name())
+            if checkpoint is None:
+                path = self.workspace.model_path(net.name())
+            else:
+                path = self.workspace.model_path_checkpoint(net.name(), checkpoint)
             print("Saving model {} to {}".format(net.name(), path))
             torch.save(net.state_dict(), path)
-
 
     def run_epoch(self, phase, loader, epoch, print_interval=100):
         timer = Timer()

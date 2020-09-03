@@ -197,6 +197,8 @@ cdef extern from "class.h":
 
         double eisw_lisw_split_z
 
+        double k_min
+        double k_max
         double ** k
         double * tau_sampling
         int * k_size
@@ -207,6 +209,9 @@ cdef extern from "class.h":
 
     cdef struct transfers:
         ErrorMsg error_message
+
+        int q_size
+        double * q
 
     cdef struct primordial:
         ErrorMsg error_message

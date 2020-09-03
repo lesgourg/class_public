@@ -11,14 +11,14 @@ def fmt_colorbar(x, pos):
     return r'${} \times 10^{{{}}}$'.format(a, b)
 
 
-def plot_source_function(ax, k, tau, S, tau_rec=None, levels=256, cmap="RdBu_r", 
-        title=None, title_in_plot=True, 
+def plot_source_function(ax, k, tau, S, tau_rec=None, levels=256, cmap="RdBu_r",
+        title=None, title_in_plot=True,
         use_contourf=True,
         show_xlabel=True, show_ylabel=True,
         show_colorbar=True,
         return_cont=False,
         vmax=None):
-    # Find maximum absolute value of S in order to center the center of the 
+    # Find maximum absolute value of S in order to center the center of the
     # color scale (e.g. white) to a value of S = 0
     vmax = vmax if vmax is not None else np.max(np.abs(S))
     # Prepare tau for plotting, i.e. renormalize it w.r.t. to tau_rec, if given
@@ -28,22 +28,22 @@ def plot_source_function(ax, k, tau, S, tau_rec=None, levels=256, cmap="RdBu_r",
     ax.set_xscale("log")
     ax.set_yscale("log")
 
-    # Perform actual plotting; either using contourf or imshow, depending on 
+    # Perform actual plotting; either using contourf or imshow, depending on
     # given argument `use_contourf`
     if use_contourf:
         contours = ax.contourf(k, tau_plot, S.transpose(), levels=levels, cmap=cmap, vmin=-vmax, vmax=vmax)
         ax.invert_yaxis()
     else:
-        contours = ax.imshow(S.transpose(), 
-                vmin=-vmax, vmax=vmax, 
-                cmap=cmap, 
-                origin="upper", 
+        contours = ax.imshow(S.transpose(),
+                vmin=-vmax, vmax=vmax,
+                cmap=cmap,
+                origin="upper",
                 aspect="auto",
                 extent=[k.min(), k.max(), tau_plot.min(), tau_plot.max()])
 
     # Axis labels
     if show_xlabel:
-        ax.set_xlabel("$k [{Mpc}^{-1}$]")
+        ax.set_xlabel("$k$ [Mpc${}^{-1}$]")
         ax.xaxis.set_label_position('top')
         ax.xaxis.tick_top()
 
@@ -51,7 +51,7 @@ def plot_source_function(ax, k, tau, S, tau_rec=None, levels=256, cmap="RdBu_r",
         if tau_rec is None:
             ax.set_ylabel("$\\tau$ [Mpc${}^{-1}$]")
         else:
-            ax.set_ylabel("$\\tau / \\tau_{rec}$")
+            ax.set_ylabel("$\\tau / \\tau_\\mathrm{rec}$")
     if title:
         if not title_in_plot:
             ax.set_title(title)
@@ -61,10 +61,11 @@ def plot_source_function(ax, k, tau, S, tau_rec=None, levels=256, cmap="RdBu_r",
     if show_colorbar:
         # Adjust colorbar to show exponential format
         # colorbar_formatter = ticker.FuncFormatter(fmt_colorbar)
-        # cb = plt.colorbar(contours, ax=ax, format=colorbar_formatter)
-        cb = plt.colorbar(contours, ax=ax)
+        colorbar_formatter = ticker.ScalarFormatter(useMathText=True)
+        cb = plt.colorbar(contours, ax=ax, format=colorbar_formatter)
+        # cb = plt.colorbar(contours, ax=ax)
         cb.formatter.set_powerlimits((0, 0))
-        cb.ax.yaxis.set_offset_position('left')                         
+        cb.ax.yaxis.set_offset_position('left')
         cb.update_ticks()
 
     if return_cont:
@@ -73,12 +74,12 @@ def plot_source_function(ax, k, tau, S, tau_rec=None, levels=256, cmap="RdBu_r",
         return ax
 
 def plot_source_functions(
-        k, tau, sources, 
-        k_nn, tau_nn, sources_nn, 
+        k, tau, sources,
+        k_nn, tau_nn, sources_nn,
         tau_rec=None,
-        size=3, 
+        size=3,
         levels=50,
-        selection=None, labels=None, 
+        selection=None, labels=None,
         transpose_plot=False,
         plot_losses=False,
         losses=None,
@@ -136,7 +137,7 @@ def plot_source_functions(
 
     figsize = (ncols * (1.8 * size), nrows * size)
     fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
-    
+
     proxy = axes.T if transpose_plot else axes
 
 
@@ -149,10 +150,10 @@ def plot_source_functions(
             show_ylabel = i == 0
 
         plot_source_function(
-                proxy[0, i], 
-                k, tau, sources[fun], 
-                tau_rec=tau_rec, 
-                levels=levels, 
+                proxy[0, i],
+                k, tau, sources[fun],
+                tau_rec=tau_rec,
+                levels=levels,
                 show_xlabel=show_xlabel, show_ylabel=show_ylabel,
                 title=label % "CLASS")
 
@@ -162,22 +163,22 @@ def plot_source_functions(
             show_xlabel = False
 
         plot_source_function(
-                proxy[1, i], 
-                k_nn, tau_nn, sources_nn[fun], 
-                tau_rec=tau_rec, 
-                levels=levels, 
+                proxy[1, i],
+                k_nn, tau_nn, sources_nn[fun],
+                tau_rec=tau_rec,
+                levels=levels,
                 show_xlabel=show_xlabel, show_ylabel=show_ylabel,
                 title=label % "net")
-        
+
         spline = interp2d(tau, k, sources[fun])
         source_on_nn_grid = spline(tau_nn, k_nn)
         diff = sources_nn[fun] - source_on_nn_grid
 
         plot_source_function(
-                proxy[2, i], 
-                k_nn, tau_nn, diff, 
-                tau_rec=tau_rec, 
-                levels=levels, 
+                proxy[2, i],
+                k_nn, tau_nn, diff,
+                tau_rec=tau_rec,
+                levels=levels,
                 show_xlabel=show_xlabel, show_ylabel=show_ylabel,
                 title="$\\Delta$")
 

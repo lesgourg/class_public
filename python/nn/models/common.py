@@ -4,7 +4,7 @@ import torch
 def get_fields(x, fields):
     return torch.stack([x[s] for s in fields], 1)
 
-cosmo_names = ["omega_b", "omega_cdm", "H0", "tau_reio", "w0_fld", "wa_fld", "N_ur", "omega_ncdm", "Omega_k"]
+cosmo_names = ["omega_b", "omega_cdm", "h", "tau_reio", "w0_fld", "wa_fld", "N_ur", "omega_ncdm", "Omega_k"]
 INPUTS_COSMO = ["cosmos/" + name for name in cosmo_names]
 
 def get_inputs_cosmo(x):

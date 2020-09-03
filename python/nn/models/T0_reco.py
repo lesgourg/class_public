@@ -420,5 +420,6 @@ class Net_ST0_Reco(Model):
         #     return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         # return loss
         def loss(prediction, truth):
-            return torch.mean(self.loss_weight[None, :] * (prediction - truth)**2)
+            mask = self.k >= self.k_min
+            return torch.mean((prediction - truth)[:, mask]**2)
         return loss

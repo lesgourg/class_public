@@ -632,8 +632,19 @@ cdef class Class:
                 for i_k in range(k_NN_size):
                     self.pt.k[index_md][i_k] = k_NN[i_k]
 
+                self.pt.k_min = k_NN[0]
+                self.pt.k_max = k_NN[-1]
                 self.pt.k_size[index_md] = k_NN_size
-                self.pt.k_size_cl[index_md] = k_NN_size
+
+                k_max_cl = 0.4
+                # TODO - 1 maybe?
+                k_max_cl_idx = np.searchsorted(k_NN, k_max_cl)
+                # self.pt.k_size_cl[index_md] = k_NN_size
+                self.pt.k_size_cl[index_md] = k_max_cl_idx
+
+                _k_max_dbg = self.pt.k[index_md][self.pt.k_size_cl[index_md] - 1]
+                print("pt.k[index_md][pt.k_size_cl[index_md] - 1] =", _k_max_dbg)
+
 
                 timer.end("overwrite k array")
 
@@ -2620,7 +2631,7 @@ cdef class Class:
 
     def k_min(self):
         """
-        k_min as determined by K (see perturbations.c:perturb_get_k_list)
+        k_min as determined by K (taken from perturbations.c:perturb_get_k_list)
         """
         if self.ba.sgnK == 0:
             # K<0 (flat)  : start close to zero
@@ -2635,3 +2646,42 @@ cdef class Class:
             return np.sqrt((8.-1.e-4) * self.ba.K);
         else:
             raise ValueError("Unrecognized value of K = {}!".format(self.ba.K))
+
+
+    def _debug_transfer(self):
+        k, tau = self.get_k_tau()
+        kmintau0 = k[0] * tau[-1]
+        print("tau0 = tau[-1] = {}".format(tau[-1]))
+        print("k_min = k[0] = {}".format(k[0]))
+        print("kmintau0 = k[0] * tau[-1] = {}".format(kmintau0))
+
+        if self.ba.sgnK == 0:
+            print("K = 0, flat case")
+            # K<0 (flat)  : start close to zero
+            print("kmintau0 / conformal_age =", kmintau0 / self.ba.conformal_age)
+        elif self.ba.sgnK == -1:
+            print("K = {} < 0, open case".format(self.ba.K))
+            # K<0 (open)  : start close to sqrt(-K)
+            # (in transfer modules, for scalars, this will correspond to q close to zero;
+            # for vectors and tensors, this value is even smaller than the minimum necessary value)
+            # return np.sqrt(-self.ba.K + pow(self.pr.k_min_tau0 / self.ba.conformal_age / self.th.angular_rescaling, 2))
+        elif self.ba.sgnK == 1:
+            print("K = {} > 0, closed case".format(self.ba.K))
+            # K>0 (closed): start from q=sqrt(k2+(1+m)K) equal to 3sqrt(K), i.e. k=sqrt((8-m)K)
+            # return np.sqrt((8.-1.e-4) * self.ba.K);
+
+    def get_q(self):
+        """
+        Get the q list from transfer module.
+        """
+        cdef:
+            int i_q
+            double * q = self.tr.q
+            int q_size = self.tr.q_size
+            double [:] numpy_q = np.empty(q_size, dtype=np.double)
+
+        for i_q in range(q_size):
+            numpy_q[i_q] = q[i_q]
+
+        return np.asarray(numpy_q)
+

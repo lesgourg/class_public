@@ -110,13 +110,32 @@ class BasePredictor:
             assert k_min_class < k[k_idx]
             assert k_min_class >= k[k_idx - 1]
 
+            x = (k_min_class - k[k_idx - 1]) / (k[k_idx] - k[k_idx - 1])
+
+            # qty to perform interpolation on
+            left = result[k_idx - 1]
+            right = result[k_idx]
+            if quantity == "delta_m":
+                print("delta_m; log interp")
+                left = np.log(-left)
+                right = np.log(-right)
+
+            interpolated = x * left + (1 - x) * right
+
+            if quantity == "delta_m":
+                interpolated = -np.exp(interpolated)
+
+            result = np.insert(result[k_idx:], 0, interpolated, 0)
+
+            # TODO remove assertion in final version
+            assert result.shape[0] == len(self.get_k())
+
             # k_spline = np.array([k[k_idx -1], k[k_idx]])
             # spline = scipy.interpolate.RectBivariateSpline(k_spline, tau, result[k_idx - 1:k_idx + 1], kx=1, ky=1)
             # interpolated = spline(np.array([k_min_class]), tau)
             # # add interpolated row (for k=k_min_class) at beginning
             # # of result array along k axis (0)
 
-            result = np.insert(result[k_idx:], 0, result[k_idx - 1], 0)
 
             # TODO is this okay for delta_m?
 

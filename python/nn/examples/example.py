@@ -1,6 +1,8 @@
 import os
-from ..parameter_domain import EllipsoidDomain
+# from ..parameter_domain import EllipsoidDomain
 from ..workspace import Workspace, GenerationalWorkspace
+from ..parameter_sampling import DefaultParamDomain, EllipsoidDomain
+
 # from classynet.parameter_domain import EllipsoidDomain
 # from classynet.workspace import Workspace
 import classy
@@ -43,38 +45,68 @@ FIXED_TRAINING_ONLY = {
 # WORKSPACE_DIR = "/scratch/work/samaras/delete_me/example/"
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
-# those are the ones with Omega_k set to 0
+# # good generations, working with k sampling version 2
 # generations = {
-#     "Net_ST0_Reco":     9,
-#     "Net_ST0_Reio":     5,
-#     "Net_ST0_ISW":      5,
-#     "Net_ST1":          5,
-#     "Net_ST2_Reco":     5,
-#     "Net_ST2_Reio":     5,
-#     "Net_phi_plus_psi": 10
+#     "Net_ST0_Reco":     10,
+#     "Net_ST0_Reio":     6,
+#     "Net_ST0_ISW":      6,
+#     "Net_ST1":          6,
+#     "Net_ST2_Reco":     6,
+#     "Net_ST2_Reio":     6,
+#     "Net_phi_plus_psi": 12
+# }
+
+# with mixed approach
+# generations = {
+#     "Net_ST0_Reco":     15,
+#     "Net_ST0_Reio":     10,
+#     "Net_ST0_ISW":      11,
+#     "Net_ST1":          10,
+#     "Net_ST2_Reco":     10,
+#     "Net_ST2_Reio":     10,
+#     "Net_phi_plus_psi": 17
+# }
+
+
+# generations = {
+#     "Net_ST0_Reco":     18,
+#     "Net_ST0_Reio":     13,
+#     "Net_ST0_ISW":      14,
+#     "Net_ST1":          13,
+#     "Net_ST2_Reco":     13,
+#     "Net_ST2_Reio":     13,
+#     "Net_phi_plus_psi": 22,
 # }
 
 generations = {
-    "Net_ST0_Reco":     13,
-    "Net_ST0_Reio":      8,
-    "Net_ST0_ISW":       9,
-    "Net_ST1":           8,
-    "Net_ST2_Reco":      8,
-    "Net_ST2_Reio":      8,
-    "Net_phi_plus_psi": 14
+    "Net_ST0_Reco":     20,
+    "Net_ST0_Reio":     14,
+    "Net_ST0_ISW":      15,
+    "Net_ST1":          14,
+    "Net_ST2_Reco":     14,
+    "Net_ST2_Reio":     14,
+    "Net_phi_plus_psi": 23,
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
 assert isinstance(workspace, Workspace)
 
-domain_data = workspace.loader().domain_descriptor()
-domain = EllipsoidDomain(**domain_data)
-# import ipdb; ipdb.set_trace()
+# domain = DefaultParamDomain(workspace.data / "base2018TTTEEE.covmat", sigma=5)
+
+pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
+domain = EllipsoidDomain(
+    workspace.data / "lcdm_11p_sn.bestfit",
+    workspace.data / "lcdm_11p_sn.covmat",
+    pnames=pnames,
+    sigma=6,
+)
+
+# domain.sample_save(training_count=10000, validation_count=1000, path=workspace.data / "samples.h5")
+# import sys; sys.exit(0)
 
 training, validation = workspace.loader().cosmological_parameters()
 
-
-# # Generating training data
+# Generating training data
 # workspace.generator().generate_data_for(
 #     fixed=FIXED,
 #     training=training,
@@ -86,17 +118,17 @@ training, validation = workspace.loader().cosmological_parameters()
 
 # workspace.generator().write_manifest(FIXED, training.keys())
 
-# workspace.generator().generate_data(FIXED, DOMAIN, training=5, validation=2, processes=8)
+# workspace.generator().generate_data(FIXED DOMAIN, training=5, validation=2, processes=8)
 # workspace.generator().generate_data(FIXED, DOMAIN, training=10000, validation=2000, processes=18)
 
 # Training: any subset of models can be trained at once
 # workspace.trainer().train_all_models(workers=36)
 
-from ..models import Net_ST0_Reco, Net_ST0_ISW
-workspace.trainer().train_models([
-    Net_ST0_Reco,
-    Net_ST0_ISW,
-], 36)
+# from ..models import Net_ST0_Reco, Net_ST0_ISW
+# workspace.trainer().train_models([
+#     Net_ST0_Reco,
+#     Net_ST0_ISW,
+# ], 36)
 
 # from ..models import Net_ST0_Reco
 # workspace.trainer().train_model(Net_ST0_Reco, workers=18)
@@ -112,20 +144,31 @@ workspace.trainer().train_models([
 
 # ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
-tester.test(count=500)
+# tester.test(count=10000)
 
+import matplotlib
+matplotlib.use("agg")
 plotter = workspace.plotter()
+plotter.plot_spectra()
 plotter.plot_source_functions()
 plotter.plot_training_histories()
-# plotter.plot_slice("t0_isw")
+# plotter.plot_source_function_slice("t0_isw")
+# triangle scatter plots of Cl/Pk errors vs. cosmological parameters
+plotter.plot_scatter_errors()
 
-import sys; sys.exit(0)
+# bm = workspace.benchmark_runner(warmup=1, iterations=50)
+# bm.run(thread_counts=[1, 4])
+
+# bm_plotter = workspace.benchmark_plotter()
+# bm_plotter._load_data()
+# bm_plotter.plot_perturbation_module()
+
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 
 # plotter.plot_training_histories()
 
 # Compute Cl's with all source functions computed by CLASS _except_ one
-if True:
+if False:
     ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
     for i, select in enumerate(ALL_SOURCES):
         cheat = set(ALL_SOURCES) - set([select])

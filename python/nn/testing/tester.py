@@ -2,20 +2,13 @@ import multiprocessing
 import random
 
 import numpy as np
-import matplotlib as mpl
-mpl.use("agg")
-import matplotlib.pyplot as plt
+from scipy.interpolate import CubicSpline
 
 from tqdm import tqdm
 import classy
 from classy import Class
 
 from ..generate.generate_cosmological_parameters import sample_cosmological_parameters
-
-# style for error plots
-LINESTYLE = dict(ls="-", lw=0.5, alpha=0.4, color="r")
-LINESTYLE_2 = dict(ls="-", lw=0.5, alpha=0.4, color="g")
-LINESTYLE_3 = dict(ls="-", lw=0.5, alpha=0.4, color="b")
 
 class Tester:
     def __init__(self, workspace):
@@ -25,8 +18,6 @@ class Tester:
         manifest = workspace.loader().manifest()
 
         self.fixed = manifest["fixed"]
-
-        self.init_plots()
 
     def test(self, count=None, cheat=None, prefix=None):
         """
@@ -71,27 +62,35 @@ class Tester:
                 print(str(exc))
                 print("continuing...")
                 continue
-            (cl_true, k_pk, pk_true), (cl_nn, _, pk_nn) = pair
+            (cl_true, k_pk_true, pk_true), (cl_nn, k_pk_nn, pk_nn) = pair
             counter += 1
             print("PROGRESS: {}".format(counter))
 
-            self.update_plots(cl_true, cl_nn, k_pk, pk_true, pk_nn)
-            self.update_stats(stats, cosmo_param_dict, cl_true, cl_nn, k_pk, pk_true, pk_nn)
+            self.update_stats(stats, cosmo_param_dict, cl_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn)
 
-        self.save_stats(stats, prefix=prefix)
-        self.save_plots(prefix=prefix)
+        self.save_stats(stats)
 
-    def update_stats(self, stats, cosmo_params, cl_true, cl_nn, k_pk, pk_true, pk_nn):
+    def update_stats(self, stats, cosmo_params, cl_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn):
         cl_err = {key: cl_nn[key] - cl_true[key] for key in cl_true}
-        pk_err = pk_nn - pk_true
+
+        # since P_NN(k) and P_true(k) _may_ be sampled on different k grids, we
+        # need to interpolate (in this case, onto the k_pk_true)
+        pk_spline = CubicSpline(k_pk_nn, pk_nn)
+        pk_nn_resampled = pk_spline(k_pk_true)
+        pk_err = pk_nn_resampled - pk_true
 
         cl_err_relative = {key: (cl_nn[key] - cl_true[key]) / cl_true[key] for key in cl_true}
-        pk_err_relative = (pk_nn - pk_true) / pk_true
+        pk_err_relative = pk_err / pk_true
 
         stat_dict = {
             "parameters": cosmo_params,
+            "cl_true": cl_true,
+            "cl_nn": cl_nn,
             "cl_error": cl_err,
-            "k_pk": k_pk,
+            "k_pk": k_pk_true,
+            "pk_true": pk_true,
+            "k_pk_nn": k_pk_nn,
+            "pk_nn": pk_nn,
             "pk_error": pk_err,
             "cl_error_relative": cl_err_relative,
             "pk_error_relative": pk_err_relative
@@ -170,7 +169,6 @@ class Tester:
         end = time.perf_counter()
         elapsed = end - start
         print("running class took {}s [parameters: {}]".format(elapsed, params))
-        print("-"*80)
         from pprint import pprint
         pprint(report)
         print("-"*80)
@@ -186,96 +184,12 @@ class Tester:
 
         return cls, k_pk, pk
 
-    def init_plots(self):
-        self.figs = {
-            "tt": plt.subplots(),
-            # cosmic variance
-            "tt_cv": plt.subplots(),
-            "ee": plt.subplots(),
-            "te": plt.subplots(),
-            "pk": plt.subplots(),
-            "pk_abs": plt.subplots()
-        }
-
-        for _, ax in self.figs.values():
-            ax.grid()
-
-        for q in ("tt", "tt_cv", "te", "ee"):
-            fig, ax = self.figs[q]
-            fig.tight_layout()
-            ax.set_xlabel(r"$\ell$")
-
-        self.figs["tt"][1].set_ylabel(r"$\Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
-        self.figs["tt_cv"][1].set_ylabel(r"$\sqrt{\frac{2\mathrm{min}(\ell, 2000)+1}{2}} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
-        ll1 = r"$\ell (\ell + 1) "
-        self.figs["te"][1].set_ylabel(ll1 + r"\Delta C_\ell^{TE}$")
-        self.figs["ee"][1].set_ylabel(ll1 + r"\Delta C_\ell^{EE}$")
-
-        self.figs["pk"][0].tight_layout()
-        self.figs["pk"][1].set(
-            xlabel=r"$k$ [Mpc${}^{-1}$]",
-            ylabel=r"$(P_{NN}(k)-P_{CLASS}(k))/P_{CLASS}(k)$",
-        )
-
-        self.figs["pk_abs"][0].tight_layout()
-        self.figs["pk_abs"][1].set(
-            xlabel=r"$k$ [Mpc${}^{-1}$]",
-            ylabel=r"$(P_{NN}(k)$",
-        )
-
-    def update_plots(self, cl_true, cl_nn, k_pk, pk_true, pk_nn):
-        ell = cl_true["ell"]
-
-        for _, ax in self.figs.values():
-            ax.axhline(0, color="k")
-
-        # TT
-        tt_relerr = (cl_nn["tt"] - cl_true["tt"]) / cl_true["tt"]
-        self.figs["tt"][1].semilogx(ell, tt_relerr, **LINESTYLE)
-        cosmic_variance = np.sqrt(2 / (2 * np.minimum(ell, 2000) + 1))
-        tt_relerr_cv = tt_relerr / cosmic_variance
-        self.figs["tt_cv"][1].semilogx(ell, tt_relerr_cv, **LINESTYLE)
-
-        # TE + EE
-        for q in ("ee", "te"):
-            err = (cl_nn[q] - cl_true[q])
-            # err_relmax = err / cl_true[q].max()
-            self.figs[q][1].semilogx(ell, ell * (ell + 1) * cl_true[q] / 100.0, **LINESTYLE_3)
-            self.figs[q][1].semilogx(ell, ell * (ell + 1) * cl_true[q] / 1000.0, **LINESTYLE_2)
-            self.figs[q][1].semilogx(ell, ell * (ell + 1) * err, **LINESTYLE)
-            y = ell * (ell + 1) * cl_true[q] / 100.0
-
-        # P(k)
-        pk_relerr = (pk_nn - pk_true) / pk_true
-        self.figs["pk"][1].semilogx(k_pk, pk_relerr, **LINESTYLE)
-
-        self.figs["pk_abs"][1].loglog(k_pk, pk_nn, **LINESTYLE)
-        self.figs["pk_abs"][1].loglog(k_pk, pk_true, **LINESTYLE_2)
-
-    def save_stats(self, stats, prefix=None):
+    def save_stats(self, stats):
         import pickle
-        fname =  "errors.pickle"
-        if not prefix:
-            path = self.workspace.plots / fname
-        else:
-            dir_path = self.workspace.plots / prefix
-            dir_path.mkdir(parents=True, exist_ok=True)
-            path = dir_path / fname
+        path = self.workspace.stats_file
         print("Writing Cl/Pk error stats to '{}'".format(path))
         with open(path, "wb") as out:
             pickle.dump(stats, out)
-
-    def save_plots(self, prefix=None):
-        for name, (fig, _) in self.figs.items():
-            if not prefix:
-                path = self.workspace.plots / "{}.png".format(name)
-            else:
-                dir_path = self.workspace.plots / prefix
-                dir_path.mkdir(parents=True, exist_ok=True)
-                path = dir_path / "{}.png".format(name)
-
-            print("saving plot to", path)
-            fig.savefig(path, dpi=200, bbox_inches="tight")
 
 def truncate(cls):
     """

@@ -101,6 +101,62 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
     # return tf_cb, tf_cbnu
     return tf_cbnu
 
+
+def geomspace(start, stop, *args, **kwargs):
+    return torch.logspace(np.log10(start), np.log10(stop), *args, **kwargs)
+
+def split_tau(tau, tau_mid=10000):
+    """
+    Given an array `tau`, keep only those points above `tau_mid` and replace
+    all points below `tau_mid` with a logarithmic sampling between `tau[0]`
+    and `tau_mid` with the same logarithmic density as above `tau_mid`.
+    """
+    n_points_after = int((tau > tau_mid).sum())
+    decades_after_mid = torch.log10(tau[-1] / tau_mid)
+    points_per_decade = n_points_after / decades_after_mid
+    decades_before_mid = torch.log10(tau_mid / tau[0])
+    points_before_mid = int(points_per_decade * decades_before_mid)
+
+    tau_ = torch.cat((
+        geomspace(tau.min().item(), tau_mid, points_before_mid).to(tau.device),
+        tau[tau >= tau_mid]
+    ))
+    return tau_
+
+def subsample_tau(tau, tau_):
+    """
+    Given two arrays `tau` and `tau_`, return an array of indices (call it `indices`) into `tau`
+    such that `tau[indices[i]]` is the closest point in `tau` to `tau[i]`.
+    """
+    # return np.unique(np.argmin(np.abs(tau_[:, None] - tau[None, :]), axis=1))
+    return torch.argmin(torch.abs(tau_[:, None] - tau[None, :]), axis=1)
+
+
+def debug_plot_tau_sampling(tau):
+    # TODO REMOVE THIS FUNCTION
+    import matplotlib as mpl
+    mpl.use("agg")
+    import matplotlib.pyplot as plt
+
+    # tau = self.raw_tau.cpu().detach().numpy()
+    tau = self.raw_tau
+    tau_mid = 10000
+    tau_indices = torch.unique(subsample_tau(tau, split_tau(tau, tau_mid=tau_mid)))
+    tau_ = tau[tau_indices]
+
+    np_tau = tau.cpu().detach().numpy()
+    np_tau_ = tau_.cpu().detach().numpy()
+
+    bins = np.geomspace(np_tau.min().item(), np_tau.max().item(), 50)
+    plt.hist(np_tau, bins=bins, histtype="step", label="original sampling")
+    plt.hist(np_tau_, bins=bins, histtype="step", label="updated sampling")
+    plt.axvline(tau_mid, label="$\\tau_\mathrm{mid}$")
+    plt.legend()
+    plt.xscale("log")
+    plt.xlabel("$\\tau$")
+    plt.title("$\\tau$ sampling")
+    plt.savefig("/home/samaras/TAU_SAMPLING.png", dpi=250)
+
 class Net_phi_plus_psi(Model):
 
     HYPERPARAMETERS_DEFAULTS = {
@@ -127,11 +183,6 @@ class Net_phi_plus_psi(Model):
                 nn.Linear(300, 2 * n_k),
                 )
 
-        self.net_merge_factor = nn.Sequential(
-                nn.PReLU(),
-                nn.Linear(20 + 100, 2),
-                )
-
         if hp is None:
             hp = Net_phi_plus_psi.HYPERPARAMETERS_DEFAULTS
 
@@ -141,6 +192,9 @@ class Net_phi_plus_psi(Model):
         self.current = {}
 
     def forward(self, x):
+        ## to be used in loss function to subsample tau
+        self.raw_tau = x["raw_tau"]
+
         self.k_min = x["k_min"][0]
         raw_tau = x["raw_tau"]
         a_eq = x["a_eq"][0]
@@ -158,8 +212,9 @@ class Net_phi_plus_psi(Model):
         # perform correction for N_ur != 0
         F = (1 + 0.2271 * (3.046 + N_ur)) / (1 + 0.2271 * 3.046)
 
-        H0 = x["raw_cosmos/H0"][0]
-        h = (H0 / 100) / torch.sqrt(F)
+        # H0 = x["raw_cosmos/H0"][0]
+        # h = (H0 / 100) / torch.sqrt(F)
+        h = x["raw_cosmos/h"][0] / torch.sqrt(F)
         # h = x["raw_cosmos/h"][0] / torch.sqrt(F)
         Omega_b = x["raw_cosmos/omega_b"][0] / h**2 / F
         Omega_ncdm = x["raw_cosmos/omega_ncdm"][0] / h**2 / F
@@ -190,8 +245,6 @@ class Net_phi_plus_psi(Model):
                 self.lin_cosmo(inputs_cosmo),
                 self.lin_tau(inputs_tau),
             ), dim=1)
-
-        factors = self.net_merge_factor(y)
 
         # shape: (n_k, 2)
         approx_stack = torch.stack((approx, approx_delta_m), dim=2)
@@ -314,7 +367,13 @@ class Net_phi_plus_psi(Model):
             # the preprocessing does nearest neighbor extrapolation
             truth_eff = torch.insert(truth_eff, 0, truth[:, idx_k_min - 1], 1)
 
-            return torch.mean(((prediction_eff - truth_eff) / truth_eff)**2)
+
+            # subsample tau since we are not interested in having a super high accuracy at
+            # recombination and reionization
+            loss_mask = np.unique(
+                subsample_tau(self.raw_tau, split_tau(self.raw_tau, tau_mid=10000))
+            )
+            return torch.mean(((prediction_eff - truth_eff) / truth_eff)**2)[loss_mask]
             # weight[-1] = 50
             # return torch.mean(weight[:, None, :] * mask[None, :, None] * (prediction - truth)**2)
             # return torch.mean(weight[:, None, :] * mask[None, :, None] * ((prediction - truth) / truth)**2)
@@ -332,7 +391,7 @@ class Net_phi_plus_psi(Model):
             "k_min",
             "raw_tau",
             "a_eq",
-            "raw_cosmos/H0", "raw_cosmos/omega_b", "raw_cosmos/omega_cdm",
+            "raw_cosmos/h", "raw_cosmos/omega_b", "raw_cosmos/omega_cdm",
             "raw_cosmos/N_ur", "raw_cosmos/omega_ncdm", "raw_cosmos/Omega_k",
             "D",
             "tau", "k_eq",

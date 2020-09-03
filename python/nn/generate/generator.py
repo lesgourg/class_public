@@ -62,7 +62,7 @@ class Generator:
 
         k_mins = np.array([k[0] for k in ks])
         k_maxs = np.array([k[-1] for k in ks])
-        extra = np.geomspace(k_mins.min(), k_mins.max(), 30)
+        extra = np.geomspace(k_mins.min(), k_mins.max(), 50)
 
         k_longest = max(ks, key=len)
         k = np.unique(np.sort(np.concatenate((extra, k_longest, np.array([k_maxs.max()])))))
