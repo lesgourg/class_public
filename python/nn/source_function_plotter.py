@@ -11,6 +11,7 @@ from classy import Class
 from .plotting.plot_source_function import plot_source_function
 
 class SourceFunctionPlotter:
+
     def __init__(self, workspace):
         self.workspace = workspace
 

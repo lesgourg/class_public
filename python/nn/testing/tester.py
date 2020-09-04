@@ -19,7 +19,7 @@ class Tester:
 
         self.fixed = manifest["fixed"]
 
-    def test(self, count=None, cheat=None, prefix=None):
+    def test(self, count=None, cheat=None, seed=None):
         """
         test the performance of the trained networks by computing the observables
         (Cl's and P(k)) for `count` cosmological scenarios.
@@ -42,14 +42,18 @@ class Tester:
                   but there are only {1}! Proceeding with {1}".format(count, validation_size))
             count = validation_size
 
+        if seed is not None:
+            random.seed(seed)
         selection = random.sample(range(validation_size), count)
         print("Evaluating network predictions for {} cosmologies.".format(count))
 
         cosmo_params = [{k: v[i] for k, v in params.items()} for i in selection]
         # params = sample_cosmological_parameters(self.domain, count)
 
-        class_params = list(map(self.get_class_parameters, cosmo_params))
-        class_params_nn = list(map(self.get_class_parameters_nn, cosmo_params))
+        # class_params = list(map(self.get_class_parameters, cosmo_params))
+        # class_params_nn = list(map(self.get_class_parameters_nn, cosmo_params))
+        class_params    = [self.get_class_parameters(p) for p in cosmo_params]
+        class_params_nn = [self.get_class_parameters_nn(p, cheat=cheat) for p in cosmo_params]
 
         # for recording cl/pk errors as functions of cosmological parameters
         stats = []
@@ -168,12 +172,10 @@ class Tester:
         cosmo.compute(performance_report=report)
         end = time.perf_counter()
         elapsed = end - start
-        print("running class took {}s [parameters: {}]".format(elapsed, params))
-        from pprint import pprint
-        pprint(report)
-        print("-"*80)
+        print("running class took {}s".format(elapsed))
         cls = truncate(cosmo.raw_cl())
         k_pk = self.k_pk(cosmo)
+        # TODO remove assertion in release
         assert np.all(k_pk >= cosmo.k_min())
         pk = np.vectorize(cosmo.pk)(k_pk, 0.0)
 

@@ -9,24 +9,30 @@ LINESTYLE_GREEN = dict(ls="-", lw=0.5, alpha=0.4, color="g")
 LINESTYLE_BLUE = dict(ls="-", lw=0.5, alpha=0.4, color="b")
 
 class SpectraPlotter:
+
     def __init__(self, workspace):
         self.workspace = workspace
 
-    def plot(self):
+    def plot(self, include_params=False):
         print("plotting spectra...")
         self._init()
         stats = self.workspace.loader().stats()
         print("building plots...")
+
+        # this is terribly slow but whatever...
         for row in stats:
             self._update_plots(
                 row["cl_true"], row["cl_nn"],
                 row["k_pk"], row["pk_true"],
                 row["k_pk_nn"], row["pk_nn"]
             )
-        print("creating color plot for TT")
-        self._plot_colored(stats, field="tt")
-        print("creating color plot for P(k)")
-        self._plot_colored(stats, field="pk")
+
+        if include_params:
+            print("creating color plot for TT")
+            self._plot_colored(stats, field="tt")
+            print("creating color plot for P(k)")
+            self._plot_colored(stats, field="pk")
+
         self._save()
         self._close_figs()
 
@@ -50,12 +56,11 @@ class SpectraPlotter:
             ax.set_xlabel(r"$\ell$")
 
         self.figs["tt"][1].set_ylabel(r"$\Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
-        self.figs["tt"][1].set_yscale("symlog", linthreshy=0.01)
         self.figs["tt_cv"][1].set_ylabel(r"$\sqrt{\frac{2\mathrm{min}(\ell, 2000)+1}{2}} \Delta C_\ell^{TT} / C_\ell^{TT, \mathrm{true}}$")
         ll1 = r"$\ell (\ell + 1) "
         self.figs["te"][1].set_ylabel(ll1 + r"\Delta C_\ell^{TE}$")
         self.figs["ee"][1].set_ylabel(ll1 + r"\Delta C_\ell^{EE}$")
-        self.figs["ee"][1].set_yscale("symlog", linthreshy=1e-14)
+        self.figs["ee"][1].set_yscale("symlog", linthresh=1e-14)
 
         self.figs["pk"][0].tight_layout()
         self.figs["pk"][1].set(
@@ -84,7 +89,7 @@ class SpectraPlotter:
             ax.set_xlabel("$k$ [Mpc${}^{-1}]$")
             ax.set_ylabel("$\\Delta P(k) / P(k)$")
             ax.semilogx(item["k_pk"], item["pk_error_relative"], **kwargs)
-            ax.set_yscale("symlog", linthreshy=0.01)
+            ax.set_yscale("symlog", linthresh=0.01)
 
         handlers = {
             "tt": plot_item_tt,
@@ -153,10 +158,13 @@ class SpectraPlotter:
         pk_nn_resampled = pk_spline(k_pk_true)
         pk_relerr = (pk_nn_resampled - pk_true) / pk_true
         self.figs["pk"][1].semilogx(k_pk_true, pk_relerr, **LINESTYLE_RED)
-        self.figs["pk"][1].set_yscale("symlog", linthreshy=0.01)
+        self.figs["pk"][1].set_yscale("symlog", linthresh=0.01)
 
-        self.figs["pk_abs"][1].semilogx(k_pk_nn, pk_nn, **LINESTYLE_RED)
-        self.figs["pk_abs"][1].semilogx(k_pk_true, pk_true, **LINESTYLE_GREEN)
+        # this will raise a warning that there are no positive values and
+        # hence loglog is not possible in matplotlib version 3.3.1 but this
+        # appears to be a bug in matplotlib and therefore can be ignored.
+        self.figs["pk_abs"][1].loglog(k_pk_nn, pk_nn, **LINESTYLE_RED)
+        self.figs["pk_abs"][1].loglog(k_pk_true, pk_true, **LINESTYLE_GREEN)
 
     def _save(self, prefix=None):
         for name, (fig, _) in self.figs.items():

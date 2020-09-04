@@ -84,7 +84,9 @@ class RelativeMaxErrorPk(ErrorQuantifier):
     def file_name(self):
         return "pk_rel_err_max"
 
+
 class TrianglePlotter:
+
     def __init__(self, workspace):
         self.workspace = workspace
 

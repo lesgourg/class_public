@@ -21,6 +21,25 @@ def create_dir(func):
         return path
     return wrapper
 
+class ResultDir:
+
+    def __init__(self, root):
+        self.root = root
+
+    def sub(self, subdir):
+        subdir = self.root / subdir
+        subdir.mkdir(exist_ok=True)
+        return ResultDir(subdir)
+
+    @property
+    @create_dir
+    def plots(self):
+        return self.root / "plots"
+
+    @property
+    def stats_file(self):
+        return self.root / "errors.pickle"
+
 class Workspace:
     """
     Represents the workspace (corresponding to a directory on disk) in which
@@ -28,9 +47,27 @@ class Workspace:
     This class wraps around a directory and endows it with some utility methods.
     """
 
-    def __init__(self, path):
+    def __init__(self, path, results=None):
         self.path = Path(path)
         self.path.mkdir(parents=True, exist_ok=True)
+
+        if results is not None:
+            self._results = results
+        else:
+            result_dir = self.path / "results"
+            result_dir.mkdir(exist_ok=True)
+            self._results = ResultDir(result_dir)
+
+    def sub(self, sub):
+        return Workspace(self.path, results=self._results.sub(sub))
+
+    @property
+    def plots(self):
+        return self._results.plots
+
+    @property
+    def stats_file(self):
+        return self._results.stats_file
 
     @property
     @create_dir
@@ -63,14 +100,6 @@ class Workspace:
 
     @property
     @create_dir
-    def plots(self):
-        """
-        path to directory where plots are saved
-        """
-        return self.path / "plots"
-
-    @property
-    @create_dir
     def benchmark(self):
         """
         path to directory where benchmark results are saved
@@ -83,10 +112,6 @@ class Workspace:
         path to data file inside benchmark directory
         """
         return self.benchmark / "data.json"
-
-    @property
-    def stats_file(self):
-        return self.plots / "errors.pickle"
 
     @property
     def normalization_file(self):
@@ -143,16 +168,27 @@ class Workspace:
 
 
 class GenerationalWorkspace(Workspace):
-    def __init__(self, path, generations):
-        super().__init__(path)
+
+    def __init__(self, path, generations, results=None):
+        super().__init__(path, results=results)
         self.generations = generations
 
-    @property
-    @create_dir
-    def plots(self):
-        g = self.generations
-        suffix = "_".join("{}_{}".format(k, g[k]) for k in sorted(self.generations))
-        return self.path / ("plots_" + suffix)
+        if results is not None:
+            self._results = results
+        else:
+            result_dir = self.path / "results"
+            result_dir.mkdir(exist_ok=True)
+            g = self.generations
+            suffix = "_".join("{}_{}".format(k, g[k]) for k in sorted(self.generations))
+            path = self.path / ("results_" + suffix)
+            path.mkdir(exist_ok=True)
+            self._results = ResultDir(path)
+
+    def sub(self, sub):
+        return GenerationalWorkspace(
+            path=self.path,
+            generations=self.generations,
+            results=self._results.sub(sub))
 
     def model_path(self, name):
         return self.models / "{}_{}.pt".format(name, self.generations[name])
