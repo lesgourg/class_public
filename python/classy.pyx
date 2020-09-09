@@ -207,7 +207,57 @@ cdef class Class:
         Utility methods that returns whether neural networks are enabled
         by checking whether 'neural network path' is in the input parameters.
         """
-        return "neural network path" in self._pars
+        if not "neural network path" in self._pars:
+            return False
+        else:
+            if not self.can_use_nn():
+                print("##################################")
+                print("#   NOT USING NEURAL NETWORKS!   #")
+                print("##################################")
+                return False
+            else:
+                print("##################################")
+                print("#    USING NEURAL NETWORKS!      #")
+                print("##################################")
+                return True
+
+    def can_use_nn(self):
+        """ may only be called if neural networks are enabled """
+        workspace = self.nn_workspace()
+        domain = workspace.loader().domain_descriptor()
+
+        if not domain.contains(self._pars):
+            print("neural network domain of validity does not contain requested parameters")
+            return False
+
+        def expect(key, value):
+            if not key in self._pars:
+                print("expected key '{}' not found in parameters.".format(key))
+                return False
+            else:
+                found = self._pars[key]
+                if found != value:
+                    print("expected parameter '{}' to be {}; got {} instead.".format(key, value, found))
+                    return False
+                else:
+                    return True
+
+        if not expect("N_ncdm", 1):
+            return False
+        if not expect("deg_ncdm", 3):
+            return False
+        if not expect("Omega_Lambda", 0):
+            return False
+        # TODO are there other valid values (e.g. 'true' or something like that)?
+        if not expect("compute damping scale", "yes"):
+            return False
+
+        pk_max = self._pars.get("P_k_max_1/Mpc")
+        if pk_max is not None and pk_max > 100.0:
+            print("neural networks only applicable with 'P_k_max_1/Mpc' <= 100.0")
+            return False
+
+        return True
 
     def empty(self):
         self._pars = {}
@@ -415,6 +465,7 @@ cdef class Class:
 
         """
         cdef ErrorMsg errmsg
+        cdef int i
 
         timer = Timer()
 
@@ -516,6 +567,7 @@ cdef class Class:
             # int tp_size = 0
             int tp_size
             int tot_num_of_sources = 11
+            int index_tp_x
             # double [:,:] NN_interpolated
             # double [:] NN_interpolated
             # TODO remove some of the unused ones here
@@ -530,7 +582,9 @@ cdef class Class:
 
             # Allocate memory for ALL source functions (since transfer.c iterates over them)
 
-            if self.use_nn() and not self.nn_cheat_enabled():
+            use_nn = self.use_nn()
+
+            if use_nn and not self.nn_cheat_enabled():
                 print("Using neural networks; skipping regular perturbation module.")
                 self.pt.perform_NN_skip = _TRUE_
 
@@ -542,7 +596,7 @@ cdef class Class:
             timer.end("perturb_init")
 
             # flag for using NN
-            if self.use_nn():
+            if use_nn:
                 timer.start("neural network complete")
                 timer.start("neural network initialization")
 
@@ -693,12 +747,12 @@ cdef class Class:
 
                 if self.pt.has_source_p:
                     assert "t2" in source_names
-                    array_index = source_names.index("t2")
                     self.overwrite_source_function(
-                            index_md, index_ic,
-                            self.pt.index_tp_p,
-                            k_NN_size, tau_size, np.sqrt(6) * NN_prediction[array_index, :, :]
-                            )
+                        index_md, index_ic,
+                        self.pt.index_tp_p,
+                        k_NN_size, tau_size,
+                        np.sqrt(6) * NN_prediction[source_names.index("t2"), :, :]
+                    )
 
                 # if self.pt.has_source_phi_plus_psi:
                 #     self.overwrite_source_function(
