@@ -68,11 +68,6 @@ class Net_ST2_Reio(Model):
             return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
 
-    def tau_training(self):
-        with h5.File(os.path.join(os.path.expandvars("$CLASSNET_DATA"), "tau_t0_reio.h5"), "r") as f:
-            tau_training = f["tau"][()]
-        return tau_training
-
     def lr_scheduler(self, optimizer):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, lambda epoch: np.exp(-epoch / 8))
 
