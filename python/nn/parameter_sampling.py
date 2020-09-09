@@ -26,28 +26,28 @@ class ParamDomain:
 OMEGA_NCDM_MIN = 8.147986e-5
 
 class EllipsoidDomain(ParamDomain):
-    def __init__(self, bestfit_path, covmat_path, pnames, sigma):
+
+    @staticmethod
+    def from_paths(bestfit_path, covmat_path, pnames, sigma):
+        _bestfit_names, best_fit = load_montepython_bestfit(bestfit_path, pnames)
+        assert _bestfit_names == pnames
+        covmat, inv_covmat = load_montepython_covmat(covmat_path, pnames)
+        return EllipsoidDomain(
+            best_fit=best_fit,
+            covmat=covmat,
+            inv_covmat=inv_covmat,
+            pnames=pnames,
+            sigma=sigma
+        )
+
+    def __init__(self, best_fit, covmat, inv_covmat, pnames, sigma):
+        self.best_fit = best_fit
+        self.covmat = covmat
+        self.inv_covmat = inv_covmat
         self.pnames = pnames
         self.sigma = sigma
+
         self.ndf = len(self.pnames)
-        # TODO
-        self.other_bounds = np.array([
-            # w0_fld
-            [-1.5, -0.5],
-            # wa_fld
-            [-5.0, -0.4],
-            # N_ur
-            [ 0.0,  0.1],
-            # omega_ncdm:
-            # lower bound is minimum value that doesn't crash class
-            # upper bound is such that m_tot ~ 0.9eV
-            [8.147986e-5, 0.00966],
-            # Omega_k
-            [-0.03, 0.03],
-        ])
-        _bestfit_names, self.best_fit = load_montepython_bestfit(bestfit_path, self.pnames)
-        assert _bestfit_names == self.pnames
-        self.covmat, self.inv_covmat = load_montepython_covmat(covmat_path, self.pnames)
 
     def index(self, name):
         return self.pnames.index(name)
@@ -65,7 +65,6 @@ class EllipsoidDomain(ParamDomain):
                 return samples
             fraction = len(samples) / new_count
         raise ValueError("Couldn't get {} samples with tol={}".format(count, tol))
-
 
     def _sample(self, count):
         deltachi2 = get_delta_chi2(self.ndf, self.sigma)
@@ -105,12 +104,13 @@ class EllipsoidDomain(ParamDomain):
         ratio_fld = count_fld / len(samples)
         print("fraction of kept points (fld only):", ratio_fld)
 
-        wa_bound = samples[:, self.index("wa_fld")] <= 0.0
-        count_wa = wa_bound.sum()
-        ratio_wa = count_wa / len(samples)
-        print("fraction of kept points (wa < 0 only):", ratio_wa)
+        # wa_bound = samples[:, self.index("wa_fld")] <= 0.0
+        # count_wa = wa_bound.sum()
+        # ratio_wa = count_wa / len(samples)
+        # print("fraction of kept points (wa < 0 only):", ratio_wa)
+        # inside_mask = inside_ellipsoid & tau_large_enough & fld_consistent & omega_ncdm_large_enough & wa_bound
 
-        inside_mask = inside_ellipsoid & tau_large_enough & fld_consistent & omega_ncdm_large_enough & wa_bound
+        inside_mask = inside_ellipsoid & tau_large_enough & fld_consistent & omega_ncdm_large_enough
         count_inside = inside_mask.sum()
         ratio_inside = count_inside / len(samples)
         print("count_inside:", count_inside)
@@ -142,8 +142,6 @@ class EllipsoidDomain(ParamDomain):
             return False
         if parameters["w0_fld"] + parameters["wa_fld"] > -1/3:
             return False
-        if parameters["wa_fld"] > 0:
-            return False
         if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
             return False
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
@@ -153,18 +151,26 @@ class EllipsoidDomain(ParamDomain):
 
     def save(self, path):
         d = {
-            "fields": list(self.names),
-            "best_fit_planck": list(self.best_fit_planck),
-            "covmat": [list(row) for row in self.covmat],
+            "best_fit":   list(self.best_fit),
+            "covmat":     [list(row) for row in self.covmat],
             "inv_covmat": [list(row) for row in self.inv_covmat],
-            "other_bounds": list(self.other_bounds)
+            "pnames":     list(self.pnames),
+            "sigma":      self.sigma
         }
         with open(path, "w") as out:
             json.dump(d, out)
 
-    def load(self, path):
-        raise NotImplementedError
-
+    @staticmethod
+    def load(path):
+        with open(path, "r") as src:
+            data = json.load(src)
+        return EllipsoidDomain(
+            best_fit=data["best_fit"],
+            covmat=data["covmat"],
+            inv_covmat=data["inv_covmat"],
+            pnames=data["pnames"],
+            sigma=data["sigma"]
+        )
 
 class DefaultParamDomain(ParamDomain):
     def __init__(self, covmat_planck_path, sigma):

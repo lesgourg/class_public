@@ -13,6 +13,8 @@ from .testing import tester
 from .benchmark import BenchmarkRunner
 from .benchmark_plotter import BenchmarkPlotter
 
+from .parameter_sampling import EllipsoidDomain
+
 def create_dir(func):
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -142,6 +144,7 @@ class Workspace:
     def cosmological_parameters(self):
         return self.data / "samples.h5"
 
+    @property
     def domain_descriptor(self):
         return self.data / "domain.json"
 
@@ -220,12 +223,17 @@ class Loader:
             return load(f["training"]), load(f["validation"])
 
     def domain_descriptor(self):
-        path = self.workspace.domain_descriptor()
-        with open(path) as f:
-            d = json.load(f)
-        d["bestfit"] = np.array(d["bestfit"])
-        d["covmat"] = np.array(d["covmat"])
-        return d
+        path = self.workspace.domain_descriptor
+        # TODO hardcode EllipsoidDomain here?
+        return EllipsoidDomain.load(path)
+
+    # def domain_descriptor(self):
+    #     path = self.workspace.domain_descriptor()
+    #     with open(path) as f:
+    #         d = json.load(f)
+    #     d["bestfit"] = np.array(d["bestfit"])
+    #     d["covmat"] = np.array(d["covmat"])
+    #     return d
 
     def stats(self):
         """
