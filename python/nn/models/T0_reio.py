@@ -85,17 +85,35 @@ class Net_ST0_Reio(Model):
 
         n_inputs_cosmo = len(common.INPUTS_COSMO)
         n_inputs_tau = 4
-        n_k = len(self.k)
+        n_k = len(k)
 
-        self.net_basis = BasisDecompositionNet(self.k, n_inputs_cosmo, n_inputs_tau, n_k)
-        self.net_correction = CorrectionNet(n_inputs_cosmo, n_inputs_tau, n_k)
+        self.lin_cosmo = nn.Linear(n_inputs_cosmo, 20)
+        self.lin_tau = nn.Linear(n_inputs_tau, 133)
 
+        self.lin_combined = nn.Sequential(
+            nn.PReLU(),
+            nn.Linear(self.lin_cosmo.out_features + self.lin_tau.out_features, 500),
+            nn.PReLU(),
+            nn.Linear(500, n_k)
+        )
     def forward(self, x):
         self.k_min = x["k_min"][0]
-        linear_combination = self.net_basis(x)
-        correction = self.net_correction(x)
 
-        return linear_combination + correction
+        inputs_cosmo = common.get_inputs_cosmo(x)
+        inputs_tau = torch.stack([
+            x["tau_relative_to_reio"],
+            x["g_reio"],
+            x["g_reio_prime"],
+            x["e_kappa"],
+        ], axis=1)
+
+        prediction = self.lin_combined(
+            torch.cat((
+                self.lin_cosmo(inputs_cosmo),
+                self.lin_tau(inputs_tau)
+            ), dim=1)
+        )
+        return prediction
 
     def epochs(self):
         return 40
