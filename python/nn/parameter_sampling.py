@@ -90,7 +90,7 @@ class EllipsoidDomain(ParamDomain):
         ratio_inside = inside_ellipsoid.sum() / len(samples)
         print("fraction of points inside ellipsoid:", ratio_inside)
 
-        tau_large_enough = samples[:, self.index("tau_reio")] > 0.04
+        tau_large_enough = samples[:, self.index("tau_reio")] > 0.004
         count_tau = tau_large_enough.sum()
         ratio_tau = count_tau / len(samples)
         print("fraction of kept points (tau_reio only):", ratio_tau)
@@ -138,7 +138,7 @@ class EllipsoidDomain(ParamDomain):
         """
         # TODO what about the other CLASS parameters?
         # TODO blacklist/whitelist?
-        if parameters["tau_reio"] <= 0.04:
+        if parameters["tau_reio"] <= 0.004:
             return False
         if parameters["w0_fld"] + parameters["wa_fld"] > -1/3:
             return False
@@ -248,7 +248,7 @@ class DefaultParamDomain(ParamDomain):
         ratio_planck = count_planck / len(samples)
         print("fraction of kept points (planck only):", ratio_planck)
 
-        tau_large_enough = samples_planck[:, self.index("tau_reio")] > 0.04
+        tau_large_enough = samples_planck[:, self.index("tau_reio")] > 0.004
         count_tau = tau_large_enough.sum()
         ratio_tau = count_tau / len(samples)
         print("fraction of kept points (tau_reio only):", ratio_tau)
