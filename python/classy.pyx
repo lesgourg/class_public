@@ -2658,6 +2658,39 @@ cdef class Class:
             workspace = classynet.workspace.Workspace(workspace)
         return workspace
 
+    def nn_cosmological_parameters(self):
+        manifest = self.nn_workspace().loader().manifest()
+        names = manifest["cosmological_parameters"]
+
+        result = {}
+        remaining = []
+        for name in names:
+            if name in self._pars:
+                result[name] = self._pars[name]
+            else:
+                remaining.append(name)
+
+        for name in remaining:
+            if name == "omega_b":
+                result[name] = self.omega_b()
+            elif name == "omega_cdm":
+                result[name] = self.omega_cdm()
+            elif name == "h":
+                result[name] = self.h()
+            elif name == "tau_reio":
+                result[name] = self.tau_reio()
+            elif name == "Omega_k":
+                result[name] = self.get_current_derived_parameters(["Omega_k"])["Omega_k"]
+            # Regarding w0_fld and wa_fld: It is verified that Omega_Lambda=0 in `can_use_nn`.
+            elif name == "w0_fld":
+                result[name] = 0.0
+            elif name == "w0_fld":
+                result[name] = -1.0
+            else:
+                raise ValueError("Unknown parameter: '{}'".format(name))
+
+        return result
+
     def nn_cheat_enabled(self):
         return "nn_cheat" in self._pars
 

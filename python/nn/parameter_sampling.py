@@ -132,12 +132,15 @@ class EllipsoidDomain(ParamDomain):
             create_group(out, "training", training_count)
             create_group(out, "validation", validation_count)
 
+    def parameter_names(self):
+        return list(self.pnames)
+
     def contains(self, parameters):
         """
         parameters is a dict of CLASS parameters.
+        NOTE: this assumes that all network parameters (i.e. all of self.pnames)
+        are present in parameters.
         """
-        # TODO what about the other CLASS parameters?
-        # TODO blacklist/whitelist?
         if parameters["tau_reio"] <= 0.004:
             return False
         if parameters["w0_fld"] + parameters["wa_fld"] > -1/3:
