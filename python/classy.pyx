@@ -600,21 +600,12 @@ cdef class Class:
                 timer.start("neural network complete")
                 timer.start("neural network initialization")
 
-                # cosmological parameters for neural network
-                # TODO don't do it here?
-                nn_cosmo_params = self.nn_cosmological_parameters()
-
                 index_md = self.pt.index_md_scalars;
                 k_size = self.pt.k_size[index_md];
                 tau_size = self.pt.tau_size;
-                # tau_NN_size = len(self.tau_NN);
                 index_ic = self.pt.index_ic_ad;
 
                 tp_size = self.pt.tp_size[index_md];
-
-
-                # c_tau_NN = <double*>malloc(tau_NN_size*sizeof(double))
-
 
                 tau_CLASS = np.zeros((tau_size))
                 for index_tau in range(tau_size):
@@ -2666,13 +2657,6 @@ cdef class Class:
         if any(isinstance(workspace, t) for t in [str, bytes, os.PathLike]):
             workspace = classynet.workspace.Workspace(workspace)
         return workspace
-
-    def nn_cosmological_parameters(self):
-        manifest = self.nn_workspace().loader().manifest()
-        names = manifest["cosmological_parameters"]
-        # TODO this isn't stable when some parameters have not explicitly
-        # been set!
-        return {name: self._pars[name] for name in names}
 
     def nn_cheat_enabled(self):
         return "nn_cheat" in self._pars
