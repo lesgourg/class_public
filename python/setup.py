@@ -50,6 +50,7 @@ setup(
         "classynet.data_providers": os.path.join(classy_folder, "nn", "data_providers"),
         "classynet.testing": os.path.join(classy_folder, "nn", "testing"),
         "classynet.plotting": os.path.join(classy_folder, "nn", "plotting"),
+        "classynet.tests": os.path.join(classy_folder, "nn", "tests"),
     },
     packages=[
         "classynet",
@@ -59,12 +60,21 @@ setup(
         "classynet.data_providers",
         "classynet.testing",
         "classynet.plotting",
+        "classynet.tests",
     ],
-    ext_modules=[Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
-                           include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
-                           libraries=liblist,
-                           library_dirs=[root_folder, GCCPATH],
-                           extra_link_args=['-lgomp'],
-                           )],
+    ext_modules=[
+        Extension("classy", [os.path.join(classy_folder, "classy.pyx")],
+                  include_dirs=[nm.get_include(), include_folder, heat_folder, recfast_folder, hyrec_folder],
+                  libraries=liblist,
+                  library_dirs=[root_folder, GCCPATH],
+                  extra_link_args=['-lgomp'],
+                  ),
+        Extension("lhs",
+                  [os.path.join(classy_folder, "nn", "lhs_python.cpp")],
+                  extra_compile_args=["-fopenmp"],
+                  extra_link_args=["-fopenmp"],
+                  include_dirs=[nm.get_include()],
+                  )
+    ],
     #data_files=[('bbn', ['../bbn/sBBN.dat'])]
 )
