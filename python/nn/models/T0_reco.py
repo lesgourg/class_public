@@ -10,7 +10,7 @@ import torch.nn.functional as F
 
 import pandas as pd
 
-import pytorch_spline
+from .. import pytorch_spline
 
 from .model import Model
 # import classynet.models.common as common
@@ -19,6 +19,25 @@ from .. import utils
 from .. import time_slicing
 
 PLOT_MODE = False
+
+# TODO remove this in final
+THESIS_MODE = False
+
+def thesis_write(name, value):
+    import os
+    import pickle
+    path = os.path.expanduser("~/masterarbeit/data/t0_reco.pickle")
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+    else:
+        data = {}
+
+    data[name] = value
+    print("writing quantity", name)
+    with open(path, "wb") as f:
+        pickle.dump(data, f)
+
 
 class BasisDecompositionNet(nn.Module):
 
@@ -138,6 +157,15 @@ class BasisDecompositionNet(nn.Module):
             coefficients.T[..., None] * basis * damping,
             B[None, :, :],
             ), dim=0)
+
+        if THESIS_MODE:
+            thesis_write("k", self.k.detach().cpu().numpy())
+            thesis_write("tau_rel", 10**x["tau_relative_to_reco"].detach().cpu().numpy())
+            thesis_write("spline", B)
+            thesis_write("trig", coefficients.T[..., None] * basis)
+            thesis_write("damping", damping)
+            thesis_write("trig + damping", coefficients.T[..., None] * basis * damping)
+            thesis_write("basis", result.sum(axis=0))
 
         if PLOT_MODE:
             contributions = coefficients.T[..., None] * basis * damping
@@ -362,6 +390,12 @@ class Net_ST0_Reco(Model):
         result = torch.cat((linear_combination, correction[None, :, :]), dim=0)
         result = result.sum(dim=0)
 
+        if THESIS_MODE:
+            thesis_write("k_min", self.k_min.item())
+            thesis_write("linear_combination", linear_combination.cpu().detach().numpy())
+            thesis_write("correction", correction.cpu().detach().numpy())
+            thesis_write("result", result.cpu().detach().numpy())
+
         # import matplotlib
         # matplotlib.use("agg")
         # import matplotlib.pyplot as plt
@@ -393,16 +427,13 @@ class Net_ST0_Reco(Model):
             "r_s", "k_d", "tau_relative_to_reco", "g_reco", "g_reco_prime"
         ])
 
-    def tau_training(self):
-        # return None
-        with h5.File(os.path.join(os.path.expandvars("$CLASSNET_DATA"), "tau_t0_reco.h5"), "r") as f:
-            tau_training = f["tau"][()]
-        return tau_training
-
     def lr_scheduler(self, optimizer):
         return torch.optim.lr_scheduler.LambdaLR(optimizer, [
+            # basis net parameters
             lambda epoch: np.exp(-epoch / 8),
+            # spline parameters
             lambda epoch: np.exp(-epoch / 8) if epoch < 5 else 0,
+            # correction net parameter
             lambda epoch: 0 if epoch < 5 else np.exp(-(epoch - 5) / 8)
             ]
             )
