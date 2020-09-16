@@ -4,8 +4,6 @@ import scipy.interpolate
 from .containers import InputContainer, TargetContainer
 from .approximations import add_approximations
 
-import utils
-
 class InputPostProcessor:
 
     def process_default(self, container, k, tau=None):
