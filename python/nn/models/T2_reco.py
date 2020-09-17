@@ -109,7 +109,7 @@ class Net_ST2_Reco(Model):
 
     def criterion(self):
         def loss(prediction, truth):
-            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
+            return common.mse_()(prediction, truth)
         return loss
 
     def required_inputs(self):

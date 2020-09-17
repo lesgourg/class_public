@@ -12,6 +12,24 @@ from .model import Model
 from . import common
 from .. import utils
 
+THESIS_MODE = False
+
+def thesis_write(name, value):
+    import os
+    import pickle
+    path = os.path.expanduser("~/masterarbeit/data/delta_m.pickle")
+    if os.path.exists(path):
+        with open(path, "rb") as f:
+            data = pickle.load(f)
+    else:
+        data = {}
+
+    data[name] = value
+    print("writing quantity", name)
+    with open(path, "wb") as f:
+        pickle.dump(data, f)
+
+
 def fitfunc_old(k, keq, Omega_b, Omega0_cdm, h, rs_drag):
   # Taken from http://background.uchicago.edu/~whu/transfer/tf_fit.c
     q = k/keq/13.41
@@ -258,6 +276,17 @@ class Net_phi_plus_psi(Model):
 
         result = (1. + correction) * approx_stack
 
+        if THESIS_MODE:
+            def d(x):
+                return x.detach().cpu().numpy()
+            thesis_write("k_min", self.k_min.item())
+            thesis_write("tau", d(tau))
+            thesis_write("k", d(self.k))
+            thesis_write("approx", d(approx))
+            thesis_write("approx_delta_m", d(approx_delta_m))
+            thesis_write("correction", d(correction))
+            thesis_write("result", d(result))
+
         if False:
             pdm0 = result[-1, :, 1].cpu().detach()
             k = self.k.cpu().detach()
@@ -284,7 +313,8 @@ class Net_phi_plus_psi(Model):
 
     def criterion(self):
         def loss(prediction, truth):
-            return common.mse_rel_truncate(self.k, self.k_min)(prediction, truth)
+            return common.mse_rel_()(prediction, truth)
+            # return common.mse_rel_truncate(self.k, self.k_min)(prediction, truth)
         return loss
 
         # TODO TODO TODO
