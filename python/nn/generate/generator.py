@@ -20,29 +20,32 @@ class Generator:
             self.workspace.validation_data, processes=processes
         )
 
-    def generate_data_for(self, fixed, training, validation, processes=None, fixed_training_only=None):
+    def generate_data_for(self, fixed, training=None, validation=None, processes=None, fixed_training_only=None):
         """
         this method works with precomputed `domain` data.
         """
 
-        self.write_manifest(fixed, training.keys())
+        if training:
+            self.write_manifest(fixed, training.keys())
 
         # this must happen AFTER writing the manifest!
         if fixed_training_only is not None:
             fixed = fixed.copy()
             fixed.update(fixed_training_only)
 
-        generate_data(
-            training,
-            fixed,
-            self.workspace.training_data, processes=processes
-        )
+        if training:
+            generate_data(
+                training,
+                fixed,
+                self.workspace.training_data, processes=processes
+            )
 
-        generate_data(
-            validation,
-            fixed,
-            self.workspace.validation_data, processes=processes
-        )
+        if validation:
+            generate_data(
+                validation,
+                fixed,
+                self.workspace.validation_data, processes=processes
+            )
 
     def generate_k_array(self):
         import glob
