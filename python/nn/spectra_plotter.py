@@ -78,6 +78,7 @@ class SpectraPlotter:
     def _get_param_bounds(self, data):
         param_names = data[0]["parameters"].keys()
         params = {key: np.array([item["parameters"][key] for item in data]) for key in param_names}
+
         return {key: (np.min(val), np.max(val)) for key, val in params.items()}
 
     def _plot_colored(self, data, field="tt"):
@@ -102,7 +103,7 @@ class SpectraPlotter:
             handler = handlers[field]
 
         pbounds = self._get_param_bounds(data)
-        cmap = plt.cm.winter
+        cmap = plt.cm.seismic
         for param_name, bound in pbounds.items():
             print("_plot_cl_colored({}) for {}".format(field, param_name))
             fig, ax = plt.subplots()
