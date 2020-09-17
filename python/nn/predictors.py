@@ -102,6 +102,8 @@ class BasePredictor:
         cosmo = self.cosmo
         k_min_class = cosmo.k_min()
 
+        return result[k >= k_min_class, :]
+
         # result has shape (len(k), len(tau))
 
         if k_min_class > k[0]:
@@ -178,6 +180,9 @@ class BasePredictor:
         # TODO ??????
         k = self.k
         k_min_class = self.cosmo.k_min()
+
+        # TODO remove
+        return k[k >= k_min_class]
 
         if k_min_class > k[0]:
             k_idx = np.searchsorted(k, k_min_class)

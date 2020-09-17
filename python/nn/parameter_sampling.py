@@ -83,6 +83,11 @@ class EllipsoidDomain(ParamDomain):
         samples = lower[None, :] + samples * (upper - lower)[None, :]
         print("samples.shape", samples.shape)
 
+        # !!!!! TODO WARNING DANGER !!!!!!
+        # don't forget to remove this!!!!
+        # !!!!! TODO WARNING DANGER !!!!!!
+        samples[:, self.index("Omega_k")] = 0.0
+
         inside_ellipsoid = is_inside_ellipsoid(
             self.inv_covmat,
             samples, self.best_fit,
@@ -242,6 +247,7 @@ class DefaultParamDomain(ParamDomain):
         samples = lower[None, :] + samples * (upper - lower)[None, :]
         print("samples.shape", samples.shape)
         samples_planck = samples[:, :len(self.planck_names)]
+
 
         inside_planck_ellipsoid = is_inside_ellipsoid(
             self.inv_covmat,
