@@ -80,7 +80,7 @@ class Net_ST0_Reio(Model):
 
     def criterion(self):
         def loss(prediction, truth):
-            return common.mse_()(prediction, truth)
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
 
 if __name__ == "__main__":

@@ -226,6 +226,9 @@ def generate_source_function(args):
     z_bg = cosmo.get_bg_z()
     tau_bg = cosmo.get_bg_tau()
 
+    bg = cosmo.get_background()
+
+    file.create_dataset("background/Omega_m", data=(bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"])
     file.create_dataset("background/tau", data=tau_bg)
     file.create_dataset("background/z", data=z_bg)
     file.create_dataset("background/rho_b", data=rho_g)

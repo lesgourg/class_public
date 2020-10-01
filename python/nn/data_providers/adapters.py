@@ -40,8 +40,13 @@ class SourceFileAdapter:
             container.scalars[qty] = value
 
         container.background.r_s = thermos["r_s"][()]
+        container.background.Omega_m = background["Omega_m"][()]
         container.background.D = thermos["D"][()]
         container.background.H = thermos["H"][()]
+
+        container.background.raw_Omega_m = background["Omega_m"][()]
+        container.background.raw_D = thermos["D"][()]
+        container.background.raw_H = thermos["H"][()]
 
         container.background.rho_b = background["rho_b"]
         container.background.rho_g = background["rho_g"]
@@ -146,6 +151,7 @@ class CLASSAdapter:
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
         container.scalars.rs_drag = self.cosmo.rs_drag_nn()
 
+        bg = cosmo.get_background()
         bg_nn = cosmo.get_backgrounds_for_NN()
 
         tau_bg = bg_nn["tau"]
@@ -160,6 +166,11 @@ class CLASSAdapter:
         container.background.rho_g = rho_g
         container.background.D = bg_nn["D"]
         container.background.H = bg_nn["H"]
+        container.background.Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"]
+
+        container.background.raw_D = bg_nn["D"]
+        container.background.raw_H = bg_nn["H"]
+        container.background.raw_Omega_m = (bg["(.)rho_b"] + bg["(.)rho_cdm"]) / bg["(.)rho_crit"]
 
         container.thermo.e_kappa = thermos["e_kappa"]
         container.thermo.r_d = thermos["r_d"]

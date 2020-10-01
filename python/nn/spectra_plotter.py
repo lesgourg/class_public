@@ -66,7 +66,7 @@ class SpectraPlotter:
         self.figs["pk"][1].set(
             xlabel=r"$k$ [Mpc${}^{-1}$]",
             ylabel=r"$(P_{NN}(k)-P_{CLASS}(k))/P_{CLASS}(k)$",
-            xlim=(1e-4, 100),
+            # xlim=(1e-4, 100),
         )
 
         self.figs["pk_abs"][0].tight_layout()

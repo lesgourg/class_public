@@ -69,6 +69,8 @@ class InputPostProcessor:
             del thermo["r_d"]
         return thermo
 
+
+
 class TargetPostProcessor:
     def __init__(self):
         pass
@@ -81,16 +83,36 @@ class TargetPostProcessor:
         result = dict()
 
         for key, S in container.sources.items():
-            # perform extrapolation (very important for delta_m)
-            # this is necessary since some source functions are sampled
-            # on k arrays that are true subsets of `k_standard`; feeding
-            # those functions into RectBivariateSpline will lead to nearest
-            # neighbor interpolation, causing our networks to learn wrong
-            # values outside the source functions' sampling domain.
-            # k_source, S = utils.extrapolate_pow(container.k_source, S.T, k)
-            # EDIT: No longer necessary; training data is now always generated
-            # such that extrapolation never has to occur
-            spline = scipy.interpolate.RectBivariateSpline(container.tau_source, container.k_source, S.T)
+            # Do a quadratic extrapolation using the lowest 3 points of the source function
+            # in k.
+            deg = 2
+            z = np.polyfit(container.k_source[:deg+1], S[:deg+1], deg=deg)
+            k_np = k.numpy()
+            # a bit of tolerance because otherwise two k points will
+            # be extremely close leading to numerical problems in the
+            # spline further below
+            rtol = 1e-3
+            k_low = k_np[k_np < (1.0 - rtol) * container.k_source[0]]
+            S_low = z[2] + z[1] * k_low[:, None] + z[0] * k_low[:, None]**2
+            k_interp = np.concatenate((k_low, container.k_source), axis=0)
+            S_new    = np.concatenate((S_low, S), axis=0)
+            assert S_new.shape == (len(k_interp), len(tau))
+
+            # import matplotlib as mpl
+            # mpl.use("qt5agg")
+            # import matplotlib.pyplot as plt
+            # plt.figure()
+            # print("source function:", key)
+            # index = 118
+            # plt.semilogx(container.k_source, S[:, index], label="from CLASS")
+            # plt.semilogx(k_low, S_low[:, index], marker="x", label="extrapolated")
+            # plt.scatter(container.k_source[:deg+1], S[:deg+1, index], color="r", label="points used in extraploation")
+            # plt.legend()
+            # plt.grid()
+            # plt.show()
+
+            # finally, perform interpolation onto `k`
+            spline = scipy.interpolate.RectBivariateSpline(container.tau_source, k_interp, S_new.T)
             S_interpolated = spline(tau, k)
             result[key] = S_interpolated
 

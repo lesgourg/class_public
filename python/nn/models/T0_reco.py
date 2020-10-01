@@ -301,6 +301,7 @@ class CorrectionNet(nn.Module):
         self.relu = nn.PReLU()
         self.init_with_zero()
 
+
     def init_with_zero(self):
         with torch.no_grad():
             self.lin_corr_3.weight.zero_()
@@ -447,9 +448,9 @@ class Net_ST0_Reco(Model):
     def criterion(self):
         """Returns the loss function."""
         # TODO self.loss_weight?
-        # def loss(prediction, truth):
-        #     return common.mse_truncate(self.k, self.k_min)(prediction, truth)
-        # return loss
         def loss(prediction, truth):
-            return torch.mean((prediction - truth)**2)
+            return common.mse_truncate(self.k, self.k_min)(prediction, truth)
         return loss
+        # def loss(prediction, truth):
+        #     return torch.mean((prediction - truth)**2)
+        # return loss

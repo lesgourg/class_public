@@ -250,9 +250,18 @@ class Net_phi_plus_psi(Model):
 
         # approx = fitfunc(Omega_m, Omega_b, Omega_ncdm, 3, Omega_Lambda, h, rs_drag, x["z"], self.k)
 
+        H_tau = x["raw_H"]
+        D_tau = x["raw_D"]
+        Omega_m_tau = x["raw_Omega_m"]
+
+        # for some reason this isn't working properly yet
+        # approx_phi_plus_psi = approx * 3 * (H_tau**2 * Omega_m_tau * D_tau)[:, None]
+        approx_phi_plus_psi = approx
+
         # divide approximation by the SAME normalization constant as delta_m
         # TODO IMPORTANT WARNING DANGER do not hardcode this!
-        approx_delta_m = -alpha.item() * approx / 154197.6664204682 * \
+        normalization = 144534.5036053507
+        approx_delta_m = -alpha.item() * approx / normalization * \
             (self.k2 + 3.*Omega_k*(h/2997.9)**2)
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
@@ -265,7 +274,8 @@ class Net_phi_plus_psi(Model):
             ), dim=1)
 
         # shape: (n_k, 2)
-        approx_stack = torch.stack((approx, approx_delta_m), dim=2)
+        # approx_stack = torch.stack((approx, approx_delta_m), dim=2)
+        approx_stack = torch.stack((approx_phi_plus_psi, approx_delta_m), dim=2)
 
         correction = self.net_merge_corr(y)
 
@@ -313,8 +323,8 @@ class Net_phi_plus_psi(Model):
 
     def criterion(self):
         def loss(prediction, truth):
-            return common.mse_rel_()(prediction, truth)
-            # return common.mse_rel_truncate(self.k, self.k_min)(prediction, truth)
+            # return common.mse_rel_()(prediction, truth)
+            return common.mse_rel_truncate(self.k, self.k_min)(prediction, truth)
         return loss
 
         # TODO TODO TODO
@@ -424,6 +434,7 @@ class Net_phi_plus_psi(Model):
             "raw_cosmos/h", "raw_cosmos/omega_b", "raw_cosmos/omega_cdm",
             "raw_cosmos/N_ur", "raw_cosmos/omega_ncdm", "raw_cosmos/Omega_k",
             "D",
+            "raw_H", "raw_D", "raw_Omega_m",
             "tau", "k_eq",
             "rs_drag",
             "z_d", "H",

@@ -24,10 +24,17 @@ def get_inputs_tau_isw(x):
 
 ########################## LOSS FUNCTIONS ####################################
 
+
 def mse_truncate_(k, k_min):
-    mask = k >= k_min
+    import numpy as np
+    # index of first member in `k` which is larger than k_min
+    k_min_idx = np.searchsorted(k.cpu().numpy(), k_min.cpu().item())
+    # shift by one to get the index of the first member in `k` which
+    # is smaller than `k_min` (and make sure we don't fall out of the array)
+    k_min_idx = max(k_min_idx - 1, 0)
     def loss(prediction, truth):
-        return torch.mean((prediction - truth)[:, mask, ...]**2)
+        # only keep points starting from k_min_idx
+        return torch.mean((prediction - truth)[:, k_min_idx:, ...]**2)
     return loss
 
 def mse_():

@@ -12,9 +12,9 @@ import numpy as np
 FIXED = {
     "output": "tCl,pCl,lCl,mPk",
 
-    "N_ncdm": 1,
     # "N_ur": 2.0328,
     # "m_ncdm": 0.06,
+    "N_ncdm": 1,
     "deg_ncdm": 3,
     "Omega_Lambda": 0,
 
@@ -30,8 +30,11 @@ FIXED = {
 FIXED_TRAINING_ONLY = {
     # to avoid interpolation artifacts at the edges
     "k_min_tau0": 1e-4,
+    # precision parameters
+    "tol_background_integration":     1.e-3,
+    "tol_perturb_integration":        1.e-6,
+    "reionization_optical_depth_tol": 1.e-5,
 }
-
 
 # PLANCK = {
 #         "omega_b":   (0.02242, 0.00014),
@@ -45,68 +48,38 @@ FIXED_TRAINING_ONLY = {
 # WORKSPACE_DIR = "/scratch/work/samaras/delete_me/example/"
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
-# # good generations, working with k sampling version 2
-# generations = {
-#     "Net_ST0_Reco":     10,
-#     "Net_ST0_Reio":     6,
-#     "Net_ST0_ISW":      6,
-#     "Net_ST1":          6,
-#     "Net_ST2_Reco":     6,
-#     "Net_ST2_Reio":     6,
-#     "Net_phi_plus_psi": 12
-# }
-
-# with mixed approach
-# generations = {
-#     "Net_ST0_Reco":     15,
-#     "Net_ST0_Reio":     10,
-#     "Net_ST0_ISW":      11,
-#     "Net_ST1":          10,
-#     "Net_ST2_Reco":     10,
-#     "Net_ST2_Reio":     10,
-#     "Net_phi_plus_psi": 17
-# }
-
-
-# generations = {
-#     "Net_ST0_Reco":     18,
-#     "Net_ST0_Reio":     13,
-#     "Net_ST0_ISW":      14,
-#     "Net_ST1":          13,
-#     "Net_ST2_Reco":     13,
-#     "Net_ST2_Reio":     13,
-#     "Net_phi_plus_psi": 22,
-# }
-
 generations = {
-    "Net_ST0_Reco":     20,
-    "Net_ST0_Reio":     14,
-    "Net_ST0_ISW":      15,
-    "Net_ST1":          14,
-    "Net_ST2_Reco":     14,
-    "Net_ST2_Reio":     14,
-    "Net_phi_plus_psi": 23,
+    "Net_ST0_Reco":     32,
+    "Net_ST0_Reio":     23,
+    "Net_ST0_ISW":      23,
+    "Net_ST1":          22,
+    "Net_ST2_Reco":     24,
+    "Net_ST2_Reio":     23,
+    "Net_phi_plus_psi": 31,
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
+
 assert isinstance(workspace, Workspace)
 
 # domain = DefaultParamDomain(workspace.data / "base2018TTTEEE.covmat", sigma=5)
 
 pnames = ['omega_b', 'omega_cdm', 'h', 'tau_reio', 'w0_fld', 'wa_fld', 'N_ur', 'omega_ncdm', 'Omega_k']
-domain = EllipsoidDomain(
-    workspace.data / "lcdm_11p_sn.bestfit",
-    workspace.data / "lcdm_11p_sn.covmat",
-    pnames=pnames,
-    sigma=6,
+domain = EllipsoidDomain.from_paths(
+    bestfit_path   = workspace.data / "lcdm_11p_sn.bestfit",
+    covmat_path    = workspace.data / "lcdm_11p_sn.covmat",
+    pnames         = pnames,
+    sigma_train    = 6,
+    sigma_validate = 5,
 )
 
+# domain.save(workspace.domain_descriptor)
 # domain.sample_save(training_count=10000, validation_count=1000, path=workspace.data / "samples.h5")
 # import sys; sys.exit(0)
 
 training, validation = workspace.loader().cosmological_parameters()
 
-# Generating training data
+# # Generating training data
 # workspace.generator().generate_data_for(
 #     fixed=FIXED,
 #     training=training,
@@ -114,6 +87,15 @@ training, validation = workspace.loader().cosmological_parameters()
 #     fixed_training_only=FIXED_TRAINING_ONLY,
 #     processes=9)
 # workspace.generator().generate_k_array()
+# import sys; sys.exit(0)
+
+# # Generating training data
+# workspace.generator().generate_data_for(
+#     fixed=FIXED,
+#     training=None,
+#     validation=validation,
+#     fixed_training_only=FIXED_TRAINING_ONLY,
+#     processes=9)
 # import sys; sys.exit(0)
 
 # workspace.generator().write_manifest(FIXED, training.keys())
@@ -124,15 +106,18 @@ training, validation = workspace.loader().cosmological_parameters()
 # Training: any subset of models can be trained at once
 # workspace.trainer().train_all_models(workers=36)
 
-# from ..models import Net_ST0_Reco, Net_ST0_ISW
+# from ..models import Net_ST0_Reco, Net_ST0_ISW, Net_ST2_Reco, Net_ST2_Reio
 # workspace.trainer().train_models([
-#     Net_ST0_Reco,
-#     Net_ST0_ISW,
+    # Net_ST2_Reco,
+    # Net_ST2_Reio,
 # ], 36)
 
 # from ..models import Net_ST0_Reco
-# workspace.trainer().train_model(Net_ST0_Reco, workers=18)
+# workspace.trainer().train_model(Net_ST0_Reco, workers=36)
 # import sys; sys.exit(0)
+
+# from ..models import Net_ST0_ISW
+# workspace.trainer().train_model(Net_ST0_ISW, workers=18)
 
 # from ..models import Net_phi_plus_psi
 # workspace.trainer().train_model(Net_phi_plus_psi, workers=36)
@@ -144,17 +129,19 @@ training, validation = workspace.loader().cosmological_parameters()
 
 # ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
-# tester.test(count=10000)
-
+tester.test(2000)
 import matplotlib
 matplotlib.use("agg")
 plotter = workspace.plotter()
+plotter.plot_spectra(include_params=True)
 plotter.plot_spectra()
+# import sys; sys.exit(0)
 plotter.plot_source_functions()
 plotter.plot_training_histories()
-# plotter.plot_source_function_slice("t0_isw")
+plotter.plot_source_function_slice("t0_reco_no_isw")
 # triangle scatter plots of Cl/Pk errors vs. cosmological parameters
 plotter.plot_scatter_errors()
+import sys; sys.exit(0)
 
 # bm = workspace.benchmark_runner(warmup=1, iterations=50)
 # bm.run(thread_counts=[1, 4])
@@ -167,10 +154,16 @@ plotter.plot_scatter_errors()
 
 # plotter.plot_training_histories()
 
-# Compute Cl's with all source functions computed by CLASS _except_ one
-if False:
-    ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
-    for i, select in enumerate(ALL_SOURCES):
-        cheat = set(ALL_SOURCES) - set([select])
-        workspace.tester().test(100, prefix=f"only_{select}", cheat=cheat)
+ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
 
+# Compute Cl's with all source functions computed by CLASS _except_ one
+if True:
+    import matplotlib
+    matplotlib.use("agg")
+    for i, select in enumerate(["t0_isw"]):
+        subspace = workspace.sub("only_{}".format(select))
+        cheat = set(ALL_SOURCES) - set([select])
+        subspace.tester().test(1000, cheat=cheat, seed=1337)
+        plotter = subspace.plotter()
+        plotter.plot_spectra(include_params=True)
+        # plotter.plot_source_functions()

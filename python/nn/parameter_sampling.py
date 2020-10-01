@@ -28,7 +28,7 @@ OMEGA_NCDM_MIN = 8.147986e-5
 class EllipsoidDomain(ParamDomain):
 
     @staticmethod
-    def from_paths(bestfit_path, covmat_path, pnames, sigma):
+    def from_paths(bestfit_path, covmat_path, pnames, sigma_train, sigma_validate):
         _bestfit_names, best_fit = load_montepython_bestfit(bestfit_path, pnames)
         assert _bestfit_names == pnames
         covmat, inv_covmat = load_montepython_covmat(covmat_path, pnames)
@@ -37,37 +37,39 @@ class EllipsoidDomain(ParamDomain):
             covmat=covmat,
             inv_covmat=inv_covmat,
             pnames=pnames,
-            sigma=sigma
+            sigma_train=sigma_train,
+            sigma_validate=sigma_validate,
         )
 
-    def __init__(self, best_fit, covmat, inv_covmat, pnames, sigma):
+    def __init__(self, best_fit, covmat, inv_covmat, pnames, sigma_train, sigma_validate=None):
         self.best_fit = best_fit
         self.covmat = covmat
         self.inv_covmat = inv_covmat
         self.pnames = pnames
-        self.sigma = sigma
+        self.sigma_train = sigma_train
+        self.sigma_validate = sigma_validate if sigma_validate is not None else self.sigma_train
 
         self.ndf = len(self.pnames)
 
     def index(self, name):
         return self.pnames.index(name)
 
-    def sample(self, count, tol=50, maxiter=100):
+    def sample(self, count, sigma, tol=50, maxiter=100):
         fraction = 1.0
         for _ in range(maxiter):
             if fraction > 0:
                 new_count = int(count / fraction)
             else:
                 new_count = 5 * new_count
-            samples = self._sample(new_count)
+            samples = self._sample(new_count, sigma=sigma)
             print("-----------------------------------------------")
             if abs(len(samples) - count) < tol:
                 return samples
             fraction = len(samples) / new_count
         raise ValueError("Couldn't get {} samples with tol={}".format(count, tol))
 
-    def _sample(self, count):
-        deltachi2 = get_delta_chi2(self.ndf, self.sigma)
+    def _sample(self, count, sigma):
+        deltachi2 = get_delta_chi2(self.ndf, sigma)
         bbox = find_bounding_box(self.best_fit, self.covmat, deltachi2)
         # lower and upper boundaries of bounding box define lhs domain
         lower, upper = bbox[:, 0], bbox[:, 1]
@@ -83,15 +85,21 @@ class EllipsoidDomain(ParamDomain):
         samples = lower[None, :] + samples * (upper - lower)[None, :]
         print("samples.shape", samples.shape)
 
-        # !!!!! TODO WARNING DANGER !!!!!!
-        # don't forget to remove this!!!!
-        # !!!!! TODO WARNING DANGER !!!!!!
-        samples[:, self.index("Omega_k")] = 0.0
+        DISABLE_OMEGA_K = False
+        if DISABLE_OMEGA_K:
+            # !!!!! TODO DANGER !!!!!!
+            # MAKE SURE THIS IS NOT ENABLED!
+            # !!!!! TODO DANGER !!!!!!
+            samples[:, self.index("Omega_k")] = 0.0
+            self.best_fit[self.index("Omega_k")] = 0.0
+            ndf = self.ndf - 1
+        else:
+            ndf = self.ndf
 
         inside_ellipsoid = is_inside_ellipsoid(
             self.inv_covmat,
             samples, self.best_fit,
-            self.ndf, self.sigma)
+            ndf, sigma)
         ratio_inside = inside_ellipsoid.sum() / len(samples)
         print("fraction of points inside ellipsoid:", ratio_inside)
 
@@ -99,6 +107,10 @@ class EllipsoidDomain(ParamDomain):
         count_tau = tau_large_enough.sum()
         ratio_tau = count_tau / len(samples)
         print("fraction of kept points (tau_reio only):", ratio_tau)
+
+        N_ur_positive = samples[:, self.index("N_ur")] > 0
+        ratio_N_ur = N_ur_positive.sum() / len(samples)
+        print("fraction of kept points (N_ur only):", ratio_N_ur)
 
         omega_ncdm_large_enough = samples[:, self.index("omega_ncdm")] > OMEGA_NCDM_MIN
         ratio_ncdm = omega_ncdm_large_enough / len(samples)
@@ -115,7 +127,11 @@ class EllipsoidDomain(ParamDomain):
         # print("fraction of kept points (wa < 0 only):", ratio_wa)
         # inside_mask = inside_ellipsoid & tau_large_enough & fld_consistent & omega_ncdm_large_enough & wa_bound
 
-        inside_mask = inside_ellipsoid & tau_large_enough & fld_consistent & omega_ncdm_large_enough
+        inside_mask = inside_ellipsoid \
+            & tau_large_enough \
+            & fld_consistent \
+            & omega_ncdm_large_enough \
+            & N_ur_positive
         count_inside = inside_mask.sum()
         ratio_inside = count_inside / len(samples)
         print("count_inside:", count_inside)
@@ -126,21 +142,21 @@ class EllipsoidDomain(ParamDomain):
         return samples
 
     def sample_save(self, training_count, validation_count, path):
-        def create_group(f, name, count):
-            samples = self.sample(count)
+        def create_group(f, name, count, sigma):
+            samples = self.sample(count, sigma=sigma)
             print("Saving group '{}' of {} samples to {}".format(name, len(samples), path))
             g = f.create_group(name=name)
             for name, column in zip(self.pnames, samples.T):
                 g.create_dataset(name, data=column)
 
         with h5.File(path, "w") as out:
-            create_group(out, "training", training_count)
-            create_group(out, "validation", validation_count)
+            create_group(out, "training", training_count, sigma=self.sigma_train)
+            create_group(out, "validation", validation_count, sigma=self.sigma_validate)
 
     def parameter_names(self):
         return list(self.pnames)
 
-    def contains(self, parameters):
+    def contains(self, parameters, validate=True):
         """
         parameters is a dict of CLASS parameters.
         NOTE: this assumes that all network parameters (i.e. all of self.pnames)
@@ -153,17 +169,19 @@ class EllipsoidDomain(ParamDomain):
         if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
             return False
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
+        sigma = self.sigma_validate if validate else self.sigma_train
         inside = is_inside_ellipsoid(self.inv_covmat, cosmo_params,
-                                     self.best_fit, self.ndf, self.sigma)
+                                     self.best_fit, self.ndf, sigma)
         return inside[0]
 
     def save(self, path):
         d = {
-            "best_fit":   list(self.best_fit),
-            "covmat":     [list(row) for row in self.covmat],
-            "inv_covmat": [list(row) for row in self.inv_covmat],
-            "pnames":     list(self.pnames),
-            "sigma":      self.sigma
+            "best_fit":       list(self.best_fit),
+            "covmat":         [list(row) for row in self.covmat],
+            "inv_covmat":     [list(row) for row in self.inv_covmat],
+            "pnames":         list(self.pnames),
+            "sigma_train":    self.sigma_train,
+            "sigma_validate": self.sigma_validate,
         }
         with open(path, "w") as out:
             json.dump(d, out)
@@ -173,11 +191,12 @@ class EllipsoidDomain(ParamDomain):
         with open(path, "r") as src:
             data = json.load(src)
         return EllipsoidDomain(
-            best_fit=data["best_fit"],
-            covmat=data["covmat"],
-            inv_covmat=data["inv_covmat"],
-            pnames=data["pnames"],
-            sigma=data["sigma"]
+            best_fit       = data["best_fit"],
+            covmat         = data["covmat"],
+            inv_covmat     = data["inv_covmat"],
+            pnames         = data["pnames"],
+            sigma_train    = data["sigma_train"],
+            sigma_validate = data["sigma_validate"],
         )
 
 class DefaultParamDomain(ParamDomain):
@@ -361,6 +380,18 @@ def is_inside_ellipsoid(inv_covmat, params, bestfit, df, sigma):
     """
     delta_chi2 = get_delta_chi2(df, sigma)
     d = params - bestfit
+    return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2
+
+def is_inside_ellipsoid_(inv_covmat, params, bestfit, mask, df, sigma):
+    """
+    params: (n, k)
+    bestfit (k,)
+    df: float
+    sigma: float
+    """
+    delta_chi2 = get_delta_chi2(df, sigma)
+    d = params - bestfit
+    d[~mask] = 0.0
     return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2
 
 def find_bounding_box(bestfit, covmat, chi2):

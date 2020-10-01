@@ -17,6 +17,10 @@ import torch
 from .models import ALL_NETWORK_CLASSES
 from . import current_transformer
 
+def lowest_k_index(k, k_min):
+    idx = np.searchsorted(k, k_min)
+    return max(idx - 1, 0)
+
 class BasePredictor:
     def __init__(self, cosmo, input_transformer, target_transformer, k):
         self.cosmo = cosmo
@@ -92,74 +96,20 @@ class BasePredictor:
         The result will be sampled on the `k` array obtained from `self.get_k()` and
         thus have the shape `(len(self.get_k()), len(tau))`
         """
-        # TODO re-add the code that you moron deleted
         result, raw_inputs = self._predict(quantity, tau, provider, cache)
+        k_min_class = self.cosmo.k_min()
 
-        # Here, we should check that in our sampling, the lowest k value
-        # is not below cosmo.k_min(), otherwise we might give physically meaningless
-        # data to CLASS
-        k = self.k
-        cosmo = self.cosmo
-        k_min_class = cosmo.k_min()
+        # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
+        # OTHERWISE BAD THINGS WILL HAPPEN!!!
+        k_min_idx =lowest_k_index(self.k, k_min_class)
+        right = result[self.k > k_min_class]
+        t = (k_min_class - self.k[k_min_idx]) / (self.k[k_min_idx + 1] - self.k[k_min_idx])
+        left = result[k_min_idx] * (1.0 - t) + result[k_min_idx + 1] * t
 
-        return result[k >= k_min_class, :]
-
-        # result has shape (len(k), len(tau))
-
-        if k_min_class > k[0]:
-            k_idx = np.searchsorted(k, k_min_class, side="right")
-            assert k_idx > 0
-            assert k_min_class < k[k_idx]
-            assert k_min_class >= k[k_idx - 1]
-
-            x = (k_min_class - k[k_idx - 1]) / (k[k_idx] - k[k_idx - 1])
-
-            # qty to perform interpolation on
-            left = result[k_idx - 1]
-            right = result[k_idx]
-            if quantity == "delta_m":
-                print("delta_m; log interp")
-                left = np.log(-left)
-                right = np.log(-right)
-
-            interpolated = x * left + (1 - x) * right
-
-            if quantity == "delta_m":
-                interpolated = -np.exp(interpolated)
-
-            result = np.insert(result[k_idx:], 0, interpolated, 0)
-
-            # TODO remove assertion in final version
-            assert result.shape[0] == len(self.get_k())
-
-            # k_spline = np.array([k[k_idx -1], k[k_idx]])
-            # spline = scipy.interpolate.RectBivariateSpline(k_spline, tau, result[k_idx - 1:k_idx + 1], kx=1, ky=1)
-            # interpolated = spline(np.array([k_min_class]), tau)
-            # # add interpolated row (for k=k_min_class) at beginning
-            # # of result array along k axis (0)
-
-
-            # TODO is this okay for delta_m?
-
-            # import ipdb; ipdb.set_trace()
-            # # Fit y = a * exp(b * k) between the two points
-            # # surrounding k_min_class
-            # b = np.log(result[k_idx] / result[k_idx - 1]) / (k[k_idx] - k[k_idx - 1])
-            # a = result[k_idx] / np.exp(b * k[k_idx])
-            # import ipdb; ipdb.set_trace()
-            # # Get the value of `result` at `k_min_class`
-            # result_at_k_min = a * np.exp(b * k_min_class)
-            # result = np.insert(result[k_idx:], 0, result_at_k_min, 0)
-
-        # if add_k0:
-            # raw_inputs_only_g = cache.get_raw_inputs(["g"])
-            # TODO for some physics-y reason, this doesn't work properly?
-            # limit = self.get_limit(quantity, raw_inputs_only_g)
-            # instead, just do nearest neighbor extrapolation at the lowest k
-            # limit = result[0]
-            # result = np.insert(result, 0, limit, axis=0)
+        result = np.concatenate((left[None, :], right), axis=0)
 
         return result
+        # return result[lowest_k_index(self.k, k_min_class), :]
 
     def _predict(self, quantity, tau):
         """
@@ -176,23 +126,16 @@ class BasePredictor:
         raise NotImplementedError
 
     def get_k(self):
-        # return self.k
-        # TODO ??????
         k = self.k
         k_min_class = self.cosmo.k_min()
 
-        # TODO remove
-        return k[k >= k_min_class]
-
-        if k_min_class > k[0]:
-            k_idx = np.searchsorted(k, k_min_class)
-            assert k_idx > 0
-            assert k_min_class <= k[k_idx]
-            assert k_min_class > k[k_idx - 1]
-            k_new = np.insert(k[k_idx:], 0, k_min_class)
-            return k_new
-        else:
-            return self.k
+        # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
+        # OTHERWISE BAD THINGS WILL HAPPEN!!!
+        k_result = np.concatenate((
+            np.array([k_min_class]),
+            k[k > k_min_class]
+        ))
+        return k_result
 
     def predict_many(self, quantities, tau):
         """
