@@ -22,7 +22,7 @@ class SourceFunctionPlotter:
         sources_nn, k_nn, tau_nn = cosmo_nn.get_sources()
 
         tau_rec = cosmo.get_current_derived_parameters(["tau_rec"])["tau_rec"]
-        tau_sel = 0.98 * tau_rec
+        tau_sel = tau_rec
         i_tau = np.argmin(np.abs(tau - tau_sel))
         i_nn_tau = np.argmin(np.abs(tau_nn - tau_sel))
 
@@ -33,6 +33,7 @@ class SourceFunctionPlotter:
         ax.grid()
         ax.set(xlabel="$k$")
         ax.set(ylabel="$S$")
+        ax.set_yscale("symlog", linthreshy=0.000001)
 
         fig.savefig(self.workspace.plots / "slice.png", dpi=200, bbox_inches="tight")
         plt.close(fig)
@@ -101,8 +102,14 @@ class SourceFunctionPlotter:
         manifest = self.workspace.loader().manifest()
 
         _, validation = self.workspace.loader().cosmological_parameters()
-        random_index = random.randrange(0, len(validation[next(iter(validation))]))
+        n_validation =  len(validation[next(iter(validation))])
+        random_index = random.randrange(0, n_validation)
         sample = {k: v[random_index] for k, v in validation.items()}
+
+        # # TODO REMOVE!!!!
+        # val_transpose = [{key: validation[key][i] for key in validation} for i in range(n_validation)]
+        # sample = min(val_transpose, key=lambda item: np.abs(item["Omega_k"] - (-0.011)))
+        # print("SAMPLE:", sample)
 
         params = {}
         params.update(manifest["fixed"])

@@ -129,18 +129,20 @@ training, validation = workspace.loader().cosmological_parameters()
 
 # ## Run CLASS for n cosmologies with and without NNs and produce error plots
 tester = workspace.tester()
-tester.test(2000)
-import matplotlib
-matplotlib.use("agg")
-plotter = workspace.plotter()
-plotter.plot_spectra(include_params=True)
-plotter.plot_spectra()
+# tester.test(2000)
 # import sys; sys.exit(0)
+workspace = workspace.sub("DELETEME")
+plotter = workspace.plotter()
+plotter.plot_source_function_slice("t2_reco")
+import sys; sys.exit(0)
 plotter.plot_source_functions()
-plotter.plot_training_histories()
-plotter.plot_source_function_slice("t0_reco_no_isw")
+
+plotter.plot_spectra(include_params=True)
 # triangle scatter plots of Cl/Pk errors vs. cosmological parameters
 plotter.plot_scatter_errors()
+# plotter.plot_spectra()
+plotter.plot_training_histories()
+# plotter.plot_source_function_slice("t0_reco_no_isw")
 import sys; sys.exit(0)
 
 # bm = workspace.benchmark_runner(warmup=1, iterations=50)

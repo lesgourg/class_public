@@ -101,12 +101,32 @@ class BasePredictor:
 
         # NOTE: THIS IS VERY IMPORTANT! WE MAY NOT PASS K MODES < K_MIN_CLASS TO CLASS
         # OTHERWISE BAD THINGS WILL HAPPEN!!!
-        k_min_idx =lowest_k_index(self.k, k_min_class)
+        k_min_idx = lowest_k_index(self.k, k_min_class)
         right = result[self.k > k_min_class]
-        t = (k_min_class - self.k[k_min_idx]) / (self.k[k_min_idx + 1] - self.k[k_min_idx])
-        left = result[k_min_idx] * (1.0 - t) + result[k_min_idx + 1] * t
 
+        # t = (k_min_class - self.k[k_min_idx]) / (self.k[k_min_idx + 1] - self.k[k_min_idx])
+        # left = result[k_min_idx] * (1.0 - t) + result[k_min_idx + 1] * t
+
+        z = np.polyfit(self.k[k_min_idx:k_min_idx+3], result[k_min_idx:k_min_idx+3], deg=2)
+        left = z[2] + z[1] * k_min_class + z[0] * k_min_class**2
+
+        # old_result = result
         result = np.concatenate((left[None, :], right), axis=0)
+
+        # i_tau = 120
+        # import matplotlib
+        # matplotlib.use("qt5agg")
+        # import matplotlib.pyplot as plt
+        # plt.semilogx(self.k, old_result[:, i_tau], label="network prediction")
+        # plt.semilogx(self.k[self.k > k_min_class], right[:, i_tau], label="right part", ls="--")
+        # plt.scatter([k_min_class], [left[i_tau]], label="point at k_min_class")
+        # plt.semilogx(self.get_k(), result[:, i_tau], label="final result", ls="-.")
+        # plt.axvline(k_min_class, label="k_min_class", color="r", ls="--")
+        # plt.axvline(self.k[k_min_idx], label="idx one before k_min_class", color="g", ls="--")
+        # plt.scatter(self.k[k_min_idx:k_min_idx+3], old_result[k_min_idx:k_min_idx+3, i_tau], label="points for quadratic")
+        # plt.legend()
+        # plt.grid()
+        # plt.show()
 
         return result
         # return result[lowest_k_index(self.k, k_min_class), :]

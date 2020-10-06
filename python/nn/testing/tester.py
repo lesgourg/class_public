@@ -66,15 +66,15 @@ class Tester:
                 print(str(exc))
                 print("continuing...")
                 continue
-            (cl_true, k_pk_true, pk_true), (cl_nn, k_pk_nn, pk_nn) = pair
+            (cl_true, k_pk_true, pk_true, k, dm_true), (cl_nn, k_pk_nn, pk_nn, k_nn, dm_nn) = pair
             counter += 1
             print("PROGRESS: {}".format(counter))
 
-            self.update_stats(stats, cosmo_param_dict, cl_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn)
+            self.update_stats(stats, cosmo_param_dict, cl_true, k, dm_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn, k_nn, dm_nn)
 
         self.save_stats(stats)
 
-    def update_stats(self, stats, cosmo_params, cl_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn):
+    def update_stats(self, stats, cosmo_params, cl_true, k, dm_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn, k_nn, dm_nn):
         cl_err = {key: cl_nn[key] - cl_true[key] for key in cl_true}
 
         # since P_NN(k) and P_true(k) _may_ be sampled on different k grids, we
@@ -97,7 +97,11 @@ class Tester:
             "pk_nn": pk_nn,
             "pk_error": pk_err,
             "cl_error_relative": cl_err_relative,
-            "pk_error_relative": pk_err_relative
+            "pk_error_relative": pk_err_relative,
+            "k": k,
+            "k_nn": k_nn,
+            "delta_m": dm_true,
+            "delta_m_nn": dm_nn,
         }
 
         # stat_dict = {k: v if not isinstance(v, np.ndarray) else list(v) for k, v in stat_dict.items()}
@@ -181,10 +185,13 @@ class Tester:
 
         sources, k, tau = cosmo.get_sources()
 
+        # also take delta_m @ today
+        k = k.copy()
+        delta_m = sources["delta_m"][:, -1].copy()
+
         cosmo.struct_cleanup()
 
-
-        return cls, k_pk, pk
+        return cls, k_pk, pk, k, delta_m
 
     def save_stats(self, stats):
         import pickle

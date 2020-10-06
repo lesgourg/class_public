@@ -75,6 +75,29 @@ class RelativeMaxErrorCl(ErrorQuantifier):
     def file_name(self):
         return "cl_{}_rel_err_max".format(self.field)
 
+class MaxErrorClScaled(ErrorQuantifier):
+
+    def __init__(self, title, field, ell, limits=None):
+        super().__init__(title)
+        self.field = field
+        self.factor = ell * (ell + 1)
+        self.limits = limits
+        if limits:
+            self.mask = (ell >= limits[0]) & (ell < limits[1])
+        else:
+            self.mask = np.ones_like(ell, dtype=np.bool)
+
+    def __call__(self, item):
+        y = self.factor * np.abs(item["cl_error"][self.field])
+        return np.max(y[self.mask])
+
+    def file_name(self):
+        if self.limits:
+            suffix = "_ell_between_{}_{}".format(*self.limits)
+        else:
+            suffix = ""
+        return "cl_{}_err_max{}".format(self.field, suffix)
+
 
 class RelativeMaxErrorPk(ErrorQuantifier):
 
@@ -90,11 +113,21 @@ class TrianglePlotter:
     def __init__(self, workspace):
         self.workspace = workspace
 
+        pol_limits = (0, 10)
+        ell = np.arange(2, 3000 + 1)
         self.quantifiers = [
+            MaxErrorClScaled("max. error of $\ell (\ell + 1) C_\ell^{EE}$ (log10)", "ee", ell=ell, limits=pol_limits),
+            MaxErrorClScaled("max. error of $\ell (\ell + 1) C_\ell^{TE}$ (log10)", "te", ell=ell, limits=pol_limits),
+
             RelativeRMSErrorCl("RMS relative error of $C_\ell^{TT}$ (log10)", "tt"),
-            # TODO ^ relative to CV
             RelativeMaxErrorCl("max. relative error (over all $\\ell$) of $C_\\ell^{TT}$ (log10)", "tt"),
-            # TODO ^ relative to CV
+
+            RelativeRMSErrorCl("RMS relative error of $C_\ell^{EE}$ (log10)", "ee"),
+            RelativeMaxErrorCl("max. relative error (over all $\\ell$) of $C_\\ell^{EE}$ (log10)", "ee"),
+
+            RelativeRMSErrorCl("RMS relative error of $C_\ell^{TE}$ (log10)", "te"),
+            RelativeMaxErrorCl("max. relative error (over all $\\ell$) of $C_\\ell^{TE}$ (log10)", "te"),
+
             RelativeRMSErrorPk("RMS of relative error (over all $k$) of $P(k)$ (log10)"),
             RelativeMaxErrorPk("max. relative error (over all $k$) of $P(k)$ (log10)")
         ]

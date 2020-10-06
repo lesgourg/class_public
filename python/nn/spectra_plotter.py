@@ -21,11 +21,7 @@ class SpectraPlotter:
 
         # this is terribly slow but whatever...
         for row in stats:
-            self._update_plots(
-                row["cl_true"], row["cl_nn"],
-                row["k_pk"], row["pk_true"],
-                row["k_pk_nn"], row["pk_nn"]
-            )
+            self._update_plots(row)
 
         if include_params:
             print("creating color plot for TT")
@@ -44,7 +40,9 @@ class SpectraPlotter:
             "ee": plt.subplots(),
             "te": plt.subplots(),
             "pk": plt.subplots(),
-            "pk_abs": plt.subplots()
+            "pk_abs": plt.subplots(),
+            "delta_m": plt.subplots(),
+            "delta_m_abs": plt.subplots(),
         }
 
         for _, ax in self.figs.values():
@@ -123,7 +121,13 @@ class SpectraPlotter:
             fig.savefig(path, bbox_inches="tight", dpi=250)
             plt.close(fig)
 
-    def _update_plots(self, cl_true, cl_nn, k_pk_true, pk_true, k_pk_nn, pk_nn):
+    def _update_plots(self, row):
+        cl_true   = row["cl_true"]
+        cl_nn     = row["cl_nn"]
+        k_pk_true = row["k_pk"]
+        pk_true   = row["pk_true"]
+        k_pk_nn   = row["k_pk_nn"]
+        pk_nn     = row["pk_nn"]
         ell = cl_true["ell"]
 
         for _, ax in self.figs.values():
@@ -167,6 +171,17 @@ class SpectraPlotter:
         # appears to be a bug in matplotlib and therefore can be ignored.
         self.figs["pk_abs"][1].loglog(k_pk_nn, pk_nn, **LINESTYLE_RED)
         self.figs["pk_abs"][1].loglog(k_pk_true, pk_true, **LINESTYLE_GREEN)
+
+        # delta_m
+        self.figs["delta_m_abs"][1].set_xlim(1e-6, 1e-4)
+        self.figs["delta_m_abs"][1].loglog(row["k"], -row["delta_m"], color="g")
+        self.figs["delta_m_abs"][1].loglog(row["k_nn"], -row["delta_m_nn"], color="r")
+
+        import scipy.interpolate
+        dm_nn_interp = scipy.interpolate.CubicSpline(row["k_nn"], row["delta_m_nn"])(row["k"])
+        dm_rel_err = (dm_nn_interp - row["delta_m"]) / row["delta_m"]
+        self.figs["delta_m"][1].semilogx(row["k"], dm_rel_err, **LINESTYLE_RED)
+        self.figs["delta_m"][1].set_yscale("symlog", linthresh=0.01)
 
     def _save(self, prefix=None):
         for name, (fig, _) in self.figs.items():
