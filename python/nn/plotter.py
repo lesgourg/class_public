@@ -20,5 +20,8 @@ class Plotter:
     def plot_source_functions(self):
         SourceFunctionPlotter(self.workspace).plot_source_functions()
 
-    def plot_source_function_slice(self, name):
-        SourceFunctionPlotter(self.workspace).plot_slice(name)
+    def plot_source_function_slice(self, *args, **kwargs):
+        SourceFunctionPlotter(self.workspace).plot_slice(*args, **kwargs)
+
+    def plot_source_function_slice_tau(self, *args, **kwargs):
+        SourceFunctionPlotter(self.workspace).plot_slice_tau(*args, **kwargs)

@@ -441,7 +441,27 @@ cdef class Class:
                 # GS TODO: More efficient way to copy memory from numpy array??
                 self.pt.sources[index_md][index_ic*tp_size + index_type][index_tau*k_NN_size + index_k] = S[index_k][index_tau]
 
-    def compute(self, level=["distortions"], performance_report=None):
+    # GS: TODO remove this function
+    def debug_overwrite_source(self, name, double[:, :] S):
+        cdef int index_md = self.pt.index_md_scalars
+        cdef int index_ic = self.pt.index_ic_ad
+        cdef int tp_size = self.pt.tp_size[index_md]
+        cdef int tau_size = self.pt.tau_size
+        cdef int k_size = self.pt.k_size[index_md]
+        cdef int i_tau
+        cdef int i_k
+
+        index_type = self.translate_source_to_index(name)
+
+        print "expected S.shape of", (k_size, tau_size)
+        print "got      S.shape of", S.shape
+
+        for i_tau in range(tau_size):
+            for i_k in range(k_size):
+                self.pt.sources[index_md][index_ic*tp_size + index_type][i_tau*k_size + i_k] = S[i_k][i_tau]
+
+
+    def compute(self, level=["distortions"], performance_report=None, post_perturb_callback=None):
         """
         compute(level=["distortions"])
 
@@ -766,6 +786,9 @@ cdef class Class:
                 timer.end("neural network complete")
 
             timer.end("perturb")
+
+            if post_perturb_callback:
+                post_perturb_callback(self)
 
         if "primordial" in level:
             timer.start("primordial")
@@ -2756,3 +2779,18 @@ cdef class Class:
 
         return np.asarray(numpy_q)
 
+    def translate_source_to_index(self, name):
+        mapping = {
+            "t0":             self.pt.index_tp_t0,
+            "t1":             self.pt.index_tp_t1,
+            "t2":             self.pt.index_tp_t2,
+            "t0_reco_no_isw": self.pt.index_tp_t0_reco_no_isw,
+            "t0_reio_no_isw": self.pt.index_tp_t0_reio_no_isw,
+            "t0_isw":         self.pt.index_tp_t0_isw,
+            "t2_reco":        self.pt.index_tp_t2_reco,
+            "t2_reio":        self.pt.index_tp_t2_reio,
+            "phi_plus_psi":   self.pt.index_tp_phi_plus_psi,
+            "delta_m":        self.pt.index_tp_delta_m,
+            "p":              self.pt.index_tp_p,
+        }
+        return mapping[name]

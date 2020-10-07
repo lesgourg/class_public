@@ -48,6 +48,11 @@ class Tester:
         print("Evaluating network predictions for {} cosmologies.".format(count))
 
         cosmo_params = [{k: v[i] for k, v in params.items()} for i in selection]
+
+        # TODO TODO TODO REMOVE THIS LINE!!!!!
+        cosmo_params = sorted(cosmo_params, key=lambda item: np.abs(item["Omega_k"] - (-0.011)))
+        # TODO TODO TODO REMOVE THIS LINE!!!!!
+
         # params = sample_cosmological_parameters(self.domain, count)
 
         # class_params = list(map(self.get_class_parameters, cosmo_params))
@@ -61,6 +66,7 @@ class Tester:
         class_pair_iter = map(self.run_class_for, zip(class_params, class_params_nn))
         counter = 0
         for cosmo_param_dict, (exc, pair) in zip(cosmo_params, class_pair_iter):
+            print("Omega_k", cosmo_param_dict["Omega_k"])
             if exc:
                 print("An exception occured:")
                 print(str(exc))

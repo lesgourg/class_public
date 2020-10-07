@@ -38,7 +38,9 @@ class SpectraPlotter:
             # cosmic variance
             "tt_cv": plt.subplots(),
             "ee": plt.subplots(),
+            "ee_abs": plt.subplots(),
             "te": plt.subplots(),
+            "te_abs": plt.subplots(),
             "pk": plt.subplots(),
             "pk_abs": plt.subplots(),
             "delta_m": plt.subplots(),
@@ -58,7 +60,11 @@ class SpectraPlotter:
         ll1 = r"$\ell (\ell + 1) "
         self.figs["te"][1].set_ylabel(ll1 + r"\Delta C_\ell^{TE}$")
         self.figs["ee"][1].set_ylabel(ll1 + r"\Delta C_\ell^{EE}$")
-        self.figs["ee"][1].set_yscale("symlog", linthresh=1e-14)
+        self.figs["ee"][1].set_yscale("symlog", linthresh=1e-16)
+        self.figs["te"][1].set_yscale("symlog", linthresh=1e-14)
+        self.figs["te_abs"][1].set_ylabel(ll1 + r"C_\ell^{TE}$")
+        self.figs["ee_abs"][1].set_ylabel(ll1 + r"C_\ell^{EE}$")
+        self.figs["ee_abs"][1].set_yscale("log")
 
         self.figs["pk"][0].tight_layout()
         self.figs["pk"][1].set(
@@ -157,6 +163,12 @@ class SpectraPlotter:
             plot_err_pm(ax, cl_true[q] / 1000.0, LINESTYLE_GREEN)
             plot_err(ax, err, LINESTYLE_RED)
 
+        # TE + EE absolute
+        for q in ("ee", "te"):
+            ax = self.figs[q + "_abs"][1]
+            ax.semilogx(ell, ell * (ell + 1) * cl_true[q], **LINESTYLE_GREEN)
+            ax.semilogx(ell, ell * (ell + 1) * cl_nn[q], **LINESTYLE_RED)
+
         # P(k)
         # since P_NN(k) and P_true(k) may be sampled on different k grids, we
         # need to interpolate (in this case, onto the k_pk_true)
@@ -173,7 +185,6 @@ class SpectraPlotter:
         self.figs["pk_abs"][1].loglog(k_pk_true, pk_true, **LINESTYLE_GREEN)
 
         # delta_m
-        self.figs["delta_m_abs"][1].set_xlim(1e-6, 1e-4)
         self.figs["delta_m_abs"][1].loglog(row["k"], -row["delta_m"], color="g")
         self.figs["delta_m_abs"][1].loglog(row["k_nn"], -row["delta_m_nn"], color="r")
 

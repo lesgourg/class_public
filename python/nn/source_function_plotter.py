@@ -15,14 +15,14 @@ class SourceFunctionPlotter:
     def __init__(self, workspace):
         self.workspace = workspace
 
-    def plot_slice(self, name, marker=None):
+    def plot_slice(self, name, marker=None, xlim=None):
         sample, (cosmo, cosmo_nn) = self.get_cosmo_pair()
 
         sources, k, tau = cosmo.get_sources()
         sources_nn, k_nn, tau_nn = cosmo_nn.get_sources()
 
         tau_rec = cosmo.get_current_derived_parameters(["tau_rec"])["tau_rec"]
-        tau_sel = tau_rec
+        tau_sel = 1.04 * tau_rec
         i_tau = np.argmin(np.abs(tau - tau_sel))
         i_nn_tau = np.argmin(np.abs(tau_nn - tau_sel))
 
@@ -32,10 +32,39 @@ class SourceFunctionPlotter:
         ax.legend()
         ax.grid()
         ax.set(xlabel="$k$")
-        ax.set(ylabel="$S$")
-        ax.set_yscale("symlog", linthreshy=0.000001)
+        ax.set(ylabel="{} @ tau = {:.3e} * tau_rec".format(name, tau[i_tau] / tau_rec))
+        ax.set_yscale("log")
+        if xlim is not None:
+            ax.set_xlim(*xlim)
 
         fig.savefig(self.workspace.plots / "slice.png", dpi=200, bbox_inches="tight")
+        plt.close(fig)
+
+        cosmo.struct_cleanup()
+        cosmo_nn.struct_cleanup()
+
+    def plot_slice_tau(self, name, marker=None):
+        sample, (cosmo, cosmo_nn) = self.get_cosmo_pair()
+
+        sources, k, tau = cosmo.get_sources()
+        sources_nn, k_nn, tau_nn = cosmo_nn.get_sources()
+
+        tau_rec = cosmo.get_current_derived_parameters(["tau_rec"])["tau_rec"]
+
+        fig, ax = plt.subplots()
+        for i_k in [0, 1]:
+            i_k_nn = i_k
+            ax.semilogx(tau / tau_rec, sources[name][i_k, :], alpha=0.6,
+                        label="CLASS, k[{}] = {}".format(i_k, k[i_k]), marker=marker)
+            ax.semilogx(tau_nn / tau_rec, sources_nn[name][i_k_nn, :], alpha=0.6,
+                        label="CLASSnet, k[{}] = {}".format(i_k, k[i_k]), marker=marker)
+        ax.legend()
+        ax.grid()
+        ax.set(xlabel="$\\tau / \\tau_{rec}$")
+        ax.set(ylabel="$S$")
+        ax.set_yscale("log")
+
+        fig.savefig(self.workspace.plots / "slice_tau.png", dpi=200, bbox_inches="tight")
         plt.close(fig)
 
         cosmo.struct_cleanup()

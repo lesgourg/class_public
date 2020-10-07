@@ -113,6 +113,41 @@ class BasePredictor:
         # old_result = result
         result = np.concatenate((left[None, :], right), axis=0)
 
+        k = self.get_k()
+
+        assert len(k) == len(np.unique(k))
+
+        # here we handle the special case of delta_m by fitting the (k s_2)^2 factor
+        # for low values of k, i.e. delta_m = p * (k s_2)^2
+
+        if quantity == "delta_m":
+            S = result
+            assert S.shape == (len(k), len(tau))
+            print("INFO: delta_m")
+            k_th = 5e-4
+            fit_mask = (k > k_th) & (k < 1e-3)
+            from scipy.optimize import leastsq
+            Omega_k = raw_inputs["cosmos/Omega_k"]
+            h = raw_inputs["cosmos/h"]
+            def get_factor(k):
+                return k[:, None]**2 + 3 * Omega_k * (h / 2997.9)**2
+            slope = S[fit_mask].sum(axis=0) / get_factor(k[fit_mask]).sum(axis=0)
+            # slope = S[fit_mask][0] / get_factor(k[fit_mask])[0]
+            replacement = slope * get_factor(k[k < k_th])
+
+            # import matplotlib; matplotlib.use("qt4agg")
+            # import matplotlib.pyplot as plt
+            # plt.loglog(k, -S[:, -1], label="prediction", color="g")
+            # plt.loglog(k[k < k_th], -replacement[:, -1], label="replacement", ls="-.")
+            # plt.axvspan(k[fit_mask][0], k[fit_mask][-1], color="yellow", alpha=0.4)
+            # # plt.loglog(k < k_th], -replacement[:, -1], label="replacement", ls="-.", c="r")
+            # plt.legend()
+            # plt.grid()
+            # plt.show()
+
+            result[k < k_th] = replacement
+
+
         # i_tau = 120
         # import matplotlib
         # matplotlib.use("qt5agg")
@@ -280,6 +315,16 @@ class TreePredictor(BasePredictor):
         else:
             S, raw_inputs = self._predict_from_combine(quantity, cosmo, tau, provider, cache)
 
+        # TODO CAREFUL
+        if quantity == "t2_reco":
+            print("T2RECO EXTRAPOLATION")
+            k_th = 1e-3
+            i_k_th = np.argmin(np.abs(self.k - k_th))
+            S_th = S[i_k_th]
+            k_mask = self.k < k_th
+            S[k_mask] = S_th * (self.k[k_mask] / k_th)[:, None]**2
+
+
         if cosmo.nn_cheat_enabled() and quantity in cosmo.nn_cheat_sources():
             # Here, the `quantity` should not be predicted by a network, but
             # instead be taken from CLASS.
@@ -294,9 +339,22 @@ class TreePredictor(BasePredictor):
             S_cheat, k_cheat, tau_cheat = cosmo.get_sources()
             # it remains to perform interpolation of the source function onto
             # the desired (k, tau)-grid.
+
             spline = scipy.interpolate.RectBivariateSpline(k_cheat, tau_cheat, S_cheat[quantity])
             # this function must also return the `raw_inputs` dict
             return spline(self.k, tau), raw_inputs
+
+            # TODO TODO TODO
+            # k_th = 1e-10
+            # k_left = k_cheat[k_cheat < k_th]
+            # k_right = self.k[self.k >= k_th]
+            # k_ = np.concatenate((k_left, k_right))
+            # S_left = S_cheat[quantity][k_cheat < k_th]
+            # S_right = S[self.k >= k_th]
+            # S_ = np.concatenate((S_left, S_right))
+            # spline = scipy.interpolate.RectBivariateSpline(k_, tau, S_)
+            # # this function must also return the `raw_inputs` dict
+            # return spline(self.k, tau), raw_inputs
 
         if quantity in self.funcs:
             self.funcs[quantity](S, raw_inputs)

@@ -110,6 +110,13 @@ class Net_ST2_Reco(Model):
     def criterion(self):
         def loss(prediction, truth):
             return common.mse_truncate(self.k, self.k_min)(prediction, truth)
+            # import numpy as np
+            # index_k_min = max(np.searchsorted(self.k.cpu().numpy(), self.k_min.cpu().item()) - 1, 0)
+            # diff = (prediction - truth)[:, index_k_min:]
+            # diff_rel = diff / truth[:, index_k_min:]
+            # k_th = 1e-3
+            # k = self.k[index_k_min:]
+            # return torch.mean(diff[:, k > k_th]**2) + 1e-3 * torch.mean(diff_rel[:, k <= k_th]**2)
         return loss
 
     def required_inputs(self):

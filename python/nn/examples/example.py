@@ -116,6 +116,9 @@ training, validation = workspace.loader().cosmological_parameters()
 # workspace.trainer().train_model(Net_ST0_Reco, workers=36)
 # import sys; sys.exit(0)
 
+# from ..models import Net_ST2_Reco
+# workspace.trainer().train_model(Net_ST2_Reco, workers=36)
+
 # from ..models import Net_ST0_ISW
 # workspace.trainer().train_model(Net_ST0_ISW, workers=18)
 
@@ -127,22 +130,20 @@ training, validation = workspace.loader().cosmological_parameters()
 # workspace.trainer().train_model(Net_ST0_ISW, workers=18)
 # import sys; sys.exit(0)
 
-# ## Run CLASS for n cosmologies with and without NNs and produce error plots
-tester = workspace.tester()
-# tester.test(2000)
-# import sys; sys.exit(0)
-workspace = workspace.sub("DELETEME")
-plotter = workspace.plotter()
-plotter.plot_source_function_slice("t2_reco")
-import sys; sys.exit(0)
-plotter.plot_source_functions()
+ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
 
-plotter.plot_spectra(include_params=True)
-# triangle scatter plots of Cl/Pk errors vs. cosmological parameters
-plotter.plot_scatter_errors()
-# plotter.plot_spectra()
-plotter.plot_training_histories()
-# plotter.plot_source_function_slice("t0_reco_no_isw")
+# ## Run CLASS for n cosmologies with and without NNs and produce error plots
+workspace = workspace.sub("extrapolate t2_reco")
+tester = workspace.tester()
+tester.test(1000, seed=1234)
+plotter = workspace.plotter()
+plotter.plot_source_function_slice("t2_reco", marker=".", xlim=(1e-5, 1e-3))
+plotter.plot_source_function_slice_tau("t2_reco")
+plotter.plot_spectra(include_params=False)
+# plotter.plot_source_function_slice("t2_reco")
+# plotter.plot_source_functions()
+# plotter.plot_scatter_errors()
+# plotter.plot_training_histories()
 import sys; sys.exit(0)
 
 # bm = workspace.benchmark_runner(warmup=1, iterations=50)
