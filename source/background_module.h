@@ -99,10 +99,15 @@ private:
   int background_free();
   int background_indices();
   int background_solve();
+  int background_solve_evolver();
   int background_initial_conditions(double* pvecback, double* pvecback_integration);
   int background_find_equality();
   int background_derivs_member(double z, double* y, double* dy, void* parameters_and_workspace, ErrorMsg error_message);
   static int background_derivs(double z, double* y, double* dy, void* parameters_and_workspace, ErrorMsg error_message);
+  int background_derivs_loga_member(double loga, double* y, double* dy, void* parameters_and_workspace, ErrorMsg error_message);
+  static int background_derivs_loga(double loga, double* y, double* dy, void* parameters_and_workspace, ErrorMsg error_message);
+  int background_add_line_to_bg_table_member(double loga, double* y, double* dy, int index_loga, void* parameters_and_workspace, ErrorMsg error_message);
+  static int background_add_line_to_bg_table(double loga, double* y, double* dy, int index_loga, void* parameters_and_workspace, ErrorMsg error_message);
   double V_scf(double phi) const;
   double ddV_scf(double phi) const;
   double Q_scf(double phi, double phi_prime);
