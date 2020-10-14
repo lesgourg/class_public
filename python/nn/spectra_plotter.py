@@ -38,8 +38,10 @@ class SpectraPlotter:
             # cosmic variance
             "tt_cv": plt.subplots(),
             "ee": plt.subplots(),
+            "ee_cv": plt.subplots(),
             "ee_abs": plt.subplots(),
             "te": plt.subplots(),
+            "te_cv": plt.subplots(),
             "te_abs": plt.subplots(),
             "pk": plt.subplots(),
             "pk_abs": plt.subplots(),
@@ -50,7 +52,7 @@ class SpectraPlotter:
         for _, ax in self.figs.values():
             ax.grid()
 
-        for q in ("tt", "tt_cv", "te", "ee"):
+        for q in ("tt", "tt_cv", "te", "ee", "ee_cv", "ee_abs", "te_abs", "te_cv"):
             fig, ax = self.figs[q]
             fig.tight_layout()
             ax.set_xlabel(r"$\ell$")
@@ -62,6 +64,8 @@ class SpectraPlotter:
         self.figs["ee"][1].set_ylabel(ll1 + r"\Delta C_\ell^{EE}$")
         self.figs["ee"][1].set_yscale("symlog", linthresh=1e-16)
         self.figs["te"][1].set_yscale("symlog", linthresh=1e-14)
+        self.figs["ee_cv"][1].set_ylabel(r"$\left \|\Delta C_\ell^{EE} \right \|$ / (cosmic variance)")
+        self.figs["te_cv"][1].set_ylabel(r"$\left \|\Delta C_\ell^{TE} \right \|$ / (cosmic variance)")
         self.figs["te_abs"][1].set_ylabel(ll1 + r"C_\ell^{TE}$")
         self.figs["ee_abs"][1].set_ylabel(ll1 + r"C_\ell^{EE}$")
         self.figs["ee_abs"][1].set_yscale("log")
@@ -159,9 +163,28 @@ class SpectraPlotter:
             err = (cl_nn[q] - cl_true[q])
             # err_relmax = err / cl_true[q].max()
             ax = self.figs[q][1]
-            plot_err_pm(ax, cl_true[q] /  100.0, LINESTYLE_BLUE)
-            plot_err_pm(ax, cl_true[q] / 1000.0, LINESTYLE_GREEN)
+
+            # cosmic variance
+            cv = np.sqrt(2 / (2 * ell + 1)) * cl_true[q]
+            ll1_cv = ell * (ell + 1) * cv
+            ax.semilogx(ell, ll1_cv, lw=0.4, color="purple")
+            ax.semilogx(ell, -ll1_cv, lw=0.4, color="purple")
+
+            # 1% and 0.1%
+            ls_blue = LINESTYLE_BLUE.copy()
+            ls_blue["alpha"] = 0.4
+            ls_green = LINESTYLE_GREEN.copy()
+            ls_green["alpha"] = 0.4
+            plot_err_pm(ax, cl_true[q] /  100.0, ls_blue)
+            plot_err_pm(ax, cl_true[q] / 1000.0, ls_green)
+
+            # actual error
             plot_err(ax, err, LINESTYLE_RED)
+
+
+            ###### relative to cosmic variance ####
+            ax = self.figs[q + "_cv"][1]
+            ax.loglog(ell, np.abs(err / cv), **LINESTYLE_RED)
 
         # TE + EE absolute
         for q in ("ee", "te"):
@@ -172,11 +195,17 @@ class SpectraPlotter:
         # P(k)
         # since P_NN(k) and P_true(k) may be sampled on different k grids, we
         # need to interpolate (in this case, onto the k_pk_true)
-        pk_spline = CubicSpline(k_pk_nn, pk_nn)
-        pk_nn_resampled = pk_spline(k_pk_true)
-        pk_relerr = (pk_nn_resampled - pk_true) / pk_true
+        # TODO TODO TODO
+        REINTERP_PK = False
+        if REINTERP_PK:
+            pk_spline = CubicSpline(k_pk_nn, pk_nn)
+            pk_nn_resampled = pk_spline(k_pk_true)
+            pk_relerr = (pk_nn_resampled - pk_true) / pk_true
+        else:
+            assert np.allclose(k_pk_nn, k_pk_true)
+            pk_relerr = (pk_nn - pk_true) / pk_true
         self.figs["pk"][1].semilogx(k_pk_true, pk_relerr, **LINESTYLE_RED)
-        self.figs["pk"][1].set_yscale("symlog", linthresh=0.01)
+        self.figs["pk"][1].set_yscale("symlog", linthresh=0.001)
 
         # this will raise a warning that there are no positive values and
         # hence loglog is not possible in matplotlib version 3.3.1 but this
@@ -192,7 +221,7 @@ class SpectraPlotter:
         dm_nn_interp = scipy.interpolate.CubicSpline(row["k_nn"], row["delta_m_nn"])(row["k"])
         dm_rel_err = (dm_nn_interp - row["delta_m"]) / row["delta_m"]
         self.figs["delta_m"][1].semilogx(row["k"], dm_rel_err, **LINESTYLE_RED)
-        self.figs["delta_m"][1].set_yscale("symlog", linthresh=0.01)
+        self.figs["delta_m"][1].set_yscale("symlog", linthresh=0.001)
 
     def _save(self, prefix=None):
         for name, (fig, _) in self.figs.items():

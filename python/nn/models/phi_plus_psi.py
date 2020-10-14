@@ -120,6 +120,23 @@ def TFacc(kk, z_d, Omega_matter, Omega_baryon, Omega_ncdm, Omega_lambda, D, H, h
     return tf_cbnu
 
 
+class Timer:
+    def __init__(self):
+        self._start = {}
+        self.times = {}
+
+    def start(self, name):
+        self._start[name] = time.perf_counter()
+
+    def stop(self, name):
+        assert name in self._start
+        self.times[name] = time.perf_counter() - self._start[name]
+        del self._start[name]
+
+    def pprint(self):
+        import pprint
+        pprint.pprint(self.times)
+
 def geomspace(start, stop, *args, **kwargs):
     return torch.logspace(np.log10(start), np.log10(stop), *args, **kwargs)
 
@@ -210,6 +227,10 @@ class Net_phi_plus_psi(Model):
         self.current = {}
 
     def forward(self, x):
+        timer = Timer()
+
+        timer.start("forward")
+
         ## to be used in loss function to subsample tau
         self.raw_tau = x["raw_tau"]
 
@@ -245,8 +266,21 @@ class Net_phi_plus_psi(Model):
         Omega_m = Omega_b + Omega_cdm + Omega_ncdm
         Omega_Lambda = 1.0 - Omega_b - Omega_cdm - Omega_k
 
+        timer.start("tfacc")
         approx = TFacc(self.k, z_d, Omega_m, Omega_b, Omega_ncdm, Omega_Lambda, D, H, h, rs_drag, k_eq, a_eq, z)
+
+        # if True:
+        #     import matplotlib
+        #     matplotlib.use("qt5agg")
+        #     import matplotlib.pyplot as plt
+        #     plt.loglog(x["raw_tau"].cpu().detach().numpy(), approx[:, 100].cpu().detach().numpy())
+        #     plt.grid()
+        #     plt.show()
+
+        timer.stop("tfacc")
+        timer.start("approx normalize")
         approx /= approx[:, [0]]
+        timer.stop("approx normalize")
 
         # approx = fitfunc(Omega_m, Omega_b, Omega_ncdm, 3, Omega_Lambda, h, rs_drag, x["z"], self.k)
 
@@ -254,37 +288,57 @@ class Net_phi_plus_psi(Model):
         D_tau = x["raw_D"]
         Omega_m_tau = x["raw_Omega_m"]
 
+        timer.start("create approx_stack")
+        approx_stack = torch.empty((len(x["tau"]), len(self.k), 2), device=self.k.device)
+        timer.stop("create approx_stack")
+
         # for some reason this isn't working properly yet
         # approx_phi_plus_psi = approx * 3 * (H_tau**2 * Omega_m_tau * D_tau)[:, None]
-        approx_phi_plus_psi = approx
+        timer.start("copy phi+psi")
+        approx_stack[:, :, 0] = approx_phi_plus_psi = approx
+        timer.stop("copy phi+psi")
 
         # divide approximation by the SAME normalization constant as delta_m
         # TODO IMPORTANT WARNING DANGER do not hardcode this!
         normalization = 144534.5036053507
+        timer.start("approx_delta_m")
         approx_delta_m = -alpha.item() * approx / normalization * \
             (self.k2 + 3.*Omega_k*(h/2997.9)**2)
+        timer.stop("approx_delta_m")
+
+        timer.start("copy delta_m")
+        approx_stack[:, :, 1] = approx_delta_m
+        timer.stop("copy delta_m")
 
         inputs_cosmo = common.get_fields(x, self.cosmo_inputs())
         tau = x["tau"]
         inputs_tau = tau[:, None]
 
+        timer.start("concat lin_cosmo, lin_tau")
         y = torch.cat((
                 self.lin_cosmo(inputs_cosmo),
                 self.lin_tau(inputs_tau),
             ), dim=1)
+        timer.stop("concat lin_cosmo, lin_tau")
 
         # shape: (n_k, 2)
         # approx_stack = torch.stack((approx, approx_delta_m), dim=2)
-        approx_stack = torch.stack((approx_phi_plus_psi, approx_delta_m), dim=2)
+        timer.start("stack approx")
+        # approx_stack = torch.stack((approx_phi_plus_psi, approx_delta_m), dim=2)
+        timer.stop("stack approx")
 
+        timer.start("net_merge_corr")
         correction = self.net_merge_corr(y)
+        timer.stop("net_merge_corr")
 
         correction = correction.view(len(tau), -1, 2)
 
         # TODO CHANGE IF NORMALIZATION CHANGES!
         tau = self.current_tau = 10**tau
 
+        timer.start("compute result")
         result = (1. + correction) * approx_stack
+        timer.stop("compute result")
 
         if THESIS_MODE:
             def d(x):
@@ -312,6 +366,21 @@ class Net_phi_plus_psi(Model):
 
             plt.show()
 
+        timer.stop("forward")
+
+        PRINT_TIMINGS = False
+        if PRINT_TIMINGS:
+            print("-=" * 40)
+            print("ABSOLUTE TIMES:")
+            timer.pprint()
+            relative_times = {k: v / timer.times["forward"] for k, v in timer.times.items()}
+            from pprint import pprint
+            print("RELATIVE TIMES:")
+            longest = max(len(key) for key in relative_times.keys())
+            items = sorted(relative_times.items(), key=lambda item: item[1], reverse=True)
+            for key, value in items:
+                print("{}: {:.3f}".format(key.ljust(longest + 2), value))
+            print("-=" * 40)
 
         return result
 

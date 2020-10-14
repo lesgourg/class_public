@@ -9,7 +9,7 @@ from .data_providers import CLASSDataProvider
 import numpy as np
 import h5py as h5
 import os
-from time import time, perf_counter
+from time import perf_counter
 import scipy.interpolate
 
 import torch
@@ -38,10 +38,16 @@ class BasePredictor:
         self.transformed_cache = {}
 
     def reset_times(self):
-        self.time_prediction = 0
-        self.time_input_transformation = 0
-        self.time_output_transformation = 0
-
+        # NOTE: use explicit initializiation instead of defaultdict
+        # to catch bad access on non existing keys
+        self.times = {
+            # time spent in `predict()` and children
+            "predictor.predict":                    0.0,
+            # time spent only in network evaluation
+            "neural network evaluation":            0.0,
+            "neural network input transformation":  0.0,
+            "neural network output transformation": 0.0,
+        }
         self.time_prediction_per_network = {}
 
     def get_inputs(self, cosmo, tau, selection, mask=None, cached=True):
@@ -96,6 +102,7 @@ class BasePredictor:
         The result will be sampled on the `k` array obtained from `self.get_k()` and
         thus have the shape `(len(self.get_k()), len(tau))`
         """
+        start_predict = perf_counter()
         result, raw_inputs = self._predict(quantity, tau, provider, cache)
         k_min_class = self.cosmo.k_min()
 
@@ -114,8 +121,6 @@ class BasePredictor:
         result = np.concatenate((left[None, :], right), axis=0)
 
         k = self.get_k()
-
-        assert len(k) == len(np.unique(k))
 
         # here we handle the special case of delta_m by fitting the (k s_2)^2 factor
         # for low values of k, i.e. delta_m = p * (k s_2)^2
@@ -163,6 +168,7 @@ class BasePredictor:
         # plt.grid()
         # plt.show()
 
+        self.times["predictor.predict"] += perf_counter() - start_predict
         return result
         # return result[lowest_k_index(self.k, k_min_class), :]
 
@@ -211,7 +217,7 @@ class BasePredictor:
         # Construct a cache object simplifying the access
         cache = PredictorCache(raw_inputs, transformed_inputs)
 
-        self.time_input_transformation += perf_counter() - start
+        self.times["neural network input transformation"] += perf_counter() - start
 
         predictions = {qty: self.predict(qty, tau, provider, cache=cache) for qty in quantities}
 
@@ -230,10 +236,10 @@ class BasePredictor:
         return self.predict_many(["t0", "t1", "t2", "phi_plus_psi", "delta_m"], tau)
 
     def untransform(self, quantity, value, raw_inputs):
-        start = time()
+        start = perf_counter()
         result = self.target_transformer.untransform_target(quantity, value, inputs=raw_inputs)
-        elapsed = time() - start
-        self.time_output_transformation += elapsed
+        elapsed = perf_counter() - start
+        self.times["neural network output transformation"] += elapsed
 
         return result
 
@@ -381,15 +387,17 @@ class TreePredictor(BasePredictor):
             tau_eval = tau
             mask = None
 
-        start_input_retrieval = time()
+        start_input_retrieval = perf_counter()
         raw_inputs = cache.get_raw_inputs(in_select, tau_mask=mask)
         inputs = cache.get_transformed_inputs(in_select, tau_mask=mask)
-        elapsed = time() - start_input_retrieval
-        self.time_input_transformation += elapsed
+        elapsed = perf_counter() - start_input_retrieval
+        self.times["neural network input transformation"] += elapsed
 
         start_predict = perf_counter()
         S_t = model(inputs)
         elapsed = perf_counter() - start_predict
+        self.time_prediction_per_network[quantity] = elapsed
+        self.times["neural network evaluation"] += elapsed
 
         result_shape = list(S_t.shape)
         result_shape[0] = tau.size
@@ -403,9 +411,8 @@ class TreePredictor(BasePredictor):
 
         S_t = result
 
-        self.time_prediction_per_network[quantity] = elapsed
-        self.time_prediction += elapsed
 
+        start_output = perf_counter()
         # Swap k and tau axis
         S_t = np.swapaxes(S_t, 0, 1)
         if isinstance(quantity, tuple) or isinstance(quantity, list):
@@ -414,6 +421,7 @@ class TreePredictor(BasePredictor):
             S = np.stack([self.untransform(q, S_t[..., i], raw_inputs) for i, q in enumerate(quantity)], axis=2)
         else:
             S = self.untransform(quantity, S_t, raw_inputs)
+        self.times["neural network output transformation"] += perf_counter() - start_output
 
         self.cache[quantity] = (S, raw_inputs)
         return S, raw_inputs
@@ -438,32 +446,96 @@ class TreePredictor(BasePredictor):
         return S, raw_inputs
 
 
+def print_dict_sorted(d):
+    order = sorted(d, key=lambda key: d[key], reverse=True)
+    longest_key = max(len(key) for key in d)
+    for key in order:
+        print(key.ljust(longest_key + 2), "\t", d[key])
+
+class Timer:
+    def __init__(self):
+        self._start = {}
+        self._times = {}
+
+    def start(self, name):
+        self._start[name] = perf_counter()
+
+    def end(self, name):
+        self._times[name] = perf_counter() - self._start[name]
+        del self._start[name]
+
+    def pprint(self):
+        print_dict_sorted(self._times)
+
+# from profilehooks import profile
+# @profile(filename="build_predictor.prof")
 def build_predictor(cosmo, device_name="cpu"):
+    timer = Timer()
+    timer.start("all")
+
+    timer.start("cosmo.nn_workspace()")
     workspace = cosmo.nn_workspace()
+    timer.end("cosmo.nn_workspace()")
+    timer.start("torch.device")
     device = torch.device(device_name)
+    timer.end("torch.device")
 
+    timer.start("load k")
     k  = workspace.loader().k()
+    timer.end("load k")
+    timer.start("move k to device")
     kt = torch.from_numpy(k).float().to(device)
+    timer.end("move k to device")
 
+    timer.start("load models")
     models, rules = load_models(workspace, ALL_NETWORK_CLASSES, kt, device)
+    timer.end("load models")
+    timer.start("build transformer")
     input_transformer, target_transformer = current_transformer.get_pair(workspace.normalization_file, k)
+    timer.end("build transformer")
 
+    timer.start("build predictor")
     predictor = TreePredictor(
         cosmo,
         input_transformer, target_transformer,
         models, rules,
         k=k,
     )
+    timer.end("build predictor")
+
+    timer.end("all")
+    timer.pprint()
 
     return predictor
 
 def load_models(workspace, classes, k, device):
-    models = [ctor(k) for ctor in classes]
+    from collections import defaultdict
+    times = defaultdict(float)
+
+    start_models = perf_counter()
+    # models = [ctor(k) for ctor in classes]
+    models = []
+    for ctor in classes:
+        start = perf_counter()
+        mod = ctor(k)
+        # times[ctor.__name__] = perf_counter() - start
+        models.append(mod)
+    times["model ctors"] += perf_counter() - start_models
+
     for model in models:
+        start = perf_counter()
         state_dict = torch.load(workspace.model_path(model.name()), map_location=device)
+        times["torch.load"] += perf_counter() - start
+
+        start = perf_counter()
         model.load_state_dict(state_dict)
+        times["model.load_state_dict"] += perf_counter() - start
+
+        start = perf_counter()
         model.to(device)
+        times["model.to(device)"] += perf_counter() - start
         model.eval()
+
 
     def model_key(model):
         targets = model.source_functions()
@@ -475,7 +547,12 @@ def load_models(workspace, classes, k, device):
     def model_wrapper(model):
         return TorchModel(model, device, slicing=model.slicing())
 
+    start = perf_counter()
     model_dict = {model_key(m): model_wrapper(m) for m in models}
+    times["model_dict creation"] += perf_counter() - start
+
+    print("load_models:")
+    print_dict_sorted(times)
 
     rules = {
             "t0":           (("t0_reco_no_isw", "t0_reio_no_isw", "t0_isw"), sum, False),

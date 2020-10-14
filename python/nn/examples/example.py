@@ -48,6 +48,7 @@ FIXED_TRAINING_ONLY = {
 # WORKSPACE_DIR = "/scratch/work/samaras/delete_me/example/"
 WORKSPACE_DIR = os.path.expanduser("~/CLASSnet_HPC/")
 
+# IF THIS IS GONE THEN UNDO IS FINISHED
 generations = {
     "Net_ST0_Reco":     32,
     "Net_ST0_Reio":     23,
@@ -55,7 +56,7 @@ generations = {
     "Net_ST1":          22,
     "Net_ST2_Reco":     24,
     "Net_ST2_Reio":     23,
-    "Net_phi_plus_psi": 31,
+    "Net_phi_plus_psi": 32,
 }
 
 workspace = GenerationalWorkspace(WORKSPACE_DIR, generations)
@@ -133,25 +134,23 @@ training, validation = workspace.loader().cosmological_parameters()
 ALL_SOURCES = ["t0_reco_no_isw", "t0_reio_no_isw", "t0_isw", "t1", "t2_reco", "t2_reio", "phi_plus_psi", "delta_m"]
 
 # ## Run CLASS for n cosmologies with and without NNs and produce error plots
-workspace = workspace.sub("extrapolate t2_reco")
-tester = workspace.tester()
-tester.test(1000, seed=1234)
+# workspace = workspace.sub("fix delta_m")
+# tester = workspace.tester()
+# tester.test(5, seed=1234)
+workspace = workspace.sub("pk_test")
 plotter = workspace.plotter()
-plotter.plot_source_function_slice("t2_reco", marker=".", xlim=(1e-5, 1e-3))
-plotter.plot_source_function_slice_tau("t2_reco")
 plotter.plot_spectra(include_params=False)
+# plotter.plot_source_function_slice("t2_reco", marker=".", xlim=(1e-5, 1e-3))
+# plotter.plot_source_function_slice_tau("t2_reco")
 # plotter.plot_source_function_slice("t2_reco")
 # plotter.plot_source_functions()
 # plotter.plot_scatter_errors()
 # plotter.plot_training_histories()
 import sys; sys.exit(0)
 
-# bm = workspace.benchmark_runner(warmup=1, iterations=50)
-# bm.run(thread_counts=[1, 4])
-
-# bm_plotter = workspace.benchmark_plotter()
-# bm_plotter._load_data()
-# bm_plotter.plot_perturbation_module()
+bm_plotter = workspace.benchmark_plotter()
+bm_plotter.plot_perturbation_module()
+import sys; sys.exit(0)
 
 # workspace.tester().test(50, processes=1, cheat=["t0_isw"], prefix="cheat_t0_isw")
 

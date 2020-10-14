@@ -163,8 +163,8 @@ class Workspace:
     def plotter(self):
         return plotter.Plotter(self)
 
-    def benchmark_runner(self, warmup=2, iterations=50):
-        return BenchmarkRunner(self, warmup=warmup, iterations=iterations)
+    def benchmark_runner(self, *args, **kwargs):
+        return BenchmarkRunner(self, *args, **kwargs)
 
     def benchmark_plotter(self):
         return BenchmarkPlotter(self)
