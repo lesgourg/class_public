@@ -684,8 +684,12 @@ cdef class Class:
                 timer.end("neural network initialization")
 
                 timer.start("get all sources")
+                timer.start("build predictor")
                 predictor = classynet.predictors.build_predictor(self)
+                timer.end("build predictor")
+                timer.start("predictor.predict_many")
                 k_NN, NN_prediction = predictor.predict_many(source_names, np.asarray(tau_CLASS))
+                timer.end("predictor.predict_many")
                 timer.end("get all sources")
 
                 timer.start("overwrite k array")
@@ -722,9 +726,8 @@ cdef class Class:
                     self.pt.sources[index_md][index_ic * tp_size + index_type] = <double*> malloc(k_NN_size * tau_size * sizeof(double))
                 timer.end("allocate unused source functions")
 
-                timer["neural network evaluation"] = predictor.time_prediction
-                timer["neural network input transformation"] = predictor.time_input_transformation
-                timer["neural network output transformation"] = predictor.time_output_transformation
+                for key, value in predictor.times.items():
+                    timer[key] = value
 
                 for key, value in predictor.time_prediction_per_network.items():
                     timer["indiv. network: '{}'".format(key)] = value
