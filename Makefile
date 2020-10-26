@@ -39,7 +39,7 @@ OPTFLAG = -O3
 #OPTFLAG = -fast
 
 # your openmp flag (comment for compiling without openmp)
-OMPFLAG   = -fopenmp
+#OMPFLAG   = -fopenmp
 #OMPFLAG   = -mp -mp=nonuma -mp=allcores -g
 #OMPFLAG   = -openmp
 
@@ -49,7 +49,7 @@ LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
 # (with no slash at the end: e.g. "external/HyRec2012") [ML],[NS]
-HYREC = external/HyRec2012
+HYREC = external/HyRec2020/
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
 
@@ -86,7 +86,7 @@ vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
 INCLUDES += -I../$(HYREC)
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injection.o
 HEADERFILES += $(wildcard ./external/Hyrec2012/*.h)
 
 endif
