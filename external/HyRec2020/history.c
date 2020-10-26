@@ -211,37 +211,37 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   double Omega_b, Omega_cb, Omega_k, y, Tnu0;
   int i;
   if (fout!=NULL) fprintf(fout, "Enter Hubble parameter (h) : \n");
-  fscanf(fin, "%lg", &(param->h));
+  if(fscanf(fin, "%lg", &(param->h))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'h'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter CMB temperature today [Kelvin]: \n");
-  fscanf(fin, "%lg", &(param->T0));
+  if(fscanf(fin, "%lg", &(param->T0))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'CMB temperature today [Kelvin]'\n");exit(1);};
   
   if (fout!=NULL) fprintf(fout, "Enter baryon density, Omega_b: \n");
-  fscanf(fin, "%lg", &(Omega_b));
+  if(fscanf(fin, "%lg", &(Omega_b))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Omega_b'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter matter (CDM+baryons) density, Omega_cb: \n");
-  fscanf(fin, "%lg", &(Omega_cb));
+  if(fscanf(fin, "%lg", &(Omega_cb))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Omega_cb'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter curvature, Omega_k: \n");
-  fscanf(fin, "%lg", &(Omega_k));
+  if(fscanf(fin, "%lg", &(Omega_k))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Omega_k'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter dark energy equation of state parameters, w wa: ");
-  fscanf(fin, "%lg %lg", &(param->w0), &(param->wa));
+  if(fscanf(fin, "%lg %lg", &(param->w0), &(param->wa))!=2){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameters 'w wa'\n");exit(1);};
   
   if (fout!=NULL) fprintf(fout, "Enter number of massive neutrino species, Nmnu: \n");
-  fscanf(fin, "%lg", &(param->Nmnu));
+  if(fscanf(fin, "%lg", &(param->Nmnu))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Nmnu'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter mass of neutrino1, mnu: \n");
-  fscanf(fin, "%lg", &(param->mnu[0]));
+  if(fscanf(fin, "%lg", &(param->mnu[0]))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'mnu1'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter mass of neutrino2, mnu: \n");
-  fscanf(fin, "%lg", &(param->mnu[1]));
+  if(fscanf(fin, "%lg", &(param->mnu[1]))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'mnu2'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter mass of neutrino3, mnu: \n");
-  fscanf(fin, "%lg", &(param->mnu[2]));
+  if(fscanf(fin, "%lg", &(param->mnu[2]))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'mnu3'\n");exit(1);};
   
   if (fout!=NULL) fprintf(fout, "Enter primordial helium mass fraction, Y: \n");
-  fscanf(fin, "%lg", &(param->YHe));
+  if(fscanf(fin, "%lg", &(param->YHe))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Y'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter effective number of massless neutrino species, N_nu_eff: \n");
-  fscanf(fin, "%lg", &(param->Nnueff));
+  if(fscanf(fin, "%lg", &(param->Nnueff))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'N_nu_eff'\n");exit(1);};
  
   if (fout!=NULL) fprintf(fout, "ratio of fine structure constant at recombination to today's value, fsR: \n");
-  fscanf(fin, "%lg", &(param->fsR));
+  if(fscanf(fin, "%lg", &(param->fsR))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'fsR'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ratio of electron mass at recombination to today's value, meR: \n");
-  fscanf(fin, "%lg", &(param->meR));
+  if(fscanf(fin, "%lg", &(param->meR))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'meR'\n");exit(1);};
   
   param->orh2  = 4.48162687719e-7 *param->T0*param->T0*param->T0*param->T0 *(1. + 0.227107317660239 *param->Nnueff);
   param->ocbh2  = Omega_cb *param->h*param->h;
@@ -263,28 +263,28 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   param->fHe = param->YHe/(1-param->YHe)/3.97153;              // abundance of helium by number 
 
   if (fout!=NULL) fprintf(fout, "dark matter annihilation parameter, in cm^3/s/GeV, pann: \n");
-  fscanf(fin, "%lg", &(param->inj_params->pann));
+  if(fscanf(fin, "%lg", &(param->inj_params->pann))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'pann'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "pann_halo: \n");
-  fscanf(fin, "%lg", &(param->inj_params->pann_halo));
+  if(fscanf(fin, "%lg", &(param->inj_params->pann_halo))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'pann_halo'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ann_z: \n");
-  fscanf(fin, "%lg", &(param->inj_params->ann_z));
+  if(fscanf(fin, "%lg", &(param->inj_params->ann_z))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'ann_z'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ann_zmax: \n");
-  fscanf(fin, "%lg", &(param->inj_params->ann_zmax));
+  if(fscanf(fin, "%lg", &(param->inj_params->ann_zmax))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'ann_zmax'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ann_zmin: \n");
-  fscanf(fin, "%lg", &(param->inj_params->ann_zmin));
+  if(fscanf(fin, "%lg", &(param->inj_params->ann_zmin))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'ann_zmin'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ann_var: \n");
-  fscanf(fin, "%lg", &(param->inj_params->ann_var));
+  if(fscanf(fin, "%lg", &(param->inj_params->ann_var))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'ann_var'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ann_z_halo: \n");
-  fscanf(fin, "%lg", &(param->inj_params->ann_z_halo));
-  if (fout!=NULL) fprintf(fout, "one_the_spot: \n");
-  fscanf(fin, "%d", &(param->inj_params->on_the_spot));
+  if(fscanf(fin, "%lg", &(param->inj_params->ann_z_halo))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'ann_z_halo'\n");exit(1);};
+  if (fout!=NULL) fprintf(fout, "on_the_spot: \n");
+  if(fscanf(fin, "%d", &(param->inj_params->on_the_spot))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'on_the_spot'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "decay: \n");
-  fscanf(fin, "%lg", &(param->inj_params->decay));
+  if(fscanf(fin, "%lg", &(param->inj_params->decay))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'decay'\n");exit(1);};
 
   if (fout!=NULL) fprintf(fout, "Mpbh: \n");
-  fscanf(fin, "%lg", &(param->inj_params->Mpbh));
+  if(fscanf(fin, "%lg", &(param->inj_params->Mpbh))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Mpbh'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "fpbh: \n");
-  fscanf(fin, "%lg", &(param->inj_params->fpbh));
+  if(fscanf(fin, "%lg", &(param->inj_params->fpbh))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'fpbh'\n");exit(1);};
   
   param->inj_params->odmh2      = param->ocbh2 - param->obh2;
 

@@ -16,7 +16,8 @@
 
 enum recombination_algorithm {
   recfast,
-  hyrec
+  hyrec,
+  hyrec2
 };
 
 /**

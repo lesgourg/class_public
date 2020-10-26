@@ -44,7 +44,7 @@ int hyrec_readtwogparams(struct thermohyrec* phy);
 
 
 #define _HYREC_N_EXTRAPOLATION_ 30
-int hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
+int wrap_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
 
   if(phy->thermohyrec_verbose > 0){
     printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Feb2019)\n");
@@ -137,7 +137,7 @@ int hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, dou
   return _SUCCESS_;
 }
 
-int hyrec_free(struct thermohyrec* phy){
+int wrap_hyrec_free(struct thermohyrec* phy){
 
   int index_ly,index_virt,index_tm;
   for(index_ly=0;index_ly<phy->N_LY;++index_ly){

@@ -21,14 +21,14 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
 
   if(phy->thermohyrec_verbose > 0){
     printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Feb2019)\n");
-    printf("    implements HyRec version Oct2012 by Yacine Ali-Haimoud and Chris Hirata\n");
+    printf("    implements HyRec2 version Oct 2020 by Yacine Ali-Haimoud, Chris Hirata, and Nanoom Lee\n");
   }
   int i;
   double dN_safety;
   double Nur;
   class_alloc(phy->data,
               sizeof(HYREC_DATA),
-			  phy->error_message);
+              phy->error_message);
   
   HYREC_DATA *rec_data = phy->data;
  
@@ -55,7 +55,12 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
   }
   phy->data->path_to_hyrec = "external/HyRec2020/"; 
   hyrec_allocate(phy->data, phy->zstart, phy->zend);
-  
+  /* Error during allocation */
+  if(phy->data->error != 0){
+    class_call_message(phy->error_message,"hyrec_allocate",phy->data->error_message);
+    return _FAILURE_;
+  }
+
   phy->data->cosmo->Nmnu = pba->N_ncdm;
   if (pba->N_ncdm != 0) {
       for (i=0;i<pba->N_ncdm;i++) phy->data->cosmo->mnu[i] = pba->m_ncdm_in_eV[i];
@@ -109,13 +114,15 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
 int thermodynamics_hyrec_free(struct thermohyrec* phy){
   
   hyrec_free (phy->data);
-  
+
   return _SUCCESS_;
 }
 
 int hyrec_dx_H_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad,
                   double dEdtdV_ion, double dEdtdV_lya, char* error_message, double *dx_H_dz) {
   long iz;
+  double temp;
+  int model;
   nH *= 1e-6;
   Tmat *= kBoltz;
   Trad *= kBoltz;
@@ -125,15 +132,26 @@ int hyrec_dx_H_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, d
   phy->data->cosmo->inj_params->ion = dEdtdV_ion;
   phy->data->cosmo->inj_params->exclya = dEdtdV_lya;
 
-  *dx_H_dz = -1./(1.+z)* rec_dxHIIdlna(phy->data, MODEL, xe, x_H, nH, Hz, Tmat, Trad, iz, z);
+  double Trad_phys = Trad/phy->data->cosmo->fsR/phy->data->cosmo->fsR/phy->data->cosmo->meR;
 
-  return 0;
+  if (Trad_phys <= TR_MIN || Tmat/Trad <= TM_TR_MIN) { model = PEEBLES; }
+  else { model = MODEL; }
+
+  *dx_H_dz = -1./(1.+z)* rec_dxHIIdlna(phy->data, model, xe, x_H, nH, Hz, Tmat, Trad, iz, z);
+
+  if(phy->data->error != 0){
+    class_call_message(error_message,"rec_dxHIIdlna",phy->data->error_message);
+    return _FAILURE_;
+  }
+
+  return _SUCCESS_;
 }
 int hyrec_dx_He_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad,
                   double dEdtdV_ion, double dEdtdV_lya, char* error_message, double *dx_He_dz) {
   long iz;
   double xHeII = x_He*phy->data->cosmo->fHe;    // Different definitions between CLASS and HYREC-2
   double xH1;
+  double temp;
  
   nH *= 1e-6;
   Tmat *= kBoltz;
@@ -146,11 +164,17 @@ int hyrec_dx_He_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, 
   phy->data->cosmo->inj_params->exclya = dEdtdV_lya;
   /* XEII_MIN = 1e-6 defined in history.h
      HYREC-2 calculates Helium recombinations until xHeII ~ 1e-6 */
-  if (xHeII<XHEII_MIN) *dx_He_dz=0;
+  if (xHeII<XHEII_MIN) {
+    *dx_He_dz=0;
+  }
   else {
     xH1 = rec_saha_xH1s(phy->data->cosmo, z, xHeII);
-    *dx_He_dz = -1./(1.+z)* rec_helium_dxHeIIdlna(phy->data, z, xH1, xHeII, Hz)/phy->data->cosmo->fHe;
+    *dx_He_dz = -1./(1.+z)* rec_helium_dxHeIIdlna(phy->data, z, xH1, xHeII, Hz) / phy->data->cosmo->fHe;
+    if(phy->data->error != 0){
+      class_call_message(error_message,"rec_helium_dxHeIIdlna",phy->data->error_message);
+      return _FAILURE_;
+    }
   }
 
-  return 0;
+  return _SUCCESS_;
 }

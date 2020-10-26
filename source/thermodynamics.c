@@ -20,12 +20,8 @@
  * The logic is the following:
  *
  * - If RECFAST (v1.5) or HYREC are chosen, we use their respective
- *   differential equations or evolvers to compute the free electron
+ *   differential equations to compute the free electron
  *   fraction x at each step requested by the z output array
- *   In the RECFAST case, we additionally evolve the x_H and x_He
- *   free hydrogen and helium fractions
- *   In the HYREC case, only the temperature of baryons Tmat is evolved,
- *   the rest is done internally in the wrapper of hyrec
  *
  * - small detail: one of the columns contains the maximum variation
  *   rate of a few relevant thermodynamical quantities. This rate
@@ -47,15 +43,11 @@
 
 #include "thermodynamics.h"
 
-//#ifdef HYREC
 #include "history.h"
-//#ifndef TWOG_FILE
 #include "hyrectools.h"
 #include "helium.h"
-//#include "hydrogen.h"
 #include "wrap_hyrec.h"
-//#endif
-//#endif
+
 
 /**
  * Thermodynamics quantities at given redshift z.
@@ -277,10 +269,16 @@ int thermodynamics_init(
     case recfast:
       printf("Computing thermodynamics using RecFast v1.5\n");
       break;
-
+#ifdef OLDHYREC
     case hyrec:
       printf("Computing thermodynamics using HyRec 2012\n");
       break;
+#endif
+#ifdef NEWHYREC
+    case hyrec2:
+      printf("Computing thermodynamics using HyRec 2020\n");
+      break;
+#endif
 
     default:
       class_stop(pth->error_message,"pth->recombination=%d different from all known cases",pth->recombination);
@@ -764,7 +762,22 @@ int thermodynamics_workspace_init(
 
   switch (pth->recombination) {
 
+#ifdef OLDHYREC
   case hyrec:
+    class_alloc(ptw->ptdw->phyrec,
+                sizeof(struct thermohyrec),
+                pth->error_message);
+
+    ptw->ptdw->phyrec->thermohyrec_verbose = pth->hyrec_verbose;
+    class_call(wrap_hyrec_init(ppr,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
+               ptw->ptdw->phyrec->error_message,
+               pth->error_message);
+    break;
+#endif
+
+#ifdef NEWHYREC
+  case hyrec2:
+
     class_alloc(ptw->ptdw->phyrec,
                 sizeof(struct thermohyrec),
                 pth->error_message);
@@ -773,7 +786,16 @@ int thermodynamics_workspace_init(
     class_call(thermodynamics_hyrec_init(ppr,pba,pth,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
                ptw->ptdw->phyrec->error_message,
                pth->error_message);
+
+    class_alloc(ptw->ptdw->precfast,
+                sizeof(struct thermorecfast),
+                pth->error_message);
+
+    class_call(recfast_init(ppr,pba,pth,ptw->ptdw->precfast,pth->recfast_photoion_mode,ptw->fHe),
+               ptw->ptdw->precfast->error_message,
+               pth->error_message);
     break;
+#endif
 
   case recfast:
     class_alloc(ptw->ptdw->precfast,
@@ -783,17 +805,8 @@ int thermodynamics_workspace_init(
     class_call(recfast_init(ppr,pba,pth,ptw->ptdw->precfast,pth->recfast_photoion_mode,ptw->fHe),
                ptw->ptdw->precfast->error_message,
                pth->error_message);
-	class_alloc(ptw->ptdw->phyrec,
-                sizeof(struct thermohyrec),
-                pth->error_message);
 
-    ptw->ptdw->phyrec->thermohyrec_verbose = pth->hyrec_verbose;
-
-    class_call(thermodynamics_hyrec_init(ppr,pba,pth,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
-               ptw->ptdw->phyrec->error_message,
-               pth->error_message);
-    
-	break;
+    break;
   }
 
   /** - Allocate reionisation parameter workspace */
@@ -1472,8 +1485,7 @@ int thermodynamics_solve(
                   conditions. If it starts from an approximation
                   switching point, redistribute correctly the values
                   from the previous to the new vector. The vector consists of:
-    - for RECFAST: Tmat, x_H, x_He, + others for exotic models
-    - for HyRec: Tmat only (because total x is integrated inside HyRec) + others for exotic models */
+    - for RECFAST and HYREC: Tmat, x_H, x_He, + others for exotic models */
 
     class_call(thermodynamics_vector_init(ppr,
                                           pba,
@@ -1744,21 +1756,28 @@ int thermodynamics_workspace_free(
 
   switch (pth->recombination) {
 
+#ifdef OLDHYREC
   case hyrec:
-    class_call(thermodynamics_hyrec_free(ptw->ptdw->phyrec),
-			   ptw->ptdw->phyrec->error_message,
-               pth->error_message);
-    free(ptw->ptdw->phyrec);
-    break;
-
-  case recfast:
-    free(ptw->ptdw->precfast);
-	class_call(thermodynamics_hyrec_free(ptw->ptdw->phyrec),
+    class_call(wrap_hyrec_free(ptw->ptdw->phyrec),
                ptw->ptdw->phyrec->error_message,
                pth->error_message);
     free(ptw->ptdw->phyrec);
-    
-	break;
+    break;
+#endif
+
+#ifdef NEWHYREC
+  case hyrec2:
+    class_call(thermodynamics_hyrec_free(ptw->ptdw->phyrec),
+               ptw->ptdw->phyrec->error_message,
+               pth->error_message);
+    free(ptw->ptdw->phyrec);
+    free(ptw->ptdw->precfast);
+    break;
+#endif
+
+  case recfast:
+    free(ptw->ptdw->precfast);
+    break;
   }
 
   free(ptw->ptrp->reionization_parameters);
@@ -1815,6 +1834,10 @@ int thermodynamics_vector_init(
 
   switch (pth->recombination) {
   case recfast:
+    evolves_xHe = _TRUE_;
+    evolves_xH = _TRUE_;
+    break;
+  case hyrec2:
     evolves_xHe = _TRUE_;
     evolves_xH = _TRUE_;
     break;
@@ -1898,6 +1921,7 @@ int thermodynamics_vector_init(
 
     /** RecfastCLASS */
   case recfast:
+  case hyrec2:
     /* - in the first scheme (brec = before recombination), we need initial condition for the matter temperature given by the photon temperature */
     if (ptdw->ap_current == ptdw->index_ap_brec) {
       /* Store Tmat in workspace for later use */
@@ -2098,6 +2122,10 @@ int thermodynamics_reionization_evolve_with_tau(
   case hyrec:
     evolves_xHe = _FALSE_;
     evolves_xH = _FALSE_;
+    break;
+  case hyrec2:
+    evolves_xHe = _TRUE_;
+    evolves_xH = _TRUE_;
     break;
   }
 
@@ -2559,8 +2587,27 @@ int thermodynamics_derivs(
 
     /* Hydrogen equations */
     if (ptdw->require_H == _TRUE_) {
-      //!!!!!!!
-	  //class_call(recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
+      class_call(recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
+                 precfast->error_message,
+                 error_message);
+    }
+
+    /* Helium equations */
+    if (ptdw->require_He == _TRUE_) {
+      class_call(recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_He])),
+                 precfast->error_message,
+                 error_message);
+    }
+
+    break;
+  case hyrec2:
+#ifdef NEWHYREC
+    x = ptdw->x_noreio;
+    x_H = ptdw->x_H;
+    x_He = ptdw->x_He;
+
+    /* Hydrogen equations */
+    if (ptdw->require_H == _TRUE_) {
       class_call(hyrec_dx_H_dz(ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,0,0,precfast->error_message,&(dy[ptv->index_ti_x_H])),
                  precfast->error_message,
                  error_message);
@@ -2568,13 +2615,11 @@ int thermodynamics_derivs(
 
     /* Helium equations */
     if (ptdw->require_He == _TRUE_) {
-	  //!!!!!!!
-      //class_call(recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_He])),
       class_call(hyrec_dx_He_dz(ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,0,0,precfast->error_message,&(dy[ptv->index_ti_x_He])),           
-				 precfast->error_message,
+                 precfast->error_message,
                  error_message);
-	}
-
+    }
+#endif
     break;
 
   case hyrec:
@@ -2840,7 +2885,7 @@ int thermodynamics_sources(
   switch (pth->recombination) {
 
   case hyrec:
-
+#ifdef OLDHYREC
     /** - This is the right time for asking HyRec to evolve x(z) using
         its internal system of differential equations over the next
         range [z_i, z_i+1], and to store the result in a temporary
@@ -2852,10 +2897,9 @@ int thermodynamics_sources(
         HyRec only needs to evolve x(z) over a very small interval,
         this is accurate enough. All these steps are taken in the
         HyRec wrapper of CLASS. */
-    //!!!!!!!
-    //class_call(hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
-     //          phyrec->error_message,
-     //          error_message);
+    class_call(hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
+               phyrec->error_message,
+               error_message);
 
     /* Check that we use the latest HyRec prediction for ptdw->x_reio (this
        call is not so important) */
@@ -2866,8 +2910,32 @@ int thermodynamics_sources(
     /* get x */
     x = ptdw->x_reio;
     break;
-
+#endif
   case recfast:
+
+    /* get x */
+    x = ptdw->x_reio;
+
+    /** - In the recfast case, we manually smooth the results a bit */
+
+    /* Smoothing if we are shortly after an approximation switch, i.e. if z is within 2 delta after the switch*/
+    if ((ap_current != 0) && (z > ptdw->ap_z_limits[ap_current-1]-2*ptdw->ap_z_limits_delta[ap_current])) {
+
+      class_call(thermodynamics_ionization_fractions(z,y,pth,ptw,ap_current-1),
+                 pth->error_message,
+                 error_message);
+
+      x_previous = ptdw->x_reio;
+      // get s from 0 to 1
+      s = (ptdw->ap_z_limits[ap_current-1]-z)/(2*ptdw->ap_z_limits_delta[ap_current]);
+      // infer f2(x) = smooth function interpolating from 0 to 1
+      weight = f2(s);
+
+      /* get smoothed x */
+      x = weight*x+(1.-weight)*x_previous;
+    }
+    break;
+  case hyrec2:
 
     /* get x */
     x = ptdw->x_reio;
@@ -4051,7 +4119,7 @@ int thermodynamics_ionization_fractions(
 
     /** Case Hyrec2012 --> For credits, see external/wrap_hyrec.c */
   case hyrec:
-
+#ifdef OLDHYREC
     /** - --> first regime: H and Helium fully ionized */
     if (current_ap == ptdw->index_ap_brec) {
 
@@ -4062,11 +4130,103 @@ int thermodynamics_ionization_fractions(
               interpolating within a table pre-computed by
               hyrec_calculate_xe() */
     else{
-      //!!!!!!!
-	  //class_call(hyrec_get_xe(phyrec,z,&x),
-      //           phyrec->error_message,
-      //           pth->error_message);
+      class_call(hyrec_get_xe(phyrec,z,&x),
+                 phyrec->error_message,
+                 pth->error_message);
     }
+#endif
+    break;
+  case hyrec2:
+#ifdef NEWHYREC
+    /* Set Tmat from the y vector (it is always evolved). */
+    Tmat = y[ptv->index_ti_D_Tmat] + ptw->Tcmb*(1.+z);
+
+    /** - --> first regime: H and Helium fully ionized */
+    if (current_ap == ptdw->index_ap_brec) {
+
+      rhs = ptw->SIunit_nH0/exp( 1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He2/Tmat );
+      sqrt_val = sqrt(pow(1.-rhs*(1.+ptw->fHe),2) + 4.*rhs*(1.+2*ptw->fHe));
+
+      x = 2.*(1+2.*ptw->fHe)/(1.-rhs*(1.+ptw->fHe) + sqrt_val);
+
+      ptdw->x_H = 1.;
+      ptdw->x_He = 1.;
+
+    }
+    /** - --> second regime: first Helium recombination (analytic approximation) */
+    else if (current_ap == ptdw->index_ap_He1) {
+
+      rhs = exp( 1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He2/Tmat ) / ptw->SIunit_nH0;
+      sqrt_val = sqrt(pow((rhs-1.-ptw->fHe),2) + 4.*(1.+2.*ptw->fHe)*rhs);
+
+      x = 0.5*(sqrt_val - (rhs-1.-ptw->fHe));
+
+      ptdw->x_H = 1.;
+      ptdw->x_He = 1.;
+
+    }
+    /** - --> third regime: first Helium recombination finished, H and Helium fully ionized */
+    else if (current_ap == ptdw->index_ap_He1f) {
+
+      rhs = 0.25*ptw->SIunit_nH0/exp( 1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He1/Tmat );
+      sqrt_val = sqrt(pow(1.-rhs,2) + 4.*rhs*(1.+ptw->fHe));
+
+      x = 2.*(1+ptw->fHe)/(1.-rhs + sqrt_val);
+
+      ptdw->x_H = 1.;
+      ptdw->x_He = 1.;
+
+    }
+    /** - --> fourth regime: second Helium recombination starts (analytic approximation) */
+    else if (current_ap == ptdw->index_ap_He2) {
+
+      rhs = 4.*exp(1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1_He1/Tmat ) / ptw->SIunit_nH0;
+      sqrt_val = sqrt(pow((rhs-1.),2) + 4.*(1.+ptw->fHe)*rhs );
+
+      x = 0.5*(sqrt_val - (rhs-1.));
+
+      ptdw->x_H = 1.;
+      ptdw->x_He = (x-1.)/ptw->fHe;
+
+    }
+    /** - --> fifth regime: Hydrogen recombination starts (analytic approximation)
+        while Helium recombination continues (full equation) */
+    else if (current_ap == ptdw->index_ap_H) {
+
+      rhs = exp(1.5*log(precfast->CR*Tmat/(1.+z)/(1.+z)) - precfast->CB1/Tmat)/ptw->SIunit_nH0;
+      sqrt_val = sqrt(pow(rhs,2)+4.*rhs);
+
+      x_H = 0.5*(sqrt_val - rhs);
+      x_He = y[ptv->index_ti_x_He];
+      x = x_H + ptw->fHe * x_He;
+
+      ptdw->x_H = x_H;
+      ptdw->x_He = x_He;
+
+    }
+    /** - --> sixth regime: full Hydrogen and Helium equations */
+    else if (current_ap == ptdw->index_ap_frec) {
+      x_H = y[ptv->index_ti_x_H];
+      x_He = y[ptv->index_ti_x_He];
+      x = x_H + ptw->fHe * x_He;
+
+      ptdw->x_H = x_H;
+      ptdw->x_He = x_He;
+
+    }
+    /** - --> seventh regime: calculate x_noreio during reionization
+        (i.e. x before taking reionisation into account) */
+    else if (current_ap == ptdw->index_ap_reio) {
+
+      x_H = y[ptv->index_ti_x_H];
+      x_He = y[ptv->index_ti_x_He];
+      x = x_H + ptw->fHe * x_He;
+
+      ptdw->x_H = x_H;
+      ptdw->x_He = x_He;
+
+    }
+#endif
     break;
   }
 

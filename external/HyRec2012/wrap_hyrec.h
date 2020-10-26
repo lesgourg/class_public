@@ -83,14 +83,14 @@ struct thermohyrec{
 extern "C" {
 #endif
 
-  int hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy);
+  int wrap_hyrec_init(struct precision* ppr, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy);
 
   int hyrec_calculate_xe(struct thermo * pth, struct thermohyrec * phy,
                          double z, double H_in, double T_b, double T_gamma);
 
   int hyrec_get_xe(struct thermohyrec * phy, double z, double* x_e);
 
-  int hyrec_free(struct thermohyrec* phy);
+  int wrap_hyrec_free(struct thermohyrec* phy);
 
 #ifdef __cplusplus
 }

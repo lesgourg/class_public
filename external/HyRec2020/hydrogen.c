@@ -119,28 +119,31 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
   /*********** Effective rates *************/
   
   char *alpha_file, *rr_file, *twog_file;
+  char sub_message[128]; 
   alpha_file = malloc(SIZE_InputFile);
+  alpha_file[0] = 0;
   strcat(alpha_file, path_to_hyrec);
   strcat(alpha_file, ALPHA_FILE);
   
   FILE *fA = fopen(alpha_file, "r");
   if (fA == NULL) {
-    fprintf(stderr, "Error in allocate_and_read_atomic: could not open file ");
-    fprintf(stderr, "%s", alpha_file);
-    fprintf(stderr, "\n");
-    exit(1);
-  }   
+    sprintf(sub_message, "in allocate_and_read_atomic: could not open file %s \n", alpha_file);
+    strcat(error_message, sub_message);
+    *error = 1;
+    return;
+  }
 
   rr_file = malloc(SIZE_InputFile);
+  rr_file[0] = 0;
   strcat(rr_file, path_to_hyrec);
   strcat(rr_file, RR_FILE);
 
   FILE *fR = fopen(rr_file, "r"); 
   if (fR == NULL) {
-    fprintf(stderr, "Error in allocate_and_read_atomic: could not open file ");
-    fprintf(stderr, "%s", rr_file);
-    fprintf(stderr, "\n");
-    exit(1);
+    sprintf(sub_message, "in allocate_and_read_atomic: could not open file %s \n", rr_file);
+    strcat(error_message, sub_message);
+    *error = 1;
+    return;
   }
 
   unsigned i, j, l;
@@ -156,10 +159,20 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
    
   for (i = 0; i < NTR; i++) {
     for (j = 0; j < NTM; j++) for (l = 0; l <= 1; l++) {
-      fscanf(fA, "%le", &(atomic->logAlpha_tab[l][j][i]));
+      if( fscanf(fA, "%le", &(atomic->logAlpha_tab[l][j][i])) != 1){
+        sprintf(sub_message, "in allocate_and_read_atomic: could not read file %s completely -- The file might be corrupted\n", alpha_file);
+        strcat(error_message, sub_message);
+        *error = 1;
+        return;
+      }
       atomic->logAlpha_tab[l][j][i] = log(atomic->logAlpha_tab[l][j][i]);
     }
-    fscanf(fR, "%le", &(atomic->logR2p2s_tab[i]));
+    if ( fscanf(fR, "%le", &(atomic->logR2p2s_tab[i])) != 1){
+        sprintf(sub_message, "in allocate_and_read_atomic: could not read file %s completely -- The file might be corrupted\n", rr_file);
+        strcat(error_message, sub_message);
+        *error = 1;
+        return;
+    }
     atomic->logR2p2s_tab[i] = log(atomic->logR2p2s_tab[i]);
   }
   fclose(fA);
@@ -170,25 +183,34 @@ void allocate_and_read_atomic(HYREC_ATOMIC *atomic, int *error, char *path_to_hy
   FILE *f2g;
   unsigned b;
   double L2s1s_current, max_DLNA, DlnE;
+  int fscanf_counter;
   
   twog_file = malloc(SIZE_InputFile);
+  twog_file[0] = 0;
   strcat(twog_file, path_to_hyrec);
   strcat(twog_file, TWOG_FILE);
  
   f2g = fopen(twog_file, "r");  
   if (f2g == NULL) {
-    fprintf(stderr, "Error in allocate_and_read_atomic: could not open file ");
-    fprintf(stderr, "%s", TWOG_FILE);
-    fprintf(stderr, "\n");
-    exit(1);
+    sprintf(sub_message, "in allocate_and_read_atomic: could not open file %s \n", twog_file);
+    strcat(error_message, sub_message);
+    *error = 1;
+    return;
   }
-   
+
   for (b = 0; b < NVIRT; b++) { 
-    fscanf(f2g, "%le", &(atomic->Eb_tab[b]));
-    fscanf(f2g, "%le", &(atomic->A1s_tab[b]));
-    fscanf(f2g, "%le", &(atomic->A2s_tab[b]));
-    fscanf(f2g, "%le", &(atomic->A3s3d_tab[b]));
-    fscanf(f2g, "%le", &(atomic->A4s4d_tab[b]));
+    fscanf_counter = 0;
+    fscanf_counter+= fscanf(f2g, "%le", &(atomic->Eb_tab[b]));
+    fscanf_counter+= fscanf(f2g, "%le", &(atomic->A1s_tab[b]));
+    fscanf_counter+= fscanf(f2g, "%le", &(atomic->A2s_tab[b]));
+    fscanf_counter+= fscanf(f2g, "%le", &(atomic->A3s3d_tab[b]));
+    fscanf_counter+= fscanf(f2g, "%le", &(atomic->A4s4d_tab[b]));
+    if(fscanf_counter!=5){
+      sprintf(sub_message, "in allocate_and_read_atomic: could not read file %s completely -- The file might be corrupted\n", twog_file);
+      strcat(error_message, sub_message);
+      *error = 1;
+      return;
+    }
   }  
   fclose(f2g); 
 
@@ -243,18 +265,21 @@ correction function for SWIFT mode
 
 void allocate_and_read_fit(FIT_FUNC *fit, int *error, char *path_to_hyrec, char error_message[SIZE_ErrorM]){
 
+  char sub_message[128];
+
   /*********** Effective rates *************/
   char *fit_file;
   fit_file = malloc(SIZE_InputFile);
+  fit_file[0] = 0;
   strcat(fit_file, path_to_hyrec);
   strcat(fit_file, FIT_FILE);
 
   FILE *fA = fopen(fit_file, "r");
   if (fA == NULL) {
-    fprintf(stderr, "Error in allocate_and_read_fit: could not open file ");
-    fprintf(stderr, "%s", fit_file);
-    fprintf(stderr, "\n");
-    exit(1);
+    sprintf(sub_message, "in allocate_and_read_fit: could not open file %s \n", fit_file);
+    strcat(error_message, sub_message);
+    *error = 1;
+    return;
   }   
   unsigned i, j;
   
@@ -267,7 +292,12 @@ void allocate_and_read_fit(FIT_FUNC *fit, int *error, char *path_to_hyrec, char 
   
   for (i = 0; i < DKK_SIZE; i++) {
     for (j = 0; j < 5; j++) {
-      fscanf(fA,"%le", &(fit->swift_func[j][i]));
+      if( fscanf(fA,"%le", &(fit->swift_func[j][i])) != 1){
+        sprintf(sub_message, "in allocate_and_read_atomic: could not read file %s completely -- The file might be corrupted\n", fit_file);
+        strcat(error_message, sub_message);
+        *error = 1;
+        return;
+      }
     }
   }
   fclose(fA);
