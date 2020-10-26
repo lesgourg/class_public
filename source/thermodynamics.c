@@ -47,15 +47,15 @@
 
 #include "thermodynamics.h"
 
-#ifdef HYREC
+//#ifdef HYREC
 #include "history.h"
-#ifndef TWOG_FILE
+//#ifndef TWOG_FILE
 #include "hyrectools.h"
 #include "helium.h"
-#include "hydrogen.h"
-#include "hyrec_params.h"
-#endif
-#endif
+//#include "hydrogen.h"
+#include "wrap_hyrec.h"
+//#endif
+//#endif
 
 /**
  * Thermodynamics quantities at given redshift z.
@@ -770,8 +770,7 @@ int thermodynamics_workspace_init(
                 pth->error_message);
 
     ptw->ptdw->phyrec->thermohyrec_verbose = pth->hyrec_verbose;
-
-    class_call(hyrec_init(ppr,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
+    class_call(thermodynamics_hyrec_init(ppr,pba,pth,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
                ptw->ptdw->phyrec->error_message,
                pth->error_message);
     break;
@@ -784,7 +783,17 @@ int thermodynamics_workspace_init(
     class_call(recfast_init(ppr,pba,pth,ptw->ptdw->precfast,pth->recfast_photoion_mode,ptw->fHe),
                ptw->ptdw->precfast->error_message,
                pth->error_message);
-    break;
+	class_alloc(ptw->ptdw->phyrec,
+                sizeof(struct thermohyrec),
+                pth->error_message);
+
+    ptw->ptdw->phyrec->thermohyrec_verbose = pth->hyrec_verbose;
+
+    class_call(thermodynamics_hyrec_init(ppr,pba,pth,ptw->SIunit_nH0,pba->T_cmb,ptw->fHe, ptw->ptdw->ap_z_limits[ptw->ptdw->index_ap_brec],ptw->ptdw->phyrec),
+               ptw->ptdw->phyrec->error_message,
+               pth->error_message);
+    
+	break;
   }
 
   /** - Allocate reionisation parameter workspace */
@@ -1736,15 +1745,20 @@ int thermodynamics_workspace_free(
   switch (pth->recombination) {
 
   case hyrec:
-    class_call(hyrec_free(ptw->ptdw->phyrec),
-               ptw->ptdw->phyrec->error_message,
+    class_call(thermodynamics_hyrec_free(ptw->ptdw->phyrec),
+			   ptw->ptdw->phyrec->error_message,
                pth->error_message);
     free(ptw->ptdw->phyrec);
     break;
 
   case recfast:
     free(ptw->ptdw->precfast);
-    break;
+	class_call(thermodynamics_hyrec_free(ptw->ptdw->phyrec),
+               ptw->ptdw->phyrec->error_message,
+               pth->error_message);
+    free(ptw->ptdw->phyrec);
+    
+	break;
   }
 
   free(ptw->ptrp->reionization_parameters);
@@ -2415,7 +2429,7 @@ int thermodynamics_reionization_evolve_with_tau(
  * - fixed parameters and workspaces are passed through a generic pointer. Here, this pointer contains the precision, background
  *   and thermo structures, plus a background vector, but generic_evolver doesn't know its precise structure.
  *
- * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic error_message
+ * - the error management is hy,bit special: errors are not written as usual to pth->error_message, but to a generic error_message
  *   passed in the list of arguments.
  *
  * @param mz                       Input: negative redshift mz = -z
@@ -2545,17 +2559,21 @@ int thermodynamics_derivs(
 
     /* Hydrogen equations */
     if (ptdw->require_H == _TRUE_) {
-      class_call(recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
+      //!!!!!!!
+	  //class_call(recfast_dx_H_dz(pth,precfast,x_H,x,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_H])),
+      class_call(hyrec_dx_H_dz(ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,0,0,precfast->error_message,&(dy[ptv->index_ti_x_H])),
                  precfast->error_message,
                  error_message);
     }
 
     /* Helium equations */
     if (ptdw->require_He == _TRUE_) {
-      class_call(recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_He])),
-                 precfast->error_message,
+	  //!!!!!!!
+      //class_call(recfast_dx_He_dz(pth,precfast,x_He,x,x_H,nH,z,Hz,Tmat,Trad,&(dy[ptv->index_ti_x_He])),
+      class_call(hyrec_dx_He_dz(ptw->ptdw->phyrec,x_H,x_He,x,nH,z,Hz,Tmat,Trad,0,0,precfast->error_message,&(dy[ptv->index_ti_x_He])),           
+				 precfast->error_message,
                  error_message);
-    }
+	}
 
     break;
 
@@ -2834,10 +2852,10 @@ int thermodynamics_sources(
         HyRec only needs to evolve x(z) over a very small interval,
         this is accurate enough. All these steps are taken in the
         HyRec wrapper of CLASS. */
-
-    class_call(hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
-               phyrec->error_message,
-               error_message);
+    //!!!!!!!
+    //class_call(hyrec_calculate_xe(pth,phyrec,z,Hz,Tmat,Trad),
+     //          phyrec->error_message,
+     //          error_message);
 
     /* Check that we use the latest HyRec prediction for ptdw->x_reio (this
        call is not so important) */
@@ -4009,7 +4027,6 @@ int thermodynamics_ionization_fractions(
     }
     /** - --> sixth regime: full Hydrogen and Helium equations */
     else if (current_ap == ptdw->index_ap_frec) {
-
       x_H = y[ptv->index_ti_x_H];
       x_He = y[ptv->index_ti_x_He];
       x = x_H + ptw->fHe * x_He;
@@ -4045,9 +4062,10 @@ int thermodynamics_ionization_fractions(
               interpolating within a table pre-computed by
               hyrec_calculate_xe() */
     else{
-      class_call(hyrec_get_xe(phyrec,z,&x),
-                 phyrec->error_message,
-                 pth->error_message);
+      //!!!!!!!
+	  //class_call(hyrec_get_xe(phyrec,z,&x),
+      //           phyrec->error_message,
+      //           pth->error_message);
     }
     break;
   }
