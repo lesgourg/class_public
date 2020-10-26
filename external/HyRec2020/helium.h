@@ -6,12 +6,17 @@
 /*         helium.h: all functions related to helium recombination (and Saha equilibria)         */
 /*                                                                                               */
 /*************************************************************************************************/ 
+
+#ifndef __HELIUM__
+#define __HELIUM__
+
+#include "hydrogen.h"
+
 #define SIZE_ErrorM   2048
 
-double rec_xesaha_HeII_III(double nH0, double Tr0, double fHe, double z, double *xHeIII, double fsR, double meR);
-double rec_saha_xHeII(double nH0, double Tr0, double fHe, double z, double fsR, double meR);
-double rec_saha_xH1s(double xHeII, double nH0, double T0, double z, double fsR, double meR);
-double rec_helium_dxHeIIdlna(double xH1s, double xHeII, double nH0, double Tr0, double fHe,
-			     double H, double z, double fsR, double meR, int *error, char error_message[SIZE_ErrorM]);
-double xe_PostSahaHe(double nH0, double Tr0, double fHe, double H, double z);
+double rec_xesaha_HeII_III(REC_COSMOPARAMS *cosmo, double z, double *xHeIII);
+double rec_saha_xHeII(REC_COSMOPARAMS *cosmo, double z);
+double rec_saha_xH1s(REC_COSMOPARAMS *cosmo, double z, double xHeII);
+double rec_helium_dxHeIIdlna(HYREC_DATA *data, double z, double xH1s, double xHeII, double H);
 
+#endif

@@ -1,6 +1,6 @@
 /******************************************************************************************************/
 /*                           HYREC-2: Hydrogen and Helium Recombination Code                          */
-/*                      Written by Yacine Ali-Haimoud and Chris Hirata (C2010-17)                     */
+/*                      Written by Yacine Ali-Haimoud and Chris Hirata (2010-17)                      */
 /*                            with contributions from Nanoom Lee (2020)                               */
 /*                                                                                                    */
 /*     energy_injection.c: functions for the energy injection rate by various physical processes      */
@@ -45,7 +45,8 @@ double dEdtdV_DM_ann(double z, INJ_PARAMS *params){
     else {
       pann_tot = params->pann *exp(var*(-square(log(zp1_ann/zp1_max))
 				+square(log(zp1_min/zp1_max))));
-    } 
+    }
+	pann_tot = pann_tot*pow(zp1,3.);
   }
   
   /* Dark matter annihilation in haloes */
@@ -55,7 +56,8 @@ double dEdtdV_DM_ann(double z, INJ_PARAMS *params){
     pann_tot += params->pann_halo *erfc;
   }
   
-  return square(10537.4*params->odmh2) * zp1*zp1*zp1*zp1*zp1*zp1*1e-9* pann_tot;
+  return square(10537.4*params->odmh2) * zp1*zp1*zp1*1e-9* pann_tot
+        +10537.4*params->odmh2*pow((1+z),3)*params->decay;
   /* the prefactor is 3 H100^2/(8 Pi G) c^2 in eV/cm^3, H100 = 100km/s/Mpc */
   /* pann is given in cm^3/s/GeV, multiply by 1e-9 to get cm^3/s/eV */
   
