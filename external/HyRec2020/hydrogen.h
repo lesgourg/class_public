@@ -10,14 +10,14 @@
 /*         Revision history:                                                                            */
 /*            - January 2020 : - Added new mode, SWIFT                                                  */
 /*                             - Two timestep parameters for FULL mode and other modes.                 */
-/*            - December 2014: - Accounts for additional energy injection                               */                 
+/*            - December 2014: - Accounts for additional energy injection                               */
 /*            - May 2012:   - Using the photon distortion instead of absolute value of radiation field  */
 /*                          - Accounting for explicit dependence on alpha and m_e                       */
-/*                          - Some definitions moved to header file history.h                           */  
+/*                          - Some definitions moved to header file history.h                           */
 /*            - January 2011: updated value of 2s--1s decay rate,                                       */
 /*                            changed temperature range for effective rates                             */
 /*            - Written November 2010.                                                                  */
-/********************************************************************************************************/ 
+/********************************************************************************************************/
 
 #ifndef __HYDROGEN__
 #define __HYDROGEN__
@@ -33,9 +33,9 @@
 #define SWIFT     4    /* Fast calculation with fitting function which is calculated based on FULL mode */
 
 
-/* When the probability of being ionized from n=2 becomes lower than PION_MAX, 
+/* When the probability of being ionized from n=2 becomes lower than PION_MAX,
    switch off radiative transfer calculation as it becomes irrelevant */
-#define PION_MAX  1e-2      
+#define PION_MAX  1e-2
 
 
 /****** CONSTANTS IN CGS + EV UNIT SYSTEM *******/
@@ -50,7 +50,7 @@
 #define E42  2.5496786384884356
 
 #define hPc       1.239841874331e-04   /* hc in eV cm */
-#define mH        0.93878299831e9      /* Hydrogen atom mass in eV/c^2 */ 
+#define mH        0.93878299831e9      /* Hydrogen atom mass in eV/c^2 */
 #define kBoltz    8.617343e-5          /* Boltzmann constant in eV/K */
 #define L2s1s     8.2206               /* 2s -> 1s two-photon decay rate in s^{-1} (Labzowsky et al 2005) */
 
@@ -66,14 +66,14 @@
 #define NTR    100                                  /* Number of Tr values */
 #define TM_TR_MIN 0.1                               /* Same thing for ratio Tm/Tr*/
 #define TM_TR_MAX 1.0
-#define NTM 40             
+#define NTM 40
 
 /************* CORRECTION FUNCTION AND ITS FIRST DERIVATIVE FOR SWIFT MODE *****/
 #define FIT_FILE  "fit_swift.dat"              /* Correction function and first derivative for SWIFT mode */
 #define DKK_SIZE 265
 
 /*** Tables and parameters for radiative transfer calculation ***/
-#define TWOG_FILE "two_photon_tables.dat" 
+#define TWOG_FILE "two_photon_tables.dat"
 
 #define NSUBLYA  140
 #define NSUBLYB  271
@@ -89,11 +89,11 @@
 
 /* Higher-resolution tables  */
 /*
-#define TWOG_FILE_CLASS "two_photon_tables_hires.dat" 
-#define NSUBLYA  408 
-#define NSUBLYB  1323 
-#define NVIRT    1493 
-#define NDIFF    300 
+#define TWOG_FILE_CLASS "two_photon_tables_hires.dat"
+#define NSUBLYA  408
+#define NSUBLYB  1323
+#define NVIRT    1493
+#define NDIFF    300
 #define DLNA    1.e-7
 */
 
@@ -109,11 +109,11 @@ typedef struct {
 
   /* Tables of 2-photon rates */
   double Eb_tab[NVIRT];       /* Energies of the virtual levels in eV */
-  double A1s_tab[NVIRT];      /* 3*A2p1s*phi(E)*DE */ 
+  double A1s_tab[NVIRT];      /* 3*A2p1s*phi(E)*DE */
   double A2s_tab[NVIRT];      /* dLambda_2s/dE * DeltaE if E < Elya dK2s/dE * Delta E if E > Elya */
   double A3s3d_tab[NVIRT];    /* (dLambda_3s/dE + 5*dLambda_3d/dE) * Delta E for E < ELyb, Raman scattering rate for E > ELyb */
   double A4s4d_tab[NVIRT];    /* (dLambda_4s/dE + 5*dLambda_4d/dE) * Delta E */
-  
+
 } HYREC_ATOMIC;
 
 typedef struct {
@@ -134,21 +134,21 @@ typedef struct {
 } RADIATION;
 
 
-/* Structure for HYREC-2 internal parameters */ 
+/* Structure for HYREC-2 internal parameters */
 
 typedef struct {
   double h;                                 /* Hubble constant */
   double T0;                                /* CMB temperature today in K*/
-  double obh2, ocbh2, odeh2, okh2, orh2, onuh2;     /* density parameters */ 
+  double obh2, ocbh2, odeh2, okh2, orh2, onuh2;     /* density parameters */
   double w0, wa;                                    /* Dark energy equation of state parameters */
   double Nmnu, Nnueff;                             /* effective number of neutrinos */
   double mnu[3];                                   /* neutrino masses */
   double fHe;                               /* Helium fraction by number */
-  double nH0;                               /* density of hydrogen today in cm^{-3} [Changed from m^{-3} in February 2015] */ 
-  double YHe;                               /* Helium fraction */ 
-  double fsR, meR;              /* fine-structure constant alpha/alpha(today) 
+  double nH0;                               /* density of hydrogen today in cm^{-3} [Changed from m^{-3} in February 2015] */
+  double YHe;                               /* Helium fraction */
+  double fsR, meR;              /* fine-structure constant alpha/alpha(today)
                                     and me/me(today) (Added April 2012)*/
-  double dlna, nz; 
+  double dlna, nz;
 
   INJ_PARAMS *inj_params;     /* Structure containing all Energy-injection parameters */
 
@@ -168,11 +168,11 @@ typedef struct{
   int quasi_eq;
   char *error_message;
   char *path_to_hyrec;
-  RADIATION *rad; 
+  RADIATION *rad;
   FIT_FUNC *fit;
 } HYREC_DATA;
 
-/*********** EFFECTIVE 3-LEVEL A LA PEEBLES ***************/ 
+/*********** EFFECTIVE 3-LEVEL A LA PEEBLES ***************/
 double SAHA_FACT(double fsR, double meR);
 double LYA_FACT(double fsR, double meR);
 double L2s_rescaled(double fsR, double meR);
@@ -194,23 +194,23 @@ void free_fit(FIT_FUNC *fit);
 void interpolate_rates(double Alpha[2], double DAlpha[2], double Beta[2], double *R2p2s, double TR, double TM_TR,
                        HYREC_ATOMIC *atomic, double fsR, double meR, int *error, char error_message[SIZE_ErrorM]);
 double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, double nH, double Hubble, double TM, double TR, double z);
-double rec_HMLA_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, double nH, double H, double TM, double TR); 
-void populate_Diffusion(double *Aup, double *Adn, double *A2p_up, double *A2p_dn, 
+double rec_HMLA_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, double nH, double H, double TM, double TR);
+void populate_Diffusion(double *Aup, double *Adn, double *A2p_up, double *A2p_dn,
                         double TM, double Eb_tab[NVIRT], double A1s_tab[NVIRT]);
-void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double *Tvv[3], 
+void populateTS_2photon(double Trr[2][2], double *Trv[2], double *Tvr[2], double *Tvv[3],
                         double sr[2], double sv[NVIRT], double Dtau[NVIRT],
                         double xe, double xHII, double TM, double TR, double nH, double H, HYREC_ATOMIC *atomic,
-                        double Dfplus[NVIRT], double Dfplus_Ly[], 
-                        double Alpha[2], double DAlpha[2], double Beta[2], 
+                        double Dfplus[NVIRT], double Dfplus_Ly[],
+                        double Alpha[2], double DAlpha[2], double Beta[2],
                         double fsR, double meR, double exclya, int *error, char error_message[SIZE_ErrorM]);
 void solveTXeqB(double *diag, double *updiag, double *dndiag, double *X, double *B, unsigned N, int *error, char error_message[SIZE_ErrorM]);
-void solve_real_virt(double xr[2], double xv[NVIRT], double Trr[2][2], double *Trv[2], double *Tvr[2], 
+void solve_real_virt(double xr[2], double xv[NVIRT], double Trr[2][2], double *Trv[2], double *Tvr[2],
                      double *Tvv[3], double sr[2], double sv[NVIRT], int *error, char error_message[SIZE_ErrorM]);
 double interp_Dfnu(double x0, double dx, double *ytab, unsigned int Nx, double x);
-void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **Dfminus_hist, double **Dfminus_Ly_hist, 
+void fplus_from_fminus(double fplus[NVIRT], double fplus_Ly[], double **Dfminus_hist, double **Dfminus_Ly_hist,
                        double TR, double zstart, unsigned iz, double z, double Eb_tab[NVIRT]);
 double rec_HMLA_2photon_dxedlna(HYREC_DATA *data, double xe, double nH, double H, double TM, double TR, unsigned iz, double z);
-double rec_dxHIIdlna(HYREC_DATA *data, int model, double xe, double xHII, double nH, double H, double TM, double TR, 
+double rec_dxHIIdlna(HYREC_DATA *data, int model, double xe, double xHII, double nH, double H, double TM, double TR,
                      unsigned iz, double z);
 
 

@@ -17,7 +17,7 @@
 /*                             - nH0 now in cm^-3 (instead of m^-3 which was only used in helium.c)   */
 /*             - October 2012: - added some wrapper functions for running CAMB with HyRec             */
 /*                              (courtesy of Antony Lewis)                                            */
-/*                              - possibility to change fine structure constant/ electron mass        */ 
+/*                              - possibility to change fine structure constant/ electron mass        */
 /*             - May 2012:  - added explicit dependence on fine structure constant and electron mass  */
 /*                          - modified call of rec_build_history                                      */
 /*                            and improved numerical radiative transfer equations                     */
@@ -28,7 +28,7 @@
 /*             - January 2011: changed various switches (notably for post-Saha expansions)            */
 /*                             so that they remain valid for arbitrary cosmologies                    */
 /*             - written November 2010                                                                */
-/******************************************************************************************************/ 
+/******************************************************************************************************/
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,11 +38,11 @@
 #include <unistd.h>
 #include <libgen.h>
 
-#include "history.h" 
+#include "history.h"
 #include "helium.h"
 
-/************************************************************************************* 
-Hubble expansion rate in sec^-1. 
+/*************************************************************************************
+Hubble expansion rate in sec^-1.
 *************************************************************************************/
 
 #ifdef CAMB
@@ -77,7 +77,7 @@ void hyrec_init() {
   free(buffer);
 }
 
-void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const double* h0inp, const double* tcmb, 
+void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const double* h0inp, const double* tcmb,
                              const double* yp, const double* num_nu, double *xe, double *Tm, long int* nz) {
 
   double zmax = 8000.;
@@ -85,7 +85,7 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
   double h = *h0inp/100.;
   double h2 = h*h;
   char sub_message[1024];
-  
+
   /* To load tables only once */
   if (firstTime==0){
     hyrec_init();
@@ -93,7 +93,7 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
     Nz = rec_data.Nz;
     firstTime =1;
   }
-  
+
   if (*nz != Nz) {
     rec_data.error = 1;
     sprintf(sub_message, "  called from rec_build_history_camb_\n");
@@ -106,9 +106,9 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
     hyrec_free(&rec_data);
     exit(1);
    }
-  
+
   /* Defining HYREC-2 parameters from CAMB */
-  /* Note that there are some parameters which don't have to be defined here 
+  /* Note that there are some parameters which don't have to be defined here
      since Hubble rate is directly given from CAMB: orh2, okh2, odeh2, onuh2, w0, wa. */
   rec_data.cosmo->h = h;
   rec_data.cosmo->T0 = *tcmb;
@@ -117,13 +117,13 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
   rec_data.cosmo->YHe = *yp;
   rec_data.cosmo->Nnueff = *num_nu;  /* effective number of species of massless neutrino */
   rec_data.cosmo->fsR = rec_data.cosmo->meR = 1.;   /* Default: today's values */
-  rec_data.cosmo->nH0 = 11.223846333047e-6*rec_data.cosmo->obh2*(1.-rec_data.cosmo->YHe);  // number density of hudrogen today in cm-3 
-  rec_data.cosmo->fHe = rec_data.cosmo->YHe/(1.-rec_data.cosmo->YHe)/3.97153;              // abundance of helium by number 
+  rec_data.cosmo->nH0 = 11.223846333047e-6*rec_data.cosmo->obh2*(1.-rec_data.cosmo->YHe);  // number density of hudrogen today in cm-3
+  rec_data.cosmo->fHe = rec_data.cosmo->YHe/(1.-rec_data.cosmo->YHe)/3.97153;              // abundance of helium by number
   if (MODEL == 4) rec_data.cosmo->dlna = DLNA_SWIFT;
   else rec_data.cosmo->dlna = DLNA_HYREC;
   dlna = rec_data.cosmo->dlna;
-  
-  /* It seems there are no parameters related to DM annihilation in CAMB 
+
+  /* It seems there are no parameters related to DM annihilation in CAMB
      So, following parameters (inj_params) are meaningless here          */
   rec_data.cosmo->inj_params->pann = 0.;
   rec_data.cosmo->inj_params->pann_halo = 0.;
@@ -134,18 +134,18 @@ void rec_build_history_camb_(const double* OmegaC, const double* OmegaB, const d
   rec_data.cosmo->inj_params->ann_z_halo = 1.;
   rec_data.cosmo->inj_params->on_the_spot = 1;
   rec_data.cosmo->inj_params->decay = 0.;
-    
+
   /* Primodial black hole parameters */
   rec_data.cosmo->inj_params->Mpbh = 1.;
   rec_data.cosmo->inj_params->fpbh = 0.;
-    
+
   rec_data.cosmo->inj_params->odmh2 = *OmegaC * h2;
-  
-  /* This is a flag to use Hubble rate defined history.c 
+
+  /* This is a flag to use Hubble rate defined history.c
      This flag is for the HYREC-2 implementation in CLASS    */
   double Hubble_flag[1];
   Hubble_flag[0] = -1.;
-  
+
   rec_build_history(rec_data, MODEL, Hubble_flag);
   if (rec_data.error == 1) {
     printf("\n%s\n",rec_data.error_message);
@@ -179,15 +179,15 @@ double rec_HubbleRate(REC_COSMOPARAMS *cosmo, double z) {
   double a = 1./(1.+z), y, Tnu0;
   int i;
   cosmo->onuh2 = 0;
-  Tnu0 = cosmo->T0 * pow(4./11.,1./3.) ; 
+  Tnu0 = cosmo->T0 * pow(4./11.,1./3.) ;
   if (cosmo->Nmnu == 0) cosmo->onuh2 = 0;
   else{
-    /* Massive neutrino energy density using fitting function */   
+    /* Massive neutrino energy density using fitting function */
     for (i=0;i<cosmo->Nmnu;i++) {
       y = cosmo->mnu[i]/kBoltz/(Tnu0/a);
-      cosmo->onuh2 = cosmo->onuh2 + (1.+0.317322*0.0457584*pow(y,3.47446+1.) 
+      cosmo->onuh2 = cosmo->onuh2 + (1.+0.317322*0.0457584*pow(y,3.47446+1.)
           + 2.05298*0.0457584*pow(y,3.47446-1.))/(1.+0.0457584*pow(y,3.47446))*(3.45e-8*Tnu0*Tnu0*Tnu0*Tnu0)*5.6822*2;
-    }   
+    }
   }
 
   /* Total density parameter, including curvature */
@@ -197,7 +197,7 @@ double rec_HubbleRate(REC_COSMOPARAMS *cosmo, double z) {
              + cosmo->orh2 /a/a/a/a   /* Radiation (photons + massless neutrinos) */
              + cosmo->onuh2 /a/a/a/a; /* Massive neutrinos */
   /* Conversion to Hubble rate in sec-1 */
-   
+
   return( 3.2407792896393e-18 * sqrt(rho) );
 }
 
@@ -214,7 +214,7 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   if(fscanf(fin, "%lg", &(param->h))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'h'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter CMB temperature today [Kelvin]: \n");
   if(fscanf(fin, "%lg", &(param->T0))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'CMB temperature today [Kelvin]'\n");exit(1);};
-  
+
   if (fout!=NULL) fprintf(fout, "Enter baryon density, Omega_b: \n");
   if(fscanf(fin, "%lg", &(Omega_b))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Omega_b'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter matter (CDM+baryons) density, Omega_cb: \n");
@@ -223,7 +223,7 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   if(fscanf(fin, "%lg", &(Omega_k))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Omega_k'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter dark energy equation of state parameters, w wa: ");
   if(fscanf(fin, "%lg %lg", &(param->w0), &(param->wa))!=2){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameters 'w wa'\n");exit(1);};
-  
+
   if (fout!=NULL) fprintf(fout, "Enter number of massive neutrino species, Nmnu: \n");
   if(fscanf(fin, "%lg", &(param->Nmnu))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Nmnu'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter mass of neutrino1, mnu: \n");
@@ -232,35 +232,35 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   if(fscanf(fin, "%lg", &(param->mnu[1]))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'mnu2'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter mass of neutrino3, mnu: \n");
   if(fscanf(fin, "%lg", &(param->mnu[2]))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'mnu3'\n");exit(1);};
-  
+
   if (fout!=NULL) fprintf(fout, "Enter primordial helium mass fraction, Y: \n");
   if(fscanf(fin, "%lg", &(param->YHe))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Y'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "Enter effective number of massless neutrino species, N_nu_eff: \n");
   if(fscanf(fin, "%lg", &(param->Nnueff))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'N_nu_eff'\n");exit(1);};
- 
+
   if (fout!=NULL) fprintf(fout, "ratio of fine structure constant at recombination to today's value, fsR: \n");
   if(fscanf(fin, "%lg", &(param->fsR))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'fsR'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "ratio of electron mass at recombination to today's value, meR: \n");
   if(fscanf(fin, "%lg", &(param->meR))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'meR'\n");exit(1);};
-  
+
   param->orh2  = 4.48162687719e-7 *param->T0*param->T0*param->T0*param->T0 *(1. + 0.227107317660239 *param->Nnueff);
   param->ocbh2  = Omega_cb *param->h*param->h;
   param->obh2  = Omega_b *param->h*param->h;
   param->okh2  = Omega_k *param->h*param->h;
-  
+
   Tnu0 = param->T0 * pow(4./11.,1./3.);
   param->onuh2 = 0.;
   if (param->Nmnu != 0){
     for (i=0;i<param->Nmnu;i++){
       y = param->mnu[i]/kBoltz/Tnu0;
-      param->onuh2 = param->onuh2 + (1.+0.317322*0.0457584*pow(y,3.47446+1.) 
+      param->onuh2 = param->onuh2 + (1.+0.317322*0.0457584*pow(y,3.47446+1.)
                     + 2.05298*0.0457584*pow(y,3.47446-1.))/(1.+0.0457584*pow(y,3.47446))*(3.450e-8 *Tnu0*Tnu0*Tnu0*Tnu0)*5.6822*2;
     }
   }
-  
+
   param->odeh2 = (1. -Omega_cb -Omega_k - param->orh2/param->h/param->h- param->onuh2/param->h/param->h)*param->h*param->h;
-  param->nH0 = 11.223846333047e-6*param->obh2*(1.-param->YHe);  // number density of hudrogen today in cm-3 
-  param->fHe = param->YHe/(1-param->YHe)/3.97153;              // abundance of helium by number 
+  param->nH0 = 11.223846333047e-6*param->obh2*(1.-param->YHe);  // number density of hudrogen today in cm-3
+  param->fHe = param->YHe/(1-param->YHe)/3.97153;              // abundance of helium by number
 
   if (fout!=NULL) fprintf(fout, "dark matter annihilation parameter, in cm^3/s/GeV, pann: \n");
   if(fscanf(fin, "%lg", &(param->inj_params->pann))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'pann'\n");exit(1);};
@@ -285,7 +285,7 @@ void rec_get_cosmoparam(FILE *fin, FILE *fout, REC_COSMOPARAMS *param) {
   if(fscanf(fin, "%lg", &(param->inj_params->Mpbh))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'Mpbh'\n");exit(1);};
   if (fout!=NULL) fprintf(fout, "fpbh: \n");
   if(fscanf(fin, "%lg", &(param->inj_params->fpbh))!=1){if (fout!=NULL) fprintf(fout, "Error in rec_get_cosmoparam when reading parameter 'fpbh'\n");exit(1);};
-  
+
   param->inj_params->odmh2      = param->ocbh2 - param->obh2;
 
   if (MODEL == 4) param->dlna = DLNA_SWIFT;
@@ -314,8 +314,8 @@ double rec_Tmss(double z, double xe, REC_COSMOPARAMS *cosmo, double dEdtdV, doub
   double coeff  = fsR*fsR/meR/meR/meR*4.91466895548409e-22*Tr*Tr*Tr*Tr*xe/(1.+xe+cosmo->fHe)/H;
   double Tm = Tr/(1.+1./coeff)
               + (1.+2.*xe)/3.*dEdtdV/kBoltz /(1.5 *nH*(1.+xe+cosmo->fHe))/H /(1.+coeff);
-  
-  return Tm; 
+
+  return Tm;
 }
 
 /******************************************************************************************
@@ -352,24 +352,24 @@ double Tm_implicit(double z, double xe, double Tm, REC_COSMOPARAMS *cosmo, doubl
 /************************************************************************
 Explicit integrator.
 Inputs: deriv: derivative at current time step
-        deriv_prev: derivatives at two previous timesteps 
+        deriv_prev: derivatives at two previous timesteps
         (deriv_prev[0] = previous time, deriv_prev[1] = 2 timesteps ago)
 Output: change in x per dt
 *************************************************************************/
 double hyrec_integrator(double deriv, double deriv_prev[2], double z) {
   double result;
- 
+
   if (MODEL == 3){
     if (z > 20 && z < 1500) result = 23./12.*deriv -16./12. * deriv_prev[0] + 5./12. *deriv_prev[1];
     else  result = 1.25 * deriv - 0.25 *deriv_prev[1];
   }
   else result = 23./12.*deriv -16./12. * deriv_prev[0] + 5./12. *deriv_prev[1];
-  
+
   // update derivatives
   deriv_prev[1] = deriv_prev[0];
   deriv_prev[0] = deriv;
 
-  return result; 
+  return result;
 }
 
 /**********************************************************************************************
@@ -388,7 +388,7 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dx
   REC_COSMOPARAMS *cosmo = data->cosmo;
   double Nz = data->Nz, dz = data->zmax/Nz;
   int *error = &data->error;
-  
+
   double xH1, xH1_p, xH1_m, xHeIISaha, dxHeIISaha_dlna, DdxHeIIdlna_Dxe, dxHeIIdlna, z_out, Dxe, DLNA;
   char sub_message[128];
   double H;
@@ -397,7 +397,7 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dx
 
   if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z_in);
   else H = rec_interp1d(.0, dz, hubble_array, Nz, z_in, error, sub_message);
-  
+
   xH1        = rec_saha_xH1s(cosmo, z_in, *xHeII);
   dxHeIIdlna = rec_helium_dxHeIIdlna(data, z_in, xH1, *xHeII, H);
   /* Post-Saha approximation during the early phase of HeII->HeI recombination */
@@ -414,7 +414,7 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dx
 
     if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z_out);
     else H = rec_interp1d(.0, dz, hubble_array, Nz, z_out, error, sub_message);
-        
+
     DdxHeIIdlna_Dxe  = (rec_helium_dxHeIIdlna(data, z_out, xH1_p, xHeIISaha+Dxe, H)
                        -rec_helium_dxHeIIdlna(data, z_out, xH1_m, xHeIISaha-Dxe, H))/2./Dxe;
 
@@ -422,10 +422,10 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double dx
     /* Check that the post-Saha approximation is still valid. If not, switch it off for future iterations */
     if (fabs(*xHeII - xHeIISaha) > DXHEII_MAX) data->quasi_eq = 0;
   }
-    
+
   /* Otherwise integrate ODE */
   else *xHeII += DLNA * hyrec_integrator(dxHeIIdlna, dxHeIIdlna_prev,z_in);
-	
+
   if (*error == 1) {
     sprintf(sub_message, "  called from rec_get_xe_next1_He at z = %f\n", z_in);
     strcat(data->error_message, sub_message);
@@ -446,9 +446,9 @@ void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *
   REC_COSMOPARAMS *cosmo = data->cosmo;
   int *error = &data->error;
 
-  double ainv, xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, T, nH, Dxe, nothing, DXHII_MAX_model, s;
+  double ainv, xH1sSaha, xHIISaha, dxH1sSaha_dlna, dxH1sdlna_Saha, DdxH1sdlna_DxH1s, T, nH, Dxe, DXHII_MAX_model;
   int model_stiff;	// To use EMLA2p2s model for PostSaha in FULL and SWIFT mode
-  char sub_message[128]; 
+  char sub_message[128];
 
   // Set model for rec_xH1_stiff. FULL mode uses EMLA2s2p for stiff. SWIFT mode uses EMLA2s2p for stiff when z > 1600.
   // Set DXHII_MAX_stiff parameter
@@ -463,7 +463,7 @@ void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *
     }
     DXHII_MAX_model = DXHII_MAX;
   }
-  
+
   nH = cosmo->nH0 *cube(1.+z);
   xH1sSaha = rec_saha_xH1s(cosmo, z, xHeII);
   xHIISaha = 1.-xH1sSaha;
@@ -481,26 +481,26 @@ void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *
                       *rec_helium_dxHeIIdlna(data, z, xH1sSaha, xHeII, H);
                    /* (partial xHII)/(partial xHeII).dxHeII/dlna */
   }
-  
+
   dxH1sdlna_Saha = -rec_dxHIIdlna(data, model_stiff, xHIISaha + xHeII, xHIISaha, nH, H, T, T, iz_rad, z);
   Dxe            = 0.01*xH1sSaha;
   DdxH1sdlna_DxH1s = (rec_dxHIIdlna(data, model_stiff, xHIISaha+Dxe + xHeII, xHIISaha+Dxe, nH, H, T, T, iz_rad, z)
                        -rec_dxHIIdlna(data, model_stiff, xHIISaha-Dxe + xHeII, xHIISaha-Dxe, nH, H, T, T, iz_rad, z))/2./Dxe;
   *xH1 = xH1sSaha + (dxH1sSaha_dlna - dxH1sdlna_Saha)/DdxH1sdlna_DxH1s;
-  
+
 
   if (fabs(*xH1 - xH1sSaha) > DXHII_MAX_model)  data->quasi_eq = 0;
   //if (z<1700.) *stiff = 0;   /* Used when calculating the correction function for SWIFT mode. */
 
   /* Update photon population when MODEL = FULL */
-  if (model == 3) nothing = -rec_dxHIIdlna(data, model, xHeII + 1.-*xH1, 1.-*xH1, nH, H, T, T, iz_rad, z);
+  if (model == 3) rec_dxHIIdlna(data, model, xHeII + 1.-*xH1, 1.-*xH1, nH, H, T, T, iz_rad, z);
 
   if (*xH1 < 0. || *xH1 != *xH1) {
     sprintf(sub_message, "xH1 < 0 in rec_xH1_stiff: at z = %f, xH1 = %E\n", z, *xH1);
     strcat(data->error_message, sub_message);
     *error = 1;
   }
-  
+
   if (*error == 1) {
     sprintf(sub_message, "  called from rec_xH1_stiff at z = %f\n", z);
     strcat(data->error_message, sub_message);
@@ -518,9 +518,9 @@ use a post-Saha expansion for hydrogen. The other way around is not treated (sim
 there is almost no HeII left, then integrate H only)
 ******************************************************************************************************/
 
-void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double *xH1, double *xHeII, 
+void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double *xH1, double *xHeII,
                        double dxHIIdlna_prev[2], double dxHeIIdlna_prev[2], double H) {
-  
+
   REC_COSMOPARAMS *cosmo = data->cosmo;
   int *error = &data->error;
   double Tm = data->Tm_output[iz-1];
@@ -528,7 +528,7 @@ void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double
 
   double dxHeIIdlna, dxHIIdlna, z_out, xe;
   double nH, TR, DLNA;
-  char sub_message[128]; 
+  char sub_message[128];
   DLNA = cosmo->dlna;
   xe = *xHeII + 1.- (*xH1);
   nH = cosmo->nH0 *cube(1.+z_in);
@@ -539,7 +539,7 @@ void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double
 
   /* Compute dxHII/dlna. This also correctly updates the radiation field at z_in,
      which is required even when using the stiff approximation */
-  
+
   /* If system is stiff use the quasi-equilibrium solution */
   if(data->quasi_eq == 1){
     z_out = (1.+z_in)*exp(-DLNA)-1.;
@@ -579,20 +579,17 @@ void rec_get_xe_next1_H(HYREC_DATA *data, int model, double z_in, long iz, doubl
   REC_COSMOPARAMS *cosmo = data->cosmo;
   int *error = &data->error;
   long iz_rad = iz-1-data->rad->iz_rad_0;
-  
+
   double dxedlna, z_out;
   double nH, TR, xH1, dEdtdV, DLNA;
-  double nH_next, TR_next;
   char sub_message[128];
   if (flag==10) DLNA = cosmo->dlna;
   else DLNA = cosmo->dlna/10.;
-  
+
   z_out   = (1.+z_in)*exp(-DLNA)-1.;
   nH = cosmo->nH0 *cube(1.+z_in);
-  nH_next = cosmo->nH0 *cube(1.+z_out);
   TR = kBoltz *cosmo->T0 *(1.+z_in);
-  TR_next = kBoltz *cosmo->T0 *(1.+z_out);
-    
+
   dEdtdV = cosmo->inj_params->ion*3*nH*EI / (1-xe_in);
   /* Compute dxHII/dlna. This also correctly updates the radiation field at z_in,
      which is required even when using the stiff approximation */
@@ -607,13 +604,13 @@ void rec_get_xe_next1_H(HYREC_DATA *data, int model, double z_in, long iz, doubl
   }
     /* Otherwise use second-order explicit solver */
   else {
-    dxedlna = rec_dxHIIdlna(data, model, xe_in, xe_in, nH, H, kBoltz*Tm_in, TR, iz_rad, z_in); 
+    dxedlna = rec_dxHIIdlna(data, model, xe_in, xe_in, nH, H, kBoltz*Tm_in, TR, iz_rad, z_in);
     *xe_out = xe_in + DLNA * hyrec_integrator(dxedlna, dxedlna_prev, z_in);
   }
-  
+
   /* Quasi-steady state solution for Tm */
   *Tm_out = rec_Tmss(z_out, *xe_out, cosmo, dEdtdV, H);
-  
+
   // Test that the outcome is sensible
   if (*xe_out > 1. || *xe_out < 0. || *xe_out != *xe_out) {
     sprintf(sub_message, "xe > 0 or xe < 0 in get_rec_next1_H at z = %E, xe = %E\n", z_out, *xe_out);
@@ -621,9 +618,9 @@ void rec_get_xe_next1_H(HYREC_DATA *data, int model, double z_in, long iz, doubl
     *error = 1;
   }
   if (*error == 1) {
-  sprintf(sub_message, "  called from get_rec_next1_H at z = %f\n", z_out);
-  strcat(data->error_message, sub_message);
-  return;
+    sprintf(sub_message, "  called from get_rec_next1_H at z = %f\n", z_out);
+    strcat(data->error_message, sub_message);
+    return;
   }
 }
 
@@ -639,21 +636,19 @@ July 2020: added implicit integration method
 
 void rec_get_xe_next2_HTm(HYREC_DATA *data, int model, double z_in, long iz, double dxedlna_prev[2],
                           double dTmdlna_prev[2], double H, double z_out, double H_next) {
-  
+
   REC_COSMOPARAMS *cosmo = data->cosmo;
   double xe_in = data->xe_output[iz-1];
   double Tm_in = data->Tm_output[iz-1];
   int *error = &data->error;
   long iz_rad = iz-1-data->rad->iz_rad_0;
 
-  double dxedlna, dTmdlna, nH, TR, dEdtdV, DLNA, nH_next, TR_next;
+  double dxedlna, dTmdlna, nH, TR, dEdtdV, DLNA;
   char sub_message[128];
   DLNA = cosmo->dlna;
 
   nH = cosmo->nH0 *cube(1.+z_in);
   TR = kBoltz *cosmo->T0 *(1.+z_in);
-  nH_next = cosmo->nH0 *cube(1.+z_out);
-  TR_next = kBoltz *cosmo->T0 *(1.+z_out);
   dEdtdV = cosmo->inj_params->ion*3*nH*EI / (1-xe_in);
   /*For low redshifts (z < 20 or so) use Peeble's model.
     The precise model does not metter much here as
@@ -663,18 +658,18 @@ void rec_get_xe_next2_HTm(HYREC_DATA *data, int model, double z_in, long iz, dou
   if (TR/cosmo->fsR/cosmo->fsR/cosmo->meR <= TR_MIN
      || kBoltz*Tm_in/TR <= TM_TR_MIN) model = PEEBLES;
     dxedlna = rec_dxHIIdlna(data, model, xe_in, xe_in, nH, H, kBoltz*Tm_in, TR, iz_rad, z_in);
-  
+
   dTmdlna = rec_dTmdlna(z_in, xe_in, Tm_in, cosmo, dEdtdV, H);
-  
+
   if ( z_in < 600){
     data->xe_output[iz] = xe_in + DLNA *hyrec_integrator(dxedlna, dxedlna_prev, z_in);
     data->Tm_output[iz] = Tm_in + DLNA *hyrec_integrator(dTmdlna, dTmdlna_prev, z_in);
-  } 
+  }
   else {
     dTmdlna_prev[0] = dTmdlna;
     dTmdlna_prev[1] = dTmdlna_prev[0];
     data->xe_output[iz] = xe_in + DLNA *hyrec_integrator(dxedlna, dxedlna_prev, z_in);
-    data->Tm_output[iz] = Tm_implicit(z_out, data->xe_output[iz], Tm_in, cosmo, dEdtdV, H_next, DLNA); 
+    data->Tm_output[iz] = Tm_implicit(z_out, data->xe_output[iz], Tm_in, cosmo, dEdtdV, H_next, DLNA);
   }
   if (*error == 1) {
     sprintf(sub_message, "  called from rec_get_xe_next2_HTm at z = %f\n", z_in);
@@ -684,8 +679,8 @@ void rec_get_xe_next2_HTm(HYREC_DATA *data, int model, double z_in, long iz, dou
 }
 
 
-/**************************************************************************************************** 
-Builds a recombination history with a given model 
+/****************************************************************************************************
+Builds a recombination history with a given model
 (model = PEEBLES, RECFAST, EMLA2s2p, FULL, or SWIFT)
 Added May 2012: The radiation field was added as an input so it can be extracted if desired
 Replaced condition iz < param->nz by equivalent z >= 0 (so param.nz not needed anymore)
@@ -694,18 +689,18 @@ Added July 2020: Implicit integration for Tm
 				 Adopting a smaller time step when diff.eq is stiff in SWIFT mode
 ****************************************************************************************************/
 
-char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){ 
-  
+char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
+
   REC_COSMOPARAMS *cosmo = data->cosmo;
   int *error = &data->error;
 
   double *xe_output = data->xe_output, *Tm_output = data->Tm_output;
-  int Nz = data->Nz; 
+  int Nz = data->Nz;
   double zstart = data->zmax, zend = data->zmin;
   long iz;
   double dxHIIdlna_prev[2], dTmdlna_prev[2], dxHeIIdlna_prev[2];
-  double dxHIIdlna_prev_sub[2], dxHeIIdlna_prev_sub[2], xHeII_prev[4], dTmdlna_prev_sub[2];
-  double z, dz, DLNA, Delta_xe, xHeII, xH1, dEdtdV_dep, xe, nH, H;
+  double dxHIIdlna_prev_sub[2], dxHeIIdlna_prev_sub[2], xHeII_prev[4];
+  double z, dz, DLNA, Delta_xe, xHeII, xH1, dEdtdV_dep, nH, H;
   double *ion = &cosmo->inj_params->ion;
   double *exclya = &cosmo->inj_params->exclya;
   double z_out, H_next;
@@ -715,10 +710,10 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
   DLNA = cosmo->dlna;
   dz = zstart/Nz;
   // Index at which we start integrating Hydrogen recombination, and corresponding redshift
-  data->rad->iz_rad_0  = (long) floor(1 + log(kBoltz*cosmo->T0/square(cosmo->fsR)/cosmo->meR*(1.+zstart)/TR_MAX)/DLNA); 
-  data->rad->z0   = (1.+zstart)*exp(-data->rad->iz_rad_0 * DLNA) - 1.;     
- 
-  z = zstart; 
+  data->rad->iz_rad_0  = (long) floor(1 + log(kBoltz*cosmo->T0/square(cosmo->fsR)/cosmo->meR*(1.+zstart)/TR_MAX)/DLNA);
+  data->rad->z0   = (1.+zstart)*exp(-data->rad->iz_rad_0 * DLNA) - 1.;
+
+  z = zstart;
   /********* He III -> II Saha phase. Tm = Tr. Stop when xHeIII = 1e-8 *********/
   Delta_xe = cosmo->fHe;   /* Delta_xe = xHeIII here */
   for(iz = 0; z >= 0. && Delta_xe > 1e-8; iz++) {
@@ -726,30 +721,30 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
     xe_output[iz] = rec_xesaha_HeII_III(cosmo, z, &Delta_xe);
     Tm_output[iz] = cosmo->T0 * (1.+z);
   }
-   
-  /******** He II -> I recombination. 
-    Hydrogen in Saha equilibrium. 
-    Tm fixed to steady state.          
+
+  /******** He II -> I recombination.
+    Hydrogen in Saha equilibrium.
+    Tm fixed to steady state.
     Neglect any energy injection.
-    Integrate until TR is low enough that can start integrating hydrogen recombination 
+    Integrate until TR is low enough that can start integrating hydrogen recombination
     (this occurs at index izH0 computed in rec_get_cosmoparam).
-    Start with quasi-equilibrium approximation. 
+    Start with quasi-equilibrium approximation.
   ********/
 
-  dxHeIIdlna_prev[1] = dxHeIIdlna_prev[0] = 0.;    
-   
-  xHeII    = rec_saha_xHeII(cosmo, z);  
+  dxHeIIdlna_prev[1] = dxHeIIdlna_prev[0] = 0.;
+
+  xHeII    = rec_saha_xHeII(cosmo, z);
   data->quasi_eq = 1;                    /* Start with post-saha expansion */
-  
-  dxHeIIdlna_prev_sub[1] = dxHeIIdlna_prev[1]; 
-  dxHeIIdlna_prev_sub[0] = dxHeIIdlna_prev[0]; 
+
+  dxHeIIdlna_prev_sub[1] = dxHeIIdlna_prev[1];
+  dxHeIIdlna_prev_sub[0] = dxHeIIdlna_prev[0];
   xHeII_prev[3] = xHeII;
   xHeII_prev[2] = xHeII;
   xHeII_prev[1] = xHeII;
   xHeII_prev[0] = xHeII;
-  
+
   for(; iz <= data->rad->iz_rad_0; iz++) {
-	
+
     if (model == 4 && data->quasi_eq == 0 && z > 2800.){
       xe_i = xe_output[iz-1]; Tm_i = Tm_output[iz-1];
       for (flag=0;flag<10;flag++) {
@@ -757,13 +752,13 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
         z  = (1.+zstart)*exp(-DLNA*(iz-1+(flag+1)/10.)) - 1.;
         xH1 = rec_saha_xH1s(cosmo, z, xHeII);
         xe_i = 1.-xH1 + xHeII;
-		   
+
         if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z);
         else H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
         Tm_i = rec_Tmss(z, xe_i, cosmo, 0., H);
       }
       xe_output[iz] = xe_i; Tm_output[iz] = Tm_i;
-      
+
       xHeII_prev[3] = xHeII_prev[2];
       xHeII_prev[2] = xHeII_prev[1];
       xHeII_prev[1] = xHeII_prev[0];
@@ -771,12 +766,12 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
       dxHeIIdlna_prev[1] = (xHeII_prev[1] - xHeII_prev[3])/2./DLNA;
       dxHeIIdlna_prev[0] = (xHeII_prev[0] - xHeII_prev[2])/2./DLNA;
     }
-    else{	
+    else{
       rec_get_xe_next1_He(data, z, &xHeII, dxHeIIdlna_prev, hubble_array, flag);
       z             = (1.+zstart)*exp(-DLNA*iz) - 1.;
       xH1           = rec_saha_xH1s(cosmo, z, xHeII);
       xe_output[iz] = 1.-xH1 + xHeII;
-    
+
       if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z);
       else H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
 
@@ -788,60 +783,60 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
 
   /******** H II -> I and He II -> I simultaneous recombination (rarely needed but just in case)
         Tm fixed to steady state.
-        Integrate H and He simultaneously until xHeII < XHEII_MIN 
+        Integrate H and He simultaneously until xHeII < XHEII_MIN
         Start with post-saha expansion for hydrogen
-        Now account for possible energy injection. 
+        Now account for possible energy injection.
         Solve for dEdtdV_dep simultaneously;
   ********/
 
   dxHIIdlna_prev[1] = (xe_output[iz-2] - xe_output[iz-4])/2./DLNA - dxHeIIdlna_prev[1];
   dxHIIdlna_prev[0] = (xe_output[iz-1] - xe_output[iz-3])/2./DLNA - dxHeIIdlna_prev[0];
-  data->quasi_eq          = 1; 
+  data->quasi_eq          = 1;
 
   // Initialize energy *deposition*
   dEdtdV_dep = 0.;
   nH = cosmo->nH0*cube(1.+z);
-  
+
   if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z);
   else H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
-  
+
   update_dEdtdV_dep(z, DLNA, xe_output[iz-1], Tm_output[iz-1], nH, H, cosmo->inj_params, &dEdtdV_dep);
   *ion = dEdtdV_dep/3. /nH *xH1 /EI;
   *exclya = *ion /0.75;
 
-  for(; z >= 0. && xHeII > XHEII_MIN; iz++) {    
-	
+  for(; z >= 0. && xHeII > XHEII_MIN; iz++) {
+
     get_rec_next2_HHe(data, model, z, iz, &xH1, &xHeII, dxHIIdlna_prev, dxHeIIdlna_prev, H);
     xe_output[iz] = 1.-xH1 + xHeII;
-    
+
     z  = (1.+zstart)*exp(-DLNA*iz) - 1.;
-	
+
     if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z);
     else H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
-	
+
     nH = cosmo->nH0*cube(1.+z);
     Tm_output[iz] = rec_Tmss(z, xe_output[iz], cosmo, dEdtdV_dep, H);
     update_dEdtdV_dep(z, DLNA, xe_output[iz], Tm_output[iz], nH, H, cosmo->inj_params, &dEdtdV_dep);
     *ion = dEdtdV_dep/3. /nH *xH1 /EI;
     *exclya = *ion /0.75;
-    
+
     if (*error == 1) return data->error_message;
   }
-  
+
   /******** H recombination. Helium assumed entirely neutral.
-        Tm fixed to steady-state until its relative difference from Tr is DLNT_MAX 
+        Tm fixed to steady-state until its relative difference from Tr is DLNT_MAX
   ********/
   dxHIIdlna_prev_sub[1] = dxHIIdlna_prev[1];
   dxHIIdlna_prev_sub[0] = dxHIIdlna_prev[0];
   for (; z >= 700. && fabs(1.-Tm_output[iz-1]/cosmo->T0/(1.+z)) < DLNT_MAX; iz++) {
-	
+
     if (model == 4 &&z > 1500.){
       xe_i = xe_output[iz-1]; Tm_i = Tm_output[iz-1];
       for (flag=0;flag<10;flag++) {
         rec_get_xe_next1_H(data, model, z, iz, xe_i, Tm_i, &xe_i, &Tm_i, dxHIIdlna_prev_sub, H, flag);
         z  = (1.+zstart)*exp(-DLNA*(iz-1+(flag+1)/10.)) - 1.;
         nH = cosmo->nH0*cube(1.+z);
-	
+
         if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z);
         else H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
 
@@ -854,7 +849,7 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
       dxHIIdlna_prev[0] = (xe_output[iz] - xe_output[iz-2])/2./DLNA;
     }
 
-    else{	
+    else{
       rec_get_xe_next1_H(data, model, z, iz, xe_output[iz-1], Tm_output[iz-1], xe_output+iz, Tm_output+iz,
                          dxHIIdlna_prev, H, flag);
       if (data->quasi_eq == 1){
@@ -864,25 +859,25 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
       z  = (1.+zstart)*exp(-DLNA*iz) - 1.;
       z_out  = (1.+zstart)*exp(-DLNA*(iz+1)) - 1.;
       nH = cosmo->nH0*cube(1.+z);
-    
+
       if (hubble_array[0]==-1.) H  = rec_HubbleRate(cosmo, z);
       else H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
-	
+
       update_dEdtdV_dep(z, DLNA, xe_output[iz], Tm_output[iz], nH, H, cosmo->inj_params, &dEdtdV_dep);
       *ion = dEdtdV_dep/3. /nH *(1.-xe_output[iz]) /EI;
       *exclya = *ion /0.75;
     }
     if (*error == 1) return data->error_message;
   }
-  
+
   /******** Evolve xe and Tm simultaneously until z = zend
-      Note that the radiative transfer calculation is switched off automatically in the functions 
-      rec_get_xe_next1_H and rec_get_xe_next2_HTm when it is no longer relevant.   
-  ********/   
+      Note that the radiative transfer calculation is switched off automatically in the functions
+      rec_get_xe_next1_H and rec_get_xe_next2_HTm when it is no longer relevant.
+  ********/
 
   dTmdlna_prev[1] = (Tm_output[iz-2] - Tm_output[iz-4])/2./DLNA;
   dTmdlna_prev[0] = (Tm_output[iz-1] - Tm_output[iz-3])/2./DLNA;
-   
+
   if (hubble_array[0]==-1.) {
     H  = rec_HubbleRate(cosmo, z);
     H_next  = rec_HubbleRate(cosmo, z_out);
@@ -891,13 +886,13 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
     H = rec_interp1d(.0, dz, hubble_array, Nz, z, error, data->error_message);
     H_next = rec_interp1d(.0, dz, hubble_array, Nz, z_out, error, data->error_message);
   }
-  
+
   for(; z > zend; iz++) {
     rec_get_xe_next2_HTm(data, model, z, iz, dxHIIdlna_prev, dTmdlna_prev, H, z_out, H_next);
     z  = (1.+zstart)*exp(-DLNA*iz) - 1.;
     z_out  = (1.+zstart)*exp(-DLNA*(iz+1)) - 1.;
     if (z < zend) z=0.;
-	
+
     if (hubble_array[0]==-1.) {
       H  = rec_HubbleRate(cosmo, z);
       H_next  = rec_HubbleRate(cosmo, z_out);
@@ -911,7 +906,7 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
     update_dEdtdV_dep(z, DLNA, xe_output[iz], Tm_output[iz], nH, H, cosmo->inj_params, &dEdtdV_dep);
     *ion = dEdtdV_dep/3. /nH *(1.-xe_output[iz]) /EI;
     *exclya = *ion /0.75;
-    
+
     if (*error == 1) return data->error_message;
   }
   return data->error_message;
@@ -928,23 +923,23 @@ void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
   double DLNA;
   if (MODEL == SWIFT) DLNA = DLNA_SWIFT;
   else DLNA = DLNA_HYREC;
-  
+
   data->error = 0;
   data->error_message=malloc(SIZE_ErrorM);
   sprintf(data->error_message, "\n**** ERROR HAS OCCURRED in HYREC-2 ****\n");
-  
+
   data->zmax = (zmax > 3000.? zmax : 3000.);
   data->zmin = zmin;
-  
+
   data->atomic = (HYREC_ATOMIC *) malloc(sizeof(HYREC_ATOMIC));
   allocate_and_read_atomic(data->atomic, &data->error, data->path_to_hyrec, data->error_message);
-  
+
   data->fit = (FIT_FUNC *) malloc(sizeof(FIT_FUNC));
   allocate_and_read_fit(data->fit, &data->error, data->path_to_hyrec, data->error_message);
- 
+
   data->cosmo  = (REC_COSMOPARAMS *) malloc(sizeof(REC_COSMOPARAMS));
   data->cosmo->inj_params = (INJ_PARAMS *)  malloc(sizeof(INJ_PARAMS));
-  
+
   data->Nz = (long int) (log((1.+zmax)/(1.+zmin))/DLNA) + 2;
   data->rad = (RADIATION *) malloc(sizeof(RADIATION));
 
@@ -952,7 +947,7 @@ void hyrec_allocate(HYREC_DATA *data, double zmax, double zmin) {
   // (typically from z ~ 1700 to 800 for recombination history)
   // Will have to adapt for outputting radiation fields at lower z
   if (MODEL == FULL)  allocate_radiation(data->rad, (long int) (log(10.)/DLNA), &data->error, data->error_message);
-  
+
   data->xe_output = create_1D_array(data->Nz, &data->error, data->error_message);
   data->Tm_output = create_1D_array(data->Nz, &data->error, data->error_message);
 }
@@ -971,7 +966,7 @@ void hyrec_free(HYREC_DATA *data) {
 }
 
 /******************************************************************
-Compute a recombination history given input cosmological parameters 
+Compute a recombination history given input cosmological parameters
 ********************************************************************/
 
 void hyrec_compute(HYREC_DATA *data, int model){
@@ -980,12 +975,12 @@ void hyrec_compute(HYREC_DATA *data, int model){
   In that case, rec_build_history() would be used directly not this function, hyrec_compute(). */
   double Hubble_flag[1];
   Hubble_flag[0] = -1.;
-  
+
   rec_build_history(data, model, Hubble_flag);
 }
 
-/***** 
-     Once HYREC_DATA outputs are computed, obtain xe(z) and Tm(z) by interpolation 
+/*****
+     Once HYREC_DATA outputs are computed, obtain xe(z) and Tm(z) by interpolation
 *****/
 
 double hyrec_xe(double z, HYREC_DATA *data) {

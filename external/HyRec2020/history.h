@@ -22,12 +22,12 @@
 
 #define DXHEII_MAX       1e-5       /* If xHeII - xHeII(Saha) < DXEHII_MAX, use post-Saha expansion for Helium. Lower value = higher accuracy. */
 
-#define DXHII_MAX_FULL   3e-4      
+#define DXHII_MAX_FULL   3e-4
 #define DXHII_MAX        3e-4       /* If xHII - xHII(Saha) < DXHII_MAX, use post-Saha expansion for Hydrogen. Switch to ODE integration after that.
                                     IMPORTANT: do not set to a lower value unless using a smaller time-step */
 
 #define XHEII_MIN        1e-6       /* Stop considering Helium recombination once xHeII < XHEII_MIN */
-//#define XHEII_MIN      1e-10      /* Used when calculating correction function in SWIFT mode */ 
+//#define XHEII_MIN      1e-10      /* Used when calculating correction function in SWIFT mode */
 
 #define DLNT_MAX         5e-4       /* Use the steady-state approximation for Tm as long as 1-Tm/Tr < DLNT_MAX, then switch to ODE integration */
 
@@ -46,7 +46,7 @@ void rec_get_xe_next1_He(HYREC_DATA *data, double z_in, double *xHeII, double *d
 
 void rec_xH1_stiff(HYREC_DATA *data, int model, double z, double xHeII, double *xH1, unsigned iz_rad, double H);
 
-void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double *xH1, double *xHeII, 
+void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double *xH1, double *xHeII,
                        double dxHIIdlna_prev[2], double dxHeIIdlna_prev[2], double H);
 
 void rec_get_xe_next1_H(HYREC_DATA *data, int model, double z_in, long iz, double xe_in, double Tm_in,
