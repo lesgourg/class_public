@@ -2011,6 +2011,7 @@ int background_solve(
 
   free(pvecback);
   free(pvecback_integration);
+  free(used_in_output);
 
   return _SUCCESS_;
 
