@@ -250,7 +250,7 @@ int input_set_root(char* input_file, struct file_content** ppfc_input, struct fi
   /** If root has not been set, use the default of 'output/<thisfilename>' */
   if (flag1 == _FALSE_){
     strncpy(outfname, "output/", 7);
-    strncpy(outfname+7, input_file, strlen(input_file)-4);
+    memcpy(outfname+7, input_file, strlen(input_file)-4);
     outfname[7+strlen(input_file)-4] = '\0';
   }
   /* Check here for the index of the 'root' field in case it was set in fc_input */
