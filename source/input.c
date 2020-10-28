@@ -1976,20 +1976,7 @@ int input_read_parameters_general(struct file_content * pfc,
       pth->recombination = recfast;
     }
     else if ((strstr(string1,"HYREC") != NULL) || (strstr(string1,"hyrec") != NULL) || (strstr(string1,"HyRec") != NULL)){
-#ifdef OLDHYREC
       pth->recombination = hyrec;
-#endif
-#ifdef NEWHYREC
-      pth->recombination = hyrec2;
-      #ifdef OLDHYREC
-      class_stop(errmsg,"You cannot define both NEWHYREC and OLDHYREC. Choose one");
-      #endif
-#endif
-#ifndef OLDHYREC
-#ifndef NEWHYREC
-      class_stop(errmsg,"You cannot define neither NEWHYREC nor OLDHYREC. Choose one");
-#endif
-#endif
     }
     else{
       class_stop(errmsg,

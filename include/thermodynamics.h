@@ -16,8 +16,7 @@
 
 enum recombination_algorithm {
   recfast,
-  hyrec,
-  hyrec2
+  hyrec
 };
 
 /**
@@ -315,10 +314,9 @@ struct thermo_vector {
 
   int ti_size;          /**< size of thermo vector (ti stands for thermodynamical, integrated) */
 
-  int index_ti_x_H;        /**< index for hydrogen fraction in y */
-  int index_ti_x_He;       /**< index for helium fraction in y */
-  //int index_ti_Tmat;       /**< index for matter temperature fraction in y */
-  int index_ti_D_Tmat;
+  int index_ti_x_H;     /**< index for hydrogen fraction in y */
+  int index_ti_x_He;    /**< index for helium fraction in y */
+  int index_ti_D_Tmat;  /**< index for T_mat - T_photon [Kelvin] in y */
 
   double * y;           /**< vector of quantities to be integrated */
   double * dy;          /**< time-derivative of the same vector */
@@ -333,19 +331,14 @@ struct thermo_vector {
 
 struct thermo_diffeq_workspace {
 
-  double x_H;      /**< Hydrogen ionization fraction */
-  double x_He;     /**< Helium ionization fraction */
-  double x_noreio; /**< Electron ionization fraction, not taking into account reionization */
-  double x_reio;   /**< Electron ionization fraction, taking into account reionization */
+  double x_H;        /**< Hydrogen ionization fraction */
+  double x_He;       /**< Helium ionization fraction */
+  double x_noreio;   /**< Electron ionization fraction, not taking into account reionization */
+  double x_reio;     /**< Electron ionization fraction, taking into account reionization */
 
-  double dx_H;     /**< Hydrogen ionization fraction derivative */
-  double dx_He;    /**< Helium ionization fraction derivative */
-  double dx;       /**< Electron ionization fraction, not taking into account reionization derivative */
+  double x;          /**< total ionization fraction following usual CMB convention, n_free/n_H = x_H + fHe * x_He; */
 
-  double x;        /**< total ionization fraction following usual CMB convention, n_free/n_H = x_H + fHe * x_He; */
-
-  double Tmat;     /**< matter temperature */
-  double dTmat;    /**< matter temperature derivative */
+  double Tmat;       /**< matter temperature */
 
   /* index of approximation schemes for the thermal history */
   int index_ap_brec; /**< before H- and He-recombination */
@@ -423,7 +416,12 @@ struct thermo_workspace {
   double SIunit_H0;    /**< defined as in RECFAST : Hubble parameter today in SI units */
   double SIunit_nH0;   /**< defined as in RECFAST : Hydrogen number density today in SI units*/
   double Tcmb;         /**< CMB temperature today in Kelvin */
-  double x_limit_T;    /**< value of ionization fraction below which temperature evolution equation is integrated */
+
+  /* Most important and useful constants */
+  double const_NR_numberdens;  /**< prefactor in number density of nonrelativistic species */
+  double const_Tion_H;         /**< ionization energy for HI as temperature */
+  double const_Tion_HeI;       /**< ionization energy for HeI as temperature */
+  double const_Tion_HeII;      /**< ionization energy for HeII as temperature */
 
   double reionization_optical_depth; /**< reionization optical depth inferred from reionization history */
 
