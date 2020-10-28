@@ -13,64 +13,13 @@
 
 struct thermohyrec{
 
-  //HRATEEFF* rate_table;
-  //TWO_PHOTON_PARAMS *twog_params;
   HYREC_DATA *data;
-
-  double ** Dfnu_hist;
-  double ** Dfminus_hist;
-  double *  Dfminus_Ly_hist[3];
-  int N_TR; //Number of T_radiation values in precomputed files
-  int N_TM; //Number of T_matter values in precomputed files
-  int N_LY;
-  int N_VIRT;
-  short stage;
-
-  double T_cmb;
-  double nH0;
-  double T0;
 
   double zstart;
   double zend;
-  double dlna;
-  long nz;
 
+  double xHeII_limit;
 
-  double fsR;
-  double meR;
-  double fHe;
-
-  int izH0;
-  double zH0;
-
-  // Purely for my own convenience
-  double* xe_output;
-  short to_store;
-
-  int filled_until_index_z;
-  double z_prev;
-  double H_prev;
-  double TR_prev;
-  double TM_prev;
-  double ion_prev;
-  double exclya_prev;
-
-  double xHeIII;
-  double xHeIII_limit;
-
-  double xHeII;
-  double xH1s;
-
-  double dxHIIdlna;
-  double dxHIIdlna_prev[2];
-  double dxHeIIdlna;
-  double dxHeIIdlna_prev[2];
-
-  int saha_flag;
-
-  FileName alpha_file;
-  FileName rr_file;
-  FileName twog_file;
   ErrorMsg error_message;
 
   int thermohyrec_verbose;
@@ -99,10 +48,8 @@ extern "C" {
 
   int thermodynamics_hyrec_free(struct thermohyrec* phy);
 
-  int hyrec_dx_H_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad,
-                    double dEdtdV_ion, double dEdtdV_lya, char* error_message, double *dx_H_dz);
-  int hyrec_dx_He_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad,
-                    double dEdtdV_ion, double dEdtdV_lya, char* error_message, double *dx_He_dz);
+  int hyrec_dx_H_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_H_dz);
+  int hyrec_dx_He_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_He_dz);
 
 #ifdef __cplusplus
 }

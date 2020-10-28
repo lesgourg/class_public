@@ -7,52 +7,41 @@
 #include "thermodynamics.h"
 #include "wrap_hyrec.h"
 
-/* Boundaries and number of elements of temperature tables */
-#define TR_MIN 0.004            /* Tr parameters */
-#define TR_MAX 0.4
-#define NTR    100
-#define TM_TR_MIN 0.1           /* Tm/Tr parameters */
-#define TM_TR_MAX 1.0
-#define NTM 40
 
-/* Forward-declare these just for convenience, so they are not in the .h file */
-#define _HYREC_N_EXTRAPOLATION_ 30
+/**
+ * Initialize the thermohyrec structure, and in particular HyRec 2020.
+ *
+ * @param ppr   Input: pointer to precision structure
+ * @param pba   Input: pointer to background structure
+ * @param pth   Input: pointer to thermodynamics structure
+ * @param phy Input/Output: pointer to thermohyrec structure
+ * @return the error status
+ */
 int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, struct thermo * pth, double Nnow, double T_cmb, double fHe, double zstart_hyrec, struct thermohyrec* phy){
 
+  /** Summary: */
+
+  /** - define local variables */
+  int i;
+
   if(phy->thermohyrec_verbose > 0){
-    printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Feb2019)\n");
+    printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Oct2020)\n");
     printf("    implements HyRec2 version Oct 2020 by Yacine Ali-Haimoud, Chris Hirata, and Nanoom Lee\n");
   }
-  int i;
-  double dN_safety;
-  double Nur;
+
+  /** - allocate necessary data structures */
   class_alloc(phy->data,
               sizeof(HYREC_DATA),
               phy->error_message);
-  
-  HYREC_DATA *rec_data = phy->data;
- 
-  phy->N_LY = 3;
-  phy->N_VIRT = NVIRT;
-  phy->N_TM = NTM;
-  phy->N_TR = NTR;
-
-  phy->nH0 = Nnow*1e-6;
-  phy->T_cmb = T_cmb;
-  phy->T0 = phy->T_cmb;
-  phy->fHe = fHe;
 
   phy->zend = 0.;
-  if (MODEL == 4) phy->dlna = DLNA_SWIFT;
-  else phy->dlna = DLNA_HYREC;
-  dN_safety = 2*_HYREC_N_EXTRAPOLATION_; //Has to be >= _HYREC_N_EXTRAPOLATION_
-  phy->zstart = (1.+zstart_hyrec)*exp(phy->dlna*dN_safety)-1.; //Make sure hyrec filled some values before first call from class (at z=8050)
-
-  phy->nz = (long) floor(2.+log((1.+phy->zstart)/(1.+phy->zend))/phy->dlna);
+  phy->zstart = zstart_hyrec;
 
   if(phy->thermohyrec_verbose > 1){
-    printf("    Starting HyRec at z = %.10e until z = %.10e with %ld points\n",phy->zstart, phy->zend, phy->nz);
+    printf("    Starting HyRec at z = %.10e until z = %.10e\n",phy->zstart, phy->zend);
   }
+
+  /** - allocate hyrec internally */
   phy->data->path_to_hyrec = "external/HyRec2020/"; 
   hyrec_allocate(phy->data, phy->zstart, phy->zend);
   /* Error during allocation */
@@ -61,117 +50,151 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
     return _FAILURE_;
   }
 
-  phy->data->cosmo->Nmnu = pba->N_ncdm;
-  if (pba->N_ncdm != 0) {
-      for (i=0;i<pba->N_ncdm;i++) phy->data->cosmo->mnu[i] = pba->m_ncdm_in_eV[i];
-  }
-  phy->data->cosmo->T0 = phy->T0;
+  /** - set cosmological parameters for hyrec */
+  phy->data->cosmo->T0 = T_cmb;
   phy->data->cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
   phy->data->cosmo->ocbh2 = (pba->Omega0_b+pba->Omega0_cdm)*pba->h*pba->h;
   phy->data->cosmo->onuh2 = pba->Omega0_ncdm_tot*pba->h*pba->h;
   
   phy->data->cosmo->YHe = pth->YHe;
-  phy->data->cosmo->Nnueff = pba->Omega0_ur/pba->Omega0_g *8./7./pow(4./11.,4./3.);
-  phy->data->cosmo->fHe = phy->fHe;              /* abundance of helium by number */
+  phy->data->cosmo->Nnueff = pba->Neff;
+  phy->data->cosmo->fHe = fHe; /* abundance of helium relative to hydrogen by number */
   phy->data->cosmo->fsR = 1.;
   phy->data->cosmo->meR = 1.;
-  phy->data->cosmo->nH0 = phy->nH0;
+  phy->data->cosmo->nH0 = Nnow*1e-6;
 
   /* Mutiple massive neutrinos*/
+  phy->data->cosmo->Nmnu = pba->N_ncdm;
   for (i=0;i<phy->data->cosmo->Nmnu;i++) {
-	  phy->data->cosmo->mnu[i] = pba->m_ncdm_in_eV[i];
+    phy->data->cosmo->mnu[i] = pba->m_ncdm_in_eV[i];
   }
 
-  /* history of x_e */
-  phy->xe_output    = create_1D_array(phy->nz, &phy->data->error, phy->data->error_message);
-
-  /* history of photon occupation numbers */
-  
-  //Ratios of fine structure constant and electron mass at recombination compared to now
-  phy->fsR = 1.;
-  phy->meR = 1.;
-  phy->xHeIII = phy->fHe;   /* Delta_xe = xHeIII here */
-  phy->xHeII = 0.; //Uninitialized
-
-  phy->izH0 = (long) floor(1 + log(_k_B_/_eV_*phy->T_cmb/phy->fsR/phy->fsR/phy->meR*(1.+phy->zstart)/(TR_MAX*0.99))/phy->dlna);
-  //When T_gamma reaches TR_MAX (just approximately!), 1% error margin
-  phy->zH0  = (1.+phy->zstart)*exp(-phy->izH0 * phy->dlna) - 1.;
-  phy->data->rad->z0 = phy->zH0;
-  
-  phy->stage = 0;
-  phy->saha_flag = 1;
-
-  phy->filled_until_index_z = 0;
-
-  phy->TR_prev = phy->T_cmb*(1+phy->zstart);
-  phy->TM_prev = phy->TR_prev;
-  phy->z_prev = (1+phy->zstart);
-  phy->xHeIII_limit = 1e-8;
+  /** - set other parameters for hyrec */
+  /* XEII_MIN = 1e-6 defined in history.h
+     HYREC-2 calculates Helium recombinations only until xHeII ~ XEII_MIN */
+  phy->xHeII_limit = XHEII_MIN;
 
   return _SUCCESS_;
 }
 
+
+/**
+ * Free all memory space allocated by thermodynamics_hyrec_init
+ *
+ * @param pth Input/Output: pointer to thermohyrec structure (to be freed)
+ * @return the error status
+ */
 int thermodynamics_hyrec_free(struct thermohyrec* phy){
-  
-  hyrec_free (phy->data);
+
+  /* We just need to free hyrec (without error management) */
+  hyrec_free(phy->data);
 
   return _SUCCESS_;
 }
 
-int hyrec_dx_H_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad,
-                  double dEdtdV_ion, double dEdtdV_lya, char* error_message, double *dx_H_dz) {
-  long iz;
-  double temp;
-  int model;
-  nH *= 1e-6;
-  Tmat *= kBoltz;
-  Trad *= kBoltz;
-  if (MODEL == FULL) return 1; // or return error. FULL mode is not allowed in CLASS for now
-  else iz = 0; // iz is only for FULL mode
-  
-  phy->data->cosmo->inj_params->ion = dEdtdV_ion;
-  phy->data->cosmo->inj_params->exclya = dEdtdV_lya;
+/**
+ * Calculate the derivative of the hydrogen HII ionization fraction
+ *
+ * @param pth   Input: pointer to thermodynamics structure
+ * @param phy   Input: pointer to thermohyrec structure
+ * @param x_H   Input: hydrogen HII ionization fraction
+ * @param x_He  Input: helium HeIII ionization fraction
+ * @param nH    Input: comoving total number of hydrogen atoms
+ * @param z     Input: current cosmological redshift
+ * @param Hz    Input: current value of hubble parameter in 1/s
+ * @param Tmat  Input: temperature of baryons in Kelvin
+ * @param Trad  Input: temperature of photons in Kelvin
+ * @param dx_H_dz        Output: change in ionization fraction of hydrogen HII
+ * @return the error status
+ */
+int hyrec_dx_H_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_H_dz) {
 
-  double Trad_phys = Trad/phy->data->cosmo->fsR/phy->data->cosmo->fsR/phy->data->cosmo->meR;
+  /** Summary: */
+
+  /** - define local variables */
+  struct injection* pin = &(pth->in);
+  long iz;
+  int model;
+
+  /** - do tests */
+  class_test(MODEL == FULL, phy->error_message, "FULL mode is currently not allowed for HyRec-2");
+
+  /** - assign variables */
+  if (pth->has_exotic_injection == _TRUE_) {
+    phy->data->cosmo->inj_params->ion = pin->pvecdeposition[pin->index_dep_ionH];
+    phy->data->cosmo->inj_params->exclya = pin->pvecdeposition[pin->index_dep_lya];
+  }
+  else{
+    phy->data->cosmo->inj_params->ion = 0.;
+    phy->data->cosmo->inj_params->exclya = 0.;
+  }
+
+  double Trad_phys = Trad*kBoltz/phy->data->cosmo->fsR/phy->data->cosmo->fsR/phy->data->cosmo->meR;
 
   if (Trad_phys <= TR_MIN || Tmat/Trad <= TM_TR_MIN) { model = PEEBLES; }
   else { model = MODEL; }
 
-  *dx_H_dz = -1./(1.+z)* rec_dxHIIdlna(phy->data, model, xe, x_H, nH, Hz, Tmat, Trad, iz, z);
+  /** - convert to correct units, and retrieve derivative */
+  *dx_H_dz = -1./(1.+z)* rec_dxHIIdlna(phy->data, model, xe, x_H, nH*1e-6, Hz, Tmat*kBoltz, Trad*kBoltz, iz, z);
 
+  /** - do error management */
   if(phy->data->error != 0){
-    class_call_message(error_message,"rec_dxHIIdlna",phy->data->error_message);
+    class_call_message(phy->error_message,"rec_dxHIIdlna",phy->data->error_message);
     return _FAILURE_;
   }
 
   return _SUCCESS_;
 }
-int hyrec_dx_He_dz(struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad,
-                  double dEdtdV_ion, double dEdtdV_lya, char* error_message, double *dx_He_dz) {
-  long iz;
+
+/**
+ * Calculate the derivative of the helium HeIII ionization fraction
+ *
+ * @param pth   Input: pointer to thermodynamics structure
+ * @param phy   Input: pointer to thermohyrec structure
+ * @param x_H   Input: hydrogen HII ionization fraction
+ * @param x_He  Input: helium HeIII ionization fraction
+ * @param xe    Input: sum total ionization fraction
+ * @param nH    Input: comoving total number of hydrogen atoms
+ * @param z     Input: current cosmological redshift
+ * @param Hz    Input: current value of hubble parameter in 1/s
+ * @param Tmat  Input: temperature of baryons in Kelvin
+ * @param Trad  Input: temperature of photons in Kelvin
+ * @param dx_He_dz       Output: change in ionization fraction of helium HeIII
+ * @return the error status
+ */
+int hyrec_dx_He_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, double x_He, double xe, double nH, double z, double Hz, double Tmat, double Trad, double *dx_He_dz) {
+
+  /** Summary: */
+
+  /** - define local variables */
+  struct injection* pin = &(pth->in);
   double xHeII = x_He*phy->data->cosmo->fHe;    // Different definitions between CLASS and HYREC-2
-  double xH1;
-  double temp;
- 
-  nH *= 1e-6;
-  Tmat *= kBoltz;
-  Trad *= kBoltz;
-  
-  if (MODEL == FULL) return 1; // or return error. FULL mode is not allowed in CLASS for now
-  else iz = 0; // iz is only for FULL mode
-  
-  phy->data->cosmo->inj_params->ion = dEdtdV_ion;
-  phy->data->cosmo->inj_params->exclya = dEdtdV_lya;
-  /* XEII_MIN = 1e-6 defined in history.h
-     HYREC-2 calculates Helium recombinations until xHeII ~ 1e-6 */
-  if (xHeII<XHEII_MIN) {
+
+  /** - do tests */
+  class_test(MODEL == FULL, phy->error_message, "FULL mode is currently not allowed for HyRec-2");
+
+  /** - assign variables */
+  if (pth->has_exotic_injection == _TRUE_) {
+    phy->data->cosmo->inj_params->ion = pin->pvecdeposition[pin->index_dep_ionHe];
+    phy->data->cosmo->inj_params->exclya = pin->pvecdeposition[pin->index_dep_lya];
+  }
+  else{
+    phy->data->cosmo->inj_params->ion = 0.;
+    phy->data->cosmo->inj_params->exclya = 0.;
+  }
+
+  if (xHeII<phy->xHeII_limit) {
+    /** - don't evolve He below the limit */
     *dx_He_dz=0;
   }
   else {
-    xH1 = rec_saha_xH1s(phy->data->cosmo, z, xHeII);
-    *dx_He_dz = -1./(1.+z)* rec_helium_dxHeIIdlna(phy->data, z, xH1, xHeII, Hz) / phy->data->cosmo->fHe;
+
+    /** - convert to correct units, and retrieve derivative */
+    *dx_He_dz = -1./(1.+z)* rec_helium_dxHeIIdlna(phy->data, z, 1.-x_H, xHeII, Hz) / phy->data->cosmo->fHe;
+
+    /** - do error management */
     if(phy->data->error != 0){
-      class_call_message(error_message,"rec_helium_dxHeIIdlna",phy->data->error_message);
+      class_call_message(phy->error_message,"rec_helium_dxHeIIdlna",phy->data->error_message);
       return _FAILURE_;
     }
   }
