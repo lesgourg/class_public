@@ -211,7 +211,7 @@ extern "C" {
 
   int injection_energy_injection_at_z(struct injection* phe,
                                       double z,
-                                      double* dEdz_inj);
+                                      double* dEdt_inj);
 
   int injection_deposition_function_at_z(struct injection* phe,
                                          double x,

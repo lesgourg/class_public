@@ -278,14 +278,14 @@ int injection_calculate_at_z(struct background* pba,
   struct injection * pin = &(pth->in);
   int index_dep;
   double h,a,b;
-  double dEdz_inj;
+  double dEdt_inj;
 
   /** - Store input parameters in struct */
   pin->T_b = Tmat;                                                                                  // [K]
   pin->x_e = x;                                                                                     // [-]
   pin->nH = pin->N_e0*pow(1.+z,3);                                                                  // [1/m^3]
   pin->heat_capacity = (3./2.)*_k_B_*pin->nH*(1.+pin->fHe+pin->x_e);                                // [J/(K m^3)]
-  dEdz_inj = 0.;
+  dEdt_inj = 0.;
 
   /** - Import varying quantities from background structure, convert to SI units */
   pin->H = pvecback[pba->index_bg_H]*_c_/_Mpc_over_m_;                                              // [1/s]
@@ -326,7 +326,7 @@ int injection_calculate_at_z(struct background* pba,
   /** - Get the injected energy that needs to be deposited (i.e. excluding adiabatic terms) */
   class_call(injection_energy_injection_at_z(pin,
                                              z,
-                                             &dEdz_inj),
+                                             &dEdt_inj),
              pin->error_message,
              pin->error_message);
 
@@ -339,7 +339,7 @@ int injection_calculate_at_z(struct background* pba,
 
   /** - Put result into deposition vector */
   for(index_dep = 0; index_dep < pin->dep_size; ++index_dep){
-    pin->pvecdeposition[index_dep] = pin->chi[index_dep]*dEdz_inj;
+    pin->pvecdeposition[index_dep] = pin->chi[index_dep]*dEdt_inj;
   }
 
   /** - Store z values in table */
@@ -366,20 +366,20 @@ int injection_calculate_at_z(struct background* pba,
  *
  * @param pin         Input: pointer to injection structure
  * @param z           Input: redshift
- * @param dEdz_inj    Output: injected energy
+ * @param dEdt_inj    Output: injected energy
  * @return the error status
  */
 int injection_energy_injection_at_z(struct injection* pin,
                                     double z,
-                                    double* dEdz_inj){
+                                    double* dEdt_inj){
 
   /** - Define local variable */
-  double dEdz, rate;
+  double dEdt, rate;
   double h,a,b;
   int index_inj;
 
   /* Initialize local variables */
-  dEdz = 0.;
+  dEdt = 0.;
 
   /** - Test if the values are already within the table */
   if(z > pin->filled_until_z){
@@ -394,10 +394,10 @@ int injection_energy_injection_at_z(struct injection* pin,
              pin->error_message);
     /* (Linearly) interpolate within the table */
     for(index_inj=0; index_inj<pin->inj_size; ++index_inj){
-      dEdz += pin->injection_table[index_inj][pin->last_index_z_inj]*a+pin->injection_table[index_inj][pin->last_index_z_inj+1]*b;
+      dEdt += pin->injection_table[index_inj][pin->last_index_z_inj]*a+pin->injection_table[index_inj][pin->last_index_z_inj+1]*b;
     }
 
-    *dEdz_inj = dEdz;
+    *dEdt_inj = dEdt;
 
   }
 
@@ -413,7 +413,7 @@ int injection_energy_injection_at_z(struct injection* pin,
       if(pin->to_store == _TRUE_){
         pin->injection_table[pin->index_inj_DM_ann][pin->index_z_store] = rate;
       }
-      dEdz += rate;
+      dEdt += rate;
     }
 
     /* DM decay */
@@ -426,7 +426,7 @@ int injection_energy_injection_at_z(struct injection* pin,
       if(pin->to_store == _TRUE_){
         pin->injection_table[pin->index_inj_DM_dec][pin->index_z_store] = rate;
       }
-      dEdz += rate;
+      dEdt += rate;
     }
 
     /* PBH evaporation */
@@ -439,7 +439,7 @@ int injection_energy_injection_at_z(struct injection* pin,
       if(pin->to_store == _TRUE_){
         pin->injection_table[pin->index_inj_PBH_eva][pin->index_z_store] = rate;
       }
-      dEdz += rate;
+      dEdt += rate;
     }
 
     /* PBH matter acctretion */
@@ -452,19 +452,19 @@ int injection_energy_injection_at_z(struct injection* pin,
       if(pin->to_store == _TRUE_){
         pin->injection_table[pin->index_inj_PBH_acc][pin->index_z_store] = rate;
       }
-      dEdz += rate;
+      dEdt += rate;
     }
 
     /** Total energy injection */
     if(pin->to_store == _TRUE_){
-      pin->injection_table[pin->index_inj_tot][pin->index_z_store] = dEdz;
+      pin->injection_table[pin->index_inj_tot][pin->index_z_store] = dEdt;
 
       class_test(pin->index_z_store < pin->filled_until_index_z-1,
                  pin->error_message,
                  "Skipping too far ahead in z_table. Check that the injection and thermodynamics modules agree in their z sampling.");
     }
 
-    *dEdz_inj = dEdz;
+    *dEdt_inj = dEdt;
 
   }
 
