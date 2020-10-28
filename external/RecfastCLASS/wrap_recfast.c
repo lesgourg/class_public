@@ -46,14 +46,13 @@ int recfast_init(struct precision* ppr,
   pre->wGauss2 = ppr->recfast_wGauss2;
   pre->Hswitch = ppr->recfast_Hswitch;
   pre->Heswitch = ppr->recfast_Heswitch;
-  //pre->H_frac = ppr->recfast_H_frac;
   pre->x_H0_trigger2 = ppr->recfast_x_H0_trigger2;
   pre->x_He0_trigger2 = ppr->recfast_x_He0_trigger2;
   pre->fudge_H = ppr->recfast_fudge_H;
   pre->fudge_He = ppr->recfast_fudge_He;
   pre->x_H_limit_KHe = 0.9999999; /* threshold changed by Antony Lewis in 2008 to get smoother Helium */
   pre->x_H_limit_CfHe_t = 0.99999;
-  pre->max_exp_boltz = 680.;
+  pre->max_exp_boltz = 680.; /* The actual threshold is more around 709.8, but this leaves some wiggle-room */
   pre->x_He_trigger_small = 5.0e-9;
 
   pre->z_switch_late = ppr->recfast_z_switch_late;
@@ -65,42 +64,26 @@ int recfast_init(struct precision* ppr,
 
 
   /** - Assign quantities that have to be calculated first */
+  /* These factors use inverse wavenumbers _L_ since they are most accurately measured */
   /* Lyman alpha wavelengths */
-  Lalpha = _h_P_*_c_/(_E_H_lya_*_eV_);
-  Lalpha_He = _h_P_*_c_/(_E_He_2p_*_eV_);
+  Lalpha = 1./_L_H_alpha_;
+  Lalpha_He = 1./_L_He_2p_;
   /* Ionization-lya temperature differences */
-  pre->CDB = (_E_H_ion_-_E_H_lya_)*_eV_/_k_B_;
-  pre->CDB_He = (_E_He1_ion_-_E_He_2s_)*_eV_/_k_B_;
+  pre->CDB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_)/_k_B_;
+  pre->CDB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_)/_k_B_;
   /* Ionization temperatures */
-  pre->CB1 = _E_H_ion_*_eV_/_k_B_;
-  pre->CB1_He1 = _E_He1_ion_*_eV_/_k_B_;
-  pre->CB1_He2 = _E_He2_ion_*_eV_/_k_B_;
+  pre->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;           // equivalent to ptw->const_Tion_H
+  pre->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;     // equivalent to ptw->const_Tion_HeI
+  pre->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;     // equivalent to ptw->const_Tion_HeII
   /* Constants defined for the Peeble's factors  */
-  pre->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
+  pre->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);  // equivalent to ptw->const_NR_numberdens
   pre->CK = pow(Lalpha,3)/(8.*_PI_);
   pre->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
   /* Lyman alpha temperature */
-  pre->CL = _E_H_lya_*_eV_/_k_B_;
-  pre->CL_He = _E_He_2s_*_eV_/_k_B_;
-  pre->CL_Het = _h_P_*_c_*_L_He_2St_/_k_B_;
-  /* Helium 2s->2p transition temperature*/
-  pre->CDB_He2s2p = (_E_He_2p_-_E_He_2s_)*_eV_/_k_B_;
-
-  /** - The above formulas are not accurate enough,
-        and thus we use the below formulas for higher precison */
-  Lalpha = 1./_L_H_alpha_;
-  Lalpha_He = 1./_L_He_2p_;
-  pre->CDB = _h_P_*_c_*(_L_H_ion_-_L_H_alpha_)/_k_B_;
-  pre->CDB_He = _h_P_*_c_*(_L_He1_ion_-_L_He_2s_)/_k_B_;
-  pre->CB1 = _h_P_*_c_*_L_H_ion_/_k_B_;
-  pre->CB1_He1 = _h_P_*_c_*_L_He1_ion_/_k_B_;
-  pre->CB1_He2 = _h_P_*_c_*_L_He2_ion_/_k_B_;
-  pre->CR = 2.*_PI_*(_m_e_/_h_P_)*(_k_B_/_h_P_);
-  pre->CK = pow(Lalpha,3)/(8.*_PI_);
-  pre->CK_He = pow(Lalpha_He,3)/(8.*_PI_);
   pre->CL = _c_*_h_P_/(_k_B_*Lalpha);
   pre->CL_He = _c_*_h_P_/(_k_B_/_L_He_2s_);
   pre->CL_Het = _h_P_*_c_*_L_He_2St_/_k_B_;
+  /* Helium 2s->2p transition temperature*/
   pre->CDB_He2s2p = _h_P_*_c_*(_L_He_2p_-_L_He_2s_)/_k_B_;
 
   /** - Test schemes */

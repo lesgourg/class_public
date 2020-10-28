@@ -94,12 +94,19 @@ extern "C" {
 
 #define _Lambda_            8.2245809
 #define _Lambda_He_         51.3
+/* Ionization inv wavenumber of hydrogen in 1/m */
 #define _L_H_ion_           1.096787737e7
+/* Lyman-alpha transition inv wavenumber of hydrogen in 1/m, approximately 3/4 of the ionization because (1s->2p transition and E~1/lambda~1/n^2) */
 #define _L_H_alpha_         8.225916453e6
+/* Ionization inv wavenumber of helium HeI in eV */
 #define _L_He1_ion_         1.98310772e7
+/* Ionization inv wavenumber of helium HeII in eV */
 #define _L_He2_ion_         4.389088863e7
+/* Inv Wavenumber of 1s->2s transition of helium HeI in eV */
 #define _L_He_2s_           1.66277434e7
+/* Inv Wavenumber of 1s->2p transition of helium HeI in eV */
 #define _L_He_2p_           1.71134891e7
+
 #define _A2P_s_             1.798287e9     /*updated like in recfast 1.4*/
 #define _A2P_t_             177.58e0       /*updated like in recfast 1.4*/
 #define _L_He_2Pt_          1.690871466e7  /*updated like in recfast 1.4*/
@@ -107,19 +114,6 @@ extern "C" {
 #define _L_He2St_ion_       3.8454693845e6 /*updated like in recfast 1.4*/
 #define _sigma_He_2Ps_      1.436289e-22   /*updated like in recfast 1.4*/
 #define _sigma_He_2Pt_      1.484872e-22   /*updated like in recfast 1.4*/
-
-/* Ionization energy of hydrogen HI in eV */
-#define _E_H_ion_          13.5984336478
-/* Lyman-Alpha transition energy of hydrogen in eV, approximately 3/4 of the ionization energy because (1s->2p transition and E~1/n^2) */
-#define _E_H_lya_          10.1988356821
-/* Ionization energy of helium HeI in eV */
-#define _E_He1_ion_        24.5873999472
-/* Ionization energy of helium HeII in eV */
-#define _E_He2_ion_        54.4177616729
-/* Energy of 1s->2s of helium HeI in eV */
-#define _E_He_2s_          20.6157725611
-/* Energy of 1s->2p of helium HeI in eV */
-#define _E_He_2p_          21.2180204207
 //@}
 
 /**
