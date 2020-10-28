@@ -176,7 +176,7 @@ class_precision_parameter(recfast_wGauss2,double,0.33)  /**< from recfast 1.5, G
 
 class_precision_parameter(recfast_z_He_1,double,8000.0) /**< from recfast 1.4, Starting value of Helium recombination 1 */
 class_precision_parameter(recfast_delta_z_He_1,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_2,double,5000.0) /**< from recfast 1.4, Ending value of Helium recombination 1 */
+class_precision_parameter(recfast_z_He_2,double,4500.0) /**< from recfast 1.4, Ending value of Helium recombination 1, changed on 28.10.20 from 5000 to 4500 */
 class_precision_parameter(recfast_delta_z_He_2,double,100.0)/**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 class_precision_parameter(recfast_z_He_3,double,3500.0) /**< from recfast 1.4, Starting value of Helium recombination 2 */
 class_precision_parameter(recfast_delta_z_He_3,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
@@ -196,7 +196,7 @@ class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /**< Switch f
 class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< Switch for Hydrogen full calculation during reco, for changing Hydrogen flag, raised from 0.98 to same as previous one for smoother Hydrogen */
 class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 
-class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation */
+//class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation, not used currently */
 /**
  * This is an important flag for energy injections! It also modifies wether recfast will switch approximation schemes or not.
  */
