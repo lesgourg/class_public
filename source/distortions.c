@@ -365,7 +365,7 @@ int distortions_generate_detector(struct precision * ppr,
 
   /** Define local variables*/
   int is_success;
-  char temporary_string[_FILENAMESIZE_+2*_MAX_DETECTOR_NAME_LENGTH_+1024];
+  char temporary_string[2*_FILENAMESIZE_+2*_MAX_DETECTOR_NAME_LENGTH_+1024];
 
 
   /* Test first whether or not python exists*/

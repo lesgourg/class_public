@@ -44,7 +44,7 @@ struct distortions
 
   int sd_PCA_size;                              /**< Number of PCA components for the calculation of residual distortions */
 
-  FileName sd_detector_file_name;               /**< Name of detector list file */
+  DetectorFileName sd_detector_file_name;       /**< Name of detector list file */
 
   DetectorName sd_detector_name;                /**< Name of detector */
   double sd_detector_nu_min;                    /**< Minimum frequency of chosen detector */
