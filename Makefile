@@ -48,9 +48,8 @@ CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
-# (with no slash at the end: e.g. "external/HyRec2012") [ML],[NS]
-#HYREC = external/HyRec2012/
-HYREC2 = external/HyRec2020/
+# (with no slash at the end: e.g. "external/HyRec2020")
+HYREC = external/HyRec2020/
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
 
@@ -84,18 +83,9 @@ HEADERFILES += $(wildcard ./$(HEATING)/*.h)
 # eventually update flags for including HyRec
 ifneq ($(HYREC),)
 vpath %.c $(HYREC)
-CCFLAG += -DHYREC -DOLDHYREC
+CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
 INCLUDES += -I../$(HYREC)
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
-HEADERFILES += $(wildcard ./external/Hyrec2012/*.h)
-endif
-
-ifneq ($(HYREC2),)
-vpath %.c $(HYREC2)
-CCFLAG += -DHYREC2 -DNEWHYREC
-#LDFLAGS += -DHYREC2
-INCLUDES += -I../$(HYREC2)
 EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injection.o
 HEADERFILES += $(wildcard ./external/Hyrec2020/*.h)
 endif
