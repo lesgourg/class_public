@@ -45,7 +45,7 @@ All parameters must be present
 0.       = mnu2                      mass of the second neutrino
 0.       = mnu3                      mass of the third neutirno
 0.24     = Y_He                      Helium mass fraction 
-2.04     = Nnu_eff                   effective number of massless neutrinos
+2.04     = Nureff                   effective number of massless neutrinos
 
 1.       = alpha(rec)/alpha(today)   ratio of fine structure constant at recombination to today's value
 1.       = me(rec)/me(today)         ratio of electron mass at recombination to today's value

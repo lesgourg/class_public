@@ -57,7 +57,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
   phy->data->cosmo->onuh2 = pba->Omega0_ncdm_tot*pba->h*pba->h;
   
   phy->data->cosmo->YHe = pth->YHe;
-  phy->data->cosmo->Nnueff = pba->Neff;
+  phy->data->cosmo->Nureff = pba->Neff-pba->N_ncdm;
   phy->data->cosmo->fHe = fHe; /* abundance of helium relative to hydrogen by number */
   phy->data->cosmo->fsR = 1.;
   phy->data->cosmo->meR = 1.;
