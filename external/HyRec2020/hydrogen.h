@@ -40,7 +40,7 @@
 
 /****** CONSTANTS IN CGS + EV UNIT SYSTEM *******/
 
-#define EI   13.598286071938324              /* Hydrogen ionization energy in eV, reduced mass, no relativistic corrections */
+#define EI   13.598286071938324        /* Hydrogen ionization energy in eV, reduced mass, no relativistic corrections */
 
 /* Energy differences between excited levels of hydrogen -- used often */
 #define E21  10.198714553953742
@@ -59,7 +59,7 @@
 
 /*** Effective rate tables and associated parameters ***/
 
-#define ALPHA_FILE  "Alpha_inf.dat"                /* Effective recombination coefficients to 2s and 2p */
+#define ALPHA_FILE  "Alpha_inf.dat"                 /* Effective recombination coefficients to 2s and 2p */
 #define RR_FILE     "R_inf.dat"                     /* Effective transfer rate R_{2p,2s} */
 #define TR_MIN 0.004                                /* Minimum Tr in eV */
 #define TR_MAX 0.4                                  /* Maximum Tr in eV */
@@ -82,7 +82,7 @@
 
 #define DLNA_HYREC   8.49e-5    /* Timestep for FULL mode. Maximum compatible with these tables is 8.49e-5 */
 //#define DLNA_HYREC   2.e-6    /* Timestep used in FULL mode for SWIFT correction function calculation*/
-#define DLNA_SWIFT   4.e-3     /* Timestep for any other mode.*/
+#define DLNA_SWIFT   4.e-3      /* Timestep for any other mode.*/
 
 #define SIZE_ErrorM   2048
 #define SIZE_InputFile   512
@@ -137,20 +137,20 @@ typedef struct {
 /* Structure for HYREC-2 internal parameters */
 
 typedef struct {
-  double h;                                 /* Hubble constant */
-  double T0;                                /* CMB temperature today in K*/
+  double h;                                         /* Hubble constant */
+  double T0;                                        /* CMB temperature today in K*/
   double obh2, ocbh2, odeh2, okh2, orh2, onuh2;     /* density parameters */
   double w0, wa;                                    /* Dark energy equation of state parameters */
-  double Nmnu, Nnueff;                             /* effective number of neutrinos */
-  double mnu[3];                                   /* neutrino masses */
-  double fHe;                               /* Helium fraction by number */
-  double nH0;                               /* density of hydrogen today in cm^{-3} [Changed from m^{-3} in February 2015] */
-  double YHe;                               /* Helium fraction */
-  double fsR, meR;              /* fine-structure constant alpha/alpha(today)
-                                    and me/me(today) (Added April 2012)*/
+  double Nmnu, Nnueff;                              /* effective number of neutrinos */
+  double mnu[3];                                    /* neutrino masses */
+  double fHe;                                       /* Helium fraction by number */
+  double nH0;                                       /* density of hydrogen today in cm^{-3} [Changed from m^{-3} in February 2015] */
+  double YHe;                                       /* Helium fraction */
+  double fsR, meR;                                  /* fine-structure constant alpha/alpha(today)
+                                                       and me/me(today) (Added April 2012)*/
   double dlna, nz;
 
-  INJ_PARAMS *inj_params;     /* Structure containing all Energy-injection parameters */
+  INJ_PARAMS *inj_params;                           /* Structure containing all Energy-injection parameters */
 
 } REC_COSMOPARAMS;
 

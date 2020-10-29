@@ -15,8 +15,8 @@
 
 #define HYREC_VERSION "2020"
 
-#define MODEL SWIFT					/* SWIFT is the default model. Four more models can be used (PEEBLES, RECFAST, EMLA2s2p, FULL). */
-									/* Each model is defined in hydrogen.h */
+#define MODEL SWIFT	                /* SWIFT is the default model. Four more models can be used (PEEBLES, RECFAST, EMLA2s2p, FULL). */
+                                    /* Each model is defined in hydrogen.h */
 
 #define SIZE_ErrorM      2048
 
