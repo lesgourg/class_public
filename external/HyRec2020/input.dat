@@ -20,7 +20,7 @@
 0.
 0.
 0.
-1.
+1
 0.
 
 1.
@@ -57,8 +57,8 @@ All parameters must be present
 0.       = ann_zmin
 0.       = ann_var
 0.       = ann_z_halo
-1.       = on_the_spot
-0.       = decay
+1        = on_the_spot               1 for on-the-spot approximation. Should be an integer (without .)
+0.       = decay                     DM decay, in 1/s
 
 1.       = Mpbh                      primordial black hole mass in solar masses
 0.       = fpbh                      fraction of dark matter made of PBHs 
