@@ -9,7 +9,7 @@
 0.
 0.
 0.245
-2.046
+2.0328
 
 1.
 1.
@@ -35,7 +35,7 @@ All parameters must be present
 =====================================================================
 
 0.70     = h                         H0/(100 km/s/Mpc)
-2.728    = T0                        CMB temperature today, in K
+2.7255   = T0                        CMB temperature today, in K
 0.04     = Omega_b                   baryon density parameter
 0.26     = Omega_cb                  matter (baryon + CDM) density parameter
 0.       = Omega_k                   curvature density parameter   -- Omega_Lambda is deduced from these
@@ -44,8 +44,9 @@ All parameters must be present
 0.06     = mnu1                      mass of the first neutrino    -- Massive ones should come first
 0.       = mnu2                      mass of the second neutrino
 0.       = mnu3                      mass of the third neutirno
-0.24     = Y_He                      Helium mass fraction 
-2.04     = Nureff                   effective number of massless neutrinos
+0.245    = Y_He                      Helium mass fraction 
+2.0328   = Nureff                    effective number of massless neutrinos
+                                     2.0328, 1.0196, 0.00641 for 1, 2, 3 massive neutrinos respectively
 
 1.       = alpha(rec)/alpha(today)   ratio of fine structure constant at recombination to today's value
 1.       = me(rec)/me(today)         ratio of electron mass at recombination to today's value
