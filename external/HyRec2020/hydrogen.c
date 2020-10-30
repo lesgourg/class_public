@@ -447,8 +447,7 @@ double rec_swift_hyrec_dxHIIdlna(HYREC_DATA *data, double xe, double xHII, doubl
   /* The numbers in the following lines are fiducial parameters for correction function (Do not change) */
   diff[0] = (cosmo->ocbh2 - 0.14175)*pow(T0fid_T0,3);
   diff[1] = (cosmo->obh2*(1-cosmo->YHe) - 0.02242*(1-0.246738546372))*pow(T0fid_T0,3);
-  if (cosmo->Nmnu == 0) diff[2] = cosmo->Nureff-3.046;
-  else diff[2] = cosmo->Nureff-2.0328;
+  diff[2] = cosmo->Neff-3.046;
 
   interpolate_rates(Alpha, DAlpha, Beta, &R2p2s, TR, TM/TR, atomic, fsR, meR, error, data->error_message);
 

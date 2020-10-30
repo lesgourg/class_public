@@ -54,20 +54,13 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
   phy->data->cosmo->T0 = T_cmb;
   phy->data->cosmo->obh2 = pba->Omega0_b*pba->h*pba->h;
   phy->data->cosmo->ocbh2 = (pba->Omega0_b+pba->Omega0_cdm)*pba->h*pba->h;
-  phy->data->cosmo->onuh2 = pba->Omega0_ncdm_tot*pba->h*pba->h;
   
   phy->data->cosmo->YHe = pth->YHe;
-  phy->data->cosmo->Nureff = pba->Neff-pba->N_ncdm;
+  phy->data->cosmo->Neff = pba->Neff;
   phy->data->cosmo->fHe = fHe; /* abundance of helium relative to hydrogen by number */
   phy->data->cosmo->fsR = 1.;
   phy->data->cosmo->meR = 1.;
   phy->data->cosmo->nH0 = Nnow*1e-6;
-
-  /* Mutiple massive neutrinos*/
-  phy->data->cosmo->Nmnu = pba->N_ncdm;
-  for (i=0;i<phy->data->cosmo->Nmnu;i++) {
-    phy->data->cosmo->mnu[i] = pba->m_ncdm_in_eV[i];
-  }
 
   /** - set other parameters for hyrec */
   /* XEII_MIN = 1e-6 defined in history.h

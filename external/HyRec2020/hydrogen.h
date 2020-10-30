@@ -141,8 +141,9 @@ typedef struct {
   double T0;                                        /* CMB temperature today in K*/
   double obh2, ocbh2, odeh2, okh2, orh2, onuh2;     /* density parameters */
   double w0, wa;                                    /* Dark energy equation of state parameters */
+  double Neff;                                      /* total effective number of neutrinos (massive + massless) */
+  double Nur;                                       /* number of massless neutrinos */
   double Nmnu;                                      /* number of massive neutrinos */
-  double Nureff;                                    /* effective number of massless neutrinos */
   double mnu[3];                                    /* neutrino masses */
   double fHe;                                       /* Helium fraction by number */
   double nH0;                                       /* density of hydrogen today in cm^{-3} [Changed from m^{-3} in February 2015] */
