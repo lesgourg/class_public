@@ -2662,7 +2662,7 @@ int thermodynamics_sources(
 
   /** Define local variables */
   /* Shorthand notations */
-  double z,x=0.,Tmat,Trad;
+  double z,x=0.,Tmat,Trad,dTmat;
   /* Recfast smoothing */
   double x_previous, weight,s;
   /* Structures as shorthand_notation */
@@ -2703,6 +2703,8 @@ int thermodynamics_sources(
   /* Assign local variables (note that pvecback is filled through derivs) */
   Trad = ptw->Tcmb*(1.+z);
   Tmat = y[ptv->index_ti_D_Tmat] + Trad;
+  /* Note that dy[index_ti_Q] represents dQ/d(-z), thus we need -dy here */
+  dTmat = -dy[ptv->index_ti_D_Tmat] + Trad/(1.+z);
 
   /* get x */
   x = ptdw->x_reio;
@@ -2735,15 +2737,15 @@ int thermodynamics_sources(
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_Tb] = Tmat;
 
   /* Baryon temperature derivative */
-  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dTb] = dy[ptv->index_ti_D_Tmat]+ptw->Tcmb;
+  pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dTb] = dTmat;
 
   /* wb = (k_B/mu) Tb */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_wb]
     = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat;
 
-  /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1 - 1/3 (1+z) dlnTb/d(-z)) */
+  /* cb2 = (k_B/mu) Tb (1-1/3 dlnTb/dlna) = (k_B/mu) Tb (1 + 1/3 (1+z) dlnTb/dz) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_cb2]
-    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. - (1.+z) * (dy[ptv->index_ti_D_Tmat]+ptw->Tcmb) / Tmat / 3.);
+    = _k_B_ / ( _c_ * _c_ * _m_H_ ) * (1. + (1./_not4_ - 1.) * ptw->YHe + x * (1.-ptw->YHe)) * Tmat * (1. + (1.+z) * dTmat / Tmat / 3.);
 
   /* dkappa/dtau = a n_e x_e sigma_T = a^{-2} n_e(today) x_e sigma_T (in units of 1/Mpc) */
   pth->thermodynamics_table[(pth->tt_size-index_z-1)*pth->th_size+pth->index_th_dkappa]
