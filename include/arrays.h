@@ -482,7 +482,7 @@ int array_integrate_all_trapzd_or_spline(
 
   int simpson_integration(
                           int nptz,
-                          double int_f[nptz],
+                          double* int_f,
                           double h,
                           double * F,
                           ErrorMsg errmsg);

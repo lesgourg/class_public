@@ -9,7 +9,7 @@
 //	Stephane Plaszczynski (plaszczy@lal.in2p3.fr)
 //
 // History (add to end):
-//	creation:   ven. nov. 4 11:02:20 CET 2011 
+//	creation:   ven. nov. 4 11:02:20 CET 2011
 //
 //-----------------------------------------------------------------------
 
@@ -50,7 +50,7 @@ public:
   pars.push_back(make_pair(key,str(val)));
   return pars.size();
   }
-  
+
   //accesors
   inline unsigned size() const {return pars.size();}
   inline string key(const unsigned& i) const {return pars[i].first;}
@@ -69,10 +69,10 @@ class ClassEngine : public Engine
 
 public:
   //constructors
-  ClassEngine(const ClassParams& pars);
+  ClassEngine(const ClassParams& pars, bool verbose=true );
   //with a class .pre file
-  ClassEngine(const ClassParams& pars,const string & precision_file);
-  
+  ClassEngine(const ClassParams& pars, const string & precision_file, bool verbose=true);
+
 
   // destructor
   ~ClassEngine();
@@ -85,22 +85,39 @@ public:
   //don't call if FAILURE returned previously
   //throws std::execption if pb
 
-  double getCl(Engine::cltype t,const long &l);  
-  void getCls(const std::vector<unsigned>& lVec, //input 
-	      std::vector<double>& cltt, 
-	      std::vector<double>& clte, 
-	      std::vector<double>& clee, 
+  double getCl(Engine::cltype t,const long &l);
+  void getCls(const std::vector<unsigned>& lVec, //input
+	      std::vector<double>& cltt,
+	      std::vector<double>& clte,
+	      std::vector<double>& clee,
 	      std::vector<double>& clbb);
-
-  
-  bool getLensing(const std::vector<unsigned>& lVec, //input 
-	      std::vector<double>& clphiphi, 
-	      std::vector<double>& cltphi, 
+  bool getLensing(const std::vector<unsigned>& lVec, //input
+	      std::vector<double>& clphiphi,
+	      std::vector<double>& cltphi,
 	      std::vector<double>& clephi);
+
+  void call_perturb_sources_at_tau(
+                           int index_md,
+                           int index_ic,
+                           int index_tp,
+                           double tau,
+                           double * psource
+                           );
+
+  void getTk( double z,
+        std::vector<double>& k,
+        std::vector<double>& d_cdm,
+        std::vector<double>& d_b,
+        std::vector<double>& d_ncdm,
+        std::vector<double>& d_tot,
+        std::vector<double>& t_cdm,
+        std::vector<double>& t_b,
+        std::vector<double>& t_ncdm,
+        std::vector<double>& t_tot );
 
  //for BAO
   inline double z_drag() const {return th.z_d;}
-  inline double rs_drag() const {return th.rs_d;} 
+  inline double rs_drag() const {return th.rs_d;}
   double get_Dv(double z);
 
   double get_Da(double z);
@@ -134,6 +151,7 @@ private:
   struct spectra sp;          /* for output spectra */
   struct nonlinear nl;        /* for non-linear spectra */
   struct lensing le;          /* for lensed spectra */
+  struct distortions sd;      /* for spectral distortions */
   struct output op;           /* for output files */
 
   ErrorMsg _errmsg;            /* for error messages */
@@ -157,17 +175,16 @@ private:
 		 struct spectra * psp,
 		 struct nonlinear * pnl,
 		 struct lensing * ple,
+		 struct distortions * psd,
 		 struct output * pop,
 		 ErrorMsg errmsg);
   //parnames
   std::vector<std::string> parNames;
 
 protected:
- 
-  
+
+
 };
 
-
-;
 #endif
 
