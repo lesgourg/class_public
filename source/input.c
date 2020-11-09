@@ -425,9 +425,11 @@ int input_read_from_file(struct file_content * pfc,
   }
 
   if (pnl->has_pk_eq == _TRUE_) {
+
     if (input_verbose > 0) {
-      printf(" -> since you want to use Halofit with a non-zero wa_fld, calling background module to\n");
-      printf("    extract the effective w(tau), Omega_m(tau) parameters required by the Pk_equal method\n");
+      printf(" -> since you want to use Halofit with a non-zero wa_fld and the Pk_equal method,\n");
+      printf("    calling background module to extract the effective w(tau), Omega_m(tau) parameters");
+      printf("    required by this method\n");
     }
     class_call(input_prepare_pk_eq(ppr,pba,pth,pnl,input_verbose,errmsg),
                errmsg,
@@ -1232,7 +1234,7 @@ int input_try_unknown_parameters(double * unknown_parameter,
   }
   /* Sigma8 depends on linear P(k), so no need to run anything except linear P(k) during shooting */
   if (compute_sigma8 == _TRUE_) {
-    pt.k_max_for_pk=10.0;
+    pt.k_max_for_pk=10.0; // increased in June 2020 for higher accuracy
     pt.has_pk_matter=_TRUE_;
     pt.has_perturbations = _TRUE_;
     pt.has_cl_cmb_temperature = _FALSE_;

@@ -2613,7 +2613,7 @@ int nonlinear_halofit(
 
   if (pnl->has_pk_eq == _FALSE_) {
 
-    /* default method: compute w(tau) = w_fld(tau), Omega_m(tau) and Omega_v=Omega_DE(tau), all required by HALFIT fitting formulas */
+    /* default method: compute w(tau) = w_fld(tau), Omega_m(tau) and Omega_v=Omega_DE(tau), all required by HALOFIT fitting formulas */
 
     class_call(background_at_tau(pba,tau,long_info,inter_normal,&last_index,pvecback),
                pba->error_message,

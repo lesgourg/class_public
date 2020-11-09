@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
   ErrorMsg errmsg;            /* for error messages */
 
   if (input_init(argc, argv,&pr,&ba,&th,&pt,&tr,&pm,&sp,&nl,&le,&sd,&op,errmsg) == _FAILURE_) {
-    printf("\n\nError running input_init_from_arguments \n=>%s\n",errmsg);
+    printf("\n\nError running input_init \n=>%s\n",errmsg);
     return _FAILURE_;
   }
 

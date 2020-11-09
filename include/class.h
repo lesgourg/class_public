@@ -28,6 +28,7 @@
 #include "nonlinear.h"
 #include "transfer.h"
 #include "spectra.h"
+#include "distortions.h"
 #include "lensing.h"
 #include "output.h"
 

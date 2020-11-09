@@ -2570,7 +2570,7 @@ int background_derivs(
  * is a bit special:
  * - fixed parameters and workspaces are passed through a generic pointer.
  *   generic_integrator() doesn't know the content of this pointer.
- * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic
+ * - the error management is a bit special: errors are not written as usual to pba->error_message, but to a generic
  *   error_message passed in the list of arguments.
  *
  * @param loga                     Input: current value of log(a)
@@ -2641,7 +2641,7 @@ int background_sources(
  * is a bit special:
  * - fixed parameters and workspaces are passed through a generic pointer (void *).
  *   generic_integrator() doesn't know the content of this pointer.
- * - the error management is a bit special: errors are not written as usual to pth->error_message, but to a generic
+ * - the error management is a bit special: errors are not written as usual to pba->error_message, but to a generic
  *   error_message passed in the list of arguments.
  *
  * @param loga                     Input: current value of log(a/a_0)
