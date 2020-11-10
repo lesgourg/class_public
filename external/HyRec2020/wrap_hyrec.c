@@ -42,7 +42,7 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
   }
 
   /** - allocate hyrec internally */
-  phy->data->path_to_hyrec = "external/HyRec2020/"; 
+  phy->data->path_to_hyrec = ppr->hyrec_path;
   hyrec_allocate(phy->data, phy->zstart, phy->zend);
   /* Error during allocation */
   if(phy->data->error != 0){

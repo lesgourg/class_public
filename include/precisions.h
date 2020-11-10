@@ -206,9 +206,7 @@ class_precision_parameter(recfast_z_switch_late,double,800.)
  * Hyrec Parameters
  */
 
-class_string_parameter(hyrec_Alpha_inf_file,"/external/HyRec2012/Alpha_inf.dat","hyrec_Alpha_inf_file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/external/HyRec2012/R_inf.dat","hyrec_R_inf_file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/external/HyRec2012/two_photon_tables.dat","hyrec_two_photon_tables_file") /**< File containing the two-photon interaction parameter of hyrec */
+class_string_parameter(hyrec_path,"/external/HyRec2020/","hyrec_path") /**< Path to hyrec */
 
 /*
  * Reionization parameters
