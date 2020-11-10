@@ -21,9 +21,6 @@ int thermodynamics_hyrec_init(struct precision* ppr, struct background * pba, st
 
   /** Summary: */
 
-  /** - define local variables */
-  int i;
-
   if(phy->thermohyrec_verbose > 0){
     printf(" -> Using the hyrec wrapper programmed by Nils Sch. (Oct2020)\n");
     printf("    implements HyRec2 version Oct 2020 by Yacine Ali-Haimoud, Chris Hirata, and Nanoom Lee\n");
@@ -106,7 +103,7 @@ int hyrec_dx_H_dz(struct thermo* pth, struct thermohyrec* phy, double x_H, doubl
 
   /** - define local variables */
   struct injection* pin = &(pth->in);
-  long iz;
+  long iz = 0;
   int model;
 
   /** - do tests */

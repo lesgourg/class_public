@@ -114,7 +114,7 @@ double Mdot_pbh(double Mpbh, double z, double xe, double Teff) {
 
 /* Temperature of the flow near the Shchwarzschild radius divided by m_e c^2 */
 double TS_over_me_pbh(double Mpbh, double z, double xe, double Teff) {
-  double gamma, tau, omega, fHe, Y;
+  double gamma, tau, omega, Y;
   
   gamma = gamma_pbh(Mpbh, z, xe, Teff);
 

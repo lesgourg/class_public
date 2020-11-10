@@ -527,7 +527,7 @@ void get_rec_next2_HHe(HYREC_DATA *data, int model, double z_in, long iz, double
   double Tm = data->Tm_output[iz-1];
   long iz_rad = iz-1-data->rad->iz_rad_0;
 
-  double dxHeIIdlna, dxHIIdlna, z_out, xe;
+  double dxHeIIdlna, dxHIIdlna=0, z_out, xe;
   double nH, TR, DLNA;
   char sub_message[128];
   DLNA = cosmo->dlna;
@@ -704,7 +704,7 @@ char* rec_build_history(HYREC_DATA *data, int model, double *hubble_array){
   double z, dz, DLNA, Delta_xe, xHeII, xH1, dEdtdV_dep, nH, H;
   double *ion = &cosmo->inj_params->ion;
   double *exclya = &cosmo->inj_params->exclya;
-  double z_out, H_next;
+  double z_out=0, H_next;
   int flag=10;
   double xe_i, Tm_i;
 
