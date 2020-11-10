@@ -97,7 +97,7 @@ class_precision_parameter(tol_shooting_deltax_rel,double,1.e-5)
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
-class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [ML]
+class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
 
 /*
  *  Thermodynamical quantities
@@ -221,7 +221,7 @@ class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching o
  * Heating parameters
  */
 
-class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli et al chi approx file") /**< File containing the chi approximation according to Galli et al 2013 */
+class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli_file") /**< File containing the chi approximation according to Galli et al 2013 */
 class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshift from full heating to chosen approx for deposition function */
 
 /*
