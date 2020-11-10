@@ -177,6 +177,8 @@ ifdef OMPFLAG
 else
 	grep -v "lgomp" python/setup.py > python/autosetup.py
 endif
+	# Removes previoiusly installed classy library if it's there.
+	rm -f $(shell python -c "import classy; print(classy.__file__)")
 	cd python; export CC=$(CC); $(PYTHON) autosetup.py install || $(PYTHON) autosetup.py install --user
 	rm python/autosetup.py
 
@@ -185,3 +187,4 @@ clean: .base
 	rm -f libclass.a
 	rm -f $(MDIR)/python/classy.c
 	rm -rf $(MDIR)/python/build
+	rm -f $(shell python -c "import classy; print(classy.__file__)")
