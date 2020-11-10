@@ -1649,8 +1649,6 @@ int input_read_parameters_general(struct file_content * pfc,
     }
     if ((strstr(string1,"Sd") != NULL) || (strstr(string1,"sd") != NULL) || (strstr(string1,"SD") != NULL)) {
       ppt->has_perturbations = _TRUE_;
-      ppt->has_density_transfers=_TRUE_;
-      ppt->has_velocity_transfers=_TRUE_;
       psd->has_distortions=_TRUE_;
       pth->compute_damping_scale=_TRUE_;
     }
