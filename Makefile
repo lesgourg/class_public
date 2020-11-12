@@ -29,12 +29,12 @@ AR        = ar rv
 # In order to use Python 3, you can manually
 # substitute python3 to python in the line below, or you can simply
 # add a compilation option on the terminal command line:
-# "PYTHON=python3 make all" (THanks to Marius Millea for pyhton3
+# "PYTHON=python3 make all" (Thanks to Marius Millea for pyhton3
 # compatibility)
 PYTHON ?= python3.6
 
 # your optimization flag
-OPTFLAG = -O3 #-march=native
+OPTFLAG = -O3
 #OPTFLAG = -Ofast -ffast-math #-march=native
 #OPTFLAG = -fast
 
@@ -48,8 +48,8 @@ CCFLAG = -g -fPIC
 LDFLAG = -g -fPIC
 
 # leave blank to compile without HyRec, or put path to HyRec directory
-# (with no slash at the end: e.g. "external/HyRec2012") [ML],[NS]
-HYREC = external/HyRec2012
+# (with no slash at the end: e.g. "external/HyRec2020")
+HYREC = external/HyRec2020/
 RECFAST = external/RecfastCLASS
 HEATING = external/heating
 
@@ -77,7 +77,7 @@ HEADERFILES += $(wildcard ./$(RECFAST)/*.h)
 vpath %.c $(HEATING)
 #CCFLAG += -DHEATING
 INCLUDES += -I../$(HEATING)
-EXTERNAL += heating.o
+EXTERNAL += injection.o noninjection.o
 HEADERFILES += $(wildcard ./$(HEATING)/*.h)
 
 # eventually update flags for including HyRec
@@ -86,17 +86,15 @@ vpath %.c $(HYREC)
 CCFLAG += -DHYREC
 #LDFLAGS += -DHYREC
 INCLUDES += -I../$(HYREC)
-EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o
-HEADERFILES += $(wildcard ./external/Hyrec2012/*.h)
-
+EXTERNAL += hyrectools.o helium.o hydrogen.o history.o wrap_hyrec.o energy_injection.o
+HEADERFILES += $(wildcard ./external/Hyrec2020/*.h)
 endif
 
 %.o:  %.c .base $(HEADERFILES)
 	cd $(WRKDIR);$(CC) $(OPTFLAG) $(OMPFLAG) $(CCFLAG) $(INCLUDES) -c ../$< -o $*.o
 
-TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o
+TOOLS = growTable.o dei_rkck.o sparse.o evolver_rkck.o  evolver_ndf15.o arrays.o parser.o quadrature.o hyperspherical.o common.o trigonometric_integrals.o
 
-# [ML]
 SOURCE = input.o background.o thermodynamics.o perturbations.o primordial.o nonlinear.o transfer.o spectra.o lensing.o distortions.o
 
 INPUT = input.o
@@ -119,7 +117,7 @@ NONLINEAR = nonlinear.o
 
 LENSING = lensing.o
 
-DISTORTIONS = distortions.o # [ML]
+DISTORTIONS = distortions.o
 
 OUTPUT = output.o
 
@@ -129,7 +127,7 @@ TEST_LOOPS = test_loops.o
 
 TEST_LOOPS_OMP = test_loops_omp.o
 
-TEST_DEGENERACY = test_degeneracy.o
+TEST_SPECTRA = test_spectra.o
 
 TEST_TRANSFER = test_transfer.o
 
@@ -141,11 +139,7 @@ TEST_THERMODYNAMICS = test_thermodynamics.o
 
 TEST_BACKGROUND = test_background.o
 
-TEST_SIGMA = test_sigma.o
-
 TEST_HYPERSPHERICAL = test_hyperspherical.o
-
-TEST_STEPHANE = test_stephane.o
 
 C_TOOLS =  $(addprefix tools/, $(addsuffix .c,$(basename $(TOOLS))))
 C_SOURCE = $(addprefix source/, $(addsuffix .c,$(basename $(SOURCE) $(OUTPUT))))
@@ -166,20 +160,14 @@ libclass.a: $(TOOLS) $(SOURCE) $(EXTERNAL)
 class: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(CLASS)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o class $(addprefix build/,$(notdir $^)) -lm
 
-test_sigma: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_SIGMA)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o test_sigma $(addprefix build/,$(notdir $^)) -lm
-
 test_loops: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_loops_omp: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_LOOPS_OMP)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
 
-test_stephane: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_STEPHANE)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
-
-test_degeneracy: $(TOOLS) $(SOURCE) $(EXTERNAL) $(OUTPUT) $(TEST_DEGENERACY)
-	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o $@ $(addprefix build/,$(notdir $^)) -lm
+test_spectra: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_SPECTRA)
+	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
 
 test_transfer: $(TOOLS) $(SOURCE) $(EXTERNAL) $(TEST_TRANSFER)
 	$(CC) $(OPTFLAG) $(OMPFLAG) $(LDFLAG) -o  $@ $(addprefix build/,$(notdir $^)) -lm
@@ -217,3 +205,4 @@ clean: .base
 	rm -f libclass.a
 	rm -f $(MDIR)/python/classy.c
 	rm -rf $(MDIR)/python/build
+	rm -f python/autosetup.py

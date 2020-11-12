@@ -591,7 +591,6 @@ int array_spline_table_lines(
 
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
 
-
   index_x=0;
 
   if (spline_mode == _SPLINE_NATURAL_) {
@@ -752,7 +751,6 @@ int array_logspline_table_lines(
   }
 
   if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
-
 
   index_x=0;
 
@@ -1085,7 +1083,7 @@ int array_spline_table_columns2(
     return _FAILURE_;
   }
 
-  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ at least 3 x-values are needed.
+  if (x_size==2) spline_mode = _SPLINE_NATURAL_; // in the case of only 2 x-values, only the natural spline method is appropriate, for _SPLINE_EST_DERIV_ 3 x-values are needed.
 
 #pragma omp parallel                                                \
   shared(x,x_size,y_array,y_size,ddy_array,spline_mode,p,qn,un,u)   \
@@ -1724,8 +1722,7 @@ int array_interpolate_spline_transposed(double * array,
                                         double * result,
                                         ErrorMsg errmsg) {
 
-  int inf,sup,mid,i;
-  double weight;
+  int inf,sup,mid;
   double h,a,b;
 
   inf=0;
@@ -1866,6 +1863,72 @@ int array_interpolate_spline(
       b * *(array+sup*n_columns+i) +
       ((a*a*a-a)* *(array_splined+inf*n_columns+i) +
        (b*b*b-b)* *(array_splined+sup*n_columns+i))*h*h/6.;
+
+  return _SUCCESS_;
+}
+
+ /**
+  * Get the y[i] for which y[i]>c
+  *
+  * Called by nonlinear_HMcode()
+  */
+int array_search_bisect(
+                        int n_lines,
+                        double * __restrict__ array,
+                        double c,
+                        int * __restrict__ last_index,
+                        ErrorMsg errmsg) {
+
+  int inf,sup,mid;
+
+  inf=0;
+  sup=n_lines-1;
+
+  if (array[inf] < array[sup]){
+
+    if (c < array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : c=%e < y_min=%e",__func__,__LINE__,c,array[inf]);
+      return _FAILURE_;
+    }
+
+    if (c > array[sup]) {
+      sprintf(errmsg,"%s(L:%d) : c=%e > y_max=%e",__func__,__LINE__,c,array[sup]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (c < array[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  else {
+
+    if (c < array[sup]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e < x_min=%e",__func__,__LINE__,c,array[sup]);
+      return _FAILURE_;
+    }
+
+    if (c > array[inf]) {
+      sprintf(errmsg,"%s(L:%d) : x=%e > x_max=%e",__func__,__LINE__,c,array[inf]);
+      return _FAILURE_;
+    }
+
+    while (sup-inf > 1) {
+
+      mid=(int)(0.5*(inf+sup));
+      if (c > array[mid]) {sup=mid;}
+      else {inf=mid;}
+
+    }
+
+  }
+
+  *last_index = inf;
 
   return _SUCCESS_;
 }
@@ -2851,17 +2914,18 @@ int array_interpolate_two_arrays_one_column(
 
   int inf,sup,mid;
   double weight;
+  double epsilon=1e-9;
 
   inf=0;
   sup=n_lines-1;
 
   if (array_x[inf] < array_x[sup]){
 
-    class_test(x < array_x[inf],
+    class_test(x < array_x[inf]-epsilon,
 	       errmsg,
 	       "x=%e < x_min=%e",x,array_x[inf]);
 
-    class_test(x > array_x[sup],
+    class_test(x > array_x[sup]+epsilon,
 	       errmsg,
 	       "x=%e > x_max=%e",x,array_x[sup]);
 
@@ -2877,11 +2941,11 @@ int array_interpolate_two_arrays_one_column(
 
   else {
 
-    class_test(x < array_x[sup],
+    class_test(x < array_x[sup]-epsilon,
 	       errmsg,
 	       "x=%e < x_min=%e",x,array_x[sup]);
 
-    class_test(x > array_x[inf],
+    class_test(x > array_x[inf]+epsilon,
 	       errmsg,
 	       "x=%e > x_max=%e",x,array_x[inf]);
 
@@ -3399,3 +3463,109 @@ int array_extrapolate_quadratic(double* x, double* y, double xnew, int x_size, d
   return _SUCCESS_;
 }
 
+/**
+ * Assuming that array is a vector with elements arranged in descending
+ * order, find i such that array[i] > value > array[i+1].
+ */
+
+int array_hunt_descending(
+                          double * array,
+                          int size,
+                          double value,
+                          int * index,
+                          ErrorMsg errmsg
+                          ) {
+  int i_inf,i_sup,i_mid;
+
+  i_inf=0;
+  i_sup=size-1;
+
+  /* checks */
+  if (array[i_inf] < array[i_sup]) {
+    sprintf(errmsg,"%s(L:%d) array is not in descending order (checked only the boundaries)",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  if ((value > array[i_inf]) || (value < array[i_sup])) {
+    sprintf(errmsg,"%s(L:%d) %e is outside the range [%e, %e]",__func__,__LINE__,value,array[size-1],array[0]);
+    return _FAILURE_;
+  }
+
+  /* bisection */
+  while (i_sup-i_inf>1) {
+    i_mid = (i_sup+i_inf)/2;
+    if (value > array[i_mid])
+      i_sup=i_mid;
+    else
+      i_inf=i_mid;
+  }
+
+  /* result */
+  *index = i_inf;
+
+  /* check for debug */
+  /* routine never used and tested before, be careful */
+  fprintf(stderr,
+          "Check that array[%d]=%e>%e>array[%d]=%e\n",
+          *index,
+          array[*index],
+          value,
+          *index+1,
+          array[*index+1]);
+  return _FAILURE_;
+
+  return _SUCCESS_;
+}
+
+/**
+ * Assuming that array is a vector with elements arranged in ascending
+ * order, find i such that array[i] < value < array[i+1].
+ */
+
+int array_hunt_ascending(
+                          double * array,
+                          int size,
+                          double value,
+                          int * index,
+                          ErrorMsg errmsg
+                          ) {
+  int i_inf,i_sup,i_mid;
+
+  i_inf=0;
+  i_sup=size-1;
+
+  /* checks */
+  if (array[i_inf] > array[i_sup]) {
+    sprintf(errmsg,"%s(L:%d) array is not in ascending order (checked only the boundaries)",__func__,__LINE__);
+    return _FAILURE_;
+  }
+  if ((value < array[i_inf]) || (value > array[i_sup])) {
+    sprintf(errmsg,"%s(L:%d) %e is outside the range [%e, %e]",__func__,__LINE__,value,array[0],array[size-1]);
+    return _FAILURE_;
+  }
+
+  /* bisection */
+  while (i_sup-i_inf>1) {
+    i_mid = (i_sup+i_inf)/2;
+    if (value > array[i_mid])
+      i_inf=i_mid;
+    else
+      i_sup=i_mid;
+  }
+
+  /* result */
+  *index = i_inf;
+
+  /* check for debug */
+  /*
+  fprintf(stderr,
+          "Check that array[%d]=%e<%e<array[%d]=%e\n",
+          *index,
+          array[*index],
+          value,
+          *index+1,
+          array[*index+1]);
+  return _FAILURE_;
+  */
+
+  return _SUCCESS_;
+}

@@ -1,5 +1,7 @@
 The main goal of this module is to calculate the deposited energy in form of heating, ionization
-and Lyman alpha processes.
+and Lyman alpha processes. When using this module please consider citing Lucca et al. 2019, where
+a complete description of the modules is presented (see Section 2.4 therein), as well as the many
+references listed below.
 
 There are two different kinds of heating that are interesting here: the heating of the baryons and
 the heating of the photons.
@@ -60,6 +62,7 @@ options to define this function
  1) the on-the-spot approximation, where the whole injected energy is transformed into deposited energy,
     i.e. f_eff=1, and
  2) reading a precomputed function from an external file.
+All of these steps are evaluated in the module 'injection.c'.
 
 However, in the above discussion, we have seen that baryons and photons both do receive heating,
 but react differently to it. In addition, there are some sources of spectral distortions that do not
@@ -79,7 +82,7 @@ photons. This includes
     Hill et al. 2015 for useful discussions)
  5) Superposition of blackbodies, e.g. in the case of CMB multipoles
 All of these additional term, which are not injected and deposited into the IGM in the usual sense,
-are grouped within the function 'heating_add_noninjected'.
+are grouped within the module 'noninjection.c'.
 
 This fills a table of deposited energy in baryons split by the different effects. Additionally, a
 table of deposited energy in photons is created, mostly similar to the baryon column 'heat', except

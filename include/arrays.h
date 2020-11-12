@@ -9,8 +9,7 @@
 
 #define _SPLINE_NATURAL_ 0 /**< natural spline: ddy0=ddyn=0 */
 #define _SPLINE_EST_DERIV_ 1 /**< spline with estimation of first derivative on both edges */
-// [NS]
-#define array_interpolate_spline_hunt(y,ddy,inf,sup,h,a,b) ((a)*(y)[inf]+(b)*(y)[sup] + (((a)*(a)*(a)-(a))* (ddy)[inf] + ((b)*(b)*(b)-(b))* (ddy)[sup])*(h)*(h)/6.)
+#define array_spline_eval(y,ddy,inf,sup,h,a,b) ((a)*(y)[inf]+(b)*(y)[sup] + (((a)*(a)*(a)-(a))* (ddy)[inf] + ((b)*(b)*(b)-(b))* (ddy)[sup])*(h)*(h)/6.)
 
 /**
  * Boilerplate for C++
@@ -254,6 +253,13 @@ int array_integrate_all_trapzd_or_spline(
 			       int result_size, /** from 1 to n_columns */
 			       ErrorMsg errmsg);
 
+  int array_search_bisect(
+                       int n_lines,
+                       double * __restrict__ array,
+                       double c,
+                       int * __restrict__ last_index,
+                       ErrorMsg errmsg);
+
   int array_interpolate_linear(
 			       double * x_array,
 			       int n_lines,
@@ -473,14 +479,27 @@ int array_integrate_all_trapzd_or_spline(
                                   double* ynew,
                                   double* dynew,
                                   ErrorMsg errmsg);
-  // [ML]
+
   int simpson_integration(
                           int nptz,
-                          double int_f[nptz],
+                          double* int_f,
                           double h,
                           double * F,
                           ErrorMsg errmsg);
 
+  int array_hunt_descending(
+                            double * array,
+                            int size,
+                            double value,
+                            int * index,
+                            ErrorMsg errmsg);
+
+  int array_hunt_ascending(
+                           double * array,
+                           int size,
+                           double value,
+                           int * index,
+                           ErrorMsg errmsg);
 
 #ifdef __cplusplus
 }

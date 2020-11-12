@@ -15,7 +15,8 @@
 #ifndef __COMMON__
 #define __COMMON__
 
-#define _VERSION_ "v2.7.1"
+#define _VERSION_ "v3.0.0"
+
 /* @cond INCLUDE_WITH_DOXYGEN */
 
 #define _TRUE_ 1 /**< integer associated to true statement */
@@ -42,6 +43,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _SQRT_PI_ 1.77245385090551602729816748334e0 /**< square root of pi. */
 
+#define _E_ 2.718281828459045235360287471352662497757247093699959574966967627724076630353547594571382178525166427427466391932003059921817413596629043572900334295260595630738132328627943490763233829880753195251019011573834187930702154089149934884167509244761460668082264800168477411853742345442437107539077744992069551702761838606261331384583000752044933826560297606737113200709328709127443747047230696977209310141692836819025515108657463772111252389784425056953696 /**< exponential of one */
+
 #define _MAX_IT_ 10000/**< default maximum number of iterations in conditional loops (to avoid infinite loops) */
 
 #define _QUADRATURE_MAX_ 250 /**< maximum allowed number of abssices in quadrature integral estimation */
@@ -52,6 +55,8 @@ typedef char FileName[_FILENAMESIZE_];
 
 #define _HUGE_ 1.e99
 
+#define _EPSILON_ 1.e-10
+
 #define _OUTPUTPRECISION_ 12 /**< Number of significant digits in some output files */
 
 #define _COLUMNWIDTH_ 24 /**< Must be at least _OUTPUTPRECISION_+8 for guaranteed fixed width columns */
@@ -59,8 +64,6 @@ typedef char FileName[_FILENAMESIZE_];
 #define _MAXTITLESTRINGLENGTH_ 8000 /**< Maximum number of characters in title strings */
 
 #define _DELIMITER_ "\t" /**< character used for delimiting titles in the title strings */
-
-
 
 #ifndef __CLASSDIR__
 #define __CLASSDIR__ "." /**< The directory of CLASS. This is set to the absolute path to the CLASS directory so this is just a failsafe. */
@@ -71,13 +74,24 @@ typedef char FileName[_FILENAMESIZE_];
 #define SIGN(a) (((a)>0) ? 1. : -1. )
 #define NRSIGN(a,b) ((b) >= 0.0 ? fabs(a) : -fabs(a))
 #define index_symmetric_matrix(i1,i2,N) (((i1)<=(i2)) ? ((i2)+N*(i1)-((i1)*((i1)+1))/2) : ((i1)+N*(i2)-((i2)*((i2)+1))/2)) /**< assigns an index from 0 to [N(N+1)/2-1] to the coefficients M_{i1,i2} of an N*N symmetric matrix; useful for converting a symmetric matrix to a vector, without losing or double-counting any information */
+
 /* @endcond */
-// needed because of weird openmp bug on macosx lion...
+
+/* needed because of weird openmp bug on macosx lion... */
+
 void class_protect_sprintf(char* dest, char* tpl,...);
 void class_protect_fprintf(FILE* dest, char* tpl,...);
 void* class_protect_memcpy(void* dest, void* from, size_t sz);
 
+/* some general functions */
+
 int get_number_of_titles(char * titlestring);
+int file_exists(const char *fname);
+int compare_doubles(const void * a,
+                    const void * b);
+int string_begins_with(char* thestring, char beginchar);
+
+/* general CLASS macros */
 
 #define class_build_error_string(dest,tmpl,...) {                                                                \
   ErrorMsg FMsg;                                                                                                 \
@@ -308,6 +322,22 @@ int get_number_of_titles(char * titlestring);
       storage[dataindex++] = defaultvalue;                              \
 }
 
+//The name for this macro can be at most 30 characters total
+#define class_print_species(name,type) \
+printf("-> %-30s Omega = %-15g , omega = %-15g\n",name,pba->Omega0_##type,pba->Omega0_##type*pba->h*pba->h);
+
+/* Forward-Declare the structs of CLASS */
+struct background;
+struct thermo;
+struct perturbs;
+struct transfers;
+struct primordial;
+struct spectra;
+struct nonlinear;
+struct lensing;
+struct distortions;
+struct output;
+
 /** parameters related to the precision of the code and to the method of calculation */
 
 /**
@@ -345,8 +375,9 @@ enum file_format {class_format,camb_format};
 struct precision
 {
   /**
-   * Define (allocate) all precision parameters
-   *
+   * Define (allocate) all precision parameters (these very concise
+   * lines declare all precision parameters thanks to the macros
+   * defined in macros_precision.h)
    */
 
   #define __ALLOCATE_PRECISION_PARAMETER__
@@ -370,7 +401,5 @@ struct precision
   //@}
 
 };
-
-
 
 #endif

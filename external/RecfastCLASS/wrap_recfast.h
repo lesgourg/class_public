@@ -3,6 +3,10 @@
 
 #include "common.h" //Use here ONLY the things required for defining the struct (i.e. common.h for the ErrorMsg)
 
+// By default, recfast assumes photo-ionization coefficients depending on Tmat
+// However, this is an approximation (see e.g. arXiV:1605.03928 page 10, arXiV:1503.04827 page 2, right column)
+// We thus also give the user the ability to use the dependence on Tgamma = T_photon(z) = Tcmb * (1+z) instead
+enum recfast_photoion_modes {recfast_photoion_Tmat, recfast_photoion_Trad};
 
 struct thermorecfast {
 
@@ -25,7 +29,7 @@ struct thermorecfast {
   double CB1_He2; /**< defined as in RECFAST */
 
   double H0;
-  
+
   double AGauss1;
   double AGauss2;
   double zGauss1;
@@ -48,6 +52,8 @@ struct thermorecfast {
   double Bfact;
   double CT;
 
+  enum recfast_photoion_modes photoion_mode;
+
   ErrorMsg error_message;
 
 };
@@ -55,33 +61,27 @@ struct thermorecfast {
 
 /**************************************************************/
 
-/* *
- * Putting this down here is important, because of the special nature of this wrapper
- * */
-struct thermo;
-struct background;
-struct precision;
-
 /* Boilerplate for C++ */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-  int thermodynamics_recfast_init(struct precision* ppr,
-                                  struct background* pba,
-                                  struct thermo * pth,
-                                  struct thermorecfast * precfast,
-                                  double fHe);
+  int recfast_init(struct precision* ppr,
+                   struct background* pba,
+                   struct thermo * pth,
+                   struct thermorecfast * precfast,
+                   enum recfast_photoion_modes recfast_photoion_mode,
+                   double fHe);
 
-  int thermodynamics_recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,
-                                     double x_H, double x, double n,
-                                     double z, double Hz, double Tmat, double Trad,
-                                     double* dxH_dz);
+  int recfast_dx_H_dz(struct thermo* pth, struct thermorecfast * pre,
+                      double x_H, double x, double n,
+                      double z, double Hz, double Tmat, double Trad,
+                      double* dxH_dz);
 
-  int thermodynamics_recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre,
-                                      double x_He, double x, double x_H, double n,
-                                      double z, double Hz, double Tmat, double Trad,
-                                      double* dxHe_dz);
+  int recfast_dx_He_dz(struct thermo* pth, struct thermorecfast * pre,
+                       double x_He, double x, double x_H, double n,
+                       double z, double Hz, double Tmat, double Trad,
+                       double* dxHe_dz);
 #ifdef __cplusplus
 }
 #endif
@@ -94,12 +94,19 @@ extern "C" {
 
 #define _Lambda_            8.2245809
 #define _Lambda_He_         51.3
+/* Ionization inv wavenumber of hydrogen in 1/m */
 #define _L_H_ion_           1.096787737e7
+/* Lyman-alpha transition inv wavenumber of hydrogen in 1/m, approximately 3/4 of the ionization because (1s->2p transition and E~1/lambda~1/n^2) */
 #define _L_H_alpha_         8.225916453e6
+/* Ionization inv wavenumber of helium HeI in eV */
 #define _L_He1_ion_         1.98310772e7
+/* Ionization inv wavenumber of helium HeII in eV */
 #define _L_He2_ion_         4.389088863e7
+/* Inv Wavenumber of 1s->2s transition of helium HeI in eV */
 #define _L_He_2s_           1.66277434e7
+/* Inv Wavenumber of 1s->2p transition of helium HeI in eV */
 #define _L_He_2p_           1.71134891e7
+
 #define _A2P_s_             1.798287e9     /*updated like in recfast 1.4*/
 #define _A2P_t_             177.58e0       /*updated like in recfast 1.4*/
 #define _L_He_2Pt_          1.690871466e7  /*updated like in recfast 1.4*/
@@ -107,19 +114,6 @@ extern "C" {
 #define _L_He2St_ion_       3.8454693845e6 /*updated like in recfast 1.4*/
 #define _sigma_He_2Ps_      1.436289e-22   /*updated like in recfast 1.4*/
 #define _sigma_He_2Pt_      1.484872e-22   /*updated like in recfast 1.4*/
-
-/* Ionization energy of hydrogen HI in eV */
-#define _E_H_ion_          13.5984336478
-/* Lyman-Alpha transition energy of hydrogen in eV, approximately 3/4 of the ionization energy because (1s->2p transition and E~1/n^2) */
-#define _E_H_lya_          10.1988356821
-/* Ionization energy of helium HeI in eV */
-#define _E_He1_ion_        24.5873999472
-/* Ionization energy of helium HeII in eV */
-#define _E_He2_ion_        54.4177616729
-/* Energy of 1s->2s of helium HeI in eV */
-#define _E_He_2s_          20.6157725611
-/* Energy of 1s->2p of helium HeI in eV */
-#define _E_He_2p_          21.2180204207
 //@}
 
 /**

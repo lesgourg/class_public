@@ -10,14 +10,24 @@
  */
 class_precision_parameter(a_ini_over_a_today_default,double,1.e-14)
 /**
- * Default stepsize in conformal time for the background integration,
- * in units for the conformal Hubble time. dtau = back_integration_stepsize/aH
+ * Number of background integration steps that are stored in the output vector
  */
-class_precision_parameter(back_integration_stepsize,double,7.e-3)
+class_precision_parameter(background_Nloga,int,3000)
+/**
+ * Evolver to be used for thermodynamics (rk, ndf15)
+ */
+class_type_parameter(background_evolver,int,enum evolver_type,ndf15)
 /**
  * Tolerance of the background integration, giving the allowed relative integration error.
+ * (used by both evolvers)
  */
-class_precision_parameter(tol_background_integration,double,1.e-2)
+class_precision_parameter(tol_background_integration,double,1.e-10)
+/**
+ * Only relevant for rk evolver: the default integration step is given
+ * by this number multiplied by the timescale defined in
+ * background_timescale (given by the sampling step)
+ */
+class_precision_parameter(background_integration_stepsize,double,0.5)
 /**
  * Tolerance of the deviation of \f$ \Omega_r \f$ from 1 for which to start integration:
  * The starting point of integration will be chosen,
@@ -61,6 +71,23 @@ class_precision_parameter(tol_ncdm_initial_w,double,1.e-3)
  */
 class_precision_parameter(tol_tau_eq,double,1.e-6)
 
+/**
+ * Minimum amount of cdm to allow calculations in synchronous gauge comoving with cdm.
+ */
+class_precision_parameter(Omega0_cdm_min_synchronous,double,1.e-10)
+
+/**
+ * Absolute tolerance of root x during shooting (only 2D case)
+ */
+class_precision_parameter(tol_shooting_deltax,double,1.e-4)
+/**
+ * Absolute tolerance of function value F during shooting (only 2D case)
+ */
+class_precision_parameter(tol_shooting_deltaF,double,1.e-6)
+/**
+ * Relative tolerance of root x during shooting (only 1D case)
+ */
+class_precision_parameter(tol_shooting_deltax_rel,double,1.e-5)
 /*
  * Currently unused parameter.
  */
@@ -70,7 +97,7 @@ class_precision_parameter(tol_tau_eq,double,1.e-6)
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
  * \f$ Y_\mathrm{He} \f$ for given \f$ \omega_b \f$ and \f$ N_\mathrm{eff} \f$.
  */
-class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [ML]
+class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
 
 /*
  *  Thermodynamical quantities
@@ -79,23 +106,34 @@ class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file") // [
 /**
  * The initial z for the recfast calculation of the recombination history
  */
-class_precision_parameter(thermo_z_initial,double,5.0e6)
+class_precision_parameter(thermo_z_initial,double,5.e6)
 /**
  * The switch z for the recfast calculation towards linear sampling
  */
-class_precision_parameter(thermo_z_linear,double,10000.0)
+class_precision_parameter(thermo_z_linear,double,1.e4)
 /**
  * Number of recfast integration steps (linear sampling)
  */
 class_precision_parameter(thermo_Nz_lin,int,20000)
 /**
- * Number of recfast integration steps (logarithmic sampling)
+ * Number of recfast integration steps (logarithmnic sampling)
  */
 class_precision_parameter(thermo_Nz_log,int,5000)
 /**
+ * Evolver to be used for thermodynamics (rk, ndf15)
+ */
+class_type_parameter(thermo_evolver,int,enum evolver_type,ndf15)
+/**
  * Tolerance of the relative value of integral during thermodynamical integration
+ * (used by both evolvers)
  */
 class_precision_parameter(tol_thermo_integration,double,1.0e-6)
+/**
+ * Only relevant for rk evolver: the default integration step is given
+ * by this number multiplied by the timescale defined in
+ * thermodynamics_timescale (given by the sampling step)
+ */
+class_precision_parameter(thermo_integration_stepsize,double,0.1)
 /**
  * Smoothing in redshift of the variation rate of \f$ \exp(-\kappa) \f$, g, and \f$ \frac{dg}{d\tau} \f$ that is used as a timescale afterwards
  */
@@ -108,6 +146,18 @@ class_precision_parameter(z_end_reco_test,double,500.)
  * Number of sampling points in the case of primordial black holes in ln(1+z)
  */
 class_precision_parameter(primordial_black_hole_Nz,int,75000)
+/**
+ * Number of sampling points in the case of the coarse sampling in noninjection.c in ln(1+z)
+ */
+class_precision_parameter(noninjection_Nz_log,int,1000)
+/**
+ * Number of discrete wavenumbers for dissipation of acoustic waves (found to be giving a reasonable precision)
+ */
+class_precision_parameter(noninjection_Nk_acc_diss,int,500)
+class_precision_parameter(k_min_acc_diss,double,0.12) /**< Minimum wavenumber for dissipation of acoustic waves */
+class_precision_parameter(k_max_acc_diss,double,1.e6) /**< Maximum wavenumber for dissipation of acoustic waves */
+class_precision_parameter(z_wkb_acc_diss,double,1.e6) /**< Redshift of the WKB approximation for diss. of acoustic waves */
+
 /*
  * Recfast 1.4/1.5 parameters
  */
@@ -126,10 +176,19 @@ class_precision_parameter(recfast_wGauss2,double,0.33)  /**< from recfast 1.5, G
 
 class_precision_parameter(recfast_z_He_1,double,8000.0) /**< from recfast 1.4, Starting value of Helium recombination 1 */
 class_precision_parameter(recfast_delta_z_He_1,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
-class_precision_parameter(recfast_z_He_2,double,5000.0) /**< from recfast 1.4, Ending value of Helium recombination 1 */
+class_precision_parameter(recfast_z_He_2,double,4500.0) /**< from recfast 1.4, Ending value of Helium recombination 1, changed on 28.10.20 from 5000 to 4500 */
 class_precision_parameter(recfast_delta_z_He_2,double,100.0)/**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 class_precision_parameter(recfast_z_He_3,double,3500.0) /**< from recfast 1.4, Starting value of Helium recombination 2 */
 class_precision_parameter(recfast_delta_z_He_3,double,50.0) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
+
+class_precision_parameter(recfast_z_early_H_recombination,double,2870.) /**< from class 3.0, redshift at beginning of early H-recombination (analytic approximation possible), replaces condition  */
+class_precision_parameter(recfast_delta_z_early_H_recombination,double,50.) /**< from class 3.0, smoothing radius delta z for beginning of early H-recombination period  */
+
+class_precision_parameter(recfast_z_full_H_recombination,double,1600.)  /**< from class 3.0, redshift at beignning of full H recombination (always use full equations), replaces condition x_H <  recfast_x_H0_trigger */
+class_precision_parameter(recfast_delta_z_full_H_recombination,double,50.)  /**< from class 3.0, smoothing radius delta z for full H-recombination period  */
+
+class_precision_parameter(recfast_delta_z_reio,double,2.)  /**< from class 3.0, smoothing radius delta z for reionization period  */
+
 class_precision_parameter(recfast_x_He0_trigger,double,0.995) /**< Switch for Helium full calculation during reco, raised from 0.99 to 0.995 for smoother Helium */
 class_precision_parameter(recfast_x_He0_trigger2,double,0.995)     /**< Switch for Helium full calculation during reco, for changing Helium flag, raised from 0.985 to same as previous one for smoother Helium */
 class_precision_parameter(recfast_x_He0_trigger_delta,double,0.05) /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
@@ -137,7 +196,7 @@ class_precision_parameter(recfast_x_H0_trigger,double,0.995)       /**< Switch f
 class_precision_parameter(recfast_x_H0_trigger2,double,0.995)      /**< Switch for Hydrogen full calculation during reco, for changing Hydrogen flag, raised from 0.98 to same as previous one for smoother Hydrogen */
 class_precision_parameter(recfast_x_H0_trigger_delta,double,0.05)  /**< Smoothing factor for recombination approximation switching, found to be OK on 3.09.10 */
 
-class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation */
+//class_precision_parameter(recfast_H_frac,double,1.0e-3)  /**< from recfast 1.4, specifies the time at which the temperature evolution is calculated by the more precise equation, not used currently */
 /**
  * This is an important flag for energy injections! It also modifies wether recfast will switch approximation schemes or not.
  */
@@ -147,9 +206,7 @@ class_precision_parameter(recfast_z_switch_late,double,800.)
  * Hyrec Parameters
  */
 
-class_string_parameter(hyrec_Alpha_inf_file,"/external/HyRec2012/Alpha_inf.dat","hyrec_Alpha_inf_file") /**< File containing the alpha parameter of hyrec */
-class_string_parameter(hyrec_R_inf_file,"/external/HyRec2012/R_inf.dat","hyrec_R_inf_file") /**< File containing the R_inf parameter of hyrec */
-class_string_parameter(hyrec_two_photon_tables_file,"/external/HyRec2012/two_photon_tables.dat","hyrec_two_photon_tables_file") /**< File containing the two-photon interaction parameter of hyrec */
+class_string_parameter(hyrec_path,"/external/HyRec2020/","hyrec_path") /**< Path to hyrec */
 
 /*
  * Reionization parameters
@@ -164,7 +221,7 @@ class_precision_parameter(reionization_start_factor,double,8.0) /**< Searching o
  * Heating parameters
  */
 
-class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli et al chi approx file") /**< File containing the chi approximation according to Galli et al 2013 */
+class_string_parameter(chi_z_Galli,"/external/heating/Galli_et_al_2013.dat","Galli_file") /**< File containing the chi approximation according to Galli et al 2013 */
 class_precision_parameter(z_start_chi_approx,double,2.0e3) /**< Switching redshift from full heating to chosen approx for deposition function */
 
 /*
@@ -180,6 +237,8 @@ class_precision_parameter(k_step_transition,double,0.2) /**< dimensionless numbe
 class_precision_parameter(k_step_super_reduction,double,0.1) /**< the step k_step_super is reduced by this amount in the k-->0 limit (below scale of Hubble and/or curvature radius) */
 
 class_precision_parameter(k_per_decade_for_pk,double,10.0) /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade outside the BAO region*/
+
+class_precision_parameter(idmdr_boost_k_per_decade_for_pk,double,1.0) /**< boost factor for the case of DAO in idm-idr models */
 
 class_precision_parameter(k_per_decade_for_bao,double,70.0) /**< if values needed between kmax inferred from k_oscillations and k_kmax_for_pk, this gives the number of k per decade inside the BAO region (for finer sampling)*/
 
@@ -213,10 +272,14 @@ class_precision_parameter(start_sources_at_tau_c_over_tau_h,double,0.008) /**< s
 
 class_precision_parameter(tight_coupling_approximation,int,(int)compromise_CLASS) /**< method for tight coupling approximation */
 
+class_precision_parameter(idm_dr_tight_coupling_trigger_tau_c_over_tau_k,double,0.01)  /**< when to switch off the dark-tight-coupling approximation, first condition (see normal tca for full definition) */
+class_precision_parameter(idm_dr_tight_coupling_trigger_tau_c_over_tau_h,double,0.015) /**< when to switch off the dark-tight-coupling approximation, second condition (see normal tca for full definition) */
+
 class_precision_parameter(l_max_g,int,12)     /**< number of momenta in Boltzmann hierarchy for photon temperature (scalar), at least 4 */
 class_precision_parameter(l_max_pol_g,int,10) /**< number of momenta in Boltzmann hierarchy for photon polarization (scalar), at least 4 */
 class_precision_parameter(l_max_dr,int,17)   /**< number of momenta in Boltzmann hierarchy for decay radiation, at least 4 */
 class_precision_parameter(l_max_ur,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
+class_precision_parameter(l_max_idr,int,17)   /**< number of momenta in Boltzmann hierarchy for interacting dark radiation */
 class_precision_parameter(l_max_ncdm,int,17)   /**< number of momenta in Boltzmann hierarchy for relativistic neutrino/relics (scalar), at least 4 */
 class_precision_parameter(l_max_g_ten,int,5)     /**< number of momenta in Boltzmann hierarchy for photon temperature (tensor), at least 4 */
 class_precision_parameter(l_max_pol_g_ten,int,5) /**< number of momenta in Boltzmann hierarchy for photon polarization (tensor), at least 4 */
@@ -269,6 +332,11 @@ class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0
  * second condition:
  */
 class_precision_parameter(radiation_streaming_trigger_tau_c_over_tau,double,5.0)
+
+class_precision_parameter(idr_streaming_approximation,int,rsa_idr_none) /**< method for dark radiation free-streaming approximation */
+class_precision_parameter(idr_streaming_trigger_tau_over_tau_k,double,50.0) /**< when to switch on dark radiation (idr) free-streaming approximation, first condition */
+class_precision_parameter(idr_streaming_trigger_tau_c_over_tau,double,10.0) /**< when to switch on dark radiation (idr) free-streaming approximation, second condition */
+
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
 /**
  * when to switch off ur (massless neutrinos / ultra-relativistic
@@ -399,18 +467,25 @@ class_precision_parameter(selection_tophat_edge,double,0.1) /**< controls how sm
 
 /*
  * Nonlinear module precision parameters
- */
+ * */
+
+class_precision_parameter(sigma_k_per_decade,double,80.) /**< logarithmic stepsize controlling the precision of integrals for sigma(R,k) and similar quantitites */
+
+class_precision_parameter(nonlinear_min_k_max,double,20.0) /**< when
+                               using an algorithm to compute nonlinear
+                               corrections, like halofit or hmcode,
+                               k_max must be at least equal to this
+                               value. Calculations are done internally
+                               until this k_max, but the P(k,z) output
+                               is still controlled by P_k_max_1/Mpc or
+                               P_k_max_h/Mpc even if they are
+                               smaller */
+
+/** parameters relevant for HALOFIT computation */
 
 class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k in 1/Mpc below which non-linear corrections will be neglected */
 
-class_precision_parameter(halofit_min_k_max,double,5.0) /**< when halofit is used, k_max must be
-                               at least equal to this value (otherwise
-                               halofit could not find the scale of
-                               non-linearity). Calculations are done
-                               internally until this k_max, but the
-                               output is still controlled by
-                               P_k_max_1/Mpc or P_k_max_h/Mpc even if
-                               they are smaller */
+class_precision_parameter(halofit_min_k_max,double,5.0) /**< DEPRECATED: should use instead nonlinear_min_k_max */
 
 class_precision_parameter(halofit_k_per_decade,double,80.0) /**< halofit needs to evalute integrals
                                (linear power spectrum times some
@@ -430,8 +505,40 @@ class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance requir
                                whcih defines the wavenumber of
                                non-linearity, k_nl=1./R_nl */
 
-class_precision_parameter(pk_eq_z_max,double,5.0) /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_z_max,double,5.0)  /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_Nzlog,int,10)      /**< Number of logarithmically spaced redshift values for the pk_eq method */
 class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq method for finding the pk */
+
+/** Parameters relevant for HMcode computation */
+
+class_precision_parameter(hmcode_max_k_extra,double,1.e6) /**< parameter specifying the maximum k value for
+                                                             the extrapolation of the linear power spectrum
+                                                             (needed for the sigma computation) */
+
+class_precision_parameter(hmcode_min_k_max,double,5.)   /**< DEPRECATED: should use instead nonlinear_min_k_max */
+
+class_precision_parameter(hmcode_tol_sigma,double,1.e-6) /**< tolerance required on sigma(R) when matching the
+                                                            condition sigma(R_nl)=1, which defines the wavenumber
+                                                            of non-linearity, k_nl=1./R_nl */
+
+/**
+ * parameters controlling stepsize and min/max r & a values for
+ * sigma(r) & grow table
+ */
+class_precision_parameter(n_hmcode_tables,int,64)
+class_precision_parameter(rmin_for_sigtab,double,1.e-5)
+class_precision_parameter(rmax_for_sigtab,double,1.e3)
+class_precision_parameter(ainit_for_growtab,double,1.e-3)
+class_precision_parameter(amax_for_growtab,double,1.)
+
+/**
+ * parameters controlling stepsize and min/max halomass values for the
+ * 1-halo-power integral
+ */
+class_precision_parameter(nsteps_for_p1h_integral,int,256)
+class_precision_parameter(mmin_for_p1h_integral,double,1.e3)
+class_precision_parameter(mmax_for_p1h_integral,double,1.e18)
+
 
 /*
  * Lensing precision parameters
