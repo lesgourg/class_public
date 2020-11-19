@@ -18,8 +18,7 @@ class_read_ ## TYPE(#NAME,ppr->NAME);
 
 #ifdef __ASSIGN_DEFAULT_PRECISION__      
 #define class_string_parameter(NAME,DIR,STRING)   \
-sprintf(ppr->NAME,__CLASSDIR__);                  \
-strcat(ppr->NAME,DIR);
+sprintf(ppr->NAME,"%s%s",__CLASSDIR__,DIR);
 #endif                                        
 #ifdef __ALLOCATE_PRECISION_PARAMETER__      
 #define class_string_parameter(NAME,DIR,STRING)    \

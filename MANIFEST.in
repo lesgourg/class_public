@@ -1,0 +1,3 @@
+include python/cclassy.pxd
+include include/*.h
+include hyrec/*.h

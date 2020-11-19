@@ -5,6 +5,10 @@
 
 #include "input.h"
 
+#ifdef CLASSY_BUILD
+extern const char* get_classy_dir(void);
+#endif
+
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
  * and/or 'xxx.pre'. They can be the arguments of the main() routine.
