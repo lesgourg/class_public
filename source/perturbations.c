@@ -894,8 +894,6 @@ int perturb_free(
 
     for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
-      if(!ppt->perform_NN_skip){
-
       for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
         for (index_tp = 0; index_tp < ppt->tp_size[index_md]; index_tp++) {
@@ -905,8 +903,6 @@ int perturb_free(
             free(ppt->ddlate_sources[index_md][index_ic*ppt->tp_size[index_md]+index_tp]);
 
         }
-      }
-
       }
 
       free(ppt->sources[index_md]);
