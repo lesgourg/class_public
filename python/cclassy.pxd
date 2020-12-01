@@ -114,10 +114,6 @@ cdef extern from "class.h":
         double * background_table
         int bg_size_short
         short short_info
-        int index_bg_a
-        double tau_eq
-        double a_eq
-        double H_eq
         double * z_table
 
     cdef struct thermo:

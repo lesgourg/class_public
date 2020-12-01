@@ -128,7 +128,7 @@ class BasePredictor:
         if quantity == "delta_m":
             S = result
             assert S.shape == (len(k), len(tau))
-            print("INFO: delta_m")
+            #print("INFO: delta_m")
             k_th = 5e-4
             fit_mask = (k > k_th) & (k < 1e-3)
             from scipy.optimize import leastsq
@@ -323,7 +323,7 @@ class TreePredictor(BasePredictor):
 
         # TODO CAREFUL
         if quantity == "t2_reco":
-            print("T2RECO EXTRAPOLATION")
+            #print("T2RECO EXTRAPOLATION")
             k_th = 1e-3
             i_k_th = np.argmin(np.abs(self.k - k_th))
             S_th = S[i_k_th]
@@ -504,7 +504,7 @@ def build_predictor(cosmo, device_name="cpu"):
     timer.end("build predictor")
 
     timer.end("all")
-    timer.pprint()
+    #timer.pprint()
 
     return predictor
 
@@ -551,8 +551,8 @@ def load_models(workspace, classes, k, device):
     model_dict = {model_key(m): model_wrapper(m) for m in models}
     times["model_dict creation"] += perf_counter() - start
 
-    print("load_models:")
-    print_dict_sorted(times)
+    #print("load_models:")
+    #print_dict_sorted(times)
 
     rules = {
             "t0":           (("t0_reco_no_isw", "t0_reio_no_isw", "t0_isw"), sum, False),

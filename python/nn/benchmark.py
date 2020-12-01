@@ -64,11 +64,12 @@ class BenchmarkRunner:
 
         return without_nn, with_nn
 
-    def run_class(self, params, use_nn=False):
+    def run_class(self, params, use_nn=False, verbose=0):
         cosmo = classy.Class()
         cosmo.set(params)
         if use_nn:
-            print("USING NEURAL NETWORKS!")
+            if verbose>0:
+                print("USING NEURAL NETWORKS!")
             cosmo.set({"neural network path": self.workspace})
         timings = {}
         cosmo.compute(level=["perturb"], performance_report=timings)

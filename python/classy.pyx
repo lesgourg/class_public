@@ -184,20 +184,6 @@ cdef class Class:
         self.ncp = set()
         if default: self.set_default()
 
-    def enable_NN(self, predictor):
-        """
-        This function must be called if the user wants to use NNs to predict
-        the source functions. In that case, a Predictor instance must be passed
-        which will predict the source functions.
-        """
-        raise DeprecationWarning()
-        self.use_NN = True
-        self.predictor = predictor
-        # If using neural networks, set 'bad' parameters
-        # (explanation in method definition) before calling
-        # compute
-        self._set_parameters_for_NN()
-
     def __dealloc__(self):
         if self.allocated:
           self.struct_cleanup()
@@ -232,9 +218,37 @@ cdef class Class:
         """
         Utility methods that returns whether neural networks are enabled
         by checking whether 'neural network path' is in the input parameters.
+        Also checks the 'nn_verbose' parameter to determine how much information 
+        to print about the usage of neural networks.
         """
         if not "neural network path" in self._pars:
             return False
+        elif "neural network path" in self.pars and "nn_verbose" in self.pars:
+            if self.pars["nn_verbose"]>1:
+                if not self.can_use_nn():
+                    print("##################################")
+                    print("#   NOT USING NEURAL NETWORKS!   #")
+                    print("##################################")
+                    return False
+                else:
+                    print("##################################")
+                    print("#    USING NEURAL NETWORKS!      #")
+                    print("##################################")
+                    return True
+            elif self.pars["nn_verbose"]==1:
+                if not self.can_use_nn():
+                    print("USING NEURAL NETWORKS : False!")
+                    return False
+                else:
+                    print("USING NEURAL NETWORKS :          True!")
+                    return True
+            elif self.pars["nn_verbose"]==0:
+                if not self.can_use_nn():
+                    return False
+                else:
+                    return True
+            else:
+                raise ValueError("nn_verbose is not set to valid value: should be integer above 0 but is {}".format(self.pars["nn_verbose"]))
         else:
             if not self.can_use_nn():
                 print("##################################")
@@ -246,6 +260,9 @@ cdef class Class:
                 print("#    USING NEURAL NETWORKS!      #")
                 print("##################################")
                 return True
+ 
+
+
 
     def can_use_nn(self):
         """ may only be called if neural networks are enabled """
@@ -253,7 +270,11 @@ cdef class Class:
         domain = workspace.loader().domain_descriptor()
 
         if not domain.contains(self._pars):
-            print("neural network domain of validity does not contain requested parameters")
+            if "nn_verbose" in self.pars:
+                if self.pars["nn_verbose"]>1:
+                    print("neural network domain of validity does not contain requested parameters")
+            else:
+                print("neural network domain of validity does not contain requested parameters")
             return False
 
         def expect(key, value):
@@ -345,6 +366,7 @@ cdef class Class:
             background_free(&self.ba)
         self.allocated = False
         self.computed = False
+        
 
     def _check_task_dependency(self, level):
         """
@@ -416,43 +438,6 @@ cdef class Class:
             return True
         return False
 
-    def _set_parameters_for_NN(self):
-        """
-        This method will perform two things:
-
-        1.
-        It will set 'bad' parameters for the perturbation module in order to
-        'bypass' the full calculation but still initialize the structs, etc.
-        This needs to be done (TODO: for now...) when using NNs to predict
-        source functions.
-
-        2.
-        It will set additional parameters (see below as `additional_params`) that
-        are required for NN evaluation.
-        """
-        raise DeprecationWarning()
-
-        bad_params = {
-            "l_max_g": 4,
-            "l_max_ur": 4,
-            "l_max_pol_g": 4,
-            "l_max_ncdm": 4,
-            # "l_max_dr": 4,
-            # "l_max_g_ten": 4,
-            # "l_max_pol_g_ten": 4,
-
-            "perturb_integration_stepsize": 5,
-            "tol_perturb_integration": 1e10,
-            # "perturb_sampling_stepsize": 100,
-            "radiation_streaming_approximation": 0,
-            "radiation_streaming_trigger_tau_over_tau_k": 0.01,
-            "radiation_streaming_trigger_tau_c_over_tau": 0.2,
-            "ur_fluid_approximation": 0,
-            "ur_fluid_trigger_tau_over_tau_k": 0.3,
-            # "neglect_CMB_sources_below_visibility": 1e5
-        }
-        self.set(bad_params)
-
     cdef void overwrite_source_function(self, int index_md, int index_ic,
             int index_type,
             int k_NN_size, int tau_size, double[:, :] S):
@@ -464,7 +449,6 @@ cdef class Class:
         cdef int tp_size = self.pt.tp_size[index_md]
         cdef int index_tau
         cdef int index_k
-
         ## -> Not reuqired if perform_NN_skip is true :
         # Required again because all source functions have been allocated earlier
         free(self.pt.sources[index_md][index_ic * tp_size + index_type])
@@ -488,8 +472,8 @@ cdef class Class:
 
         index_type = self.translate_source_to_index(name)
 
-        print "expected S.shape of", (k_size, tau_size)
-        print "got      S.shape of", S.shape
+        print("expected S.shape of", (k_size, tau_size))
+        print("got      S.shape of", S.shape)
 
         for i_tau in range(tau_size):
             for i_k in range(k_size):
@@ -572,7 +556,7 @@ cdef class Class:
             problematic_parameters = []
             # GS: added this because neural network arguments are not relevant
             # to the C code.
-            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug"])
+            problematic_exceptions = set(["neural network path", "nn_cheat", "nn_debug","nn_verbose"])
             for i in range(self.fc.size):
                 if self.fc.read[i] == _FALSE_:
                     name = self.fc.name[i].decode()
@@ -643,7 +627,9 @@ cdef class Class:
             use_nn = self.use_nn()
 
             if use_nn and not self.nn_cheat_enabled():
-                print("Using neural networks; skipping regular perturbation module.")
+                if "nn_verbose" in self.pars:
+                    if self.pars["nn_verbose"]>2:
+                        print("Using neural networks; skipping regular perturbation module.")
                 self.pt.perform_NN_skip = _TRUE_
 
             if perturb_init(&(self.pr), &(self.ba),
@@ -750,7 +736,9 @@ cdef class Class:
                 self.pt.k_size_cl[index_md] = k_max_cl_idx
 
                 _k_max_dbg = self.pt.k[index_md][self.pt.k_size_cl[index_md] - 1]
-                print("pt.k[index_md][pt.k_size_cl[index_md] - 1] =", _k_max_dbg)
+                if "nn_verbose" in self.pars:
+                    if self.pars["nn_verbose"]>2:
+                        print("pt.k[index_md][pt.k_size_cl[index_md] - 1] =", _k_max_dbg)
 
 
                 timer.end("overwrite k array")
@@ -1751,66 +1739,6 @@ cdef class Class:
 
         return r
 
-    def scale_independent_growth_factor(self, z):
-        """
-        scale_independent_growth_factor(z)
-
-        Return the scale invariant growth factor D(a) for CDM perturbations
-        (exactly, the quantity defined by Class as index_bg_D in the background module)
-
-        Parameters
-        ----------
-        z : float
-                Desired redshift
-        """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        D = pvecback[self.ba.index_bg_D]
-
-        free(pvecback)
-
-        return D
-
-    def scale_independent_growth_factor_f(self, z):
-        """
-        scale_independent_growth_factor_f(z)
-
-        Return the scale invariant growth factor f(z)=d ln D / d ln a for CDM perturbations
-        (exactly, the quantity defined by Class as index_bg_f in the background module)
-
-        Parameters
-        ----------
-        z : float
-                Desired redshift
-        """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        f = pvecback[self.ba.index_bg_f]
-
-        free(pvecback)
-
-        return f
-
     def z_of_tau(self, tau):
         """
         Redshift corresponding to a given conformal time.
@@ -1834,36 +1762,6 @@ cdef class Class:
         free(pvecback)
 
         return z
-
-    def Hubble(self, z):
-        """
-        Hubble(z)
-
-        Return the Hubble rate (exactly, the quantity defined by Class as index_bg_H
-        in the background module)
-
-        Parameters
-        ----------
-        z : float
-                Desired redshift
-        """
-        cdef double tau
-        cdef int last_index #junk
-        cdef double * pvecback
-
-        pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
-
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        H = pvecback[self.ba.index_bg_H]
-
-        free(pvecback)
-
-        return H
 
     def Om_m(self, z):
         """
@@ -2967,10 +2865,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
             raise CosmoSevereError(self.ba.error_message)
 
         D = pvecback[self.ba.index_bg_D]
@@ -2997,10 +2892,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
             raise CosmoSevereError(self.ba.error_message)
 
         f = pvecback[self.ba.index_bg_f]
@@ -3027,10 +2919,7 @@ make        nonlinear_scale_cb(z, z_size)
 
         pvecback = <double*> calloc(self.ba.bg_size,sizeof(double))
 
-        if background_tau_of_z(&self.ba,z,&tau)==_FAILURE_:
-            raise CosmoSevereError(self.ba.error_message)
-
-        if background_at_tau(&self.ba,tau,self.ba.long_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+        if background_at_z(&self.ba,z,long_info,inter_normal,&last_index,pvecback)==_FAILURE_:
             raise CosmoSevereError(self.ba.error_message)
 
         H = pvecback[self.ba.index_bg_H]
@@ -3054,7 +2943,7 @@ make        nonlinear_scale_cb(z, z_size)
         cdef double * pvecback
 
         pvecback = <double*> calloc(self.ba.bg_size_short,sizeof(double))
-        if background_at_tau(&self.ba,tau,self.ba.short_info,self.ba.inter_normal,&last_index,pvecback)==_FAILURE_:
+        if background_at_tau(&self.ba,tau,short_info,inter_normal,&last_index,pvecback)==_FAILURE_:
             raise CosmoSevereError(self.ba.error_message)
 
         a = pvecback[self.ba.index_bg_a]
