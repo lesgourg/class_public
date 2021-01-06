@@ -3327,9 +3327,13 @@ int input_read_parameters_nonlinear(struct file_content * pfc,
 
       class_read_double("z_infinity", pnl->z_infinity);
     }
+    else if(strstr(string1,"no")!=NULL){
+      pnl->method=nl_none;
+      ppt->has_nl_corrections_based_on_delta_m = _FALSE_;
+    }
     else{
       class_stop(errmsg,
-                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit','hmcode'}.");
+                 "You specified 'non_linear' = '%s'. It has to be one of {'halofit','hmcode','none'}.",string1);
     }
   }
 
