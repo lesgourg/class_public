@@ -74,6 +74,68 @@ class CosmoComputationError(CosmoError):
     """
     pass
 
+cdef class c_linked_list:
+    cdef clist_node* tail
+
+    def __cinit__(self):
+      # The list is empty
+      self.tail = NULL
+
+    def __dealloc__(self):
+      while not (self.tail==NULL):
+        temp = self.tail.prev
+        free(self.tail)
+        self.tail=temp
+
+    cdef append(self,item):
+      # Allocate new node
+      newnode = <clist_node*>malloc(sizeof(clist_node))
+      newnode.next = NULL
+      newnode.prev = self.tail
+      newnode.value = item
+      # Connect previous node with new node, if that exists
+      if self.tail != NULL:
+        self.tail.next = newnode
+      # Update what is the 'tail node'=last node
+      self.tail = newnode
+
+    cdef pop(self):
+      # Keep temporary reference to 'tail node'=last node
+      temp = self.tail
+      # Retrieve the memory stored in it
+      content = temp.value
+      # Now we can discard the node
+      self.tail = temp.prev
+      if temp.prev != NULL:
+        temp.prev.next = NULL
+      free(temp)
+      # Now we can return the memory
+      return content
+
+    cdef empty(self):
+      return (self.tail==NULL)
+
+    # Check if the linked list contains a single value
+    cdef contains(self,value):
+      temp = self.tail
+      while temp!=NULL:
+        if(temp.value==value):
+          return True
+        temp = temp.prev
+      return False
+
+    # Check if the linked list contains all values
+    cdef contains_all(self,values):
+      flag = True
+      for value in values:
+        if not self.contains(value):
+          flag=False
+      return flag
+
+    cdef clean(self):
+      while not self.empty():
+        self.pop()
+
 
 cdef class Class:
     """
@@ -103,6 +165,7 @@ cdef class Class:
     cpdef int allocated # Flag to see if classy structs are allocated already
     cpdef object _pars # Dictionary of the parameters
     cpdef object ncp   # Keeps track of the structures initialized, in view of cleaning.
+    cdef c_linked_list module_list
 
     # Defining two new properties to recover, respectively, the parameters used
     # or the age (set after computation). Follow this syntax if you want to
@@ -136,20 +199,21 @@ cdef class Class:
         assert(self.fc.filename!=NULL)
         dumc = "NOFILE"
         sprintf(self.fc.filename,"%s",dumc)
-        self.ncp = set()
+        self.module_list = c_linked_list()
         if default: self.set_default()
 
     def __dealloc__(self):
         if self.allocated:
           self.struct_cleanup()
         self.empty()
+        # This part should always be done
+        free(self.fc.filename)
         # Reset all the fc to zero if its not already done
         if self.fc.size !=0:
             self.fc.size=0
             free(self.fc.name)
             free(self.fc.value)
             free(self.fc.read)
-            free(self.fc.filename)
 
     # Set up the dictionary
     def set(self,*pars,**kars):
@@ -204,23 +268,23 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
-        if "distortions" in self.ncp:
+        if self.module_list.contains("distortions"):
             distortions_free(&self.sd)
-        if "lensing" in self.ncp:
+        if self.module_list.contains("lensing"):
             lensing_free(&self.le)
-        if "spectra" in self.ncp:
+        if self.module_list.contains("spectra"):
             spectra_free(&self.sp)
-        if "transfer" in self.ncp:
+        if self.module_list.contains("transfer"):
             transfer_free(&self.tr)
-        if "nonlinear" in self.ncp:
+        if self.module_list.contains("nonlinear"):
             nonlinear_free(&self.nl)
-        if "primordial" in self.ncp:
+        if self.module_list.contains("primordial"):
             primordial_free(&self.pm)
-        if "perturb" in self.ncp:
+        if self.module_list.contains("perturb"):
             perturb_free(&self.pt)
-        if "thermodynamics" in self.ncp:
+        if self.module_list.contains("thermodynamics"):
             thermodynamics_free(&self.th)
-        if "background" in self.ncp:
+        if self.module_list.contains("background"):
             background_free(&self.ba)
         self.allocated = False
         self.computed = False
@@ -324,10 +388,10 @@ cdef class Class:
         level = self._check_task_dependency(level)
 
         # Check if this function ran before (self.computed should be true), and
-        # if no other modules were requested, i.e. if self.ncp contains (or is
+        # if no other modules were requested, i.e. if self.module_list contains (or is
         # equivalent to) level. If it is the case, simply stop the execution of
         # the function.
-        if self.computed and self.ncp.issuperset(level):
+        if self.computed and self.module_list.contains_all(level):
             return
 
         # Check if already allocated to prevent memory leaks
@@ -340,9 +404,9 @@ cdef class Class:
         # Equivalent of writing a parameter file
         self._fillparfile()
 
-        # self.ncp will contain the list of computed modules (under the form of
-        # a set, instead of a python list)
-        self.ncp=set()
+        # self.module_list will contain the list of computed modules
+        self.module_list.clean()
+
         # Up until the empty set, all modules are allocated
         # (And then we successively keep track of the ones we allocate additionally)
         self.allocated = True
@@ -359,7 +423,7 @@ cdef class Class:
                                     &self.pt, &self.tr, &self.pm, &self.sp,
                                     &self.nl, &self.le, &self.sd, &self.op, errmsg) == _FAILURE_:
                 raise CosmoSevereError(errmsg)
-            self.ncp.add("input")
+            self.module_list.append("input")
             # This part is done to list all the unread parameters, for debugging
             problem_flag = False
             problematic_parameters = []
@@ -379,42 +443,42 @@ cdef class Class:
             if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
-            self.ncp.add("background")
+            self.module_list.append("background")
 
         if "thermodynamics" in level:
             if thermodynamics_init(&(self.pr), &(self.ba),
                                    &(self.th)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
-            self.ncp.add("thermodynamics")
+            self.module_list.append("thermodynamics")
 
         if "perturb" in level:
             if perturb_init(&(self.pr), &(self.ba),
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
-            self.ncp.add("perturb")
+            self.module_list.append("perturb")
 
         if "primordial" in level:
             if primordial_init(&(self.pr), &(self.pt),
                                &(self.pm)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
-            self.ncp.add("primordial")
+            self.module_list.append("primordial")
 
         if "nonlinear" in level:
             if nonlinear_init(&self.pr, &self.ba, &self.th,
                               &self.pt, &self.pm, &self.nl) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.nl.error_message)
-            self.ncp.add("nonlinear")
+            self.module_list.append("nonlinear")
 
         if "transfer" in level:
             if transfer_init(&(self.pr), &(self.ba), &(self.th),
                              &(self.pt), &(self.nl), &(self.tr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
-            self.ncp.add("transfer")
+            self.module_list.append("transfer")
 
         if "spectra" in level:
             if spectra_init(&(self.pr), &(self.ba), &(self.pt),
@@ -422,21 +486,21 @@ cdef class Class:
                             &(self.sp)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
-            self.ncp.add("spectra")
+            self.module_list.append("spectra")
 
         if "lensing" in level:
             if lensing_init(&(self.pr), &(self.pt), &(self.sp),
                             &(self.nl), &(self.le)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
-            self.ncp.add("lensing")
+            self.module_list.append("lensing")
 
         if "distortions" in level:
             if distortions_init(&(self.pr), &(self.ba), &(self.th),
                                 &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sd.error_message)
-            self.ncp.add("distortions")
+            self.module_list.append("distortions")
 
         self.computed = True
 
