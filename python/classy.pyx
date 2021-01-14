@@ -342,10 +342,11 @@ cdef class Class:
             self.fc.read[i] = _FALSE_
             i+=1
 
-    # Called at the end of a run, to free memory
+    # Called at the end of a run, to free memory 
     def struct_cleanup(self):
         if(self.allocated != True):
           return
+        #print(self.ncp)
         if "distortions" in self.ncp:
             distortions_free(&self.sd)
         if "lensing" in self.ncp:
@@ -637,6 +638,7 @@ cdef class Class:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
             self.ncp.add("perturb")
+            #print(self.ncp)
             timer.end("perturb_init")
 
             # flag for using NN
@@ -744,6 +746,7 @@ cdef class Class:
                 timer.end("overwrite k array")
 
                 timer.start("allocate unused source functions")
+
                 for index_type in range(tp_size):
                     # Using malloc instead of calloc here will cause the splining
                     # in transfer.c to explode, but that doesn't seem to be an issue.
@@ -766,6 +769,13 @@ cdef class Class:
                             index_tp_x,
                             k_NN_size, tau_size, NN_prediction[i, :, :]
                             )
+                if self.pt.has_source_delta_cb:
+                    self.overwrite_source_function(
+                            index_md, index_ic,
+                            self.pt.index_tp_delta_cb,
+                            k_NN_size, tau_size, NN_prediction[source_names.index("delta_m"), :, :]
+                            )
+
 
                 ############################################################
                 # if self.pt.has_source_t:
@@ -815,6 +825,8 @@ cdef class Class:
                 timer.end("neural network complete")
 
             timer.end("perturb")
+
+            #print(self.ncp)
 
             if post_perturb_callback:
                 post_perturb_callback(self)
@@ -880,7 +892,7 @@ cdef class Class:
             performance_report.update(timer.times)
 
         self.computed = True
-
+        #print(self.ncp)
         # At this point, the cosmological instance contains everything needed. The
         # following functions are only to output the desired numbers
         return
@@ -1214,6 +1226,7 @@ cdef class Class:
             raise CosmoSevereError("No power spectrum computed. You must add mPk to the list of outputs.")
 
         if (self.nl.method == nl_none):
+            #print("no nonlinear_method called_here")
             if nonlinear_pk_at_k_and_z(&self.ba,&self.pm,&self.nl,pk_linear,k,z,self.nl.index_pk_m,&pk,NULL)==_FAILURE_:
                 raise CosmoSevereError(self.nl.error_message)
         else:

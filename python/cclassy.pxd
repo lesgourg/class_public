@@ -207,6 +207,7 @@ cdef extern from "class.h":
         int has_source_delta_g
         int has_source_theta_m
         int has_source_theta_b
+        int has_source_delta_cb
         int has_source_phi
         int has_source_phi_prime
         int has_source_phi_plus_psi
@@ -229,6 +230,7 @@ cdef extern from "class.h":
         int index_tp_t2_reio
         int index_tp_p
         int index_tp_delta_m
+        int index_tp_delta_cb
         int index_tp_theta_m
         int index_tp_phi
         int index_tp_phi_plus_psi

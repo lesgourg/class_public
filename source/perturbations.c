@@ -894,7 +894,7 @@ int perturb_free(
 
     for (index_md = 0; index_md < ppt->md_size; index_md++) {
 
-      if(!ppt->perform_NN_skip){
+      /*if(!ppt->perform_NN_skip){*/ 
 
       for (index_ic = 0; index_ic < ppt->ic_size[index_md]; index_ic++) {
 
@@ -906,7 +906,7 @@ int perturb_free(
 
         }
 
-      }}
+      }/*}*/
 
       free(ppt->sources[index_md]);
       free(ppt->late_sources[index_md]);
@@ -1759,8 +1759,7 @@ int perturb_timesampling_for_sources(
   free(pvecback);
   free(pvecthermo);
 
-  if(ppt->perform_NN_skip){return _SUCCESS_;}
-
+  
   /** - check the maximum redshift z_max_pk at which the Fourier
       transfer functions \f$ T_i(k,z)\f$ should be computable by
       interpolation. If it is equal to zero, only \f$ T_i(k,z=0)\f$
@@ -1813,6 +1812,7 @@ int perturb_timesampling_for_sources(
       ppt->ln_tau[index_tau]=log(ppt->tau_sampling[index_tau-ppt->ln_tau_size+ppt->tau_size]);
     }
   }
+  if(ppt->perform_NN_skip){return _SUCCESS_;}
 
   /** - loop over modes, initial conditions and types. For each of
       them, allocate array of source functions. */
