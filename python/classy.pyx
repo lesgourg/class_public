@@ -27,6 +27,10 @@ def viewdictitems(d):
         return d.items()
     else:
         return d.viewitems()
+def string_to_char(d):
+    if (sys.version_info >= (3,0) and isinstance(d,str)) or isinstance(d,unicode):
+        d = d.encode('utf8')
+    return d
 
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
@@ -92,7 +96,9 @@ cdef class c_linked_list:
       newnode = <clist_node*>malloc(sizeof(clist_node))
       newnode.next = NULL
       newnode.prev = self.tail
-      newnode.value = item
+      # Setting the value is a bit difficult, and proceeds in two steps:
+      sanitized_item = string_to_char(item) # First, make sure it's a bytes object
+      strcpy(newnode.value,sanitized_item)  # Second, copy the string into the node (at most lenght 40)
       # Connect previous node with new node, if that exists
       if self.tail != NULL:
         self.tail.next = newnode
@@ -118,8 +124,9 @@ cdef class c_linked_list:
     # Check if the linked list contains a single value
     cdef contains(self,value):
       temp = self.tail
+      sanitized_value = string_to_char(value)
       while temp!=NULL:
-        if(temp.value==value):
+        if(temp.value==sanitized_value):
           return True
         temp = temp.prev
       return False
@@ -130,12 +137,12 @@ cdef class c_linked_list:
       for value in values:
         if not self.contains(value):
           flag=False
+          break
       return flag
 
     cdef clean(self):
       while not self.empty():
         self.pop()
-
 
 cdef class Class:
     """

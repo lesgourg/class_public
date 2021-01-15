@@ -14,7 +14,7 @@ DEF _LINE_LENGTH_MAX_ = 1024
 cdef struct clist_node:
     clist_node* prev
     clist_node* next
-    char* value
+    char[40] value
 
 cdef extern from "class.h":
 
