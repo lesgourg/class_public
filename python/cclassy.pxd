@@ -11,6 +11,11 @@ DEF _MAXTITLESTRINGLENGTH_ = 8000
 DEF _FILENAMESIZE_ = 256
 DEF _LINE_LENGTH_MAX_ = 1024
 
+cdef struct clist_node:
+    clist_node* prev
+    clist_node* next
+    char* value
+
 cdef extern from "class.h":
 
     cdef char[10] _VERSION_

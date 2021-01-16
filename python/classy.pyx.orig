@@ -99,7 +99,6 @@ cdef class c_linked_list:
       newnode = <clist_node*>malloc(sizeof(clist_node))
       newnode.next = NULL
       newnode.prev = self.tail
-      item = item.encode("utf-8")
       newnode.value = item
       # Connect previous node with new node, if that exists
       if self.tail != NULL:
@@ -411,7 +410,12 @@ cdef class Class:
     def struct_cleanup(self):
         if(self.allocated != True):
           return
+<<<<<<< HEAD
+        #print(self.ncp)
+        if "distortions" in self.ncp:
+=======
         if self.module_list.contains("distortions"):
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
             distortions_free(&self.sd)
         if self.module_list.contains("lensing"):
             lensing_free(&self.le)
@@ -644,8 +648,12 @@ cdef class Class:
             if background_init(&(self.pr), &(self.ba)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.ba.error_message)
-            self.module_list.append("background")
+<<<<<<< HEAD
+            self.ncp.add("background")
             timer.end("background")
+=======
+            self.module_list.append("background")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "thermodynamics" in level:
             timer.start("thermodynamics")
@@ -653,7 +661,8 @@ cdef class Class:
                                    &(self.th)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.th.error_message)
-            self.module_list.append("thermodynamics")
+<<<<<<< HEAD
+            self.ncp.add("thermodynamics")
             timer.end("thermodynamics")
 
         # define objects for NN
@@ -680,7 +689,9 @@ cdef class Class:
             # TODO remove some of the unused ones here
             double [:, :, :] NN_prediction
             double * c_NN_sources
-
+=======
+            self.module_list.append("thermodynamics")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "perturb" in level:
 
@@ -702,8 +713,9 @@ cdef class Class:
                             &(self.th), &(self.pt)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pt.error_message)
-            
-            self.module_list.append("perturb")
+<<<<<<< HEAD
+            self.ncp.add("perturb")
+            #print(self.ncp)
             timer.end("perturb_init")
 
             # flag for using NN
@@ -895,7 +907,9 @@ cdef class Class:
 
             if post_perturb_callback:
                 post_perturb_callback(self)
-
+=======
+            self.module_list.append("perturb")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "primordial" in level:
             timer.start("primordial")
@@ -903,10 +917,12 @@ cdef class Class:
                                &(self.pm)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.pm.error_message)
-            
-            self.module_list.append("primordial")
+<<<<<<< HEAD
+            self.ncp.add("primordial")
             timer.end("primordial")
-
+=======
+            self.module_list.append("primordial")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "nonlinear" in level:
             timer.start("nonlinear")
@@ -914,10 +930,12 @@ cdef class Class:
                               &self.pt, &self.pm, &self.nl) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.nl.error_message)
-
-            self.module_list.append("nonlinear")
+<<<<<<< HEAD
+            self.ncp.add("nonlinear")
             timer.end("nonlinear")
-
+=======
+            self.module_list.append("nonlinear")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "transfer" in level:
             timer.start("transfer")
@@ -925,9 +943,12 @@ cdef class Class:
                              &(self.pt), &(self.nl), &(self.tr)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.tr.error_message)
-
-            self.module_list.append("transfer")
+<<<<<<< HEAD
+            self.ncp.add("transfer")
             timer.end("transfer")
+=======
+            self.module_list.append("transfer")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "spectra" in level:
             timer.start("spectra")
@@ -936,9 +957,12 @@ cdef class Class:
                             &(self.sp)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sp.error_message)
-            self.module_list.append("spectra")
+<<<<<<< HEAD
+            self.ncp.add("spectra")
             timer.end("spectra")
-
+=======
+            self.module_list.append("spectra")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "lensing" in level:
             timer.start("lensing")
@@ -946,9 +970,12 @@ cdef class Class:
                             &(self.nl), &(self.le)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.le.error_message)
-
-            self.module_list.append("lensing")
+<<<<<<< HEAD
+            self.ncp.add("lensing")
             timer.end("lensing")
+=======
+            self.module_list.append("lensing")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         if "distortions" in level:
             timer.start("distortions")
@@ -956,10 +983,12 @@ cdef class Class:
                                 &(self.pt), &(self.pm), &(self.sd)) == _FAILURE_:
                 self.struct_cleanup()
                 raise CosmoComputationError(self.sd.error_message)
-            
-            self.module_list.append("distortions")
+<<<<<<< HEAD
+            self.ncp.add("distortions")
             timer.end("distortions")
-
+=======
+            self.module_list.append("distortions")
+>>>>>>> 544f8f55c18b1780dc850760271950703ab11ebe
 
         timer.end("compute")
 
@@ -1761,6 +1790,7 @@ cdef class Class:
         For this reason, this method assumes that thermodynamics has been run already
         WITHOUT checking the `self.ready` flag.
         """
+        assert "thermodynamics" in self.ncp
         return self.th.rs_d
 
     def z_reio(self):
