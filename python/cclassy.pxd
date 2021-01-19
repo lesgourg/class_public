@@ -14,7 +14,7 @@ DEF _LINE_LENGTH_MAX_ = 1024
 cdef struct clist_node:
     clist_node* prev
     clist_node* next
-    char* value
+    char[40] value
 
 cdef extern from "class.h":
 
@@ -177,6 +177,7 @@ cdef extern from "class.h":
         short has_tensors
 
         short perform_NN_skip
+        double network_deltachisquared
 
         short has_density_transfers
         short has_velocity_transfers

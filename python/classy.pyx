@@ -34,6 +34,10 @@ def viewdictitems(d):
         return d.items()
     else:
         return d.viewitems()
+def string_to_char(d):
+    if (sys.version_info >= (3,0) and isinstance(d,str)) or isinstance(d,unicode):
+        d = d.encode('utf8')
+    return d
 
 ctypedef np.float_t DTYPE_t
 ctypedef np.int_t DTYPE_i
@@ -99,8 +103,9 @@ cdef class c_linked_list:
       newnode = <clist_node*>malloc(sizeof(clist_node))
       newnode.next = NULL
       newnode.prev = self.tail
-      item = item.encode("utf-8")
-      newnode.value = item
+      # Setting the value is a bit difficult, and proceeds in two steps:
+      sanitized_item = string_to_char(item) # First, make sure it's a bytes object
+      strcpy(newnode.value,sanitized_item)  # Second, copy the string into the node (at most lenght 40)
       # Connect previous node with new node, if that exists
       if self.tail != NULL:
         self.tail.next = newnode
@@ -126,8 +131,9 @@ cdef class c_linked_list:
     # Check if the linked list contains a single value
     cdef contains(self,value):
       temp = self.tail
+      sanitized_value = string_to_char(value)
       while temp!=NULL:
-        if(temp.value==value):
+        if(temp.value==sanitized_value):
           return True
         temp = temp.prev
       return False
@@ -138,6 +144,7 @@ cdef class c_linked_list:
       for value in values:
         if not self.contains(value):
           flag=False
+          break
       return flag
 
     cdef clean(self):
@@ -288,53 +295,43 @@ cdef class Class:
         """
         if not "neural network path" in self._pars:
             return False
-        elif "neural network path" in self.pars and "nn_verbose" in self.pars:
-            if self.pars["nn_verbose"]>1:
-                if not self.can_use_nn():
-                    print("##################################")
-                    print("#   NOT USING NEURAL NETWORKS!   #")
-                    print("##################################")
-                    return False
+        elif "neural network path" in self.pars:
+            using_nn = self.can_use_nn()
+            if "nn_verbose" in self.pars:
+                if self.pars["nn_verbose"]>1:
+                    if not using_nn:
+                        print("##################################")
+                        print("#   NOT USING NEURAL NETWORKS!   #")
+                        print("##################################")
+                        return False
+                    else:
+                        print("##################################")
+                        print("#    USING NEURAL NETWORKS!      #")
+                        print("##################################")
+                        return True
+                elif self.pars["nn_verbose"]==1:
+                    if not using_nn:
+                        print("USING NEURAL NETWORKS : False!")
+                        return False
+                    else:
+                        print("USING NEURAL NETWORKS :          True!")
+                        return True
+                elif self.pars["nn_verbose"]==0:
+                    if not using_nn:
+                        return False
+                    else:
+                        return True
                 else:
-                    print("##################################")
-                    print("#    USING NEURAL NETWORKS!      #")
-                    print("##################################")
-                    return True
-            elif self.pars["nn_verbose"]==1:
-                if not self.can_use_nn():
-                    print("USING NEURAL NETWORKS : False!")
-                    return False
-                else:
-                    print("USING NEURAL NETWORKS :          True!")
-                    return True
-            elif self.pars["nn_verbose"]==0:
-                if not self.can_use_nn():
-                    return False
-                else:
-                    return True
-            else:
-                raise ValueError("nn_verbose is not set to valid value: should be integer above 0 but is {}".format(self.pars["nn_verbose"]))
-        else:
-            if not self.can_use_nn():
-                print("##################################")
-                print("#   NOT USING NEURAL NETWORKS!   #")
-                print("##################################")
-                return False
-            else:
-                print("##################################")
-                print("#    USING NEURAL NETWORKS!      #")
-                print("##################################")
-                return True
- 
-
+                    raise ValueError("nn_verbose is not set to valid value: should be integer above 0 but is {}".format(self.pars["nn_verbose"]))
+        
 
 
     def can_use_nn(self):
         """ may only be called if neural networks are enabled """
         workspace = self.nn_workspace()
         domain = workspace.loader().domain_descriptor()
-
-        if not domain.contains(self._pars):
+        using_nn, self.pt.network_deltachisquared = domain.contains(self._pars)
+        if not using_nn:
             if "nn_verbose" in self.pars:
                 if self.pars["nn_verbose"]>1:
                     print("neural network domain of validity does not contain requested parameters")
@@ -2415,6 +2412,8 @@ cdef class Class:
                 value = self.sd.sd_parameter_table[1]
             elif name == 'mu_sd':
                 value = self.sd.sd_parameter_table[2]
+            elif name == 'network_delta_chi_sqared':
+                value = self.pt.network_deltachisquared
             else:
                 raise CosmoSevereError("%s was not recognized as a derived parameter" % name)
             derived[name] = value

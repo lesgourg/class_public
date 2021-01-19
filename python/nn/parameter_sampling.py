@@ -163,16 +163,16 @@ class EllipsoidDomain(ParamDomain):
         are present in parameters.
         """
         if parameters["tau_reio"] <= 0.004:
-            return False
+            return False, 1001
         if parameters["w0_fld"] + parameters["wa_fld"] > -1/3:
-            return False
+            return False, 1002
         if parameters["omega_ncdm"] <= OMEGA_NCDM_MIN:
-            return False
+            return False, 1003
         cosmo_params = np.array([parameters[name] for name in self.pnames])[None, :]
         sigma = self.sigma_validate if validate else self.sigma_train
-        inside = is_inside_ellipsoid(self.inv_covmat, cosmo_params,
-                                     self.best_fit, self.ndf, sigma)
-        return inside[0]
+        inside, delta_chi2 = is_inside_ellipsoid(self.inv_covmat, cosmo_params,
+                                     self.best_fit, self.ndf, sigma, return_delta_chi2=True)
+        return inside[0], delta_chi2[0]
 
     def save(self, path):
         d = {
@@ -371,7 +371,7 @@ def get_delta_chi2(df, sigma):
     prob = 1 - 2 * ss.norm.sf(sigma)
     return ss.chi2.ppf(prob,df)
 
-def is_inside_ellipsoid(inv_covmat, params, bestfit, df, sigma):
+def is_inside_ellipsoid(inv_covmat, params, bestfit, df, sigma, return_delta_chi2 = False):
     """
     params: (n, k)
     bestfit (k,)
@@ -380,7 +380,11 @@ def is_inside_ellipsoid(inv_covmat, params, bestfit, df, sigma):
     """
     delta_chi2 = get_delta_chi2(df, sigma)
     d = params - bestfit
-    return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2
+    if return_delta_chi2 == False:
+        return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2
+    else:
+        return (d.dot(inv_covmat) * d).sum(axis=1) < delta_chi2, (d.dot(inv_covmat) * d).sum(axis=1)
+
 
 def is_inside_ellipsoid_(inv_covmat, params, bestfit, mask, df, sigma):
     """
