@@ -13,6 +13,8 @@
 #include "nonlinear_module.h"
 #include "lensing_module.h"
 #include "spectra_module.h"
+
+#include <thread>
 /**
  * Use this routine to extract initial parameters from files 'xxx.ini'
  * and/or 'xxx.pre'. They can be the arguments of the main() routine.
@@ -570,6 +572,28 @@ int InputModule::input_read_parameters() {
       parameters accordingly*/
 
   class_read_int("input_verbose",input_verbose);
+
+  class_call(parser_read_int(pfc, "threads", &int1, &flag1, errmsg),
+             errmsg,
+             errmsg);
+  if (flag1 == _TRUE_) {
+    pba->number_of_threads = int1;
+  }
+  else {
+    // If threads was not specified an input, use std::thread::hardware_concurrency() as
+    // default. Then loop through a list of environment variable names, and if one of
+    // them is set to value 0 < threads <= 8192, use that one instead.
+    pba->number_of_threads = std::thread::hardware_concurrency();
+    for (const std::string& env_var_name : {"SLURM_CPUS_PER_TASK", "OMP_NUM_THREADS"}) {
+      if (char* s = std::getenv(env_var_name.c_str())) {
+        int threads = std::atoi(s);
+        if ((threads > 0) && (threads <= 8192)) {
+          pba->number_of_threads = threads;
+          break;
+        }
+      }
+    }
+  }
 
   /** Knowing the gauge from the very beginning is useful (even if
       this could be a run not requiring perturbations at all: even in

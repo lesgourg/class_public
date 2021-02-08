@@ -291,7 +291,7 @@ int TransferModule::transfer_init() {
                error_message_,
                error_message_);
   }
-  Tools::TaskSystem task_system;
+  Tools::TaskSystem task_system(pba->number_of_threads);
   std::vector<std::future<int>> future_output;
     /** - loop over all wavenumbers (parallelized).*/
     /* For each wavenumber: */

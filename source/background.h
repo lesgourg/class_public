@@ -180,6 +180,8 @@ struct background
 
   //@{
 
+  unsigned int number_of_threads;
+
   short background_verbose; /**< flag regulating the amount of information sent to standard output (none if set to zero) */
 
   //@}

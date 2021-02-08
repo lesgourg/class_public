@@ -659,7 +659,7 @@ int PerturbationsModule::perturb_init() {
   /** - create an array of workspaces in multi-thread case */
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */
-  Tools::TaskSystem task_system;
+  Tools::TaskSystem task_system(pba->number_of_threads);
   std::vector<std::future<int>> future_output;
 
   for (index_md = 0; index_md < md_size_; index_md++) {

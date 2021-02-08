@@ -842,7 +842,7 @@ int SpectraModule::spectra_cls() {
     l_[index_l] = (double)transfer_module_->l_[index_l];
   }
 
-  Tools::TaskSystem task_system;
+  Tools::TaskSystem task_system(pba->number_of_threads);
   std::vector<std::future<int>> future_output;
 
   /** - loop over modes (scalar, tensors, etc). For each mode: */

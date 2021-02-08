@@ -1524,7 +1524,7 @@ int PrimordialModule::primordial_inflation_analytic_spectra(double * y_ini) {
 
 int PrimordialModule::primordial_inflation_spectra(double * y_ini) {
   int index_k;
-  Tools::TaskSystem task_system;
+  Tools::TaskSystem task_system(pba->number_of_threads);
   std::vector<std::future<int>> future_output;
 
   /* loop over Fourier wavenumbers */
