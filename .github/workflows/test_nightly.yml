@@ -50,7 +50,7 @@ jobs:
     runs-on: [self-hosted, linux, heavy]
     needs: iftest
     if: needs.iftest.outputs.should_run > 0
-    timeout-minutes: 720
+    timeout-minutes: 1440
     steps:
     - name: Checkout 🛎
       uses: actions/checkout@v2
@@ -90,7 +90,7 @@ jobs:
     runs-on: [self-hosted, linux, heavy]
     needs: iftest
     if: needs.iftest.outputs.should_run > 0
-    timeout-minutes: 720
+    timeout-minutes: 1440
     steps:
     - name: Checkout 🛎
       uses: actions/checkout@v2
