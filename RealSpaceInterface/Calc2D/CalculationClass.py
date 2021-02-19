@@ -71,7 +71,7 @@ class Calculation(object):
         Valuenew = dict()
         FValue_abs = np.abs(self.FValue)
         _min, _max = FValue_abs.min(), FValue_abs.max()
-        dimensions = (self.endshape[0] / 2, self.endshape[1])
+        dimensions = (self.endshape[0] // 2, self.endshape[1])
         for quantity, FT in FValuenew.items():
             FT_abs = np.abs(FT)
             FT_normalized = cv2.resize(FT_abs, dimensions).ravel()
@@ -98,7 +98,7 @@ class Calculation(object):
         return Value.ravel(), cv2.resize(
             (np.abs(self.FValue) - np.abs(self.FValue).min()) /
             (np.abs(self.FValue).max() - np.abs(self.FValue).min()),
-            (self.endshape[0] / 2, self.endshape[1])).ravel(), (minimum,
+            (self.endshape[0] // 2, self.endshape[1])).ravel(), (minimum,
                                                                 maximum)
 
     def getTransferData(self, redshiftindex):
