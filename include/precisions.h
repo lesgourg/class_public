@@ -1,14 +1,9 @@
-#include "precision_macros.h"
+#include "macros_precision.h"
 
 /*
  * Background Quantities
- * */
-
-/**
- * Tolerance parameter setting the accuracy of the shooting method in the input module,
- * when there is only one parameter requiring shooting.
  */
-class_precision_parameter(tol_shooting_1d,double,1.e-6)
+
 /**
  * Default initial value of scale factor used in the integration of background quantities.
  * For models like ncdm, the code may decide to start the integration earlier.
@@ -65,13 +60,28 @@ class_precision_parameter(tol_ncdm_initial_w,double,1.e-3)
  * Tolerance on the deviation of the conformal time of equality from the true value in 1/Mpc.
  */
 class_precision_parameter(tol_tau_eq,double,1.e-6)
+
 /**
  * Minimum amount of cdm to allow calculations in synchronous gauge comoving with cdm.
  */
 class_precision_parameter(Omega0_cdm_min_synchronous,double,1.e-10)
+
+/**
+ * Absolute tolerance of root x during shooting (only 2D case)
+ */
+class_precision_parameter(tol_shooting_deltax,double,1.e-4)
+/**
+ * Absolute tolerance of function value F during shooting (only 2D case)
+ */
+class_precision_parameter(tol_shooting_deltaF,double,1.e-6)
+/**
+ * Relative tolerance of root x during shooting (only 1D case)
+ */
+class_precision_parameter(tol_shooting_deltax_rel,double,1.e-5)
 /*
  * Currently unused parameter.
  */
+
 //class_precision_parameter(safe_phi_scf,double,0.0)
 /**
  * Big Bang Nucleosynthesis file path. The file specifies the predictions for
@@ -81,7 +91,7 @@ class_string_parameter(sBBN_file,"/external/bbn/sBBN_2017.dat","sBBN file")
 
 /*
  *  Thermodynamical quantities
- * */
+ */
 
 
 /**
@@ -163,6 +173,10 @@ class_string_parameter(hyrec_Alpha_inf_file,"/hyrec/Alpha_inf.dat","Alpha_inf hy
 class_string_parameter(hyrec_R_inf_file,"/hyrec/R_inf.dat","R_inf hyrec file") /**< File containing the R_inf parameter of hyrec */
 class_string_parameter(hyrec_two_photon_tables_file,"/hyrec/two_photon_tables.dat","two_photon_tables hyrec file") /**< File containing the two-photon interaction parameter of hyrec */
 
+/*
+ * Perturbation parameters
+ */
+
 class_precision_parameter(k_min_tau0,double,0.1) /**< number defining k_min for the computation of Cl's and P(k)'s (dimensionless): (k_min tau_0), usually chosen much smaller than one */
 
 class_precision_parameter(k_max_tau0_over_l_max,double,2.4) /**< number defining k_max for the computation of Cl's (dimensionless): (k_max tau_0)/l_max, usually chosen around two */
@@ -227,18 +241,15 @@ class_precision_parameter(gw_ini,double,1.0)      /**< initial condition for ten
  * default step \f$ d \tau \f$ in perturbation integration, in units of the timescale involved in the equations (usually, the min of \f$ 1/k \f$, \f$ 1/aH \f$, \f$ 1/\dot{\kappa} \f$)
  */
 class_precision_parameter(perturb_integration_stepsize,double,0.5)
-
 /**
  * default step \f$ d \tau \f$ for sampling the source function, in units of the timescale involved in the sources: \f$ (\dot{\kappa}- \ddot{\kappa}/\dot{\kappa})^{-1} \f$
  */
 class_precision_parameter(perturb_sampling_stepsize,double,0.1)
-
 /**
  * control parameter for the precision of the perturbation integration,
  * IMPORTANT FOR SETTING THE STEPSIZE OF NDF15
  */
 class_precision_parameter(tol_perturb_integration,double,1.0e-5)
-
 /**
  * cutoff relevant for controlling stiffness in the PPF scheme. It is
  * neccessary for the Runge-Kutta evolver, but not for ndf15. However,
@@ -246,19 +257,16 @@ class_precision_parameter(tol_perturb_integration,double,1.0e-5)
  * leave it on for both evolvers. (CAMB uses a cutoff value of 30.)
  */
 class_precision_parameter(c_gamma_k_H_square_max,double,1.0e3)
-
 /**
  * precision with which the code should determine (by bisection) the
  * times at which sources start being sampled, and at which
  * approximations must be switched on/off (units of Mpc)
  */
 class_precision_parameter(tol_tau_approx,double,1.0e-10)
-
 /**
  * method for switching off photon perturbations
  */
 class_precision_parameter(radiation_streaming_approximation,int,rsa_MD_with_reio)
-
 /**
  * when to switch off photon perturbations, ie when to switch
  * on photon free-streaming approximation (keep density and thtau, set
@@ -266,7 +274,6 @@ class_precision_parameter(radiation_streaming_approximation,int,rsa_MD_with_reio
  * first condition: \f$ k \tau \f$ > radiation_streaming_trigger_tau_h_over_tau_k
  */
 class_precision_parameter(radiation_streaming_trigger_tau_over_tau_k,double,45.0)
-
 /**
  * when to switch off photon perturbations, ie when to switch
  * on photon free-streaming approximation (keep density and theta, set
@@ -280,27 +287,22 @@ class_precision_parameter(idr_streaming_trigger_tau_over_tau_k,double,50.0) /**<
 class_precision_parameter(idr_streaming_trigger_tau_c_over_tau,double,10.0) /**< when to switch on dark radiation (idr) free-streaming approximation, second condition */
 
 class_precision_parameter(ur_fluid_approximation,int,ufa_CLASS) /**< method for ultra relativistic fluid approximation */
-
 /**
  * when to switch off ur (massless neutrinos / ultra-relativistic
  * relics) fluid approximation
  */
 class_precision_parameter(ur_fluid_trigger_tau_over_tau_k,double,30.0)
-
 class_precision_parameter(ncdm_fluid_approximation,int,ncdmfa_CLASS) /**< method for non-cold dark matter fluid approximation */
-
 /**
  * when to switch off ncdm (massive neutrinos / non-cold
  * relics) fluid approximation
  */
 class_precision_parameter(ncdm_fluid_trigger_tau_over_tau_k,double,31.0)
-
 /**
  * whether CMB source functions can be approximated as zero when
  * visibility function g(tau) is tiny
  */
 class_precision_parameter(neglect_CMB_sources_below_visibility,double,1.0e-3)
-
 /**
  * The type of evolver to use: options are ndf15 or rk
  */
@@ -308,8 +310,7 @@ class_type_parameter(evolver,int,enum evolver_type,ndf15)
 
 /*
  * Primordial parameters
- * */
-
+ */
 
 class_precision_parameter(k_per_decade_primordial,double,10.0) /**< logarithmic sampling for primordial spectra (number of points per decade in k space) */
 
@@ -332,8 +333,7 @@ class_precision_parameter(primordial_inflation_extra_efolds,double,2.0) /**< a s
 
 /*
  * Transfer function parameters
- * */
-
+ */
 
 class_precision_parameter(l_linstep,int,40) /**< factor for logarithmic spacing of values of l over which bessel and transfer functions are sampled */
 
@@ -437,24 +437,25 @@ class_precision_parameter(halofit_min_k_nonlinear,double,1.0e-4)/**< value of k 
 class_precision_parameter(halofit_min_k_max,double,5.0) /**< DEPRECATED: should use instead nonlinear_min_k_max */
 
 class_precision_parameter(halofit_k_per_decade,double,80.0) /**< halofit needs to evalute integrals
-                                  (linear power spectrum times some
-                                  kernels). They are sampled using
-                                  this logarithmic step size. */
+                               (linear power spectrum times some
+                               kernels). They are sampled using
+                               this logarithmic step size. */
 
 class_precision_parameter(halofit_sigma_precision,double,0.05) /**< a smaller value will lead to a
-				      more precise halofit result at the *highest*
-				      redshift at which halofit can make computations,
-				      at the expense of requiring a larger k_max; but
-				      this parameter is not relevant for the
-				      precision on P_nl(k,z) at other redshifts, so
-				      there is normally no need to change it */
+                               more precise halofit result at the *highest*
+                               redshift at which halofit can make computations,
+                               at the expense of requiring a larger k_max; but
+                               this parameter is not relevant for the
+                               precision on P_nl(k,z) at other redshifts, so
+                               there is normally no need to change it */
 
 class_precision_parameter(halofit_tol_sigma,double,1.0e-6) /**< tolerance required on sigma(R) when
                                matching the condition sigma(R_nl)=1,
                                whcih defines the wavenumber of
                                non-linearity, k_nl=1./R_nl */
 
-class_precision_parameter(pk_eq_z_max,double,5.0) /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_z_max,double,5.0)  /**< Maximum z for the pk_eq method */
+class_precision_parameter(pk_eq_Nzlog,int,10)      /**< Number of logarithmically spaced redshift values for the pk_eq method */
 class_precision_parameter(pk_eq_tol,double,1.0e-7) /**< Tolerance on the pk_eq method for finding the pk */
 
 /** Parameters relevant for HMcode computation */
@@ -490,12 +491,32 @@ class_precision_parameter(mmax_for_p1h_integral,double,1.e18)
 
 /*
  * Lensing precision parameters
- * */
+ */
 
 class_precision_parameter(accurate_lensing,int,_FALSE_) /**< switch between Gauss-Legendre quadrature integration and simple quadrature on a subdomain of angles */
 class_precision_parameter(num_mu_minus_lmax,int,70) /**< difference between num_mu and l_max, increase for more precision */
 class_precision_parameter(delta_l_max,int,500)/**< difference between l_max in unlensed and lensed spectra */
 class_precision_parameter(tol_gauss_legendre,double,ppr->smallest_allowed_variation) /**< tolerance with which quadrature points are found: must be very small for an accurate integration (if not entered manually, set automatically to match machine precision) */
+
+/*
+ * Spectral distortions precision parameters
+ */
+
+class_precision_parameter(sd_z_min,double,1.02e3)
+class_precision_parameter(sd_z_max,double,5.0e6)
+class_precision_parameter(sd_z_size,int,400)
+
+class_precision_parameter(sd_x_min,double,1.0e-2)
+class_precision_parameter(sd_x_max,double,5.0e1)
+class_precision_parameter(sd_x_size,int,500)
+
+/**
+ * Tolerance on the deviation of the distortions detector quality
+ */
+class_precision_parameter(tol_sd_detector,double,1.e-5)
+
+class_string_parameter(sd_external_path,"/external/distortions","sd_external_path")
+
 
 #undef class_precision_parameter
 #undef class_string_parameter

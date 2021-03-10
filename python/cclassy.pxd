@@ -312,7 +312,7 @@ cdef extern from "class.h":
     cdef int _FALSE_
     cdef int _TRUE_
 
-    int input_init(void*, void*, void*, void*, void*, void*, void*, void*, void*,
+    int input_read_from_file(void*, void*, void*, void*, void*, void*, void*, void*, void*,
         void*, void*, char*)
     int background_init(void*,void*)
     int thermodynamics_init(void*,void*,void*)
