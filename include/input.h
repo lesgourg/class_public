@@ -280,8 +280,6 @@ extern "C" {
                       double tol,
                       ErrorMsg errmsg);
 
-  int file_exists(const char *fname);
-
   int input_auxillary_target_conditions(struct file_content * pfc,
                                         enum target_names target_name,
                                         double target_value,
@@ -289,8 +287,6 @@ extern "C" {
                                         ErrorMsg error_message);
 
   int compare_integers (const void * elem1, const void * elem2);
-
-  int compare_doubles(const void *a,const void *b);
 
   int input_prepare_pk_eq(
                           struct precision * ppr,

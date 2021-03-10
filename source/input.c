@@ -3499,14 +3499,6 @@ int input_default_precision ( struct precision * ppr ) {
 
 }
 
-int class_version(
-                  char * version
-                  ) {
-
-  sprintf(version,"%s",_VERSION_);
-  return _SUCCESS_;
-}
-
 /**
  * Automatically computes the machine precision.
  *
@@ -4129,15 +4121,6 @@ int input_find_root(double *xzero,
   return _SUCCESS_;
 }
 
-int file_exists(const char *fname){
-  FILE *file = fopen(fname, "r");
-  if (file != NULL){
-    fclose(file);
-    return _TRUE_;
-  }
-  return _FALSE_;
-}
-
 int input_auxillary_target_conditions(struct file_content * pfc,
                                       enum target_names target_name,
                                       double target_value,
@@ -4175,17 +4158,6 @@ int compare_integers (const void * elem1, const void * elem2) {
   if (f < s) return -1;
   return 0;
 }
-
-int compare_doubles(const void *a,const void *b) {
-  double *x = (double *) a;
-  double *y = (double *) b;
-  if (*x < *y)
-    return -1;
-  else if
-    (*x > *y) return 1;
-  return 0;
-}
-
 
 /**
  * Perform preliminary steps fur using the method called Pk_equal,
